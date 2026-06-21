@@ -1,7 +1,8 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import typing
+from typing import Annotated
 
 import pydantic
 from pydantic import ConfigDict
@@ -12,28 +13,38 @@ from orchestrator.schema.property_value import (
 )
 
 
-def reference_string_from_fields(actuator_identifier, experiment_identifier):
+def reference_string_from_fields(
+    actuator_identifier: str, experiment_identifier: str
+) -> str:
     """This method defines the identifier string used by ExperimentReference and Experiment"""
 
     return f"{actuator_identifier}.{experiment_identifier}"
 
 
 class ExperimentReference(pydantic.BaseModel):
-    experimentIdentifier: str = pydantic.Field(
-        description="The identifier of an experiment in an actuator experiment catalog"
-    )
-    actuatorIdentifier: str = pydantic.Field(
-        description="The identifier of the actuator that supplies the experiment"
-    )
-    parameterization: list[ConstitutivePropertyValue] | None = pydantic.Field(
-        default=None,
-        description="A list of values for optional properties of the experiment",
-    )
+    experimentIdentifier: Annotated[
+        str,
+        pydantic.Field(
+            description="The identifier of an experiment in an actuator experiment catalog"
+        ),
+    ]
+    actuatorIdentifier: Annotated[
+        str,
+        pydantic.Field(
+            description="The identifier of the actuator that supplies the experiment"
+        ),
+    ]
+    parameterization: Annotated[
+        list[ConstitutivePropertyValue] | None,
+        pydantic.Field(
+            description="A list of values for optional properties of the experiment"
+        ),
+    ] = None
 
     model_config = ConfigDict(frozen=True)
 
     @classmethod
-    def referenceFromString(cls, stringRepresentation):
+    def referenceFromString(cls, stringRepresentation: str) -> "ExperimentReference":
         """Convert a string representation of a reference into a ExperimentReference instance, if possible
 
         This method relied on the actuator id not containing any periods as this is the separator
@@ -51,14 +62,14 @@ class ExperimentReference(pydantic.BaseModel):
                 f"At least one '.' is required to separate actuator id from experiment id. "
                 f"If actuator id contains a period this method will not be able to parse the id from the reference string representation"
                 f"Underlying error: {error}"
-            )
+            ) from error
         else:
             return cls(
                 experimentIdentifier=experimentIdentifier,
                 actuatorIdentifier=actuatorIdentifier,
             )
 
-    def compareWithoutParameterization(self, other: "ExperimentReference"):
+    def compareWithoutParameterization(self, other: "ExperimentReference") -> bool:
         """Compares to other using actuator id and base experiment id, no parameterization
 
         If this method returns true if the two references refer to the same experiment in the same actuator,
@@ -69,17 +80,17 @@ class ExperimentReference(pydantic.BaseModel):
             and self.experimentIdentifier == other.experimentIdentifier
         )
 
-    def __str__(self):
+    def __str__(self) -> str:
         return reference_string_from_fields(
             self.actuatorIdentifier, self.parameterizedExperimentIdentifier
         )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return reference_string_from_fields(
             self.actuatorIdentifier, self.parameterizedExperimentIdentifier
         )
 
-    def __eq__(self, other: "ExperimentReference"):
+    def __eq__(self, other: object) -> bool:  # noqa: ANN401
         """Two references, refer to same experiment if they have same parameterizedExperimentIdentifier
 
                 Note: when the references have no parameterization this is equivalent to comparing the experimentIdentifier
@@ -94,10 +105,10 @@ class ExperimentReference(pydantic.BaseModel):
 
         return retval
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(str(self))
 
-    def validate_parameterization(self):
+    def validate_parameterization(self) -> None:
 
         from orchestrator.modules.actuators.registry import (
             ActuatorRegistry,
@@ -114,11 +125,11 @@ class ExperimentReference(pydantic.BaseModel):
                     actuatorIdentifier=self.actuatorIdentifier,
                 )
             )
-        except UnknownExperimentError:
+        except UnknownExperimentError as error:
             raise ValueError(
                 "Failed validating parameterization. "
                 f"Cannot find experiment {self.experimentIdentifier} from actuator {self.actuatorIdentifier} in catalog"
-            )
+            ) from error
         else:
             if not experiment.optionalProperties and self.parameterization:
                 raise ValueError(
@@ -148,7 +159,9 @@ class ExperimentReference(pydantic.BaseModel):
         )
 
 
-def identifier_for_parameterized_experiment(identifier, parameterization):
+def identifier_for_parameterized_experiment(
+    identifier: str, parameterization: list[ConstitutivePropertyValue]
+) -> str:
 
     # Check the parameterized experiments id is as expected.
     # We construct it here as it's expected to be done

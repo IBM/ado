@@ -1,13 +1,14 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import orchestrator.core
 import orchestrator.utilities.location
 from orchestrator.core import DataContainerResource
 from orchestrator.core.datacontainer.resource import DataContainer, TabularData
+from orchestrator.utilities.location import SQLStoreConfiguration
 
 
-def test_tabular_data(testTabularDataString):
+def test_tabular_data(testTabularDataString: TabularData) -> None:
 
     df = testTabularDataString.dataframe()
     newdf = TabularData.from_dataframe(df)
@@ -15,8 +16,10 @@ def test_tabular_data(testTabularDataString):
 
 
 def test_data_container_resource(
-    data_container_resource, testTabularDataString, test_sample_store_location
-):
+    data_container_resource: DataContainerResource,
+    testTabularDataString: TabularData,
+    test_sample_store_location: SQLStoreConfiguration,
+) -> None:
 
     assert (
         data_container_resource.kind
@@ -63,8 +66,10 @@ def test_data_container_resource(
     )
 
 
-def test_datacontainer_pretty(data_container_resource):
-    from IPython.lib.pretty import pretty
+def test_datacontainer_rich_print(
+    data_container_resource: DataContainerResource,
+) -> None:
+    from rich.console import Console
 
-    assert hasattr(data_container_resource, "_repr_pretty_")
-    pretty(data_container_resource)
+    assert hasattr(data_container_resource, "__rich__")
+    Console().print(data_container_resource)

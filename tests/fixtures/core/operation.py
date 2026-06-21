@@ -1,65 +1,58 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-import json
-import pathlib
-import uuid
+from collections.abc import Callable
 
 import pytest
 import yaml
 
 import orchestrator.core
 import orchestrator.core.operation.resource
+from orchestrator.core import ADOResource
 from orchestrator.core.operation.config import (
     DiscoveryOperationConfiguration,
+    DiscoveryOperationEnum,
     DiscoveryOperationResourceConfiguration,
 )
+from orchestrator.core.operation.resource import OperationResource
+from orchestrator.metastore.sqlstore import SQLStore
 
 
 @pytest.fixture
-def random_operation_resource_from_file(random_identifier):
+def ml_multi_cloud_operation_resource(
+    random_identifier: Callable[[], str],
+    ml_multi_cloud_operation_configuration: DiscoveryOperationResourceConfiguration,
+) -> Callable[[str | None], OperationResource]:
 
-    def _random_operation_resource_from_file(
-        sample_store_id: str | None = None,
+    def _ml_multi_cloud_operation_resource(
         space_id: str | None = None,
-    ) -> orchestrator.core.operation.resource.OperationResource:
-        file = pathlib.Path("tests/resources/operation/operation_resource.json")
-        random_resource_id = str(uuid.uuid4())
-        if not sample_store_id:
-            sample_store_id = random_identifier()
-        if not space_id:
-            space_id = random_identifier()
+    ) -> OperationResource:
 
-        # Get the model
-        operation = (
-            orchestrator.core.operation.resource.OperationResource.model_validate(
-                json.loads(file.read_text())
-            )
+        if space_id:
+            ml_multi_cloud_operation_configuration.spaces = [space_id]
+
+        return OperationResource(
+            operationType=DiscoveryOperationEnum.SEARCH,
+            operatorIdentifier=random_identifier(),
+            config=ml_multi_cloud_operation_configuration,
         )
 
-        # Final touch-ups
-        operation.identifier = random_resource_id
-        operation.config.spaces = [space_id]
-        return operation
-
-    return _random_operation_resource_from_file
+    return _ml_multi_cloud_operation_resource
 
 
 @pytest.fixture
-def random_operation_resource_from_db(
-    random_operation_resource_from_file, create_resources
-):
-    def _random_operation_resource_from_db(
-        sample_store_id: str | None = None,
+def ml_multi_cloud_operation_resource_from_db(
+    ml_multi_cloud_operation_resource: Callable[[str | None], OperationResource],
+    create_resources: Callable[[list[ADOResource], SQLStore], None],
+) -> Callable[[str | None], OperationResource]:
+    def _ml_multi_cloud_operation_resource_from_db(
         space_id: str | None = None,
-    ) -> orchestrator.core.operation.resource.OperationResource:
-        operation = random_operation_resource_from_file(
-            sample_store_id=sample_store_id, space_id=space_id
-        )
+    ) -> OperationResource:
+        operation = ml_multi_cloud_operation_resource(space_id=space_id)
         create_resources(resources=[operation])
         return operation
 
-    return _random_operation_resource_from_db
+    return _ml_multi_cloud_operation_resource_from_db
 
 
 valid_operation_configs = [
@@ -78,13 +71,13 @@ valid_operation_configs = [
 
 
 @pytest.fixture(params=valid_operation_configs)
-def valid_operation_config_file(request):
+def valid_operation_config_file(request: pytest.FixtureRequest) -> str:
     return request.param
 
 
 @pytest.fixture
 def operation_configuration(
-    test_space_identifier,
+    test_space_identifier: str,
 ) -> DiscoveryOperationResourceConfiguration:
 
     # Return the default
@@ -94,12 +87,15 @@ def operation_configuration(
 
 
 @pytest.fixture
-def operation_resource(operation_configuration, test_space_identifier):
+def operation_resource(
+    operation_configuration: DiscoveryOperationResourceConfiguration,
+    test_space_identifier: str,
+) -> OperationResource:
 
     operation_configuration.spaces = [test_space_identifier]
 
     # Create a random operation resource
-    return orchestrator.core.operation.resource.OperationResource(
+    return OperationResource(
         config=operation_configuration,
         operationType=orchestrator.core.operation.config.DiscoveryOperationEnum.SEARCH,
         operatorIdentifier="randomwalk-0.3.1",
@@ -107,7 +103,7 @@ def operation_resource(operation_configuration, test_space_identifier):
 
 
 @pytest.fixture
-def test_operation_identifier(operation_resource):
+def test_operation_identifier(operation_resource: OperationResource) -> str:
 
     return operation_resource.identifier
 

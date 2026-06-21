@@ -4,116 +4,99 @@ description = """ado is a unified platform for executing computational experimen
 It can be easily extended with new experiments or new analysis tools. It allows distributed teams of
 researchers and engineers to collaborate on projects, execute experiments, and share data.
 """
-keywords = ["discovery", "exploration", "optimization", "orchestration", "ray"]
 readme = "README.md"
-license-files = ["LICEN[CS]E*", "vendored/licenses/*.txt", "AUTHORS.md"]
-authors = [
-    { name = "Michael A. Johnston", email = "michaelj@ie.ibm.com" }
-]
-maintainers = [
-    { name = "Michael A. Johnston", email = "michaelj@ie.ibm.com" }
-]
+requires-python = ">=3.10,<3.15"
+license-files = ["AUTHORS.md", "LICEN[CS]E*", "vendored/licenses/*.txt"]
+authors = [{ name = "Michael A. Johnston", email = "michaelj@ie.ibm.com" }]
+maintainers = [{ name = "Michael A. Johnston", email = "michaelj@ie.ibm.com" }]
+keywords = ["discovery", "exploration", "optimization", "orchestration", "ray"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
-    "Intended Audience :: Developers",
-    "Topic :: Software Development :: Build Tools",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Software Development :: Build Tools",
 ]
-
+dependencies = [
+  "build>=1.3.0",
+  "colorlog>=6.9.0",
+  "jsonpath-ng>=1.7.0",
+  "numpy>=1.26.4",
+  "pandas>=2.2.0",
+  "pydantic>=2.10",
+  "pymysql[rsa]>=1.1.1",
+  "pyyaml>=6.0.2",
+  "ray[serve]>=2.9",
+  "sqlalchemy>2",
+  "typer>=0.22.0",
+  "uv>=0.10.4",
+]
 # Deps/Build-related section
 dynamic = ["version"]
-requires-python = ">=3.10,<3.13"
-dependencies = [
-    "build>=1.3.0",
-    "colorlog>=6.9.0",
-    "jsonpath-ng>=1.7.0",
-    "jupyter>=1.1.1",
-    "numpy",
-    "pandas>=2.2.0",
-    "py-markdown-table>=1.3.0",
-    "pydantic>=2.10",
-    "pymysql[rsa]>=1.1.1",
-    "pyyaml>=6.0.2",
-    "ray[serve]>=2.9",
-    "sqlalchemy>2",
-    "typer>=0.16.1",
-]
 
 [project.urls]
+Changelog = "https://github.com/IBM/ado/blob/main/CHANGELOG.md"
 Homepage = "https://ibm.github.io/ado/"
-#Documentation = "https://readthedocs.org"
-Repository = "https://github.com/ibm/ado.git"
-Issues = "https://github.com/ibm/ado/issues"
-Changelog = "https://github.com/ibm/ado/CHANGELOG.md"
-
-[dependency-groups]
-dev = [
-    "black>=25.1.0",
-    "coverage>=7.10.2",
-    "pip>=25.1.1",
-    "pre-commit>=4.2.0",
-    "pydevd>=3.3.0",
-    "pytest>=8.3.5",
-    "pytest-asyncio>=1.0.0",
-    "pytest-recording>=0.13.4",
-    "pytest-timeout>=2.4.0",
-    "pytest-xdist>=3.6.1",
-    "ruff>=0.12.1",
-    "testcontainers>=4.10.0",
-    "tox>=4.26.0",
-    "tox-uv>=1.25.0",
-]
-docs = [
-    "htmlmin>=0.1.12",
-    "mkdocs>=1.6.1",
-    "mkdocs-github-admonitions-plugin>=0.1.1",
-    "mkdocs-include-markdown-plugin>=7.1.6",
-    "mkdocs-material>=9.6.14",
-    "mkdocs-minify-plugin>=0.8.0",
-    "pygments>=2.19.1",
-    "pymdown-extensions>=10.15",
-]
-resolution-helpers = [
-    "urllib3>=2.5.0",
-]
-test = [
-    "ado-ray-tune",
-    "ado-sfttrainer",
-    "anomalous-series",
-    "optimization-test-functions",
-    "pfas-custom-functions",
-    "profile-space",
-    "robotic-lab",
-]
-
-[tool.uv]
-default-groups = ["dev", "docs"]
-
-[tool.uv.workspace]
-members = [
-    "plugins/actuators/sfttrainer",
-    "plugins/operators/ray_tune",
-    "examples/optimization_test_functions/custom_experiments",
-    "examples/pfas-generative-models/custom_actuator_function",
-    "plugins/operators/profile_space",
-    "plugins/operators/anomalous_series",
-    "plugins/actuators/example_actuator",
-]
-
-[tool.uv.sources]
-ado-sfttrainer = { workspace = true }
-ado-ray-tune = { workspace = true }
-optimization-test-functions = { workspace = true }
-pfas-custom-functions = { workspace = true }
-profile-space = { workspace = true }
-anomalous-series = { workspace = true }
-robotic-lab = { workspace = true }
+Issues = "https://github.com/IBM/ado/issues"
+# Documentation = "https://readthedocs.org"
+Repository = "https://github.com/IBM/ado"
 
 [project.scripts]
 ado = "orchestrator.cli.core.cli:app"
 run_experiment = "orchestrator.utilities.run_experiment:main"
+
+[project.entry-points."ado.operators"]
+randomwalk = "orchestrator.modules.operators.randomwalk"
+
+[dependency-groups]
+dev = [
+  "black>=25.1.0",
+  "coverage>=7.10.2",
+  "detect-secrets @ git+https://github.com/ibm/detect-secrets.git",
+  "pip>=25.1.1",
+  "pre-commit>=4.2.0",
+  "pydevd>=3.3.0",
+  "pytest>=8.3.5",
+  "pytest-asyncio>=1.0.0",
+  "pytest-cov>=7.0.0",
+  "pytest-env>=1.1.0",
+  "pytest-recording>=0.13.4",
+  "pytest-timeout>=2.4.0",
+  "pytest-xdist>=3.6.1",
+  "ruff>=0.12.1",
+  "testcontainers>=4.10.0",
+  "tombi>=0.7.28",
+  "tox>=4.26.0",
+  "tox-uv>=1.25.0",
+]
+docs = [
+  "htmlmin>=0.1.12",
+  "mkdocs>=1.6.1",
+  "mkdocs-github-admonitions-plugin>=0.1.1",
+  "mkdocs-include-markdown-plugin>=7.1.6",
+  "mkdocs-material>=9.6.14",
+  "mkdocs-minify-plugin>=0.8.0",
+  "pygments>=2.19.1",
+  "pymdown-extensions>=10.15",
+]
+
+test = [
+  "ado-autoconf ; python_full_version < '3.14'",
+  "ado-ray-tune",
+  "ado-sfttrainer ; python_full_version < '3.13'",
+  "ado-trim ; python_full_version < '3.14'",
+  "ado-vllm-performance",
+  "anomalous-series",
+  "density-test",
+  "optimization-test-functions",
+  "pfas-custom-functions",
+  "profile-space ; python_full_version < '3.14'",
+  "robotic-lab",
+  "trim-custom-experiments",
+]
 
 [build-system]
 requires = ["hatchling", "uv-dynamic-versioning>=0.7.0"]
@@ -125,11 +108,76 @@ source = "uv-dynamic-versioning"
 [tool.hatch.build.targets.wheel]
 packages = ["orchestrator"]
 
+# Read by Ray on first `import ray` (pytest-env runs when pytest starts, before conftest).
+[tool.pytest_env]
+RAY_ENABLE_UV_RUN_RUNTIME_ENV = "0"
+
+[tool.uv]
+default-groups = ["dev", "docs"]
+required-environments = [
+  "sys_platform == 'darwin' and platform_machine == 'arm64'",
+  "sys_platform == 'linux' and platform_machine == 'x86_64'"
+]
+
+# Having our plugins in the workspace section makes it so
+# that dependencies are resolved considering them as well.
+# ref: https://docs.astral.sh/uv/concepts/projects/workspaces
+# Plugins that we know are incompatible for certain reasons
+# (e.g., Python version requirements) are commented out and
+# added as path-based sources.
+[tool.uv.workspace]
+members = [
+  "examples/density_example",
+  "examples/optimization_test_functions/custom_experiments",
+  "examples/pfas-generative-models/custom_actuator_function",
+  "examples/trim/custom_experiments",
+  "plugins/actuators/example_actuator",
+  "plugins/actuators/vllm_performance",
+  # "plugins/custom_experiments/autoconf",  # Excluded: incompatible with Python 3.14+ (fastai requires spacy with wheels only on GitHub)
+  "plugins/operators/anomalous_series",
+  # "plugins/operators/profile_space",  # Excluded: incompatible with Python 3.14+ (fg-data-profiling requires numba<0.63)
+  "plugins/operators/ray_tune",
+  # "plugins/actuators/sfttrainer",  # Excluded: incompatible with Python 3.13+ (aim dependency)
+  # "plugins/operators/trim",  # Excluded: incompatible with Python 3.14+ (autogluon==1.5.0 requires pyarrow==20.0.0)
+]
+
+[tool.uv.sources]
+ado-autoconf = { path = "plugins/custom_experiments/autoconf", editable = true }
+ado-ray-tune = { workspace = true, editable = true }
+ado-sfttrainer = { path = "plugins/actuators/sfttrainer", editable = true }
+ado-trim = { path = "plugins/operators/trim", editable = true }
+ado-vllm-performance = { workspace = true, editable = true }
+anomalous-series = { workspace = true, editable = true }
+density-test = { workspace = true, editable = true }
+optimization-test-functions = { workspace = true, editable = true }
+pfas-custom-functions = { workspace = true, editable = true }
+profile-space = { path = "plugins/operators/profile_space", editable = true }
+robotic-lab = { workspace = true, editable = true }
+trim-custom-experiments = { workspace = true, editable = true }
+detect-secrets = { git = "https://github.com/ibm/detect-secrets.git", rev = "master" }
+
 [tool.uv-dynamic-versioning]
 vcs = "git"
 style = "pep440"
 pattern = "default-unprefixed"
 fallback-version = "0.0.0"
-tagged-metadata = true
-dirty = true
-bump = true
+# Versioning logic (Dunamai / PEP 440):
+# - Exact tag (distance == 0) → use the base version; add +dirty only if the repo is dirty
+# - Ahead of tag (distance > 0) → bump the base version, add .devN, plus commit/timestamp metadata
+# - `select | list` removes optional entries and materializes metadata as a real list
+#   (required by serialize_pep440)
+format-jinja = """
+{%- set metadata = [
+    distance != 0 and "g" ~ commit,
+    distance != 0 and "d" ~ timestamp,
+    dirty and "dirty"
+] -%}
+
+{{ serialize_pep440(
+    distance == 0 and base or bump_version(base),
+    stage,
+    revision,
+    dev=distance or None,
+    metadata=metadata | select | list
+) }}
+"""

@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 from typing import Any
@@ -10,6 +10,7 @@ from orchestrator.core.discoveryspace.group_samplers import (
     RandomGroupSampleSelector,
     SequentialGroupSampleSelector,
     _build_groups_dict,
+    _get_space_matching_points,
 )
 from orchestrator.core.discoveryspace.samplers import (
     GroupSampler,
@@ -21,16 +22,19 @@ from orchestrator.modules.operators.discovery_space_manager import (
     DiscoverySpaceManager,
 )
 from orchestrator.schema.entityspace import EntitySpaceRepresentation
+from orchestrator.schema.property import ConstitutiveProperty
 
 
 @pytest.fixture(params=[WalkModeEnum.RANDOM, WalkModeEnum.SEQUENTIAL])
-def walk_mode(request):
+def walk_mode(request: pytest.FixtureRequest) -> WalkModeEnum:
 
     return request.param
 
 
 @pytest.fixture
-def explicit_entity_space(constitutive_property_configuration_general):
+def explicit_entity_space(
+    constitutive_property_configuration_general: list[ConstitutiveProperty],
+) -> EntitySpaceRepresentation:
 
     return EntitySpaceRepresentation(constitutive_property_configuration_general)
 
@@ -40,7 +44,7 @@ def check_group_order(
     group_order: list[frozenset[tuple[str, Any]]],
     space: DiscoverySpace,
     group: list[str],
-):
+) -> None:
 
     # For selectors the sequential order depends on the order returned by the samplestore which may differ
     # for the same data across samplestores e.g. MySQL based SQL store performs sorts on primary keys, sqlite does not
@@ -48,19 +52,20 @@ def check_group_order(
 
     if isinstance(sampler, ExplicitEntitySpaceGroupedGridSampleGenerator):
         ids = [cp.identifier for cp in space.entitySpace.constitutiveProperties]
-        entities = [
-            space.entity_for_point(dict(zip(ids, p)))
+        points = [
+            dict(zip(ids, p, strict=True))
             for p in space.entitySpace.sequential_point_iterator()
         ]
-        groups = _build_groups_dict(entities=entities, group=group)
+        groups = _build_groups_dict(points=points, group=group)
         expected_group_order = list(groups.keys())
         if sampler.mode == WalkModeEnum.RANDOM:
             assert group_order != expected_group_order
         else:
+
             assert group_order == expected_group_order
     else:
-        entities = space.matchingEntities()
-        groups = _build_groups_dict(entities=entities, group=group)
+        points = _get_space_matching_points(discovery_space=space)
+        groups = _build_groups_dict(points=points, group=group)
         expected_group_order = list(groups.keys())
         if isinstance(sampler, SequentialGroupSampleSelector):
             assert group_order == expected_group_order
@@ -76,7 +81,14 @@ def check_group_order(
         "sequential_generator",
     ]
 )
-def group_sampler_ml_multi_cloud_space(request):
+def group_sampler_ml_multi_cloud_space(
+    request: pytest.FixtureRequest,
+) -> (
+    SequentialGroupSampleSelector
+    | RandomGroupSampleSelector
+    | ExplicitEntitySpaceGroupedGridSampleGenerator
+    | None
+):
 
     samp = None
     if request.param == "sequential_selector":
@@ -98,7 +110,7 @@ def group_sampler_ml_multi_cloud_space(request):
 def test_group_sampler_local(
     group_sampler_ml_multi_cloud_space: GroupSampler,
     ml_multi_cloud_space: DiscoverySpace,
-):
+) -> None:
 
     sampler = group_sampler_ml_multi_cloud_space
     space = ml_multi_cloud_space
@@ -114,13 +126,14 @@ def test_group_sampler_local(
     for i, group in enumerate(sampler.entityGroupIterator(space)):
         count += len(group)
         for entity in group:
-            print(i, count, entity.identifier)
+            print(i, count, entity)
 
         node_value = {
-            e.valueForConstitutivePropertyIdentifier("nodes").value for e in group
+            (e.valueForConstitutivePropertyIdentifier("nodes").value) for e in group
         }
         cpu_value = {
-            e.valueForConstitutivePropertyIdentifier("cpu_family").value for e in group
+            (e.valueForConstitutivePropertyIdentifier("cpu_family").value)
+            for e in group
         }
 
         assert (
@@ -158,7 +171,7 @@ def test_group_sampler_local(
 def test_group_sampler_sequential_local(
     group_sampler_ml_multi_cloud_space: GroupSampler,
     ml_multi_cloud_space: DiscoverySpace,
-):
+) -> None:
     sampler = group_sampler_ml_multi_cloud_space
     space = ml_multi_cloud_space
     assert (
@@ -193,7 +206,7 @@ def test_group_sampler_sequential_local(
 async def test_group_sampler_remote(
     group_sampler_ml_multi_cloud_space: GroupSampler,
     ml_multi_cloud_space: DiscoverySpace,
-):
+) -> None:
     sampler = group_sampler_ml_multi_cloud_space
     space = ml_multi_cloud_space
     assert (
@@ -201,7 +214,7 @@ async def test_group_sampler_remote(
     ), "Expected 42 entities in ml cloud sample store"
 
     # Test Remote Sequential Iterator
-    queue = MeasurementQueue.get_measurement_queue()
+    queue = MeasurementQueue()
     manager = DiscoverySpaceManager.remote(space=space, queue=queue)
     assert sampler.samplerCompatibleWithDiscoverySpaceRemote(manager)
 
@@ -215,10 +228,11 @@ async def test_group_sampler_remote(
         count += len(group)
         group_count += 1
         node_value = {
-            e.valueForConstitutivePropertyIdentifier("nodes").value for e in group
+            (e.valueForConstitutivePropertyIdentifier("nodes").value) for e in group
         }
         cpu_value = {
-            e.valueForConstitutivePropertyIdentifier("cpu_family").value for e in group
+            (e.valueForConstitutivePropertyIdentifier("cpu_family").value)
+            for e in group
         }
 
         assert (
@@ -256,7 +270,7 @@ async def test_group_sampler_remote(
 async def test_group_sampler_sequential_remote(
     group_sampler_ml_multi_cloud_space: GroupSampler,
     ml_multi_cloud_space: DiscoverySpace,
-):
+) -> None:
 
     sampler = group_sampler_ml_multi_cloud_space
     space = ml_multi_cloud_space
@@ -265,12 +279,13 @@ async def test_group_sampler_sequential_remote(
     ), "Expected 42 entities in ml cloud sample store"
 
     # Test Remote Sequential Iterator
-    queue = MeasurementQueue.get_measurement_queue()
+    queue = MeasurementQueue()
     manager = DiscoverySpaceManager.remote(space=space, queue=queue)
     assert RandomGroupSampleSelector.samplerCompatibleWithDiscoverySpaceRemote(manager)
 
     iterator = await sampler.remoteEntityIterator(
-        remoteDiscoverySpace=manager, batchsize=5
+        remoteDiscoverySpace=manager,
+        batchsize=5,
     )
 
     count = 0
@@ -298,7 +313,7 @@ async def test_group_sampler_sequential_remote(
 
 
 @pytest.mark.asyncio
-async def test_group_sample_generator_fail_on_continuous_space():
+async def test_group_sample_generator_fail_on_continuous_space() -> None:
 
     pytest.xfail(
         "We don't have a fixture for a discoveryspace with a continuous dimension"

@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import typing
@@ -27,7 +27,7 @@ def pydantic_model_as_yaml(
     exclude_defaults: bool = False,
     exclude_none: bool = False,
     indent: int = 2,
-    context: typing.Any | None = None,
+    context: typing.Any | None = None,  # noqa: ANN401
 ) -> str:
 
     model = printable_pydantic_model(model)

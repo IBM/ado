@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import asyncio
@@ -9,11 +9,15 @@ import json
 import logging
 import math
 import os
+import pathlib
 import traceback
 import typing
+from collections.abc import Callable
+from typing import Annotated, Any
 
 import ado_actuators.sfttrainer.wrapper_fms_hf_tuning.callbacks.metrics_tracker as metrics_tracker
 import ado_actuators.sfttrainer.wrapper_fms_hf_tuning.finetune as finetune
+import anyio
 import pydantic
 import pydantic.typing
 import ray
@@ -55,7 +59,6 @@ from orchestrator.core.actuatorconfiguration.config import GenericActuatorParame
 # the first time you try to use it. It claims that it does not have any `async` methods (i.e. coroutines)
 # Using `from ... import` fixes this behaviour however we don't know why.
 from orchestrator.modules.actuators.base import ActuatorBase, DeprecatedExperimentError
-from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
 from orchestrator.schema.entity import Entity
 from orchestrator.schema.experiment import Experiment, ParameterizedExperiment
 from orchestrator.schema.observed_property import ObservedPropertyValue
@@ -63,6 +66,9 @@ from orchestrator.schema.reference import ExperimentReference
 from orchestrator.schema.request import MeasurementRequest, MeasurementRequestStateEnum
 from orchestrator.schema.result import InvalidMeasurementResult, ValidMeasurementResult
 from orchestrator.utilities.environment import enable_ray_actor_coverage
+
+if typing.TYPE_CHECKING:
+    from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
 
 # VV: Required module variables
 identifier = ACTUATOR_IDENTIFIER
@@ -72,7 +78,9 @@ catalog = orchestrator.modules.actuators.catalog.ExperimentCatalog(
 )
 
 
-def _init_catalog(catalog: orchestrator.modules.actuators.catalog.ExperimentCatalog):
+def _init_catalog(
+    catalog: orchestrator.modules.actuators.catalog.ExperimentCatalog,
+) -> None:
     full_finetune.add_experiments(catalog=catalog)
     prompt_tuning.add_experiments(catalog=catalog)
     lora.add_experiments(catalog=catalog)
@@ -85,11 +93,9 @@ def _init_catalog(catalog: orchestrator.modules.actuators.catalog.ExperimentCata
 
     for old_experiment_type in ["full", "lora", "gptq_lora", "pt", "unsupported"]:
         try:
-            name = ".".join(
-                ("ado_sfttrainer_deprecated_experiments", old_experiment_type)
-            )
+            name = f"ado_sfttrainer_deprecated_experiments.{old_experiment_type}"
             module = importlib.import_module(name)
-        except (ModuleNotFoundError, ImportError):
+        except (ModuleNotFoundError, ImportError):  # noqa: PERF203
             continue
         else:
             module.inject_deprecated_experiments(catalog=catalog)
@@ -98,7 +104,7 @@ def _init_catalog(catalog: orchestrator.modules.actuators.catalog.ExperimentCata
 _init_catalog(catalog)
 
 
-def model_dump_all(model: pydantic.BaseModel) -> dict[str, typing.Any]:
+def model_dump_all(model: pydantic.BaseModel) -> dict[str, Any]:
     """Recursively dumps all fields of a pydantic model ignoring exclude directives
 
     Args:
@@ -114,7 +120,7 @@ def model_dump_all(model: pydantic.BaseModel) -> dict[str, typing.Any]:
     while pending:
         parent, model = pending.pop(0)
 
-        for key, _value_info in model.model_fields.items():
+        for key, _value_info in model.model_fields.items():  # noqa: PERF102
             value = model.__getattribute__(key)
 
             if isinstance(value, pydantic.BaseModel):
@@ -133,59 +139,77 @@ class ActuatorParameters(
         extra="forbid", use_enum_values=True, protected_namespaces=()
     )
 
-    match_exact_dependencies: bool = pydantic.Field(
-        default=True,
-        description="If True, runs the measurement in a virtual environment that exactly matches the Python "
-        "packages of the selected fms-hf-tuning version, enabling all optional features like "
-        "fast_kernels, fast_moe, and flash_attn. If False, the system checks whether the machine initiating "
-        "the measurement has NVIDIA development binaries or an ARM CPU, and excludes incompatible packages "
-        "and features. Useful for running on limited-support devices like MacBooks.",
-    )
+    match_exact_dependencies: Annotated[
+        bool,
+        pydantic.Field(
+            description="If True, runs the measurement in a virtual environment that exactly matches the Python "
+            "packages of the selected fms-hf-tuning version, enabling all optional features like "
+            "fast_kernels, fast_moe, and flash_attn. If False, the system checks whether the machine initiating "
+            "the measurement has NVIDIA development binaries or an ARM CPU, and excludes incompatible packages "
+            "and features. Useful for running on limited-support devices like MacBooks.",
+        ),
+    ] = True
 
-    output_dir: str = pydantic.Field(
-        "output",
-        description="The prefix directory path, under which "
-        "to store the finetuned weights.",
-    )
-    data_directory: str = pydantic.Field(
-        "/data/fms-hf-tuning/artificial-dataset/",
-        description="The directory that contains the data files",
-    )
+    output_dir: Annotated[
+        str,
+        pydantic.Field(
+            description="The prefix directory path, under which "
+            "to store the finetuned weights.",
+        ),
+    ] = "output"
 
-    aim_dashboard_url: str | None = pydantic.Field(
-        default=None,
-        description="The AIM Dashboard endpoint. When set, the actuator inserts the aim_url field "
-        "in the MeasurementResult.metadata object that is associated with the measurement.",
-    )
+    data_directory: Annotated[
+        str,
+        pydantic.Field(
+            description="The directory that contains the data files",
+        ),
+    ] = "/data/fms-hf-tuning/artificial-dataset/"
 
-    aim_db: str | None = pydantic.Field(
-        default=None,
-        description="The AIM server endpoint. When set to None the "
-        "measurement will use a temporary AIM repository that will be garbage collected after the termination "
-        "of the measurement.",
-    )
+    aim_dashboard_url: Annotated[
+        str | None,
+        pydantic.Field(
+            description="The AIM Dashboard endpoint. When set, the actuator inserts the aim_url field "
+            "in the MeasurementResult.metadata object that is associated with the measurement.",
+        ),
+    ] = None
 
-    hf_home: str = pydantic.Field(
-        default="/hf-models-pvc/huggingface_home",
-        description="To configure where huggingface_hub will locally store data. In particular, "
-        "your token and the cache will be stored in this folder.",
-    )
+    aim_db: Annotated[
+        str | None,
+        pydantic.Field(
+            description="The AIM server endpoint. When set to None the "
+            "measurement will use a temporary AIM repository that will be garbage collected after the termination "
+            "of the measurement.",
+        ),
+    ] = None
 
-    model_map: dict[str, dict[WeightsFormat, str]] = pydantic.Field(
-        default_factory=lambda: copy.deepcopy(ModelMap),
-        description="Maps model identifiers to their corresponding Hugging Face model ids and absolute paths."
-        "The contents of this dictionary will override the defaults that ship with the Actuator.",
-    )
+    hf_home: Annotated[
+        str,
+        pydantic.Field(
+            description="To configure where huggingface_hub will locally store data. In particular, "
+            "your token and the cache will be stored in this folder.",
+        ),
+    ] = "/hf-models-pvc/huggingface_home"
 
-    num_tokens_cache_directory: str | None = pydantic.Field(
-        default="cache",
-        description="Use this to cache the number of tokens in the dataset so that we don't compute it over and over. "
-        "It can take a few minutes to compute how many tokens are in a dataset, and that number depends on "
-        "which model you're using, as well as the effective max sequence length (i.e. the min of the "
-        "inherent max sequence length of the model and the value of --max_seq_length). "
-        "The value is treated as a path to a directory that is relevant to the value of @data_dir. "
-        "If num_tokens_cache_directory is None then the cache will not be used.",
-    )
+    model_map: Annotated[
+        dict[str, dict[WeightsFormat, str]],
+        pydantic.Field(
+            default_factory=lambda: copy.deepcopy(ModelMap),
+            description="Maps model identifiers to their corresponding Hugging Face model ids and absolute paths."
+            "The contents of this dictionary will override the defaults that ship with the Actuator.",
+        ),
+    ]
+
+    num_tokens_cache_directory: Annotated[
+        str | None,
+        pydantic.Field(
+            description="Use this to cache the number of tokens in the dataset so that we don't compute it over and over. "
+            "It can take a few minutes to compute how many tokens are in a dataset, and that number depends on "
+            "which model you're using, as well as the effective max sequence length (i.e. the min of the "
+            "inherent max sequence length of the model and the value of --max_seq_length). "
+            "The value is treated as a path to a directory that is relevant to the value of @data_dir. "
+            "If num_tokens_cache_directory is None then the cache will not be used.",
+        ),
+    ] = "cache"
 
     @pydantic.field_validator("model_map", mode="before")
     @classmethod
@@ -209,7 +233,7 @@ def prepare_runtime_environment(
     log: logging.Logger,
     space: EntitySpace,
     args: "finetune.FineTuneArgs",
-) -> dict[str, typing.Any]:
+) -> dict[str, Any]:
     exclude_packages = []
 
     if not actuator_parameters.match_exact_dependencies:
@@ -282,8 +306,13 @@ def prepare_runtime_environment(
     additional_wheels = [
         x
         for x in additional_packages
-        # VV: Do not install the ado_core wheel. Its dependencies may conflict with those in fms-hf-tuning
-        if x.endswith(".whl") and not os.path.basename(x).startswith("ado_core-")
+        # VV: Do not install ado wheels other than sfttrainer. Their dependencies may conflict with
+        # those in fms-hf-tuning
+        if x.endswith(".whl")
+        and not (
+            os.path.basename(x).startswith("ado_")
+            and not os.path.basename(x).startswith("ado_sfttrainer-")
+        )
     ]
 
     if additional_wheels:
@@ -295,13 +324,10 @@ def prepare_runtime_environment(
 
     # VV: Get a ray runtime-environment which contains packages that this version of fms-hf-tuning imports
 
-    env_vars = {}
-    for key, name in os.environ.items():
-        # VV: Propagate environment variables that are related to pip
-        # for example, PIP_FIND_LINKS for installing packages from a URL/directory.
-        # This is useful for packages that take too long to compile from source like mamba-ssm
-        if key.startswith("PIP_"):
-            env_vars[key] = name
+    # VV: Propagate environment variables that are related to pip
+    # for example, PIP_FIND_LINKS for installing packages from a URL/directory.
+    # This is useful for packages that take too long to compile from source like mamba-ssm
+    env_vars = {key: name for key, name in os.environ.items() if key.startswith("PIP_")}
 
     runtime_env = ray_env_utils.get_ray_environment(
         packages=packages,
@@ -318,7 +344,9 @@ def prepare_runtime_environment(
     return runtime_env
 
 
-def dynamic_name_function(function: typing.Callable[..., typing.Any], new_name: str):
+def dynamic_name_function(
+    function: Callable[..., Any], new_name: str
+) -> Callable[[tuple[Any, ...], dict[str, Any]], Any]:
     """Returns a new function identical to the original, but with a new name.
 
     Parameters:
@@ -328,7 +356,7 @@ def dynamic_name_function(function: typing.Callable[..., typing.Any], new_name: 
             The name for the new function
     """
 
-    def wrapper(*args, **kwargs) -> typing.Any:
+    def wrapper(*args: Any, **kwargs: Any) -> Any:  # noqa: ANN401
         return function(*args, **kwargs)
 
     wrapper.__name__ = new_name
@@ -346,16 +374,16 @@ class FinetuneContext:
     def __init__(
         self,
         args: "finetune.FineTuneArgs",
-        runtime_env: dict[str, typing.Any],
+        runtime_env: dict[str, Any],
         exp: "Experiment",
         exp_params: ExperimentParameters,
         entity_space: EntitySpace,
-        aim_metadata: dict[str, typing.Any],
+        aim_metadata: dict[str, Any],
         log_level: int,
-        extra: dict[str, typing.Any],
+        extra: dict[str, Any],
         actuator_params: ActuatorParameters,
         request_id: str,
-    ):
+    ) -> None:
         """Helper class that holds all information related to 1 measurement on 1 entity
 
         Args:
@@ -395,10 +423,15 @@ class FinetuneContext:
         self.number_cpus = max(self.entity_space.number_gpus, 1) * 2
 
         if self.typed_parameters.num_tokens_cache_directory is not None:
-            self.num_tokens_cache_dir = os.path.join(
-                self.typed_parameters.data_directory,
-                self.typed_parameters.num_tokens_cache_directory,
-            )
+            data_directory = pathlib.Path(
+                self.typed_parameters.data_directory
+            ).expanduser()
+
+            cache_directory = pathlib.Path(
+                self.typed_parameters.num_tokens_cache_directory
+            ).expanduser()
+
+            self.num_tokens_cache_dir = (data_directory / cache_directory).as_posix()
         else:
             self.num_tokens_cache_dir = None
 
@@ -418,7 +451,7 @@ class FinetuneContext:
     def postprocess_metrics_tracker_metrics(
         self,
         metrics: "metrics_tracker.Metrics",
-    ) -> dict[str, typing.Any]:
+    ) -> dict[str, Any]:
         world_size = max(1, self.entity_space.number_gpus)
 
         return metrics.to_scalar_observations(
@@ -491,9 +524,9 @@ def get_ip(host: str) -> str:
 
 
 def update_dict(
-    target: dict[typing.Any, dict[typing.Any, typing.Any]],
-    updates: dict[typing.Any, dict[typing.Any, typing.Any]],
-):
+    target: dict[Any, dict[Any, Any]],
+    updates: dict[Any, dict[Any, Any]],
+) -> None:
     """Merges 2 dictionaries of dictionaries
 
     Args:
@@ -513,7 +546,6 @@ def update_dict(
         target[key] = existing
 
 
-@ray.remote
 class SFTTrainer(ActuatorBase):
     _dir = os.path.abspath(os.path.dirname(__file__))
     identifier = identifier
@@ -523,7 +555,7 @@ class SFTTrainer(ActuatorBase):
         self,
         queue: "MeasurementQueue",
         params: "GenericActuatorParameters",
-    ):
+    ) -> None:
         enable_ray_actor_coverage("sfttrainer")
         super().__init__(queue, params)
         self.log = logging.getLogger("SFTTrainer")
@@ -595,23 +627,25 @@ class SFTTrainer(ActuatorBase):
             NotImplementedError:
                 If the current implementation of the actuator cannot handle the requested entity
         """
+
+        data_directory = pathlib.Path(actuator_parameters.data_directory).expanduser()
         try:
-            data_path = os.path.join(
-                actuator_parameters.data_directory, DatasetMap[space.dataset_id]
-            )
-        except KeyError:
-            raise NotImplementedError(f"References unknown dataset {space.dataset_id}")
+            data_path = (data_directory / DatasetMap[space.dataset_id]).as_posix()
+        except KeyError as error:
+            raise NotImplementedError(
+                f"References unknown dataset {space.dataset_id}"
+            ) from error
 
         try:
             model_map = actuator_parameters.model_map[space.model_name]
 
-        except KeyError:
+        except KeyError as error:
             raise NotImplementedError(
                 f'Entity is referencing unknown model "{space.model_name}", '
                 f"supported models are {list(actuator_parameters.model_map)}"
-            )
+            ) from error
 
-        kwargs: dict[str, typing.Any] = actuator_parameters.model_dump(
+        kwargs: dict[str, Any] = actuator_parameters.model_dump(
             exclude_none=True,
             # VV: Manually exclude fields which are not CLI args of the fms-hf-tuning wrapper
             exclude={
@@ -652,7 +686,7 @@ class SFTTrainer(ActuatorBase):
         except Exception as e:
             # VV: This means there's a bug with the actuator - we should always be able to parse the args following
             # the above error checks
-            raise InternalInconsistencyError(str(e))
+            raise InternalInconsistencyError(str(e)) from e
 
         # VV: Here we fill in fields which need to propagate to FinetuneArgs BUT their definition in the
         # pydantic model (e.g. ExperimentParameter, or EntitySpace) contains `exclude=True`
@@ -670,7 +704,7 @@ class SFTTrainer(ActuatorBase):
         entity_id: str,
         exp_id: str,
         args: "finetune.FineTuneArgs",
-        aim_metadata: dict[str, typing.Any],
+        aim_metadata: dict[str, Any],
         method: "ray.actor.ActorMethod",
         distributed_settings: finetune.DistributedSettings,
         multi_node: finetune.MultiNodeSettings | None = None,
@@ -1040,7 +1074,7 @@ class SFTTrainer(ActuatorBase):
         entity: Entity,
         exp: Experiment,
         context: FinetuneContext,
-    ) -> dict[str, typing.Any]:
+    ) -> dict[str, Any]:
         """Runs an experiment on an identity and returns the measured properties
 
         Args:
@@ -1064,7 +1098,7 @@ class SFTTrainer(ActuatorBase):
                 If the current implementation of the actuator cannot handle the requested entity
         """
         try:
-            if not os.path.isfile(context.args.training_data_path):
+            if not await anyio.Path(context.args.training_data_path).is_file():
                 raise NotImplementedError(
                     f"training_data_path points to path {context.args.training_data_path} which is not a file. "
                     f"Double check your DiscoverySpace, ActuatorParameters, and the file storage of your cluster. "
@@ -1078,7 +1112,7 @@ class SFTTrainer(ActuatorBase):
             )
 
             if not context.exp_params.multi_node:
-                metrics: dict[str, typing.Any] = await self._measurement(
+                metrics: dict[str, Any] = await self._measurement(
                     context=context,
                     entity=entity,
                     method=context.generate_method_call(),
@@ -1091,7 +1125,7 @@ class SFTTrainer(ActuatorBase):
         except InvalidEntityError:
             raise
         except finetune.ExperimentError as e:
-            raise InvalidEntityError(str(e))
+            raise InvalidEntityError(str(e)) from e
         except Exception as e:
             # VV: Can't tell what the issue is, we're probably missing a feature
             raise NotImplementedError(str(e)) from e
@@ -1118,7 +1152,7 @@ class SFTTrainer(ActuatorBase):
                 + entity.identifier
                 + " error was "
                 + str(e)
-            )
+            ) from e
 
     async def _evaluate_one_entity(
         self,
@@ -1144,7 +1178,7 @@ class SFTTrainer(ActuatorBase):
         # VV: This is just to make the linter happy
         exp = None
         context: FinetuneContext | None = None
-        scalar_observations: dict[str, typing.Any] = {}
+        scalar_observations: dict[str, Any] = {}
 
         try:
 
@@ -1169,7 +1203,7 @@ class SFTTrainer(ActuatorBase):
 
             except Exception as e:
                 self.log.debug(f"Exception while discovering experiment: {e}")
-                raise InternalInconsistencyError(e)
+                raise InternalInconsistencyError(e) from e
             exp_name = exp.identifier
             if exp is None:
                 # VV: Pretty sure this can never happen
@@ -1187,7 +1221,7 @@ class SFTTrainer(ActuatorBase):
             except InvalidEntityError:
                 raise
             except finetune.ExperimentError as e:
-                raise InvalidEntityError(str(e))
+                raise InvalidEntityError(str(e)) from e
             except Exception as e:
                 # VV: Can't tell what the issue is, we're probably missing a feature
                 raise NotImplementedError(str(e)) from e

@@ -1,12 +1,14 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import typing
+from typing import Annotated
 
 import pydantic
 from pydantic import ConfigDict
 
 from orchestrator.core.metadata import ConfigurationMetadata
+from orchestrator.utilities.pydantic import ignore_plugin_validation
 
 if typing.TYPE_CHECKING:  # pragma: nocover
     from orchestrator.modules.actuators.base import ActuatorBase
@@ -27,48 +29,52 @@ class ActuatorConfiguration(pydantic.BaseModel):
     actuatorIdentifier: str
     # SerializeAsAny to serialise the correct class
     # https://github.com/pydantic/pydantic/discussions/9879#discussioncomment-10102592
-    parameters: pydantic.SerializeAsAny[GenericActuatorParameters | None] = (
-        pydantic.Field(default=None)
-    )
-    metadata: ConfigurationMetadata = pydantic.Field(
-        default=ConfigurationMetadata(),
-        description="User defined metadata about the configuration. A set of keys and values. "
-        "Two optional keys that are used by convention are name and description",
-    )
+    parameters: Annotated[
+        pydantic.SerializeAsAny[GenericActuatorParameters | None],
+        pydantic.Field(),
+    ] = None
+    metadata: Annotated[
+        ConfigurationMetadata,
+        pydantic.Field(
+            description="Metadata about the configuration including optional name, description, "
+            "labels for filtering, and any additional custom fields"
+        ),
+    ] = ConfigurationMetadata()
 
     @pydantic.model_validator(mode="after")
-    @classmethod
-    def validate_model(
-        cls,
-        model: "ActuatorConfiguration",
-    ) -> "ActuatorConfiguration":
+    def validate_model(self, info: pydantic.ValidationInfo) -> "ActuatorConfiguration":
+        if ignore_plugin_validation(info):
+            return self
+
         from orchestrator.modules.actuators.registry import (
             ActuatorRegistry,
             UnknownActuatorError,
         )
 
         def validate_or_default_parameters(
-            actuator_instance: "ActuatorBase",
+            actuator_class: type["ActuatorBase"],
         ) -> GenericActuatorParameters:
             return (
-                actuator_instance.validate_parameters(parameters=model.parameters)
-                if model.parameters
-                else actuator_instance.default_parameters()
+                actuator_class.validate_parameters(parameters=self.parameters)
+                if self.parameters
+                else actuator_class.default_parameters()
             )
 
         actuator_registry = ActuatorRegistry.globalRegistry()
 
         try:
-            actuator = actuator_registry.actuatorForIdentifier(model.actuatorIdentifier)
-        except UnknownActuatorError:
-            raise ValueError(
-                f"Actuator {model.actuatorIdentifier} is not available in the registry. "
-                f"Registered actuators are: {','.join(actuator_registry.actuatorIdentifierMap.keys())}"
+            actuator_class = actuator_registry.actuatorForIdentifier(
+                self.actuatorIdentifier
             )
+        except UnknownActuatorError as error:
+            raise ValueError(
+                f"Actuator {self.actuatorIdentifier} is not available in the registry. "
+                f"Registered actuators are: {','.join(actuator_registry.actuatorIdentifierMap.keys())}"
+            ) from error
         else:
-            model.parameters = validate_or_default_parameters(actuator)
+            self.parameters = validate_or_default_parameters(actuator_class)
 
-        return model
+        return self
 
 
 def warn_deprecated_actuator_parameters_model_in_use(
@@ -77,7 +83,7 @@ def warn_deprecated_actuator_parameters_model_in_use(
     removed_from_actuator_version: str,
     deprecated_fields: str | list[str] | None = None,
     latest_format_documentation_url: str | None = None,
-):
+) -> None:
     from rich.console import Console
 
     resource_name = "actuatorconfiguration"

@@ -1,5 +1,6 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
+import typing
 
 import pydantic
 import typer
@@ -8,21 +9,26 @@ import yaml
 from orchestrator.cli.models.parameters import AdoGetCommandParameters
 from orchestrator.cli.models.types import AdoGetSupportedOutputFormats
 from orchestrator.cli.utils.output.prints import (
-    ADO_INFO_EMPTY_DATAFRAME,
+    ADO_NO_CONTEXT_AVAILABLE_ERROR,
     ERROR,
     HINT,
-    WARN,
     console_print,
     context_not_in_available_contexts_error_str,
     cyan,
 )
 from orchestrator.metastore.project import ProjectContext
 
+if typing.TYPE_CHECKING:
+    import pandas as pd
+
 
 def get_context(
     parameters: AdoGetCommandParameters,
-    simplify_output: bool = False,
-):
+) -> None:
+
+    # Never truncate the CONTEXT (name) column
+    if not parameters.no_trunc:
+        parameters.no_trunc = ["CONTEXT"]
 
     available_contexts = parameters.ado_configuration.available_contexts
 
@@ -30,11 +36,7 @@ def get_context(
     # The only possible way for this should be when the user is
     # providing a context with -c and the ado context dir is empty
     if len(available_contexts) == 0:
-        console_print(
-            f"{WARN}There are no contexts available.\n"
-            f"{HINT}You can create a context with {cyan('ado create context')}",
-            stderr=True,
-        )
+        console_print(ADO_NO_CONTEXT_AVAILABLE_ERROR, stderr=True)
         raise typer.Exit(1)
 
     if parameters.resource_id:
@@ -55,39 +57,41 @@ def get_context(
     # AP: we always want to dump default values for contexts
     parameters.exclude_default = False
 
-    if parameters.output_format == AdoGetSupportedOutputFormats.DEFAULT:
-        if simplify_output:
-            _simple_contexts_formatting(contexts=available_contexts)
-            return
-
+    # For NAME and TABLE formats, use DataFrame
+    if parameters.output_format in {
+        AdoGetSupportedOutputFormats.NAME,
+        AdoGetSupportedOutputFormats.TABLE,
+    }:
         contexts_df = _prepare_context_dataframe(
             contexts=available_contexts,
-            default_context=parameters.ado_configuration.active_context,
+            active_context=parameters.ado_configuration.active_context,
         )
-        if contexts_df.empty:
-            console_print(ADO_INFO_EMPTY_DATAFRAME, stderr=True)
-            return
 
-        console_print(contexts_df)
+        from orchestrator.cli.utils.resources.handlers import handle_ado_get
+
+        handle_ado_get(parameters=parameters, dataframe=contexts_df)
         return
 
-    from orchestrator.cli.utils.resources.formatters import (
-        format_resource_for_ado_get_custom_format,
-    )
-
+    # For structured formats (YAML, JSON, CONFIG), load full resources
+    to_print = []
     try:
-        to_print = [
-            ProjectContext.model_validate(
-                yaml.safe_load(
-                    parameters.ado_configuration.project_context_path_for_context(
-                        ctx
-                    ).read_text()
+        for ctx in available_contexts:
+            to_print.append(
+                ProjectContext.model_validate(
+                    yaml.safe_load(
+                        parameters.ado_configuration.project_context_path_for_context(
+                            ctx
+                        ).read_text()
+                    )
                 )
             )
-            for ctx in available_contexts
-        ]
     except pydantic.ValidationError as e:
-        console_print(f"{ERROR}One of the contexts was not valid:\n{e}", stderr=True)
+        console_print(
+            f"{ERROR}Context {cyan(ctx)} was not valid:\n\n{e}\n\n"
+            f"{HINT}You can manually update the context file at: '{parameters.ado_configuration.project_context_path_for_context(ctx)}'\n"
+            f"\tAlternatively, delete the context with {cyan(f'ado delete context {ctx}')}",
+            stderr=True,
+        )
         raise typer.Exit(1) from e
 
     # AP: it's more readable to write this than to
@@ -95,23 +99,20 @@ def get_context(
     if parameters.resource_id:
         to_print = to_print[0]
 
-    console_print(
-        format_resource_for_ado_get_custom_format(
-            to_print=to_print, parameters=parameters
-        )
-    )
+    from orchestrator.cli.utils.resources.handlers import handle_ado_get
+
+    handle_ado_get(parameters=parameters, resources=to_print)
 
 
-def _simple_contexts_formatting(contexts: list[str]):
-    for context in sorted(contexts):
-        console_print(context)
-
-
-def _prepare_context_dataframe(contexts: list[str], default_context: str | None):
+def _prepare_context_dataframe(
+    contexts: list[str], active_context: str | None
+) -> "pd.DataFrame":
     import pandas as pd
 
-    default_context_column = ["*" if ctx == default_context else "" for ctx in contexts]
-    output_df = pd.DataFrame({"CONTEXT": contexts, "DEFAULT": default_context_column})
+    active_context_column = [
+        ":white_check_mark:" if ctx == active_context else "" for ctx in contexts
+    ]
+    output_df = pd.DataFrame({"CONTEXT": contexts, "ACTIVE": active_context_column})
 
     # Sort contexts by name
     output_df = output_df.sort_values(by=["CONTEXT"], axis="rows")

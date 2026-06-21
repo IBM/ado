@@ -26,12 +26,13 @@ local metastore can hold a single project. Hence, there is one database per
 local metastore instance that contains the resources associated with this
 project.
 
-A context for a local metastore looks like:
+A context for a local metastore on macOS looks like:
 
 ```yaml
 project: local-test
 metadataStore:
   path: $HOME/Library/Application Support/ado/databases/local-test.db
+  scheme: sqlite
   sslVerify: false
 ```
 
@@ -83,18 +84,24 @@ ado get contexts
 
 This will output something like
 
-```commandline
-                  CONTEXT DEFAULT
-0              finetuning
-1              ap-testing
-2       developer-testing
-3             mascots2024
-4      caikit-testharness
-5    materials-evaluation
-6                 ft-prod       *
-7            unit-testing
-8       your-project-name
-9  resource-store-testing
+```terminaloutput
+┌───────┬────────────────────────┬─────────┐
+│ INDEX │ CONTEXT                │ DEFAULT │
+├───────┼────────────────────────┼─────────┤
+│ 0     │ ap-test                │         │
+│ 1     │ ap-testing             │         │
+│ 2     │ caikit-testharness     │         │
+│ 3     │ developer-testing      │         │
+│ 4     │ finetuning             │         │
+│ 5     │ ft-prod                │         │
+│ 6     │ ft-vela                │         │
+│ 7     │ llm-d                  │         │
+│ 8     │ local                  │ ✅      │
+│ 9     │ local-test             │         │
+│ 10    │ mascots2024            │         │
+│ 11    │ playground             │         │
+│ 12    │ resource-store-testing │         │
+└───────┴────────────────────────┴─────────┘
 ```
 
 Note, the name of the context is the name of the associated project.
@@ -124,7 +131,7 @@ To remind yourself what the active context is run
 ado context
 ```
 
-The active context is also denoted by a "\*" in the output of `ado get contexts`
+The active context is also denoted by a "✅" in the output of `ado get contexts`
 (see output above).
 
 > [!NOTE]

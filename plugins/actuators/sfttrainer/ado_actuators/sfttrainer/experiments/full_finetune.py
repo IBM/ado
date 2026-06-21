@@ -1,21 +1,18 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import copy
 import typing
 
-import orchestrator.schema.property
-from orchestrator.modules.actuators.catalog import ExperimentCatalog
-
 from . import common
 
 if typing.TYPE_CHECKING:
-    import orchestrator.modules.actuators.catalog
+    from orchestrator.modules.actuators.catalog import ExperimentCatalog
 
 
 def add_full_experiments(
-    catalog: "orchestrator.modules.actuators.catalog.ExperimentCatalog",
-):
+    catalog: "ExperimentCatalog",
+) -> None:
     method = "full"
     version = "1.0.0"
     exp_name = f"finetune_{method}_benchmark"
@@ -52,7 +49,7 @@ def add_full_experiments(
     catalog.addExperiment(param_experiment)
 
 
-def add_full_stability_experiments(catalog: "ExperimentCatalog"):
+def add_full_stability_experiments(catalog: "ExperimentCatalog") -> None:
 
     method = "full"
     version = "1.0.0"
@@ -103,6 +100,6 @@ def add_full_stability_experiments(catalog: "ExperimentCatalog"):
     catalog.addExperiment(param_experiment)
 
 
-def add_experiments(catalog: "ExperimentCatalog"):
+def add_experiments(catalog: "ExperimentCatalog") -> None:
     add_full_experiments(catalog)
     add_full_stability_experiments(catalog)

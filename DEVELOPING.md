@@ -25,15 +25,16 @@ the top-level of the `ado` repository:
 > section for instructions on how to do this.
 
 ```commandline
-uv sync
+uv sync --group test --reinstall
 source .venv/bin/activate
 ```
+
+<!-- markdownlint-disable no-blanks-blockquote -->
 
 > [!NOTE]
 >
 > This installs `ado` in editable mode.
 
-<!-- markdownlint-disable-next-line no-blanks-blockquote -->
 > [!NOTE]
 >
 > In line with uv's defaults, the `uv sync` command creates a `.venv` in the
@@ -41,7 +42,6 @@ source .venv/bin/activate
 > `uv sync` **are intended only to be used when developing a specific project
 > and should not be shared across projects.**
 
-<!-- markdownlint-disable-next-line no-blanks-blockquote -->
 > [!CAUTION]
 >
 > `uv sync` ensures a reproducible development environment is created by using a
@@ -49,6 +49,8 @@ source .venv/bin/activate
 > packages found in the virtual environment **will be deleted**. See
 > [Making changes to dependencies](#making-changes-to-dependencies) for how to
 > add packages to the lockfile.
+
+<!-- markdownlint-enable no-blanks-blockquote -->
 
 #### Using a custom location for the venv
 
@@ -58,7 +60,7 @@ location, $LOCATION, then run:
 ```commandline
 uv venv $LOCATION
 source $LOCATION/bin/activate
-uv sync --active
+uv sync --active --group test --reinstall
 ```
 
 ## Code style
@@ -118,10 +120,40 @@ markdownlint-cli2 "**/*.md" "#.venv" --fix
 
 ### Prettier for lines too long
 
-> [!WARNING]
+> [!CAUTION]
 >
-> Prettier might undo some changes that `markdownlint-cli2` has done. A common
-> error is adding a line after the `markdownlint-disable-next-line` comments
+> **Using Prettier with MkDocs / MkDocs‑Material**
+>
+> Some MkDocs and MkDocs‑Material features rely on Markdown behavior that isn't
+> part of the standard spec. Since Prettier reformats Markdown strictly
+> according to the spec, it can rewrite certain patterns in ways that break
+> rendering.
+>
+> Common issues include:
+>
+> - **Nested lists** that must stay indented with 4 spaces (Prettier collapses
+>   to 2).
+> - **Preprocessor tags** like `{%` that must not change.
+> - **Components using `---` fences** (cards, metadata blocks) that get
+>   converted to `***`.
+> - **Admonitions** (`!!! info`, `> [!CAUTION]`): if there's no blank line after
+>   the admonition header, Prettier may reflow the first content line into the
+>   header, causing it to be rendered as the title.
+> - **markdownlint-cli2**: `markdownlint-disable-next-line` may break if
+>   Prettier inserts a blank line below it; use `markdownlint-disable` and
+>   `markdownlint-enable` instead
+>
+> If a page uses these patterns, consider disabling Prettier for that section.
+> **NOTE**: a blank line is required before the annotations for them to be
+> picked up by Prettier:
+>
+> ```markdown
+> <!-- prettier-ignore-start -->
+>
+> ...content...
+> 
+> <!-- prettier-ignore-end -->
+> ```
 
 Line-too-long errors do not get automatically fixed by `markdownlint-cli2`. We
 recommend using `prettier` to autoformat markdown in that case. The official
@@ -133,7 +165,7 @@ website provides instructions to:
 Prettier can be run as a CLI tool with:
 
 ```commandline
-prettier -w "**/*.md"
+npx prettier -w "**/*.md"
 ```
 
 ## Secret scanning
@@ -146,9 +178,8 @@ prettier -w "**/*.md"
 
 This repository uses IBM's
 [detect-secrets](https://github.com/ibm/detect-secrets) to scan for secrets
-before the code is pushed to GitHub. Follow installation instructions in their
-repository:
-<https://github.com/ibm/detect-secrets?tab=readme-ov-file#example-usage>
+before the code is pushed to GitHub. The `detect-secret` CLI is automatically
+installed as part of the [project setup](#project-setup).
 
 To update the secrets database manually, run:
 
@@ -163,8 +194,8 @@ detect-secrets audit .secrets.baseline
 ```
 
 If the pre-commit hook raises an error but the audit command succeeds with just
-`Nothing to audit!` then run `detect-secrets scan --update .secrets.baseline`
-to perform a full scan and then repeat the `audit` command.
+`Nothing to audit!` then run `detect-secrets scan --update .secrets.baseline` to
+perform a full scan and then repeat the `audit` command.
 
 ## Commit style
 
@@ -199,6 +230,23 @@ Once installed, run
 
 ```shell
 copywrite headers
+```
+
+## YAML file formatting
+
+> [!NOTE]
+>
+> See the
+> [Automating checks with pre-commit](#automating-checks-with-pre-commit)
+> section to automate this.
+
+We require YAML files to be properly formatted. This can be automated with
+yamlfmt: <https://github.com/google/yamlfmt>.
+
+Once installed, run
+
+```shell
+yamlfmt .
 ```
 
 ## Website link checking
@@ -277,7 +325,7 @@ highlighting any issues and preventing the commit if problems are found.
 7. **uv export failures**: commit the updated `requirements.txt` file. It has
    been updated following changes to the lock file.
 8. **Markdown linter failures**: `markdownlint-cli2` usually fixes most issues
-   automatically. If you review its error message and still don’t see a clear
+   automatically. If you review its error message and still don't see a clear
    explanation or solution, try recommitting your changes and let the tool
    re-run.
 
@@ -288,9 +336,11 @@ dependencies. This means that all changes to dependencies **must** be done via
 `uv`, and not by manually editing `pyproject.toml`.
 
 <!-- markdownlint-disable descriptive-link-text -->
+
 The relevant documentation on `uv`'s website is available
 [here](https://docs.astral.sh/uv/concepts/projects/dependencies/#managing-dependencies)
 , but at a glance:
+
 <!-- markdownlint-enable descriptive-link-text -->
 
 ### Adding base dependencies
@@ -343,3 +393,30 @@ With `uv` you can add dependencies to groups using `uv add --group NAME`:
 ```commandline
 uv add --group dev pytest
 ```
+
+## Verifying lockfile integrity
+
+After making changes to dependencies or before committing changes, you should
+verify that the `uv.lock` lockfile is synchronized with `pyproject.toml`. This
+ensures that the lockfile accurately reflects the current project dependencies.
+
+You can do this with:
+
+```commandline
+uv lock --check
+```
+
+If the check passes, no output is produced and the command exits with status
+code 0.
+
+### Fixing lockfile issues
+
+If `uv lock --check` fails, it means the lockfile is out of sync with
+`pyproject.toml`. To fix this, regenerate the lockfile by running:
+
+```commandline
+uv lock
+```
+
+After running this command, commit the updated `uv.lock` file along with your
+other changes.

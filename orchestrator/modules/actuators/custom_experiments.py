@@ -1,11 +1,12 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import inspect
 import logging
 import typing
 import uuid
-from functools import wraps
+from collections.abc import Callable
+from typing import Annotated, Any
 
 import pydantic
 import ray
@@ -15,6 +16,10 @@ from orchestrator.core.actuatorconfiguration.config import GenericActuatorParame
 from orchestrator.modules.actuators.base import (
     ActuatorBase,
     DeprecatedExperimentError,
+)
+from orchestrator.modules.actuators.executor_supervisor import (
+    ExperimentExecutorSupervisor,
+    ExperimentExecutorSupervisorParameters,
 )
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
 from orchestrator.modules.module import (
@@ -31,6 +36,7 @@ from orchestrator.schema.observed_property import (
     ObservedProperty,
     ObservedPropertyValue,
 )
+from orchestrator.schema.point import SpacePoint
 from orchestrator.schema.property import (
     AbstractPropertyDescriptor,
     ConstitutiveProperty,
@@ -38,10 +44,11 @@ from orchestrator.schema.property import (
 )
 from orchestrator.schema.property_value import ConstitutivePropertyValue
 from orchestrator.schema.reference import ExperimentReference
-from orchestrator.schema.request import MeasurementRequest, MeasurementRequestStateEnum
+from orchestrator.schema.request import MeasurementRequest
 from orchestrator.schema.result import InvalidMeasurementResult, ValidMeasurementResult
 from orchestrator.utilities.environment import enable_ray_actor_coverage
 from orchestrator.utilities.logging import configure_logging
+from orchestrator.utilities.support import compute_measurement_status
 
 configure_logging()
 
@@ -51,12 +58,19 @@ _custom_experiments_catalog = orchestrator.modules.actuators.catalog.ExperimentC
 )
 
 
+class RayRemoteOptions(pydantic.BaseModel):
+    num_cpus: float | None = None
+    num_gpus: float | None = None
+    resources: dict | None = None
+    runtime_env: dict | None = None
+
+
 class ExperimentModuleConf(ModuleConf):
-    moduleType: ModuleTypeEnum = pydantic.Field(default=ModuleTypeEnum.EXPERIMENT)
+    moduleType: Annotated[ModuleTypeEnum, pydantic.Field()] = ModuleTypeEnum.EXPERIMENT
 
 
 def _infer_domain_and_property(
-    identifier: str, annotation: type, default: typing.Any
+    identifier: str, annotation: type, default: Any  # noqa: ANN401
 ) -> ConstitutiveProperty:
     """This function infers the domain of a parameter from its type and default value.
     Parameters:
@@ -106,7 +120,7 @@ def _infer_domain_and_property(
 
 
 def derive_required_properties_from_signature(
-    func: typing.Callable, optional_property_identifiers: list[str]
+    func: Callable, optional_property_identifiers: list[str]
 ) -> list[ConstitutiveProperty]:
     """This function derives the required properties from the function signature.
 
@@ -141,7 +155,7 @@ def derive_required_properties_from_signature(
 
 def get_parameterization(
     properties: list[ConstitutiveProperty], func_signature: inspect.Signature
-) -> dict[str, typing.Any]:
+) -> dict[str, Any]:
     """This function derives the parameterization of properties and function signature.
 
     The parameterization of a property is the default value of the corresponding parameter in func_signature
@@ -157,7 +171,7 @@ def get_parameterization(
     results = {}
     missing = []
     for prop in properties:
-        param = param_map.get(prop.identifier, None)
+        param = param_map.get(prop.identifier)
         if param and param.default is not inspect.Parameter.empty:
             results[prop.identifier] = param.default
         else:
@@ -168,8 +182,8 @@ def get_parameterization(
 
 
 def derive_optional_properties_and_parameterization(
-    func: typing.Callable, required_properties: list[ConstitutiveProperty]
-) -> tuple[list[ConstitutiveProperty], dict[str, typing.Any]]:
+    func: Callable, required_properties: list[ConstitutiveProperty]
+) -> tuple[list[ConstitutiveProperty], dict[str, Any]]:
     """This function derives the optional properties and their parameterization from the function signature.
 
     The optional properties are the keyword parameters of the function that are not in required_properties.
@@ -203,15 +217,19 @@ def derive_optional_properties_and_parameterization(
 
 
 def check_parameters_and_infer(
-    func,
+    func: Callable[..., Any],
     _required_properties: list[ConstitutiveProperty] | None,
     _optional_properties: list[ConstitutiveProperty] | None = None,
     _parameterization: dict | None = None,
-):
+) -> tuple[
+    list[ConstitutiveProperty] | list[Any],
+    dict | None | dict[str, Any],
+    list[ConstitutiveProperty],
+]:
     logger = logging.getLogger("custom_experiment_decorator")
 
     # Set up dynamic optional_properties and parameterization if none were provided
-    _optional_properties = _optional_properties if _optional_properties else []
+    _optional_properties = _optional_properties or []
 
     if not _required_properties:
         try:
@@ -249,7 +267,11 @@ def check_parameters_and_infer(
     return _optional_properties, _parameterization, _required_properties
 
 
-def check_parameters_valid(func, _required_properties, _optional_properties):
+def check_parameters_valid(
+    func: Callable[..., Any],
+    _required_properties: list[ConstitutiveProperty | ObservedProperty] | None,
+    _optional_properties: list[ConstitutiveProperty] | None,
+) -> None:
     # Validate that the property identifiers match the function parameters
     func_signature = inspect.signature(func)
     func_param_names = set(func_signature.parameters.keys())
@@ -262,18 +284,23 @@ def check_parameters_valid(func, _required_properties, _optional_properties):
     experiment_prop_identifiers = req_property_identifiers | opt_property_identifiers
     if not experiment_prop_identifiers.issubset(func_param_names):
         raise ValueError(
-            f"Function parameter names {func_param_names} must include all property identifiers {experiment_prop_identifiers}. "
+            f"{func.__name__} parameter names {func_param_names} must include all property identifiers {experiment_prop_identifiers}. "
             f"Missing identifiers: {experiment_prop_identifiers - func_param_names}"
         )
 
 
 def custom_experiment(
-    required_properties: list[ConstitutiveProperty | ObservedProperty],
     output_property_identifiers: list[str],
+    required_properties: list[ConstitutiveProperty | ObservedProperty] | None = None,
     optional_properties: list[ConstitutiveProperty] | None = None,
-    parameterization: dict[str, typing.Any] | None = None,
-    metadata: dict[str, typing.Any] | None = None,
-):
+    parameterization: dict[str, Any] | None = None,  # noqa: ANN401
+    metadata: dict[str, Any] | None = None,  # noqa: ANN401
+    use_ray: bool = True,
+    ray_options: dict | None = None,
+) -> Callable[
+    [Callable[..., Any]],  # noqa: ANN401
+    Callable[[tuple[Any, ...], dict[str, Any]], Any],  # noqa: ANN401
+]:
     """
     Decorator for custom experiment functions.
 
@@ -283,9 +310,19 @@ def custom_experiment(
         optional_properties: List of ConstitutiveProperty instances that are optional input values.
         parameterization: Tuple of parameters for default parameterization.
         metadata: Metadata for the experiment
+        use_ray: If True the CustomExperiments actuator will launch the experiment as a ray remote task
+        ray_options: A dictionary containing ray remote task options.
+            The keys and allowed values are defined by RayRemoteOptions
 
     Returns:
-        A decorator that wraps a function to work with ADO's custom experiment system
+        A decorator that wraps a function to work with ado's custom experiment system
+
+    Raises:
+        ValueError: If Unable to generate custom function via decorator e.g.
+        - No required properties provided, and they could not be derived from signature:
+        - Optional properties provided but parameterization could not be derived from signature:
+        - No optional properties provided and they could not be derived from signature
+        - Function parameter names did not include all property identifiers
 
     Example:
 
@@ -309,77 +346,44 @@ def custom_experiment(
         }
     """
 
-    metadata = metadata if metadata else {}
-    logger = logging.getLogger("custom_experiment_decorator")
+    metadata = metadata or {}
+    required_properties = required_properties or []
 
-    def decorator(func):
+    ray_options_model = None
+    if ray_options is not None:
+        try:
+            ray_options_model = RayRemoteOptions.model_validate(ray_options)
+        except pydantic.ValidationError as e:
+            raise ValueError("Invalid ray_options") from e
 
-        @wraps(func)
-        def wrapper(
-            entity: Entity, experiment: Experiment
-        ) -> list[ObservedPropertyValue]:
-            """
-            Wrapper function that converts Entity+Experiment to dict and calls the wrapped function.
-            """
-            input_values = experiment.propertyValuesFromEntity(entity)
-            result_dict = func(**input_values)
-            observed_property_values = []
-            for property_identifier, value in result_dict.items():
-                observed_property = experiment.observedPropertyForTargetIdentifier(
-                    property_identifier
-                )
-                observed_property_value = ObservedPropertyValue(
-                    property=observed_property, value=value
-                )
-                observed_property_values.append(observed_property_value)
-
-            return observed_property_values
-
-        # Set the wrapper's __signature__  so it is (entity,experiment)
-        # This is required for the wrapped function to be used with ray.remote
-        import inspect
-
-        wrapper.__signature__ = inspect.Signature(
-            [
-                inspect.Parameter("entity", inspect.Parameter.POSITIONAL_OR_KEYWORD),
-                inspect.Parameter(
-                    "experiment", inspect.Parameter.POSITIONAL_OR_KEYWORD
-                ),
-            ]
-        )
-
+    def decorator(
+        func: Callable[..., Any],  # noqa: ANN401
+    ) -> Callable[[tuple[Any, ...], dict[str, Any]], Any]:  # noqa: ANN401
         # If we were not given information on required/optional properties
         # or parameterization try to infer it
         # This function will log a critical error message and raise exception
         # if inference is required (because user did not provide explicit information)
         # but it could not be done (missing annotation, invalid annotation etc.)
-        _optional_properties, _parameterization, _required_properties = (
-            check_parameters_and_infer(
-                func=func,
-                _required_properties=required_properties,
-                _optional_properties=optional_properties,
-                _parameterization=parameterization,
-            )
-        )
 
         try:
+            _optional_properties, _parameterization, _required_properties = (
+                check_parameters_and_infer(
+                    func=func,
+                    _required_properties=required_properties,
+                    _optional_properties=optional_properties,
+                    _parameterization=parameterization,
+                )
+            )
+
             check_parameters_valid(
                 func,
                 _required_properties=required_properties,
                 _optional_properties=_optional_properties,
             )
         except ValueError as error:
-            logger.critical(
-                f"Unable to generate custom function via decorator: {error}"
-            )
-            raise
-
-        # Store decorator arguments as function attributes
-        wrapper._decorator_required_properties = _required_properties
-        wrapper._decorator_optional_properties = _optional_properties
-        wrapper._decorator_parameterization = _parameterization
-        wrapper._original_func = func
-        wrapper._is_custom_experiment = True
+            raise ValueError(
+                f"Unable to generate custom experiment for {func.__name__} via decorator.\n\t{error}"
+            ) from error
 
         # Create an ExperimentModuleConf instance describing where the function is
         metadata["module"] = ExperimentModuleConf(
@@ -409,17 +413,52 @@ def custom_experiment(
             deprecated=False,
             metadata=metadata,
         )
-        wrapper._experiment = experiment
+        func._experiment = experiment
 
         # Add the experiment to the module-level catalog
         _custom_experiments_catalog.addExperiment(experiment)
 
-        return wrapper
+        from functools import wraps
+
+        @wraps(func)
+        def validated_func(
+            *args: Any, **kwargs: Any  # noqa: ANN401
+        ) -> Any:  # noqa: ANN401
+            # Build property dict from either kwargs or args
+            # Prefer kwargs, but support positional for backwards compatibility
+            import inspect
+
+            sig = inspect.signature(func)
+            bound_args = sig.bind(*args, **kwargs)
+            bound_args.apply_defaults()
+            param_dict = dict(bound_args.arguments)
+
+            # Validate using SpacePoint and Experiment.validate_entity
+            spoint = SpacePoint(entity=param_dict)
+            entity = spoint.to_entity()
+            if not experiment.validate_entity(entity, verbose=True):
+                raise ValueError(
+                    f"Arguments {param_dict} do not match required/optional properties for experiment '{experiment.identifier}'. "
+                    f"See logs/stderr for reasons, or check experiment.requiredProperties/optionalProperties."
+                )
+            # Call the original with the unpacked arguments
+            return func(*args, **kwargs)
+
+        # Attach metadata to validated_func not func, so end users get the right attributes
+        validated_func._decorator_required_properties = _required_properties
+        validated_func._decorator_optional_properties = _optional_properties
+        validated_func._decorator_parameterization = _parameterization
+        validated_func._original_func = func
+        validated_func._is_custom_experiment = True
+        validated_func._experiment = experiment
+        validated_func._use_ray = use_ray
+        validated_func._ray_options = ray_options_model
+        return validated_func
 
     return decorator
 
 
-def load_custom_experiments_from_catalog_extensions(identifier):
+def load_custom_experiments_from_catalog_extensions(identifier: str) -> None:
     import importlib.resources
     import logging
     import pkgutil
@@ -474,25 +513,30 @@ def load_custom_experiments_from_catalog_extensions(identifier):
                     )
 
 
-def load_custom_experiments_from_entry_points():
+def load_custom_experiments_from_entry_points() -> None:
     """
     Load custom experiments from entry points.
 
     This function searches for entry points under 'ado.custom_experiments' and loads
     any decorated functions from those modules.
     """
-    try:
-        import importlib
-        import importlib.metadata
 
-        # Get all entry points for ado.custom_experiments
-        entry_points = importlib.metadata.entry_points()
-        custom_experiment_groups = entry_points.select(group="ado.custom_experiments")
-        for entry_point in custom_experiment_groups:
+    import importlib.metadata
+
+    # Get all entry points for ado.custom_experiments
+    entry_points = importlib.metadata.entry_points()
+    custom_experiment_groups = entry_points.select(group="ado.custom_experiments")
+    for entry_point in custom_experiment_groups:
+        try:
             entry_point.load()
-
-    except ImportError as error:
-        logging.getLogger("load_custom_experiments").warning(error)
+        except ImportError as error:  # noqa: PERF203
+            logging.getLogger("load_custom_experiments").warning(
+                f"Unable to import custom experiments from {entry_point.value}: {error}"
+            )
+        except ValueError as error:
+            logging.getLogger("load_custom_experiments").warning(
+                f"Error when creating custom experiments defined in {entry_point.value}: {error}"
+            )
 
 
 def get_custom_experiments_catalog() -> (
@@ -507,13 +551,76 @@ def get_custom_experiments_catalog() -> (
     return _custom_experiments_catalog
 
 
-async def custom_experiment_wrapper(
-    function: typing.Callable,
+def _call_decorated_custom_experiment(
+    function: Callable, target_experiment: Experiment, entity: Entity
+) -> list[ObservedPropertyValue]:
+
+    # Build input dict using experiment values from entity
+    input_values = target_experiment.propertyValuesFromEntity(entity)
+    # Call function with unpacked parameters
+    result_dict = function(**input_values)
+
+    # Drop all keys not in output_property_identifiers
+    allowed_keys = {tp.identifier for tp in target_experiment.targetProperties}
+    filtered_result = {k: v for k, v in result_dict.items() if k in allowed_keys}
+    dropped_keys = {k: v for k, v in result_dict.items() if k not in allowed_keys}
+    if dropped_keys:
+        import logging
+
+        logger = logging.getLogger("custom_experiments")
+        logger.debug(
+            f"Dropped keys from return of {target_experiment.identifier}: {dropped_keys}"
+        )
+
+    # Check at least one valid output property was returned
+    if not filtered_result:
+        raise ValueError(
+            f"No valid output properties (from set {allowed_keys}) returned by experiment '{target_experiment.identifier}'"
+        )
+
+    # Create observed property values
+    observed_property_values = []
+    for property_identifier, value in filtered_result.items():
+        observed_property = target_experiment.observedPropertyForTargetIdentifier(
+            property_identifier
+        )
+        if not observed_property:
+            raise ValueError(
+                f"{target_experiment.identifier} returned a property called {property_identifier}, however "
+                f"the experiment definition does not define an output property with this name"
+            )
+        observed_property_value = ObservedPropertyValue(
+            property=observed_property, value=value
+        )
+        observed_property_values.append(observed_property_value)
+
+    return observed_property_values
+
+
+def _call_legacy_custom_experiment(
+    function: Callable,
+    target_experiment: Experiment,
+    entity: Entity,
+    parameters: dict | None = None,
+) -> list[ObservedPropertyValue]:
+    # For legacy case or other functions, check for parameters kwarg else pass entity/experiment
+    func_signature = inspect.signature(function)
+    if "parameters" in func_signature.parameters:
+        values = function(entity, target_experiment, parameters=parameters)
+    else:
+        values = function(entity, target_experiment)
+
+    return values
+
+
+def custom_experiment_executor(
+    function: Callable,
     parameters: dict,
     measurement_request: MeasurementRequest,
     target_experiment: Experiment,
     queue: MeasurementQueue,
-):
+    custom_experiments_actor: "CustomExperimentsActor | None" = None,
+) -> None:
     """
     :param function: The function to call
     :param parameters: The custom parameters to the function
@@ -521,27 +628,35 @@ async def custom_experiment_wrapper(
     :param target_experiment: The experiment to execute.
         Required as the measurementRequest only includes an ExperimentReference
     :param queue: The queue to put the result on
+    :param custom_experiments_actor: Optional handle to CustomExperiments actuator
+        to notify after the result is queued
     :return:
     """
 
     measurement_results = []
     for entity in measurement_request.entities:
-        # Inspect function to see if it has a keyword parameter "parameters"
-        func_signature = inspect.signature(function)
-        func_param_names = set(func_signature.parameters.keys())
         try:
-            if "parameters" in func_param_names:
-                values = function(entity, target_experiment, parameters=parameters)
+            # Check if this is a custom experiment decorated function
+            if getattr(function, "_is_custom_experiment", False):
+                values = _call_decorated_custom_experiment(
+                    function=function,
+                    target_experiment=target_experiment,
+                    entity=entity,
+                )
             else:
-                values = function(entity, target_experiment)
+                values = _call_legacy_custom_experiment(
+                    function=function,
+                    target_experiment=target_experiment,
+                    entity=entity,
+                    parameters=parameters,
+                )
 
-            # Record the results in the entity
             if len(values) > 0:
                 measurement_result = ValidMeasurementResult(
                     entityIdentifier=entity.identifier, measurements=values
                 )
                 measurement_results.append(measurement_result)
-        except Exception as error:
+        except Exception as error:  # noqa: PERF203
             measurement_result = InvalidMeasurementResult(
                 entityIdentifier=entity.identifier,
                 experimentReference=target_experiment.reference,
@@ -551,24 +666,31 @@ async def custom_experiment_wrapper(
 
     if len(measurement_results) > 0:
         measurement_request.measurements = measurement_results
-        measurement_request.status = MeasurementRequestStateEnum.SUCCESS
-    else:
-        measurement_request.status = MeasurementRequestStateEnum.FAILED
+    measurement_request.status = compute_measurement_status(measurement_results)
 
-    await queue.put_async(measurement_request, block=False)
+    queue.put(measurement_request, block=False)
+    if custom_experiments_actor:
+        custom_experiments_actor.mark_measurement_request_completed.remote(
+            measurement_request.requestid
+        )
 
 
-@ray.remote
+class CustomExperimentsParameters(ExperimentExecutorSupervisorParameters):
+    """Configuration parameters for the CustomExperiments actuator."""
+
+    model_config = pydantic.ConfigDict(extra="forbid")
+
+
 class CustomExperiments(ActuatorBase):
+    """Actuator for applying user supplied custom experiments"""
+
     identifier = "custom_experiments"
+    parameters_class = CustomExperimentsParameters
 
-    """Actuator for applying user supplied custom experiments
-    """
-
-    def __init__(self, queue, params: dict | None = None):
+    def __init__(self, queue: "MeasurementQueue", params: dict | None = None) -> None:
         """
 
-        :param queue: The StateUpdates queue instance
+        :param queue: The MeasurementQueue instance
         :param params: The params for the objective-function
 
         """
@@ -576,9 +698,19 @@ class CustomExperiments(ActuatorBase):
         enable_ray_actor_coverage("custom_experiments")
         super().__init__(queue=queue, params=params)
 
-        params = params if params else {}
+        params = params or {}
+        self._typed_parameters = self.parameters_class.model_validate(
+            params, from_attributes=True
+        )
         self.log.debug(f"Queue is {self._stateUpdateQueue}")
-        self.log.debug(f"Params are {params}")
+        self.log.debug(f"Params are {self._typed_parameters}")
+
+        self._launch_supervisor = ExperimentExecutorSupervisor(
+            queue=self._stateUpdateQueue,
+            config=self._typed_parameters.to_supervisor_config(),
+            logger=self.log,
+        )
+        self._launch_supervisor.start()
 
         # Use the module-level catalog by calling the class method
         self._catalog = type(self).catalog()
@@ -610,23 +742,27 @@ class CustomExperiments(ActuatorBase):
 
         self.log.debug("Completed init")
 
+    def mark_measurement_request_completed(self, requestid: str) -> None:
+        """Record that a measurement result was queued."""
+        self._launch_supervisor.mark_measurement_request_completed(requestid)
+
     def loadedExperiment(
         self,
         experimentReference: ExperimentReference,
-    ):
+    ) -> bool:
 
         return (
             self._functionImplementations.get(experimentReference.experimentIdentifier)
             is not None
         )
 
-    async def submit(
+    def submit(
         self,
         entities: list[Entity],
         experimentReference: ExperimentReference,
         requesterid: str,
         requestIndex: int,
-    ):
+    ) -> list[str]:
 
         self.log.debug(
             f"Received a request to measure {experimentReference} on {[e.identifier for e in entities]}"
@@ -677,19 +813,49 @@ class CustomExperiments(ActuatorBase):
                 **targetExperiment.model_dump(),
             )
 
-        await custom_experiment_wrapper(
-            self._functionImplementations[
-                request.experimentReference.experimentIdentifier
-            ],
-            self._catalog.experimentForReference(
-                request.experimentReference
-            ).metadata.get("parameters", {}),
-            request,  # The request - contains experiment reference
-            targetExperiment,  # Experiment to execute
-            self._stateUpdateQueue,
-        )
-
-        # We only send one request
+        # Fetch custom_experiment function for this identifier
+        fn = self._functionImplementations[
+            request.experimentReference.experimentIdentifier
+        ]
+        use_ray = getattr(fn, "_use_ray", True)
+        ray_options_model = getattr(fn, "_ray_options", None)
+        if use_ray:
+            remote_kwargs = (
+                ray_options_model.model_dump(exclude_none=True)
+                if getattr(fn, "_ray_options", None)
+                else {}
+            )
+            # Dispatch as Ray task. Pass ray options if present.
+            # Pass the actor handle (not self) so the executor can call
+            # mark_measurement_request_completed.remote() without pickling the actor object.
+            # self is not serialisable (contains threading.Lock from the supervisor).
+            try:
+                _notifier = ray.get_runtime_context().current_actor
+            except Exception:
+                _notifier = None
+            executor_ref = ray.remote(
+                custom_experiment_executor, **remote_kwargs
+            ).remote(
+                fn,
+                self._catalog.experimentForReference(
+                    request.experimentReference
+                ).metadata.get("parameters", {}),
+                request,
+                targetExperiment,
+                self._stateUpdateQueue,
+                _notifier,
+            )
+            self._launch_supervisor.supervise_experiment_executor(request, executor_ref)
+        else:
+            custom_experiment_executor(
+                fn,
+                self._catalog.experimentForReference(
+                    request.experimentReference
+                ).metadata.get("parameters", {}),
+                request,
+                targetExperiment,
+                self._stateUpdateQueue,
+            )
         return [requestid]
 
     @classmethod
@@ -706,3 +872,9 @@ class CustomExperiments(ActuatorBase):
         self,
     ) -> orchestrator.modules.actuators.catalog.ExperimentCatalog:
         return self._catalog
+
+
+if typing.TYPE_CHECKING:
+    from ray.actor import ActorHandle
+
+    CustomExperimentsActor = type[ActorHandle[CustomExperiments]]

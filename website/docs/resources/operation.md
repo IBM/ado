@@ -10,9 +10,11 @@ provides the capability to perform a random walk `operation` on a
 The `operator` defines the inputs arguments you can set for its `operations`.
 
 The [operators](../operators/working-with-operators.md) section contains more
-details about the available `operators`, their functionality and usage them. This
-page covers how you create and work with `operations` using a given `operator`
-in general.
+details about the available `operators`, their functionality, and how to use
+them. In particular, [explore operators](../operators/explore_operators.md)
+provides details on how you sample and measure entities from a `discoveryspace`.
+This page covers how you create and work with `operations` using a given
+`operator` in general.
 
 ## Creating an `operation` resource
 
@@ -89,10 +91,13 @@ The command `ado get operators` will list the names and types of the known
 operators e.g.
 
 ```commandline
-      OPERATOR     TYPE
-0  random_walk  explore
-1     ray_tune  explore
-2     rifferla   modify
+┌───────┬─────────────┬─────────┐
+│ INDEX │ OPERATOR    │ TYPE    │
+├───────┼─────────────┼─────────┤
+│ 0     │ random_walk │ explore │
+│ 1     │ ray_tune    │ explore │
+│ 2     │ rifferla    │ modify  │
+└───────┴─────────────┴─────────┘
 ```
 
 You use this information to specify the operator to use in the operation YAML,

@@ -1,5 +1,6 @@
 <!-- markdownlint-disable code-block-style -->
-<!-- markdownlint-disable-next-line first-line-h1 -->
+<!-- markdownlint-disable first-line-h1 -->
+
 !!! info end
 
     A complete example operator is provided
@@ -37,34 +38,36 @@ next sections describe the decorator, its parameters, and the structure of the
 operation function itself.
 
 <!-- markdownlint-disable line-length -->
+
 ```python
-from orchestrator.modules.operators.collections import
-    characterize_operation  # Import the decorator from this module depending on the type of operation your operator performs
+import typing
+from orchestrator.modules.operators.collections import characterize_operation  # Import the decorator from this module depending on the type of operation your operator performs
 
 
 @characterize_operation(
     name="my_operator",  # The name of your operator.
     description="Example operator",  # What this operator does
     configuration_model=MyOperatorOptions,  # A pydantic model that describes your operators input parameters
-    configuration_model_default=MyOperatorOptions.default_parameters(),  # An example of your operators input parameters
+    example_configuration=MyOperatorOptions.example_configuration(),  # An example of your operators input parameters
     version="1.0",  # Version of the operator
 
 )
 def detect_anomalous_series(
         discoverySpace: DiscoverySpace,
-        operationInfo: typing.Optional[FunctionOperationInfo] = None,
-        **parameters,
+        operationInfo: FunctionOperationInfo | None = None,
+        **parameters: typing.Any,
 ) -> OperationOutput:
     # Your operation logic - can also call other Python modules etc.
     ...
     return operationOutput
 ```
+
 <!-- markdownlint-disable line-length -->
 
 ### Operator Type
 
-The first thing you need to do is decide what type of operator you are
-creating. The choices are
+The first thing you need to do is decide what type of operator you are creating.
+The choices are
 [explore, characterize, learn, modify, fuse, export, or compare](working-with-operators.md).
 You then import the decorator for this operator type from
 `orchestrator.modules.operators.collections` and use it to decorate your
@@ -90,24 +93,30 @@ If your operation type is `explore`, `characterize`, `learn` or `modify`, your
 function should have a parameter `discoverySpace` i.e.
 
 ```python
+import typing
+
+
 def detect_anomalous_series(
-    discoverySpace: DiscoverySpace,
-    operationInfo: typing.Optional[FunctionOperationInfo] = None,
-    **parameters,
+        discoverySpace: DiscoverySpace,
+        operationInfo: FunctionOperationInfo | None = None,
+        **parameters: typing.Any,
 ) -> OperationOutput:
-   ...
+    ...
 ```
 
 If it is `fuse` or `compare` your function should have a parameter
 `discoverySpaces` which is a list of `discoveryspaces` i.e.
 
 ```python
+import typing
+
+
 def detect_anomalous_series(
-    discoverySpaces: list[DiscoverySpace],
-    operationInfo: typing.Optional[FunctionOperationInfo] = None,
-    **parameters,
+        discoverySpaces: list[DiscoverySpace],
+        operationInfo: FunctionOperationInfo | None = None,
+        **parameters: typing.Any,
 ) -> OperationOutput:
-   ...
+    ...
 ```
 
 Operator functions also take an optional third parameter, `operationInfo`, that
@@ -130,7 +139,7 @@ the previous section with the relevant fields called out:
     name="my_operator",
     description="Example operator",
     configuration_model=MyOperatorOptions,  # <- A pydantic model that describes your operators input parameters
-    configuration_model_default=MyOperatorOptions(), # <- An example of your operators input parameters
+    example_configuration=MyOperatorOptions(), # <- An example of your operators input parameters
     version="1.0",
 )
 ```
@@ -146,13 +155,13 @@ inputs = MyOperatorOptions.model_validate(parameters)
 
 ### Providing an example operation configuration
 
-The decorators `configuration_model_default` parameter takes a example of your
+The decorators `example_configuration` parameter takes an example of your
 operators parameters. If your operator's parameter model has defaults for all
 fields then the simplest approach is to use those as the value of
-`configuration_model_default`:
+`example_configuration`:
 
 ```python
-    configuration_model_default=MyOperatorOptions(), # <- This will use the defaults specified for all fields of your operators parameters
+    example_configuration=MyOperatorOptions(), # <- This will use the defaults specified for all fields of your operators parameters
 ```
 
 ### How your Operators input parameters model is stored and output
@@ -177,46 +186,52 @@ If your operator type involves sampling and measuring entities e.g. it is an
 optimizer, your code has some additional packaging requirements which are
 discussed in [explore operators](#creating-explore-operators).
 
-### Returning data from your operation
+## Returning data from your operation: Operation Outputs
 
 > [!NOTE]
 >
-> Any `ado` resources created will be stored in the context the operation was
+> Any `ado` resources created will be stored in the project the operation was
 > created in.
 
 The operator function must return data using the
-`orchestrators.core.operation.operation.OperationOutput` pydantic model.
+`orchestrator.core.operation.operation.OperationOutput` pydantic model.
 
 ```python
 class OperationOutput(pydantic.BaseModel):
-    metadata: typing.Dict = pydantic.Field(
-        default={},
-        description="Additional metadata about the operation. ",
-    )
-    resources: typing.List[orchestrator.core.resources.ADOResource] = pydantic.Field(
-        default=[],
-        description="Array of ADO resources generated by the operation",
-    )
-    exitStatus: OperationResourceStatus = pydantic.Field(
-        description="Exit status of the operation. Default to success if not applied",
-    )
+    metadata: typing.Annotated[
+        dict,
+        pydantic.Field(
+            default_factory=dict,
+            description="Additional metadata about the operation. ",
+        ),
+    ]
+    resources: typing.Annotated[
+        list[orchestrator.core.resources.ADOResource],
+        pydantic.Field(
+            default_factory=list,
+            description="Array of ADO resources generated by the operation",
+        ),
+    ]
+    exitStatus: typing.Annotated[
+        OperationResourceStatus,
+        pydantic.Field(
+            description="Exit status of the operation. Default to success if not applied",
+        ),
+    ]
 ```
 
 The key fields to set are:
 
 - **resources**: A list of `ado` resources your operation created.
-- **existStatus**: Indicates if the operation worked or not
+- **exitStatus**: Indicates if the operation worked or not
 
-Its expected that certain operation types return certain outputs:
-
-- fuse, modify: Expected to return a new DiscoverySpaceResource and optionally a
-  SampleStoreResource
-- compare: Expected to return a new DataContainerResource
-- characterize: Expected to return a new DataContainerResource
+### Returning non-ado resource data
 
 If you have non-ado resource data you want to return from your operation, for
-example pandas DataFrames, paths to files, text, lists etc. you can use `ado`s
+example pandas DataFrames, paths to files, text, lists etc. you can use `ado`'s
 [`datacontainer`](../resources/datacontainer.md) resource.
+
+### Example
 
 The following code snippet shows returning a dataframe, a dictionary with some
 key:value pairs, and an URL:
@@ -229,9 +244,24 @@ data_container = DataContainer(tabularData={"main_dataframe":tabular_data},
                                locationData={"important_location": location})
 
 return OperationOutput(resources=[DataContainerResource(config=data_container)])
-
-
 ```
+
+### Storing returned resources
+
+All resources returned by the operation will automatically be stored in the
+project the operation was created in. In addition, the relationships between the
+operation and the resources it creates are also automatically added. This means
+`ado show related operation $OPERATION_ID` will list the resources the operation
+created.
+
+### Expected return types
+
+Certain operation types are expected to return outputs as follows:
+
+- fuse, modify: a new DiscoverySpaceResource and optionally a
+  SampleStoreResource
+- compare: a new DataContainerResource
+- characterize: a new DataContainerResource
 
 ## How to update your operator input parameters
 
@@ -423,82 +453,230 @@ def my_learning_operation(...):
 
 > [!IMPORTANT]
 >
-> The name used to call an operator function is the name of the
-> operator. This is the name given to the decorator `name` parameter and is the
-> name shown by `ado get operators`
+> The name used to call an operator function is the name of the operator. This
+> is the name given to the decorator `name` parameter and is the name shown by
+> `ado get operators`
 
 You access the data of the operation from the OperationOutput instance it
 returns. Any `ado` resources the nested operation creates will have been
 automatically added to the correct project by `ado`.
 
-## Creating Explore Operators
+## Handling Keyboard Interrupts (SIGINT)
 
-Explore operators sample and measure entities. In `ado` all explore operation
-run as distributed ray jobs with:
+> [!NOTE]
+>
+> If your operator does not create any ado resources, you don't need to do
+> anything.
 
-- actuator ray actors for performing measurements
-- discovery space manager actor for storing and notifying about measurement
-  results
+Your operator must ensure that all resources it creates, along with their
+relationships, are recorded in the project database if a keyboard interrupt
+(CTRL+C) occurs during execution. For details on how resources are handled under
+normal conditions, see
+[Storing Returned Resources](#storing-returned-resources).
 
-This means explore operators need to be implemented differently to the others,
-in particular
+By default, ado ensures that when a keyboard interrupt (CTRL+C) occurs:
 
-- The logic of your explore operator must be implemented as a ray actor (a
-  class)
-- The explore operator functions must call this class i.e. you won't have any
-  operator logic in the function
+- Any nested operations created by your operator are stored.
+- The relationship to the nested operation that was executing at the time of the
+  interrupt is stored.
 
-### Explore operation functions
+However, the following are **not stored by default**:
 
-All explore operation functions follow this pattern:
+- Non-operation resources (e.g., spaces, data containers) and their
+  relationships created before the interrupt.
+- Relationships to nested operations that were already completed.
+
+To handle these cases, wrap your operator logic in a try/except block as shown
+below
 
 ```python
-@explore_operation(
-    name="ray_tune",
-    description=RayTune.description(),
-    configuration_model=RayTuneConfiguration,
-    configuration_model_default=RayTuneConfiguration(),
-)
-def ray_tune(
-        discoverySpace: DiscoverySpace,
-        operationInfo: FunctionOperationInfo = FunctionOperationInfo(),
-        **kwargs: typing.Dict,
-) -> OperationOutput:
-    """
-    Performs an optimization on a given discoverySpace
+from orchestrator.modules.operators.base import InterruptedOperationError
 
-    """
-
-    from orchestrator.core.operation.config import OperatorModuleConf
-    from orchestrator.module.operator.orchestrate import explore_operation_function_wrapper
-
-
-    ## This describes where the class the implements your explore operation is
-    module = OperatorModuleConf(
-        moduleName="ado_ray_tune.operator",  # The name of the package containing your explore actor
-        moduleClass="RayTune",  # The name of your explore actor class
-        moduleType=orchestrator.modules.module.ModuleTypeEnum.OPERATION,
-    )
-
-    # validate parameters
-    RayTuneConfiguration.model_validate(kwargs)
-
-    # Tell ado to execute your class
-    output = explore_operation_function_wrapper(
-        discovery_space=discoverySpace,
-        module=module,
-        parameters=kwargs,
-        namespace=f"namespace-{str(uuid.uuid4())[:8]}",  #
-        operation_info=operationInfo,  # Important: This is where you must pass the operationInfo parameter to ado
-    )
-
-    return output
-
+try:
+    # operator logic
+    ...
+except KeyboardInterrupt as error:
+    # Assumes created_resources lists all ADO resources already created, and
+    # operation_id is the identifier string of this operation (from your context).
+    raise InterruptedOperationError(
+        operation_identifier=operation_id,
+        resources=created_resources,
+    ) from error
+except InterruptedOperationError as nested_operation_error:
+    # Nested operation was interrupted first; propagate using its operation identifier.
+    raise InterruptedOperationError(
+        operation_identifier=nested_operation_error.operation_identifier,
+        resources=created_resources,
+    ) from nested_operation_error
 ```
 
-### Explore operator classes
+## Creating Explore Operators
 
-TBA
+Explore operators sample entities from a discovery space and submit them for
+measurement. Unlike other operator types, the logic runs inside a **Ray actor**
+and requires a class to be implemented.
+
+### Implementation
+
+1. Create a class that subclasses `orchestrator.modules.operators.base.Explore`
+2. Decorate it with `@explore_operation`
+3. Implement, at least, the following methods:
+   - **`operator_metadata()`** — a classmethod returning an `OperatorMetadata`
+     instance that describes your operator.
+   - **`run()`** — an async method containing your operator logic
+   - **`onUpdate()`**, **`onCompleted`** and **`onError`** - methods that handle
+     notifications about completed measurements
+
+A simple example is show below:
+
+```python
+import asyncio
+import pydantic
+from orchestrator.core.datacontainer.resource import DataContainer
+from orchestrator.core.datacontainer.resource import DataContainerResource
+from orchestrator.core.operation.config import DiscoveryOperationEnum, OperatorMetadata
+from orchestrator.core.operation.operation import OperationOutput
+from orchestrator.core.operation.resource import (
+    OperationExitStateEnum,
+    OperationResourceEventEnum,
+    OperationResourceStatus,
+)
+from orchestrator.modules.operators.base import Explore, measure_or_replay
+from orchestrator.modules.operators.collections import explore_operation
+
+
+class MySearchParameters(pydantic.BaseModel):
+    num_entities: int = 10
+
+
+@explore_operation
+class MySearchOperator(Explore):
+
+    def __init__(self, operationActorName, namespace, discovery_space_manager, actuators, params=None):
+        self.params = MySearchParameters(**(params or {}))
+        # Queue for completed-measurement notifications received via onUpdate
+        self.completed_measurements_queue = asyncio.Queue()
+        super().__init__(
+            operationActorName=operationActorName,
+            namespace=namespace,
+            discovery_space_manager=discovery_space_manager,
+            actuators=actuators,
+        )
+
+    @classmethod
+    def operator_metadata(cls) -> OperatorMetadata:
+        return OperatorMetadata(
+            name="my_search",
+            version="0.1.0",
+            description="A minimal example search operator.",
+            configuration_model=MySearchParameters,
+            example_configuration=MySearchParameters(),
+            type=DiscoveryOperationEnum.SEARCH,
+        )
+
+    # --- callbacks from DiscoverySpaceManager --------------------------------
+    # onUpdate: called when a measurement completes
+    # onError:  called on an unrecoverable error
+
+    def onUpdate(self, measurementRequest) -> None:
+        self.completed_measurements_queue.put_nowait(measurementRequest)
+
+    def onCompleted(self) -> None:
+        pass
+
+    def onError(self, error: Exception) -> None:
+        self.completed_measurements_queue.put_nowait(error)
+
+    # -------------------------------------------------------------------------
+
+    async def run(self) -> OperationOutput | None:
+        measurement_queue = await self.ds_manager.measurement_queue.remote()
+        ds = await self.ds_manager.discoverySpace.remote()
+        experiments = ds.measurementSpace.independentExperiments
+
+        error_message = ""
+
+        # Sample entities and submit them for measurement
+        submitted = 0
+        async for entities in ...:  # use your chosen sampling strategy
+            for experiment in experiments:
+                request_ids = measure_or_replay(
+                    requestIndex=submitted,
+                    requesterid=self.operationIdentifier(),
+                    entities=entities,
+                    experimentReference=experiment.reference,
+                    actuators=self.actuators,
+                    measurement_queue=measurement_queue,
+                    memoize=False,
+                )
+                submitted += len(request_ids)
+
+        # Wait for all submitted measurements to complete
+        completed = 0
+        while not error_message and completed < submitted:
+            item = await self.completed_measurements_queue.get()
+            if isinstance(item, Exception):
+                error_message = f"Discovery space manager error: {item}"
+                break
+            if item.operation_id == self.operationIdentifier():
+                completed += 1
+
+        self.ds_manager.unsubscribeFromUpdates.remote(subscriberName=self.actorName)
+
+        if error_message:
+            return OperationOutput(
+                exitStatus=OperationResourceStatus(
+                    event=OperationResourceEventEnum.FINISHED,
+                    exit_state=OperationExitStateEnum.FAIL,
+                    message=error_message,
+                )
+            )
+        # exitStatus defaults to success when omitted
+        summary = DataContainer(data={"entities_submitted": submitted})
+        return OperationOutput(resources=[DataContainerResource(config=summary)])
+```
+
+### Tips
+
+**Submit measurements in batches.** Submitting a batch at once, then waiting for
+all of them to complete before sampling the next batch, is the simplest pattern.
+A more advanced approach is to submit the next entity as soon as one measurement
+finishes (continuous batching), which keeps actuators busy and reduces idle
+time.
+
+**Use `measure_or_replay` for all submissions.** Do not call actuators directly.
+`measure_or_replay` handles memoisation (reusing a prior measurement result when
+`memoize=True`) and routes the request to the correct actuator.
+
+**Use `self.operationIdentifier()` as the `requesterid`.** The update
+notifications you receive via `onUpdate` include the `operation_id` that created
+the request. Filtering on
+`measurement_request.operation_id == self.operationIdentifier()` lets you ignore
+notifications from other concurrent operations sharing the same space.
+
+**Unsubscribe before returning.** Call
+`self.ds_manager.unsubscribeFromUpdates.remote(subscriberName=self.actorName)`
+at the end of `run()` as a courtesy — it stops the `DiscoverySpaceManager` from
+dispatching further `onUpdate` and `onCompleted` calls to an operator that has
+already finished.
+
+### Error handling
+
+**Errors from `measure_or_replay`.** The function raises `KeyError` (no actuator
+can handle the experiment) or `MeasurementError` (experiment is deprecated for
+the actuator version in use). These don't have to be caught as they are handled
+by `ado`. It records the operation with exit state `ERROR` including the full
+exception message. You only need to catch them explicitly if you want finer
+control.
+
+**Errors from the discovery space manager.** If the discovery space manager
+encounters an unrecoverable problem it calls `onError`. This arrives
+asynchronously and without explicit handling run() could wait forever for a new
+measurement result to arrive. A recommended pattern to handle this is shown in
+the example above: `onError` puts the exception onto the same `asyncio.Queue`
+that `onUpdate` uses for completed measurements. In the wait loop, check whether
+the item dequeued is an `Exception` to detect this sentinel and exit early, then
+return a failed `OperationOutput`.
 
 ## Operator plugin packages
 

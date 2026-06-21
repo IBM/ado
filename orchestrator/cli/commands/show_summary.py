@@ -1,12 +1,12 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
+import pathlib
 import typing
 from typing import Annotated
 
 import typer
 
-from orchestrator.cli.models.choice import HiddenPluralChoice
 from orchestrator.cli.models.parameters import AdoShowSummaryCommandParameters
 from orchestrator.cli.models.types import (
     AdoShowSummarySupportedOutputFormats,
@@ -16,18 +16,16 @@ from orchestrator.cli.resources.discovery_space.show_summary import (
     show_discovery_space_summary,
 )
 from orchestrator.cli.utils.input.parsers import (
+    enum_choice_with_plural_parser,
     parse_key_value_pairs,
 )
 from orchestrator.cli.utils.output.prints import (
     ERROR,
     console_print,
-    latest_identifier_for_resource_not_found,
-    using_latest_identifier_for_resource,
 )
 from orchestrator.cli.utils.queries.parser import (
     prepare_query_filters_for_db,
 )
-from orchestrator.core import CoreResourceKinds
 from orchestrator.core.samplestore.base import (
     FailedToDecodeStoredEntityError,
     FailedToDecodeStoredMeasurementResultForEntityError,
@@ -47,7 +45,8 @@ def show_summary_for_resources(
             ...,
             help="The kind of the resource to show a summary for.",
             show_default=False,
-            click_type=HiddenPluralChoice(AdoShowSummarySupportedResourceTypes),
+            parser=enum_choice_with_plural_parser(AdoShowSummarySupportedResourceTypes),
+            metavar=f"[{'|'.join(m.value for m in AdoShowSummarySupportedResourceTypes)}]",
         ),
     ],
     ids: Annotated[
@@ -62,8 +61,8 @@ def show_summary_for_resources(
         bool,
         typer.Option(
             "--use-latest",
-            help="Adds the latest identifier of the selected resource type to "
-            "the identifiers to show a summary for.",
+            help="Show summary for the latest identifier of the selected resource type. "
+            "Ignored if resource identifiers are also specified.",
             show_default=False,
         ),
     ] = False,
@@ -126,75 +125,64 @@ def show_summary_for_resources(
     output_format: Annotated[
         AdoShowSummarySupportedOutputFormats,
         typer.Option(
-            "--format",
+            "--output",
             "-o",
-            help="The format in which to output the summary.",
+            help="The format in which to output the summary. "
+            "Options: table (rich console table), md-table (markdown table), "
+            "md-report (markdown prose report), csv (CSV format).",
         ),
     ] = AdoShowSummarySupportedOutputFormats.TABLE.value,
+    output_file: Annotated[
+        pathlib.Path | None,
+        typer.Option(
+            "--output-file",
+            help="Write output to the specified file instead of stdout.",
+            file_okay=True,
+            dir_okay=False,
+            writable=True,
+            resolve_path=True,
+            show_default=False,
+        ),
+    ] = None,
     render_output: Annotated[
         bool,
         typer.Option(
             "--render",
-            help="Render the output in the console. Only supported for markdown and table output.",
+            help="Render the output in the console. Only supported for markdown table and markdown report output.",
         ),
     ] = False,
-):
+) -> None:
     """
     Show a formatted summary of one or more discovery spaces.
 
     See https://ibm.github.io/ado/getting-started/ado/#ado-show-summary
     for detailed documentation and examples.
 
-
-
     Examples:
 
-
-
-    # Show a high-level summary of the discovery space as a Markdown table
-
+    # Show a high-level summary of the discovery space as a rich table
     ado show summary space <space-id>
 
-
-
-    # Show a high-level summary of the latest discovery space as a Markdown table
-
+    # Show a high-level summary of the latest discovery space as a rich table
     ado show summary space --use-latest
 
-
-
     # Show a high-level summary of discovery spaces matching a label
-
     ado show summary space -l key=value
 
-
-
-    # Show a detailed summary of the discovery space as a Markdown document
-
-    ado show summary space <space-id> -o md
+    # Show a detailed summary of the discovery space as a Markdown report
+    ado show summary space <space-id> -o md-report
     """
     ado_configuration: AdoConfiguration = ctx.obj
 
-    resource_kind = CoreResourceKinds(resource_type.value)
-    resource_id = ado_configuration.latest_resource_ids.get(resource_kind)
-    if not resource_id:
-        console_print(
-            latest_identifier_for_resource_not_found(
-                resource_kind=resource_kind, hide_resource_in_flag=True
-            ),
-            stderr=True,
-        )
-        raise typer.Exit(1)
-    console_print(
-        using_latest_identifier_for_resource(
-            resource_kind=resource_kind, resource_identifier=resource_id
-        ),
-        stderr=True,
-    )
+    if use_latest:
+        from orchestrator.cli.utils.generic.common import get_effective_resource_id
 
-    if ids:
-        ids.append(resource_id)
-    else:
+        # Handle single ID case - get_effective_resource_id handles precedence
+        resource_id = get_effective_resource_id(
+            explicit_resource_id=ids[0] if ids else None,
+            resource_type=resource_type.value,
+            project_context=ado_configuration.project_context,
+        )
         ids = [resource_id]
 
     try:
@@ -213,6 +201,7 @@ def show_summary_for_resources(
         ado_configuration=ado_configuration,
         columns_to_hide=columns_to_hide,
         include_properties=include_properties,
+        output_file=output_file,
         output_format=output_format,
         query=query,
         render_output=render_output,
@@ -230,10 +219,10 @@ def show_summary_for_resources(
         FailedToDecodeStoredMeasurementResultForEntityError,
     ) as e:
         console_print(f"{ERROR}{e}", stderr=True)
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
-def register_show_summary_command(app: typer.Typer):
+def register_show_summary_command(app: typer.Typer) -> None:
     app.command(
         name="summary",
         no_args_is_help=True,

@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import logging
@@ -39,8 +39,8 @@ def mycustomexperiment(entity):
 def acid_test(
     entity: orchestrator.schema.entity.Entity,
     experiment: orchestrator.schema.experiment.Experiment,
-    parameters=None,
-):
+    parameters: dict | None = None,
+) -> list[ObservedPropertyValue]:
     """
 
     :param entity: The entity to be measured
@@ -74,8 +74,6 @@ def acid_test(
     value = 0 if pka.value >= 0 else 1
 
     # Create the result
-
-    # moduleLog.info(f'{["%s" % op for op in experiment.observedProperties]}')
     isAcidProp = next(
         p
         for p in experiment.observedProperties

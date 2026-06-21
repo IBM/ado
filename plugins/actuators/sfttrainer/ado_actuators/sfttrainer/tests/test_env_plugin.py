@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import os
@@ -11,7 +11,7 @@ import orchestrator.utilities.ray_env.ordered_pip as ordered_pip
 
 
 @pytest.fixture
-def set_plugin():
+def set_plugin() -> None:
     os.environ["RAY_RUNTIME_ENV_PLUGINS"] = (
         '[{"class":"' + ordered_pip.OrderedPipPlugin.ClassPath + '"}]'
     )
@@ -21,7 +21,7 @@ def set_plugin():
     del os.environ["RAY_RUNTIME_ENV_PLUGINS"]
 
 
-def test_detect_support_pip_install_options():
+def test_detect_support_pip_install_options() -> None:
     import ray
 
     version = tuple(int(x) for x in ray.__version__.split("."))
@@ -32,16 +32,11 @@ def test_detect_support_pip_install_options():
     assert supported == utils.ray_version_supports_pip_install_options()
 
 
-def test_ray_runtime_env_with_ordered_pip_plugin(set_plugin):
+def test_ray_runtime_env_with_ordered_pip_plugin(set_plugin: None) -> None:
     if not utils.is_pip_available():
         pytest.skip("pip is unavailable")
 
-    class_path = ".".join(
-        (
-            ordered_pip.OrderedPipPlugin.__module__,
-            ordered_pip.OrderedPipPlugin.__name__,
-        )
-    )
+    class_path = f"{ordered_pip.OrderedPipPlugin.__module__}.{ordered_pip.OrderedPipPlugin.__name__}"
 
     assert class_path == ordered_pip.OrderedPipPlugin.ClassPath
 
@@ -64,7 +59,10 @@ def test_ray_runtime_env_with_ordered_pip_plugin(set_plugin):
             "env_vars": {"AIM_UI_TELEMETRY_ENABLED": "0"},
             "ordered_pip": {
                 "phases": [
-                    {"packages": ["torch==2.6.0"]},
+                    {
+                        "packages": ["torch==2.6.0"],
+                        "pip_install_options": ["--no-build-isolation"],
+                    },
                     {
                         "packages": ["flash_attn==2.7.4.post1", "mamba-ssm==2.2.5"],
                         "pip_install_options": ["--no-build-isolation"],
@@ -92,7 +90,7 @@ def test_ray_runtime_env_with_ordered_pip_plugin(set_plugin):
         }
 
 
-def test_pip_find_links_option():
+def test_pip_find_links_option() -> None:
     if not utils.is_pip_available():
         pytest.skip("pip is unavailable")
 
@@ -131,7 +129,7 @@ def test_pip_find_links_option():
         }
 
 
-def test_ray_runtime_env_with_vanilla_pip():
+def test_ray_runtime_env_with_vanilla_pip() -> None:
     if not utils.is_pip_available():
         pytest.skip("pip is unavailable")
 
@@ -177,7 +175,7 @@ def test_ray_runtime_env_with_vanilla_pip():
         }
 
 
-def test_ordered_pip_plugin(set_plugin):
+def test_ordered_pip_plugin(set_plugin: None) -> None:
     if not utils.is_pip_available():
         pytest.skip("pip is unavailable")
 
@@ -198,7 +196,7 @@ def test_ordered_pip_plugin(set_plugin):
             },
         },
     )
-    def try_import_packages():
+    def try_import_packages() -> bool:
         import yaml
 
         _ = dir(yaml)

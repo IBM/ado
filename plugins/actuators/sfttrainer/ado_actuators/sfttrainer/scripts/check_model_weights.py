@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import json
@@ -18,7 +18,6 @@ from ado_actuators.sfttrainer.experiments.common import (
 
 
 @ray.remote(
-    # resources={"Tesla-V100-PCIE-16GB": 1},
     runtime_env={
         "pip": ["accelerate", "transformers>=4.40.0"],
         "env_vars": {
@@ -28,7 +27,7 @@ from ado_actuators.sfttrainer.experiments.common import (
         },
     },
 )
-def get_model_hash(path_model: str):
+def get_model_hash(path_model: str) -> bool:
     from accelerate import init_empty_weights
     from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 
@@ -56,7 +55,7 @@ def get_model_hash(path_model: str):
     return True
 
 
-def main():
+def main() -> None:
     ray.init()
 
     model_information: dict[str, dict[str, typing.Any]] = {}

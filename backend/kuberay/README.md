@@ -20,39 +20,42 @@ the
 
 > [!WARNING] Ray version compatibility
 >
-> The `ray` version set in KubeRay YAML and the one
-> used in the ray head and worker containers must be compatible.
-> For a more in depth guide refer to the [RayCluster configuration](https://docs.ray.io/en/latest/cluster/kubernetes/user-guides/config.html)
+> The `ray` version set in KubeRay YAML and the one used in the ray head and
+> worker containers must be compatible. For a more in depth guide refer to the
+> [RayCluster configuration](https://docs.ray.io/en/latest/cluster/kubernetes/user-guides/config.html)
 > page.
 
 We provide [an example set of values](vanilla-ray.yaml) for deploying a
 RayCluster via KubeRay. To deploy it run:
 
-``` commandline
+```commandline
 helm upgrade --install ado-ray kuberay/ray-cluster --version 1.1.0 --values backend/kuberay/vanilla-ray.yaml
 ```
 
-Feel free to customize the example file provided to suit your cluster,
-such as uncommenting GPU-enabled workers.
+Feel free to customize the example file provided to suit your cluster, such as
+uncommenting GPU-enabled workers.
 
 ### Enabling ado actuators to create K8s resources
 
 #### Configuring a ServiceAccount for the RayCluster
 
-The default Kubernetes ServiceAccount created for a RayCluster does not
-have enough permissions for an ado actuator to create Kubernetes resources
-(e.g., deployments, pods, services, etc.) as part of its operations.
-Users are required to create a custom ServiceAccount bound to a Role with
-sufficient permissions, before creating the RayCluster, to avoid
-runtime errors.
-Below is an example ServiceAccount bound to a Role that allows
-monitoring, creating, deleting, and updating of pods, deployments and services.
-It also provides access to the RayCluster resources.
+The default Kubernetes ServiceAccount created for a RayCluster does not have
+enough permissions for an ado actuator to create Kubernetes resources (e.g.,
+deployments, pods, services, etc.) as part of its operations. Users are required
+to create a custom ServiceAccount bound to a Role with sufficient permissions,
+before creating the RayCluster, to avoid runtime errors. Below is an example
+ServiceAccount bound to a Role that allows monitoring, creating, deleting, and
+updating of pods, deployments and services. It also provides access to the
+RayCluster resources.
 
+<!-- prettier-ignore-start -->
 <!-- markdownlint-disable-next-line code-block-style -->
+
 ```yaml
 {% include "./service-account.yaml" %}
 ```
+
+<!-- prettier-ignore-end -->
 
 From the root of the ado project run the below command:
 
@@ -60,25 +63,29 @@ From the root of the ado project run the below command:
 kubectl apply -f backend/kuberay/service-account.yaml
 ```
 
-This will create a ServiceAccount named `ray-deployer`.
-We will reference this name later when
+This will create a ServiceAccount named `ray-deployer`. We will reference this
+name later when
 [deploying the RayCluster](#example-kubernetes-cluster-with-4-nodes-8-gpus-each).
 
-More information about ServiceAccount, Role, and RoleBinding objects can be found
-in the [official Kubernetes RBAC documentation](https://kubernetes.io/docs/reference/access-authn-authz/rbac/).
+More information about ServiceAccount, Role, and RoleBinding objects can be
+found in the
+[official Kubernetes RBAC documentation](https://kubernetes.io/docs/reference/access-authn-authz/rbac/).
 
 #### Associating a RayCluster with the ServiceAccount
 
 The below command shows how to set the `serviceAccountName` property for head
 and worker nodes.
 
-<!-- markdownlint-disable-next-line code-block-style -->
+<!-- markdownlint-disable code-block-style -->
+
 ```bash
 helm upgrade --install ado-ray kuberay/ray-cluster --version 1.1.0 \
   --values backend/kuberay/vanilla-ray-service-account.yaml \
   --set head.serviceAccountName=ray-deployer \
   --set worker.serviceAccountName=ray-deployer
 ```
+
+<!-- markdownlint-enable code-block-style -->
 
 ### Best Practices for Efficient GPU Resource Utilization
 
@@ -127,6 +134,8 @@ with 4 Nodes each with 8 NVIDIA-A100-SXM4-80GB GPUs, 64 CPU cores, and 1TB memor
         num-gpus: '1'
         resources: '"{\"NVIDIA-A100-SXM4-80GB\": 1}"'
       containerEnv:
+        - name: RAY_RUNTIME_ENV_PLUGINS
+          value: '[{"class":"orchestrator.utilities.ray_env.ordered_pip.OrderedPipPlugin"}]'
         - name: OMP_NUM_THREADS
           value: "1"
         - name: OPENBLAS_NUM_THREADS
@@ -166,6 +175,8 @@ with 4 Nodes each with 8 NVIDIA-A100-SXM4-80GB GPUs, 64 CPU cores, and 1TB memor
         num-gpus: '2'
         resources: '"{\"NVIDIA-A100-SXM4-80GB\": 2}"'
       containerEnv:
+        - name: RAY_RUNTIME_ENV_PLUGINS
+          value: '[{"class":"orchestrator.utilities.ray_env.ordered_pip.OrderedPipPlugin"}]'
         - name: OMP_NUM_THREADS
           value: "1"
         - name: OPENBLAS_NUM_THREADS
@@ -205,6 +216,8 @@ with 4 Nodes each with 8 NVIDIA-A100-SXM4-80GB GPUs, 64 CPU cores, and 1TB memor
         num-gpus: '4'
         resources: '"{\"NVIDIA-A100-SXM4-80GB\": 4}"'
       containerEnv:
+        - name: RAY_RUNTIME_ENV_PLUGINS
+          value: '[{"class":"orchestrator.utilities.ray_env.ordered_pip.OrderedPipPlugin"}]'
         - name: OMP_NUM_THREADS
           value: "1"
         - name: OPENBLAS_NUM_THREADS
@@ -244,6 +257,8 @@ with 4 Nodes each with 8 NVIDIA-A100-SXM4-80GB GPUs, 64 CPU cores, and 1TB memor
         num-gpus: '8'
         resources: '"{\"NVIDIA-A100-SXM4-80GB\": 8, \"full-worker\": 1}"'
       containerEnv:
+        - name: RAY_RUNTIME_ENV_PLUGINS
+          value: '[{"class":"orchestrator.utilities.ray_env.ordered_pip.OrderedPipPlugin"}]'
         - name: OMP_NUM_THREADS
           value: "1"
         - name: OPENBLAS_NUM_THREADS
@@ -275,24 +290,80 @@ with 4 Nodes each with 8 NVIDIA-A100-SXM4-80GB GPUs, 64 CPU cores, and 1TB memor
       # volumes: ...
       # volumeMounts: ....
     ```
+
 <!-- markdownlint-enable MD046 -->
 </details>
 <!-- markdownlint-enable no-inline-html -->
 
 > [!IMPORTANT] full-worker custom resource
 >
-> Notice that the only variant with a **full-worker** custom resource
-> is the one with 8 GPUs. Some actuators, like SFTTrainer, use this
-> custom resource for measurements that involve reserving an entire GPU node.
+> Notice that the only variant with a **full-worker** custom resource is the one
+> with 8 GPUs. Some actuators, like SFTTrainer, use this custom resource for
+> measurements that involve reserving an entire GPU node.
 
 ### RayClusters and SFTTrainer
 
 > [!IMPORTANT] HuggingFace home directory
 >
-> If you want to run multi-node measurements with
-> the SFTTrainer actuator make sure that
-> all nodes in your multi-node setup have read and write access
-> to your HuggingFace home directory. On Kubernetes with RayClusters,
-> avoid S3-like filesystems as that is known to cause failures
-> in **transformers**.
-> Use a NFS or GPFS-backed PersistentVolumeClaim instead.
+> If you want to run multi-node measurements with the SFTTrainer actuator make
+> sure that all nodes in your multi-node setup have read and write access to
+> your HuggingFace home directory. On Kubernetes with RayClusters, avoid S3-like
+> filesystems as that is known to cause failures in **transformers**. Use a NFS
+> or GPFS-backed PersistentVolumeClaim instead.
+
+## Using the OrderedPip Ray Runtime Environment Plugin
+
+The `OrderedPipPlugin` is a Ray RuntimeEnvPlugin bundled with `ado-core` that
+enables you to control the build order of Python packages. This is useful when
+installing packages with build-time dependencies, such as `mamba-ssm` which
+requires `torch` to be installed before it can be built.
+
+### Enabling the Plugin
+
+To enable the `OrderedPipPlugin`, set the `RAY_RUNTIME_ENV_PLUGINS` environment
+variable before starting the Ray head node and workers:
+
+```bash
+export RAY_RUNTIME_ENV_PLUGINS='[{"class":"orchestrator.utilities.ray_env.ordered_pip.OrderedPipPlugin"}]'
+```
+
+When deploying a RayCluster via KubeRay, add this environment variable to both
+head and worker node configurations (see examples below).
+
+### Documentation and Usage
+
+For detailed documentation, configuration details, and usage examples, see the
+[OrderedPip Plugin README](https://github.com/IBM/ado/blob/main/orchestrator/utilities/ray_env/README.md).
+
+### Example: Using ordered_pip with ray job submit
+
+You can use `ordered_pip` with `ray job submit` by providing a runtime
+environment YAML file:
+
+```yaml
+# ray_runtime_env.yaml
+ordered_pip:
+  phases:
+    # Phase 1: Install PyTorch first
+    - packages:
+        - torch==2.6.0
+    # Phase 2: Install packages that depend on PyTorch during build
+    - packages:
+        - mamba-ssm==2.2.5
+      pip_install_options:
+        # IMPORTANT.
+        # --no-build-isolation tells pip to build the wheel
+        # in the same venv where torch is already installed
+        - --no-build-isolation
+```
+
+Then submit your job with:
+
+```bash
+ray job submit --runtime-env-json ray_runtime_env.yaml -- python my_script.py
+```
+
+> [!NOTE]
+>
+> Actuators like `SFTTrainer` automatically use `OrderedPipPlugin` when available
+> to ensure correct installation of their dependencies.

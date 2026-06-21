@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import rich.rule
@@ -17,7 +17,7 @@ from orchestrator.core.resources import CoreResourceKinds
 from orchestrator.metastore.base import ResourceDoesNotExistError
 
 
-def show_discovery_space_details(parameters: AdoShowDetailsCommandParameters):
+def show_discovery_space_details(parameters: AdoShowDetailsCommandParameters) -> None:
     import orchestrator.cli.utils.resources.handlers
 
     sql = get_sql_store(project_context=parameters.ado_configuration.project_context)
@@ -40,8 +40,10 @@ def show_discovery_space_details(parameters: AdoShowDetailsCommandParameters):
             identifier=parameters.resource_id,
         )
 
+        space_details = SpaceDetails.from_space(space=space)
+
     console_print(rich.rule.Rule(title="DETAILS"))
-    console_print(SpaceDetails.from_space(space=space).to_markdown())
+    console_print(space_details.to_markdown())
     orchestrator.cli.utils.resources.handlers.print_related_resources(
         resource_id=parameters.resource_id,
         resource_type=CoreResourceKinds.DISCOVERYSPACE,

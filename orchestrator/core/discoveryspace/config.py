@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import enum
@@ -22,7 +22,9 @@ class SpaceHierarchy(enum.Enum):
     UNDEFINED = "undefined"
 
 
-def ms_config_type_discriminator(ms_config):
+def ms_config_type_discriminator(
+    ms_config: list | dict | MeasurementSpaceConfiguration,
+) -> str:
 
     if isinstance(ms_config, list):
         return "ExperimentReferenceList"
@@ -48,11 +50,13 @@ MeasurementSpaceConfigurationType = typing.Annotated[
 
 
 class DiscoverySpaceProperties(pydantic.BaseModel):
-    stochastic: bool = pydantic.Field(
-        default=False,
-        description="If true the values for properties are drawn from a distribution."
-        "Use this field when this is known to be true for all properties",
-    )
+    stochastic: Annotated[
+        bool,
+        pydantic.Field(
+            description="If true the values for properties are drawn from a distribution."
+            "Use this field when this is known to be true for all properties"
+        ),
+    ] = False
 
 
 class DiscoverySpaceConfiguration(pydantic.BaseModel):
@@ -60,24 +64,89 @@ class DiscoverySpaceConfiguration(pydantic.BaseModel):
     sampleStoreIdentifier: Annotated[
         str,
         pydantic.Field(
-            default="default",  # The name of the default sample store
             description="The id of the sample store to use.",
             coerce_numbers_to_str=True,
         ),
-    ]
-    entitySpace: list[ConstitutiveProperty] | None = pydantic.Field(
-        default=None,
-        description="Describes how entities can be generated in this space",
-    )
-    experiments: MeasurementSpaceConfigurationType | None = pydantic.Field(
-        default=None, description="Defines the measurement space"
-    )
-    metadata: ConfigurationMetadata = pydantic.Field(
-        default=ConfigurationMetadata(),
-        description="User defined metadata about the configuration. A set of keys and values. "
-        "Two optional keys that are used by convention are name and description",
-    )
+    ] = "default"
+    entitySpace: Annotated[
+        list[ConstitutiveProperty] | None,
+        pydantic.Field(
+            description="Describes how entities can be generated in this space"
+        ),
+    ] = None
+    experiments: Annotated[
+        MeasurementSpaceConfigurationType | None,
+        pydantic.Field(description="Defines the measurement space"),
+    ] = None
+    metadata: Annotated[
+        ConfigurationMetadata,
+        pydantic.Field(
+            description="Metadata about the configuration including optional name, description, "
+            "labels for filtering, and any additional custom fields"
+        ),
+    ] = ConfigurationMetadata()
     model_config = ConfigDict(extra="forbid")
+
+    @pydantic.field_validator("entitySpace", mode="before")
+    @classmethod
+    def strip_binary_variable_types_data(
+        cls, values: dict | list[ConstitutiveProperty]
+    ) -> dict:
+        from pydantic import TypeAdapter
+
+        from orchestrator.core.resources import (
+            CoreResourceKinds,
+            warn_deprecated_resource_model_in_use,
+        )
+        from orchestrator.schema.domain import VariableTypeEnum
+
+        if values is None:
+            return values
+
+        if isinstance(values, list) and all(
+            isinstance(item, ConstitutiveProperty) for item in values
+        ):
+            values = TypeAdapter(list[ConstitutiveProperty]).dump_python(values)
+
+        property_domain_key = "propertyDomain"
+        variable_type_key = "variableType"
+        for property in values:
+
+            property_domain = property.get(property_domain_key)
+            if property_domain_key not in property or not property_domain:
+                continue
+
+            if (
+                variable_type_key not in property_domain
+                or property_domain.get(variable_type_key)
+                != VariableTypeEnum.BINARY_VARIABLE_TYPE.value
+            ):
+                continue
+
+            keys_to_remove = {
+                "values",
+                "interval",
+                "domainRange",
+                "probabilityFunction",
+            }
+            overlapping_keys = set(property[property_domain_key].keys()).difference(
+                keys_to_remove
+            )
+
+            # If the propertyDomain has any of the keys above, we rewrite it completely
+            # to just contain BINARY_VARIABLE_TYPE instead of popping each key.
+            if overlapping_keys:
+
+                property[property_domain_key] = {
+                    variable_type_key: VariableTypeEnum.BINARY_VARIABLE_TYPE.value
+                }
+                warn_deprecated_resource_model_in_use(
+                    affected_resource=CoreResourceKinds.DISCOVERYSPACE,
+                    deprecated_from_ado_version="1.6.0",
+                    removed_from_ado_version="2.0.0",
+                )
+
+        return values
 
     def convert_experiments_to_reference_list(self) -> "DiscoverySpaceConfiguration":
         """Returns a copy where the experiments field is a list of experiment references"""
@@ -133,7 +202,7 @@ class DiscoverySpaceConfiguration(pydantic.BaseModel):
             }
         )
 
-    def is_sub_space(self, reference_space: "DiscoverySpaceConfiguration"):
+    def is_sub_space(self, reference_space: "DiscoverySpaceConfiguration") -> bool:
 
         if not self.entitySpace:
             raise ValueError("The target entity space was empty")
@@ -188,6 +257,48 @@ class DiscoverySpaceConfiguration(pydantic.BaseModel):
         if is_super_space:
             return SpaceHierarchy.SUPER_SPACE
         return SpaceHierarchy.UNDEFINED
+
+    def validate_entity_space_against_measurement_space(self) -> None:
+        """Validates the entity space against the measurement space.
+
+        Creates a MeasurementSpace instance and EntitySpaceRepresentation from the
+        configuration and uses MeasurementSpace.checkEntitySpaceCompatible to validate
+        compatibility.
+
+        Raises:
+            ValueError: If validation fails. The error message will describe the
+                incompatibility between the entity space and measurement space, or
+                if experiments cannot be resolved (e.g., experiments from sample store
+                catalogs are not available in dry-run mode).
+            UnknownExperimentError: If experiments cannot be resolved
+            (e.g., actuator is not installed).
+        """
+
+        from orchestrator.schema.entityspace import EntitySpaceRepresentation
+        from orchestrator.schema.measurementspace import MeasurementSpace
+
+        # Skip validation if either entity space or experiments are not defined
+        if self.entitySpace is None or self.experiments is None:
+            return
+
+        # Create EntitySpaceRepresentation from the entity space configuration
+        entity_space = EntitySpaceRepresentation.representationFromConfiguration(
+            self.entitySpace
+        )
+
+        if isinstance(self.experiments, MeasurementSpaceConfiguration):
+            # If we have full MeasurementSpaceConfiguration we can initialize directly
+            measurement_space = MeasurementSpace(configuration=self.experiments)
+        else:
+            # Otherwise we have to use registry to reconstruct the experiments
+            # This will use the actuator registry to resolve experiment references
+            measurement_space = MeasurementSpace.measurementSpaceFromSelection(
+                selectedExperiments=self.experiments,
+                experimentCatalogs=None,  # In dry-run, we don't have sample store catalogs
+            )
+
+        # Validate compatibility - this will raise ValueError if validation fails
+        measurement_space.checkEntitySpaceCompatible(entitySpace=entity_space)
 
 
 class EntityFilter(enum.Enum):

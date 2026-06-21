@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import logging
@@ -31,8 +31,8 @@ def objective_function(
 def cost(
     entity: Entity,
     experiment: Experiment,
-    parameters=None,
-):
+    parameters: dict | None = None,
+) -> list[ObservedPropertyValue]:
     """
 
     :param entity: The entity to be measured

@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 
@@ -16,7 +16,7 @@ class ActuatorDoesNotHaveExperimentError(Exception):
 
     actuators_with_experiments: set
 
-    def __init__(self, actuators: set):
+    def __init__(self, actuators: set) -> None:
         self.actuators_with_experiments = actuators
 
 
@@ -28,5 +28,5 @@ class TooManyActuatorsWithExperimentError(Exception):
 
     actuators_with_experiments: set
 
-    def __init__(self, actuators: set):
+    def __init__(self, actuators: set) -> None:
         self.actuators_with_experiments = actuators

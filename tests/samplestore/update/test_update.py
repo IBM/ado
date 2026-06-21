@@ -1,16 +1,23 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
+from collections.abc import Callable
 
-from orchestrator.core.resources import CoreResourceKinds
+from orchestrator.core import OperationResource
+from orchestrator.core.resources import ADOResource, CoreResourceKinds
+from orchestrator.metastore.sqlstore import SQLStore
 
 
 def test_update_operation(
-    random_operation_resource_from_db,
-    sql_store,
-    update_resource,
-    get_single_resource_by_identifier,
-):
-    operation = random_operation_resource_from_db()
+    ml_multi_cloud_operation_resource_from_db: Callable[
+        [str | None], OperationResource
+    ],
+    sql_store: SQLStore,
+    update_resource: Callable[[ADOResource, SQLStore], None],
+    get_single_resource_by_identifier: Callable[
+        [str, CoreResourceKinds], ADOResource | None
+    ],
+) -> None:
+    operation = ml_multi_cloud_operation_resource_from_db()
 
     metadata = {
         "new_samples_generated": 10,

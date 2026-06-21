@@ -1,0 +1,20 @@
+# Copyright IBM Corporation 2025, 2026
+# SPDX-License-Identifier: MIT
+sampleStoreIdentifier: default
+entitySpace:
+  - identifier: learning_rate
+    propertyDomain:
+      variableType: CONTINUOUS_VARIABLE_TYPE
+      domainRange: [0.001, 0.1]
+  - identifier: batch_size
+    propertyDomain:
+      variableType: DISCRETE_VARIABLE_TYPE
+      values: [16, 32, 64]
+experiments:
+  - actuatorIdentifier: TrainerActuator
+    experimentIdentifier: train_model
+  - actuatorIdentifier: EvaluatorActuator
+    experimentIdentifier: evaluate_model
+metadata:
+  name: train_and_evaluate
+  description: Train models and evaluate on test set

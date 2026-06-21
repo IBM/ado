@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import logging
@@ -6,98 +6,169 @@ import os
 import subprocess
 import time
 import uuid
+from pathlib import Path
 from typing import Any
 
+from ado_actuators.vllm_performance.vllm_performance_test.benchmark_models import (
+    BenchmarkResult,
+)
 from ado_actuators.vllm_performance.vllm_performance_test.get_benchmark_results import (
     VLLMBenchmarkResultReadError,
     get_results,
 )
+from pydantic import HttpUrl, TypeAdapter
+
+logger = logging.getLogger("vllm-bench")
+
+default_geospatial_datasets_filenames = {
+    "india_url_in_b64_out": "india_url_in_b64_out.jsonl",
+    "valencia_url_in_b64_out": "valencia_url_in_b64_out.jsonl",
+    "terramind_flood_url_in_b64_out": "terramind_flood_url_in_b64_out.jsonl",
+}
 
 
 class VLLMBenchmarkError(Exception):
     """Raised if there was an issue when running the benchmark"""
 
 
+def resolve_custom_dataset_path(dataset: str) -> Path:
+    """Resolve a built-in or custom geospatial dataset path."""
+
+    if dataset in default_geospatial_datasets_filenames:
+        dataset_filename = default_geospatial_datasets_filenames[dataset]
+        parent_path = Path(__file__).parents[1]
+        dataset_path = parent_path / "datasets" / dataset_filename
+    else:
+        # This can only happen with the geostaptial experiments using a custom dataaset file,
+        # otherwise the dataset name is always one of the allowed ones.
+        # Here the assumption is that the dataset file is placed in the process working directory.
+        ray_working_dir = Path.cwd()
+        dataset_path = ray_working_dir / dataset
+
+    if not dataset_path.is_file():
+        error_string = (
+            "The dataset filename provided does not exist or "
+            f"does not point to a valid file: {dataset_path}"
+        )
+        logger.warning(error_string)
+        raise ValueError(error_string)
+
+    logger.debug(f"Dataset path {dataset_path}")
+    return dataset_path
+
+
 def execute_benchmark(
     base_url: str,
     model: str,
-    data_set: str,
-    interpreter: str = "python",
+    dataset: str,
+    backend: str = "openai",
     num_prompts: int = 500,
     request_rate: int | None = None,
     max_concurrency: int | None = None,
     hf_token: str | None = None,
     benchmark_retries: int = 3,
     retries_timeout: int = 5,
-    data_set_path: str | None = None,
+    dataset_path: str | None = None,
     custom_args: dict[str, Any] | None = None,
     burstiness: float = 1,
-) -> dict[str, Any]:
+) -> BenchmarkResult:
     """
     Execute benchmark
     :param base_url: url for vllm endpoint
     :param model: model
-    :param data_set: data set name ["sharegpt", "sonnet", "random", "hf"]
-    :param interpreter - name of Python interpreter
+    :param dataset: data set name ["random"]
+    :param backend: name of the vLLM benchmark backend to be used ["vllm", "openai", "openai-chat", "openai-audio", "openai-embeddings"]
     :param num_prompts: number of prompts
     :param request_rate: request rate
-    :param max_concurrency: max concurrency
+    :param max_concurrency: maximum number of concurrent requests
     :param hf_token: huggingface token
     :param benchmark_retries: number of benchmark execution retries
     :param retries_timeout: timeout between initial retry
-    :param data_set_path: path to the dataset
+    :param dataset_path: path to the dataset
     :param custom_args: custom arguments to pass to the benchmark.
+    :param burstiness: burstiness factor of the request generation, 0 < burstiness < 1
     keys are vllm benchmark arguments. values are the values to pass to the arguments
-    :return: results dictionary
+
+    :return: BenchmarkResult instance
 
     :raises VLLMBenchmarkError if the benchmark failed to execute after
         benchmark_retries attempts
+    :raises ValueError: If base_url is not a valid URL format
     """
-    logger = logging.getLogger("vllm-bench")
+
+    # Validate URL format using Pydantic
+    try:
+        url_adapter = TypeAdapter(HttpUrl)
+        url_adapter.validate_python(base_url)
+    except Exception as e:
+        raise ValueError(f"Invalid URL format: {base_url}") from e
 
     logger.debug(
         f"executing benchmark, invoking service at {base_url} with the parameters: "
     )
-    logger.debug(
-        f"model {model}, data set {data_set}, python {interpreter}, num prompts {num_prompts}"
-    )
+    logger.debug(f"model {model}, data set {dataset}, num prompts {num_prompts}")
     logger.debug(
         f"request_rate {request_rate}, max_concurrency {max_concurrency}, benchmark retries {benchmark_retries}"
     )
-    # The code below is commented as we are switching from a script invocation to command line
-    # invocation. If we want to bring back script execution for any reason, this code must be
-    # uncommented
-    # parameters
-    # code = os.path.abspath(
-    #    os.path.join(os.path.dirname(__file__), "benchmark_serving.py")
-    # )
-    request = f"export HF_TOKEN={hf_token} && " if hf_token is not None else ""
-    f_name = f"{uuid.uuid4().hex}.json"
-    request += (
-        # changing from script invocation to cli invocation
-        # f"{interpreter} {code} --backend openai --base-url {base_url} --dataset-name {data_set} "
-        f"vllm bench serve --backend openai --base-url {base_url} --dataset-name {data_set} "
-        f"--model {model} --seed 12345 --num-prompts {num_prompts!s} --save-result --metric-percentiles "
-        f'"25,75,99" --percentile-metrics "ttft,tpot,itl,e2el" --result-dir . --result-filename {f_name} '
-        f"--burstiness {burstiness} "
-    )
 
-    if data_set_path is not None:
-        request += f"--dataset-path {data_set_path} "
+    # Copy over the environment and add required variables for the benchmark
+    env = dict(os.environ)
+    env["VLLM_BENCH_LOGLEVEL"] = logging.getLevelName(logger.getEffectiveLevel())
+
+    if hf_token is not None:
+        env["HF_TOKEN"] = hf_token
+
+    # Output to a random file name
+    f_name = f"{uuid.uuid4().hex}.json"
+
+    # Build the vllm bench serve command
+    command = [
+        "vllm",
+        "bench",
+        "serve",
+        "--backend",
+        backend,
+        "--base-url",
+        base_url,
+        "--dataset-name",
+        dataset,
+        "--model",
+        model,
+        "--seed",
+        "12345",
+        "--num-prompts",
+        f"{num_prompts!s}",
+        "--save-result",
+        "--metric-percentiles",
+        "25,50,75,99",
+        "--percentile-metrics",
+        "ttft,tpot,itl,e2el",
+        "--result-dir",
+        ".",
+        "--result-filename",
+        f_name,
+        "--burstiness",
+        f"{burstiness!s}",
+    ]
+
+    if dataset_path is not None:
+        command.extend(["--dataset-path", dataset_path])
     if request_rate is not None:
-        request += f"--request-rate {request_rate!s} "
+        command.extend(["--request-rate", f"{request_rate!s}"])
     if max_concurrency is not None:
-        request += f"--max-concurrency {max_concurrency!s} "
+        command.extend(["--max-concurrency", f"{max_concurrency!s}"])
     if custom_args is not None:
         for key, value in custom_args.items():
-            request += f"{key} {value!s} "
+            command.append(key)
+            if value:
+                command.append(f"{value!s}")
+
+    logger.debug(f"Command line: {command}")
+
     timeout = retries_timeout
-
-    logger.debug(f"Command line: {request}")
-
     for i in range(benchmark_retries):
         try:
-            subprocess.check_call(request, shell=True)
+            subprocess.check_call(command, env=env)  # noqa: S603
             break
         except subprocess.CalledProcessError as e:
             logger.warning(f"Command failed with return code {e.returncode}")
@@ -111,7 +182,7 @@ def execute_benchmark(
                 logger.error(
                     f"Failed to execute benchmark after {benchmark_retries} attempts"
                 )
-                raise VLLMBenchmarkError(f"Failed to execute benchmark {e}")
+                raise VLLMBenchmarkError(f"Failed to execute benchmark {e}") from e
 
     try:
         retval = get_results(f_name=f_name)
@@ -124,6 +195,7 @@ def execute_benchmark(
 def execute_random_benchmark(
     base_url: str,
     model: str,
+    dataset: str,
     num_prompts: int = 500,
     request_rate: int | None = None,
     max_concurrency: int | None = None,
@@ -133,26 +205,29 @@ def execute_random_benchmark(
     burstiness: float = 1,
     number_input_tokens: int | None = None,
     max_output_tokens: int | None = None,
-    interpreter: str = "python",
-) -> dict[str, Any]:
+) -> BenchmarkResult:
     """
     Execute benchmark with random dataset
     :param base_url: url for vllm endpoint
     :param model: model
-    :param data_set: data set name ["sharegpt", "sonnet", "random", "hf"]
+    :param dataset: data set name ["random"]
+    :param num_prompts: number of prompts
+    :param request_rate: request rate
+    :param max_concurrency: maximum number of concurrent requests
     :param hf_token: huggingface token
     :param benchmark_retries: number of benchmark execution retries
     :param retries_timeout: timeout between initial retry
-    :param input_token_length: length of input tokens
-    :param output_token_length: length of output tokens
-    :return: results dictionary
+    :param burstiness: burstiness factor of the request generation, 0 < burstiness < 1
+    :param number_input_tokens: maximum number of input tokens for each request,
+    :param max_output_tokens: maximum number of output tokens for each request,
+
+    :return: BenchmarkResult instance
     """
     # Call execute_benchmark with the appropriate arguments
     return execute_benchmark(
         base_url=base_url,
         model=model,
-        data_set="random",
-        interpreter=interpreter,
+        dataset=dataset,
         num_prompts=num_prompts,
         request_rate=request_rate,
         max_concurrency=max_concurrency,
@@ -167,15 +242,63 @@ def execute_random_benchmark(
     )
 
 
+def execute_geospatial_benchmark(
+    base_url: str,
+    model: str,
+    dataset: str,
+    num_prompts: int = 500,
+    request_rate: int | None = None,
+    max_concurrency: int | None = None,
+    hf_token: str | None = None,
+    benchmark_retries: int = 3,
+    retries_timeout: int = 5,
+    burstiness: float = 1,
+) -> BenchmarkResult:
+    """
+    Execute benchmark with geospatial dataset
+    :param base_url: url for vllm endpoint
+    :param model: model
+    :param dataset: data set name ["random"]
+    :param num_prompts: number of prompts
+    :param request_rate: request rate
+    :param max_concurrency: maximum number of concurrent requests
+    :param hf_token: huggingface token
+    :param benchmark_retries: number of benchmark execution retries
+    :param retries_timeout: timeout between initial retry
+    :param burstiness: burstiness factor of the request generation, 0 < burstiness < 1
+
+    :return: BenchmarkResult instance
+    """
+    dataset_path = resolve_custom_dataset_path(dataset)
+
+    return execute_benchmark(
+        base_url=base_url,
+        backend="vllm-pooling",
+        model=model,
+        dataset="custom",
+        num_prompts=num_prompts,
+        request_rate=request_rate,
+        max_concurrency=max_concurrency,
+        hf_token=hf_token,
+        benchmark_retries=benchmark_retries,
+        retries_timeout=retries_timeout,
+        burstiness=burstiness,
+        custom_args={
+            "--dataset-path": f"{dataset_path.resolve()}",
+            "--endpoint": "/pooling",
+            "--skip-tokenizer-init": None,
+        },
+    )
+
+
 if __name__ == "__main__":
-    results = execute_benchmark(
-        interpreter="python3.10",
-        base_url="http://localhost:28015",
-        data_set="random",
-        model="openai/gpt-oss-20b",
-        request_rate=None,
-        max_concurrency=None,
+    results = execute_geospatial_benchmark(
+        base_url="http://localhost:8000",
+        model="ibm-nasa-geospatial/Prithvi-EO-2.0-300M-TL-Sen1Floods11",
+        request_rate=2,
+        max_concurrency=10,
         hf_token=os.getenv("HF_TOKEN"),
         num_prompts=100,
+        dataset="india_url_in_b64_out",
     )
     print(results)

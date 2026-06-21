@@ -1,22 +1,31 @@
+[project]
+name = "ado-ray-tune"
+dependencies = [
+  "bayesian-optimization>=1.4.0",
+  "nevergrad>=1.0.12",
+  # Numba added support for Python 3.14 only in
+  # version 0.63.0. By adding this requirement explicitly
+  # we help uv perform a forked resolution for the lockfile.
+  "numba>=0.63.0 ; python_full_version >= '3.14'",
+  "pandas<3",
+  "paretoset>=1.2.4",
+  "ray[tune]>=2.9",
+  "scipy>=1.15.3",
+  # Scipy's first full release that supports Python 3.14
+  # (1.17.0) requires numpy>=1.26.4
+  # ref: https://github.com/scipy/scipy/releases/tag/v1.17.0
+  "scipy>=1.17.0 ; python_full_version >= '3.14'",
+]
+dynamic = ["version"]
+
+[project.entry-points."ado.operators"]
+ado-ray-tune = "ado_ray_tune.operator"
+rifferla = "ado_ray_tune.rifferla"
+
 [build-system]
 requires = ["setuptools", "setuptools_scm"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
 root = "../../../"
-
-[project]
-name = "ado-ray-tune"
-dynamic = ["version"]
-dependencies = [
-    "ray[tune]>=2.9",
-    "bayesian-optimization>=1.4.0",
-    "nevergrad>=1.0.12",
-    "paretoset>=1.2.4",
-    "scipy>=1.15.3",
-]
-
-[project.entry-points."ado.operators"]
-ado-ray-tune = "ado_ray_tune.operator_function"
-rifferla = "ado_ray_tune.rifferla"
-
+local_scheme = "node-and-timestamp"

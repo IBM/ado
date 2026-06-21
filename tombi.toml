@@ -1,0 +1,3 @@
+[files]
+include = ["**/*.toml"]
+exclude = [".venv/**", ".tox/**", "uv.lock"]

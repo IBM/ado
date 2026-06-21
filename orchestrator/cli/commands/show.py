@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import typer
@@ -6,20 +6,17 @@ import typer
 from orchestrator.cli.commands.show_details import (
     register_show_details_command,
 )
-from orchestrator.cli.commands.show_entities import (
-    register_show_entities_command,
+from orchestrator.cli.commands.show_measurements import (
+    register_show_measurements_command,
 )
 from orchestrator.cli.commands.show_related import (
     register_show_related_command,
 )
-from orchestrator.cli.commands.show_requests import (
-    register_show_requests_command,
-)
-from orchestrator.cli.commands.show_results import (
-    register_show_results_command,
-)
 from orchestrator.cli.commands.show_summary import (
     register_show_summary_command,
+)
+from orchestrator.cli.commands.show_trace import (
+    register_show_trace_command,
 )
 
 show_command = typer.Typer(
@@ -34,14 +31,13 @@ show_command = typer.Typer(
 )
 
 register_show_details_command(show_command)
-register_show_entities_command(show_command)
+register_show_measurements_command(show_command)
 register_show_related_command(show_command)
-register_show_requests_command(show_command)
-register_show_results_command(show_command)
 register_show_summary_command(show_command)
+register_show_trace_command(show_command)
 
 
-def register_show_command(app: typer.Typer):
+def register_show_command(app: typer.Typer) -> None:
     app.add_typer(
         show_command,
         name="show",

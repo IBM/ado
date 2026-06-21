@@ -1,6 +1,6 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
-
+from typing import Any
 
 import pytest
 
@@ -22,7 +22,7 @@ from orchestrator.schema.property_value import ConstitutivePropertyValue
 
 def test_entity_space_from_measurement_space(
     measurement_space: MeasurementSpace,
-):
+) -> None:
 
     # The input measurement space has two experiment both requiring a single
     # constitutive property called "smiles" with no domain
@@ -36,7 +36,7 @@ def test_entity_space_from_measurement_space(
     assert entitySpace.constitutiveProperties[0].identifier == "smiles"
 
 
-def test_entity_space_compatibility_with_measurement_space():
+def test_entity_space_compatibility_with_measurement_space() -> None:
 
     cp1 = ConstitutiveProperty(
         identifier="gpu_model",
@@ -100,7 +100,7 @@ def test_entity_space_compatibility_with_measurement_space():
 
     with pytest.raises(
         ValueError,
-        match="Identified a measurement space constitutive property not in entity space",
+        match="Identified that a required constitutive property for an experiment",
     ):
         measurement_space.checkEntitySpaceCompatible(entity_space)
 
@@ -115,7 +115,7 @@ def test_entity_space_compatibility_with_measurement_space():
     entity_space = EntitySpaceRepresentation([cp1, cp2, cp3_mis_spelt])
     with pytest.raises(
         ValueError,
-        match="Identified a measurement space constitutive property not in entity space",
+        match="Identified that a required constitutive property for an experiment",
     ):
         measurement_space.checkEntitySpaceCompatible(entity_space)
 
@@ -156,9 +156,9 @@ def test_entity_space_compatibility_with_measurement_space():
 
 
 def test_entity_space_representation(
-    constitutive_property_configuration_general,
-    constitutive_property_configuration_general_yaml,
-):
+    constitutive_property_configuration_general: list[ConstitutiveProperty],
+    constitutive_property_configuration_general_yaml: dict[str, Any],  # noqa: ANN401
+) -> None:
     rep = EntitySpaceRepresentation.representationFromConfiguration(
         constitutive_property_configuration_general
     )
@@ -184,7 +184,7 @@ def test_entity_space_representation(
 
 def test_entity_in_space(
     constitutive_property_configuration_general: list[ConstitutiveProperty],
-):
+) -> None:
 
     es = EntitySpaceRepresentation(
         constitutiveProperties=constitutive_property_configuration_general
@@ -247,9 +247,10 @@ def test_entity_in_space(
     assert not es.isEntityCompatibleWithSpace(newEntity)
 
 
-def test_entity_space_pretty(
+def test_entity_space_rich_print(
     constitutive_property_configuration_general: list[ConstitutiveProperty],
-):
+) -> None:
+    from rich.console import Console
 
     ## Add an Unknown property
 
@@ -275,14 +276,13 @@ def test_entity_space_pretty(
     es = EntitySpaceRepresentation(
         constitutiveProperties=constitutive_property_configuration_general
     )
-    from IPython.lib.pretty import pretty
 
-    pretty(es)
+    Console().print(es)
 
 
 def test_entity_space_dimension_values(
-    measurement_space_from_single_parameterized_experiment,
-):
+    measurement_space_from_single_parameterized_experiment: MeasurementSpace,
+) -> None:
 
     es = measurement_space_from_single_parameterized_experiment.compatibleEntitySpace()
     es.dimension_values()
@@ -321,7 +321,9 @@ def test_entity_space_dimension_values(
     }
 
 
-def test_entity_space_iterators(measurement_space_from_single_parameterized_experiment):
+def test_entity_space_iterators(
+    measurement_space_from_single_parameterized_experiment: MeasurementSpace,
+) -> None:
 
     exp = measurement_space_from_single_parameterized_experiment.experiments[0]
     if not exp.requiredConstitutiveProperties:
@@ -336,10 +338,10 @@ def test_entity_space_iterators(measurement_space_from_single_parameterized_expe
     sequential = []
     ids = [cp.identifier for cp in es.constitutiveProperties]
     point = None
-    for i, point in enumerate(es.sequential_point_iterator()):
+    for i, point in enumerate(es.sequential_point_iterator()):  # noqa: B007
         sequential.append(point)
         assert es.isPointInSpace(
-            dict(zip(ids, point))
+            dict(zip(ids, point, strict=True))
         ), "Expected all points iterated over to be in space"
 
     assert i != 0, "Expected points to be returned"
@@ -358,10 +360,10 @@ def test_entity_space_iterators(measurement_space_from_single_parameterized_expe
 
     i = 0
     random = []
-    for i, point in enumerate(es.random_point_iterator()):
+    for i, point in enumerate(es.random_point_iterator()):  # noqa: B007
         random.append(point)
         assert es.isPointInSpace(
-            dict(zip(ids, point))
+            dict(zip(ids, point, strict=True))
         ), "Expected all points iterated over to be in space"
 
     assert i != 0, "Expected points to be returned"
@@ -376,7 +378,7 @@ def test_entity_space_iterators(measurement_space_from_single_parameterized_expe
     assert len(set(random)) == len(random), "Expected no points to be duplicated"
 
 
-def test_entity_space_updates_open_categorical_property():
+def test_entity_space_updates_open_categorical_property() -> None:
     es = EntitySpaceRepresentation(
         constitutiveProperties=[
             ConstitutiveProperty(

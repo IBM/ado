@@ -1,8 +1,7 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import datetime
-import typing
 
 import pydantic
 import pytest
@@ -12,6 +11,7 @@ from orchestrator.core.operation.config import (
     DiscoveryOperationConfiguration,
     DiscoveryOperationEnum,
     DiscoveryOperationResourceConfiguration,
+    ScriptOperatorConf,
 )
 from orchestrator.core.operation.resource import (
     OperationExitStateEnum,
@@ -24,14 +24,16 @@ from orchestrator.modules.module import load_module_class_or_function
 
 
 @pytest.fixture
-def operation_result() -> typing.Any:
+def operation_result() -> dict:
 
     # Return the default
     return {}
 
 
 @pytest.fixture
-def operation_resource(operation_configuration) -> OperationResource:
+def operation_resource(
+    operation_configuration: DiscoveryOperationResourceConfiguration,
+) -> OperationResource:
 
     # This auto-generates the operation identifier
     return OperationResource(
@@ -41,7 +43,7 @@ def operation_resource(operation_configuration) -> OperationResource:
     )
 
 
-def test_operation_resource(operation_resource):
+def test_operation_resource(operation_resource: OperationResource) -> None:
 
     assert operation_resource.operatorIdentifier is not None
     assert operation_resource.operatorIdentifier == "test_operator"
@@ -65,7 +67,7 @@ def test_operation_resource(operation_resource):
     assert len(operation_resource.status) == 1
 
 
-def test_operation_resource_event_status():
+def test_operation_resource_event_status() -> None:
     """Test we can set additional event status for operation resources"""
 
     # Check we can create a resource with generic field
@@ -86,7 +88,7 @@ def test_operation_resource_event_status():
     assert deser.event == OperationResourceEventEnum.STARTED
 
 
-def test_operation_resource_exit_state():
+def test_operation_resource_exit_state() -> None:
     """Test we can set additional event status for operation resources"""
 
     # Check we can create an event+exit status for operation
@@ -126,7 +128,7 @@ def test_operation_resource_exit_state():
     assert status.recorded_at
 
 
-def test_operation_config_file_valid(valid_operation_config_file):
+def test_operation_config_file_valid(valid_operation_config_file: str) -> None:
 
     with open(valid_operation_config_file) as f:
         content = f.read()
@@ -143,10 +145,14 @@ def test_operation_config_file_valid(valid_operation_config_file):
         moduleClass = load_module_class_or_function(
             module
         )  # type: "orchestrator.modules.operators.base.DiscoveryOperationBase"
-        moduleClass.validateOperationParameters(parameters=op_cfg.parameters)
+        meta = moduleClass.operator_metadata()
+        if meta.configuration_model is not None:
+            meta.configuration_model.model_validate(op_cfg.parameters)
 
 
-def test_set_manual_operation_identifier(operation_configuration):
+def test_set_manual_operation_identifier(
+    operation_configuration: DiscoveryOperationResourceConfiguration,
+) -> None:
 
     test = OperationResource(
         operatorIdentifier="test",
@@ -157,7 +163,9 @@ def test_set_manual_operation_identifier(operation_configuration):
     assert test.identifier == "test-xxxdd3"
 
 
-def test_setting_space_id(operation_configuration):
+def test_setting_space_id(
+    operation_configuration: DiscoveryOperationResourceConfiguration,
+) -> None:
 
     import pydantic
 
@@ -174,6 +182,59 @@ def test_setting_space_id(operation_configuration):
         )
 
 
-def test_add_operation_result(operation_resource, operation_result):
+def test_add_operation_result(
+    operation_resource: OperationResource, operation_result: dict
+) -> None:
 
     pass
+
+
+def test_script_operator_conf_round_trip() -> None:
+    """ScriptOperatorConf serialises and validates through operation configuration."""
+    script_module = ScriptOperatorConf(
+        name="grid-sweep",
+        version="1.0.0",
+        operationType=DiscoveryOperationEnum.SEARCH,
+    )
+    assert script_module.operationType == DiscoveryOperationEnum.SEARCH
+    assert script_module.operatorIdentifier == "script-grid-sweep-1.0.0"
+
+    operation_configuration = DiscoveryOperationConfiguration(
+        module=script_module,
+        parameters={"ignored": "value"},
+    )
+    assert operation_configuration.parameters == {}
+
+    resource_configuration = DiscoveryOperationResourceConfiguration(
+        operation=operation_configuration,
+        spaces=["space-test123"],
+    )
+
+    dumped = resource_configuration.model_dump()
+    restored = DiscoveryOperationResourceConfiguration.model_validate(dumped)
+    assert isinstance(restored.operation.module, ScriptOperatorConf)
+    assert restored.operation.module.name == "grid-sweep"
+    assert restored.operation.module.version == "1.0.0"
+    assert restored.operation.module.operationType == DiscoveryOperationEnum.SEARCH
+    assert restored.operation.parameters == {}
+
+
+def test_script_operation_resource_identifier() -> None:
+    """OperationResource built from ScriptOperatorConf uses script operator id."""
+    script_module = ScriptOperatorConf(
+        name="inline-script",
+        operationType=DiscoveryOperationEnum.CHARACTERIZE,
+    )
+    operation_configuration = DiscoveryOperationResourceConfiguration(
+        operation=DiscoveryOperationConfiguration(module=script_module),
+        spaces=["space-test123"],
+    )
+    operation = OperationResource(
+        operationType=script_module.operationType,
+        operatorIdentifier=script_module.operatorIdentifier,
+        config=operation_configuration,
+    )
+
+    assert operation.operationType == DiscoveryOperationEnum.CHARACTERIZE
+    assert operation.operatorIdentifier == "script-inline-script-0.1.0"
+    assert operation.identifier.startswith("operation-script-inline-script-0.1.0-")

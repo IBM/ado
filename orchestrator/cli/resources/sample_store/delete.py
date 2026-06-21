@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import typer
@@ -24,23 +24,23 @@ from orchestrator.metastore.base import (
 )
 
 
-def delete_sample_store(parameters: AdoDeleteCommandParameters):
+def delete_sample_store(parameters: AdoDeleteCommandParameters) -> None:
+    # Extract the single resource_id from the list
+    resource_id = parameters.resource_ids[0]
 
     sql = get_sql_store(project_context=parameters.ado_configuration.project_context)
     with Status(ADO_SPINNER_QUERYING_DB) as spinner:
-
-        try:
-            sql.getResource(
-                identifier=parameters.resource_id,
-                kind=CoreResourceKinds.SAMPLESTORE,
-                raise_error_if_no_resource=True,
-            )
-        except ResourceDoesNotExistError:
+        if not sql.containsResourceWithIdentifier(
+            identifier=resource_id,
+            kind=CoreResourceKinds.SAMPLESTORE,
+        ):
             spinner.stop()
-            raise
+            raise ResourceDoesNotExistError(
+                resource_id=resource_id, kind=CoreResourceKinds.SAMPLESTORE
+            )
 
         children_resources = sql.getRelatedObjectResourceIdentifiers(
-            identifier=parameters.resource_id
+            identifier=resource_id
         )
 
         if not children_resources.empty:
@@ -48,7 +48,7 @@ def delete_sample_store(parameters: AdoDeleteCommandParameters):
             console_print(
                 cannot_delete_resource_due_to_children_resources(
                     resource_kind=CoreResourceKinds.SAMPLESTORE,
-                    resource_id=parameters.resource_id,
+                    resource_id=resource_id,
                     children_resources=children_resources,
                 ),
                 stderr=True,
@@ -58,7 +58,7 @@ def delete_sample_store(parameters: AdoDeleteCommandParameters):
         spinner.update(ADO_SPINNER_DELETING_FROM_DB)
         try:
             sql.delete_sample_store(
-                identifier=parameters.resource_id, force_deletion=parameters.force
+                identifier=resource_id, force_deletion=parameters.force
             )
         except NonEmptySampleStorePreventingDeletionError as e:
             spinner.stop()
@@ -66,7 +66,7 @@ def delete_sample_store(parameters: AdoDeleteCommandParameters):
                 f"{ERROR}{e}\n{HINT}You can force the deletion by adding the {cyan('--force')} flag.",
                 stderr=True,
             )
-            raise typer.Exit(1)
+            raise typer.Exit(1) from e
         except DeleteFromDatabaseError:
             spinner.stop()
             raise

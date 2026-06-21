@@ -1,27 +1,17 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import os
 import pathlib
+from typing import Annotated
 
-import ray
 import typer
 import yaml
 
 app = typer.Typer(rich_markup_mode="markdown")
 
 
-@ray.remote(
-    runtime_env={
-        "pip": ["accelerate", "transformers>=4.40.0"],
-        "env_vars": {
-            "LOG_LEVEL": "debug",
-            "LOGLEVEL": "debug",
-            "HF_TOKEN": os.environ.get("HF_TOKEN", ""),
-        },
-    },
-)
-def download_weights(path_model: str, hf_home: pathlib.Path):
+def download_weights(path_model: str, hf_home: pathlib.Path) -> None:
     if os.path.isabs(path_model):
         print("Skipping download - model is stored locally")
         return
@@ -38,26 +28,28 @@ def download_weights(path_model: str, hf_home: pathlib.Path):
     help="Caches HuggingFace model weights locally",
 )
 def main(
-    path_to_models: pathlib.Path = typer.Option(
-        ...,
-        "--input",
-        "-i",
-        exists=True,
-        file_okay=True,
-        dir_okay=False,
-        help="Path to YAML file containing the models dictionary",
-    ),
-    hf_home: pathlib.Path = typer.Option(
-        pathlib.Path(__file__),
-        "--hf_home",
-        "-o",
-        file_okay=False,
-        dir_okay=True,
-        help="The path to use as the HuggingFace cache home",
-    ),
-):
-    ray.init()
-
+    path_to_models: Annotated[
+        pathlib.Path,
+        typer.Option(
+            "--input",
+            "-i",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            help="Path to YAML file containing the models dictionary",
+        ),
+    ],
+    hf_home: Annotated[
+        pathlib.Path,
+        typer.Option(
+            "--hf_home",
+            "-o",
+            file_okay=False,
+            dir_okay=True,
+            help="The path to use as the HuggingFace cache home",
+        ),
+    ] = pathlib.Path(__file__),
+) -> None:
     """Keys are the names of models, values are dictionaries with keys indicating the type of the model weight,
     and values the HuggingFace identifier strings.
 
@@ -70,11 +62,11 @@ def main(
     with open(path_to_models) as f:
         model_map: dict[str, dict[str, str]] = yaml.safe_load(f)
 
-    for model_name, items in model_map.items():
-        for model_type, model_path in items.items():
+    for _model_name, items in model_map.items():  # noqa: PERF102
+        for _model_type, model_path in items.items():  # noqa: PERF102
             print("Downloading", model_path)
             try:
-                ray.get(download_weights.remote(model_path, hf_home))
+                download_weights(model_path, hf_home)
                 print("Success")
             except Exception as e:
                 print(f"Unable to download weights due to {e} - ignoring error")

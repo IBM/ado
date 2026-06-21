@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import lakehouse_export.export_utils as export_utils
@@ -12,8 +12,8 @@ class Datalake(export_utils.Datalake):
         revision: str,
         output: str,
         force_download: bool = False,
-        table="model_shared",
-    ):
+        table: str = "model_shared",
+    ) -> None:
 
         from lakehouse.assets import Model
 
@@ -45,7 +45,7 @@ def download_from_dmf(
     revision: str,
     namespace: str,
     output: str,
-):
+) -> None:
     dl = Datalake(token=token, namespace=namespace)
     dl.model_download(model_name=model_name, revision=revision, output=output)
 

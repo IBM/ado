@@ -1,7 +1,9 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import typing
+
+from rich.panel import Panel
 
 from orchestrator.schema.domain import PropertyDomain, VariableTypeEnum
 from orchestrator.schema.entity import Entity
@@ -12,19 +14,24 @@ from orchestrator.schema.property_value import (
 )
 from orchestrator.schema.result import MeasurementResult
 
+if typing.TYPE_CHECKING:
+    from rich.console import RenderableType
+
 
 class EntitySpaceRepresentation:
     """Provides explicit details of the dimensions of the space"""
 
     @classmethod
-    def representationFromConfiguration(cls, conf: list[ConstitutiveProperty]):
+    def representationFromConfiguration(
+        cls, conf: list[ConstitutiveProperty]
+    ) -> "EntitySpaceRepresentation":
 
         return cls(constitutiveProperties=conf)
 
     def __init__(
         self,
         constitutiveProperties: list[ConstitutiveProperty],
-    ):
+    ) -> None:
 
         self._propertyLookup = {c.identifier: c for c in constitutiveProperties}
         # Update open-categorical type to categorical -> once in an entityspace the category can't be open anymore
@@ -60,7 +67,7 @@ class EntitySpaceRepresentation:
         return self._constitutiveProperties.copy()
 
     @property
-    def isDiscreteSpace(self):
+    def isDiscreteSpace(self) -> bool:
 
         non_discrete_dims = [
             d
@@ -94,141 +101,140 @@ class EntitySpaceRepresentation:
         # However for typing we cast it
         return int(size)
 
-    def __str__(self):
+    def __str__(self) -> str:
 
         return (
             f"entityspace defined by {len(self._constitutiveProperties)}"
             f" constitutive properties: {[cp.identifier for cp in self._constitutiveProperties]}"
         )
 
-    def _repr_pretty_(self, p, cycle=False):
-
+    def __rich__(self) -> "RenderableType":
+        """Render this entity space using rich."""
         import pandas as pd
+        import rich.box
+        from rich.console import Group
+        from rich.text import Text
 
-        if cycle:  # pragma: nocover
-            p.text("Cycle detected")
+        from orchestrator.utilities.rich import dataframe_to_rich_table, get_rich_repr
+
+        content = []
+
+        # Space size info
+        if self.isDiscreteSpace:
+            content.extend(
+                [
+                    Text("Number of entities:", end=" ", style="bold"),
+                    get_rich_repr(self.size),
+                ]
+            )
         else:
-            if self.isDiscreteSpace:
-                p.breakable()
-                p.text(f"Number entities: {self.size}")
-                p.break_()
-                p.breakable()
-            else:
-                p.breakable()
-                p.text("Space with non-discrete dimensions. Cannot count entities")
-                p.breakable()
+            content.append(
+                Text("Space with non-discrete dimensions. Cannot count entities")
+            )
+        content.append(Text())  # Empty line
 
-            categoricalProperties = [
-                cv
-                for cv in self._constitutiveProperties
-                if cv.propertyDomain.variableType
-                == VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE
+        # Categorize properties
+        categoricalProperties = [
+            cv
+            for cv in self._constitutiveProperties
+            if cv.propertyDomain.variableType
+            == VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE
+        ]
+
+        discreteProperties = [
+            cv
+            for cv in self._constitutiveProperties
+            if cv.propertyDomain.variableType == VariableTypeEnum.DISCRETE_VARIABLE_TYPE
+        ]
+
+        continuousProperties = [
+            cv
+            for cv in self._constitutiveProperties
+            if cv.propertyDomain.variableType
+            == VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE
+        ]
+
+        unknownProperties = [
+            cv
+            for cv in self._constitutiveProperties
+            if cv.propertyDomain.variableType == VariableTypeEnum.UNKNOWN_VARIABLE_TYPE
+        ]
+
+        binaryProperties = [
+            cv
+            for cv in self._constitutiveProperties
+            if cv.propertyDomain.variableType == VariableTypeEnum.BINARY_VARIABLE_TYPE
+        ]
+
+        # Create table for each property category
+        if categoricalProperties:
+            data = [
+                [cv.identifier, cv.propertyDomain.values]
+                for cv in categoricalProperties
             ]
+            df = pd.DataFrame(data, columns=["name", "values"])
+            content.extend(
+                [
+                    Text("Categorical properties:", style="bold"),
+                    Panel(dataframe_to_rich_table(df), box=rich.box.SIMPLE_HEAD),
+                ]
+            )
 
-            discreteProperties = [
-                cv
-                for cv in self._constitutiveProperties
-                if cv.propertyDomain.variableType
-                == VariableTypeEnum.DISCRETE_VARIABLE_TYPE
+        if discreteProperties:
+            data = [
+                [
+                    cv.identifier,
+                    cv.propertyDomain.domainRange,
+                    cv.propertyDomain.interval,
+                    cv.propertyDomain.values,
+                ]
+                for cv in discreteProperties
             ]
+            df = pd.DataFrame(data, columns=["name", "range", "interval", "values"])
+            content.extend(
+                [
+                    Text("Discrete properties:", style="bold"),
+                    Panel(dataframe_to_rich_table(df), box=rich.box.SIMPLE_HEAD),
+                ]
+            )
 
-            continuousProperties = [
-                cv
-                for cv in self._constitutiveProperties
-                if cv.propertyDomain.variableType
-                == VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE
+        if binaryProperties:
+            data = [
+                {"name": cv.identifier, "values": cv.propertyDomain.values}
+                for cv in binaryProperties
             ]
+            df = pd.DataFrame(data, columns=["name", "values"])
+            content.extend(
+                [
+                    Text("Binary properties:", style="bold"),
+                    Panel(dataframe_to_rich_table(df), box=rich.box.SIMPLE_HEAD),
+                ]
+            )
 
-            unknownProperties = [
-                cv
-                for cv in self._constitutiveProperties
-                if cv.propertyDomain.variableType
-                == VariableTypeEnum.UNKNOWN_VARIABLE_TYPE
+        if continuousProperties:
+            data = [
+                [cv.identifier, cv.propertyDomain.domainRange]
+                for cv in continuousProperties
             ]
+            df = pd.DataFrame(data, columns=["name", "range"])
+            content.extend(
+                [
+                    Text("Continuous properties:", style="bold"),
+                    Panel(dataframe_to_rich_table(df), box=rich.box.SIMPLE_HEAD),
+                ]
+            )
 
-            binaryProperties = [
-                cv
-                for cv in self._constitutiveProperties
-                if cv.propertyDomain.variableType
-                == VariableTypeEnum.BINARY_VARIABLE_TYPE
-            ]
+        if unknownProperties:
+            data = [[cv.identifier] for cv in unknownProperties]
+            df = pd.DataFrame(data, columns=["name"])
+            content.extend(
+                [
+                    Text("Properties with unknown type:", style="bold"),
+                    Panel(dataframe_to_rich_table(df), box=rich.box.SIMPLE_HEAD),
+                ]
+            )
 
-            if categoricalProperties:
-                with p.group(2, "Categorical properties:"):
-                    p.breakable()
-                    data = [
-                        [cv.identifier, cv.propertyDomain.values]
-                        for cv in categoricalProperties
-                    ]
-                    df = pd.DataFrame(
-                        data,
-                        columns=[
-                            "name",
-                            "values",
-                        ],
-                    )
-                    p.pretty(df)
-                p.breakable()
-                p.breakable()
-
-            if discreteProperties:
-                with p.group(2, "Discrete properties:"):
-                    p.breakable()
-                    data = [
-                        [
-                            cv.identifier,
-                            cv.propertyDomain.domainRange,
-                            cv.propertyDomain.interval,
-                            cv.propertyDomain.values,
-                        ]
-                        for cv in discreteProperties
-                    ]
-                    df = pd.DataFrame(
-                        data,
-                        columns=["name", "range", "interval", "values"],
-                    )
-                    p.pretty(df)
-                p.breakable()
-                p.breakable()
-
-            if binaryProperties:
-                with p.group(2, "Binary properties:"):
-                    p.breakable()
-                    data = [[cv.identifier] for cv in binaryProperties]
-                    df = pd.DataFrame(
-                        data,
-                        columns=["name"],
-                    )
-                    p.pretty(df)
-                p.breakable()
-                p.breakable()
-
-            if continuousProperties:
-                with p.group(2, "Continuous properties:"):
-                    p.breakable()
-                    data = [
-                        [cv.identifier, cv.propertyDomain.domainRange]
-                        for cv in continuousProperties
-                    ]
-                    df = pd.DataFrame(
-                        data,
-                        columns=["name", "range"],
-                    )
-                    p.pretty(df)
-                p.breakable()
-                p.breakable()
-
-            if unknownProperties:
-                with p.group(2, "Properties with unknown type:"):
-                    p.breakable()
-                    data = [[cv.identifier] for cv in unknownProperties]
-                    df = pd.DataFrame(
-                        data,
-                        columns=["name"],
-                    )
-                    p.pretty(df)
-                p.breakable()
-                p.breakable()
+        return Group(*content)
 
     def propertyWithIdentifier(self, identifier: str) -> ConstitutiveProperty | None:
         """Returns the constitutive property with identifier or None if there is None"""
@@ -237,7 +243,7 @@ class EntitySpaceRepresentation:
 
     def isPointInSpace(
         self, point: dict[str, typing.Any], allow_partial_matches: bool = False
-    ):
+    ) -> bool:
         """
         Determines if a given point is within this space based on constitutive property matches.
 
@@ -259,7 +265,7 @@ class EntitySpaceRepresentation:
             allow_partial_matches=allow_partial_matches,
         )
 
-    def isEntityInSpace(self, entity: Entity):
+    def isEntityInSpace(self, entity: Entity) -> bool:
         """Returns True if entity is in the space otherwise false
 
         Specifically False is returned if the entity's constitutive properties are not identical to the entityspaces
@@ -274,7 +280,9 @@ class EntitySpaceRepresentation:
         }
         return self.isPointInSpace(point)
 
-    def isPointCompatibleWithSpace(self, point: dict[str, typing.Any]):
+    def isPointCompatibleWithSpace(
+        self, point: dict[str, typing.Any]
+    ) -> bool:  # noqa: ANN401
         """A point is compatible if the identifiers of all the entityspaces constitutive properties are keys in point
 
         Note: This means the point may have more dimensions (keys/constitutive properties) than the entityspace.
@@ -297,7 +305,7 @@ class EntitySpaceRepresentation:
 
         return retval
 
-    def isEntityCompatibleWithSpace(self, entity: Entity):
+    def isEntityCompatibleWithSpace(self, entity: Entity) -> bool:
         """An entity is compatible if all the entityspaces constitutive properties are also constitutive properties of the entity
 
         Note: This means an entity may have more constitutive properties than the entityspace.

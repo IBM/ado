@@ -1,9 +1,12 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
+
 import logging
-import os
 import uuid
+from importlib.metadata import version
+from pathlib import Path
+from typing import Any
 
 import ray
 import yaml
@@ -31,17 +34,61 @@ from orchestrator.schema.entity import Entity
 from orchestrator.schema.experiment import Experiment, ParameterizedExperiment
 from orchestrator.schema.reference import ExperimentReference
 from orchestrator.schema.request import MeasurementRequest
+from orchestrator.utilities.environment import extract_package_specs_from_job_env
 
 logger = logging.getLogger(__name__)
+
+
+def _build_ray_runtime_env_with_extra(benchmark_tool: str) -> dict[str, list[Any]]:
+
+    # Check if ado-vllm-performance is in the job venv.
+    worker_deps = []
+    specs_from_job_env = extract_package_specs_from_job_env(
+        ["ado-vllm-performance", "ado-core"]
+    )
+
+    if "ado-core" in specs_from_job_env:
+        ado_source = specs_from_job_env["ado-core"]["source"]
+        ado_version: str | None = specs_from_job_env["ado-core"].get("version") or ""
+        extras = specs_from_job_env["ado-core"].get("extras")
+        ado_extras = f"[{extras}]" if extras else ""
+    else:
+        # If ado-core is not in the job env it means that it comes with the base and we assume
+        # it got installed with pypi.
+        # Just to be sure, we extract the version and make sure we get the same installed
+        # in the Ray task environment.
+        # Say the base image runs on an older version of ado-core, we want to avoid it to
+        # be upgraded to a newer version when starting the Ray task.
+        ado_source = "ado-core"
+        ado_version = f"=={version('ado-core')}"
+        ado_extras = ""
+
+    ado_dep = f"{ado_source}{ado_extras}{ado_version}"
+    worker_deps.append(ado_dep)
+
+    # Here we assume the actuator only has 'vllm' or 'guildellm' as extraw dependencies.
+    if "ado-vllm-performance" in specs_from_job_env:
+        actuator_source = specs_from_job_env["ado-vllm-performance"]["source"]
+        actuator_version: str | None = (
+            specs_from_job_env["ado-vllm-performance"].get("version") or ""
+        )
+    else:
+        # Similarly to what we did with ado-core, we also extract the version of the
+        # actuator package.
+        actuator_source = "ado-vllm-performance"
+        actuator_version = f"=={version('ado-vllm-performance')}"
+
+    actuator_dep = f"{actuator_source}[{benchmark_tool}]{actuator_version}"
+    worker_deps.append(actuator_dep)
+
+    return {"uv": worker_deps}
 
 
 # An Actuator must do three things
 # 1. Provide a catalog of Experiments it can execute - the catalog method
 # 2. Provide a way to run those experiments asynchronously - the submit method
 # 3. Provide the results of the experiments - via the Results Queue
-@ray.remote
 class VLLMPerformanceTest(ActuatorBase):
-
     identifier = "vllm_performance"  # The user-facing label you want this actuator to be called by
     parameters_class = (
         VLLMPerformanceTestParameters  # we tell ado what our parameters class is
@@ -53,14 +100,27 @@ class VLLMPerformanceTest(ActuatorBase):
     ) -> ExperimentCatalog:
         """Returns the Experiments your actuator provides"""
 
-        # The catalog be formed in code here or read from a file containing the Experiments models
-        # This shows reading from a file
+        # Loading experiment definitions for yaml files contained in the `experiments` directory.
+        # NOTE: Only files can be placed in the experiments directory,
+        #       but each file can contain multiple experiment definitions
+        curr_path = Path(__file__)
+        exp_dir = curr_path.parent / Path("experiments")
+        logger.debug(f"Experiments dir {exp_dir.absolute()}")
+        experiments = []
+        for exp_file in exp_dir.iterdir():
+            if exp_file.is_dir():
+                continue
 
-        path = os.path.abspath(__file__)
-        path = os.path.split(path)[0]
-        with open(os.path.join(path, "experiments.yaml")) as f:
-            data = yaml.safe_load(f)
-            experiments = [Experiment(**data[e]) for e in data]
+            logger.debug(f"Loading experiments from {exp_file.name}")
+            try:
+                file_data = exp_file.read_text()
+                data = yaml.safe_load(file_data)
+            except yaml.YAMLError as error:
+                error_message = f"File {exp_file.name} is a malformed YAML"
+                logger.error(error_message)
+                raise ValueError(error_message) from error
+
+            experiments.extend([Experiment.model_validate(data[e]) for e in data])
 
         return ExperimentCatalog(
             catalogIdentifier=cls.identifier,
@@ -71,7 +131,7 @@ class VLLMPerformanceTest(ActuatorBase):
         self,
         queue: MeasurementQueue,
         params: VLLMPerformanceTestParameters,
-    ):
+    ) -> None:
         """
         queue: Queue where experiment results are put for consumers
         params: This actuators configuration parameters (Note: Soon this will be a model defined by the Actuator)
@@ -93,6 +153,7 @@ class VLLMPerformanceTest(ActuatorBase):
                     verify_ssl=params.verify_ssl,
                     pvc_name=params.pvc_name,
                     pvc_template=params.pvc_template,
+                    otlp_traces_endpoint=params.otlp_traces_endpoint,
                 )
             except Exception as error:
                 self.log.warning(
@@ -102,7 +163,9 @@ class VLLMPerformanceTest(ActuatorBase):
             else:
                 # add to clean up
                 try:
-                    cleaner_handle = ray.get_actor(name=CLEANER_ACTOR)
+                    cleaner_handle = ray.get_actor(
+                        name=CLEANER_ACTOR, namespace=queue.ray_namespace()
+                    )
                     cleaner_handle.add_to_cleanup.remote(handle=self.env_manager)
                 except Exception as e:
                     logger.warning(
@@ -181,7 +244,32 @@ class VLLMPerformanceTest(ActuatorBase):
         if experiment.deprecated is True:
             raise DeprecatedExperimentError(f"Experiment {experiment} is deprecated")
 
-        if experiment.identifier == "test-deployment-v1":
+        # We make sure the tool required for this experiments gets installed in the Ray worker python environment
+        # unless developer_mode is enabled
+        if self.actuator_parameters.developer_mode:
+            ray_options = {}
+            logger.info(
+                f"Experiment ({experiment.identifier}) - Developer mode enabled, skipping experiment dependencies installation"
+            )
+        else:
+            experiment_id_lower = experiment.identifier.lower()
+            required_tool = "guidellm" if "guidellm" in experiment_id_lower else "vllm"
+
+            # Build runtime environment that inherits job packages and adds experiment tool
+            experiment_ray_env = _build_ray_runtime_env_with_extra(required_tool)
+            ray_options = {"runtime_env": experiment_ray_env}
+            logger.debug(
+                f"Experiment ({experiment.identifier}) - Ray task environment: {experiment_ray_env}"
+            )
+
+        if experiment.identifier in [
+            "test-deployment-v1",
+            "test-deployment-guidellm-v1",
+            "test-geospatial-deployment-v1",
+            "test-geospatial-deployment-custom-dataset-v1",
+            "test-geospatial-deployment-guidellm-v1",
+            "test-geospatial-deployment-guidellm-custom-dataset-v1",
+        ]:
             if not self.env_manager:
                 raise MissingConfigurationForExperimentError(
                     f"Actuator configuration did not contain sufficient information for a kubernetes environment manager to be created. "
@@ -189,8 +277,8 @@ class VLLMPerformanceTest(ActuatorBase):
                 )
 
             # Execute experiment
-            # Note: Here the experiment instance is just past for convenience since we retrieved it above
-            run_resource_and_workload_experiment.remote(
+            # Note: Here the experiment instance is just passed for convenience since we retrieved it above
+            run_resource_and_workload_experiment.options(**ray_options).remote(
                 request=request,
                 experiment=experiment,
                 state_update_queue=self._stateUpdateQueue,
@@ -201,7 +289,7 @@ class VLLMPerformanceTest(ActuatorBase):
             )
             self.local_port += len(request.entities)
         else:
-            run_workload_experiment.remote(
+            run_workload_experiment.options(**ray_options).remote(
                 request=request,
                 experiment=experiment,
                 state_update_queue=self._stateUpdateQueue,

@@ -1,13 +1,18 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import enum
+import logging
 import math
 import typing
+from typing import Annotated
 
 import numpy as np
 import pydantic
 from pydantic import ConfigDict
+
+if typing.TYPE_CHECKING:
+    from rich.console import RenderableType
 
 
 class VariableTypeEnum(str, enum.Enum):
@@ -44,7 +49,7 @@ def is_float_range(
     return any(isinstance(x, float) for x in [interval, *domain_range])
 
 
-def _internal_range_values(lower, upper, interval) -> list:
+def _internal_range_values(lower: float, upper: float, interval: float) -> list:
     """Returns the values in the half-open [lower,upper) range
 
     If all values are integers uses arange
@@ -68,7 +73,9 @@ def _internal_range_values(lower, upper, interval) -> list:
     return [float(el) for el in np.round(values, 10)]
 
 
-def is_subdomain_of_unknown_domain(unknownDomain, testDomain):
+def is_subdomain_of_unknown_domain(
+    unknownDomain: "PropertyDomain", testDomain: "PropertyDomain"
+) -> bool:
     """Returns True if the testDomain is a subdomain of the unknownDomain
     Parameters:
         unknownDomain: A PropertyDomain with variableType UNKNOWN_VARIABLE_TYPE
@@ -79,7 +86,9 @@ def is_subdomain_of_unknown_domain(unknownDomain, testDomain):
     return True
 
 
-def is_subdomain_of_continuous_domain(continuousDomain, testDomain):
+def is_subdomain_of_continuous_domain(
+    continuousDomain: "PropertyDomain", testDomain: "PropertyDomain"
+) -> bool:
     """Returns True if the testDomain is a subdomain of the continuousDomain
     Parameters:
         continuousDomain: A PropertyDomain with variableType CONTINUOUS_VARIABLE_TYPE
@@ -116,7 +125,9 @@ def is_subdomain_of_continuous_domain(continuousDomain, testDomain):
     )
 
 
-def is_subdomain_of_discrete_domain(discreteDomain, testDomain):
+def is_subdomain_of_discrete_domain(
+    discreteDomain: "PropertyDomain", testDomain: "PropertyDomain"
+) -> bool:
     """Returns True if the testDomain is a subdomain of the discreteDomain
     Parameters:
         discreteDomain: A PropertyDomain with variableType DISCRETE_VARIABLE_TYPE
@@ -166,7 +177,9 @@ def is_subdomain_of_discrete_domain(discreteDomain, testDomain):
     return False
 
 
-def is_subdomain_of_categorical_domain(categoricalDomain, testDomain):
+def is_subdomain_of_categorical_domain(
+    categoricalDomain: "PropertyDomain", testDomain: "PropertyDomain"
+) -> bool:
     """Returns True if the testDomain is a subdomain of the categoricalDomain
     Parameters:
         categoricalDomain: A PropertyDomain with variableType CATEGORICAL_VARIABLE_TYPE
@@ -189,7 +202,9 @@ def is_subdomain_of_categorical_domain(categoricalDomain, testDomain):
     return False
 
 
-def is_subdomain_of_binary_domain(binaryDomain, testDomain):
+def is_subdomain_of_binary_domain(
+    binaryDomain: "PropertyDomain", testDomain: "PropertyDomain"
+) -> bool:
     """Returns True if the testDomain is a subdomain of the binaryDomain
 
     The cases where this returns True are
@@ -217,7 +232,9 @@ def is_subdomain_of_binary_domain(binaryDomain, testDomain):
     return testDomain.variableType == VariableTypeEnum.BINARY_VARIABLE_TYPE
 
 
-def is_subdomain_of_open_categorical_domain(openCategoricalDomain, testDomain):
+def is_subdomain_of_open_categorical_domain(
+    openCategoricalDomain: "PropertyDomain", testDomain: "PropertyDomain"
+) -> bool:
     """Returns True if the testDomain is a subdomain of the openCategoricalDomain
 
     The cases where this returns True are:
@@ -247,101 +264,121 @@ def is_subdomain_of_open_categorical_domain(openCategoricalDomain, testDomain):
 
 
 class ProbabilityFunction(pydantic.BaseModel):
-    identifier: ProbabilityFunctionsEnum = pydantic.Field(
-        default=ProbabilityFunctionsEnum.UNIFORM
+    identifier: Annotated[ProbabilityFunctionsEnum, pydantic.Field()] = (
+        ProbabilityFunctionsEnum.UNIFORM
     )
     # Whatever parameters the probability function takes.
     # Should take range, interval, and categories
-    parameters: dict | None = pydantic.Field(default=None)
+    parameters: Annotated[dict | None, pydantic.Field()] = None
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    def __eq__(self, other: "ProbabilityFunction"):
+    def __eq__(self, other: object) -> bool:  # noqa: ANN401
 
-        try:
-            assert (
-                self.identifier == other.identifier
-            ), f"Probability functions type is not the same {self.identifier, other.identifier}"
-            if self.parameters:
-                assert (
-                    len(
-                        set(self.parameters.keys()).difference(
-                            set(other.parameters.keys())
-                        )
-                    )
-                    == 0
-                ), f"The other probability function has a different number of parameters {self.parameters, other.parameters}"
-                for k in self.parameters:
-                    assert (
-                        self.parameters[k] == other.parameters[k]
-                    ), f"The value of parameter {k} differs: {self.parameters[k], other.parameters[k]}"
-                retval = True
-            else:
-                retval = not other.parameters
+        # They should both be ProbabilityFunctions
+        if not isinstance(other, ProbabilityFunction):
+            return False
 
-        except (AttributeError, AssertionError) as error:
-            print(error)
-            retval = False
+        # Identifiers must match
+        if self.identifier != other.identifier:
+            logging.debug(
+                f"Probability functions type is not the same {self.identifier, other.identifier}"
+            )
+            return False
 
-        return retval
+        # If this instance doesn't have parameters, the other one
+        # shouldn't have them either
+        if not self.parameters:
+            return not other.parameters
+
+        # This instance has parameters. The other instance should
+        # have the same parameter keys and values
+        if not other.parameters or self.parameters.keys() != other.parameters.keys():
+            logging.debug(
+                f"The other probability function has a different number of parameters: {self.parameters, other.parameters}"
+            )
+            return False
+
+        for key in self.parameters:
+            if self.parameters[key] != other.parameters[key]:
+                logging.debug(
+                    f"The value of parameter {key} differs: {self.parameters[key], other.parameters[key]}"
+                )
+                return False
+
+        return True
 
 
 class PropertyDomain(pydantic.BaseModel):
     """Describes the domain of a property"""
 
-    values: list[typing.Any] | None = pydantic.Field(
-        default=None, description="The values for a discrete or categorical domain"
+    values: Annotated[
+        list[typing.Any] | None,
+        pydantic.Field(description="The values for a discrete or categorical domain"),
+    ] = None
+    interval: Annotated[
+        int | float | None,
+        pydantic.Field(
+            description="The interval between discrete values variables. Do not set if values is set"
+        ),
+    ] = None  # Only makes sense for discrete variables.
+    domainRange: Annotated[
+        list[int | float] | None,
+        pydantic.Field(
+            description="The range of the domain for discrete or continuous variables. Inclusive of lower bound exclusive of upper bound. Calculated automatically if values is given.",
+            validate_default=True,
+            min_length=2,
+            max_length=2,
+            frozen=True,
+        ),
+    ] = None  # For discrete/continuous variables
+    variableType: Annotated[VariableTypeEnum, pydantic.Field(validate_default=True)] = (
+        VariableTypeEnum.UNKNOWN_VARIABLE_TYPE
     )
-    interval: int | float | None = pydantic.Field(
-        default=None,
-        description="The interval between discrete values variables. Do not set if values is set",
-    )  # Only makes sense for discrete variables.
-    domainRange: list[int | float] | None = pydantic.Field(
-        description="The range of the domain for discrete or continuous variables. Inclusive of lower bound exclusive of upper bound. Calculated automatically if values is given.",
-        default=None,
-        validate_default=True,
-        min_length=2,
-        max_length=2,
-        frozen=True,
-    )  # For discrete/continuous variables
-    variableType: VariableTypeEnum = pydantic.Field(
-        default=VariableTypeEnum.UNKNOWN_VARIABLE_TYPE, validate_default=True
-    )
-    probabilityFunction: ProbabilityFunction = pydantic.Field(
-        default=ProbabilityFunction()
+    probabilityFunction: Annotated[ProbabilityFunction, pydantic.Field()] = (
+        ProbabilityFunction()
     )
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    def _repr_pretty_(self, p, cycle=False):
+    def __rich__(self) -> "RenderableType":
+        """Render this property domain using rich."""
+        from rich.console import Group
+        from rich.text import Text
 
-        if cycle:  # pragma: nocover
-            p.text("Cycle detected")
-        else:
-            p.text(f"Type: {self.variableType.value}")
-            p.breakable()
-            if self.values:
-                p.text(f"Values: {self.values}")
-                p.breakable()
-            if self.interval:
-                p.text(f"Interval: {self.interval}")
-                p.breakable()
-            if self.domainRange and self.variableType in [
-                VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE,
-                VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
-            ]:
-                p.text(f"Range: {self.domainRange}")
-                p.breakable()
+        from orchestrator.utilities.rich import get_rich_repr
+
+        lines = [
+            Text.assemble(("Type: ", "bold"), self.variableType),
+        ]
+        if self.values:
+            lines.extend(
+                [Text("Values:", style="bold", end=" "), get_rich_repr(self.values)]
+            )
+        if self.interval:
+            lines.extend(
+                [Text("Interval:", style="bold", end=" "), get_rich_repr(self.interval)]
+            )
+        if self.domainRange and self.variableType in [
+            VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE,
+            VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
+        ]:
+            lines.extend(
+                [Text("Range:", style="bold", end=" "), get_rich_repr(self.domainRange)]
+            )
+
+        return Group(*lines)
 
     @pydantic.field_validator("interval")
     def interval_requires_no_values(
-        cls, interval, values: "pydantic.FieldValidationInfo"
-    ):
+        cls, interval: float | None, values: "pydantic.FieldValidationInfo"
+    ) -> int | float | None:
 
-        if interval is not None:
-            assert (
-                values.data.get("values") is None
-            ), f"Cannot specify interval ({interval} if values are specified ({values.data.get('values')}"
+        if interval is not None and values.data.get("values") is not None:
+            raise ValueError(
+                "Cannot specify both interval and values in a PropertyDomain. "
+                f"Values were: {values.data.get('values')}. Interval was: {interval}"
+            )
 
         return interval
 
@@ -350,7 +387,7 @@ class PropertyDomain(pydantic.BaseModel):
         cls,
         passed_range: list[int | float] | None,
         otherFields: "pydantic.FieldValidationInfo",
-    ):
+    ) -> list[int | float] | None:
 
         values = otherFields.data.get("values")
         if passed_range is not None and values:
@@ -368,7 +405,17 @@ class PropertyDomain(pydantic.BaseModel):
         return passed_range
 
     @pydantic.field_validator("variableType")
-    def variableType_matches_values(cls, value, values: "pydantic.FieldValidationInfo"):
+    def variableType_matches_values(
+        cls, value: VariableTypeEnum, values: "pydantic.FieldValidationInfo"
+    ) -> typing.Literal[
+        "CONTINUOUS_VARIABLE_TYPE",
+        "DISCRETE_VARIABLE_TYPE",
+        "CATEGORICAL_VARIABLE_TYPE",
+        "OPEN_CATEGORICAL_VARIABLE_TYPE",
+        "BINARY_VARIABLE_TYPE",
+        "UNKNOWN_VARIABLE_TYPE",
+        "IDENTIFIER_VARIABLE_TYPE",
+    ]:
 
         import numbers
 
@@ -398,25 +445,85 @@ class PropertyDomain(pydantic.BaseModel):
                 value = VariableTypeEnum.DISCRETE_VARIABLE_TYPE
 
         if value == VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE:
-            assert values.data.get("values") is not None
-            assert values.data.get("interval") is None
-            if not all(
-                isinstance(e, numbers.Number) for e in values.data.get("values")
+
+            if values.data.get("values") is None:
+                raise ValueError(
+                    "The values field for a CATEGORICAL_VARIABLE_TYPE was None"
+                )
+
+            if values.data.get("interval") is not None:
+                raise ValueError(
+                    "The interval field for a CATEGORICAL_VARIABLE_TYPE was not None"
+                )
+
+            if (
+                not all(
+                    isinstance(e, numbers.Number) for e in values.data.get("values")
+                )
+                and values.data.get("domainRange") is not None
             ):
-                assert values.data.get("domainRange") is None
+                raise ValueError(
+                    "The domainRange field was not None for a CATEGORICAL_VARIABLE_TYPE "
+                    "where the values are not all numbers"
+                )
+
         elif value == VariableTypeEnum.DISCRETE_VARIABLE_TYPE:
             # Discrete must have either values or an interval
             # If it has a range it must have an interval
             valuesCheck = values.data.get("values") is not None
             intervalCheck = values.data.get("interval") is not None
-            assert valuesCheck or intervalCheck
+            if not (valuesCheck or intervalCheck):
+                raise ValueError(
+                    "A DISCRETE_VARIABLE_TYPE had neither values nor interval specified"
+                )
 
         elif value == VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE:
-            assert values.data.get("values") is None
-            assert values.data.get("interval") is None
+
+            if values.data.get("values") is not None:
+                raise ValueError(
+                    "The values field of a CONTINUOUS_VARIABLE_TYPE was not None"
+                )
+
+            if values.data.get("interval") is not None:
+                raise ValueError(
+                    "The interval field of a CONTINUOUS_VARIABLE_TYPE was not None"
+                )
+
         elif value == VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE:
-            assert values.data.get("interval") is None
-            assert values.data.get("domainRange") is None
+
+            if values.data.get("interval") is not None:
+                raise ValueError(
+                    "The interval field of an OPEN_CATEGORICAL_VARIABLE_TYPE was not None"
+                )
+
+            if values.data.get("domainRange") is not None:
+                raise ValueError(
+                    "The domainRange field of an OPEN_CATEGORICAL_VARIABLE_TYPE was not None"
+                )
+
+        elif value == VariableTypeEnum.BINARY_VARIABLE_TYPE:
+
+            # Binary variables should not have values, interval, or domainRange specified
+            # They always default to [False, True].
+            # To avoid breaking too many things, however, we accept [False, True]
+            binary_values = values.data.get("values")
+            if binary_values is not None and sorted(binary_values) != [False, True]:
+                raise ValueError(
+                    "BINARY_VARIABLE_TYPE should not have values specified. "
+                    "It always defaults to [False, True]. "
+                    "If you want to restrict the domain to specific boolean values, "
+                    "use DISCRETE_VARIABLE_TYPE with values [0] or [1] instead."
+                )
+
+            if values.data.get("interval") is not None:
+                raise ValueError(
+                    "The interval field for a BINARY_VARIABLE_TYPE must be None"
+                )
+
+            if values.data.get("domainRange") is not None:
+                raise ValueError(
+                    "The domainRange field for a BINARY_VARIABLE_TYPE must be None"
+                )
         elif value == VariableTypeEnum.VECTOR_VARIABLE_TYPE:
             raise ValueError(
                 "Vector variables are not supported by PropertyDomain - use VectorPropertyDomain instead"
@@ -489,7 +596,7 @@ class PropertyDomain(pydantic.BaseModel):
 
         return dict_representation
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:  # noqa: ANN401
         """Two domains are considered the same if they have identical values for the properties"""
 
         try:
@@ -529,7 +636,7 @@ class PropertyDomain(pydantic.BaseModel):
             interval=self.interval,
         )
 
-    def valueInDomain(self, value):
+    def valueInDomain(self, value: typing.Any) -> bool:  # noqa: ANN401
 
         if self.variableType == VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE:
             if self.domainRange is not None:

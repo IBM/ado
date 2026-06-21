@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 from rich.status import Status
@@ -13,7 +13,7 @@ from orchestrator.core.resources import CoreResourceKinds
 from orchestrator.metastore.base import ResourceDoesNotExistError
 
 
-def describe_data_container(parameters: AdoDescribeCommandParameters):
+def describe_data_container(parameters: AdoDescribeCommandParameters) -> None:
 
     sql = get_sql_store(project_context=parameters.ado_configuration.project_context)
     with Status(ADO_SPINNER_QUERYING_DB) as status:
@@ -26,6 +26,4 @@ def describe_data_container(parameters: AdoDescribeCommandParameters):
                 resource_id=parameters.resource_id, kind=CoreResourceKinds.DATACONTAINER
             )
 
-    from IPython.lib.pretty import pretty
-
-    console_print(pretty(datacontainer_resource), use_markup=False)
+    console_print(datacontainer_resource)

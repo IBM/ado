@@ -1,25 +1,32 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 
 import json
 import pathlib
+from collections.abc import Callable
 
 import pytest
 import yaml
 
+from orchestrator.core import ADOResource
 from orchestrator.core.discoveryspace.config import (
     DiscoverySpaceConfiguration,
 )
 from orchestrator.core.discoveryspace.resource import DiscoverySpaceResource
+from orchestrator.metastore.sqlstore import SQLStore
 
 
 @pytest.fixture
-def random_space_resource_from_file(random_identifier):
+def random_space_resource_from_file(
+    random_identifier: Callable[[], str],
+) -> Callable[[str | None], DiscoverySpaceResource]:
 
     def _random_space_resource_from_file(
         sample_store_id: str | None = None,
     ) -> DiscoverySpaceResource:
+        import datetime
+
         file = pathlib.Path("tests/resources/space/discoveryspace_resource.json")
         random_resource_id = random_identifier()
         if not sample_store_id:
@@ -31,13 +38,17 @@ def random_space_resource_from_file(random_identifier):
         # Final touch-ups
         space.identifier = random_resource_id
         space.config.sampleStoreIdentifier = sample_store_id
+        space.created = datetime.datetime.now(datetime.timezone.utc)
         return space
 
     return _random_space_resource_from_file
 
 
 @pytest.fixture
-def random_space_resource_from_db(random_space_resource_from_file, create_resources):
+def random_space_resource_from_db(
+    random_space_resource_from_file: Callable[[str | None], DiscoverySpaceResource],
+    create_resources: Callable[[list[ADOResource], SQLStore], None],
+) -> Callable[[str | None], DiscoverySpaceResource]:
     def _random_space_resource_from_db(
         sample_store_id: str | None = None,
     ) -> DiscoverySpaceResource:
@@ -49,7 +60,9 @@ def random_space_resource_from_db(random_space_resource_from_file, create_resour
 
 
 @pytest.fixture(params=["discrete", "continuous"])
-def constitutive_property_configuration_smiles_yaml(request):
+def constitutive_property_configuration_smiles_yaml(
+    request: pytest.FixtureRequest,
+) -> dict[str, str]:
     """User this fixture for tests requiring matching measurement space"""
     import yaml
 
@@ -71,7 +84,7 @@ valid_discovery_space_configs = [
 
 
 @pytest.fixture(params=valid_discovery_space_configs)
-def valid_discovery_space_config_file(request):
+def valid_discovery_space_config_file(request: pytest.FixtureRequest) -> str:
     return request.param
 
 
@@ -95,7 +108,9 @@ def discovery_space_configuration_no_replay() -> DiscoverySpaceConfiguration:
 
 
 @pytest.fixture
-def discovery_space_resource(discovery_space_configuration) -> DiscoverySpaceResource:
+def discovery_space_resource(
+    discovery_space_configuration: DiscoverySpaceConfiguration,
+) -> DiscoverySpaceResource:
 
     # This autogenerates the operation identifier
     return DiscoverySpaceResource(
@@ -106,7 +121,7 @@ def discovery_space_resource(discovery_space_configuration) -> DiscoverySpaceRes
 
 @pytest.fixture
 def discovery_space_resource_no_replay(
-    discovery_space_configuration_no_replay,
+    discovery_space_configuration_no_replay: DiscoverySpaceConfiguration,
 ) -> DiscoverySpaceResource:
 
     # This autogenerates the operation identifier
@@ -117,14 +132,14 @@ def discovery_space_resource_no_replay(
 
 
 @pytest.fixture
-def test_space_identifier():
+def test_space_identifier() -> str:
     """Fixture providing a space id that can be used for add/update/remove tests"""
 
     return "space-82aecb-b48040"
 
 
 @pytest.fixture
-def discovery_space_resource_from_file():
+def discovery_space_resource_from_file() -> DiscoverySpaceResource:
     """Returns a DiscoverySpace resource read from a file
 
     For use with inactive resource-stores where read is not possible"""

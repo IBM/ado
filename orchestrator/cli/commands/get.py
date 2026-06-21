@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import pathlib
@@ -11,7 +11,6 @@ from orchestrator.cli.exceptions.handlers import (
     handle_no_related_resource,
     handle_resource_does_not_exist,
 )
-from orchestrator.cli.models.choice import HiddenPluralChoice
 from orchestrator.cli.models.parameters import AdoGetCommandParameters
 from orchestrator.cli.models.types import (
     AdoGetSupportedOutputFormats,
@@ -24,11 +23,15 @@ from orchestrator.cli.resources.actuator_configuration.get import (
 from orchestrator.cli.resources.context.get import get_context
 from orchestrator.cli.resources.data_container.get import get_data_container
 from orchestrator.cli.resources.discovery_space.get import get_discovery_space
+from orchestrator.cli.resources.experiment.get import get_experiment
 from orchestrator.cli.resources.measurement_request.get import get_measurement_request
 from orchestrator.cli.resources.operation.get import get_operation
 from orchestrator.cli.resources.operator.get import get_operator
 from orchestrator.cli.resources.sample_store.get import get_sample_store
-from orchestrator.cli.utils.input.parsers import parse_key_value_pairs
+from orchestrator.cli.utils.input.parsers import (
+    enum_choice_with_plural_parser,
+    parse_key_value_pairs,
+)
 from orchestrator.cli.utils.output.prints import (
     ERROR,
     INFO,
@@ -59,7 +62,8 @@ def get_resource(
         typer.Argument(
             help="The kind of the resource(s) to get.",
             show_default=False,
-            click_type=HiddenPluralChoice(AdoGetSupportedResourceTypes),
+            parser=enum_choice_with_plural_parser(AdoGetSupportedResourceTypes),
+            metavar=f"[{'|'.join(m.value for m in AdoGetSupportedResourceTypes)}]",
         ),
     ],
     resource_id: Annotated[
@@ -67,11 +71,21 @@ def get_resource(
         typer.Argument(
             help=(
                 "The id of the resource to get. "
-                "If unspecified, the command will return all resources of the specified type."
+                "If unspecified, the command will return all resources of the specified type "
+                "(unless --use-latest is used)."
             ),
             show_default=False,
         ),
     ] = None,
+    use_latest: Annotated[
+        bool,
+        typer.Option(
+            "--use-latest",
+            help="Get the latest identifier of the selected resource type. "
+            "Ignored if a resource identifier is also specified.",
+            show_default=False,
+        ),
+    ] = False,
     query: Annotated[
         list[str] | None,
         typer.Option(
@@ -118,10 +132,9 @@ def get_resource(
             "--output",
             "-o",
             rich_help_panel=OUTPUT_CONFIGURATION_OPTIONS,
-            show_default=False,
-            help="Output information in a different format. Not all formats may be supported by all resources.",
+            help="Output information in a different format. The 'json', 'raw', and 'yaml' formats will output the entire resource. The 'name' format outputs only resource identifiers (similar to kubectl get -o name). Not all formats may be supported by all resources.",
         ),
-    ] = AdoGetSupportedOutputFormats.DEFAULT.value,
+    ] = AdoGetSupportedOutputFormats.TABLE.value,
     exclude_default: Annotated[
         bool,
         typer.Option(
@@ -166,12 +179,36 @@ def get_resource(
             Make an attempt to minimize the output produced.
             This might entail applying transformations on the model, changing it from the original.
 
-            Ignored when the output type is default or raw.
+            Ignored when the output type is table or raw.
             If set, implies --exclude-default --exclude-unset --exclude-none.
             """,
             rich_help_panel=OUTPUT_CONFIGURATION_OPTIONS,
         ),
     ] = False,
+    no_trunc: Annotated[
+        bool,
+        typer.Option(
+            "--no-trunc",
+            help="""
+            Prevent truncation of table content. When enabled, columns will be sized to fit all content
+            without truncation. Only applies to default (table) output format.
+            """,
+            rich_help_panel=OUTPUT_CONFIGURATION_OPTIONS,
+        ),
+    ] = False,
+    output_file: Annotated[
+        pathlib.Path | None,
+        typer.Option(
+            "--output-file",
+            help="Write output to the specified file instead of stdout.",
+            file_okay=True,
+            dir_okay=False,
+            writable=True,
+            resolve_path=True,
+            show_default=False,
+            rich_help_panel=OUTPUT_CONFIGURATION_OPTIONS,
+        ),
+    ] = None,
     show_deprecated: Annotated[
         bool,
         typer.Option(
@@ -225,7 +262,7 @@ def get_resource(
             help="""
             Provide a space configuration to match other spaces. Only for spaces.
 
-            If set, disregards --query and --label, and uses the default output format.
+            If set, disregards --query and --label, and uses the table output format.
             """,
             file_okay=True,
             dir_okay=False,
@@ -241,42 +278,53 @@ def get_resource(
             Provide a space id to match other spaces. Only for spaces.
             Takes precedence over --matching-space.
 
-            If set, disregards --query and --label, and uses the default output format.
+            If set, disregards --query and --label, and uses the table output format.
             """,
             show_default=False,
             rich_help_panel=DISCOVERY_SPACE_ONLY_OPTIONS,
         ),
     ] = None,
-):
+) -> None:
     """
     List, search, and retrieve representation of resources, contexts, actuators, and operators.
 
     See https://ibm.github.io/ado/getting-started/ado/#ado-get
     for detailed documentation and examples.
 
-
-
     Examples:
 
-
-
     # List sample stores
-
     ado get samplestores
 
-
-
     # Save the configuration of a discovery space as YAML
-
     ado get space <space-id> -o yaml > space.yaml
 
+    # Get the latest space as YAML
+    ado get space --use-latest -o yaml
 
+    # Get the latest operation as YAML
+    ado get operation --use-latest -o yaml
 
-    # List actuators and the experiments they provide
-
+    # List actuators and details about them
     ado get actuators --details
+
+    # List all experiments
+    ado get experiments
+
+    # List experiments with details
+    ado get experiments --details
     """
     ado_configuration: AdoConfiguration = ctx.obj
+
+    # Resolve --use-latest to actual resource_id
+    if use_latest:
+        from orchestrator.cli.utils.generic.common import get_effective_resource_id
+
+        resource_id = get_effective_resource_id(
+            explicit_resource_id=resource_id,
+            resource_type=resource_type.value,
+            project_context=ado_configuration.project_context,
+        )
 
     if resource_type != AdoGetSupportedResourceTypes.DISCOVERY_SPACE and (
         matching_point or matching_space or matching_space_id
@@ -298,13 +346,13 @@ def get_resource(
 
     if (
         matching_space or matching_space_id
-    ) and output_format != AdoGetSupportedOutputFormats.DEFAULT:
+    ) and output_format != AdoGetSupportedOutputFormats.TABLE:
         console_print(
             f"{WARN}--matching-space and --matching-space-id only support "
-            f"the {AdoGetSupportedOutputFormats.DEFAULT.value} output format.",
+            f"the {AdoGetSupportedOutputFormats.TABLE.value} output format.",
             stderr=True,
         )
-        output_format = AdoGetSupportedOutputFormats.DEFAULT
+        output_format = AdoGetSupportedOutputFormats.TABLE
 
     if exclude_fields and output_format not in {
         AdoGetSupportedOutputFormats.JSON,
@@ -348,11 +396,14 @@ def get_resource(
         matching_space_id=matching_space_id,
         matching_space=matching_space,
         minimize_output=minimize_output,
+        no_trunc=no_trunc,
+        output_file=output_file,
         output_format=output_format,
         resource_id=resource_id,
         resource_type=resource_type,
         show_deprecated=show_deprecated,
         show_details=show_details,
+        use_latest=use_latest,
     )
 
     method_mapping = {
@@ -361,6 +412,7 @@ def get_resource(
         AdoGetSupportedResourceTypes.CONTEXT: get_context,
         AdoGetSupportedResourceTypes.DATA_CONTAINER: get_data_container,
         AdoGetSupportedResourceTypes.DISCOVERY_SPACE: get_discovery_space,
+        AdoGetSupportedResourceTypes.EXPERIMENT: get_experiment,
         AdoGetSupportedResourceTypes.SAMPLE_STORE: get_sample_store,
         AdoGetSupportedResourceTypes.MEASUREMENT_REQUEST: get_measurement_request,
         AdoGetSupportedResourceTypes.OPERATION: get_operation,
@@ -379,7 +431,7 @@ def get_resource(
         )
 
 
-def register_get_command(app: typer.Typer):
+def register_get_command(app: typer.Typer) -> None:
     app.command(
         name="get",
         no_args_is_help=True,

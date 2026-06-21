@@ -1,5 +1,7 @@
-ARG base_image=quay.io/ado/ado:latest-py310-cu121
-FROM $base_image
+ARG PYTHON_VERSION=310
+ARG CUDA_VERSION=cu121
+ARG BASE_IMAGE=quay.io/ado/ado:latest-py${PYTHON_VERSION}-${CUDA_VERSION}
+FROM $BASE_IMAGE
 
 # VV: Install MOFED from https://network.nvidia.com/products/infiniband-drivers/linux/mlnx_ofed/
 USER 0

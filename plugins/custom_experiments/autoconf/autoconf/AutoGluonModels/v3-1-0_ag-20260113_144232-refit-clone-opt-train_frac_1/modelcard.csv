@@ -1,0 +1,2 @@
+data_path,refit,suffix,train_fraction,preset_quality,size_original_bytes,size_optimized_bytes,elapsed_time,disk_usage_reduction_percent,accuracy,balanced_accuracy,mcc,roc_auc,f1,precision,recall
+/Users/danielelotito/Documents/agent_context/gemini_research_sampling_agent/lh_dashboard_136_date_01_13_2026.csv,False,-clone-opt-train_frac_1.0,1.0,medium_quality,344818758,625350,34.737629890441895,99.8,0.9158112582781457,0.914672260116073,0.8305655218907659,0.9746043061841524,0.9080885675553547,0.9167883211678832,0.8995523724261415

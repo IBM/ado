@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import pathlib
@@ -12,13 +12,13 @@ from orchestrator.cli.exceptions.handlers import (
     handle_resource_does_not_exist,
     handle_unknown_experiment_error,
 )
-from orchestrator.cli.models.choice import HiddenPluralChoice
 from orchestrator.cli.models.parameters import AdoDescribeCommandParameters
 from orchestrator.cli.models.types import AdoDescribeSupportedResourceTypes
 from orchestrator.cli.resources.data_container.describe import describe_data_container
 from orchestrator.cli.resources.discovery_space.describe import describe_discovery_space
 from orchestrator.cli.resources.experiment.describe import describe_experiment
 from orchestrator.cli.utils.generic.common import get_effective_resource_id
+from orchestrator.cli.utils.input.parsers import enum_choice_with_plural_parser
 from orchestrator.cli.utils.output.prints import (
     ERROR,
     console_print,
@@ -47,7 +47,8 @@ def describe_resource(
         typer.Argument(
             help="The kind of the resource to describe.",
             show_default=False,
-            click_type=HiddenPluralChoice(AdoDescribeSupportedResourceTypes),
+            parser=enum_choice_with_plural_parser(AdoDescribeSupportedResourceTypes),
+            metavar=f"[{'|'.join(m.value for m in AdoDescribeSupportedResourceTypes)}]",
         ),
     ],
     resource_id: Annotated[
@@ -92,34 +93,22 @@ def describe_resource(
             rich_help_panel=EXPERIMENT_ONLY_OPTIONS,
         ),
     ] = None,
-):
+) -> None:
     """
     Print a human-friendly description of a resource or an experiment.
 
     See https://ibm.github.io/ado/getting-started/ado/#ado-describe
     for detailed documentation and examples.
 
-
-
     Examples:
 
-
-
     # Describe an existing space
-
     ado describe space <space-id>
 
-
-
-
     # Describe a space from a space configuration file
-
     ado describe space -f <space.yaml>
 
-
-
     # Describe an experiment and explicitly specify the actuator id
-
     ado describe experiment <experiment-id> --actuator-id <actuator-id>
     """
     ado_configuration: AdoConfiguration = ctx.obj
@@ -136,7 +125,7 @@ def describe_resource(
         resource_id = get_effective_resource_id(
             explicit_resource_id=resource_id,
             resource_type=resource_type.value,
-            ado_configuration=ado_configuration,
+            project_context=ado_configuration.project_context,
         )
 
     if not (resource_id or resource_configuration) or (
@@ -171,13 +160,6 @@ def describe_resource(
         AdoDescribeSupportedResourceTypes.EXPERIMENT: describe_experiment,
     }
 
-    from orchestrator.cli.utils.output.prints import set_pandas_display_options
-
-    # We need to set the display options here, before the call to pretty is
-    # made, as otherwise IPython's pretty will be called before console_print
-    # manages to set the display options, causing truncated column names.
-    set_pandas_display_options()
-
     try:
         method_mapping[resource_type](parameters=parameters)
     except ResourceDoesNotExistError as e:
@@ -190,12 +172,12 @@ def describe_resource(
         )
     except UnknownActuatorError as e:
         console_print(f"{ERROR}{e}", stderr=True)
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
     except UnknownExperimentError as e:
         handle_unknown_experiment_error(error=e)
 
 
-def register_describe_command(app: typer.Typer):
+def register_describe_command(app: typer.Typer) -> None:
     app.command(
         name="describe",
         no_args_is_help=True,

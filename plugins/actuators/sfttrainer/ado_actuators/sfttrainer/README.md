@@ -37,6 +37,8 @@ features.
 <!-- markdownlint-disable-next-line no-duplicate-heading -->
 ### Requirements
 
+The SFTTrainer actuator currently **supports only Python 3.10, 3.11, 3.12**.
+
 [fms-hf-tuning](https://github.com/foundation-model-stack/fms-hf-tuning) imports
 packages like `flash-attn` and `mamba-ssm`, which import `torch` during their  
 build phase. This means the base virtual environment of your Ray workers must  
@@ -157,6 +159,9 @@ Versioning:
 
 - Actuator version: `2.1.0`
 - fms-hf-tuning versions:
+  - 3.1.0
+    - The full list of packages is at
+      [packages/fms-hf-tuning_v3.1.0_9aca2139f4244f500cf2f5b1a0fe2ef3f8251a82.txt](packages/fms-hf-tuning_v3.1.0_9aca2139f4244f500cf2f5b1a0fe2ef3f8251a82.txt)
   - 3.0.0.1 (this is a phony release)
     - The full list of packages is at
       [packages/fms-hf-tuning_v3.0.0.1_51875160343064a1056e0105b7971ed8d9f26854.txt](packages/fms-hf-tuning_v3.0.0.1_51875160343064a1056e0105b7971ed8d9f26854.txt)
@@ -233,7 +238,7 @@ Required:
 
 - model_name: Supported models:
   <!-- markdownlint-disable-next-line line-length -->
-  `["granite-3b-1.5", "hf-tiny-model-private/tiny-random-BloomForCausalLM", "llama-7b", "granite-13b-v2", "llama-13b", "granite-20b-v2", "granite-7b-base", "granite-8b-japanese", "granite-8b-code-base", "granite-34b-code-base", "mistral-7b-v0.1", "llama3-8b", "llama3-70b", "mixtral-8x7b-instruct-v0.1", "llama2-70b", "llama3.1-8b", "llama3.1-70b", "llama3.1-405b", "granite-3b-code-base-128k", "granite-8b-code-base-128k", "allam-1-13b", "granite-3-8b", "granite-3.1-2b", "granite-3.1-8b-instruct", "mistral-123b-v2", "granite-3.1-3b-a800m-instruct", "granite-vision-3.2-2b", "smollm2-135m", "llava-v1.6-mistral-7b", "granite-4.0-micro", "granite-4.0-h-1b", "granite-4.0-350m", "granite-4.0-h-small", "granite-4.0-h-micro", "granite-4.0-h-tiny"]`
+  `["granite-3b-1.5", "hf-tiny-model-private/tiny-random-BloomForCausalLM", "llama-7b", "granite-13b-v2", "llama-13b", "granite-20b-v2", "granite-7b-base", "granite-8b-japanese", "granite-8b-code-base", "granite-34b-code-base", "mistral-7b-v0.1", "llama3-8b", "llama3-70b", "mixtral-8x7b-instruct-v0.1", "llama2-70b", "llama3.1-8b", "llama3.1-70b", "llama3.1-405b", "granite-3b-code-base-128k", "granite-8b-code-base-128k", "allam-1-13b", "granite-3-8b", "granite-3.1-2b", "granite-3.1-8b-instruct", "mistral-123b-v2", "granite-3.1-3b-a800m-instruct", "granite-vision-3.2-2b", "smollm2-135m", "llava-v1.6-mistral-7b", "granite-4.0-micro", "granite-4.0-h-1b", "granite-4.0-350m", "granite-4.0-h-small", "granite-4.0-h-micro", "granite-4.0-h-tiny", "granite-3.3-8b"]`
 - model_max_length: Maximum sequence length. Sequences will be right padded (and
   possibly truncated)
 - number_gpus: The effective number of GPUs (to be evenly distributed to
@@ -295,8 +300,8 @@ Optional:
   nodes. Each Node will use number_gpus/number_nodes GPUs. Each Node will use 1
   process for each GPU it uses
 - fms_hf_tuning_version: Default is `2.1.2`. Which version of fms-hf-tuning to
-  use. Available options are: `3.0.0`, `2.8.2`, `2.7.1`, `2.6.0`, `2.5.0`,
-  `2.4.0`, `2.3.1`, `2.2.1`, `2.1.2`, `2.1.0`, `2.0.1`
+  use. Available options are: `3.1.0`, `3.0.0.1`, `3.0.0`, `2.8.2`, `2.7.1`,
+  `2.6.0`, `2.5.0`, `2.4.0`, `2.3.1`, `2.2.1`, `2.1.2`, `2.1.0`, `2.0.1`
 - enable_roce: Default is `False`. This setting is only in effect for multi-node
   runs. It controls whether RDMA over Converged Ethernet (RoCE) is switched on
   or not.
@@ -330,9 +335,10 @@ Optional:
   the checkpointed function. Can be `True`, `False`.
 - fsdp_sharding_strategy: Default is `FULL_SHARD`. [1] FULL_SHARD (shards
   optimizer states, gradients and parameters), " [2] SHARD_GRAD_OP (shards
-  optimizer states and gradients), [3] NO_SHARD (DDP), [4] HYBRID_SHARD (shards
-  optimizer states, gradients and parameters within each node while each node
-  has full copy), [5] HYBRID_SHARD_ZERO2 (shards optimizer states and gradients
+  optimizer states and gradients), [3] NO_SHARD (DDP), [4] HYBRID_SHARD
+  (shards optimizer states, gradients and parameters within each node while
+  each node has full copy - equivalent to FULL_SHARD for single-node runs),
+  [5] HYBRID_SHARD_ZERO2 (shards optimizer states and gradients
   within each node while each node has full copy). For more information, please
   refer the official PyTorch docs.
 - fsdp_state_dict_type: Default is `FULL_STATE_DICT`. [1] FULL_STATE_DICT, [2]
@@ -535,6 +541,9 @@ Versioning:
 
 - Actuator version: `2.1.0`
 - fms-hf-tuning versions:
+  - 3.1.0
+    - The full list of packages is at
+      [packages/fms-hf-tuning_v3.1.0_9aca2139f4244f500cf2f5b1a0fe2ef3f8251a82.txt](packages/fms-hf-tuning_v3.1.0_9aca2139f4244f500cf2f5b1a0fe2ef3f8251a82.txt)
   - 3.0.0.1 (this is a phony release)
     - The full list of packages is at
       [packages/fms-hf-tuning_v3.0.0.1_51875160343064a1056e0105b7971ed8d9f26854.txt](packages/fms-hf-tuning_v3.0.0.1_51875160343064a1056e0105b7971ed8d9f26854.txt)
@@ -610,7 +619,7 @@ Versioning:
 
 - model_name: Supported models:
   <!-- markdownlint-disable-next-line line-length -->
-  `["granite-3b-1.5", "hf-tiny-model-private/tiny-random-BloomForCausalLM", "llama-7b", "granite-13b-v2", "llama-13b", "granite-20b-v2", "granite-7b-base", "granite-8b-japanese", "granite-8b-code-base", "granite-34b-code-base", "mistral-7b-v0.1", "llama3-8b", "llama3-70b", "mixtral-8x7b-instruct-v0.1", "llama2-70b", "llama3.1-8b", "llama3.1-70b", "llama3.1-405b", "granite-3b-code-base-128k", "granite-8b-code-base-128k", "allam-1-13b", "granite-3-8b", "granite-3.1-2b", "granite-3.1-8b-instruct", "mistral-123b-v2", "granite-3.1-3b-a800m-instruct", "granite-vision-3.2-2b", "smollm2-135m", "llava-v1.6-mistral-7b", "granite-4.0-micro", "granite-4.0-h-1b", "granite-4.0-350m", "granite-4.0-h-small", "granite-4.0-h-micro", "granite-4.0-h-tiny"]`
+  `["granite-3b-1.5", "hf-tiny-model-private/tiny-random-BloomForCausalLM", "llama-7b", "granite-13b-v2", "llama-13b", "granite-20b-v2", "granite-7b-base", "granite-8b-japanese", "granite-8b-code-base", "granite-34b-code-base", "mistral-7b-v0.1", "llama3-8b", "llama3-70b", "mixtral-8x7b-instruct-v0.1", "llama2-70b", "llama3.1-8b", "llama3.1-70b", "llama3.1-405b", "granite-3b-code-base-128k", "granite-8b-code-base-128k", "allam-1-13b", "granite-3-8b", "granite-3.1-2b", "granite-3.1-8b-instruct", "mistral-123b-v2", "granite-3.1-3b-a800m-instruct", "granite-vision-3.2-2b", "smollm2-135m", "llava-v1.6-mistral-7b", "granite-4.0-micro", "granite-4.0-h-1b", "granite-4.0-350m", "granite-4.0-h-small", "granite-4.0-h-micro", "granite-4.0-h-tiny", "granite-3.3-8b"]`
 - dataset_id: One of
   - `news-chars-512-entries-4096`: 4096 entries with samples of 512 + 127
     (prompt) + 512 characters
@@ -785,6 +794,9 @@ Versioning:
 
 - Actuator version: `2.1.0`
 - fms-hf-tuning versions:
+  - 3.1.0
+    - The full list of packages is at
+      [packages/fms-hf-tuning_v3.1.0_9aca2139f4244f500cf2f5b1a0fe2ef3f8251a82.txt](packages/fms-hf-tuning_v3.1.0_9aca2139f4244f500cf2f5b1a0fe2ef3f8251a82.txt)
   - 3.0.0.1 (this is a phony release)
     - The full list of packages is at
       [packages/fms-hf-tuning_v3.0.0.1_51875160343064a1056e0105b7971ed8d9f26854.txt](packages/fms-hf-tuning_v3.0.0.1_51875160343064a1056e0105b7971ed8d9f26854.txt)
@@ -862,7 +874,7 @@ Required:
 
 - model_name: Supported models:
   <!-- markdownlint-disable-next-line line-length -->
-  `["granite-3b-1.5", "hf-tiny-model-private/tiny-random-BloomForCausalLM", "llama-7b", "granite-13b-v2", "llama-13b", "granite-20b-v2", "granite-7b-base", "granite-8b-japanese", "granite-8b-code-base", "granite-34b-code-base", "mistral-7b-v0.1", "llama3-8b", "llama3-70b", "mixtral-8x7b-instruct-v0.1", "llama2-70b", "llama3.1-8b", "llama3.1-70b", "llama3.1-405b", "granite-3b-code-base-128k", "granite-8b-code-base-128k", "allam-1-13b", "granite-3-8b", "granite-3.1-2b", "granite-3.1-8b-instruct", "mistral-123b-v2", "granite-3.1-3b-a800m-instruct", "granite-vision-3.2-2b", "smollm2-135m", "llava-v1.6-mistral-7b", "granite-4.0-micro", "granite-4.0-h-1b", "granite-4.0-350m", "granite-4.0-h-small", "granite-4.0-h-micro", "granite-4.0-h-tiny"]`
+  `["granite-3b-1.5", "hf-tiny-model-private/tiny-random-BloomForCausalLM", "llama-7b", "granite-13b-v2", "llama-13b", "granite-20b-v2", "granite-7b-base", "granite-8b-japanese", "granite-8b-code-base", "granite-34b-code-base", "mistral-7b-v0.1", "llama3-8b", "llama3-70b", "mixtral-8x7b-instruct-v0.1", "llama2-70b", "llama3.1-8b", "llama3.1-70b", "llama3.1-405b", "granite-3b-code-base-128k", "granite-8b-code-base-128k", "allam-1-13b", "granite-3-8b", "granite-3.1-2b", "granite-3.1-8b-instruct", "mistral-123b-v2", "granite-3.1-3b-a800m-instruct", "granite-vision-3.2-2b", "smollm2-135m", "llava-v1.6-mistral-7b", "granite-4.0-micro", "granite-4.0-h-1b", "granite-4.0-350m", "granite-4.0-h-small", "granite-4.0-h-micro", "granite-4.0-h-tiny", "granite-3.3-8b"]`
 - model_max_length: Maximum sequence length. Sequences will be right padded (and
   possibly truncated)
 - number_gpus: The effective number of GPUs (to be evenly distributed to
@@ -924,8 +936,8 @@ Optional:
   nodes. Each Node will use number_gpus/number_nodes GPUs. Each Node will use 1
   process for each GPU it uses
 - fms_hf_tuning_version: Default is `2.1.2`. Which version of fms-hf-tuning to
-  use. Available options are: `3.0.0`, `2.8.2`, `2.7.1`, `2.6.0`, `2.5.0`,
-  `2.4.0`, `2.3.1`, `2.2.1`, `2.1.2`, `2.1.0`, `2.0.1`
+  use. Available options are: `3.1.0`, `3.0.0.1`, `3.0.0`, `2.8.2`, `2.7.1`,
+  `2.6.0`, `2.5.0`, `2.4.0`, `2.3.1`, `2.2.1`, `2.1.2`, `2.1.0`, `2.0.1`
 - enable_roce: Default is `False`. This setting is only in effect for multi-node
   runs. It controls whether RDMA over Converged Ethernet (RoCE) is switched on
   or not.
@@ -961,9 +973,10 @@ Optional:
   the checkpointed function. Can be `True`, `False`.
 - fsdp_sharding_strategy: Default is `FULL_SHARD`. [1] FULL_SHARD (shards
   optimizer states, gradients and parameters), " [2] SHARD_GRAD_OP (shards
-  optimizer states and gradients), [3] NO_SHARD (DDP), [4] HYBRID_SHARD (shards
-  optimizer states, gradients and parameters within each node while each node
-  has full copy), [5] HYBRID_SHARD_ZERO2 (shards optimizer states and gradients
+  optimizer states and gradients), [3] NO_SHARD (DDP), [4] HYBRID_SHARD
+  (shards optimizer states, gradients and parameters within each node while
+  each node has full copy - equivalent to FULL_SHARD for single-node runs),
+  [5] HYBRID_SHARD_ZERO2 (shards optimizer states and gradients
   within each node while each node has full copy). For more information, please
   refer the official PyTorch docs.
 - fsdp_state_dict_type: Default is `FULL_STATE_DICT`. [1] FULL_STATE_DICT, [2]
@@ -1028,6 +1041,7 @@ Sets the `--target_modules` layer names based on the `model_name`:
 - `mistral-123b-v2`: `["q_proj", "v_proj"]`
 - `mixtral-8x7b-instruct-v0.1`: `["q_proj", "v_proj"]`
 - `granite-3-8b`: `["q_proj", "v_proj"]`
+- `granite-3.3-8b`: `["q_proj", "v_proj"]`
 - `granite-3.1-2b`: `["q_proj", "v_proj"]`
 - `granite-3.1-8b-instruct`: `["q_proj", "v_proj"]`
 - `llava-v1.6-mistral-7b`: `["q_proj", "v_proj"]`
@@ -1239,6 +1253,9 @@ Versioning:
 
 - Actuator version: `2.1.0`
 - fms-hf-tuning versions:
+  - 3.1.0
+    - The full list of packages is at
+      [packages/fms-hf-tuning_v3.1.0_9aca2139f4244f500cf2f5b1a0fe2ef3f8251a82.txt](packages/fms-hf-tuning_v3.1.0_9aca2139f4244f500cf2f5b1a0fe2ef3f8251a82.txt)
   - 3.0.0.1 (this is a phony release)
     - The full list of packages is at
       [packages/fms-hf-tuning_v3.0.0.1_51875160343064a1056e0105b7971ed8d9f26854.txt](packages/fms-hf-tuning_v3.0.0.1_51875160343064a1056e0105b7971ed8d9f26854.txt)
@@ -1370,8 +1387,8 @@ Optional:
   nodes. Each Node will use number_gpus/number_nodes GPUs. Each Node will use 1
   process for each GPU it uses
 - fms_hf_tuning_version: Default is `2.1.2`. Which version of fms-hf-tuning to
-  use. Available options are: `3.0.0`, `2.8.2`, `2.7.1`, `2.6.0`, `2.5.0`,
-  `2.4.0`, `2.3.1`, `2.2.1`, `2.1.2`, `2.1.0`, `2.0.1`
+  use. Available options are: `3.1.0`, `3.0.0.1`, `3.0.0`, 2.8.2`,`2.7.1`,
+  `2.6.0`,`2.5.0`,`2.4.0`,`2.3.1`,`2.2.1`,`2.1.2`,`2.1.0`,`2.0.1`
 - enable_roce: Default is `False`. This setting is only in effect for multi-node
   runs. It controls whether RDMA over Converged Ethernet (RoCE) is switched on
   or not.
@@ -1407,9 +1424,10 @@ Optional:
   the checkpointed function. Can be `True`, `False`.
 - fsdp_sharding_strategy: Default is `FULL_SHARD`. [1] FULL_SHARD (shards
   optimizer states, gradients and parameters), " [2] SHARD_GRAD_OP (shards
-  optimizer states and gradients), [3] NO_SHARD (DDP), [4] HYBRID_SHARD (shards
-  optimizer states, gradients and parameters within each node while each node
-  has full copy), [5] HYBRID_SHARD_ZERO2 (shards optimizer states and gradients
+  optimizer states and gradients), [3] NO_SHARD (DDP), [4] HYBRID_SHARD
+  (shards optimizer states, gradients and parameters within each node while
+  each node has full copy - equivalent to FULL_SHARD for single-node runs),
+  [5] HYBRID_SHARD_ZERO2 (shards optimizer states and gradients
   within each node while each node has full copy). For more information, please
   refer the official PyTorch docs.
 - fsdp_state_dict_type: Default is `FULL_STATE_DICT`. [1] FULL_STATE_DICT, [2]
@@ -1648,6 +1666,9 @@ Versioning:
 
 - Actuator version: `2.1.0`
 - fms-hf-tuning versions:
+  - 3.1.0
+    - The full list of packages is at
+      [packages/fms-hf-tuning_v3.1.0_9aca2139f4244f500cf2f5b1a0fe2ef3f8251a82.txt](packages/fms-hf-tuning_v3.1.0_9aca2139f4244f500cf2f5b1a0fe2ef3f8251a82.txt)
   - 3.0.0.1 (this is a phony release)
     - The full list of packages is at
       [packages/fms-hf-tuning_v3.0.0.1_51875160343064a1056e0105b7971ed8d9f26854.txt](packages/fms-hf-tuning_v3.0.0.1_51875160343064a1056e0105b7971ed8d9f26854.txt)
@@ -1725,7 +1746,7 @@ Required:
 
 - model_name: Supported models:
   <!-- markdownlint-disable-next-line line-length -->
-  `["granite-3b-1.5", "hf-tiny-model-private/tiny-random-BloomForCausalLM", "llama-7b", "granite-13b-v2", "llama-13b", "granite-20b-v2", "granite-7b-base", "granite-8b-japanese", "granite-8b-code-base", "granite-34b-code-base", "mistral-7b-v0.1", "llama3-8b", "llama3-70b", "mixtral-8x7b-instruct-v0.1", "llama2-70b", "llama3.1-8b", "llama3.1-70b", "llama3.1-405b", "granite-3b-code-base-128k", "granite-8b-code-base-128k", "allam-1-13b", "granite-3-8b", "granite-3.1-2b", "granite-3.1-8b-instruct", "mistral-123b-v2", "granite-3.1-3b-a800m-instruct", "granite-vision-3.2-2b", "smollm2-135m", "llava-v1.6-mistral-7b", "granite-4.0-micro", "granite-4.0-h-1b", "granite-4.0-350m", "granite-4.0-h-small", "granite-4.0-h-micro", "granite-4.0-h-tiny"]`
+  `["granite-3b-1.5", "hf-tiny-model-private/tiny-random-BloomForCausalLM", "llama-7b", "granite-13b-v2", "llama-13b", "granite-20b-v2", "granite-7b-base", "granite-8b-japanese", "granite-8b-code-base", "granite-34b-code-base", "mistral-7b-v0.1", "llama3-8b", "llama3-70b", "mixtral-8x7b-instruct-v0.1", "llama2-70b", "llama3.1-8b", "llama3.1-70b", "llama3.1-405b", "granite-3b-code-base-128k", "granite-8b-code-base-128k", "allam-1-13b", "granite-3-8b", "granite-3.1-2b", "granite-3.1-8b-instruct", "mistral-123b-v2", "granite-3.1-3b-a800m-instruct", "granite-vision-3.2-2b", "smollm2-135m", "llava-v1.6-mistral-7b", "granite-4.0-micro", "granite-4.0-h-1b", "granite-4.0-350m", "granite-4.0-h-small", "granite-4.0-h-micro", "granite-4.0-h-tiny", "granite-3.3-8b"]`
 - model_max_length: Maximum sequence length. Sequences will be right padded (and
   possibly truncated)
 - number_gpus: The effective number of GPUs (to be evenly distributed to
@@ -1787,8 +1808,8 @@ Optional:
   nodes. Each Node will use number_gpus/number_nodes GPUs. Each Node will use 1
   process for each GPU it uses
 - fms_hf_tuning_version: Default is `2.1.2`. Which version of fms-hf-tuning to
-  use. Available options are: `3.0.0`, `2.8.2`, `2.7.1`, `2.6.0`, `2.5.0`,
-  `2.4.0`, `2.3.1`, `2.2.1`, `2.1.2`, `2.1.0`, `2.0.1`
+  use. Available options are: `3.1.0`, `3.0.0.1`, `3.0.0`, 2.8.2`,`2.7.1`,
+  `2.6.0`,`2.5.0`,`2.4.0`,`2.3.1`,`2.2.1`,`2.1.2`,`2.1.0`,`2.0.1`
 - enable_roce: Default is `False`. This setting is only in effect for multi-node
   runs. It controls whether RDMA over Converged Ethernet (RoCE) is switched on
   or not.
@@ -1822,9 +1843,10 @@ Optional:
   the checkpointed function. Can be `True`, `False`.
 - fsdp_sharding_strategy: Default is `FULL_SHARD`. [1] FULL_SHARD (shards
   optimizer states, gradients and parameters), " [2] SHARD_GRAD_OP (shards
-  optimizer states and gradients), [3] NO_SHARD (DDP), [4] HYBRID_SHARD (shards
-  optimizer states, gradients and parameters within each node while each node
-  has full copy), [5] HYBRID_SHARD_ZERO2 (shards optimizer states and gradients
+  optimizer states and gradients), [3] NO_SHARD (DDP), [4] HYBRID_SHARD
+  (shards optimizer states, gradients and parameters within each node while
+  each node has full copy - equivalent to FULL_SHARD for single-node runs),
+  [5] HYBRID_SHARD_ZERO2 (shards optimizer states and gradients
   within each node while each node has full copy). For more information, please
   refer the official PyTorch docs.
 - fsdp_state_dict_type: Default is `FULL_STATE_DICT`. [1] FULL_STATE_DICT, [2]

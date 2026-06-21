@@ -1,13 +1,19 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import pathlib
+from collections.abc import Callable
 
 import pytest
+from testcontainers.mysql import MySqlContainer
 from typer.testing import CliRunner
 
 from orchestrator.cli.core.cli import app as ado
+from orchestrator.core.discoveryspace.space import DiscoverySpace
+from orchestrator.core.operation.config import DiscoveryOperationResourceConfiguration
+from orchestrator.metastore.project import ProjectContext
 from orchestrator.utilities.output import pydantic_model_as_yaml
+from tests.conftest import requires_sqlite_3_38
 
 
 @pytest.fixture(
@@ -16,17 +22,21 @@ from orchestrator.utilities.output import pydantic_model_as_yaml
         "peptide_mineralization_basic_operation_configuration",
     ]
 )
-def operations_to_be_run(request):
+def operations_to_be_run(
+    request: pytest.FixtureRequest,
+) -> DiscoveryOperationResourceConfiguration:
     return request.getfixturevalue(request.param)
 
 
 def test_create_operation_dry_run_success(
     tmp_path: pathlib.Path,
-    mysql_test_instance,
-    valid_ado_project_context,
-    create_active_ado_context,
-    operations_to_be_run,
-):
+    mysql_test_instance: MySqlContainer,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+    operations_to_be_run: DiscoveryOperationResourceConfiguration,
+) -> None:
     runner = CliRunner()
     create_active_ado_context(
         runner=runner, path=tmp_path, project_context=valid_ado_project_context
@@ -50,17 +60,22 @@ def test_create_operation_dry_run_success(
         ],
     )
     assert result.exit_code == 0, result.output
-    expected_output = "The configuration passed is valid!\n"
+    expected_output = (
+        "INFO:   The operation YAML is syntactically valid.\n"
+        "The configuration passed is valid!\n"
+    )
     assert result.output == expected_output
 
 
 def test_create_operation_dry_run_failure(
     tmp_path: pathlib.Path,
-    mysql_test_instance,
-    valid_ado_project_context,
-    create_active_ado_context,
-    ml_multi_cloud_operation_configuration,
-):
+    mysql_test_instance: MySqlContainer,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+    ml_multi_cloud_operation_configuration: DiscoveryOperationResourceConfiguration,
+) -> None:
     runner = CliRunner()
     create_active_ado_context(
         runner=runner, path=tmp_path, project_context=valid_ado_project_context
@@ -92,11 +107,13 @@ def test_create_operation_dry_run_failure(
 
 def test_create_operation_success(
     tmp_path: pathlib.Path,
-    mysql_test_instance,
-    valid_ado_project_context,
-    create_active_ado_context,
-    operations_to_be_run,
-):
+    mysql_test_instance: MySqlContainer,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+    operations_to_be_run: DiscoveryOperationResourceConfiguration,
+) -> None:
     runner = CliRunner()
     create_active_ado_context(
         runner=runner, path=tmp_path, project_context=valid_ado_project_context
@@ -121,11 +138,13 @@ def test_create_operation_success(
 
 def test_create_operation_success_set_spaces(
     tmp_path: pathlib.Path,
-    mysql_test_instance,
-    valid_ado_project_context,
-    create_active_ado_context,
-    ml_multi_cloud_space,
-):
+    mysql_test_instance: MySqlContainer,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+    ml_multi_cloud_space: DiscoverySpace,
+) -> None:
     runner = CliRunner()
     create_active_ado_context(
         runner=runner, path=tmp_path, project_context=valid_ado_project_context
@@ -149,3 +168,88 @@ def test_create_operation_success_set_spaces(
         ],
     )
     assert result.exit_code == 0, result.output
+
+
+def test_create_operation_success_with_discovery_space(
+    tmp_path: pathlib.Path,
+    mysql_test_instance: MySqlContainer,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+) -> None:
+    runner = CliRunner()
+    create_active_ado_context(
+        runner=runner, path=tmp_path, project_context=valid_ado_project_context
+    )
+
+    space_configuration_file = pathlib.Path(
+        "examples/optimization_test_functions/space.yaml"
+    )
+
+    operation_configuration_file = pathlib.Path(
+        "examples/optimization_test_functions/operation_bayesopt.yaml"
+    )
+
+    result = runner.invoke(
+        ado,
+        [
+            "--override-ado-app-dir",
+            tmp_path,
+            "create",
+            "operation",
+            "-f",
+            operation_configuration_file,
+            "--set",
+            "operation.parameters.tuneConfig.num_samples=2",
+            "--with",
+            f"space={space_configuration_file}",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+
+
+@requires_sqlite_3_38
+def test_create_ml_multi_cloud_operation_success_lhc_sampler(
+    tmp_path: pathlib.Path,
+    ml_multi_cloud_sample_store_configuration_file: pathlib.Path,
+    mysql_test_instance: MySqlContainer,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+) -> None:
+    runner = CliRunner()
+    create_active_ado_context(
+        runner=runner, path=tmp_path, project_context=valid_ado_project_context
+    )
+
+    space_creation_result = runner.invoke(
+        ado,
+        [
+            "--override-ado-app-dir",
+            tmp_path,
+            "create",
+            "space",
+            "-f",
+            "examples/ml-multi-cloud/ml_multicloud_space.yaml",
+            "--with",
+            f"store={ml_multi_cloud_sample_store_configuration_file}",
+        ],
+    )
+    assert space_creation_result.exit_code == 0, space_creation_result.output
+
+    result = runner.invoke(
+        ado,
+        [
+            "--override-ado-app-dir",
+            tmp_path,
+            "create",
+            "operation",
+            "-f",
+            "examples/ml-multi-cloud/lhc_sampler.yaml",
+            "--use-latest",
+            "space",
+        ],
+    )
+    assert result.exit_code == 0

@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import typer
@@ -18,7 +18,7 @@ from orchestrator.core.resources import CoreResourceKinds
 from orchestrator.metastore.base import ResourceDoesNotExistError
 
 
-def describe_discovery_space(parameters: AdoDescribeCommandParameters):
+def describe_discovery_space(parameters: AdoDescribeCommandParameters) -> None:
 
     if parameters.resource_id:
         sql = get_sql_store(
@@ -45,16 +45,14 @@ def describe_discovery_space(parameters: AdoDescribeCommandParameters):
                 f"{ERROR}The space configuration provided is not valid:\n{e}",
                 stderr=True,
             )
-            raise typer.Exit(1)
+            raise typer.Exit(1) from e
         except OSError as e:
             console_print(
                 f"{ERROR}There was a problem while reading the space configuration provided:\n\t{e}",
                 stderr=True,
             )
-            raise typer.Exit(1)
+            raise typer.Exit(1) from e
 
         space = DiscoverySpaceResource(config=configuration)
 
-    from IPython.lib.pretty import pretty
-
-    console_print(pretty(space), use_markup=False)
+    console_print(space)

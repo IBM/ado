@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import pytest
@@ -27,7 +27,7 @@ from orchestrator.schema.domain import PropertyDomain, VariableTypeEnum
         "property_domain_implicit_unknown",
     ]
 )
-def property_domain_all_types(request) -> PropertyDomain:
+def property_domain_all_types(request: pytest.FixtureRequest) -> PropertyDomain:
     return request.getfixturevalue(request.param)
 
 

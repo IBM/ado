@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 from orchestrator.cli.models.parameters import (
@@ -13,7 +13,7 @@ from orchestrator.core.resources import CoreResourceKinds
 
 def show_resources_related_to_actuator_configuration(
     parameters: AdoShowRelatedCommandParameters,
-):
+) -> None:
     sql_store = get_sql_store(
         project_context=parameters.ado_configuration.project_context
     )

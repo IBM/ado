@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import os
@@ -11,12 +11,13 @@ from tuning.config.tracker_configs import (
 
 if typing.TYPE_CHECKING:
     import transformers.trainer_callback
+    from tuning.sft_trainer import SFTTrainer
 
 
 def parse_arguments_and_execute_wrapper(
     callbacks: list["transformers.trainer_callback.TrainerCallback"] | None,
     job_config: dict[str, typing.Any],
-):
+) -> tuple["SFTTrainer", dict]:
 
     parser = tuning.sft_trainer.get_parser()
 

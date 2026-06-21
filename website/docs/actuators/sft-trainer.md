@@ -1,4 +1,6 @@
-<!-- markdownlint-disable-next-line first-line-h1 -->
+<!-- markdownlint-disable first-line-h1 -->
+<!-- markdownlint-disable code-block-style -->
+
 ## Overview
 
 The `SFTTrainer` actuator provides a flexible and scalable interface for running
@@ -28,20 +30,39 @@ features.
 ## Requirements
 
 [fms-hf-tuning](https://github.com/foundation-model-stack/fms-hf-tuning) imports
-packages like `flash-attn` and `mamba-ssm`, which import `torch` during their  
+packages like `flash-attn` and `mamba-ssm`, which import `torch` during their
 build phase. This means that the base virtual environment of your Ray workers
 must already include the appropriate version of `torch`:
 
 <!-- markdownlint-disable line-length -->
-- **`fms-hf-tuning <= 2.8.2`**  
-  - Install `torch==2.4.1`  
-  - For RayClusters on Kubernetes, use: `quay.io/ado/ado:1.0.1-py310-cu121-ofed2410v1140`
 
-- **`fms-hf-tuning > 2.8.2`**  
-  - Install `torch==2.6.0`  
-    - Requires Python 3.11  
-  - For RayClusters on Kubernetes, use: `quay.io/ado/ado:c6ba952ad79a2d86d1174fd9aaebddd8953c78cf-py311-cu121-ofed2410v1140`
-<!-- markdownlint-enable line-length -->
+**We recommend using the
+[`ordered_pip`](https://github.com/IBM/ado/blob/main/orchestrator/utilities/ray_env/README.md)
+RayRuntimeEnv plugin** for all versions of `fms-hf-tuning`. It ensures the
+correct `torch` version is installed before packages that depend on it during
+their build phase. The plugin is included in ado-core and its images (e.g.,
+`quay.io/ado/ado:latest-ofed-py312-cu121-ofed2410v1140`), enabled by default in
+our [KubeRay deployment example](../getting-started/kuberay.md), and
+automatically used by the SFTTrainer actuator when available.
+
+**If you cannot use `ordered_pip`**, you must either build your own image with
+the appropriate `torch` version (see the
+[SFTTrainer packages directory](https://github.com/IBM/ado/tree/main/plugins/actuators/sfttrainer/ado_actuators/sfttrainer/packages))
+or use one of the following tested images:
+
+- **`fms-hf-tuning <= 2.8.2`**
+
+  - Install `torch==2.4.1`
+  - For RayClusters on Kubernetes, use:
+    `quay.io/ado/ado:1.0.1-py310-cu121-ofed2410v1140`
+
+- **`fms-hf-tuning > 2.8.2`**
+
+  - Use the tested image
+    `quay.io/ado/ado:c6ba952ad79a2d86d1174fd9aaebddd8953c78cf-py311-cu121-ofed2410v1140`
+    (tested with `fms-hf-tuning==3.0.0`, not guaranteed for future versions)
+
+  <!-- markdownlint-enable line-length -->
 
 ## Available experiments
 
@@ -63,7 +84,7 @@ models.
 ??? note "Experiment documentation"
 
     An experiment instance:
-    
+
     - performs full fine tuning
       - You may notice that even large-memory GPUs like the 80GB variant of the
         NVIDIA A100 chip need at least 2 GPUs to train models as big as 13B
@@ -72,7 +93,7 @@ models.
     - `use_flash_attn` is set to True
     - `packing` is set to False
     - `torch_dtype` is set to `bfloat16` by default, can also be float16
-    - uses the `FSDP` distributed backend for multi-gpu runs by default, 
+    - uses the `FSDP` distributed backend for multi-gpu runs by default,
       can also be `DDP`
     - multi-gpu runs with FSDP and DDP backends use 1 process per GPU (via
       `accelerate`)
@@ -82,7 +103,7 @@ models.
     - request 2 CPU cores per GPU device (with a minimum of 2 cores)
 
     For FSDP runs we use the following `accelerate_config.yml` YAML file:
-    
+
     <!-- markdownlint-disable line-length -->
     ```yaml
     compute_environment: LOCAL_MACHINE
@@ -164,6 +185,8 @@ models.
 
     - Actuator version: `2.1.0`
     - fms-hf-tuning versions:
+      - 3.1.0
+      - 3.0.0.1
       - 3.0.0
       - 2.8.2
       - 2.7.1
@@ -200,14 +223,14 @@ models.
       - mistral-large/fp16_240620
     - The PVC `ray-disorch-storage` mounted under `/data` with the synthetic
       datasets of the SFTTrainer actuator
-    
+
     #### Full Finetuning Entity space
 
     Required:
 
     - model_name: Supported models:
       <!-- markdownlint-disable-next-line line-length -->
-      `["granite-3b-1.5", "hf-tiny-model-private/tiny-random-BloomForCausalLM", "llama-7b", "granite-13b-v2", "llama-13b", "granite-20b-v2", "granite-7b-base", "granite-8b-japanese", "granite-8b-code-base", "granite-34b-code-base", "mistral-7b-v0.1", "llama3-8b", "llama3-70b", "mixtral-8x7b-instruct-v0.1", "llama2-70b", "llama3.1-8b", "llama3.1-70b", "llama3.1-405b", "granite-3b-code-base-128k", "granite-8b-code-base-128k", "allam-1-13b", "granite-3-8b", "granite-3.1-2b", "granite-3.1-8b-instruct", "mistral-123b-v2", "granite-3.1-3b-a800m-instruct", "granite-vision-3.2-2b", "smollm2-135m", "llava-v1.6-mistral-7b", "granite-4.0-micro", "granite-4.0-h-1b", "granite-4.0-350m", "granite-4.0-h-small", "granite-4.0-h-micro", "granite-4.0-h-tiny"]`
+      `["granite-3b-1.5", "hf-tiny-model-private/tiny-random-BloomForCausalLM", "llama-7b", "granite-13b-v2", "llama-13b", "granite-20b-v2", "granite-7b-base", "granite-8b-japanese", "granite-8b-code-base", "granite-34b-code-base", "mistral-7b-v0.1", "llama3-8b", "llama3-70b", "mixtral-8x7b-instruct-v0.1", "llama2-70b", "llama3.1-8b", "llama3.1-70b", "llama3.1-405b", "granite-3b-code-base-128k", "granite-8b-code-base-128k", "allam-1-13b", "granite-3-8b", "granite-3.1-2b", "granite-3.1-8b-instruct", "mistral-123b-v2", "granite-3.1-3b-a800m-instruct", "granite-vision-3.2-2b", "smollm2-135m", "llava-v1.6-mistral-7b", "granite-4.0-micro", "granite-4.0-h-1b", "granite-4.0-350m", "granite-4.0-h-small", "granite-4.0-h-micro", "granite-4.0-h-tiny", "granite-3.3-8b"]`
     - model_max_length: Maximum sequence length. Sequences will be right padded
       (and possibly truncated)
     - number_gpus: The effective number of GPUs (to be evenly distributed to
@@ -257,9 +280,9 @@ models.
       the end of each training step.
     - auto_stop_method: The default value is `None`. This parameter defines the
       method used to automatically stop the fine-tuning job. Supported values are
-      `WARMUP_60S_STABLE_120S_OR_10_STEPS` and `None`. If set to 
+      `WARMUP_60S_STABLE_120S_OR_10_STEPS` and `None`. If set to
       `WARMUP_60S_STABLE_120S_OR_10_STEPS`, the job stops after spending at least
-      60 seconds in the warmup phase plus the longer of 120 seconds or the 
+      60 seconds in the warmup phase plus the longer of 120 seconds or the
       duration of 10 optimization steps. This method excludes the first 60 seconds
       of training when calculating throughput and system metrics.
     - distributed_backend: Default is `FSDP` for multi-gpu measurements, `None`
@@ -307,7 +330,8 @@ models.
       optimizer states, gradients and parameters), " [2] SHARD_GRAD_OP (shards
       optimizer states and gradients), [3] NO_SHARD (DDP), [4] HYBRID_SHARD (shards
       optimizer states, gradients and parameters within each node while each node
-      has full copy), [5] HYBRID_SHARD_ZERO2 (shards optimizer states and gradients
+      has full copy - equivalent to FULL_SHARD for single-node runs),
+      [5] HYBRID_SHARD_ZERO2 (shards optimizer states and gradients
       within each node while each node has full copy). For more information, please
       refer the official PyTorch docs.
     - fsdp_state_dict_type: Default is `FULL_STATE_DICT`.
@@ -350,7 +374,7 @@ configurations.
 ??? note "Experiment documentation"
 
     An experiment instance:
-    
+
     - performs full fine-tuning 5 times and reports the fraction of tasks that ran
       out of GPU memory, exhibited some unknown error, or completed successfully
       - You may notice that even large-memory GPUs like the 80GB variant of the
@@ -365,9 +389,9 @@ configurations.
     - does not save checkpoint
     - loads weights from a PVC
     - request 2 CPU cores per GPU device (with a minimum of 2 cores)
-    
+
     We use the following `accelerate_config.yml` YAML file for all models:
-    
+
     ```yaml
     compute_environment: LOCAL_MACHINE
     debug: False
@@ -395,7 +419,7 @@ configurations.
     main_process_port: { $SOME_PORT }
     num_processes: { $NUM_GPUS }
     ```
-    
+
     Commandline:
 
     <!-- markdownlint-disable line-length -->
@@ -416,16 +440,18 @@ configurations.
     <!-- markdownlint-enable line-length -->
 
     **Note**: `--fast_moe` is only supported for fms-hf-tuning v2.4.0+
-    
+
     We use a thin wrapper of `sft_trainer.py` which injects a custom Callback that
     exports the metrics collected by AIM. You can repeat our experiments by just
     pointing the above command-line to `sft_trainer.py` from the `fms-hf-tuning`
     package.
-    
+
     Versioning:
-    
+
     - Actuator version: `2.1.0`
     - fms-hf-tuning versions:
+      - 3.1.0
+      - 3.0.0.1
       - 3.0.0
       - 2.8.2
       - 2.7.1
@@ -438,9 +464,9 @@ configurations.
       - 2.1.1
       - 2.1.0
       - 2.0.1
-    
+
     #### Full Finetuning (Stability) Requirements
-    
+
     - The PVC `hf-models-pvc` mounted under `/hf-models-pvc` - should contain the
       models:
       - LLaMa/models/hf/13B/
@@ -462,16 +488,16 @@ configurations.
       - mistral-large/fp16_240620
     - The PVC `ray-disorch-storage` mounted under `/data` with the synthetic
       datasets of the SFTTrainer actuator
-    
+
     #### Full Finetuning (Stability) Entity space
-    
+
           Required:
-    
+
     - model_name: Supported models:
       <!-- markdownlint-disable-next-line line-length -->
-      `["granite-3b-1.5", "hf-tiny-model-private/tiny-random-BloomForCausalLM", "llama-7b", "granite-13b-v2", "llama-13b", "granite-20b-v2", "granite-7b-base", "granite-8b-japanese", "granite-8b-code-base", "granite-34b-code-base", "mistral-7b-v0.1", "llama3-8b", "llama3-70b", "mixtral-8x7b-instruct-v0.1", "llama2-70b", "llama3.1-8b", "llama3.1-70b", "llama3.1-405b", "granite-3b-code-base-128k", "granite-8b-code-base-128k", "allam-1-13b", "granite-3-8b", "granite-3.1-2b", "granite-3.1-8b-instruct", "mistral-123b-v2", "granite-3.1-3b-a800m-instruct", "granite-vision-3.2-2b", "smollm2-135m", "llava-v1.6-mistral-7b", "granite-4.0-micro", "granite-4.0-h-1b", "granite-4.0-350m", "granite-4.0-h-small", "granite-4.0-h-micro", "granite-4.0-h-tiny"]`
-    - model_max_length: Maximum sequence length. Sequences will be right padded (and
-      possibly truncated)
+      `["granite-3b-1.5", "hf-tiny-model-private/tiny-random-BloomForCausalLM", "llama-7b", "granite-13b-v2", "llama-13b", "granite-20b-v2", "granite-7b-base", "granite-8b-japanese", "granite-8b-code-base", "granite-34b-code-base", "mistral-7b-v0.1", "llama3-8b", "llama3-70b", "mixtral-8x7b-instruct-v0.1", "llama2-70b", "llama3.1-8b", "llama3.1-70b", "llama3.1-405b", "granite-3b-code-base-128k", "granite-8b-code-base-128k", "allam-1-13b", "granite-3-8b", "granite-3.1-2b", "granite-3.1-8b-instruct", "mistral-123b-v2", "granite-3.1-3b-a800m-instruct", "granite-vision-3.2-2b", "smollm2-135m", "llava-v1.6-mistral-7b", "granite-4.0-micro", "granite-4.0-h-1b", "granite-4.0-350m", "granite-4.0-h-small", "granite-4.0-h-micro", "granite-4.0-h-tiny", "granite-3.3-8b"]`
+    - model_max_length: Maximum sequence length. Sequences will be right padded
+      (and possibly truncated)
     - number_gpus: The effective number of GPUs (to be evenly distributed to
       `number_nodes` machines)
     - batch_size: the effective batch_size (will be evenly distributed to max(1,
@@ -481,9 +507,9 @@ configurations.
       - `NVIDIA-A100-80GB-PCIe`
       - `NVIDIA-A100-SXM4-80GB`
       - `NVIDIA-H100-PCIe`
-    
+
     Optional:
-    
+
     - dataset_id: Default is `news-tokens-16384plus-entries-4096`. Available options
       are:
       - `news-chars-512-entries-4096`: 4096 entries with samples of 512 + 127
@@ -516,9 +542,9 @@ configurations.
       the end of each training step.
     - auto_stop_method: The default value is `None`. This parameter defines the
       method used to automatically stop the fine-tuning job. Supported values are
-      `WARMUP_60S_STABLE_120S_OR_10_STEPS` and `None`. If set to 
+      `WARMUP_60S_STABLE_120S_OR_10_STEPS` and `None`. If set to
       `WARMUP_60S_STABLE_120S_OR_10_STEPS`, the job stops after spending at least
-      60 seconds in the warmup phase plus the longer of 120 seconds or the 
+      60 seconds in the warmup phase plus the longer of 120 seconds or the
       duration of 10 optimization steps. This method excludes the first 60 seconds
       of training when calculating throughput and system metrics.
     - distributed_backend: Default is `FSDP` for multi-gpu measurements, `None`
@@ -527,16 +553,17 @@ configurations.
     - number_nodes: Default is `1`. If set, actuator distributes tasks on multiple
       nodes. Each Node will use number_gpus/number_nodes GPUs.
       Each Node will use 1 process for each GPU it uses
-    - fms_hf_tuning_version: Default is `2.1.2`. Which version of fms-hf-tuning to
-      use. Available options are: `3.0.0`, 2.8.2`, `2.7.1`, `2.6.0`, `2.5.0`,
-       `2.4.0`, `2.3.1`, `2.2.1`, `2.1.2`, `2.1.0`, `2.0.1`
+    - fms_hf_tuning_version: Default is `2.1.2`. Which version of fms-hf-tuning
+      to use. Available options are: `3.1.0`, `3.0.0.1`, `3.0.0`, 2.8.2`,
+      `2.7.1`, `2.6.0`, `2.5.0`, `2.4.0`, `2.3.1`, `2.2.1`, `2.1.2`, `2.1.0`,
+      `2.0.1`
     - enable_roce: Default is `False`. This setting is only in effect for multi-node
-      runs. It controls whether RDMA over Converged Ethernet (RoCE) is switched on
-      or not.
+      runs. It controls whether RDMA over Converged Ethernet (RoCE) is switched
+      on or not.
     - fast_moe: Default is `0`. Configures the amount of expert parallel sharding.
       number_gpus must be divisible by it
-    - fast_kernels: Default is `None`. Switches on fast kernels, the value is a list
-      with strings of boolean values for
+    - fast_kernels: Default is `None`. Switches on fast kernels, the value is
+      a list with strings of boolean values for
       `[fast_loss, fast_rms_layernorm, fast_rope_embeddings]`
     - optim: Default is `adamw_torch`. The optimizer to use. Available options are
       `adamw_hf`, `adamw_torch`, `adamw_torch_fused`, `adamw_torch_xla`,
@@ -550,22 +577,23 @@ configurations.
       `galore_adamw_8bit_layerwise`, `galore_adafactor_layerwise`, `lomo`,
       `adalomo`, `grokadamw`, `schedule_free_adamw`, `schedule_free_sgd`
     - bf16: Default is `False`. Whether to use bf16 (mixed) precision instead of
-      32-bit. Requires Ampere or higher NVIDIA add bf16 mixed precision support for
-      NPU architecture or using CPU (use_cpu) or Ascend NPU. This is an experimental
-      API and it may change. Can be `True`, `False`.
+      32-bit. Requires Ampere or higher NVIDIA add bf16 mixed precision support
+      for NPU architecture or using CPU (use_cpu) or Ascend NPU.
+      This is an experimental API and it may change. Can be `True`, `False`.
     - gradient_checkpointing_use_reentrant: Default is `False` Specify whether to
       use the activation checkpoint variant that requires reentrant autograd. This
       parameter should be passed explicitly. Torch version 2.5 will raise an
       exception if use_reentrant is not passed. If use_reentrant=False, checkpoint
       will use an implementation that does not require reentrant autograd. This
       allows checkpoint to support additional functionality, such as working as
-      expected with torch.autograd.grad and support for keyword arguments input into
-      the checkpointed function. Can be `True`, `False`.
+      expected with torch.autograd.grad and support for keyword arguments input
+      into the checkpointed function. Can be `True`, `False`.
     - fsdp_sharding_strategy: Default is `FULL_SHARD`. [1] FULL_SHARD (shards
       optimizer states, gradients and parameters), " [2] SHARD_GRAD_OP (shards
       optimizer states and gradients), [3] NO_SHARD (DDP), [4] HYBRID_SHARD (shards
       optimizer states, gradients and parameters within each node while each node
-      has full copy), [5] HYBRID_SHARD_ZERO2 (shards optimizer states and gradients
+      has full copy - equivalent to FULL_SHARD for single-node runs),
+      [5] HYBRID_SHARD_ZERO2 (shards optimizer states and gradients
       within each node while each node has full copy). For more information, please
       refer the official PyTorch docs.
     - fsdp_state_dict_type: Default is `FULL_STATE_DICT`. [1] FULL_STATE_DICT, [2]
@@ -581,18 +609,18 @@ configurations.
       `GraniteDecoderLayer`, `LlamaDecoderLayer`, `MistralDecoderLayer`,
       `BertLayer`, `GPTJBlock`, `T5Block` ... (useful only when using FSDP)
     - dataset_text_field: Default is None. Training dataset text field containing
-      single sequence. Either the dataset_text_field or data_formatter_template need
-      to be supplied. For running vision language model tuning pass the column name
-      for text data.
+      single sequence. Either the dataset_text_field or data_formatter_template
+      need to be supplied. For running vision language model tuning pass
+      the column name for text data.
     - dataset_image_field: Default is None. For running vision language model tuning
       pass the column name of the image data in the dataset.
     - remove_unused_columns: Default is True. Remove columns not required by the
       model when using an nlp.Dataset.
     - dataset_kwargs_skip_prepare_dataset: Default is False. When True, configures
       trl to skip preparing the dataset
-    
+
     #### Full Finetuning (Stability) Measured properties
-    
+
     - f_gpu_oom: fraction of tasks that ran out of GPU memory
     - f_other_error: fraction of tasks that ran into an unknown error
     - f_no_error: fraction of tasks that completed successfully
@@ -711,6 +739,8 @@ adaptation.
 
     - Actuator version: `2.1.0`
     - fms-hf-tuning versions:
+      - 3.1.0
+      - 3.0.0.1
       - 3.0.0
       - 2.8.2
       - 2.7.1
@@ -754,9 +784,9 @@ adaptation.
 
     - model_name: Supported models:
       <!-- markdownlint-disable-next-line line-length -->
-      `["granite-3b-1.5", "hf-tiny-model-private/tiny-random-BloomForCausalLM", "llama-7b", "granite-13b-v2", "llama-13b", "granite-20b-v2", "granite-7b-base", "granite-8b-japanese", "granite-8b-code-base", "granite-34b-code-base", "mistral-7b-v0.1", "llama3-8b", "llama3-70b", "mixtral-8x7b-instruct-v0.1", "llama2-70b", "llama3.1-8b", "llama3.1-70b", "llama3.1-405b", "granite-3b-code-base-128k", "granite-8b-code-base-128k", "allam-1-13b", "granite-3-8b", "granite-3.1-2b", "granite-3.1-8b-instruct", "mistral-123b-v2", "granite-3.1-3b-a800m-instruct", "granite-vision-3.2-2b", "smollm2-135m", "llava-v1.6-mistral-7b", "granite-4.0-micro", "granite-4.0-h-1b", "granite-4.0-350m", "granite-4.0-h-small", "granite-4.0-h-micro", "granite-4.0-h-tiny"]`
-    - model_max_length: Maximum sequence length. Sequences will be right padded (and
-      possibly truncated)
+      `["granite-3b-1.5", "hf-tiny-model-private/tiny-random-BloomForCausalLM", "llama-7b", "granite-13b-v2", "llama-13b", "granite-20b-v2", "granite-7b-base", "granite-8b-japanese", "granite-8b-code-base", "granite-34b-code-base", "mistral-7b-v0.1", "llama3-8b", "llama3-70b", "mixtral-8x7b-instruct-v0.1", "llama2-70b", "llama3.1-8b", "llama3.1-70b", "llama3.1-405b", "granite-3b-code-base-128k", "granite-8b-code-base-128k", "allam-1-13b", "granite-3-8b", "granite-3.1-2b", "granite-3.1-8b-instruct", "mistral-123b-v2", "granite-3.1-3b-a800m-instruct", "granite-vision-3.2-2b", "smollm2-135m", "llava-v1.6-mistral-7b", "granite-4.0-micro", "granite-4.0-h-1b", "granite-4.0-350m", "granite-4.0-h-small", "granite-4.0-h-micro", "granite-4.0-h-tiny", "granite-3.3-8b"]`
+    - model_max_length: Maximum sequence length. Sequences will be right padded
+      (and possibly truncated)
     - number_gpus: The effective number of GPUs (to be evenly distributed to
       `number_nodes` machines)
     - batch_size: the effective batch_size (will be evenly distributed to max(1,
@@ -804,9 +834,9 @@ adaptation.
       the end of each training step.
     - auto_stop_method: The default value is `None`. This parameter defines the
       method used to automatically stop the fine-tuning job. Supported values are
-      `WARMUP_60S_STABLE_120S_OR_10_STEPS` and `None`. If set to 
+      `WARMUP_60S_STABLE_120S_OR_10_STEPS` and `None`. If set to
       `WARMUP_60S_STABLE_120S_OR_10_STEPS`, the job stops after spending at least
-      60 seconds in the warmup phase plus the longer of 120 seconds or the 
+      60 seconds in the warmup phase plus the longer of 120 seconds or the
       duration of 10 optimization steps. This method excludes the first 60 seconds
       of training when calculating throughput and system metrics.
     - distributed_backend: Default is `FSDP` for multi-gpu measurements, `None`
@@ -815,16 +845,17 @@ adaptation.
     - number_nodes: Default is `1`. If set, actuator distributes tasks on multiple
       nodes. Each Node will use number_gpus/number_nodes GPUs.
       Each Node will use 1 process for each GPU it uses
-    - fms_hf_tuning_version: Default is `2.1.2`. Which version of fms-hf-tuning to
-      use. Available options are: `3.0.0`, 2.8.2`, `2.7.1`, `2.6.0`, `2.5.0`,
-       `2.4.0`, `2.3.1`, `2.2.1`, `2.1.2`, `2.1.0`, `2.0.1`
+    - fms_hf_tuning_version: Default is `2.1.2`. Which version of fms-hf-tuning
+      to use. Available options are: `3.1.0`, `3.0.0.1`, `3.0.0`, 2.8.2`,
+      `2.7.1`, `2.6.0`, `2.5.0`, `2.4.0`, `2.3.1`, `2.2.1`, `2.1.2`, `2.1.0`,
+      `2.0.1`
     - enable_roce: Default is `False`. This setting is only in effect for multi-node
-      runs. It controls whether RDMA over Converged Ethernet (RoCE) is switched on
-      or not.
+      runs. It controls whether RDMA over Converged Ethernet (RoCE) is switched
+      on or not.
     - fast_moe: Default is `0`. Configures the amount of expert parallel sharding.
       number_gpus must be divisible by it
-    - fast_kernels: Default is `None`. Switches on fast kernels, the value is a list
-      with strings of boolean values for
+    - fast_kernels: Default is `None`. Switches on fast kernels, the value is
+      a list with strings of boolean values for
       `[fast_loss, fast_rms_layernorm, fast_rope_embeddings]`
     - r: Default is `4`. The LORA rank
     - lora_alpha: Default is `16`. Scales the learning weights.
@@ -840,22 +871,23 @@ adaptation.
       `galore_adamw_8bit_layerwise`, `galore_adafactor_layerwise`, `lomo`,
       `adalomo`, `grokadamw`, `schedule_free_adamw`, `schedule_free_sgd`
     - bf16: Default is `False`. Whether to use bf16 (mixed) precision instead of
-      32-bit. Requires Ampere or higher NVIDIA add bf16 mixed precision support for
-      NPU architecture or using CPU (use_cpu) or Ascend NPU. This is an experimental
-      API and it may change. Can be `True`, `False`.
+      32-bit. Requires Ampere or higher NVIDIA add bf16 mixed precision support
+      for NPU architecture or using CPU (use_cpu) or Ascend NPU.
+      This is an experimental API and it may change. Can be `True`, `False`.
     - gradient_checkpointing_use_reentrant: Default is `False` Specify whether to
       use the activation checkpoint variant that requires reentrant autograd. This
       parameter should be passed explicitly. Torch version 2.5 will raise an
       exception if use_reentrant is not passed. If use_reentrant=False, checkpoint
       will use an implementation that does not require reentrant autograd. This
       allows checkpoint to support additional functionality, such as working as
-      expected with torch.autograd.grad and support for keyword arguments input into
-      the checkpointed function. Can be `True`, `False`.
+      expected with torch.autograd.grad and support for keyword arguments input
+      into the checkpointed function. Can be `True`, `False`.
     - fsdp_sharding_strategy: Default is `FULL_SHARD`. [1] FULL_SHARD (shards
       optimizer states, gradients and parameters), " [2] SHARD_GRAD_OP (shards
       optimizer states and gradients), [3] NO_SHARD (DDP), [4] HYBRID_SHARD (shards
       optimizer states, gradients and parameters within each node while each node
-      has full copy), [5] HYBRID_SHARD_ZERO2 (shards optimizer states and gradients
+      has full copy - equivalent to FULL_SHARD for single-node runs),
+      [5] HYBRID_SHARD_ZERO2 (shards optimizer states and gradients
       within each node while each node has full copy). For more information, please
       refer the official PyTorch docs.
     - fsdp_state_dict_type: Default is `FULL_STATE_DICT`. [1] FULL_STATE_DICT, [2]
@@ -871,9 +903,9 @@ adaptation.
       `GraniteDecoderLayer`, `LlamaDecoderLayer`, `MistralDecoderLayer`,
       `BertLayer`, `GPTJBlock`, `T5Block` ... (useful only when using FSDP)
     - dataset_text_field: Default is None. Training dataset text field containing
-      single sequence. Either the dataset_text_field or data_formatter_template need
-      to be supplied. For running vision language model tuning pass the column name
-      for text data.
+      single sequence. Either the dataset_text_field or data_formatter_template
+      need to be supplied. For running vision language model tuning pass
+      the column name for text data.
     - dataset_image_field: Default is None. For running vision language model tuning
       pass the column name of the image data in the dataset.
     - remove_unused_columns: Default is True. Remove columns not required by the
@@ -914,6 +946,7 @@ adaptation.
     - `mistral-123b-v2`: `["q_proj", "v_proj"]`
     - `mixtral-8x7b-instruct-v0.1`: `["q_proj", "v_proj"]`
     - `granite-3-8b`: `["q_proj", "v_proj"]`
+    - `granite-3.3-8b`: `["q_proj", "v_proj"]`
     - `granite-3.1-2b`: `["q_proj", "v_proj"]`
     - `granite-3.1-8b-instruct`: `["q_proj", "v_proj"]`
     - `granite-4.0-micro`: `["q_proj", "v_proj"]`
@@ -1037,6 +1070,8 @@ memory constrained environments.
 
     - Actuator version: `2.1.0`
     - fms-hf-tuning versions:
+      - 3.1.0
+      - 3.0.0.1
       - 3.0.0
       - 2.8.2
       - 2.7.1
@@ -1080,9 +1115,9 @@ memory constrained environments.
 
     - model_name: Supported models:
       <!-- markdownlint-disable-next-line line-length -->
-      `["granite-3b-1.5", "hf-tiny-model-private/tiny-random-BloomForCausalLM", "llama-7b", "granite-13b-v2", "llama-13b", "granite-20b-v2", "granite-7b-base", "granite-8b-japanese", "granite-8b-code-base", "granite-34b-code-base", "mistral-7b-v0.1", "llama3-8b", "llama3-70b", "mixtral-8x7b-instruct-v0.1", "llama2-70b", "llama3.1-8b", "llama3.1-70b", "llama3.1-405b", "granite-3b-code-base-128k", "granite-8b-code-base-128k", "allam-1-13b", "granite-3-8b", "granite-3.1-2b", "granite-3.1-8b-instruct", "mistral-123b-v2", "granite-3.1-3b-a800m-instruct", "granite-vision-3.2-2b", "smollm2-135m", "llava-v1.6-mistral-7b", "granite-4.0-micro", "granite-4.0-h-1b", "granite-4.0-350m", "granite-4.0-h-small", "granite-4.0-h-micro", "granite-4.0-h-tiny"]`
-    - model_max_length: Maximum sequence length. Sequences will be right padded (and
-      possibly truncated)
+      `["granite-3b-1.5", "hf-tiny-model-private/tiny-random-BloomForCausalLM", "llama-7b", "granite-13b-v2", "llama-13b", "granite-20b-v2", "granite-7b-base", "granite-8b-japanese", "granite-8b-code-base", "granite-34b-code-base", "mistral-7b-v0.1", "llama3-8b", "llama3-70b", "mixtral-8x7b-instruct-v0.1", "llama2-70b", "llama3.1-8b", "llama3.1-70b", "llama3.1-405b", "granite-3b-code-base-128k", "granite-8b-code-base-128k", "allam-1-13b", "granite-3-8b", "granite-3.1-2b", "granite-3.1-8b-instruct", "mistral-123b-v2", "granite-3.1-3b-a800m-instruct", "granite-vision-3.2-2b", "smollm2-135m", "llava-v1.6-mistral-7b", "granite-4.0-micro", "granite-4.0-h-1b", "granite-4.0-350m", "granite-4.0-h-small", "granite-4.0-h-micro", "granite-4.0-h-tiny", "granite-3.3-8b"]`
+    - model_max_length: Maximum sequence length. Sequences will be right padded
+      (and possibly truncated)
     - number_gpus: The effective number of GPUs (to be evenly distributed to
       `number_nodes` machines)
     - batch_size: the effective batch_size (will be evenly distributed to max(1,
@@ -1130,9 +1165,9 @@ memory constrained environments.
       the end of each training step.
     - auto_stop_method: The default value is `None`. This parameter defines the
       method used to automatically stop the fine-tuning job. Supported values are
-      `WARMUP_60S_STABLE_120S_OR_10_STEPS` and `None`. If set to 
+      `WARMUP_60S_STABLE_120S_OR_10_STEPS` and `None`. If set to
       `WARMUP_60S_STABLE_120S_OR_10_STEPS`, the job stops after spending at least
-      60 seconds in the warmup phase plus the longer of 120 seconds or the 
+      60 seconds in the warmup phase plus the longer of 120 seconds or the
       duration of 10 optimization steps. This method excludes the first 60 seconds
       of training when calculating throughput and system metrics.
     - distributed_backend: Default is `FSDP` for multi-gpu measurements, `None`
@@ -1141,16 +1176,17 @@ memory constrained environments.
     - number_nodes: Default is `1`. If set, actuator distributes tasks on multiple
       nodes. Each Node will use number_gpus/number_nodes GPUs.
       Each Node will use 1 process for each GPU it uses
-    - fms_hf_tuning_version: Default is `2.1.2`. Which version of fms-hf-tuning to
-      use. Available options are: `3.0.0`, 2.8.2`, `2.7.1`, `2.6.0`, `2.5.0`,
-       `2.4.0`, `2.3.1`, `2.2.1`, `2.1.2`, `2.1.0`, `2.0.1`
+    - fms_hf_tuning_version: Default is `2.1.2`. Which version of fms-hf-tuning
+      to use. Available options are: `3.1.0`, `3.0.0.1`, `3.0.0`, 2.8.2`,
+      `2.7.1`, `2.6.0`, `2.5.0`, `2.4.0`, `2.3.1`, `2.2.1`, `2.1.2`, `2.1.0`,
+      `2.0.1`
     - enable_roce: Default is `False`. This setting is only in effect for multi-node
-      runs. It controls whether RDMA over Converged Ethernet (RoCE) is switched on
-      or not.
+      runs. It controls whether RDMA over Converged Ethernet (RoCE) is switched
+      on or not.
     - fast_moe: Default is `0`. Configures the amount of expert parallel sharding.
       number_gpus must be divisible by it
-    - fast_kernels: Default is `None`. Switches on fast kernels, the value is a list
-      with strings of boolean values for
+    - fast_kernels: Default is `None`. Switches on fast kernels, the value is
+      a list with strings of boolean values for
       `[fast_loss, fast_rms_layernorm, fast_rope_embeddings]`
     - optim: Default is `adamw_torch`. The optimizer to use. Available options are
       `adamw_hf`, `adamw_torch`, `adamw_torch_fused`, `adamw_torch_xla`,
@@ -1164,22 +1200,23 @@ memory constrained environments.
       `galore_adamw_8bit_layerwise`, `galore_adafactor_layerwise`, `lomo`,
       `adalomo`, `grokadamw`, `schedule_free_adamw`, `schedule_free_sgd`
     - bf16: Default is `False`. Whether to use bf16 (mixed) precision instead of
-      32-bit. Requires Ampere or higher NVIDIA add bf16 mixed precision support for
-      NPU architecture or using CPU (use_cpu) or Ascend NPU. This is an experimental
-      API and it may change. Can be `True`, `False`.
+      32-bit. Requires Ampere or higher NVIDIA add bf16 mixed precision support
+      for NPU architecture or using CPU (use_cpu) or Ascend NPU.
+      This is an experimental API and it may change. Can be `True`, `False`.
     - gradient_checkpointing_use_reentrant: Default is `False` Specify whether to
       use the activation checkpoint variant that requires reentrant autograd. This
       parameter should be passed explicitly. Torch version 2.5 will raise an
       exception if use_reentrant is not passed. If use_reentrant=False, checkpoint
       will use an implementation that does not require reentrant autograd. This
       allows checkpoint to support additional functionality, such as working as
-      expected with torch.autograd.grad and support for keyword arguments input into
-      the checkpointed function. Can be `True`, `False`.
+      expected with torch.autograd.grad and support for keyword arguments input
+      into the checkpointed function. Can be `True`, `False`.
     - fsdp_sharding_strategy: Default is `FULL_SHARD`. [1] FULL_SHARD (shards
       optimizer states, gradients and parameters), " [2] SHARD_GRAD_OP (shards
       optimizer states and gradients), [3] NO_SHARD (DDP), [4] HYBRID_SHARD (shards
       optimizer states, gradients and parameters within each node while each node
-      has full copy), [5] HYBRID_SHARD_ZERO2 (shards optimizer states and gradients
+      has full copy - equivalent to FULL_SHARD for single-node runs),
+      [5] HYBRID_SHARD_ZERO2 (shards optimizer states and gradients
       within each node while each node has full copy). For more information, please
       refer the official PyTorch docs.
     - fsdp_state_dict_type: Default is `FULL_STATE_DICT`. [1] FULL_STATE_DICT, [2]
@@ -1195,9 +1232,9 @@ memory constrained environments.
       `GraniteDecoderLayer`, `LlamaDecoderLayer`, `MistralDecoderLayer`,
       `BertLayer`, `GPTJBlock`, `T5Block` ... (useful only when using FSDP)
     - dataset_text_field: Default is None. Training dataset text field containing
-      single sequence. Either the dataset_text_field or data_formatter_template need
-      to be supplied. For running vision language model tuning pass the column name
-      for text data.
+      single sequence. Either the dataset_text_field or data_formatter_template
+      need to be supplied. For running vision language model tuning pass
+      the column name for text data.
     - dataset_image_field: Default is None. For running vision language model tuning
       pass the column name of the image data in the dataset.
     - remove_unused_columns: Default is True. Remove columns not required by the
@@ -1325,6 +1362,8 @@ for performance.
 
     - Actuator version: `2.1.0`
     - fms-hf-tuning versions:
+      - 3.1.0
+      - 3.0.0.1
       - 3.0.0
       - 2.8.2
       - 2.7.1
@@ -1361,8 +1400,8 @@ for performance.
     - model_name: Supported models:
       <!-- markdownlint-disable-next-line line-length -->
       `["llama-7b", "granite-20b-v2", "granite-7b-base", "granite-8b-code-instruct", "granite-34b-code-base", "mistral-7b-v0.1", "llama3-70b", "mixtral-8x7b-instruct-v0.1", "llama3.1-405b"]`
-    - model_max_length: Maximum sequence length. Sequences will be right padded (and
-      possibly truncated)
+    - model_max_length: Maximum sequence length. Sequences will be right padded
+      (and possibly truncated)
     - number_gpus: The effective number of GPUs (to be evenly distributed to
       `number_nodes` machines)
     - batch_size: the effective batch_size (will be evenly distributed to max(1,
@@ -1410,9 +1449,9 @@ for performance.
       the end of each training step.
     - auto_stop_method: The default value is `None`. This parameter defines the
       method used to automatically stop the fine-tuning job. Supported values are
-      `WARMUP_60S_STABLE_120S_OR_10_STEPS` and `None`. If set to 
+      `WARMUP_60S_STABLE_120S_OR_10_STEPS` and `None`. If set to
       `WARMUP_60S_STABLE_120S_OR_10_STEPS`, the job stops after spending at least
-      60 seconds in the warmup phase plus the longer of 120 seconds or the 
+      60 seconds in the warmup phase plus the longer of 120 seconds or the
       duration of 10 optimization steps. This method excludes the first 60 seconds
       of training when calculating throughput and system metrics.
     - distributed_backend: Default is `FSDP` for multi-gpu measurements, `None`
@@ -1421,16 +1460,17 @@ for performance.
     - number_nodes: Default is `1`. If set, actuator distributes tasks on multiple
       nodes. Each Node will use number_gpus/number_nodes GPUs.
       Each Node will use 1 process for each GPU it uses
-    - fms_hf_tuning_version: Default is `2.1.2`. Which version of fms-hf-tuning to
-      use. Available options are: `3.0.0`, 2.8.2`, `2.7.1`, `2.6.0`, `2.5.0`,
-       `2.4.0`, `2.3.1`, `2.2.1`, `2.1.2`, `2.1.0`, `2.0.1`
+    - fms_hf_tuning_version: Default is `2.1.2`. Which version of fms-hf-tuning
+      to use. Available options are: `3.1.0`, `3.0.0.1`, `3.0.0`, 2.8.2`,
+      `2.7.1`, `2.6.0`, `2.5.0`, `2.4.0`, `2.3.1`, `2.2.1`, `2.1.2`, `2.1.0`,
+      `2.0.1`
     - enable_roce: Default is `False`. This setting is only in effect for multi-node
-      runs. It controls whether RDMA over Converged Ethernet (RoCE) is switched on
-      or not.
+      runs. It controls whether RDMA over Converged Ethernet (RoCE) is switched
+      on or not.
     - fast_moe: Default is `0`. Configures the amount of expert parallel sharding.
       number_gpus must be divisible by it
-    - fast_kernels: Default is `None`. Switches on fast kernels, the value is a list
-      with strings of boolean values for
+    - fast_kernels: Default is `None`. Switches on fast kernels, the value is
+      a list with strings of boolean values for
       `[fast_loss, fast_rms_layernorm, fast_rope_embeddings]`
     - r: Default is `4`. The LORA rank
     - lora_alpha: Default is `16`. Scales the learning weights.
@@ -1446,22 +1486,23 @@ for performance.
       `galore_adamw_8bit_layerwise`, `galore_adafactor_layerwise`, `lomo`,
       `adalomo`, `grokadamw`, `schedule_free_adamw`, `schedule_free_sgd`
     - bf16: Default is `False`. Whether to use bf16 (mixed) precision instead of
-      32-bit. Requires Ampere or higher NVIDIA add bf16 mixed precision support for
-      NPU architecture or using CPU (use_cpu) or Ascend NPU. This is an experimental
-      API and it may change. Can be `True`, `False`.
+      32-bit. Requires Ampere or higher NVIDIA add bf16 mixed precision support
+      for NPU architecture or using CPU (use_cpu) or Ascend NPU.
+      This is an experimental API and it may change. Can be `True`, `False`.
     - gradient_checkpointing_use_reentrant: Default is `False` Specify whether to
       use the activation checkpoint variant that requires reentrant autograd. This
       parameter should be passed explicitly. Torch version 2.5 will raise an
       exception if use_reentrant is not passed. If use_reentrant=False, checkpoint
       will use an implementation that does not require reentrant autograd. This
       allows checkpoint to support additional functionality, such as working as
-      expected with torch.autograd.grad and support for keyword arguments input into
-      the checkpointed function. Can be `True`, `False`.
+      expected with torch.autograd.grad and support for keyword arguments input
+      into the checkpointed function. Can be `True`, `False`.
     - fsdp_sharding_strategy: Default is `FULL_SHARD`. [1] FULL_SHARD (shards
       optimizer states, gradients and parameters), " [2] SHARD_GRAD_OP (shards
       optimizer states and gradients), [3] NO_SHARD (DDP), [4] HYBRID_SHARD (shards
       optimizer states, gradients and parameters within each node while each node
-      has full copy), [5] HYBRID_SHARD_ZERO2 (shards optimizer states and gradients
+      has full copy - equivalent to FULL_SHARD for single-node runs),
+      [5] HYBRID_SHARD_ZERO2 (shards optimizer states and gradients
       within each node while each node has full copy). For more information, please
       refer the official PyTorch docs.
     - fsdp_state_dict_type: Default is `FULL_STATE_DICT`. [1] FULL_STATE_DICT, [2]
@@ -1477,9 +1518,9 @@ for performance.
       `GraniteDecoderLayer`, `LlamaDecoderLayer`, `MistralDecoderLayer`,
       `BertLayer`, `GPTJBlock`, `T5Block` ... (useful only when using FSDP)
     - dataset_text_field: Default is None. Training dataset text field containing
-      single sequence. Either the dataset_text_field or data_formatter_template need
-      to be supplied. For running vision language model tuning pass the column name
-      for text data.
+      single sequence. Either the dataset_text_field or data_formatter_template
+      need to be supplied. For running vision language model tuning pass
+      the column name for text data.
     - dataset_image_field: Default is None. For running vision language model tuning
       pass the column name of the image data in the dataset.
     - remove_unused_columns: Default is True. Remove columns not required by the
@@ -1517,7 +1558,7 @@ This section describes the fields you may optionally configure in your
 ### Example Actuator Configuration YAML
 
 <!-- markdownlint-disable line-length -->
-<!-- markdownlint-disable-next-line code-block-style -->
+
 ```yaml
 actuatorIdentifier: SFTTrainer
 parameters:
@@ -1530,6 +1571,7 @@ parameters:
       Vanilla: "ibm-granite/granite-3.1-2b-base"
   num_tokens_cache_directory: "cache"
 ```
+
 <!-- markdownlint-enable line-length -->
 
 ### Configuration Fields
@@ -1578,7 +1620,6 @@ parameters:
   the defaults that ship with the Actuator.
 - **Example**:
 
-  <!-- markdownlint-disable-next-line code-block-style -->
   ```yaml
   model_map:
     granite-3.1-2b:
@@ -1725,7 +1766,6 @@ For text-to-text tasks, create a dataset file with the name
 
 Use the following command:
 
-<!-- markdownlint-disable-next-line code-block-style -->
 ```commandline
 sfttrainer_generate_dataset_text -o /data/fms-hf-tuning/artificial-dataset/news-tokens-16384plus-entries-4096.jsonl
 ```
@@ -1740,13 +1780,12 @@ documentation on submitting remote Ray jobs that use the code of Actuators.
     If your RayCluster Worker nodes already have the SFTTrainer wheel installed,
     you can skip building the wheel and using a ray runtime environment.
     Go directly to the `ray job submit` step.
-    Just change the commandline so that it does not use 
+    Just change the commandline so that it does not use
     the `ray_runtime.yaml` file.
 
 For example, build the wheel file for SFTTrainer and create the following
 `ray_runtime_env.yaml`:
 
-<!-- markdownlint-disable-next-line code-block-style -->
 ```yaml
 pip:
   - ${RAY_RUNTIME_ENV_CREATE_WORKING_DIR}/ado_sfttrainer-1.0.2.dev84+g1ab8f43d-py3-none-any.whl
@@ -1768,16 +1807,17 @@ file:
 
 !!! info end
 
-    If you are using a remote RayCluster on Kubernetes remember to
-    [start a port-forward to the RayCluster head node](../../getting-started/remote_run/#specifying-the-remote-ray-cluster-to-submit-to-address).
+    If you are using a remote RayCluster on Kubernetes remember to start
+    a port-forward to the RayCluster head node.
 
 <!-- markdownlint-disable line-length -->
-<!-- markdownlint-disable-next-line code-block-style -->
+
 ```commandline
 ray job submit --address http://localhost:8265 --runtime-env ray_runtime_env.yaml --working-dir $PWD -v -- \
   sfttrainer_generate_dataset_text \
   -o /data/fms-hf-tuning/artificial-dataset/news-tokens-16384plus-entries-4096.jsonl
 ```
+
 <!-- markdownlint-enable line-length -->
 
 ### Dataset for image-to-text tasks
@@ -1791,7 +1831,7 @@ To create the dataset files use the same `ray_runtime_env.yaml` file as above
 but this time start 2 Ray Jobs:
 
 <!-- markdownlint-disable line-length -->
-<!-- markdownlint-disable-next-line code-block-style -->
+
 ```commandline
 ray job submit --address http://localhost:8265 --runtime-env ray_runtime_env.yaml --working-dir $PWD -v -- \
   sfttrainer_generate_dataset_vision --image-width 384  --image-height 384 \
@@ -1802,6 +1842,7 @@ ray job submit --address http://localhost:8265 --runtime-env ray_runtime_env.yam
   sfttrainer_generate_dataset_vision --image-width 384  --image-height 768 \
   -o /data/fms-hf-tuning/artificial-dataset/vision-384x768-16384plus-entries-4096.parquet
 ```
+
 <!-- markdownlint-enable line-length -->
 
 ## Model Weights
@@ -1813,10 +1854,10 @@ file.
 
 !!! note
 
-    The actuator attempts to cache Hugging Face model weights the first time it runs
-    an operation that references them. To avoid race conditions when running
-    multiple experiments with the same weights, we recommend **pre-fetching** the
-    weights in advance.
+    The actuator attempts to cache Hugging Face model weights the first time
+    it runs an operation that references them. To avoid race conditions when
+    running multiple experiments with the same weights, we recommend
+    **pre-fetching** the weights in advance.
 
 Identify the models you want to cache and then create a `models.yaml` file
 structured as a double-nested dictionary.
@@ -1833,7 +1874,6 @@ Supported model weight types include:
 Here’s a simple example that caches the `HuggingFaceTB/SmolLM2-135M` model
 weights from HuggingFace:
 
-<!-- markdownlint-disable-next-line code-block-style -->
 ```yaml
 smollm2-135m:
   Vanilla: HuggingFaceTB/SmolLM2-135M
@@ -1847,7 +1887,6 @@ overriding the location of dataset files.
 For example, to cache the model weights under `/my/hf_home/` use the following
 command:
 
-<!-- markdownlint-disable-next-line code-block-style -->
 ```commandline
 sfttrainer_download_hf_weights -i models.yaml -o /my/hf_home
 ```
@@ -1857,16 +1896,120 @@ above section for generating datasets:
 
 !!! info end
 
-    If you are using a remote RayCluster on Kubernetes remember to
-    [start a port-forward to the RayCluster head node](../../getting-started/remote_run/#specifying-the-remote-ray-cluster-to-submit-to-address).
+    If you are using a remote RayCluster on Kubernetes remember to start
+    a port-forward to the RayCluster head node.
 
 <!-- markdownlint-disable line-length -->
-<!-- markdownlint-disable-next-line code-block-style -->
+
 ```commandline
 ray job submit --address http://localhost:8265 --runtime-env ray_runtime_env.yaml --working-dir $PWD -v -- \
   sfttrainer_download_hf_weights -i models.yaml -o /my/hf_home
 ```
+
 <!-- markdownlint-enable line-length -->
+
+## Metrics stability
+
+We recommend using the `auto_stop_method: WARMUP_60S_STABLE_120S_OR_10_STEPS`
+option, which helps fms-hf-tuning gather more reliable and stable measurements
+while keeping the duration of each task low. This configuration allows the
+actuator to reach a steady state before sampling, ensuring that both system and
+throughput metrics are highly consistent.
+
+You can easily verify this stability of fms-hf-tuning yourself. For example,
+repeat the same [RandomWalk operation](../examples/finetune-remotely.md) on the
+following DiscoverySpace for 5 times:
+
+<!-- markdownlint-disable MD013 -->
+<!-- markdownlint-disable MD046 -->
+
+<!-- prettier-ignore-start -->
+
+```yaml
+{% include "../../../plugins/actuators/sfttrainer/examples/metrics-stability-space.yaml" %}
+```
+
+<!-- prettier-ignore-end -->
+
+<!-- markdownlint-enable MD046 -->
+<!-- markdownlint-enable MD013 -->
+
+Remember to switch off memoization in your RandomWalk operation definition:
+
+<!-- markdownlint-disable MD013 -->
+<!-- markdownlint-disable MD046 -->
+<!-- prettier-ignore-start -->
+
+```yaml
+{% include "../../../plugins/actuators/sfttrainer/examples/metrics-stability-operation.yaml" %}
+```
+
+<!-- prettier-ignore-end -->
+
+<!-- markdownlint-enable MD046 -->
+<!-- markdownlint-enable MD013 -->
+
+Then after all five operations finish, obtain a CSV file containing the observed
+properties on the space you created like so:
+
+<!-- markdownlint-disable MD046 -->
+
+```commandline
+ado show measurements space --output csv $DISCOVERY_SPACE_ID > entities.csv
+```
+
+<!-- markdownlint-enable MD046 -->
+
+Finally, use the script `sfttrainer_check_metrics_stability` that you get by
+installing the `ado-sfttrainer` package:
+
+<!-- markdownlint-disable MD046 -->
+
+```commandline
+sfttrainer_check_metrics_stability $pathTotheCSVFileFromAbove
+```
+
+<!-- markdownlint-enable MD046 -->
+
+You should see an output similar to this:
+
+<!-- markdownlint-disable MD046 -->
+
+```text
+Total benchmarks analyzed: 63
+
+Mean STD 36.42
+STD of STD 30.79
+
+Coefficient of Variation (CV) statistics:
+  Mean CV:    0.76%
+  Median CV:  0.56%
+  Min CV:     0.12%
+  Max CV:     3.04%
+
+Range as % of Mean statistics:
+  Mean:       1.83%
+  Median:     1.24%
+  Min:        0.26%
+  Max:        7.47%
+
+================================================================================
+STABILITY ASSESSMENT
+================================================================================
+
+Overall Stability Rating: EXCELLENT
+Description: Very stable measurements with minimal variation
+Median CV: 0.56%
+
+Interpretation:
+  - CV < 1%:  Excellent stability
+  - CV < 2%:  Good stability
+  - CV < 5%:  Moderate stability
+  - CV < 10%: Fair stability
+  - CV ≥ 10%: Poor stability
+```
+
+<!-- markdownlint-enable MD046 -->
 
 ## Configure your RayCluster for RDMA over Converged Ethernet (RoCE)
 
@@ -1886,10 +2029,6 @@ To enable RoCE in a RayCluster on Kubernetes, you need to:
      paths are used during collective operations.
 3. **Ensure the Kubernetes nodes and network** are RoCE-capable and properly
    configured.
-
-Here’s the revised and improved list of **prerequisites** for enabling RoCE in
-GPU workers of a RayCluster on Kubernetes, incorporating clarity, completeness,
-and technical accuracy:
 
 ### Prerequisites
 
@@ -1925,7 +2064,8 @@ building a custom image for the GPU worker nodes. We’ll use the
 both Ray and the necessary NVIDIA libraries.
 
 <!-- markdownlint-disable line-length -->
-<!-- markdownlint-disable-next-line code-block-style -->
+<!-- markdownlint-disable code-block-style -->
+
 ```docker
 ARG base_image=mirror.gcr.io/rayproject/ray:latest-py310-cu121
 FROM $base_image
@@ -1950,11 +2090,12 @@ RUN mkdir app && \
     apt-get -y clean && \
     rm -rf /var/lib/apt/lists/*
 ```
+
 <!-- markdownlint-enable line-length -->
 
 !!! note
 
-    Ensure you install the appropriate version of 
+    Ensure you install the appropriate version of
     [torch for the fms-hf-tuning versions that you are planning to use](#requirements).
 
 <!-- markdownlint-enable line-length -->
@@ -1976,7 +2117,6 @@ which indicates RoCE v2 support.
 
 For example, given the following output:
 
-<!-- markdownlint-disable-next-line code-block-style -->
 ```terminaloutput
 DEV    PORT INDEX GID                                   IPv4         VER DEV
 ---    ---- ----- ---                                   ------------ --- ---
@@ -2027,7 +2167,7 @@ GPU worker with support for RoCE.
    - Mount the `topology-roce` ConfigMap at `/var/run/nvidia-topologyd`.
 
 <!-- markdownlint-disable line-length -->
-<!-- markdownlint-disable-next-line code-block-style -->
+
 ```yaml
 # ... trimmed ...
 workerGroupSpecs:
@@ -2132,6 +2272,7 @@ template:
       memory: 720Gi
       nvidia.com/roce_gdr: 2
 ```
+
 <!-- markdownlint-enable line-length -->
 
 !!! note
@@ -2182,7 +2323,9 @@ your log output will be similar to the snippet below.
 ## Next steps
 
 <!-- markdownlint-disable line-length -->
-<!-- markdownlint-disable-next-line no-inline-html -->
+<!-- markdownlint-disable no-inline-html -->
+<!-- prettier-ignore-start -->
+
 <div class="grid cards" markdown>
 
 - ⚙️ **Customize Actuators using ActuatorConfiguration resources**
@@ -2210,4 +2353,7 @@ your log output will be similar to the snippet below.
     :link: [Run a fine-tuning experiment on a remote RayCluster](../examples/finetune-remotely.md)
 
 </div>
+
 <!-- markdownlint-enable line-length -->
+<!-- markdownlint-disable no-inline-html -->
+<!-- prettier-ignore-end -->

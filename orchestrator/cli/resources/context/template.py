@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import pathlib
@@ -15,7 +15,7 @@ from orchestrator.utilities.location import (
 )
 
 
-def template_context(parameters: AdoTemplateCommandParameters):
+def template_context(parameters: AdoTemplateCommandParameters) -> None:
 
     model_instance = (
         ProjectContext(
@@ -43,9 +43,15 @@ def template_context(parameters: AdoTemplateCommandParameters):
 
     serialise_pydantic_model(
         model=model_instance,
-        output_path=parameters.output_path,
+        output_path=parameters.output_file,
     )
 
     if parameters.include_schema:
-        schema_output_path = pathlib.Path(parameters.output_path.stem + "_schema.yaml")
-        serialise_pydantic_model_json_schema(model_instance, schema_output_path)
+        if parameters.output_file is None:
+            # If outputting to stdout, also output schema to stdout
+            serialise_pydantic_model_json_schema(model_instance, None)
+        else:
+            schema_output_path = pathlib.Path(
+                parameters.output_file.stem + "_schema.yaml"
+            )
+            serialise_pydantic_model_json_schema(model_instance, schema_output_path)

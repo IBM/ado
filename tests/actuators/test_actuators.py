@@ -1,5 +1,8 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
+
+import sys
+from typing import Any
 
 import pytest
 import yaml
@@ -21,7 +24,7 @@ from orchestrator.modules.actuators.catalog import ExperimentCatalog
 
 
 @pytest.fixture
-def objectiveFunctionConfigurationYAML():
+def objectiveFunctionConfigurationYAML() -> dict[str, Any]:
 
     y = """
 actuatorIdentifier: "custom_experiments"
@@ -31,25 +34,15 @@ actuatorIdentifier: "custom_experiments"
 
 
 @pytest.fixture
-def objectiveFunctionConfiguration(objectiveFunctionConfigurationYAML):
+def objectiveFunctionConfiguration(
+    objectiveFunctionConfigurationYAML: dict[str, Any],
+) -> ActuatorConfiguration:
 
     return ActuatorConfiguration(**objectiveFunctionConfigurationYAML)
 
 
 @pytest.fixture
-def actuatorModuleConfigurationYAML():
-
-    y = """
-        moduleName: "myactuator"
-        modulePath: "examples/test-project"   #This is the path relative to where `ado` will be run from to this dir
-        moduleClass: MyActuator
-    """
-
-    return yaml.safe_load(y)
-
-
-@pytest.fixture
-def actuatorCatalogExtensionConfigurationYAML():
+def actuatorCatalogExtensionConfigurationYAML() -> dict[str, Any]:
 
     y = """
     name: custom_experiments.yaml
@@ -60,37 +53,30 @@ def actuatorCatalogExtensionConfigurationYAML():
 
 
 @pytest.fixture
-def actuatorModuleConfiguration(
-    actuatorModuleConfigurationYAML,
-) -> orchestrator.modules.actuators.base.ActuatorModuleConf:
-
-    return orchestrator.modules.actuators.base.ActuatorModuleConf(
-        **actuatorModuleConfigurationYAML
-    )
-
-
-@pytest.fixture
 def actuatorCatalogExtensionConfiguration(
-    actuatorCatalogExtensionConfigurationYAML,
+    actuatorCatalogExtensionConfigurationYAML: dict[str, Any],
 ) -> orchestrator.modules.actuators.catalog.ActuatorCatalogExtensionConf:
     return orchestrator.modules.actuators.catalog.ActuatorCatalogExtensionConf(
         **actuatorCatalogExtensionConfigurationYAML
     )
 
 
-def test_custom_experiments(objectiveFunctionConfiguration, experiment_catalogs):
+def test_custom_experiments(
+    objectiveFunctionConfiguration: ActuatorConfiguration,
+    experiment_catalogs: list[ExperimentCatalog],
+) -> None:
 
     import ray
 
     import orchestrator.modules.actuators.base
     import orchestrator.modules.actuators.registry
 
+    ray.init(ignore_reinit_error=True, runtime_env={"working_dir": None})
+
     # noinspection PyUnresolvedReferences
-    custom_experiments = (
-        orchestrator.modules.actuators.custom_experiments.CustomExperiments.remote(
-            queue=None, params=objectiveFunctionConfiguration
-        )
-    )
+    custom_experiments = ray.remote(
+        orchestrator.modules.actuators.custom_experiments.CustomExperiments
+    ).remote(queue=None, params=objectiveFunctionConfiguration.parameters)
 
     # This is to test that the ObjectiveFunction instance has got the extended catalog
     # from the registry
@@ -98,20 +84,34 @@ def test_custom_experiments(objectiveFunctionConfiguration, experiment_catalogs)
     catalog: ExperimentCatalog = ray.get(catalog)
 
     assert catalog, "custom_experiments returned None for catalog"
+    expected_identifiers = {
+        "acid_test",
+        "calculate_density",
+        "min_gpu_recommender",
+        "avoid_oom_recommender",
+        "nevergrad_opt_3d_test_func",
+        "calculate_pressure_ideal_gas",
+        "calculate_pressure_gas",
+    }
+    if sys.version_info >= (3, 14):
+        # TODO: add autoconf experiments back once it supports Python 3.14+.
+        expected_identifiers -= {
+            "min_gpu_recommender",
+            "avoid_oom_recommender",
+        }
+
     # AP 18/10/24:
-    # This should work on Travis as we now install
-    #  - examples/pfas-generative-models/custom_actuator_function
-    #  - examples/optimization_test_functions/custom_experiments
     # Locally this may not work because we might have more or less of these.
-    assert (
-        len(catalog.experiments) == 2
-    ), "Expected 2 experiments in the custom_experiments catalog for testing "
+    # SV 7/02/26
+    # This test needs to be updated every time a new custom experiment is added to ado
+    assert len(catalog.experiments) == len(
+        expected_identifiers
+    ), "Unexpected number of experiments in the custom_experiments catalog for testing"
 
     identifiers = {e.identifier for e in catalog.experiments}
-    assert {
-        "acid_test",
-        "nevergrad_opt_3d_test_func",
-    } == identifiers, f"Expected the experiments to be called - acid_test and nevergrad_opt_3d_test_func but they are called {identifiers}"
+    assert (
+        expected_identifiers == identifiers
+    ), f"Expected experiment identifiers {expected_identifiers} but got {identifiers}"
     loaded = custom_experiments.loadedExperiment.remote(
         orchestrator.schema.reference.ExperimentReference(
             actuatorIdentifier="custom_experiments", experimentIdentifier="acid_test"
@@ -124,7 +124,7 @@ def test_custom_experiments(objectiveFunctionConfiguration, experiment_catalogs)
         "custom_experiments"
     )
 
-    assert len(c.experiments) == 2
+    assert len(c.experiments) == len(expected_identifiers)
 
     for e in c.experiments:
         assert catalog.experimentForReference(e.reference) is not None
@@ -133,7 +133,9 @@ def test_custom_experiments(objectiveFunctionConfiguration, experiment_catalogs)
         assert c.experimentForReference(e.reference) is not None
 
 
-def test_execute_nevergrad_opt_3d_test_func(experiment_catalogs):
+def test_execute_nevergrad_opt_3d_test_func(
+    experiment_catalogs: list[ExperimentCatalog],
+) -> None:
     import orchestrator.modules.actuators.registry
     import orchestrator.schema.request
     from orchestrator.schema.point import SpacePoint

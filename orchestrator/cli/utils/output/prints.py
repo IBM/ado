@@ -1,6 +1,7 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 import typing
+from typing import Any
 
 from rich.console import Console
 
@@ -37,6 +38,11 @@ ADO_NO_ACTIVE_CONTEXT_ERROR = (
     "or activate one with [b cyan]ado context[/b cyan]"
 )
 
+ADO_NO_CONTEXT_AVAILABLE_ERROR = (
+    f"{WARN}There are no contexts available.\n"
+    f"{HINT}You can create a context with [b cyan]ado create context[/b cyan]"
+)
+
 # Spinners
 ADO_SPINNER_CONNECTING_TO_DB = "Connecting to the database"
 ADO_SPINNER_QUERYING_DB = "Querying the database"
@@ -46,12 +52,16 @@ ADO_SPINNER_DELETING_FROM_DB = "Deleting from database"
 ADO_SPINNER_INITIALIZING_DISCOVERY_SPACE = "Initializing Discovery Space"
 ADO_SPINNER_INITIALIZING_ACTUATOR_REGISTRY = "Initializing Actuator Registry"
 
+# Remote dispatch spinners
+ADO_SPINNER_REMOTE_PREPARING_FILES = "Preparing input for remote execution"
+ADO_SPINNER_REMOTE_PORT_FORWARD = "Waiting for port-forward"
+
 # Consoles
 stdout_console = Console()
 stderr_console = Console(stderr=True)
 
 
-def set_pandas_display_options():
+def set_pandas_display_options() -> None:
     import pandas as pd
 
     # Ensure we are extremely unlikely to truncate output in pandas
@@ -62,9 +72,26 @@ def set_pandas_display_options():
     pd.set_option("expand_frame_repr", False)
 
 
-def console_print(*args, stderr: bool = False, use_markup: bool = True):
+def console_print(
+    *args: Any,  # noqa: ANN401
+    stderr: bool = False,
+    use_markup: bool = True,
+    has_pandas_content: bool = False,
+) -> None:
+    import sys
 
-    set_pandas_display_options()
+    if has_pandas_content:
+        import pandas as pd
+
+        set_pandas_display_options()
+
+        # AP: 08-12-2025
+        # rich has issues when printing large dataframes using overflow="ignore"
+        # ref: https://github.com/IBM/ado/issues/296
+        if all(isinstance(item, pd.DataFrame) for item in args):
+            print(*args, file=sys.stderr if stderr else sys.stdout)
+            return
+
     if stderr:
         stderr_console.print(*args, overflow="ignore", crop=False, markup=use_markup)
     else:
@@ -97,17 +124,17 @@ def no_related_resources_error_str(
 
 def context_not_in_available_contexts_error_str(
     requested_context: str, available_contexts: list[str]
-):
+) -> str:
     return (
         f"{ERROR}{requested_context} is not in the available contexts.\n"
         f"{HINT}The available contexts are {sorted(available_contexts)}"
     )
 
 
-def unknown_experiment_error_str(error: UnknownExperimentError):
+def unknown_experiment_error_str(error: UnknownExperimentError) -> str:
     return (
         f"{ERROR}The following experiment was not found: {error}\n"
-        f"{HINT}Check available experiments with {cyan('ado get actuators --details')}"
+        f"{HINT}Check available experiments with {cyan('ado get experiments')}"
     )
 
 
@@ -138,7 +165,10 @@ def could_not_delete_resource_from_database_error_str(
     if not error.__cause__:
         import warnings
 
-        warnings.warn(f"{error.__class__.__name__} should be raised from another error")
+        warnings.warn(
+            f"{error.__class__.__name__} should be raised from another error",
+            stacklevel=2,
+        )
         error_to_be_displayed = error
 
     return (
@@ -181,7 +211,7 @@ def value_in_configuration_replaced_with_latest_identifier_for_resource(
 
 def using_latest_identifier_for_resource(
     resource_kind: CoreResourceKinds, resource_identifier: str
-):
+) -> str:
     latest_resource_human_readable_name = resource_kinds_to_human[resource_kind]
     return f"{INFO}Using {latest_resource_human_readable_name} {magenta(resource_identifier)}."
 

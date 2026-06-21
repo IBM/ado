@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import contextlib
@@ -12,7 +12,7 @@ from orchestrator.cli.utils.output.prints import ERROR, console_print, cyan
 
 def override_values_in_pydantic_model(
     model: pydantic.BaseModel, override_values: list[dict[str, str]]
-):
+) -> pydantic.BaseModel:
     import jsonpath_ng.ext
     from jsonpath_ng.exceptions import JsonPathLexerError, JsonPathParserError
 
@@ -29,7 +29,7 @@ def override_values_in_pydantic_model(
                 f"{ERROR}The provided path {cyan(key)} was not a valid JSONPath string:\n{e}",
                 stderr=True,
             )
-            raise typer.Exit(1)
+            raise typer.Exit(1) from e
 
         # We can either have a JSON document or a string
         with contextlib.suppress(ValueError):

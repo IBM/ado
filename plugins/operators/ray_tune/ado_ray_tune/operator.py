@@ -1,11 +1,11 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import logging
 import time
 import uuid
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, NamedTuple
+from typing import TYPE_CHECKING, Any, Literal, NamedTuple
 
 import pydantic
 import ray
@@ -16,14 +16,6 @@ from ray.actor import ActorHandle
 
 import orchestrator.core
 import orchestrator.modules
-from ado_ray_tune.config import (
-    OrchRunConfig,
-    OrchSearchAlgorithm,
-    OrchTuneConfig,
-    RayTuneConfiguration,
-    RayTuneOrchestratorConfiguration,
-)
-from ado_ray_tune.samplers import LhuSampler
 from orchestrator.core.datacontainer.resource import (
     DataContainer,
     DataContainerResource,
@@ -33,6 +25,7 @@ from orchestrator.core.discoveryspace.space import (
 )
 from orchestrator.core.operation.config import (
     DiscoveryOperationEnum,
+    OperatorMetadata,
 )
 from orchestrator.core.operation.operation import OperationOutput
 from orchestrator.core.operation.resource import (
@@ -42,9 +35,10 @@ from orchestrator.core.operation.resource import (
 )
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
 from orchestrator.modules.operators.base import (
-    Search,
+    Explore,
     measure_or_replay,
 )
+from orchestrator.modules.operators.collections import explore_operation
 from orchestrator.modules.operators.discovery_space_manager import DiscoverySpaceManager
 from orchestrator.schema.domain import PropertyDomain
 from orchestrator.schema.entity import (
@@ -62,7 +56,18 @@ from orchestrator.schema.virtual_property import VirtualObservedProperty
 from orchestrator.utilities.environment import enable_ray_actor_coverage
 from orchestrator.utilities.support import prepare_dependent_experiment_input
 
+from .config import (
+    OrchRunConfig,
+    OrchSearchAlgorithm,
+    OrchTuneConfig,
+    RayTuneConfiguration,
+    RayTuneOrchestratorConfiguration,
+)
+from .samplers import LhuSampler
+
 if TYPE_CHECKING:  # pragma: nocover
+    from ray.tune.search.sample import Domain
+
     import orchestrator.modules.actuators.base
 
 
@@ -73,7 +78,7 @@ def run_dependent_experiments(
     queue: MeasurementQueue,
     requestIndex: int,
     singleMeasurement: bool,
-    log,
+    log: logging.Logger,
 ) -> list[str]:
     """Checks what dependent experiments can run based on a completed MeasureRequest and executes them
 
@@ -116,13 +121,29 @@ def run_dependent_experiments(
 
 
 def retrieve_results(
-    entity: Entity, experimentReference: ExperimentReference
+    entity: Entity,
+    experimentReference: ExperimentReference,
+    mode: Literal["target", "observed"] = "target",
 ) -> dict[str, Any]:
+    """Returns a dictionary mapping property identifiers to their measured values.
+
+    Args:
+        entity: The entity that was measured
+        experimentReference: Reference to the experiment that was applied
+        mode: "target" returns target property identifiers as keys,
+              "observed" returns observed property identifiers as keys
+
+    Returns:
+        Dictionary mapping property identifiers to their measured values
+    """
     property_values = entity.propertyValuesFromExperimentReference(
         experimentReference=experimentReference
     )
 
-    return {p.property.targetProperty.identifier: p.value for p in property_values}
+    if mode == "target":
+        return {p.property.targetProperty.identifier: p.value for p in property_values}
+    # observed
+    return {p.property.identifier: p.value for p in property_values}
 
 
 class OrchTrainableParameters(pydantic.BaseModel):
@@ -140,8 +161,110 @@ class OrchTrainableParameters(pydantic.BaseModel):
         ActorHandle  # We need the state to access the sample store which can't be sent
     )
     debugging: bool
-    target_metric: str  # The abstract property tune is optimizing
+    target_metric: str | list[str]  # Accept single or multiple target metrics
     orchestrator_config: RayTuneOrchestratorConfiguration
+
+
+def process_metric(
+    metric: str,
+    all_results: dict[str, list[Any]],
+    entity: Entity,
+    trainable_params: OrchTrainableParameters,
+) -> float | int | str | None:
+    """
+    Processes a single metric for a given entity.
+
+    If the metric is in all_results, it returns the last result.
+    If the metric is not in the all_results, it checks if it is a virtual property
+    defined in the measurement space. Using the measurement space (rather than the
+    entity) ensures the lookup is scoped to the experiments of the current operation,
+    avoiding ambiguous matches from prior operations stored on the entity.
+    If it is, it returns the value of the virtual property.
+    If it is not, it returns the failed metric value.
+
+    Args:
+        metric (str): Name or identifier of the metric to process.
+        all_results (dict[str, list[Any]]): A dictionary of all results, keyed by metric name.
+        entity (Entity): The entity for which the metric is being processed.
+        trainable_params (OrchTrainableParameters): Parameters/configuration for the trainable/orchestrator.
+
+    Returns:
+        Any: The processed metric value, or the failed metric value if the metric could not be found or computed.
+
+    Raises:
+        ValueError: If the metric is a virtual property and multiple observed properties
+            in the measurement space share the same identifier (user configuration error).
+    """
+
+    log = logging.getLogger(f"trainable-{entity.identifier}")
+
+    if all_results.get(metric):
+        # We use the last result
+        return all_results[metric][-1]
+
+    failed = trainable_params.orchestrator_config.failed_metric_value
+
+    # The metric is not in the results, so we need to process it
+    # Check if this is a virtual metric using the measurement space, not the entity.
+    # The measurement space is scoped to this operation's experiments, so it won't
+    # return spurious matches from observed properties accumulated by the entity
+    # across prior operations.
+    log.debug(f"No measured properties match {metric} - checking if a virtual property")
+    try:
+        properties = (
+            VirtualObservedProperty.from_observed_properties_matching_identifier(
+                trainable_params.measurement_space.observedProperties, metric
+            )
+        )
+    except ValueError:
+        log.warning(
+            f"No experiment measured {metric} and it's not a valid virtual property.  "
+            f"Will set value of {metric} for {entity.identifier} to {failed} "
+        )
+        processed_metric = failed
+    else:
+        if properties is not None:
+            if len(properties) == 1:
+                virtual_prop = properties[0]
+                # Determine the key in all_results for the base property.
+                # all_results is keyed by targetProperty.identifier (metric_format="target")
+                # or by observed property identifier (metric_format="observed").
+                metric_format = trainable_params.orchestrator_config.metric_format
+                if metric_format == "target":
+                    base_key = (
+                        virtual_prop.baseObservedProperty.targetProperty.identifier
+                    )
+                else:
+                    base_key = virtual_prop.baseObservedProperty.identifier
+                base_values = all_results.get(base_key)
+                if base_values:
+                    aggregated = virtual_prop.aggregate(base_values)
+                    processed_metric = (
+                        aggregated.value
+                        if aggregated is not None and aggregated.value is not None
+                        else failed
+                    )
+                else:
+                    log.warning(
+                        f"{metric} is a valid virtual property name "
+                        f"however no experiment measured an underlying property with the required identifier. "
+                        f"Will set value of {metric} for {entity.identifier} to {failed}"
+                    )
+                    processed_metric = failed
+            else:
+                raise ValueError(
+                    f"Ambiguous virtual target metric provided - matches multiple observed properties. "
+                    f"{[p.identifier for p in properties]}"
+                )
+        else:
+            log.warning(
+                f"{metric} is a valid virtual property name "
+                f"however no experiment measured an underlying property with the required identifier. "
+                f"Will set value of {metric} for {entity.identifier} to {failed}"
+            )
+            processed_metric = failed
+
+    return processed_metric
 
 
 def tune_trainable(config: dict, parameters: dict) -> dict[str, Any]:
@@ -171,6 +294,7 @@ def tune_trainable(config: dict, parameters: dict) -> dict[str, Any]:
     single_measurement = (
         trainable_params.orchestrator_config.single_measurement_per_property
     )
+    metric_mode = trainable_params.orchestrator_config.metric_format
 
     entity_space = trainable_params.entity_space
     actuators = trainable_params.actuators
@@ -277,6 +401,12 @@ def tune_trainable(config: dict, parameters: dict) -> dict[str, Any]:
     counter = 0
     while waitingOnExperiments:
         time.sleep(1)
+        # Check for critical error (e.g. DiscoverySpaceManager crash) to avoid
+        # spinning forever waiting for measurements that will never arrive
+        if ray.get(driver.isCriticalError.remote()):
+            raise SystemError(
+                "Exiting trainable as notification of critical error received by operator"
+            )
         newDependentRequests = []
         newCompletedRequests = []
 
@@ -297,7 +427,9 @@ def tune_trainable(config: dict, parameters: dict) -> dict[str, Any]:
                 newCompletedRequests.append(request.requestid)
                 if isinstance(request.measurements[0], ValidMeasurementResult):
                     for k, v in retrieve_results(
-                        request.entities[0], request.experimentReference
+                        request.entities[0],
+                        request.experimentReference,
+                        mode=metric_mode,
                     ).items():
                         allResults[k].append(v)
 
@@ -316,7 +448,7 @@ def tune_trainable(config: dict, parameters: dict) -> dict[str, Any]:
                 else:
                     log.warning(
                         f"Experiment {request.experimentReference} did produce any property measurements. "
-                        f"Will set values of all properties to { trainable_params.orchestrator_config.failed_metric_value}"
+                        f"Will set values of all properties to {trainable_params.orchestrator_config.failed_metric_value}"
                     )
                     # Record failure for all observed properties
                     experiment = measurement_space.experimentForReference(
@@ -363,74 +495,30 @@ def tune_trainable(config: dict, parameters: dict) -> dict[str, Any]:
     # The trainable can only return one.
     # The following code either returns the last available value or if the metric is virtual, aggregates it.
     # It also handles the case where no value of target metric is available
+    # All results will be in the same format (target or observed) based on metric_mode
     final_results = {}
-    virtual_property: VirtualObservedProperty | None = None
-    # Check if we have a result for the target trainable metric.
-    # It will be None if target_metric is a virtual metric, or somehow it's not a valid identifier
-    if not allResults.get(trainable_params.target_metric):
-        # Check if this is a virtual metric
-        log.debug(
-            f"No measured properties match {trainable_params.target_metric} - checking if a virtual property"
+
+    target_metrics = (
+        trainable_params.target_metric
+        if isinstance(trainable_params.target_metric, list)
+        else [trainable_params.target_metric]
+    )
+    for metric in target_metrics:
+        final_results[metric] = process_metric(
+            metric=metric,
+            all_results=allResults,
+            entity=entity,
+            trainable_params=trainable_params,
         )
-        try:
-            properties = entity.virtualObservedPropertiesFromIdentifier(
-                trainable_params.target_metric
-            )
-        except ValueError:
-            log.warning(
-                f"No experiment measured {trainable_params.target_metric} and it's not a valid virtual property.  "
-                f"Will set value of {trainable_params.target_metric} for {entity.identifier} to { trainable_params.orchestrator_config.failed_metric_value} "
-            )
-            final_results[trainable_params.target_metric] = (
-                trainable_params.orchestrator_config.failed_metric_value
-            )
-        else:
-            if properties is not None:
-                if len(properties) == 1:
-                    virtual_property = properties[0]
-                    value = entity.valueForProperty(property=properties[0])
-                    if value is None:
-                        value = trainable_params.orchestrator_config.failed_metric_value
-                    else:
-                        value = value.value
-
-                    final_results[trainable_params.target_metric] = value
-                else:
-                    raise ValueError(
-                        f"Ambiguous virtual target metric provided - matches multiple observed properties. "
-                        f"{[p.identifier for p in properties]}"
-                    )
-            else:
-                log.warning(
-                    f"{trainable_params.target_metric} is a valid virtual property name "
-                    f"however no experiment measured an underlying property with the required identifier. "
-                    f"Will set value of {trainable_params.target_metric} for {entity.identifier} to { trainable_params.orchestrator_config.failed_metric_value}"
-                )
-
-                final_results[trainable_params.target_metric] = (
-                    trainable_params.orchestrator_config.failed_metric_value
-                )
-    else:
-        # We use the last result
-        final_results[trainable_params.target_metric] = allResults[
-            trainable_params.target_metric
-        ][-1]
-
-    # Add non target metrics to final results - we also skip the base property of a virtual property
-    skip_metrics = [trainable_params.target_metric]
-    if virtual_property:
-        skip_metrics.append(
-            virtual_property.baseObservedProperty.targetProperty.identifier
-        )
+    # Add non-target metrics to final results in the same format - skip any already handled
+    skip_metrics = list(target_metrics)
     for k, v in allResults.items():
         if k not in skip_metrics:
-            final_results[k] = allResults[k][-1]
-
+            final_results[k] = v[-1]
     return final_results
 
 
 class TuneOutput(NamedTuple):
-
     result: ray.tune.Result
     exit_state: OperationExitStateEnum
     error: str = None
@@ -438,7 +526,9 @@ class TuneOutput(NamedTuple):
 
 @ray.remote
 def tune(
-    search_space, config: RayTuneConfiguration, parameters: OrchTrainableParameters
+    search_space: dict,
+    config: RayTuneConfiguration,
+    parameters: OrchTrainableParameters,
 ) -> TuneOutput:
     """ "
     Parameters:
@@ -494,7 +584,7 @@ def tune(
             total_size=total_size,
         )
 
-    parameters.target_metric = ray_tune_config.metric
+    parameters.target_metric = ray_tune_config.metric  # still supports str or list
 
     ## LhuSampler requires entity space
     if isinstance(ray_tune_config.search_alg, LhuSampler):
@@ -535,7 +625,7 @@ def tune(
     if failed_trials:
         # The type of error is Exception but
         error: ray.exceptions.RayTaskError = failed_trials[0].error
-        error = str(error.cause) if error.cause else str(error)
+        error = str(error.cause) if getattr(error, "cause", None) else str(error)
         log.debug(f"Error is {error}")
 
     operation_status = (
@@ -551,7 +641,9 @@ def tune(
     )
 
 
-def property_domain_to_ray_distribution(domain: PropertyDomain):
+def property_domain_to_ray_distribution(
+    domain: PropertyDomain,
+) -> "Domain":
     # Later we can use sample_from to support any distribution
 
     from orchestrator.schema.domain import ProbabilityFunctionsEnum, VariableTypeEnum
@@ -610,9 +702,58 @@ def property_domain_to_ray_distribution(domain: PropertyDomain):
     return retval
 
 
+def _validate_points_to_evaluate(
+    points_to_evaluate: list[dict] | None,
+    entity_space: EntitySpaceRepresentation,
+) -> None:
+    """Validate that each point in points_to_evaluate matches the entity space.
+
+    Each point must include all constitutive properties with values in their domains.
+    Extra properties are not allowed. Raises ValueError on first invalid point.
+
+    Args:
+        points_to_evaluate: List of point dicts from search_alg params, or None.
+        entity_space: The discovery space's entity space to validate against.
+
+    Raises:
+        ValueError: If any point is missing properties, has extra properties, or
+            has values outside the constitutive property domains.
+    """
+    if not points_to_evaluate:
+        return
+
+    space_property_ids = {cp.identifier for cp in entity_space.constitutiveProperties}
+
+    for i, point in enumerate(points_to_evaluate):
+        if not isinstance(point, dict):
+            raise ValueError(
+                f"points_to_evaluate[{i}] must be a dict of constitutive property "
+                f"id: value pairs, got {type(point).__name__}"
+            )
+        if not entity_space.isPointInSpace(point, allow_partial_matches=False):
+            point_ids = set(point.keys())
+            missing = space_property_ids - point_ids
+            extra = point_ids - space_property_ids
+            parts = []
+            if missing:
+                parts.append(f"missing properties: {sorted(missing)}")
+            if extra:
+                parts.append(f"extra properties not in space: {sorted(extra)}")
+            if not parts:
+                parts.append(
+                    "one or more values are not in the domain of their "
+                    "constitutive property"
+                )
+            raise ValueError(
+                f"points_to_evaluate[{i}] is invalid for this discovery space: {', '.join(parts)}. "
+                f"Space constitutive properties: {sorted(space_property_ids)}. "
+                f"Point keys: {sorted(point_ids)}."
+            )
+
+
 def search_space_from_explicit_entity_space(
     entitySpace: EntitySpaceRepresentation,
-):
+) -> dict:
     """Returns a ray tune search space dictionary from an explicit entity space"""
 
     space = {}
@@ -622,30 +763,12 @@ def search_space_from_explicit_entity_space(
     return space
 
 
-@ray.remote
-class RayTune(Search):
+@explore_operation
+class RayTune(Explore):
     """Uses raytune optimization algorithm to search through entities in a space"""
 
     @classmethod
-    def defaultOperationParameters(
-        cls,
-    ) -> RayTuneConfiguration:
-
-        return RayTuneConfiguration(
-            tuneConfig=OrchTuneConfig(
-                metric="wallclock_time", search_alg=OrchSearchAlgorithm(name="bayesopt")
-            ),
-            runtimeConfig=OrchRunConfig(),
-        )
-
-    @classmethod
-    def validateOperationParameters(cls, parameters) -> RayTuneConfiguration:
-
-        return RayTuneConfiguration.model_validate(parameters)
-
-    @classmethod
-    def description(cls):
-
+    def description(cls) -> str:
         return """RayTune provides capabilities for sampling points in an entity space and applying
                measurements to them via optimization algorithms.
 
@@ -659,10 +782,10 @@ class RayTune(Search):
         self,
         operationActorName: str,
         namespace: str,
-        state: DiscoverySpaceManager,
+        discovery_space_manager: DiscoverySpaceManager,
         actuators: dict[str, "orchestrator.modules.actuators.base.ActuatorBase"],
         params: dict | None = None,
-    ):
+    ) -> None:
         import os
 
         enable_ray_actor_coverage("ado_ray_tune")
@@ -676,40 +799,36 @@ class RayTune(Search):
 
         self.params = RayTuneConfiguration(**params)
 
-        self.actuators = actuators
         self._entitiesSubmitted = 0
         self._finishedMeasurements = {}
         self._requestIndex = 0
         self.received_critical_error_notification = False
         self.criticalError = None  # Will store the critical error if we receive one
 
-        # Sets state, actorName ivars and subscribes to the state
         super().__init__(
             operationActorName=operationActorName,
             namespace=namespace,
-            state=state,
+            discovery_space_manager=discovery_space_manager,
             actuators=actuators,
         )
 
-    def onUpdate(self, measurementRequest: MeasurementRequest):
+    def onUpdate(self, measurementRequest: MeasurementRequest) -> None:
         self._finishedMeasurements[measurementRequest.requestid] = measurementRequest
 
-    def onCompleted(self):
+    def onCompleted(self) -> None:
         pass
 
-    def onError(self, error: Exception):
-
+    def onError(self, error: Exception) -> None:
         self.criticalError = error
         self.received_critical_error_notification = True
 
     def isCriticalError(self) -> bool:
-
         return self.received_critical_error_notification
 
-    def isRequestCompleted(self, requestid) -> bool:
+    def isRequestCompleted(self, requestid: str) -> bool:
         return self._finishedMeasurements.get(requestid) is not None
 
-    def getRequest(self, requestid) -> MeasurementRequest:
+    def getRequest(self, requestid: str) -> MeasurementRequest:
         return self._finishedMeasurements.get(requestid)
 
     def getNextRequestIndex(self) -> int:
@@ -718,22 +837,40 @@ class RayTune(Search):
 
         return retval
 
-    async def run(self):
-
+    async def run(self) -> OperationOutput:
         try:
             # noinspection PyUnresolvedReferences
             entity_space = (
-                await self.state.entitySpace.remote()
+                await self.ds_manager.entitySpace.remote()
             )  # type: EntitySpaceRepresentation
             # noinspection PyUnresolvedReferences
             measurement_space = (
-                await self.state.measurementSpace.remote()
+                await self.ds_manager.measurementSpace.remote()
             )  # type: MeasurementSpace
 
-            if measurement_space.propertyWithIdentifierInSpace(
-                self.params.tuneConfig.metric
-            ):
+            metric_or_metrics = self.params.tuneConfig.metric
+            metric_mode = self.params.orchestratorConfig.metric_format
 
+            # Validate metrics match the configured mode
+            metrics_to_check = (
+                metric_or_metrics
+                if isinstance(metric_or_metrics, list)
+                else [metric_or_metrics]
+            )
+
+            metrics_valid = all(
+                measurement_space.propertyWithIdentifierInSpace(m, format=metric_mode)
+                for m in metrics_to_check
+            )
+
+            if not metrics_valid:
+                error_message = (
+                    f"Metric(s) {metric_or_metrics} not found as {metric_mode} "
+                    f"properties in measurement space"
+                )
+                self.log.error(error_message)
+
+            if metrics_valid:
                 internal_parameters = OrchTrainableParameters(
                     operation_id=self.operationIdentifier(),
                     ray_tune_actor_name=self.actorName,
@@ -741,7 +878,7 @@ class RayTune(Search):
                     measurement_space=measurement_space,
                     entity_space=entity_space,
                     actuators=self.actuators,
-                    state=self.state,
+                    state=self.ds_manager,
                     orchestrator_config=self.params.orchestratorConfig,
                     target_metric=self.params.tuneConfig.metric,
                     debugging=False,
@@ -752,6 +889,13 @@ class RayTune(Search):
                 search_space = search_space_from_explicit_entity_space(entity_space)
 
                 self.log.debug(search_space)
+
+                _validate_points_to_evaluate(
+                    points_to_evaluate=self.params.tuneConfig.search_alg.params.get(
+                        "points_to_evaluate"
+                    ),
+                    entity_space=entity_space,
+                )
 
                 # Create the tune instance
 
@@ -764,7 +908,7 @@ class RayTune(Search):
                 result_dict = {
                     "config": output.result.config,
                     "metrics": output.result.metrics,
-                    "error": output.result.error if output.result.error else None,
+                    "error": output.result.error or None,
                 }
                 resources = [
                     DataContainerResource(
@@ -808,9 +952,7 @@ class RayTune(Search):
             else:
                 operation_output = OperationOutput(
                     exitStatus=OperationResourceStatus(
-                        message=f"Ray Tune operation did not start. "
-                        f"Requested tune metric {self.params.tuneConfig.metric} is not a target, observed or virtual "
-                        f"property of the measurement space.",
+                        message=f"Ray Tune operation did not start. {error_message}",
                         exit_state=OperationExitStateEnum.FAIL,
                         event=OperationResourceEventEnum.FINISHED,
                     ),
@@ -825,29 +967,36 @@ class RayTune(Search):
             )
 
         # noinspection PyUnresolvedReferences
-        self.state.unsubscribeFromUpdates.remote(subscriberName=self.actorName)
+        self.ds_manager.unsubscribeFromUpdates.remote(subscriberName=self.actorName)
 
         return operation_output
 
-    def numberEntitiesSampled(self):
+    def numberEntitiesSampled(self) -> int:
         return self._requestIndex
 
-    def numberMeasurementsRequested(self):
+    def numberMeasurementsRequested(self) -> int:
         # FIXME: This is not correct. Its request*experiments per entity
         return self._requestIndex
 
-    def operationIdentifier(self):
-        return f"{self.__class__.operatorIdentifier()}-{self.params.tuneConfig.search_alg.name}-{self.runid}"
+    def operationIdentifier(self) -> str:
+        return f"{self.__class__.operator_metadata().operatorIdentifier}-{self.params.tuneConfig.search_alg.name}-{self.runid}"
 
     @classmethod
-    def operatorIdentifier(cls):
+    def operator_metadata(cls) -> OperatorMetadata:
+        """Returns operator metadata for the ray_tune explore operator."""
         from importlib.metadata import version
 
-        version = version("ado-core")
-
-        return f"raytune-{version}"
-
-    @classmethod
-    def operationType(cls) -> DiscoveryOperationEnum:
-
-        return DiscoveryOperationEnum.SEARCH
+        return OperatorMetadata(
+            name="ray_tune",
+            version=version("ado-ray-tune"),
+            description=cls.description(),
+            configuration_model=RayTuneConfiguration,
+            example_configuration=RayTuneConfiguration(
+                tuneConfig=OrchTuneConfig(
+                    metric="wallclock_time",
+                    search_alg=OrchSearchAlgorithm(name="bayesopt"),
+                ),
+                runtimeConfig=OrchRunConfig(),
+            ),
+            type=DiscoveryOperationEnum.SEARCH,
+        )

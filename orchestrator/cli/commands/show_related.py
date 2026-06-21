@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import typing
@@ -10,7 +10,6 @@ from orchestrator.cli.exceptions.handlers import (
     handle_no_related_resource,
     handle_resource_does_not_exist,
 )
-from orchestrator.cli.models.choice import HiddenPluralChoice
 from orchestrator.cli.models.parameters import AdoShowRelatedCommandParameters
 from orchestrator.cli.models.types import AdoShowRelatedSupportedResourceTypes
 from orchestrator.cli.resources.actuator_configuration.show_related import (
@@ -29,6 +28,7 @@ from orchestrator.cli.resources.sample_store.show_related import (
     show_resources_related_to_sample_store,
 )
 from orchestrator.cli.utils.generic.common import get_effective_resource_id
+from orchestrator.cli.utils.input.parsers import enum_choice_with_plural_parser
 from orchestrator.cli.utils.output.prints import ERROR, console_print
 from orchestrator.metastore.base import (
     NoRelatedResourcesError,
@@ -47,7 +47,8 @@ def show_related_for_resources(
             ...,
             help="The kind of the resource to show related resources for.",
             show_default=False,
-            click_type=HiddenPluralChoice(AdoShowRelatedSupportedResourceTypes),
+            parser=enum_choice_with_plural_parser(AdoShowRelatedSupportedResourceTypes),
+            metavar=f"[{'|'.join(m.value for m in AdoShowRelatedSupportedResourceTypes)}]",
         ),
     ],
     resource_id: Annotated[
@@ -66,27 +67,19 @@ def show_related_for_resources(
             show_default=False,
         ),
     ] = False,
-):
+) -> None:
     """
     Show resources directly (one-hop) related to the requested resource, grouped by type.
 
     See https://ibm.github.io/ado/getting-started/ado/#ado-show-related
     for detailed documentation and examples.
 
-
-
     Examples:
 
-
-
     # Show the resources related to a space
-
     ado show related space <space-id>
 
-
-
     # Show the resources related to the latest space
-
     ado show related space --use-latest
     """
     ado_configuration: AdoConfiguration = ctx.obj
@@ -102,7 +95,7 @@ def show_related_for_resources(
         resource_id = get_effective_resource_id(
             explicit_resource_id=resource_id,
             resource_type=resource_type.value,
-            ado_configuration=ado_configuration,
+            project_context=ado_configuration.project_context,
         )
 
     parameters = AdoShowRelatedCommandParameters(
@@ -129,7 +122,7 @@ def show_related_for_resources(
         )
 
 
-def register_show_related_command(app: typer.Typer):
+def register_show_related_command(app: typer.Typer) -> None:
     app.command(
         name="related",
         no_args_is_help=True,

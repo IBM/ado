@@ -1,12 +1,10 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import asyncio
 import logging
 import random
 import uuid
-
-import ray
 
 import orchestrator.modules.actuators.catalog
 import orchestrator.schema.property_value
@@ -28,12 +26,12 @@ configure_logging()
 
 async def mock_experiment_wait(
     request: MeasurementRequest, stateUpdateQueue: MeasurementQueue
-):
+) -> None:
     import functools
 
     import numpy as np
 
-    await asyncio.sleep(np.random.randint(1, 5))
+    await asyncio.sleep(np.random.default_rng().integers(1, 5))
 
     numberSuccessfulMeasurements = functools.reduce(
         lambda x, y: x + y,
@@ -49,16 +47,15 @@ async def mock_experiment_wait(
     stateUpdateQueue.put_nowait(request)
 
 
-@ray.remote
 class MockActuator(ActuatorBase):
-    identifier = "mock"
-
     """A actuator class for testing
 
     Will make "random" measurements of any requested properties and submit them directly
     to StateUpdatesQueue"""
 
-    def __init__(self, queue, params=None):
+    identifier = "mock"
+
+    def __init__(self, queue: MeasurementQueue, params: dict | None = None) -> None:
 
         enable_ray_actor_coverage("mock")
         super().__init__(queue=queue, params=params)
@@ -67,13 +64,13 @@ class MockActuator(ActuatorBase):
         self._catalog = orchestrator.modules.actuators.catalog.ExperimentCatalog()
         self.running_tasks = set()
 
-    async def submit(
+    def submit(
         self,
         entities: list[Entity],
         experimentReference: ExperimentReference,
         requesterid: str,
         requestIndex: int,
-    ):
+    ) -> list[str]:
 
         self.log.info(
             f"Remote actuator submitting measurement of {[e.identifier for e in entities]} by {experimentReference}"
@@ -108,7 +105,7 @@ class MockActuator(ActuatorBase):
         measurement_results = []
         for entity in entities:
 
-            if random.randint(0, 100) < failRate:
+            if random.randint(0, 100) < failRate:  # noqa: S311 - not crypto purposes
                 measurement_result = InvalidMeasurementResult(
                     entityIdentifier=entity.identifier,
                     experimentReference=request.experimentReference,
@@ -120,7 +117,9 @@ class MockActuator(ActuatorBase):
                     self.log.debug(f"Creating mock measured value of {op} for {entity}")
                     # Create fake values for each property in the experiment
                     value = ObservedPropertyValue(
-                        value=random.randint(0, 1000),
+                        value=random.randint(  # noqa: S311 - not crypto purposes
+                            0, 1000
+                        ),
                         property=op,
                         valueType=orchestrator.schema.property_value.ValueTypeEnum.NUMERIC_VALUE_TYPE,
                     )

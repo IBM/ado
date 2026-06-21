@@ -1,11 +1,16 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import enum
 import logging
+import typing
+from typing import Annotated
 
 import pydantic
 from pydantic import ConfigDict
+
+if typing.TYPE_CHECKING:
+    from types import ModuleType
 
 moduleLog = logging.getLogger("module")
 
@@ -24,36 +29,45 @@ class ModuleConf(pydantic.BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    moduleType: ModuleTypeEnum = pydantic.Field(
-        description="The type of resource the module contains"
-    )
-    moduleName: str | None = pydantic.Field(
-        default=None,
-        validate_default=True,
-        description="The name or module path of the python module "
-        "with the resource. If None a guess will be made based on the type",
-    )
-    modulePath: str = pydantic.Field(
-        default=".",
-        description="The location of the module on filesystem. Required if its not in sys.path",
-    )
-    moduleClass: str | None = pydantic.Field(
-        default=None,
-        validate_default=True,
-        description="A class in the module that provides the resource. "
-        "Some module may not supply resources in a class. "
-        "If None a guess will be made based on moduleType",
-    )
-    moduleFunction: str | None = pydantic.Field(
-        default=None,
-        validate_default=True,
-        description="The function for the function actuators.",
-    )
+    moduleType: Annotated[
+        ModuleTypeEnum,
+        pydantic.Field(description="The type of resource the module contains"),
+    ]
+    moduleName: Annotated[
+        str | None,
+        pydantic.Field(
+            validate_default=True,
+            description="The name or module path of the python module "
+            "with the resource. If None a guess will be made based on the type",
+        ),
+    ] = None
+    modulePath: Annotated[
+        str,
+        pydantic.Field(
+            description="The location of the module on filesystem. Required if its not in sys.path"
+        ),
+    ] = "."
+    moduleClass: Annotated[
+        str | None,
+        pydantic.Field(
+            validate_default=True,
+            description="A class in the module that provides the resource. "
+            "Some module may not supply resources in a class. "
+            "If None a guess will be made based on moduleType",
+        ),
+    ] = None
+    moduleFunction: Annotated[
+        str | None,
+        pydantic.Field(
+            validate_default=True,
+            description="The function for the function actuators.",
+        ),
+    ] = None
 
     @pydantic.field_validator("moduleName")
     def set_default_module_name_for_type(
-        cls, value, values: "pydantic.FieldValidationInfo"
-    ):
+        cls, value: str | None, values: "pydantic.FieldValidationInfo"
+    ) -> str | None:
 
         if value is None:
             if values.data.get("moduleType") == ModuleTypeEnum.OPERATION:
@@ -66,7 +80,9 @@ class ModuleConf(pydantic.BaseModel):
         return value
 
     @pydantic.field_validator("moduleClass")
-    def set_default_class_for_type(cls, value, values: "pydantic.FieldValidationInfo"):
+    def set_default_class_for_type(
+        cls, value: str | None, values: "pydantic.FieldValidationInfo"
+    ) -> str | None:
 
         if value is None:
             if values.data.get("moduleType") == ModuleTypeEnum.OPERATION:
@@ -76,7 +92,7 @@ class ModuleConf(pydantic.BaseModel):
 
         return value
 
-    def __str__(self):
+    def __str__(self) -> str:
 
         description = f"{self.moduleType}:"
         if self.moduleClass:
@@ -89,7 +105,7 @@ class ModuleConf(pydantic.BaseModel):
         return description
 
 
-def load_module(conf: ModuleConf):
+def load_module(conf: ModuleConf) -> "ModuleType":
     """Loads a module and returns the module
 
     Params:
@@ -148,7 +164,7 @@ def load_module(conf: ModuleConf):
     return sys.modules[conf.moduleName]
 
 
-def load_module_class_or_function(conf: ModuleConf):
+def load_module_class_or_function(conf: ModuleConf) -> type | typing.Callable:
     """Loads a module and returns the class or function
 
     Params:
@@ -164,7 +180,7 @@ def load_module_class_or_function(conf: ModuleConf):
 
     """
 
-    attribute = conf.moduleClass if conf.moduleClass else conf.moduleFunction
+    attribute = conf.moduleClass or conf.moduleFunction
     try:
         retval = getattr(load_module(conf), attribute)
     except AttributeError as error:

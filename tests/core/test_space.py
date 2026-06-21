@@ -1,17 +1,31 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import datetime
 import re
+from collections.abc import Callable
 
 import pytest
 import yaml
 
 import orchestrator.core
+from orchestrator.core import DiscoverySpaceResource
 from orchestrator.core.discoveryspace.config import DiscoverySpaceConfiguration
 from orchestrator.core.discoveryspace.space import (
     DiscoverySpace,
     SpaceInconsistencyError,
+)
+from orchestrator.core.operation.resource import (
+    OperationResource,
+    OperationResourceEventEnum,
+    OperationResourceStatus,
+)
+from orchestrator.core.resources import CoreResourceKinds
+from orchestrator.core.samplestore.base import ActiveSampleStore
+from orchestrator.core.samplestore.config import (
+    SampleStoreConfiguration,
+    SampleStoreModuleConf,
+    SampleStoreSpecification,
 )
 from orchestrator.metastore.project import ProjectContext
 from orchestrator.modules.actuators.registry import ActuatorRegistry
@@ -25,7 +39,9 @@ from orchestrator.schema.reference import (
 )
 
 
-def test_discovery_space(pfas_space, pfas_space_configuration):
+def test_discovery_space(
+    pfas_space: DiscoverySpace, pfas_space_configuration: DiscoverySpaceConfiguration
+) -> None:
     assert not pfas_space.sample_store.isPassive
 
     # Since discovery_space was created using a non-builtin sample store we can't
@@ -40,11 +56,10 @@ def test_discovery_space(pfas_space, pfas_space_configuration):
     )
 
 
-def test_space_describe(pfas_space):
-    # Try pretty print
-    from IPython.lib import pretty
+def test_space_describe(pfas_space: DiscoverySpace) -> None:
+    from rich.console import Console
 
-    print(pretty.pretty(pfas_space))
+    Console().print(pfas_space)
 
     assert True
 
@@ -53,13 +68,11 @@ def test_discovery_space_with_parameterized_experiments(
     parameterized_references: list[ExperimentReference],
     valid_ado_project_context: ProjectContext,
     global_registry: ActuatorRegistry,
-    create_sample_store,
-):
+    create_sample_store: Callable[[SampleStoreConfiguration], ActiveSampleStore],
+) -> None:
 
     from orchestrator.core.samplestore.config import (
         SampleStoreConfiguration,
-        SampleStoreModuleConf,
-        SampleStoreSpecification,
     )
 
     ms = MeasurementSpace.measurementSpaceFromExperimentReferences(
@@ -135,9 +148,9 @@ def test_discovery_space_with_parameterized_experiments(
 #     assert table.size != 0
 #     assert "identifier" in table.columns
 @pytest.mark.xfail
-def test_discoveryspace_with_replay_actuator_and_references_pretty(
-    discovery_space_resource,
-):
+def test_discoveryspace_with_replay_actuator_and_references_rich_print(
+    discovery_space_resource: DiscoverySpaceResource,
+) -> None:
 
     ### This is expected to fail
     # - One experiment uses "replay" actuator which means it is external and defined by a samplestore
@@ -146,23 +159,25 @@ def test_discoveryspace_with_replay_actuator_and_references_pretty(
     # Because of the first tbere is no definition (the discoveryspace resource does not cause the samplestore to loaded - this requires creating the space)
     # I'm not sure if there is a way to solve this
 
-    from IPython.lib.pretty import pretty
+    from rich.console import Console
 
-    assert hasattr(discovery_space_resource, "_repr_pretty_")
-    pretty(discovery_space_resource)
-
-
-def test_discoveryspace_with_normal_actuator_pretty(
-    discovery_space_resource_no_replay,
-):
-
-    from IPython.lib.pretty import pretty
-
-    assert hasattr(discovery_space_resource_no_replay, "_repr_pretty_")
-    pretty(discovery_space_resource_no_replay)
+    assert hasattr(discovery_space_resource, "__rich__")
+    Console().print(discovery_space_resource)
 
 
-def test_discovery_space_resource(discovery_space_resource):
+def test_discoveryspace_with_normal_actuator_rich_print(
+    discovery_space_resource_no_replay: DiscoverySpaceResource,
+) -> None:
+
+    from rich.console import Console
+
+    assert hasattr(discovery_space_resource_no_replay, "__rich__")
+    Console().print(discovery_space_resource_no_replay)
+
+
+def test_discovery_space_resource(
+    discovery_space_resource: DiscoverySpaceResource,
+) -> None:
 
     assert discovery_space_resource.identifier is not None
     assert discovery_space_resource.identifier == "test_space"
@@ -182,7 +197,9 @@ def test_discovery_space_resource(discovery_space_resource):
     assert len(discovery_space_resource.status) == 1
 
 
-def test_discovery_space_config_file_valid(valid_discovery_space_config_file):
+def test_discovery_space_config_file_valid(
+    valid_discovery_space_config_file: str,
+) -> None:
     import pathlib
 
     valid_discovery_space_config_file = pathlib.Path(valid_discovery_space_config_file)
@@ -192,9 +209,9 @@ def test_discovery_space_config_file_valid(valid_discovery_space_config_file):
 
 
 def test_discovery_space_config_experiment_field_conversion_parameterized(
-    measurement_space_from_multiple_parameterized_experiments,
-    global_registry,
-):
+    measurement_space_from_multiple_parameterized_experiments: MeasurementSpace,
+    global_registry: ActuatorRegistry,
+) -> None:
 
     es = (
         measurement_space_from_multiple_parameterized_experiments.compatibleEntitySpace()
@@ -229,8 +246,9 @@ def test_discovery_space_config_experiment_field_conversion_parameterized(
 
 
 def test_discovery_space_config_experiment_field_conversion(
-    measurement_space_from_discovery_configuration, global_registry
-):
+    measurement_space_from_discovery_configuration: MeasurementSpace,
+    global_registry: ActuatorRegistry,
+) -> None:
     ms = measurement_space_from_discovery_configuration
     es = ms.compatibleEntitySpace()
 
@@ -263,26 +281,132 @@ def test_discovery_space_config_experiment_field_conversion(
     assert config_copy.convert_experiments_to_reference_list() == ds_config
 
 
-def test_sampled_entities(ml_multi_cloud_space):
+def test_sampled_entities(ml_multi_cloud_space: DiscoverySpace) -> None:
 
     assert (len(ml_multi_cloud_space.sampledEntities())) == 0
 
 
-def test_measured_entities_table(ml_multi_cloud_space):
+def test_measured_entities_table(ml_multi_cloud_space: DiscoverySpace) -> None:
 
     assert ml_multi_cloud_space.measuredEntitiesTable().shape[0] == 0
 
 
-def test_matching_entities(ml_multi_cloud_space):
+def test_matching_entities(ml_multi_cloud_space: DiscoverySpace) -> None:
 
     assert (len(ml_multi_cloud_space.matchingEntities())) == 42
 
 
-def test_matching_entities_table(ml_multi_cloud_space):
+def test_matching_entities_table(ml_multi_cloud_space: DiscoverySpace) -> None:
 
     assert ml_multi_cloud_space.matchingEntitiesTable().shape[0] == 42
 
 
-def test_missing_entities_table(ml_multi_cloud_space):
+def test_missing_entities_table(ml_multi_cloud_space: DiscoverySpace) -> None:
 
     assert ml_multi_cloud_space.matchingEntitiesTable().shape[0] == 42
+
+
+def test_matching_entities_table_virtual_property_with_multiple_values(
+    ml_multi_cloud_space: DiscoverySpace,
+) -> None:
+    """Virtual property identifiers produce aggregated columns with scalar values for multi-valued properties."""
+    import numpy as np
+
+    from orchestrator.schema.virtual_property import PropertyAggregationMethodEnum
+
+    virtual_id = f"wallClockRuntime-{PropertyAggregationMethodEnum.mean.value}"
+
+    df_with_vp = ml_multi_cloud_space.matchingEntitiesTable(
+        property_type="target",
+        virtualPropertyIdentifiers=[virtual_id],
+    )
+
+    assert df_with_vp.shape[0] == 42
+    assert virtual_id in df_with_vp.columns
+    # Aggregated values should be scalar (not lists or None)
+    assert df_with_vp[virtual_id].dropna().apply(lambda x: np.isscalar(x)).all()
+
+
+def _operation_lifecycle_statuses(
+    operation: OperationResource,
+) -> list[OperationResourceStatus]:
+    return [
+        status
+        for status in operation.status
+        if status.event in OperationResourceEventEnum
+    ]
+
+
+def test_operation_context_success_lifecycle(pfas_space: DiscoverySpace) -> None:
+    """operation_context registers the operation and records STARTED then FINISHED/SUCCESS."""
+    from orchestrator.core.discoveryspace.space import (
+        SCRIPT_OPERATION_EXECUTION_LABEL,
+        SCRIPT_OPERATION_LABEL_KEY,
+    )
+    from orchestrator.core.operation.config import (
+        DiscoveryOperationEnum,
+        ScriptOperatorConf,
+    )
+    from orchestrator.core.operation.resource import (
+        OperationExitStateEnum,
+        OperationResource,
+        OperationResourceEventEnum,
+    )
+
+    with pfas_space.operation_context(
+        name="test-script",
+        description="Script operation for testing",
+        metadata={"labels": {"source": "test"}},
+    ) as operation_id:
+        assert operation_id.startswith("operation-script-test-script-")
+        assert operation_id in pfas_space._verified_operation_ids
+
+    operation = pfas_space.metadataStore.getResource(
+        identifier=operation_id,
+        kind=CoreResourceKinds.OPERATION,
+    )
+    assert isinstance(operation, OperationResource)
+    assert operation_id in pfas_space.operations["IDENTIFIER"].values
+    assert isinstance(operation.config.operation.module, ScriptOperatorConf)
+    assert (
+        operation.config.operation.module.operationType == DiscoveryOperationEnum.SEARCH
+    )
+    assert operation.operationType == DiscoveryOperationEnum.SEARCH
+    assert operation.config.metadata.description == "Script operation for testing"
+    assert operation.config.metadata.labels == {
+        SCRIPT_OPERATION_LABEL_KEY: SCRIPT_OPERATION_EXECUTION_LABEL,
+        "source": "test",
+    }
+
+    lifecycle_statuses = _operation_lifecycle_statuses(operation)
+    assert lifecycle_statuses[0].event == OperationResourceEventEnum.STARTED
+    assert lifecycle_statuses[-1].event == OperationResourceEventEnum.FINISHED
+    assert lifecycle_statuses[-1].exit_state == OperationExitStateEnum.SUCCESS
+
+
+def test_operation_context_failure_lifecycle(pfas_space: DiscoverySpace) -> None:
+    """operation_context records FINISHED/FAIL when the wrapped block raises."""
+    from orchestrator.core.operation.resource import (
+        OperationExitStateEnum,
+        OperationResource,
+        OperationResourceEventEnum,
+    )
+
+    failure_message = "Simulated script failure during operation_context lifecycle"
+
+    with (
+        pytest.raises(RuntimeError, match=re.escape(failure_message)),
+        pfas_space.operation_context(name="failing-script") as operation_id,
+    ):
+        raise RuntimeError(failure_message)
+
+    operation = pfas_space.metadataStore.getResource(
+        identifier=operation_id,
+        kind=CoreResourceKinds.OPERATION,
+    )
+    assert isinstance(operation, OperationResource)
+
+    lifecycle_statuses = _operation_lifecycle_statuses(operation)
+    assert lifecycle_statuses[0].event == OperationResourceEventEnum.STARTED
+    assert lifecycle_statuses[-1].event == OperationResourceEventEnum.FINISHED
+    assert lifecycle_statuses[-1].exit_state == OperationExitStateEnum.FAIL

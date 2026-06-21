@@ -20,11 +20,15 @@ from typing import Any
 
 import ado_actuators.sfttrainer.wrapper_fms_hf_tuning.constants as constants
 import ado_actuators.sfttrainer.wrapper_fms_hf_tuning.tuning_versions as tuning_versions
-import aim
 import torch
 import torch.distributed
 from aim.hugging_face import AimCallback
 from transformers import TrainerControl, TrainerState, TrainingArguments
+
+if typing.TYPE_CHECKING:
+    import aim
+    from torch.nn import Module
+    from transformers import PreTrainedModel
 
 
 def has_gathered_enough_samples(
@@ -133,7 +137,7 @@ def get_cuda_device_indices(cuda_visible_devices: str) -> list[int]:
 
 def calculate_gpu_power_percent(
     run_metrics: list[tuple[str, dict[str, int], list[float]]],
-):
+) -> list[tuple[str, dict[str, int], list[float]]]:
     """Calculates __system__gpu_power_percent using __system__gpu_power_watts and inserts it into existing run metrics
 
     Args:
@@ -200,7 +204,7 @@ class CustomAimCallback(AimCallback):
         aim_metadata: dict[str, Any] | None = None,
         stop_after_seconds: float = -1.0,
         auto_stop_method: constants.AutoStopMethod | None = None,
-    ):
+    ) -> None:
 
         self._additional_metrics = additional_metrics or {}
         self._aim_info_path = aim_info_path
@@ -226,7 +230,14 @@ class CustomAimCallback(AimCallback):
             capture_terminal_logs,
         )
 
-    def on_train_begin(self, args, state, control, model=None, **kwargs):
+    def on_train_begin(
+        self,
+        args: TrainingArguments,
+        state: TrainerState,
+        control: TrainerControl,
+        model: "PreTrainedModel | Module | None" = None,
+        **kwargs: Any,  # noqa: ANN401
+    ) -> None:
         super().on_train_begin(args, state, control, model, **kwargs)
 
         self._time_started = datetime.datetime.now()
@@ -247,8 +258,8 @@ class CustomAimCallback(AimCallback):
         args: TrainingArguments,
         state: TrainerState,
         control: TrainerControl,
-        **kwargs,
-    ):
+        **kwargs: Any,  # noqa: ANN401
+    ) -> None:
         self._optimization_step_started = datetime.datetime.now()
 
     def on_step_end(
@@ -256,8 +267,8 @@ class CustomAimCallback(AimCallback):
         args: TrainingArguments,
         state: TrainerState,
         control: TrainerControl,
-        **kwargs,
-    ):
+        **kwargs: Any,  # noqa: ANN401
+    ) -> None:
         super().on_step_end(args, state, control, **kwargs)
 
         CustomAimCallback.training_steps += 1
@@ -342,7 +353,13 @@ class CustomAimCallback(AimCallback):
             if control.should_training_stop:
                 print("All local-rank 0 workers agree to stop early")
 
-    def on_train_end(self, args, state, control, **kwargs):
+    def on_train_end(
+        self,
+        args: TrainingArguments,
+        state: TrainerState,
+        control: TrainerControl,
+        **kwargs: Any,  # noqa: ANN401
+    ) -> None:
         try:
             if self._aim_info_path and state.is_local_process_zero:
                 format_time = "%d%m%y-%H%M%S"
@@ -509,7 +526,7 @@ class CustomArgs:
     )
 
 
-def main():
+def main() -> None:
     """Utility method that invokes the main() method of sft_trainer.py, catches GPU OOM exceptions and logs them
     to the --aim_info_path JSON file as well as STDERR"""
     import json
@@ -529,7 +546,7 @@ def main():
 
     sys.argv = [sys.argv[0], *remaining_args]
 
-    custom_args = typing.cast(CustomArgs, custom_args)
+    custom_args = typing.cast("CustomArgs", custom_args)
 
     if custom_args.fms_hf_tuning_version is None:
         raise ValueError("must set --fms_hf_tuning_version")
@@ -553,7 +570,7 @@ def main():
         print("Could not construct measurement id due to", e, file=sys.stderr)
         measurement_id = "unknown/unknown"
 
-    def report_error(exception: Exception, warning: str, exception_type: str):
+    def report_error(exception: Exception, warning: str, exception_type: str) -> None:
         print(warning, file=sys.stderr)
         # Standard
         import traceback
@@ -564,7 +581,7 @@ def main():
         # VV: 'accelerate' injects this env-var
         if os.environ.get("RANK", ""):
             rank = os.environ["RANK"]
-            path = "_".join((custom_args.aim_info_path, rank))
+            path = f"{custom_args.aim_info_path}_{rank}"
         else:
             path = custom_args.aim_info_path
             rank = "?"
@@ -587,14 +604,14 @@ def main():
             file=sys.stderr,
         )
 
-    def report_oom(exception: Exception):
+    def report_oom(exception: Exception) -> None:
         return report_error(
             exception,
             warning="SFTTRAINER_EXCEPTION: OUT_OF_MEMORY",
             exception_type="OutOfGPUMemoryError",
         )
 
-    def report_nccl_error(exception: Exception):
+    def report_nccl_error(exception: Exception) -> None:
         return report_error(
             exception,
             warning="SFTTRAINER_EXCEPTION: NCCL_ERROR",
@@ -638,8 +655,7 @@ def main():
             in str(e).lower()
         ):
             report_oom(e)
-            # elif "NCCL Error".lower() in str(e).lower():
-            #     report_nccl_error(e)
+
         else:
             report_error(
                 e,

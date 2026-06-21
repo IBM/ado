@@ -1,10 +1,14 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
+import typing
+
 import ray
 from ray.actor import ActorHandle
 
-from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
 from orchestrator.modules.actuators.registry import ActuatorRegistry
+
+if typing.TYPE_CHECKING:
+    from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
 
 
 @ray.remote
@@ -18,7 +22,7 @@ class ActuatorDictionaryActor:
 
     actuators_actors: dict[str, ActorHandle]
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.actuators_actors = {}
 
     def get_actuator_actor(self, actuator_id: str) -> ActorHandle:
@@ -40,9 +44,11 @@ class ActuatorDictionaryActor:
             shared_queue: MeasurementQueue = ray.get_actor(
                 name="QueueMonitorActor", namespace="api"
             ).get_queue.remote()
+            actuator_class = ActuatorRegistry().actuatorForIdentifier(
+                actuatorid=actuator_id
+            )
             self.actuators_actors[actuator_id] = (
-                ActuatorRegistry()
-                .actuatorForIdentifier(actuatorid=actuator_id)
+                ray.remote(actuator_class)
                 .options(name=actuator_id, namespace="api", get_if_exists=True)
                 .remote(queue=shared_queue, params=None)
             )

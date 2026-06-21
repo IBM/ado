@@ -1,13 +1,13 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import copy
 import typing
 
-from orchestrator.modules.actuators.catalog import ExperimentCatalog
-
 from . import common
 
+if typing.TYPE_CHECKING:
+    from orchestrator.modules.actuators.catalog import ExperimentCatalog
 default_target_modules = {
     "smollm2-135m": ["q_proj", "v_proj"],
     "granite-3b-code-base-128k": ["q_proj", "v_proj"],
@@ -49,10 +49,11 @@ default_target_modules = {
     "granite-3.1-3b-a800m-instruct": ["q_proj", "v_proj"],
     "granite-vision-3.2-2b": ["q_proj", "v_proj"],
     "llava-v1.6-mistral-7b": ["q_proj", "v_proj"],
+    "granite-3.3-8b": ["q_proj", "v_proj"],
 }
 
 
-def add_experiments(catalog: "ExperimentCatalog"):
+def add_experiments(catalog: "ExperimentCatalog") -> None:
 
     method = "lora"
     version = "1.0.0"

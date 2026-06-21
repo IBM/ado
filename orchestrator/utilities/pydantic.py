@@ -1,9 +1,22 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
-
+import re
 import typing
+from typing import Annotated, TypeVar
 
 import pydantic
+from pydantic import AfterValidator, BeforeValidator
+from pydantic_core import PydanticUseDefault
+
+
+def default_if_none(value: typing.Any) -> typing.Any:  # noqa: ANN401
+    if value is None:
+        raise PydanticUseDefault
+    return value
+
+
+T = TypeVar("T")
+Defaultable = Annotated[T, BeforeValidator(default_if_none)]
 
 
 def model_dict_representation_with_field_exclusions_for_custom_model_serializer(
@@ -45,3 +58,64 @@ def model_dict_representation_with_field_exclusions_for_custom_model_serializer(
             del dict_representation[field_name]
 
     return dict_representation
+
+
+rfc_1123_pattern = r"^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?$"
+rfc_1123_regex = re.compile(rfc_1123_pattern)
+
+
+def validate_rfc_1123(value: str | None) -> str | None:
+
+    if value is None:
+        return value
+
+    if len(value) == 0 or len(value) >= 64:
+        raise ValueError("The string must be between 1 and 63 characters")
+
+    if not rfc_1123_regex.match(value):
+        raise ValueError(
+            f"The string does not match RFC1123. Regex: {rfc_1123_pattern}"
+        )
+
+    return value
+
+
+ignore_plugin_validation_context: dict[str, bool] = {"ignore_plugin_validation": True}
+
+
+def ignore_plugin_validation(info: pydantic.ValidationInfo) -> bool:
+    """Return True when plugin registry validation should be skipped.
+
+    Args:
+        info: Pydantic validation info for the current validation step.
+
+    Returns:
+        True if the validation context requests skipping plugin validation.
+    """
+    return bool(info.context and info.context.get("ignore_plugin_validation"))
+
+
+def validate_pep440_version(value: str) -> str:
+    """Validate that *value* is a valid PEP 440 version string.
+
+    Args:
+        value: The version string to validate.
+
+    Returns:
+        The original version string unchanged.
+
+    Raises:
+        ValueError: If *value* is not a valid PEP 440 version string.
+    """
+    from packaging.version import InvalidVersion, Version
+
+    try:
+        Version(value)
+    except InvalidVersion as exc:
+        raise ValueError(
+            f"Version {value!r} is not a valid PEP 440 version string: {exc}"
+        ) from exc
+    return value
+
+
+Pep440VersionStr = Annotated[str, AfterValidator(validate_pep440_version)]

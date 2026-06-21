@@ -1,7 +1,8 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import pathlib
+from collections.abc import Callable
 
 import yaml
 from typer.testing import CliRunner
@@ -10,18 +11,29 @@ from orchestrator.cli.core.cli import app as ado
 from orchestrator.core.discoveryspace.config import DiscoverySpaceConfiguration
 
 
-def test_template_space(tmp_path: pathlib.Path, random_identifier):
+def test_template_space(
+    tmp_path: pathlib.Path, random_identifier: Callable[[], str]
+) -> None:
     runner = CliRunner()
     file_name = tmp_path / random_identifier()
     result = runner.invoke(
         ado,
-        ["--override-ado-app-dir", tmp_path, "template", "space", "-o", file_name],
+        [
+            "--override-ado-app-dir",
+            tmp_path,
+            "template",
+            "space",
+            "--output-file",
+            file_name,
+        ],
     )
     assert result.exit_code == 0
     assert f"Success! File saved as {file_name}" in result.output
 
 
-def test_template_space_from_experiment(tmp_path: pathlib.Path, random_identifier):
+def test_template_space_from_experiment(
+    tmp_path: pathlib.Path, random_identifier: Callable[[], str]
+) -> None:
     runner = CliRunner()
     file_name = tmp_path / random_identifier()
     result = runner.invoke(
@@ -33,7 +45,7 @@ def test_template_space_from_experiment(tmp_path: pathlib.Path, random_identifie
             "space",
             "--from-experiment",
             "peptide_mineralization",
-            "-o",
+            "--output-file",
             file_name,
         ],
     )

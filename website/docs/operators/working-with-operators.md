@@ -1,17 +1,17 @@
 <!-- markdownlint-disable code-block-style -->
-<!-- markdownlint-disable-next-line first-line-h1 -->
+<!-- markdownlint-disable first-line-h1 -->
+
 An `operator` is a code module that provides a capability to perform an
 `operation` on a `discoveryspace`. For example the `RandomWalk` operator
 provides the capability to perform a random walk `operation` on a
 `discoveryspace`.
 
-The pages in this section (see left hand nav menu) give details about some of
-the operators available in `ado`: what they are for, what they do and how to use
-them.
+The pages in this section give details about some of the operators available in
+`ado`: what they are for, what they do and how to use them.
 
 !!! info end
 
-    In addition, the [examples](../examples/examples.md) section contains worked
+    The [examples](../examples/examples.md) section contains worked
     examples of using some of these operators.
 
 ## `operator` types
@@ -39,17 +39,16 @@ ado get operators
 Example output:
 
 ```commandline
-                                       OPERATOR          TYPE
-1                       detect_anomalous_series  characterize
-0                                       profile  characterize
-2                                   random_walk       explore
-3                                      ray_tune       explore
-9                       export_to_llm_lakehouse        export
-8  integrate_and_export_to_llm_lakehouse_format        export
-4                                add_experiment        modify
-7              generate_representative_subspace        modify
-5                                learning_split        modify
-6                                      rifferla        modify
+┌───────┬─────────────────────────┬──────────────┐
+│ INDEX │ OPERATOR                │ TYPE         │
+├───────┼─────────────────────────┼──────────────┤
+│ 0     │ detect_anomalous_series │ characterize │
+│ 1     │ profile                 │ characterize │
+│ 2     │ trim                    │ characterize │
+│ 3     │ random_walk             │ explore      │
+│ 4     │ ray_tune                │ explore      │
+│ 5     │ rifferla                │ modify       │
+└───────┴─────────────────────────┴──────────────┘
 ```
 
 ## Using operators
@@ -64,7 +63,8 @@ Using an operator involves the following steps:
    - `ado create operation -f $YAML`
 4. Retrieve the results of the operation:
    - `ado show related $OPERATION_IDENTIFIER`
-   - in addition `ado show entities $OPERATION_IDENTIFIER` for explore operations
+   - in addition `ado show measurements $OPERATION_IDENTIFIER` for explore
+     operations
 
 These steps are covered in detail in [operations](../resources/operation.md).
 

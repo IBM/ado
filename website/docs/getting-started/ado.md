@@ -1,7 +1,8 @@
 <!-- markdownlint-disable code-block-style -->
 <!-- markdownlint-disable no-duplicate-heading -->
 <!-- markdownlint-disable ul-indent -->
-<!-- markdownlint-disable-next-line first-line-h1 -->
+<!-- markdownlint-disable first-line-h1 -->
+
 !!! note
 
     This page provides documentation for the `ado` CLI tool, which needs to be
@@ -31,8 +32,47 @@ ado [--context | -c <context-file.yaml>] \
 
 - `--context | -c` allows overriding the active context with one loaded from a
   file. This feature should only be used when running on remote Ray clusters.
-- `--log-level | -l` configures the logging level. This
-  does not affect child processes.
+- `--log-level | -l` configures the logging level. This does not affect child
+  processes.
+
+### Resource Type Shorthands
+
+Many ado CLI commands accept resource types as arguments. To make commands more
+concise, ado supports **shorthand aliases** for resource type names. You can use
+either the full name or the shorthand interchangeably in any command.
+
+#### Available Shorthands
+
+> [!WARNING]
+>
+> Shorthands are case-sensitive and must be lowercase.
+
+| Full Resource Type    | Shorthand | Example Usage                       |
+| --------------------- | --------- | ----------------------------------- |
+| actuatorconfiguration | ac        | `ado get ac`                        |
+| context               | ctx       | `ado delete ctx my-context`         |
+| datacontainer         | dcr       | `ado describe dcr container-123`    |
+| discoveryspace        | space     | `ado create space -f space.yaml`    |
+| experiment            | exp       | `ado get exp`                       |
+| measurementrequest    | request   | `ado get request`                   |
+| operation             | op        | `ado show details op operation-456` |
+| samplestore           | store     | `ado get store`                     |
+
+#### Usage Examples
+
+```shell
+# These commands are equivalent:
+ado get discoveryspace space-abc123
+ado get space space-abc123
+
+# These commands are equivalent:
+ado create actuatorconfiguration -f config.yaml
+ado create ac -f config.yaml
+
+# These commands are equivalent:
+ado delete operation op-xyz789
+ado delete op op-xyz789
+```
 
 ### ado context
 
@@ -49,8 +89,8 @@ ado context [CONTEXT_NAME]
 
 ##### Getting the current context
 
-Similar to `oc project`, users can see the name of the currently active
-context by running:
+Similar to `oc project`, users can see the name of the currently active context
+by running:
 
 ```shell
 ado context
@@ -58,20 +98,31 @@ ado context
 
 ##### Listing available contexts
 
-Similar to `oc projects`, users can list available contexts by
-running:
+Similar to `oc projects`, users can list available contexts by running:
 
 ```shell
 ado contexts
 ```
 
-The default context will also be printed out.
+It's also possible to output this information in multiple formats via the
+`-o/--output` flag:
+
+```shell
+# List context names only
+ado contexts -o name
+
+# Export contexts as YAML
+ado contexts -o yaml
+
+# Export contexts as JSON
+ado contexts -o json
+```
 
 ##### Switching between contexts
 
-To switch between the available contexts, specify the target context name
-to the `ado context` command. In this example we assume that the `my-context`
-context exists:
+To switch between the available contexts, specify the target context name to the
+`ado context` command. In this example we assume that the `my-context` context
+exists:
 
 ```shell
 ado context my-context
@@ -88,14 +139,18 @@ The complete syntax of the `ado create` command is as follows:
 ```shell
 ado create RESOURCE_TYPE [--file | -f <FILE.yaml>] \
                          [--set <jsonpath=json-value>] \
+                         [--with <resource=value>] \
                          [--new-sample-store] \
                          [--use-default-sample-store] [--dry-run]
 ```
 
 Where:
 
-- `RESOURCE_TYPE` is one of the supported resource types for `ado create`,
-  currently:
+- `RESOURCE_TYPE` is one of the supported resource types for `ado create`. See
+  [Resource Type Shorthands](#resource-type-shorthands) for shorthand aliases.
+  Currently supported:
+
+    <!-- prettier-ignore-start -->
 
     - _actuator_
     - _actuatorconfiguration_ (_ac_)
@@ -104,26 +159,29 @@ Where:
     - _samplestore_ (_store_)
     - _discoveryspace_ (_space_)
 
+    <!-- prettier-ignore-end -->
+
 - `--file` or `-f` is a path to the resource configuration file in YAML format.
   It is mandatory in all scenarios, except when running
   `ado create samplestore --new-sample-store`.
 - `--set` allows overriding fields in the provided resource configuration. It
   supports using JSONPath syntax. See the examples section for more information.
-- `--use-latest` allows reusing the previous identifier of a certain resource
-  kind. It is only supported for spaces and operations. The latest identifiers
-  are updated every time an `ado create` command is successful. The stored
-  identifiers are not per-context, meaning that, for example running
-  `ado create samplestore`, changing context, and running
-  `ado create --use-latest samplestore` will raise an error. Ignored if `--set`
-  is used.
+- `--with` enables you to create resources together with other resources they
+  depend on, or to reference existing resource identifiers during creation. For
+  example, you can create a space along with a sample store definition, or
+  create an operation together with an actuator configuration and a space
+  definition. See the Examples section for more details.
+- `--use-latest` allows reusing the latest identifier of a certain resource kind
+  from the current context's metastore. It is only supported for spaces and
+  operations during `ado create`. Ignored if `--with` is used.
 - `--new-sample-store` creates a new sample store. Only available when running
   `ado create` on `space` and `samplestore`. If running
   `ado create space --new-sample-store`, the `sampleStoreIdentifier` contained
   in the `DiscoverySpaceConfiguration` will be disregarded. It is ignored if
-  `--set` or `--use-latest` are used.
+  `--with` or `--use-latest` are used.
 - `--use-default-sample-store` uses the default sample store. Only available
   when running `ado create space`. Alias for
-  `--set sampleStoreIdentifier=default`. It is ignored if --set, --use-latest,
+  `--set sampleStoreIdentifier=default`. It is ignored if --with, --use-latest,
   or --new-sample-store are used.
 - `--dry-run` is an **optional** flag to only validate the resource
   configuration file provided and not actually creating the resource.
@@ -170,6 +228,18 @@ ado create space -f ds.yaml --new-sample-store
 ado create space -f ds.yaml --set "sampleStoreIdentifier=abcdef"
 ```
 
+Another option is to use:
+
+```shell
+ado create space -f ds.yaml --with store=abcdef
+```
+
+##### Create a space while providing a sample store definition
+
+```shell
+ado create space -f ds.yaml --with store=store_definition.yaml
+```
+
 ##### Create a space reusing the latest sample store identifier
 
 ```shell
@@ -190,15 +260,18 @@ The **ado** CLI provides the delete command to delete
 The complete syntax of the `ado delete` command is as follows:
 
 ```shell
-ado delete RESOURCE_TYPE RESOURCE_ID \
+ado delete RESOURCE_TYPE RESOURCE_ID [RESOURCE_ID ...] \
            [--force] \
            [--delete-local-db] [--no-delete-local-db]
 ```
 
 Where:
 
-- `RESOURCE_TYPE` is the type of resource you want to delete. Currently, the
-  only supported types are:
+- `RESOURCE_TYPE` is the type of resource you want to delete. See
+  [Resource Type Shorthands](#resource-type-shorthands) for shorthand aliases.
+  Currently supported:
+
+    <!-- prettier-ignore-start -->
 
     - _actuatorconfiguration_ (_ac_)
     - _context_ (_ctx_)
@@ -207,10 +280,20 @@ Where:
     - _samplestore_ (_store_)
     - _discoveryspace_ (_space_)
 
-- `RESOURCE_ID` is the unique identifier of the resource to delete.
+    <!-- prettier-ignore-end -->
+
+- `RESOURCE_ID` is the unique identifier of the resource to delete. Multiple
+  resource IDs can be provided to delete multiple resources of the same type in
+  a single command.
 - `--force` enables forced deletion of resources in the following cases:
+
+    <!-- prettier-ignore-start -->
+
     - When attempting to delete operations while other operations are executing.
     - When attempting to delete sample stores that still contain data.
+
+    <!-- prettier-ignore-end -->
+
 - When deleting a local context, users can specify the flags `--delete-local-db`
   or `--no-delete-local-db` to explicitly delete or preserve a local DB when
   deleting its related context. If neither of these flags are specified, the
@@ -230,16 +313,34 @@ ado delete context my-context
 ado delete context my-local-context --no-delete-local-db
 ```
 
-##### Deleting a space
+##### Deleting a single space
 
 ```shell
 ado delete space space-abc123-456def
 ```
 
+##### Deleting multiple operations
+
+```shell
+ado delete operation op-id-1 op-id-2 op-id-3
+```
+
+##### Deleting multiple operations with force flag
+
+```shell
+ado delete operation op-id-1 op-id-2 op-id-3 --force
+```
+
+##### Deleting multiple discovery spaces
+
+```shell
+ado delete space space-1 space-2 space-3
+```
+
 ### ado describe
 
-**ado** provides the `describe` command to retrieve readable information
-about resources.
+**ado** provides the `describe` command to retrieve readable information about
+resources.
 
 The complete syntax of the `ado describe` command is as follows:
 
@@ -250,18 +351,23 @@ ado describe RESOURCE_TYPE [RESOURCE_ID] [--file | -f <file.yaml>] \
 
 Where:
 
-- `RESOURCE_TYPE` is the type of resource you want to describe. Currently, the
-  supported resource types are:
+- `RESOURCE_TYPE` is the type of resource you want to describe. See
+  [Resource Type Shorthands](#resource-type-shorthands) for shorthand aliases.
+  Currently supported:
+
+    <!-- prettier-ignore-start -->
 
     - _experiment_
     - _datacontainer_ (_dcr_)
     - _discoveryspace_ (_space_)
 
+    <!-- prettier-ignore-end -->
+
 - `RESOURCE_ID` is the unique identifier of the resource to describe.
 - The `--file` (or `-f`) flag is **currently only available for spaces** and
   allows getting a description of the space, given a space configuration file.
 - `--use-latest` flag is **currently only available for spaces** and allows
-  describing the latest space created locally. It is not context aware.
+  describing the most recently created space from the current context.
 - `--actuator-id` (**optional**) can be used only when the resource type is
   experiment and is used to indicate what actuator the experiment belongs to.
 
@@ -276,18 +382,23 @@ ado describe space space-abc123-456def
 ### ado edit
 
 **ado** automatically stores metadata in the backend for some of the resources
-you can create. The fastest way to update these metadata is to use
-the `ado edit` command.
+you can create. The fastest way to update these metadata is to use the
+`ado edit` command.
 
 The complete syntax of the `ado edit` command is as follows:
 
 ```shell
-ado edit RESOURCE_TYPE RESOURCE_ID [--editor <NAME>]
+ado edit RESOURCE_TYPE RESOURCE_ID [-p | --patch <YAML>] \
+    [--patch-file <FILE>] [--editor <NAME>]
 ```
 
 Where:
 
-- `RESOURCE_TYPE` is the type of resource you want to edit. Supported types are:
+- `RESOURCE_TYPE` is the type of resource you want to edit. See
+  [Resource Type Shorthands](#resource-type-shorthands) for shorthand aliases.
+  Currently supported:
+
+    <!-- prettier-ignore-start -->
 
     - _actuatorconfiguration_ (_ac_)
     - _datacontainer_ (_dcr_)
@@ -295,16 +406,32 @@ Where:
     - _samplestore_ (_store_)
     - _discoveryspace_ (_space_)
 
+    <!-- prettier-ignore-end -->
+
 - `RESOURCE_ID` is the unique identifier of the resource to edit.
-- `--editor` is the name of the editor you want to use for editing metadata. It
-  must be one of the supported ones, which currently are:
+- `-p` / `--patch` is an optional inline YAML/JSON string for non-interactive
+  editing (similar to `oc` / `kubectl patch -p`). It is **merged** into the
+  resource's existing stored metadata using a one-level strategic update:
+  `labels` are merged as key–value maps; other top-level fields from the patch
+  replace the previous values. You can use a patch string **or** a file, not
+  both. When using `--patch`, the `--editor` flag is ignored.
+- `--patch-file` is an optional path to a YAML/JSON file with the same merge
+  behaviour as `--patch`. You may not use `--patch` and `--patch-file` together.
+  When using `--patch-file`, the `--editor` flag is ignored.
+- `--editor` is the name of the editor you want to use for **interactive**
+  editing of metadata (ignored when `--patch` or `--patch-file` is specified).
+  It must be one of the supported ones, which currently are:
 
-    - `vim` (_default_)
+    <!-- prettier-ignore-start -->
+
+    - `vim`
     - `vi`
-    - `nano`
+    - `nano` (_default_ if `ADO_EDITOR` is not set when using interactive edit)
 
-  Alternatively, you can also set the value for this flag by using the
-  environment variable `ADO_EDITOR`.
+    <!-- prettier-ignore-end -->
+
+For interactive mode, you can set the default editor with the `ADO_EDITOR`
+environment variable.
 
 #### Examples
 
@@ -326,6 +453,18 @@ ado edit space space-abc123-456def --editor nano
 ADO_EDITOR=nano ado edit space space-abc123-456def
 ```
 
+##### Merging metadata with an inline patch (non-interactive, oc-style)
+
+```shell
+ado edit space space-abc123-456def -p "labels: { team: front }"
+```
+
+##### Merging metadata from a file (non-interactive)
+
+```shell
+ado edit space space-abc123-456def --patch-file extra-metadata.yaml
+```
+
 ### ado get
 
 **ado** allows getting resources in a similar way to `kubectl`. Users can choose
@@ -335,8 +474,11 @@ restrict results to a single resource.
 The complete syntax of the `ado get` command is as follows:
 
 <!-- markdownlint-disable line-length -->
+
 ```shell
 ado get RESOURCE_TYPE [RESOURCE_ID] [--output | -o <default | yaml | json | config | raw>] \
+                                    [--output-file <path>] \
+                                    [--use-latest] \
                                     [--exclude-default | --no-exclude-default] \
                                     [--exclude-unset | --no-exclude-unset ] \
                                     [--exclude-none | --no-exclude-none ] \
@@ -350,33 +492,53 @@ ado get RESOURCE_TYPE [RESOURCE_ID] [--output | -o <default | yaml | json | conf
                                     [--from-sample-store <sample-store-id>] \
                                     [--from-space <space-id>] [--from-operation <operation-id>]
 ```
+
 <!-- markdownlint-enable line-length -->
 
 Where:
 
-- `RESOURCE_TYPE` is the type of resource you want to get. Currently, the only
-  supported types are:
+- `RESOURCE_TYPE` is the type of resource you want to get. See
+  [Resource Type Shorthands](#resource-type-shorthands) for shorthand aliases.
+  Currently supported:
+
+    <!-- prettier-ignore-start -->
 
     - _actuatorconfiguration_ (_ac_)
     - _actuator_
     - _context_ (_ctx_)
     - _datacontainer_ (_dcr_)
+    - _experiment_ (_exp_)
     - _operation_ (_op_)
     - _operator_
     - _samplestore_ (_store_)
     - _discoveryspace_ (_space_)
 
-- `RESOURCE_ID` is the optional unique identifier of the resource to get.
+    <!-- prettier-ignore-end -->
+
+- `RESOURCE_ID` is the optional unique identifier of the resource to get. If not
+  specified, all resources of the given type are returned (unless `--use-latest`
+  is used).
+- `--use-latest` retrieves the most recently created resource of the specified
+  type. This flag is ignored if a `RESOURCE_ID` is also provided (the explicit
+  ID takes precedence).
 - `--output` or `-o` determine the type of output that will be displayed:
 
-    - The `default` format shows the _identifier_, the _name_, and the _age_ of
+    <!-- prettier-ignore-start -->
+
+    - The `table` format shows the _identifier_, the _name_, and the _age_ of
       the matching resources.
+    - The `name` format outputs only the resource identifiers, one per line
+      (similar to `kubectl get -o name`).
     - The `yaml` format displays the full YAML document of the matching resources.
     - The `json` format displays the full JSON document of the matching resources.
     - The `config` format displays the `config` field of the matching resources.
     - The `raw` format displays the raw resource as stored in the database,
       performing no validation.
 
+    <!-- prettier-ignore-end -->
+
+- `--output-file` allows writing the output to a specified file instead of
+  stdout. Avoids truncating columns when used with the `table` format.
 - `--exclude-default` (set by default) allows excluding fields that use default
   values from the output. Alternatively, the `--no-exclude-default` flag can be
   used to show them.
@@ -392,19 +554,19 @@ Where:
   <https://github.com/h2non/jsonpath-ng?tab=readme-ov-file#jsonpath-syntax>.
   This flag is only supported when using the `yaml`, `json`, or `config` output
   format.
-- `--minimize` minimizes the output. This might entail applying
-  transformations on the model, changing it from the original. If set, it
-  implies `--exclude-default`, `--exclude-unset`, and `--exclude-none`. This
-  option is ignored when the output type is `default` or `raw`.
+- `--minimize` minimizes the output. This might entail applying transformations
+  on the model, changing it from the original. If set, it implies
+  `--exclude-default`, `--exclude-unset`, and `--exclude-none`. This option is
+  ignored when the output type is `table` or `raw`.
 - The `--from-sample-store`, `--from-space`, `--from-operation` flags are
-  available **only for `ado get measurementrequests`** and allow specifying what
+  available **only for `ado get requests`** and allow specifying what
   samplestore/space/operation the measurement request belongs to.
-- When using the `--details` flag with the `default` output format, additional
+- When using the `--details` flag with the `table` output format, additional
   columns with the _description_ and the _labels_ of the matching resources are
   printed.
-- The `--show-deprecated` flag is available **only for
-  `ado get actuators --details`** and allows displaying experiments that have
-  been deprecated. They are otherwise hidden by default.
+- The `--show-deprecated` flag is available **only for `ado get experiments`**
+  and allows displaying experiments that have been deprecated. They are
+  otherwise hidden by default.
 
 #### Searching and Filtering
 
@@ -443,7 +605,11 @@ ado get spaces
 ado get spaces --details
 ```
 
+<!-- markdownlint-disable line-length -->
+
 ##### Getting all Discovery Spaces that include granite-7b-base in the property domain
+
+<!-- markdownlint-enable line-length -->
 
 !!! info
 
@@ -490,7 +656,11 @@ ado get space space-df8077-7535f9 -o yaml \
   --exclude-field "config.entitySpace[*].propertyDomain.domainRange"
 ```
 
+<!-- markdownlint-disable line-length -->
+
 ##### Getting an actuator configuration and hiding the status for the "created" event
+
+<!-- markdownlint-enable line-length -->
 
 ```shell
 ado get actuatorconfiguration actuatorconfiguration-myactuator-123456 -o yaml \
@@ -509,25 +679,63 @@ ado get operation randomwalk-0.5.0-123abc
 ado get operation randomwalk-0.5.0-123abc -o yaml
 ```
 
+##### Getting only the identifiers of all Operations
+
+```shell
+ado get operations -o name
+```
+
+##### Getting the latest Discovery Space as YAML
+
+```shell
+ado get space --use-latest -o yaml
+```
+
+##### Getting the latest Operation as YAML
+
+```shell
+ado get operation --use-latest -o yaml
+```
+
 ##### Displaying all current experiments
 
 ```shell
-ado get actuators --details
-```
-
-##### Displaying all experiments for the st4sd actuator
-
-```shell
-ado get actuator st4sd --details --show-deprecated
+ado get experiments --details
 ```
 
 ##### Getting the yaml of a MeasurementRequest from an operation
 
 <!-- markdownlint-disable line-length -->
+
 ```shell
-ado get measurementrequest measurement-request-123 --from-operation randomwalk-0.5.0-123abc -o yaml
+ado get request measurement-request-123 --from-operation randomwalk-0.5.0-123abc -o yaml
 ```
+
 <!-- markdownlint-enable line-length -->
+
+##### Saving a Discovery Space configuration to a file
+
+```shell
+ado get space my-space-id -o yaml --output-file space.yaml
+```
+
+##### Saving all operations as JSON
+
+```shell
+ado get operations -o json --output-file operations.json
+```
+
+##### Saving resource identifiers to a file
+
+```shell
+ado get spaces -o name --output-file space-ids.txt
+```
+
+##### Saving table output to a file
+
+```shell
+ado get spaces --output-file spaces-table.txt
+```
 
 ### ado show
 
@@ -548,16 +756,22 @@ ado show details RESOURCE_TYPE [RESOURCE_ID] [--use-latest]
 
 Where:
 
-- `RESOURCE_TYPE` is one of the supported resource types:
+- `RESOURCE_TYPE` is one of the supported resource types. See
+  [Resource Type Shorthands](#resource-type-shorthands) for shorthand aliases.
+  Currently supported:
 
-    - _operation_ (_op_)
+    <!-- prettier-ignore-start -->
+
     - _discoveryspace_ (_space_)
+    - _operation_ (_op_)
+
+    <!-- prettier-ignore-end -->
 
 - `RESOURCE_ID` is the unique identifier of the resource you want to see details
   for.
 - `--use-latest` will use the identifier of the latest (i.e. most recent)
-  resource of RESOURCE_TYPE created locally. It is not context aware. It is
-  ignored if a RESOURCE_ID is provided.
+  resource of RESOURCE_TYPE from the current context. It is ignored if a
+  RESOURCE_ID is provided.
 
 ##### Examples
 
@@ -573,67 +787,93 @@ ado show details space space-abc123-456def
 ado show details space --use-latest
 ```
 
-#### ado show entities
+#### ado show measurements
 
-_show entities_ supports displaying entities that belong to a space or an
-operation.
+_show measurements_ supports displaying measurement data (entities with their
+measured properties) that belong to a space or an operation.
 
-The complete syntax of the `ado show entities` command is as follows:
+The complete syntax of the `ado show measurements` command is as follows:
 
 ```shell
-ado show entities RESOURCE_TYPE [RESOURCE_ID] [--use-latest] [--file | -f <file.yaml>]\
-                  [--property-format {observed | target}] \
-                  [--output-format {console | csv | json}] \
-                  [--property <property-name>] \
-                  [--include {sampled | matching | missing | unsampled}] \
-                  [--aggregate {mean | median | variance | std | min | max}]
+ado show measurements RESOURCE_TYPE [RESOURCE_ID] [--use-latest] [--file | -f <file.yaml>]\
+                      [--property-format {observed | target}] \
+                      [--output | -o {table | csv | json}] \
+                      [--output-file <path>] \
+                      [--property <property-name>] \
+                      [--include {sampled | matching | missing | unsampled}] \
+                      [--aggregate {mean | median | variance | std | min | max}]
 ```
 
 Where:
 
-- `RESOURCE_TYPE` is one of the supported resource types:
+- `RESOURCE_TYPE` is one of the supported resource types. See
+  [Resource Type Shorthands](#resource-type-shorthands) for shorthand aliases.
+  Currently supported:
 
-    - _operation_ (_op_)
+    <!-- prettier-ignore-start -->
+
     - _discoveryspace_ (_space_)
+    - _operation_ (_op_)
+
+    <!-- prettier-ignore-end -->
 
 - `RESOURCE_ID` is the unique identifier of the resource you want to see
-  entities for.
+  measurements for.
 - `--use-latest` will use the identifier of the latest (i.e. most recent)
-  resource of RESOURCE_TYPE created locally. It is not context aware. It is
-  ignored if a RESOURCE_ID is provided.
+  resource of RESOURCE_TYPE from the current context. It is ignored if a
+  RESOURCE_ID is provided.
 - The `--file` (or `-f`) flag is **currently only available for spaces** and
-  enables showing entities that match the space defined in the configuration
+  enables showing measurements that match the space defined in the configuration
   file. **NOTE**: using this flag forces `--include matching`.
 - `--property-format` defines the naming format used for measured properties in
   the output, one of:
 
-    - `observed`: properties are named `$experimentid.$property_id`. There will be
-      one row per entity.
-    - `target`: properties are named `$property_id`. There will be one row per
-      (entity, experiment) pair.
+    <!-- prettier-ignore-start -->
 
-- `--output-format` is the format in which to display the entity data. One of:
+    - `observed`: properties are named `$experimentid.$property_id`.
+      There will be one row per entity.
+    - `target`: properties are named `$property_id`.
+      There will be one row per (entity, experiment) pair.
 
-    - `console` (print to stdout)
-    - `csv` (output as CSV file)
-    - `json` (output as JSON file)
+    <!-- prettier-ignore-end -->
+
+- `--output` (or `-o`) is the format in which to display the measurement data.
+  One of:
+
+    <!-- prettier-ignore-start -->
+
+    - `table` (print to stdout)
+    - `csv` (write CSV to stdout, or to file if `--output-file` is specified)
+    - `json` (write JSON to stdout, or to file if `--output-file` is specified)
+
+    <!-- prettier-ignore-end -->
+
+- `--output-file` specifies a file path to write the output to (except for table
+  format which always prints to stdout).
 
 - `--property` (can be specified multiple times) is used to filter what measured
   properties need to be output.
 - `--include` (**exclusive to spaces**) determines what type of entities to
   include. One of:
 
+    <!-- prettier-ignore-start -->
+
     - `sampled`: Entities that have been measured by explore operations on the
       `discoveryspace`
-    - `unsampled`: Entities that have not been measured by an explore operation on
-      the `discoveryspace`
+    - `unsampled`: Entities that have not been measured by an explore operation
+      on the `discoveryspace`
     - `matching`: Entities in the `samplestore` the `discoveryspace` uses, that
       match the `discoveryspace`'s description
     - `missing`: Entities in the `discoveryspace` that are not in the
       `samplestore` the `discoveryspace` uses
 
+    <!-- prettier-ignore-end -->
+
 - `--aggregate` allows applying an aggregation to the result values in case
   multiple are present. One of:
+
+    <!-- prettier-ignore-start -->
+
     - `mean`
     - `median`
     - `variance`
@@ -641,99 +881,178 @@ Where:
     - `min`
     - `max`
 
+    <!-- prettier-ignore-end -->
+
 ##### Examples
 
-###### Show matching entities in a Space with target format and output them as CSV
+<!-- markdownlint-disable line-length -->
+
+###### Show matching measurements in a Space with target format and output them as CSV
+
+<!-- markdownlint-enable line-length -->
+
+Recommended approach using `--output-file` (ensures columns aren't truncated and
+handles file write errors):
 
 ```shell
- ado show entities space space-abc123-456def --include matching \
-                                             --property-format target \
-                                             --output-format csv
+ ado show measurements space space-abc123-456def --include matching \
+                                                 --property-format target \
+                                                 -o csv --output-file entities.csv
 ```
 
-<!-- markdownlint-disable-next-line line-length -->
-###### Show a subset of the properties of entities that are part of an operation and output them as JSON
+Or to write CSV to stdout for piping:
 
 ```shell
-ado show entities operation randomwalk-0.5.0-123abc --output-format json \
-                                                    --property my-property-1 \
-                                                    --property my-property-2
+ ado show measurements space space-abc123-456def --include matching \
+                                                 --property-format target \
+                                                 -o csv > entities.csv
 ```
-
-#### ado show requests
-
-_show requests_ supports displaying the `MeasurementRequest`s that were part of
-an operation.
-
-The complete syntax of the `ado show requests` command is as follows:
 
 <!-- markdownlint-disable line-length -->
+
+###### Show a subset of the properties of measurements that are part of an operation and output them as JSON
+
 ```shell
-ado show requests operation [RESOURCE_ID] [--use-latest] \
-                            [--output-format | -o <console | csv | json>] \
-                            [--hide <field>]
+ado show measurements operation randomwalk-0.5.0-123abc -o json \
+                                                        --property my-property-1 \
+                                                        --property my-property-2
 ```
+
+<!-- markdownlint-enable line-length -->
+
+###### Save table output of measurements to a file
+
+```shell
+ado show measurements space space-abc123-456def --output-file entities-table.txt
+```
+
+#### ado show trace
+
+_show trace_ allows inspecting in detail the trace of entity measurement
+requests made during explore operations. It can provide crucial information for
+debugging operation behaviour e.g. failed experiments or requests. Note,
+multiple entities can be contained in a single measurement request depending on
+the sampler used to explore and its settings.
+
+The complete syntax of the `ado show trace` command is as follows:
+
+<!-- markdownlint-disable line-length -->
+
+```shell
+ado show trace operation [RESOURCE_ID] [--use-latest] \
+                         [--unroll-entities] \
+                         [--filter <key=value>] \
+                         [--output | -o <table | csv | json | yaml>] \
+                         [--output-file <path>] \
+                         [--hide <field>] \
+                         [--no-trunc]
+```
+
 <!-- markdownlint-enable line-length -->
 
 - `--use-latest` will use the identifier of the latest (i.e. most recent)
-  operation created locally. It is not context aware. It is ignored if a
-  RESOURCE_ID is provided.
-- `--output-format` determines whether the output will be printed to console or
-  saved to a file.
+  operation from the current context. It is ignored if a RESOURCE_ID is
+  provided.
+- `--unroll-entities` expands the table for output mode `table` or `csv` so each
+  entity has its own row containing additional metadata on the result of
+  applying the requested experiment to it.
+- `--filter` filters based on field names from the underlying data model, not
+  table column names. Can be used multiple times for AND logic.
+- `--output` (or `-o`) determines the output format. Supports `table`, `csv`,
+  `json`, and `yaml`. Output is written to stdout by default, or to a file if
+  `--output-file` is specified.
+- `--output-file` specifies a file path to write the output to. If not provided,
+  output is written to stdout.
 - `--hide` can be specified multiple times and allows hiding fields from the
   output.
+- `--no-trunc` prevents truncation of table content (console output only).
+
+##### Default Trace Output Table
+
+The default output table shows the time-series of measurement requests with the
+following columns:
+
+- Index (auto-generated row number)
+- Request ID
+- Request Index
+- Request type (measured/replayed)
+- Timestamp
+- Experiment ID
+- Entity IDs (list)
+- Status
+- Measurements (count)
+- Valid Measurements (count)
+- Invalid Measurements (count)
+- Metadata (request metadata)
+
+##### Expanded Trace Output Table
+
+Specifying `--unroll-entities` unrolls each request so each entity with a
+request processed has its own row containing additional metadata on the result
+of applying the requested experiment to it:
+
+- Index (auto-generated row number)
+- Request ID
+- Request Index
+- Request type (measured/replayed)
+- Timestamp
+- Experiment ID
+- Result Index (per-request, 0-based)
+- Result UID
+- Entity ID (single, unrolled)
+- Valid (boolean)
+- Number of Properties
+- Request Metadata
+- Result Metadata
+
+#### Filtering Output
+
+The output of show trace can be filtered using the following fields:
+
+- `requestIndex` - Request index number
+- `requestid` - Request UUID
+- `status` - Request status (Unknown, Success, Failed)
+- `timestamp` - Request timestamp
+- `metadata` - Request metadata (use dot notation for nested fields, e.g.,
+  `metadata.key=value`)
+- `experimentReference` - Stringified experiment reference
+
+Filtering reduces the output to the requests matching the filters.
 
 ##### Examples
 
-###### Show measurement requests for an operation and save them as csv
+###### Show the trace for an operation as a table
 
 ```shell
-ado show requests operation randomwalk-0.5.0-123abc -o csv
+ado show trace operation randomwalk-0.5.0-123abc
 ```
 
-###### Show measurement requests for an operation and hide certain fields
+###### Show entity level information in the trace table
+
+```shell
+ado show trace operation randomwalk-0.5.0-123abc --unroll-entities
+```
+
+###### Show the YAML of a request
+
+```shell
+ado show trace operation randomwalk-0.5.0-123abc --filter requestid=abcdef -o yaml
+```
+
+###### Filter trace on multiple request fields
 
 <!-- markdownlint-disable line-length -->
+
 ```shell
-ado show requests operation randomwalk-0.5.0-123abc --hide type --hide "experiment id"
+ado show trace operation randomwalk-0.5.0-123abc --filter status=Success --filter requestIndex=5
 ```
+
 <!-- markdownlint-enable line-length -->
 
-#### ado show results
-
-_show results_ supports displaying the `MeasurementResult`s that were part of an
-operation.
-
-The complete syntax of the `ado show results` command is as follows:
-
-<!-- markdownlint-disable line-length -->
-```shell
-ado show results operation [RESOURCE_ID] [--use-latest] \
-                           [--output-format | -o <console | csv | json>] \
-                           [--hide <field>]
-```
-<!-- markdownlint-enable line-length -->
-
-- `--use-latest` will use the identifier of the latest (i.e. most recent)
-  operation created locally. It is not context aware. It is ignored if a
-  RESOURCE_ID is provided.
-- `--output-format` determines whether the output will be printed to console or
-  saved to a file.
-- `--hide` can be specified multiple times and allows hiding fields from the
-  output.
-
-##### Examples
-
-###### Show measurement results for an operation
+###### Hide specific columns
 
 ```shell
-ado show results operation randomwalk-0.5.0-123abc -o csv
-```
-
-###### Show measurement results for an operation and hide certain fields
-
-```shell
-ado show results operation randomwalk-0.5.0-123abc --hide uid
+ado show trace operation randomwalk-0.5.0-123abc --hide metadata --hide timestamp
 ```
 
 #### ado show related
@@ -747,17 +1066,25 @@ The complete syntax of the `ado show related` command is as follows:
 ado show related RESOURCE_TYPE [RESOURCE_ID] [--use-latest]
 ```
 
-- `RESOURCE_TYPE` is one of the supported resource types:
+- `RESOURCE_TYPE` is one of the supported resource types. See
+  [Resource Type Shorthands](#resource-type-shorthands) for shorthand aliases.
+  Currently supported:
 
+    <!-- prettier-ignore-start -->
+
+    - _actuatorconfiguration_ (_ac_)
+    - _datacontainer_ (_dcr_)
+    - _discoveryspace_ (_space_)
     - _operation_ (_op_)
     - _samplestore_ (_store_)
-    - _discoveryspace_ (_space_)
+
+    <!-- prettier-ignore-end -->
 
 - `RESOURCE_ID` is the unique identifier of the resource you want to see related
   resources for.
 - `--use-latest` will use the identifier of the latest (i.e. most recent)
-  resource of RESOURCE_TYPE created locally. It is not context aware. It is
-  ignored if a RESOURCE_ID is provided.
+  resource of RESOURCE_TYPE from the current context. It is ignored if a
+  RESOURCE_ID is provided.
 
 ##### Examples
 
@@ -783,15 +1110,17 @@ ado show summary RESOURCE_TYPE [RESOURCE_IDS...] [--use-latest] \
                  [--query | -q <path=candidate>] \
                  [--label | -l <LABEL> ] \
                  [--with-property | -p <PROPERTY> ] \
-                 [--format | -o <md | table | csv>]
+                 [--output | -o <md | table | csv>] \
+                 [--output-file <path>]
 ```
 
 Where:
 
-- `RESOURCE_TYPE` is always _discoveryspace_ (_space_)
+- `RESOURCE_TYPE` is always discoveryspace (space). See
+  [Resource Type Shorthands](#resource-type-shorthands) for the shorthand alias.
 - `RESOURCE_IDS` are one or more space-separated space identifiers.
 - `--use-latest` will add the identifier of the latest (i.e. most recent) space
-  created locally to the RESOURCE_IDS. It is not context aware.
+  from the current context to the RESOURCE_IDS.
 - By using (optionally multiple times) the `--query` (or `-q`) flag, users can
   restrict the resources returned by requiring that a field in the resource is
   equal to a provided value or that the content of a JSON document appear in the
@@ -802,51 +1131,82 @@ Where:
   metadata. Labels must be specified in the `key=value` format. This flag can be
   specified multiple times (even in conjunction with `-q` to further filter
   results).
-- `--with-property | -p` displays values for a subset of the
-  constitutive properties. Cannot be used when the output format is `md`.
-- `--format | -o` allows choosing the output format in which the information
-  should be displayed. Can be one of either:
-    - `md` - for Markdown text.
-    - `table` (**default**) - for Markdown tables.
-    - `csv` - for a comma separated file.
+- `--with-property | -p` displays values for a subset of the constitutive
+  properties. Cannot be used when the output format is `md-report`.
+- `--output` (or `-o`) allows choosing the output format in which the
+  information should be displayed. Can be one of either:
+
+    <!-- prettier-ignore-start -->
+
+    - `table` (**default**) - for a formatted table output.
+    - `md-table` - for a table in Markdown format.
+    - `md-report` - for a report in Markdown format.
+    - `csv` - for CSV format.
+
+    <!-- prettier-ignore-end -->
+
+- `--output-file` specifies a file path to write the output to. If not provided,
+  output is written to stdout.
 
 ##### Examples
 
-###### Get the summary of a space as a Markdown table
+###### Get the summary of a space as a rich table
 
 ```shell
 ado show summary space space-abc123-456def
 ```
 
-<!-- markdownlint-disable-next-line line-length -->
-###### Get the summary of a space as a Markdown table and include the constitutive property MY_PROPERTY
+<!-- markdownlint-disable line-length -->
+
+###### Get the summary of a space as a rich table and include the constitutive property MY_PROPERTY
+
+<!-- markdownlint-enable line-length -->
 
 ```shell
 ado show summary space space-abc123-456def -p MY_PROPERTY
 ```
 
-###### Get the summary of multiple spaces as a Markdown table via identifiers
+###### Get the summary of multiple spaces as a rich table via identifiers
 
 ```shell
 ado show summary space space-abc123-456def space-ghi789-123jkl
 ```
 
-###### Get the summary of multiple spaces as a Markdown table via key-value labels
+###### Get the summary of multiple spaces as a rich table via key-value labels
 
 ```shell
 ado show summary space -l issue=123
 ```
 
-###### Get the summary of a space as a Markdown text
+###### Get the summary of a space as a Markdown report
 
 ```shell
-ado show summary space space-abc123-456def -o md
+ado show summary space space-abc123-456def -o md-report
 ```
 
 ###### Get the summary of a multiple spaces as a CSV file via key-value labels
 
 ```shell
-ado show summary space -l issue=123 -o csv
+ado show summary space -l issue=123 -o csv > summary.csv
+```
+
+Or to write to a file directly (recommended - ensures columns aren't truncated
+and handles file write errors):
+
+```shell
+ado show summary space -l issue=123 -o csv --output-file summary.csv
+```
+
+###### Save table summary output to a file
+
+```shell
+ado show summary space my-space-id --output-file summary-table.txt
+```
+
+###### Save markdown summary output to a file
+
+```shell
+ado show summary space my-space-id -o md --output-file summary.md
 ```
 
 ###### Get the summary of spaces that include granite-7b-base in the property domain
@@ -863,15 +1223,16 @@ ado show summary space -q 'config.entitySpace={"propertyDomain":{"values":["gran
 
 ### ado template
 
-To assist in creating a resource configuration file, we typically start
-from a reference file. The `ado template` command allows you to create template
-files that you can edit to streamline the process.
+To assist in creating a resource configuration file, we typically start from a
+reference file. The `ado template` command allows you to create template files
+that you can edit to streamline the process.
 
 The complete syntax of the `ado template` command is as follows:
 
 <!-- markdownlint-disable line-length -->
+
 ```shell
-ado template RESOURCE_TYPE [--output | -o <PATH>] \
+ado template RESOURCE_TYPE [--output-file <PATH>] \
                            [--include-schema] \
                            [--operator-name <NAME>] \
                            [--operator-type <TYPE>] \
@@ -880,21 +1241,27 @@ ado template RESOURCE_TYPE [--output | -o <PATH>] \
                            [--local-context] \
                            [--no-parameters-only-schema]
 ```
+
 <!-- markdownlint-enable line-length -->
 
 Where:
 
-- `RESOURCE_TYPE` is one of the supported resource types:
+- `RESOURCE_TYPE` is one of the supported resource types. See
+  [Resource Type Shorthands](#resource-type-shorthands) for shorthand aliases.
+  Currently supported:
 
-    - _actuator_
+    <!-- prettier-ignore-start -->
+
     - _actuatorconfiguration_ (_ac_)
     - _context_ (_ctx_)
-    - _operation_ (_op_)
     - _discoveryspace_ (_space_)
+    - _operation_ (_op_)
+    - _samplestore_ (_store_)
 
-- `--output` or `-o` can be used to point to a location where to save the
-  template. By default, the template will be saved in the current directory with
-  an autogenerated name.
+    <!-- prettier-ignore-end -->
+
+- `--output-file` can be used to specify a file path where the template will be
+  saved. If not specified, the template will be written to stdout.
 - `--include-schema`, if set, will also produce the JSON Schema of the resource
   the template was generated for.
 - `--operator-name` (**exclusive for operations**) allows generating an
@@ -903,6 +1270,8 @@ Where:
 - `--operator-type` (**exclusive for operations**) is the type of operator to
   generate a template for. Must be one of the supported operator types:
 
+    <!-- prettier-ignore-start -->
+
     - `characterize`
     - `search`
     - `compare`
@@ -910,6 +1279,8 @@ Where:
     - `study`
     - `fuse`
     - `learn`
+
+    <!-- prettier-ignore-end -->
 
 - `--actuator-configuration` (**exclusive for actuatorconfigurations**) is the
   identifier of the actuator to output. If unset, a generic actuator
@@ -939,8 +1310,11 @@ ado template context
 ado template space --from-experiment finetune-gptq-lora-dp-r-4-a-16-tm-default-v1.1.0
 ```
 
-<!-- markdownlint-disable-next-line line-length -->
+<!-- markdownlint-disable line-length -->
+
 ##### Creating a template for a space that uses a specific experiment from a specific actuator
+
+<!-- markdownlint-enable line-length -->
 
 ```shell
 ado template space --from-experiment SFTTrainer:finetune-gptq-lora-dp-r-4-a-16-tm-default-v1.1.0
@@ -972,18 +1346,34 @@ When required, you can run this command to update all resources of a given kind
 in the database.
 
 ```shell
-ado upgrade RESOURCE_TYPE
+ado upgrade RESOURCE_TYPE [--apply-legacy-migrator <VALIDATOR_ID>] \
+                          [--list-legacy-migrators]
 ```
 
 Where:
 
-- `RESOURCE_TYPE` is one of the supported resource types:
+- `RESOURCE_TYPE` is one of the supported resource types. See
+  [Resource Type Shorthands](#resource-type-shorthands) for shorthand aliases.
+  Currently supported:
+
+    <!-- prettier-ignore-start -->
 
     - _actuatorconfiguration_ (_ac_)
     - _datacontainer_ (_dcr_)
+    - _discoveryspace_ (_space_)
     - _operation_ (_op_)
     - _samplestore_ (_store_)
-    - _discoveryspace_ (_space_)
+
+    <!-- prettier-ignore-end -->
+
+- `--apply-legacy-migrator` applies a specific legacy migrator by identifier
+  during the upgrade process. This option can be specified multiple times to
+  apply multiple validators. Legacy validators handle deprecated field
+  migrations and schema transformations.
+
+- `--list-legacy-migrators` lists all available legacy migrators for the
+  specified resource type, showing their identifiers, descriptions, and
+  deprecated field paths.
 
 #### Examples
 
@@ -991,6 +1381,18 @@ Where:
 
 ```shell
 ado upgrade operations
+```
+
+##### List available legacy migrators for sample stores
+
+```shell
+ado upgrade samplestores --list-legacy-migrators
+```
+
+##### Apply a legacy migrator during upgrade
+
+```shell
+ado upgrade samplestores --apply-legacy-migrator samplestore_kind_entitysource_to_samplestore
 ```
 
 ### ado version
@@ -1004,6 +1406,7 @@ ado version
 
 ## What's next
 
+<!-- prettier-ignore-start -->
 <!-- markdownlint-disable line-length -->
 <!-- markdownlint-disable-next-line no-inline-html -->
 <div class="grid cards" markdown>
@@ -1026,3 +1429,5 @@ ado version
 
 </div>
 <!-- markdownlint-enable line-length -->
+
+<!-- prettier-ignore-end -->

@@ -1,10 +1,8 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import logging
 import typing
-
-from nevergrad.functions import ArtificialFunction
 
 from orchestrator.modules.actuators.custom_experiments import custom_experiment
 from orchestrator.schema.domain import PropertyDomain, VariableTypeEnum
@@ -66,6 +64,7 @@ def nevergrad_opt_3d_test_func(
 ) -> dict[str, typing.Any]:
 
     import numpy as np
+    from nevergrad.functions import ArtificialFunction
 
     # Get the function from nevergrad.functions.ArtificialFunction
     func = ArtificialFunction(

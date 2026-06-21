@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import pathlib
@@ -12,12 +12,11 @@ from orchestrator.cli.models.types import (
     AdoEditSupportedEditors,
     AdoGetSupportedOutputFormats,
     AdoGetSupportedResourceTypes,
-    AdoShowEntitiesSupportedEntityTypes,
-    AdoShowEntitiesSupportedOutputFormats,
-    AdoShowEntitiesSupportedPropertyFormats,
-    AdoShowRequestsSupportedOutputFormats,
-    AdoShowResultsSupportedOutputFormats,
+    AdoShowMeasurementsSupportedEntityTypes,
+    AdoShowMeasurementsSupportedOutputFormats,
+    AdoShowMeasurementsSupportedPropertyFormats,
     AdoShowSummarySupportedOutputFormats,
+    AdoShowTraceSupportedOutputFormats,
 )
 from orchestrator.core import CoreResourceKinds
 from orchestrator.core.operation.config import DiscoveryOperationEnum
@@ -38,11 +37,14 @@ class AdoGetCommandParameters(pydantic.BaseModel):
     matching_space_id: str | None
     matching_space: pathlib.Path | None
     minimize_output: bool
+    no_trunc: bool | list[str]
+    output_file: pathlib.Path | None
     output_format: AdoGetSupportedOutputFormats
     resource_id: str | None
     resource_type: AdoGetSupportedResourceTypes
     show_deprecated: bool
     show_details: bool
+    use_latest: bool
 
 
 class AdoCreateCommandParameters(pydantic.BaseModel):
@@ -54,13 +56,14 @@ class AdoCreateCommandParameters(pydantic.BaseModel):
     resource_type: AdoCreateSupportedResourceTypes
     use_default_sample_store: bool
     use_latest: list[CoreResourceKinds] | None
+    with_resources: dict[CoreResourceKinds, pathlib.Path | str] | None
 
 
 class AdoDeleteCommandParameters(pydantic.BaseModel):
     ado_configuration: AdoConfiguration
     delete_local_db: bool | None
     force: bool
-    resource_id: str
+    resource_ids: list[str]
 
 
 class AdoDescribeCommandParameters(pydantic.BaseModel):
@@ -74,6 +77,14 @@ class AdoEditCommandParameters(pydantic.BaseModel):
     ado_configuration: AdoConfiguration
     editor: AdoEditSupportedEditors
     resource_id: str
+    metadata_patch: str | None = pydantic.Field(
+        default=None,
+        description="Inline YAML/JSON patch; mutually exclusive with metadata_path.",
+    )
+    metadata_path: Path | None = pydantic.Field(
+        default=None,
+        description="Path to patch file; mutually exclusive with metadata_patch.",
+    )
 
 
 class AdoShowDetailsCommandParameters(pydantic.BaseModel):
@@ -81,12 +92,14 @@ class AdoShowDetailsCommandParameters(pydantic.BaseModel):
     resource_id: str
 
 
-class AdoShowEntitiesCommandParameters(pydantic.BaseModel):
+class AdoShowMeasurementsCommandParameters(pydantic.BaseModel):
     ado_configuration: AdoConfiguration
     aggregation_method: PropertyAggregationMethodEnum | None
-    entities_output_format: AdoShowEntitiesSupportedOutputFormats
-    entities_property_format: AdoShowEntitiesSupportedPropertyFormats
-    entities_type: AdoShowEntitiesSupportedEntityTypes
+    measurements_output_format: AdoShowMeasurementsSupportedOutputFormats
+    measurements_property_format: AdoShowMeasurementsSupportedPropertyFormats
+    measurements_type: AdoShowMeasurementsSupportedEntityTypes
+    no_trunc: bool
+    output_file: Path | None
     properties: list[str] | None
     resource_configuration: Path | None
     resource_id: str | None
@@ -97,17 +110,14 @@ class AdoShowRelatedCommandParameters(pydantic.BaseModel):
     resource_id: str
 
 
-class AdoShowRequestsCommandParameters(pydantic.BaseModel):
+class AdoShowTraceCommandParameters(pydantic.BaseModel):
     ado_configuration: AdoConfiguration
+    field_selectors: list[dict[str, str]]
     hide_fields: list[str] | None
-    output_format: AdoShowRequestsSupportedOutputFormats
-    resource_id: str
-
-
-class AdoShowResultsCommandParameters(pydantic.BaseModel):
-    ado_configuration: AdoConfiguration
-    hide_fields: list[str] | None
-    output_format: AdoShowResultsSupportedOutputFormats
+    unroll_entities: bool
+    no_trunc: bool
+    output_file: Path | None
+    output_format: AdoShowTraceSupportedOutputFormats
     resource_id: str
 
 
@@ -115,6 +125,7 @@ class AdoShowSummaryCommandParameters(pydantic.BaseModel):
     ado_configuration: AdoConfiguration
     columns_to_hide: list[str] | None
     include_properties: list[str] | None
+    output_file: Path | None
     output_format: AdoShowSummarySupportedOutputFormats
     query: list[dict[str, str | None]] | None
     render_output: bool
@@ -128,10 +139,12 @@ class AdoTemplateCommandParameters(pydantic.BaseModel):
     include_schema: bool
     operator_name: str | None
     operator_type: DiscoveryOperationEnum | None
-    output_path: Path | None
+    output_file: Path | None
     parameters_only_schema: bool
     template_local_context: bool
 
 
 class AdoUpgradeCommandParameters(pydantic.BaseModel):
     ado_configuration: AdoConfiguration
+    apply_legacy_migrator: list[str] | None = None
+    list_legacy_migrators: bool = False

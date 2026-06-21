@@ -1,17 +1,19 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import pathlib
+from collections.abc import Callable
 
 import yaml
 from typer.testing import CliRunner
 
 from orchestrator.cli.core.cli import app as ado
+from orchestrator.metastore.project import ProjectContext
 
 
-def test_create_actuator_configuration_dry_run_success(tmp_path: pathlib.Path):
+def test_create_actuator_configuration_dry_run_success(tmp_path: pathlib.Path) -> None:
     actuator_configuration_file = (
-        "tests/resources/actuatorconfiguration/sfttrainer.yaml"
+        "tests/resources/actuatorconfiguration/robotic_lab.yaml"
     )
     runner = CliRunner()
     result = runner.invoke(
@@ -34,14 +36,14 @@ def test_create_actuator_configuration_dry_run_success(tmp_path: pathlib.Path):
     assert result.output == expected_output
 
 
-def test_create_actuator_configuration_dry_run_failure(tmp_path: pathlib.Path):
+def test_create_actuator_configuration_dry_run_failure(tmp_path: pathlib.Path) -> None:
     actuator_configuration_file = pathlib.Path(
-        "tests/resources/actuatorconfiguration/sfttrainer.yaml"
+        "tests/resources/actuatorconfiguration/robotic_lab.yaml"
     )
 
     invalid_actuator_configuration_file = tmp_path / "invalid.yaml"
     actuator_configuration = yaml.safe_load(actuator_configuration_file.read_text())
-    actuator_configuration["actuatorIdentifier"] = "SFTTrainer-fake"
+    actuator_configuration["actuatorIdentifier"] = "robotic-lab-fake"
     invalid_actuator_configuration_file.write_text(
         yaml.safe_dump(actuator_configuration)
     )
@@ -67,10 +69,14 @@ def test_create_actuator_configuration_dry_run_failure(tmp_path: pathlib.Path):
 
 
 def test_create_actuator_configuration(
-    tmp_path: pathlib.Path, valid_ado_project_context, create_active_ado_context
-):
+    tmp_path: pathlib.Path,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+) -> None:
     actuator_configuration_file = (
-        "tests/resources/actuatorconfiguration/sfttrainer.yaml"
+        "tests/resources/actuatorconfiguration/robotic_lab.yaml"
     )
 
     runner = CliRunner()

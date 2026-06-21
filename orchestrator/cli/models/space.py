@@ -1,18 +1,23 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import math
+import typing
 from io import StringIO
 
 import rich.table
 
-import orchestrator.metastore.project
 import orchestrator.schema.property
 from orchestrator.cli.utils.output.prints import console_print
-from orchestrator.core.discoveryspace.resource import DiscoverySpaceResource
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.resources import CoreResourceKinds
 from orchestrator.schema.entityspace import EntitySpaceRepresentation
+
+if typing.TYPE_CHECKING:
+    import pandas as pd
+
+    from orchestrator.core.discoveryspace.resource import DiscoverySpaceResource
+    from orchestrator.metastore.project import ProjectContext
 
 
 class SpaceDetails:
@@ -25,7 +30,7 @@ class SpaceDetails:
         entities_matching_the_space: int,
         matching_entities_in_sample_store_with_measurement_space_applied: int,
         size_of_entity_space: int,
-    ):
+    ) -> None:
         # Entities sampled from space with all measurements applied
         self.entities_sampled_from_space_with_all_measurements_applied = (
             entities_sampled_from_space_with_all_measurements_applied
@@ -48,7 +53,7 @@ class SpaceDetails:
         self.size_of_entity_space = size_of_entity_space
 
     @classmethod
-    def from_space(cls, space: DiscoverySpace):
+    def from_space(cls, space: DiscoverySpace) -> "SpaceDetails":
 
         import pandas as pd
 
@@ -195,11 +200,12 @@ class SpaceSummary:
     def __init__(
         self,
         space_id: str,
-        project_context: orchestrator.metastore.project.ProjectContext,
-    ):
-        import orchestrator.metastore.sqlstore
+        project_context: "ProjectContext",
+    ) -> None:
+        from orchestrator.metastore.sqlstore import SQLStore
+        from orchestrator.schema.property import NonMeasuredPropertyTypeEnum
 
-        sql = orchestrator.metastore.sqlstore.SQLStore(project_context=project_context)
+        sql = SQLStore(project_context=project_context)
 
         space_resource: DiscoverySpaceResource = sql.getResource(
             identifier=space_id,
@@ -229,14 +235,9 @@ class SpaceSummary:
         )
 
         constitutive_properties = {
-            p.identifier: (
-                p.propertyDomain.values
-                if p.propertyDomain.values
-                else p.propertyDomain.domainRange
-            )
+            p.identifier: (p.propertyDomain.values or p.propertyDomain.domainRange)
             for p in space_resource.config.entitySpace
-            if p.propertyType
-            == orchestrator.schema.property.NonMeasuredPropertyTypeEnum.CONSTITUTIVE_PROPERTY_TYPE
+            if p.propertyType == NonMeasuredPropertyTypeEnum.CONSTITUTIVE_PROPERTY_TYPE
         }
 
         self.id = space.resource.identifier
@@ -277,7 +278,7 @@ class SpaceSummary:
     def _get_dataframe_columns(
         candidate_columns: list[str],
         columns_to_hide: list[str] | None = None,
-    ):
+    ) -> list[str]:
         common_column_mappings = {
             "id": "Space ID",
             "experiment": "Experiments",
@@ -300,7 +301,7 @@ class SpaceSummary:
         }
         return [col for col in candidate_columns if col.lower() not in columns_to_hide]
 
-    def to_markdown_text(self, heading_level: int = 1):
+    def to_markdown_text(self, heading_level: int = 1) -> str:
         content = StringIO()
         content.write(f"{'#'*heading_level} Space `{self.id}`\n")
         heading_level += 1
@@ -357,7 +358,7 @@ class SpaceSummary:
         self,
         include_properties: list[str] | None = None,
         columns_to_hide: list[str] | None = None,
-    ):
+    ) -> "pd.DataFrame":
 
         import pandas as pd
 
@@ -384,8 +385,8 @@ class SpaceSummary:
                 if math.isnan(self.matching_and_measured_percentage)
                 else f"{math.floor(self.matching_and_measured_percentage)}%"
             ),
-            "Name": self.name if self.name else "",
-            "Description": self.description if self.description else "",
+            "Name": self.name or "",
+            "Description": self.description or "",
         }
 
         if self.labels:

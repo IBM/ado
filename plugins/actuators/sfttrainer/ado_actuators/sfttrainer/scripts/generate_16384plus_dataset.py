@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 """Uses the artificial dataset containing input and output strings consisting of 512 characters to produce
@@ -17,7 +17,7 @@ import os
 import datasets
 
 
-def format_alpaca_fn(example):
+def format_alpaca_fn(example: dict[str, str]) -> dict[str, str]:
     ex_input = example["input"]
     ex_output = ". ".join([example["output"] for _ in range(100)])
 

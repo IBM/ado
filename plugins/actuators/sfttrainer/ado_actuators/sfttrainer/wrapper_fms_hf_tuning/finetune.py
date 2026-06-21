@@ -1,7 +1,5 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
-
-from __future__ import annotations
 
 import copy
 import enum
@@ -11,15 +9,15 @@ import sys
 import time
 import typing
 
-import ado_actuators.sfttrainer.wrapper_fms_hf_tuning.constants as constants
-
 if typing.TYPE_CHECKING:
+    import ado_actuators.sfttrainer.wrapper_fms_hf_tuning.constants as constants
+    import transformers
+    from transformers.tokenization_utils_base import BatchEncoding
+
     from .callbacks import metrics_tracker
 
 import dataclasses
 import os
-
-import transformers
 
 # VV: Env vars this script uses:
 # HOME -> Must set this to something like `/tmp` because aim is attempting to generate files under `~/.aim_profile`
@@ -45,42 +43,42 @@ class ExperimentError(Exception):
 
 
 class NumberOfExpertsNotDivisibleByEpDegreeError(ExperimentError):
-    def __init__(self, underlying_error: str):
+    def __init__(self, underlying_error: str) -> None:
         self.underlying_error = underlying_error
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.underlying_error
 
 
 class AccelerateError(ExperimentError):
-    def __init__(self, reason: str):
+    def __init__(self, reason: str) -> None:
         self.reason = reason
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.reason
 
 
 class OutOfGPUMemoryError(ExperimentError):
-    def __init__(self, underlying_error: Exception | str | None = None):
+    def __init__(self, underlying_error: Exception | str | None = None) -> None:
         self.underlying_error = underlying_error
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Out of GPU memory, underlying error was {self.underlying_error}"
 
 
 class NCCLError(ExperimentError):
-    def __init__(self, underlying_error: Exception | str | None = None):
+    def __init__(self, underlying_error: Exception | str | None = None) -> None:
         self.underlying_error = underlying_error
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"NCCL error, underlying error was {self.underlying_error}"
 
 
 class UnhandledError(NotImplementedError):
-    def __init__(self, underlying_error: Exception | str | None = None):
+    def __init__(self, underlying_error: Exception | str | None = None) -> None:
         self.underlying_error = underlying_error
 
-    def __str__(self):
+    def __str__(self) -> str:
         return (
             f"Unhandled experiment error, underlying error was {self.underlying_error}"
         )
@@ -115,7 +113,7 @@ class DistributedSettings:
             "[2] SHARD_GRAD_OP (shards optimizer states and gradients), "
             "[3] NO_SHARD (DDP), "
             "[4] HYBRID_SHARD (shards optimizer states, gradients and parameters within each node "
-            "while each node has full copy), "
+            "while each node has full copy - equivalent to FULL_SHARD for single-node runs), "
             "[5] HYBRID_SHARD_ZERO2 (shards optimizer states and gradients within each node while each node has "
             "full copy). For more information, please refer the official PyTorch docs."
         },
@@ -230,7 +228,7 @@ class FineTuneArgs:
         },
     )
 
-    auto_stop_method: constants.AutoStopMethod | None = dataclasses.field(
+    auto_stop_method: "constants.AutoStopMethod | None" = dataclasses.field(
         default=None,
         metadata={
             "help": "The default value is `None`. This parameter defines the method used to automatically "
@@ -364,10 +362,8 @@ class FineTuneArgs:
 
     dataset_image_field: str | None = dataclasses.field(
         default=None,
-        metadata={
-            "help": "For running vision language model tuning pass \
-                the column name of the image data in the dataset."
-        },
+        metadata={"help": "For running vision language model tuning pass \
+                the column name of the image data in the dataset."},
     )
 
     remove_unused_columns: bool | None = dataclasses.field(
@@ -407,11 +403,11 @@ class HardcodedArgs:
         },
     )
 
-    eval_strategy: transformers.IntervalStrategy | str = dataclasses.field(
+    eval_strategy: "transformers.IntervalStrategy | str" = dataclasses.field(
         default="no",
         metadata={"help": "The evaluation strategy to use."},
     )
-    save_strategy: transformers.IntervalStrategy | str = dataclasses.field(
+    save_strategy: "transformers.IntervalStrategy | str" = dataclasses.field(
         default="no",
         metadata={"help": "The checkpoint save strategy to use."},
     )
@@ -425,7 +421,7 @@ class HardcodedArgs:
         default=0.03,
         metadata={"help": "Linear warmup over warmup_ratio fraction of total steps."},
     )
-    lr_scheduler_type: transformers.SchedulerType | str = dataclasses.field(
+    lr_scheduler_type: "transformers.SchedulerType | str" = dataclasses.field(
         default="cosine",
         metadata={"help": "The scheduler type to use."},
     )
@@ -456,12 +452,12 @@ def get_available_open_port() -> int:
     import socket
 
     with contextlib.closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
-        s.bind(("0.0.0.0", 0))
+        s.bind(("0.0.0.0", 0))  # noqa: S104
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         return s.getsockname()[1]
 
 
-def extract_metrics(aim_info_path: str, number_gpus: int):
+def extract_metrics(aim_info_path: str, number_gpus: int) -> "metrics_tracker.Metrics":
     import json
 
     with open(aim_info_path, encoding="utf-8") as f:
@@ -493,7 +489,7 @@ def _finetune_launch_kernel(
     multi_node: MultiNodeSettings,
     distributed_settings: DistributedSettings,
     working_directory: str,
-) -> metrics_tracker.Metrics:
+) -> "metrics_tracker.Metrics":
     log = logging.getLogger("launch")
 
     if args.fast_moe and isinstance(args.fast_moe[0], int) and args.fast_moe[0] > 0:
@@ -576,7 +572,7 @@ def _finetune_launch_kernel(
             with contextlib.closing(
                 socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             ) as s:
-                s.bind(("0.0.0.0", multi_node.port))
+                s.bind(("0.0.0.0", multi_node.port))  # noqa: S104
 
         # VV: Accelerate refers to DDP with the name "MULTI_GPU"
         backend_name_map = {"FSDP": "FSDP", "DDP": "MULTI_GPU"}[
@@ -705,7 +701,7 @@ def _finetune_launch_kernel(
         env["LOGLEVEL"] = env["LOGLEVEL"].upper()
 
     log.info(f"Environment variables {env}")
-    proc = subprocess.Popen(
+    proc = subprocess.Popen(  # noqa: S603
         command,
         stdout=sys.stdout,
         stderr=sys.stderr,
@@ -730,7 +726,7 @@ def _finetune_launch_kernel(
                 path = "_".join((aim_info_path, str(worker)))
 
             m = extract_metrics(path, args.number_gpus)
-        except FileNotFoundError:
+        except FileNotFoundError:  # noqa: PERF203
             log.info(f"Worker {worker} did not record any error under {path}")
         except ExperimentError as e:
             log.warning(f"Worker {worker} ran into {e}")
@@ -767,7 +763,7 @@ def _update_num_tokens_cache_for_model_and_dataset(
     tokens_per_sample: list[int],
     model_id: str,
     path_data: str,
-):
+) -> None:
     import json
 
     parent_dir = os.path.dirname(cache_file)
@@ -844,7 +840,7 @@ def calculate_tokens_in_image_text_dataset(
     path_model: str,
     path_data: str,
     dataset_text_field: str,
-):
+) -> list[int]:
     import pandas as pd
     from datasets import Dataset
     from transformers import AutoProcessor
@@ -854,7 +850,7 @@ def calculate_tokens_in_image_text_dataset(
 
     processor = AutoProcessor.from_pretrained(path_model)
 
-    def tokenize_samples(sample):
+    def tokenize_samples(sample: dict) -> "BatchEncoding":
         return processor.apply_chat_template(
             sample[dataset_text_field],
             add_generation_prompt=False,
@@ -864,11 +860,7 @@ def calculate_tokens_in_image_text_dataset(
         )
 
     tokenized_dataset = dataset.map(lambda x: tokenize_samples(x), batched=False)
-    num_tokens = []
-    for sample in tokenized_dataset:
-        num_tokens.append(len(sample["input_ids"][0]))
-
-    return num_tokens
+    return [len(sample["input_ids"][0]) for sample in tokenized_dataset]
 
 
 def calculate_tokens_in_text_dataset(
@@ -881,10 +873,10 @@ def calculate_tokens_in_text_dataset(
     tokenizer = AutoTokenizer.from_pretrained(path_model)
     special_tokens_dict = {}
 
-    DEFAULT_PAD_TOKEN = "<PAD>"
-    DEFAULT_EOS_TOKEN = "</s>"
-    DEFAULT_BOS_TOKEN = "<s>"
-    DEFAULT_UNK_TOKEN = "<unk>"
+    DEFAULT_PAD_TOKEN = "<PAD>"  # noqa: S105
+    DEFAULT_EOS_TOKEN = "</s>"  # noqa: S105
+    DEFAULT_BOS_TOKEN = "<s>"  # noqa: S105
+    DEFAULT_UNK_TOKEN = "<unk>"  # noqa: S105
 
     if tokenizer.pad_token is None:
         log.warning("PAD token set to default, missing in tokenizer")
@@ -934,7 +926,7 @@ def get_cache_file_for_tokens_per_sample(
     # we use the md5 hash of the file as part of the cache id
     import hashlib
 
-    digest = hashlib.md5()
+    digest = hashlib.md5(usedforsecurity=False)
 
     with open(path_data, "rb") as f:
         b = f.read(32768)
@@ -946,16 +938,7 @@ def get_cache_file_for_tokens_per_sample(
 
     return os.path.join(
         num_tokens_cache_dir,
-        ".".join(
-            (
-                "num-tokens",
-                model_id,
-                "for",
-                ds_name,
-                digest.hexdigest(),
-                "json",
-            )
-        ),
+        f"num-tokens.{model_id}.for.{ds_name}.{digest.hexdigest()}.json",
     )
 
 
@@ -965,7 +948,7 @@ def get_tokens_per_sample_in_dataset(
     model_id: str | None,
     num_tokens_cache_dir: str | None,
     dataset_text_field: str,
-):
+) -> list[int]:
     """Returns the tokens per sample for each sample in a dataset
 
     Args:
@@ -1185,7 +1168,7 @@ def launch_finetune(
     model_id: str | None = None,
     num_tokens_cache_dir: str | None = None,
     log_level: int | None = None,
-) -> metrics_tracker.Metrics:
+) -> "metrics_tracker.Metrics":
     from .callbacks import metrics_tracker
 
     if log_level is None:

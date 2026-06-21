@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import asyncio
@@ -8,6 +8,7 @@ import typing
 import uuid
 from builtins import anext
 from collections.abc import AsyncGenerator
+from importlib.metadata import version
 from queue import Empty, Queue
 from typing import Annotated, Literal
 
@@ -28,24 +29,18 @@ from orchestrator.core.discoveryspace.samplers import (
     SequentialSampleSelector,
     WalkModeEnum,
 )
-from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.operation.config import (
     DiscoveryOperationEnum,
-    FunctionOperationInfo,
+    OperatorMetadata,
 )
-from orchestrator.core.operation.operation import OperationOutput
-from orchestrator.modules.actuators.base import ActuatorBase
 from orchestrator.modules.module import (
     ModuleConf,
     ModuleTypeEnum,
     load_module_class_or_function,
 )
-from orchestrator.modules.operators.base import Characterize, measure_or_replay_async
+from orchestrator.modules.operators.base import Explore, measure_or_replay
 from orchestrator.modules.operators.collections import explore_operation
 from orchestrator.modules.operators.discovery_space_manager import DiscoverySpaceManager
-from orchestrator.modules.operators.orchestrate import (
-    explore_operation_function_wrapper,
-)
 from orchestrator.schema.entity import Entity
 from orchestrator.schema.measurementspace import MeasurementSpace
 from orchestrator.schema.request import MeasurementRequest, MeasurementRequestStateEnum
@@ -54,6 +49,8 @@ from orchestrator.utilities.logging import configure_logging
 from orchestrator.utilities.support import prepare_dependent_experiment_input
 
 if typing.TYPE_CHECKING:
+    from orchestrator.modules.actuators.base import ActuatorBase
+    from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
     from orchestrator.schema.entityspace import EntitySpaceRepresentation
 
 import sys
@@ -102,9 +99,9 @@ class CombinedWalkModeEnum(enum.Enum):
 
 class EntityFilter(pydantic.BaseModel):
 
-    filterMode: FilterModeEnum = pydantic.Field(
-        default=FilterModeEnum.noFilter, description="Filtering mode for entities"
-    )
+    filterMode: Annotated[
+        FilterModeEnum, pydantic.Field(description="Filtering mode for entities")
+    ] = FilterModeEnum.noFilter
 
     def applyFilter(
         self,
@@ -130,33 +127,42 @@ class EntityFilter(pydantic.BaseModel):
 class BaseSamplerConfiguration(pydantic.BaseModel):
     """Allows specifying basic sampling options for a RandomWalk"""
 
-    samplerType: Literal["selector", "generator"] = pydantic.Field(
-        default="selector",
-        description="The type of sampler to use. A generator generates entities based on the entityspace, "
-        "selectors select from existing entities",
-    )
-    mode: Literal[
-        "random", "sequential", "randomgrouped", "sequentialgrouped", "custom"
-    ] = pydantic.Field(
-        default="random",
-        description="How the walk should be performed: random, sequential, groupedrandom or groupedsequential",
-    )
-    grouping: list[str] = pydantic.Field(
-        default=[],
-        description="List of variable names that need to be grouped together",
-    )
+    samplerType: Annotated[
+        Literal["selector", "generator"],
+        pydantic.Field(
+            description="The type of sampler to use. A generator generates entities based on the entityspace, "
+            "selectors select from existing entities",
+        ),
+    ] = "selector"
+    mode: Annotated[
+        Literal["random", "sequential", "randomgrouped", "sequentialgrouped", "custom"],
+        pydantic.Field(
+            description="How the walk should be performed: random, sequential, groupedrandom or groupedsequential",
+        ),
+    ] = "random"
+    grouping: Annotated[
+        list[str],
+        pydantic.Field(
+            default_factory=list,
+            description="List of variable names that need to be grouped together",
+        ),
+    ]
     model_config = pydantic.ConfigDict(extra="forbid")
 
     @pydantic.field_validator("grouping")
     def validate_mode_and_grouping(
-        cls, grouping, values: "pydantic.FieldValidationInfo"
-    ):
+        cls, grouping: list[str], values: "pydantic.FieldValidationInfo"
+    ) -> list[str]:
 
         if (
-            values.data.get("mode") == CombinedWalkModeEnum.RANDOMGROUPED
-            or values.data.get("mode") == CombinedWalkModeEnum.SEQUENTIALGROUPED
+            values.data.get("mode")
+            in {
+                CombinedWalkModeEnum.RANDOMGROUPED,
+                CombinedWalkModeEnum.SEQUENTIALGROUPED,
+            }
+            and len(grouping) == 0
         ):
-            assert len(grouping) > 0, (
+            raise ValueError(
                 f"grouping {grouping} has to contain some names for the grouping "
                 f'mode {values.data.get("mode")}'
             )
@@ -164,27 +170,27 @@ class BaseSamplerConfiguration(pydantic.BaseModel):
         return grouping
 
     @pydantic.field_validator("samplerType")
-    def validate_sample_type(cls, samplerType: str):
+    def validate_sample_type(cls, samplerType: str) -> str:
 
         try:
             SamplerTypeEnum(samplerType)
-        except ValueError:
+        except ValueError as error:
             raise ValueError(
                 f"Unknown sampler type  {samplerType}. "
                 f"Known sampler types {[item.value for item in SamplerTypeEnum]}"
-            )
+            ) from error
 
         return samplerType
 
     @pydantic.field_validator("mode")
-    def validate_mode(cls, mode: str):
+    def validate_mode(cls, mode: str) -> str:
 
         try:
             CombinedWalkModeEnum(mode)
-        except ValueError:
+        except ValueError as error:
             raise ValueError(
                 f"Unknown walk mode {mode}. Known modes {[item.value for item in CombinedWalkModeEnum]}"
-            )
+            ) from error
 
         return mode
 
@@ -245,7 +251,7 @@ class BaseSamplerConfiguration(pydantic.BaseModel):
 
         return sampler
 
-    def __str__(self):
+    def __str__(self) -> str:
 
         s = f"sampler: {self.samplerType} walk mode: {self.mode}."
         if self.grouping:
@@ -263,20 +269,22 @@ class SamplerModuleConf(ModuleConf):
 class CustomSamplerConfiguration(pydantic.BaseModel):
     """Allows using arbitrary samplers"""
 
-    module: SamplerModuleConf = pydantic.Field(
-        description="Describes the sampling class to use"
-    )
-    parameters: pydantic.SerializeAsAny[typing.Any | None] = pydantic.Field(
-        default=None, description="Parameters for the sampler if any"
-    )
+    module: Annotated[
+        SamplerModuleConf,
+        pydantic.Field(description="Describes the sampling class to use"),
+    ]
+    parameters: Annotated[
+        pydantic.SerializeAsAny[typing.Any | None],
+        pydantic.Field(description="Parameters for the sampler if any"),
+    ] = None
     model_config = pydantic.ConfigDict(extra="forbid")
 
-    def __str__(self):
+    def __str__(self) -> str:
 
         return f"custom sampler class: {self.module}. parameters: {self.parameters}"
 
     @pydantic.field_validator("module")
-    def validate_sampler_exists(cls, module: ModuleConf):
+    def validate_sampler_exists(cls, module: ModuleConf) -> ModuleConf:
 
         if not load_module_class_or_function(module):
             raise ValueError(f"Unable to find custom sampler {module}")
@@ -284,7 +292,7 @@ class CustomSamplerConfiguration(pydantic.BaseModel):
         return module
 
     @pydantic.model_validator(mode="after")
-    def validate_parameters(self):
+    def validate_parameters(self) -> "CustomSamplerConfiguration":
 
         cls = load_module_class_or_function(self.module)
         if cls.parameters_model():
@@ -307,7 +315,7 @@ class CustomSamplerConfiguration(pydantic.BaseModel):
         return sampler
 
 
-def sampler_type_discriminator(sampler_config):
+def sampler_type_discriminator(sampler_config: typing.Any) -> str:  # noqa: ANN401
 
     if isinstance(sampler_config, CustomSamplerConfiguration):
         return "Custom"
@@ -330,40 +338,57 @@ SamplerConfig = Annotated[
 
 class RandomWalkParameters(pydantic.BaseModel):
 
-    samplerConfig: SamplerConfig = pydantic.Field(
-        default_factory=BaseSamplerConfiguration,
-        description="Defines the sampler to use",
-    )
-    numberEntities: int | Literal["all"] = pydantic.Field(
-        default=1,
-        description="Number of entities to sample or 'all' if you want to sample all and discoveryspace is finite. "
-        "Note if discoveryspace is not-finite then specifying 'all' will raise an error at runtime",
-    )
-    batchSize: int = pydantic.Field(
-        default=1,
-        description="The number of concurrent experiments will be maintained at"
-        " this value multiplied by the size of the measurement space",
-    )
-    singleMeasurement: bool = pydantic.Field(
-        default=True,
-        description="If True reuse existing measurements for an experiment",
-    )
-    maxRetries: int = pydantic.Field(
-        default=0, description="The number of times to retry failed measurements"
-    )
-    filter: EntityFilter = pydantic.Field(
-        default=EntityFilter(),
-        description="Filter for entities. Only entities matching filter are considered "
-        "sampled and sent for measurement. Default is noFilter",
-    )
+    samplerConfig: Annotated[
+        SamplerConfig,
+        pydantic.Field(
+            default_factory=BaseSamplerConfiguration,
+            description="Defines the sampler to use",
+        ),
+    ]
+    numberEntities: Annotated[
+        int | Literal["all"],
+        pydantic.Field(
+            description="Number of entities to sample or 'all' if you want to sample all and discoveryspace is finite. "
+            "Note if discoveryspace is not-finite then specifying 'all' will raise an error at runtime",
+        ),
+    ] = 1
+    batchSize: Annotated[
+        int,
+        pydantic.Field(
+            description="The number of concurrent experiments will be maintained at"
+            " this value multiplied by the size of the measurement space",
+        ),
+    ] = 1
+    singleMeasurement: Annotated[
+        bool,
+        pydantic.Field(
+            description="If True reuse existing measurements for an experiment",
+        ),
+    ] = True
+    maxRetries: Annotated[
+        int,
+        pydantic.Field(description="The number of times to retry failed measurements"),
+    ] = 0
+    filter: Annotated[
+        EntityFilter,
+        pydantic.Field(
+            description="Filter for entities. Only entities matching filter are considered "
+            "sampled and sent for measurement. Default is noFilter",
+        ),
+    ] = EntityFilter()
 
     model_config = pydantic.ConfigDict(extra="forbid")
 
     @pydantic.field_validator("batchSize")
-    def validate_runtime_config(cls, value, values: "pydantic.FieldValidationInfo"):
+    def validate_runtime_config(
+        cls, value: int, values: "pydantic.FieldValidationInfo"
+    ) -> int:
 
-        if values.data.get("numberEntities") != "all":
-            assert values.data.get("numberEntities") >= value, (
+        if (
+            values.data.get("numberEntities") != "all"
+            and values.data.get("numberEntities") < value
+        ):
+            raise ValueError(
                 f'Number of entities to sample {values.data.get("numberEntities")} '
                 f"cannot be less than batch size {value}"
             )
@@ -373,17 +398,18 @@ class RandomWalkParameters(pydantic.BaseModel):
 
 class RequestRetry(pydantic.BaseModel):
 
-    measurementRequest: MeasurementRequest = pydantic.Field(
-        description="The request being retried"
-    )
-    retries: int = pydantic.Field(
-        default=0, description="Number of times it has been retried"
-    )
-    finalStatus: MeasurementRequestStateEnum | None = pydantic.Field(
-        default=None, description="The final status"
-    )
+    measurementRequest: Annotated[
+        MeasurementRequest, pydantic.Field(description="The request being retried")
+    ]
+    retries: Annotated[
+        int, pydantic.Field(description="Number of times it has been retried")
+    ] = 0
+    finalStatus: Annotated[
+        MeasurementRequestStateEnum | None,
+        pydantic.Field(description="The final status"),
+    ] = None
 
-    def __str__(self):
+    def __str__(self) -> str:
 
         return (
             f"Request {self.measurementRequest.requestid}. Entity: {self.measurementRequest.entities[0]}. "
@@ -392,24 +418,12 @@ class RequestRetry(pydantic.BaseModel):
         )
 
 
-@ray.remote
-class RandomWalk(Characterize):
+@explore_operation
+class RandomWalk(Explore):
     """Performs a random walk through a set of known entities in a space"""
 
     @classmethod
-    def defaultOperationParameters(
-        cls,
-    ) -> RandomWalkParameters:
-
-        return RandomWalkParameters()
-
-    @classmethod
-    def validateOperationParameters(cls, parameters) -> RandomWalkParameters:
-
-        return RandomWalkParameters.model_validate(parameters)
-
-    @classmethod
-    def description(cls):
+    def description(cls) -> str:
 
         return """RandomWalk provides capabilities for sampling points in an entity space and applying
             measurements to them via a variety of walk and sampling filters.
@@ -422,14 +436,13 @@ class RandomWalk(Characterize):
         self,
         operationActorName: str,
         namespace: str,
-        state: DiscoverySpaceManager,
+        discovery_space_manager: DiscoverySpaceManager,
         actuators: dict[str, "ActuatorBase"],
-        params=None,
-    ):
+        params: dict | None = None,
+    ) -> None:
 
         enable_ray_actor_coverage("random_walk")
         configure_logging()
-        # waiting_for_debugger_if_local_mode()
 
         self.runid = str(uuid.uuid4())[:6]
         self.params = (
@@ -442,7 +455,6 @@ class RandomWalk(Characterize):
         self.criticalError = False
 
         self.update_queue = asyncio.queues.Queue()
-        self.actuators = actuators
         self._entitiesSampled = 0
         self._experimentsRequested = 0
         # Key is requestIndex, value is RequestRetry
@@ -451,42 +463,45 @@ class RandomWalk(Characterize):
         # If this was not true we would need to use the entity id+requestIndex
         self._retriedExperimentRequests = {}  # type: dict[int, RequestRetry]
 
-        # Sets state, actorName ivars and subscribes to the state
         super().__init__(
             operationActorName=operationActorName,
             namespace=namespace,
-            state=state,
+            discovery_space_manager=discovery_space_manager,
             actuators=actuators,
         )
 
-    def onUpdate(self, measurementRequest):
+    def onUpdate(self, measurementRequest: MeasurementRequest) -> None:
 
         self.update_queue.put_nowait(measurementRequest)
 
-    def onCompleted(self):
+    def onCompleted(self) -> None:
 
         self.log.info("Completed")
 
-    def onError(self, error: Exception):
+    def onError(self, error: Exception) -> None:
 
         self.update_queue.put_nowait(error)
 
-    async def run(self):
+    async def run(self) -> None:
+
+        from orchestrator.modules.operators.console_output import (
+            RichConsoleProgressMessage,
+        )
 
         self.log.debug(
             f"Starting random walk. Sampler config is: {self.params.samplerConfig}"
         )
         # noinspection PyUnresolvedReferences
-        measurement_queue = await self.state.measurement_queue.remote()
+        measurement_queue = await self.ds_manager.measurement_queue.remote()
         sampler = self.params.samplerConfig.sampler()
         self.log.debug(sampler)
 
         iterator = await sampler.remoteEntityIterator(
-            remoteDiscoverySpace=self.state, batchsize=1
+            remoteDiscoverySpace=self.ds_manager, batchsize=1
         )
 
         # noinspection PyUnresolvedReferences
-        ds = await self.state.discoverySpace.remote()  # type: DiscoverySpace
+        ds = await self.ds_manager.discoverySpace.remote()  # type: DiscoverySpace
 
         measurement_space = ds.measurementSpace
         entity_space: EntitySpaceRepresentation | None = ds.entitySpace
@@ -500,14 +515,14 @@ class RandomWalk(Characterize):
                 if entity_space.isDiscreteSpace:
                     try:
                         number_entities = entity_space.size
-                    except AttributeError:
+                    except AttributeError as error:
                         # noinspection PyUnresolvedReferences
-                        self.state.unsubscribeFromUpdates.remote(
+                        self.ds_manager.unsubscribeFromUpdates.remote(
                             subscriberName=self.actorName
                         )
                         raise ValueError(
                             "Cannot specify 'all' for number of entities to sample for space with unbounded dimensions"
-                        )
+                        ) from error
                     else:
                         print(
                             f"'all' specified for number of entities to sample. "
@@ -515,7 +530,7 @@ class RandomWalk(Characterize):
                         )
                 else:
                     # noinspection PyUnresolvedReferences
-                    self.state.unsubscribeFromUpdates.remote(
+                    self.ds_manager.unsubscribeFromUpdates.remote(
                         subscriberName=self.actorName
                     )
                     raise ValueError(
@@ -563,6 +578,14 @@ class RandomWalk(Characterize):
         # STEP ONE: Send Initial Batch
         #
 
+        console = ray.get_actor(name="RichConsoleQueue")
+        console.put.remote(
+            RichConsoleProgressMessage(
+                id=self.operationIdentifier(),
+                label=f"({self.operationIdentifier()}) 0/{number_entities}",
+                progress=0,
+            )
+        )
         number_experiments = len(measurement_space.experiments)
         print(f"Submitting initial batch of size {self.params.batchSize} entities")
         print(
@@ -595,10 +618,8 @@ class RandomWalk(Characterize):
                 )
                 independent_experiments = measurement_space.independentExperiments
                 for experiment in independent_experiments:
-                    print(
-                        f"Submitting experiment {EXPERIMENT}{experiment}{RESET} for {ENTITY}{entities[0].identifier}{RESET}"
-                    )
-                    experiment_identifiers = await measure_or_replay_async(
+
+                    experiment_identifiers = measure_or_replay(
                         requestIndex=self._entitiesSampled,
                         requesterid=self.operationIdentifier(),
                         experimentReference=experiment.reference,
@@ -606,6 +627,10 @@ class RandomWalk(Characterize):
                         actuators=self.actuators,
                         measurement_queue=measurement_queue,
                         memoize=self.params.singleMeasurement,
+                    )
+                    print(
+                        f"Submitted experiment {EXPERIMENT}{experiment}{RESET} for {ENTITY}{entities[0].identifier}{RESET}. "
+                        f"Request identifier: {REQUEST}{experiment_identifiers[0]}{RESET}",
                     )
 
                     # This is for the number of experiments submitted in total
@@ -671,6 +696,14 @@ class RandomWalk(Characterize):
             if measurement_request.operation_id == self.operationIdentifier():
                 finished_requests += 1
 
+                console.put.remote(
+                    RichConsoleProgressMessage(
+                        id=self.operationIdentifier(),
+                        label=f"({self.operationIdentifier()}) {finished_requests}/{number_entities}",
+                        progress=int(100 * finished_requests / number_entities),
+                    )
+                )
+
                 # Process the finished measurement
                 # If there are dependent experiments they will be added to the queue here
                 # If the measurement is considered completed this will return True
@@ -720,7 +753,7 @@ class RandomWalk(Characterize):
                 f"Was notified that {finished_requests} measurements had completed before error."
             )
         # noinspection PyUnresolvedReferences
-        self.state.unsubscribeFromUpdates.remote(subscriberName=self.actorName)
+        self.ds_manager.unsubscribeFromUpdates.remote(subscriberName=self.actorName)
 
     def _processCompletedMeasurement(
         self,
@@ -802,8 +835,11 @@ class RandomWalk(Characterize):
         return completed
 
     async def _getAndSubmitMeasurement(
-        self, completedExperiments, continuousBatchingQueue, updateQueue
-    ):
+        self,
+        completedExperiments: int,
+        continuousBatchingQueue: Queue,
+        updateQueue: "MeasurementQueue",
+    ) -> None:
         """
         Gets an experiment+entity for continuousBatchingQueue and submits it
 
@@ -824,11 +860,8 @@ class RandomWalk(Characterize):
             experiment_reference = next_experiment_and_entity["experimentReference"]
             entities = next_experiment_and_entity["entities"]
             request_index = next_experiment_and_entity["requestIndex"]
-            print(
-                f"Continuous batching: {SUBMIT}SUBMIT EXPERIMENT{RESET}. Submitting experiment {EXPERIMENT}{experiment_reference}{RESET} "
-                f"for {ENTITY}{entities[0].identifier}{RESET}"
-            )
-            experiment_identifiers = await measure_or_replay_async(
+
+            experiment_identifiers = measure_or_replay(
                 requestIndex=request_index,
                 requesterid=self.operationIdentifier(),
                 experimentReference=experiment_reference,
@@ -836,6 +869,11 @@ class RandomWalk(Characterize):
                 actuators=self.actuators,
                 measurement_queue=updateQueue,
                 memoize=self.params.singleMeasurement,
+            )
+            print(
+                f"Continuous batching: {SUBMIT}SUBMIT EXPERIMENT{RESET}. Submitted experiment {EXPERIMENT}{experiment_reference}{RESET} "
+                f"for {ENTITY}{entities[0].identifier}{RESET}. "
+                f"Request identifier: {REQUEST}{experiment_identifiers[0]}{RESET}"
             )
 
             self._experimentsRequested += len(experiment_identifiers)
@@ -898,63 +936,26 @@ class RandomWalk(Characterize):
 
         return entities
 
-    def numberEntitiesSampled(self):
+    def numberEntitiesSampled(self) -> int:
 
         return self._entitiesSampled
 
-    def numberMeasurementsRequested(self):
+    def numberMeasurementsRequested(self) -> int:
 
         return self._experimentsRequested
 
-    def operationIdentifier(self):
+    def operationIdentifier(self) -> str:
 
-        return f"{self.__class__.operatorIdentifier()}-{self.runid}"
-
-    @classmethod
-    def operatorIdentifier(cls):
-
-        from importlib.metadata import version
-
-        version = version("ado-core")
-
-        return f"randomwalk-{version}"
+        return f"{self.__class__.operator_metadata().operatorIdentifier}-{self.runid}"
 
     @classmethod
-    def operationType(cls) -> DiscoveryOperationEnum:
-
-        return DiscoveryOperationEnum.SEARCH
-
-
-@explore_operation(
-    name="random_walk",
-    description=RandomWalk.description(),
-    configuration_model=RandomWalkParameters,
-    configuration_model_default=RandomWalkParameters(),
-)
-def random_walk(
-    discoverySpace: DiscoverySpace,
-    operationInfo: FunctionOperationInfo = FunctionOperationInfo(),
-    **kwargs: dict,
-) -> OperationOutput:
-    """
-    Performs a random_walk operation on a given discoverySpace
-
-    """
-
-    import uuid
-
-    import orchestrator.modules.module
-
-    module = orchestrator.core.operation.config.OperatorModuleConf(
-        moduleName="orchestrator.modules.operators.randomwalk",
-        moduleClass="RandomWalk",
-        moduleType=orchestrator.modules.module.ModuleTypeEnum.OPERATION,
-    )
-
-    return explore_operation_function_wrapper(
-        discovery_space=discoverySpace,
-        module=module,
-        parameters=kwargs,
-        namespace=f"namespace-{str(uuid.uuid4())[:8]}",
-        operation_info=operationInfo,
-    )
+    def operator_metadata(cls) -> OperatorMetadata:
+        """Returns operator metadata for the random_walk explore operator."""
+        return OperatorMetadata(
+            name="random_walk",
+            version=version("ado-core"),
+            description=cls.description(),
+            configuration_model=RandomWalkParameters,
+            example_configuration=RandomWalkParameters(),
+            type=DiscoveryOperationEnum.SEARCH,
+        )

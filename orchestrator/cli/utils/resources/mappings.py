@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 from orchestrator.core import CoreResourceKinds
@@ -8,7 +8,9 @@ cli_shorthands_to_cli_names: dict[str, str] = {
     "ac": CoreResourceKinds.ACTUATORCONFIGURATION.value,
     "ctx": "context",
     "dcr": CoreResourceKinds.DATACONTAINER.value,
+    "exp": "experiment",
     "op": CoreResourceKinds.OPERATION.value,
+    "request": "measurementrequest",
     "space": CoreResourceKinds.DISCOVERYSPACE.value,
     "store": CoreResourceKinds.SAMPLESTORE.value,
 }
@@ -18,6 +20,5 @@ resource_kinds_to_human: dict[CoreResourceKinds, str] = {
     CoreResourceKinds.DATACONTAINER: "data container",
     CoreResourceKinds.DISCOVERYSPACE: "space",
     CoreResourceKinds.OPERATION: "operation",
-    CoreResourceKinds.OPERATOR: "operator",
     CoreResourceKinds.SAMPLESTORE: "sample store",
 }

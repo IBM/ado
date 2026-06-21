@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 """
@@ -35,14 +35,14 @@ class QueueMonitorActor:
     continuously pulls from the queue until the actor is terminated.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Create a new :class:`QueueMonitorActor`.
 
         The constructor configures logging, obtains the shared queue, and
         starts the background monitoring coroutine.
         """
         self.logger = logging.getLogger("QueueMonitorActor")
-        self.shared_queue = MeasurementQueue.get_measurement_queue()
+        self.shared_queue = MeasurementQueue()
 
         # The in-memory store: experiment reference → request ID → request instance.
         self.requests_memory_storage: dict[
@@ -161,7 +161,7 @@ class QueueMonitorActor:
                         measurement_request=measurement_request
                     )
 
-            except Exception as error:
+            except Exception as error:  # noqa: PERF203
                 self.logger.warning(
                     f"Unexpected exception in monitor loop: {type(error)} {error}"
                 )

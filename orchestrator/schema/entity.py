@@ -1,10 +1,11 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 """Module containing discovery state interfaces"""
 
 import importlib.metadata
 import typing
+from typing import Annotated
 
 import pydantic
 from pydantic import ConfigDict
@@ -37,6 +38,39 @@ from orchestrator.schema.virtual_property import (
 
 if typing.TYPE_CHECKING:  # pragma: nocover
     import pandas as pd
+    from rich.console import RenderableType
+
+
+def entity_identifier_from_properties_and_values(point: dict[str, typing.Any]) -> str:
+    """
+    Creates an entity identifier based on a set of constitutive property ids and values for those properties
+
+    If the identifier exceeds safe length (700 characters), it is hashed to ensure database compatibility.
+
+    Parameters:
+        point: A dictionary of constitutive property id, value pairs
+
+    Returns:
+        An entity identifier (human-readable if short, hashed if long)
+    """
+
+    parts = [f"{key}.{point[key]}" for key in sorted(point.keys())]
+    full_identifier = "-".join(parts)
+
+    # Use 700 as threshold to leave margin below 768 limit
+    MAX_SAFE_LENGTH = 700
+
+    if len(full_identifier) > MAX_SAFE_LENGTH:
+        import hashlib
+
+        # Hash long identifiers to ensure they fit in database
+        hash_hex = hashlib.sha256(
+            full_identifier.encode("utf-8"), usedforsecurity=False
+        ).hexdigest()
+        # Prefix to indicate it's a hash
+        return f"hash-{hash_hex}"
+
+    return full_identifier
 
 
 class Entity(pydantic.BaseModel):
@@ -53,28 +87,35 @@ class Entity(pydantic.BaseModel):
 
     """
 
-    identifier: str | None = pydantic.Field(
-        default=None,
-        description="An id that uniquely defines this entity w.r.t others."
-        "If one is not supplied it is generated from the constitutive properties",
-    )
-    generatorid: str = pydantic.Field(
-        "unk", description="The id of the generator that created this entity"
-    )
-    constitutive_property_values: tuple[ConstitutivePropertyValue, ...] = (
+    identifier: Annotated[
+        str | None,
+        pydantic.Field(
+            description="An id that uniquely defines this entity w.r.t others."
+            "If one is not supplied it is generated from the constitutive properties"
+        ),
+    ] = None
+    generatorid: Annotated[
+        str,
+        pydantic.Field(description="The id of the generator that created this entity"),
+    ] = "unk"
+    constitutive_property_values: Annotated[
+        tuple[ConstitutivePropertyValue, ...],
         pydantic.Field(
             frozen=True,
             description="A list of ConstitutivePropertyValue objects giving values for constitutive properties",
-        )
-    )
-    measurement_results: list["ValidMeasurementResult"] = pydantic.Field(
-        default_factory=list,
-        description="A list of ValidMeasurementResult objects giving values for observed properties. "
-        "InvalidMeasurementResults are not supported.",
-    )
-    metadata: dict | None = pydantic.Field(
-        default=None, description="Additional metadata on this entity"
-    )
+        ),
+    ]
+    measurement_results: Annotated[
+        list["ValidMeasurementResult"],
+        pydantic.Field(
+            default_factory=list,
+            description="A list of ValidMeasurementResult objects giving values for observed properties. "
+            "InvalidMeasurementResults are not supported.",
+        ),
+    ]
+    metadata: Annotated[
+        dict | None, pydantic.Field(description="Additional metadata on this entity")
+    ] = None
     model_config = ConfigDict(
         extra="forbid",
         json_schema_extra={
@@ -114,7 +155,7 @@ class Entity(pydantic.BaseModel):
     @classmethod
     def identifier_from_property_values(
         cls, property_values: typing.Iterable[ConstitutivePropertyValue]
-    ):
+    ) -> str:
         """Returns the identifier that would be generated for an entity with the given constitutive property values
 
         Raise ValueError if all members of property_values do not refer to ConstitutiveProperties
@@ -126,8 +167,9 @@ class Entity(pydantic.BaseModel):
         ):
             raise ValueError("All values must be for ConstitutiveProperties")
 
-        cp_id = [f"{pv.property.identifier}.{pv.value}" for pv in property_values]
-        return "-".join(cp_id)
+        return entity_identifier_from_properties_and_values(
+            {pv.property.identifier: pv.value for pv in property_values}
+        )
 
     @pydantic.field_validator("constitutive_property_values", mode="after")
     @classmethod
@@ -157,7 +199,7 @@ class Entity(pydantic.BaseModel):
     @classmethod
     def guarantee_unique_measurement_results(
         cls, measurement_results: list["ValidMeasurementResult"]
-    ):
+    ) -> list["ValidMeasurementResult"]:
 
         if not measurement_results:
             return measurement_results
@@ -176,7 +218,7 @@ class Entity(pydantic.BaseModel):
         return measurement_results
 
     @pydantic.model_validator(mode="after")
-    def check_identifier(self):
+    def check_identifier(self) -> "Entity":
         """Checks if an external identifier was passed and if not generates one"""
 
         self.identifier = (
@@ -189,53 +231,76 @@ class Entity(pydantic.BaseModel):
 
         return self
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.identifier} ({self.generatorid})"
 
-    def _repr_pretty_(self, p, cycle=False):
-
+    def __rich__(self) -> "RenderableType":
+        """Render this entity using rich."""
         import pandas as pd
+        import rich.box
+        from rich.console import Group
+        from rich.panel import Panel
+        from rich.text import Text
 
-        if cycle:  # pragma: nocover
-            p.text("Cycle detected")
-        else:
-            p.text(f"Identifier: {self.identifier}")
-            p.breakable()
-            p.text(f"Generator: {self.generatorid}")
-            p.breakable()
-            p.breakable()
-            with p.group(2, "Constitutive properties:"):
-                p.breakable()
-                data = [
-                    [cv.property.identifier, cv.value]
-                    for cv in self.constitutive_property_values
-                ]
-                df = pd.DataFrame(data, columns=["name", "value"])
-                p.pretty(df)
-            p.breakable()
-            p.breakable()
-            with p.group(2, "Observed properties:"):
-                p.breakable()
-                data = [
-                    [
-                        op.identifier,
-                        op.experimentReference,
-                        op.targetProperty.identifier,
-                        [v.value for v in self.valuesForProperty(op)],
-                    ]
-                    for op in self.observedProperties
-                ]
-                df = pd.DataFrame(
-                    data, columns=["name", "experiment", "target-property", "values"]
-                )
-                p.pretty(df)
-            p.breakable()
-            p.breakable()
-            with p.group(2, "Associated experiments:"):
-                p.breakable()
-                for e in self.experimentReferences:
-                    p.breakable()
-                    p.text(str(e))
+        from orchestrator.utilities.rich import dataframe_to_rich_table
+
+        content = [
+            Text.assemble(
+                ("Identifier: ", "bold"),
+                (self.identifier, "bold green"),
+                ("Generator: ", "bold"),
+                self.generatorid,
+                "",
+            )
+        ]
+
+        # Constitutive properties table
+        data = [
+            [cv.property.identifier, cv.value]
+            for cv in self.constitutive_property_values
+        ]
+        df = pd.DataFrame(data, columns=["name", "value"])
+
+        content.extend(
+            [
+                Text("Constitutive properties:", style="bold"),
+                Panel(dataframe_to_rich_table(df), box=rich.box.SIMPLE_HEAD),
+            ]
+        )
+
+        # Observed properties table
+        data = [
+            [
+                op.identifier,
+                op.experimentReference,
+                op.targetProperty.identifier,
+                [v.value for v in self.valuesForProperty(op)],
+            ]
+            for op in self.observedProperties
+        ]
+        df = pd.DataFrame(
+            data, columns=["name", "experiment", "target-property", "values"]
+        )
+        content.extend(
+            [
+                Text("Observed properties:", style="bold"),
+                Panel(dataframe_to_rich_table(df), box=rich.box.SIMPLE_HEAD),
+            ]
+        )
+
+        # Associated experiments
+        content.extend(
+            [
+                Text("Associated experiments:", style="bold"),
+                Panel(
+                    Group(*[Text(str(e)) for e in self.experimentReferences]),
+                    box=rich.box.HORIZONTALS,
+                    padding=(0, 2),
+                ),
+            ]
+        )
+
+        return Group(*content)
 
     @property
     def observedProperties(self) -> list[ObservedProperty]:
@@ -328,7 +393,7 @@ class Entity(pydantic.BaseModel):
         ]
 
     def virtualObservedPropertiesFromIdentifier(
-        self, identifier
+        self, identifier: str
     ) -> list[VirtualObservedProperty] | None:
         """Returns a list of VirtualObservedProperty instances given a virtual property identifier
 
@@ -441,7 +506,9 @@ class Entity(pydantic.BaseModel):
             )
         )
 
-    def add_measurement_result(self, result: typing.Union["ValidMeasurementResult"]):
+    def add_measurement_result(
+        self, result: typing.Union["ValidMeasurementResult"]
+    ) -> None:
         """
         Adds a ValidMeasurementResult object to the entity.
         """
@@ -487,8 +554,8 @@ class Entity(pydantic.BaseModel):
         def add_value(
             value: ConstitutivePropertyValue | ObservedPropertyValue,
             references: list[ExperimentReference],
-            restrictConstitutive=False,
-        ):
+            restrictConstitutive: bool = False,
+        ) -> bool:
             """Checks if a property value should be added to the series
 
             The rules are
@@ -577,7 +644,7 @@ class Entity(pydantic.BaseModel):
         experimentReferences: list[ExperimentReference] | None = None,
         virtualTargetPropertyIdentifiers: list[str] | None = None,
         aggregationMethod: PropertyAggregationMethodEnum | None = None,
-    ):
+    ) -> list["pd.Series"]:
         """Returns a tuple of series' where each series contains the observed property values for a specific experiment (protocol).
 
         The key of each observed property value is the target property identifier c.f. seriesRepresentation where it is the observed property identifier
@@ -611,7 +678,7 @@ class Entity(pydantic.BaseModel):
             d = resultsDict[refString]
             d["identifier"] = self.identifier
             d["generatorid"] = self.generatorid
-            d["experiment_id"] = e
+            d["experiment_id"] = str(e)
 
             # There should be only one value for a constitutive property
             for v in self.constitutive_property_values:
@@ -651,38 +718,45 @@ class Entity(pydantic.BaseModel):
                 op.targetProperty.identifier: op
                 for op in self.observedPropertiesFromExperimentReference(e)
             }
+            # This loop
+            # A) handles aggregation if present
+            # B) if there is only one value in the list it extracts it from the list
             for o in props:
-                if len(expProperties[o]) > 1:
-                    if aggregationMethod:
+                if aggregationMethod and expProperties[o]:
+                    try:
                         vop = VirtualObservedProperty(
                             baseObservedProperty=prop_map[o],
                             aggregationMethod=PropertyAggregationMethod(
                                 identifier=aggregationMethod
                             ),
                         )
+                        # Replace the target property with the virtual target property id
+                        aggregate_value = vop.aggregate(expProperties[o])
+                        expProperties.pop(o)
+                        expProperties[vop.virtualTargetPropertyIdentifier] = (
+                            aggregate_value.value
+                        )
 
-                        try:
-                            # Replace the target property with the virtual target property id
-                            mean = vop.aggregate(expProperties[o])
-                            expProperties.pop(o)
-                            expProperties[vop.virtualTargetPropertyIdentifier] = (
-                                mean.value
-                            )
-                        except (
-                            ValueError,
-                            TypeError,
-                        ) as error:
-                            # We can't take the mean of all the values for some reason
-                            # An example is that the values are arrays of different length
-                            import logging
+                        # Continue iterating on success - in other cases (no aggregation
+                        # and failure to aggregate), we replace lists with 1 element with
+                        # the element itself.
+                        continue
+                    except (
+                        ValueError,
+                        TypeError,
+                    ) as error:
+                        # We can't aggregate all the values for some reason
+                        # An example is that the values are arrays of different length
+                        import logging
 
-                            log = logging.getLogger("entity")
-                            log.debug(
-                                f"Unable to calculate mean of value for {o} due to {error}. Will not aggregate"
-                            )
-                    else:
-                        pass
-                else:
+                        log = logging.getLogger("entity")
+                        log.debug(
+                            f"Unable to calculate aggregate value for {o} due to {error}. Will not aggregate"
+                        )
+
+                # No aggregation was requested or it failed
+                if len(expProperties[o]) == 1:
+                    # If no aggregation and there is only 1 value we remove the list
                     expProperties[o] = expProperties[o][0]
 
             d.update(expProperties)

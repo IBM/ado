@@ -1,29 +1,43 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import logging
 import os
 import pathlib
 import time
+import typing
 from collections.abc import Callable
+from typing import Annotated
 
+# Before `import ray` (see orchestrator.utilities.ray_local_init). Pytest sets this via pytest-env.
+os.environ.setdefault("RAY_ENABLE_UV_RUN_RUNTIME_ENV", "0")
+
+import ray
 import ray.exceptions
 import requests
 import typer
 import yaml
-from ray.actor import ActorHandle
 
-from orchestrator.modules.actuators.base import ActuatorBase
+from orchestrator.cli.utils.output.prints import (
+    ERROR,
+    WARN,
+    console_print,
+)
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
 from orchestrator.modules.actuators.registry import ActuatorRegistry
-from orchestrator.modules.operators.orchestrate import (
-    graceful_operation_shutdown,
-    initialize_resource_cleaner,
+from orchestrator.modules.operators._cleanup import (
+    initialize_ray_resource_cleaner,
 )
+from orchestrator.modules.operators.orchestrate import graceful_orchestrate_shutdown
 from orchestrator.schema.entity import Entity
 from orchestrator.schema.point import SpacePoint
 from orchestrator.schema.reference import ExperimentReference
 from orchestrator.schema.request import MeasurementRequest
+
+if typing.TYPE_CHECKING:
+    from ray.actor import ActorHandle
+
+    from orchestrator.modules.actuators.base import ActuatorBase
 
 
 def local_execution_closure(
@@ -42,8 +56,12 @@ def local_execution_closure(
     Returns:
         A callable that submits a local measurement request.
     """
+
+    ray.init(ignore_reinit_error=True)
+    initialize_ray_resource_cleaner()
+
     actuators: dict[str, ActorHandle[ActuatorBase]] = {}
-    queue = MeasurementQueue.get_measurement_queue()
+    queue = MeasurementQueue()
 
     actuator_configurations = {}
     if actuator_configuration_identifiers:
@@ -59,11 +77,12 @@ def local_execution_closure(
                 identifier=actuator_configuration_identifier,
                 kind=CoreResourceKinds.ACTUATORCONFIGURATION,
                 raise_error_if_no_resource=True,
+                ignore_plugin_validation=False,
             ).config
             actuator_configurations[actuator_configuration.actuatorIdentifier] = (
                 actuator_configuration
             )
-            print(
+            console_print(
                 f"Loaded configuration {actuator_configuration_identifier} for actuator {actuator_configuration.actuatorIdentifier}"
             )
 
@@ -82,7 +101,7 @@ def local_execution_closure(
             else:
                 config = actuator_class.default_parameters()
 
-            actuators[reference.actuatorIdentifier] = actuator_class.remote(
+            actuators[reference.actuatorIdentifier] = ray.remote(actuator_class).remote(
                 queue=queue, params=config
             )
         actuator = actuators[reference.actuatorIdentifier]
@@ -97,14 +116,16 @@ def local_execution_closure(
             )
             _ = ray.get(future)
         except ray.exceptions.ActorDiedError as error:
-            print(
-                f"[ERROR] Failed to initialize actuator '{reference.actuatorIdentifier}': {error}"
+            console_print(
+                f"{ERROR}Failed to initialize actuator '{reference.actuatorIdentifier}': {error}",
+                stderr=True,
             )
             return None
         except ray.exceptions.RayTaskError as error:
             e = error.as_instanceof_cause()
-            print(
-                f"[ERROR] Failed to submit measurement request for {reference} to actuator '{reference.actuatorIdentifier}':\n {e}"
+            console_print(
+                f"{ERROR}Failed to submit measurement request for {reference} to actuator '{reference.actuatorIdentifier}':\n {e}",
+                stderr=True,
             )
             # Either skip, or return None, or propagate. Let's return None.
             return None
@@ -115,13 +136,18 @@ def local_execution_closure(
 
 
 def remote_execution_closure(
-    endpoint: str, timeout: int = 300
-) -> Callable[[ExperimentReference, Entity], MeasurementRequest]:
+    endpoint: str,
+    experiment_timeout: int = 300,
+    verify_certs: bool = False,
+    requests_timeout: int = 60,
+) -> Callable[[ExperimentReference, Entity, bool, int], MeasurementRequest]:
     """Execute via ado API
 
     Parameters:
         endpoint: The endpoint to use to execute the experiment
-        timeout: The timeout for the experiment in seconds
+        experiment_timeout: The timeout for the experiment in seconds
+        verify_certs: Enables or disables SSL certificate verification for web requests
+        requests_timeout: Timeout for web requests
 
     Returns:
         A callable that submits a remote measurement request to the given endpoint
@@ -131,7 +157,10 @@ def remote_execution_closure(
     logger = logging.getLogger("remote_execution")
 
     def execute_remote(
-        reference: ExperimentReference, entity: Entity
+        reference: ExperimentReference,
+        entity: Entity,
+        verify_certs: bool,
+        requests_timeout: int,
     ) -> MeasurementRequest | None:
 
         # Use requests to post to the endpoint
@@ -141,7 +170,8 @@ def remote_execution_closure(
         response = requests.post(
             f"{endpoint}/api/latest/actuators/{reference.actuatorIdentifier}/experiments/{reference.experimentIdentifier}/requests",
             json=[entity.model_dump()],
-            verify=False,
+            verify=verify_certs,
+            timeout=requests_timeout,
         )
         # If the response is successful the response is a MeasurementRequest identifier
         # If the response status is 404 then the experiment was not found
@@ -168,7 +198,8 @@ def remote_execution_closure(
             logger.debug(f"Polling for request {request_id}")
             response = requests.get(
                 f"{endpoint}/api/latest/actuators/{reference.actuatorIdentifier}/experiments/{reference.experimentIdentifier}/requests/{request_id}",
-                verify=False,
+                verify=verify_certs,
+                timeout=requests_timeout,
             )
             if response.status_code == 200:
                 logger.debug(response.json())
@@ -177,7 +208,7 @@ def remote_execution_closure(
             else:
                 elapsed = (datetime.datetime.now() - start_time).total_seconds()
                 logger.debug(f"Waiting - {elapsed:.1f} seconds elapsed")
-                if elapsed > timeout:
+                if elapsed > experiment_timeout:
                     raise Exception(
                         f"Timeout waiting for measurement request {request_id} to complete"
                     )
@@ -197,36 +228,55 @@ app = typer.Typer(
 
 @app.command()
 def run(
-    point_file: pathlib.Path = typer.Argument(
-        ...,
-        help="Path to a yaml file containing an ado point definition",
-        file_okay=True,
-        dir_okay=False,
-        readable=True,
-        resolve_path=True,
-    ),
-    remote: str = typer.Option(
-        None,
-        "--remote",
-        metavar="ENDPOINT",
-        help="Execute the experiment on a remote Ray cluster at the given ENDPOINT. If not given the experiment will be run locally",
-    ),
-    timeout: int = typer.Option(
-        300,
-        "--timeout",
-        metavar="TIMEOUT",
-        help="Timeout for the remote experiment in seconds. If not given the default is 300 seconds",
-    ),
-    validate: bool = typer.Option(
-        True,
-        help="Validate the entity before executing the experiment. If executing remotely this requires the experiment to be installed locally",
-    ),
-    actuator_configuration_identifiers: list[str] | None = typer.Option(
-        None,
-        "--actuator-config-id",
-        metavar="ACTUATOR_CONFIG_IDENTIFIER",
-        help="Optional actuator configuration identifier(s) to use for this experiment. May be specified multiple times.",
-    ),
+    point_file: Annotated[
+        pathlib.Path,
+        typer.Argument(
+            help="Path to a yaml file containing an ado point definition",
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+        ),
+    ],
+    remote: Annotated[
+        str | None,
+        typer.Option(
+            metavar="ENDPOINT",
+            help="Execute the experiment on a remote Ray cluster at the given ENDPOINT. If not given the experiment will be run locally",
+        ),
+    ] = None,
+    timeout: Annotated[
+        int,
+        typer.Option(
+            metavar="TIMEOUT",
+            help="Timeout for the remote experiment in seconds. If not given the default is 300 seconds",
+        ),
+    ] = 300,
+    validate: Annotated[
+        bool,
+        typer.Option(
+            help="Validate the entity before executing the experiment. "
+            "If executing remotely this requires the experiment to be installed locally",
+        ),
+    ] = True,
+    actuator_configuration_identifiers: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--actuator-config-id",
+            metavar="ACTUATOR_CONFIG_IDENTIFIER",
+            help="Optional actuator configuration identifier(s) to use for this experiment. "
+            "May be specified multiple times.",
+        ),
+    ] = None,
+    verify_certs: Annotated[
+        bool,
+        typer.Option(
+            help="Enable or disable SSL certificate verification of remote hosts"
+        ),
+    ] = False,
+    request_timeout: Annotated[
+        int, typer.Option(help="Timeout for web requests.")
+    ] = 60,
 ) -> None:
     from orchestrator.modules.actuators.registry import ActuatorRegistry
 
@@ -235,7 +285,7 @@ def run(
     point = SpacePoint.model_validate(yaml.safe_load(point_file.read_text()))
 
     entity = point.to_entity()
-    print(f"Point: {point.entity}")
+    console_print(f"Point: {point.entity}")
 
     registry = ActuatorRegistry()
     execute = (
@@ -244,45 +294,51 @@ def run(
             actuator_configuration_identifiers=actuator_configuration_identifiers,
         )
         if not remote
-        else remote_execution_closure(remote, timeout=timeout)
+        else remote_execution_closure(
+            remote,
+            experiment_timeout=timeout,
+            verify_certs=verify_certs,
+            requests_timeout=request_timeout,
+        )
     )
-
-    if not remote:
-        initialize_resource_cleaner()
 
     try:
         for reference in point.experiments:
             valid = True
             if validate:
-                print("Validating entity ...")
+                console_print("Validating entity ...")
                 experiment = registry.experimentForReference(reference)
                 valid = experiment.validate_entity(entity, verbose=True)
             else:
-                print("Skipping validation")
+                console_print("Skipping validation")
 
             if valid:
-                print(f"Executing: {reference}")
+                console_print(f"Executing: {reference}")
                 request = execute(reference, entity)
                 if request is None:
-                    print(
-                        "Measurement request failed unexpectedly. Skipping this experiment."
+                    console_print(
+                        f"{WARN}Measurement request failed unexpectedly. Skipping this experiment."
                     )
                 else:
-                    print("Result:")
-                    print(f"{request.series_representation(output_format='target')}\n")
+                    console_print("Result:")
+                    console_print(
+                        request.series_representation(output_format="target"),
+                        has_pandas_content=True,
+                        use_markup=False,
+                    )
             else:
-                print("Entity is not valid")
+                console_print(f"{ERROR}Entity is not valid")
     finally:
         if not remote:
-            graceful_operation_shutdown()
+            graceful_orchestrate_shutdown()
 
 
-def main():
+def main() -> None:
     try:
         app()
     except Exception as e:
-        typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(code=1)
+        console_print(f"{ERROR}{e}", stderr=True)
+        raise typer.Exit(code=1) from e
 
 
 if __name__ == "__main__":

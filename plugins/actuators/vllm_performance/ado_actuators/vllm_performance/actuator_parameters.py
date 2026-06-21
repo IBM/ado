@@ -1,14 +1,13 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-from typing import Any
+from typing import Annotated, Any
 
 import pydantic
+from pydantic import AfterValidator
 
 from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
-from orchestrator.modules.operators.base import (
-    warn_deprecated_operator_parameters_model_in_use,
-)
+from orchestrator.utilities.pydantic import validate_rfc_1123
 
 
 # In case we need parameters for our actuator, we create a class
@@ -16,91 +15,126 @@ from orchestrator.modules.operators.base import (
 # in the parameters_class class variable of our actuator.
 # This class inherits from pydantic.BaseModel.
 class VLLMPerformanceTestParameters(GenericActuatorParameters):
-    namespace: str | None = pydantic.Field(
-        default=None,
-        description="K8s namespace for running VLLM pod. If not supplied vllm deployments cannot be created.",
-    )
-    in_cluster: bool = pydantic.Field(
-        default=False,
-        description="flag to determine whether we are running in K8s cluster or locally",
-    )
-    verify_ssl: bool = pydantic.Field(
-        default=False, description="flag to verify SLL when connecting to server"
-    )
-    image_secret: str = pydantic.Field(
-        default="", description="secret to use when loading image"
-    )
-    node_selector: dict[str, str] = pydantic.Field(
-        default={}, description="dictionary containing node selector key:value pairs"
-    )
-    deployment_template: str | None = pydantic.Field(
-        default=None, description="name of deployment template"
-    )
-    service_template: str | None = pydantic.Field(
-        default=None, description="name of service template"
-    )
-    pvc_template: str | None = pydantic.Field(
-        default=None, description="name of pvc template"
-    )
-    pvc_name: None | str = pydantic.Field(
-        default=None, description="name of pvc to be created/attached"
-    )
-    interpreter: str = pydantic.Field(
-        default="python3", description="name of python interpreter"
-    )
-    benchmark_retries: int = pydantic.Field(
-        default=3, description="number of retries for running benchmark"
-    )
-    retries_timeout: int = pydantic.Field(
-        default=5, description="initial timeout between retries"
-    )
-    hf_token: str = pydantic.Field(
-        default="",
-        validate_default=True,
-        description="Huggingface token - can be empty if you are accessing fully open models",
-    )
-    max_environments: int = pydantic.Field(
-        default=1, description="Maximum amount of concurrent environments"
-    )
+    namespace: Annotated[
+        str | None,
+        pydantic.Field(
+            description="K8s namespace for running VLLM pod. If not supplied vllm deployments cannot be created.",
+            validate_default=False,
+        ),
+        AfterValidator(validate_rfc_1123),
+    ] = None
+    in_cluster: Annotated[
+        bool,
+        pydantic.Field(
+            description="flag to determine whether we are running in K8s cluster or locally",
+        ),
+    ] = False
+    verify_ssl: Annotated[
+        bool, pydantic.Field(description="flag to verify SLL when connecting to server")
+    ] = False
+    image_pull_secret_name: Annotated[
+        str, pydantic.Field(description="secret to use when loading image")
+    ] = ""
+    node_selector: Annotated[
+        dict[str, str],
+        pydantic.Field(
+            default_factory=dict,
+            description="dictionary containing node selector key:value pairs",
+        ),
+    ]
+    deployment_template: Annotated[
+        str | None, pydantic.Field(description="name of deployment template")
+    ] = None
+    service_template: Annotated[
+        str | None, pydantic.Field(description="name of service template")
+    ] = None
+    pvc_template: Annotated[
+        str | None, pydantic.Field(description="name of pvc template")
+    ] = None
+    pvc_name: Annotated[
+        None | str, pydantic.Field(description="name of pvc to be created/attached")
+    ] = None
+    benchmark_retries: Annotated[
+        int, pydantic.Field(description="number of retries for running benchmark")
+    ] = 3
+    retries_timeout: Annotated[
+        int, pydantic.Field(description="initial timeout between retries")
+    ] = 5
+    hf_token: Annotated[
+        str,
+        pydantic.Field(
+            validate_default=True,
+            description="Huggingface token - can be empty if you are accessing fully open models",
+        ),
+    ] = ""
+    max_environments: Annotated[
+        int, pydantic.Field(description="Maximum amount of concurrent environments")
+    ] = 1
+    developer_mode: Annotated[
+        bool,
+        pydantic.Field(
+            description="If true, disables automatic installation of vllm and guidellm dependencies in Ray task environment. Useful for development when dependencies are already installed."
+        ),
+    ] = False
+    otlp_traces_endpoint: Annotated[
+        pydantic.AnyUrl | None,
+        pydantic.Field(
+            description="OpenTelemetry traces endpoint URL for vLLM observability"
+        ),
+    ] = None
 
     @pydantic.model_validator(mode="before")
     @classmethod
-    def make_node_selector_dict(cls, values: Any):
-        import json
-        from json import JSONDecodeError
+    def delete_interpreter(cls, values: Any) -> Any:  # noqa: ANN401
 
-        updated = False
-        if isinstance(values, dict):
-            node_selector = values.get("node_selector", None)
-            if node_selector is not None and isinstance(node_selector, str):
-                try:
-                    values["node_selector"] = (
-                        {} if len(node_selector) == 0 else json.loads(node_selector)
-                    )
-                except JSONDecodeError:
-                    raise ValueError(
-                        "The node_selector field does not contain a valid dict"
-                    )
-                updated = True
-        elif isinstance(values, GenericActuatorParameters):
-            try:
-                node_selector = values.node_selector
-                if isinstance(node_selector, str):
-                    values.node_selector = (
-                        {} if len(node_selector) == 0 else json.loads(node_selector)
-                    )
-                    updated = True
-            except JSONDecodeError:
-                raise ValueError(
-                    "The node_selector field does not contain a valid dict"
-                )
-            except AttributeError:
-                pass
-        if updated:
-            warn_deprecated_operator_parameters_model_in_use(
-                affected_operator="vllm_performance",
-                deprecated_from_operator_version="v1.2.2",
-                removed_from_operator_version="v1.3",
-                latest_format_documentation_url="https://example.com",
+        # We expect either a GenericActuatorParameters or a dict instance
+        if not isinstance(values, GenericActuatorParameters) and not isinstance(
+            values, dict
+        ):
+            raise ValueError(f"Unexpected type {type(values)} in validator")
+
+        from orchestrator.core.actuatorconfiguration.config import (
+            warn_deprecated_actuator_parameters_model_in_use,
+        )
+
+        key = "interpreter"
+
+        if isinstance(values, GenericActuatorParameters):
+            # The key is not present - all good
+            if not hasattr(values, key):
+                return values
+
+            # Notify the user that the 'interpreter'
+            # field is deprecated
+            warn_deprecated_actuator_parameters_model_in_use(
+                affected_actuator="vllm_performance",
+                deprecated_from_actuator_version="v1.8.0",
+                removed_from_actuator_version="v1.9.0",
+                deprecated_fields=key,
             )
+
+            # delete the 'interpreter' field from the actuator configuration
+            if hasattr(values, key):
+                delattr(values, key)
+
+        else:
+            # The key is not present - all good
+            if key not in values:
+                return values
+
+            # Notify the user that the 'interpreter'
+            # field is deprecated
+            warn_deprecated_actuator_parameters_model_in_use(
+                affected_actuator="vllm_performance",
+                deprecated_from_actuator_version="v1.8.0",
+                removed_from_actuator_version="v1.9.0",
+                deprecated_fields=key,
+            )
+
+            # The user has set both the old
+            # and the new key - the new key
+            # takes precedence.
+            if key in values:
+                values.pop(key)
+
         return values

@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 import json
 import math
@@ -13,7 +13,7 @@ from orchestrator.schema.domain import (
 )
 
 
-def test_comparison_with_non_domain():
+def test_comparison_with_non_domain() -> None:
     discretePropertyDomain = PropertyDomain(interval=1, domainRange=[-10, 10])
     assert (
         discretePropertyDomain != "somestring"
@@ -22,7 +22,7 @@ def test_comparison_with_non_domain():
     assert discretePropertyDomain != 3, "PropertyDomain evaluate equal to an int"
 
 
-def test_probability_function_equivalanece():
+def test_probability_function_equivalanece() -> None:
 
     uniform = ProbabilityFunction(
         identifier=ProbabilityFunctionsEnum.UNIFORM, parameters={"a": "0", "b": 5}
@@ -77,7 +77,7 @@ def test_probability_function_equivalanece():
     assert uniform != ["a", "b"]
 
 
-def test_valid_property_domains():
+def test_valid_property_domains() -> None:
 
     # Test that variableType of domain is assigned properly given valid inputs
 
@@ -136,7 +136,6 @@ def test_valid_property_domains():
     assert discretePropertyDomainNoRange.valueInDomain(-10) is True
     assert discretePropertyDomainNoRange.valueInDomain(1) is True
     # For discrete variables with an interval we need at least one part of range to anchor the interval!
-    # assert discretePropertyDomainNoRange.valueInDomain(0.5) is False
     assert discretePropertyDomainNoRange.valueInDomain(100) is True
     assert categoricalPropertyDomain.valueInDomain("A") is True
     assert categoricalPropertyDomain.valueInDomain(3) is True
@@ -246,7 +245,7 @@ def test_valid_property_domains():
         )
 
 
-def test_categorical_and_continuous_property_is_subdomain():
+def test_categorical_and_continuous_property_is_subdomain() -> None:
     """Tests the issubdomain method of PropertyDomain works"""
 
     continuousPropertyDomain = PropertyDomain(domainRange=[-10, 10])
@@ -288,7 +287,7 @@ def test_categorical_and_continuous_property_is_subdomain():
     assert continuousSubdomain.isSubDomain(continuousPropertyDomain)
 
 
-def test_unknown_property_is_subdomain():
+def test_unknown_property_is_subdomain() -> None:
     """Tests isSubDomain works when one or other of the domains is UNKNOWN_VARIABLE_TYPE"""
 
     # UNKNOWN_VARIABLE_TYPE cannot be a subdomain of any other variable type
@@ -324,7 +323,7 @@ def test_unknown_property_is_subdomain():
     assert not unknownPropertyDomain.isSubDomain(binaryPropertyDomain)
 
 
-def test_discrete_property_is_subdomain_for_domain_range():
+def test_discrete_property_is_subdomain_for_domain_range() -> None:
     """Tests the issubdomain method of PropertyDomain works
     for discrete properties where otherDomain is defined with domainRange"""
 
@@ -379,7 +378,7 @@ def test_discrete_property_is_subdomain_for_domain_range():
     assert not discretePropertySubDomain.isSubDomain(discretePropertyDomain)
 
 
-def test_discrete_property_is_subdomain_for_values():
+def test_discrete_property_is_subdomain_for_values() -> None:
     """Tests the issubdomain method of PropertyDomain works
     for discrete properties where otherDomain is defined with values and interval"""
 
@@ -419,7 +418,7 @@ def test_discrete_property_is_subdomain_for_values():
     assert not discretePropertySubDomain.isSubDomain(discretePropertyDomain)
 
 
-def test_discrete_property_is_subdomain_of_continuous():
+def test_discrete_property_is_subdomain_of_continuous() -> None:
     """Tests the issubdomain method of PropertyDomain works
     for discrete properties where otherDomain is defined as a continuous domain"""
 
@@ -469,7 +468,7 @@ def test_discrete_property_is_subdomain_of_continuous():
     assert discretePropertyDomain.isSubDomain(continuousPropertyDomain)
 
 
-def test_binary_property_is_subdomain_of_discrete():
+def test_binary_property_is_subdomain_of_discrete() -> None:
     """Tests the issubdomain method of PropertyDomain works
     for binary properties where otherDomain is defined as a discrete domain
 
@@ -509,7 +508,7 @@ def test_binary_property_is_subdomain_of_discrete():
     assert discretePropertyDomain.isSubDomain(binaryPropertyDomain)
 
 
-def test_binary_property_is_subdomain_of_categorical():
+def test_binary_property_is_subdomain_of_categorical() -> None:
     """Tests the issubdomain method of PropertyDomain works
     for binary properties where otherDomain is defined as a categorical domain"""
 
@@ -535,7 +534,7 @@ def test_binary_property_is_subdomain_of_categorical():
     assert categoricalPropertyDomain.isSubDomain(binaryPropertyDomain)
 
 
-def test_binary_property_is_subdomain_of_continuous():
+def test_binary_property_is_subdomain_of_continuous() -> None:
 
     binaryPropertyDomain = PropertyDomain(
         variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE
@@ -564,7 +563,7 @@ def test_binary_property_is_subdomain_of_continuous():
     assert not continuousPropertyDomain.isSubDomain(binaryPropertyDomain)
 
 
-def test_domain_sizes():
+def test_domain_sizes() -> None:
 
     import math
 
@@ -610,15 +609,16 @@ def test_domain_sizes():
     assert unknownPropertyDomain.size == math.inf
 
 
-def test_range_in_pretty():
+def test_range_in_rich_print() -> None:
 
-    from IPython.lib.pretty import pretty
+    from orchestrator.utilities.rich import render_to_string
 
     # Continuous
     continuousPropertyDomain = PropertyDomain(domainRange=[-10, 10])
-    assert "Range" in pretty(
-        continuousPropertyDomain
-    ), "Expected continuous domain with range to output Range in pretty print"
+    output = render_to_string(continuousPropertyDomain)
+    assert (
+        "Range" in output
+    ), "Expected continuous domain with range to output Range in rich print"
 
     # Discrete
     discretePropertyDomain = PropertyDomain(
@@ -626,46 +626,51 @@ def test_range_in_pretty():
         domainRange=[-9, 19],
         interval=2,
     )
-    assert "Range" in pretty(
-        discretePropertyDomain
-    ), "Expected discrete domain with range to output Range in pretty print"
+    output = render_to_string(discretePropertyDomain)
+    assert (
+        "Range" in output
+    ), "Expected discrete domain with range to output Range in rich print"
 
     # Discrete
     discretePropertyDomain = PropertyDomain(
         variableType=VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
         values=[1, 2, 4, 8, 16, 32],
     )
-    assert "Range" not in pretty(
-        discretePropertyDomain
-    ), "Expected discrete domain with values NOT to output a Range in pretty print"
+    output = render_to_string(discretePropertyDomain)
+    assert (
+        "Range" not in output
+    ), "Expected discrete domain with values NOT to output a Range in rich print"
 
     # Binary
     binaryPropertyDomain = PropertyDomain(
         variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE,
     )
-    assert "Range" not in pretty(
-        binaryPropertyDomain
-    ), "Expected binary domain NOT to output Range in pretty print"
+    output = render_to_string(binaryPropertyDomain)
+    assert (
+        "Range" not in output
+    ), "Expected binary domain NOT to output Range in rich print"
 
     # Categorical
     categoricalPropertyDomain = PropertyDomain(
         variableType=VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE, values=[1, 2, 3, 4]
     )
-    assert "Range" not in pretty(
-        categoricalPropertyDomain
-    ), "Expected categorical domain with numeric values NOT to output Range in pretty print"
+    output = render_to_string(categoricalPropertyDomain)
+    assert (
+        "Range" not in output
+    ), "Expected categorical domain with numeric values NOT to output Range in rich print"
 
     # Unknown
     unknownPropertyDomain = PropertyDomain(
         variableType=VariableTypeEnum.UNKNOWN_VARIABLE_TYPE, values=[1, 2, 3, 4]
     )
+    output = render_to_string(categoricalPropertyDomain)
     assert (
         unknownPropertyDomain.variableType is VariableTypeEnum.DISCRETE_VARIABLE_TYPE
     ), "Expected UNKNOWN variable type to be converted to DISCRETE as the input values match a discrete variable"
-    assert "Range" not in pretty(unknownPropertyDomain)
+    assert "Range" not in output
 
 
-def test_value_in_domain():
+def test_value_in_domain() -> None:
 
     # continuous variable with no range - everything is in domain
     continuousPropertyDomain = PropertyDomain(
@@ -715,7 +720,7 @@ def test_value_in_domain():
 
 def test_property_domain_minimization_is_correct(
     property_domain_all_types: PropertyDomain,
-):
+) -> None:
     from orchestrator.cli.utils.pydantic.constants import minimize_output_context
 
     current_model = property_domain_all_types
@@ -724,7 +729,7 @@ def test_property_domain_minimization_is_correct(
     assert reloaded_model == current_model
 
 
-def test_float_behaviour_discrete_variable_sub_domain():
+def test_float_behaviour_discrete_variable_sub_domain() -> None:
     """Test sub_domain behaviour for domains with discrete variables that include floats
 
     floating point arithmetic introduces very rounding issues that should be handled
@@ -764,7 +769,7 @@ def test_float_behaviour_discrete_variable_sub_domain():
     ), "Expected value set [0.1,0.2,0.4] to not be a subdomain of continuous var with range [0.1,0.4]"
 
 
-def test_float_behaviour_discrete_variable_value_in_domain():
+def test_float_behaviour_discrete_variable_value_in_domain() -> None:
 
     d1 = PropertyDomain(values=[0.1, 0.2, 0.3])
     d2 = PropertyDomain(interval=0.1, domainRange=[0.1, 0.4])
@@ -783,7 +788,7 @@ def test_float_behaviour_discrete_variable_value_in_domain():
     assert not d1.valueInDomain(0.4)
 
 
-def test_domain_values():
+def test_domain_values() -> None:
 
     # Test the same intervals and ranges given as int or float give same values
     d1 = PropertyDomain(interval=4, domainRange=[1, 128])
@@ -810,7 +815,7 @@ def test_domain_values():
         ValueError,
         match="Cannot generate domain values for continuous, unknown or open categorical variables",
     ):
-        PropertyDomain(
+        PropertyDomain(  # noqa: B018
             variableType=VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE
         ).domain_values
 
@@ -819,7 +824,7 @@ def test_domain_values():
         ValueError,
         match="Cannot generate domain values for continuous, unknown or open categorical variables",
     ):
-        PropertyDomain(
+        PropertyDomain(  # noqa: B018
             variableType=VariableTypeEnum.UNKNOWN_VARIABLE_TYPE
         ).domain_values
 
@@ -828,7 +833,7 @@ def test_domain_values():
     assert d.domain_values == [0]
 
 
-def test_open_categorical_variable_type_property_domain():
+def test_open_categorical_variable_type_property_domain() -> None:
     import math
 
     import pydantic
@@ -931,3 +936,152 @@ def test_open_categorical_variable_type_property_domain():
     dser = PropertyDomain.model_validate(dump)
     assert dser.variableType == VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE
     assert dser.values == ["a", "b", "c"]
+
+
+def test_binary_variable_type_with_invalid_single_true_value() -> None:
+    """Test that BINARY_VARIABLE_TYPE rejects single True value"""
+    with pytest.raises(
+        ValueError,
+        match="BINARY_VARIABLE_TYPE should not have values specified",
+    ):
+        PropertyDomain(
+            variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE, values=[True]
+        )
+
+
+def test_binary_variable_type_with_invalid_single_false_value() -> None:
+    """Test that BINARY_VARIABLE_TYPE rejects single False value"""
+    with pytest.raises(
+        ValueError,
+        match="BINARY_VARIABLE_TYPE should not have values specified",
+    ):
+        PropertyDomain(
+            variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE, values=[False]
+        )
+
+
+def test_binary_variable_type_with_invalid_single_numeric_one() -> None:
+    """Test that BINARY_VARIABLE_TYPE rejects single numeric value 1"""
+    with pytest.raises(
+        ValueError,
+        match="BINARY_VARIABLE_TYPE should not have values specified",
+    ):
+        PropertyDomain(variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE, values=[1])
+
+
+def test_binary_variable_type_with_invalid_single_numeric_zero() -> None:
+    """Test that BINARY_VARIABLE_TYPE rejects single numeric value 0"""
+    with pytest.raises(
+        ValueError,
+        match="BINARY_VARIABLE_TYPE should not have values specified",
+    ):
+        PropertyDomain(variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE, values=[0])
+
+
+def test_binary_variable_type_with_invalid_numeric_values() -> None:
+    """Test that BINARY_VARIABLE_TYPE rejects invalid numeric values like [2, 3]"""
+    with pytest.raises(
+        ValueError,
+        match="BINARY_VARIABLE_TYPE should not have values specified",
+    ):
+        PropertyDomain(
+            variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE, values=[2, 3]
+        )
+
+
+def test_binary_variable_type_with_invalid_string_values() -> None:
+    """Test that BINARY_VARIABLE_TYPE rejects string values"""
+    with pytest.raises(
+        ValueError,
+        match="BINARY_VARIABLE_TYPE should not have values specified",
+    ):
+        PropertyDomain(
+            variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE, values=["yes", "no"]
+        )
+
+
+def test_binary_variable_type_with_valid_boolean_values() -> None:
+    """Test that BINARY_VARIABLE_TYPE accepts [False, True] for backwards compatibility"""
+    domain = PropertyDomain(
+        variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE, values=[False, True]
+    )
+    assert domain.values == [False, True]
+    assert domain.domain_values == [False, True]
+
+
+def test_binary_variable_type_with_valid_reversed_boolean_values() -> None:
+    """Test that BINARY_VARIABLE_TYPE accepts [True, False] for backwards compatibility"""
+    domain = PropertyDomain(
+        variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE, values=[True, False]
+    )
+    assert domain.values == [True, False]
+    assert domain.domain_values == [False, True]
+
+
+def test_binary_variable_type_with_valid_numeric_values_zero_one() -> None:
+    """Test that BINARY_VARIABLE_TYPE accepts [0, 1] for backwards compatibility (0==False, 1==True)"""
+    domain = PropertyDomain(
+        variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE, values=[0, 1]
+    )
+    assert domain.values == [0, 1]
+    assert domain.domain_values == [False, True]
+
+
+def test_binary_variable_type_with_valid_reversed_numeric_values() -> None:
+    """Test that BINARY_VARIABLE_TYPE accepts [1, 0] for backwards compatibility (0==False, 1==True)"""
+    domain = PropertyDomain(
+        variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE, values=[1, 0]
+    )
+    assert domain.values == [1, 0]
+    assert domain.domain_values == [False, True]
+
+
+def test_binary_variable_type_with_valid_float_values() -> None:
+    """Test that BINARY_VARIABLE_TYPE accepts [0.0, 1.0] for backwards compatibility (0.0==False, 1.0==True)"""
+    domain = PropertyDomain(
+        variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE, values=[0.0, 1.0]
+    )
+    assert domain.values == [0.0, 1.0]
+    assert domain.domain_values == [False, True]
+
+
+def test_binary_variable_type_with_valid_reversed_float_values() -> None:
+    """Test that BINARY_VARIABLE_TYPE accepts [1.0, 0.0] for backwards compatibility (0.0==False, 1.0==True)"""
+    domain = PropertyDomain(
+        variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE, values=[1.0, 0.0]
+    )
+    assert domain.values == [1.0, 0.0]
+    assert domain.domain_values == [False, True]
+
+
+def test_binary_variable_type_with_no_values() -> None:
+    """Test that BINARY_VARIABLE_TYPE with no values defaults to [False, True]"""
+    domain = PropertyDomain(variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE)
+    assert domain.values is None
+    assert domain.domain_values == [False, True]
+
+
+def test_binary_variable_type_rejects_interval() -> None:
+    """Test that BINARY_VARIABLE_TYPE rejects interval specification"""
+    with pytest.raises(
+        ValueError, match="interval field for a BINARY_VARIABLE_TYPE must be None"
+    ):
+        PropertyDomain(variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE, interval=1)
+
+
+def test_binary_variable_type_rejects_domain_range() -> None:
+    """Test that BINARY_VARIABLE_TYPE rejects domainRange specification"""
+    with pytest.raises(
+        ValueError, match="domainRange field for a BINARY_VARIABLE_TYPE must be None"
+    ):
+        PropertyDomain(
+            variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE, domainRange=[0, 1]
+        )
+
+
+def test_binary_variable_type_error_message_suggests_discrete() -> None:
+    """Test that error message suggests using DISCRETE_VARIABLE_TYPE"""
+    with pytest.raises(ValueError, match="use DISCRETE_VARIABLE_TYPE"):
+        PropertyDomain(
+            variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE, values=[True]
+        )

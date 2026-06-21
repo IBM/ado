@@ -1,22 +1,21 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 
 import pytest
 
 import orchestrator.core.samplestore.csv
-import orchestrator.plugins.samplestores.gt4sd
-from orchestrator.core.samplestore.base import ExperimentDescription
 from orchestrator.modules.actuators.catalog import ExperimentCatalog
 from orchestrator.modules.actuators.registry import ActuatorRegistry
+from orchestrator.schema.experiment import Experiment
 from orchestrator.schema.reference import ExperimentReference
 
 
 @pytest.fixture(scope="module")
 def catalog_with_parameterizable_experiments(
-    mock_parameterizable_experiment,
-    mock_parameterizable_experiment_no_required,
-    mock_parameterizable_experiment_with_required_observed,
+    mock_parameterizable_experiment: Experiment,
+    mock_parameterizable_experiment_no_required: Experiment,
+    mock_parameterizable_experiment_with_required_observed: Experiment,
 ) -> ExperimentCatalog:
     """Returns a catalog for the Mock actuator with a parameterized experiment"""
 
@@ -31,7 +30,7 @@ def catalog_with_parameterizable_experiments(
 
 @pytest.fixture(scope="module")
 def global_registry(
-    catalog_with_parameterizable_experiments,
+    catalog_with_parameterizable_experiments: ExperimentCatalog,
 ) -> ActuatorRegistry:
 
     r = ActuatorRegistry.globalRegistry()
@@ -41,24 +40,33 @@ def global_registry(
 
 
 @pytest.fixture
-def experiment_catalogs() -> (
-    list[orchestrator.modules.actuators.catalog.ExperimentCatalog]
-):
-    parameters = {}
+def experiment_catalogs() -> list[ExperimentCatalog]:
+    parameters = {
+        "identifierColumn": "smiles",
+        "generatorIdentifier": "gt4sd-pfas-transformer-model-one",
+        "experiments": [
+            {
+                "experimentIdentifier": "transformer-toxicity-inference-experiment",
+                "actuatorIdentifier": "replay",
+                "observedPropertyMap": {
+                    "logws": "GenLogws",
+                    "logd": "GenLogd",
+                    "loghl": "GenLoghl",
+                    "pka": "GenPka",
+                    "biodegradation halflife": "GenBiodeg",
+                    "bcf": "GenBcf",
+                    "ld50": "GenLd50",
+                    "scscore": "GenScscore",
+                },
+                "constitutivePropertyMap": ["smiles"],
+            }
+        ],
+    }
 
-    experimentDescription = ExperimentDescription(
-        experimentIdentifier="transformer-toxicity-inference-experiment",
-        propertyMap=orchestrator.plugins.samplestores.gt4sd.GT4SDTransformer.propertyMap,
-    )
-
-    parameters["experiments"] = [experimentDescription]
-    parameters["identifierColumn"] = "smiles"
-    parameters["source"] = "tests/test_generations.csv"
-    parameters["generatorIdentifier"] = "gt4sd-pfas-transformer-model-one"
-    parameters["constitutivePropertyColumns"] = ["smiles"]
-
-    sourceDescription = orchestrator.core.samplestore.csv.CSVSampleStoreDescription(
-        **parameters
+    sourceDescription = (
+        orchestrator.core.samplestore.csv.CSVSampleStoreDescription.model_validate(
+            parameters
+        )
     )
 
     assert (

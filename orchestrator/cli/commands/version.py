@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import typer
@@ -6,13 +6,13 @@ import typer
 from orchestrator.cli.utils.output.prints import console_print
 
 
-def print_version():
+def print_version() -> None:
     from importlib.metadata import version
 
     console_print(version("ado-core"))
 
 
-def register_version_command(app: typer.Typer):
+def register_version_command(app: typer.Typer) -> None:
     app.command(
         name="version",
         help="Display ado's version.",

@@ -1,30 +1,42 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
-
+import pathlib
+import sys
 
 import pytest
+import yaml
 from ado_ray_tune.operator import RayTune
 
 import orchestrator.core
-from orchestrator.core.operation.config import DiscoveryOperationResourceConfiguration
-from orchestrator.modules.operators.base import DiscoveryOperationBase
+from orchestrator.core.operation.config import (
+    DiscoveryOperationResourceConfiguration,
+    OperatorModuleConf,
+)
 from orchestrator.modules.operators.randomwalk import RandomWalk
 
 
 @pytest.fixture
-def expected_characterize_operators():
+def expected_characterize_operators() -> list[str]:
+    """Return characterize operators expected for the current Python version."""
 
-    return ["profile", "detect_anomalous_series"]
+    operators = ["profile", "detect_anomalous_series", "trim"]
+    if sys.version_info >= (3, 14):
+        # TODO: add profile and trim back once their plugins support Python 3.14+.
+        operators = [
+            operator for operator in operators if operator not in {"profile", "trim"}
+        ]
+
+    return operators
 
 
 @pytest.fixture
-def expected_explore_operators():
+def expected_explore_operators() -> list[str]:
 
     return ["random_walk", "ray_tune"]
 
 
 @pytest.fixture(params=["RandomWalk", "RayTune"])
-def operator_module_conf(request):
+def operator_module_conf(request: pytest.FixtureRequest) -> OperatorModuleConf:
 
     if request.param == "RandomWalk":
         return orchestrator.core.operation.config.OperatorModuleConf(
@@ -39,45 +51,39 @@ def operator_module_conf(request):
 
 @pytest.fixture(params=["all", "value"])
 def randomWalkConf(
-    request,
+    request: pytest.FixtureRequest,
 ) -> DiscoveryOperationResourceConfiguration | None:
 
     import yaml
 
     with open("examples/ml-multi-cloud/randomwalk_ml_multicloud_operation.yaml") as f:
         d = yaml.safe_load(f)
-        config = DiscoveryOperationResourceConfiguration(**d)
+        config = DiscoveryOperationResourceConfiguration.model_validate(d)
 
     if request.param == "all":
-        config.operation.parameters["numberEntities"] = "all"
-
-    return config
-
-
-@pytest.fixture(params=["valueGreaterThanSize", "extraField"])
-def invalidRandomWalkConf(
-    request,
-) -> DiscoveryOperationResourceConfiguration | None:
-
-    import yaml
-
-    with open("examples/ml-multi-cloud/randomwalk_ml_multicloud_operation.yaml") as f:
-        d = yaml.safe_load(f)
-        config = DiscoveryOperationResourceConfiguration(**d)
-
-    if request.param == "valueGreaterThanSize":
-        config.operation.parameters["numberEntities"] = 62
-    elif request.param == "extraField":
-        parameters = config.operation.parameters.copy()
-        parameters.pop("numberEntities")
-        parameters["number-iterations"] = 10
-        config.operation.parameters = parameters
+        config.operation.parameters.numberEntities = "all"
 
     return config
 
 
 @pytest.fixture
-def raytuneConf() -> DiscoveryOperationResourceConfiguration | None:
+def invalidRandomWalkConf() -> DiscoveryOperationResourceConfiguration:
+
+    config = DiscoveryOperationResourceConfiguration.model_validate(
+        yaml.safe_load(
+            pathlib.Path(
+                "examples/ml-multi-cloud/randomwalk_ml_multicloud_operation.yaml"
+            ).read_text()
+        )
+    )
+
+    config.operation.parameters.numberEntities = 62
+
+    return config
+
+
+@pytest.fixture
+def raytuneConf() -> DiscoveryOperationResourceConfiguration:
 
     import yaml
 
@@ -88,7 +94,7 @@ def raytuneConf() -> DiscoveryOperationResourceConfiguration | None:
 
 @pytest.fixture(params=[RandomWalk, RayTune])
 def optimizer_operator(
-    request,
-) -> DiscoveryOperationBase:
+    request: pytest.FixtureRequest,
+) -> type[RandomWalk] | type[RayTune]:
 
     return request.param

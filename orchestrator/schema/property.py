@@ -1,7 +1,8 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import enum
+import typing
 from typing import Annotated
 
 import pydantic
@@ -28,6 +29,9 @@ Domain = Annotated[
     | Annotated[VectorPropertyDomain, pydantic.Tag("vector")],
     pydantic.Discriminator(domain_type_discriminator),
 ]
+
+if typing.TYPE_CHECKING:
+    from rich.console import RenderableType
 
 
 class MeasuredPropertyTypeEnum(str, enum.Enum):
@@ -58,7 +62,9 @@ class PropertyDescriptor(pydantic.BaseModel):
 
     @pydantic.model_validator(mode="before")
     @classmethod
-    def property_to_descriptor(cls, value):
+    def property_to_descriptor(
+        cls, value: typing.Any  # noqa: ANN401
+    ) -> "PropertyDescriptor | dict | typing.Any":  # noqa: ANN401
 
         if isinstance(value, Property):
             value = value.descriptor()
@@ -68,21 +74,23 @@ class PropertyDescriptor(pydantic.BaseModel):
 
         return value
 
-    def __eq__(self, other: "Property"):
+    def __eq__(self, other: object) -> bool:
         """Two PropertyDescriptors are considered the same if they have the same identifier
 
         A PropertyDescriptor will be equal to a Property if it has the same identifier.
 
         Metadata is not included"""
-        return hasattr(other, "identifier") and self.identifier == other.identifier
 
-    def _repr_pretty_(self, p, cycle=False):
+        return (
+            isinstance(other, (Property, PropertyDescriptor))
+            and self.identifier == other.identifier
+        )
 
-        if cycle:  # pragma: no cover
-            p.text("Cycle detected")
-        else:
-            p.text(f"{self.identifier}")
-            p.breakable()
+    def __rich__(self) -> "RenderableType":
+        """Render this property descriptor using rich."""
+        from rich.text import Text
+
+        return Text(self.identifier)
 
 
 class AbstractPropertyDescriptor(PropertyDescriptor):
@@ -93,7 +101,9 @@ class AbstractPropertyDescriptor(PropertyDescriptor):
 
     @pydantic.model_validator(mode="before")
     @classmethod
-    def property_to_descriptor(cls, value):
+    def property_to_descriptor(
+        cls, value: typing.Any  # noqa: ANN401
+    ) -> PropertyDescriptor | dict | typing.Any:  # noqa: ANN401
 
         if isinstance(value, Property):
             value = value.descriptor()
@@ -104,52 +114,54 @@ class AbstractPropertyDescriptor(PropertyDescriptor):
 
         return value
 
-    def __str__(self):
-        return f"ap-{self.identifier}"
+    def __str__(self) -> str:
+        return self.identifier
 
 
 class ConstitutivePropertyDescriptor(PropertyDescriptor):
-    propertyType: NonMeasuredPropertyTypeEnum = pydantic.Field(
-        default=NonMeasuredPropertyTypeEnum.CONSTITUTIVE_PROPERTY_TYPE
+    propertyType: Annotated[NonMeasuredPropertyTypeEnum, pydantic.Field()] = (
+        NonMeasuredPropertyTypeEnum.CONSTITUTIVE_PROPERTY_TYPE
     )
 
-    def __str__(self):
-        return f"cp-{self.identifier}"
+    def __str__(self) -> str:
+        return self.identifier
 
     model_config = ConfigDict(frozen=True)
 
 
 class ConcretePropertyDescriptor(PropertyDescriptor):
 
-    propertyType: MeasuredPropertyTypeEnum = pydantic.Field(
-        default=MeasuredPropertyTypeEnum.MEASURED_PROPERTY_TYPE
+    propertyType: Annotated[MeasuredPropertyTypeEnum, pydantic.Field()] = (
+        MeasuredPropertyTypeEnum.MEASURED_PROPERTY_TYPE
     )
     abstractProperty: AbstractPropertyDescriptor | None = None
     model_config = ConfigDict(frozen=True)
 
-    def __str__(self):
-        return f"cp-{self.identifier}"
+    def __str__(self) -> str:
+        return self.identifier
 
 
 class Property(pydantic.BaseModel):
     """A named property with a domain"""
 
-    identifier: str
-    metadata: dict | None = pydantic.Field(
-        default=None, description="Metadata on the property"
-    )
-    propertyDomain: Domain = pydantic.Field(
-        default=PropertyDomain(),
-        description="Provides information on the variable type and the valid values it can take",
-    )
+    identifier: Annotated[str, pydantic.Field()]
+    metadata: Annotated[
+        dict | None, pydantic.Field(description="Metadata on the property")
+    ] = None
+    propertyDomain: Annotated[
+        PropertyDomain,
+        pydantic.Field(
+            description="Provides information on the variable type and the valid values it can take"
+        ),
+    ] = PropertyDomain()
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     @classmethod
-    def from_descriptor(cls, descriptor: PropertyDescriptor):
+    def from_descriptor(cls, descriptor: PropertyDescriptor) -> "Property":
 
         return cls(identifier=descriptor.identifier)
 
-    def __eq__(self, other: "Property"):
+    def __eq__(self, other: object) -> bool:  # noqa: ANN401
         """Two properties are considered the same if they have the same identifier and domain.
 
         Metadata is not included"""
@@ -164,23 +176,48 @@ class Property(pydantic.BaseModel):
 
         return retval
 
-    def _repr_pretty_(self, p, cycle=False):
+    def __rich__(self) -> "RenderableType":
+        """Render this property using rich."""
+        import rich.box
+        from rich.console import Group
+        from rich.panel import Panel
+        from rich.text import Text
 
-        if cycle:  # pragma: no cover
-            p.text("Cycle detected")
-        else:
-            p.text(f"{self.identifier}")
-            if self.metadata and self.metadata.get("description"):
-                p.text(": " + str(self.metadata.get("description")))
-            if self.propertyDomain:
-                p.break_()
-                with p.group(2, "Domain:"):
-                    p.break_()
-                    p.pretty(self.propertyDomain)
+        content = [
+            Text.assemble(
+                ("Identifier: ", "bold"),
+                (self.identifier, "bold green"),
+                overflow="fold",
+            ),
+        ]
 
-            p.breakable()
+        # Identifier and description
+        if self.metadata and self.metadata.get("description"):
+            content.append(
+                Text.assemble(
+                    ("Description: ", "bold"),
+                    self.metadata.get("description"),
+                    overflow="fold",
+                    end="\n\n",
+                ),
+            )
 
-    def descriptor(self):
+        # Domain section
+        if self.propertyDomain:
+            content.extend(
+                [
+                    Text("Domain:", style="bold"),
+                    Panel(
+                        self.propertyDomain,
+                        box=rich.box.SIMPLE_HEAD,
+                        padding=(0, 2),
+                    ),  # Uses propertyDomain.__rich__()
+                ]
+            )
+
+        return Group(*content)
+
+    def descriptor(self) -> PropertyDescriptor:
 
         return PropertyDescriptor(identifier=self.identifier)
 
@@ -195,16 +232,18 @@ class AbstractProperty(Property):
     model_config = ConfigDict(frozen=True)
 
     @classmethod
-    def from_descriptor(cls, descriptor: AbstractPropertyDescriptor):
+    def from_descriptor(
+        cls, descriptor: AbstractPropertyDescriptor
+    ) -> "AbstractProperty":
 
         return cls(
             identifier=descriptor.identifier,
         )
 
-    def __str__(self):
-        return f"ap-{self.identifier}"
+    def __str__(self) -> str:
+        return self.identifier
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:  # noqa: ANN401
 
         retval = super().__eq__(other)
         return (
@@ -213,42 +252,46 @@ class AbstractProperty(Property):
             and self.concretePropertyIdentifiers == other.concretePropertyIdentifiers
         )
 
-    def descriptor(self):
+    def descriptor(self) -> AbstractPropertyDescriptor:
 
         return AbstractPropertyDescriptor(identifier=self.identifier)
 
 
 class ConstitutiveProperty(Property):
-    propertyType: NonMeasuredPropertyTypeEnum = pydantic.Field(
-        default=NonMeasuredPropertyTypeEnum.CONSTITUTIVE_PROPERTY_TYPE
+    propertyType: Annotated[NonMeasuredPropertyTypeEnum, pydantic.Field()] = (
+        NonMeasuredPropertyTypeEnum.CONSTITUTIVE_PROPERTY_TYPE
     )
 
     @classmethod
-    def from_descriptor(cls, descriptor: AbstractPropertyDescriptor):
+    def from_descriptor(
+        cls, descriptor: AbstractPropertyDescriptor
+    ) -> "ConstitutiveProperty":
 
         return cls(
             identifier=descriptor.identifier,
         )
 
-    def __str__(self):
-        return f"cp-{self.identifier}"
+    def __str__(self) -> str:
+        return self.identifier
 
     model_config = ConfigDict(frozen=True)
 
-    def descriptor(self):
+    def descriptor(self) -> ConstitutivePropertyDescriptor:
 
         return ConstitutivePropertyDescriptor(identifier=self.identifier)
 
 
 class ConcreteProperty(Property):
-    propertyType: MeasuredPropertyTypeEnum = pydantic.Field(
-        default=MeasuredPropertyTypeEnum.MEASURED_PROPERTY_TYPE
+    propertyType: Annotated[MeasuredPropertyTypeEnum, pydantic.Field()] = (
+        MeasuredPropertyTypeEnum.MEASURED_PROPERTY_TYPE
     )
-    abstractProperty: AbstractProperty | None = None
+    abstractProperty: Annotated[AbstractProperty | None, pydantic.Field()] = None
     model_config = ConfigDict(frozen=True)
 
     @classmethod
-    def from_descriptor(cls, descriptor: ConcretePropertyDescriptor):
+    def from_descriptor(
+        cls, descriptor: ConcretePropertyDescriptor
+    ) -> "ConcreteProperty":
 
         return cls(
             identifier=descriptor.identifier,
@@ -259,10 +302,10 @@ class ConcreteProperty(Property):
             ),
         )
 
-    def __str__(self):
-        return f"cp-{self.identifier}"
+    def __str__(self) -> str:
+        return self.identifier
 
-    def descriptor(self):
+    def descriptor(self) -> ConcretePropertyDescriptor:
         return ConcretePropertyDescriptor(
             identifier=self.identifier,
             abstractProperty=(

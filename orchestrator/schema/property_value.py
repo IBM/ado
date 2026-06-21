@@ -1,11 +1,13 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import enum
 import logging
 import typing
+from typing import Annotated
 
 import pydantic
+from pydantic import WithJsonSchema
 
 from orchestrator.schema.property import (
     ConstitutiveProperty,
@@ -32,35 +34,61 @@ valueTypesDisplayNames = {
 }
 
 
+# A type to help with bytes value type + JSON + structured decoding.
+# Structured decoding methods uses the model json schema to constrain value generation
+# However these methods do not support fields with "binary" value types in schema
+# which is what fields using "bytes" type will be annotated with
+# Using this annotated type for a model field will cause its json schema not
+# to use binary, but instead specify it is a base64 string
+CustomBytes = Annotated[
+    bytes,
+    WithJsonSchema(
+        # keep it as a plain string; add an optional hint for consumers
+        {"type": "string", "contentEncoding": "base64"},
+    ),
+]
+
+
 class PropertyValue(pydantic.BaseModel):
     """Represents the value of a property"""
 
-    valueType: ValueTypeEnum | None = pydantic.Field(
-        default=None,
-        description="The type of the value. If not set it is set based on the value.",
-    )
-    value: int | float | list | str | bytes | None = pydantic.Field(
-        description="The measured value."
-    )
-    property: PropertyDescriptor | ConstitutivePropertyDescriptor = pydantic.Field(
-        description="The Property with the value"
-    )
-    uncertainty: float | None = pydantic.Field(
-        default=None, description="The uncertainty in the measured value. Can be None"
-    )
+    valueType: Annotated[
+        ValueTypeEnum | None,
+        pydantic.Field(
+            description="The type of the value. If not set it is set based on the value."
+        ),
+    ] = None
+    value: Annotated[
+        int | float | list | str | CustomBytes | None,
+        pydantic.Field(description="The measured value."),
+    ]
+    property: Annotated[
+        PropertyDescriptor | ConstitutivePropertyDescriptor,
+        pydantic.Field(description="The Property with the value"),
+    ]
+    uncertainty: Annotated[
+        float | None,
+        pydantic.Field(
+            description="The uncertainty in the measured value. Can be None"
+        ),
+    ] = None
 
     @pydantic.field_validator("property", mode="before")
-    def convert_property_to_descriptor(cls, value):
+    def convert_property_to_descriptor(
+        cls, value: PropertyDescriptor | ConstitutivePropertyDescriptor
+    ) -> PropertyDescriptor:
 
         if isinstance(value, Property):
             value = value.descriptor()
 
         return value
 
-    @pydantic.field_validator(
-        "value",
-    )
-    def check_value_type(cls, value, context: pydantic.ValidationInfo):
+    @pydantic.field_validator("value")
+    def check_value_type(
+        cls,
+        value: float | list | str | CustomBytes | None,
+        context: pydantic.ValidationInfo,
+    ) -> int | float | list | str | CustomBytes | None:
 
         valueType = context.data.get("valueType")
         if valueType:
@@ -80,9 +108,13 @@ class PropertyValue(pydantic.BaseModel):
                         f"TEMP: Detected list value, {value}, assigned NUMERIC_TYPE assuming due to prior bug. Will upgrade"
                     )
                 else:
-                    assert type(value) in [float, int] or value is None
+                    if type(value) not in {float, int} and value is not None:
+                        raise ValueError("Validation failed for NUMERIC_VALUE_TYPE")
             elif valueType == ValueTypeEnum.STRING_VALUE_TYPE:
-                assert isinstance(value, str)
+                if not isinstance(value, str):
+                    raise ValueError(
+                        f"ValueType was string but Value was of type {type(value)}"
+                    )
             elif valueType == ValueTypeEnum.BLOB_VALUE_TYPE:
                 # If type is BLOB but value is string we need to convert to bytes
                 # This is because bytes are serialized in JSON as strings and if we
@@ -95,9 +127,15 @@ class PropertyValue(pydantic.BaseModel):
                         bytes(value, "utf-8").decode("unicode_escape").encode("latin1")
                     )
                 else:
-                    assert isinstance(value, bytes)
+                    if not isinstance(value, bytes):
+                        raise ValueError(
+                            f"ValueType was Blob but Value was of type {type(value)} and not bytes"
+                        )
             elif valueType == ValueTypeEnum.VECTOR_VALUE_TYPE:
-                assert isinstance(value, list)
+                if not isinstance(value, list):
+                    raise ValueError(
+                        f"ValueType was Vector but Value was of type {type(value)} and not a list"
+                    )
             else:  # pragma: nocover
                 raise ValueError(
                     f"No validation available for values of type {valueType}. This is an internal error. "
@@ -106,7 +144,7 @@ class PropertyValue(pydantic.BaseModel):
         return value
 
     @pydantic.model_validator(mode="after")
-    def set_value_type(self):
+    def set_value_type(self) -> "PropertyValue":
 
         if self.valueType is None:
             if type(self.value) in [float, int, type(None)]:
@@ -130,13 +168,13 @@ class PropertyValue(pydantic.BaseModel):
 
         return self
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"value-{self.property}:{self.value}"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"value-{self.property}:{self.value}"
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:  # noqa: ANN401
 
         return bool(
             isinstance(other, PropertyValue)
@@ -144,16 +182,17 @@ class PropertyValue(pydantic.BaseModel):
             and self.value == other.value
         )
 
-    def isUncertain(self):
+    def isUncertain(self) -> bool:
 
         return self.uncertainty is not None
 
 
 class ConstitutivePropertyValue(PropertyValue):
 
-    property: ConstitutivePropertyDescriptor = pydantic.Field(
-        description="The ConstitutiveProperty with the value"
-    )
+    property: Annotated[
+        ConstitutivePropertyDescriptor,
+        pydantic.Field(description="The ConstitutiveProperty with the value"),
+    ]
 
 
 def constitutive_property_values_from_point(
@@ -171,8 +210,8 @@ def validate_point_against_properties(
     point: dict[str, typing.Any],
     constitutive_properties: list[ConstitutiveProperty],
     allow_partial_matches: bool = False,
-    verbose=False,
-):
+    verbose: bool = False,
+) -> bool:
     """point is valid if all its keys have a constitutive_property with
     a matching identifier and all its values are in the domain of this
     property. If allow_partial_matches is False an additional condition is that

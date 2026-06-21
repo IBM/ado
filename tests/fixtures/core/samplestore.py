@@ -1,10 +1,12 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 
 import copy
 import json
 import pathlib
+from collections.abc import Callable
+from typing import Any
 
 import pytest
 import yaml
@@ -14,7 +16,7 @@ import orchestrator.core.samplestore.resource
 import orchestrator.modules
 import orchestrator.utilities
 import orchestrator.utilities.location
-from orchestrator.core import SampleStoreResource
+from orchestrator.core import ADOResource, SampleStoreResource
 from orchestrator.core.samplestore.config import (
     SampleStoreConfiguration,
     SampleStoreModuleConf,
@@ -25,16 +27,16 @@ from orchestrator.core.samplestore.csv import (
     CSVSampleStoreDescription,
 )
 from orchestrator.core.samplestore.sql import SQLSampleStore
+from orchestrator.metastore.project import ProjectContext
+from orchestrator.metastore.sqlstore import SQLStore
+from orchestrator.utilities.location import FilePathLocation, SQLStoreConfiguration
 
 
 @pytest.fixture
 def random_sample_store_resource_from_file(
-    valid_ado_project_context, random_identifier
-):
-
-    def _random_sample_store_resource_from_file() -> (
-        orchestrator.core.samplestore.resource.SampleStoreResource
-    ):
+    valid_ado_project_context: ProjectContext, random_identifier: Callable[[], str]
+) -> Callable[[], SampleStoreResource]:
+    def _random_sample_store_resource_from_file() -> SampleStoreResource:
         file = pathlib.Path("tests/resources/samplestore/sample_store_resource.json")
         random_id = random_identifier()
 
@@ -61,11 +63,10 @@ def random_sample_store_resource_from_file(
 
 @pytest.fixture
 def random_sample_store_resource_from_db(
-    random_sample_store_resource_from_file, create_resources
-):
-    def _random_sample_store_resource_from_db() -> (
-        orchestrator.core.samplestore.resource.SampleStoreResource
-    ):
+    random_sample_store_resource_from_file: Callable[[], SampleStoreResource],
+    create_resources: Callable[[list[ADOResource], SQLStore], None],
+) -> Callable[[SampleStoreResource], SampleStoreResource]:
+    def _random_sample_store_resource_from_db() -> SampleStoreResource:
         sample_store = random_sample_store_resource_from_file()
         create_resources(resources=[sample_store])
         return sample_store
@@ -75,8 +76,11 @@ def random_sample_store_resource_from_db(
 
 @pytest.fixture
 def random_sql_sample_store(
-    random_sample_store_resource_from_db, valid_ado_project_context
-):
+    random_sample_store_resource_from_db: Callable[
+        [SampleStoreResource], SampleStoreResource
+    ],
+    valid_ado_project_context: ProjectContext,
+) -> Callable[[], SQLSampleStore]:
     def _random_sql_sample_store() -> SQLSampleStore:
         return SQLSampleStore(
             identifier=random_sample_store_resource_from_db().identifier,
@@ -97,26 +101,29 @@ entity_data = """
 
 
 @pytest.fixture
-def csv_sample_store_identifier():
+def csv_sample_store_identifier() -> str:
     return "gt4sd-pfas-molgx-model-one-92f4b88651b213bf3cf742db1ce84138"
 
 
 @pytest.fixture
-def csv_sample_store_parameters() -> tuple:
-
+def csv_sample_store_parameters() -> tuple[
+    dict[str, str],
+    dict[str, str | list[str] | list[dict[str, str | dict[str, str]]]],
+]:
     parameters = {
         "generatorIdentifier": "gt4sd-pfas-molgx-model-one",
-        "identifierColumn": "SMILES",
-        "constitutivePropertyColumns": ["SMILES"],
+        "identifierColumn": "smiles",
         "experiments": [
             {
                 "experimentIdentifier": "molgx-toxicity-inference-experiment",
-                "propertyMap": {
+                "observedPropertyMap": {
                     "pka": "Real_pKa (-0.83, 10.58)",
                     "logws": "Real_LogWS (-6.19, 1.13)",
                     "biodegradation halflife": "Real_BioDeg (0.47, 2.66)",
                     "ld50": "Real_LD50 (3.9, 7543.0)",
                 },
+                # Using list format since column name matches property name
+                "constitutivePropertyMap": ["smiles"],
             }
         ],
     }
@@ -129,7 +136,12 @@ def csv_sample_store_parameters() -> tuple:
 
 
 @pytest.fixture
-def csv_sample_store_reference(csv_sample_store_parameters) -> SampleStoreReference:
+def csv_sample_store_reference(
+    csv_sample_store_parameters: tuple[
+        dict[str, str],
+        dict[str, str | list[str] | list[dict[str, str | dict[str, str]]]],
+    ],
+) -> SampleStoreReference:
     """Creates a SampleStoreReference for a CSV file"""
 
     location, parameters = csv_sample_store_parameters
@@ -146,9 +158,11 @@ def csv_sample_store_reference(csv_sample_store_parameters) -> SampleStoreRefere
 
 @pytest.fixture
 def csv_sample_store(
-    csv_sample_store_parameters,
+    csv_sample_store_parameters: tuple[
+        dict[str, str],
+        dict[str, str | list[str] | list[dict[str, str | dict[str, str]]]],
+    ],
 ) -> CSVSampleStore:
-
     location, parameters = csv_sample_store_parameters
 
     return CSVSampleStore(
@@ -160,26 +174,29 @@ def csv_sample_store(
 
 
 @pytest.fixture
-def ml_multi_cloud_sample_store_configuration() -> SampleStoreConfiguration:
-
-    with open("examples/ml-multi-cloud/ml_multicloud_sample_store.yaml") as f:
-        d = yaml.safe_load(f)
-
-    return SampleStoreConfiguration.model_validate(d)
-
-
-@pytest.fixture
-def sample_store_configuration_smiles_yaml():
+def sample_store_configuration_smiles_yaml() -> dict[str, Any]:  # noqa: ANN401
     y = """
     copyFrom:
     - module:
-        moduleClass: GT4SDTransformer
-        moduleName: orchestrator.plugins.samplestores.gt4sd
+        moduleClass: CSVSampleStore
+        moduleName: orchestrator.core.samplestore.csv
       storageLocation:
         path: 'tests/test_generations.csv'
       parameters:
-        source: 'tests/test_generations.csv'
         generatorIdentifier: 'gt4sd-pfas-transformer-model-one'
+        identifierColumn: 'smiles'
+        experiments:
+          - experimentIdentifier: 'transformer-toxicity-inference-experiment'
+            observedPropertyMap:
+              logws: GenLogws
+              logd: GenLogd
+              loghl: GenLoghl
+              pka: GenPka
+              "biodegradation halflife": GenBiodeg
+              bcf: GenBcf
+              ld50: GenLd50
+              scscore: GenScscore
+            constitutivePropertyMap: [smiles]
     """
 
     return yaml.safe_load(y)
@@ -187,43 +204,32 @@ def sample_store_configuration_smiles_yaml():
 
 @pytest.fixture
 def sample_store_configuration_smiles(
-    sample_store_configuration_smiles_yaml,
+    sample_store_configuration_smiles_yaml: dict[str, Any],
 ) -> orchestrator.core.samplestore.config.SampleStoreConfiguration:
-
     source_conf = (
         orchestrator.core.samplestore.config.SampleStoreConfiguration.model_validate(
             sample_store_configuration_smiles_yaml
         )
     )
 
-    assert source_conf.copyFrom[0].module.moduleClass == "GT4SDTransformer"
+    assert source_conf.copyFrom[0].module.moduleClass == "CSVSampleStore"
 
     return source_conf
 
 
 @pytest.fixture
 def sample_store_resource(
-    ml_multi_cloud_sample_store_configuration,
+    ml_multi_cloud_sample_store_configuration: SampleStoreConfiguration,
 ) -> SampleStoreResource:
-
     return SampleStoreResource(
         identifier="test_source",
         config=ml_multi_cloud_sample_store_configuration,
     )
 
 
-valid_sample_store_configs = ["examples/ml-multi-cloud/ml_multicloud_sample_store.yaml"]
-
-
-@pytest.fixture(params=valid_sample_store_configs)
-def valid_sample_store_config_file(request):
-    return request.param
-
-
 @pytest.fixture
-def test_sample_store_location():
-
-    return orchestrator.utilities.location.SQLStoreConfiguration(
+def test_sample_store_location() -> SQLStoreConfiguration:
+    return SQLStoreConfiguration(
         scheme="mysql+pymysql",
         host="localhost",
         port=3306,
@@ -234,8 +240,9 @@ def test_sample_store_location():
 
 
 @pytest.fixture(params=["sql", "csv"])
-def sample_store_test_data(request):
-
+def sample_store_test_data(
+    request: pytest.FixtureRequest,
+) -> tuple[dict[str, Any], SQLStoreConfiguration | FilePathLocation]:
     c = None
     if request.param == "sql":
         c = (
@@ -257,15 +264,16 @@ module:
   moduleName: orchestrator.core.samplestore.csv
 parameters:
   generatorIdentifier: 'gt4sd-pfas-molgx-model-one'
-  identifierColumn: 'SMILES'
-  constitutivePropertyColumns: ['SMILES']
+  identifierColumn: 'smiles'
   experiments:
     - experimentIdentifier: 'molgx-toxicity-inference-experiment'
-      propertyMap:
+      observedPropertyMap:
         pka: "Real_pKa (-0.83, 10.58)"
         logws: "Real_LogWS (-6.19, 1.13)"
         "biodegradation halflife": "Real_BioDeg (0.47, 2.66)"
         ld50: "Real_LD50 (3.9, 7543.0)"
+      constitutivePropertyMap:
+        smiles: 'smiles'
 storageLocation:
   path: 'examples/pfas-generative-models/data/GM_Comparison/MolGX/Sample_0/PFAS_MolGX_test_SHORT_v0.csv'
 """
@@ -284,12 +292,13 @@ storageLocation:
 
 
 @pytest.fixture
-def sample_store_module_and_storage_location(request):
-
-    return orchestrator.core.samplestore.config.SampleStoreModuleConf(
+def sample_store_module_and_storage_location(
+    request: pytest.FixtureRequest,
+) -> tuple[SampleStoreModuleConf, SQLStoreConfiguration]:
+    return SampleStoreModuleConf(
         moduleClass="SQLSampleStore",
         moduleName="orchestrator.core.samplestore.sql",
-    ), orchestrator.utilities.location.SQLStoreConfiguration(
+    ), SQLStoreConfiguration(
         scheme="mysql+pymysql",
         host="localhost",
         port=3306,
@@ -329,7 +338,9 @@ def ado_sql_sample_store_with_storagelocation() -> (
 
 
 @pytest.fixture
-def ado_sql_sample_store_no_storagelocation(ado_sql_sample_store_with_storagelocation):
+def ado_sql_sample_store_no_storagelocation(
+    ado_sql_sample_store_with_storagelocation: SampleStoreConfiguration,
+) -> SampleStoreConfiguration:
     sample_store = copy.deepcopy(ado_sql_sample_store_with_storagelocation)
     sample_store.specification.storageLocation = None
     return sample_store

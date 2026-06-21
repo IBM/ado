@@ -45,7 +45,7 @@ Each source file must include a license header for the MIT License. Using the
 SPDX format is the simplest approach. e.g.
 
 ```text
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 ```
 
@@ -91,15 +91,17 @@ To set up your development environment, follow the instructions in our
 ## Testing
 
 We use [Tox](https://github.com/tox-dev/tox) to run unit tests for our code. To
-run tests for Python 3.10, you can run the following command:
+run tests for Python 3.10 on MacOS using locked dependencies, you can run the
+following command:
 
 ```commandline
-export TOX_ENV=py310-test-pipenv-optimizers
+export TOX_ENV=py310-locked-macos
 tox --colored yes --stderr-color RESET -r -e "$TOX_ENV" -vvv
 ```
 
 Similarly, you can test different Python versions by changing `py310` to `py311`
-or `py312`.
+or `py312`. You can also use standard pip resolution instead of locked
+dependencies by using `nonlocked`.
 
 ## Commit and PR title guidelines
 
@@ -146,20 +148,31 @@ namely:
 
 - [Black](https://ibm.github.io/ado/getting-started/developing#code-style)
 - [Ruff](https://ibm.github.io/ado/getting-started/developing#linting-code-with-ruff)
+- [uv](https://ibm.github.io/ado/getting-started/developing#verifying-lockfile-integrity)
 - [Copywrite](https://ibm.github.io/ado/getting-started/developing#copyright-and-license-headers)
 - [Markdownlint-cli2](https://ibm.github.io/ado/getting-started/developing#linting-markdown-with-markdownlint-cli2)
+- [Yamlfmt](https://github.com/google/yamlfmt)
 
-To verify that your code conforms to these rules you can run the following
-commands:
+Before submitting a pull request, you must ensure that all of the following
+checks pass. To verify that your code conforms to these rules you can run the
+following commands:
 
 ```commandline
 black --check . --extend-exclude website
 ruff check --exclude website
+uv lock --check
 copywrite headers --plan
-markdownlint-cli2 "**/*.md" "#.venv"
+markdownlint-cli2 "**/*.md" "#.venv" "#.tox"
 detect-secrets scan --update .secrets.baseline
 detect-secrets audit .secrets.baseline --fail-on-unaudited --fail-on-live --fail-on-audited-real
+yamlfmt -lint -exclude ".venv" -exclude ".tox" .
 ```
+
+The `uv lock --check` command verifies that the `uv.lock` lockfile is up-to-date
+with the dependencies specified in `pyproject.toml`. If this check fails, run
+`uv lock` to regenerate the lockfile. See the
+[development guide](https://ibm.github.io/ado/getting-started/developing#verifying-lockfile-integrity)
+for more details.
 
 ## Website checks
 

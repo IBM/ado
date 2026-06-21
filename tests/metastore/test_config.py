@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import pytest
@@ -10,10 +10,14 @@ import orchestrator.utilities
 import orchestrator.utilities.environment
 import orchestrator.utilities.location
 from orchestrator.metastore.project import ProjectContext
-from orchestrator.modules.module import ModuleTypeEnum, load_module_class_or_function
+from orchestrator.modules.module import (
+    ModuleConf,
+    ModuleTypeEnum,
+    load_module_class_or_function,
+)
 
 
-def test_discovery_storage_conf_dump_reload(orchestrator_project_name):
+def test_discovery_storage_conf_dump_reload(orchestrator_project_name: str) -> None:
 
     conf = ProjectContext(
         project=orchestrator_project_name,
@@ -47,7 +51,7 @@ def test_discovery_storage_conf_dump_reload(orchestrator_project_name):
     assert newconf.metadataStore.host == conf.metadataStore.host
 
 
-def test_default_plugin_configs(module_config):
+def test_default_plugin_configs(module_config: ModuleConf) -> None:
     if module_config.moduleType == ModuleTypeEnum.OPERATION:
         assert (
             load_module_class_or_function(module_config)

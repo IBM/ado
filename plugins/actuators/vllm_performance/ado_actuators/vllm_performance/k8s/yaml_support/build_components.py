@@ -1,12 +1,14 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
+import json
 import logging
 import uuid
 from enum import Enum
 from pathlib import Path
 from typing import Any
 
+import pydantic
 import yaml
 
 PVC_MOUNT_PATH = "/dev/cache"
@@ -73,9 +75,9 @@ class ComponentsYaml:
         k8s_name: str,
         model: str,
         gpu_type: str = "NVIDIA-A100-80GB-PCIe",
-        node_selector: dict[str, str] = {},
+        node_selector: dict[str, str] | None = None,
         image: str = "vllm/vllm-openai:v0.6.3",
-        image_secret: str = "",
+        image_pull_secret_name: str = "",
         n_gpus: int = 1,
         n_cpus: int = 8,
         memory: str = "128Gi",
@@ -87,6 +89,10 @@ class ComponentsYaml:
         template: str | None = None,
         claim_name: str | None = None,
         hf_token: str | None = None,
+        enforce_eager: bool = False,
+        skip_tokenizer_init: bool = False,
+        io_processor_plugin: str | None = None,
+        otlp_traces_endpoint: pydantic.AnyUrl | None = None,
     ) -> dict[str, Any]:
         """
         Generate deployment yaml
@@ -95,7 +101,7 @@ class ComponentsYaml:
         :param gpu_type: gpu type, for example NVIDIA-A100-80GB-PCIe, Tesla-V100-PCIE-16GB, etc.
         :param node_selector: optional node selector
         :param image: image name to use
-        :param image_secret: name of the image pull secret
+        :param image_pull_secret_name: name of the image pull secret
         :param n_gpus: number of GPUs to use in VLLM
         :param n_cpus: number of CPUs for VLLM pod
         :param memory: memory for VLLM pod
@@ -107,8 +113,14 @@ class ComponentsYaml:
         :param template: template for deployment yaml
         :param claim_name: PVC name
         :param hf_token: huggingface token
+        :param enforce_eager: flag to enforce using Pytorch eager mode
+        :param skip_tokenizer_init: flag to skip tokenizer initialization in vLLM
+        :param io_processor_plugin: name of the IO processor plugin to be used by vLLM
         :return:
         """
+        if node_selector is None:
+            node_selector = {}
+
         # read template
         if template is None:
             logger.debug("Using default Deployment template")
@@ -127,7 +139,7 @@ class ComponentsYaml:
         except Exception as exception:
             error_string = f"Exception reading deployment yaml template {exception}"
             logger.error(error_string)
-            raise ValueError(error_string)
+            raise ValueError(error_string) from exception
 
         # Update metadata
         metadata = deployment_yaml["metadata"]
@@ -152,29 +164,14 @@ class ComponentsYaml:
         if len(node_selector) > 0:
             spec["nodeSelector"].update(node_selector)
         # image pull secret
-        if image_secret is not None and image_secret != "":
-            spec["imagePullSecrets"] = [{"name": image_secret}]
+        if image_pull_secret_name is not None and image_pull_secret_name != "":
+            spec["imagePullSecrets"] = [{"name": image_pull_secret_name}]
         # volumes
         if claim_name is not None:
             spec["volumes"].extend(
                 [{"name": PVC_NAME, "persistentVolumeClaim": {"claimName": claim_name}}]
             )
 
-        # container
-        container = spec["containers"][0]
-        # image
-        container["image"] = image
-        # resources
-        requests = container["resources"]["requests"]
-        requests["cpu"] = str(n_cpus)
-        requests["memory"] = memory
-        requests["nvidia.com/gpu"] = str(n_gpus)
-        limits = container["resources"]["limits"]
-        limits["cpu"] = str(n_cpus)
-        limits["memory"] = memory
-        limits["nvidia.com/gpu"] = str(n_gpus)
-
-        # command
         vllm_serve_args = [
             model,
             "--max-num-batched-tokens",
@@ -190,18 +187,48 @@ class ComponentsYaml:
             "--dtype",
             dtype.value,
         ]
+
+        if enforce_eager:
+            vllm_serve_args.append("--enforce-eager")
+        if skip_tokenizer_init:
+            vllm_serve_args.append("--skip-tokenizer-init")
+        if io_processor_plugin is not None:
+            vllm_serve_args.append("--io-processor-plugin")
+            vllm_serve_args.append(io_processor_plugin)
+            vllm_serve_args.append("--enable-mm-embeds")
+        if otlp_traces_endpoint is not None:
+            vllm_serve_args.append("--otlp-traces-endpoint")
+            vllm_serve_args.append(str(otlp_traces_endpoint))
+
+        # container
+        container = spec["containers"][0]
+        # command + args
         container["command"] = ["vllm", "serve"]
         container["args"] = vllm_serve_args
+        # image
+        container["image"] = image
+        # resources
+        requests = container["resources"]["requests"]
+        requests["cpu"] = str(n_cpus)
+        requests["memory"] = memory
+        requests["nvidia.com/gpu"] = str(n_gpus)
+        limits = container["resources"]["limits"]
+        limits["cpu"] = str(n_cpus)
+        limits["memory"] = memory
+        limits["nvidia.com/gpu"] = str(n_gpus)
 
-        container["env"] = []
+        if container.get("env") is None:
+            container["env"] = []
         if hf_token is not None:
-            container["env"].extend([{"name": "HF_TOKEN", "value": hf_token}])
+            container["env"].append({"name": "HF_TOKEN", "value": hf_token})
+        if otlp_traces_endpoint is not None:
+            container["env"].append({"name": "OTEL_SERVICE_NAME", "value": k8s_name})
         if claim_name is not None:
             container["env"].extend(
                 [
                     {
                         "name": "HOME",
-                        "value": "/tmp",
+                        "value": "/tmp",  # noqa: S108
                     },
                     {
                         "name": "HF_HOME",
@@ -219,7 +246,7 @@ class ComponentsYaml:
                 ]
             )
 
-        # return
+        logger.debug(json.dumps(deployment_yaml, indent=2))
         return deployment_yaml
 
     @staticmethod
@@ -244,7 +271,7 @@ class ComponentsYaml:
         except Exception as exception:
             error_string = f"Exception reading service yaml template {exception}"
             logger.error(error_string)
-            raise ValueError(error_string)
+            raise ValueError(error_string) from exception
 
         # Update metadata
         metadata = service_yaml["metadata"]
@@ -253,8 +280,6 @@ class ComponentsYaml:
 
         # update selector
         service_yaml["spec"]["selector"]["app.kubernetes.io/instance"] = k8s_name
-
-        # return
         return service_yaml
 
     @staticmethod
@@ -279,12 +304,10 @@ class ComponentsYaml:
         except Exception as exception:
             error_string = f"Exception reading pvc yaml template {exception}"
             logger.error(error_string)
-            raise ValueError(error_string)
+            raise ValueError(error_string) from exception
 
         # Update metadata
         pvc_yaml["metadata"]["name"] = pvc_name
-
-        # return
         return pvc_yaml
 
 
@@ -296,7 +319,6 @@ if __name__ == "__main__":
         model=t_model,
         claim_name="vllm-support",
         node_selector={"kubernetes.io/hostname": "cpu16"},
-        hf_token="token",
         image="quay.io/dataprep1/data-prep-kit/vllm_image:0.1",
     )
     print(f"Deployment YAML: \n{yaml.dump(deployment)}")

@@ -1,16 +1,18 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import logging
 import typing
 import uuid
 
-import yaml
-
 import orchestrator.modules.module
 import orchestrator.schema
 from orchestrator.core.actuatorconfiguration.config import (
     GenericActuatorParameters,
+)
+from orchestrator.core.metadata import PackageProvenance
+from orchestrator.modules.actuators.base import (
+    ActuatorBase,
 )
 from orchestrator.modules.actuators.catalog import (
     ExperimentCatalog,
@@ -20,13 +22,12 @@ from orchestrator.schema.reference import ExperimentReference
 from orchestrator.utilities.logging import configure_logging
 
 if typing.TYPE_CHECKING:
-    from orchestrator.modules.actuators.base import (
-        ActuatorBase,
-    )
+    import pandas as pd
+
+    from orchestrator.schema.experiment import Experiment
 
 configure_logging()
 
-ACTUATOR_CONFIGURATION_FILE_NAME = "actuator_definitions.yaml"
 CATALOG_EXTENSIONS_CONFIGURATION_FILE_NAME = "custom_experiments.yaml"
 moduleLogger = logging.getLogger("registry")
 
@@ -53,7 +54,7 @@ class ActuatorRegistry:
     """Provides access to actuators and the experiments they can execute"""
 
     @classmethod
-    def globalRegistry(cls):
+    def globalRegistry(cls) -> "ActuatorRegistry":
 
         if ActuatorRegistry.gRegistry is not None:
             moduleLogger.debug("Global registry exists - using")
@@ -67,144 +68,89 @@ class ActuatorRegistry:
     def __init__(
         self,
         actuator_configurations: dict[str, GenericActuatorParameters] | None = None,
-    ):
+    ) -> None:
         """Detects and loads Actuator plugins"""
 
-        # Mpass actuator ids to actuator configurations: G
-        self.actuatorConfigurationMap = (
-            {}
-        )  # type: typing.Dict[typing.AnyStr, "orchestrator.model.config.GenericActuatorParameters"]
-        if actuator_configurations:
-            self.actuatorConfigurationMap.update(actuator_configurations)
-
-        # Maps actuator ids to ActuatorBase instances
-        self.actuatorIdentifierMap = (
-            {}
-        )  # type: typing.Dict[typing.AnyStr, "orchestrator.actuators.base.BaseActuator"]
-        # Maps actuator ids to ExperimentCatalog instances
-        self.catalogIdentifierMap = (
-            {}
-        )  # type: typing.Dict[typing.AnyStr, ExperimentCatalog]
-        self.log = logging.getLogger("registry")
-        self.id = uuid.uuid4()
-
-        # We handle builtin actuators
-        import importlib.resources
+        import importlib.metadata
         import inspect
         import pkgutil
 
         import orchestrator.modules.actuators as builtin_actuators
-        from orchestrator.modules.actuators.base import ActuatorBase, ActuatorModuleConf
+        from orchestrator.modules.actuators.base import ActuatorBase
 
+        # Maps actuator ids to generic actuator parameter payloads from configuration.
+        self.actuatorConfigurationMap: dict[str, GenericActuatorParameters] = {}
+        if actuator_configurations:
+            self.actuatorConfigurationMap.update(actuator_configurations)
+
+        # Maps actuator ids to ActuatorBase instances
+        self.actuatorIdentifierMap: dict[str, type[ActuatorBase]] = {}
+        # Maps actuator ids to ExperimentCatalog instances
+        self.catalogIdentifierMap: dict[str, ExperimentCatalog] = {}
+        # Maps actuator ids to metadata (version, description, and distributionName)
+        self.actuatorMetadataMap: dict[str, dict[str, str | None]] = {}
+        self.log = logging.getLogger("registry")
+        self.id = uuid.uuid4()
+
+        # Get ado-core version once for all builtin actuators
+        self._ado_core_version = importlib.metadata.version("ado-core")
+
+        # We handle builtin actuators
         for module in pkgutil.iter_modules(
             builtin_actuators.__path__, f"{builtin_actuators.__name__}."
         ):
-            for name, member in inspect.getmembers(
+            for _name, member in inspect.getmembers(
                 importlib.import_module(module.name)
             ):
-                # MJ: The Actuator classes are decorated ray.remote
-                # This means the member mymodule.myactuatorclass will be an instance of ray "ActorClass(MyActuatorClass)" and not the class!
-                #
-                # Ray has added code so ActuatorBase.__subclasscheck__(ActorClass(MyActuatorClass))" returns True
-                # i.e. it identifies that the ray "wrapped" subclass is a subclass
-                #
-                # This finally means isinstance(mymodule.myactuatorclass, ActuatorBase) works although unexpectedly as you might expect the first arg to be a class not an instance
-                # Why? mymodule.myactorclass -> is an instance of ActorClass(MyActuatorClass) -> the class of this is  ActorClass(MyActuatorClass) -> this evaluates as subclass of ActuatorBase
+                # Builtin actuators are undecorated; operators/setup.py applies
+                # ray.remote when instantiating them.
+                actuator_class = None
+                if (
+                    isinstance(member, type)
+                    and member is not ActuatorBase
+                    and issubclass(member, ActuatorBase)
+                ):
+                    actuator_class = member
 
-                # It's slightly clearer to use issubclass, as this is what you want to know, but correct for the fact that
-                # when "member" is an ActuatorBase subclass it will be decorated with a ray object, and we need to use __class__
-
-                if issubclass(member.__class__, ActuatorBase):
-                    self.registerActuator(member.identifier, member)
-
-        try:
-            import ado_actuators as plugins
-        except ImportError:
-            return
-
-        from pathlib import Path
-
-        import pydantic
-
-        ActuatorFileModel = pydantic.RootModel[list[ActuatorModuleConf]]
-
-        self.log.debug(f"{plugins.__path__}, {plugins.__name__}")
-
-        # This adds the plugins to the ActuatorRegistry
-        for module in pkgutil.iter_modules(plugins.__path__, f"{plugins.__name__}."):
-            module_contents = {
-                entry.name for entry in importlib.resources.files(module.name).iterdir()
-            }
-            self.log.debug(
-                f"Checking if module {module.name} is an actuator plugin. Contents: {module_contents}"
-            )
-            if ACTUATOR_CONFIGURATION_FILE_NAME in module_contents:
-                self.log.debug(f"Found {ACTUATOR_CONFIGURATION_FILE_NAME}")
-
-                actuator_configuration_file = Path(
-                    str(importlib.resources.files(module.name))
-                ) / Path(ACTUATOR_CONFIGURATION_FILE_NAME)
-
-                try:
-                    actuators = ActuatorFileModel(
-                        yaml.safe_load(actuator_configuration_file.read_text())
-                    ).root
-                except pydantic.ValidationError:
-                    self.log.exception(
-                        f"{module.name}'s {ACTUATOR_CONFIGURATION_FILE_NAME} raised a validation error"
-                    )
-                    raise
-
-                for actuator in actuators:
-
-                    # AP 02/09/2024
-                    # While this is not strictly needed anymore, we keep it
-                    # to validate that all the requirements for the actuator
-                    # are met. If this wasn't the case, we would get an error
-                    # when importing orchestrator.actuators or calling the
-                    # load_module_class method
-                    try:
-                        actuator_class = (
-                            orchestrator.modules.module.load_module_class_or_function(
-                                actuator
-                            )
-                        )
-                    except ModuleNotFoundError as e:
-                        self.log.exception(
-                            f"Skipping actuator {actuator.moduleName}: an exception was raised indicating "
-                            "unmet requirements. Please ensure all the actuators' requirements are installed.\n"
-                            f"Exception was:\n{e}"
-                        )
-                        continue
-                    except ImportError as e:
-                        self.log.exception(
-                            f"Skipping actuator {actuator.moduleName} because of an exception while importing it.\n"
-                            f"Exception was:\n{e}"
-                        )
-                        continue
-                    except AttributeError as e:
-                        self.log.exception(
-                            f"Skipping actuator {actuator.moduleName} because we could not find the actuator class {actuator.moduleClass} in it.\n"
-                            f"Exception was:\n{e}"
-                        )
-                        continue
-
-                    # AP: we are initialising the ActuatorRegistry
-                    # we do not need to check whether we have already
-                    # registered the actuator
-                    self.log.debug(f"Add actuator plugin {actuator}")
+                if actuator_class:
                     self.registerActuator(
-                        actuatorid=actuator_class.identifier,
-                        actuatorClass=actuator_class,
+                        actuator_class.identifier, actuator_class, is_builtin=True
                     )
 
-    def __str__(self):
+        # Load actuator plugins via entry points
+        for actuator_entry_point in importlib.metadata.entry_points(
+            group="ado.actuators"
+        ):
+            try:
+                actuator_class = actuator_entry_point.load()
+                if not (
+                    isinstance(actuator_class, type)
+                    and issubclass(actuator_class, ActuatorBase)
+                ):
+                    self.log.error(
+                        f"Entry point {actuator_entry_point.name} does not point to an ActuatorBase subclass"
+                    )
+                    continue
+                self.registerActuator(
+                    actuatorid=actuator_class.identifier,
+                    actuatorClass=actuator_class,
+                    is_builtin=False,
+                )
+                self.log.debug(
+                    f"Loaded actuator plugin {actuator_entry_point.name} from entry point: {actuator_entry_point.value}"
+                )
+            except Exception as e:
+                self.log.error(
+                    f"Failed to load actuator entry point {actuator_entry_point.name}: {e}"
+                )
+
+    def __str__(self) -> str:
 
         return f"Registry id {self.id}"
 
     def set_actuator_configurations_for_catalogs(
         self, configurations: dict[str, GenericActuatorParameters]
-    ):
+    ) -> None:
         """Supply information for catalogs that require configuration
 
         If a configuration has already been supplied for an actuator it is not updated - you will need to create a
@@ -219,11 +165,77 @@ class ActuatorRegistry:
             }
         )
 
+    def _get_builtin_actuator_metadata(
+        self, actuator_class: "type[ActuatorBase]"
+    ) -> dict[str, str | None]:
+        """Extract metadata for builtin actuators.
+
+        Args:
+            actuator_class: The actuator class
+
+        Returns:
+            Dictionary with 'version' and 'description' keys
+        """
+        version = self._ado_core_version
+
+        # Get first line of docstring as description if available
+        description = None
+        try:
+            if actuator_class.__doc__:
+                description = actuator_class.__doc__.strip().split("\n")[0]
+        except (AttributeError, IndexError):
+            pass
+
+        return {
+            "version": version,
+            "description": description,
+            "distributionName": "ado-core",
+        }
+
+    def _get_plugin_actuator_metadata(
+        self, actuator_class: "type[ActuatorBase]"
+    ) -> dict[str, str | None]:
+        """Extract metadata for plugin actuators.
+
+        Args:
+            actuator_class: The actuator class
+
+        Returns:
+            Dictionary with 'version' and 'description' keys
+        """
+        from orchestrator.core.metadata import PackageProvenance
+
+        description = None
+        provenance = PackageProvenance.from_module_name(actuator_class.__module__)
+        if provenance is not None:
+            try:
+                import importlib.metadata
+
+                dist = importlib.metadata.distribution(provenance.distributionName)
+                description = dist.metadata.get("Summary", None)
+            except Exception as e:
+                self.log.debug(
+                    f"Could not extract description for plugin actuator "
+                    f"{actuator_class}: {e}"
+                )
+            return {
+                "version": provenance.distributionVersion,
+                "description": description,
+                "distributionName": provenance.distributionName,
+            }
+
+        return {
+            "version": None,
+            "description": None,
+            "distributionName": None,
+        }
+
     def registerActuator(
         self,
         actuatorid: str,
         actuatorClass: "type[ActuatorBase]",
-    ):
+        is_builtin: bool = False,
+    ) -> None:
         """Adds an actuator and a catalog of experiments it can execute to the registry
 
         Note: Currently each actuator can only have one catalog although further experiments can be added to it
@@ -231,11 +243,44 @@ class ActuatorRegistry:
         Parameters:
             actuatorid: The id of this actuator. This id is how consumers will access it
             actuatorClass: The class that implements the actuator.
-                Note: Since these are decorated with "ray.remote" they will actually be instances of ray.actor.ActorClass
+            is_builtin: Whether this is a builtin actuator (from orchestrator.modules.actuators)
         """
 
         if self.actuatorIdentifierMap.get(actuatorid) is None:
             self.actuatorIdentifierMap[actuatorid] = actuatorClass
+
+            # Extract and store metadata
+            if is_builtin:
+                metadata = self._get_builtin_actuator_metadata(actuatorClass)
+            else:
+                metadata = self._get_plugin_actuator_metadata(actuatorClass)
+
+            self.actuatorMetadataMap[actuatorid] = metadata
+
+    def provenance_for_actuator(self, identifier: str) -> PackageProvenance | None:
+        """Return the package provenance for a registered actuator.
+
+        Returns ``None`` if the actuator is not registered or its distribution
+        could not be resolved (e.g. the actuator was loaded from an unpackaged
+        local path).
+
+        Args:
+            identifier: The actuator identifier.
+
+        Returns:
+            A :class:`~orchestrator.core.metadata.PackageProvenance` instance,
+            or ``None`` if provenance is unavailable.
+        """
+        metadata = self.actuatorMetadataMap.get(identifier)
+        if metadata is None:
+            return None
+        dist_name = metadata.get("distributionName")
+        version = metadata.get("version")
+        if dist_name is None or version is None:
+            return None
+        return PackageProvenance(
+            distributionName=dist_name, distributionVersion=version
+        )
 
     def catalogForActuatorIdentifier(self, actuatorid: str) -> ExperimentCatalog:
         """Returns the catalog for a given actuator via its identifier
@@ -259,7 +304,7 @@ class ActuatorRegistry:
         cfg = None
         try:
             catalog = self.catalogIdentifierMap[actuatorid]
-        except KeyError:
+        except KeyError as error:
             # Load catalog on demand
             # Get configuration if any registered
             cfg = self.catalogIdentifierMap.get(actuatorid)
@@ -270,7 +315,7 @@ class ActuatorRegistry:
             ) and not cfg:
                 raise MissingActuatorConfigurationForCatalogError(
                     f"Actuator {actuatorid} requires configuration information to create catalog."
-                )
+                ) from error
 
             # If the catalog config is not required we can continue if cfg is None or a configuration instance
             if (
@@ -289,7 +334,7 @@ class ActuatorRegistry:
                     )
                     raise UnexpectedCatalogRetrievalError(
                         f"Unexpected exception, '{error}', retrieving catalog of actuator {actuatorid} using configuration {cfg}"
-                    )
+                    ) from error
                 else:
                     self.catalogIdentifierMap[actuatorid] = catalog
                     self.log.debug(
@@ -304,7 +349,7 @@ class ActuatorRegistry:
                     )
                     raise UnexpectedCatalogRetrievalError(
                         f"Unexpected exception {error} retrieving catalog of actuator {actuatorid} using configuration {cfg}"
-                    )
+                    ) from error
                 else:
                     self.catalogIdentifierMap[actuatorid] = catalog
                     self.log.debug(
@@ -313,28 +358,26 @@ class ActuatorRegistry:
 
         return catalog
 
-    def actuatorForIdentifier(
-        self, actuatorid: str
-    ) -> "orchestrator.modules.actuators.base.ActuatorBase":
+    def actuatorForIdentifier(self, actuatorid: str) -> type[ActuatorBase]:
         """Returns the actuator class corresponding to an identifier
 
         If the actuator has not been registered this method raises UnknownActuatorError
         """
 
         try:
-            acuatorClass = self.actuatorIdentifierMap[actuatorid]
-        except KeyError:
+            actuator_class = self.actuatorIdentifierMap[actuatorid]
+        except KeyError as error:
             raise UnknownActuatorError(
                 f"No actuator called {actuatorid} has been added to the registry"
-            )
+            ) from error
 
-        return acuatorClass
+        return actuator_class
 
     def experimentForReference(
         self,
         reference: ExperimentReference,
         additionalCatalogs: list[ExperimentCatalog] | None = None,
-    ):
+    ) -> "Experiment":
         """
         Returns the Experiment object corresponding to reference
 
@@ -347,6 +390,7 @@ class ActuatorRegistry:
             The matching experiment
         Raises:
             Raises UnknownExperimentError if the experiment cannot be found in any catalog
+            Raises UnknownActuatorError if the actuator cannot be found
 
         """
 
@@ -394,9 +438,7 @@ class ActuatorRegistry:
         if experiment is None:
             # AP: we haven't been able to find either the actuator
             #     or the experiment. We want to raise an accurate error
-            if not self.globalRegistry().actuatorForIdentifier(
-                reference.actuatorIdentifier
-            ):
+            if not self.actuatorForIdentifier(reference.actuatorIdentifier):
                 raise UnknownActuatorError(reference.actuatorIdentifier)
             log.error(
                 f"The {reference.actuatorIdentifier}  actuator was found but it did not contain "
@@ -407,7 +449,7 @@ class ActuatorRegistry:
         return experiment
 
     @property
-    def catalogs(self):
+    def catalogs(self) -> list[ExperimentCatalog]:
         """Returns an iterator over the catalogs of the registered actuators
 
         If a catalog requires configuration and this has not been supplied it will be skipped.
@@ -419,7 +461,7 @@ class ActuatorRegistry:
         for actuatorid in self.actuatorIdentifierMap:
             try:
                 catalog = self.catalogForActuatorIdentifier(actuatorid=actuatorid)
-            except (
+            except (  # noqa: PERF203
                 MissingActuatorConfigurationForCatalogError,
                 UnexpectedCatalogRetrievalError,
             ):
@@ -430,7 +472,7 @@ class ActuatorRegistry:
         return catalogs
 
     @property
-    def experiments(self):
+    def experiments(self) -> "pd.DataFrame":
         """Returns a dataframe of the experiments in the receiver"""
 
         import pandas as pd
@@ -439,7 +481,7 @@ class ActuatorRegistry:
         for actuatorid in self.actuatorIdentifierMap:
             try:
                 catalog = self.catalogForActuatorIdentifier(actuatorid=actuatorid)
-            except MissingActuatorConfigurationForCatalogError:
+            except MissingActuatorConfigurationForCatalogError:  # noqa: PERF203
                 self.log.warning(
                     f"Cannot retrieve experiments from actuator {actuatorid} as it requires configuration information for its catalog and this has not been provided"
                 )
@@ -455,7 +497,7 @@ class ActuatorRegistry:
     def updateCatalogs(
         self,
         catalogExtension: orchestrator.modules.actuators.catalog.ActuatorCatalogExtension,
-    ):
+    ) -> None:
         """Updates the receivers catalogs with the experiments in catalogExtension
 
         Its expected that catalogExtension will only contain experiments for a single actuator, but it is not enforced
@@ -467,7 +509,7 @@ class ActuatorRegistry:
         for experiment in catalogExtension.experiments:
             try:
                 self.catalogForActuatorIdentifier(experiment.actuatorIdentifier)
-            except UnknownActuatorError:
+            except UnknownActuatorError:  # noqa: PERF203
                 unknownActuators.append(experiment.actuatorIdentifier)
 
         if len(unknownActuators) > 0:
@@ -491,7 +533,7 @@ class ActuatorRegistry:
         for experiment in measurement_space.experiments:
             try:
                 self.experimentForReference(experiment.reference)
-            except UnknownExperimentError as error:
+            except UnknownExperimentError as error:  # noqa: PERF203
                 issues.append(f"UnknownExperimentError: {error!s}")
             except UnknownActuatorError as error:
                 issues.append(f"UnknownActuatorError: {error!s}")

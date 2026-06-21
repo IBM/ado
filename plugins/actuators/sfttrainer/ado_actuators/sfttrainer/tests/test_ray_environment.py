@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 from ado_actuators.sfttrainer.ray_env.utils import (
@@ -7,7 +7,7 @@ from ado_actuators.sfttrainer.ray_env.utils import (
 )
 
 
-def test_exclude_packages():
+def test_exclude_packages() -> None:
     packages = [
         "yarl==1.20.0",
         "bitsandbytes==0.43.3",

@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import importlib.metadata
@@ -37,41 +37,57 @@ from orchestrator.schema.virtual_property import (
 )
 
 if typing.TYPE_CHECKING:  # pragma: nocover
+    from rich.console import RenderableType
+
     from orchestrator.schema.entity import Entity
 
 
 class Experiment(pydantic.BaseModel):
     """Represents an experiment that can measure properties of an entities"""
 
-    actuatorIdentifier: str = pydantic.Field(
-        description="""The id of the actuator that can execute this experiment or parameterized versions of it"""
-    )
-    identifier: str = pydantic.Field(
-        description="""The name of the experiment.
-            Must be unique in the scope of the catalog of this experiments actuator."""
-    )
-    metadata: dict = pydantic.Field(
-        default={},
-        description=""" Metadata about the experiment. Sufficient to track its source. Can be custom format per actuator""",
-    )
-    targetProperties: list[AbstractPropertyDescriptor | ConcretePropertyDescriptor] = (
+    actuatorIdentifier: Annotated[
+        str,
         pydantic.Field(
-            description="""The target properties this experiment aims to measure
-            (can be ConcreteProperty or AbstractProperty instances)"""
-        )
-    )
-    requiredProperties: tuple[ObservedProperty | ConstitutiveProperty, ...] = (
+            description="The id of the actuator that can execute this experiment or parameterized versions of it"
+        ),
+    ]
+    identifier: Annotated[
+        str,
         pydantic.Field(
-            default=(),
+            description="The name of the experiment. "
+            "Must be unique in the scope of the catalog of this experiments actuator."
+        ),
+    ]
+    metadata: Annotated[
+        dict,
+        pydantic.Field(
+            default_factory=dict,
+            description="Metadata about the experiment. Sufficient to track its source. "
+            "Can be custom format per actuator.",
+        ),
+    ]
+    targetProperties: Annotated[
+        list[AbstractPropertyDescriptor | ConcretePropertyDescriptor],
+        pydantic.Field(
+            description="The target properties this experiment aims to measure "
+            "(can be ConcreteProperty or AbstractProperty instances)"
+        ),
+    ]
+    requiredProperties: Annotated[
+        tuple[ObservedProperty | ConstitutiveProperty, ...],
+        pydantic.Field(
+            default_factory=tuple,
             frozen=True,
-            description="""The properties this experiment needs values of as inputs
-            (ObservedProperty or ConstitutiveProperty)""",
-        )
-    )
-    deprecated: bool = pydantic.Field(
-        default=False,
-        description="Marks whether an experiment is deprecated or not. Defaults to False.",
-    )
+            description="The properties this experiment needs values of as inputs "
+            "(ObservedProperty or ConstitutiveProperty)",
+        ),
+    ]
+    deprecated: Annotated[
+        bool,
+        pydantic.Field(
+            description="Marks whether an experiment is deprecated or not. Defaults to False."
+        ),
+    ] = False
     model_config = ConfigDict(
         frozen=True,
         extra="forbid",
@@ -79,17 +95,24 @@ class Experiment(pydantic.BaseModel):
             "version": importlib.metadata.version(distribution_name="ado-core")
         },
     )
-    optionalProperties: tuple[ConstitutiveProperty, ...] = pydantic.Field(
-        default=(),
-        frozen=True,
-        description="""The optional properties this experiment can take as input. Must have default values specified in parameterization""",
-    )
-    defaultParameterization: tuple[ConstitutivePropertyValue, ...] = pydantic.Field(
-        validate_default=True,
-        default=(),
-        frozen=True,
-        description="""Default values for the optional properties""",
-    )
+    optionalProperties: Annotated[
+        tuple[ConstitutiveProperty, ...],
+        pydantic.Field(
+            default_factory=tuple,
+            frozen=True,
+            description="The optional properties this experiment can take as input. "
+            "Must have default values specified in parameterization",
+        ),
+    ]
+    defaultParameterization: Annotated[
+        tuple[ConstitutivePropertyValue, ...],
+        pydantic.Field(
+            default_factory=tuple,
+            validate_default=True,
+            frozen=True,
+            description="Default values for the optional properties",
+        ),
+    ]
 
     @classmethod
     def experimentWithAbstractPropertyIdentifiers(
@@ -101,7 +124,7 @@ class Experiment(pydantic.BaseModel):
         requiredConstitutiveProperties: [str] = None,
         metadata: dict | None = None,
         deprecated: bool = False,
-    ):
+    ) -> "Experiment":
         """Factory method for creating an Experiment instance when you have a list of abstract property ids
 
         :param identifier: The name of the measurement
@@ -145,10 +168,11 @@ class Experiment(pydantic.BaseModel):
         cls,
         optionalProperties: list[ConstitutiveProperty],
         values: "pydantic.FieldValidationInfo",
-    ):
+    ) -> list[ConstitutiveProperty]:
 
         # Check all optional properties have unique identifiers
-        if len({p.identifier for p in optionalProperties}) != len(
+        optional_properties_identifiers = {p.identifier for p in optionalProperties}
+        if len(optional_properties_identifiers) != len(
             [p.identifier for p in optionalProperties]
         ):
             count = {}
@@ -166,14 +190,19 @@ class Experiment(pydantic.BaseModel):
             )
 
         # Check no optional property is a required property
-        assert (
-            len(
-                {p.identifier for p in optionalProperties}.intersection(
-                    {p.identifier for p in values.data.get("requiredProperties")}
-                )
+        required_properties_identifiers = {
+            p.identifier for p in values.data.get("requiredProperties")
+        }
+        required_and_optional_properties_identifiers = (
+            optional_properties_identifiers.intersection(
+                required_properties_identifiers
             )
-            == 0
         )
+        if len(required_and_optional_properties_identifiers) != 0:
+            raise ValueError(
+                "The following optional properties were also in the required properties: "
+                f"{required_and_optional_properties_identifiers}"
+            )
 
         return optionalProperties
 
@@ -182,16 +211,16 @@ class Experiment(pydantic.BaseModel):
         cls,
         value: list[ConstitutivePropertyValue],
         values: "pydantic.FieldValidationInfo",
-    ):
+    ) -> list[ConstitutivePropertyValue]:
 
         if not value:
             if values.data.get("optionalProperties"):
-                raise AssertionError(
+                raise ValueError(
                     "optionalProperties specified without parameterization"
                 )
         else:
             if not values.data.get("optionalProperties"):
-                raise AssertionError(
+                raise ValueError(
                     "default parameterization specified without optionalProperties being specified"
                 )
             try:
@@ -209,13 +238,13 @@ class Experiment(pydantic.BaseModel):
                     if mapping.get(v.identifier) is None
                 ]
                 if len(isNotParameterized) > 0:
-                    raise AssertionError(
+                    raise ValueError(
                         f"optionalProperties do not have default parameterization. Missing: {[v.identifier for v in isNotParameterized]}"
                     )
 
         return value
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:  # noqa: ANN401
         """Experiments are equal if they have the same identifier"""
 
         if isinstance(other, Experiment):
@@ -226,77 +255,145 @@ class Experiment(pydantic.BaseModel):
             )
         return False
 
-    def __str__(self):
+    def __str__(self) -> str:
 
         return reference_string_from_fields(
             actuator_identifier=self.actuatorIdentifier,
             experiment_identifier=self.identifier,
         )
 
-    def __hash__(self):
+    def __hash__(self) -> int:
 
         return hash(str(self))
 
-    def _repr_pretty_(self, p, cycle=False):
+    def __rich__(self) -> "RenderableType":
+        """Render this experiment using rich."""
+        import rich.box
+        from rich.console import Group
+        from rich.panel import Panel
+        from rich.text import Text
 
-        if cycle:  # pragma: nocover
-            p.text("Cycle detected")
+        from orchestrator.utilities.rich import get_rich_repr
+
+        content = [
+            Text.assemble(
+                ("Identifier: ", "bold"),
+                (f"{self.actuatorIdentifier}.{self.identifier}", "bold green"),
+                overflow="fold",
+            )
+        ]
+
+        if self.metadata.get("description"):
+            content.extend(
+                [
+                    Text.assemble(
+                        ("Description: ", "bold"),
+                        (self.metadata["description"], "italic"),
+                        overflow="fold",
+                        end="\n\n",
+                    ),
+                ]
+            )
+
+        content.append(Text())
+
+        # Required Inputs section
+        req_inputs = []
+
+        # Constitutive Properties subsection
+        const_props = []
+        if self.requiredConstitutiveProperties:
+            const_props = [
+                Panel(c, box=rich.box.HORIZONTALS)
+                for c in self.requiredConstitutiveProperties
+            ]
         else:
-            p.text(f"Identifier: {self.actuatorIdentifier}.{self.identifier}")
-            p.break_()
-            if self.metadata.get("description"):
-                p.break_()
-                p.text(self.metadata["description"])
-                p.break_()
-            p.break_()
-            with p.group(2, "Required Inputs:"):
-                p.break_()
-                with p.group(4, "Constitutive Properties:"):
-                    p.break_()
-                    if self.requiredConstitutiveProperties:
-                        for c in self.requiredConstitutiveProperties:
-                            p.pretty(c)
-                            p.break_()
-                    else:
-                        p.text("No required constitutive properties specified")
-                        p.break_()
+            const_props = [Text("No required constitutive properties specified")]
 
-                if self.requiredObservedProperties:
-                    p.break_()
-                    with p.group(4, "Observed Properties:"):
-                        p.break_()
-                        for o in self.requiredObservedProperties:
-                            p.pretty(o)
-                            p.break_()
+        req_inputs.extend(
+            [
+                Text("Constitutive Properties:", style="bold"),
+                Group(*const_props),
+            ]
+        )
 
-            p.break_()
-            if self.optionalProperties:
+        # Observed Properties subsection
+        if self.requiredObservedProperties:
+            obs_props = [Text(str(o)) for o in self.requiredObservedProperties]
+            req_inputs.extend(
+                [
+                    Text("Observed Properties:", style="bold"),
+                    Panel(
+                        Group(*obs_props),
+                        box=rich.box.SIMPLE,
+                        padding=(0, 2),
+                    ),
+                ]
+            )
 
-                mapping = {c.identifier: c for c in self.optionalProperties}
+        content.extend(
+            [
+                Text("Required Inputs:", style="bold"),
+                Panel(
+                    Group(*req_inputs),
+                    box=rich.box.SIMPLE,
+                    padding=(0, 2),
+                ),
+            ]
+        )
 
-                with p.group(2, "Optional Inputs and Default Values:"):
-                    p.break_()
-                    for value in self.defaultParameterization:
-                        prop = mapping[value.property.identifier]
-                        p.pretty(prop)
-                        p.break_()
-                        p.text(f"Default value: {value.value}")
-                        p.breakable()
-                        p.breakable()
+        # Optional Inputs section
+        if self.optionalProperties:
+            opt_inputs = []
+            mapping = {c.identifier: c for c in self.optionalProperties}
+            for value in self.defaultParameterization:
+                prop = mapping[value.property.identifier]
+                opt_inputs.append(
+                    Panel(
+                        Group(
+                            *[
+                                prop,
+                                Text("Default value:", style="bold", end=" "),
+                                get_rich_repr(value.value),
+                            ]
+                        ),
+                        box=rich.box.HORIZONTALS,
+                    )
+                )
 
-            p.breakable()
-            with p.group(2, "Outputs:"):
-                p.breakable()
-                for c in self.observedProperties:
-                    p.text(f"{c.identifier}")
-                    p.breakable()
+            content.extend(
+                [
+                    Text("Optional Inputs and Default Values:", style="bold"),
+                    Panel(
+                        Group(*opt_inputs),
+                        box=rich.box.SIMPLE_HEAVY,
+                        padding=(0, 2),
+                    ),
+                ]
+            )
 
-            p.breakable()
-            p.breakable()
+        # Outputs section
+        content.extend(
+            [
+                Text("Outputs:", style="bold"),
+                Panel(
+                    Group(
+                        *[
+                            Text(f"{c.identifier}", style="green")
+                            for c in self.observedProperties
+                        ]
+                    ),
+                    box=rich.box.HORIZONTALS,
+                    padding=(0, 2),
+                ),
+            ]
+        )
+
+        return Group(*content)
 
     def isValidParameterization(
         self, parameterization: list[ConstitutivePropertyValue]
-    ):
+    ) -> bool:
         """Returns True if the list of values given by parameterization is valid, otherwise False"""
 
         try:
@@ -344,42 +441,44 @@ class Experiment(pydantic.BaseModel):
 
         return None if len(v) == 0 else v[0]
 
-    def hasTargetPropertyWithIdentifier(self, identifier):
+    def hasTargetPropertyWithIdentifier(self, identifier: str) -> bool:
         """Returns True if the receiver has a target property called identifier"""
 
         v = [p for p in self.targetProperties if p.identifier == identifier]
 
         return len(v) != 0
 
-    def hasTargetProperty(self, prop: Property):
+    def hasTargetProperty(self, prop: Property) -> bool:
         """Returns True if  prop is one of the receivers target properties"""
 
         return self.hasTargetPropertyWithIdentifier(prop.identifier)
 
-    def hasObservedPropertyWithIdentifier(self, identifier):
+    def hasObservedPropertyWithIdentifier(self, identifier: str) -> bool:
         """Returns True if the receiver has a target property called identifier"""
 
         v = [p for p in self.observedProperties if p.identifier == identifier]
 
         return len(v) != 0
 
-    def hasObservedProperty(self, prop: ObservedProperty):
+    def hasObservedProperty(self, prop: ObservedProperty) -> bool:
         """Returns True if  prop is one of the receivers observed properties"""
 
         return self.hasObservedPropertyWithIdentifier(prop.identifier)
 
-    def has_same_base_as_experiment(self, otherExperiment: "Experiment"):
+    def has_same_base_as_experiment(self, otherExperiment: "Experiment") -> bool:
         """Returns True if the base experiment is the same as the base experiment of otherExperiment"""
 
         return self.identifier == otherExperiment.identifier
 
-    def has_same_base_as_experiment_reference(self, reference: "ExperimentReference"):
+    def has_same_base_as_experiment_reference(
+        self, reference: "ExperimentReference"
+    ) -> bool:
         """Returns True if the base experiment is the same as the base experiment of reference"""
 
         return self.identifier == reference.experimentIdentifier
 
     def experimentProvidesRequirements(
-        self, experiment: "Experiment", exactMatch=True
+        self, experiment: "Experiment", exactMatch: bool = True
     ) -> bool:
         """Returns True if experiment would measure ALL required observed properties of the receiver
 
@@ -415,7 +514,7 @@ class Experiment(pydantic.BaseModel):
         return retval
 
     def virtualObservedPropertyFromIdentifier(
-        self, identifier
+        self, identifier: str
     ) -> VirtualObservedProperty | None:
         """Returns a list of VirtualObservedProperty instances that could be calculated by the receiver given a virtual property identifier
 
@@ -459,8 +558,8 @@ class Experiment(pydantic.BaseModel):
             vp = VirtualObservedProperty(
                 baseObservedProperty=op, aggregationMethod=aggregationMethod
             )
-            print(vp.identifier, identifier)
-            assert vp.identifier == identifier
+            if vp.identifier != identifier:
+                raise ValueError("Mismatch between property identifiers")
             retval = vp
         else:
             # Not an observed property - Check if it's a target property
@@ -475,10 +574,16 @@ class Experiment(pydantic.BaseModel):
                 vp = VirtualObservedProperty(
                     baseObservedProperty=op, aggregationMethod=aggregationMethod
                 )
-                assert (
+
+                if (
                     vp.baseObservedProperty.targetProperty.identifier
-                    == propertyIdentifier
-                )
+                    != propertyIdentifier
+                ):
+                    raise ValueError(
+                        "Mismatch between property identifiers "
+                        f"{vp.baseObservedProperty.targetProperty.identifier} != {propertyIdentifier}"
+                    )
+
                 retval = vp
             else:
                 # Not observed or target property - return None
@@ -551,7 +656,7 @@ class Experiment(pydantic.BaseModel):
 
         return values[0]
 
-    def propertyValuesFromEntity(self, entity: "Entity", target=False) -> dict:
+    def propertyValuesFromEntity(self, entity: "Entity", target: bool = False) -> dict:
         """Given an entity returns the values for the required and optional properties of the Experiment instance
 
         If a required property is an ObservedProperty it may have multiple values.
@@ -597,10 +702,10 @@ class Experiment(pydantic.BaseModel):
                             prop.identifier
                         ).value
                     )
-                except AttributeError:
+                except AttributeError as error:
                     raise ValueError(
                         f"Entity {entity} has no value for required constitutive property {prop.identifier}"
-                    )
+                    ) from error
 
         # 2. Get the values for the optional properties
         # These may be in the Entity (because they were used to define the EntitySpace) or the Experiment
@@ -621,7 +726,10 @@ class Experiment(pydantic.BaseModel):
         return identifierValueMap
 
     def validate_entity(
-        self, entity: "Entity", disallow_extra_properties=False, verbose=False
+        self,
+        entity: "Entity",
+        disallow_extra_properties: bool = False,
+        verbose: bool = False,
     ) -> bool:
         """Returns True if Experiment can be applied to entity, false otherwise
 
@@ -709,14 +817,19 @@ class ParameterizedExperiment(Experiment):
     Note: The parameterization cannot be empty or have any values which are the same as default values
     """
 
-    parameterization: list[ConstitutivePropertyValue] = pydantic.Field(
-        default=[],
-        description="Values for optional properties",
-    )
+    parameterization: Annotated[
+        list[ConstitutivePropertyValue],
+        pydantic.Field(
+            default_factory=list, description="Values for optional properties"
+        ),
+    ]
+    mapping: Annotated[
+        dict,
+        pydantic.Field(
+            default_factory=dict, description="Private attribute", exclude=True
+        ),
+    ]
     model_config = ConfigDict(extra="forbid", frozen=True)
-    mapping: dict = pydantic.Field(
-        description="Private attribute", default={}, exclude=True
-    )
 
     @property
     def parameterizedIdentifier(self) -> str:
@@ -734,7 +847,7 @@ class ParameterizedExperiment(Experiment):
             self.identifier, self.parameterization
         )
 
-    def __eq__(self, other: "ParameterizedExperiment"):
+    def __eq__(self, other: object) -> bool:  # noqa: ANN401
         """ParameterizedExperiments are equal if they have the same parameterizedIdentifier
 
         A ParameterizedExperiment can only be equal to another ParameterizedExperiment
@@ -749,42 +862,62 @@ class ParameterizedExperiment(Experiment):
 
         return retval
 
-    def __str__(self):
+    def __str__(self) -> str:
 
         return reference_string_from_fields(
             actuator_identifier=self.actuatorIdentifier,
             experiment_identifier=self.parameterizedIdentifier,
         )
 
-    def __hash__(self):
+    def __hash__(self) -> int:
 
         return hash(str(self))
 
-    def _repr_pretty_(self, p, cycle=False):
+    def __rich__(self) -> "RenderableType":
+        """Render this parameterized experiment using rich."""
+        from rich.console import Group
+        from rich.panel import Panel
+        from rich.text import Text
 
-        # This should print the parameterized id and base id
-        p.text(f"Parameterized Identifier:{self.parameterizedIdentifier}")
-        p.break_()
-        super()._repr_pretty_(p)
+        from orchestrator.utilities.rich import get_rich_repr
 
+        content = []
+        content.append(
+            Text(f"Parameterized Identifier: {self.parameterizedIdentifier}")
+        )
+        content.append(Text())
+
+        # Include base experiment rendering
+        content.append(super().__rich__())
+
+        # Parameterization section
+        param_content = []
         mapping = {c.identifier: c for c in self.optionalProperties}
-        with p.group(2, "Parameterization:"):
-            p.break_()
-            for value in self.parameterization:
-                prop = mapping[value.property.identifier]
-                p.pretty(prop)
-                p.break_()
-                p.text(f"Parameterized value: {value.value}")
-                p.break_()
-                p.break_()
+        for value in self.parameterization:
+            prop = mapping[value.property.identifier]
+            param_content.extend(
+                [
+                    prop,
+                    Text("Parameterized value:", style="bold", end=" "),
+                    get_rich_repr({value.value}),
+                    Text(),
+                ]
+            )
+
+        content.extend(
+            [Text("Parameterization:", style="bold"), Panel(Group(*param_content))]
+        )
+
+        return Group(*content)
 
     @pydantic.field_validator("parameterization")
     def validate_not_empty_parameterization(
-        cls, parameterization: list[PropertyValue], values
-    ):
+        cls, parameterization: list[PropertyValue], values: "pydantic.ValidationInfo"
+    ) -> list[PropertyValue]:
 
         # Check it's not empty - it is raise error as should use ParameterizedExperiment
-        assert parameterization, "Custom parameterization cannot be empty"
+        if not parameterization:
+            raise ValueError("Custom parameterization cannot be empty")
 
         # Someone could try to initialize this object with a parameterization
         # but no optionalParameters or defaultParameterization
@@ -793,14 +926,15 @@ class ParameterizedExperiment(Experiment):
         # class validators will check for the other
 
         # Check there are optional properties to parameterize
-        assert values.data.get(
-            "optionalProperties"
-        ), "Cannot parameterize an experiment with no optionalProperties"
+        if not values.data.get("optionalProperties"):
+            raise ValueError(
+                "Cannot parameterize an experiment with no optionalProperties"
+            )
 
         return parameterization
 
     @pydantic.model_validator(mode="after")
-    def validate_parameterization(self):
+    def validate_parameterization(self) -> "ParameterizedExperiment":
 
         check_parameterization_validity(
             list(self.optionalProperties), self.parameterization
@@ -825,10 +959,13 @@ class ParameterizedExperiment(Experiment):
 
         # Now check that none of the parameterized values are the same as the defaults
         for v in self.defaultParameterization:
-            if customParameterizationMap.get(v.property.identifier):
-                assert (
-                    v.value != customParameterizationMap[v.property.identifier].value
-                ), f"Default value {v.value} for property {v.property.identifier} is the same as the custom value, { customParameterizationMap[v.property.identifier].value}"
+            if (
+                v.property.identifier in customParameterizationMap
+                and v.value == customParameterizationMap[v.property.identifier].value
+            ):
+                raise ValueError(
+                    f"Default value {v.value} for property {v.property.identifier} is the same as the custom value, {customParameterizationMap[v.property.identifier].value}"
+                )
 
         # Finally update identifier
 
@@ -844,7 +981,7 @@ class ParameterizedExperiment(Experiment):
         )
 
     def valueForOptionalProperty(
-        self, property_identifier
+        self, property_identifier: str
     ) -> ConstitutivePropertyValue:
         """Returns the parameterized value of the optional property property_identifier
 
@@ -853,15 +990,15 @@ class ParameterizedExperiment(Experiment):
 
         try:
             retval = self.mapping[property_identifier]
-        except KeyError:
+        except KeyError as error:
             raise ValueError(
                 f"No optional property called {property_identifier}. Known optional properties {self.optionalProperties}"
-            )
+            ) from error
 
         return retval
 
 
-def experiment_type_discriminator(experiment):
+def experiment_type_discriminator(experiment: typing.Any) -> str:  # noqa: ANN401
 
     if isinstance(experiment, ParameterizedExperiment):
         return "Parameterized"

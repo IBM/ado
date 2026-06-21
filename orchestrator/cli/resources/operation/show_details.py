@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 from rich.status import Status
@@ -25,7 +25,7 @@ from orchestrator.metastore.base import (
 )
 
 
-def show_operation_details(parameters: AdoShowDetailsCommandParameters):
+def show_operation_details(parameters: AdoShowDetailsCommandParameters) -> None:
     import rich.rule
     import rich.table
 
@@ -50,6 +50,7 @@ def show_operation_details(parameters: AdoShowDetailsCommandParameters):
             space = DiscoverySpace.from_operation_id(
                 operation_id=parameters.resource_id,
                 project_context=parameters.ado_configuration.project_context,
+                metadata_store=sql_store,
             )
         except (ResourceDoesNotExistError, NoRelatedResourcesError):
             status.stop()
@@ -62,43 +63,38 @@ def show_operation_details(parameters: AdoShowDetailsCommandParameters):
             isinstance(operation_conf, OperationResource)
             and operation_conf.operationType == DiscoveryOperationEnum.SEARCH
         ):
-            submitted_entities_field_name = "entities_submitted"
-            submitted_entities = operation_conf.metadata.get(
-                submitted_entities_field_name, 0
+            # Use SQL aggregation to compute statistics efficiently
+            entity_stats = space.operation_entity_statistics(
+                operation_id=parameters.resource_id
             )
-            entities_with_no_successful_measurements = (
-                submitted_entities - total_entities_sampled
-            )
+
+            total_unique_entities = entity_stats["total_entities"]
+            entities_with_all_successful_measurements = entity_stats[
+                "entities_with_all_successful_measurements"
+            ]
+            entities_with_at_least_one_successful_measurement = entity_stats[
+                "entities_with_at_least_one_successful_measurement"
+            ]
+
             table.add_row(
                 "Total entities with no successful measurements",
-                str(entities_with_no_successful_measurements),
+                str(
+                    total_unique_entities
+                    - entities_with_at_least_one_successful_measurement
+                ),
             )
+
             table.add_row(
-                "Total entities with partial successful measurements",
-                str(total_entities_sampled - entities_with_no_successful_measurements),
+                "Total entities with only partially successful measurements",
+                str(
+                    entities_with_at_least_one_successful_measurement
+                    - entities_with_all_successful_measurements
+                ),
             )
-
-            entities_with_all_successful_measurements = set()
-            for experiment in space.experiments_in_operation(
-                operation_id=parameters.resource_id
-            ):
-                entity_identifiers_in_experiment = (
-                    space.entity_identifiers_in_operation(
-                        operation_id=parameters.resource_id
-                    )
-                )
-
-                entities_with_all_successful_measurements = (
-                    entities_with_all_successful_measurements.union(
-                        entity_identifiers_in_experiment
-                    )
-                    if entities_with_all_successful_measurements
-                    else entity_identifiers_in_experiment
-                )
 
             table.add_row(
                 "Total entities with all successful measurements",
-                str(len(entities_with_all_successful_measurements)),
+                str(entities_with_all_successful_measurements),
             )
 
     console_print(rich.rule.Rule(title="DETAILS"))

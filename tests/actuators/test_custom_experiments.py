@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import re
@@ -8,10 +8,68 @@ import pytest
 
 from orchestrator.modules.actuators import custom_experiments
 from orchestrator.schema.domain import PropertyDomain, VariableTypeEnum
+from orchestrator.schema.point import SpacePoint
 from orchestrator.schema.property import ConstitutiveProperty
+from orchestrator.schema.request import MeasurementRequest, MeasurementRequestStateEnum
 
 
-def test_infer_domain_and_property_type():
+def test_custom_experiment_unknown_keys_are_dropped() -> None:
+    @custom_experiments.custom_experiment(output_property_identifiers=["x", "y"])
+    def f(x: int, y: int):
+        return {"x": 1, "y": 2, "z": 3, "foo": 4}
+
+    exp = f._experiment
+    entity = SpacePoint.model_validate({"entity": {"x": 10, "y": 20}}).to_entity()
+    observed_values = custom_experiments._call_decorated_custom_experiment(
+        f, exp, entity
+    )
+    identifiers = {v.property.targetProperty.identifier for v in observed_values}
+    assert identifiers == {"x", "y"}
+
+
+def test_custom_experiment_only_unknown_keys_raises_value_error() -> None:
+    @custom_experiments.custom_experiment(output_property_identifiers=["x", "y"])
+    def f(x: int, y: int):
+        return {"z": 3, "foo": 4}  # none of these match the output property identifiers
+
+    exp = f._experiment
+    entity = SpacePoint.model_validate({"entity": {"x": 1, "y": 2}}).to_entity()
+    with pytest.raises(ValueError, match="No valid output properties"):
+        custom_experiments._call_decorated_custom_experiment(f, exp, entity)
+
+
+def test_custom_experiment_partial_output_keys() -> None:
+    @custom_experiments.custom_experiment(output_property_identifiers=["a", "b", "c"])
+    def f(a: int, b: int, c: int):
+        return {"a": 10, "junk": 999}
+
+    exp = f._experiment
+    entity = SpacePoint.model_validate({"entity": {"a": 1, "b": 2, "c": 3}}).to_entity()
+    observed_values = custom_experiments._call_decorated_custom_experiment(
+        f, exp, entity
+    )
+    identifiers = {v.property.targetProperty.identifier for v in observed_values}
+    assert "a" in identifiers
+    assert "junk" not in identifiers
+
+
+def test_custom_experiment_exact_output_keys() -> None:
+    @custom_experiments.custom_experiment(output_property_identifiers=["foo", "bar"])
+    def f(foo: int, bar: int):
+        return {"foo": 123, "bar": 456}
+
+    exp = f._experiment
+    entity = SpacePoint.model_validate({"entity": {"foo": 1, "bar": 2}}).to_entity()
+    observed_values = custom_experiments._call_decorated_custom_experiment(
+        f, exp, entity
+    )
+    identifiers = {v.property.targetProperty.identifier for v in observed_values}
+    assert "foo" in identifiers
+    assert "bar" in identifiers
+    assert len(observed_values) == 2
+
+
+def test_infer_domain_and_property_type() -> None:
     """Tests that given a parameter name, its type and a default the correct behaviour is observed"""
 
     fn = custom_experiments._infer_domain_and_property
@@ -39,8 +97,8 @@ def test_infer_domain_and_property_type():
         _ = fn("f", bytes, b"err")
 
 
-def test_derive_required_properties_from_signature_basic():
-    def f(a: int, b: float, c: int = 1):
+def test_derive_required_properties_from_signature_basic() -> None:
+    def f(a: int, b: float, c: int = 1) -> None:
         pass
 
     result = custom_experiments.derive_required_properties_from_signature(
@@ -51,7 +109,7 @@ def test_derive_required_properties_from_signature_basic():
     assert ids == {"a", "b"}
 
     # Check that missing annotation raises error
-    def f(a, b: float, c: int = 1):
+    def f(a, b: float, c: int = 1) -> None:
         pass
 
     with pytest.raises(
@@ -62,12 +120,12 @@ def test_derive_required_properties_from_signature_basic():
         )
 
 
-def test_get_parameterization_success_and_failure():
+def test_get_parameterization_success_and_failure() -> None:
     import inspect
 
     from orchestrator.schema.property import ConstitutiveProperty
 
-    def g(x=7, y=9):
+    def g(x=7, y=9) -> None:
         pass
 
     sig = inspect.signature(g)
@@ -76,7 +134,7 @@ def test_get_parameterization_success_and_failure():
     assert paramz["x"] == 7
     assert paramz["y"] == 9
 
-    def g2(x):
+    def g2(x) -> None:
         pass
 
     sig2 = inspect.signature(g2)
@@ -88,7 +146,9 @@ def test_get_parameterization_success_and_failure():
         )
 
 
-def test_derive_optional_properties_and_parameterization_basic_types_and_unsupported():
+def test_derive_optional_properties_and_parameterization_basic_types_and_unsupported() -> (
+    None
+):
     # covers int, float, bool, str, literal, and unsupported
 
     def fn(
@@ -97,7 +157,7 @@ def test_derive_optional_properties_and_parameterization_basic_types_and_unsuppo
         b: bool = False,
         s: str = "abc",
         lit: Literal["A", "B"] = "A",
-    ):
+    ) -> None:
         pass
 
     optionals, _ = custom_experiments.derive_optional_properties_and_parameterization(
@@ -119,7 +179,7 @@ def test_derive_optional_properties_and_parameterization_basic_types_and_unsuppo
         s: str = "abc",
         lit: Literal["A", "B"] = "A",
         n: bytes = b"foo",
-    ):
+    ) -> None:
         pass
 
     with pytest.raises(ValueError, match="Unsupported annotation: <class 'bytes'>"):
@@ -134,7 +194,7 @@ def test_derive_optional_properties_and_parameterization_basic_types_and_unsuppo
         b: bool = False,
         s: str = "abc",
         lit: Literal["A", "B"] = "A",
-    ):
+    ) -> None:
         pass
 
     with pytest.raises(
@@ -145,9 +205,49 @@ def test_derive_optional_properties_and_parameterization_basic_types_and_unsuppo
         )
 
 
-def test_check_parameters_and_infer():
+def test_custom_experiment_executor_invalid_result_status_is_failed() -> None:
+    """When custom experiment produces only InvalidMeasurementResult, status is FAILED."""
 
-    def fn(a: int, b: float, c: int = 1):
+    @custom_experiments.custom_experiment(output_property_identifiers=["x"])
+    def raises_fn(x: int):
+        raise ValueError("infeasible point")
+
+    entity = SpacePoint.model_validate({"entity": {"x": 1}}).to_entity()
+    exp = raises_fn._experiment
+    results: list = []
+
+    class MockQueue:
+        def put(self, item, block=False):
+            results.append(item)
+
+    request = MeasurementRequest(
+        operation_id="test-op",
+        requestIndex=0,
+        experimentReference=exp.reference,
+        entities=[entity],
+    )
+
+    custom_experiments.custom_experiment_executor(
+        raises_fn,
+        {},
+        request,
+        exp,
+        MockQueue(),
+    )
+
+    assert len(results) == 1
+    result = results[0]
+    assert result.status == MeasurementRequestStateEnum.FAILED
+    assert result.measurements is not None
+    assert len(result.measurements) == 1
+    from orchestrator.schema.result import InvalidMeasurementResult
+
+    assert isinstance(result.measurements[0], InvalidMeasurementResult)
+
+
+def test_check_parameters_and_infer() -> None:
+
+    def fn(a: int, b: float, c: int = 1) -> None:
         pass
 
     optionals, parameterization, required_properties = (

@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import pydantic
@@ -19,7 +19,6 @@ from orchestrator.cli.utils.output.prints import (
     magenta,
 )
 from orchestrator.cli.utils.pydantic.updaters import override_values_in_pydantic_model
-from orchestrator.core import CoreResourceKinds
 from orchestrator.core.samplestore.config import (
     SampleStoreConfiguration,
     SampleStoreModuleConf,
@@ -27,7 +26,7 @@ from orchestrator.core.samplestore.config import (
 )
 
 
-def create_sample_store(parameters: AdoCreateCommandParameters):
+def create_sample_store(parameters: AdoCreateCommandParameters) -> str:
 
     if parameters.new_sample_store:
         console_print(f"{INFO}A new SQLSampleStore was requested.")
@@ -73,24 +72,20 @@ def create_sample_store(parameters: AdoCreateCommandParameters):
 
     if parameters.dry_run:
         console_print(ADO_CREATE_DRY_RUN_CONFIG_VALID, stderr=True)
-        return
+        return None
 
     from orchestrator.core.samplestore.utils import create_sample_store_resource
 
     sql = get_sql_store(project_context=parameters.ado_configuration.project_context)
     with Status(ADO_SPINNER_SAVING_TO_DB):
         _, sample_store = create_sample_store_resource(
-            sample_store_configuration,
-            sql,
+            configuration=sample_store_configuration,
+            resource_store=sql,
         )
-
-    # Save the identifier of the resource we created
-    # for reuse
-    parameters.ado_configuration.latest_resource_ids[CoreResourceKinds.SAMPLESTORE] = (
-        sample_store.identifier
-    )
 
     console_print(
         f"{SUCCESS}Created sample store with identifier {magenta(sample_store.identifier)}",
         stderr=True,
     )
+
+    return sample_store.identifier

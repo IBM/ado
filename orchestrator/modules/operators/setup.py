@@ -1,67 +1,46 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import logging
-import os
 import pathlib
 import typing
 
 import pydantic
 
-from orchestrator.core.actuatorconfiguration.config import (
-    ActuatorConfiguration,
-)
 from orchestrator.core.discoveryspace.space import DiscoverySpace
-from orchestrator.core.operation.config import BaseOperationRunConfiguration
+from orchestrator.core.operation.config import (
+    DiscoveryOperationConfiguration,
+    OperatorMetadata,
+    OperatorReference,
+    get_actuator_configurations,
+    validate_actuator_configurations_against_space_configuration,
+)
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
-from orchestrator.modules.module import load_module_class_or_function
 from orchestrator.utilities.logging import configure_logging
 
 if typing.TYPE_CHECKING:
     from orchestrator.modules.actuators.base import ActuatorActor
     from orchestrator.modules.operators.base import OperatorActor
+    from orchestrator.modules.operators.discovery_space_manager import (
+        DiscoverySpaceManagerActor,
+    )
 
 configure_logging()
 moduleLog = logging.getLogger("setup")
 
 
-def load_secrets_from_files(base_path: str, vars_to_load, env_var_dict):
-    paths = []
-    for env_var in vars_to_load:
-        paths.append(f"{base_path}/{env_var}")
-
-    for p in paths:
-
-        if not os.path.exists(p):
-            raise Exception(f"Secret {p} does not exist")
-
-        with open(p) as f:
-            env_var_dict[os.path.basename(p)] = f.readlines()[0].strip()
-
-
-def load_secrets_from_env(vars_to_load, env_var_dict):
-    for var in vars_to_load:
-
-        value = os.getenv(var)
-        if value is None:
-            moduleLog.warning(
-                f"Env variable {var} wasn't set - assuming config provided"
-            )
-
-        env_var_dict[var] = value
-
-
 def setup_actuators(
-    namespace: str,
-    actuator_configurations: list[ActuatorConfiguration],
+    actuator_configuration_identifiers: list[str],
     discovery_space: DiscoverySpace,
-    queue: MeasurementQueue,
+    measurement_queue: MeasurementQueue,
 ) -> dict[str, "ActuatorActor"]:
     """
+    Creates all the actuators required by discovery_space
+
     Params:
-        namespace: The namespace to set up in
-        config: Configuration of the orchestrator
-        queue: the update queue
+        discovery_space: The discovery space to create the actuators for
+        actuator_configuration_identifiers: A set of (optional) identifiers of configurations for actuators in the discoveryspace
+        queue: the measurement queue
 
     Raises:
         ray.exceptions.ActorDiedError if any actuator
@@ -76,18 +55,40 @@ def setup_actuators(
     moduleLog.info("Initialising requested actuators")
     registry = orchestrator.modules.actuators.registry.ActuatorRegistry.globalRegistry()
     actuators = {}
+    namespace = measurement_queue.ray_namespace()
+
+    if issues := registry.checkMeasurementSpaceSupported(
+        discovery_space.measurementSpace
+    ):
+        moduleLog.critical(
+            "The measurement space is not supported by the known actuators - aborting"
+        )
+        for issue in issues:
+            moduleLog.critical(issue)
+        raise ValueError(
+            "The measurement space is not supported by the known actuators"
+        )
+
+    actuator_configurations = get_actuator_configurations(
+        actuator_configuration_identifiers=actuator_configuration_identifiers,
+        project_context=discovery_space.project_context,
+    )
+
+    validate_actuator_configurations_against_space_configuration(
+        actuator_configurations=actuator_configurations,
+        discovery_space_configuration=discovery_space.config,
+    )
 
     # First instantiate any actuators passed in actuatorConfigurations
 
-    actuator_configurations = actuator_configurations if actuator_configurations else []
+    actuator_configurations = actuator_configurations or []
     for actuatorConfig in actuator_configurations:
         actuatorIdentifier = actuatorConfig.actuatorIdentifier
-        print(f"\t{actuatorConfig.actuatorIdentifier}")
-
+        actuator_class = registry.actuatorForIdentifier(actuatorIdentifier)
         actuator: ActuatorActor = (
-            registry.actuatorForIdentifier(actuatorIdentifier)
+            ray.remote(actuator_class)
             .options(name=actuatorIdentifier, namespace=namespace)
-            .remote(queue=queue, params=actuatorConfig.parameters)
+            .remote(queue=measurement_queue, params=actuatorConfig.parameters)
         )
 
         actuators[actuatorIdentifier] = actuator
@@ -103,9 +104,9 @@ def setup_actuators(
     filtered_actuator_ids = list(set(filtered_actuator_ids))
 
     for actuatorIdentifier in filtered_actuator_ids:
-        cls = registry.actuatorForIdentifier(actuatorIdentifier)
+        actuator_class = registry.actuatorForIdentifier(actuatorIdentifier)
         try:
-            default_actuator_parameters = cls.default_parameters()
+            default_actuator_parameters = actuator_class.default_parameters()
         except pydantic.ValidationError as error:
             moduleLog.critical(
                 f"The default parameters for {actuatorIdentifier} cannot be used. Reason: \n {error} \nThey may need to be customised"
@@ -114,11 +115,13 @@ def setup_actuators(
 
         moduleLog.debug(f"Instantiating actuator: {actuatorIdentifier}")
 
-        actuator: ActuatorActor = cls.options(
-            name=actuatorIdentifier, namespace=namespace
-        ).remote(
-            queue=queue,
-            params=default_actuator_parameters,
+        actuator: ActuatorActor = (
+            ray.remote(actuator_class)
+            .options(name=actuatorIdentifier, namespace=namespace)
+            .remote(
+                queue=measurement_queue,
+                params=default_actuator_parameters,
+            )
         )
 
         actuators[actuatorIdentifier] = actuator
@@ -131,41 +134,75 @@ def setup_actuators(
 
 
 def setup_operator(
-    base_configuration: BaseOperationRunConfiguration,
+    operator_metadata: OperatorMetadata,
+    parameters: dict,
     discovery_space: DiscoverySpace,
     namespace: str,
-    state,
+    discovery_space_manager: "DiscoverySpaceManagerActor",
     actuators: dict,
 ) -> "OperatorActor":
-    """
+    """Sets up and creates an operator actor for class-based explore operations.
+
+    Instantiates the operator class from ``operator_metadata`` as a Ray actor.
+
     Params:
-        actuators: List of actuators
-        config: configuration dictionary
-        namespace: Namespace to set up the actor in
-        state: State actor handle
+        operator_metadata: Registered metadata for the operator, carrying the class
+            and canonical name.
+        parameters: Dictionary of parameters to pass to the operator
+        discovery_space: The discovery space the operator will operate on
+        namespace: Ray namespace to create the operator actor in
+        discovery_space_manager: DiscoverySpaceManager actor handle
+        actuators: Dictionary of actuator actor handles keyed by actuator identifier
+
+    Returns:
+        OperatorActor handle for the created operator actor
+
+    Raises:
+        ValueError: If ``operator_metadata.cls`` is None (operator was not registered
+            via the class decorator).
     """
+
+    import ray
 
     import orchestrator.utilities.output
 
     moduleLog.info("Creating operation")
 
-    operatorClass = load_module_class_or_function(base_configuration.operation.module)
-    operatorName = base_configuration.operation.module.moduleClass
+    if operator_metadata.cls is None:
+        raise ValueError(
+            f"No operator class registered for '{operator_metadata.name}'. "
+            "Ensure the operator is decorated with @explore_operation."
+        )
 
-    operator = operatorClass.options(name=operatorName, namespace=namespace).remote(
-        operationActorName=operatorName,
-        namespace=namespace,
-        state=state,
-        params=base_configuration.operation.parameters,
-        actuators=actuators,
+    base_class = operator_metadata.cls
+    actor_name = operator_metadata.name
+
+    operator = (
+        ray.remote(base_class)
+        .options(name=actor_name, namespace=namespace)
+        .remote(
+            operationActorName=actor_name,
+            namespace=namespace,
+            discovery_space_manager=discovery_space_manager,
+            params=parameters,
+            actuators=actuators,
+        )
     )
 
     print("=========== Operation Details ============\n")
     print(f"Space ID: {discovery_space.uri}")
     print(f"Sample Store ID:  {discovery_space.sample_store.identifier}")
-    print(
-        f"Operation Configuration:\n {orchestrator.utilities.output.pydantic_model_as_yaml(base_configuration, exclude_none=True)}"
+    operator_reference = OperatorReference(
+        operatorName=operator_metadata.name,
+        operationType=operator_metadata.type,
     )
+    conf_string = orchestrator.utilities.output.pydantic_model_as_yaml(
+        DiscoveryOperationConfiguration(
+            module=operator_reference, parameters=parameters
+        ),
+        exclude_none=True,
+    )
+    print(f"Operation Configuration:\n {conf_string}")
 
     return operator
 
@@ -173,7 +210,7 @@ def setup_operator(
 def write_entities(
     entities_output_file: str | pathlib.Path | None,
     discovery_space: DiscoverySpace,
-):
+) -> None:
 
     print("Requested to write entities to original sample store format")
     print(

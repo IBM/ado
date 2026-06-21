@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import hashlib
@@ -14,7 +14,6 @@ import ray
 
 
 @ray.remote(
-    # resources={"Tesla-V100-PCIE-16GB": 1},
     runtime_env={
         "pip": ["accelerate", "transformers>=4.40.0"],
         "env_vars": {
@@ -24,7 +23,7 @@ import ray
         },
     },
 )
-def get_model_hash(path_model: str):
+def get_model_hash(path_model: str) -> dict[str, str | int | list[str]]:
     from accelerate import init_empty_weights
     from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 
@@ -55,7 +54,9 @@ def get_model_hash(path_model: str):
     num_parameters = sum(m[1] for m in hash_info)
     hash_info.append(["architectures", architectures])
 
-    the_hash = hashlib.md5(str(hash_info).encode("utf-8")).hexdigest()
+    the_hash = hashlib.md5(
+        str(hash_info).encode("utf-8"), usedforsecurity=False
+    ).hexdigest()
 
     print(
         path_model,
@@ -75,7 +76,7 @@ def get_model_hash(path_model: str):
     }
 
 
-def main():
+def main() -> None:
     ray.init()
 
     model_information: dict[str, dict[str, typing.Any]] = {}
@@ -120,7 +121,7 @@ def main():
         unique_hashes[info["hash"]].append(model_name)
 
     all_unique = True
-    for the_hash, model_names in unique_hashes.items():
+    for model_names in unique_hashes.values():
         if len(model_names) > 1:
             print("These models are equivalent:", model_names)
             all_unique = False

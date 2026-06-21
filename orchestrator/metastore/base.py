@@ -1,10 +1,13 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import abc
+from typing import TYPE_CHECKING, Literal
 
-import pandas as pd
 import pydantic
+
+if TYPE_CHECKING:
+    import pandas as pd
 
 from orchestrator.core.resources import ADOResource, CoreResourceKinds
 from orchestrator.core.samplestore.resource import SampleStoreResource
@@ -15,7 +18,7 @@ from orchestrator.utilities.location import (
 
 
 class ResourceDoesNotExistError(ValueError):
-    def __init__(self, resource_id: str, kind: CoreResourceKinds | None = None):
+    def __init__(self, resource_id: str, kind: CoreResourceKinds | None = None) -> None:
         self.resource_id = resource_id
         self.kind = kind
         # Value Error will print the args passed to init when the exception is printed
@@ -26,7 +29,7 @@ class ResourceDoesNotExistError(ValueError):
 
 
 class NoRelatedResourcesError(ValueError):
-    def __init__(self, resource_id: str, kind: CoreResourceKinds):
+    def __init__(self, resource_id: str, kind: CoreResourceKinds) -> None:
         self.resource_id = resource_id
         self.kind = kind
         super().__init__(
@@ -47,7 +50,7 @@ class DeleteFromDatabaseError(DatabaseOperationError):
         resource_kind: CoreResourceKinds,
         rollback_occurred: bool,
         message: str | None = None,
-    ):
+    ) -> None:
         self.resource_id = resource_id
         self.resource_kind = resource_kind
         self.message = message
@@ -58,7 +61,7 @@ class DeleteFromDatabaseError(DatabaseOperationError):
             if rollback_occurred
             else "The deletion was not rolled back."
         )
-        additional_message = message if message else ""
+        additional_message = message or ""
 
         super().__init__(
             f"Failed to delete {resource_kind.value} {resource_id}. {additional_message}. {rollback_message}"
@@ -69,7 +72,7 @@ class NonEmptySampleStorePreventingDeletionError(DatabaseOperationError):
     sample_store_id: str
     results_in_source: int
 
-    def __init__(self, sample_store_id: str, results_in_source: int):
+    def __init__(self, sample_store_id: str, results_in_source: int) -> None:
         self.sample_store_id = sample_store_id
         self.results_in_source = results_in_source
 
@@ -80,7 +83,7 @@ class NonEmptySampleStorePreventingDeletionError(DatabaseOperationError):
 
 
 class RunningOperationsPreventingDeletionError(DatabaseOperationError):
-    def __init__(self, operation_id: str, running_operations: list[str]):
+    def __init__(self, operation_id: str, running_operations: list[str]) -> None:
         self.operation_id = operation_id
         self.running_operations = running_operations
         super().__init__(
@@ -98,6 +101,7 @@ class ResourceStore(abc.ABC):
         identifier: str,
         kind: CoreResourceKinds,
         raise_error_if_no_resource: bool = False,
+        ignore_plugin_validation: bool = True,
     ) -> ADOResource | None:
         """Returns the resource object with the given identifier
 
@@ -105,6 +109,8 @@ class ResourceStore(abc.ABC):
 
          Parameters:
             identifier: A string. Identifier of a resource object
+            ignore_plugin_validation: When True (default), skip plugin registry
+                validation on nested operation and actuator configuration fields.
 
         Returns:
             A resource instance corresponding to the identifier
@@ -139,7 +145,7 @@ class ResourceStore(abc.ABC):
         version: str | None = None,
         field_selectors: list[dict[str, str]] | None = None,
         details: bool = False,
-    ) -> pd.DataFrame:
+    ) -> "pd.DataFrame":
         """Returns a Pandas dataframe containing identifiers of the given resource type
 
         Parameter:
@@ -162,6 +168,7 @@ class ResourceStore(abc.ABC):
         kind: str,
         version: str | None = None,
         field_selectors: list[dict[str, str]] | None = None,
+        ignore_validation_errors: bool = True,
     ) -> dict[str, ADOResource]:
         """Returns all resource objects of a given kind
 
@@ -169,31 +176,34 @@ class ResourceStore(abc.ABC):
             kind: A string. A resource object type as defined by CoreResourceKinds
             version: A version of the kind. If None all versions of the resource kind are returned
             field_selectors: A list of dictionaries of key/value selectors to filter the resources by.
+            ignore_validation_errors: If True (default), resources with validation errors are skipped.
+                If False, ValueError is raised when a resource fails validation.
 
         Returns:
             A dictionary whose keys are identifiers and values are the resource objects of the requested kind
 
         Exceptions:
             Raise a ValueError if the kind is not ADOResource subclass
+            Raises ValueError if ignore_validation_errors is False and a resource fails validation
             Raises a SystemError if the backend is not active"""
 
     @abc.abstractmethod
     def getRelatedSubjectResourceIdentifiers(
-        self, identifier, kind: str | None = None, version: str | None = None
-    ) -> pd.DataFrame:
+        self, identifier: str, kind: str | None = None, version: str | None = None
+    ) -> "pd.DataFrame":
         """Returns identifiers of resources that have a relationship with
         "identifier" where "identifier" is the object"""
 
     @abc.abstractmethod
     def getRelatedObjectResourceIdentifiers(
-        self, identifier, kind: str | None = None, version: str | None = None
-    ) -> pd.DataFrame:
+        self, identifier: str, kind: str | None = None, version: str | None = None
+    ) -> "pd.DataFrame":
         """Returns identifiers of resources that have a relationship with "identifier" where "identifier" is the subject"""
 
     @abc.abstractmethod
     def getRelatedResourceIdentifiers(
-        self, identifier, kind: str | None = None, version: str | None = None
-    ) -> pd.DataFrame:
+        self, identifier: str, kind: str | None = None, version: str | None = None
+    ) -> "pd.DataFrame":
         """Returns a DataFrame of resource identifiers related to a given resource identifier
 
         The returned identifiers can optionally be limited to those of a given kind
@@ -231,7 +241,7 @@ class ResourceStore(abc.ABC):
         """
 
     @abc.abstractmethod
-    def addResource(self, resource: ADOResource):
+    def addResource(self, resource: ADOResource) -> None:
 
         pass
 
@@ -240,14 +250,14 @@ class ResourceStore(abc.ABC):
         self,
         subjectIdentifier: str,
         objectIdentifier: str,
-    ):
+    ) -> None:
 
         pass
 
     @abc.abstractmethod
     def addRelationshipForResources(
         self, subjectResource: pydantic.BaseModel, objectResource: pydantic.BaseModel
-    ):
+    ) -> None:
 
         pass
 
@@ -256,13 +266,13 @@ class ResourceStore(abc.ABC):
         self,
         resource: ADOResource,
         relatedIdentifiers: list,
-    ):
+    ) -> None:
         """For the relationship, the resource id is stored as object and the other ids as subjects
 
         This is because the others ids must already exist"""
 
     @abc.abstractmethod
-    def updateResource(self, resource: ADOResource):
+    def updateResource(self, resource: ADOResource) -> None:
         """Replaces any data stored against "resource.identifier" with resource
 
         Raises:
@@ -271,42 +281,86 @@ class ResourceStore(abc.ABC):
         """
 
     @abc.abstractmethod
-    def deleteResource(self, identifier):
+    def deleteResource(self, identifier: str) -> None:
 
         pass
 
     @abc.abstractmethod
-    def deleteObjectRelationships(self, identifier):
+    def deleteObjectRelationships(self, identifier: str) -> None:
         """Deletes all recorded relationships for identifier where it is the object
 
         Only works if it is not the subject of another relationship"""
 
     @abc.abstractmethod
-    def delete_sample_store(self, identifier: str, force_deletion: bool = False):
+    def delete_sample_store(
+        self, identifier: str, force_deletion: bool = False
+    ) -> None:
         pass
 
     @abc.abstractmethod
     def delete_operation(
         self, identifier: str, ignore_running_operations: bool = False
+    ) -> None:
+        pass
+
+    @abc.abstractmethod
+    def delete_discovery_space(self, identifier: str) -> None:
+        pass
+
+    @abc.abstractmethod
+    def delete_data_container(self, identifier: str) -> None:
+        pass
+
+    @abc.abstractmethod
+    def delete_actuator_configuration(self, identifier: str) -> None:
+        pass
+
+    @abc.abstractmethod
+    def get_resources_by_relationship(
+        self,
+        kind: CoreResourceKinds,
+        identifier: str | set[str] | None,
+        hierarchy_direction: Literal["up", "down", "both"],
+        max_hops: int | None = None,
+        identifiers_only: bool = False,
+        include_start_resources: bool = False,
+    ) -> (
+        dict[CoreResourceKinds, set[str]]
+        | dict[str, dict[CoreResourceKinds, set[str]]]
+        | dict[CoreResourceKinds, dict[str, ADOResource]]
+        | dict[str, dict[CoreResourceKinds, dict[str, ADOResource]]]
     ):
-        pass
+        """Walk the resource hierarchy and return related resources.
 
-    @abc.abstractmethod
-    def delete_discovery_space(self, identifier: str):
-        pass
+        Args:
+            kind: The :class:`~orchestrator.core.resources.CoreResourceKinds` of
+                the starting resources.
+            identifier: Controls which resources are used as traversal origins.
+                ``str`` for a single start resource, ``set[str]`` for multiple,
+                or ``None`` to seed from all resources of ``kind``.
+            hierarchy_direction: ``'up'`` (child → parent), ``'down'``
+                (parent → child), or ``'both'``.
+            max_hops: Maximum number of relationship hops to follow. ``None``
+                traverses to the full depth of the hierarchy.
+            identifiers_only: When ``True`` return only discovered identifiers;
+                when ``False`` (default) return hydrated
+                :class:`~orchestrator.core.resources.ADOResource` objects.
+            include_start_resources: When ``True`` include the start resource(s)
+                in the result. Requires ``identifiers_only=False`` and
+                ``identifier`` to be a ``str`` or ``set[str]``.
 
-    @abc.abstractmethod
-    def delete_data_container(self, identifier: str):
-        pass
+        Returns:
+            A nested dict whose shape depends on whether a single or multiple
+            identifiers were requested and whether ``identifiers_only`` is set.
 
-    @abc.abstractmethod
-    def delete_actuator_configuration(self, identifier: str):
-        pass
+        Raises:
+            ValueError: If arguments are invalid or incompatible.
+        """
 
 
 def sample_store_dump(
     sample_store_resource: SampleStoreResource,
-):
+) -> str:
 
     # We want to apply the following policies to sample store resources
     # 1. Do not store SQLSampleStore storage access information in the resource
@@ -331,8 +385,28 @@ def sample_store_dump(
 def sample_store_load(
     sample_store_resource_dict: dict,
     storage_location: SQLiteStoreConfiguration | SQLStoreConfiguration,
-):
+) -> SampleStoreResource:
     """Adds storage location information to SQL sample stores"""
+    # Check for required keys in the nested structure
+    key_chain = ["config", "specification", "module", "moduleClass"]
+    current_dict = sample_store_resource_dict
+
+    for i, key in enumerate(key_chain):
+        if not isinstance(current_dict, dict):
+            missing_path = ".".join(key_chain[:i])
+            raise ValueError(
+                f"Invalid sample store resource structure: expected dictionary at '{missing_path}', "
+                f"but got {type(current_dict).__name__}"
+            )
+
+        if key not in current_dict:
+            missing_path = ".".join(key_chain[: i + 1])
+            raise ValueError(
+                f"Invalid sample store resource structure: missing required key '{missing_path}'"
+            )
+
+        current_dict = current_dict[key]
+
     if (
         sample_store_resource_dict["config"]["specification"]["module"]["moduleClass"]
         == "SQLSampleStore"

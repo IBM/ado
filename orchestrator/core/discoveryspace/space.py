@@ -1,10 +1,13 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
+import contextlib
 import logging
 import os
 import typing
+from collections.abc import Callable, Iterator
 from functools import wraps
+from typing import Any
 
 import orchestrator.core.discoveryspace.resource
 import orchestrator.core.metadata
@@ -17,7 +20,9 @@ import orchestrator.schema.virtual_property
 import orchestrator.utilities.logging
 from orchestrator.core.discoveryspace.config import (
     DiscoverySpaceConfiguration,
+    DiscoverySpaceProperties,
 )
+from orchestrator.core.operation.config import DiscoveryOperationEnum
 from orchestrator.core.operation.resource import OperationResource
 from orchestrator.core.resources import CoreResourceKinds
 from orchestrator.metastore.project import ProjectContext
@@ -35,8 +40,9 @@ from orchestrator.schema.result import MeasurementResult
 
 if typing.TYPE_CHECKING:
     from pandas import DataFrame
+    from rich.console import RenderableType
 
-    import orchestrator.metastore.sqlstore
+    from orchestrator.metastore.sqlstore import SQLResourceStore, SQLStore
 
 FORMAT = orchestrator.utilities.logging.FORMAT
 LOGLEVEL = os.environ.get("LOGLEVEL", "WARNING").upper()
@@ -44,8 +50,13 @@ logging.basicConfig(level=LOGLEVEL, format=FORMAT)
 
 moduleLogger = logging.getLogger("discoveryspace")
 
+SCRIPT_OPERATION_EXECUTION_LABEL = "script"
+SCRIPT_OPERATION_LABEL_KEY = "execution"
 
-def _perform_preflight_checks_for_sample_store_methods(f):
+
+def _perform_preflight_checks_for_sample_store_methods(
+    f: Callable[..., Any],  # noqa: ANN401
+) -> Callable[["DiscoverySpace", tuple[Any, ...], dict[str, Any]], Any]:  # noqa: ANN401
     """
     Performs common checks on DiscoverySpace methods that wrap
     SQLSampleStore methods.
@@ -56,7 +67,9 @@ def _perform_preflight_checks_for_sample_store_methods(f):
     """
 
     @wraps(f)
-    def perform_checks(self, *args, **kwargs):
+    def perform_checks(
+        self: "DiscoverySpace", *args: Any, **kwargs: Any  # noqa: ANN401
+    ) -> Any:  # noqa: ANN401
 
         import orchestrator.core.samplestore.sql
 
@@ -69,16 +82,22 @@ def _perform_preflight_checks_for_sample_store_methods(f):
             )
 
         operation_id = kwargs.get("operation_id") or args[0]
-        space_for_operation = self._metadataStore.getResource(
-            identifier=operation_id,
-            kind=CoreResourceKinds.OPERATION,
-            raise_error_if_no_resource=True,
-        ).config.spaces[0]
 
-        if self.uri != space_for_operation:
-            raise ValueError(
-                f"Operation {operation_id} does not belong to space {self.uri}, but rather to {space_for_operation}"
-            )
+        # Skip the DB round-trip when we've already verified this operation
+        # belongs to this space (e.g. the space was built via from_operation_id).
+        if operation_id not in self._verified_operation_ids:
+            space_for_operation = self._metadataStore.getResource(
+                identifier=operation_id,
+                kind=CoreResourceKinds.OPERATION,
+                raise_error_if_no_resource=True,
+            ).config.spaces[0]
+
+            if self.uri != space_for_operation:
+                raise ValueError(
+                    f"Operation {operation_id} does not belong to space {self.uri}, but rather to {space_for_operation}"
+                )
+
+            self._verified_operation_ids.add(operation_id)
 
         return f(self, *args, **kwargs)
 
@@ -122,7 +141,10 @@ class DiscoverySpace:
         conf: "DiscoverySpaceConfiguration",
         project_context: ProjectContext,
         identifier: str | None = None,
-    ):
+        metadata_store: "SQLResourceStore | None" = None,
+        samplestore_resource: "orchestrator.core.SampleStoreResource | None" = None,
+        load_experiment_catalog: bool = True,
+    ) -> "DiscoverySpace":
         """Creates a discovery space from a config
 
         Params:
@@ -134,26 +156,31 @@ class DiscoverySpace:
                 Thus, if conf is a stored conf you must also pass the stored identifier here.
                 Otherwise, a new space not connected to the previous stored data may be created (depends on how the
                 discovery space generates the id versus how the id used to store was generated)
+            metadata_store: Optional SQLResourceStore instance to reuse. If None, a new instance will be created.
+            samplestore_resource: Optional pre-fetched SampleStoreResource. When provided the metastore
+                round-trip to fetch the samplestore is skipped.
+            load_experiment_catalog: When ``True`` (default) the samplestore's experiment catalog is
+                loaded and registered with the actuator registry.  Set to ``False`` for read-only
+                paths (e.g. CLI show commands) where replay experiment resolution is not needed.
 
         """
 
-        import orchestrator.metastore.sqlstore
-        from orchestrator.core.samplestore.utils import (
-            load_sample_store_from_resource,
-        )
+        from orchestrator.core.samplestore.base import SampleStore
 
-        resourceStore = orchestrator.metastore.sqlstore.SQLStore(
-            project_context=project_context
-        )
+        if metadata_store is None:
+            metadata_store = orchestrator.metastore.sqlstore.SQLResourceStore(
+                project_context=project_context
+            )
 
         entitySpace = None
 
-        resource = resourceStore.getResource(
-            identifier=conf.sampleStoreIdentifier,
-            kind=CoreResourceKinds.SAMPLESTORE,
-            raise_error_if_no_resource=True,
+        sample_store = (
+            SampleStore.from_resource(samplestore_resource)
+            if samplestore_resource is not None
+            else SampleStore.from_identifier(
+                identifier=conf.sampleStoreIdentifier, metastore=metadata_store
+            )
         )
-        sample_store = load_sample_store_from_resource(resource)
 
         if conf.entitySpace is not None:
             entitySpace = EntitySpaceRepresentation.representationFromConfiguration(
@@ -162,7 +189,7 @@ class DiscoverySpace:
 
         ## Add any external experiments to the replay actuators catalog
         externalCatalogs = []
-        if sample_store is not None:
+        if load_experiment_catalog and sample_store is not None:
             moduleLogger.debug(
                 f"Loading external experiments from sample store: {sample_store.identifier}"
             )
@@ -202,28 +229,47 @@ class DiscoverySpace:
             measurementSpace=measurementSpace,
             project_context=project_context,
             metadata=conf.metadata,
+            metadata_store=metadata_store,
         )
 
     @classmethod
     def from_stored_configuration(
-        cls, project_context: ProjectContext, space_identifier: str
-    ):
+        cls,
+        project_context: ProjectContext,
+        space_identifier: str,
+        metadata_store: "SQLResourceStore | None" = None,
+        space_resource: "orchestrator.core.DiscoverySpaceResource | None" = None,
+        samplestore_resource: "orchestrator.core.SampleStoreResource | None" = None,
+        load_experiment_catalog: bool = True,
+    ) -> "DiscoverySpace":
+        """Creates a DiscoverySpace from a stored space identifier.
 
-        import orchestrator.metastore.sqlstore
+        Args:
+            project_context: Project context used to connect to the metadata store.
+            space_identifier: Identifier of the stored DiscoverySpace resource.
+            metadata_store: Optional SQLResourceStore instance to reuse.
+            space_resource: Optional pre-fetched DiscoverySpaceResource. When provided
+                the metastore round-trip to fetch the space is skipped.
+            samplestore_resource: Optional pre-fetched SampleStoreResource. Forwarded
+                to :meth:`from_configuration` to skip the samplestore round-trip.
+            load_experiment_catalog: Forwarded to :meth:`from_configuration`.
+        """
+        from orchestrator.metastore.sqlstore import SQLStore
 
         moduleLogger.debug("Accessing discovery space metadata store")
-        metadataStore = orchestrator.metastore.sqlstore.SQLStore(
-            project_context=project_context
-        )
-        moduleLogger.debug(
-            f"Retrieving configuration for discovery space {space_identifier}"
-        )
-        resource = metadataStore.getResource(
-            identifier=space_identifier,
-            kind=CoreResourceKinds.DISCOVERYSPACE,
-            raise_error_if_no_resource=True,
-        )
-        conf = resource.config
+        if metadata_store is None:
+            metadata_store = SQLStore(project_context=project_context)
+
+        if space_resource is None:
+            moduleLogger.debug(
+                f"Retrieving configuration for discovery space {space_identifier}"
+            )
+            space_resource = metadata_store.getResource(
+                identifier=space_identifier,
+                kind=CoreResourceKinds.DISCOVERYSPACE,
+                raise_error_if_no_resource=True,
+            )
+        conf = space_resource.config
 
         moduleLogger.debug(f"Retrieved configuration is: {conf}")
 
@@ -240,16 +286,25 @@ class DiscoverySpace:
             conf=conf,
             project_context=project_context,
             identifier=space_identifier,
+            metadata_store=metadata_store,
+            samplestore_resource=samplestore_resource,
+            load_experiment_catalog=load_experiment_catalog,
         )
 
     @classmethod
-    def from_operation_id(cls, operation_id: str, project_context: ProjectContext):
+    def from_operation_id(
+        cls,
+        operation_id: str,
+        project_context: ProjectContext,
+        metadata_store: "SQLResourceStore | None" = None,
+    ) -> "DiscoverySpace":
         """
         Creates a DiscoverySpace instance of the class from the given operation id and project context.
 
         Args:
             operation_id (str): The operation id to be used for finding the space identifier.
             project_context (ProjectContext): The project context to be used for creating the discovery space.
+            metadata_store: Optional SQLResourceStore instance to reuse. If None, a new instance will be created.
 
         Returns:
             DiscoverySpace: The newly created discovery space instance.
@@ -258,24 +313,37 @@ class DiscoverySpace:
             ResourceDoesNotExistError: If the specified operation or related space do not exist.
             NoRelatedResourcesError: If no sample store is associated with the specified operation or related space.
         """
-        import orchestrator.metastore.sqlstore
+        from orchestrator.metastore.sqlstore import SQLStore
 
-        sql = orchestrator.metastore.sqlstore.SQLResourceStore(
-            project_context=project_context
-        )
+        if metadata_store is None:
+            metadata_store = SQLStore(project_context=project_context)
 
+        # Fetch the operation, its space, and the space's samplestore in a
+        # single SQL JOIN rather than three sequential round-trips.
         # FIXME AP 12/06/2025:
         # We are using the first space - which may become a problem in the future
-        space_id = sql.getResource(
-            identifier=operation_id,
-            kind=CoreResourceKinds.OPERATION,
-            raise_error_if_no_resource=True,
-        ).config.spaces[0]
-
-        return cls.from_stored_configuration(
-            project_context=project_context,
-            space_identifier=space_id,
+        _, space_resource, samplestore_resource = (
+            metadata_store.get_resource_and_producers(
+                identifier=operation_id,
+                kind=CoreResourceKinds.OPERATION,
+                chain=[
+                    ("$.config.spaces[0]", CoreResourceKinds.DISCOVERYSPACE),
+                    ("$.config.sampleStoreIdentifier", CoreResourceKinds.SAMPLESTORE),
+                ],
+                raise_error_if_no_resource=True,
+            )
         )
+
+        space = cls.from_stored_configuration(
+            project_context=project_context,
+            space_identifier=space_resource.identifier,
+            metadata_store=metadata_store,
+            space_resource=space_resource,
+            samplestore_resource=samplestore_resource,
+            load_experiment_catalog=False,
+        )
+        space._verified_operation_ids.add(operation_id)
+        return space
 
     def __init__(
         self,
@@ -286,9 +354,12 @@ class DiscoverySpace:
         ) = None,
         entitySpace: EntitySpaceRepresentation | None = None,
         measurementSpace: MeasurementSpace | None = None,
-        properties: orchestrator.core.discoveryspace.config.DiscoverySpaceProperties = orchestrator.core.discoveryspace.config.DiscoverySpaceProperties(),
+        properties: (
+            orchestrator.core.discoveryspace.config.DiscoverySpaceProperties | None
+        ) = None,
         metadata: orchestrator.core.metadata.ConfigurationMetadata | None = None,
-    ):
+        metadata_store: "orchestrator.metastore.sqlstore.SQLStore | None" = None,
+    ) -> None:
         """
 
         Parameters:
@@ -312,6 +383,9 @@ class DiscoverySpace:
 
         import uuid
 
+        if not properties:
+            properties = DiscoverySpaceProperties()
+
         self.log = logging.getLogger("discovery-space")
 
         if not measurementSpace.isConsistent:
@@ -326,7 +400,7 @@ class DiscoverySpace:
             except ValueError as error:
                 raise SpaceInconsistencyError(
                     f"The entity space is not compatible with the measurement space: {error}"
-                )
+                ) from error
 
         self._sample_store = sample_store
         self._measurementSpace = measurementSpace
@@ -345,12 +419,13 @@ class DiscoverySpace:
             f"Project context for DiscoverySpace is: {self._project_context}"
         )
 
-        # Access metadata store
-        import orchestrator.metastore.sqlstore
+        # Access metadata store - reuse provided instance if available
+        if metadata_store is None:
+            from orchestrator.metastore.sqlstore import SQLStore
 
-        self._metadataStore = orchestrator.metastore.sqlstore.SQLStore(
-            project_context=project_context
-        )
+            self._metadataStore = SQLStore(project_context=project_context)
+        else:
+            self._metadataStore = metadata_store
 
         self._identifier = (
             identifier
@@ -358,31 +433,45 @@ class DiscoverySpace:
             else f"space-{str(uuid.uuid4())[:6]}-{self._sample_store.identifier}"
         )
 
-    def _repr_pretty_(self, p, cycle=False):
+        # Operation IDs that have already passed the preflight ownership check.
+        # Pre-populated by from_operation_id to avoid a redundant DB round-trip.
+        self._verified_operation_ids: set[str] = set()
 
-        if cycle:  # pragma: nocover
-            p.text("Cycle detected")
-        else:
-            p.text(f"Identifier: {self.uri}")
-            p.breakable()
-            if self.entitySpace is not None:
-                p.breakable()
-                with p.group(2, "Entity Space:"):
-                    p.breakable()
-                    p.pretty(self.entitySpace)
-                    p.breakable()
+    def __rich__(self) -> "RenderableType":
+        """Rich console representation of the DiscoverySpace."""
+        import rich.box
+        from rich.console import Group
+        from rich.panel import Panel
+        from rich.text import Text
 
-            p.breakable()
-            with p.group(2, "Measurement Space:"):
-                p.breakable()
-                p.pretty(self.measurementSpace)
-                p.breakable()
+        components = [
+            Text.assemble(("Identifier: ", "bold"), (self.uri, "bold green")),
+        ]
 
-            p.breakable()
-            with p.group(2, "Sample Store:"):
-                p.breakable()
-                p.pretty(self.sample_store)
-                p.breakable()
+        if self.entitySpace is not None:
+            components.extend(
+                [
+                    Text("Entity Space:", style="bold"),
+                    Panel(self.entitySpace, box=rich.box.SIMPLE_HEAD),
+                ]
+            )
+
+        # MeasurementSpace has __rich__() method
+        components.extend(
+            [
+                Text("Measurement Space:", style="bold"),
+                Panel(self.measurementSpace, box=rich.box.SIMPLE_HEAD),
+            ]
+        )
+
+        components.extend(
+            [
+                Text("Sample Store:", style="bold"),
+                Panel(self.sample_store, box=rich.box.SIMPLE_HEAD),
+            ]
+        )
+
+        return Group(*components)
 
     @property
     def uri(self) -> str:
@@ -416,7 +505,7 @@ class DiscoverySpace:
         return self._entitySpace
 
     @property
-    def properties(self):
+    def properties(self) -> DiscoverySpaceProperties:
 
         return self._properties
 
@@ -446,16 +535,59 @@ class DiscoverySpace:
             metadata=metadata,
         )
 
+    def _build_provenance(
+        self,
+    ) -> "orchestrator.core.discoveryspace.resource.DiscoverySpaceProvenanceInfo":
+        """Resolve package provenance for all actuators and custom experiments.
+
+        Returns:
+            DiscoverySpaceProvenanceInfo mapping actuators and custom experiments
+            to the distributions that provided them at space creation time.
+        """
+        from orchestrator.core.discoveryspace.resource import (
+            DiscoverySpaceProvenanceInfo,
+        )
+        from orchestrator.core.metadata import PackageProvenance
+        from orchestrator.modules.actuators.registry import ActuatorRegistry
+
+        registry = ActuatorRegistry.globalRegistry()
+        actuators: dict[str, PackageProvenance] = {}
+        custom_experiments: dict[str, PackageProvenance] = {}
+
+        for experiment in self.measurementSpace.experiments:
+            actuator_id = experiment.actuatorIdentifier
+
+            # Per-actuator provenance (deduplicated)
+            if actuator_id not in actuators:
+                provenance = registry.provenance_for_actuator(actuator_id)
+                if provenance is not None:
+                    actuators[actuator_id] = provenance
+
+            # Per-custom-experiment provenance
+            if actuator_id == "custom_experiments":
+                module_conf = experiment.metadata.get("module")
+                if module_conf is not None:
+                    provenance = PackageProvenance.from_module_conf(module_conf)
+                    if provenance is not None:
+                        custom_experiments[experiment.identifier] = provenance
+
+        return DiscoverySpaceProvenanceInfo(
+            actuators=actuators,
+            customExperiments=custom_experiments,
+        )
+
     @property
     def resource(
         self,
     ) -> orchestrator.core.discoveryspace.resource.DiscoverySpaceResource:
 
         return orchestrator.core.discoveryspace.resource.DiscoverySpaceResource(
-            identifier=self._identifier, config=self.config
+            identifier=self._identifier,
+            config=self.config,
+            provenance=self._build_provenance(),
         )
 
-    def saveSpace(self):
+    def saveSpace(self) -> None:
         """Record this space in the metadata store"""
 
         if self.metadataStore is not None:
@@ -475,32 +607,47 @@ class DiscoverySpace:
                 f"Unable to store space {self._identifier} as no metadata storage provided"
             )
 
-    def sampledEntities(self):
+    def sampledEntities(self) -> list[Entity]:
         """Returns the entities sampled so far in the space"""
 
-        # find all sampled entities in this space
-        sampled_entity_ids = []
-        for operationid in self.operations["IDENTIFIER"]:
-            sampled_entity_ids.extend(
-                self.entity_identifiers_in_operation(operation_id=operationid)
+        operation_ids_series = self.operations["IDENTIFIER"]
+
+        # Convert pandas Series to list for easier handling
+        # Check if empty using .empty property (pandas Series can't be used in boolean context)
+        if operation_ids_series.empty:
+            return []
+
+        operation_ids = operation_ids_series.tolist()
+
+        # Optimize for single operation: use direct query (1 query instead of 2)
+        if len(operation_ids) == 1:
+            sampled_entities = self.sample_store.entities_in_operation(
+                operation_id=operation_ids[0]
             )
+        else:
+            # Multiple operations: get entity IDs first, then fetch entities
+            # This approach handles deduplication across operations naturally
+            sampled_entity_ids = set()
+            for operationid in operation_ids:
+                sampled_entity_ids.update(
+                    self.entity_identifiers_in_operation(operation_id=operationid)
+                )
 
-        sampled_entity_ids_set = set(sampled_entity_ids)
+            if not sampled_entity_ids:
+                return []
 
-        # Get all entities in the store
-        all_entities = self.sample_store.entities
+            # Efficiently fetch only the entities that were sampled in operations
+            # This avoids loading all entities from the store when we only need a subset
+            sampled_entities = self.sample_store.entities_with_identifiers(
+                sampled_entity_ids
+            )
 
         # TODO: Consider removing isEntitySpace check
         # The additional check of isEntityInSpace should not be required if things are working correctly
         # However if an entity was incorrectly sampled during an operation, due to a bug say, this will correct for it
-        return [
-            e
-            for e in all_entities
-            if e.identifier in sampled_entity_ids_set
-            and self.entitySpace.isEntityInSpace(e)
-        ]
+        return [e for e in sampled_entities if self.entitySpace.isEntityInSpace(e)]
 
-    def matchingEntities(self):
+    def matchingEntities(self) -> list[Entity]:
         """Returns all entities in the sample store that match the space
 
         Note: They do not have to have any measurements from the measurement space
@@ -519,7 +666,7 @@ class DiscoverySpace:
 
         return entities
 
-    def addMeasurement(self, request: MeasurementRequest):
+    def addMeasurement(self, request: MeasurementRequest) -> None:
         """Adds a measurement on an entity to the space
 
         Params:
@@ -532,7 +679,7 @@ class DiscoverySpace:
     def measuredEntitiesTable(
         self,
         property_type: PropertyFormatType = "observed",
-        virtualPropertyIdentifiers=None,
+        virtualPropertyIdentifiers: list[str] | None = None,
         aggregationMethod: (
             orchestrator.schema.virtual_property.PropertyAggregationMethodEnum | None
         ) = None,
@@ -635,7 +782,7 @@ class DiscoverySpace:
     def storedEntitiesWithConstitutivePropertyValues(
         self,
         values: list[orchestrator.schema.property_value.PropertyValue],
-        mode="strict",
+        mode: typing.Literal["strict"] = "strict",
     ) -> list[None | orchestrator.schema.entity.Entity]:
         """Returns entities in the discoveryspace that have the given values for their constitutive properties and that are stored in the sample-store
 
@@ -667,7 +814,7 @@ class DiscoverySpace:
                     p for p in requestedProperties if p not in definedProperties
                 ]
 
-                if len(filtered) > 1:
+                if len(filtered) > 0:
                     raise ValueError(
                         f"Requested match against constitutive properties not in entity space definition: {filtered}"
                     )
@@ -690,7 +837,7 @@ class DiscoverySpace:
 
     def entity_for_point(
         self,
-        point: dict[str, tuple[typing.Any]],
+        point: dict[str, tuple[Any]],
     ) -> Entity:
         """
         Returns an Entity instance for the given point.
@@ -705,6 +852,21 @@ class DiscoverySpace:
             Raise ValueError if the point is not in the discovery space
         """
 
+        property_identifiers = {
+            cp.identifier for cp in self.entitySpace.constitutiveProperties
+        }
+        point_identifiers = set(point.keys())
+        if diff := point_identifiers - property_identifiers:
+            raise ValueError(
+                f"Point {point} is not in space. It has values for additional properties, {diff}"
+            )
+
+        if diff := property_identifiers - point_identifiers:
+            raise ValueError(
+                f"Point {point} is not in space. It is missing values for properties, {diff}"
+            )
+
+        # Note if point contains additional properties this will just ignore them
         property_values = constitutive_property_values_from_point(
             point=point, properties=self.entitySpace.constitutiveProperties
         )
@@ -729,7 +891,7 @@ class DiscoverySpace:
     #
 
     @property
-    def metadataStore(self) -> "orchestrator.metastore.sqlstore.SQLStore":
+    def metadataStore(self) -> "SQLStore":
         """Returns an interface to the metadata store used by the space"""
 
         return self._metadataStore
@@ -743,7 +905,7 @@ class DiscoverySpace:
             kind=orchestrator.core.resources.CoreResourceKinds.OPERATION.value,
         )
 
-    def addOperation(self, operation: OperationResource):
+    def addOperation(self, operation: OperationResource) -> None:
         """Add information on a new operation on the space
 
         Param:
@@ -759,7 +921,7 @@ class DiscoverySpace:
     def updateOperation(
         self,
         operationResource: OperationResource,
-    ):
+    ) -> None:
         """Update an operation resources metadata
 
         Params:
@@ -769,17 +931,124 @@ class DiscoverySpace:
         self.log.info(f"Updating run {operationResource.identifier}")
         return self._metadataStore.updateResource(operationResource)
 
+    @contextlib.contextmanager
+    def operation_context(
+        self,
+        name: str,
+        description: str | None = None,
+        metadata: dict | None = None,
+        operation_type: DiscoveryOperationEnum = DiscoveryOperationEnum.SEARCH,
+    ) -> Iterator[str]:
+        """Context manager that registers a script operation and manages its lifecycle.
+
+        Creates an OperationResource linked to this space, appends STARTED before
+        yielding the operation_id, and writes FINISHED/SUCCESS or FINISHED/FAIL on exit.
+        The operation_id should be passed as ``requesterid`` to Actuators execute
+        or submit methods
+
+        Args:
+            name: Human-readable script name stored in the operation configuration.
+            description: Optional description for the operation metadata.
+            metadata: Optional extra metadata fields merged into ConfigurationMetadata.
+            operation_type: Semantic type for the operation (e.g. SEARCH for explore scripts).
+                Script provenance is always recorded on metadata labels under
+                ``execution: script``.
+
+        Yields:
+            The operation resource identifier.
+
+        Raises:
+            RuntimeError: If the discovery space has no metadata store.
+        """
+        if self._metadataStore is None:
+            raise RuntimeError(
+                "DiscoverySpace.operation_context requires a metadata store; "
+                "load the space from stored configuration first."
+            )
+
+        from orchestrator.core.metadata import ConfigurationMetadata
+        from orchestrator.core.operation.config import (
+            DiscoveryOperationConfiguration,
+            DiscoveryOperationResourceConfiguration,
+            ScriptOperatorConf,
+        )
+        from orchestrator.core.operation.resource import (
+            OperationExitStateEnum,
+            OperationResource,
+            OperationResourceEventEnum,
+            OperationResourceStatus,
+        )
+
+        script_module = ScriptOperatorConf(name=name, operationType=operation_type)
+        extra_metadata = dict(metadata or {})
+        user_labels = extra_metadata.pop("labels", None) or {}
+        config_metadata = ConfigurationMetadata(
+            name=name,
+            description=description,
+            labels={
+                SCRIPT_OPERATION_LABEL_KEY: SCRIPT_OPERATION_EXECUTION_LABEL,
+                **user_labels,
+            },
+        )
+        for key, value in extra_metadata.items():
+            setattr(config_metadata, key, value)
+
+        operation_payload = DiscoveryOperationResourceConfiguration(
+            operation=DiscoveryOperationConfiguration(
+                module=script_module,
+                parameters={},
+            ),
+            metadata=config_metadata,
+            spaces=[self.uri],
+        )
+
+        operation = OperationResource(
+            operationType=script_module.operationType,
+            operatorIdentifier=script_module.operatorIdentifier,
+            config=operation_payload,
+        )
+
+        self.addOperation(operation)
+        self._verified_operation_ids.add(operation.identifier)
+
+        try:
+            operation.status.append(
+                OperationResourceStatus(event=OperationResourceEventEnum.STARTED)
+            )
+            self.updateOperation(operation)
+            yield operation.identifier
+            operation.status.append(
+                OperationResourceStatus(
+                    event=OperationResourceEventEnum.FINISHED,
+                    exit_state=OperationExitStateEnum.SUCCESS,
+                )
+            )
+        except Exception:
+            operation.status.append(
+                OperationResourceStatus(
+                    event=OperationResourceEventEnum.FINISHED,
+                    exit_state=OperationExitStateEnum.FAIL,
+                )
+            )
+            raise
+        finally:
+            self.updateOperation(operation)
+
     @_perform_preflight_checks_for_sample_store_methods
     def complete_measurement_request_with_results_timeseries(
         self,
         operation_id: str,
         output_format: typing.Literal["target", "observed"],
         limit_to_properties: list[str] | None = None,
+        aggregation_method: (
+            orchestrator.schema.virtual_property.PropertyAggregationMethodEnum | None
+        ) = None,
     ) -> "DataFrame":
         return self.sample_store.complete_measurement_request_with_results_timeseries(
             operation_id=operation_id,
             output_format=output_format,
             limit_to_properties=limit_to_properties,
+            aggregation_method=aggregation_method,
         )
 
     @_perform_preflight_checks_for_sample_store_methods
@@ -806,4 +1075,116 @@ class DiscoverySpace:
     ) -> list[MeasurementResult]:
         return self.sample_store.measurement_results_for_operation(
             operation_id=operation_id
+        )
+
+    @_perform_preflight_checks_for_sample_store_methods
+    def operation_entity_statistics(self, operation_id: str) -> dict[str, int]:
+        """
+        Compute entity-level statistics for an operation using SQL aggregation.
+
+        Returns a dictionary with entity counts for the operation.
+        """
+        import orchestrator.core.samplestore.sql
+
+        if isinstance(
+            self.sample_store, orchestrator.core.samplestore.sql.SQLSampleStore
+        ):
+            return self.sample_store.operation_entity_statistics(
+                operation_id=operation_id
+            )
+        # Fallback for non-SQL sample stores: fetch all results and count in Python
+        measurement_results = self.measurement_results_for_operation(
+            operation_id=operation_id
+        )
+        from orchestrator.schema.result import ValidMeasurementResult
+
+        entities_with_all_successful_measurements = {
+            result.entityIdentifier for result in measurement_results
+        }
+        entities_with_at_least_one_successful_measurement = set()
+        for measurement_result in measurement_results:
+            if isinstance(measurement_result, ValidMeasurementResult):
+                entities_with_at_least_one_successful_measurement.add(
+                    measurement_result.entityIdentifier
+                )
+                continue
+            entities_with_all_successful_measurements.discard(
+                measurement_result.entityIdentifier
+            )
+
+        return {
+            "entities_with_all_successful_measurements": len(
+                entities_with_all_successful_measurements
+            ),
+            "entities_with_at_least_one_successful_measurement": len(
+                entities_with_at_least_one_successful_measurement
+            ),
+            "total_entities": len(
+                {result.entityIdentifier for result in measurement_results}
+            ),
+        }
+
+    @_perform_preflight_checks_for_sample_store_methods
+    def operation_measurement_statistics(
+        self, operation_id: str
+    ) -> "orchestrator.core.operation.stats.OperationMeasurementStatistics":
+        """Compute aggregated measurement statistics for an operation.
+
+        Delegates to the SQL implementation for SQL-backed stores. For all
+        other stores, falls back to a Python implementation that iterates the
+        measurement requests for the operation.
+
+        Args:
+            operation_id: The operation identifier.
+
+        Returns:
+            An OperationMeasurementStatistics instance with request-level,
+            result-level, and entity-level counts.
+        """
+        import orchestrator.core.samplestore.sql
+        from orchestrator.core.operation.stats import OperationMeasurementStatistics
+
+        if isinstance(
+            self.sample_store, orchestrator.core.samplestore.sql.SQLSampleStore
+        ):
+            return self.sample_store.operation_measurement_statistics(
+                operation_id=operation_id
+            )
+
+        # Python fallback for non-SQL stores
+        from orchestrator.schema.request import MeasurementRequestStateEnum
+        from orchestrator.schema.result import ValidMeasurementResult
+
+        requests = self.measurement_requests_for_operation(operation_id=operation_id)
+
+        total_requests = len(requests)
+        failed_requests = sum(
+            1 for r in requests if r.status == MeasurementRequestStateEnum.FAILED
+        )
+        successful_requests = sum(
+            1 for r in requests if r.status == MeasurementRequestStateEnum.SUCCESS
+        )
+
+        total_results = 0
+        successful_results = 0
+        failed_results = 0
+        measured_entity_ids: set[str] = set()
+
+        for request in requests:
+            for result in request.measurements:
+                total_results += 1
+                if isinstance(result, ValidMeasurementResult):
+                    successful_results += 1
+                else:
+                    failed_results += 1
+                measured_entity_ids.add(result.entityIdentifier)
+
+        return OperationMeasurementStatistics(
+            total_requests=total_requests,
+            failed_requests=failed_requests,
+            successful_requests=successful_requests,
+            total_results=total_results,
+            successful_results=successful_results,
+            failed_results=failed_results,
+            measured_entities=len(measured_entity_ids),
         )

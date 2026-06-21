@@ -1,38 +1,31 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
-
-from __future__ import annotations
 
 import datetime
 import json
 import math
 import typing
 
+import pydantic
+import typer
 import yaml
 
-from orchestrator.cli.models.parameters import AdoGetCommandParameters
+from orchestrator.cli.models.types import AdoGetSupportedOutputFormats
 from orchestrator.cli.utils.generic.constants import (
     SECONDS_IN_A_DAY,
     SECONDS_IN_A_MINUTE,
     SECONDS_IN_AN_HOUR,
 )
 from orchestrator.cli.utils.jsonpath.filters import remove_fields_from_dictionary
-from orchestrator.cli.utils.pydantic.constants import (
-    event_importance_order,
-    minimize_output_context,
-)
-
-if typing.TYPE_CHECKING:
-    import pandas as pd
-import pydantic
-import typer
-
-from orchestrator.cli.models.types import AdoGetSupportedOutputFormats
 from orchestrator.cli.utils.output.prints import (
     ADO_GET_CONFIG_ONLY_WHEN_SINGLE_RESOURCE,
     ERROR,
     WARN,
     console_print,
+)
+from orchestrator.cli.utils.pydantic.constants import (
+    event_importance_order,
+    minimize_output_context,
 )
 from orchestrator.core import (
     ADOResource,
@@ -40,20 +33,28 @@ from orchestrator.core import (
     DiscoverySpaceResource,
     OperationResource,
 )
+from orchestrator.core.discoveryspace.config import DiscoverySpaceConfiguration
 from orchestrator.core.metadata import ConfigurationMetadata
 from orchestrator.core.operation.resource import (
     OperationResourceEventEnum,
     OperationResourceStatus,
 )
 from orchestrator.core.resources import ADOResourceEventEnum, ADOResourceStatus
+from orchestrator.schema.domain import VariableTypeEnum
 from orchestrator.utilities.output import (
     printable_pydantic_model,
 )
+from orchestrator.utilities.pandas import reorder_dataframe_columns
+
+if typing.TYPE_CHECKING:
+    import pandas as pd
+
+    from orchestrator.cli.models.parameters import AdoGetCommandParameters
 
 
 def format_default_ado_get_single_resource(
     resource: ADOResource, show_details: bool
-) -> pd.DataFrame:
+) -> "pd.DataFrame":
     import json
 
     import pandas as pd
@@ -65,6 +66,8 @@ def format_default_ado_get_single_resource(
     )
 
     if isinstance(resource, OperationResource):
+        # Insert before AGE to produce SPACE, STATUS, EXIT_STATE, AGE:
+        columns.insert(-1, "SPACE")
         columns.insert(-1, "STATUS")
         columns.insert(-1, "EXIT_STATE")
 
@@ -74,16 +77,14 @@ def format_default_ado_get_single_resource(
     metadata = resource.config.metadata or ConfigurationMetadata()
     output = {
         "IDENTIFIER": resource.identifier,
-        "NAME": f'"{metadata.name}"' if metadata.name else None,
+        "NAME": metadata.name or "",
         "AGE": timedelta_to_string(
             time_since_timestamp(resource.created).total_seconds()
         ),
     }
 
     if show_details:
-        output["DESCRIPTION"] = (
-            f'"{metadata.description}"' if metadata.description else None
-        )
+        output["DESCRIPTION"] = metadata.description or ""
         output["LABELS"] = json.dumps(metadata.labels) if metadata.labels else None
 
     if isinstance(resource, OperationResource):
@@ -95,6 +96,7 @@ def format_default_ado_get_single_resource(
             and status_update.exit_state is not None
             else "N/A"
         )
+        output["SPACE"] = resource.config.spaces[0] if resource.config.spaces else ""
 
     # AP: if we don't set the index manually, pandas will complain with
     #   ValueError: If using all scalar values, you must pass an index
@@ -103,8 +105,8 @@ def format_default_ado_get_single_resource(
 
 
 def format_default_ado_get_multiple_resources(
-    resources: pd.DataFrame, resource_kind: CoreResourceKinds
-) -> pd.DataFrame:
+    resources: "pd.DataFrame", resource_kind: CoreResourceKinds
+) -> "pd.DataFrame":
     if resources.empty:
         return resources
 
@@ -115,20 +117,13 @@ def format_default_ado_get_multiple_resources(
     if resource_kind == CoreResourceKinds.OPERATION:
         status_model = pydantic.RootModel[list[OperationResourceStatus]]
 
-    # AP 13-12-2024:
-    # The exit state column should be there just for operations
-    # we do some trickery to ensure we put it before age
     columns = list(resources.columns)
-
     if resource_kind == CoreResourceKinds.OPERATION:
-        columns.insert(-1, "EXIT_STATE")
-
         resources["STATUS"] = resources["STATUS"].apply(
             lambda x: most_important_status_update(
                 status_model.model_validate(json.loads(x)).root if x else None
             )
         )
-
         resources["EXIT_STATE"] = resources["STATUS"].apply(
             lambda x: (
                 x.exit_state.value
@@ -137,9 +132,19 @@ def format_default_ado_get_multiple_resources(
                 else "N/A"
             )
         )
-
-    if "STATUS" in resources.columns:
         resources["STATUS"] = resources["STATUS"].apply(lambda x: x.event.value)
+        resources = reorder_dataframe_columns(
+            df=resources,
+            move_to_start=[],
+            move_to_end=["SPACE", "STATUS", "EXIT_STATE", "AGE"],
+        )
+        columns = list(resources.columns)
+
+    # Avoid printing null or None in the NAME column
+    resources["NAME"] = resources["NAME"].fillna("")
+
+    if "DESCRIPTION" in resources.columns:
+        resources["DESCRIPTION"] = resources["DESCRIPTION"].fillna("")
 
     # AP: the default formatting of timedelta objects is too verbose
     # we convert it to
@@ -160,8 +165,8 @@ def format_resource_for_ado_get_custom_format(
         | list[pydantic.BaseModel]
         | dict
     ),
-    parameters: AdoGetCommandParameters,
-):
+    parameters: "AdoGetCommandParameters",
+) -> str:
     match parameters.output_format:
         case AdoGetSupportedOutputFormats.CONFIG:
             return _config_formatter_for_ado_resource(
@@ -193,8 +198,8 @@ def _config_formatter_for_ado_resource(
         | list[pydantic.BaseModel]
         | dict
     ),
-    parameters: AdoGetCommandParameters,
-):
+    parameters: "AdoGetCommandParameters",
+) -> str:
 
     if isinstance(to_print, list):
         console_print(f"{ERROR}{ADO_GET_CONFIG_ONLY_WHEN_SINGLE_RESOURCE}", stderr=True)
@@ -202,8 +207,7 @@ def _config_formatter_for_ado_resource(
 
     if not hasattr(to_print, "config"):
         console_print(
-            f"{ERROR}The resource requested does not have a config field.",
-            stderr=True,
+            f"{ERROR}The resource requested does not have a config field.", stderr=True
         )
         raise typer.Exit(1)
 
@@ -249,8 +253,8 @@ def _yaml_formatter_for_ado_resource(
         | list[pydantic.BaseModel]
         | dict
     ),
-    parameters: AdoGetCommandParameters,
-):
+    parameters: "AdoGetCommandParameters",
+) -> str:
 
     if parameters.minimize_output:
         serialization_context = minimize_output_context
@@ -290,8 +294,8 @@ def _json_formatter_for_ado_resource(
     to_print: (
         ADOResource | list[ADOResource] | pydantic.BaseModel | list[pydantic.BaseModel]
     ),
-    parameters: AdoGetCommandParameters,
-):
+    parameters: "AdoGetCommandParameters",
+) -> str:
 
     if parameters.minimize_output:
         serialization_context = minimize_output_context
@@ -364,8 +368,8 @@ def _raw_formatter_for_ado_resource(
         | list[pydantic.BaseModel]
         | dict
     ),
-    parameters: AdoGetCommandParameters,
-):
+    parameters: "AdoGetCommandParameters",
+) -> str:
     import pprint
 
     if parameters.minimize_output:
@@ -381,7 +385,7 @@ def _minimize_ado_resource_representation(
     to_print: (
         ADOResource | list[ADOResource] | pydantic.BaseModel | list[pydantic.BaseModel]
     ),
-):
+) -> ADOResource | pydantic.BaseModel:
     if isinstance(to_print, list):
         console_print(
             f"{ERROR}The minimal output format can only be used "
@@ -392,6 +396,16 @@ def _minimize_ado_resource_representation(
 
     if isinstance(to_print, DiscoverySpaceResource):
         to_print.config = to_print.config.convert_experiments_to_reference_list()
+    if isinstance(to_print, DiscoverySpaceConfiguration):
+        for property in to_print.entitySpace:
+            if (
+                property.propertyDomain.variableType
+                == VariableTypeEnum.BINARY_VARIABLE_TYPE
+            ):
+                property.propertyDomain.probabilityFunction = None
+                property.propertyDomain.domainRange = None
+                property.propertyDomain.interval = None
+                property.propertyDomain.values = None
 
     return to_print
 
@@ -421,7 +435,7 @@ def most_important_status_update(
     return OperationResourceStatus(event=ADOResourceEventEnum.ADDED)
 
 
-def timedelta_to_string(total_seconds: float):
+def timedelta_to_string(total_seconds: float) -> str:
     if math.isnan(total_seconds):
         return "NaT"
     if total_seconds < SECONDS_IN_A_MINUTE:

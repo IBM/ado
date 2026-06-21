@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import pytest
@@ -17,12 +17,14 @@ from orchestrator.core.resources import CoreResourceKinds
             id=CoreResourceKinds.DISCOVERYSPACE.value,
         ),
         pytest.param(
-            (CoreResourceKinds.OPERATION, "random_operation_resource_from_file"),
+            (CoreResourceKinds.OPERATION, "ml_multi_cloud_operation_resource"),
             id=CoreResourceKinds.OPERATION.value,
         ),
     ]
 )
-def resource_generator_from_file(request):
+def resource_generator_from_file(
+    request: pytest.FixtureRequest,
+) -> tuple[CoreResourceKinds, str]:
     return request.param
 
 
@@ -37,10 +39,12 @@ def resource_generator_from_file(request):
             id=CoreResourceKinds.DISCOVERYSPACE.value,
         ),
         pytest.param(
-            (CoreResourceKinds.OPERATION, "random_operation_resource_from_db"),
+            (CoreResourceKinds.OPERATION, "ml_multi_cloud_operation_resource_from_db"),
             id=CoreResourceKinds.OPERATION.value,
         ),
     ]
 )
-def resource_generator_from_db(request):
+def resource_generator_from_db(
+    request: pytest.FixtureRequest,
+) -> tuple[CoreResourceKinds, str]:
     return request.param

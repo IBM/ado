@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import copy
@@ -20,10 +20,10 @@ class LhuSampler(ray.tune.search.Searcher):
         mode: str | None = None,
         points_to_evaluate: list[dict] | None = None,
         entity_space: EntitySpaceRepresentation | None = None,
-    ):
+    ) -> None:
 
-        if mode:
-            assert mode in ["min", "max"], "`mode` must be 'min' or 'max'."
+        if mode and mode not in {"max", "min"}:
+            raise ValueError(f"mode must be either max or min (was {mode})")
 
         super().__init__(
             metric=metric,
@@ -59,8 +59,8 @@ class LhuSampler(ray.tune.search.Searcher):
         if self._space:
             self._setup_experiment()
 
-    def _setup_experiment(self):
-        from ray_tune.doe import LatinHypercubeSampler
+    def _setup_experiment(self) -> None:
+        from .doe import LatinHypercubeSampler
 
         self._num_samples = 0
         self._samples_generated_so_far = 0
@@ -69,13 +69,13 @@ class LhuSampler(ray.tune.search.Searcher):
         self._suggestions = []
         self._generate_new_samples()
 
-    def _generate_new_samples(self):
+    def _generate_new_samples(self) -> None:
         self._suggestions.extend(
             self._sampler.generate_new_categorical_samples(n_factor=4)
         )
         self._samples_generated_so_far = len(self._suggestions)
 
-    def set_entity_space(self, entity_space: EntitySpaceRepresentation):
+    def set_entity_space(self, entity_space: EntitySpaceRepresentation) -> None:
         """LHC samplers requires the orchestrators ExplicitEntitySpaceRepresentation
 
         This is because the ray tune search space does not give sufficient information
@@ -88,8 +88,8 @@ class LhuSampler(ray.tune.search.Searcher):
         metric: str | None,
         mode: str | None,
         config: dict,
-        **spec,
-    ):
+        **spec: dict,
+    ) -> bool:
         space = self.convert_search_space(config)
         self._space = space
         if metric:
@@ -126,7 +126,7 @@ class LhuSampler(ray.tune.search.Searcher):
 
         return config
 
-    def convert_search_space(self, spec: dict):
+    def convert_search_space(self, spec: dict) -> dict:
 
         import math
 

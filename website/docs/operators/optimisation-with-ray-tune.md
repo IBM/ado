@@ -1,5 +1,6 @@
 <!-- markdownlint-disable code-block-style -->
-<!-- markdownlint-disable-next-line first-line-h1 -->
+<!-- markdownlint-disable first-line-h1 -->
+
 ## Overview
 
 > [!TIP]
@@ -8,7 +9,7 @@
 >
 > ```commandline
 > pip install ado-ray-tune
->```
+> ```
 
 ### What does the `ray_tune` operator do?
 
@@ -30,9 +31,10 @@ Use the `ray_tune` operator when you want to:
   property/target property i.e. sample to understand the distribution of that
   metric in the space
 
-The `ray_tune` operator supports **memoization**: if it samples the same entity
-twice, and that entity has already had the measurement space applied, it will
-replay the already measured values (by default).
+The `ray_tune` operator supports
+[**memoization**](../core-concepts/data-sharing.md#memoization): if it samples
+the same entity twice, and that entity has already had the measurement space
+applied, it will replay the already measured values (by default).
 
 ### Differences in using the `ray_tune` operator and RayTune directly
 
@@ -40,7 +42,8 @@ Using RayTune via the ado `ray_tune` operator brings the following advantages:
 
 - Distributed storage and sharing of optimization runs and their results
 - Automatic recording of provenance
-- Transparent and distributed memoization
+- Transparent and distributed
+  [memoization](../core-concepts/data-sharing.md#memoization)
 - Fully declarative interface, no need for programming
 
 However, there are a few drawbacks:
@@ -109,21 +112,27 @@ pip install hpbandster ConfigSpace
 When configuring a `ray_tune` operation there are three groups of parameters to
 consider:
 
+<!-- prettier-ignore-start -->
+
 - [Tuning Configuration](#tune-config): general optimization parameters
-  - This includes specific
+    - This includes specific
          [Optimizer Parameters](#optimizer-parameters-search_algparams)
 - [Runtime Configuration](#run-config): parameters related to RayTune, for
   example where its stores data
-  - This includes the [Stopper Configuration](#stoppers) that determines if an
+    - This includes the [Stopper Configuration](#stoppers) that determines if an
          optimization should stop
 - [Orchestrator Configuration](#orchestrator-config): parameters related to
   `ado`
 
+<!-- prettier-ignore-end -->
+
 For example, the default parameters and values for a `ray_tune` operation are:
 
 <!-- markdownlint-disable line-length -->
+
 ```yaml
 orchestratorConfig:
+  metric_format: target # Format for metric names: "target" (default) or "observed"
   failed_metric_value: None # This will be used for the value of "metric' for any entities where it could not be measured (for any reason)
   result_dump: none # If specified the best result found will be written to this file
   single_measurement_per_property: true # If true memoization is used. If false already measured entities will be re-measured.
@@ -137,6 +146,7 @@ tuneConfig:
     name: ax # The name of the optimization algorithm to use
     params: {} # The parameters for the optimizer
 ```
+
 <!-- markdownlint-enable line-length -->
 
 The following sections describe each of these parameter sets in more detail. As
@@ -163,7 +173,15 @@ measurements of those points. They are related to `ado` concepts of `entities`
 The `orchestratorConfig` section currently supports the following parameters,
 which are all optional:
 
-<!-- markdownlint-disable MD007 -->
+<!-- prettier-ignore-start -->
+
+- `metric_format` (default "target")
+    - Controls the format for all metric (property) names given in
+      the operation configuration
+    - **"target"**: Use [target property identifiers](../core-concepts/actuators.md#target-and-observed-properties)
+      (e.g., `"latency"`)
+    - **"observed"**: Use [observed property identifiers](../core-concepts/actuators.md#target-and-observed-properties)
+      (e.g., `"actuator.experiment.latency"`)
 - `failed_metric_value` (default None)
     - This will be used for the value of "metric' for any entities where it could
     not be measured (for any reason)
@@ -174,7 +192,12 @@ which are all optional:
      [memoization](#what-happens-if-i-apply-multiple-ray_tune-operations-to-a-space)
      is used.
     - If false already measured entities will be re-measured.
-<!-- markdownlint-enable MD007 -->
+
+<!-- prettier-ignore-end -->
+
+> [!IMPORTANT] Metric format consistency
+>
+> All metrics in a configuration must use the same format
 
 ### Tune Config
 
@@ -183,22 +206,24 @@ The `tuneConfig` section supports many of the
 
 **Supported parameters:**
 
+<!-- prettier-ignore-start -->
+
 - `metric` (required)
-  - The
-        [target property identifier](../core-concepts/actuators.md#target-and-observed-properties)
-        to optimize.
+    - The metric to optimize. Format depends on `orchestratorConfig.metric_format`:
 - `mode` (required)
-  - `min` or `max`: Whether to search for min or max of the target property
+    - `min` or `max`: Whether to search for min or max of the target property
 - `search_alg` (required)
-  - **Note**: This must be an [optimizer name](#available-optimizers) c.f. in
+    - **Note**: This must be an [optimizer name](#available-optimizers) c.f. in
         RayTune it would be an optimizer instance
 - `num_samples` (defaults to 1)
-  - **Note**: The exact interpretation of `num_samples` is optimizer dependent
+    - **Note**: The exact interpretation of `num_samples` is optimizer dependent
         e.g. some do not count "warm-up" samples as part of this.
 - `max_concurrent_trials`
-  - **Note**: this can also be controlled via most optimizers parameters. If not
+    - **Note**: this can also be controlled via most optimizers parameters. If not
         set, the default value depends on the optimizer
 - `time_budget_s`: How many second to run the optimizer for
+
+<!-- prettier-ignore-end -->
 
 **Unsupported parameters:**
 
@@ -292,6 +317,32 @@ import nevergrad
 print(list(nevergrad.optimizers.registry.keys()))
 ```
 
+#### optuna parameters
+
+The optuna optimizer allows fine-grained control over its sampling algorithm via
+the `sampler` parameter. To specify which sampler to use with optuna, provide
+its class name as a string (as defined in
+[optuna.samplers](https://optuna.readthedocs.io/en/stable/reference/samplers/index.html)).
+You may also provide a dictionary of parameters for the sampler class via the
+`sampler_parameters` key. These will be used to instantiate the sampler.
+
+Example:
+
+```yaml
+tuneConfig:
+  search_alg:
+    name: optuna
+    params:
+      sampler: TPESampler
+      sampler_parameters:
+        multivariate: true
+        group: true
+```
+
+This will use the optuna `TPESampler` with the provided keyword arguments. For a
+complete list of samplers and their available parameters, see the
+[Optuna samplers documentation](https://optuna.readthedocs.io/en/stable/reference/samplers/index.html).
+
 ### Run Config
 
 The `runConfig` section supports many of the
@@ -308,7 +359,7 @@ disk. Since `ado` automatically stores the results and operation details in
 - `stop` - see [Stoppers](#stoppers)
 - `storage_path`:
   - `ado` defaults this to "/tmp/ray_results" as this directory is writable in
-      the default `ado` image used in ray clusters.
+    the default `ado` image used in ray clusters.
     - If you change this path, ensure it is writable
 
 **Other supported parameters:**
@@ -368,21 +419,25 @@ stopper, cannot currently be used with `ado`.
 
 #### `ado` stoppers
 
-`ado` provides four in-built stoppers:
+`ado` provides these in-built stoppers:
 
-- SimpleStopper: Stops if there is no improvement in the target metric after N
-  steps
-- GrowthStopper: Stops when the improvement in the target metric is less than a
-  threshold for N steps
-- MaxSamplesStopper: Stops when a certain number of samples have been drawn. It
-  is less ambiguous than `tuneConfig.num_samples`
-- InformationGainStopper: Stops when samples are no longer providing significant
-  additional information on how the constitutive properties of the entity space
-  are related to the target property.
+- **SimpleStopper**: Stops if there is no improvement in the target metric after
+  N steps
+- **GrowthStopper**: Stops when the improvement in the target metric is less
+  than a threshold for N steps
+- **MaxSamplesStopper**: Stops when a certain number of samples have been drawn.
+  It is less ambiguous than `tuneConfig.num_samples`
+- **InformationGainStopper**: Stops when samples are no longer providing
+  significant additional information on how the constitutive properties of the
+  entity space are related to the target property.
+- **BayesianMetricDifferenceStopper**: Stops when the difference between two
+  metrics is known (with a target confidence) to be above or below a threshold
 
 <!-- markdownlint-disable descriptive-link-text -->
+
 Each of these are described in more detail, along with their parameters,
 [here](#ado-additions-to-raytune).
+
 <!-- markdownlint-enable descriptive-link-text -->
 
 #### Example
@@ -436,6 +491,7 @@ SFTTrainer actuator:
 - specifying [initial point to sample](#common-parameters)
 
 <!-- markdownlint-disable line-length -->
+
 ```yaml
 runtimeConfig:
   stop:
@@ -463,6 +519,41 @@ tuneConfig:
           model_max_length: 2048
           gpu_model: A100-SXM4-80GB
 ```
+
+<!-- markdownlint-enable line-length -->
+
+## Multi-Objective Optimization
+
+RayTune via `ado` supports multi-objective optimization via the `optuna`
+optimizer. To configure this, set both `metric` and `mode` as lists in your
+`tuneConfig`. For example to search for
+[vLLM deployment configurations](../examples/vllm-performance-full.md) that
+minimise latency while maximising token throughput:
+
+<!-- prettier-ignore-start -->
+
+```yaml
+{%
+   include "../../../plugins/actuators/vllm_performance/yamls/operation_optuna_multi.yaml"
+%}
+```
+
+<!-- prettier-ignore-end -->
+
+The entries in `metric` and `mode` should correspond (order matters). Optuna
+will attempt to optimize for all objectives using its multi-objective
+capabilities.
+
+If you specify multiple metrics or modes with an optimizer other than optuna,
+`ado` will raise an error and explain that multi-objective optimization is only
+supported with optuna.
+
+For more details, see:
+
+<!-- markdownlint-disable line-length -->
+
+- [Optuna multi-objective optimization documentation](https://optuna.readthedocs.io/en/stable/tutorial/20_recipes/003_multi_objective.html)
+- [Ray Tune OptunaSearch documentation](https://docs.ray.io/en/latest/tune/api/doc/ray.tune.search.optuna.OptunaSearch.html#multi-objective-optimization)
 <!-- markdownlint-enable line-length -->
 
 ## `ray_tune` operation output
@@ -497,39 +588,57 @@ ado describe datacontainer $DATACONTAINER_ID
 
 For a `datacontainer` created by a `ray_tune` operation, an example output is:
 
-```commandline
-Identifier: datacontainer-d6a6501b
-Basic Data:
+```terminaloutput
+Identifier: datacontainer-a5a33316
 
-  Label: best_result
+ ─────────────────────────────── Basic Data ────────────────────────────────
 
-  {'config': {'x2': -1.1192905253425014,
-    'x1': 2.081208150586974,
-    'x0': 0.5621591414422049},
-   'metrics': {'function_value': 20.788056393697595,
-    'timestamp': 1756804287,
-    'checkpoint_dir_name': None,
-    'done': True,
-    'training_iteration': 1,
-    'trial_id': '7a7153ed',
-    'date': '2025-09-02_10-11-27',
-    'time_this_iter_s': 1.0576610565185547,
-    'time_total_s': 1.0576610565185547,
-    'pid': 52036,
-    'hostname': 'Michaels-MacBook-Pro-2.local',
-    'node_ip': '127.0.0.1',
-    'config': {'x2': -1.1192905253425014,
-     'x1': 2.081208150586974,
-     'x0': 0.5621591414422049},
-    'time_since_restore': 1.0576610565185547,
-    'iterations_since_restore': 1,
-    'experiment_tag': '40_x0=0.5622,x1=2.0812,x2=-1.1193'},
-   'error': None}
+    Label: 'best_result'
+    {
+        'config': {
+            'x2': -0.6739656478980461,
+            'x1': 0.8532760228340539,
+            'x0': -2.5705928842344696
+        },
+        'metrics': {
+            'function_value': 1106.8717468085306,
+            'timestamp': 1769680394,
+            'checkpoint_dir_name': None,
+            'done': True,
+            'training_iteration': 1,
+            'trial_id': 'e07dd2f6',
+            'date': '2026-01-29_09-53-14',
+            'time_this_iter_s': 1.0830578804016113,
+            'time_total_s': 1.0830578804016113,
+            'pid': 34110,
+            'hostname': 'MacBook-Pro-di-Alessandro.local',
+            'node_ip': '127.0.0.1',
+            'config': {
+                'x2': -0.6739656478980461,
+                'x1': 0.8532760228340539,
+                'x0': -2.5705928842344696
+            },
+            'time_since_restore': 1.0830578804016113,
+            'iterations_since_restore': 1,
+            'experiment_tag': '11_x0=-2.5706,x1=0.8533,x2=-0.6740'
+        },
+        'error': None
+    }
+
+ ───────────────────────────────────────────────────────────────────────────
 ```
 
 We can see here that the point found is
-`{'x2': -1.1192905253425014, 'x1': 2.081208150586974, 'x0': 0.5621591414422049}`
-where `function_value` was ~20.8.
+
+```json
+{
+  "x2": -0.6739656478980461,
+  "x1": 0.8532760228340539,
+  "x0": -2.5705928842344696
+}
+```
+
+where `function_value` was ~1106.87.
 
 ### Optimization path
 
@@ -537,13 +646,13 @@ To see all the configurations (entities) visited during an optimization
 operation $OPERATION_IDENTIFIER run
 
 ```commandline
-ado show entities operation $OPERATION_IDENTIFIER
+ado show measurements operation $OPERATION_IDENTIFIER
 ```
 
-> [!NOTE]
->
-> This command also works during an operation. It shows up to the most recent
-> measured entity.
+!!! info end
+
+     This command also works during an operation. It shows up to the most recent
+     measured entity.
 
 ## ado additions to RayTune
 
@@ -589,11 +698,13 @@ The following YAML describes the stoppers parameters. Parameters without values
 are required.
 
 <!-- markdownlint-disable line-length -->
+
 ```yaml
 name: MaxSamplesStopper
 keywordParams:
   max_samples: 10 # Will stop the optimization when this number of samples have been measured. Required
 ```
+
 <!-- markdownlint-enable line-length -->
 
 ### SimpleStopper
@@ -606,23 +717,25 @@ The following YAML describes the stopper's parameters. Parameters without values
 are required.
 
 <!-- markdownlint-disable line-length -->
+
 ```yaml
 name: SimpleStopper
 keywordParams:
   mode: # `min` or `max`: Whether to search for min or max of the target property/metric. Required
-  metric: # The target property being optimized. Required.
+  metric: # The metric to optimize. Must match format specified by orchestratorConfig.metric_format. Required.
   min_trials: 5 # The number of trials to perform (samples to take) before applying any stopping criteria
   buffer_states: 2 # The number of samples/optimization steps to wait before declaring no improvement.
   stop_on_repeat: True # If True, the stopper will stop the optimization if it sees the same sample twice.
   count_nan: True # If True, samples measuring 'nan' count towards the steps to wait before declaring no improvement.
 ```
+
 <!-- markdownlint-enable line-length -->
 
 !!! important end
 
     `buffer_states` does not reset if the metric is observed to improve in a step.
-    That is, it is the _total_ number of samples allowed that do not improve on the
-    best found sample.
+    That is, it is the _total_ number of samples allowed that do not improve
+    on the best found sample.
 
 ### GrowthStopper
 
@@ -638,14 +751,16 @@ The following YAML describes the stopper's parameters. Parameters without values
 are required.
 
 <!-- markdownlint-disable line-length -->
+
 ```yaml
 name: GrowthStopper
 keywordParams:
   mode: # `min` or `max`: Whether to search for min or max of the target property/metric. Required
-  metric: # The target property being optimized. Required.
+  metric: # The metric to optimize. Must match format specified by orchestratorConfig.metric_format. Required.
   growth_threshold: 1.0 # If the difference in two samples is less than this threshold the optimization is considered to be not improving
   grace_trials: 2 # The number of samples/optimization steps to wait before declaring the metric is not improving. Same as buffer_states for SimpleStopper.
 ```
+
 <!-- markdownlint-enable line-length -->
 
 !!! important end
@@ -663,6 +778,8 @@ when it observes the mutual information is converging.
 
 This stopper considers two ways that the mutual information can change:
 
+<!-- prettier-ignore-start -->
+
 1. **mutual information value**: If the value is changing by less than a
    threshold, it is considered "converging"
 2. **properties contribution to the mutual information**: This can be measured
@@ -673,6 +790,8 @@ This stopper considers two ways that the mutual information can change:
       2. Change in the set of constitutive properties which contribute most to the
          mutual information with metric. If the set of propertiers is not changing,
          the mutual information is considered to be converging.
+
+<!-- prettier-ignore-end -->
 
 The stopper will only stop when it sees _both_ the **mutual information value**
 and the **properties that contribute to it** converging.
@@ -685,6 +804,7 @@ The following YAML describes the stoppers parameters. Parameters without values
 are required.
 
 <!-- markdownlint-disable line-length -->
+
 ```yaml
 name: InformationGainStopper
 keywordParams:
@@ -692,6 +812,7 @@ keywordParams:
   samples_below_limit: # # The number of samples/optimization steps to wait before declaring the mutual information is not increasing. Similar to buffer_states for SimpleStopper.
   consider_pareto_front_convergence: # If True the stopper considers convergence of the set of important properties (2.2 above). If False it considers the ranking (2.1 above)
 ```
+
 <!-- markdownlint-enable line-length -->
 
 !!! important end
@@ -699,10 +820,70 @@ keywordParams:
     Both the mutual information value **and** the property ranking/set must stay
     unchanged for `samples_below_limit` for the stopping criteria to be reached
 
+### BayesianMetricDifferenceStopper
+
+Stops a run when it can tell with high confidence if the average (absolute)
+difference between two metrics is above or below a threshold. It is designed to
+be used with a non-correlated, random, sampler e.g., the
+[LHU Sampler](#latin-hypercube-sampler)
+
+An example use case is comparing if an experiment with two different
+parameterizations e.g. software version, produces the same or different value
+for a metric.
+
+#### Parameters
+
+- `metric_a` | str | **required** | Identifier of first metric
+- `metric_b` | str | **required** | Identifier of second metric
+- `threshold` | float | **required** | Threshold for \|A-B\|
+- `target_probability` | float | 0.95 | Confidence level (0-1)
+- `min_samples` | int | 10 | Min trials before checking
+
+#### Example: Detect significant performance changes
+
+We have an experiment that measures the performance of a framework for a task.
+It can be parameterized to use different versions of the framework. We want to
+know if version 2 performs differently than version 1.
+
+```yaml
+name: "BayesianMetricDifferenceStopper"
+keywordParams:
+  metric_a: "test-version:1.performance" # v1 measurement
+  metric_b: "test-version:2.performance" # v2 measurement
+  threshold: 100 # Stop when we know |v1-v2| > or < 100
+  target_probability: 0.95 # 95% confidence
+  min_samples: 10 # Wait for 10 trials minimum
+```
+
+**Interpretation**: Stop when 95% confident that the absolute performance
+difference between the framework versions is above or below 100 tokens per
+second.
+
+!!! info end
+
+     This configuration compares measurements of the same metric
+     from two different parameterizations of the same experiment.
+     This requires setting `metric_format` to `observed`
+     in the [configuration options](#tune-config)
+
+#### How It Works
+
+1. **Collect**: Gathers differences from each trial (skips trials with
+   missing/NaN metrics)
+2. **Wait**: Waits for `min_samples` usable samples before deciding
+3. **Analyze**: Uses Bayesian statistics to estimate probability P(|A-B| >
+   threshold)
+   - Calculate via sum of two-tails P((A-B) > threshold) + P((A-B) < -threshold)
+4. **Stop**:
+   - When P(|A-B| > threshold) > target_probability OR P(|A-B| < threshold) >
+     target_probability
+
 ## What's next
 
 <!-- markdownlint-disable line-length -->
-<!-- markdownlint-disable-next-line no-inline-html -->
+<!-- markdownlint-disable no-inline-html -->
+<!-- prettier-ignore-start -->
+
 <div class="grid cards" markdown>
 
 - :octicons-workflow-24:{ .lg .middle } **Try Searching for the Best Configurations**
@@ -722,4 +903,8 @@ keywordParams:
     [Latin Hyper-Cube sampler example :octicons-arrow-right-24:](../examples/lhu.md)
 
 </div>
+
+<!-- prettier-ignore-end -->
+
+<!-- markdownlint-enable no-inline-html -->
 <!-- markdownlint-enable line-length -->

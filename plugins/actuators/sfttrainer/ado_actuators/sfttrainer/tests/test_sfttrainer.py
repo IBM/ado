@@ -1,12 +1,14 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import dataclasses
 import json
+import os
 import re
 import typing
 
 import ado_actuators.sfttrainer.actuators
+import ado_actuators.sfttrainer.wrapper_fms_hf_tuning.tuning_versions as tuning_versions
 import pytest
 
 import orchestrator.metastore.project
@@ -48,7 +50,7 @@ def try_instantiate_experiment(
 
     import ray
 
-    actor = ado_actuators.sfttrainer.actuators.SFTTrainer.remote(
+    actor = ray.remote(ado_actuators.sfttrainer.actuators.SFTTrainer).remote(
         queue=None,
         params=GenericActuatorParameters(),
     )
@@ -76,7 +78,7 @@ def try_instantiate_experiment(
         "finetune_pt_benchmark",
     ],
 )
-def test_sfttrainer_parameterised_experiment(exp_name):
+def test_sfttrainer_parameterised_experiment(exp_name: str) -> None:
     all_experiments = [
         e
         for e in ado_actuators.sfttrainer.actuators.catalog.experiments
@@ -125,7 +127,7 @@ def test_sfttrainer_parameterised_experiment(exp_name):
             assert context.entity_space.max_steps == 3
 
 
-def test_sfttrainer_fast_moe():
+def test_sfttrainer_fast_moe() -> None:
     # VV: The type of the experiment doesn't really matter
     all_full_experiments = [
         e
@@ -170,3 +172,25 @@ def test_sfttrainer_fast_moe():
             match=re.escape("number_gpus is 5 but fast_moe[0] (i.e. ep_degrees) is 2"),
         ):
             try_instantiate_experiment(exp=exp, entity_values=entity_values)
+
+
+def test_semver_cmp() -> None:
+    assert tuning_versions.semver_cmp((3, 0, 0, 1), (3, 1, 0)) == -1
+    assert tuning_versions.semver_cmp((3, 0, 0, 1), (3, 0, 0)) == 1
+    assert tuning_versions.semver_cmp((3, 0, 0), (3, 0, 0, 1)) == -1
+    assert tuning_versions.semver_cmp((3, 0, 0), (2, 0, 0, 1)) == 1
+    assert tuning_versions.semver_cmp((3, 0, 0), (3, 0, 0, 0)) == 0
+
+
+def test_select_wrapper() -> None:
+    module_name = tuning_versions.get_wrapper_name_for_version(
+        "3.1.0", os.path.dirname(tuning_versions.__file__)
+    )
+    assert module_name == "at_least_3_0_0_1"
+
+    try:
+        tuning_versions.import_tuning_version("3.1.0")
+    except ModuleNotFoundError as e:
+        # VV: fms-hf-tuning is not a required dependency of the SFTTrainer actuator
+        if e.name != "tuning":
+            raise

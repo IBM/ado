@@ -1,17 +1,20 @@
 # Introduction
 
+[![DOI](https://joss.theoj.org/papers/10.21105/joss.10304/status.svg)](https://doi.org/10.21105/joss.10304)
+
 This is the webpage for the **a**ccelerated **d**iscovery **o**rchestrator
 (**`ado`**).
 
-**`ado`** is a unified platform for **executing computational experiments at
-scale** and **analysing their results**. It can be extended with new experiments
-or new analysis tools. It allows distributed teams of researchers and engineers
-to collaborate on projects, execute experiments, and share data.
+**`ado`** is a Python platform for **designing experiment campaigns and
+executing them at scale**. It enables distributed teams of researchers and
+engineers to collaborate, execute experiments, and share data.
 
-You can run the experiments and analysis tools already available in **`ado`** in
-a distributed, shared, environment with your team. You can also use **`ado`** to
-get features like data-tracking, data-sharing, tool integration and a CLI, for
-your analysis method or experiment for free.
+You can extend ado across different domains through its **plugin model**-often
+as simple as decorating a Python function. By integrating
+your methodology, you gain cross-cutting capabilities—such as
+**parallel execution**, **data provenance**, and a **unified CLI**—alongside a structured
+foundation that allows AI coding agents to **autonomously formulate and run your
+experiments**.
 
 🧑‍💻 Using **`ado`** assumes familiarity with command line tools.
 
@@ -23,7 +26,7 @@ your analysis method or experiment for free.
   [best practices](https://clig.dev)
 - :handshake: _Projects_: Allow distributed groups of users to
   [collaborate and share data](resources/metastore.md)
-- :electric_plug: _Extendable_: Easily
+- 🔌 _Extendable_: Easily
   [add new experiments](actuators/creating-custom-experiments.md),
   [optimizers or other tools.](operators/creating-operators.md)
 - :gear: _Scalable_: We use [ray](https://ray.io) as our execution engine
@@ -37,38 +40,42 @@ your analysis method or experiment for free.
 - :mag: _Optimization and sampling_: Out-of-the-box, leverage powerful
   optimization methods [via `raytune`](operators/optimisation-with-ray-tune.md)
   or use our [flexible in built sampler](operators/random-walk.md)
+- :material-robot-outline: _Coding agents_: Supercharge your workflow. `ado`'s
+  typed resources and bundled skills enable AI assistants to autonomously
+  formulate, validate, and run experiments. [Learn more](how-to/index.md).
 
 ### Foundation Model Experimentation
 
-We have developed `ado` plugins providing advanced experiments for testing
-foundation-models:
+We have developed `ado` plugins providing advanced capabilities for performance
+testing of foundation-models:
 
 - :stopwatch: [fine-tuning performance benchmarking](actuators/sft-trainer.md)
 - :stopwatch:
-[inference performance benchmarking](examples/vllm-performance-endpoint.md)
-(using the
-  [vLLM performance benchmark](https://docs.vllm.ai/en/latest/cli/bench/serve.html))
-- **COMING SOON** :crystal_ball: inference and fine-tuning prediction
+  [inference performance benchmarking](examples/vllm-performance-endpoint.md)
+  (using [vLLM bench](https://docs.vllm.ai/en/latest/cli/bench/serve.html) or
+  [guidellm](https://github.com/vllm-project/guidellm))
+- :crystal_ball: [predictive performance models creation](operators/trim.md)
 
 ## Requirements
 
-A basic installation of `ado` only requires a recent Python version (3.10+).
-This will allow you to run [many of our examples](examples/examples.md) and
-explore ado features.
+A basic installation of `ado` only requires a recent Python version (3.10 to
+3.13). This will allow you to run [many of our examples](examples/examples.md)
+and explore ado features.
 
 ### Additional Requirements
 
 Some advanced features have additional requirements:
 
 <!-- markdownlint-disable descriptive-link-text -->
+
 - **Distributed Projects** **_(Optional)_**: To support projects with multiple
   users you will need a remote, accessible, MySQL database. See
   [here](getting-started/installing-backend-services.md#using-the-distributed-mysql-backend-for-ado)
   for more
 - **Multi-Node Execution** **_(Optional)_**: To support multi-node or scaling
-  execution you may need a multi-node RayCluster. See
-  [here](getting-started/installing-backend-services.md#deploying-kuberay-and-creating-a-raycluster)
-  for more details
+execution you may need a multi-node RayCluster. See
+[here](getting-started/installing-backend-services.md#deploying-kuberay-and-creating-a-raycluster)
+for more details
 <!-- markdownlint-enable descriptive-link-text -->
 
 In addition `ado` plugins may have additional requirements for executing

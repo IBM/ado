@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import typing
@@ -10,7 +10,6 @@ from orchestrator.cli.exceptions.handlers import (
     handle_no_related_resource,
     handle_resource_does_not_exist,
 )
-from orchestrator.cli.models.choice import HiddenPluralChoice
 from orchestrator.cli.models.parameters import AdoShowDetailsCommandParameters
 from orchestrator.cli.models.types import AdoShowDetailsSupportedResourceTypes
 from orchestrator.cli.resources.discovery_space.show_details import (
@@ -18,6 +17,7 @@ from orchestrator.cli.resources.discovery_space.show_details import (
 )
 from orchestrator.cli.resources.operation.show_details import show_operation_details
 from orchestrator.cli.utils.generic.common import get_effective_resource_id
+from orchestrator.cli.utils.input.parsers import enum_choice_with_plural_parser
 from orchestrator.cli.utils.output.prints import (
     ERROR,
     console_print,
@@ -43,7 +43,8 @@ def show_details_for_resources(
             ...,
             help="The kind of the resource to show details for.",
             show_default=False,
-            click_type=HiddenPluralChoice(AdoShowDetailsSupportedResourceTypes),
+            parser=enum_choice_with_plural_parser(AdoShowDetailsSupportedResourceTypes),
+            metavar=f"[{'|'.join(m.value for m in AdoShowDetailsSupportedResourceTypes)}]",
         ),
     ],
     resource_id: Annotated[
@@ -62,7 +63,7 @@ def show_details_for_resources(
             show_default=False,
         ),
     ] = False,
-):
+) -> None:
     """
     Show a high-level overview of a resource and what resources are related to it.
 
@@ -72,26 +73,15 @@ def show_details_for_resources(
     See https://ibm.github.io/ado/getting-started/ado/#ado-show-details
     for detailed documentation and examples.
 
-
-
     Examples:
 
-
-
     # Show the size of a space and what operations have been run on it
-
     ado show details space <space-id>
-
-
-
 
     # Show details for the latest space
     ado show details space --use-latest
 
-
-
     # Show how many entities were measured as part of an operation
-
     ado show details operation <operation-id>
     """
     ado_configuration: AdoConfiguration = ctx.obj
@@ -107,7 +97,7 @@ def show_details_for_resources(
         resource_id = get_effective_resource_id(
             explicit_resource_id=resource_id,
             resource_type=resource_type.value,
-            ado_configuration=ado_configuration,
+            project_context=ado_configuration.project_context,
         )
 
     parameters = AdoShowDetailsCommandParameters(
@@ -134,10 +124,10 @@ def show_details_for_resources(
         FailedToDecodeStoredMeasurementResultForEntityError,
     ) as e:
         console_print(f"{ERROR}{e}", stderr=True)
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
-def register_show_details_command(app: typer.Typer):
+def register_show_details_command(app: typer.Typer) -> None:
     app.command(
         name="details",
         no_args_is_help=True,

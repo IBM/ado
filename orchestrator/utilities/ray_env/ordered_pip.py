@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import contextlib
@@ -7,6 +7,7 @@ import os
 import threading
 import typing
 
+import anyio
 import ray._private.runtime_env.packaging
 from ray._private.runtime_env import virtualenv_utils
 from ray._private.runtime_env.pip import PipPlugin
@@ -25,9 +26,9 @@ default_logger = logging.getLogger(__name__)
 original_create_or_get_virtualenv = virtualenv_utils.create_or_get_virtualenv
 
 
-async def create_or_get_virtualenv(path: str, cwd: str, logger: logging.Logger):
+async def create_or_get_virtualenv(path: str, cwd: str, logger: logging.Logger) -> None:
     virtualenv_path = os.path.join(path, "virtualenv")
-    if not os.path.exists(virtualenv_path):
+    if not anyio.Path(virtualenv_path).exists():
         await original_create_or_get_virtualenv(path=path, cwd=cwd, logger=logger)
 
 
@@ -35,19 +36,17 @@ _monkey_patch_lock = threading.RLock()
 
 
 @contextlib.contextmanager
-def patch_create_or_get_virtualenv(phase_index: int):
+def patch_create_or_get_virtualenv(
+    phase_index: int,
+) -> typing.Generator[None, None, None]:
     with _monkey_patch_lock:
         if phase_index > 0:
-            setattr(
-                virtualenv_utils, "create_or_get_virtualenv", create_or_get_virtualenv
-            )
+            virtualenv_utils.create_or_get_virtualenv = create_or_get_virtualenv
         try:
             yield
         finally:
-            setattr(
-                virtualenv_utils,
-                "create_or_get_virtualenv",
-                original_create_or_get_virtualenv,
+            virtualenv_utils.create_or_get_virtualenv = (
+                original_create_or_get_virtualenv
             )
 
 
@@ -106,7 +105,7 @@ class OrderedPipPlugin(RuntimeEnvPlugin):
     priority = 100
     ClassPath = "orchestrator.utilities.ray_env.ordered_pip.OrderedPipPlugin"
 
-    def __init__(self, resources_dir: str | None = None):
+    def __init__(self, resources_dir: str | None = None) -> None:
         self._global_mtx = threading.RLock()
         self._create_env_mtx: dict[str, threading.RLock] = {}
         self._pip_resources_dir = resources_dir
@@ -118,7 +117,7 @@ class OrderedPipPlugin(RuntimeEnvPlugin):
         self,
         context: "RuntimeEnvContext",  # noqa: F821
         logger: logging.Logger | None = default_logger,
-    ):
+    ) -> None:
         # VV: When ray instantiates custom RuntimeEnvPlugins it does not provide a resources_dir path.
         # This method is a HACK that the resources_dir based on the RuntimeEnvContext which is known
         # at the time of CREATING a virtual environment i.e. **after** the RuntimeEnvPlugin is initialized.
@@ -159,7 +158,7 @@ class OrderedPipPlugin(RuntimeEnvPlugin):
 
             self._switch_resources_dir(unique.pop())
 
-    def _switch_resources_dir(self, resources_dir: str):
+    def _switch_resources_dir(self, resources_dir: str) -> None:
         with self._global_mtx:
             from ray._common.utils import try_to_create_directory
 
@@ -216,10 +215,13 @@ class OrderedPipPlugin(RuntimeEnvPlugin):
                 raise ValueError(
                     f"runtime_env['ordered_pip']['phases'][{i}] must be consistent with the pip validation rules but "
                     f"validation failed with error {e}"
-                )
+                ) from e
 
-        result = RuntimeEnv(ordered_pip={"phases": phases})
-        logging.debug(
+        # VV: keep extra fields - these are not directly used by ordered_pip but
+        # may help developers troubleshoot issues
+        others = {k: v for k, v in runtime_env_dict.items() if k != "ordered_pip"}
+        result = RuntimeEnv(ordered_pip={"phases": phases}, **others)
+        logging.info(
             f"Rewrote runtime_env `ordered_pip` field from {runtime_env_dict} to {result}."
         )
 
@@ -240,7 +242,10 @@ class OrderedPipPlugin(RuntimeEnvPlugin):
         import hashlib
 
         return [
-            "pip://" + hashlib.sha1(str(aggregate_packages).encode("utf-8")).hexdigest()
+            "pip://"
+            + hashlib.sha1(
+                str(aggregate_packages).encode("utf-8"), usedforsecurity=False
+            ).hexdigest()
         ]
 
     def is_ordered_pip_runtimeenv(self, runtime_env: "RuntimeEnv") -> bool:
@@ -267,7 +272,7 @@ class OrderedPipPlugin(RuntimeEnvPlugin):
         with self._create_env_mtx[uri]:
             logger.info(f"Creating {uri} for {runtime_env}")
             try:
-                if os.path.isdir(self.get_path_to_pip_venv(uri)):
+                if await anyio.Path(self.get_path_to_pip_venv(uri)).is_dir():
                     logger.info(f"Virtual environment for {uri} already exists")
                     return self._cache[uri]
             except KeyError:
@@ -320,7 +325,7 @@ class OrderedPipPlugin(RuntimeEnvPlugin):
         runtime_env: "RuntimeEnv",  # noqa: F821
         context: "RuntimeEnvContext",  # noqa: F821
         logger: logging.Logger = default_logger,
-    ):
+    ) -> None:
         self._try_switch_resources_dir_from_context(context)
 
         runtime_env = self.validate(runtime_env)
@@ -332,6 +337,20 @@ class OrderedPipPlugin(RuntimeEnvPlugin):
 
         if not len(phases):
             return
+
+        env_dir = self.get_path_to_pip_venv(uris[0])
+
+        if not os.path.isdir(env_dir):
+            logger.warning(
+                f"The pip environment at {env_dir} has been garbage collected - recreating it"
+            )
+            import asyncio
+
+            asyncio.run(
+                self.create(
+                    uris[0], runtime_env=runtime_env, context=context, logger=logger
+                )
+            )
 
         self._pip_plugin.modify_context(
             uris=uris,

@@ -1,0 +1,18 @@
+# Copyright IBM Corporation 2025, 2026
+# SPDX-License-Identifier: MIT
+sampleStoreIdentifier: default
+entitySpace:
+  - identifier: learning_rate
+    propertyDomain:
+      variableType: CONTINUOUS_VARIABLE_TYPE
+      domainRange: [0.005, 0.02] # Narrowed around 0.01
+  - identifier: batch_size
+    propertyDomain:
+      variableType: DISCRETE_VARIABLE_TYPE
+      values: [32, 64]
+experiments:
+  - actuatorIdentifier: TrainerActuator
+    experimentIdentifier: train_model
+metadata:
+  name: fine_tune_lr
+  description: Fine-tune learning rate around 0.01

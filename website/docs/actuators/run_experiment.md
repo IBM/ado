@@ -1,13 +1,13 @@
 # Running experiments on single entities
 
->[!Note]
+> [!Note]
 >
 > The `run_experiment` script provides a quick and convenient way to execute
 > any experiment from an actuator on a single point (entity) without the
 > need to create a `discoveryspace`.
 >
-> This is especially useful for **rapid testing and debugging of actuator logic or
-> experiment definitions**.
+> This is especially useful for **rapid testing and debugging of actuator logic
+> or experiment definitions**.
 
 ## Purpose
 
@@ -21,19 +21,28 @@
 ## Usage
 
 <!-- markdownlint-disable line-length -->
+
 ```bash
-run_experiment <point_file.yaml> [--remote <ENDPOINT>] [--timeout <SECONDS>] [--no-validate]
+run_experiment <point_file.yaml> [--remote <ENDPOINT>] [--timeout <SECONDS>] [--no-validate] \
+               [--actuator-configuration-id <identifier>] [--verify-certs | --no-verify-certs] \
+               [--request-timeout <timeout-in-seconds>]
 ```
+
 <!-- markdownlint-enable line-length -->
 
-- `<point_file.yaml>`: Path to a YAML file describing the point/entity
-and the experiments to run. This file should conform to the `ado` point
-definition schema.
-- `--remote <ENDPOINT>`: (Optional) If provided, the experiment will be executed
-through an `ado` REST API endpoint. If omitted, execution is local.
-- `--timeout <SECONDS>`: (Optional) Timeout for remote execution (default: 300 seconds).
-- `--no-validate`: (Optional) Skip entity validation before execution.
-This is useful if the experiment is not installed locally but is available remotely.
+- `<point_file.yaml>`: (REQUIRED) Path to a YAML file describing the point/entity
+  and the experiments to run. This file should conform to the `ado` point
+  definition schema.
+- `--remote <ENDPOINT>`: If provided, the experiment will be executed
+  through an `ado` REST API endpoint. If omitted, execution is local.
+- `--timeout <SECONDS>`: Timeout for remote execution (default: 300 seconds).
+- `--no-validate`: Skip entity validation before execution.
+  This is useful if the experiment is not installed locally but is available remotely.
+- `--actuator-configuration-id`: Actuator configuration identifiers to use
+  in the experiment. Can be specified multiple times.
+- `--verify-certs`, `--no-verify-certs`: Enable or disable SSL certificate verification
+  of remote hosts. (default: `--no-verify-certs`).
+- `--request-timeout`: Timeout for web requests. (default: 60s)
 
 ## Example
 
@@ -54,8 +63,8 @@ entity:
   x1: 2
   x2: -1
 experiments:
-- actuatorIdentifier: custom_experiments
-  experimentIdentifier: nevergrad_opt_3d_test_func
+  - actuatorIdentifier: custom_experiments
+    experimentIdentifier: nevergrad_opt_3d_test_func
 ```
 
 To execute the experiment, run
@@ -67,15 +76,15 @@ run_experiment example_point.yaml
 ## Limitations & Notes
 
 - **Single Point Only:** This tool is designed for running experiments
-on a single point/entity.
+  on a single point/entity.
   - For evaluating multiple points or running large-scale experiments, use a `discoveryspace`
     and the standard `ado` workflow.
 - **No Metastore Tracking:** The results from `run_experiment`
-are **not** tracked or stored in the `ado` [metastore](../resources/metastore.md).
+  are **not** tracked or stored in the `ado` [metastore](../resources/metastore.md).
   - This means results are ephemeral and only available in the console output.
 - **For Development & Debugging:** This script is best suited for
-actuator/experiment development, debugging, or quick checks — not for
-production or persistent experiment tracking.
+  actuator/experiment development, debugging, or quick checks — not for
+  production or persistent experiment tracking.
 
 ## When to Use
 

@@ -1,29 +1,37 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import uuid
+from collections.abc import Callable
 
 import pydantic
 import pytest
 
+from orchestrator.schema.entity import Entity
 from orchestrator.schema.observed_property import (
     ObservedProperty,
     ObservedPropertyValue,
 )
 from orchestrator.schema.property import AbstractPropertyDescriptor
+from orchestrator.schema.property_value import ConstitutivePropertyValue
 from orchestrator.schema.reference import ExperimentReference
 from orchestrator.schema.request import (
     MeasurementRequest,
     MeasurementRequestStateEnum,
     ReplayedMeasurement,
 )
-from orchestrator.schema.result import InvalidMeasurementResult, ValidMeasurementResult
+from orchestrator.schema.result import (
+    InvalidMeasurementResult,
+    MeasurementResult,
+    MeasurementResultStateEnum,
+    ValidMeasurementResult,
+)
 
 
 # missing test: multiple results per entity, increases results index
 def test_invalid_series_representation_format_raises_error(
-    valid_measurement_result, entity
-):
+    valid_measurement_result: ValidMeasurementResult, entity: Entity
+) -> None:
     request = MeasurementRequest(
         entities=[entity],
         experimentReference=valid_measurement_result.experimentReference,
@@ -38,7 +46,9 @@ def test_invalid_series_representation_format_raises_error(
         request.series_representation(output_format="blah")
 
 
-def test_can_assign_none_cannot_reset(valid_measurement_result, entity):
+def test_can_assign_none_cannot_reset(
+    valid_measurement_result: ValidMeasurementResult, entity: Entity
+) -> None:
 
     # We do not set a value for the measurement field - this will work
     request = MeasurementRequest(
@@ -59,7 +69,9 @@ def test_can_assign_none_cannot_reset(valid_measurement_result, entity):
         request.measurements = [valid_measurement_result]
 
 
-def test_cannot_assign_empty(valid_measurement_result, entity):
+def test_cannot_assign_empty(
+    valid_measurement_result: ValidMeasurementResult, entity: Entity
+) -> None:
 
     # We do not set a value for the measurement field - this will work
     request = MeasurementRequest(
@@ -75,8 +87,11 @@ def test_cannot_assign_empty(valid_measurement_result, entity):
 
 
 def test_string_representation(
-    valid_measurement_result, invalid_measurement_result, entity, property_values
-):
+    valid_measurement_result: ValidMeasurementResult,
+    invalid_measurement_result: InvalidMeasurementResult,
+    entity: Entity,
+    property_values: list[ObservedPropertyValue | ConstitutivePropertyValue],
+) -> None:
 
     import copy
 
@@ -133,8 +148,11 @@ def test_string_representation(
 
 
 def test_string_representation_replayed(
-    valid_measurement_result, invalid_measurement_result, entity, property_values
-):
+    valid_measurement_result: ValidMeasurementResult,
+    invalid_measurement_result: InvalidMeasurementResult,
+    entity: Entity,
+    property_values: list[ObservedPropertyValue | ConstitutivePropertyValue],
+) -> None:
 
     import copy
 
@@ -187,8 +205,10 @@ def test_string_representation_replayed(
 
 
 def test_cannot_reassign_measurements_field_in_measurement_request(
-    valid_measurement_result, entity, property_values
-):
+    valid_measurement_result: ValidMeasurementResult,
+    entity: Entity,
+    property_values: list[ObservedPropertyValue | ConstitutivePropertyValue],
+) -> None:
     """This tests that once the measurement field of MeasurementRequest is assigned a set of MeasurementResults
     that set cannot be changed or set to None"""
 
@@ -244,7 +264,9 @@ def test_cannot_reassign_measurements_field_in_measurement_request(
         request.measurements = None
 
 
-def test_measurement_request_measurement_for_entity(valid_measurement_result, entity):
+def test_measurement_request_measurement_for_entity(
+    valid_measurement_result: ValidMeasurementResult, entity: Entity
+) -> None:
     request = MeasurementRequest(
         entities=[entity],
         measurements=(valid_measurement_result,),
@@ -262,7 +284,9 @@ def test_measurement_request_measurement_for_entity(valid_measurement_result, en
         request.measurement_for_entity("incorrect_id")
 
 
-def test_measurement_request_valid(valid_measurement_result, entity):
+def test_measurement_request_valid(
+    valid_measurement_result: ValidMeasurementResult, entity: Entity
+) -> None:
 
     MeasurementRequest(
         entities=[entity],
@@ -274,7 +298,9 @@ def test_measurement_request_valid(valid_measurement_result, entity):
     )
 
 
-def test_measurement_request_invalid(invalid_measurement_result, entity):
+def test_measurement_request_invalid(
+    invalid_measurement_result: InvalidMeasurementResult, entity: Entity
+) -> None:
 
     MeasurementRequest(
         entities=[entity],
@@ -286,7 +312,9 @@ def test_measurement_request_invalid(invalid_measurement_result, entity):
     )
 
 
-def test_measurement_request_mismatched_entities(valid_measurement_result, entity):
+def test_measurement_request_mismatched_entities(
+    valid_measurement_result: ValidMeasurementResult, entity: Entity
+) -> None:
     """Tests all entity ids in the request measurements field must have a matching entity in request entities field"""
 
     # Create a InvalidResult for a different entity
@@ -325,7 +353,9 @@ def test_measurement_request_mismatched_entities(valid_measurement_result, entit
         request.measurements = [valid_measurement_result, invalid_result]
 
 
-def test_measurement_request_mismatched_experiments(entity, valid_measurement_result):
+def test_measurement_request_mismatched_experiments(
+    entity: Entity, valid_measurement_result: ValidMeasurementResult
+) -> None:
     """Tests all experiments in request.measurements match request.experimentReference"""
 
     # Create a InvalidResult for the same entity with a different experiment
@@ -366,8 +396,8 @@ def test_measurement_request_mismatched_experiments(entity, valid_measurement_re
 
 
 def test_measurement_request_multiple_entity_measurement(
-    valid_measurement_result, entity
-):
+    valid_measurement_result: ValidMeasurementResult, entity: Entity
+) -> None:
 
     # Tests that the same entity can't have multiple measurement results
 
@@ -403,10 +433,13 @@ def test_measurement_request_multiple_entity_measurement(
 
 
 def test_measurement_request_series_representation(
-    random_ml_multi_cloud_benchmark_performance_entities,
-    random_ml_multi_cloud_benchmark_performance_measurement_requests,
-    random_identifier,
-):
+    random_ml_multi_cloud_benchmark_performance_entities: Callable[[int], list[Entity]],
+    random_ml_multi_cloud_benchmark_performance_measurement_requests: Callable[
+        [int, int, MeasurementRequestStateEnum | None, str | None],
+        ReplayedMeasurement,
+    ],
+    random_identifier: Callable[[], str],
+) -> None:
 
     number_entities = 2
     measurements_per_result = 1
@@ -450,14 +483,16 @@ def test_measurement_request_series_representation(
         assert series["result_index"] == expected_result_id
         assert series["entity_index"] == i
         assert series["identifier"] == random_request.entities[i].identifier
-        assert series["experiment_id"] == random_request.experimentReference
+        assert series["experiment_id"] == str(random_request.experimentReference)
         assert series["valid"]
 
 
 def test_populate_measurement_results_in_entities(
-    random_ml_multi_cloud_benchmark_performance_entities,
-    random_ml_multi_cloud_benchmark_performance_measurement_results,
-):
+    random_ml_multi_cloud_benchmark_performance_entities: Callable[[int], list[Entity]],
+    random_ml_multi_cloud_benchmark_performance_measurement_results: Callable[
+        [Entity, int, MeasurementResultStateEnum | None], MeasurementResult
+    ],
+) -> None:
 
     random_entity = random_ml_multi_cloud_benchmark_performance_entities(quantity=1)[0]
     shared_uid = uuid.uuid4()
@@ -532,7 +567,9 @@ def test_populate_measurement_results_in_entities(
 
 
 @pytest.fixture
-def measurement_request_valid(valid_measurement_result, entity):
+def measurement_request_valid(
+    valid_measurement_result: ValidMeasurementResult, entity: Entity
+) -> MeasurementRequest:
 
     return MeasurementRequest(
         entities=[entity],
@@ -545,7 +582,9 @@ def measurement_request_valid(valid_measurement_result, entity):
 
 
 @pytest.fixture
-def measurement_request_invalid(invalid_measurement_result, entity):
+def measurement_request_invalid(
+    invalid_measurement_result: InvalidMeasurementResult, entity: Entity
+) -> MeasurementRequest:
 
     return MeasurementRequest(
         entities=[entity],

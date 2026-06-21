@@ -1,8 +1,10 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import enum
 import itertools
+import typing
+from typing import Annotated
 
 import pandas as pd
 import pydantic
@@ -25,10 +27,13 @@ class SeriesBehaviourEnum(enum.Enum):
 
 
 class ExpectedSeriesBehaviour(pydantic.BaseModel):
-    property: str = pydantic.Field(description="The identifier of an observed property")
-    behaviour: SeriesBehaviourEnum = pydantic.Field(
-        description="The expected behaviour of the series to test"
-    )
+    property: Annotated[
+        str, pydantic.Field(description="The identifier of an observed property")
+    ]
+    behaviour: Annotated[
+        SeriesBehaviourEnum,
+        pydantic.Field(description="The expected behaviour of the series to test"),
+    ]
 
 
 class PropertyTypeEnum(enum.Enum):
@@ -39,38 +44,53 @@ class PropertyTypeEnum(enum.Enum):
 class DetectAnomalousSeries(pydantic.BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    entity_filter: EntityFilter = pydantic.Field(
-        default=EntityFilter.SAMPLED, description="What entities should be used"
-    )
-    test_property_type: PropertyTypeEnum = pydantic.Field(
-        default="observed",
-        description="If target then test_properties must use target property identifiers. "
-        "If observed then they must be observed property identifiers ",
-    )
-    groupby_properties: list[str] = pydantic.Field(
-        description="A list of identifiers of constitutive properties to group by"
-    )
-    independent_properties: list[str] = pydantic.Field(
-        description="Constitutive property to treat as independent variable of each group. "
-        "If there are more than one, then for each property, "
-        "the others are added to group_properties to form the groups"
-    )
-    test_properties: list[ExpectedSeriesBehaviour] = pydantic.Field(
-        description="A list of observed properties and behaviours. "
-        "For each group and each independent variable, the behaviour of the property for the group will be checked"
-    )
-    failed_metric: str | None = pydantic.Field(
-        default=None,
-        description="The target property that indicates measurement validity. Assumed to be a bool",
-    )
-    trim_failed: bool = pydantic.Field(
-        default=True,
-        description="If True entities that have failed_value "
-        "for the failed_metric and trim from start/end of the series.",
-    )
+    entity_filter: Annotated[
+        EntityFilter, pydantic.Field(description="What entities should be used")
+    ] = EntityFilter.SAMPLED
+    test_property_type: Annotated[
+        PropertyTypeEnum,
+        pydantic.Field(
+            description="If target then test_properties must use target property identifiers. "
+            "If observed then they must be observed property identifiers ",
+        ),
+    ] = "observed"
+    groupby_properties: Annotated[
+        list[str],
+        pydantic.Field(
+            description="A list of identifiers of constitutive properties to group by"
+        ),
+    ]
+    independent_properties: Annotated[
+        list[str],
+        pydantic.Field(
+            description="Constitutive property to treat as independent variable of each group. "
+            "If there are more than one, then for each property, "
+            "the others are added to group_properties to form the groups"
+        ),
+    ]
+    test_properties: Annotated[
+        list[ExpectedSeriesBehaviour],
+        pydantic.Field(
+            description="A list of observed properties and behaviours. "
+            "For each group and each independent variable, the behaviour of the property for the group will be checked"
+        ),
+    ]
+    failed_metric: Annotated[
+        str | None,
+        pydantic.Field(
+            description="The target property that indicates measurement validity. Assumed to be a bool",
+        ),
+    ] = None
+    trim_failed: Annotated[
+        bool,
+        pydantic.Field(
+            description="If True entities that have failed_value "
+            "for the failed_metric and trim from start/end of the series.",
+        ),
+    ] = True
 
     @classmethod
-    def default_parameters(cls) -> "DetectAnomalousSeries":
+    def example_configuration(cls) -> "DetectAnomalousSeries":
         return cls(
             groupby_properties=[
                 "model_name",
@@ -102,13 +122,13 @@ class DetectAnomalousSeries(pydantic.BaseModel):
     properties, other than the selected independent property.
     """,
     configuration_model=DetectAnomalousSeries,
-    configuration_model_default=DetectAnomalousSeries.default_parameters(),
+    example_configuration=DetectAnomalousSeries.example_configuration(),
     version="1.0",
 )
 def detect_anomalous_series(
     discoverySpace: DiscoverySpace,
     operationInfo: FunctionOperationInfo | None = None,
-    **parameters,
+    **parameters: typing.Any,  # noqa: ANN401
 ) -> OperationOutput:
     """
     This function checks if the behaviour of an observed property versus
@@ -121,10 +141,10 @@ def detect_anomalous_series(
     properties, other than the selected independent property.
     """
 
-    def monotonically_increasing(samples):
+    def monotonically_increasing(samples: pd.Series) -> bool:
         return all(x < y for x, y in itertools.pairwise(samples))
 
-    def monotonically_decreasing(samples):
+    def monotonically_decreasing(samples: pd.Series) -> bool:
         return all(x > y for x, y in itertools.pairwise(samples))
 
     config = DetectAnomalousSeries.model_validate(parameters)
@@ -164,14 +184,24 @@ def detect_anomalous_series(
 
     # Check if all properties are present
     print("Checking all groupby properties are present: ... ")
-    for prop in config.groupby_properties:
-        assert prop in df.columns
-
+    df_columns_set = set(df.columns)
+    missing_group_by_properties = df_columns_set.difference(
+        set(config.groupby_properties)
+    )
+    if len(missing_group_by_properties) != 0:
+        raise ValueError(
+            f"Not all groupby properties were present. Missing: {missing_group_by_properties}"
+        )
     print("All present\n")
-    print("Checking all independent properties are present: ... ")
-    for prop in config.independent_properties:
-        assert prop in df.columns
 
+    print("Checking all independent properties are present: ... ")
+    missing_independent_properties = df_columns_set.difference(
+        set(config.independent_properties)
+    )
+    if len(missing_independent_properties) != 0:
+        raise ValueError(
+            f"Not all independent properties were present. Missing: {missing_independent_properties}"
+        )
     print("All present\n")
 
     print("Checking all test properties are present: ... ")
@@ -186,7 +216,10 @@ def detect_anomalous_series(
 
     if config.failed_metric is not None:
         print("Checking if failed metric is present: ... ")
-        assert config.failed_metric in df.columns
+
+        if config.failed_metric not in df.columns:
+            raise ValueError("failed_metric was not present in the DataFrame")
+
         print("Present\n")
 
     results = []
@@ -219,9 +252,7 @@ def detect_anomalous_series(
 
                     z = np.trim_zeros(g[config.failed_metric])
                     test_group = g.loc[z.index]
-                # print(
-                #     f"\t\tTrimmed failed entities based on {config.failed_metric}. Before: {g.shape[0]}. After: {test_group.shape[0]}"
-                # )
+
                 else:
                     test_group = g
 

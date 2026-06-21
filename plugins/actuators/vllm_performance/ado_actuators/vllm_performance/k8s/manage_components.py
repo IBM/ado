@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import json
@@ -7,6 +7,7 @@ import math
 import time
 import uuid
 
+import pydantic
 from ado_actuators.vllm_performance.k8s import (
     K8sConnectionError,
 )
@@ -40,7 +41,7 @@ class ComponentsManager:
         init_pvc: bool = False,
         pvc_name: None | str = None,
         pvc_template: None | str = None,
-    ):
+    ) -> None:
         """
         set up for configuration usage
         :param namespace: cluster namespace to use
@@ -64,14 +65,14 @@ class ComponentsManager:
             # this is just to make sure we are authenticated to the cluster
             # and fail immediately otherwise.
             self.kube_client_V1.list_namespaced_pod(namespace=namespace)
-        except ApiException:
+        except ApiException as error:
             error_message = "Error connecting to the Kubernetes cluster.\n"
             if in_cluster:
                 error_message += "Make sure the service account used for the Ray cluster has sufficient permissions."
             else:
                 error_message += "Make sure you are authenticated with the Kubernetes cluster or that you are using a valid kubeconfig."
             logger.critical(error_message)
-            raise K8sConnectionError
+            raise K8sConnectionError from error
         except Exception as e:
             logger.critical(f"Exception connecting to kubernetes {e}")
             raise
@@ -86,7 +87,7 @@ class ComponentsManager:
                 self.pvc_name = f"vllm-support-{uuid.uuid4().hex!s}"
                 self.create_pvc(pvc_name=self.pvc_name, template=pvc_template)
                 self.pvc_created = True
-                logger.debug(f"Created pvc {pvc_name} in namespace {namespace}")
+                logger.debug(f"Created pvc {self.pvc_name} in namespace {namespace}")
             else:
                 if not self.check_pvc_exists(pvc_name=pvc_name):
                     error_message = (
@@ -114,9 +115,9 @@ class ComponentsManager:
         except ApiException:
             print("api exception")
             return False
-        except Exception:
+        except Exception as error:
             print("Failed connecting to the Kubernetes cluster")
-            raise K8sConnectionError
+            raise K8sConnectionError from error
 
     def check_pvc_exists(self, pvc_name: str) -> bool:
         """
@@ -188,35 +189,14 @@ class ComponentsManager:
             name=k8s_name,
         )
 
-    def create_service(
-        self, k8s_name: str, template: str | None = None, reuse: bool = False
-    ) -> None:
+    def create_service(self, k8s_name: str, template: str | None = None) -> None:
         """
         create service for model
         :param k8s_name: kubernetes name
         :param template service yaml template
-        :param reuse: reuse if exists
         :return:
         """
-        # try to reuse existing one if exists
-        exists = self.check_service_exists(k8s_name=k8s_name)
-        if exists and reuse:
-            return
-        if exists and not reuse:
-            # delete it first
-            try:
-                self.delete_service(k8s_name=k8s_name)
-            except ApiException as e:
-                logger.error(f"Error deleting service {e}")
-            # make sure that deletion is completed
-            deleting = True
-            for _ in range(150):
-                deleting = self.check_service_exists(k8s_name=k8s_name)
-                if not deleting:
-                    break
-                time.sleep(1)
-            if deleting:
-                logger.error("Did not complete Service deletion")
+
         # create service
         try:
             self.kube_client_V1.create_namespaced_service(
@@ -264,9 +244,9 @@ class ComponentsManager:
         k8s_name: str,
         model: str,
         gpu_type: str = "NVIDIA-A100-80GB-PCIe",
-        node_selector: dict[str, str] = {},
+        node_selector: dict[str, str] | None = None,
         image: str = "vllm/vllm-openai:v0.6.3",
-        image_secret: str = "",
+        image_pull_secret_name: str = "",
         n_gpus: int = 1,
         n_cpus: int = 8,
         memory: str = "128Gi",
@@ -278,7 +258,10 @@ class ComponentsManager:
         template: str | None = None,
         claim_name: str | None = None,
         hf_token: str | None = None,
-        reuse: bool = False,
+        enforce_eager: bool = False,
+        skip_tokenizer_init: bool = False,
+        io_processor_plugin: str | None = None,
+        otlp_traces_endpoint: pydantic.AnyUrl | None = None,
     ) -> None:
         """
         create deployment for model
@@ -287,7 +270,7 @@ class ComponentsManager:
         :param gpu_type: gpu type, for example NVIDIA-A100-80GB-PCIe, Tesla-V100-PCIE-16GB, etc.
         :param node_selector: optional node selector
         :param image: image name to use
-        :param image_secret: name of the image pull secret
+        :param image_pull_secret_name: name of the image pull secret
         :param n_gpus: number of GPUs to use in VLLM
         :param n_cpus: number of CPUs for VLLM pod
         :param memory: memory for VLLM pod
@@ -299,29 +282,14 @@ class ComponentsManager:
         :param template: template for deployment yaml
         :param claim_name: PVC name
         :param hf_token: huggingface token
-        :param reuse: reuse if exists
+        :param enforce_eager: flag to enforce using Pytorch eager mode
+        :param skip_tokenizer_init: flag to skip tokenizer initialization in vLLM
+        :param io_processor_plugin: name of the IO processor plugin to be used by vLLM
+        :param otlp_traces_endpoint: OpenTelemetry traces endpoint URL
         :return:
         """
-        # try to reuse existing one if exists
-        exists = self.check_deployment_exist(k8s_name=k8s_name)
-        if exists and reuse:
-            return
-        if exists and not reuse:
-            # delete it first
-            try:
-                self.delete_deployment(k8s_name=k8s_name)
-            except ApiException as e:
-                logger.error(f"Error deleting deployment {e}")
-            # make sure that deletion is completed
-            deleting = True
-            for _ in range(150):
-                deleting = self.check_deployment_exist(k8s_name=k8s_name)
-                if not deleting:
-                    break
-                time.sleep(1)
-            if deleting:
-                logger.error("Did not complete deployment deletion")
-                raise
+        if node_selector is None:
+            node_selector = {}
 
         # create deployment
         deployment_yaml = ComponentsYaml.deployment_yaml(
@@ -330,7 +298,7 @@ class ComponentsManager:
             gpu_type=gpu_type,
             node_selector=node_selector,
             image=image,
-            image_secret=image_secret,
+            image_pull_secret_name=image_pull_secret_name,
             n_gpus=n_gpus,
             n_cpus=n_cpus,
             memory=memory,
@@ -342,6 +310,10 @@ class ComponentsManager:
             template=template,
             claim_name=claim_name,
             hf_token=hf_token,
+            skip_tokenizer_init=skip_tokenizer_init,
+            io_processor_plugin=io_processor_plugin,
+            enforce_eager=enforce_eager,
+            otlp_traces_endpoint=otlp_traces_endpoint,
         )
         logger.debug(json.dumps(deployment_yaml, indent=2))
 
@@ -438,7 +410,6 @@ if __name__ == "__main__":
         k8s_name=t_k8s_name,
         model="meta-llama/Llama-3.1-8B-Instruct",
         claim_name="vllm-support",
-        hf_token="token",
         image="quay.io/dataprep1/data-prep-kit/vllm_image:0.1",
     )
     c_manager.wait_deployment_ready(k8s_name=t_k8s_name)

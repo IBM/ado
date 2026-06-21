@@ -58,7 +58,7 @@ the actuator you want to install_ : in this case
    This removes any previous build artifacts and wheels. This prevents issues
    with old files being included in the new wheel.
 
-2. `python -m build`
+2. `python -m build -o dist`
 
    This creates a `dist/` directory with the wheel. It will have a name like
    `ado_sfttrainer-XXXX.whl`

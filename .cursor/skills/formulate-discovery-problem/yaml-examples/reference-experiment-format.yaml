@@ -1,0 +1,9 @@
+# Copyright IBM Corporation 2025, 2026
+# SPDX-License-Identifier: MIT
+experiments:
+  - actuatorIdentifier: actuator_id
+    experimentIdentifier: experiment_id
+    parameterization: # Optional - only if customizing optional properties
+      - property:
+          identifier: property_name
+        value: custom_value

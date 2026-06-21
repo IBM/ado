@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import logging
@@ -9,6 +9,9 @@ from typing import Annotated
 import pydantic
 from pydantic import ConfigDict
 
+if typing.TYPE_CHECKING:
+    from rich.console import RenderableType
+
 moduleLog = logging.getLogger("location")
 
 
@@ -16,7 +19,7 @@ class ResourceLocation(pydantic.BaseModel):
     """A model for URLs/URIs"""
 
     @classmethod
-    def locationFromURL(cls, string):
+    def locationFromURL(cls, string: str) -> "ResourceLocation":
 
         # Note2: Users can pass the port as part of host but pydantic will
 
@@ -30,25 +33,28 @@ class ResourceLocation(pydantic.BaseModel):
             password=url.password,
         )
 
-    scheme: str = pydantic.Field(description="The resource access scheme")
-    host: str | None = pydantic.Field(
-        default=None,
-        description="The host name for the resource. Should not contain port",
-    )
+    scheme: Annotated[str, pydantic.Field(description="The resource access scheme")]
+    host: Annotated[
+        str | None,
+        pydantic.Field(
+            description="The host name for the resource. Should not contain port"
+        ),
+    ] = None
     # validating default of None to allow detecting if the port was placed in the host field
-    port: int | None = pydantic.Field(
-        default=None, description="Port number", validate_default=True
-    )
-    path: str | None = pydantic.Field(
-        default=None, description="The path of the resource"
-    )
-    user: str | None = pydantic.Field(default=None, description="The user")
-    password: str | None = pydantic.Field(default=None, description="The password")
+    port: Annotated[
+        int | None,
+        pydantic.Field(description="Port number", validate_default=True),
+    ] = None
+    path: Annotated[
+        str | None, pydantic.Field(description="The path of the resource")
+    ] = None
+    user: Annotated[str | None, pydantic.Field(description="The user")] = None
+    password: Annotated[str | None, pydantic.Field(description="The password")] = None
 
     model_config = ConfigDict(extra="forbid")
 
     @pydantic.model_validator(mode="after")
-    def check_if_host_specifies_port(self):
+    def check_if_host_specifies_port(self) -> "ResourceLocation":
         """port should not be included in the host name, but use the port field
 
         This validator checks if the port is in the host field.
@@ -69,7 +75,7 @@ class ResourceLocation(pydantic.BaseModel):
 
         return self
 
-    def url(self, hide_pw=False) -> pydantic.AnyUrl:
+    def url(self, hide_pw: bool = False) -> pydantic.AnyUrl:
         """Note: pydantic 2 up to at least 2.6.4 adds trailing path separators to host names
 
         e.g. https://localhost -> https://localhost/
@@ -100,7 +106,7 @@ class ResourceLocation(pydantic.BaseModel):
             path=None if self.path is None else self.path.lstrip("/"),
         )
 
-    def baseUrl(self):
+    def baseUrl(self) -> pydantic.AnyUrl | pydantic.FileUrl:
         """Returns URL without password or user components"""
 
         urlClass = pydantic.FileUrl if self.scheme == "file" else pydantic.AnyUrl
@@ -112,22 +118,21 @@ class ResourceLocation(pydantic.BaseModel):
             path=self.path.lstrip("/"),
         )
 
-    def _repr_pretty_(self, p, cycle=False):
+    def __rich__(self) -> "RenderableType":
+        """Render this location using rich."""
+        from rich.text import Text
 
-        if cycle:
-            p.text("Cycle detected")
-        else:
-            p.text(self.url().unicode_string())
+        return Text(self.url().unicode_string())
 
 
 class FilePathLocation(ResourceLocation):
 
-    scheme: str = pydantic.Field(
-        default="file", description="The resource access scheme"
+    scheme: Annotated[str, pydantic.Field(description="The resource access scheme")] = (
+        "file"
     )
 
     @pydantic.field_validator("path", mode="before")
-    def check_if_path_exists(cls, value, values):
+    def check_if_path_exists(cls, value: str) -> str:
         """Check if the path exists and emit a debug log if it does not"""
         import os
 
@@ -138,7 +143,7 @@ class FilePathLocation(ResourceLocation):
         return value
 
     @property
-    def hash_identifier(self):
+    def hash_identifier(self) -> str:
         """Returns an identifier for the file-path of the form {filename}-{file hash}"""
 
         import hashlib
@@ -146,12 +151,13 @@ class FilePathLocation(ResourceLocation):
         import pandas as pd
 
         file_hash = hashlib.md5(
-            pd.util.hash_pandas_object(pd.read_csv(self.path), index=True).values
+            pd.util.hash_pandas_object(pd.read_csv(self.path), index=True).values,
+            usedforsecurity=False,
         ).hexdigest()
         filename = os.path.split(os.path.expandvars(self.path))[1]
         return f"{filename}-{file_hash}"
 
-    def url(self, hide_pw=False) -> pydantic.AnyUrl:
+    def url(self, hide_pw: bool = False) -> pydantic.AnyUrl:
         """Note: pydantic 2 up to at least 2.6.4 adds trailing path separators to host names
 
         e.g. https://localhost -> https://localhost/
@@ -172,10 +178,10 @@ class StorageDatabaseConfiguration(ResourceLocation):
     in fact be used. By: default it is True. Ability to set to False allows for debugging
     """
 
-    sslVerify: bool = pydantic.Field(
-        default=True, description="If False SSL verification is turned of"
-    )
-    database: str = pydantic.Field(description="The database to access")
+    sslVerify: Annotated[
+        bool, pydantic.Field(description="If False SSL verification is turned of")
+    ] = True
+    database: Annotated[str, pydantic.Field(description="The database to access")]
     model_config = ConfigDict(extra="forbid")
 
 
@@ -199,7 +205,7 @@ class SQLStoreConfiguration(StorageDatabaseConfiguration):
     ] = None
 
     @pydantic.model_validator(mode="after")
-    def set_url_path_to_database_name(self):
+    def set_url_path_to_database_name(self) -> "SQLStoreConfiguration":
 
         moduleLog.debug(
             f"Replacing path value {self.path} with database value {self.database}"
@@ -209,7 +215,7 @@ class SQLStoreConfiguration(StorageDatabaseConfiguration):
         return self
 
     @pydantic.model_validator(mode="after")
-    def check_valid_dsn(self):
+    def check_valid_dsn(self) -> "SQLStoreConfiguration":
         """
         Validates that the url produced by this class is a valid
         MySQLDsn.
@@ -233,8 +239,6 @@ class SQLStoreConfiguration(StorageDatabaseConfiguration):
 
         if isinstance(m, pydantic.MySQLDsn) and not self.user:
             raise ValueError("You must specify the user when using MySQL")
-            # if not self.password:
-            #     raise ValueError("You must specify the password when using MySQL")
 
         return self
 
@@ -254,7 +258,7 @@ class SQLiteStoreConfiguration(StorageDatabaseConfiguration):
     ] = None
 
     @pydantic.model_validator(mode="after")
-    def purge_unsupported_fields(self):
+    def purge_unsupported_fields(self) -> "SQLiteStoreConfiguration":
         self.host = None
         self.port = None
         self.user = None
@@ -263,13 +267,14 @@ class SQLiteStoreConfiguration(StorageDatabaseConfiguration):
         self.sslVerify = False
         return self
 
-    def url(self, hide_pw=False) -> pydantic.AnyUrl:
+    def url(self, hide_pw: bool = False) -> pydantic.AnyUrl:
         if " " in self.path:
             import warnings
 
             warnings.warn(
                 "The path to the SQLite database contains whitespace. "
-                "The URL being generated should not be used to connect to the database."
+                "The URL being generated should not be used to connect to the database.",
+                stacklevel=2,
             )
 
         return pydantic.AnyUrl.build(

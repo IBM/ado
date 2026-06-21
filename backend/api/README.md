@@ -20,6 +20,15 @@ Make sure you have completed the setup outlined in
 
 ## Instructions
 
+> [!CAUTION] Alpha feature with no built-in security
+>
+> The Ray Serve API exposed by ado is currently an **alpha feature** and **does
+> not include built-in authentication, authorization, or other endpoint security
+> controls** at this time. If you expose it beyond localhost, you **must**
+> secure it using your Kubernetes or OpenShift environment, for example with
+> Routes, Ingress, network policies, TLS termination, and your platform's
+> authentication and access-control mechanisms.
+
 ### Deploying locally
 
 Serving the API locally is very easy. Run the following command in your
@@ -32,6 +41,7 @@ serve run orchestrator.api.rest:ado_rest_api
 You should see output similar to this:
 
 <!-- markdownlint-disable line-length -->
+
 ```terminaloutput
 2025-09-19 11:50:39,727 INFO scripts.py:507 -- Running import path: 'orchestrator.api.rest:ado_rest_api'.
 2025-09-19 11:50:45,496 INFO worker.py:1942 -- Started a local Ray instance. View the dashboard at 127.0.0.1:8265
@@ -45,6 +55,7 @@ INFO 2025-09-19 11:50:48,852 serve 98612 -- Connecting to existing Serve app in 
 (ServeController pid=98727) INFO 2025-09-19 11:50:49,177 controller 98727 -- Adding 1 replica to Deployment(name='AdoRESTApi', app='default').
 INFO 2025-09-19 11:50:50,096 serve 98612 -- Application 'default' is ready at http://127.0.0.1:8000/.
 ```
+
 <!-- markdownlint-enable line-length -->
 
 Once you see the final line, the API is running. Open the interactive OpenAPI
@@ -57,9 +68,13 @@ Ray Serve applications are deployed on Kuberay via
 [`RayService`s](https://docs.ray.io/en/latest/cluster/kubernetes/user-guides/rayservice.html).
 An example RayService is provided:
 
+<!-- prettier-ignore-start -->
+
 ```yaml
 {% include-markdown "./ado-api-rayserve.yaml" %}
 ```
+
+<!-- prettier-ignore-end -->
 
 From the root of the ado project directory, you can deploy it with:
 
@@ -71,11 +86,14 @@ Kuberay will automatically create a service for the Serve endpoint called
 `${RAY_SERVICE_NAME}-serve-svc`. In the case of our example, this will be
 `ado-api-serve-svc`.
 
-> [!TIP]
+> [!CAUTION]
 >
-> For ease of use, we suggest exposing the service using either a Route (on
-> OpenShift), a LoadBalancer service or an Ingress. **Make sure you take
-> appropriate security measures to protect the endpoint**.
+> If you expose the service outside the cluster or outside localhost, assume it
+> is **not secured by ado itself**. The ado Serve API is currently an **alpha
+> feature** and **does not have built-in security**. Security must be provided
+> by your Kubernetes or OpenShift environment, for example through OpenShift
+> Routes, Kubernetes Ingress, TLS termination, authentication, authorization,
+> and network-level access restrictions.
 
 You can access it via port-forward using:
 

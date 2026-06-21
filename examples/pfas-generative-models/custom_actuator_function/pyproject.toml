@@ -1,21 +1,19 @@
+[project]
+name = "pfas_custom_functions"
+description = "Custom functions for pfas generative models"
+dynamic = ["version"]
+
 [build-system]
 requires = ["hatchling", "uv-dynamic-versioning>=0.7.0"]
 build-backend = "hatchling.build"
 
-[project]
-name="pfas_custom_functions"
-description="Custom functions for pfas generative models"
-dynamic = ["version"]
-
 [tool.hatch.build]
 include = [
-    "ado_actuators/pfas_custom_experiments/**",
+  "ado_actuators/pfas_custom_experiments/**",
 ]
 
 [tool.hatch.build.targets.wheel]
-only-include = [
-    "ado_actuators/pfas_custom_experiments"
-]
+only-include = ["ado_actuators/pfas_custom_experiments"]
 
 [tool.hatch.version]
 source = "uv-dynamic-versioning"

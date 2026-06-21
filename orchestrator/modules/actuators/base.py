@@ -1,12 +1,9 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import abc
 import logging
 import typing
-
-import pydantic
-from ray.actor import ActorHandle
 
 import orchestrator.modules.actuators.catalog
 from orchestrator.core.actuatorconfiguration.config import (
@@ -14,10 +11,6 @@ from orchestrator.core.actuatorconfiguration.config import (
 )
 from orchestrator.modules.actuators.catalog import CatalogConfigurationRequirementEnum
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
-from orchestrator.modules.module import (
-    ModuleConf,
-    ModuleTypeEnum,
-)
 from orchestrator.schema.entity import (
     Entity,
 )
@@ -25,9 +18,6 @@ from orchestrator.schema.measurementspace import MeasurementSpace
 from orchestrator.schema.reference import ExperimentReference
 
 moduleLog = logging.getLogger("actuatorsbase")
-
-if typing.TYPE_CHECKING:
-    import orchestrator.metastore.project
 
 
 class MeasurementError(Exception):
@@ -53,7 +43,7 @@ class ActuatorBase(abc.ABC):
     identifier: str
     parameters_class: type[GenericActuatorParameters] = GenericActuatorParameters
 
-    def __init__(self, queue: MeasurementQueue, params=None):
+    def __init__(self, queue: MeasurementQueue, params: dict | None = None) -> None:
         """
         :param queue: A StateUpdateQueue the actuator can use to put results.
         :return: An ActuatorBase subclass
@@ -68,12 +58,12 @@ class ActuatorBase(abc.ABC):
         self._parameters = params if params is not None else {}
         self._measurementSpace = None  # type: typing.Optional[MeasurementSpace]
 
-    def ready(self):
+    def ready(self) -> bool:
         """This method is used to determine if the Actuator died on init"""
         return True
 
     @abc.abstractmethod
-    async def submit(
+    def submit(
         self,
         entities: list[Entity],
         experimentReference: ExperimentReference,
@@ -136,7 +126,7 @@ class ActuatorBase(abc.ABC):
 
         return CatalogConfigurationRequirementEnum.NOT_REQUIRED
 
-    def setMeasurementSpace(self, measurementSpace: MeasurementSpace):
+    def setMeasurementSpace(self, measurementSpace: MeasurementSpace) -> None:
         """Add a measurement space to the receiver to give it access to experiments beyond its catalog.
 
         It is Actuator implementation specific whether it uses the MeasurementSpace or not
@@ -144,9 +134,8 @@ class ActuatorBase(abc.ABC):
 
         self._measurementSpace = measurementSpace
 
-    def default_parameters(
-        self, is_template: bool = False
-    ) -> GenericActuatorParameters:
+    @classmethod
+    def default_parameters(cls, is_template: bool = False) -> GenericActuatorParameters:
         """
         Returns a default set of parameters for the actuator.
 
@@ -154,23 +143,24 @@ class ActuatorBase(abc.ABC):
             An instance of orchestrator.model.config.GenericActuatorParameters
         """
         return (
-            self.parameters_class.model_construct()
+            cls.parameters_class.model_construct()
             if is_template
-            else self.parameters_class()
+            else cls.parameters_class()
         )
 
+    @classmethod
     def validate_parameters(
-        self, parameters: GenericActuatorParameters
+        cls, parameters: GenericActuatorParameters
     ) -> GenericActuatorParameters:
         """
         Validates parameters provided by an actuator configuration.
         """
-        return self.parameters_class.model_validate(parameters, from_attributes=True)
-
-
-class ActuatorModuleConf(ModuleConf):
-    moduleType: ModuleTypeEnum = pydantic.Field(default=ModuleTypeEnum.ACTUATOR)
+        return cls.parameters_class.model_validate(parameters, from_attributes=True)
 
 
 if typing.TYPE_CHECKING:
-    ActuatorActor = type[ActorHandle[ActuatorBase]]
+    from typing import TypeAlias
+
+    from ray.actor import ActorHandle
+
+    ActuatorActor: TypeAlias = ActorHandle[ActuatorBase]

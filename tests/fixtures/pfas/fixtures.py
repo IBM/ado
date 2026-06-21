@@ -1,11 +1,13 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
+from collections.abc import Callable
 
 import pytest
 import yaml
 
 from orchestrator.core.discoveryspace.config import DiscoverySpaceConfiguration
 from orchestrator.core.discoveryspace.space import DiscoverySpace
+from orchestrator.core.samplestore.base import ActiveSampleStore
 from orchestrator.core.samplestore.config import SampleStoreConfiguration
 from orchestrator.core.samplestore.sql import SQLSampleStore
 
@@ -19,13 +21,25 @@ def pfas_sample_store_configuration_str() -> str:
         moduleClass: SQLSampleStore
     copyFrom:
     - module:
-        moduleClass: GT4SDTransformer
-        moduleName: orchestrator.plugins.samplestores.gt4sd
+        moduleClass: CSVSampleStore
+        moduleName: orchestrator.core.samplestore.csv
       storageLocation:
         path: 'tests/test_generations.csv'
       parameters:
-        source: 'tests/test_generations.csv'
         generatorIdentifier: 'gt4sd-pfas-transformer-model-one'
+        identifierColumn: 'smiles'
+        experiments:
+          - experimentIdentifier: 'transformer-toxicity-inference-experiment'
+            observedPropertyMap:
+              logws: GenLogws
+              logd: GenLogd
+              loghl: GenLoghl
+              pka: GenPka
+              "biodegradation halflife": GenBiodeg
+              bcf: GenBcf
+              ld50: GenLd50
+              scscore: GenScscore
+            constitutivePropertyMap: [smiles]
     """
 
 
@@ -43,7 +57,8 @@ def pfas_space_configuration_str() -> str:
 
 @pytest.fixture
 def pfas_sample_store(
-    pfas_sample_store_configuration_str, create_sample_store
+    pfas_sample_store_configuration_str: str,
+    create_sample_store: Callable[[SampleStoreConfiguration], ActiveSampleStore],
 ) -> SQLSampleStore:
     sample_store_configuration = SampleStoreConfiguration.model_validate(
         yaml.safe_load(pfas_sample_store_configuration_str)
@@ -53,9 +68,9 @@ def pfas_sample_store(
 
 @pytest.fixture
 def pfas_space_configuration(
-    pfas_sample_store,
-    pfas_space_configuration_str,
-    create_space,
+    pfas_sample_store: SQLSampleStore,
+    pfas_space_configuration_str: str,
+    create_space: Callable[[DiscoverySpaceConfiguration, str], DiscoverySpace],
 ) -> DiscoverySpaceConfiguration:
     space_configuration = DiscoverySpaceConfiguration.model_validate(
         yaml.safe_load(pfas_space_configuration_str)
@@ -66,8 +81,8 @@ def pfas_space_configuration(
 
 @pytest.fixture
 def pfas_space(
-    pfas_sample_store,
-    pfas_space_configuration,
-    create_space,
+    pfas_sample_store: SQLSampleStore,
+    pfas_space_configuration: DiscoverySpaceConfiguration,
+    create_space: Callable[[DiscoverySpaceConfiguration, str], DiscoverySpace],
 ) -> DiscoverySpace:
     return create_space(pfas_space_configuration, pfas_sample_store.identifier)

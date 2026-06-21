@@ -1,14 +1,15 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import copy
 import typing
 
-from orchestrator.modules.actuators.catalog import ExperimentCatalog
 from orchestrator.schema.domain import PropertyDomain, VariableTypeEnum
 
 from . import common
 
+if typing.TYPE_CHECKING:
+    from orchestrator.modules.actuators.catalog import ExperimentCatalog
 default_target_modules = {
     "granite-7b-base": ["q_proj", "v_proj"],
     "granite-8b-code-instruct": ["q_proj", "v_proj"],
@@ -36,7 +37,7 @@ hardcoded_parameters: dict[str, typing.Any] = {
 }
 
 
-def add_experiments(catalog: "ExperimentCatalog"):
+def add_experiments(catalog: "ExperimentCatalog") -> None:
 
     # VV: GTPQ-LoRA has been known to work before support for padding_free
     # "padding_free": ["huggingface"],

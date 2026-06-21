@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import os
@@ -13,10 +13,12 @@ from orchestrator.cli.utils.output.prints import (
     ERROR,
     HINT,
     INFO,
+    WARN,
     console_print,
     cyan,
+    green,
+    magenta,
 )
-from orchestrator.core import CoreResourceKinds
 from orchestrator.metastore.project import ProjectContext
 from orchestrator.utilities.location import SQLiteStoreConfiguration
 
@@ -32,7 +34,21 @@ class AdoConfiguration(pydantic.BaseModel):
     _app_dir: Path = Path(typer.get_app_dir(ADO_APP_NAME))
     _project_context: ProjectContext | None = None
     active_context: str | None = None
-    latest_resource_ids: dict[CoreResourceKinds, str] = {}
+
+    @pydantic.model_validator(mode="before")
+    @classmethod
+    def remove_latest_resource_ids(cls, data: dict) -> dict:
+        """Before validator to handle backwards compatibility with old config files.
+
+        This validator strips the deprecated 'latest_resource_ids' field if present
+        before validation occurs. This ensures old config files can be loaded without
+        errors.
+        """
+        # Strip deprecated field before validation
+        if isinstance(data, dict) and "latest_resource_ids" in data:
+            data.pop("latest_resource_ids")
+
+        return data
 
     @classmethod
     def load(
@@ -89,13 +105,18 @@ class AdoConfiguration(pydantic.BaseModel):
                 )
             except pydantic.ValidationError as e:
                 console_print(
-                    f"{ERROR}The provided project context was not valid:\n\t{e}",
+                    f"{ERROR}The provided project context was not valid:\n\n{e}\n\n"
+                    f"{WARN}You must fix the context manually: {green(context_path)}\n"
+                    f"{INFO}Your default context will be switched to {magenta('local')}",
                     stderr=True,
                 )
+                ado_config.active_context = "local"
+                ado_config.store()
                 raise typer.Exit(1) from e
 
             ado_config._project_context = project_context
             ado_config.active_context = project_context.project
+            ado_config.store()
             return ado_config
 
         # At this point we don't have a context_path to load from.
@@ -153,12 +174,13 @@ class AdoConfiguration(pydantic.BaseModel):
         ado_config.store()
         return ado_config
 
-    def store(self):
+    def store(self) -> None:
         Path.mkdir(self._app_dir, parents=True, exist_ok=True)
         self.config_file.write_text(self.model_dump_json())
 
     @property
-    def project_context(self):
+    def project_context(self) -> ProjectContext | None:
+        """Return the active project context."""
         return self._project_context
 
     @property

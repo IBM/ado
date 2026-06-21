@@ -1,15 +1,16 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import copy
 import typing
 
-from orchestrator.modules.actuators.catalog import ExperimentCatalog
-
 from . import common
 
+if typing.TYPE_CHECKING:
+    from orchestrator.modules.actuators.catalog import ExperimentCatalog
 
-def add_experiments(catalog: "ExperimentCatalog"):
+
+def add_experiments(catalog: "ExperimentCatalog") -> None:
 
     method = "pt"
     version = "1.0.0"

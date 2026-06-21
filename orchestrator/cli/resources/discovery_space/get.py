@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 import typing
 
@@ -13,7 +13,6 @@ from orchestrator.cli.models.types import (
 )
 from orchestrator.cli.utils.generic.wrappers import get_sql_store
 from orchestrator.cli.utils.output.prints import (
-    ADO_INFO_EMPTY_DATAFRAME,
     ADO_SPINNER_GETTING_OUTPUT_READY,
     ADO_SPINNER_QUERYING_DB,
     ERROR,
@@ -22,7 +21,6 @@ from orchestrator.cli.utils.output.prints import (
 from orchestrator.cli.utils.queries.parser import prepare_query_filters_for_db
 from orchestrator.cli.utils.resources.formatters import (
     format_default_ado_get_multiple_resources,
-    format_resource_for_ado_get_custom_format,
 )
 from orchestrator.core import DiscoverySpaceResource
 from orchestrator.core.discoveryspace.config import (
@@ -37,63 +35,42 @@ if typing.TYPE_CHECKING:
     import pandas as pd
 
 
-def get_discovery_space(parameters: AdoGetCommandParameters):
-    from orchestrator.cli.utils.resources.handlers import (
-        handle_ado_get_default_format,
-        handle_ado_get_special_formats,
-    )
+def get_discovery_space(parameters: AdoGetCommandParameters) -> None:
 
     if parameters.matching_point:
+        from orchestrator.cli.utils.resources.handlers import handle_ado_get
 
         matching_spaces = _find_spaces_matching_point(parameters)
-        if parameters.output_format == AdoGetSupportedOutputFormats.DEFAULT:
+
+        # For TABLE format, use DataFrame
+        if parameters.output_format == AdoGetSupportedOutputFormats.TABLE:
             output_df = format_default_ado_get_multiple_resources(
                 resources=_discovery_space_resource_list_to_ado_get_default_dataframe(
                     resources=matching_spaces, parameters=parameters
                 ),
                 resource_kind=CoreResourceKinds.DISCOVERYSPACE,
             )
-
-            if output_df.empty:
-                console_print(ADO_INFO_EMPTY_DATAFRAME, stderr=True)
-            else:
-                console_print(output_df)
-
+            handle_ado_get(parameters=parameters, dataframe=output_df)
         else:
-            console_print(
-                format_resource_for_ado_get_custom_format(
-                    to_print=matching_spaces, parameters=parameters
-                )
-            )
+            # For structured formats, use resources
+            handle_ado_get(parameters=parameters, resources=matching_spaces)
 
         return
 
     if parameters.matching_space or parameters.matching_space_id:
+        from orchestrator.cli.utils.resources.handlers import handle_ado_get
 
         matching_spaces = _find_spaces_matching_space(parameters)
-        if parameters.output_format == AdoGetSupportedOutputFormats.DEFAULT:
-            output_df = format_default_ado_get_multiple_resources(
-                resources=matching_spaces,
-                resource_kind=CoreResourceKinds.DISCOVERYSPACE,
-            )
-
-            if output_df.empty:
-                console_print(ADO_INFO_EMPTY_DATAFRAME, stderr=True)
-            else:
-                console_print(output_df)
-
+        # Use DataFrame for rendering
+        handle_ado_get(parameters=parameters, dataframe=matching_spaces)
         return
 
-    if parameters.output_format == AdoGetSupportedOutputFormats.DEFAULT:
-        handle_ado_get_default_format(
-            parameters=parameters,
-            resource_type=CoreResourceKinds.DISCOVERYSPACE,
-        )
-    else:
-        handle_ado_get_special_formats(
-            parameters=parameters,
-            resource_type=CoreResourceKinds.DISCOVERYSPACE,
-        )
+    # Standard case: use unified handler with resource_type
+    from orchestrator.cli.utils.resources.handlers import handle_ado_get
+
+    handle_ado_get(
+        parameters=parameters, resource_type=CoreResourceKinds.DISCOVERYSPACE
+    )
 
 
 def _find_spaces_matching_point(
@@ -271,7 +248,7 @@ def _find_spaces_matching_space(
 def _discovery_space_resource_list_to_ado_get_default_dataframe(
     resources: list[DiscoverySpaceResource],
     parameters: AdoGetCommandParameters,
-):
+) -> "pd.DataFrame":
     from datetime import datetime, timezone
 
     import pandas as pd

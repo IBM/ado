@@ -1,7 +1,5 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
-
-from __future__ import annotations
 
 import enum
 from enum import Enum
@@ -22,11 +20,12 @@ _SAMPLE_STORE_SINGULAR = "samplestore"
 
 # Output formats
 _CONFIG = "config"
-_CONSOLE = "console"
 _CSV = "csv"
-_DEFAULT = "default"
 _JSON = "json"
 _MARKDOWN_SHORT = "md"
+_MARKDOWN_REPORT = "md-report"
+_MARKDOWN_TABLE = "md-table"
+_NAME = "name"
 _RAW = "raw"
 _TABLE = "table"
 _YAML = "yaml"
@@ -50,6 +49,12 @@ class AdoCreateSupportedResourceTypes(Enum):
     CONTEXT = _CONTEXT_SINGULAR
     DISCOVERY_SPACE = _DISCOVERY_SPACE_SINGULAR
     OPERATION = _OPERATION_SINGULAR
+    SAMPLE_STORE = _SAMPLE_STORE_SINGULAR
+
+
+class AdoCreateWithResourceSupportedResourceTypes(Enum):
+    ACTUATOR_CONFIGURATION = _ACTUATOR_CONFIGURATION_SINGULAR
+    DISCOVERY_SPACE = _DISCOVERY_SPACE_SINGULAR
     SAMPLE_STORE = _SAMPLE_STORE_SINGULAR
 
 
@@ -88,9 +93,10 @@ class AdoEditSupportedResourceTypes(Enum):
 #################### ado get ####################
 class AdoGetSupportedOutputFormats(Enum):
     CONFIG = _CONFIG
-    DEFAULT = _DEFAULT
     JSON = _JSON
+    NAME = _NAME
     RAW = _RAW
+    TABLE = _TABLE
     YAML = _YAML
 
 
@@ -100,6 +106,7 @@ class AdoGetSupportedResourceTypes(Enum):
     CONTEXT = _CONTEXT_SINGULAR
     DATA_CONTAINER = _DATA_CONTAINER_SINGULAR
     DISCOVERY_SPACE = _DISCOVERY_SPACE_SINGULAR
+    EXPERIMENT = _EXPERIMENT_SINGULAR
     MEASUREMENT_REQUEST = _MEASUREMENT_REQUEST_SINGULAR
     OPERATION = _OPERATION_SINGULAR
     OPERATOR = _OPERATOR_SINGULAR
@@ -112,26 +119,26 @@ class AdoShowDetailsSupportedResourceTypes(Enum):
     OPERATION = _OPERATION_SINGULAR
 
 
-#################### ado show entities ####################
-class AdoShowEntitiesSupportedEntityTypes(Enum):
+#################### ado show measurements ####################
+class AdoShowMeasurementsSupportedEntityTypes(Enum):
     MEASURED = "measured"
     MATCHING = "matching"
     MISSING = "missing"
     UNMEASURED = "unmeasured"
 
 
-class AdoShowEntitiesSupportedOutputFormats(Enum):
-    CONSOLE = _CONSOLE
+class AdoShowMeasurementsSupportedOutputFormats(Enum):
     CSV = _CSV
     JSON = _JSON
+    TABLE = _TABLE
 
 
-class AdoShowEntitiesSupportedPropertyFormats(Enum):
+class AdoShowMeasurementsSupportedPropertyFormats(Enum):
     OBSERVED = "observed"
     TARGET = "target"
 
 
-class AdoShowEntitiesSupportedResourceTypes(Enum):
+class AdoShowMeasurementsSupportedResourceTypes(Enum):
     DISCOVERY_SPACE = _DISCOVERY_SPACE_SINGULAR
     OPERATION = _OPERATION_SINGULAR
 
@@ -145,32 +152,23 @@ class AdoShowRelatedSupportedResourceTypes(Enum):
     SAMPLE_STORE = _SAMPLE_STORE_SINGULAR
 
 
-#################### ado show requests ####################
-class AdoShowRequestsSupportedOutputFormats(Enum):
-    CONSOLE = _CONSOLE
+#################### ado show trace ####################
+class AdoShowTraceSupportedOutputFormats(Enum):
     CSV = _CSV
     JSON = _JSON
+    TABLE = _TABLE
+    YAML = _YAML
 
 
-class AdoShowRequestsSupportedResourceTypes(Enum):
-    OPERATION = _OPERATION_SINGULAR
-
-
-#################### ado show results ####################
-class AdoShowResultsSupportedOutputFormats(Enum):
-    CONSOLE = _CONSOLE
-    CSV = _CSV
-    JSON = _JSON
-
-
-class AdoShowResultsSupportedResourceTypes(Enum):
+class AdoShowTraceSupportedResourceTypes(Enum):
     OPERATION = _OPERATION_SINGULAR
 
 
 #################### ado show summary ####################
 class AdoShowSummarySupportedOutputFormats(enum.Enum):
-    MARKDOWN = _MARKDOWN_SHORT
     TABLE = _TABLE
+    MARKDOWN_TABLE = _MARKDOWN_TABLE
+    MARKDOWN_REPORT = _MARKDOWN_REPORT
     CSV = _CSV
 
 
@@ -180,7 +178,6 @@ class AdoShowSummarySupportedResourceTypes(Enum):
 
 #################### ado template ####################
 class AdoTemplateSupportedResourceTypes(Enum):
-    ACTUATOR = _ACTUATOR_SINGULAR
     ACTUATOR_CONFIGURATION = _ACTUATOR_CONFIGURATION_SINGULAR
     CONTEXT = _CONTEXT_SINGULAR
     DISCOVERY_SPACE = _DISCOVERY_SPACE_SINGULAR

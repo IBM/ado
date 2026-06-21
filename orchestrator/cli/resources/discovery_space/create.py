@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import pydantic
@@ -7,6 +7,7 @@ import yaml
 from rich.status import Status
 
 from orchestrator.cli.models.parameters import AdoCreateCommandParameters
+from orchestrator.cli.resources.sample_store.create import create_sample_store
 from orchestrator.cli.utils.generic.wrappers import get_sql_store
 from orchestrator.cli.utils.output.prints import (
     ADO_CREATE_DRY_RUN_CONFIG_VALID,
@@ -26,18 +27,26 @@ from orchestrator.core import CoreResourceKinds
 from orchestrator.core.discoveryspace.config import DiscoverySpaceConfiguration
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.metastore.base import ResourceDoesNotExistError
+from orchestrator.modules.actuators.registry import UnknownExperimentError
 
 
-def create_discovery_space(parameters: AdoCreateCommandParameters):
+def create_discovery_space(parameters: AdoCreateCommandParameters) -> str | None:
 
-    if (
-        parameters.new_sample_store
-        and parameters.use_latest
-        and CoreResourceKinds.SAMPLESTORE in parameters.use_latest
-    ):
+    # Fail early if there is an invalid combination of parameters
+    mutually_exclusive_options = [
+        parameters.new_sample_store,
+        parameters.use_latest is not None
+        and len(parameters.use_latest) >= 0
+        and CoreResourceKinds.SAMPLESTORE in parameters.use_latest,
+        parameters.with_resources is not None
+        and CoreResourceKinds.SAMPLESTORE in parameters.with_resources,
+    ]
+
+    if sum(mutually_exclusive_options) >= 2:
         console_print(
-            f"{ERROR}You can only set one of --new-sample-store "
-            f"and --use-latest {CoreResourceKinds.SAMPLESTORE.value}",
+            f"{ERROR}You can only set one of --new-sample-store, "
+            f"--use-latest {CoreResourceKinds.SAMPLESTORE.value}, "
+            f"--with {CoreResourceKinds.SAMPLESTORE.value}=path/id",
             stderr=True,
         )
         raise typer.Exit(1)
@@ -57,16 +66,47 @@ def create_discovery_space(parameters: AdoCreateCommandParameters):
         space_configuration = override_values_in_pydantic_model(
             model=space_configuration, override_values=parameters.override_values
         )
+
+    if (
+        parameters.with_resources
+        and CoreResourceKinds.SAMPLESTORE in parameters.with_resources
+    ):
+
+        if isinstance(parameters.with_resources[CoreResourceKinds.SAMPLESTORE], str):
+            space_configuration.sampleStoreIdentifier = parameters.with_resources[
+                CoreResourceKinds.SAMPLESTORE
+            ]
+        else:
+            from orchestrator.cli.models.types import AdoCreateSupportedResourceTypes
+
+            space_configuration.sampleStoreIdentifier = create_sample_store(
+                AdoCreateCommandParameters(
+                    ado_configuration=parameters.ado_configuration,
+                    dry_run=False,
+                    new_sample_store=False,
+                    override_values=[],
+                    resource_configuration_file=parameters.with_resources[
+                        CoreResourceKinds.SAMPLESTORE
+                    ],
+                    use_default_sample_store=False,
+                    use_latest=[],
+                    with_resources={},
+                    resource_type=AdoCreateSupportedResourceTypes.SAMPLE_STORE,
+                )
+            )
+
     elif (
         parameters.use_latest and CoreResourceKinds.SAMPLESTORE in parameters.use_latest
     ):
+        sql_store = get_sql_store(parameters.ado_configuration.project_context)
 
-        latest_recorded_sample_store = (
-            parameters.ado_configuration.latest_resource_ids.get(
-                CoreResourceKinds.SAMPLESTORE
-            )
+        # Query for single kind (only SAMPLESTORE needed here)
+        latest_ids = sql_store.get_latest_resource_identifiers_of_kinds(
+            kinds=[CoreResourceKinds.SAMPLESTORE]
         )
-        if not latest_recorded_sample_store:
+        latest_sample_store = latest_ids.get(CoreResourceKinds.SAMPLESTORE)
+
+        if not latest_sample_store:
             console_print(
                 latest_identifier_for_resource_not_found(CoreResourceKinds.SAMPLESTORE),
                 stderr=True,
@@ -77,11 +117,12 @@ def create_discovery_space(parameters: AdoCreateCommandParameters):
             value_in_configuration_replaced_with_latest_identifier_for_resource(
                 reused_resource_kind=CoreResourceKinds.SAMPLESTORE,
                 target_resource_kind=CoreResourceKinds.DISCOVERYSPACE,
-                replacement_identifier=latest_recorded_sample_store,
+                replacement_identifier=latest_sample_store,
             ),
             stderr=True,
         )
-        space_configuration.sampleStoreIdentifier = latest_recorded_sample_store
+        space_configuration.sampleStoreIdentifier = latest_sample_store
+
     elif parameters.new_sample_store:
 
         # Replay experiments cannot use --new-sample-store
@@ -106,10 +147,7 @@ def create_discovery_space(parameters: AdoCreateCommandParameters):
             "will be ignored."
         )
 
-        console_print(
-            info_message,
-            stderr=True,
-        )
+        console_print(info_message, stderr=True)
 
         from orchestrator.core.samplestore.config import (
             SampleStoreConfiguration,
@@ -132,19 +170,33 @@ def create_discovery_space(parameters: AdoCreateCommandParameters):
         )
         with Status("Creating your sample store"):
             sample_store_resource, _ = create_sample_store_resource(
-                conf=sample_store_configuration, resourceStore=sql_store
+                configuration=sample_store_configuration, resource_store=sql_store
             )
 
         space_configuration.sampleStoreIdentifier = sample_store_resource.identifier
-        parameters.ado_configuration.latest_resource_ids[
-            CoreResourceKinds.SAMPLESTORE
-        ] = sample_store_resource.identifier
+
     elif parameters.use_default_sample_store:
         space_configuration.sampleStoreIdentifier = "default"
 
     if parameters.dry_run:
+        # Validate entity space against measurement space
+        try:
+            space_configuration.validate_entity_space_against_measurement_space()
+        except ValueError as error:
+            console_print(
+                f"{ERROR}Entity space validation failed: {error}",
+                stderr=True,
+            )
+            raise typer.Exit(1) from error
+        except UnknownExperimentError as error:
+            console_print(
+                f"{ERROR}Unknown experiment in configuration. This can be due to an actuator not being installed or if the referenced experiment is external: {error}",
+                stderr=True,
+            )
+            raise typer.Exit(1) from error
+
         console_print(ADO_CREATE_DRY_RUN_CONFIG_VALID, stderr=True)
-        return
+        return None
 
     if space_configuration.sampleStoreIdentifier == "default":
         info_message = (
@@ -203,12 +255,8 @@ def create_discovery_space(parameters: AdoCreateCommandParameters):
         status.update(ADO_SPINNER_SAVING_TO_DB)
         space.saveSpace()
 
-    # Save the identifier of the resource we created
-    # for reuse
-    parameters.ado_configuration.latest_resource_ids[
-        CoreResourceKinds.DISCOVERYSPACE
-    ] = space.uri
-
     console_print(
         f"{SUCCESS}Created space with identifier: {magenta(space.uri)}", stderr=True
     )
+
+    return space.uri

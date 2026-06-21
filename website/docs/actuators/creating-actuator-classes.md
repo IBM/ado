@@ -1,9 +1,10 @@
-<!-- markdownlint-disable-next-line first-line-h1 -->
+<!-- markdownlint-disable first-line-h1 -->
+
 !!! info end
 
-    A complete template actuator can be found 
+    A complete template actuator can be found
     [here](https://github.com/IBM/ado/tree/main/plugins/actuators/example_actuator).
-    This example actuator is functional out-of-the-box 
+    This example actuator is functional out-of-the-box
     and can be used as the basis to create new actuators.
 
 Developers can write their own [actuator](../core-concepts/actuators.md) plugins
@@ -27,50 +28,14 @@ or to check an existing actuator plugin.
 - Knowledge of [pydantic](https://docs.pydantic.dev/latest/) is useful, but not
   necessary
 
-## Actuator plugin package structure
-
-To create an actuator plugin you **must** use the following package structure
-
-<!-- markdownlint-disable-next-line code-block-style -->
-```text
-$YOUR_REPO_NAME
-├── ado_actuators # This is ado's namespaced package for actuator plugins
-│   └── $YOUR_PLUGIN_PACKAGE        # Your plugin
-│       ├── __init__.py
-│       ├── actuator_definitions.yaml
-│       └── ...
-└── pyproject.toml
-```
-
-The above is structure creates a Python `namespace` package. In this case the
-namespace package is called "ado_actuators", which is the namespace for `ado`
-plugins. Namespace packages allow developers to independently create and
-distribute Python modules that will be installed under a common package name.
-
-When you `pip install` the above package `ado` will detect it when its next run.
-If you want to import the installed package in e.g. the Python console you use
-
-<!-- markdownlint-disable-next-line code-block-style -->
-```python
-import ado_actuators.$YOUR_PLUGIN_NAME
-```
-
-!!! warning end
-
-    *NOTE*: Do not place an `__init__.py` under `ado_actuators/` - 
-    this will overwrite all installed plugins.
-
-!!! info end
-
-    You can have multiple plugins under `ado_actuators` in $YOUR_REPO_NAME above.
-    When you install your package all the plugins will be installed.
-
 ### pyproject.toml
 
-The `pyproject.toml` file for an actuator plugin should contain the following fields
+The `pyproject.toml` file for an actuator plugin should contain fields similar
+to the following:
 
 <!-- markdownlint-disable line-length -->
-<!-- markdownlint-disable-next-line code-block-style -->
+<!-- markdownlint-disable code-block-style -->
+
 ```toml
 [build-system]
 requires = ["setuptools", "setuptools_scm"]
@@ -80,6 +45,7 @@ build-backend = "setuptools.build_meta"
 include-package-data = true # This is on by default, including it for clarity
 
 [tool.setuptools_scm]
+local_scheme = "node-and-timestamp"
 
 [tool.setuptools.packages.find]
 where = ["."]
@@ -88,7 +54,6 @@ where = ["."]
 # Note: This is optional.
 # If you don't specify every non Python file that's in SCM will be added
 robotic_lab_actuator = [
-    "actuator_definitions.yaml", # Required: The file that describes the actuator classes the plugin provides
     "experiments.yaml" # Optional file that contains definitions for experiment catalog
 ]
 
@@ -96,10 +61,15 @@ robotic_lab_actuator = [
 name="robotic_lab" # Change to your preferred name, along with the actual package
 description="A template for creating an actuator" # Change to describing your actuator
 dependencies=[
-    "black"
+    "ado-core"
 ]
 dynamic = ["version"]
+
+[project.entry-points."ado.actuators"]
+robotic_lab = "robotic_lab_actuator.actuator:RoboticLab"
 ```
+
+<!-- markdownlint-enable code-block-style -->
 <!-- markdownlint-enable line-length -->
 
 ## The Actuator Class
@@ -116,12 +86,11 @@ The subclass has to implement two methods:
 - `submit`: This is an `async` method that `ado` will call to run an Experiment
   on an Entity.
 
-In addition, the case must be decorated with `@ray.remote`
-
 A sketch example:
 
 <!-- markdownlint-disable line-length -->
-<!-- markdownlint-disable-next-line code-block-style -->
+<!-- markdownlint-disable code-block-style -->
+
 ```python
 import orchestrator.modules.actuators.base
 from orchestrator.schema.entity import Entity
@@ -136,22 +105,39 @@ class MyActuator(orchestrator.modules.actuators.base):
   def catalog(self, **kwargs) -> ExperimentCatalog:
     pass
 ```
+
+<!-- markdownlint-enable code-block-style -->
 <!-- markdownlint-enable line-length -->
 
 ### Telling ado about your actuator class(es)
 
-Actuator plugins must include a file called `actuator_definitions.yaml` that is
-installed with the plugin. This file lists all the actuator classes that are
-available in the plugin.
+Actuator plugins must register their actuator classes using the `ado.actuators`
+entry point in `pyproject.toml`. This allows ado to automatically discover and
+load your actuator when the plugin is installed.
 
-An example:
+Add an entry point in your `pyproject.toml`:
 
-<!-- markdownlint-disable-next-line code-block-style -->
-```yaml
-- module:
-    moduleClass: MyActuator
-    moduleName: ado_actuators.myplugin.actuators
+<!-- markdownlint-disable code-block-style -->
+
+```toml
+[project.entry-points."ado.actuators"]
+my-actuator = "myplugin.actuators:MyActuator"
 ```
+
+<!-- markdownlint-enable code-block-style -->
+
+The entry point format is:
+
+- **Entry point name**: A unique identifier for your actuator (e.g.,
+  `my-actuator`)
+- **Module path**: The full Python path to your actuator class (e.g.,
+  `myplugin.actuators:MyActuator`)
+
+Your actuator class must:
+
+- Inherit from `ActuatorBase`
+- Define a class attribute `identifier: str` that matches your entry point name
+- Implement the required `submit()` and `catalog()` methods
 
 ### What an actuator is expected to do on `submit`
 
@@ -195,40 +181,51 @@ To write your own actuator parameters class, simply create a class that inherits
 from `GenericActuatorParameters` and add a reference to it in the
 `parameters_class` class variable of your Actuator, as such:
 
-<!-- markdownlint-disable-next-line code-block-style -->
+<!-- markdownlint-disable code-block-style -->
+
 ```python
 from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
 from orchestrator.modules.actuators.base import ActuatorBase
+from typing import Annotated
 import pydantic
+
 
 class InferenceActuatorParameters(GenericActuatorParameters):
     model_config = pydantic.ConfigDict(extra="forbid")
 
-    endpoint: str = pydantic.Field(
-        description="Endpoint to an inference service",
-        default=None,
-        validate_default=True,
-    )
-    authToken: str = pydantic.Field(
-        description="The token to access the inference service",
-        default=None,
-        validate_default=True,
-    )
+    endpoint: Annotated[
+        str,
+        pydantic.Field(
+            description="Endpoint to an inference service",
+            validate_default=True,
+        ),
+    ] = None
+    authToken: Annotated[
+        str,
+        pydantic.Field(
+            description="The token to access the inference service",
+            validate_default=True,
+        ),
+    ] = None
 
-@ray.remote
 class Actuator(ActuatorBase):
     identifier = "my_actuator"
     parameters_class = InferenceActuatorParameters
 ```
 
+<!-- markdownlint-enable code-block-style -->
+
 ### Example custom configurations
 
 Users can obtain an example configuration for your actuator using:
 
-<!-- markdownlint-disable-next-line code-block-style -->
+<!-- markdownlint-disable code-block-style -->
+
 ```commandline
 ado template actuatorconfiguration --actuator-identifier $YOUR_ACTUATOR_ID`
 ```
+
+<!-- markdownlint-enable code-block-style -->
 
 This example is generated by calling `model_construct()` on your actuator
 parameter class. This means
@@ -246,14 +243,19 @@ missing or incorrect values when the user is creating the
 For example, you can declare a required field like this
 
 <!-- markdownlint-disable line-length -->
-<!-- markdownlint-disable-next-line code-block-style -->
+<!-- markdownlint-disable code-block-style -->
+
 ```python
-authToken: str = pydantic.Field(
-    description="The token to access the inference service",
-    default=None,              # <--- value that will be written for examples. It is actually invalid
-    validate_default=True,     # <--- This will check if the value is None and raise an error if it is i.e. if the example value was not changed
-)
+authToken: typing.Annotated[
+    str,
+    pydantic.Field(
+        description="The token to access the inference service",
+        validate_default=True,  # <--- This will check if the value is None and raise an error if it is i.e. if the example value was not changed
+    ),
+] = None  # <--- value that will be written for examples. It is actually invalid
 ```
+
+<!-- markdownlint-enable code-block-style -->
 <!-- markdownlint-enable line-length -->
 
 If you have no required fields, you may want `ado` to validate your default
@@ -261,22 +263,28 @@ values before outputting them. This is useful for e.g. tests, to ensure there
 isn't an error with the defaults. To do this you can override the
 `default_parameters` method in your Actuator to turn validation on e.g.
 
-<!-- markdownlint-disable-next-line code-block-style -->
+<!-- markdownlint-disable code-block-style -->
+
 ```python
 @override
 def default_parameters(self) -> GenericActuatorParameters:
     return MyActuatorParams()
 ```
 
+<!-- markdownlint-enable code-block-style -->
+
 ### Using custom ActuatorConfiguration parameters
 
 Once users have set the relevant values for your actuator in a YAML file they
 can create an `actuatorconfiguration` resource from them
 
-<!-- markdownlint-disable-next-line code-block-style -->
+<!-- markdownlint-disable code-block-style -->
+
 ```commandline
 ado create actuatorconfiguration -f $FILLED_IN_TEMPLATE
 ```
+
+<!-- markdownlint-enable code-block-style -->
 
 The
 [actuatorconfiguration resource documentation](../resources/actuatorconfig.md)
@@ -328,25 +336,34 @@ cases:
 Let's imagine we want to change the name of the `authToken` field to be
 `authorization_token`. The model for our actuator v2 would then be:
 
-<!-- markdownlint-disable-next-line code-block-style -->
+<!-- markdownlint-disable code-block-style -->
+
 ```python
 from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
+from typing import Annotated
 import pydantic
+
 
 class InferenceActuatorParameters(GenericActuatorParameters):
     model_config = pydantic.ConfigDict(extra="forbid")
 
-    endpoint: str = pydantic.Field(
-        description="Endpoint to an inference service",
-        default=None,
-        validate_default=True,
-    )
-    authorization_token: str = pydantic.Field(
-        description="The token to access the inference service",
-        default=None,
-        validate_default=True,
-    )
+    endpoint: Annotated[
+        str,
+        pydantic.Field(
+            description="Endpoint to an inference service",
+            validate_default=True,
+        ),
+    ] = None
+    authorization_token: Annotated[
+        str,
+        pydantic.Field(
+            description="The token to access the inference service",
+            validate_default=True,
+        ),
+    ] = None
 ```
+
+<!-- markdownlint-enable code-block-style -->
 
 To enable upgrading of the previous model versions when fields are being
 deprecated, we recommended using a
@@ -356,35 +373,82 @@ before validation is applied. To ensure the users are aware of the change, we
 will also use the `warn_deprecated_actuator_parameters_model_in_use` method in
 the validator:
 
-<!-- markdownlint-disable-next-line code-block-style -->
+<!-- markdownlint-disable code-block-style -->
+
 ```python
-from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
+from typing import Annotated, Any
+
 import pydantic
+
+from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
 
 class InferenceActuatorParameters(GenericActuatorParameters):
     model_config = pydantic.ConfigDict(extra="forbid")
 
-    endpoint: str = pydantic.Field(
-        description="Endpoint to an inference service",
-        default=None,
-        validate_default=True,
-    )
-    authorization_token: str = pydantic.Field(
-        description="The token to access the inference service",
-        default=None,
-        validate_default=True,
-    )
+    endpoint: Annotated[
+        str,
+        pydantic.Field(
+            description="Endpoint to an inference service",
+            validate_default=True,
+        ),
+    ] = None
+    authorization_token: Annotated[
+        str,
+        pydantic.Field(
+            description="The token to access the inference service",
+            validate_default=True,
+        ),
+    ] = None
 
     @pydantic.model_validator(mode="before")
     @classmethod
-    def rename_authToken(cls, values: dict):
+    def rename_authToken(cls, values: Any) -> Any: # noqa: ANN401
+
+        # We expect either a GenericActuatorParameters or a dict instance
+        if not isinstance(values, GenericActuatorParameters) and not isinstance(
+            values, dict
+        ):
+            raise ValueError(f"Unexpected type {type(values)} in validator")
+
         from orchestrator.core.actuatorconfiguration.config import (
             warn_deprecated_actuator_parameters_model_in_use,
         )
 
         old_key = "authToken"
         new_key = "authorization_token"
-        if old_key in values:
+
+        if isinstance(values, GenericActuatorParameters):
+
+            # The old key is not present - all good
+            if not hasattr(values, old_key):
+                return values
+
+            # Notify the user that the authToken
+            # field is deprecated
+            warn_deprecated_actuator_parameters_model_in_use(
+                affected_actuator="my_actuator",
+                deprecated_from_actuator_version="v2",
+                removed_from_actuator_version="v3",
+                deprecated_fields=old_key,
+                latest_format_documentation_url="https://example.com",
+            )
+
+            # The user has set both the old
+            # and the new key - the new key
+            # takes precedence.
+            if hasattr(values, new_key):
+                delattr(values, old_key)
+            # Set the old value in the
+            # new field
+            else:
+                setattr(values, new_key, getattr(values, old_key))
+                delattr(values, old_key)
+
+        else:
+
+            # The old key is not present - all good
+            if old_key not in values:
+                return values
 
             # Notify the user that the authToken
             # field is deprecated
@@ -409,11 +473,14 @@ class InferenceActuatorParameters(GenericActuatorParameters):
         return values
 ```
 
+<!-- markdownlint-enable code-block-style -->
+
 When a model with the old field is loaded, the user will see the following
 warning:
 
 <!-- markdownlint-disable line-length -->
-<!-- markdownlint-disable-next-line code-block-style -->
+<!-- markdownlint-disable code-block-style -->
+
 ```text
 WARN:   The parameters for the my_actuator actuator have been updated as of my_actuator v2.
         They are being temporarily auto-upgraded to the latest version.
@@ -421,6 +488,8 @@ WARN:   The parameters for the my_actuator actuator have been updated as of my_a
 HINT:   Run ado upgrade actuatorconfigurations to upgrade the stored actuatorconfigurations.
         Update your actuatorconfiguration YAML files to use the latest format: https://example.com
 ```
+
+<!-- markdownlint-enable code-block-style -->
 <!-- markdownlint-enable line-length -->
 
 ### Updating a field in your actuator's configuration without deprecating it
@@ -428,25 +497,33 @@ HINT:   Run ado upgrade actuatorconfigurations to upgrade the stored actuatorcon
 Let's imagine we want to change the type of the `endpoint` field to be
 `pydantic.HttpUrl`. The model for our actuator v2 would then be:
 
-<!-- markdownlint-disable-next-line code-block-style -->
+<!-- markdownlint-disable code-block-style -->
+
 ```python
 from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
+from typing import Annotated
 import pydantic
 
 class InferenceActuatorParameters(GenericActuatorParameters):
     model_config = pydantic.ConfigDict(extra="forbid")
 
-    endpoint: pydantic.HttpUrl = pydantic.Field(
-        description="Endpoint to an inference service",
-        default=None,
-        validate_default=True,
-    )
-    authToken: str = pydantic.Field(
-        description="The token to access the inference service",
-        default=None,
-        validate_default=True,
-    )
+    endpoint: Annotated[
+        pydantic.HttpUrl,
+        pydantic.Field(
+            description="Endpoint to an inference service",
+            validate_default=True,
+        ),
+    ] = None
+    authToken: Annotated[
+        str,
+        pydantic.Field(
+            description="The token to access the inference service",
+            validate_default=True,
+        ),
+    ] = None
 ```
+
+<!-- markdownlint-enable code-block-style -->
 
 To enable upgrading of the previous model versions when fields are not being
 deprecated, we recommended using a
@@ -461,24 +538,30 @@ applied. To ensure the users are aware of the change, we will also use the
 > [warning about deprecated fields](#deprecating-a-field-in-your-actuators-custom-configuration),
 > but we omit the `deprecated_fields` parameter.
 
-<!-- markdownlint-disable-next-line code-block-style -->
+<!-- markdownlint-disable code-block-style -->
+
 ```python
 from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
+from typing import Annotated
 import pydantic
 
 class InferenceActuatorParameters(GenericActuatorParameters):
     model_config = pydantic.ConfigDict(extra="forbid")
 
-    endpoint: pydantic.HttpUrl = pydantic.Field(
-        description="Endpoint to an inference service",
-        default=None,
-        validate_default=True,
-    )
-    authToken: str = pydantic.Field(
-        description="The token to access the inference service",
-        default=None,
-        validate_default=True,
-    )
+    endpoint: Annotated[
+        pydantic.HttpUrl,
+        pydantic.Field(
+            description="Endpoint to an inference service",
+            validate_default=True,
+        ),
+    ] = None
+    authToken: Annotated[
+        str,
+        pydantic.Field(
+            description="The token to access the inference service",
+            validate_default=True,
+        ),
+    ] = None
 
     @pydantic.field_validator("endpoint", mode="before")
     @classmethod
@@ -501,11 +584,14 @@ class InferenceActuatorParameters(GenericActuatorParameters):
         return value
 ```
 
+<!-- markdownlint-enable code-block-style -->
+
 When a model using `str`s will be loaded, the user will see the following
 warning:
 
 <!-- markdownlint-disable line-length -->
-<!-- markdownlint-disable-next-line code-block-style -->
+<!-- markdownlint-disable code-block-style -->
+
 ```text
 WARN:   The parameters for the my_actuator actuator have been updated as of my_actuator v1.
         They are being temporarily auto-upgraded to the latest version.
@@ -513,6 +599,8 @@ WARN:   The parameters for the my_actuator actuator have been updated as of my_a
 HINT:   Run ado upgrade actuatorconfigurations to upgrade the stored actuatorconfigurations.
         Update your actuatorconfiguration YAML files to use the latest format: https://example.com
 ```
+
+<!-- markdownlint-enable code-block-style -->
 <!-- markdownlint-enable line-length -->
 
 ## Ensure actuator cleanup
@@ -545,7 +633,8 @@ actors that were directly created by it.
 Below is an example of registering a custom class for cleanup:
 
 <!-- markdownlint-disable line-length -->
-<!-- markdownlint-disable-next-line code-block-style -->
+<!-- markdownlint-disable code-block-style -->
+
 ```python
 from orchestrator.modules.operators.orchestrate import CLEANER_ACTOR, ResourceCleaner
 import ray
@@ -556,25 +645,106 @@ try:
 except Exception as e:
     print(f"Failed to register custom actors for clean up {e}. Make sure you clean it up")
 ```
+
+<!-- markdownlint-enable code-block-style -->
 <!-- markdownlint-enable line-length -->
 
 Once the registration is in place, the `cleanup` method of this actor is invoked
 at the end of execution
 
+## Signaling progress from your actuator
+
+Actuator developers can provide rich, real-time progress output to users running
+experiments, using utilities available in
+`orchestrator.modules.operators.console_output.py`. This is critical for
+long-running operations (such as deployment, environment setup, or
+benchmarking), and helps users visually associate progress with specific
+requests.
+
+### How progress signaling works
+
+When performing asynchronous tasks inside your actuator (or its experiment
+executor), emit progress or spinner messages to a centralized console queue
+using provided Rich message helpers:
+
+- **RichConsoleSpinnerMessage**: Shows an animated spinner with a label (for
+  things like environment creation or deployment in progress)
+- **RichConsoleProgressMessage**: Shows a progress bar reflecting integer
+  percentage (for measurable steps such as data transfer, job startup, etc)
+
+You should send these messages to the `RichConsoleQueue` actor and update or
+stop them when state changes.
+
+!!! tip end
+
+    Use the `request id` of the MeasurementRequest you're operating on
+    as the message `id` (and include it in the message `label`).
+    This allows your actuator to support progress for multiple experiments
+    running concurrently, and the UI will clearly indicate which progress
+    output is tied to which experiment request.
+
+### Example usage
+
+<!-- markdownlint-disable line-length -->
+<!-- markdownlint-disable code-block-style -->
+
+```python
+from orchestrator.modules.operators.console_output import RichConsoleSpinnerMessage, RichConsoleProgressMessage
+# Get the console queue where you post progress messages to show
+console = ray.get_actor(name="RichConsoleQueue")
+request_id = request.requestid  # or similar
+
+# Start a spinner
+console.put.remote(message=RichConsoleSpinnerMessage(
+    id=request_id,
+    label=f"({request_id}) Waiting for environment...",
+    state="start",
+))
+# ... do work ...
+# Stop the spinner (replace with progress or mark complete)
+console.put.remote(message=RichConsoleSpinnerMessage(
+    id=request_id,
+    label=f"({request_id}) Environment ready.",
+    state="stop",
+))
+# Start a bar showing progress
+console.put.remote(message=RichConsoleProgressMessage(
+    id=request_id,
+    label=f"({request_id}) Uploading data...",
+    progress=0,  # percent
+))
+# ... sleep then calculate how much upload is complete ...
+console.put.remote(message=RichConsoleProgressMessage(
+    id=request_id,
+    label=f"({request_id}) Uploading data...",
+    progress=35,  # percent
+))
+```
+
+<!-- markdownlint-enable code-block-style -->
+<!-- markdownlint-enable line-length -->
+
+---
+
 ## Experiment executor
 
 The actuator submit method invokes a Ray remote function `run_experiment`
 implemented by an experiment_executor. The actual name of this function and its
-parameters can be defined by the actuator implementer. Typically the set of
+parameters can be defined by the actuator implementer. Typically, the set of
 parameters includes:
 
 <!-- markdownlint-disable line-length -->
-<!-- markdownlint-disable-next-line code-block-style -->
+<!-- markdownlint-disable code-block-style -->
+
 ```python
 request: MeasurementRequest,  # measurement request
 experiment: Union[Experiment, ParameterizedExperiment],  # experiment definition
 state_update_queue: orchestrator.modules.actuators.measurement_queue.MeasurementQueue,  # state update queue
 ```
+
+<!-- markdownlint-enable code-block-style -->
+<!-- markdownlint-enable line-length -->
+
 <!-- markdownlint-enable line-length -->
 
 Any additional parameters can be added to these, as required for actuator

@@ -1,11 +1,8 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-import asyncio
 import logging
 import uuid
-
-import ray
 
 import orchestrator.modules.actuators.catalog
 from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
@@ -85,7 +82,6 @@ def replay(
     return requests
 
 
-@ray.remote
 class Replay(ActuatorBase):
     """Special actuator for handling externally defined experiments (experiments we don't have code for)
 
@@ -106,20 +102,20 @@ class Replay(ActuatorBase):
 
     identifier = "replay"
 
-    def __init__(self, queue, params=None):
+    def __init__(self, queue: MeasurementQueue, params: dict | None = None) -> None:
         enable_ray_actor_coverage("replay")
         super().__init__(queue=queue, params=params)
         self.log = logging.getLogger("replay")
 
         self._catalog = orchestrator.modules.actuators.catalog.ExperimentCatalog()
 
-    async def submit(
+    def submit(
         self,
         entities: list[Entity],
         experimentReference: ExperimentReference,
         requesterid: str,
         requestIndex: int,
-    ):
+    ) -> list[str]:
 
         # submit a request to the Replay actuator to run an experimentReference always results in InvalidMeasurementResults
         # The replay actuator cannot perform any of these experiments - they can only be replayed/memoized
@@ -144,8 +140,6 @@ class Replay(ActuatorBase):
 
         self._stateUpdateQueue.put_nowait(request)
 
-        # Because actuator interface expects this method to be async
-        await asyncio.sleep(0.000001)
         return [request.requestid]
 
     @classmethod

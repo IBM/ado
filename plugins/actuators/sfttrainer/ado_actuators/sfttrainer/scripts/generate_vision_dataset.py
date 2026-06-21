@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 """
@@ -49,6 +49,7 @@ import logging
 import os.path
 import pathlib
 import sys
+from typing import Annotated
 
 import pandas.io.parquet
 import typer
@@ -106,7 +107,9 @@ def generate_sequence(words: list[str], start: int, length: int) -> tuple[str, i
 
 
 def compute_population_size(
-    num_max_batch_size=128, num_max_gpus=8, num_gradient_accumulation_steps=4
+    num_max_batch_size: int = 128,
+    num_max_gpus: int = 8,
+    num_gradient_accumulation_steps: int = 4,
 ) -> int:
     return num_max_batch_size * num_max_gpus * num_gradient_accumulation_steps
 
@@ -166,49 +169,61 @@ def generate_dataset(
     f"- python {sys.argv[0]} -i path/to/some/file -o dataset.jsonl",
 )
 def main(
-    output: pathlib.Path = typer.Option(
-        ...,
-        "--output",
-        "-o",
-        help="Where to store the dataset file.",
-    ),
-    input: pathlib.Path = typer.Option(
-        pathlib.Path(__file__),
-        "--input",
-        "-i",
-        exists=True,
-        file_okay=True,
-        dir_okay=False,
-        help="Input file to use as a source of sentences. For example you can use this python file, "
-        "or some kind of publicly available document such as the Apache 2.0 License file. "
-        "Smaller files should also work just as well.",
-    ),
-    tokens_input: int = typer.Option(
-        50,
-        help="How many tokens to have before the Response delimiter",
-    ),
-    tokens_output: int = typer.Option(
-        18200,
-        help="How many tokens to have after the Response delimiter",
-    ),
-    words_per_token: float = typer.Option(
-        0.75,
-        help="How many tokens you expect to have per token - this is just an estimation",
-    ),
-    num_max_gpus: int = typer.Option(
-        8, help="Maximum number of gpus in your experiment campaign"
-    ),
-    num_max_batch_size: int = typer.Option(
-        128, help="Maximum batch size in your experiment campaign"
-    ),
-    num_gradient_accumulation_steps: int = typer.Option(
-        4,
-        help="Maximum num_gradient_accumulation_steps you will investigate with your experiment campaign",
-    ),
-    image_width: int = typer.Option(384, help="The image width in pixels"),
-    image_height: int = typer.Option(384, help="The image height in pixels"),
-    log_level: int = typer.Option(20, "--log-level", "-l", help="Log level"),
-):
+    output: Annotated[
+        pathlib.Path,
+        typer.Option(
+            "--output",
+            "-o",
+            help="Where to store the dataset file.",
+        ),
+    ],
+    input: Annotated[
+        pathlib.Path,
+        typer.Option(
+            "--input",
+            "-i",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            help="Input file to use as a source of sentences. For example you can use this python file, "
+            "or some kind of publicly available document such as the Apache 2.0 License file. "
+            "Smaller files should also work just as well.",
+        ),
+    ] = pathlib.Path(__file__),
+    tokens_input: Annotated[
+        int,
+        typer.Option(
+            help="How many tokens to have before the Response delimiter",
+        ),
+    ] = 50,
+    tokens_output: Annotated[
+        int,
+        typer.Option(
+            help="How many tokens to have after the Response delimiter",
+        ),
+    ] = 18200,
+    words_per_token: Annotated[
+        float,
+        typer.Option(
+            help="How many tokens you expect to have per token - this is just an estimation",
+        ),
+    ] = 0.75,
+    num_max_gpus: Annotated[
+        int, typer.Option(help="Maximum number of gpus in your experiment campaign")
+    ] = 8,
+    num_max_batch_size: Annotated[
+        int, typer.Option(help="Maximum batch size in your experiment campaign")
+    ] = 128,
+    num_gradient_accumulation_steps: Annotated[
+        int,
+        typer.Option(
+            help="Maximum num_gradient_accumulation_steps you will investigate with your experiment campaign",
+        ),
+    ] = 4,
+    image_width: Annotated[int, typer.Option(help="The image width in pixels")] = 384,
+    image_height: Annotated[int, typer.Option(help="The image height in pixels")] = 384,
+    log_level: Annotated[int, typer.Option("--log-level", "-l", help="Log level")] = 20,
+) -> None:
     logging.basicConfig(
         level=log_level,
         format="%(levelname)-9s %(name)-30s: %(funcName)-20s %(asctime)-15s: %(message)s",

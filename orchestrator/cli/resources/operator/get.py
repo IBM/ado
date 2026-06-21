@@ -1,6 +1,5 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
-
 import typer
 from rich.status import Status
 
@@ -15,33 +14,76 @@ from orchestrator.cli.utils.output.prints import (
     console_print,
     cyan,
 )
+from orchestrator.utilities.strings import (
+    normalize_and_truncate_at_period,
+)
 
 
-def get_operator(parameters: AdoGetCommandParameters):
+def get_operator(parameters: AdoGetCommandParameters) -> None:
+
+    if not parameters.no_trunc:
+        parameters.no_trunc = ["OPERATOR"]
 
     with Status(ADO_SPINNER_GETTING_OUTPUT_READY):
         import pandas as pd
 
         import orchestrator.modules.operators.collections
 
-    if parameters.output_format != AdoGetSupportedOutputFormats.DEFAULT:
+    # Validate output format
+    if parameters.output_format not in {
+        AdoGetSupportedOutputFormats.TABLE,
+        AdoGetSupportedOutputFormats.NAME,
+    }:
         console_print(
             f"{WARN}{cyan('ado get operators')} only supports the "
-            f"{AdoGetSupportedOutputFormats.DEFAULT.value} output format",
+            f"{AdoGetSupportedOutputFormats.TABLE.value} and "
+            f"{AdoGetSupportedOutputFormats.NAME.value} output formats",
             stderr=True,
         )
-        parameters.output_format = AdoGetSupportedOutputFormats.DEFAULT
+        parameters.output_format = AdoGetSupportedOutputFormats.TABLE
 
+    # Handle NAME output format
+    if parameters.output_format == AdoGetSupportedOutputFormats.NAME:
+
+        # Collect all operator names
+        operator_names = []
+        for (
+            collection
+        ) in orchestrator.modules.operators.collections.operationCollectionMap.values():
+            operator_names.extend(collection.operators.keys())
+
+        if parameters.resource_id:
+            # Single operator: verify it exists and output its name
+            if parameters.resource_id not in operator_names:
+                console_print(
+                    f"{ERROR}{parameters.resource_id} is not among the available operators.\n"
+                    f"{HINT}Run {cyan('ado get operators')} to list them.",
+                    stderr=True,
+                )
+                raise typer.Exit(1)
+            console_print(parameters.resource_id)
+        else:
+            # Multiple operators: output all names
+            for operator_name in sorted(operator_names):
+                console_print(operator_name)
+        return
+
+    # Build entries for TABLE format
     entries = []
     for (
         collection
     ) in orchestrator.modules.operators.collections.operationCollectionMap.values():
-        entries.extend(
-            [
-                {"OPERATOR": function_name, "TYPE": collection.type.value}
-                for function_name in collection.function_operations
-            ]
-        )
+        for operator_name, operator in collection.operators.items():
+            entry = {
+                "OPERATOR": operator_name,
+                "VERSION": operator.version,
+                "TYPE": collection.type.value,
+            }
+            if parameters.show_details:
+                entry["DESCRIPTION"] = normalize_and_truncate_at_period(
+                    operator.description or ""
+                )
+            entries.append(entry)
 
     operators = pd.DataFrame(entries)
     if operators.empty:
@@ -68,5 +110,9 @@ def get_operator(parameters: AdoGetCommandParameters):
 
     # After renaming some entries in the TYPE column
     # the values may not be sorted anymore
-    operators = operators.sort_values(by=["TYPE", "OPERATOR"])
-    console_print(operators)
+    operators = operators.sort_values(by=["TYPE", "OPERATOR"]).reset_index(drop=True)
+
+    from orchestrator.cli.utils.resources.handlers import handle_ado_get
+
+    # Use unified handler for rendering
+    handle_ado_get(parameters=parameters, dataframe=operators)

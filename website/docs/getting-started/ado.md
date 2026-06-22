@@ -1058,12 +1058,13 @@ ado show trace operation randomwalk-0.5.0-123abc --hide metadata --hide timestam
 #### ado show related
 
 _show related_ supports displaying resources that are related to the one whose
-id is provided (e.g., operations run on a space).
+id is provided (e.g., operations run on a space). By default the full resource
+hierarchy is traversed in both directions.
 
 The complete syntax of the `ado show related` command is as follows:
 
 ```shell
-ado show related RESOURCE_TYPE [RESOURCE_ID] [--use-latest]
+ado show related RESOURCE_TYPE [RESOURCE_ID] [--use-latest] [--max-hops N]
 ```
 
 - `RESOURCE_TYPE` is one of the supported resource types. See
@@ -1085,13 +1086,21 @@ ado show related RESOURCE_TYPE [RESOURCE_ID] [--use-latest]
 - `--use-latest` will use the identifier of the latest (i.e. most recent)
   resource of RESOURCE_TYPE from the current context. It is ignored if a
   RESOURCE_ID is provided.
+- `--max-hops N` limits the traversal to at most `N` relationship hops in each
+  direction (1-3). When omitted, the full hierarchy depth is used.
 
 ##### Examples
 
 ###### Show resources related to a discovery space
 
 ```shell
- ado show related space space-abc123-456def
+ado show related space space-abc123-456def
+```
+
+###### Show only directly linked resources (1 hop)
+
+```shell
+ado show related space space-abc123-456def --max-hops 1
 ```
 
 #### ado show summary

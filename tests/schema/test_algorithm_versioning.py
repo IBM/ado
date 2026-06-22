@@ -14,6 +14,7 @@ from orchestrator.modules.actuators.catalog import (
 )
 from orchestrator.modules.actuators.registry import (
     ActuatorRegistry,
+    UnknownActuatorError,
     UnknownExperimentError,
 )
 from orchestrator.schema.domain import PropertyDomain, VariableTypeEnum
@@ -78,6 +79,27 @@ def test_strict_semver_invalid(version: str) -> None:
 def test_semver_major(version: str, expected_major: int) -> None:
     """semver_major extracts the MAJOR component correctly."""
     assert semver_major(version) == expected_major
+
+
+@pytest.mark.parametrize(
+    "version",
+    [
+        "1",
+        "1.0",
+        "1.0.0.0",
+        "1.0.0-alpha",
+        "1.0.0+build",
+        "1.0.0-alpha.1",
+        "v1.0.0",
+        "01.0.0",
+        "",
+        "latest",
+    ],
+)
+def test_semver_major_rejects_invalid_version(version: str) -> None:
+    """semver_major validates input and raises a contextual ValueError."""
+    with pytest.raises(ValueError, match="not a valid strict SemVer string"):
+        semver_major(version)
 
 
 # ─── Experiment identifiers ───────────────────────────────────────────────────
@@ -688,6 +710,30 @@ def test_registry_unknown_experiment_error_lists_available_versions(
     )
     with pytest.raises(UnknownExperimentError, match=r"Available versions: 1\.0\.0"):
         global_registry.experimentForReference(ref)
+
+
+def test_registry_experiment_for_reference_unknown_actuator_raises(
+    global_registry: ActuatorRegistry,
+) -> None:
+    """Unknown actuator must raise UnknownActuatorError, not UnknownExperimentError."""
+    ref = ExperimentReference(
+        experimentIdentifier="some_experiment",
+        actuatorIdentifier="nonexistent_actuator",
+    )
+    with pytest.raises(UnknownActuatorError, match="nonexistent_actuator"):
+        global_registry.experimentForReference(ref, resolve=False)
+
+
+def test_registry_experiment_for_reference_unknown_experiment_raises(
+    global_registry: ActuatorRegistry,
+) -> None:
+    """Known actuator with missing experiment must raise UnknownExperimentError."""
+    ref = ExperimentReference(
+        experimentIdentifier="nonexistent_experiment",
+        actuatorIdentifier="mock",
+    )
+    with pytest.raises(UnknownExperimentError, match="nonexistent_experiment"):
+        global_registry.experimentForReference(ref, resolve=False)
 
 
 # ─── FQ version pin at measurement space creation ─────────────────────────────

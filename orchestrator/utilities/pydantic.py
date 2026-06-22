@@ -150,7 +150,7 @@ def validate_strict_semver(value: str) -> str:
 StrictSemVerStr = Annotated[str, AfterValidator(validate_strict_semver)]
 
 
-def semver_major(version: str) -> int:
+def semver_major(version: StrictSemVerStr) -> int:
     """Extract the MAJOR component from a strict SemVer string.
 
     Args:
@@ -158,5 +158,9 @@ def semver_major(version: str) -> int:
 
     Returns:
         The integer major version component.
+
+    Raises:
+        ValueError: If *version* is not a valid strict SemVer string.
     """
-    return int(version.split(".")[0])
+    validated = validate_strict_semver(version)
+    return int(validated.split(".", maxsplit=1)[0])

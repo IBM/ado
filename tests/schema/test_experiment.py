@@ -129,6 +129,34 @@ def test_parameterized_experiment_is_hashable(
     experiment_is_hashable(parameterized_experiment)
 
 
+def test_experiment_and_parameterized_experiment_equality_is_symmetric(
+    mock_parameterizable_experiment: Experiment,
+    customParameterization: list[ConstitutivePropertyValue],
+) -> None:
+    """Base and parameterized experiments must never compare equal.
+
+    ParameterizedExperiment.__eq__ only accepts other ParameterizedExperiment
+    instances. Experiment.__eq__ must reject ParameterizedExperiment too so
+    equality is symmetric and safe for sets and dicts.
+    """
+    base_exp = mock_parameterizable_experiment
+    param_exp = ParameterizedExperiment(
+        parameterization=customParameterization,
+        **base_exp.model_dump(),
+    )
+
+    forward = base_exp == param_exp
+    reverse = param_exp == base_exp
+    assert forward == reverse, (
+        f"asymmetric equality: base == param is {forward!r}, "
+        f"param == base is {reverse!r}"
+    )
+    assert not Experiment.__eq__(base_exp, param_exp)
+    assert not forward
+    assert not reverse
+    assert len({base_exp, param_exp}) == 2
+
+
 def test_parameterized_experiment_base_equality_methods(
     parameterized_experiment: ParameterizedExperiment, global_registry: ActuatorRegistry
 ) -> None:

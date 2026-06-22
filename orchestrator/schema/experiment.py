@@ -173,6 +173,8 @@ class Experiment(pydantic.BaseModel):
         """
         if not isinstance(other, Experiment):
             return False
+        if isinstance(other, ParameterizedExperiment):
+            return False
         return (
             self.actuatorIdentifier == other.actuatorIdentifier
             and self.major_version_identifier == other.major_version_identifier

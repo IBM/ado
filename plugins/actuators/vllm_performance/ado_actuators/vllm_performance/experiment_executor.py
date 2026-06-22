@@ -69,10 +69,7 @@ def _determine_threadpool_usage(values: dict[str, Any]) -> bool:
     :return: True if threadpool-related functionality should be enabled
     :raises ValueError: if renderer_num_workers is negative
     """
-    if "renderer_num_workers" not in values:
-        return False
-
-    renderer_workers = values.get("renderer_num_workers")
+    renderer_workers = values.get("renderer_num_workers", None)
     if renderer_workers is None:
         return False
 

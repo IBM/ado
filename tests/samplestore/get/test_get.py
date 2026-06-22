@@ -427,6 +427,54 @@ def test_measurement_requests_for_operation(
                 )
 
 
+def test_measurement_requests_for_operation_multi_id(
+    random_identifier: Callable[[], str],
+    simulate_ml_multi_cloud_random_walk_operation: Callable[
+        [int, int, int, str | None],
+        tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
+    ],
+) -> None:
+    number_entities = 3
+    number_requests = 3
+    measurements_per_result = 2
+    operation_id_1 = random_identifier()
+    operation_id_2 = random_identifier()
+
+    sample_store, requests_1, _ = simulate_ml_multi_cloud_random_walk_operation(
+        number_entities=number_entities,
+        number_requests=number_requests,
+        measurements_per_result=measurements_per_result,
+        operation_id=operation_id_1,
+    )
+    sample_store, requests_2, _ = simulate_ml_multi_cloud_random_walk_operation(
+        number_entities=number_entities,
+        number_requests=number_requests,
+        measurements_per_result=measurements_per_result,
+        operation_id=operation_id_2,
+    )
+
+    retrieved_requests = sample_store.measurement_requests_for_operation(
+        operation_id={operation_id_1, operation_id_2}
+    )
+
+    assert isinstance(retrieved_requests, dict)
+    assert set(retrieved_requests) == {operation_id_1, operation_id_2}
+
+    expected_requests = {
+        operation_id_1: sorted(requests_1, key=lambda request: request.requestIndex),
+        operation_id_2: sorted(requests_2, key=lambda request: request.requestIndex),
+    }
+
+    for operation_id, requests in expected_requests.items():
+        assert len(retrieved_requests[operation_id]) == len(requests)
+        assert [
+            request.operation_id for request in retrieved_requests[operation_id]
+        ] == [operation_id] * len(requests)
+        assert [
+            request.requestIndex for request in retrieved_requests[operation_id]
+        ] == [request.requestIndex for request in requests]
+
+
 def test_measurement_request_by_id(
     random_identifier: Callable[[], str],
     simulate_ml_multi_cloud_random_walk_operation: Callable[

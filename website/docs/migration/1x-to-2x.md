@@ -60,3 +60,25 @@ ado show trace operation randomwalk-0.5.0-123abc --hide uid
 
 For the full `ado show trace` reference, see the
 [ado CLI documentation](../getting-started/ado.md#ado-show-trace).
+
+### Removed: `ado get measurementrequest`
+
+The `ado get measurementrequest` command (and its `request` alias) has been
+removed. The `ado show trace` command supersedes it: use the `--filter`
+option to look up a specific measurement request by ID.
+
+**Before (ado 1.x):**
+
+```shell
+ado get request <ID> --from-operation <OP-ID> -o yaml
+ado get request <ID> --from-space <SPACE-ID> -o yaml
+ado get request <ID> --from-sample-store <SAMPLE-STORE-ID> -o yaml
+```
+
+**After (ado 2.x):**
+
+```shell
+ado show trace operation <OP-ID> --filter requestid=<ID> -o yaml
+ado show trace space <SPACE-ID> --filter requestid=<ID> -o yaml
+ado show trace store <SAMPLE-STORE-ID> --filter requestid=<ID> -o yaml
+```

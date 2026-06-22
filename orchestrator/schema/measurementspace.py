@@ -113,6 +113,7 @@ class MeasurementSpace:
             except (
                 orchestrator.modules.actuators.registry.UnknownExperimentError,
                 orchestrator.modules.actuators.registry.UnknownActuatorError,
+                orchestrator.modules.actuators.registry.UnexpectedCatalogRetrievalError,
                 ExperimentVersionMismatchError,
             ):
                 raise

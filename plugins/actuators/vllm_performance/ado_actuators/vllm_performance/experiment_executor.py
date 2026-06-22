@@ -79,7 +79,7 @@ def _determine_threadpool_usage(values: dict[str, Any]) -> bool:
             f"renderer_num_workers must be non-negative, got {renderer_workers}"
         )
 
-    return renderer_workers_int > 0
+    return renderer_workers_int != 0
 
 
 def _build_entity_env(values: dict[str, str]) -> str:

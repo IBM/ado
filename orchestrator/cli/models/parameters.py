@@ -108,6 +108,7 @@ class AdoShowMeasurementsCommandParameters(pydantic.BaseModel):
 class AdoShowRelatedCommandParameters(pydantic.BaseModel):
     ado_configuration: AdoConfiguration
     resource_id: str
+    max_hops: int | None = None
 
 
 class AdoShowTraceCommandParameters(pydantic.BaseModel):

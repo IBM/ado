@@ -403,6 +403,7 @@ def print_related_resources(
     resource_type: "CoreResourceKinds",
     sql: "SQLStore",
     hide_banner: bool = False,
+    max_hops: int | None = None,
 ) -> None:
     with Status(ADO_SPINNER_QUERYING_DB) as status:
         if not sql.containsResourceWithIdentifier(identifier=resource_id):
@@ -410,20 +411,27 @@ def print_related_resources(
             raise ResourceDoesNotExistError(resource_id=resource_id, kind=resource_type)
 
         status.update("Finding related resources")
-        related_resources = sql.getRelatedResourceIdentifiers(resource_id)
+        related_resources = sql.get_resources_by_relationship(
+            kind=resource_type,
+            identifier=resource_id,
+            hierarchy_direction="both",
+            max_hops=max_hops,
+            identifiers_only=True,
+        )
 
-    if related_resources.empty:
+    if not related_resources:
         console_print("There are no related resources", stderr=True)
         return
 
     if not hide_banner:
         console_print(rich.rule.Rule(title="RELATED RESOURCES"))
-    previous_resource_kind = ""
-    for _, row in related_resources.iterrows():
-        if row["TYPE"] != previous_resource_kind:
-            console_print(cyan(row["TYPE"]))
-            previous_resource_kind = row["TYPE"]
-        console_print(f"  - {row['IDENTIFIER']}")
+
+    for kind, identifiers in sorted(
+        related_resources.items(), key=lambda kv: kv[0].value
+    ):
+        console_print(cyan(kind.value))
+        for identifier in identifiers:
+            console_print(f"  - {identifier}")
 
 
 def strategic_merge_configuration_metadata(

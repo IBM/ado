@@ -112,12 +112,20 @@ def get_resource_identifiers_by_resource_kind(
 @pytest.fixture
 def get_related_resource_identifiers_by_identifier(
     sql_store: SQLStore,
-) -> Callable[[str], pd.DataFrame]:
+) -> Callable[[str, CoreResourceKinds, str], dict[CoreResourceKinds, set[str]]]:
     def _get_related_resource_identifiers_by_identifier(
         identifier: str,
-    ) -> pd.DataFrame:
+        kind: CoreResourceKinds,
+        hierarchy_direction: str = "both",
+    ) -> dict[CoreResourceKinds, set[str]]:
 
-        return sql_store.getRelatedResourceIdentifiers(identifier=identifier)
+        return sql_store.get_resources_by_relationship(
+            kind=kind,
+            identifier=identifier,
+            hierarchy_direction=hierarchy_direction,
+            max_hops=None,
+            identifiers_only=True,
+        )
 
     return _get_related_resource_identifiers_by_identifier
 

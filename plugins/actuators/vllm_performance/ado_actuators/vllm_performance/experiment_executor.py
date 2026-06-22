@@ -295,8 +295,7 @@ def _create_environment(
                         otlp_traces_endpoint=otlp_traces_endpoint,
                         renderer_num_workers=(
                             int(values.get("renderer_num_workers"))
-                            if values.get("renderer_num_workers") is not None
-                            and int(values.get("renderer_num_workers")) > 0
+                            if int(values.get("renderer_num_workers"), 0) > 0
                             else None
                         ),
                         check_interval=check_interval,

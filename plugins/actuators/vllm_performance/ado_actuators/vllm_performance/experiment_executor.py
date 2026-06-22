@@ -63,7 +63,7 @@ def _is_threadpool_requested(values: dict[str, Any]) -> bool:
     Determine whether threadpool-related functionality is requested.
 
     Threadpool is implied whenever renderer_num_workers is explicitly provided
-    with a positive value. A value of 0 means "no threadpool".
+    with an integer positive value. A value of 0 means "no threadpool".
 
     :param values: experiment values dictionary
     :return: True if threadpool-related functionality should be enabled

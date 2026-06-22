@@ -21,6 +21,7 @@ from orchestrator.modules.actuators.executor_supervisor import (
     ExperimentExecutorSupervisorParameters,
 )
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
+from orchestrator.modules.actuators.registry import UnknownExperimentError
 from orchestrator.modules.module import (
     ModuleConf,
     ModuleTypeEnum,
@@ -778,7 +779,9 @@ class CustomExperiments(ActuatorBase):
             targetExperiment = self._catalog.experimentForReference(
                 experimentReference, resolve=True
             )
-        except Exception as error:
+        # ExperimentVersionMismatchError can't be raised as we don't use FQI
+        # DeprecatedExperimentError can't be raised as there is no custom experiment deprecation
+        except UnknownExperimentError as error:
             if self._catalog.experiments:
                 raise ValueError(
                     f"Requested experiments {experimentReference} is not in the CustomExperiments actuator catalog. "

@@ -58,7 +58,7 @@ from orchestrator.utilities.support import (
 logger = logging.getLogger(__name__)
 
 
-def _determine_threadpool_usage(values: dict[str, Any]) -> bool:
+def _is_threadpool_requested(values: dict[str, Any]) -> bool:
     """
     Determine whether threadpool-related functionality is requested.
 
@@ -260,7 +260,7 @@ def _create_environment(
                             f"Invalid type for image: {type(image_value)}"
                         )
 
-                    threadpool_requested = _determine_threadpool_usage(values)
+                    threadpool_requested = _is_threadpool_requested(values)
                     if threadpool_requested and not is_threadpool_allowed:
                         raise UnsupportedThreadpoolConfigurationError(
                             f"Threadpool requested but not supported by image {image_name}"

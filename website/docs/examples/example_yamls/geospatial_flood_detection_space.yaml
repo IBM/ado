@@ -38,11 +38,6 @@ entitySpace:
         #   propertyDomain:
         #     values:
         #       - ["your-registry/vllm:v0.20.1-terratorch", "0.20.1"]
-        # - identifier: use_threadpool
-        #   metadata:
-        #     description: "Enable threadpool for vLLM renderer"
-        #   propertyDomain:
-        #     values: [false, true]
         # - identifier: renderer_num_workers
         #   metadata:
         #     description: "Number of renderer workers when threadpool is enabled"

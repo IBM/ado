@@ -96,7 +96,6 @@ def _build_entity_env(values: dict[str, str]) -> str:
         * gpu memory utilization
         * data type
         * cpu offload
-        * use_threadpool
         * renderer_num_workers
     Build entity based environment parameters
     :param values: experiment values

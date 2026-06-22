@@ -75,10 +75,10 @@ class MeasurementSpace:
             If you only want to use some properties of use the observedProperties parameter
             Note: If you pass the experiment and then a selection of its properties, all the properties will be
             used
-        experimentCatalogs: A list of ExperimentCatalog instances.
-            These will be searched for the experiments used to measure the properties
-            in addition to default catalogs.
-            Use this to pass external catalogs i.e. catalogs containing experiments there is no actuator for
+        experimentCatalogs: Supplementary catalogs searched after the registered actuator
+            catalog for each reference. Each reference must name a registered actuator;
+            use this for replay-backed external catalogs (experiments stored under the
+            ``replay`` actuator with no executing actuator plugin).
         """
 
         # Validate parameterization for the provided experiment references

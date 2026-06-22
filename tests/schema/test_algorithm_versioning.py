@@ -14,6 +14,8 @@ from orchestrator.modules.actuators.catalog import (
 )
 from orchestrator.modules.actuators.registry import (
     ActuatorRegistry,
+    MissingActuatorConfigurationForCatalogError,
+    UnexpectedCatalogRetrievalError,
     UnknownActuatorError,
     UnknownExperimentError,
 )
@@ -732,7 +734,64 @@ def test_registry_experiment_for_reference_unknown_experiment_raises(
         experimentIdentifier="nonexistent_experiment",
         actuatorIdentifier="mock",
     )
-    with pytest.raises(UnknownExperimentError, match="nonexistent_experiment"):
+    with pytest.raises(UnknownExperimentError, match="actuator was found"):
+        global_registry.experimentForReference(ref, resolve=False)
+
+
+def test_registry_experiment_for_reference_miss_without_actuator_catalog(
+    global_registry: ActuatorRegistry,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """When only supplementary catalogs are searched, miss text must not claim actuator found."""
+    from unittest.mock import Mock
+
+    ref = ExperimentReference(
+        experimentIdentifier="missing_experiment",
+        actuatorIdentifier="mock",
+    )
+    supplementary = ExperimentCatalog(catalogIdentifier="supplementary", experiments={})
+
+    def raise_missing_configuration(*_args: object, **_kwargs: object) -> None:
+        raise MissingActuatorConfigurationForCatalogError(
+            "Actuator mock requires configuration information to create catalog."
+        )
+
+    monkeypatch.setattr(
+        global_registry,
+        "catalogForActuatorIdentifier",
+        Mock(side_effect=raise_missing_configuration),
+    )
+
+    with pytest.raises(UnknownExperimentError, match="No match for"):
+        global_registry.experimentForReference(
+            ref, additionalCatalogs=[supplementary], resolve=False
+        )
+
+
+def test_registry_experiment_for_reference_no_catalogs_raises(
+    global_registry: ActuatorRegistry,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """When no catalogs can be searched, raise UnexpectedCatalogRetrievalError."""
+    from unittest.mock import Mock
+
+    ref = ExperimentReference(
+        experimentIdentifier="some_experiment",
+        actuatorIdentifier="mock",
+    )
+
+    def raise_missing_configuration(*_args: object, **_kwargs: object) -> None:
+        raise MissingActuatorConfigurationForCatalogError(
+            "Actuator mock requires configuration information to create catalog."
+        )
+
+    monkeypatch.setattr(
+        global_registry,
+        "catalogForActuatorIdentifier",
+        Mock(side_effect=raise_missing_configuration),
+    )
+
+    with pytest.raises(UnexpectedCatalogRetrievalError, match="No catalogs available"):
         global_registry.experimentForReference(ref, resolve=False)
 
 

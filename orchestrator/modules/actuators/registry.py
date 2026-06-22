@@ -289,7 +289,7 @@ class ActuatorRegistry:
         If the actuator has not been registered this method raises UnknownActuatorError
 
         If an actuator catalog requires configuration and this has not been provided
-        then this method will raise a UnconfiguredActuatorCatalogError
+        then this method will raise a MissingActuatorConfigurationForCatalogError
 
         Any other exception while retrieving the catalog will raise UnexpectedCatalogRetrievalError
         """
@@ -408,6 +408,8 @@ class ActuatorRegistry:
                 ``match_on='fully_qualified_version'`` with a version mismatch.
             DeprecatedExperimentError: When ``resolve=True`` and the experiment
                 is deprecated.
+            UnexpectedCatalogRetrievalError: If the actuators catalog cannot be
+            retrieved
         """
         from orchestrator.modules.actuators.base import DeprecatedExperimentError
 
@@ -419,34 +421,38 @@ class ActuatorRegistry:
         catalogs_to_try: list[ExperimentCatalog] = []
         actuator_catalog: ExperimentCatalog | None = None
 
-        if resolve:
+        try:
+            log.debug(
+                f"Checking registry for the catalog of actuator {reference.actuatorIdentifier}"
+            )
+            # Either raises or returns non None
             actuator_catalog = self.catalogForActuatorIdentifier(
                 actuatorid=reference.actuatorIdentifier
             )
             catalogs_to_try.append(actuator_catalog)
-            catalogs_to_try.extend(additionalCatalogs)
-        else:
-            try:
-                log.debug(
-                    f"Checking registry for the catalog of actuator {reference.actuatorIdentifier}"
-                )
-                actuator_catalog = self.catalogForActuatorIdentifier(
-                    actuatorid=reference.actuatorIdentifier
-                )
-                catalogs_to_try.append(actuator_catalog)
-            except KeyError:
-                try:
-                    self.actuatorForIdentifier(reference.actuatorIdentifier)
-                except UnknownActuatorError:
-                    log.warning(
-                        f"No actuator registered called {reference.actuatorIdentifier}"
-                    )
-                else:
-                    log.warning(
-                        f"No catalog registered for actuator {reference.actuatorIdentifier}"
-                    )
-            catalogs_to_try.extend(additionalCatalogs)
+        except UnknownActuatorError:
+            log.warning(f"No actuator registered called {reference.actuatorIdentifier}")
+            raise
+        except UnexpectedCatalogRetrievalError:
+            # We continue as their may be additional catalogs
+            log.warning(
+                f"Unable to retrieve the catalog for {reference.actuatorIdentifier}"
+            )
+        except MissingActuatorConfigurationForCatalogError:
+            # We continue as there may be additional catalogs
+            log.warning(
+                f"The catalog for {reference.actuatorIdentifier} requires configuration but this has not been supplied"
+            )
 
+        catalogs_to_try.extend(additionalCatalogs)
+
+        if not catalogs_to_try:
+            raise UnexpectedCatalogRetrievalError(
+                f"No catalogs available for {reference.actuatorIdentifier}"
+            )
+
+        # Now try to find the experiment
+        experiment = None
         for catalog in catalogs_to_try:
             log.debug(
                 f"Looking up {reference} from catalog {catalog} with match_on={match_on}, resolve={resolve}"
@@ -458,7 +464,6 @@ class ActuatorRegistry:
             except ExperimentVersionMismatchError:
                 raise
             except UnknownExperimentError:
-                actuator_catalog = catalog
                 log.debug(f"No experiment matching {reference} found in {catalog}")
                 continue
             except DeprecatedExperimentError:
@@ -466,41 +471,29 @@ class ActuatorRegistry:
             else:
                 if experiment is not None:
                     log.debug(f"Found {experiment}")
-                    return experiment
-                log.debug(f"No experiment matching {reference} found in {catalog}")
+                    break
 
-        if resolve:
-            message = (
-                f"The {reference.actuatorIdentifier} actuator was found but a match to "
-                f"{reference} was not found using mode {match_on}."
-            )
+        if not experiment:
             if actuator_catalog is not None:
+                message = (
+                    f"The {reference.actuatorIdentifier} actuator was found but a match to "
+                    f"{reference} was not found using mode {match_on}."
+                )
                 candidates = actuator_catalog.experiments_matching_identifier(reference)
                 if candidates:
                     available_versions = ", ".join(
                         sorted({e.version for e in candidates if e.version})
                     )
                     message = f"{message} Available versions in catalog: {available_versions}."
+            else:
+                message = (
+                    f"No match for {reference} was found in the available catalogs "
+                    f"using mode {match_on}."
+                )
+
             raise UnknownExperimentError(message)
 
-        if not self.actuatorForIdentifier(reference.actuatorIdentifier):
-            raise UnknownActuatorError(reference.actuatorIdentifier)
-        log.error(
-            f"The {reference.actuatorIdentifier}  actuator was found but it did not contain "
-            f"the {reference.experimentIdentifier} experiment."
-        )
-        message = (
-            f"The {reference.actuatorIdentifier} actuator was found but it did not "
-            f"contain the {reference} experiment."
-        )
-        if reference.experimentVersion is None and actuator_catalog:
-            candidates = actuator_catalog.experiments_matching_identifier(reference)
-            if candidates:
-                available_versions = ", ".join(
-                    sorted({e.version for e in candidates if e.version})
-                )
-                message = f"{message}Available versions: {available_versions}."
-        raise UnknownExperimentError(message)
+        return experiment
 
     @property
     def catalogs(self) -> list[ExperimentCatalog]:

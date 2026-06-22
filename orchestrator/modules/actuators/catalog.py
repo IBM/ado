@@ -127,8 +127,9 @@ class ExperimentCatalog(BaseCatalog):
 
         Matching compares on actuator and major version experiment identifier.
         When ``match_on='fully_qualified_version'``, the exact version must also
-        match. When ``resolve=True``, deprecated experiments raise and references
-        with parameterization are wrapped in :class:`ParameterizedExperiment`.
+        match. When ``resolve=True``, deprecated experiments cause an error
+        to be raised and references with parameterization are wrapped in
+         :class:`ParameterizedExperiment`.
 
         The catalog stores at most one experiment per major version identifier.
 

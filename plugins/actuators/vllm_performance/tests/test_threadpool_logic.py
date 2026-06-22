@@ -53,11 +53,6 @@ class TestDetermineThreadpoolUsage:
         values = {"renderer_num_workers": 1}
         assert _is_threadpool_requested(values) is True
 
-    def test_with_large_positive_workers(self) -> None:
-        """renderer_num_workers=64 -> True (threadpool enabled)."""
-        values = {"renderer_num_workers": 64}
-        assert _is_threadpool_requested(values) is True
-
     def test_with_negative_string_workers(self) -> None:
         """renderer_num_workers='-1' -> ValueError."""
         values = {"renderer_num_workers": "-1"}

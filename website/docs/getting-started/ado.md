@@ -1074,7 +1074,7 @@ ado show trace operation randomwalk-0.5.0-123abc --hide metadata --hide timestam
 ado show trace discoveryspace my-space-123abc
 ```
 
-###### Show the aggregated trace for all operations sharing a sample store
+###### Show the aggregated trace for all discovery spaces sharing a sample store
 
 ```shell
 ado show trace samplestore my-store-456def

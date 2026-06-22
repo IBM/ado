@@ -934,12 +934,20 @@ debugging operation behaviour e.g. failed experiments or requests. Note,
 multiple entities can be contained in a single measurement request depending on
 the sampler used to explore and its settings.
 
+`ado show trace` supports three resource types:
+
+- `operation` — show the trace for a single operation.
+- `discoveryspace` — show the aggregated trace for all operations linked to a
+  discovery space.
+- `samplestore` — show the aggregated trace for all operations linked to a
+  sample store (across all its discovery spaces).
+
 The complete syntax of the `ado show trace` command is as follows:
 
 <!-- markdownlint-disable line-length -->
 
 ```shell
-ado show trace operation [RESOURCE_ID] [--use-latest] \
+ado show trace operation|discoveryspace|samplestore [RESOURCE_ID] [--use-latest] \
                          [--unroll-entities] \
                          [--filter <key=value>] \
                          [--output | -o <table | csv | json | yaml>] \
@@ -951,8 +959,8 @@ ado show trace operation [RESOURCE_ID] [--use-latest] \
 <!-- markdownlint-enable line-length -->
 
 - `--use-latest` will use the identifier of the latest (i.e. most recent)
-  operation from the current context. It is ignored if a RESOURCE_ID is
-  provided.
+  resource of the selected type from the current context. It is ignored if a
+  RESOURCE_ID is provided.
 - `--unroll-entities` expands the table for output mode `table` or `csv` so each
   entity has its own row containing additional metadata on the result of
   applying the requested experiment to it.
@@ -974,6 +982,8 @@ following columns:
 
 - Index (auto-generated row number)
 - Request ID
+- Operation ID _(multi-operation views only: `discoveryspace`, `samplestore`)_
+- Space ID _(samplestore view only)_
 - Request Index
 - Request type (measured/replayed)
 - Timestamp
@@ -993,6 +1003,8 @@ of applying the requested experiment to it:
 
 - Index (auto-generated row number)
 - Request ID
+- Operation ID _(multi-operation views only: `discoveryspace`, `samplestore`)_
+- Space ID _(samplestore view only)_
 - Request Index
 - Request type (measured/replayed)
 - Timestamp
@@ -1002,6 +1014,7 @@ of applying the requested experiment to it:
 - Entity ID (single, unrolled)
 - Valid (boolean)
 - Number of Properties
+- Invalid Reason
 - Request Metadata
 - Result Metadata
 
@@ -1054,6 +1067,28 @@ ado show trace operation randomwalk-0.5.0-123abc --filter status=Success --filte
 ```shell
 ado show trace operation randomwalk-0.5.0-123abc --hide metadata --hide timestamp
 ```
+
+###### Show the aggregated trace for all operations in a discovery space
+
+```shell
+ado show trace discoveryspace my-space-123abc
+```
+
+###### Show the aggregated trace for all operations sharing a sample store
+
+```shell
+ado show trace samplestore my-store-456def
+```
+
+###### Export the aggregated trace for a discovery space to CSV
+
+<!-- markdownlint-disable line-length -->
+
+```shell
+ado show trace discoveryspace my-space-123abc -o csv --output-file trace.csv
+```
+
+<!-- markdownlint-enable line-length -->
 
 #### ado show related
 

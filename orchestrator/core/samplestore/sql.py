@@ -1607,21 +1607,22 @@ class SQLSampleStore(ActiveSampleStore):
 
     def measurement_requests_for_operation(
         self,
-        operation_id: str,
+        operation_id: str | set[str],
         filters: list[dict[str, str]] | None = None,
-    ) -> list[MeasurementRequest]:
+    ) -> list[MeasurementRequest] | dict[str, list[MeasurementRequest]]:
         """
-        Fetch measurement requests for an operation, optionally filtered.
+        Fetch measurement requests for one or more operations, optionally filtered.
 
         Args:
-            operation_id: The operation identifier
+            operation_id: The operation identifier, or a set of operation identifiers
             filters: Optional DB-level filters from prepare_query_filters_for_db()
                      Format: [{"$.path": "value"}, ...]
                      Supports filtering on request fields (status, requestIndex, etc.)
                      and nested JSON fields (metadata.*, experimentReference.*)
 
         Returns:
-            List of MeasurementRequest objects matching the filters
+            A list of MeasurementRequest objects when passed a single operation ID,
+            or a dict keyed by operation ID when passed a set of operation IDs
         """
         from sqlalchemy import and_, select
 
@@ -1630,12 +1631,10 @@ class SQLSampleStore(ActiveSampleStore):
         )
 
         try:
-            # Use cached table metadata from initialization
             req_table = self._request_table
             reqres_table = self._request_result_table
             res_table = self._result_table
 
-            # Build query using SQLAlchemy
             stmt = (
                 select(
                     req_table.c.uid,
@@ -1653,10 +1652,13 @@ class SQLSampleStore(ActiveSampleStore):
                 .select_from(req_table)
                 .join(reqres_table, reqres_table.c.request_uid == req_table.c.uid)
                 .join(res_table, reqres_table.c.result_uid == res_table.c.uid)
-                .where(req_table.c.operation_id == operation_id)
             )
 
-            # Apply filters if provided
+            if isinstance(operation_id, set):
+                stmt = stmt.where(req_table.c.operation_id.in_(operation_id))
+            else:
+                stmt = stmt.where(req_table.c.operation_id == operation_id)
+
             if filters:
                 filter_builder = MeasurementFilterBuilder(
                     dialect=self.engine.dialect.name
@@ -1669,7 +1671,6 @@ class SQLSampleStore(ActiveSampleStore):
                 if filter_conditions:
                     stmt = stmt.where(and_(*filter_conditions))
 
-            # Add ordering
             stmt = stmt.order_by(
                 req_table.c.request_index,
                 req_table.c.insert_id,
@@ -1680,11 +1681,25 @@ class SQLSampleStore(ActiveSampleStore):
             with self.engine.begin() as connectable:
                 cur = connectable.execute(stmt)
         except SQLAlchemyError as error:
-            msg = f"Unable to get the measurement results for operation {operation_id}"
+            msg = (
+                f"Unable to get the measurement requests for operations {operation_id}"
+                if isinstance(operation_id, set)
+                else f"Unable to get the measurement requests for operation {operation_id}"
+            )
             self.log.critical(f"{msg}. Error: {error}")
             raise SystemError(f"{msg}. Error: {error}") from error
 
-        return self._measurement_requests_cursor_to_pydantic(db_cursor=cur)
+        requests = self._measurement_requests_cursor_to_pydantic(db_cursor=cur)
+        if not isinstance(operation_id, set):
+            return requests
+
+        requests_by_operation_id: dict[str, list[MeasurementRequest]] = {
+            requested_operation_id: [] for requested_operation_id in operation_id
+        }
+        for request in requests:
+            requests_by_operation_id[request.operation_id].append(request)
+
+        return requests_by_operation_id
 
     def measurement_request_by_id(
         self, measurement_request_id: str

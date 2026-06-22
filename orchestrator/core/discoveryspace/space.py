@@ -1063,8 +1063,8 @@ class DiscoverySpace:
 
     @_perform_preflight_checks_for_sample_store_methods
     def measurement_requests_for_operation(
-        self, operation_id: str
-    ) -> list[MeasurementRequest]:
+        self, operation_id: str | set[str]
+    ) -> list[MeasurementRequest] | dict[str, list[MeasurementRequest]]:
         return self.sample_store.measurement_requests_for_operation(
             operation_id=operation_id
         )

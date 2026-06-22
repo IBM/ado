@@ -96,11 +96,11 @@ class TestVLLMVersionChecker:
     def test_extract_version_from_vllm_image_without_tag(self) -> None:
         """Test that image without tag returns the image name"""
         image = "vllm/vllm-openai"
-        assert (
-            VLLMVersionChecker.extract_version_from_image(image) == "vllm/vllm-openai"
-        )
+        with pytest.raises(VLLMVersionExtractionError):
+            VLLMVersionChecker.extract_version_from_image(image=image)  # type: ignore[arg-type]
 
     def test_extract_version_from_image_without_tag(self) -> None:
         """Test that image without tag (no colon) returns None"""
         image = "custom-image"
-        assert VLLMVersionChecker.extract_version_from_image(image) is None
+        with pytest.raises(VLLMVersionExtractionError):
+            VLLMVersionChecker.extract_version_from_image(image=image)  # type: ignore[arg-type]

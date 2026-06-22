@@ -46,10 +46,11 @@ class VLLMVersionChecker:
 
         try:
             return version.parse(image).base_version
-        except version.InvalidVersion:
-            if "/" in image:
-                return image
-            return None
+        except version.InvalidVersion as e:
+            raise VLLMVersionExtractionError(
+                f"Cannot extract version from image string: {image}. "
+                f"Expected format: 'image:version' or a valid version string. "
+            ) from e
 
     @classmethod
     def supports_threadpool(cls, vllm_version_str: str) -> bool:

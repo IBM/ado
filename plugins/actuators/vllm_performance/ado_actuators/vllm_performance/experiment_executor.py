@@ -222,7 +222,8 @@ def _create_environment(
                     )
                 )
                 try:
-                    if not (image_value := values.get("image", "")):
+                    image_value = values.get("image", "")
+                    if not image_value:
                         raise InvalidImageStructureError("Image value cannot be empty")
                     logger.info(f"Evaluating image value: {image_value}")
                     if isinstance(image_value, str):

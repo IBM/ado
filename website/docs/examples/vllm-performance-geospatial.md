@@ -271,9 +271,6 @@ improve performance when processing satellite imagery:
 
 ```yaml
 entitySpace:
-  - identifier: use_threadpool
-    propertyDomain:
-      values: [0, 1]  # 0=disabled, 1=enabled
   - identifier: renderer_num_workers
     propertyDomain:
       values: [32, 64, 128]  # Number of worker threads

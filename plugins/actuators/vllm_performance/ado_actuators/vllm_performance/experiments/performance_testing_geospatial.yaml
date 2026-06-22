@@ -207,12 +207,6 @@ performance_testing-geospatial-full:
       propertyDomain:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
         values: [None, "terratorch_segmentation"]
-    - identifier: 'use_threadpool'
-      metadata:
-        description: "Enable threadpool for vLLM renderer. When enabled, uses multiple workers for rendering."
-      propertyDomain:
-        variableType: 'CATEGORICAL_VARIABLE_TYPE'
-        values: [false, true]
     - identifier: 'renderer_num_workers'
       metadata:
         description: "Number of renderer workers for threadpool-based rendering. Set to 0 to disable threadpool (for vLLM versions < 0.20.0). Set to a positive value to enable threadpool (requires vLLM >= 0.20.0). If not specified, threadpool is disabled."
@@ -272,9 +266,6 @@ performance_testing-geospatial-full:
     - property:
         identifier: 'dataset'
       value: 'india_url_in_b64_out'
-    - property:
-        identifier: 'use_threadpool'
-      value: false
     - property:
         identifier: 'renderer_num_workers'
       value: 0
@@ -421,12 +412,6 @@ performance_testing-geospatial-full-custom-dataset:
       propertyDomain:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
         values: ["terratorch_segmentation"]
-    - identifier: 'use_threadpool'
-      metadata:
-        description: "Enable threadpool for vLLM renderer. When enabled, uses multiple workers for rendering."
-      propertyDomain:
-        variableType: 'CATEGORICAL_VARIABLE_TYPE'
-        values: [false, true]
     - identifier: 'renderer_num_workers'
       metadata:
         description: "Number of renderer workers for threadpool-based rendering. Set to 0 to disable threadpool (for vLLM versions < 0.20.0). Set to a positive value to enable threadpool (requires vLLM >= 0.20.0). If not specified, threadpool is disabled."
@@ -483,9 +468,6 @@ performance_testing-geospatial-full-custom-dataset:
     - property:
         identifier: 'io_processor_plugin'
       value: "terratorch_segmentation"
-    - property:
-        identifier: 'use_threadpool'
-      value: false
     - property:
         identifier: 'renderer_num_workers'
       value: 0
@@ -780,12 +762,6 @@ performance_testing-geospatial-full-guidellm:
       propertyDomain:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
         values: [None, "terratorch_segmentation"]
-    - identifier: 'use_threadpool'
-      metadata:
-        description: "Enable threadpool for vLLM renderer. When enabled, uses multiple workers for rendering."
-      propertyDomain:
-        variableType: 'CATEGORICAL_VARIABLE_TYPE'
-        values: [false, true]
     - identifier: 'renderer_num_workers'
       metadata:
         description: "Number of renderer workers for threadpool-based rendering. Set to 0 to disable threadpool (for vLLM versions < 0.20.0). Set to a positive value to enable threadpool (requires vLLM >= 0.20.0). If not specified, threadpool is disabled."
@@ -845,9 +821,6 @@ performance_testing-geospatial-full-guidellm:
     - property:
         identifier: 'dataset'
       value: 'india_url_in_b64_out'
-    - property:
-        identifier: 'use_threadpool'
-      value: false
     - property:
         identifier: 'renderer_num_workers'
       value: 0
@@ -992,12 +965,6 @@ performance_testing-geospatial-guidellm-deployment-custom-dataset:
       propertyDomain:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
         values: [None, "terratorch_segmentation"]
-    - identifier: 'use_threadpool'
-      metadata:
-        description: "Enable threadpool for vLLM renderer. When enabled, uses multiple workers for rendering."
-      propertyDomain:
-        variableType: 'CATEGORICAL_VARIABLE_TYPE'
-        values: [false, true]
     - identifier: 'renderer_num_workers'
       metadata:
         description: "Number of renderer workers for threadpool-based rendering. Set to 0 to disable threadpool (for vLLM versions < 0.20.0). Set to a positive value to enable threadpool (requires vLLM >= 0.20.0). If not specified, threadpool is disabled."
@@ -1054,9 +1021,6 @@ performance_testing-geospatial-guidellm-deployment-custom-dataset:
     - property:
         identifier: 'io_processor_plugin'
       value: "terratorch_segmentation"
-    - property:
-        identifier: 'use_threadpool'
-      value: false
     - property:
         identifier: 'renderer_num_workers'
       value: 0

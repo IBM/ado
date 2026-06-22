@@ -403,6 +403,7 @@ def print_related_resources(
     resource_type: "CoreResourceKinds",
     sql: "SQLStore",
     hide_banner: bool = False,
+    max_hops: int | None = None,
 ) -> None:
     with Status(ADO_SPINNER_QUERYING_DB) as status:
         if not sql.containsResourceWithIdentifier(identifier=resource_id):
@@ -414,7 +415,7 @@ def print_related_resources(
             kind=resource_type,
             identifier=resource_id,
             hierarchy_direction="both",
-            max_hops=None,
+            max_hops=max_hops,
             identifiers_only=True,
         )
 

@@ -34,6 +34,7 @@ from orchestrator.metastore.base import (
     NoRelatedResourcesError,
     ResourceDoesNotExistError,
 )
+from orchestrator.metastore.sql.statements import _MAX_HIERARCHY_HOPS
 
 if typing.TYPE_CHECKING:
     from orchestrator.cli.core.config import AdoConfiguration
@@ -67,9 +68,23 @@ def show_related_for_resources(
             show_default=False,
         ),
     ] = False,
+    max_hops: Annotated[
+        int | None,
+        typer.Option(
+            "--max-hops",
+            help=f"Maximum number of relationship hops to follow from the start resource "
+            f"(1-{_MAX_HIERARCHY_HOPS}). Defaults to the full hierarchy depth.",
+            show_default=False,
+            min=1,
+            max=_MAX_HIERARCHY_HOPS,
+        ),
+    ] = None,
 ) -> None:
     """
-    Show resources directly (one-hop) related to the requested resource, grouped by type.
+    Show resources related to the requested resource, grouped by type.
+
+    By default the full resource hierarchy is traversed in both directions.
+    Use --max-hops to limit the traversal depth.
 
     See https://ibm.github.io/ado/getting-started/ado/#ado-show-related
     for detailed documentation and examples.
@@ -81,6 +96,9 @@ def show_related_for_resources(
 
     # Show the resources related to the latest space
     ado show related space --use-latest
+
+    # Show only directly linked (1-hop) resources
+    ado show related space <space-id> --max-hops 1
     """
     ado_configuration: AdoConfiguration = ctx.obj
 
@@ -99,7 +117,7 @@ def show_related_for_resources(
         )
 
     parameters = AdoShowRelatedCommandParameters(
-        ado_configuration=ado_configuration, resource_id=resource_id
+        ado_configuration=ado_configuration, resource_id=resource_id, max_hops=max_hops
     )
 
     method_mapping = {

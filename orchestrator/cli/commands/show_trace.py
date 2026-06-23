@@ -16,7 +16,11 @@ from orchestrator.cli.models.types import (
     AdoShowTraceSupportedOutputFormats,
     AdoShowTraceSupportedResourceTypes,
 )
+from orchestrator.cli.resources.discovery_space.show_trace import (
+    show_discovery_space_trace,
+)
 from orchestrator.cli.resources.operation.show_trace import show_operation_trace
+from orchestrator.cli.resources.sample_store.show_trace import show_sample_store_trace
 from orchestrator.cli.utils.generic.common import get_effective_resource_id
 from orchestrator.cli.utils.input.parsers import (
     enum_choice_with_plural_parser,
@@ -125,7 +129,7 @@ def show_trace_for_resources(
     ] = False,
 ) -> None:
     """
-    Show the measurement trace (requests and results) for an operation.
+    Show the measurement trace (requests and results) for a resource.
 
     This command provides a unified view of measurement requests and results.
 
@@ -148,6 +152,12 @@ def show_trace_for_resources(
 
     # Output as YAML
     ado show trace operation <operation-id> --output yaml
+
+    # Show trace for all operations in a discovery space
+    ado show trace discoveryspace <space-id>
+
+    # Show trace for all operations that share a sample store
+    ado show trace samplestore <store-id>
     """
     ado_configuration: AdoConfiguration = ctx.obj
 
@@ -187,7 +197,9 @@ def show_trace_for_resources(
     )
 
     method_mapping = {
-        AdoShowTraceSupportedResourceTypes.OPERATION: show_operation_trace
+        AdoShowTraceSupportedResourceTypes.OPERATION: show_operation_trace,
+        AdoShowTraceSupportedResourceTypes.DISCOVERY_SPACE: show_discovery_space_trace,
+        AdoShowTraceSupportedResourceTypes.SAMPLE_STORE: show_sample_store_trace,
     }
 
     try:

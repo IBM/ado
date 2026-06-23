@@ -160,6 +160,8 @@ class AdoShowTraceSupportedOutputFormats(Enum):
 
 class AdoShowTraceSupportedResourceTypes(Enum):
     OPERATION = _OPERATION_SINGULAR
+    DISCOVERY_SPACE = _DISCOVERY_SPACE_SINGULAR
+    SAMPLE_STORE = _SAMPLE_STORE_SINGULAR
 
 
 #################### ado show summary ####################

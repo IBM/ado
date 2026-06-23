@@ -14,8 +14,10 @@ from rich.status import Status
 from orchestrator.cli.models.types import (
     AdoEditSupportedEditors,
     AdoGetSupportedOutputFormats,
+    AdoShowTraceSupportedOutputFormats,
 )
 from orchestrator.cli.utils.generic.wrappers import get_sql_store
+from orchestrator.cli.utils.output.dataframes import df_to_output
 from orchestrator.cli.utils.output.prints import (
     ADO_GET_CONFIG_ONLY_WHEN_SINGLE_RESOURCE,
     ADO_INFO_EMPTY_DATAFRAME,
@@ -35,6 +37,7 @@ from orchestrator.cli.utils.resources.formatters import (
 )
 from orchestrator.core.metadata import ConfigurationMetadata
 from orchestrator.metastore.base import ResourceDoesNotExistError
+from orchestrator.utilities.output import pydantic_model_as_yaml
 from orchestrator.utilities.rich import dataframe_to_rich_table
 
 logger = logging.getLogger(__name__)
@@ -44,6 +47,7 @@ if typing.TYPE_CHECKING:
 
     from orchestrator.cli.models.parameters import (
         AdoGetCommandParameters,
+        AdoShowTraceCommandParameters,
         AdoUpgradeCommandParameters,
     )
     from orchestrator.core import ADOResource, CoreResourceKinds
@@ -793,7 +797,6 @@ def _handle_upgrade_validation_error(
             for error_msg in field_errors.get(field_path, []):
                 console_print(f"    - {error_msg}")
 
-    console_print()
     if migrators:
         print_migrator_suggestions_with_dependencies(
             migrators=migrators, resource_type=resource_type
@@ -805,3 +808,95 @@ def _handle_upgrade_validation_error(
         console_print("The resources may be too old or require manual intervention.")
 
     console_print()
+
+
+def render_trace_output(
+    measurement_requests: list,
+    parameters: "AdoShowTraceCommandParameters",
+    *,
+    include_operation_id: bool = False,
+    operation_space_map: dict[str, str] | None = None,
+) -> None:
+    """Render measurement trace data to the configured output format.
+
+    This is the shared rendering step used by all ``show trace`` handlers.
+    It handles YAML serialisation, DataFrame construction, column reordering,
+    column hiding, and final output.
+
+    Args:
+        measurement_requests: The fetched measurement requests (already filtered).
+        parameters: The ``AdoShowTraceCommandParameters`` carrying output format,
+            hide_fields, no_trunc, output_file, and unroll_entities settings.
+        include_operation_id: When True, each row is stamped with the request's
+            own operation ID (read from ``request.operation_id``).
+        operation_space_map: When not None, a mapping from operation ID to space ID.
+            Each row is stamped with the space ID for its operation.
+    """
+    import pandas as pd
+
+    from orchestrator.cli.resources.trace_common import (
+        REQUEST_COLUMN,
+        REQUEST_COLUMNS_MOVE_TO_END,
+        RESULT_COLUMN,
+        RESULT_COLUMNS_MOVE_TO_END,
+        build_request_level_rows,
+        build_result_level_rows,
+    )
+    from orchestrator.utilities.pandas import reorder_dataframe_columns
+
+    # YAML path: serialise the raw pydantic objects and return early
+    if parameters.output_format == AdoShowTraceSupportedOutputFormats.YAML:
+        yaml_output = pydantic_model_as_yaml(measurement_requests)  # type: ignore[arg-type]
+        if parameters.output_file:
+            parameters.output_file.write_text(yaml_output)
+        else:
+            console_print(yaml_output)
+        return
+
+    # Build rows for the chosen view mode
+    if parameters.unroll_entities:
+        rows = build_result_level_rows(
+            measurement_requests,
+            include_operation_id=include_operation_id,
+            operation_space_map=operation_space_map,
+        )
+        move_to_end = RESULT_COLUMNS_MOVE_TO_END
+        id_col = RESULT_COLUMN.REQUEST_ID.value
+        space_id_col = RESULT_COLUMN.SPACE_ID.value
+        op_id_col = RESULT_COLUMN.OPERATION_ID.value
+    else:
+        rows = build_request_level_rows(
+            measurement_requests,
+            include_operation_id=include_operation_id,
+            operation_space_map=operation_space_map,
+        )
+        move_to_end = REQUEST_COLUMNS_MOVE_TO_END
+        id_col = REQUEST_COLUMN.REQUEST_ID.value
+        space_id_col = REQUEST_COLUMN.SPACE_ID.value
+        op_id_col = REQUEST_COLUMN.OPERATION_ID.value
+
+    # Build move_to_start: Request ID always first, then Space ID and
+    # Operation ID when present (space before operation).
+    move_to_start = [id_col]
+    if operation_space_map is not None:
+        move_to_start.append(space_id_col)
+    if include_operation_id:
+        move_to_start.append(op_id_col)
+
+    df = pd.DataFrame(rows)
+
+    df = reorder_dataframe_columns(
+        df=df,
+        move_to_start=move_to_start,
+        move_to_end=move_to_end,
+    )
+
+    if parameters.hide_fields:
+        df = df.drop(parameters.hide_fields, axis="columns", errors="ignore")
+
+    df_to_output(
+        df=df,
+        output_format=parameters.output_format.value,
+        output_file=parameters.output_file,
+        no_trunc=parameters.no_trunc,
+    )

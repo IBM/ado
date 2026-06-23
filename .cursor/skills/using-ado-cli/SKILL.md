@@ -118,9 +118,14 @@ uv run ado get space --use-latest -o yaml
 # Get the latest operation as YAML
 uv run ado get operation --use-latest -o yaml
 
-# Get measurement statistics for all operations (stats format, operations only)
-uv run ado get operations -o stats
+# Get measurement statistics for all operations (operations only)
+uv run ado get operations -o stats --output-file operations-stats.txt
+uv run ado get operation OPERATION_ID -o stats
 ```
+
+`-o stats` extends the table with `TOTAL_RESULTS`, `SUCCESSFUL_RESULTS`,
+`FAILED_RESULTS`, and `MEASURED_ENTITIES`. Use `--output-file` or `--no-trunc`
+to avoid terminal truncation of the wider table.
 
 ### ado create
 

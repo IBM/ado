@@ -69,6 +69,17 @@ Goal: volume of work, recency, and which spaces attract the most operations.
    together with `uv run ado get operator --details` to understand more about
    the operators used.
 
+3. **Operations (with measurement statistics)**
+
+   ```bash
+   uv run ado get operations -o stats --output-file operations-stats.txt
+   ```
+
+   Adds `TOTAL_RESULTS`, `SUCCESSFUL_RESULTS`, `FAILED_RESULTS`, and
+   `MEASURED_ENTITIES` columns. Use `--output-file` or `--no-trunc` to avoid
+   terminal truncation. For explore operations, compare `MEASURED_ENTITIES`
+   against the operator's `numberEntities` to check sampling completeness.
+
 **Synthesis:** cluster mentally (or in notes) by **creation time** to see bursts
 of activity; count operations **per space** from the operations listing to see
 which spaces are busiest.
@@ -199,3 +210,7 @@ Write a concise markdown report
 - Which operations **submitted** the most entities (from operation YAML/config).
 - What **analysis**-style operations ran (infer from operator names and
   parameters).
+- **Measurement outcomes**: run `ado get operations -o stats --output-file
+  operations-stats.txt` to see result counts and measured-entity totals per
+  operation (`TOTAL_RESULTS`, `SUCCESSFUL_RESULTS`, `FAILED_RESULTS`,
+  `MEASURED_ENTITIES`).

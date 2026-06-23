@@ -982,9 +982,12 @@ def test_operation_measurement_statistics_all_valid(
         for result in request.measurements
     }
 
-    stats = sample_store.operation_measurement_statistics(operation_id=operation_id)
+    result = sample_store.operation_measurement_statistics(operation_ids={operation_id})
 
+    assert len(result) == 1
+    stats = result[0]
     assert isinstance(stats, OperationMeasurementStatistics)
+    assert stats.operation_id == operation_id
     assert stats.total_requests == number_requests
     assert stats.failed_requests == 0
     assert stats.successful_requests == number_requests
@@ -1094,9 +1097,12 @@ def test_operation_measurement_statistics_mixed_valid_invalid(
         r.entityIdentifier for r in request1.measurements
     }
 
-    stats = sample_store.operation_measurement_statistics(operation_id=operation_id)
+    result = sample_store.operation_measurement_statistics(operation_ids={operation_id})
 
+    assert len(result) == 1
+    stats = result[0]
     assert isinstance(stats, OperationMeasurementStatistics)
+    assert stats.operation_id == operation_id
     assert stats.total_requests == 2
     assert stats.failed_requests == 1
     assert stats.successful_requests == 1
@@ -1139,11 +1145,130 @@ def test_operation_measurement_statistics_measured_entities_distinct(
         for result in request.measurements
     }
 
-    stats = sample_store.operation_measurement_statistics(operation_id=operation_id)
+    result = sample_store.operation_measurement_statistics(operation_ids={operation_id})
 
+    assert len(result) == 1
+    stats = result[0]
     assert isinstance(stats, OperationMeasurementStatistics)
+    assert stats.operation_id == operation_id
     # measured_entities is DISTINCT — repeated entities across requests count once
     assert stats.measured_entities == len(expected_entities)
     # total_results counts every result row, including repeats
     assert stats.total_results == number_requests * number_entities
     assert stats.total_results >= stats.measured_entities
+
+
+@requires_sqlite_3_38
+def test_operation_measurement_statistics_multiple_ids(
+    random_identifier: Callable[[], str],
+    simulate_ml_multi_cloud_random_walk_operation: Callable[
+        [int, int, int, str | None],
+        tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
+    ],
+) -> None:
+    """Test operation_measurement_statistics with two operation IDs returns two stats objects."""
+    from orchestrator.core.operation.stats import OperationMeasurementStatistics
+
+    operation_id_a = random_identifier()
+    operation_id_b = random_identifier()
+
+    number_entities = 3
+    number_requests_a = 2
+    number_requests_b = 4
+    measurements_per_result = 2
+
+    sample_store, _requests_a, _ids_a = simulate_ml_multi_cloud_random_walk_operation(
+        number_entities=number_entities,
+        number_requests=number_requests_a,
+        measurements_per_result=measurements_per_result,
+        operation_id=operation_id_a,
+    )
+    _sample_store, _requests_b, _ids_b = simulate_ml_multi_cloud_random_walk_operation(
+        number_entities=number_entities,
+        number_requests=number_requests_b,
+        measurements_per_result=measurements_per_result,
+        operation_id=operation_id_b,
+    )
+
+    result = sample_store.operation_measurement_statistics(
+        operation_ids={operation_id_a, operation_id_b}
+    )
+
+    assert len(result) == 2
+    stats_by_id = {s.operation_id: s for s in result}
+
+    assert operation_id_a in stats_by_id
+    assert operation_id_b in stats_by_id
+
+    for stats in result:
+        assert isinstance(stats, OperationMeasurementStatistics)
+
+    assert stats_by_id[operation_id_a].total_requests == number_requests_a
+    assert stats_by_id[operation_id_b].total_requests == number_requests_b
+    assert (
+        stats_by_id[operation_id_a].total_results == number_requests_a * number_entities
+    )
+    assert (
+        stats_by_id[operation_id_b].total_results == number_requests_b * number_entities
+    )
+
+
+@requires_sqlite_3_38
+def test_operation_measurement_statistics_no_ids(
+    random_identifier: Callable[[], str],
+    simulate_ml_multi_cloud_random_walk_operation: Callable[
+        [int, int, int, str | None],
+        tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
+    ],
+) -> None:
+    """Test operation_measurement_statistics with operation_ids=None returns all operations."""
+    from orchestrator.core.operation.stats import OperationMeasurementStatistics
+
+    operation_id_a = random_identifier()
+    operation_id_b = random_identifier()
+
+    number_entities = 3
+    number_requests = 3
+    measurements_per_result = 2
+
+    sample_store, _requests_a, _ids_a = simulate_ml_multi_cloud_random_walk_operation(
+        number_entities=number_entities,
+        number_requests=number_requests,
+        measurements_per_result=measurements_per_result,
+        operation_id=operation_id_a,
+    )
+    _sample_store, _requests_b, _ids_b = simulate_ml_multi_cloud_random_walk_operation(
+        number_entities=number_entities,
+        number_requests=number_requests,
+        measurements_per_result=measurements_per_result,
+        operation_id=operation_id_b,
+    )
+
+    result = sample_store.operation_measurement_statistics(operation_ids=None)
+
+    returned_ids = {s.operation_id for s in result}
+    assert operation_id_a in returned_ids
+    assert operation_id_b in returned_ids
+
+    for stats in result:
+        assert isinstance(stats, OperationMeasurementStatistics)
+        assert stats.total_requests == number_requests
+        assert stats.total_results == number_requests * number_entities
+
+
+@requires_sqlite_3_38
+def test_operation_measurement_statistics_empty_set(
+    simulate_ml_multi_cloud_random_walk_operation: Callable[
+        [int, int, int, str | None],
+        tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
+    ],
+) -> None:
+    """Test that operation_measurement_statistics raises ValueError for an empty set."""
+    import pytest
+
+    sample_store, _requests, _ids = simulate_ml_multi_cloud_random_walk_operation()
+
+    with pytest.raises(
+        ValueError, match="operation_ids must be a non-empty set or None"
+    ):
+        sample_store.operation_measurement_statistics(operation_ids=set())

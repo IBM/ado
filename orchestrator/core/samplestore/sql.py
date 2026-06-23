@@ -1486,20 +1486,29 @@ class SQLSampleStore(ActiveSampleStore):
             raise SystemError(f"{msg}. Error: {error}") from error
 
     def operation_measurement_statistics(
-        self, operation_id: str
-    ) -> "OperationMeasurementStatistics":
-        """Compute aggregated measurement statistics for an operation.
+        self, operation_ids: set[str] | None = None
+    ) -> "list[OperationMeasurementStatistics]":
+        """Compute aggregated measurement statistics for one or more operations.
 
-        Computes all seven statistics in a single query to avoid multiple
-        DB round-trips: request counts (total/failed/successful), result counts
-        (total/valid/invalid), and distinct measured entity count.
+        Computes all statistics in a single query grouped by operation_id to
+        avoid multiple DB round-trips: request counts (total/failed/successful),
+        result counts (total/valid/invalid), and distinct measured entity count.
 
         Args:
-            operation_id: The operation identifier.
+            operation_ids: Set of operation identifiers to aggregate. Pass
+                ``None`` to aggregate across all operations in the store.
+                Passing an empty set raises ``ValueError``.
 
         Returns:
-            An OperationMeasurementStatistics instance.
+            A list of OperationMeasurementStatistics instances, one per
+            operation found in the store.
+
+        Raises:
+            ValueError: If ``operation_ids`` is an empty set.
         """
+        if operation_ids is not None and len(operation_ids) == 0:
+            raise ValueError("operation_ids must be a non-empty set or None")
+
         from sqlalchemy import case, func, select
 
         from orchestrator.core.operation.stats import OperationMeasurementStatistics
@@ -1511,6 +1520,7 @@ class SQLSampleStore(ActiveSampleStore):
         # Equivalent SQL:
         #
         #   SELECT
+        #     req.operation_id,
         #     COUNT(DISTINCT req.uid) AS total_requests,
         #     COUNT(DISTINCT CASE WHEN req.status = 'Failed' THEN req.uid END) AS failed_requests,
         #     COUNT(DISTINCT CASE WHEN req.status = 'Success' THEN req.uid END) AS successful_requests,
@@ -1521,12 +1531,15 @@ class SQLSampleStore(ActiveSampleStore):
         #   FROM <tablename>_measurement_requests req
         #   LEFT JOIN <tablename>_measurement_requests_results reqres ON reqres.request_uid = req.uid
         #   LEFT JOIN <tablename>_measurement_results            res  ON reqres.result_uid  = res.uid
-        #   WHERE req.operation_id = :operation_id
+        #   [WHERE req.operation_id IN (...)]          -- only when operation_ids is not None
+        #   GROUP BY req.operation_id
 
         reason_is_null = func.json_extract(res_table.c.data, "$.reason").is_(None)
 
         stmt = (
             select(
+                # req.operation_id
+                req_table.c.operation_id,
                 # COUNT(DISTINCT req.uid) AS total_requests,
                 func.count(func.distinct(req_table.c.uid)).label("total_requests"),
                 # COUNT(DISTINCT CASE WHEN req.status = 'Failed' THEN req.uid END) AS failed_requests,
@@ -1574,34 +1587,31 @@ class SQLSampleStore(ActiveSampleStore):
             .outerjoin(reqres_table, reqres_table.c.request_uid == req_table.c.uid)
             # LEFT JOIN <tablename>_measurement_results res ON reqres.result_uid = res.uid
             .outerjoin(res_table, reqres_table.c.result_uid == res_table.c.uid)
-            # WHERE req.operation_id =:operation_id
-            .where(req_table.c.operation_id == operation_id)
+            # GROUP BY req.operation_id
+            .group_by(req_table.c.operation_id)
         )
+
+        if operation_ids is not None:
+            stmt = stmt.where(req_table.c.operation_id.in_(operation_ids))
 
         try:
             with self.engine.begin() as connectable:
-                row = connectable.execute(stmt).one()
-                (
-                    total_requests,
-                    failed_requests,
-                    successful_requests,
-                    total_results,
-                    successful_results,
-                    failed_results,
-                    measured_entities,
-                ) = row
-
-                return OperationMeasurementStatistics(
-                    total_requests=total_requests or 0,
-                    failed_requests=failed_requests or 0,
-                    successful_requests=successful_requests or 0,
-                    total_results=total_results or 0,
-                    successful_results=successful_results or 0,
-                    failed_results=failed_results or 0,
-                    measured_entities=measured_entities or 0,
-                )
+                rows = connectable.execute(stmt).all()
+                return [
+                    OperationMeasurementStatistics(
+                        operation_id=row.operation_id,
+                        total_requests=row.total_requests or 0,
+                        failed_requests=row.failed_requests or 0,
+                        successful_requests=row.successful_requests or 0,
+                        total_results=row.total_results or 0,
+                        successful_results=row.successful_results or 0,
+                        failed_results=row.failed_results or 0,
+                        measured_entities=row.measured_entities or 0,
+                    )
+                    for row in rows
+                ]
         except SQLAlchemyError as error:
-            msg = f"Unable to get measurement statistics for operation {operation_id}"
+            msg = f"Unable to get measurement statistics for operation IDs {operation_ids}"
             self.log.critical(f"{msg}. Error: {error}")
             raise SystemError(f"{msg}. Error: {error}") from error
 

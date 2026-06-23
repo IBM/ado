@@ -57,7 +57,10 @@ TRIM is particularly valuable when:
 > TRIM trains supervised tabular machine learning models. The current version of
 > TRIM requires that your experiment can obtain a target variable measurement
 > for every entity in the space and that these measurements are of the same type
-> (numbers or strings, vectors are not supported). More details
+> (numbers or strings, vectors are not supported). If some entities in your
+> space are expected to not produce a target variable measurement, set
+> [`defaultForUnmeasuredProperties`](#defaultforunmeasuredproperties) to a
+> representative float value. More details
 > [in the troubleshooting section](#debugging-and-troubleshooting).
 
 <!-- markdownlint-enable no-blanks-blockquote -->
@@ -188,6 +191,33 @@ experiment. All of TRIM's logic revolves around this target.
 parameters:
   targetOutput: pressure
 ```
+
+#### `defaultForUnmeasuredProperties`
+
+**Type:** `float | None`
+
+**Default:** `None`
+
+**Purpose:** Optional default value injected for the target variable when an
+entity does not produce a measurement for it (e.g. due to an
+`InvalidMeasurement`). When `None` (default), TRIM raises an
+`InsufficientDataError` if any entity yields no target measurement. Set a float
+to allow the iterative modeling phase to continue by substituting this value for
+those entities.
+
+**Tuning Guidance:** Choose a value that is meaningfully distinct from valid
+measurements in your space — for example, `-1.0` if all real measurements are
+non-negative, or `0.0` if the target is always positive. An inappropriate
+default can silently degrade model quality.
+
+**Example:**
+
+```yaml
+parameters:
+  defaultForUnmeasuredProperties: -1.0
+```
+
+---
 
 #### `outputDirectory`
 
@@ -569,10 +599,15 @@ TRIM maintains a rolling holdout set:
 
 ### Debugging and Troubleshooting
 
-The current version of TRIM assumes that all measurements produce the observed
-target output property, if this is not the case TRIM raises
-`InsufficientDataError`. To inspect what happened you can show the entities in
-the space with the following command
+By default, TRIM assumes that all measurements produce the observed target
+output property. If an entity does not produce a value for the target variable,
+TRIM raises `InsufficientDataError`. If this is expected behaviour in your
+experiment (e.g. some entities don't measure the target variable), set
+[`defaultForUnmeasuredProperties`](#defaultforunmeasuredproperties) to a float
+that represents those cases and TRIM will inject it instead of raising.
+
+To inspect what happened you can show the entities in the space with the
+following command
 
 ```terminal
 ado show measurements --use-latest space

@@ -24,7 +24,11 @@ from orchestrator.schema.experiment import (
 )
 from orchestrator.schema.observed_property import ObservedProperty
 from orchestrator.schema.property import AbstractPropertyDescriptor
-from orchestrator.schema.reference import ExperimentReference
+from orchestrator.schema.reference import (
+    ExperimentReference,
+    identifier_for_parameterized_experiment,
+    reference_string_from_fields,
+)
 from orchestrator.schema.request import MeasurementRequest
 from orchestrator.schema.virtual_property import VirtualObservedProperty
 from orchestrator.utilities.logging import configure_logging
@@ -188,13 +192,30 @@ class MeasurementSpace:
         from rich.panel import Panel
         from rich.text import Text
 
+        from orchestrator.utilities.pydantic import semver_major
         from orchestrator.utilities.rich import dataframe_to_rich_table
 
         content = []
 
         # Experiments overview table
-        data = [[e.reference, not e.deprecated] for e in self.experiments]
-        df = pd.DataFrame(data, columns=["experiment", "supported"])
+        data = [
+            [
+                reference_string_from_fields(e.actuatorIdentifier, e.identifier),
+                f"v{semver_major(e.version)}" if e.version is not None else None,
+                (
+                    None
+                    if isinstance(e, Experiment)
+                    else identifier_for_parameterized_experiment(
+                        "", e.parameterization
+                    )[1:]
+                ),
+            ]
+            for e in self.experiments
+        ]
+        df = pd.DataFrame(
+            data,
+            columns=["base identifier", "required major version", "parameterization"],
+        )
         content.extend(
             [
                 Text("Experiments:", style="bold"),
@@ -225,8 +246,17 @@ class MeasurementSpace:
             df = pd.DataFrame(
                 data, columns=["parameter", "type", "value", "parameterized"]
             )
+            interface_text = Text()
+            interface_text.append("Expected Interface", style="bold")
+
+            if e.version:
+                interface_text.append(f" (from v{e.version})\n")
+            else:
+                interface_text.append("\n")
+
             exp_content.extend(
                 [
+                    interface_text,
                     Text("Inputs:", style="bold"),
                     Panel(dataframe_to_rich_table(df), box=rich.box.SIMPLE_HEAD),
                 ]
@@ -246,7 +276,14 @@ class MeasurementSpace:
                 [
                     Panel(
                         Group(*exp_content),
-                        title=Text(str(e.reference), style="bold green"),
+                        title=Text(
+                            (
+                                str(e.major_version_parameterized_identifier)
+                                if isinstance(e, ParameterizedExperiment)
+                                else e.major_version_identifier
+                            ),
+                            style="bold green",
+                        ),
                         box=rich.box.HORIZONTALS,
                     ),
                     Text(),

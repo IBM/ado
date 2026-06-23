@@ -475,7 +475,7 @@ The complete syntax of the `ado get` command is as follows:
 <!-- markdownlint-disable line-length -->
 
 ```shell
-ado get RESOURCE_TYPE [RESOURCE_ID] [--output | -o <default | yaml | json | config | raw>] \
+ado get RESOURCE_TYPE [RESOURCE_ID] [--output | -o <default | yaml | json | config | raw | stats>] \
                                     [--output-file <path>] \
                                     [--use-latest] \
                                     [--exclude-default | --no-exclude-default] \
@@ -531,6 +531,10 @@ Where:
     - The `config` format displays the `config` field of the matching resources.
     - The `raw` format displays the raw resource as stored in the database,
       performing no validation.
+    - The `stats` format augments the default `table` output with four additional
+      measurement statistics columns: `TOTAL_RESULTS`, `SUCCESSFUL_RESULTS`,
+      `FAILED_RESULTS`, and `MEASURED_ENTITIES`. This format is **only supported
+      for operations**.
 
     <!-- prettier-ignore-end -->
 
@@ -719,6 +723,18 @@ ado get spaces -o name --output-file space-ids.txt
 
 ```shell
 ado get spaces --output-file spaces-table.txt
+```
+
+##### Getting measurement statistics for all Operations
+
+```shell
+ado get operations -o stats
+```
+
+##### Getting measurement statistics for a single Operation
+
+```shell
+ado get operation randomwalk-0.5.0-123abc -o stats
 ```
 
 ### ado show

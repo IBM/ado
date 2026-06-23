@@ -710,7 +710,9 @@ def test_registry_unknown_experiment_error_lists_available_versions(
         experimentIdentifier="version_hint_exp",
         actuatorIdentifier="mock",
     )
-    with pytest.raises(UnknownExperimentError, match=r"Available versions: 1\.0\.0"):
+    with pytest.raises(
+        UnknownExperimentError, match=r"Available versions in catalog: 1\.0\.0"
+    ):
         global_registry.experimentForReference(ref)
 
 

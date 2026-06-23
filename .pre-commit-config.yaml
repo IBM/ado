@@ -7,6 +7,8 @@ repos:
     rev: v6.0.0
     hooks:
       - id: check-yaml
+        # --unsafe is required to allow !!python/name: tags used in website/mkdocs.yml
+        args: ["--unsafe"]
       - id: check-json
       - id: check-merge-conflict
       - id: check-added-large-files

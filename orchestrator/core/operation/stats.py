@@ -10,6 +10,7 @@ class OperationMeasurementStatistics(pydantic.BaseModel):
     """Aggregated measurement statistics for a single operation.
 
     Attributes:
+        operation_id: The operation identifier these statistics belong to.
         total_requests: Total number of MeasurementRequests for the operation.
         failed_requests: Number of requests whose status is FAILED.
         successful_requests: Number of requests whose status is SUCCESS.
@@ -19,6 +20,12 @@ class OperationMeasurementStatistics(pydantic.BaseModel):
         measured_entities: Count of distinct entities that have at least one result.
     """
 
+    operation_id: Annotated[
+        str,
+        pydantic.Field(
+            description="The operation identifier these statistics belong to."
+        ),
+    ]
     total_requests: Annotated[
         int,
         pydantic.Field(

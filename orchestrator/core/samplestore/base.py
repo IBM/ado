@@ -502,16 +502,21 @@ class ActiveSampleStore(SampleStore, ABC):
 
     @abc.abstractmethod
     def operation_measurement_statistics(
-        self, operation_id: str
-    ) -> "OperationMeasurementStatistics":
-        """Compute aggregated measurement statistics for an operation.
+        self, operation_ids: set[str] | None = None
+    ) -> "list[OperationMeasurementStatistics]":
+        """Compute aggregated measurement statistics for one or more operations.
 
         Args:
-            operation_id: The operation identifier.
+            operation_ids: Set of operation identifiers to aggregate. Pass
+                ``None`` to aggregate across all operations in the store.
+                Passing an empty set raises ``ValueError``.
 
         Returns:
-            An OperationMeasurementStatistics instance with request-level,
-            result-level, and entity-level counts.
+            A list of OperationMeasurementStatistics instances, one per
+            operation found in the store.
+
+        Raises:
+            ValueError: If ``operation_ids`` is an empty set.
         """
 
 

@@ -1125,21 +1125,29 @@ class DiscoverySpace:
 
     @_perform_preflight_checks_for_sample_store_methods
     def operation_measurement_statistics(
-        self, operation_id: str
-    ) -> "orchestrator.core.operation.stats.OperationMeasurementStatistics":
-        """Compute aggregated measurement statistics for an operation.
+        self, operation_ids: set[str] | None = None
+    ) -> "list[orchestrator.core.operation.stats.OperationMeasurementStatistics]":
+        """Compute aggregated measurement statistics for one or more operations.
 
         Delegates to the SQL implementation for SQL-backed stores. For all
         other stores, falls back to a Python implementation that iterates the
-        measurement requests for the operation.
+        measurement requests per operation.
 
         Args:
-            operation_id: The operation identifier.
+            operation_ids: Set of operation identifiers to aggregate. Pass
+                ``None`` to aggregate across all operations in the store.
+                Passing an empty set raises ``ValueError``.
 
         Returns:
-            An OperationMeasurementStatistics instance with request-level,
-            result-level, and entity-level counts.
+            A list of OperationMeasurementStatistics instances, one per
+            operation found in the store.
+
+        Raises:
+            ValueError: If ``operation_ids`` is an empty set.
         """
+        if operation_ids is not None and len(operation_ids) == 0:
+            raise ValueError("operation_ids must be a non-empty set or None")
+
         import orchestrator.core.samplestore.sql
         from orchestrator.core.operation.stats import OperationMeasurementStatistics
 
@@ -1147,43 +1155,55 @@ class DiscoverySpace:
             self.sample_store, orchestrator.core.samplestore.sql.SQLSampleStore
         ):
             return self.sample_store.operation_measurement_statistics(
-                operation_id=operation_id
+                operation_ids=operation_ids
             )
 
         # Python fallback for non-SQL stores
         from orchestrator.schema.request import MeasurementRequestStateEnum
         from orchestrator.schema.result import ValidMeasurementResult
 
-        requests = self.measurement_requests_for_operation(operation_id=operation_id)
-
-        total_requests = len(requests)
-        failed_requests = sum(
-            1 for r in requests if r.status == MeasurementRequestStateEnum.FAILED
-        )
-        successful_requests = sum(
-            1 for r in requests if r.status == MeasurementRequestStateEnum.SUCCESS
+        # Determine which operation IDs to iterate
+        ids_to_process: set[str] = (
+            self.operations if operation_ids is None else operation_ids
         )
 
-        total_results = 0
-        successful_results = 0
-        failed_results = 0
-        measured_entity_ids: set[str] = set()
+        result_list: list[OperationMeasurementStatistics] = []
+        for op_id in ids_to_process:
+            requests = self.measurement_requests_for_operation(operation_id=op_id)
 
-        for request in requests:
-            for result in request.measurements:
-                total_results += 1
-                if isinstance(result, ValidMeasurementResult):
-                    successful_results += 1
-                else:
-                    failed_results += 1
-                measured_entity_ids.add(result.entityIdentifier)
+            total_requests = len(requests)
+            failed_requests = sum(
+                1 for r in requests if r.status == MeasurementRequestStateEnum.FAILED
+            )
+            successful_requests = sum(
+                1 for r in requests if r.status == MeasurementRequestStateEnum.SUCCESS
+            )
 
-        return OperationMeasurementStatistics(
-            total_requests=total_requests,
-            failed_requests=failed_requests,
-            successful_requests=successful_requests,
-            total_results=total_results,
-            successful_results=successful_results,
-            failed_results=failed_results,
-            measured_entities=len(measured_entity_ids),
-        )
+            total_results = 0
+            successful_results = 0
+            failed_results = 0
+            measured_entity_ids: set[str] = set()
+
+            for request in requests:
+                for result in request.measurements:
+                    total_results += 1
+                    if isinstance(result, ValidMeasurementResult):
+                        successful_results += 1
+                    else:
+                        failed_results += 1
+                    measured_entity_ids.add(result.entityIdentifier)
+
+            result_list.append(
+                OperationMeasurementStatistics(
+                    operation_id=op_id,
+                    total_requests=total_requests,
+                    failed_requests=failed_requests,
+                    successful_requests=successful_requests,
+                    total_results=total_results,
+                    successful_results=successful_results,
+                    failed_results=failed_results,
+                    measured_entities=len(measured_entity_ids),
+                )
+            )
+
+        return result_list

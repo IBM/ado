@@ -50,6 +50,86 @@ def _coerce_parameter_value(value_str: str) -> typing.Any:  # noqa: ANN401
     return value_str
 
 
+def _is_parameterization_segment(segment: str) -> bool:
+    """Return True if *segment* is a ``propertyIdentifier.value`` pair."""
+    if "." not in segment:
+        return False
+    property_identifier, _separator, value_str = segment.partition(".")
+    if not property_identifier or value_str == "":
+        return False
+    hyphen_index = value_str.find("-")
+    return hyphen_index == -1 or hyphen_index == 0
+
+
+def _split_base_and_parameterization_suffix(
+    experiment_part: str,
+) -> tuple[str, str | None]:
+    """Split an experiment part into base identifier and parameterization suffix.
+
+    Scans ``-``-delimited segments left to right using
+    :data:`_PARAMETERIZATION_SEGMENT_SPLIT`.  All segments before the first
+    ``propertyIdentifier.value`` pair belong to the base experiment identifier;
+    from that segment onward is parameterization.
+
+    Args:
+        experiment_part: Experiment substring without actuator prefix.
+
+    Returns:
+        Base experiment identifier and parameterization suffix, or ``None`` when
+        no parameterization is present.
+
+    Raises:
+        ValueError: If parameterization would begin before a base identifier.
+    """
+    if "-" not in experiment_part:
+        return experiment_part, None
+
+    segments = _PARAMETERIZATION_SEGMENT_SPLIT.split(experiment_part)
+    param_start: int | None = None
+    for index, segment in enumerate(segments):
+        if _is_parameterization_segment(segment):
+            param_start = index
+            break
+
+    if param_start is None:
+        invalid_attempt = next(
+            (segment for segment in segments if "." in segment),
+            None,
+        )
+        if invalid_attempt is not None:
+            raise ValueError(
+                f"Invalid parameterization segment {invalid_attempt!r} in experiment "
+                f"reference string {experiment_part!r}. "
+                "Expected 'propertyIdentifier.value'."
+            )
+        return experiment_part, None
+
+    if param_start == 0 or not "-".join(segments[:param_start]):
+        raise ValueError(
+            f"Invalid experiment reference string {experiment_part!r}. "
+            "Parameterization cannot appear before the base experiment identifier."
+        )
+
+    invalid_segment = next(
+        (
+            segment
+            for segment in segments[param_start:]
+            if not _is_parameterization_segment(segment)
+        ),
+        None,
+    )
+    if invalid_segment is not None:
+        raise ValueError(
+            f"Invalid parameterization segment {invalid_segment!r} in experiment "
+            f"reference string {experiment_part!r}. "
+            "Expected 'propertyIdentifier.value'."
+        )
+
+    base_identifier = "-".join(segments[:param_start])
+    parameterization_suffix = "-".join(segments[param_start:])
+    return base_identifier, parameterization_suffix
+
+
 def _parameterization_from_suffix(
     parameterization_suffix: str,
 ) -> list[ConstitutivePropertyValue]:
@@ -105,21 +185,17 @@ def _parse_experiment_part_from_string(
             "Legacy forms like @v1 are not supported."
         )
 
-    if "-" in experiment_part:
-        base_identifier, parameterization_suffix = experiment_part.split(
-            "-", maxsplit=1
-        )
-        if (
-            parameterization_suffix
-            and "." in _PARAMETERIZATION_SEGMENT_SPLIT.split(parameterization_suffix)[0]
-        ):
-            return (
-                base_identifier,
-                None,
-                _parameterization_from_suffix(parameterization_suffix),
-            )
+    base_identifier, parameterization_suffix = _split_base_and_parameterization_suffix(
+        experiment_part
+    )
+    if parameterization_suffix is None:
+        return experiment_part, None, None
 
-    return experiment_part, None, None
+    return (
+        base_identifier,
+        None,
+        _parameterization_from_suffix(parameterization_suffix),
+    )
 
 
 class ExperimentReference(pydantic.BaseModel):

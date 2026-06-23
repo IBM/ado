@@ -4,7 +4,6 @@
 import typer
 from rich.status import Status
 
-from orchestrator.cli.exceptions.actuators import ActuatorDoesNotHaveExperimentError
 from orchestrator.cli.models.parameters import AdoDescribeCommandParameters
 from orchestrator.cli.utils.output.prints import (
     ADO_SPINNER_INITIALIZING_ACTUATOR_REGISTRY,
@@ -23,6 +22,10 @@ from orchestrator.schema.reference import (
     ExperimentReference,
     _parse_experiment_part_from_string,
 )
+
+
+class AmbiguousExperimentIdentifierError(Exception):
+    """There are multiple matches for the given identifier in the catalog"""
 
 
 def describe_experiment(parameters: AdoDescribeCommandParameters) -> None:
@@ -57,18 +60,6 @@ def describe_experiment(parameters: AdoDescribeCommandParameters) -> None:
         reference = ExperimentReference.referenceFromString(
             f"{actuator_id}.{parameters.resource_id}"
         )
-    except ActuatorDoesNotHaveExperimentError as error:
-        hint_text = (
-            f"{HINT}Did you mean one of {error.actuators_with_experiments}?"
-            if len(error.actuators_with_experiments) > 1
-            else f"{HINT}Did you mean {error.actuators_with_experiments.pop()}?"
-        )
-        console_print(
-            f"{ERROR}Requested actuator {parameters.actuator_id} does not match "
-            f"experiment {parameters.resource_id}\n{hint_text}",
-            stderr=True,
-        )
-        raise typer.Exit(1) from error
     except ValueError as error:
         console_print(f"{ERROR}{error}", stderr=True)
         raise typer.Exit(1) from error
@@ -89,8 +80,8 @@ def describe_experiment(parameters: AdoDescribeCommandParameters) -> None:
             available_versions = ", ".join(
                 sorted({e.version for e in matches if e.version is not None})
             )
-            raise UnknownExperimentError(
-                f"Experiment {reference.experimentIdentifier!r} is ambiguous: "
+            raise AmbiguousExperimentIdentifierError(
+                f"The given identifier, {reference.experimentIdentifier!r}, is ambiguous: "
                 f"catalog contains {len(matches)} versions "
                 f"({available_versions}). "
                 f"Specify a version suffix, e.g. "

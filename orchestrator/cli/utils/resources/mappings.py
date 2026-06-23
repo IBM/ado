@@ -10,7 +10,6 @@ cli_shorthands_to_cli_names: dict[str, str] = {
     "dcr": CoreResourceKinds.DATACONTAINER.value,
     "exp": "experiment",
     "op": CoreResourceKinds.OPERATION.value,
-    "request": "measurementrequest",
     "space": CoreResourceKinds.DISCOVERYSPACE.value,
     "store": CoreResourceKinds.SAMPLESTORE.value,
 }

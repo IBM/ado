@@ -22,7 +22,6 @@ MEASUREMENT_REQUEST_COLUMN_MAPPINGS = {
     "requestid": "request_id",
     "requestIndex": "request_index",
     "status": "status",
-    "operation_id": "operation_id",
     "timestamp": "timestamp",
     "type": "type",
     "experimentReference": "experiment_reference",

@@ -22,6 +22,7 @@ from orchestrator.schema.property_value import PropertyValue
 from orchestrator.schema.request import MeasurementRequest
 
 if typing.TYPE_CHECKING:
+    from orchestrator.core.operation.stats import OperationMeasurementStatistics
     from orchestrator.core.samplestore.config import (
         SampleStoreConfiguration,
         SampleStoreReference,
@@ -498,6 +499,25 @@ class ActiveSampleStore(SampleStore, ABC):
     def operation_entity_statistics(self, operation_id: str) -> dict[str, int]:
         """
         Compute entity-level statistics for an operation."""
+
+    @abc.abstractmethod
+    def operation_measurement_statistics(
+        self, operation_ids: set[str] | None = None
+    ) -> "list[OperationMeasurementStatistics]":
+        """Compute aggregated measurement statistics for one or more operations.
+
+        Args:
+            operation_ids: Set of operation identifiers to aggregate. Pass
+                ``None`` to aggregate across all operations in the store.
+                Passing an empty set raises ``ValueError``.
+
+        Returns:
+            A list of OperationMeasurementStatistics instances, one per
+            operation found in the store.
+
+        Raises:
+            ValueError: If ``operation_ids`` is an empty set.
+        """
 
 
 class MockParams(pydantic.BaseModel):

@@ -424,7 +424,7 @@ def test_operation_context_success_lifecycle(pfas_space: DiscoverySpace) -> None
         kind=CoreResourceKinds.OPERATION,
     )
     assert isinstance(operation, OperationResource)
-    assert operation_id in pfas_space.operations["IDENTIFIER"].values
+    assert operation_id in pfas_space.operations
     assert isinstance(operation.config.operation.module, ScriptOperatorConf)
     assert (
         operation.config.operation.module.operationType == DiscoveryOperationEnum.SEARCH

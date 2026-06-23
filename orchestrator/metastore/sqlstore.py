@@ -4,7 +4,7 @@
 import json
 import logging
 import os
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 import pydantic
 import sqlalchemy
@@ -848,9 +848,6 @@ class SQLResourceStore(ResourceStore):
             getRelatedObjectResourceIdentifiers
                 The inverse relationship: fetches subjects where the given
                 identifier is the *subject*.
-            getRelatedResourceIdentifiers
-                Convenience wrapper that returns a dataframe with both subject
-                and object relationships merged.
         """
 
         import pandas as pd
@@ -920,9 +917,6 @@ class SQLResourceStore(ResourceStore):
             getRelatedSubjectResourceIdentifiers
                 The inverse relationship: fetches subjects where the given
                 identifier is the *object*.
-            getRelatedResourceIdentifiers
-                Convenience wrapper that returns a dataframe with both subject
-                and object relationships merged.
         """
 
         import pandas as pd
@@ -951,88 +945,6 @@ class SQLResourceStore(ResourceStore):
         related_kinds = table["kind"].values
 
         return pd.DataFrame({"IDENTIFIER": related_identifiers, "TYPE": related_kinds})
-
-    def getRelatedResourceIdentifiers(
-        self, identifier: str, kind: str | None = None, version: str | None = None
-    ) -> "pd.DataFrame":
-        """
-        Retrieve identifiers of resources that are related to ``identifier`` either as a
-        subject or an object.
-
-        This method concatenates the results of
-        :meth:`getRelatedObjectResourceIdentifiers` and
-        :meth:`getRelatedSubjectResourceIdentifiers`.  The returned
-        :class:`pandas.DataFrame` has two columns:
-
-        * ``IDENTIFIER`` - the resource identifier
-        * ``TYPE``      - the resource kind
-
-        Args:
-            identifier : str
-                The resource identifier for which related resources are being
-                queried.
-            kind : str, optional
-                Filter by the resource *kind*.  If ``None`` (default) no kind
-                filtering is applied.
-            version : str, optional
-                Filter by the resource *version*.  If ``None`` (default) no
-                version filtering is applied.
-
-        Returns:
-            pandas.DataFrame
-                A DataFrame containing the identifiers of all related resources.
-                If no relationships exist an empty DataFrame is returned.
-        """
-
-        import pandas as pd
-
-        relatedAsObject = self.getRelatedObjectResourceIdentifiers(
-            identifier=identifier, kind=kind, version=version
-        )
-        relatedAsSubject = self.getRelatedSubjectResourceIdentifiers(
-            identifier=identifier, kind=kind, version=version
-        )
-
-        return pd.DataFrame(
-            {
-                "IDENTIFIER": relatedAsObject["IDENTIFIER"].values.tolist()
-                + relatedAsSubject["IDENTIFIER"].values.tolist(),
-                "TYPE": relatedAsObject["TYPE"].values.tolist()
-                + relatedAsSubject["TYPE"].values.tolist(),
-            }
-        )
-
-    def getRelatedResources(
-        self, identifier: str, kind: CoreResourceKinds | None = None
-    ) -> dict[str, orchestrator.core.resources.ADOResource]:
-        """
-        Retrieve all resources that are related to a given identifier.
-
-        Args:
-            identifier (str):
-                The identifier of the primary resource.  The method will fetch
-                every other resource that shares a relationship with this
-                identifier - either as the **subject** or **object** of a
-                relationship entry in ``resource_relationships``.
-            kind (orchestrator.core.resources.CoreResourceKinds, optional):
-                If supplied, only resources whose ``kind`` matches this value
-                are returned.  Pass ``None`` (the default) to retrieve
-                resources of any kind.
-
-        Returns:
-            dict[str, orchestrator.core.resources.ADOResource]:
-                A mapping from resource identifier to a fully deserialized
-                ``ADOResource`` instance.  The dictionary keys are the
-                identifiers of all resources that are related to
-                ``identifier``; the values are the corresponding
-                resource objects.  When ``kind`` is set, the dictionary
-                contains only resources of that kind.
-        """
-
-        identifiers = self.getRelatedResourceIdentifiers(
-            identifier=identifier, kind=kind.value
-        )
-        return self.getResources(identifiers=identifiers["IDENTIFIER"])
 
     def containsResourceWithIdentifier(
         self, identifier: str, kind: CoreResourceKinds | None = None
@@ -1570,3 +1482,243 @@ class SQLResourceStore(ResourceStore):
                     resource_kind=CoreResourceKinds.ACTUATORCONFIGURATION,
                     rollback_occurred=True,
                 ) from e
+
+    # ---------------------------------------------------------------------------
+    # Hierarchy traversal
+    # ---------------------------------------------------------------------------
+
+    def get_resources_by_relationship(
+        self,
+        kind: CoreResourceKinds,
+        identifier: str | set[str] | None,
+        hierarchy_direction: Literal["up", "down", "both"],
+        max_hops: int | None = None,
+        identifiers_only: bool = False,
+        include_start_resources: bool = False,
+    ) -> (
+        dict[CoreResourceKinds, set[str]]
+        | dict[str, dict[CoreResourceKinds, set[str]]]
+        | dict[CoreResourceKinds, dict[str, "orchestrator.core.resources.ADOResource"]]
+        | dict[
+            str,
+            dict[
+                CoreResourceKinds,
+                dict[str, "orchestrator.core.resources.ADOResource"],
+            ],
+        ]
+    ):
+        """Walk the resource hierarchy stored in ``resource_relationships``.
+
+        Issues at most three SQL queries: when ``identifier=None`` a seed query
+        fetches all identifiers of ``kind`` via
+        :meth:`getResourceIdentifiersOfKind`; then one recursive traversal query
+        via :func:`orchestrator.metastore.sql.statements.graph_traversal_query`;
+        and, when ``identifiers_only=False``, one additional batched resource
+        query via :meth:`getResources`. When ``identifier`` is a ``str`` or
+        ``set[str]`` only the latter two queries (or one, if
+        ``identifiers_only=True``) are issued.
+
+        Args:
+            kind: The :class:`~orchestrator.core.resources.CoreResourceKinds` of
+                the starting resources.
+            identifier: Controls which resources are used as traversal origins.
+
+                * ``str`` — a single start resource identifier; the return value
+                  is unwrapped (no outer origin key).
+                * ``set[str]`` — multiple explicit start resource identifiers.
+                * ``None`` — all resources of ``kind`` are used as start
+                  resources (seeded via :meth:`getResourceIdentifiersOfKind`).
+                  Not supported when ``hierarchy_direction='both'``.
+                * An **empty set** returns an empty result immediately.
+
+            hierarchy_direction: ``'up'`` (child → parent), ``'down'``
+                (parent → child), or ``'both'``.
+            max_hops: Maximum number of relationship hops to follow from each
+                start resource. When ``None`` the traversal runs to the full
+                depth of the hierarchy. For ``hierarchy_direction='both'`` the
+                limit is applied independently to each direction (e.g.
+                ``max_hops=1`` yields one hop up *and* one hop down). Values
+                exceeding the hierarchy maximum (currently 3, matching the 4
+                resource levels) are silently capped at that maximum.
+            identifiers_only: When ``False`` (default) discovered identifiers
+                are hydrated into full
+                :class:`~orchestrator.core.resources.ADOResource` objects via
+                :meth:`getResources`. When ``True`` only discovered identifiers
+                are returned.
+            include_start_resources: When ``True``, the start resource(s)
+                provided via ``identifier`` are included in the returned result
+                under their own ``kind`` key, alongside the discovered related
+                resources. Requires ``identifiers_only=False`` and
+                ``identifier`` to be a ``str`` or ``set[str]`` (not ``None``);
+                raises ``ValueError`` if either constraint is violated.
+
+        Returns:
+            The return type depends on whether a single identifier (``str``) or
+            multiple identifiers (``set`` / ``None``) were requested, and
+            whether ``identifiers_only`` is set:
+
+            * single identifier, hydrated    → ``dict[CoreResourceKinds, dict[str, ADOResource]]``
+            * multiple identifiers, hydrated → ``dict[str, dict[CoreResourceKinds, dict[str, ADOResource]]]``
+            * single identifier, ids only    → ``dict[CoreResourceKinds, set[str]]``
+            * multiple identifiers, ids only → ``dict[str, dict[CoreResourceKinds, set[str]]]``
+
+            By default start identifiers are **excluded** from the returned
+            results. Pass ``include_start_resources=True`` to include them.
+
+        Raises:
+            ValueError: If ``hierarchy_direction`` is not ``'up'``, ``'down'``
+                or ``'both'``.
+            ValueError: If ``identifier=None`` is used with
+                ``hierarchy_direction='both'``.
+            ValueError: If ``include_start_resources=True`` is used together
+                with ``identifiers_only=True``.
+            ValueError: If ``include_start_resources=True`` is used with
+                ``identifier=None``.
+        """
+        # ------------------------------------------------------------------
+        # 0. Validate parameters eagerly
+        # ------------------------------------------------------------------
+        if hierarchy_direction not in {"up", "down", "both"}:
+            raise ValueError(
+                f"hierarchy_direction must be 'up', 'down' or 'both', got {hierarchy_direction!r}"
+            )
+
+        if max_hops is not None and max_hops < 1:
+            raise ValueError(f"max_hops must be a positive integer, got {max_hops!r}")
+
+        if include_start_resources and identifiers_only:
+            raise ValueError(
+                "include_start_resources=True requires identifiers_only=False"
+            )
+
+        if include_start_resources and identifier is None:
+            raise ValueError(
+                "include_start_resources=True requires identifier to be a str or set[str], not None"
+            )
+
+        if identifier is None and hierarchy_direction == "both":
+            raise ValueError(
+                "identifier=None is not supported for hierarchy_direction='both'"
+            )
+
+        # ------------------------------------------------------------------
+        # 1. Resolve the requested identifiers and record whether a single
+        #    identifier was requested (determines the unwrapped return shape)
+        # ------------------------------------------------------------------
+        _single_identifier_requested: bool
+        _identifiers_requested: set[str]
+
+        if identifier is None:
+            _single_identifier_requested = False
+            df = self.getResourceIdentifiersOfKind(kind=kind.value)
+            _identifiers_requested = set(df["IDENTIFIER"].tolist())
+        elif isinstance(identifier, str):
+            _single_identifier_requested = True
+            _identifiers_requested = {identifier}
+        else:
+            # set[str]
+            _single_identifier_requested = False
+            _identifiers_requested = identifier
+
+        # Empty identifier set → immediate empty result
+        if not _identifiers_requested:
+            return {}
+
+        # ------------------------------------------------------------------
+        # 2. Build and execute the single traversal query
+        # ------------------------------------------------------------------
+        # The hierarchy maximum (3 hops across 4 levels) is enforced inside
+        # graph_traversal_query; passing max_hops=None lets it use the full cap.
+        query = orchestrator.metastore.sql.statements.graph_traversal_query(
+            kind=kind,
+            hierarchy_direction=hierarchy_direction,
+            origin_identifiers=_identifiers_requested,
+            max_hops=max_hops,
+        )
+
+        with self.engine.connect() as connectable:
+            raw_rows = connectable.execute(query).fetchall()
+
+        # ------------------------------------------------------------------
+        # 3. Build the mapping
+        #    { origin_id -> { CoreResourceKinds -> {related_id, ...} } }
+        # ------------------------------------------------------------------
+        related_by_origin: dict[str, dict[CoreResourceKinds, set[str]]] = {}
+        identifiers_to_fetch: set[str] = set()
+
+        for row in raw_rows:
+            origin_identifier = row.origin_identifier
+            identifier_to = row.identifier
+            identifier_to_kind = row.kind
+
+            # Don't include the start identifiers in discovered results
+            # This should never happen, if it does, we have a bug.
+            if identifier_to in _identifiers_requested:
+                continue
+
+            identifiers_to_fetch.add(identifier_to)
+            resource_kind = CoreResourceKinds(identifier_to_kind)
+            related_by_origin.setdefault(origin_identifier, {}).setdefault(
+                resource_kind, set()
+            ).add(identifier_to)
+
+        # ------------------------------------------------------------------
+        # 4. Shape the result
+        # ------------------------------------------------------------------
+        if identifiers_only:
+            if _single_identifier_requested:
+                return related_by_origin.get(next(iter(_identifiers_requested)), {})
+            return related_by_origin
+
+        # Hydrated mode: fetch all discovered identifiers in one query,
+        # then rebuild the graph with full resources.
+        # When include_start_resources is True, also fetch the start resources.
+        if include_start_resources:
+            identifiers_to_fetch = identifiers_to_fetch.union(_identifiers_requested)
+
+        resources = self.getResources(identifiers=list(identifiers_to_fetch))
+
+        hydrated: dict[
+            str,
+            dict[CoreResourceKinds, dict[str, orchestrator.core.resources.ADOResource]],
+        ] = {}
+
+        for origin_identifier, related_identifiers_by_kind in related_by_origin.items():
+
+            hydrated_related_resources_by_kind: dict[
+                CoreResourceKinds,
+                dict[str, orchestrator.core.resources.ADOResource],
+            ] = {}
+
+            for (
+                resource_kind,
+                related_identifiers,
+            ) in related_identifiers_by_kind.items():
+
+                hydrated_related_resources_by_kind[resource_kind] = {
+                    identifier: resources[identifier]
+                    for identifier in related_identifiers
+                    if identifier in resources
+                }
+
+            if include_start_resources and origin_identifier in resources:
+                start_resource = resources[origin_identifier]
+                hydrated_related_resources_by_kind.setdefault(kind, {})[
+                    origin_identifier
+                ] = start_resource
+
+            if hydrated_related_resources_by_kind:
+                hydrated[origin_identifier] = hydrated_related_resources_by_kind
+
+        # When include_start_resources is True but a start identifier had no
+        # related resources, it won't appear in related_by_origin yet — ensure
+        # it still gets an entry in hydrated.
+        if include_start_resources:
+            for start_id in _identifiers_requested:
+                if start_id not in hydrated and start_id in resources:
+                    hydrated[start_id] = {kind: {start_id: resources[start_id]}}
+
+        if _single_identifier_requested:
+            return hydrated.get(next(iter(_identifiers_requested)), {})
+
+        return hydrated

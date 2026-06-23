@@ -93,6 +93,7 @@ class ComponentsYaml:
         skip_tokenizer_init: bool = False,
         io_processor_plugin: str | None = None,
         otlp_traces_endpoint: pydantic.AnyUrl | None = None,
+        renderer_num_workers: int | None = None,
     ) -> dict[str, Any]:
         """
         Generate deployment yaml
@@ -116,6 +117,7 @@ class ComponentsYaml:
         :param enforce_eager: flag to enforce using Pytorch eager mode
         :param skip_tokenizer_init: flag to skip tokenizer initialization in vLLM
         :param io_processor_plugin: name of the IO processor plugin to be used by vLLM
+        :param renderer_num_workers: number of renderer workers when threadpool is enabled
         :return:
         """
         if node_selector is None:
@@ -199,6 +201,15 @@ class ComponentsYaml:
         if otlp_traces_endpoint is not None:
             vllm_serve_args.append("--otlp-traces-endpoint")
             vllm_serve_args.append(str(otlp_traces_endpoint))
+        if renderer_num_workers is not None and renderer_num_workers > 0:
+            vllm_serve_args.extend(
+                [
+                    "--renderer-num-workers",
+                    str(renderer_num_workers),
+                    "--mm-processor-cache-gb",
+                    "0",
+                ]
+            )
 
         # container
         container = spec["containers"][0]

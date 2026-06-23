@@ -108,6 +108,8 @@ tokens. Key parameters include:
 - **Memory allocation**: CPU and GPU memory
 - **Batch processing**: `max_num_seq` for concurrent requests
 - **Workload pattern**: Request rate and concurrency
+- **Threadpool rendering**: Enable parallel rendering with `use_threadpool` and
+  `renderer_num_workers` (requires vLLM 0.20.0+)
 
 Save the following as `geospatial_space.yaml`:
 
@@ -262,6 +264,33 @@ entitySpace:
         - "/path/to/your/dataset.jsonl"
 ```
 
+## Threadpool Rendering for Performance
+
+For vLLM versions 0.20.0 and later, you can enable threadpool rendering to
+improve performance when processing satellite imagery:
+
+```yaml
+entitySpace:
+  - identifier: renderer_num_workers
+    propertyDomain:
+      values: [32, 64, 128]  # Number of worker threads
+```
+
+When using threadpool, specify your vLLM image version to enable automatic
+validation:
+
+```yaml
+entitySpace:
+  - identifier: image
+    propertyDomain:
+      values:
+        - ["your-registry/vllm:v0.20.1-custom", "0.20.1"]
+        - ["your-registry/vllm:v0.18.0-custom", "0.18.0"]
+```
+
+The actuator will validate that threadpool is only used with compatible vLLM
+versions (0.20.0+) and fail early with a clear error if there's a mismatch.
+
 ## Next steps
 
 <!-- markdownlint-disable MD028 -->
@@ -271,6 +300,8 @@ entitySpace:
 - Explore different **GPU types** if your cluster has multiple options
 - Test **endpoint benchmarking** with `test-geospatial-endpoint-v1` if you have
   an existing deployment
+- **Enable threadpool rendering** with vLLM 0.20.0+ to improve inference
+  performance for geospatial models
 - Use the [**RayTune** operator](../operators/optimisation-with-ray-tune.md) to
   find optimal configurations for your latency requirements
 - Run

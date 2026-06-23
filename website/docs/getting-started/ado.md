@@ -54,7 +54,6 @@ either the full name or the shorthand interchangeably in any command.
 | datacontainer         | dcr       | `ado describe dcr container-123`    |
 | discoveryspace        | space     | `ado create space -f space.yaml`    |
 | experiment            | exp       | `ado get exp`                       |
-| measurementrequest    | request   | `ado get request`                   |
 | operation             | op        | `ado show details op operation-456` |
 | samplestore           | store     | `ado get store`                     |
 
@@ -489,8 +488,6 @@ ado get RESOURCE_TYPE [RESOURCE_ID] [--output | -o <default | yaml | json | conf
                                     [--matching-point <point.yaml>] \
                                     [--matching-space <space.yaml] \
                                     [--matching-space-id <space-id>] \
-                                    [--from-sample-store <sample-store-id>] \
-                                    [--from-space <space-id>] [--from-operation <operation-id>]
 ```
 
 <!-- markdownlint-enable line-length -->
@@ -558,9 +555,6 @@ Where:
   on the model, changing it from the original. If set, it implies
   `--exclude-default`, `--exclude-unset`, and `--exclude-none`. This option is
   ignored when the output type is `table` or `raw`.
-- The `--from-sample-store`, `--from-space`, `--from-operation` flags are
-  available **only for `ado get requests`** and allow specifying what
-  samplestore/space/operation the measurement request belongs to.
 - When using the `--details` flag with the `table` output format, additional
   columns with the _description_ and the _labels_ of the matching resources are
   printed.
@@ -702,16 +696,6 @@ ado get operation --use-latest -o yaml
 ```shell
 ado get experiments --details
 ```
-
-##### Getting the yaml of a MeasurementRequest from an operation
-
-<!-- markdownlint-disable line-length -->
-
-```shell
-ado get request measurement-request-123 --from-operation randomwalk-0.5.0-123abc -o yaml
-```
-
-<!-- markdownlint-enable line-length -->
 
 ##### Saving a Discovery Space configuration to a file
 

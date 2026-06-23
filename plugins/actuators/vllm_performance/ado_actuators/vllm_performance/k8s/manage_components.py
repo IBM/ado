@@ -262,6 +262,7 @@ class ComponentsManager:
         skip_tokenizer_init: bool = False,
         io_processor_plugin: str | None = None,
         otlp_traces_endpoint: pydantic.AnyUrl | None = None,
+        renderer_num_workers: int | None = None,
     ) -> None:
         """
         create deployment for model
@@ -314,6 +315,7 @@ class ComponentsManager:
             io_processor_plugin=io_processor_plugin,
             enforce_eager=enforce_eager,
             otlp_traces_endpoint=otlp_traces_endpoint,
+            renderer_num_workers=renderer_num_workers,
         )
         logger.debug(json.dumps(deployment_yaml, indent=2))
 

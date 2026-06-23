@@ -6,13 +6,12 @@ This is the webpage for the **a**ccelerated **d**iscovery **o**rchestrator
 (**`ado`**).
 
 **`ado`** is a Python platform for **designing experiment campaigns and
-executing them at scale**. Built to address recurring challenges in research
-software development, **`ado`** empowers distributed teams of researchers and
-engineers to seamlessly collaborate, execute experiments, and share data.
+executing them at scale**. It enables distributed teams of researchers and
+engineers to collaborate, execute experiments, and share data.
 
-You can extend ado across different domains through its **lightweight
-plugin model**-often as simple as decorating a Python function. By integrating
-your methodology, you gain powerful cross-cutting capabilities—such as
+You can extend ado across different domains through its **plugin model**-often
+as simple as decorating a Python function. By integrating
+your methodology, you gain cross-cutting capabilities—such as
 **parallel execution**, **data provenance**, and a **unified CLI**—alongside a structured
 foundation that allows AI coding agents to **autonomously formulate and run your
 experiments**.
@@ -119,7 +118,7 @@ In addition `ado` plugins may have additional requirements for executing
     ado get operators
     ```
 
-    to see a list of the in-built operators.  
+    to see a list of the in-built operators.
 
     Next, we recommend you try our short [tutorial](examples/random-walk.md) which will give an idea of how `ado` works.
 

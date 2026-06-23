@@ -22,4 +22,5 @@ def show_resources_related_to_data_container(
         resource_type=CoreResourceKinds.DATACONTAINER,
         sql=sql_store,
         hide_banner=True,
+        max_hops=parameters.max_hops,
     )

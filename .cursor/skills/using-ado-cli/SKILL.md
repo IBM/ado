@@ -1,6 +1,12 @@
 ---
 name: using-ado-cli
-description: "Reference for ado CLI command syntax, flags, and usage patterns — covers get, create, edit, show, and describe subcommands, output formatting with -o and --output-file, convenience flags (--use-latest, --set, --with), debugging with -l, and run_experiment for local point testing. Use when writing or verifying ado CLI commands, looking up correct command syntax or flags, debugging unexpected CLI output, or explaining ado command patterns."
+description:
+  "Reference for ado CLI command syntax, flags, and usage patterns — covers get,
+  create, edit, show, and describe subcommands, output formatting with -o and
+  --output-file, convenience flags (--use-latest, --set, --with), debugging with
+  -l, and run_experiment for local point testing. Use when writing or verifying
+  ado CLI commands, looking up correct command syntax or flags, debugging
+  unexpected CLI output, or explaining ado command patterns."
 ---
 
 # Using the ado CLI
@@ -38,8 +44,8 @@ Shell redirects (`>`) work for simple cases. Prefer `--output-file` when:
 
 - **Pre-flight checks**: ado validates the path is writable before fetching,
   avoiding failure after a long data fetch.
-- **Stdout pollution**: `--output-file` writes only formatted output to the file;
-  logs stay on stderr. A redirect captures both.
+- **Stdout pollution**: `--output-file` writes only formatted output to the
+  file; logs stay on stderr. A redirect captures both.
 - **Table truncation**: terminal-width column truncation applies to redirected
   output but not to `--output-file`.
 
@@ -154,8 +160,8 @@ Retrieves details and data from resources.
 # Get a summary of what has been sampled from the space
 uv run ado show details space SPACE_ID
 
-# Get latest results
-uv run ado show results operation OPERATION_ID
+# Inspect the trace of measurement requests for an operation
+uv run ado show trace operation OPERATION_ID
 
 # Get entities and measurements
 uv run ado show measurements space SPACE_ID
@@ -194,11 +200,11 @@ plus measured properties (outputs).
 
 <!-- markdownlint-disable line-length -->
 
-| Command                       | What It Shows                                                            |
-| ----------------------------- | ------------------------------------------------------------------------ |
-| `show measurements operation` | Entities (inputs) and their measurements (outputs) from this operation   |
-| `show measurements space`     | All entities and measurements collected in this space                    |
-| `show results operation`      | Results **metadata** from this operation (not the full measurement data) |
+| Command                       | What It Shows                                                                                                           |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `show measurements operation` | Entities (inputs) and their measurements (outputs) from this operation                                                  |
+| `show measurements space`     | All entities and measurements collected in this space                                                                   |
+| `show trace operation`        | The trace of measurement requests made during an explore operation. Optionally can show per entity measurement metadata |
 
 <!-- markdownlint-enable line-length -->
 
@@ -206,8 +212,8 @@ plus measured properties (outputs).
 # Measurement data
 uv run ado show measurements operation op-123
 
-# Metadata about the operation's results (not measurements)
-uv run ado show results operation op-123
+# Inspect the trace of measurement requests for an operation
+uv run ado show trace operation op-123
 ```
 
 ## Command-Line Shortcuts

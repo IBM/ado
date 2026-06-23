@@ -56,6 +56,33 @@ from trim.utils.stopping_criterion import stopping_bool_from_ratios
 logger_trim_sampler = logging.getLogger(__name__)
 
 
+def _make_default_row(
+    entity: Entity,
+    target_output: str,
+    default_value: float,
+) -> pd.DataFrame:
+    """Build a one-row DataFrame representing a defaulted measurement for an entity.
+
+    The row contains the entity identifier, all constitutive property values,
+    and the target output set to ``default_value``. Its column layout matches
+    the ``source_df`` produced by :func:`get_source_and_target`.
+
+    Args:
+        entity: The entity that did not produce a target measurement.
+        target_output: Identifier of the target property column.
+        default_value: Value to inject for the target property.
+
+    Returns:
+        A single-row :class:`pandas.DataFrame` with columns
+        ``['identifier', <cp_ids...>, target_output]``.
+    """
+    row: dict = {"identifier": entity.identifier}
+    for cpv in entity.constitutive_property_values:
+        row[cpv.property.identifier] = cpv.value
+    row[target_output] = default_value
+    return pd.DataFrame([row])
+
+
 # NOTE: to repeat the operation on the same space you can delete the operation
 # but first make sure that the output of this operation is not used by another operation
 class TrimSampleSelector(BaseSampler):
@@ -84,6 +111,58 @@ class TrimSampleSelector(BaseSampler):
                 f"Creating a folder to save intermediate files:\n{debug_dir}\n\n"
             )
             await debug_dir.mkdir(parents=True, exist_ok=True)
+
+    def _handle_missing_target_row(
+        self,
+        one_additional_row: pd.DataFrame,
+        current_source_df: pd.DataFrame,
+        entity: list[Entity],
+        discoverySpace: DiscoverySpace,
+        additional_info: str,
+    ) -> tuple[pd.DataFrame, pd.DataFrame]:
+        """Handle the case where an entity yielded no target variable measurement.
+
+        When ``defaultForUnmeasuredProperties`` is ``None`` (default), raises
+        ``InsufficientDataError`` with a hint to set the parameter.  When it is
+        set, logs a warning and injects a synthetic row so the iterator can
+        continue.
+
+        Args:
+            one_additional_row: The (empty) diff DataFrame from split_common_and_diff.
+            current_source_df: The source DataFrame for this iteration.
+            entity: The batch of entities that was just yielded (length 1).
+            discoverySpace: The discovery space being operated on.
+            additional_info: Context string passed to the error function.
+
+        Returns:
+            Tuple of (one_additional_row, current_source_df) — both updated when
+            a default is injected, unchanged when the default is None (never
+            reached since an exception is raised instead).
+        """
+        if len(one_additional_row) != 0:
+            return one_additional_row, current_source_df
+
+        if self.params.defaultForUnmeasuredProperties is None:
+            log_unable_to_proceed_with_iterative_modeling_and_raise_error(
+                discoverySpace=discoverySpace,
+                target_output=self.params.targetOutput,
+                additional_info=additional_info,
+            )
+
+        logger_trim_sampler.warning(
+            f"Entity '{entity[0].identifier}' did not produce a measurement for "
+            f"target variable '{self.params.targetOutput}'. "
+            f"Injecting default value {self.params.defaultForUnmeasuredProperties}."
+        )
+        one_additional_row = _make_default_row(
+            entity[0],
+            self.params.targetOutput,
+            self.params.defaultForUnmeasuredProperties,
+        )
+        current_source_df = pd.concat(
+            [current_source_df, one_additional_row], ignore_index=True
+        )
+        return one_additional_row, current_source_df
 
     def _core_iterator_logic(
         self,
@@ -171,12 +250,13 @@ class TrimSampleSelector(BaseSampler):
                         shorter_df_that_you_subtract=previous_source_df,
                     )
                 )
-                if len(one_additional_row) == 0:
-                    log_unable_to_proceed_with_iterative_modeling_and_raise_error(
-                        discoverySpace=discoverySpace,
-                        target_output=self.params.targetOutput,
-                        additional_info=f"Detected during Iterative Modeling, when the source space size is {len(train_df)}.",
-                    )
+                one_additional_row, current_source_df = self._handle_missing_target_row(
+                    one_additional_row=one_additional_row,
+                    current_source_df=current_source_df,
+                    entity=entity,
+                    discoverySpace=discoverySpace,
+                    additional_info=f"Detected during Iterative Modeling, when the source space size is {len(train_df)}.",
+                )
 
                 log_after_split_common_and_diff(
                     i,
@@ -205,12 +285,13 @@ class TrimSampleSelector(BaseSampler):
                     longer_df_from_which_you_subtract=current_source_df,
                     shorter_df_that_you_subtract=previous_source_df,
                 )
-                if len(one_additional_row) == 0:
-                    log_unable_to_proceed_with_iterative_modeling_and_raise_error(
-                        discoverySpace=discoverySpace,
-                        target_output=self.params.targetOutput,
-                        additional_info=f"Detected during Iterative Modeling, when the training DataFrame size is {len(train_df)}.",
-                    )
+                one_additional_row, current_source_df = self._handle_missing_target_row(
+                    one_additional_row=one_additional_row,
+                    current_source_df=current_source_df,
+                    entity=entity,
+                    discoverySpace=discoverySpace,
+                    additional_info=f"Detected during Iterative Modeling, when the training DataFrame size is {len(train_df)}.",
+                )
                 yielded_rows += one_additional_row
                 previous_holdout_df = current_holdout_df
 
@@ -226,12 +307,13 @@ class TrimSampleSelector(BaseSampler):
                     longer_df_from_which_you_subtract=current_source_df,
                     shorter_df_that_you_subtract=previous_source_df,
                 )
-                if len(one_additional_row) == 0:
-                    log_unable_to_proceed_with_iterative_modeling_and_raise_error(
-                        discoverySpace=discoverySpace,
-                        target_output=self.params.targetOutput,
-                        additional_info=f"Detected during Iterative Modeling, when the training DataFrame size is {len(train_df)}.",
-                    )
+                one_additional_row, current_source_df = self._handle_missing_target_row(
+                    one_additional_row=one_additional_row,
+                    current_source_df=current_source_df,
+                    entity=entity,
+                    discoverySpace=discoverySpace,
+                    additional_info=f"Detected during Iterative Modeling, when the training DataFrame size is {len(train_df)}.",
+                )
 
                 log_before_first_holdout_update(
                     one_additional_row,

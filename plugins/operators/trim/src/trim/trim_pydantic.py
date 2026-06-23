@@ -145,6 +145,16 @@ class TrimParameters(BaseModel):
         ),
     ] = NoPriorsParameters(targetOutput="")
 
+    defaultForUnmeasuredProperties: Annotated[
+        float | None,
+        pydantic.Field(
+            description="Optional default value injected for the target variable when an entity "
+            "does not produce a measurement for it (e.g. due to an InvalidMeasurement). "
+            "When None (default) TRIM raises an error as usual; set a float to allow the "
+            "iterative modeling phase to continue by substituting this value.",
+        ),
+    ] = None
+
     # disablePredictiveModeling: Annotated[
     #     bool,
     #     pydantic.Field(

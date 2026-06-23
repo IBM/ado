@@ -3,7 +3,7 @@ name: operation-analyzer
 description:
   Analyzes the results of ado operations on discovery spaces and plans next
   research steps. Delegate to instances of this agent when the user wants
-  to analyse a large number of operations in parallel. 
+  to analyse a large number of operations in parallel.
 ---
 
 # Operation Analyzer

@@ -73,7 +73,7 @@ Each positional parameter in the signature will become a required property.
 The function must return a dictionary whose keys include at least one of the
 output names you listed in `output_property_identifiers` (e.g., "density"
 above), and the values are the measured results. If no keys in the dictionary
-match the names in `output_property_identifiers`  
+match the names in `output_property_identifiers`
 the experiment result will be marked as invalid.
 
 > [!NOTE]
@@ -378,6 +378,6 @@ result = calculate_density(mass=0, volume=10)
 
 ## Next Steps
 
-See  
+See
 [search a space with an optimizer](../examples/best-configuration-search.md) for
 a complete practical workflow using custom experiments.

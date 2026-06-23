@@ -118,7 +118,7 @@ In addition `ado` plugins may have additional requirements for executing
     ado get operators
     ```
 
-    to see a list of the in-built operators.  
+    to see a list of the in-built operators.
 
     Next, we recommend you try our short [tutorial](examples/random-walk.md) which will give an idea of how `ado` works.
 

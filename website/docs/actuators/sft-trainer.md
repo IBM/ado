@@ -1728,19 +1728,19 @@ hardware. It uses the following custom resources:
 
 #### Custom Resource Types
 
-- **`full-worker`**  
+- **`full-worker`**
   Some Ray tasks require exclusive access to an entire node. These tasks request
   the `full-worker` resource. GPU workers that occupy a full node should have
   exactly one `full-worker` custom resource.
 
-- **`${GPU_MODEL}`**  
+- **`${GPU_MODEL}`**
   This custom resource key corresponds to the specific GPU model available on
   the node, with the value indicating the number of devices. Supported GPU
   models include: - `NVIDIA-A100-SXM4-80GB` - `NVIDIA-A100-80GB-PCIe` -
   `NVIDIA-H100-80GB-HBM3` - `NVIDIA-H100-PCIe` - `Tesla-V100-PCIE-16GB` -
   `Tesla-T4` - `L40S`
 
-- **`RoCE`**  
+- **`RoCE`**
   Tasks that utilize RDMA over Converged Ethernet (RoCE) request the `RoCE`
   resource. For guidance on configuring RoCE in your RayCluster, refer to the
   instructions linked at the bottom of this page.

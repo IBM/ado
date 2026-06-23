@@ -52,15 +52,25 @@ RayCluster resources.
 <!-- markdownlint-disable-next-line code-block-style -->
 
 ```yaml
-{% include "./service-account.yaml" %}
+{% include "./service-account-serviceaccount.yaml" %}
+```
+
+```yaml
+{% include "./service-account-role.yaml" %}
+```
+
+```yaml
+{% include "./service-account-rolebinding.yaml" %}
 ```
 
 <!-- prettier-ignore-end -->
 
-From the root of the ado project run the below command:
+From the root of the ado project run the below commands:
 
 ```commandline
-kubectl apply -f backend/kuberay/service-account.yaml
+kubectl apply -f backend/kuberay/service-account-serviceaccount.yaml
+kubectl apply -f backend/kuberay/service-account-role.yaml
+kubectl apply -f backend/kuberay/service-account-rolebinding.yaml
 ```
 
 This will create a ServiceAccount named `ray-deployer`. We will reference this
@@ -92,11 +102,11 @@ helm upgrade --install ado-ray kuberay/ray-cluster --version 1.1.0 \
 To maximize the efficiency of your RayCluster and minimize GPU resource
 fragmentation, we recommend the following:
 
-- **Enable Ray Autoscaler**  
+- **Enable Ray Autoscaler**
   This allows Ray to dynamically adjust the number of worker replicas based on
   task demand.
 
-- **Use Multiple GPU Worker Variants**  
+- **Use Multiple GPU Worker Variants**
   Define several GPU worker types with varying GPU counts. This flexibility
   helps match task requirements more precisely and reduces idle GPU time.
 

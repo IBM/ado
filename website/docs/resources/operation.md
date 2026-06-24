@@ -115,8 +115,8 @@ module:
 > you must set operationType to **search** e.g.
 >
 > ```yaml
-> module: 
->  operatorName: random_walk 
+> module:
+>  operatorName: random_walk
 >  operationType: search # note: search not explore
 > ```
 

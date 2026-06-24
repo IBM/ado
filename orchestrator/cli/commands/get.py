@@ -24,7 +24,6 @@ from orchestrator.cli.resources.context.get import get_context
 from orchestrator.cli.resources.data_container.get import get_data_container
 from orchestrator.cli.resources.discovery_space.get import get_discovery_space
 from orchestrator.cli.resources.experiment.get import get_experiment
-from orchestrator.cli.resources.measurement_request.get import get_measurement_request
 from orchestrator.cli.resources.operation.get import get_operation
 from orchestrator.cli.resources.operator.get import get_operator
 from orchestrator.cli.resources.sample_store.get import get_sample_store
@@ -51,7 +50,6 @@ if typing.TYPE_CHECKING:
 
 OUTPUT_CONFIGURATION_OPTIONS = "Output configuration options"
 ACTUATORS_ONLY_OPTIONS = "Actuators-only options"
-MEASUREMENTS_ONLY_OPTIONS = "Measurements-only options"
 DISCOVERY_SPACE_ONLY_OPTIONS = "Space-only options"
 
 
@@ -217,30 +215,6 @@ def get_resource(
             rich_help_panel=ACTUATORS_ONLY_OPTIONS,
         ),
     ] = False,
-    from_sample_store: Annotated[
-        str | None,
-        typer.Option(
-            help="Specify the samplestore this measurement belongs to.",
-            show_default=False,
-            rich_help_panel=MEASUREMENTS_ONLY_OPTIONS,
-        ),
-    ] = None,
-    from_space: Annotated[
-        str | None,
-        typer.Option(
-            help="Specify the space this measurement belongs to.",
-            show_default=False,
-            rich_help_panel=MEASUREMENTS_ONLY_OPTIONS,
-        ),
-    ] = None,
-    from_operation: Annotated[
-        str | None,
-        typer.Option(
-            help="Specify the operation this measurement belongs to.",
-            show_default=False,
-            rich_help_panel=MEASUREMENTS_ONLY_OPTIONS,
-        ),
-    ] = None,
     matching_point: Annotated[
         pathlib.Path | None,
         typer.Option(
@@ -389,9 +363,6 @@ def get_resource(
         exclude_none=exclude_none,
         exclude_unset=exclude_unset,
         field_selectors=field_selectors,
-        from_sample_store=from_sample_store,
-        from_operation=from_operation,
-        from_space=from_space,
         matching_point=matching_point,
         matching_space_id=matching_space_id,
         matching_space=matching_space,
@@ -414,7 +385,6 @@ def get_resource(
         AdoGetSupportedResourceTypes.DISCOVERY_SPACE: get_discovery_space,
         AdoGetSupportedResourceTypes.EXPERIMENT: get_experiment,
         AdoGetSupportedResourceTypes.SAMPLE_STORE: get_sample_store,
-        AdoGetSupportedResourceTypes.MEASUREMENT_REQUEST: get_measurement_request,
         AdoGetSupportedResourceTypes.OPERATION: get_operation,
         AdoGetSupportedResourceTypes.OPERATOR: get_operator,
     }

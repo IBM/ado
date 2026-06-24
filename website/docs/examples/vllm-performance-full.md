@@ -180,7 +180,7 @@ oc get deployments --watch -n vllm-testing
 You can also get the results table by executing (in another terminal)
 
 ```commandline
-ado show entities operation --use-latest
+ado show measurements operation --use-latest
 ```
 
 ### Check final results

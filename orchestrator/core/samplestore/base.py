@@ -10,6 +10,7 @@ import pydantic
 from pydantic import ConfigDict
 
 import orchestrator.core.samplestore.config
+import orchestrator.metastore.sqlstore
 import orchestrator.utilities.location
 from orchestrator.modules.actuators.catalog import ExperimentCatalog
 from orchestrator.schema.entity import Entity
@@ -21,6 +22,13 @@ from orchestrator.schema.property_value import PropertyValue
 from orchestrator.schema.request import MeasurementRequest
 
 if typing.TYPE_CHECKING:
+    from orchestrator.core.operation.stats import OperationMeasurementStatistics
+    from orchestrator.core.samplestore.config import (
+        SampleStoreConfiguration,
+        SampleStoreReference,
+        SampleStoreSpecification,
+    )
+    from orchestrator.core.samplestore.resource import SampleStoreResource
     from orchestrator.schema.observed_property import ObservedProperty
 
 
@@ -143,6 +151,275 @@ class SampleStore(abc.ABC):
             "Sample Stores must implement the storage_location_class method"
         )
 
+    @classmethod
+    def from_specification(
+        cls,
+        identifier: str | None,
+        specification: "SampleStoreSpecification",
+    ) -> "SampleStore":
+        """Load an existing SampleStore or create a new one from specification.
+
+        Args:
+            identifier: The identifier of the SampleStore to initialize.
+                       If None, a new SampleStore will be created.
+            specification: The specification of the SampleStore. Defines where it is stored,
+                  how to access it, and what class to use.
+
+        Returns:
+            A SampleStore instance of the appropriate subclass.
+
+        Example:
+            >>> specification = SampleStoreSpecification(...)
+            >>> store = SampleStore.from_specification(identifier="my-store", specification=specification)
+        """
+        import logging
+
+        import orchestrator.modules.module
+
+        logger = logging.getLogger("SampleStore.from_specification")
+
+        source_class = orchestrator.modules.module.load_module_class_or_function(
+            specification.module
+        )
+        logger.debug(f"Class: {source_class}, Params: {specification.parameters}")
+
+        # Convert dict parameters back to model object if needed
+        if isinstance(specification.parameters, dict):
+            parameters = source_class.validate_parameters(
+                parameters=specification.parameters
+            )
+        else:
+            parameters = specification.parameters
+
+        return source_class(
+            identifier=identifier,
+            storageLocation=specification.storageLocation,
+            parameters=parameters,
+        )
+
+    @classmethod
+    def from_reference(
+        cls,
+        reference: "SampleStoreReference",
+    ) -> "SampleStore":
+        """Load an existing SampleStore using a reference.
+
+        Args:
+            reference: A reference to the SampleStore. Defines where it is stored,
+                      how to access it, and what class to use.
+
+        Returns:
+            A SampleStore instance of the appropriate subclass.
+
+        Example:
+            >>> ref = SampleStoreReference(...)
+            >>> store = SampleStore.from_reference(ref)
+        """
+        import logging
+
+        import orchestrator.modules.module
+
+        logger = logging.getLogger("SampleStore.from_reference")
+
+        source_class = orchestrator.modules.module.load_module_class_or_function(
+            reference.module
+        )
+        logger.debug(f"Class: {source_class}, Params: {reference.parameters}")
+
+        # Convert dict parameters back to model object if needed
+        if isinstance(reference.parameters, dict):
+            parameters = source_class.validate_parameters(
+                parameters=reference.parameters
+            )
+        else:
+            parameters = reference.parameters
+
+        if reference.identifier is not None:
+            # For sample stores that require a separate identifier
+            # because their storageLocation is a container for possibly many sample stores
+            return source_class(
+                identifier=reference.identifier,
+                storageLocation=reference.storageLocation,
+                parameters=parameters,
+            )
+        # For sample stores where identifier is part of storageLocation
+        return source_class(
+            storageLocation=reference.storageLocation,
+            parameters=parameters,
+        )
+
+    @classmethod
+    def from_resource(
+        cls,
+        sample_store_resource: "SampleStoreResource",
+    ) -> "SampleStore":
+        """Create a SampleStore instance from a SampleStoreResource.
+
+        Args:
+            sample_store_resource: A SampleStoreResource describing an existing SampleStore.
+
+        Returns:
+            A SampleStore instance of the appropriate subclass.
+
+        Example:
+            >>> resource = metastore.getResource(...)
+            >>> store = SampleStore.from_resource(resource)
+        """
+        return cls.from_specification(
+            identifier=sample_store_resource.identifier,
+            specification=sample_store_resource.config.specification,
+        )
+
+    @classmethod
+    def from_configuration(
+        cls,
+        configuration: "SampleStoreConfiguration",
+    ) -> "ActiveSampleStore":
+        """Create a new ActiveSampleStore from configuration.
+
+        This method creates a new SampleStore and optionally copies data from
+        other sample stores specified in the configuration's copyFrom field.
+
+        Args:
+            configuration: Configuration specifying the SampleStore to create and
+                          optional data sources to copy from.
+
+        Returns:
+            An ActiveSampleStore instance with data copied from sources if specified.
+
+        Raises:
+            ValueError: If the configuration does not contain a specification field.
+
+        Example:
+            >>> config = SampleStoreConfiguration(...)
+            >>> store = SampleStore.from_configuration(config)
+        """
+        import logging
+
+        logger = logging.getLogger("SampleStore.from_configuration")
+
+        if configuration.specification is None:
+            raise ValueError(
+                "Your sample store does not contain the specification field"
+            )
+
+        sample_store = cls.from_specification(
+            identifier=None, specification=configuration.specification
+        )
+
+        # Copy in data from additional sample stores
+        additional_sample_stores = []
+        if configuration.copyFrom is not None:
+            additional_sample_stores = [
+                cls.from_reference(reference) for reference in configuration.copyFrom
+            ]
+
+        for sample_store_source in additional_sample_stores:
+            logger.debug(
+                f"Copying {sample_store_source.numberOfEntities} entities from "
+                f"{sample_store_source.identifier} to {sample_store.identifier}"
+            )
+            sample_store.add_external_entities(sample_store_source.entities)
+
+        return sample_store
+
+    @classmethod
+    def from_identifier(
+        cls,
+        identifier: str,
+        metastore: "orchestrator.metastore.sqlstore.SQLStore",
+    ) -> "SampleStore":
+        """Load a SampleStore by its identifier from the metastore.
+
+        Args:
+            identifier: The unique identifier of the SampleStore.
+            metastore: The SQLStore containing the SampleStore resource.
+
+        Returns:
+            A SampleStore instance.
+
+        Raises:
+            ResourceDoesNotExistError: If no SampleStore with the given identifier exists.
+
+        Example:
+            >>> store = SampleStore.from_identifier("abc123", metastore)
+        """
+        from orchestrator.core.resources import CoreResourceKinds
+
+        resource = metastore.getResource(
+            kind=CoreResourceKinds.SAMPLESTORE,
+            identifier=identifier,
+            raise_error_if_no_resource=True,
+        )
+        return cls.from_resource(resource)
+
+    @classmethod
+    def from_space_identifier(
+        cls,
+        space_id: str,
+        metastore: "orchestrator.metastore.sqlstore.SQLStore",
+    ) -> "SampleStore":
+        """Load the SampleStore associated with a discoveryspace.
+
+        Args:
+            space_id: The identifier of the discoveryspace.
+            metastore: The SQLStore containing the space and SampleStore resources.
+
+        Returns:
+            A SampleStore instance associated with the space.
+
+        Raises:
+            ResourceDoesNotExistError: If the space or its SampleStore doesn't exist.
+
+        Example:
+            >>> store = SampleStore.from_space_identifier("space-123", metastore)
+        """
+        from orchestrator.core.resources import CoreResourceKinds
+
+        _, samplestore_resource = metastore.get_resource_and_producers(
+            identifier=space_id,
+            kind=CoreResourceKinds.DISCOVERYSPACE,
+            chain=[
+                ("$.config.sampleStoreIdentifier", CoreResourceKinds.SAMPLESTORE),
+            ],
+            raise_error_if_no_resource=True,
+        )
+        return cls.from_resource(samplestore_resource)
+
+    @classmethod
+    def from_operation_identifier(
+        cls,
+        operation_id: str,
+        metastore: "orchestrator.metastore.sqlstore.SQLStore",
+    ) -> "SampleStore":
+        """Load the SampleStore associated with an operation.
+
+        Args:
+            operation_id: The identifier of the operation.
+            metastore: The SQLStore containing the operation and SampleStore resources.
+
+        Returns:
+            A SampleStore instance associated with the operation's space.
+
+        Raises:
+            ResourceDoesNotExistError: If the operation, space, or SampleStore doesn't exist.
+
+        Example:
+            >>> store = SampleStore.from_operation_identifier("op-456", metastore)
+        """
+        from orchestrator.core.resources import CoreResourceKinds
+
+        _, _, samplestore_resource = metastore.get_resource_and_producers(
+            identifier=operation_id,
+            kind=CoreResourceKinds.OPERATION,
+            chain=[
+                ("$.config.spaces[0]", CoreResourceKinds.DISCOVERYSPACE),
+                ("$.config.sampleStoreIdentifier", CoreResourceKinds.SAMPLESTORE),
+            ],
+            raise_error_if_no_resource=True,
+        )
+        return cls.from_resource(samplestore_resource)
+
 
 class PassiveSampleStore(SampleStore, ABC):
     """Subclasses provide access to entities but do not provide updates or store new entities"""
@@ -222,6 +499,25 @@ class ActiveSampleStore(SampleStore, ABC):
     def operation_entity_statistics(self, operation_id: str) -> dict[str, int]:
         """
         Compute entity-level statistics for an operation."""
+
+    @abc.abstractmethod
+    def operation_measurement_statistics(
+        self, operation_ids: set[str] | None = None
+    ) -> "list[OperationMeasurementStatistics]":
+        """Compute aggregated measurement statistics for one or more operations.
+
+        Args:
+            operation_ids: Set of operation identifiers to aggregate. Pass
+                ``None`` to aggregate across all operations in the store.
+                Passing an empty set raises ``ValueError``.
+
+        Returns:
+            A list of OperationMeasurementStatistics instances, one per
+            operation found in the store.
+
+        Raises:
+            ValueError: If ``operation_ids`` is an empty set.
+        """
 
 
 class MockParams(pydantic.BaseModel):

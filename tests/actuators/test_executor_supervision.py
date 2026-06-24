@@ -6,8 +6,8 @@
 from __future__ import annotations
 
 from orchestrator.modules.actuators.executor_supervisor import (
+    ExperimentExecutorState,
     ExperimentExecutorSupervisorParameters,
-    RayTaskState,
     _ray_api_task_state_names,
     add_invalid_measurement_results,
 )
@@ -59,20 +59,34 @@ def test_ray_api_includes_supervisor_states() -> None:
 
 def test_ray_task_state_from_ray_state_collapses() -> None:
     """Ray state strings collapse to RUNNING, FAILED, resource-wait, or OTHER."""
-    assert RayTaskState.from_ray_state("RUNNING") == RayTaskState.RUNNING
-    assert RayTaskState.from_ray_state("RUNNING_IN_RAY_GET") == RayTaskState.RUNNING
-    assert RayTaskState.from_ray_state("RUNNING_IN_RAY_WAIT") == RayTaskState.RUNNING
-    assert RayTaskState.from_ray_state("FAILED") == RayTaskState.FAILED
     assert (
-        RayTaskState.from_ray_state("PENDING_NODE_ASSIGNMENT")
-        == RayTaskState.PENDING_NODE_ASSIGNMENT
+        ExperimentExecutorState.from_ray_state("RUNNING")
+        == ExperimentExecutorState.RUNNING
     )
     assert (
-        RayTaskState.from_ray_state("PENDING_OBJ_STORE_MEM_AVAIL")
-        == RayTaskState.PENDING_OBJ_STORE_MEM_AVAIL
+        ExperimentExecutorState.from_ray_state("RUNNING_IN_RAY_GET")
+        == ExperimentExecutorState.RUNNING
     )
-    assert RayTaskState.from_ray_state(None) == RayTaskState.OTHER
-    assert RayTaskState.from_ray_state("NIL") == RayTaskState.OTHER
+    assert (
+        ExperimentExecutorState.from_ray_state("RUNNING_IN_RAY_WAIT")
+        == ExperimentExecutorState.RUNNING
+    )
+    assert (
+        ExperimentExecutorState.from_ray_state("FAILED")
+        == ExperimentExecutorState.FAILED
+    )
+    assert (
+        ExperimentExecutorState.from_ray_state("PENDING_NODE_ASSIGNMENT")
+        == ExperimentExecutorState.PENDING_NODE_ASSIGNMENT
+    )
+    assert (
+        ExperimentExecutorState.from_ray_state("PENDING_OBJ_STORE_MEM_AVAIL")
+        == ExperimentExecutorState.PENDING_OBJ_STORE_MEM_AVAIL
+    )
+    assert ExperimentExecutorState.from_ray_state(None) == ExperimentExecutorState.OTHER
+    assert (
+        ExperimentExecutorState.from_ray_state("NIL") == ExperimentExecutorState.OTHER
+    )
 
 
 def test_launch_supervisor_parameters_to_config() -> None:

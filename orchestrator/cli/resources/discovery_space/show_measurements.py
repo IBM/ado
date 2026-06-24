@@ -7,10 +7,10 @@ import typer
 import yaml
 from rich.status import Status
 
-from orchestrator.cli.models.parameters import AdoShowEntitiesCommandParameters
+from orchestrator.cli.models.parameters import AdoShowMeasurementsCommandParameters
 from orchestrator.cli.models.types import (
-    AdoShowEntitiesSupportedEntityTypes,
-    AdoShowEntitiesSupportedPropertyFormats,
+    AdoShowMeasurementsSupportedEntityTypes,
+    AdoShowMeasurementsSupportedPropertyFormats,
 )
 from orchestrator.cli.utils.generic.wrappers import get_sql_store
 from orchestrator.cli.utils.output.dataframes import df_to_output
@@ -40,21 +40,23 @@ if typing.TYPE_CHECKING:
     from orchestrator.schema.entity import Entity
 
 
-def show_discovery_space_entities(parameters: AdoShowEntitiesCommandParameters) -> None:
+def show_discovery_space_measurements(
+    parameters: AdoShowMeasurementsCommandParameters,
+) -> None:
 
     import pandas as pd
 
     supported_entity_types = [
-        AdoShowEntitiesSupportedEntityTypes.MATCHING,
-        AdoShowEntitiesSupportedEntityTypes.MEASURED,
-        AdoShowEntitiesSupportedEntityTypes.MISSING,
-        AdoShowEntitiesSupportedEntityTypes.UNMEASURED,
+        AdoShowMeasurementsSupportedEntityTypes.MATCHING,
+        AdoShowMeasurementsSupportedEntityTypes.MEASURED,
+        AdoShowMeasurementsSupportedEntityTypes.MISSING,
+        AdoShowMeasurementsSupportedEntityTypes.UNMEASURED,
     ]
 
-    if parameters.entities_type not in supported_entity_types:
+    if parameters.measurements_type not in supported_entity_types:
         supported_types_str = [t.value for t in supported_entity_types]
         raise typer.BadParameter(
-            f"type must be one of {supported_types_str} for ado show entities space",
+            f"type must be one of {supported_types_str} for ado show measurements space",
         )
 
     sql = get_sql_store(project_context=parameters.ado_configuration.project_context)
@@ -94,15 +96,20 @@ def show_discovery_space_entities(parameters: AdoShowEntitiesCommandParameters) 
             )
             raise typer.Exit(1) from e
 
-        if parameters.entities_type != AdoShowEntitiesSupportedEntityTypes.MATCHING:
+        if (
+            parameters.measurements_type
+            != AdoShowMeasurementsSupportedEntityTypes.MATCHING
+        ):
             console_print(
-                f"{WARN}The {cyan(f'--include {parameters.entities_type.value}')} option is not supported when "
+                f"{WARN}The {cyan(f'--include {parameters.measurements_type.value}')} option is not supported when "
                 "passing a resource configuration file.\n\tThe only supported option is "
-                f"is {cyan(f'--include {AdoShowEntitiesSupportedEntityTypes.MATCHING.value}')}.\n"
-                f"{INFO}The {cyan(AdoShowEntitiesSupportedEntityTypes.MATCHING.value)} option will be used.",
+                f"is {cyan(f'--include {AdoShowMeasurementsSupportedEntityTypes.MATCHING.value}')}.\n"
+                f"{INFO}The {cyan(AdoShowMeasurementsSupportedEntityTypes.MATCHING.value)} option will be used.",
                 stderr=True,
             )
-            parameters.entities_type = AdoShowEntitiesSupportedEntityTypes.MATCHING
+            parameters.measurements_type = (
+                AdoShowMeasurementsSupportedEntityTypes.MATCHING
+            )
 
         # AP: we set the resource ID to the file name to make it easier
         # for the prints
@@ -117,7 +124,7 @@ def show_discovery_space_entities(parameters: AdoShowEntitiesCommandParameters) 
         )
 
         output_df: pd.DataFrame = pd.DataFrame()
-        status.update(f"Finding {parameters.entities_type.value} entities")
+        status.update(f"Finding {parameters.measurements_type.value} entities")
 
         virtual_property_ids: list[str] | None = None
         if parameters.properties:
@@ -127,30 +134,42 @@ def show_discovery_space_entities(parameters: AdoShowEntitiesCommandParameters) 
                 if VirtualObservedProperty.isVirtualPropertyIdentifier(p)
             ] or None
 
-        if parameters.entities_type == AdoShowEntitiesSupportedEntityTypes.MATCHING:
+        if (
+            parameters.measurements_type
+            == AdoShowMeasurementsSupportedEntityTypes.MATCHING
+        ):
             output_df = space.matchingEntitiesTable(
-                property_type=parameters.entities_property_format.value,
+                property_type=parameters.measurements_property_format.value,
                 aggregationMethod=parameters.aggregation_method,
                 virtualPropertyIdentifiers=virtual_property_ids,
             )
-        elif parameters.entities_type == AdoShowEntitiesSupportedEntityTypes.MEASURED:
+        elif (
+            parameters.measurements_type
+            == AdoShowMeasurementsSupportedEntityTypes.MEASURED
+        ):
             output_df = space.measuredEntitiesTable(
-                property_type=parameters.entities_property_format.value,
+                property_type=parameters.measurements_property_format.value,
                 aggregationMethod=parameters.aggregation_method,
                 virtualPropertyIdentifiers=virtual_property_ids,
             )
-        elif parameters.entities_type == AdoShowEntitiesSupportedEntityTypes.UNMEASURED:
+        elif (
+            parameters.measurements_type
+            == AdoShowMeasurementsSupportedEntityTypes.UNMEASURED
+        ):
             unsampled_entities = unmeasured_entities_from_space(space)
             output_df = entities_to_dataframe(unsampled_entities)
-        elif parameters.entities_type == AdoShowEntitiesSupportedEntityTypes.MISSING:
+        elif (
+            parameters.measurements_type
+            == AdoShowMeasurementsSupportedEntityTypes.MISSING
+        ):
             missing_entities = missing_entities_from_space(space)
             output_df = entities_to_dataframe(missing_entities)
 
     if output_df.empty:
         console_print(
             f"{INFO}Nothing was returned for "
-            f"[i]entity type {magenta(parameters.entities_type.value)}[/i] and "
-            f"[i]property format {magenta(parameters.entities_property_format.value)}[/i] "
+            f"[i]entity type {magenta(parameters.measurements_type.value)}[/i] and "
+            f"[i]property format {magenta(parameters.measurements_property_format.value)}[/i] "
             f"in [i]space {magenta(parameters.resource_id)}[/i].",
             stderr=True,
         )
@@ -158,14 +177,15 @@ def show_discovery_space_entities(parameters: AdoShowEntitiesCommandParameters) 
 
     if (
         parameters.properties
-        and parameters.entities_type != AdoShowEntitiesSupportedEntityTypes.MISSING
+        and parameters.measurements_type
+        != AdoShowMeasurementsSupportedEntityTypes.MISSING
     ):
         df_column_set = set(output_df.columns)
         properties_set = set(parameters.properties)
         available_properties = (
             space.measurementSpace.targetProperties
-            if parameters.entities_property_format
-            == AdoShowEntitiesSupportedPropertyFormats.TARGET
+            if parameters.measurements_property_format
+            == AdoShowMeasurementsSupportedPropertyFormats.TARGET
             else space.measurementSpace.observedProperties
         )
         available_properties_formatted = "-\t" + "\n-\t".join(
@@ -175,7 +195,7 @@ def show_discovery_space_entities(parameters: AdoShowEntitiesCommandParameters) 
         if not properties_set.issubset(df_column_set):
             console_print(
                 f"{ERROR}{properties_set.difference(df_column_set)} are not in the available properties.\n"
-                f"{HINT}Available ones for the {parameters.entities_property_format.value} format are:\n"
+                f"{HINT}Available ones for the {parameters.measurements_property_format.value} format are:\n"
                 f"{available_properties_formatted}\n"
                 f"{HINT}Virtual properties (e.g. {cyan('<property>-<method>')}) are also supported "
                 f"where method is one of: {aggregation_methods}",
@@ -189,7 +209,7 @@ def show_discovery_space_entities(parameters: AdoShowEntitiesCommandParameters) 
 
     df_to_output(
         df=output_df,
-        output_format=parameters.entities_output_format.value,
+        output_format=parameters.measurements_output_format.value,
         output_file=parameters.output_file,
         no_trunc=parameters.no_trunc,
     )

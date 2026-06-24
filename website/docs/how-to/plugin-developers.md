@@ -59,10 +59,8 @@ Based on your chosen strategy, follow the appropriate setup guide below.
 
 2. **Add `ado-core` as a dependency** in your plugin's `pyproject.toml` file:
 
-  
-
 3. **Install your dependencies**, including `ado-core` and your own plugin in
-    editable mode. 
+    editable mode.
 
         uv pip install -e path/to/your/<plugin-name>
 

@@ -77,6 +77,7 @@ def local_execution_closure(
                 identifier=actuator_configuration_identifier,
                 kind=CoreResourceKinds.ACTUATORCONFIGURATION,
                 raise_error_if_no_resource=True,
+                ignore_plugin_validation=False,
             ).config
             actuator_configurations[actuator_configuration.actuatorIdentifier] = (
                 actuator_configuration

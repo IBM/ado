@@ -36,7 +36,8 @@ must already include the appropriate version of `torch`:
 
 <!-- markdownlint-disable line-length -->
 
-**We recommend using the [`ordered_pip`](https://github.com/IBM/ado/blob/main/orchestrator/utilities/ray_env/README.md)
+**We recommend using the
+[`ordered_pip`](https://github.com/IBM/ado/blob/main/orchestrator/utilities/ray_env/README.md)
 RayRuntimeEnv plugin** for all versions of `fms-hf-tuning`. It ensures the
 correct `torch` version is installed before packages that depend on it during
 their build phase. The plugin is included in ado-core and its images (e.g.,
@@ -57,7 +58,8 @@ or use one of the following tested images:
 
 - **`fms-hf-tuning > 2.8.2`**
 
-  - Use the tested image `quay.io/ado/ado:c6ba952ad79a2d86d1174fd9aaebddd8953c78cf-py311-cu121-ofed2410v1140`
+  - Use the tested image
+    `quay.io/ado/ado:c6ba952ad79a2d86d1174fd9aaebddd8953c78cf-py311-cu121-ofed2410v1140`
     (tested with `fms-hf-tuning==3.0.0`, not guaranteed for future versions)
 
   <!-- markdownlint-enable line-length -->
@@ -1726,19 +1728,19 @@ hardware. It uses the following custom resources:
 
 #### Custom Resource Types
 
-- **`full-worker`**  
+- **`full-worker`**
   Some Ray tasks require exclusive access to an entire node. These tasks request
   the `full-worker` resource. GPU workers that occupy a full node should have
   exactly one `full-worker` custom resource.
 
-- **`${GPU_MODEL}`**  
+- **`${GPU_MODEL}`**
   This custom resource key corresponds to the specific GPU model available on
   the node, with the value indicating the number of devices. Supported GPU
   models include: - `NVIDIA-A100-SXM4-80GB` - `NVIDIA-A100-80GB-PCIe` -
   `NVIDIA-H100-80GB-HBM3` - `NVIDIA-H100-PCIe` - `Tesla-V100-PCIE-16GB` -
   `Tesla-T4` - `L40S`
 
-- **`RoCE`**  
+- **`RoCE`**
   Tasks that utilize RDMA over Converged Ethernet (RoCE) request the `RoCE`
   resource. For guidance on configuring RoCE in your RayCluster, refer to the
   instructions linked at the bottom of this page.
@@ -1953,7 +1955,7 @@ properties on the space you created like so:
 <!-- markdownlint-disable MD046 -->
 
 ```commandline
-ado show entities space --output csv $DISCOVERY_SPACE_ID > entities.csv
+ado show measurements space --output csv $DISCOVERY_SPACE_ID > entities.csv
 ```
 
 <!-- markdownlint-enable MD046 -->

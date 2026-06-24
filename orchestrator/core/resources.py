@@ -12,6 +12,7 @@ from typing import Annotated
 
 import pydantic
 
+from orchestrator.core.metadata import ProvenanceInfo
 from orchestrator.utilities.pydantic import Defaultable
 
 
@@ -98,6 +99,13 @@ class ADOResource(pydantic.BaseModel):
     ]
     metadata: Annotated[
         dict, pydantic.Field(default_factory=dict, description="Metadata dictionary")
+    ]
+    provenance: Annotated[
+        ProvenanceInfo,
+        pydantic.Field(
+            default_factory=ProvenanceInfo,
+            description="Plugin package provenance frozen at resource creation time.",
+        ),
     ]
 
     model_config = pydantic.ConfigDict(extra="forbid")

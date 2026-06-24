@@ -13,7 +13,6 @@ _CONTEXT_SINGULAR = "context"
 _DATA_CONTAINER_SINGULAR = "datacontainer"
 _DISCOVERY_SPACE_SINGULAR = "discoveryspace"
 _EXPERIMENT_SINGULAR = "experiment"
-_MEASUREMENT_REQUEST_SINGULAR = "measurementrequest"
 _OPERATION_SINGULAR = "operation"
 _OPERATOR_SINGULAR = "operator"
 _SAMPLE_STORE_SINGULAR = "samplestore"
@@ -107,7 +106,6 @@ class AdoGetSupportedResourceTypes(Enum):
     DATA_CONTAINER = _DATA_CONTAINER_SINGULAR
     DISCOVERY_SPACE = _DISCOVERY_SPACE_SINGULAR
     EXPERIMENT = _EXPERIMENT_SINGULAR
-    MEASUREMENT_REQUEST = _MEASUREMENT_REQUEST_SINGULAR
     OPERATION = _OPERATION_SINGULAR
     OPERATOR = _OPERATOR_SINGULAR
     SAMPLE_STORE = _SAMPLE_STORE_SINGULAR
@@ -119,26 +117,26 @@ class AdoShowDetailsSupportedResourceTypes(Enum):
     OPERATION = _OPERATION_SINGULAR
 
 
-#################### ado show entities ####################
-class AdoShowEntitiesSupportedEntityTypes(Enum):
+#################### ado show measurements ####################
+class AdoShowMeasurementsSupportedEntityTypes(Enum):
     MEASURED = "measured"
     MATCHING = "matching"
     MISSING = "missing"
     UNMEASURED = "unmeasured"
 
 
-class AdoShowEntitiesSupportedOutputFormats(Enum):
+class AdoShowMeasurementsSupportedOutputFormats(Enum):
     CSV = _CSV
     JSON = _JSON
     TABLE = _TABLE
 
 
-class AdoShowEntitiesSupportedPropertyFormats(Enum):
+class AdoShowMeasurementsSupportedPropertyFormats(Enum):
     OBSERVED = "observed"
     TARGET = "target"
 
 
-class AdoShowEntitiesSupportedResourceTypes(Enum):
+class AdoShowMeasurementsSupportedResourceTypes(Enum):
     DISCOVERY_SPACE = _DISCOVERY_SPACE_SINGULAR
     OPERATION = _OPERATION_SINGULAR
 
@@ -152,26 +150,18 @@ class AdoShowRelatedSupportedResourceTypes(Enum):
     SAMPLE_STORE = _SAMPLE_STORE_SINGULAR
 
 
-#################### ado show requests ####################
-class AdoShowRequestsSupportedOutputFormats(Enum):
+#################### ado show trace ####################
+class AdoShowTraceSupportedOutputFormats(Enum):
     CSV = _CSV
     JSON = _JSON
     TABLE = _TABLE
+    YAML = _YAML
 
 
-class AdoShowRequestsSupportedResourceTypes(Enum):
+class AdoShowTraceSupportedResourceTypes(Enum):
     OPERATION = _OPERATION_SINGULAR
-
-
-#################### ado show results ####################
-class AdoShowResultsSupportedOutputFormats(Enum):
-    CSV = _CSV
-    JSON = _JSON
-    TABLE = _TABLE
-
-
-class AdoShowResultsSupportedResourceTypes(Enum):
-    OPERATION = _OPERATION_SINGULAR
+    DISCOVERY_SPACE = _DISCOVERY_SPACE_SINGULAR
+    SAMPLE_STORE = _SAMPLE_STORE_SINGULAR
 
 
 #################### ado show summary ####################

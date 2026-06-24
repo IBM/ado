@@ -252,7 +252,7 @@ the entities of the space that have been measured, you can run:
 <!-- markdownlint-disable line-length -->
 
 ```commandline
-ado show entities space --use-latest
+ado show measurements space --use-latest
 ```
 
 <!-- markdownlint-enable line-length -->

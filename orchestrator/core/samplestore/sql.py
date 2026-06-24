@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Annotated, Literal
 
 import pydantic
 import sqlalchemy
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import InvalidRequestError, SQLAlchemyError
 
 import orchestrator.core.samplestore.config
 import orchestrator.core.samplestore.csv
@@ -20,7 +20,7 @@ from orchestrator.core.samplestore.base import (
     FailedToDecodeStoredEntityError,
     FailedToDecodeStoredMeasurementResultForEntityError,
 )
-from orchestrator.metastore.sql.utils import check_table_exists, engine_for_sql_store
+from orchestrator.metastore.sql.utils import engine_for_sql_store
 from orchestrator.modules.actuators.catalog import ExperimentCatalog
 from orchestrator.schema.entity import Entity
 from orchestrator.schema.experiment import Experiment
@@ -57,12 +57,16 @@ if TYPE_CHECKING:
     import pandas as pd
     from rich.console import RenderableType
 
+    from orchestrator.core.operation.stats import OperationMeasurementStatistics
+
 # Process-level cache of (db_url, tablename) pairs for which the four DDL tables
-# have already been verified to exist.  Skips the four `CREATE TABLE IF NOT EXISTS`
-# round-trips on every subsequent SQLSampleStore construction for the same store.
+# have already been verified to exist, along with their reflected metadata.
+# Skips the four `CREATE TABLE IF NOT EXISTS` round-trips and metadata reflection
+# on every subsequent SQLSampleStore construction for the same store.
 # The db_url is included so that two stores with the same identifier but pointing
 # to different databases are treated independently.
 _source_tables_verified: set[tuple[str, str]] = set()
+_reflected_metadata_cache: dict[tuple[str, str], sqlalchemy.MetaData] = {}
 
 
 class SQLSampleStoreConfiguration(pydantic.BaseModel):
@@ -265,7 +269,7 @@ class SQLSampleStore(ActiveSampleStore):
             experiments=experiments, catalogIdentifier="sqlstore_catalog"
         )
 
-    def _create_source_table(self) -> None:
+    def _create_source_table(self) -> sqlalchemy.MetaData:
 
         from sqlalchemy import CHAR, JSON, DateTime, Integer, String, Text
 
@@ -341,6 +345,7 @@ class SQLSampleStore(ActiveSampleStore):
         )
 
         meta.create_all(self.engine, checkfirst=True)
+        return meta
 
     def __init__(
         self,
@@ -383,22 +388,6 @@ class SQLSampleStore(ActiveSampleStore):
         self._tablename = f"sqlsource_{self._identifier}"
         self._engine = engine_for_sql_store(storageLocation)
 
-        # Create the four backing tables only when they do not yet exist.
-        # Use a single raw SQL probe (1 round-trip) as a fast path to avoid
-        # the ~4 SQL queries that create_all(checkfirst=True) issues when
-        # the tables are already present (4 table-existence checks)
-        # The module level _source_tables_verified enables skipping
-        # even the probe for subsequent constructions within the same process.
-        #
-        # Same probe as SQLResourceStore: check_table_exists (raw SQL, inspect fallback).
-        _cache_key = (str(self._engine.url), self._tablename)
-        if _cache_key not in _source_tables_verified:
-            table_exists = check_table_exists(self.engine, self._tablename)
-
-            if not table_exists:
-                self._create_source_table()
-            _source_tables_verified.add(_cache_key)
-
         # Initialize entities cache as empty dict for lazy loading
         # Empty dict is falsy, so lazy loading check `if not self._entities:` still works
         # But it's also a valid dict that can be used for assignments
@@ -406,6 +395,45 @@ class SQLSampleStore(ActiveSampleStore):
         self._last_insert_id = (
             0  # Track last processed insert_id for incremental refresh
         )
+
+        # Create the four backing tables only when they do not yet exist.
+        # The module level _source_tables_verified cache enables skipping
+        # table creation checks for subsequent constructions within the same process.
+        # The _reflected_metadata_cache stores the reflected metadata to avoid
+        # repeated reflection operations.
+        _cache_key = (str(self._engine.url), self._tablename)
+        if _cache_key not in _source_tables_verified:
+            # Reflect only the 4 tables related to this sample store
+            metadata = sqlalchemy.MetaData()
+            table_names = [
+                self._tablename,
+                f"{self._tablename}_measurement_requests",
+                f"{self._tablename}_measurement_results",
+                f"{self._tablename}_measurement_requests_results",
+            ]
+
+            try:
+                metadata.reflect(bind=self.engine, only=table_names)
+            except InvalidRequestError:
+                # metadata.reflect raises an InvalidRequestError if one of the tables in only does not exist
+                # Create tables and use the returned metadata which already has table definitions
+                metadata = self._create_source_table()
+
+            # Cache the metadata (already contains all tables including measurement tables)
+            _reflected_metadata_cache[_cache_key] = metadata
+            _source_tables_verified.add(_cache_key)
+
+        # Use cached metadata
+        self._metadata = _reflected_metadata_cache[_cache_key]
+        self._request_table = self._metadata.tables[
+            f"{self._tablename}_measurement_requests"
+        ]
+        self._request_result_table = self._metadata.tables[
+            f"{self._tablename}_measurement_requests_results"
+        ]
+        self._result_table = self._metadata.tables[
+            f"{self._tablename}_measurement_results"
+        ]
 
         self.log.debug(f"SQLSampleStore id {self.uri}")
 
@@ -1457,34 +1485,231 @@ class SQLSampleStore(ActiveSampleStore):
             self.log.critical(f"{msg}. Error: {error}")
             raise SystemError(f"{msg}. Error: {error}") from error
 
-    def measurement_requests_for_operation(
-        self, operation_id: str
-    ) -> list[MeasurementRequest]:
+    def operation_measurement_statistics(
+        self, operation_ids: set[str] | None = None
+    ) -> "list[OperationMeasurementStatistics]":
+        """Compute aggregated measurement statistics for one or more operations.
+
+        Computes all statistics in a single query grouped by operation_id to
+        avoid multiple DB round-trips: request counts (total/failed/successful),
+        result counts (total/valid/invalid), and distinct measured entity count.
+
+        Args:
+            operation_ids: Set of operation identifiers to aggregate. Pass
+                ``None`` to aggregate across all operations in the store.
+                Passing an empty set raises ``ValueError``.
+
+        Returns:
+            A list of OperationMeasurementStatistics instances, one per
+            operation found in the store.
+
+        Raises:
+            ValueError: If ``operation_ids`` is an empty set.
+        """
+        if operation_ids is not None and len(operation_ids) == 0:
+            raise ValueError("operation_ids must be a non-empty set or None")
+
+        from sqlalchemy import case, func, select
+
+        from orchestrator.core.operation.stats import OperationMeasurementStatistics
+
+        req_table = self._request_table
+        reqres_table = self._request_result_table
+        res_table = self._result_table
+
+        # Equivalent SQL:
+        #
+        #   SELECT
+        #     req.operation_id,
+        #     COUNT(DISTINCT req.uid) AS total_requests,
+        #     COUNT(DISTINCT CASE WHEN req.status = 'Failed' THEN req.uid END) AS failed_requests,
+        #     COUNT(DISTINCT CASE WHEN req.status = 'Success' THEN req.uid END) AS successful_requests,
+        #     COUNT(res.uid) AS total_results,
+        #     SUM(CASE WHEN JSON_EXTRACT(res.data, '$.reason') IS NULL     THEN 1 ELSE 0 END) AS successful_results,
+        #     SUM(CASE WHEN JSON_EXTRACT(res.data, '$.reason') IS NOT NULL THEN 1 ELSE 0 END) AS failed_results,
+        #     COUNT(DISTINCT res.entity_id) AS measured_entities
+        #   FROM <tablename>_measurement_requests req
+        #   LEFT JOIN <tablename>_measurement_requests_results reqres ON reqres.request_uid = req.uid
+        #   LEFT JOIN <tablename>_measurement_results            res  ON reqres.result_uid  = res.uid
+        #   [WHERE req.operation_id IN (...)]          -- only when operation_ids is not None
+        #   GROUP BY req.operation_id
+
+        reason_is_null = func.json_extract(res_table.c.data, "$.reason").is_(None)
+
+        stmt = (
+            select(
+                # req.operation_id
+                req_table.c.operation_id,
+                # COUNT(DISTINCT req.uid) AS total_requests,
+                func.count(func.distinct(req_table.c.uid)).label("total_requests"),
+                # COUNT(DISTINCT CASE WHEN req.status = 'Failed' THEN req.uid END) AS failed_requests,
+                func.count(
+                    func.distinct(
+                        case(
+                            (
+                                req_table.c.status
+                                == MeasurementRequestStateEnum.FAILED.value,
+                                req_table.c.uid,
+                            ),
+                            else_=None,
+                        )
+                    )
+                ).label("failed_requests"),
+                # COUNT(DISTINCT CASE WHEN req.status = 'Success' THEN req.uid END) AS successful_requests,
+                func.count(
+                    func.distinct(
+                        case(
+                            (
+                                req_table.c.status
+                                == MeasurementRequestStateEnum.SUCCESS.value,
+                                req_table.c.uid,
+                            ),
+                            else_=None,
+                        )
+                    )
+                ).label("successful_requests"),
+                # COUNT(res.uid) AS total_results,
+                func.count(res_table.c.uid).label("total_results"),
+                # SUM(CASE WHEN JSON_EXTRACT(res.data, '$.reason') IS NULL THEN 1 ELSE 0 END) AS successful_results,
+                func.sum(case((reason_is_null, 1), else_=0)).label(
+                    "successful_results"
+                ),
+                # SUM(CASE WHEN JSON_EXTRACT(res.data, '$.reason') IS NOT NULL THEN 1 ELSE 0 END) AS failed_results,
+                func.sum(case((~reason_is_null, 1), else_=0)).label("failed_results"),
+                # COUNT(DISTINCT res.entity_id) AS measured_entities
+                func.count(func.distinct(res_table.c.entity_id)).label(
+                    "measured_entities"
+                ),
+            )
+            # FROM <tablename>_measurement_requests req
+            .select_from(req_table)
+            # LEFT JOIN <tablename>_measurement_requests_results reqres ON reqres.request_uid = req.uid
+            .outerjoin(reqres_table, reqres_table.c.request_uid == req_table.c.uid)
+            # LEFT JOIN <tablename>_measurement_results res ON reqres.result_uid = res.uid
+            .outerjoin(res_table, reqres_table.c.result_uid == res_table.c.uid)
+            # GROUP BY req.operation_id
+            .group_by(req_table.c.operation_id)
+        )
+
+        if operation_ids is not None:
+            stmt = stmt.where(req_table.c.operation_id.in_(operation_ids))
 
         try:
             with self.engine.begin() as connectable:
-                query = sqlalchemy.text(f"""
-                    SELECT req.uid, req.experiment_reference, req.operation_id,
-                           req.request_index, req.request_id, req.type, req.status,
-                           req.metadata, req.timestamp, res.entity_id, res.data
-                    FROM (
-                        SELECT *
-                        FROM {self._tablename}_measurement_requests
-                        WHERE operation_id = :operation_id
-                    ) req
-                    JOIN {self._tablename}_measurement_requests_results reqres ON reqres.request_uid = req.uid
-                    JOIN {self._tablename}_measurement_results res ON reqres.result_uid = res.uid
-                    ORDER BY req.request_index, req.insert_id , reqres.entity_index , reqres.insert_id
-                    """).bindparams(  # noqa: S608 - self._tablename is not untrusted
-                    operation_id=operation_id
-                )
-                cur = connectable.execute(query)
+                rows = connectable.execute(stmt).all()
+                return [
+                    OperationMeasurementStatistics(
+                        operation_id=row.operation_id,
+                        total_requests=row.total_requests or 0,
+                        failed_requests=row.failed_requests or 0,
+                        successful_requests=row.successful_requests or 0,
+                        total_results=row.total_results or 0,
+                        successful_results=row.successful_results or 0,
+                        failed_results=row.failed_results or 0,
+                        measured_entities=row.measured_entities or 0,
+                    )
+                    for row in rows
+                ]
         except SQLAlchemyError as error:
-            msg = f"Unable to get the measurement results for operation {operation_id}"
+            msg = f"Unable to get measurement statistics for operation IDs {operation_ids}"
             self.log.critical(f"{msg}. Error: {error}")
             raise SystemError(f"{msg}. Error: {error}") from error
 
-        return self._measurement_requests_cursor_to_pydantic(db_cursor=cur)
+    def measurement_requests_for_operation(
+        self,
+        operation_id: str | set[str],
+        filters: list[dict[str, str]] | None = None,
+    ) -> list[MeasurementRequest] | dict[str, list[MeasurementRequest]]:
+        """
+        Fetch measurement requests for one or more operations, optionally filtered.
+
+        Args:
+            operation_id: The operation identifier, or a set of operation identifiers
+            filters: Optional DB-level filters from prepare_query_filters_for_db()
+                     Format: [{"$.path": "value"}, ...]
+                     Supports filtering on request fields (status, requestIndex, etc.)
+                     and nested JSON fields (metadata.*, experimentReference.*)
+
+        Returns:
+            A list of MeasurementRequest objects when passed a single operation ID,
+            or a dict keyed by operation ID when passed a set of operation IDs
+        """
+        from sqlalchemy import and_, select
+
+        from orchestrator.core.samplestore.orm.measurements_filtering import (
+            MeasurementFilterBuilder,
+        )
+
+        try:
+            req_table = self._request_table
+            reqres_table = self._request_result_table
+            res_table = self._result_table
+
+            stmt = (
+                select(
+                    req_table.c.uid,
+                    req_table.c.experiment_reference,
+                    req_table.c.operation_id,
+                    req_table.c.request_index,
+                    req_table.c.request_id,
+                    req_table.c.type,
+                    req_table.c.status,
+                    req_table.c.metadata,
+                    req_table.c.timestamp,
+                    res_table.c.entity_id,
+                    res_table.c.data,
+                )
+                .select_from(req_table)
+                .join(reqres_table, reqres_table.c.request_uid == req_table.c.uid)
+                .join(res_table, reqres_table.c.result_uid == res_table.c.uid)
+            )
+
+            if isinstance(operation_id, set):
+                stmt = stmt.where(req_table.c.operation_id.in_(operation_id))
+            else:
+                stmt = stmt.where(req_table.c.operation_id == operation_id)
+
+            if filters:
+                filter_builder = MeasurementFilterBuilder(
+                    dialect=self.engine.dialect.name
+                )
+                filter_conditions = filter_builder.apply_filters(
+                    filters=filters,
+                    table=req_table,
+                    filter_type="request",
+                )
+                if filter_conditions:
+                    stmt = stmt.where(and_(*filter_conditions))
+
+            stmt = stmt.order_by(
+                req_table.c.request_index,
+                req_table.c.insert_id,
+                reqres_table.c.entity_index,
+                reqres_table.c.insert_id,
+            )
+
+            with self.engine.begin() as connectable:
+                cur = connectable.execute(stmt)
+        except SQLAlchemyError as error:
+            msg = (
+                f"Unable to get the measurement requests for operations {operation_id}"
+                if isinstance(operation_id, set)
+                else f"Unable to get the measurement requests for operation {operation_id}"
+            )
+            self.log.critical(f"{msg}. Error: {error}")
+            raise SystemError(f"{msg}. Error: {error}") from error
+
+        requests = self._measurement_requests_cursor_to_pydantic(db_cursor=cur)
+        if not isinstance(operation_id, set):
+            return requests
+
+        requests_by_operation_id: dict[str, list[MeasurementRequest]] = {
+            requested_operation_id: [] for requested_operation_id in operation_id
+        }
+        for request in requests:
+            requests_by_operation_id[request.operation_id].append(request)
+
+        return requests_by_operation_id
 
     def measurement_request_by_id(
         self, measurement_request_id: str
@@ -1517,24 +1742,67 @@ class SQLSampleStore(ActiveSampleStore):
         return request[0] if request else None
 
     def measurement_results_for_operation(
-        self, operation_id: str
+        self,
+        operation_id: str,
+        filters: list[dict[str, str]] | None = None,
     ) -> list[MeasurementResult]:
+        """
+        Fetch measurement results for an operation, optionally filtered.
+
+        Args:
+            operation_id: The operation identifier
+            filters: Optional DB-level filters from prepare_query_filters_for_db()
+                     Format: [{"$.path": "value"}, ...]
+                     Supports filtering on result fields (uid, entityIdentifier, etc.)
+                     and nested JSON fields in the data column
+
+        Returns:
+            List of MeasurementResult objects matching the filters
+        """
+        from sqlalchemy import and_, select
+
+        from orchestrator.core.samplestore.orm.measurements_filtering import (
+            MeasurementFilterBuilder,
+        )
+
         try:
-            with self.engine.begin() as connectable:
-                query = sqlalchemy.text(f"""
-                    SELECT res.data
-                    FROM (
-                        SELECT *
-                        FROM {self._tablename}_measurement_requests
-                        WHERE operation_id = :operation_id
-                    ) req
-                    JOIN {self._tablename}_measurement_requests_results reqres ON reqres.request_uid = req.uid
-                    JOIN {self._tablename}_measurement_results res ON reqres.result_uid = res.uid
-                    ORDER BY req.request_index, req.insert_id , reqres.entity_index , reqres.insert_id
-                    """).bindparams(  # noqa: S608 - self._tablename is not untrusted
-                    operation_id=operation_id
+            # Use cached table metadata from initialization
+            req_table = self._request_table
+            reqres_table = self._request_result_table
+            res_table = self._result_table
+
+            # Build query using SQLAlchemy
+            stmt = (
+                select(res_table.c.data)
+                .select_from(req_table)
+                .join(reqres_table, reqres_table.c.request_uid == req_table.c.uid)
+                .join(res_table, reqres_table.c.result_uid == res_table.c.uid)
+                .where(req_table.c.operation_id == operation_id)
+            )
+
+            # Apply filters if provided
+            if filters:
+                filter_builder = MeasurementFilterBuilder(
+                    dialect=self.engine.dialect.name
                 )
-                cur = connectable.execute(query)
+                filter_conditions = filter_builder.apply_filters(
+                    filters=filters,
+                    table=res_table,
+                    filter_type="result",
+                )
+                if filter_conditions:
+                    stmt = stmt.where(and_(*filter_conditions))
+
+            # Add ordering
+            stmt = stmt.order_by(
+                req_table.c.request_index,
+                req_table.c.insert_id,
+                reqres_table.c.entity_index,
+                reqres_table.c.insert_id,
+            )
+
+            with self.engine.begin() as connectable:
+                cur = connectable.execute(stmt)
         except SQLAlchemyError as error:
             msg = f"Unable to get the measurement results for operation {operation_id}"
             self.log.critical(f"{msg}. Error: {error}")
@@ -1542,7 +1810,9 @@ class SQLSampleStore(ActiveSampleStore):
 
         parsed_results = []
         for row in cur:
-            row_dict = json.loads(row[0])
+            # Handle data - may already be parsed by SQLAlchemy
+            row_data = row[0]
+            row_dict = json.loads(row_data) if isinstance(row_data, str) else row_data
             if "reason" in row_dict:
                 parsed_results.append(InvalidMeasurementResult.model_validate(row_dict))
             else:
@@ -1585,10 +1855,14 @@ class SQLSampleStore(ActiveSampleStore):
                 result_data,
             ) = entry
 
-            metadata = json.loads(metadata)
+            # Handle metadata - may already be parsed by SQLAlchemy
+            if isinstance(metadata, str):
+                metadata = json.loads(metadata)
 
             # Parse the result - we will always need it
-            result_data = json.loads(result_data)
+            # May already be parsed by SQLAlchemy
+            if isinstance(result_data, str):
+                result_data = json.loads(result_data)
             if "reason" in result_data:
                 result = InvalidMeasurementResult.model_validate(result_data)
             else:
@@ -1705,6 +1979,7 @@ class SQLSampleStore(ActiveSampleStore):
         output_format: typing.Literal["target", "observed"],
         limit_to_properties: list[str] | None = None,
         aggregation_method: PropertyAggregationMethodEnum | None = None,
+        filters: list[dict[str, str]] | None = None,
     ) -> "pd.DataFrame":
         import pandas as pd
 
@@ -1717,11 +1992,15 @@ class SQLSampleStore(ActiveSampleStore):
         - limit_to_properties (typing.Optional[list[str]]): A list of properties to limit the output to.
         - aggregation_method (PropertyAggregationMethodEnum | None): If set, aggregate list-valued
           property columns (e.g. mean of multiple runs) to a single scalar per cell.
+        - filters (list[dict[str, str]] | None): Optional DB-level filters from prepare_query_filters_for_db()
+          Can filter on both request and result fields
 
         Returns:
         pd.DataFrame: The timeseries of measurement requests and results for the operation.
         """
-        measurement_requests = self.measurement_requests_for_operation(operation_id)
+        measurement_requests = self.measurement_requests_for_operation(
+            operation_id, filters=filters
+        )
         rows = []
 
         for m in measurement_requests:

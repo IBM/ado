@@ -14,7 +14,7 @@ the following commands from the root of this project.
 
 ```terminal
 uv sync --no-default-groups --python 3.12
-uv activate .venv     
+uv activate .venv
 uv pip install -e plugins/custom_experiments/autoconf/
 ```
 

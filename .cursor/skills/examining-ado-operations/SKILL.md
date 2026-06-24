@@ -71,9 +71,9 @@ re-fetching.
 
 ### Large output files
 
-The output for a chosen `-o`/`--output` **format** can be very large (for example
-from `show entities`, `show requests`, or `show results`). Use `--output-file`
-with the destination path and, when inspecting these files:
+The output for a chosen `-o`/`--output` **format** can be very large (for
+example from `show measurements`, `show requests`, or `show results`). Use
+`--output-file` with the destination path and, when inspecting these files:
 
 - Use wc to count the file size first before using head/tail/cat etc. on it.
 - Use head -n1 to get column headers, this will not be large
@@ -268,7 +268,7 @@ To get the data on measurements execute (noting the
 [guidelines on large files](#large-output-files)):
 
 ```bash
-uv run ado show entities operation OPERATION_ID \
+uv run ado show measurements operation OPERATION_ID \
   -o csv --output-file OPERATION_ID_entities.csv
 ```
 

@@ -1,13 +1,13 @@
 <!-- markdownlint-disable code-block-style -->
-<!-- markdownlint-disable-next-line first-line-h1 -->
+<!-- markdownlint-disable first-line-h1 -->
+
 An `operator` is a code module that provides a capability to perform an
 `operation` on a `discoveryspace`. For example the `RandomWalk` operator
 provides the capability to perform a random walk `operation` on a
 `discoveryspace`.
 
-The pages in this section give details about some of
-the operators available in `ado`: what they are for, what they do and how to use
-them.
+The pages in this section give details about some of the operators available in
+`ado`: what they are for, what they do and how to use them.
 
 !!! info end
 
@@ -63,7 +63,8 @@ Using an operator involves the following steps:
    - `ado create operation -f $YAML`
 4. Retrieve the results of the operation:
    - `ado show related $OPERATION_IDENTIFIER`
-   - in addition `ado show entities $OPERATION_IDENTIFIER` for explore operations
+   - in addition `ado show measurements $OPERATION_IDENTIFIER` for explore
+     operations
 
 These steps are covered in detail in [operations](../resources/operation.md).
 

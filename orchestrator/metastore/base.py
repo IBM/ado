@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import abc
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 import pydantic
 
@@ -101,6 +101,7 @@ class ResourceStore(abc.ABC):
         identifier: str,
         kind: CoreResourceKinds,
         raise_error_if_no_resource: bool = False,
+        ignore_plugin_validation: bool = True,
     ) -> ADOResource | None:
         """Returns the resource object with the given identifier
 
@@ -108,6 +109,8 @@ class ResourceStore(abc.ABC):
 
          Parameters:
             identifier: A string. Identifier of a resource object
+            ignore_plugin_validation: When True (default), skip plugin registry
+                validation on nested operation and actuator configuration fields.
 
         Returns:
             A resource instance corresponding to the identifier
@@ -198,36 +201,6 @@ class ResourceStore(abc.ABC):
         """Returns identifiers of resources that have a relationship with "identifier" where "identifier" is the subject"""
 
     @abc.abstractmethod
-    def getRelatedResourceIdentifiers(
-        self, identifier: str, kind: str | None = None, version: str | None = None
-    ) -> "pd.DataFrame":
-        """Returns a DataFrame of resource identifiers related to a given resource identifier
-
-        The returned identifiers can optionally be limited to those of a given kind
-
-        Parameters:
-            identifier: A string. Identifies a resource object
-            kind: A string. A resource object type as defined by CoreResourceKinds
-            version: A version of the kind. If None all versions of the resource kind are returned
-
-        Returns:
-            A pandas DataFrame
-
-            The DataFrame has one column "IDENTIFIER" that contains the identifiers of the related resources.
-
-            If there are no related resources for the identifier this method returns an empty DataFrame
-        """
-
-    @abc.abstractmethod
-    def getRelatedResources(
-        self, identifier: str, kind: CoreResourceKinds | None = None
-    ) -> dict[str, ADOResource]:
-        """
-        Returns all resource object associated with identifier.
-        Optionally returns only resources of the provided kind.
-        """
-
-    @abc.abstractmethod
     def containsResourceWithIdentifier(
         self, identifier: str, kind: CoreResourceKinds | None = None
     ) -> bool:
@@ -311,6 +284,48 @@ class ResourceStore(abc.ABC):
     @abc.abstractmethod
     def delete_actuator_configuration(self, identifier: str) -> None:
         pass
+
+    @abc.abstractmethod
+    def get_resources_by_relationship(
+        self,
+        kind: CoreResourceKinds,
+        identifier: str | set[str] | None,
+        hierarchy_direction: Literal["up", "down", "both"],
+        max_hops: int | None = None,
+        identifiers_only: bool = False,
+        include_start_resources: bool = False,
+    ) -> (
+        dict[CoreResourceKinds, set[str]]
+        | dict[str, dict[CoreResourceKinds, set[str]]]
+        | dict[CoreResourceKinds, dict[str, ADOResource]]
+        | dict[str, dict[CoreResourceKinds, dict[str, ADOResource]]]
+    ):
+        """Walk the resource hierarchy and return related resources.
+
+        Args:
+            kind: The :class:`~orchestrator.core.resources.CoreResourceKinds` of
+                the starting resources.
+            identifier: Controls which resources are used as traversal origins.
+                ``str`` for a single start resource, ``set[str]`` for multiple,
+                or ``None`` to seed from all resources of ``kind``.
+            hierarchy_direction: ``'up'`` (child → parent), ``'down'``
+                (parent → child), or ``'both'``.
+            max_hops: Maximum number of relationship hops to follow. ``None``
+                traverses to the full depth of the hierarchy.
+            identifiers_only: When ``True`` return only discovered identifiers;
+                when ``False`` (default) return hydrated
+                :class:`~orchestrator.core.resources.ADOResource` objects.
+            include_start_resources: When ``True`` include the start resource(s)
+                in the result. Requires ``identifiers_only=False`` and
+                ``identifier`` to be a ``str`` or ``set[str]``.
+
+        Returns:
+            A nested dict whose shape depends on whether a single or multiple
+            identifiers were requested and whether ``identifiers_only`` is set.
+
+        Raises:
+            ValueError: If arguments are invalid or incompatible.
+        """
 
 
 def sample_store_dump(

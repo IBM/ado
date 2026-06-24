@@ -11,17 +11,19 @@ from orchestrator.cli.exceptions.handlers import (
     handle_no_related_resource,
     handle_resource_does_not_exist,
 )
-from orchestrator.cli.models.parameters import AdoShowEntitiesCommandParameters
+from orchestrator.cli.models.parameters import AdoShowMeasurementsCommandParameters
 from orchestrator.cli.models.types import (
-    AdoShowEntitiesSupportedEntityTypes,
-    AdoShowEntitiesSupportedOutputFormats,
-    AdoShowEntitiesSupportedPropertyFormats,
-    AdoShowEntitiesSupportedResourceTypes,
+    AdoShowMeasurementsSupportedEntityTypes,
+    AdoShowMeasurementsSupportedOutputFormats,
+    AdoShowMeasurementsSupportedPropertyFormats,
+    AdoShowMeasurementsSupportedResourceTypes,
 )
-from orchestrator.cli.resources.discovery_space.show_entities import (
-    show_discovery_space_entities,
+from orchestrator.cli.resources.discovery_space.show_measurements import (
+    show_discovery_space_measurements,
 )
-from orchestrator.cli.resources.operation.show_entities import show_operation_entities
+from orchestrator.cli.resources.operation.show_measurements import (
+    show_operation_measurements,
+)
 from orchestrator.cli.utils.generic.common import get_effective_resource_id
 from orchestrator.cli.utils.input.parsers import enum_choice_with_plural_parser
 from orchestrator.cli.utils.output.prints import (
@@ -44,25 +46,25 @@ if typing.TYPE_CHECKING:
 SPACE_PANEL_NAME = "Space-only options"
 
 
-def show_entities_for_resources(
+def show_measurements_for_resources(
     ctx: typer.Context,
     resource_type: Annotated[
-        AdoShowEntitiesSupportedResourceTypes,
+        AdoShowMeasurementsSupportedResourceTypes,
         typer.Argument(
             ...,
-            help="The kind of the resource to show entities for.",
+            help="The kind of the resource to show measurements for.",
             show_default=False,
             parser=enum_choice_with_plural_parser(
-                AdoShowEntitiesSupportedResourceTypes
+                AdoShowMeasurementsSupportedResourceTypes
             ),
-            metavar=f"[{'|'.join(m.value for m in AdoShowEntitiesSupportedResourceTypes)}]",
+            metavar=f"[{'|'.join(m.value for m in AdoShowMeasurementsSupportedResourceTypes)}]",
         ),
     ],
     resource_id: Annotated[
         str | None,
         typer.Argument(
             ...,
-            help="The id of the resource to show entities for.",
+            help="The id of the resource to show measurements for.",
             show_default=False,
         ),
     ] = None,
@@ -70,7 +72,7 @@ def show_entities_for_resources(
         bool,
         typer.Option(
             "--use-latest",
-            help="Show entities for the latest identifier of the selected resource type. "
+            help="Show measurements for the latest identifier of the selected resource type. "
             "Ignored if a resource identifier is also specified.",
             show_default=False,
         ),
@@ -89,27 +91,27 @@ def show_entities_for_resources(
         ),
     ] = None,
     entity_type: Annotated[
-        AdoShowEntitiesSupportedEntityTypes | None,
+        AdoShowMeasurementsSupportedEntityTypes | None,
         typer.Option(
             "--include",
             help="The type of entities to include. Ignored for operations.",
             rich_help_panel=SPACE_PANEL_NAME,
         ),
-    ] = AdoShowEntitiesSupportedEntityTypes.MEASURED.value,
+    ] = AdoShowMeasurementsSupportedEntityTypes.MEASURED.value,
     property_format: Annotated[
-        AdoShowEntitiesSupportedPropertyFormats,
+        AdoShowMeasurementsSupportedPropertyFormats,
         typer.Option(
             help="The naming format to be used when displaying measured properties."
         ),
-    ] = AdoShowEntitiesSupportedPropertyFormats.TARGET.value,
+    ] = AdoShowMeasurementsSupportedPropertyFormats.TARGET.value,
     output_format: Annotated[
-        AdoShowEntitiesSupportedOutputFormats,
+        AdoShowMeasurementsSupportedOutputFormats,
         typer.Option(
             "--output",
             "-o",
-            help="The format in which to output the entities.",
+            help="The format in which to output the measurements.",
         ),
-    ] = AdoShowEntitiesSupportedOutputFormats.TABLE.value,
+    ] = AdoShowMeasurementsSupportedOutputFormats.TABLE.value,
     output_file: Annotated[
         pathlib.Path | None,
         typer.Option(
@@ -152,21 +154,21 @@ def show_entities_for_resources(
     ] = False,
 ) -> None:
     """
-    Show entities related to a space or an operation and their measurements.
+    Show measurements related to a space or an operation.
 
-    See https://ibm.github.io/ado/getting-started/ado/#ado-show-entities
+    See https://ibm.github.io/ado/getting-started/ado/#ado-show-measurements
     for detailed documentation and examples.
 
     Examples:
 
-    # Show the entities that have been sampled in a space
-    ado show entities space <space-id> --include sampled
+    # Show the measurements for entities that have been sampled in a space
+    ado show measurements space <space-id> --include sampled
 
-    # Show the entities that have been sampled in the latest space
-    ado show entities space --use-latest
+    # Show the measurements for entities in the latest space
+    ado show measurements space --use-latest
 
-    # Show the entities measured in an operation, one row per entity
-    ado show entities operation <operation-id> --property-format target
+    # Show the measurements for an operation, one row per entity
+    ado show measurements operation <operation-id> --property-format target
     """
     ado_configuration: AdoConfiguration = ctx.obj
 
@@ -187,21 +189,21 @@ def show_entities_for_resources(
         raise typer.Exit(1)
 
     if (
-        resource_type != AdoShowEntitiesSupportedResourceTypes.DISCOVERY_SPACE
+        resource_type != AdoShowMeasurementsSupportedResourceTypes.DISCOVERY_SPACE
         and not resource_id
     ):
         console_print(
-            f"{ERROR}You must specify a resource id when showing entities for {resource_type.value}",
+            f"{ERROR}You must specify a resource id when showing measurements for {resource_type.value}",
             stderr=True,
         )
         raise typer.Exit(1)
 
-    parameters = AdoShowEntitiesCommandParameters(
+    parameters = AdoShowMeasurementsCommandParameters(
         ado_configuration=ado_configuration,
         aggregation_method=aggregation_method,
-        entities_output_format=output_format,
-        entities_property_format=property_format,
-        entities_type=entity_type,
+        measurements_output_format=output_format,
+        measurements_property_format=property_format,
+        measurements_type=entity_type,
         no_trunc=no_trunc,
         output_file=output_file,
         properties=properties,
@@ -210,8 +212,8 @@ def show_entities_for_resources(
     )
 
     method_mapping = {
-        AdoShowEntitiesSupportedResourceTypes.DISCOVERY_SPACE: show_discovery_space_entities,
-        AdoShowEntitiesSupportedResourceTypes.OPERATION: show_operation_entities,
+        AdoShowMeasurementsSupportedResourceTypes.DISCOVERY_SPACE: show_discovery_space_measurements,
+        AdoShowMeasurementsSupportedResourceTypes.OPERATION: show_operation_measurements,
     }
 
     try:
@@ -232,8 +234,8 @@ def show_entities_for_resources(
         raise typer.Exit(1) from e
 
 
-def register_show_entities_command(app: typer.Typer) -> None:
+def register_show_measurements_command(app: typer.Typer) -> None:
     app.command(
-        name="entities",
+        name="measurements",
         no_args_is_help=True,
-    )(show_entities_for_resources)
+    )(show_measurements_for_resources)

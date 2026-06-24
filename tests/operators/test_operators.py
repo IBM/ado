@@ -461,12 +461,15 @@ def test_run_random_walk_operation(
     assert operation.status[5].event == ADOResourceEventEnum.UPDATED
 
     # Check it is related to the space
-    spaces = discoverySpace.metadataStore.getRelatedResourceIdentifiers(
+    spaces = discoverySpace.metadataStore.get_resources_by_relationship(
+        kind=CoreResourceKinds.OPERATION,
         identifier=operationOutput.operation.identifier,
-        kind=CoreResourceKinds.DISCOVERYSPACE.value,
-    )
-    assert spaces.shape[0] > 0
-    assert spaces.IDENTIFIER[0] == discoverySpace.uri
+        hierarchy_direction="up",
+        max_hops=1,
+        identifiers_only=True,
+    ).get(CoreResourceKinds.DISCOVERYSPACE, set())
+    assert len(spaces) == 1
+    assert discoverySpace.uri in spaces
 
     ## CHECK THE EXPECTED NUMBER OF EXPERIMENTS HAVE BEEN RUN
     assert operationOutput.operation.metadata["entities_submitted"] == 48
@@ -587,12 +590,15 @@ def test_run_ray_tune_operation(
     assert operation.status[5].event == ADOResourceEventEnum.UPDATED
 
     # Check it is related to the space
-    spaces = discoverySpace.metadataStore.getRelatedResourceIdentifiers(
+    spaces = discoverySpace.metadataStore.get_resources_by_relationship(
+        kind=CoreResourceKinds.OPERATION,
         identifier=operationOutput.operation.identifier,
-        kind=CoreResourceKinds.DISCOVERYSPACE.value,
-    )
-    assert spaces.shape[0] > 0
-    assert spaces.IDENTIFIER[0] == discoverySpace.uri
+        hierarchy_direction="up",
+        max_hops=1,
+        identifiers_only=True,
+    ).get(CoreResourceKinds.DISCOVERYSPACE, set())
+    assert len(spaces) == 1
+    assert discoverySpace.uri in spaces
 
 
 def test_operator_default_and_validate(

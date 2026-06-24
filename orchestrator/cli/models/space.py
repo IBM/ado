@@ -229,10 +229,13 @@ class SpaceSummary:
         if not space.measurementSpace.experiments:
             raise ValueError(f"There are no experiments defined in space {space_id}")
 
-        related_operations = sql.getRelatedResourceIdentifiers(
+        related_operations: set[str] = sql.get_resources_by_relationship(
+            kind=CoreResourceKinds.DISCOVERYSPACE,
             identifier=space_id,
-            kind=orchestrator.core.resources.CoreResourceKinds.OPERATION.value,
-        )
+            hierarchy_direction="down",
+            max_hops=1,
+            identifiers_only=True,
+        ).get(CoreResourceKinds.OPERATION, set())
 
         constitutive_properties = {
             p.identifier: (p.propertyDomain.values or p.propertyDomain.domainRange)
@@ -347,9 +350,9 @@ class SpaceSummary:
             )
         content.write("\n" + self.details.to_markdown() + "\n")
 
-        if len(self.related_operations["IDENTIFIER"]) > 0:
+        if self.related_operations:
             content.write(f"\n{'#'*heading_level} Related operations\n\n")
-            for o in self.related_operations["IDENTIFIER"]:
+            for o in self.related_operations:
                 content.write(f"- `{o}`\n")
 
         return content.getvalue()

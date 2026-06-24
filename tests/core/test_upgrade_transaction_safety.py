@@ -30,11 +30,10 @@ sqlite3_version = sqlite3.sqlite_version_info
 class TestUpgradeTransactionSafety:
     """Test transaction safety in upgrade handler - validate-all-before-save pattern"""
 
-    @pytest.mark.parametrize("valid_ado_project_context", ["mysql"], indirect=True)
     def test_all_resources_validated_before_any_saved(
         self,
         isolated_legacy_migrator_registry: None,
-        valid_ado_project_context: ProjectContext,
+        valid_ado_mysql_project_context: ProjectContext,
     ) -> None:
         """Test that all resources are validated before any are saved"""
 
@@ -63,7 +62,7 @@ class TestUpgradeTransactionSafety:
                         moduleClass="SQLSampleStore",
                         moduleName="orchestrator.core.samplestore.sql",
                     ),
-                    storageLocation=valid_ado_project_context.metadataStore,
+                    storageLocation=valid_ado_mysql_project_context.metadataStore,
                 ),
                 metadata={"old_field": "value1"},
             ),
@@ -77,14 +76,14 @@ class TestUpgradeTransactionSafety:
                         moduleClass="SQLSampleStore",
                         moduleName="orchestrator.core.samplestore.sql",
                     ),
-                    storageLocation=valid_ado_project_context.metadataStore,
+                    storageLocation=valid_ado_mysql_project_context.metadataStore,
                 ),
                 metadata={"old_field": "value2"},
             ),
         )
 
         # Save resources to database
-        sql_store = get_sql_store(project_context=valid_ado_project_context)
+        sql_store = get_sql_store(project_context=valid_ado_mysql_project_context)
         sql_store.updateResource(resource=resource1)
         sql_store.updateResource(resource=resource2)
 
@@ -112,7 +111,7 @@ class TestUpgradeTransactionSafety:
 
         # Create parameters for upgrade
         ado_config = AdoConfiguration()
-        ado_config._project_context = valid_ado_project_context
+        ado_config._project_context = valid_ado_mysql_project_context
         params = AdoUpgradeCommandParameters(
             ado_configuration=ado_config,
             apply_legacy_migrator=["test_transaction_migrator"],
@@ -138,10 +137,10 @@ class TestUpgradeTransactionSafety:
         assert "old_field" not in upgraded_res1["config"]["metadata"]
         assert "old_field" not in upgraded_res2["config"]["metadata"]
 
-    @pytest.mark.parametrize("valid_ado_project_context", ["mysql"], indirect=True)
     def test_validation_failure_prevents_all_saves(
         self,
-        valid_ado_project_context: ProjectContext,
+        isolated_legacy_migrator_registry: None,
+        valid_ado_mysql_project_context: ProjectContext,
     ) -> None:
         """Test that if any validation fails, no resources are saved"""
 
@@ -177,7 +176,7 @@ class TestUpgradeTransactionSafety:
                         moduleClass="SQLSampleStore",
                         moduleName="orchestrator.core.samplestore.sql",
                     ),
-                    storageLocation=valid_ado_project_context.metadataStore,
+                    storageLocation=valid_ado_mysql_project_context.metadataStore,
                 ),
                 metadata={"old_field": "value1"},
             ),
@@ -191,14 +190,14 @@ class TestUpgradeTransactionSafety:
                         moduleClass="SQLSampleStore",
                         moduleName="orchestrator.core.samplestore.sql",
                     ),
-                    storageLocation=valid_ado_project_context.metadataStore,
+                    storageLocation=valid_ado_mysql_project_context.metadataStore,
                 ),
                 metadata={"old_field": "value2"},
             ),
         )
 
         # Save resources to database
-        sql_store = get_sql_store(project_context=valid_ado_project_context)
+        sql_store = get_sql_store(project_context=valid_ado_mysql_project_context)
         sql_store.updateResource(resource=resource1)
         sql_store.updateResource(resource=resource2)
 
@@ -229,7 +228,7 @@ class TestUpgradeTransactionSafety:
 
         # Create parameters for upgrade
         ado_config = AdoConfiguration()
-        ado_config._project_context = valid_ado_project_context
+        ado_config._project_context = valid_ado_mysql_project_context
         params = AdoUpgradeCommandParameters(
             ado_configuration=ado_config,
             apply_legacy_migrator=["test_failing_migrator"],
@@ -257,10 +256,10 @@ class TestUpgradeTransactionSafety:
         assert "new_field" not in current_res1["config"]["metadata"]
         assert "new_field" not in current_res2["config"]["metadata"]
 
-    @pytest.mark.parametrize("valid_ado_project_context", ["mysql"], indirect=True)
     def test_empty_resource_list_handled_gracefully(
         self,
-        valid_ado_project_context: ProjectContext,
+        isolated_legacy_migrator_registry: None,
+        valid_ado_mysql_project_context: ProjectContext,
     ) -> None:
         """Test that empty resource list is handled without errors"""
 
@@ -280,7 +279,7 @@ class TestUpgradeTransactionSafety:
 
         # Create parameters for upgrade
         ado_config = AdoConfiguration()
-        ado_config._project_context = valid_ado_project_context
+        ado_config._project_context = valid_ado_mysql_project_context
         params = AdoUpgradeCommandParameters(
             ado_configuration=ado_config,
             apply_legacy_migrator=["test_empty_migrator"],
@@ -294,7 +293,7 @@ class TestUpgradeTransactionSafety:
         )
 
         # Verify no samplestore resources exist
-        sql_store = get_sql_store(project_context=valid_ado_project_context)
+        sql_store = get_sql_store(project_context=valid_ado_mysql_project_context)
         resources = sql_store.getResourcesOfKind(
             kind=CoreResourceKinds.SAMPLESTORE.value
         )

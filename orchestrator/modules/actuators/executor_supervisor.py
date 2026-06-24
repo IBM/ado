@@ -53,17 +53,17 @@ def _verify_supervisor_ray_states_supported() -> None:
     if missing:
         raise RuntimeError(
             "Ray State API task states no longer include "
-            f"{sorted(missing)} (required by LaunchSupervisor). "
+            f"{sorted(missing)} (required by ExperimentExecutorSupervisor). "
             f"Available states: {sorted(api_states)}. "
-            "Update orchestrator.modules.actuators.measurement_launch."
+            "Update orchestrator.modules.actuators.executor_supervisor."
         )
 
 
 _verify_supervisor_ray_states_supported()
 
 
-class RayTaskState(str, enum.Enum):
-    """Collapsed task state used by launch supervision.
+class ExperimentExecutorState(str, enum.Enum):
+    """Defines state used by experiment executor supervisor
 
     Ray's State API exposes many lifecycle states; the supervisor collapses them
     into five buckets: running, failed, resource-wait pending, and everything
@@ -81,8 +81,8 @@ class RayTaskState(str, enum.Enum):
         cls,
         raw: str | None,
         logger: logging.Logger | None = None,
-    ) -> RayTaskState:
-        """Map a Ray State API state string to a supervisor ``RayTaskState``.
+    ) -> ExperimentExecutorState:
+        """Map a Ray State API state string to a supervisor ``ExperimentExecutorState``.
 
         Args:
             raw: ``TaskState.state`` from ``ray.util.state.list_tasks``, or None.
@@ -93,28 +93,28 @@ class RayTaskState(str, enum.Enum):
             ``FAILED``, ``PENDING_NODE_ASSIGNMENT``, ``PENDING_OBJ_STORE_MEM_AVAIL``,
             or ``OTHER`` (all other states and unavailable lookups).
         """
-        if raw in (cls.RUNNING.value, "RUNNING_IN_RAY_GET", "RUNNING_IN_RAY_WAIT"):
-            return cls.RUNNING
-        if raw == cls.FAILED.value:
-            return cls.FAILED
-        if raw == cls.PENDING_NODE_ASSIGNMENT.value:
-            return cls.PENDING_NODE_ASSIGNMENT
-        if raw == cls.PENDING_OBJ_STORE_MEM_AVAIL.value:
-            return cls.PENDING_OBJ_STORE_MEM_AVAIL
-        log = logger or logging.getLogger(__name__)
-        if raw is None:
-            log.debug("Ray task state unavailable; treating as %s", cls.OTHER.value)
-        else:
-            log.debug(
-                "Ray task state %r collapsed to %s for launch supervision",
-                raw,
-                cls.OTHER.value,
-            )
-        return cls.OTHER
+        match raw:
+            case cls.RUNNING.value | "RUNNING_IN_RAY_GET" | "RUNNING_IN_RAY_WAIT":
+                return cls.RUNNING
+            case cls.FAILED.value:
+                return cls.FAILED
+            case cls.PENDING_NODE_ASSIGNMENT.value:
+                return cls.PENDING_NODE_ASSIGNMENT
+            case cls.PENDING_OBJ_STORE_MEM_AVAIL.value:
+                return cls.PENDING_OBJ_STORE_MEM_AVAIL
+            case None:
+                log = logger or logging.getLogger(__name__)
+                log.debug("Ray task state unavailable; treating as %s", cls.OTHER.value)
+                return cls.OTHER
+            case _:
+                return cls.OTHER
 
 
-_RESOURCE_WAIT_STATES: frozenset[RayTaskState] = frozenset(
-    {RayTaskState.PENDING_NODE_ASSIGNMENT, RayTaskState.PENDING_OBJ_STORE_MEM_AVAIL}
+_RESOURCE_WAIT_STATES: frozenset[ExperimentExecutorState] = frozenset(
+    {
+        ExperimentExecutorState.PENDING_NODE_ASSIGNMENT,
+        ExperimentExecutorState.PENDING_OBJ_STORE_MEM_AVAIL,
+    }
 )
 
 
@@ -208,7 +208,7 @@ class ExperimentExecutorSupervisorParameters(GenericActuatorParameters):
 
 
 @dataclass
-class _MonitoredExecutor:
+class _SupervisedExperimentExecutor:
     """An in-flight executor Ray task registered with the supervisor."""
 
     request: MeasurementRequest
@@ -222,11 +222,15 @@ class _MonitoredExecutor:
 class _SupervisorState:
     """Mutable supervisor state guarded by a lock."""
 
-    monitored_executors: dict[str, _MonitoredExecutor] = field(default_factory=dict)
+    supervised_experiment_executors: dict[str, _SupervisedExperimentExecutor] = field(
+        default_factory=dict
+    )
     completed_request_ids: set[str] = field(default_factory=set)
 
 
-def _default_task_state_lookup(executor_ref: ray.ObjectRef) -> RayTaskState:
+def _experiment_executor_state_lookup(
+    executor_ref: ray.ObjectRef,
+) -> ExperimentExecutorState:
     """Return collapsed supervisor state for an executor ref.
 
     Uses ``ray.util.state.list_tasks``.  Returns ``RUNNING``, ``FAILED``,
@@ -236,55 +240,42 @@ def _default_task_state_lookup(executor_ref: ray.ObjectRef) -> RayTaskState:
     try:
         task_id = executor_ref.task_id().hex()
     except (AttributeError, RuntimeError, ValueError):
-        return RayTaskState.OTHER
+        return ExperimentExecutorState.OTHER
 
-    try:
-        from ray.util.state import list_tasks
+    from ray.util.state import list_tasks
 
-        tasks = list_tasks(
-            filters=[("task_id", "=", task_id)],
-            limit=1,
-            raise_on_missing_output=False,
-        )
-    except Exception:
-        return RayTaskState.OTHER
+    last_error: Exception | None = None
+    tasks: list[object] = []
+    max_attempts = 8
+    for attempt in range(max_attempts):
+        try:
+            tasks = list_tasks(
+                filters=[("task_id", "=", task_id)],
+                limit=1,
+                raise_on_missing_output=False,
+            )
+            last_error = None
+            break
+        except Exception as error:
+            last_error = error
+            if attempt < max_attempts - 1:
+                delay = 0.15 * (attempt + 1)
+                if type(error).__name__ == "ServerUnavailable":
+                    delay = max(delay, 0.5)
+                time.sleep(delay)
+
+    if last_error is not None:
+        return ExperimentExecutorState.OTHER
 
     if not tasks:
-        return RayTaskState.OTHER
+        return ExperimentExecutorState.OTHER
 
     raw_state = getattr(tasks[0], "state", None) or tasks[0].get("state")
-    if isinstance(raw_state, RayTaskState):
+    if isinstance(raw_state, ExperimentExecutorState):
         return raw_state
     if isinstance(raw_state, str):
-        return RayTaskState.from_ray_state(raw_state)
-    return RayTaskState.OTHER
-
-
-def notify_executor_supervisor_completed(
-    notifier: object | None,
-    requestid: str,
-) -> None:
-    """Notify executor supervisor that an executor queue a measurement result.
-
-    ``notifier`` is usually the hosting actuator (in-process or as a Ray actor
-    handle). It must expose ``mark_launch_completed``;
-
-    Args:
-        notifier: Actuator or supervisor to notify, or None to skip.
-        requestid: MeasurementRequest identifier that now has a queued result.
-    """
-    if notifier is None:
-        return
-    method = getattr(notifier, "mark_launch_completed", None)
-    if method is None:
-        method = getattr(notifier, "mark_completed", None)
-    if method is None:
-        return
-    remote_call = getattr(method, "remote", None)
-    if remote_call is not None:
-        remote_call(requestid)
-    else:
-        method(requestid)
+        return ExperimentExecutorState.from_ray_state(raw_state)
+    return ExperimentExecutorState.OTHER
 
 
 def add_invalid_measurement_results(
@@ -338,7 +329,7 @@ class ExperimentExecutorSupervisor:
             return
         self._stop.clear()
         self._thread = threading.Thread(
-            target=self._run_loop,
+            target=self._experiment_executor_supervision_loop,
             name="ExperimentExecutorSupervisor",
             daemon=True,
         )
@@ -348,7 +339,7 @@ class ExperimentExecutorSupervisor:
         """Signal the supervision loop to stop."""
         self._stop.set()
 
-    def register(
+    def supervise_experiment_executor(
         self,
         request: MeasurementRequest,
         executor_ref: ray.ObjectRef,
@@ -357,98 +348,125 @@ class ExperimentExecutorSupervisor:
         with self._lock:
             if request.requestid in self._state.completed_request_ids:
                 return
-            self._state.monitored_executors[request.requestid] = _MonitoredExecutor(
-                request=request,
-                executor_ref=executor_ref,
-                submitted_at=time.monotonic(),
+            self._state.supervised_experiment_executors[request.requestid] = (
+                _SupervisedExperimentExecutor(
+                    request=request,
+                    executor_ref=executor_ref,
+                    submitted_at=time.monotonic(),
+                )
             )
 
-    def mark_completed(self, requestid: str) -> None:
-        """Record that a requestid has a queued result.
+    def mark_measurement_request_completed(self, requestid: str) -> None:
+        """Record that MeasurementRequest requestid has queued a result.
 
         This is to avoid sending duplicate results for a request in the case
         an external problem causes the task to FAIL with no associated exception
         e.g. raylet failure, node failure, some issue with ray ref retrieval.
-
-        Called from the executor path via :func:`notify_executor_supervisor_completed`
-        as soon as the measurement queue receives a result, before the Ray executor
-        ref becomes ready.
         """
         with self._lock:
             self._state.completed_request_ids.add(requestid)
-            self._state.monitored_executors.pop(requestid, None)
+            self._state.supervised_experiment_executors.pop(requestid, None)
 
-    def _run_loop(self) -> None:
+    def _experiment_executor_supervision_loop(self) -> None:
         """Poll pending executor tasks until stopped."""
+
         while not self._stop.is_set():
-            self._poll_once()
+            with self._lock:
+                experiment_executors = list(
+                    self._state.supervised_experiment_executors.values()
+                )
+
+            for experiment_executor in experiment_executors:
+                self._check_experiment_executor(experiment_executor)
+
             time.sleep(self._config.supervisorPollIntervalSeconds)
 
-    def _poll_once(self) -> None:
-        """Run a single supervision pass over pending launches."""
-        with self._lock:
-            pending_snapshot = list(self._state.monitored_executors.values())
+    def _check_experiment_executor(
+        self, experiment_executor: _SupervisedExperimentExecutor
+    ) -> None:
+        """Evaluate an experiment executor."""
 
-        for pending in pending_snapshot:
-            self._check_pending(pending)
-
-    def _check_pending(self, pending: _MonitoredExecutor) -> None:
-        """Evaluate one pending executor task."""
-        requestid = pending.request.requestid
+        # Check if we've been notified that it completed
+        requestid = experiment_executor.request.requestid
         with self._lock:
             if requestid in self._state.completed_request_ids:
-                self._state.monitored_executors.pop(requestid, None)
+                self._state.supervised_experiment_executors.pop(requestid, None)
                 return
 
-        ready_refs, _ = ray.wait([pending.executor_ref], timeout=0)
-        if ready_refs:
-            self._handle_ready(pending)
+        # Check if it is done directly
+        # If it is this will handle if it exited with an exception
+        if self._check_and_handle_experiment_executor_completed(experiment_executor):
             return
 
-        elapsed = time.monotonic() - pending.submitted_at
-        task_state = _default_task_state_lookup(pending.executor_ref)
-        if task_state == RayTaskState.RUNNING:
+        # Check if its running
+        # If it is mark it so we don't have to check for launch timeout
+        elapsed = time.monotonic() - experiment_executor.submitted_at
+        executor_state = _experiment_executor_state_lookup(
+            experiment_executor.executor_ref
+        )
+        if executor_state == ExperimentExecutorState.RUNNING:
             with self._lock:
-                if requestid in self._state.monitored_executors:
-                    self._state.monitored_executors[requestid].seen_running = True
+                if requestid in self._state.supervised_experiment_executors:
+                    self._state.supervised_experiment_executors[
+                        requestid
+                    ].seen_running = True
             return
 
-        if (
-            task_state == RayTaskState.FAILED
-            and elapsed >= self._config.taskFailedGraceSeconds
-        ):
-            self._emit_launch_failure(
-                pending,
-                reason=(
-                    "Measurement task failed before completion "
-                    f"(Ray state={task_state.value})"
-                ),
-            )
-            return
-
-        if task_state in _RESOURCE_WAIT_STATES:
-            resource_timeout = self._config.taskPendingResourceTimeoutSeconds
-            if (
-                resource_timeout is not None
-                and not pending.seen_running
-                and elapsed >= resource_timeout
-            ):
-                self._emit_launch_failure(
-                    pending,
+        # Check if its Failed - if we are here this should usually mean it failed to launch
+        # It can also mean it Failed during execution but didn't return a ref/exception
+        # due to some ray infrastructure issue.
+        # This case is gated by taskFailedGraceSeconds
+        # i.e. we give Failed task this long to return a ref and be handled by
+        # _check_and_handle_experiment_executor_completed
+        if executor_state == ExperimentExecutorState.FAILED:
+            if elapsed >= self._config.taskFailedGraceSeconds:
+                self._handle_experiment_executor_launch_failure(
+                    experiment_executor,
                     reason=(
-                        "Measurement task pending resource allocation for "
-                        f"{int(resource_timeout)}s "
-                        f"(Ray state={task_state.value})"
+                        "Measurement task failed before completion "
+                        f"(Ray state={executor_state.value})"
                     ),
                 )
             return
 
-        if (
-            elapsed >= self._config.taskRunningTimeoutSeconds
-            and not pending.seen_running
-        ):
-            self._emit_launch_failure(
-                pending,
+        # The following two checks are relevant if pending timeout is set
+        if executor_state in _RESOURCE_WAIT_STATES:
+            resource_timeout = self._config.taskPendingResourceTimeoutSeconds
+            if resource_timeout is not None and elapsed >= resource_timeout:
+                self._handle_experiment_executor_launch_failure(
+                    experiment_executor,
+                    reason=(
+                        "Measurement task pending resource allocation for "
+                        f"{int(resource_timeout)}s "
+                        f"(Ray state={executor_state.value})"
+                    ),
+                )
+            return
+
+        if executor_state == ExperimentExecutorState.OTHER:
+            resource_timeout = self._config.taskPendingResourceTimeoutSeconds
+            if resource_timeout is not None and elapsed >= resource_timeout:
+                self._handle_experiment_executor_launch_failure(
+                    experiment_executor,
+                    reason=(
+                        "Measurement task pending resource allocation for "
+                        f"{int(resource_timeout)}s "
+                        "(Ray state unavailable or pending scheduling)"
+                    ),
+                )
+            return
+
+        if experiment_executor.seen_running:
+            return
+
+        # This is for all other non-running non-pending states
+        if elapsed >= self._config.taskRunningTimeoutSeconds:
+            with self._lock:
+                if requestid in self._state.completed_request_ids:
+                    self._state.supervised_experiment_executors.pop(requestid, None)
+                    return
+            self._handle_experiment_executor_launch_failure(
+                experiment_executor,
                 reason=(
                     "Measurement task did not start within "
                     f"{int(self._config.taskRunningTimeoutSeconds)}s "
@@ -456,25 +474,35 @@ class ExperimentExecutorSupervisor:
                 ),
             )
 
-    def _handle_ready(self, pending: _MonitoredExecutor) -> None:
-        """Executor finished; queue invalid on ``ray.get`` failure and unregister."""
-        try:
-            ray.get(pending.executor_ref)
-        except Exception as error:
-            self._record_executor_failure(
-                pending,
-                reason=f"Executor task raised: {error}",
-            )
-        else:
-            with self._lock:
-                self._state.completed_request_ids.add(pending.request.requestid)
-                self._state.monitored_executors.pop(pending.request.requestid, None)
+    def _check_and_handle_experiment_executor_completed(
+        self, experiment_executor: _SupervisedExperimentExecutor
+    ) -> bool:
+        """Check if executor finished; if so handle"""
 
-    def _record_executor_failure(
-        self, pending: _MonitoredExecutor, reason: str
+        completed = False
+        ready_refs, _ = ray.wait([experiment_executor.executor_ref], timeout=0)
+        if ready_refs:
+            completed = True
+            try:
+                ray.get(experiment_executor.executor_ref)
+            except Exception as error:
+                self._record_experiment_executor_failure(
+                    experiment_executor,
+                    reason=f"Executor task raised: {error}",
+                )
+            else:
+                self.mark_measurement_request_completed(
+                    experiment_executor.request.requestid
+                )
+
+        return completed
+
+    def _record_experiment_executor_failure(
+        self, experiment_executor: _SupervisedExperimentExecutor, reason: str
     ) -> None:
-        """Queue an invalid measurement unless a result was already marked completed."""
-        requestid = pending.request.requestid
+        """Set an InvalidMeasurement result for the executor unless it was already marked completed."""
+
+        requestid = experiment_executor.request.requestid
         with self._lock:
             if requestid in self._state.completed_request_ids:
                 self._log.warning(
@@ -482,35 +510,47 @@ class ExperimentExecutorSupervisor:
                     requestid,
                     reason,
                 )
-                self._state.monitored_executors.pop(requestid, None)
+                self._state.supervised_experiment_executors.pop(requestid, None)
                 return
             self._state.completed_request_ids.add(requestid)
 
         failed_request = add_invalid_measurement_results(
-            pending.request.model_copy(deep=True),
+            experiment_executor.request.model_copy(deep=True),
             reason=reason,
         )
         self._queue.put(failed_request, block=False)
         self._log.warning(
-            "Launch supervision failure for request %s (index=%s): %s",
+            "Launch failure for request %s (index=%s): %s",
             requestid,
-            pending.request.requestIndex,
+            experiment_executor.request.requestIndex,
             reason,
         )
         with self._lock:
-            self._state.monitored_executors.pop(requestid, None)
+            self._state.supervised_experiment_executors.pop(requestid, None)
 
-    def _emit_launch_failure(self, pending: _MonitoredExecutor, reason: str) -> None:
-        """Queue an invalid measurement for a launch/scheduling failure."""
-        ready_refs, _ = ray.wait([pending.executor_ref], timeout=0)
-        if ready_refs:
-            self._handle_ready(pending)
+    def _handle_experiment_executor_launch_failure(
+        self, experiment_executor: _SupervisedExperimentExecutor, reason: str
+    ) -> None:
+        """Handle when experiment executor fails to launch within timeout"""
+
+        # Check if it did complete - there can be race between ray API and actually putting result
+        if self._check_and_handle_experiment_executor_completed(experiment_executor):
             return
 
-        self._record_executor_failure(pending, reason=reason)
-        self._cancel_executor(pending.executor_ref)
+        requestid = experiment_executor.request.requestid
 
-    def _cancel_executor(self, executor_ref: ray.ObjectRef) -> None:
+        # Check if it notified it put a result and then something happened
+        with self._lock:
+            if requestid in self._state.completed_request_ids:
+                self._state.supervised_experiment_executors.pop(requestid, None)
+                return
+
+        self._record_experiment_executor_failure(experiment_executor, reason=reason)
+        self._request_experiment_executor_cancellation(experiment_executor.executor_ref)
+
+    def _request_experiment_executor_cancellation(
+        self, executor_ref: ray.ObjectRef
+    ) -> None:
         """Best-effort cancellation of a stuck executor task."""
         try:
             ray.cancel(executor_ref, force=True, recursive=True)

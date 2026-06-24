@@ -19,9 +19,12 @@ def test_resource_deletion(
     resource = request.getfixturevalue(generator)()
     delete_resource(resource.identifier)
     assert not sql_store.containsResourceWithIdentifier(identifier=resource.identifier)
-    assert (
-        sql_store.getRelatedResourceIdentifiers(identifier=resource.identifier).shape[0]
-        == 0
+    assert not sql_store.get_resources_by_relationship(
+        kind=_resource_kind,
+        identifier=resource.identifier,
+        hierarchy_direction="both",
+        max_hops=None,
+        identifiers_only=True,
     )
 
 

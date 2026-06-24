@@ -22,4 +22,5 @@ def show_resources_related_to_actuator_configuration(
         resource_type=CoreResourceKinds.ACTUATORCONFIGURATION,
         sql=sql_store,
         hide_banner=True,
+        max_hops=parameters.max_hops,
     )

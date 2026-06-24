@@ -69,35 +69,46 @@ def trim_minimal_discovery_space(
     )
 
 
+# Lightweight AutoGluon settings for CI
+_TRIM_TEST_AUTOGLUON_FIT_ARGS = {
+    "time_limit": 60,
+    "presets": "medium_quality",
+    "auto_stack": False,
+    "excluded_model_types": ["CAT"],
+}
+
+
 @pytest.mark.timeout(900)
 def test_trim_example_operation_succeeds(
     trim_minimal_discovery_space: DiscoverySpace,
+    tmp_path: pathlib.Path,
 ) -> None:
     """Run trim on the minimal pressure example; passes if the operation completes successfully."""
     # Trim requires >1 distinct target value before modeling. AutoGluon's internal
     # train/test split needs several rows (fails for n_samples=2). Budget must not
     # exceed tests/resources/trim/space_minimal.yaml entity count (currently 8).
+    model_dir = tmp_path / "trim_models"
+    debug_dir = tmp_path / "debug_output"
+    autogluon_args = AutoGluonArgs(
+        fitArgs=_TRIM_TEST_AUTOGLUON_FIT_ARGS,
+        tabularPredictorArgs={
+            "problem_type": "regression",
+            "verbosity": 0,
+        },
+    )
     params = TrimParameters(
         targetOutput="pressure",
         samplingBudget=SamplingBudget(minPoints=8, maxPoints=8),
-        iterationSize=5,
-        outputDirectory="trim_integration_models",
+        iterationSize=1,
+        outputDirectory=str(model_dir),
+        debugDirectory=str(debug_dir),
         stoppingCriterion=StoppingCriterion(enabled=False),
-        autoGluonArgs=AutoGluonArgs(
-            fitArgs={
-                "time_limit": 60,
-                "presets": "medium",
-                "excluded_model_types": ["GBM"],
-            },
-            tabularPredictorArgs={
-                "problem_type": "regression",
-                "verbosity": 0,
-            },
-        ),
+        autoGluonArgs=autogluon_args,
+        finalModelAutoGluonArgs=autogluon_args,
         noPriorParameters=NoPriorsParameters(
             targetOutput="pressure",
             samples=8,
-            batchSize=2,
+            batchSize=1,
             sampling_strategy="random",
         ),
     )

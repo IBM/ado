@@ -22,4 +22,5 @@ def show_resources_related_to_operation(
         resource_type=CoreResourceKinds.OPERATION,
         sql=sql_store,
         hide_banner=True,
+        max_hops=parameters.max_hops,
     )

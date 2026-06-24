@@ -46,8 +46,7 @@ DOs:
 DONTs
 
 - Do not fetch discoveryspace or operation data for summary queries
-  - Do not use: ado show entities, ado show requests, ado show results, ado show
-    details)
+  - Do not use: ado show measurements, ado show trace, ado show details
   - Do not instantiating DiscoverySpace instances or SQLStore instance
 - Only use these commands or classes when drilling down on a narrow set of
   resources
@@ -176,7 +175,7 @@ uv run ado show details $RESOURCETYPE [RESOURCE_ID] [--use-latest]
 Get entities and their measurements from a space or operation:
 
 ```bash
-uv run ado show entities RESOURCE_TYPE [RESOURCE_ID] \
+uv run ado show measurements RESOURCE_TYPE [RESOURCE_ID] \
                   [--use-latest] [--file | -f <file.yaml>]\
                   [--property-format {observed | target}] \
                   [--output | -o {csv | json | table}] \
@@ -203,12 +202,12 @@ uv run ado show entities RESOURCE_TYPE [RESOURCE_ID] \
 
 ```bash
 # Show matching entities in a space as CSV
-uv run ado show entities space space-abc123-456def --include matching \
+uv run ado show measurements space space-abc123-456def --include matching \
                                              --property-format target \
                                              -o csv --output-file space-abc123-456def-entities.csv
 
 # Show entities from an operation with specific properties
-uv run ado show entities operation randomwalk-0.5.0-123abc \
+uv run ado show measurements operation randomwalk-0.5.0-123abc \
                   --property my-property-1 \
                   --property my-property-2 \
                   -o csv --output-file randomwalk-0.5.0-123abc.csv
@@ -288,7 +287,7 @@ uv run ado get spaces -q 'config.entitySpace={"propertyDomain":{"values":["mistr
 ### Export operation entities to CSV
 
 ```bash
-uv run ado show entities operation OPERATION_ID -o csv --output-file OPERATION_ID_entities.csv
+uv run ado show measurements operation OPERATION_ID -o csv --output-file OPERATION_ID_entities.csv
 ```
 
 ### Get all resources related to a space

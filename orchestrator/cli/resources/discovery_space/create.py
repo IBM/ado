@@ -170,7 +170,7 @@ def create_discovery_space(parameters: AdoCreateCommandParameters) -> str | None
         )
         with Status("Creating your sample store"):
             sample_store_resource, _ = create_sample_store_resource(
-                conf=sample_store_configuration, resourceStore=sql_store
+                configuration=sample_store_configuration, resource_store=sql_store
             )
 
         space_configuration.sampleStoreIdentifier = sample_store_resource.identifier

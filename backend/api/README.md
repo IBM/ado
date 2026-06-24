@@ -20,6 +20,15 @@ Make sure you have completed the setup outlined in
 
 ## Instructions
 
+> [!CAUTION] Alpha feature with no built-in security
+>
+> The Ray Serve API exposed by ado is currently an **alpha feature** and **does
+> not include built-in authentication, authorization, or other endpoint security
+> controls** at this time. If you expose it beyond localhost, you **must**
+> secure it using your Kubernetes or OpenShift environment, for example with
+> Routes, Ingress, network policies, TLS termination, and your platform's
+> authentication and access-control mechanisms.
+
 ### Deploying locally
 
 Serving the API locally is very easy. Run the following command in your
@@ -77,11 +86,14 @@ Kuberay will automatically create a service for the Serve endpoint called
 `${RAY_SERVICE_NAME}-serve-svc`. In the case of our example, this will be
 `ado-api-serve-svc`.
 
-> [!TIP]
+> [!CAUTION]
 >
-> For ease of use, we suggest exposing the service using either a Route (on
-> OpenShift), a LoadBalancer service or an Ingress. **Make sure you take
-> appropriate security measures to protect the endpoint**.
+> If you expose the service outside the cluster or outside localhost, assume it
+> is **not secured by ado itself**. The ado Serve API is currently an **alpha
+> feature** and **does not have built-in security**. Security must be provided
+> by your Kubernetes or OpenShift environment, for example through OpenShift
+> Routes, Kubernetes Ingress, TLS termination, authentication, authorization,
+> and network-level access restrictions.
 
 You can access it via port-forward using:
 

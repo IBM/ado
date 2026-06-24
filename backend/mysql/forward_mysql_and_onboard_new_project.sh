@@ -54,7 +54,7 @@ ensure_variable_is_defined PXC_NAME
 # Inspired by https://stackoverflow.com/a/68824178
 MYSQL_SVC_NAME=$(kubectl get svc -n "$MYSQL_NAMESPACE" -l app.kubernetes.io/instance="$PXC_NAME" -o jsonpath='{.items[0].metadata.name}')
 echo "Starting to forward the PXC service $MYSQL_SVC_NAME locally"
-kubectl port-forward -n "$MYSQL_NAMESPACE" "svc/${MYSQL_SVC_NAME}" mysql >/dev/null 2>&1 & 
+kubectl port-forward -n "$MYSQL_NAMESPACE" "svc/${MYSQL_SVC_NAME}" mysql >/dev/null 2>&1 &
 PORT_FORWARD_PID=$!
 trap '{
     echo "Cleaning up port-forward"

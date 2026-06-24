@@ -79,8 +79,8 @@ def create_sample_store(parameters: AdoCreateCommandParameters) -> str:
     sql = get_sql_store(project_context=parameters.ado_configuration.project_context)
     with Status(ADO_SPINNER_SAVING_TO_DB):
         _, sample_store = create_sample_store_resource(
-            sample_store_configuration,
-            sql,
+            configuration=sample_store_configuration,
+            resource_store=sql,
         )
 
     console_print(

@@ -263,7 +263,7 @@ ado create space -f yamls/discoveryspace_override_defaults_small.yaml \
 Before we run any experiment, we can see that the `discoveryspace` is empty:
 
 ```commandline
-ado show entities space --use-latest
+ado show measurements space --use-latest
 ```
 
 Will output:
@@ -280,7 +280,7 @@ To see all the entities (parameter combinations) that are waiting to be
 measured, try executing:
 
 ```commandline
-ado show entities space --include missing --use-latest
+ado show measurements space --include missing --use-latest
 ```
 
 The output will look like:
@@ -372,7 +372,7 @@ If the output contains `EXPERIMENT FAILURE`, then something has gone wrong.
 Verify that the entity has been measured by running:
 
 ```commandline
-ado show entities space --use-latest -o csv --output-file entities.csv
+ado show measurements space --use-latest -o csv --output-file entities.csv
 ```
 
 The csv file will have one line representing the entity featuring values for all
@@ -442,6 +442,7 @@ this is the name of package that contains all `ado` plugins.
 The key files are:
 
 - Entry point registration in `pyproject.toml`
+
   - Registers the actuator class with ado using Python entry points.
   - Example:
 

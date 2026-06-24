@@ -20,7 +20,6 @@ from orchestrator.modules.actuators.base import (
 from orchestrator.modules.actuators.executor_supervisor import (
     ExperimentExecutorSupervisor,
     ExperimentExecutorSupervisorParameters,
-    notify_executor_supervisor_completed,
 )
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
 from orchestrator.modules.module import (
@@ -620,7 +619,7 @@ def custom_experiment_executor(
     measurement_request: MeasurementRequest,
     target_experiment: Experiment,
     queue: MeasurementQueue,
-    launch_completion_notifier: object | None = None,
+    custom_experiments_actor: "CustomExperimentsActor | None" = None,
 ) -> None:
     """
     :param function: The function to call
@@ -629,9 +628,8 @@ def custom_experiment_executor(
     :param target_experiment: The experiment to execute.
         Required as the measurementRequest only includes an ExperimentReference
     :param queue: The queue to put the result on
-    :param launch_completion_notifier: Optional actuator handle (or supervisor)
-        notified after the result is queued so launch supervision can unregister
-        before the executor Ray ref becomes ready.
+    :param custom_experiments_actor: Optional handle to CustomExperiments actuator
+        to notify after the result is queued
     :return:
     """
 
@@ -671,10 +669,10 @@ def custom_experiment_executor(
     measurement_request.status = compute_measurement_status(measurement_results)
 
     queue.put(measurement_request, block=False)
-    notify_executor_supervisor_completed(
-        launch_completion_notifier,
-        measurement_request.requestid,
-    )
+    if custom_experiments_actor:
+        custom_experiments_actor.mark_measurement_request_completed.remote(
+            measurement_request.requestid
+        )
 
 
 class CustomExperimentsParameters(ExperimentExecutorSupervisorParameters):
@@ -744,9 +742,9 @@ class CustomExperiments(ActuatorBase):
 
         self.log.debug("Completed init")
 
-    def mark_launch_completed(self, requestid: str) -> None:
-        """Record that a measurement result was queued (launch supervision hook)."""
-        self._launch_supervisor.mark_completed(requestid)
+    def mark_measurement_request_completed(self, requestid: str) -> None:
+        """Record that a measurement result was queued."""
+        self._launch_supervisor.mark_measurement_request_completed(requestid)
 
     def loadedExperiment(
         self,
@@ -829,7 +827,7 @@ class CustomExperiments(ActuatorBase):
             )
             # Dispatch as Ray task. Pass ray options if present.
             # Pass the actor handle (not self) so the executor can call
-            # mark_launch_completed.remote() without pickling the actor object.
+            # mark_measurement_request_completed.remote() without pickling the actor object.
             # self is not serialisable (contains threading.Lock from the supervisor).
             try:
                 _notifier = ray.get_runtime_context().current_actor
@@ -847,7 +845,7 @@ class CustomExperiments(ActuatorBase):
                 self._stateUpdateQueue,
                 _notifier,
             )
-            self._launch_supervisor.register(request, executor_ref)
+            self._launch_supervisor.supervise_experiment_executor(request, executor_ref)
         else:
             custom_experiment_executor(
                 fn,
@@ -874,3 +872,9 @@ class CustomExperiments(ActuatorBase):
         self,
     ) -> orchestrator.modules.actuators.catalog.ExperimentCatalog:
         return self._catalog
+
+
+if typing.TYPE_CHECKING:
+    from ray.actor import ActorHandle
+
+    CustomExperimentsActor = type[ActorHandle[CustomExperiments]]

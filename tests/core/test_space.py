@@ -15,6 +15,12 @@ from orchestrator.core.discoveryspace.space import (
     DiscoverySpace,
     SpaceInconsistencyError,
 )
+from orchestrator.core.operation.resource import (
+    OperationResource,
+    OperationResourceEventEnum,
+    OperationResourceStatus,
+)
+from orchestrator.core.resources import CoreResourceKinds
 from orchestrator.core.samplestore.base import ActiveSampleStore
 from orchestrator.core.samplestore.config import (
     SampleStoreConfiguration,
@@ -319,3 +325,88 @@ def test_matching_entities_table_virtual_property_with_multiple_values(
     assert virtual_id in df_with_vp.columns
     # Aggregated values should be scalar (not lists or None)
     assert df_with_vp[virtual_id].dropna().apply(lambda x: np.isscalar(x)).all()
+
+
+def _operation_lifecycle_statuses(
+    operation: OperationResource,
+) -> list[OperationResourceStatus]:
+    return [
+        status
+        for status in operation.status
+        if status.event in OperationResourceEventEnum
+    ]
+
+
+def test_operation_context_success_lifecycle(pfas_space: DiscoverySpace) -> None:
+    """operation_context registers the operation and records STARTED then FINISHED/SUCCESS."""
+    from orchestrator.core.discoveryspace.space import (
+        SCRIPT_OPERATION_EXECUTION_LABEL,
+        SCRIPT_OPERATION_LABEL_KEY,
+    )
+    from orchestrator.core.operation.config import (
+        DiscoveryOperationEnum,
+        ScriptOperatorConf,
+    )
+    from orchestrator.core.operation.resource import (
+        OperationExitStateEnum,
+        OperationResource,
+        OperationResourceEventEnum,
+    )
+
+    with pfas_space.operation_context(
+        name="test-script",
+        description="Script operation for testing",
+        metadata={"labels": {"source": "test"}},
+    ) as operation_id:
+        assert operation_id.startswith("operation-script-test-script-")
+        assert operation_id in pfas_space._verified_operation_ids
+
+    operation = pfas_space.metadataStore.getResource(
+        identifier=operation_id,
+        kind=CoreResourceKinds.OPERATION,
+    )
+    assert isinstance(operation, OperationResource)
+    assert operation_id in pfas_space.operations
+    assert isinstance(operation.config.operation.module, ScriptOperatorConf)
+    assert (
+        operation.config.operation.module.operationType == DiscoveryOperationEnum.SEARCH
+    )
+    assert operation.operationType == DiscoveryOperationEnum.SEARCH
+    assert operation.config.metadata.description == "Script operation for testing"
+    assert operation.config.metadata.labels == {
+        SCRIPT_OPERATION_LABEL_KEY: SCRIPT_OPERATION_EXECUTION_LABEL,
+        "source": "test",
+    }
+
+    lifecycle_statuses = _operation_lifecycle_statuses(operation)
+    assert lifecycle_statuses[0].event == OperationResourceEventEnum.STARTED
+    assert lifecycle_statuses[-1].event == OperationResourceEventEnum.FINISHED
+    assert lifecycle_statuses[-1].exit_state == OperationExitStateEnum.SUCCESS
+
+
+def test_operation_context_failure_lifecycle(pfas_space: DiscoverySpace) -> None:
+    """operation_context records FINISHED/FAIL when the wrapped block raises."""
+    from orchestrator.core.operation.resource import (
+        OperationExitStateEnum,
+        OperationResource,
+        OperationResourceEventEnum,
+    )
+
+    failure_message = "Simulated script failure during operation_context lifecycle"
+
+    with (
+        pytest.raises(RuntimeError, match=re.escape(failure_message)),
+        pfas_space.operation_context(name="failing-script") as operation_id,
+    ):
+        raise RuntimeError(failure_message)
+
+    operation = pfas_space.metadataStore.getResource(
+        identifier=operation_id,
+        kind=CoreResourceKinds.OPERATION,
+    )
+    assert isinstance(operation, OperationResource)
+
+    lifecycle_statuses = _operation_lifecycle_statuses(operation)
+    assert lifecycle_statuses[0].event == OperationResourceEventEnum.STARTED
+    assert lifecycle_statuses[-1].event == OperationResourceEventEnum.FINISHED
+    assert lifecycle_statuses[-1].exit_state == OperationExitStateEnum.FAIL

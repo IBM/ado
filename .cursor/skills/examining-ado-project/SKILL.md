@@ -69,6 +69,17 @@ Goal: volume of work, recency, and which spaces attract the most operations.
    together with `uv run ado get operator --details` to understand more about
    the operators used.
 
+3. **Operations (with measurement statistics)**
+
+   ```bash
+   uv run ado get operations -o stats --output-file operations-stats.txt
+   ```
+
+   Adds `TOTAL_RESULTS`, `SUCCESSFUL_RESULTS`, `FAILED_RESULTS`, and
+   `MEASURED_ENTITIES` columns. For explore operations, compare
+   `MEASURED_ENTITIES` against the operator's `numberEntities` to check sampling
+   completeness.
+
 **Synthesis:** cluster mentally (or in notes) by **creation time** to see bursts
 of activity; count operations **per space** from the operations listing to see
 which spaces are busiest.
@@ -172,9 +183,9 @@ Write a concise markdown report
      report, there has been new activity — proceed to write a new report.
   3. If not, ask the user whether they want to replace it.
   4. If finer-grained confirmation is needed, fetch the YAML of the most recent
-     space or operation (`uv run ado get space SPACE_ID -o yaml --output-file
-     SPACE_ID.yaml`, or the same pattern for `operation`) and read its
-     `creationTimestamp` field.
+     space or operation
+     (`uv run ado get space SPACE_ID -o yaml --output-file SPACE_ID.yaml`, or
+     the same pattern for `operation`) and read its `creationTimestamp` field.
 
 ### Project summary
 
@@ -196,6 +207,9 @@ Write a concise markdown report
 
 - Operator mix and whether **parameters** or **operator choice** evolve over
   time.
-- Which operations **submitted** the most entities (from operation YAML/config).
+- Which operations **submitted** the most entities (from operation YAML/config)
+  and which produced the most results (from the stats).
 - What **analysis**-style operations ran (infer from operator names and
   parameters).
+- Make a note of operations with failed measurements and highlight ones with
+  abnormal failure rates (from the stats).

@@ -130,7 +130,7 @@ def get_resource(
             "--output",
             "-o",
             rich_help_panel=OUTPUT_CONFIGURATION_OPTIONS,
-            help="Output information in a different format. The 'json', 'raw', and 'yaml' formats will output the entire resource. The 'name' format outputs only resource identifiers (similar to kubectl get -o name). Not all formats may be supported by all resources.",
+            help="Output information in a different format. The 'json', 'raw', and 'yaml' formats will output the entire resource. The 'name' format outputs only resource identifiers (similar to kubectl get -o name). The 'stats' format augments the default table with measurement statistics columns (operations only). Not all formats may be supported by all resources.",
         ),
     ] = AdoGetSupportedOutputFormats.TABLE.value,
     exclude_default: Annotated[

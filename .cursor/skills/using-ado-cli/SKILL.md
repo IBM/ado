@@ -37,7 +37,8 @@ uv run ado [COMMAND] [SUBCOMMAND1] [SUBCOMMAND2] --help
 For `ado get` and `ado show` subcommands:
 
 - `-o` / `--output` selects the **output format** (for example `yaml`, `table`,
-  `csv`, or `json`; allowed values depend on the command — use `--help`).
+  `csv`, `json`, or `stats`; allowed values depend on the command — use
+  `--help`).
 - `--output-file PATH` writes formatted output to **PATH** instead of stdout.
 
 Shell redirects (`>`) work for simple cases. Prefer `--output-file` when:
@@ -103,7 +104,7 @@ needed beyond a local Ray instance (started automatically).
 Lists resources of a given type and gets resource YAML
 
 ```bash
-#List all spaces
+# List all spaces
 uv run ado get spaces
 
 # Get the YAML for a space (console)
@@ -117,7 +118,14 @@ uv run ado get space --use-latest -o yaml
 
 # Get the latest operation as YAML
 uv run ado get operation --use-latest -o yaml
+
+# Get measurement statistics for all operations (operations only)
+uv run ado get operations -o stats --output-file operations-stats.txt
+uv run ado get operation OPERATION_ID -o stats --no-trunc
 ```
+
+`-o stats` extends the table with `TOTAL_RESULTS`, `SUCCESSFUL_RESULTS`,
+`FAILED_RESULTS`, and `MEASURED_ENTITIES`.
 
 ### ado create
 

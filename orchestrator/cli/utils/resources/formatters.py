@@ -48,8 +48,10 @@ from orchestrator.utilities.pandas import reorder_dataframe_columns
 
 if typing.TYPE_CHECKING:
     import pandas as pd
+    from rich.status import Status
 
     from orchestrator.cli.models.parameters import AdoGetCommandParameters
+    from orchestrator.metastore.sqlstore import SQLStore
 
 
 def format_default_ado_get_single_resource(
@@ -155,6 +157,97 @@ def format_default_ado_get_multiple_resources(
         )
 
     return resources[columns]
+
+
+def format_ado_get_stats_for_operations(
+    df: "pd.DataFrame",
+    sql_store: "SQLStore",
+    spinner: "Status | None" = None,
+) -> "pd.DataFrame":
+    """Append 4 measurement-statistics columns to an operations DataFrame.
+
+    Issues two queries regardless of the number of operations:
+    one recursive-CTE query to resolve operation→samplestore relationships,
+    then one aggregation query per distinct samplestore (grouped by
+    operation_id) to fetch all stats in bulk.
+
+    Args:
+        df: DataFrame with at least an ``IDENTIFIER`` column (one row per
+            operation).
+        sql_store: The ``SQLStore`` to use for relationship and samplestore
+            queries.
+        spinner: Optional rich status spinner to update with progress messages.
+
+    Returns:
+        The same DataFrame with four extra columns appended:
+        ``TOTAL_RESULTS``, ``SUCCESSFUL_RESULTS``, ``FAILED_RESULTS``,
+        ``MEASURED_ENTITIES``. Operations with no recorded measurements show
+        ``0`` in all stats columns.
+    """
+
+    from orchestrator.core.resources import CoreResourceKinds
+    from orchestrator.core.samplestore.base import SampleStore
+
+    _STATS_COLUMNS = [
+        "TOTAL_RESULTS",
+        "SUCCESSFUL_RESULTS",
+        "FAILED_RESULTS",
+        "MEASURED_ENTITIES",
+    ]
+
+    operation_ids: set[str] = set(df["IDENTIFIER"])
+
+    # Round-trip 2: one recursive-CTE query for all operations at once.
+    # Returns {operation_id: {CoreResourceKinds.SAMPLESTORE: {samplestore_id, ...}, ...}}
+    relationships: dict[str, dict[CoreResourceKinds, set[str]]] = (
+        sql_store.get_resources_by_relationship(
+            kind=CoreResourceKinds.OPERATION,
+            identifier=operation_ids,
+            hierarchy_direction="up",
+            max_hops=2,
+            identifiers_only=True,
+        )
+    )
+
+    # Invert to {samplestore_id: set_of_operation_ids}
+    samplestore_to_operation_ids: dict[str, set[str]] = {}
+    for operation_id, kind_map in relationships.items():
+        samplestore_ids = kind_map.get(CoreResourceKinds.SAMPLESTORE, set())
+        for samplestore_id in samplestore_ids:
+            samplestore_to_operation_ids.setdefault(samplestore_id, set()).add(
+                operation_id
+            )
+
+    # Round-trips 3…K+2: one load + one batched stats query per unique samplestore.
+    stats_lookup: dict[str, dict[str, int]] = {}
+    total_samplestores = len(samplestore_to_operation_ids)
+    for index, (
+        samplestore_id,
+        operation_ids_in_store,
+    ) in enumerate(samplestore_to_operation_ids.items(), start=1):
+        if spinner is not None:
+            spinner.update(
+                f"Handling samplestore {index}/{total_samplestores}: {samplestore_id}"
+            )
+        sample_store = SampleStore.from_identifier(samplestore_id, sql_store)
+        for stat in sample_store.operation_measurement_statistics(
+            operation_ids=operation_ids_in_store
+        ):
+            stats_lookup[stat.operation_id] = {
+                "TOTAL_RESULTS": stat.total_results,
+                "SUCCESSFUL_RESULTS": stat.successful_results,
+                "FAILED_RESULTS": stat.failed_results,
+                "MEASURED_ENTITIES": stat.measured_entities,
+            }
+
+    # Attach stats columns; operations with no samplestore mapping show 0.
+    zeros = dict.fromkeys(_STATS_COLUMNS, 0)
+    for col in _STATS_COLUMNS:
+        df[col] = df["IDENTIFIER"].apply(
+            lambda operation_id, c=col: stats_lookup.get(operation_id, zeros)[c]
+        )
+
+    return df
 
 
 def format_resource_for_ado_get_custom_format(

@@ -26,6 +26,7 @@ _MARKDOWN_REPORT = "md-report"
 _MARKDOWN_TABLE = "md-table"
 _NAME = "name"
 _RAW = "raw"
+_STATS = "stats"
 _TABLE = "table"
 _YAML = "yaml"
 
@@ -95,6 +96,7 @@ class AdoGetSupportedOutputFormats(Enum):
     JSON = _JSON
     NAME = _NAME
     RAW = _RAW
+    STATS = _STATS
     TABLE = _TABLE
     YAML = _YAML
 

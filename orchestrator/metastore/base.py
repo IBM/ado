@@ -9,6 +9,8 @@ import pydantic
 if TYPE_CHECKING:
     import pandas as pd
 
+    from orchestrator.core.discoveryspace.stats import DiscoverySpaceStatistics
+
 from orchestrator.core.resources import ADOResource, CoreResourceKinds
 from orchestrator.core.samplestore.resource import SampleStoreResource
 from orchestrator.utilities.location import (
@@ -325,6 +327,34 @@ class ResourceStore(abc.ABC):
 
         Raises:
             ValueError: If arguments are invalid or incompatible.
+        """
+
+    @abc.abstractmethod
+    def get_space_metastore_stats(
+        self,
+        space_ids: str | set[str],
+    ) -> "DiscoverySpaceStatistics | dict[str, DiscoverySpaceStatistics]":
+        """Return lightweight metastore-level statistics for one or many spaces.
+
+        All counts are computed with pure SQL against the ``resources`` and
+        ``resource_relationships`` tables — no sample store access is needed.
+        The returned :class:`~orchestrator.core.discoveryspace.stats.DiscoverySpaceStatistics`
+        objects only have ``number_of_experiments``, ``number_of_operations``,
+        and ``number_of_explore_operations`` populated; all other fields are
+        ``None`` or ``0`` as appropriate.
+
+        Args:
+            space_ids: A single space identifier (``str``) or a set of space
+                identifiers (``set[str]``).
+
+        Returns:
+            When ``space_ids`` is a ``str``: a
+            :class:`~orchestrator.core.discoveryspace.stats.DiscoverySpaceStatistics`
+            for that space.
+            When ``space_ids`` is a ``set[str]``: a ``dict`` keyed by space ID
+            mapping each to its
+            :class:`~orchestrator.core.discoveryspace.stats.DiscoverySpaceStatistics`.
+            Space IDs that have no operations are included with zero counts.
         """
 
 

@@ -1626,7 +1626,7 @@ class SQLSampleStore(ActiveSampleStore):
         ``(operation_id, entity_id)`` pairs across every operation referenced
         in *space_ids_to_operation_ids*, then groups the results by space ID
         in Python.  This approach is portable across all supported backends
-        (SQLite, MySQL, PostgreSQL).
+        (SQLite, MySQL).
 
         ``number_matching_entities`` and
         ``number_matching_entities_with_measurements`` are not computed here

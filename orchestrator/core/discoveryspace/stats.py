@@ -8,7 +8,7 @@ import pydantic
 
 if TYPE_CHECKING:
     from orchestrator.core.discoveryspace.space import DiscoverySpace
-    from orchestrator.core.samplestore.base import SampleStore
+    from orchestrator.core.samplestore.base import ActiveSampleStore
     from orchestrator.metastore.base import ResourceStore
 
 
@@ -123,7 +123,7 @@ def lightweight_space_statistics(
     space_ids: set[str],
     space_ids_to_operation_ids: dict[str, set[str]],
     metastore: "ResourceStore",
-    sample_store: "SampleStore",
+    sample_store: "ActiveSampleStore",
 ) -> "dict[str, DiscoverySpaceStatistics]":
     """Compute lightweight statistics for spaces given only their IDs and stores.
 
@@ -134,13 +134,18 @@ def lightweight_space_statistics(
     ``number_matching_entities``, ``number_matching_entities_with_measurements``)
     are always ``None``.
 
+    .. note::
+        All ``space_ids`` must belong to the **same** sample store instance that
+        is passed in.  Mixing spaces from different sample stores will produce
+        incorrect results.
+
     Args:
         space_ids: Set of space URIs to compute statistics for.
         space_ids_to_operation_ids: Mapping from each space URI to the set of
             operation IDs that belong to that space.
         metastore: The :class:`~orchestrator.metastore.base.ResourceStore` to
             query for operation/experiment counts.
-        sample_store: The :class:`~orchestrator.core.samplestore.base.SampleStore`
+        sample_store: The :class:`~orchestrator.core.samplestore.base.ActiveSampleStore`
             to query for measured-entity counts.
 
     Returns:
@@ -157,6 +162,13 @@ def lightweight_space_statistics(
             space_ids_to_operation_ids=space_ids_to_operation_ids,
         )
     )
+
+    missing = space_ids - metastore_stats_by_space_id.keys()
+    if missing:
+        raise KeyError(f"Metastore returned no statistics for space(s): {missing}")
+    missing = space_ids - sample_store_stats_by_space_id.keys()
+    if missing:
+        raise KeyError(f"Sample store returned no statistics for space(s): {missing}")
 
     return {
         space_id: DiscoverySpaceStatistics(
@@ -187,12 +199,18 @@ def space_statistics_for_spaces(
 ) -> "dict[str, DiscoverySpaceStatistics]":
     """Compute statistics for multiple discovery spaces with minimal DB round-trips.
 
-    Issues a single batched metastore query for all spaces (assumes all spaces
-    share the same metastore), then one sample-store query per space.
+    Issues a single batched metastore query for all spaces, then one batched
+    sample-store query for all spaces.
+
+    .. note::
+        All spaces in the list **must** share the same sample store instance
+        (i.e. ``spaces[0].sample_store`` is used for every space).  Mixing
+        spaces from different sample stores will produce incorrect results.
+        There is only one metastore, so no constraint applies there.
 
     Args:
         spaces: List of :class:`~orchestrator.core.discoveryspace.space.DiscoverySpace`
-            instances to summarise.
+            instances to summarise.  All spaces must share the same sample store.
         lightweight_only: When ``True`` skip all Python-side computation and
             return ``None`` for the heavy fields in every space's statistics.
 
@@ -210,32 +228,30 @@ def space_statistics_for_spaces(
     metastore = spaces[0].metadataStore
     sample_store = spaces[0].sample_store
 
-    if lightweight_only:
-        return lightweight_space_statistics(
-            space_ids=space_ids,
-            space_ids_to_operation_ids=space_ids_to_operation_ids,
-            metastore=metastore,
-            sample_store=sample_store,
+    if not all(s.sample_store is sample_store for s in spaces):
+        raise ValueError(
+            "All spaces passed to space_statistics_for_spaces must share the same sample store."
         )
 
-    # ------------------------------------------------------------------
-    # Heavy path — requires DiscoverySpace instances for Python-side work
-    # ------------------------------------------------------------------
-    metastore_stats_by_space_id: dict[str, DiscoverySpaceStatistics] = (
-        metastore.get_space_metastore_stats(space_ids)
+    lightweight_stats = lightweight_space_statistics(
+        space_ids=space_ids,
+        space_ids_to_operation_ids=space_ids_to_operation_ids,
+        metastore=metastore,
+        sample_store=sample_store,
     )
-    sample_store_stats_by_space_id: dict[str, DiscoverySpaceStatistics] = (
-        sample_store.space_entity_statistics(
-            space_ids_to_operation_ids=space_ids_to_operation_ids,
-        )
-    )
+
+    if lightweight_only:
+        return lightweight_stats
+
+    # ------------------------------------------------------------------
+    # Heavy path — requires DiscoverySpace instances for Python-side work.
+    # ------------------------------------------------------------------
 
     result: dict[str, DiscoverySpaceStatistics] = {}
 
     for space in spaces:
-        metastore_stats = metastore_stats_by_space_id[space.uri]
-        sample_stats = sample_store_stats_by_space_id[space.uri]
-        number_measured = sample_stats.number_measured_entities
+        base = lightweight_stats[space.uri]
+        number_measured = base.number_measured_entities
 
         # Heavy path
         size_of_entity_space: int | None = None
@@ -267,9 +283,9 @@ def space_statistics_for_spaces(
         )
 
         result[space.uri] = DiscoverySpaceStatistics(
-            number_of_experiments=metastore_stats.number_of_experiments,
-            number_of_operations=metastore_stats.number_of_operations,
-            number_of_explore_operations=metastore_stats.number_of_explore_operations,
+            number_of_experiments=base.number_of_experiments,
+            number_of_operations=base.number_of_operations,
+            number_of_explore_operations=base.number_of_explore_operations,
             number_measured_entities=number_measured,
             size_of_entity_space=size_of_entity_space,
             number_unmeasured_entities=number_unmeasured,

@@ -227,7 +227,7 @@ def format_ado_get_stats_for_operations(
     ) in enumerate(samplestore_to_operation_ids.items(), start=1):
         if spinner is not None:
             spinner.update(
-                f"Handling samplestore {index}/{total_samplestores}: {samplestore_id}"
+                f"Calculating stats for operations in samplestore {index}/{total_samplestores}: {samplestore_id}"
             )
         sample_store = SampleStore.from_identifier(samplestore_id, sql_store)
         for stat in sample_store.operation_measurement_statistics(
@@ -246,6 +246,134 @@ def format_ado_get_stats_for_operations(
         df[col] = df["IDENTIFIER"].apply(
             lambda operation_id, c=col: stats_lookup.get(operation_id, zeros)[c]
         )
+
+    return df
+
+
+def format_ado_get_stats_for_spaces(
+    df: "pd.DataFrame",
+    sql_store: "SQLStore",
+    spinner: "Status | None" = None,
+) -> "pd.DataFrame":
+    """Append 4 space-statistics columns to a discovery spaces DataFrame.
+
+    Issues a metastore stats query for all spaces at once, then resolves each
+    space's linked operations and sample stores.  For each distinct sample
+    store a single batched :meth:`space_entity_statistics` query is issued.
+
+    Args:
+        df: DataFrame with at least an ``IDENTIFIER`` column (one row per
+            discovery space).
+        sql_store: The ``SQLStore`` to use for relationship and stats queries.
+        spinner: Optional rich status spinner to update with progress messages.
+
+    Returns:
+        The same DataFrame with four extra columns appended:
+        ``EXPERIMENTS``, ``OPERATIONS``, ``EXPLORE_OPERATIONS``,
+        ``MEASURED_ENTITIES``.
+        Spaces with no recorded operations or sample store show ``0`` in all
+        stats columns.
+    """
+    from orchestrator.core.resources import CoreResourceKinds
+    from orchestrator.core.samplestore.base import SampleStore
+
+    _STATS_COLUMNS = [
+        "EXPERIMENTS",
+        "OPERATIONS",
+        "EXPLORE_OPERATIONS",
+        "MEASURED_ENTITIES",
+    ]
+
+    space_ids: set[str] = set(df["IDENTIFIER"])
+
+    # Query 1: metastore stats (number_of_experiments, number_of_operations,
+    # number_of_explore_operations) for all spaces in one SQL query.
+    metastore_stats = sql_store.get_space_metastore_stats(space_ids)
+
+    # Query 2: for each space, get its child operations.
+    # Returns {space_id: {CoreResourceKinds.OPERATION: set[operation_id]}}
+    space_child_relationships: dict[str, dict[CoreResourceKinds, set[str]]] = (
+        sql_store.get_resources_by_relationship(
+            kind=CoreResourceKinds.DISCOVERYSPACE,
+            identifier=space_ids,
+            hierarchy_direction="down",
+            max_hops=1,
+            identifiers_only=True,
+        )
+    )
+
+    # Build space_id_to_operation_ids: {space_id: set[operation_id]}
+    space_id_to_operation_ids: dict[str, set[str]] = {}
+    for space_id in space_ids:
+        space_children_by_kind = space_child_relationships.get(space_id, {})
+        space_id_to_operation_ids[space_id] = space_children_by_kind.get(
+            CoreResourceKinds.OPERATION, set()
+        )
+
+    # Query 3: for each space, get its parent sample store(s),
+    # returning hydrated SampleStoreResource objects.
+    # Returns {space_id: {CoreResourceKinds.SAMPLESTORE: {samplestore_id: SampleStoreResource}}}
+    space_parent_relationships: dict[
+        str, dict[CoreResourceKinds, dict[str, ADOResource]]
+    ] = sql_store.get_resources_by_relationship(
+        kind=CoreResourceKinds.DISCOVERYSPACE,
+        identifier=space_ids,
+        hierarchy_direction="up",
+        max_hops=1,
+        identifiers_only=False,
+    )
+
+    # Invert to {samplestore_id: set[space_id]}, keeping the hydrated resource.
+    samplestore_id_to_resource: dict[str, ADOResource] = {}
+    samplestore_id_to_space_ids: dict[str, set[str]] = {}
+    for space_id, space_parents_by_kind in space_parent_relationships.items():
+        samplestore_resources = space_parents_by_kind.get(
+            CoreResourceKinds.SAMPLESTORE, {}
+        )
+        for samplestore_id, samplestore_resource in samplestore_resources.items():
+            samplestore_id_to_resource[samplestore_id] = samplestore_resource
+            samplestore_id_to_space_ids.setdefault(samplestore_id, set()).add(space_id)
+
+    # For each distinct sample store, issue one batched space_entity_statistics query.
+    space_id_to_measured_entity_count: dict[str, int] = {}
+    total_samplestores = len(samplestore_id_to_space_ids)
+    for index, (samplestore_id, samplestore_space_ids) in enumerate(
+        samplestore_id_to_space_ids.items(), start=1
+    ):
+        if spinner is not None:
+            spinner.update(
+                f"Calculating stats for spaces in samplestore {index}/{total_samplestores}: {samplestore_id}"
+            )
+        sample_store = SampleStore.from_resource(
+            samplestore_id_to_resource[samplestore_id]
+        )
+        operation_ids_per_space = {
+            space_id: space_id_to_operation_ids[space_id]
+            for space_id in samplestore_space_ids
+        }
+        entity_stats_per_space = sample_store.space_entity_statistics(
+            space_ids_to_operation_ids=operation_ids_per_space
+        )
+        for space_id, entity_stats in entity_stats_per_space.items():
+            space_id_to_measured_entity_count[space_id] = (
+                entity_stats.number_measured_entities or 0
+            )
+
+    # Attach stats columns; spaces with no data show 0.
+    # get_space_metastore_stats always returns an entry for every requested
+    # space_id, so direct attribute access is safe.
+    df["EXPERIMENTS"] = df["IDENTIFIER"].apply(
+        lambda space_id: metastore_stats[space_id].number_of_experiments
+    )
+    df["OPERATIONS"] = df["IDENTIFIER"].apply(
+        lambda space_id: metastore_stats[space_id].number_of_operations
+    )
+    df["EXPLORE_OPERATIONS"] = df["IDENTIFIER"].apply(
+        lambda space_id: metastore_stats[space_id].number_of_explore_operations
+    )
+    df["MEASURED_ENTITIES"] = df["IDENTIFIER"].apply(
+        lambda space_id: space_id_to_measured_entity_count.get(space_id, 0)
+    )
 
     return df
 

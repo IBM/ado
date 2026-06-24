@@ -80,6 +80,15 @@ Goal: volume of work, recency, and which spaces attract the most operations.
    `MEASURED_ENTITIES` against the operator's `numberEntities` to check sampling
    completeness.
 
+4. **Discovery Spaces (with statistics)**
+
+   ```bash
+   uv run ado get spaces -o stats --output-file spaces-stats.txt
+   ```
+
+   Adds `EXPERIMENTS`, `OPERATIONS`, `EXPLORE_OPERATIONS`, and
+   `MEASURED_ENTITIES` columns.
+
 **Synthesis:** cluster mentally (or in notes) by **creation time** to see bursts
 of activity; count operations **per space** from the operations listing to see
 which spaces are busiest.

@@ -1771,9 +1771,9 @@ class SQLResourceStore(ResourceStore):
         query_text = f"""
             SELECT
                 sp.identifier AS space_id,
-                {array_length_fn}(
+                COALESCE({array_length_fn}(
                     JSON_EXTRACT(sp.data, '$.config.experiments.experiments')
-                ) AS num_experiments,
+                ), 0) AS num_experiments,
                 COUNT(op.identifier) AS total_operations,
                 COUNT(
                     CASE

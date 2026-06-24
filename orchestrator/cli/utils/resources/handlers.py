@@ -31,6 +31,7 @@ from orchestrator.cli.utils.output.prints import (
     cyan,
 )
 from orchestrator.cli.utils.resources.formatters import (
+    format_ado_get_stats_for_operations,
     format_default_ado_get_multiple_resources,
     format_default_ado_get_single_resource,
     format_resource_for_ado_get_custom_format,
@@ -53,6 +54,102 @@ if typing.TYPE_CHECKING:
     from orchestrator.core import ADOResource, CoreResourceKinds
     from orchestrator.metastore.project import ProjectContext
     from orchestrator.metastore.sqlstore import SQLStore
+
+
+def _render_dataframe_table_output(
+    df: "pd.DataFrame", parameters: "AdoGetCommandParameters"
+) -> None:
+    """Render a DataFrame as a rich table or print the empty-data message."""
+    import rich.box
+
+    if df.empty:
+        console_print(ADO_INFO_EMPTY_DATAFRAME, stderr=True)
+        return
+
+    if parameters.output_file:
+        do_not_truncate = True
+    else:
+        do_not_truncate = (
+            ["IDENTIFIER"] if not parameters.no_trunc else parameters.no_trunc
+        )
+
+    table = dataframe_to_rich_table(
+        df,
+        box=rich.box.SQUARE,
+        show_index=True,
+        show_edge=True,
+        do_not_truncate_columns=do_not_truncate,
+    )
+    _write_or_print_output(table, parameters.output_file)
+
+
+def _build_table_output_dataframe(
+    parameters: "AdoGetCommandParameters",
+    resource_type: "CoreResourceKinds | None",
+    dataframe: "pd.DataFrame | None",
+    resources: "list[ADOResource] | ADOResource | None",
+) -> "pd.DataFrame":
+    """Build the DataFrame used by table-like get output formats."""
+    import pandas as pd
+
+    if dataframe is not None:
+        return dataframe
+
+    if resources is not None:
+        if isinstance(resources, list):
+            if not resources:
+                return pd.DataFrame()
+            return pd.concat(
+                [
+                    format_default_ado_get_single_resource(
+                        resource=resource, show_details=parameters.show_details
+                    )
+                    for resource in resources
+                ],
+                ignore_index=True,
+            )
+
+        return format_default_ado_get_single_resource(
+            resource=resources, show_details=parameters.show_details
+        )
+
+    if resource_type is None:
+        console_print(
+            f"{ERROR}resource_type must be provided when dataframe and resources are None",
+            stderr=True,
+        )
+        raise typer.Exit(1)
+
+    sql_store = get_sql_store(
+        project_context=parameters.ado_configuration.project_context
+    )
+    with Status(ADO_SPINNER_QUERYING_DB) as status:
+        if not parameters.resource_id:
+            resources_df = sql_store.getResourceIdentifiersOfKind(
+                kind=resource_type.value,
+                field_selectors=parameters.field_selectors,
+                details=parameters.show_details,
+            )
+
+            status.update(ADO_SPINNER_GETTING_OUTPUT_READY)
+            return format_default_ado_get_multiple_resources(
+                resources=resources_df,
+                resource_kind=resource_type,
+            )
+
+        resource = sql_store.getResource(
+            identifier=parameters.resource_id, kind=resource_type
+        )
+
+        if not resource:
+            status.stop()
+            raise ResourceDoesNotExistError(
+                resource_id=parameters.resource_id, kind=resource_type
+            )
+
+        return format_default_ado_get_single_resource(
+            resource=resource, show_details=parameters.show_details
+        )
 
 
 def handle_ado_get(
@@ -82,6 +179,8 @@ def handle_ado_get(
             _handle_name_format(parameters, resource_type, dataframe, resources)
         case AdoGetSupportedOutputFormats.TABLE:
             _handle_table_format(parameters, resource_type, dataframe, resources)
+        case AdoGetSupportedOutputFormats.STATS:
+            _handle_stats_format(parameters, resource_type, dataframe, resources)
         case AdoGetSupportedOutputFormats.RAW:
             _handle_raw_format(parameters, resource_type)
         case (
@@ -190,104 +289,58 @@ def _handle_table_format(
     resources: "list[ADOResource] | ADOResource | None",
 ) -> None:
     """Handle TABLE output format - render DataFrame as table."""
-    import pandas as pd
-    import rich.box
+    output_df = _build_table_output_dataframe(
+        parameters=parameters,
+        resource_type=resource_type,
+        dataframe=dataframe,
+        resources=resources,
+    )
+    return _render_dataframe_table_output(output_df, parameters)
 
-    def _handle_df_output_for_table_format(df: "pd.DataFrame") -> None:
-        if df.empty:
-            console_print(ADO_INFO_EMPTY_DATAFRAME, stderr=True)
-            return
 
-        # When writing to file, avoid truncating columns by default
-        if parameters.output_file:
-            do_not_truncate = True
-        else:
-            do_not_truncate = (
-                ["IDENTIFIER"] if not parameters.no_trunc else parameters.no_trunc
-            )
+def _handle_stats_format(
+    parameters: "AdoGetCommandParameters",
+    resource_type: "CoreResourceKinds | None",
+    dataframe: "pd.DataFrame | None",
+    resources: "list[ADOResource] | ADOResource | None",
+) -> None:
+    """Handle STATS output format - TABLE columns plus 7 measurement stats columns.
 
-        table = dataframe_to_rich_table(
-            df,
-            box=rich.box.SQUARE,
-            show_index=True,
-            show_edge=True,
-            do_not_truncate_columns=do_not_truncate,
-        )
-        _write_or_print_output(table, parameters.output_file)
-        return
+    Only supported for operations.  For any other resource type the handler
+    prints an error message and exits with code 1.
+    """
+    from orchestrator.core import CoreResourceKinds
 
-    # If dataframe provided, use it directly
-    if dataframe is not None:
-        return _handle_df_output_for_table_format(dataframe)
-
-    # If resources provided, convert to DataFrame
-    if resources is not None:
-        if isinstance(resources, list):
-            # Multiple resources: build DataFrame manually
-            if not resources:
-                console_print(ADO_INFO_EMPTY_DATAFRAME, stderr=True)
-                return None
-            # Build DataFrame from resources
-            output_df = pd.concat(
-                [
-                    format_default_ado_get_single_resource(
-                        resource=resource, show_details=parameters.show_details
-                    )
-                    for resource in resources
-                ],
-                ignore_index=True,
-            )
-        else:
-            # Single resource
-            output_df = format_default_ado_get_single_resource(
-                resource=resources, show_details=parameters.show_details
-            )
-
-        return _handle_df_output_for_table_format(output_df)
-
-    # Otherwise use DB query
-    if resource_type is None:
+    if resource_type is not None and resource_type != CoreResourceKinds.OPERATION:
         console_print(
-            f"{ERROR}resource_type must be provided when dataframe and resources are None",
+            f"{ERROR}The 'stats' output format is only supported for operations.",
             stderr=True,
         )
         raise typer.Exit(1)
 
-    sql_store = get_sql_store(
+    base_df = _build_table_output_dataframe(
+        parameters=parameters,
+        resource_type=resource_type,
+        dataframe=dataframe,
+        resources=resources,
+    )
+
+    if base_df.empty:
+        _render_dataframe_table_output(base_df, parameters)
+        return
+
+    # Append stats columns.
+    sql_store_for_stats = get_sql_store(
         project_context=parameters.ado_configuration.project_context
     )
-    with Status(ADO_SPINNER_QUERYING_DB) as status:
-        if not parameters.resource_id:
-            # Multiple resources
-            resources_df = sql_store.getResourceIdentifiersOfKind(
-                kind=resource_type.value,
-                field_selectors=parameters.field_selectors,
-                details=parameters.show_details,
-            )
+    with Status(ADO_SPINNER_GETTING_OUTPUT_READY) as status:
+        enriched_df = format_ado_get_stats_for_operations(
+            base_df,
+            sql_store_for_stats,
+            spinner=status,
+        )
 
-            status.update(ADO_SPINNER_GETTING_OUTPUT_READY)
-            output_df = format_default_ado_get_multiple_resources(
-                resources=resources_df,
-                resource_kind=resource_type,
-            )
-
-        else:
-            # Single resource
-            resource = sql_store.getResource(
-                identifier=parameters.resource_id, kind=resource_type
-            )
-
-            if not resource:
-                status.stop()
-                raise ResourceDoesNotExistError(
-                    resource_id=parameters.resource_id, kind=resource_type
-                )
-
-            output_df = format_default_ado_get_single_resource(
-                resource=resource, show_details=parameters.show_details
-            )
-
-    return _handle_df_output_for_table_format(output_df)
+    _render_dataframe_table_output(enriched_df, parameters)
 
 
 def _handle_raw_format(

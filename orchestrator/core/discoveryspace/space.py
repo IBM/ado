@@ -1207,3 +1207,25 @@ class DiscoverySpace:
             )
 
         return result_list
+
+    def space_statistics(
+        self, lightweight_only: bool = False
+    ) -> "orchestrator.core.discoveryspace.stats.DiscoverySpaceStatistics":
+        """Compute statistics for this discovery space.
+
+        Delegates to
+        :func:`~orchestrator.core.discoveryspace.stats.space_statistics_for_spaces`
+        for a single space.
+
+        Args:
+            lightweight_only: When ``True`` skip all Python-side computation
+                and return ``None`` for the heavy fields.
+
+        Returns:
+            :class:`~orchestrator.core.discoveryspace.stats.DiscoverySpaceStatistics`
+        """
+        from orchestrator.core.discoveryspace.stats import space_statistics_for_spaces
+
+        return space_statistics_for_spaces([self], lightweight_only=lightweight_only)[
+            self.uri
+        ]

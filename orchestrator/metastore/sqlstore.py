@@ -13,6 +13,8 @@ import orchestrator.core
 import orchestrator.metastore
 import orchestrator.metastore.sql.statements
 import orchestrator.utilities
+from orchestrator.core.discoveryspace.stats import DiscoverySpaceStatistics
+from orchestrator.core.operation.config import DiscoveryOperationEnum
 from orchestrator.core.resources import ADOResourceEventEnum, CoreResourceKinds
 from orchestrator.metastore.base import (
     DeleteFromDatabaseError,
@@ -1722,3 +1724,102 @@ class SQLResourceStore(ResourceStore):
             return hydrated.get(next(iter(_identifiers_requested)), {})
 
         return hydrated
+
+    # ---------------------------------------------------------------------------
+    # Space statistics
+    # ---------------------------------------------------------------------------
+
+    def get_space_metastore_stats(
+        self,
+        space_ids: str | set[str],
+    ) -> "DiscoverySpaceStatistics | dict[str, DiscoverySpaceStatistics]":
+        """Return lightweight metastore-level statistics for one or many spaces.
+
+        Issues a single SQL query that anchors on each space's ``resources``
+        row and left-joins to ``resource_relationships`` / ``resources`` to
+        count operations.  The experiment count and operation counts are
+        therefore fetched in one round-trip.
+
+        Args:
+            space_ids: A single space identifier (``str``) or a set of space
+                identifiers (``set[str]``).
+
+        Returns:
+            :class:`~orchestrator.core.discoveryspace.stats.DiscoverySpaceStatistics`
+            for a single ``str`` input, or a
+            ``dict[str, DiscoverySpaceStatistics]`` for a ``set[str]`` input.
+
+        Raises:
+            SystemError: If the underlying SQL query fails.
+        """
+        single = isinstance(space_ids, str)
+        _space_ids: set[str] = {space_ids} if single else set(space_ids)
+
+        if not _space_ids:
+            return {}  # type: ignore[return-value]
+
+        # ------------------------------------------------------------------
+        # Single query: anchor on the space row so every requested space is
+        # returned even when it has no operations (LEFT JOIN).
+        # The experiment list lives at $.config.experiments.experiments inside
+        # the space's own resources.data column.
+        # MySQL uses JSON_LENGTH(); SQLite uses json_array_length().
+        # ------------------------------------------------------------------
+        is_sqlite = self.engine.dialect.name == "sqlite"
+        array_length_fn = "json_array_length" if is_sqlite else "JSON_LENGTH"
+
+        query_text = f"""
+            SELECT
+                sp.identifier AS space_id,
+                COALESCE({array_length_fn}(
+                    JSON_EXTRACT(sp.data, '$.config.experiments.experiments')
+                ), 0) AS num_experiments,
+                COUNT(op.identifier) AS total_operations,
+                COUNT(
+                    CASE
+                        WHEN JSON_EXTRACT(op.data, '$.operationType') = :explore_type
+                        THEN 1
+                    END
+                ) AS explore_operations
+            FROM resources sp
+            LEFT JOIN resource_relationships rr
+                ON rr.subject_identifier = sp.identifier
+            LEFT JOIN resources op
+                ON op.identifier = rr.object_identifier
+                AND op.kind = :op_kind
+            WHERE sp.identifier IN :space_ids
+            GROUP BY sp.identifier, sp.data
+        """  # noqa: S608 - identifier is an internal column name, not untrusted input
+
+        try:
+            with self.engine.begin() as conn:
+                query = sqlalchemy.text(query_text).bindparams(
+                    sqlalchemy.bindparam("space_ids", expanding=True),
+                    space_ids=list(_space_ids),
+                    explore_type=DiscoveryOperationEnum.SEARCH.value,
+                    op_kind=CoreResourceKinds.OPERATION.value,
+                )
+
+                rows = {row.space_id: row for row in conn.execute(query)}
+
+        except Exception as error:
+            msg = f"Unable to get statistics for space(s) {space_ids}"
+            self.log.critical(f"{msg}. Error: {error}")
+            raise SystemError(f"{msg}. Error: {error}") from error
+
+        result: dict[str, DiscoverySpaceStatistics] = {
+            sid: DiscoverySpaceStatistics(
+                number_of_experiments=rows[sid].num_experiments if sid in rows else 0,
+                number_of_operations=rows[sid].total_operations if sid in rows else 0,
+                number_of_explore_operations=(
+                    rows[sid].explore_operations if sid in rows else 0
+                ),
+                number_measured_entities=0,
+            )
+            for sid in _space_ids
+        }
+
+        if single:
+            return result[space_ids]  # type: ignore[index,arg-type]
+
+        return result

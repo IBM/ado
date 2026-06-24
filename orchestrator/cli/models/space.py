@@ -11,7 +11,6 @@ import orchestrator.schema.property
 from orchestrator.cli.utils.output.prints import console_print
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.resources import CoreResourceKinds
-from orchestrator.schema.entityspace import EntitySpaceRepresentation
 
 if typing.TYPE_CHECKING:
     import pandas as pd
@@ -54,10 +53,15 @@ class SpaceDetails:
 
     @classmethod
     def from_space(cls, space: DiscoverySpace) -> "SpaceDetails":
-
         import pandas as pd
 
-        # Entities sampled in the space
+        # Delegate most fields to space_statistics(lightweight_only=False).
+        # The two "all/partial measurements" fields are not tracked in
+        # DiscoverySpaceStatistics, so we keep a targeted pandas iteration for
+        # those only.
+        stats = space.space_statistics(lightweight_only=False)
+
+        # Entities sampled in the space — needed only to compute all/partial split
         measured_entities_table = space.measuredEntitiesTable(property_type="target")
         if (
             measured_entities_table.empty
@@ -65,38 +69,18 @@ class SpaceDetails:
         ):
             measured_entities_table["identifier"] = pd.Series(dtype="str")
 
-        # Entities sampled from space with all measurements applied
         experiments_in_measurement_space = len(space.measurementSpace.experiments)
         entities_sampled_from_space_with_all_measurements_applied = 0
         for _, group in measured_entities_table.groupby("identifier"):
             if group.shape[0] == experiments_in_measurement_space:
                 entities_sampled_from_space_with_all_measurements_applied += 1
 
-        # Entities sampled from space with partial measurements applied
         entities_sampled_from_space_with_partial_measurements_applied = (
             len(measured_entities_table["identifier"].unique())
             - entities_sampled_from_space_with_all_measurements_applied
         )
 
-        # Unmeasured entities
-        if space.entitySpace is None or not isinstance(
-            space.entitySpace,
-            EntitySpaceRepresentation,
-        ):
-            entities_yet_to_be_sampled_and_measured_from_space = math.nan
-        elif not space.entitySpace.isDiscreteSpace:
-            entities_yet_to_be_sampled_and_measured_from_space = math.inf
-        else:
-            entities_yet_to_be_sampled_and_measured_from_space = (
-                space.entitySpace.size
-                - entities_sampled_from_space_with_partial_measurements_applied
-                - entities_sampled_from_space_with_all_measurements_applied
-            )
-
-        # Entities matching the space
-        entities_matching_the_space = len(space.matchingEntities())
-
-        # Matching entities in the sample store with measurement space applied
+        # Matching entities with measurement space applied — targeted pandas iteration
         matching_entities_table = space.matchingEntitiesTable(property_type="target")
         if (
             matching_entities_table.empty
@@ -109,24 +93,13 @@ class SpaceDetails:
             if group.shape[0] == experiments_in_measurement_space:
                 matching_entities_in_sample_store_with_measurement_space_applied += 1
 
-        # Size of the entity space
-        size_of_entity_space = None
-        if (
-            isinstance(
-                space.entitySpace,
-                EntitySpaceRepresentation,
-            )
-            and space.entitySpace.isDiscreteSpace
-        ):
-            size_of_entity_space = space.entitySpace.size
-
         return cls(
             entities_sampled_from_space_with_all_measurements_applied=entities_sampled_from_space_with_all_measurements_applied,
             entities_sampled_from_space_with_partial_measurements_applied=entities_sampled_from_space_with_partial_measurements_applied,
-            entities_yet_to_be_sampled_and_measured_from_space=entities_yet_to_be_sampled_and_measured_from_space,
-            entities_matching_the_space=entities_matching_the_space,
+            entities_yet_to_be_sampled_and_measured_from_space=stats.number_unmeasured_entities,
+            entities_matching_the_space=stats.number_matching_entities,
             matching_entities_in_sample_store_with_measurement_space_applied=matching_entities_in_sample_store_with_measurement_space_applied,
-            size_of_entity_space=size_of_entity_space,
+            size_of_entity_space=stats.size_of_entity_space,
         )
 
     def to_rich_table(self) -> rich.table.Table:

@@ -81,6 +81,19 @@ type.
 `samplestores` (`store`), `datacontainers` (`dcr`), `actuatorconfigurations`
 (`ac`)
 
+### Operation Measurement Statistics
+
+`-o stats` adds result-count columns to the operations table without fetching
+full measurement data. Only supported for operations.
+
+```bash
+uv run ado get operations -o stats --output-file operations-stats.txt
+uv run ado get operation OPERATION_ID -o stats --no-trunc
+```
+
+Extra columns: `TOTAL_RESULTS`, `SUCCESSFUL_RESULTS`, `FAILED_RESULTS`,
+`MEASURED_ENTITIES` (distinct entities with at least one result).
+
 ### Filtering Resources
 
 Filter resources based on metadata fields using MySQL JSON Path queries:

@@ -15,6 +15,7 @@ from sqlalchemy.exc import InvalidRequestError, SQLAlchemyError
 import orchestrator.core.samplestore.config
 import orchestrator.core.samplestore.csv
 import orchestrator.metastore.sql.statements
+from orchestrator.core.discoveryspace.stats import DiscoverySpaceStatistics
 from orchestrator.core.samplestore.base import (
     ActiveSampleStore,
     FailedToDecodeStoredEntityError,
@@ -1614,6 +1615,126 @@ class SQLSampleStore(ActiveSampleStore):
             msg = f"Unable to get measurement statistics for operation IDs {operation_ids}"
             self.log.critical(f"{msg}. Error: {error}")
             raise SystemError(f"{msg}. Error: {error}") from error
+
+    def space_entity_statistics(
+        self,
+        space_ids_to_operation_ids: dict[str, set[str]],
+    ) -> "dict[str, DiscoverySpaceStatistics]":
+        """Compute entity-level statistics for one or more discovery spaces.
+
+        Issues a single SQL query that fetches all distinct
+        ``(operation_id, entity_id)`` pairs across every operation referenced
+        in *space_ids_to_operation_ids*, then groups the results by space ID
+        in Python.  This approach is portable across all supported backends
+        (SQLite, MySQL).
+
+        ``number_matching_entities`` and
+        ``number_matching_entities_with_measurements`` are not computed here
+        (they require Python-side ``isEntityInSpace`` evaluation) and are
+        always ``None`` in the returned models.
+
+        Args:
+            space_ids_to_operation_ids: Mapping of space ID to the set of
+                operation IDs that belong to that space.  Spaces with an empty
+                operation-ID set are returned with ``number_measured_entities``
+                equal to ``0``.  An empty mapping returns an empty dict.
+
+        Returns:
+            A ``dict`` keyed by space ID.  Each value is a
+            :class:`~orchestrator.core.discoveryspace.stats.DiscoverySpaceStatistics`
+            with ``number_measured_entities`` populated and all other fields at
+            their defaults (``None``).
+
+        Raises:
+            SystemError: If the underlying SQL query fails.
+        """
+        if not space_ids_to_operation_ids:
+            return {}
+
+        # Separate spaces that have no operations (return 0 immediately) from
+        # those that need a DB query.
+        empty_space_ids = {
+            space_id
+            for space_id, operation_ids in space_ids_to_operation_ids.items()
+            if not operation_ids
+        }
+        spaces_to_query = {
+            space_id: operation_ids
+            for space_id, operation_ids in space_ids_to_operation_ids.items()
+            if operation_ids
+        }
+
+        result: dict[str, DiscoverySpaceStatistics] = {
+            space_id: DiscoverySpaceStatistics(
+                number_of_experiments=0,
+                number_of_operations=0,
+                number_of_explore_operations=0,
+                number_measured_entities=0,
+            )
+            for space_id in empty_space_ids
+        }
+
+        if not spaces_to_query:
+            return result
+
+        # Flat set of all operation IDs across all queried spaces.
+        operation_ids = {
+            operation_id
+            for operation_ids in spaces_to_query.values()
+            for operation_id in operation_ids
+        }
+        # Reverse map: operation_id → space_id (each operation belongs to one space).
+        operation_id_to_space_id: dict[str, str] = {
+            operation_id: space_id
+            for space_id, operation_ids in spaces_to_query.items()
+            for operation_id in operation_ids
+        }
+
+        try:
+            from sqlalchemy import select
+
+            req_table = self._request_table
+            reqres_table = self._request_result_table
+            res_table = self._result_table
+
+            # Fetch all distinct (operation_id, entity_id) pairs in one query.
+            stmt = (
+                select(
+                    req_table.c.operation_id,
+                    res_table.c.entity_id,
+                )
+                .select_from(req_table)
+                .join(reqres_table, reqres_table.c.request_uid == req_table.c.uid)
+                .join(res_table, reqres_table.c.result_uid == res_table.c.uid)
+                .where(req_table.c.operation_id.in_(operation_ids))
+                .distinct()
+            )
+
+            with self.engine.begin() as connectable:
+                rows = connectable.execute(stmt).fetchall()
+
+            # Group distinct entity IDs per space in Python.
+            entity_ids_by_space_id: dict[str, set[str]] = {
+                space_id: set() for space_id in spaces_to_query
+            }
+            for row in rows:
+                space_id = operation_id_to_space_id[row.operation_id]
+                entity_ids_by_space_id[space_id].add(row.entity_id)
+
+            for space_id, entity_ids in entity_ids_by_space_id.items():
+                result[space_id] = DiscoverySpaceStatistics(
+                    number_of_experiments=0,
+                    number_of_operations=0,
+                    number_of_explore_operations=0,
+                    number_measured_entities=len(entity_ids),
+                )
+
+        except SQLAlchemyError as error:
+            msg = f"Unable to get entity statistics for spaces {set(spaces_to_query)}"
+            self.log.critical(f"{msg}. Error: {error}")
+            raise SystemError(f"{msg}. Error: {error}") from error
+
+        return result
 
     def measurement_requests_for_operation(
         self,

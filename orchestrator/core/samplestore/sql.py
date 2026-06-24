@@ -59,6 +59,9 @@ if TYPE_CHECKING:
     from rich.console import RenderableType
 
     from orchestrator.core.operation.stats import OperationMeasurementStatistics
+    from orchestrator.core.samplestore.stats import (  # noqa: F401 — used in annotations
+        SampleStoreStatistics,
+    )
 
 # Process-level cache of (db_url, tablename) pairs for which the four DDL tables
 # have already been verified to exist, along with their reflected metadata.
@@ -1613,6 +1616,63 @@ class SQLSampleStore(ActiveSampleStore):
                 ]
         except SQLAlchemyError as error:
             msg = f"Unable to get measurement statistics for operation IDs {operation_ids}"
+            self.log.critical(f"{msg}. Error: {error}")
+            raise SystemError(f"{msg}. Error: {error}") from error
+
+    def samplestore_statistics(self) -> "SampleStoreStatistics":
+        """Compute aggregate statistics for this sample store in a single query.
+
+        Issues exactly one query that returns three scalar counts via subqueries:
+        total entities, total measurement results, and distinct experiment
+        references.
+
+        Returns:
+            A :class:`~orchestrator.core.samplestore.stats.SampleStoreStatistics`
+            instance with all three counters populated.
+
+        Raises:
+            SystemError: If the underlying database query fails.
+        """
+        from sqlalchemy import func, select
+
+        from orchestrator.core.samplestore.stats import SampleStoreStatistics
+
+        entity_table = self._metadata.tables[self._tablename]
+        req_table = self._request_table
+        res_table = self._result_table
+
+        # Equivalent SQL:
+        #
+        #   SELECT
+        #     (SELECT COUNT(identifier)
+        #        FROM sqlsource_{id})                              AS number_of_entities,
+        #     (SELECT COUNT(uid)
+        #        FROM sqlsource_{id}_measurement_results)          AS number_of_results,
+        #     (SELECT COUNT(DISTINCT experiment_reference)
+        #        FROM sqlsource_{id}_measurement_requests)         AS number_of_experiments
+
+        stmt = select(
+            select(func.count(entity_table.c.identifier))
+            .scalar_subquery()
+            .label("number_of_entities"),
+            select(func.count(res_table.c.uid))
+            .scalar_subquery()
+            .label("number_of_results"),
+            select(func.count(func.distinct(req_table.c.experiment_reference)))
+            .scalar_subquery()
+            .label("number_of_experiments"),
+        )
+
+        try:
+            with self.engine.begin() as connectable:
+                row = connectable.execute(stmt).one()
+                return SampleStoreStatistics(
+                    number_of_entities=row.number_of_entities or 0,
+                    number_of_results=row.number_of_results or 0,
+                    number_of_experiments=row.number_of_experiments or 0,
+                )
+        except SQLAlchemyError as error:
+            msg = f"Unable to get statistics for sample store {self._tablename}"
             self.log.critical(f"{msg}. Error: {error}")
             raise SystemError(f"{msg}. Error: {error}") from error
 

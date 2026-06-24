@@ -88,12 +88,11 @@ full measurement data. Only supported for operations.
 
 ```bash
 uv run ado get operations -o stats --output-file operations-stats.txt
-uv run ado get operation OPERATION_ID -o stats
+uv run ado get operation OPERATION_ID -o stats --no-trunc
 ```
 
-Use `--output-file` or `--no-trunc` to avoid terminal truncation. Extra columns:
-`TOTAL_RESULTS`, `SUCCESSFUL_RESULTS`, `FAILED_RESULTS`, `MEASURED_ENTITIES`
-(distinct entities with at least one result).
+Extra columns: `TOTAL_RESULTS`, `SUCCESSFUL_RESULTS`, `FAILED_RESULTS`,
+`MEASURED_ENTITIES` (distinct entities with at least one result).
 
 ### Filtering Resources
 

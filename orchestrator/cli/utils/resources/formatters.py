@@ -197,7 +197,7 @@ def format_ado_get_stats_for_operations(
 
     operation_ids: set[str] = set(df["IDENTIFIER"])
 
-    # Round-trip 2: one recursive-CTE query for all operations at once.
+    # Round-trip 2: one recursive-CTE query for all operations at once
     # Returns {operation_id: {CoreResourceKinds.SAMPLESTORE: {samplestore_id, ...}, ...}}
     relationships: dict[str, dict[CoreResourceKinds, set[str]]] = (
         sql_store.get_resources_by_relationship(
@@ -209,16 +209,21 @@ def format_ado_get_stats_for_operations(
         )
     )
 
-    # Invert to {samplestore_id: set_of_operation_ids}
+    # Invert to {samplestore_id: set_of_operation_ids}.
     samplestore_to_operation_ids: dict[str, set[str]] = {}
     for operation_id, kind_map in relationships.items():
-        samplestore_ids = kind_map.get(CoreResourceKinds.SAMPLESTORE, set())
-        for samplestore_id in samplestore_ids:
+        for samplestore_id in kind_map.get(CoreResourceKinds.SAMPLESTORE, set()):
             samplestore_to_operation_ids.setdefault(samplestore_id, set()).add(
                 operation_id
             )
 
-    # Round-trips 3…K+2: one load + one batched stats query per unique samplestore.
+    # Round-trip 3: fetch all distinct samplestore resources in one batch query.
+    samplestore_id_to_resource: dict[str, ADOResource] = sql_store.getResources(
+        list(samplestore_to_operation_ids.keys())
+    )
+
+    # Round-trips 4…K+3: one batched stats query per unique samplestore.
+    # SampleStore is instantiated from the already-fetched resource — no extra DB round-trip.
     stats_lookup: dict[str, dict[str, int]] = {}
     total_samplestores = len(samplestore_to_operation_ids)
     for index, (
@@ -229,7 +234,9 @@ def format_ado_get_stats_for_operations(
             spinner.update(
                 f"Calculating stats for operations in samplestore {index}/{total_samplestores}: {samplestore_id}"
             )
-        sample_store = SampleStore.from_identifier(samplestore_id, sql_store)
+        sample_store = SampleStore.from_resource(
+            samplestore_id_to_resource[samplestore_id]
+        )
         for stat in sample_store.operation_measurement_statistics(
             operation_ids=operation_ids_in_store
         ):
@@ -373,6 +380,61 @@ def format_ado_get_stats_for_spaces(
     )
     df["MEASURED_ENTITIES"] = df["IDENTIFIER"].apply(
         lambda space_id: space_id_to_measured_entity_count.get(space_id, 0)
+    )
+
+    return df
+
+
+def format_ado_get_stats_for_samplestores(
+    df: "pd.DataFrame",
+    sql_store: "SQLStore",
+    spinner: "Status | None" = None,
+) -> "pd.DataFrame":
+    """Append 3 statistics columns to a sample stores DataFrame.
+
+    Iterates over each store, updating the spinner with progress, and collects
+    entity, result, and experiment counts.
+
+    Args:
+        df: DataFrame with at least an ``IDENTIFIER`` column (one row per
+            sample store).
+        sql_store: The ``SQLStore`` to use for loading each sample store.
+        spinner: Optional rich status spinner to update with progress messages.
+
+    Returns:
+        The same DataFrame with three extra columns appended:
+        ``ENTITIES``, ``RESULTS``, ``EXPERIMENTS``.
+        Stores with no recorded data show ``0`` in all stats columns.
+    """
+    from orchestrator.core.samplestore.base import SampleStore
+
+    samplestore_ids: list[str] = list(df["IDENTIFIER"])
+    total_samplestores = len(samplestore_ids)
+
+    # Fetch all samplestore resources in a single batch query, then instantiate
+    # SampleStore objects from the hydrated resources — no per-store round-trip.
+    resources: dict[str, ADOResource] = sql_store.getResources(samplestore_ids)
+
+    stats_by_id = {}
+    for index, samplestore_id in enumerate(samplestore_ids, start=1):
+        if samplestore_id not in resources:
+            continue
+        if spinner is not None:
+            spinner.update(
+                f"Calculating stats for samplestore {index}/{total_samplestores}: {samplestore_id}"
+            )
+        store = SampleStore.from_resource(resources[samplestore_id])
+        stats_by_id[samplestore_id] = store.samplestore_statistics()
+
+    # Attach stats columns; stores with no data show 0.
+    df["ENTITIES"] = df["IDENTIFIER"].apply(
+        lambda sid: stats_by_id[sid].number_of_entities if sid in stats_by_id else 0
+    )
+    df["RESULTS"] = df["IDENTIFIER"].apply(
+        lambda sid: stats_by_id[sid].number_of_results if sid in stats_by_id else 0
+    )
+    df["EXPERIMENTS"] = df["IDENTIFIER"].apply(
+        lambda sid: stats_by_id[sid].number_of_experiments if sid in stats_by_id else 0
     )
 
     return df

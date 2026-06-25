@@ -537,6 +537,7 @@ Where:
           `FAILED_RESULTS`, `MEASURED_ENTITIES`.
         - **Discovery Spaces**: `EXPERIMENTS`, `OPERATIONS`,
           `EXPLORE_OPERATIONS`, `MEASURED_ENTITIES`.
+        - **Sample Stores**: `ENTITIES`, `RESULTS`, `EXPERIMENTS`.
 
     <!-- prettier-ignore-end -->
 
@@ -749,6 +750,18 @@ ado get spaces -o stats
 
 ```shell
 ado get space --use-latest -o stats
+```
+
+##### Getting statistics for all Sample Stores
+
+```shell
+ado get samplestores -o stats
+```
+
+##### Getting statistics for a single Sample Store
+
+```shell
+ado get samplestore --use-latest -o stats
 ```
 
 ### ado show

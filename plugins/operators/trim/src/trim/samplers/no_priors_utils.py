@@ -695,6 +695,28 @@ def get_df_at_least_one_measured_value(
             logger.error("Unexpected behavior can happen!")
             df.rename(columns={f"{el}-mean": el}, inplace=True)
             valid_targetOutput_list += [el]
+        else:
+            # experimentSeries names columns by the short target-property identifier
+            # (e.g. "value-mean") rather than the experiment-qualified name
+            # (e.g. "may_fail-value-mean").  If el ends with the base name of a
+            # "*-mean" column in the DataFrame, rename that column to el.
+            matching_col = next(
+                (
+                    c
+                    for c in all_df_cols
+                    if c.endswith("-mean") and el.endswith(c[: -len("-mean")])
+                ),
+                None,
+            )
+            if matching_col is not None:
+                logger.warning(
+                    f"Column named '{matching_col}' found in the DataFrame obtained "
+                    f"through matchingEntitiesTable; expected '{el}' or '{el}-mean'. "
+                    f"The target property identifier is a suffix of the requested "
+                    f"targetOutput. Renaming '{matching_col}' to '{el}'."
+                )
+                df.rename(columns={matching_col: el}, inplace=True)
+                valid_targetOutput_list += [el]
     col_list += valid_targetOutput_list
 
     if valid_targetOutput_list != targetOutput_list:

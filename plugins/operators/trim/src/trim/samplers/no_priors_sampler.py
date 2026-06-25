@@ -113,21 +113,20 @@ class NoPriorsSampleSelector(BaseSampler):
                     if quota_count >= quota:
                         break
 
-                    # Snapshot source space before yielding.
-                    ds_before = await stateHandle.discoverySpace.remote()
-                    source_before, _ = get_source_and_target(
-                        ds_before, self.params.targetOutput
-                    )
-
                     yield [entity]
                     await asyncio.sleep(0.001)
 
-                    # Check whether a target measurement appeared.
+                    # Check whether this specific entity has a target value.
+                    # get_source_and_target returns only rows with a non-null
+                    # targetOutput, so presence of the identifier is sufficient.
                     ds_after = await stateHandle.discoverySpace.remote()
                     source_after, _ = get_source_and_target(
                         ds_after, self.params.targetOutput
                     )
-                    hit = len(source_after) > len(source_before)
+                    hit = (
+                        not source_after.empty
+                        and entity.identifier in source_after["identifier"].values
+                    )
 
                     if hit:
                         quota_count += 1
@@ -231,18 +230,18 @@ class NoPriorsSampleSelector(BaseSampler):
                     if quota_count >= quota:
                         break
 
-                    # Snapshot source space before yielding.
-                    source_before, _ = get_source_and_target(
-                        space, self.params.targetOutput
-                    )
-
                     yield [entity]
 
-                    # Check whether a target measurement appeared.
+                    # Check whether this specific entity has a target value.
+                    # get_source_and_target returns only rows with a non-null
+                    # targetOutput, so presence of the identifier is sufficient.
                     source_after, _ = get_source_and_target(
                         space, self.params.targetOutput
                     )
-                    hit = len(source_after) > len(source_before)
+                    hit = (
+                        not source_after.empty
+                        and entity.identifier in source_after["identifier"].values
+                    )
 
                     if hit:
                         quota_count += 1

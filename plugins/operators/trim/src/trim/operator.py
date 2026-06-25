@@ -8,6 +8,7 @@ from ado.core.discoveryspace.space import DiscoverySpace
 from ado.core.operation.config import FunctionOperationInfo
 from ado.core.operation.operation import OperationOutput
 from ado.modules.operators.collections import characterize_operation
+from trim.samplers.no_priors_parameters import MissingTargetMode
 from trim.samplers.no_priors_utils import get_source_and_target
 from trim.trim_pydantic import (
     TrimParameters,
@@ -154,11 +155,22 @@ def trim(
             )
             log_and_save_characterization(source_df, target_df)
 
-        if len(source_df) < params.samplingBudget.minPoints:
+        effective_count = len(source_df)
+
+        if params.missing_target_variables.mode == MissingTargetMode.InjectDefaultValue:
+            # In InjectDefaultValue mode the missing entities will be synthetically
+            # filled by TrimSampleSelector, so they count towards minPoints.
+            effective_count += len(params.missing_target_variables.skip_entities)
+
+        if effective_count < params.samplingBudget.minPoints:
             log_unable_to_proceed_with_iterative_modeling_and_raise_error(
                 discoverySpace,
                 target_output=params.targetOutput,
-                additional_info=f"This was detected during the no-priors characterization phase: {params.samplingBudget.minPoints - len(source_df)} out of {params.samplingBudget.minPoints}.",
+                additional_info=(
+                    f"This was detected during the no-priors characterization phase: "
+                    f"{params.samplingBudget.minPoints - effective_count} out of "
+                    f"{params.samplingBudget.minPoints}."
+                ),
             )
 
     # TRIM Iterative Modeling

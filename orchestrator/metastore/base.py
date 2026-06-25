@@ -40,6 +40,28 @@ class NoRelatedResourcesError(ValueError):
         )
 
 
+class ResourceHasChildrenError(ValueError):
+    def __init__(
+        self,
+        resource_id: str,
+        kind: CoreResourceKinds,
+        children_resources: "pd.DataFrame",
+    ) -> None:
+        self.resource_id = resource_id
+        self.kind = kind
+        self.children_resources = children_resources
+        super().__init__(
+            f"Cannot delete {kind.value} {resource_id} because it has children resources"
+        )
+
+
+class ContextDoesNotExistError(ValueError):
+    def __init__(self, resource_id: str, available_contexts: list[str]) -> None:
+        self.resource_id = resource_id
+        self.available_contexts = available_contexts
+        super().__init__(f"Context {resource_id} does not exist")
+
+
 class DatabaseOperationError(Exception): ...
 
 

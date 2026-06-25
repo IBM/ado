@@ -1,7 +1,6 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-import typer
 from rich.status import Status
 
 from orchestrator.cli.models.parameters import AdoDeleteCommandParameters
@@ -9,19 +8,25 @@ from orchestrator.cli.utils.generic.wrappers import get_sql_store
 from orchestrator.cli.utils.output.prints import (
     ADO_SPINNER_DELETING_FROM_DB,
     ADO_SPINNER_QUERYING_DB,
-    SUCCESS,
-    cannot_delete_resource_due_to_children_resources,
-    console_print,
 )
 from orchestrator.core import CoreResourceKinds
 from orchestrator.metastore.base import (
-    DeleteFromDatabaseError,
     ResourceDoesNotExistError,
+    ResourceHasChildrenError,
 )
 
 
 def delete_actuator_configuration(parameters: AdoDeleteCommandParameters) -> None:
-    # Extract the single resource_id from the list
+    """Delete a single actuator configuration.
+
+    Args:
+        parameters: Delete command parameters containing the actuator configuration id.
+
+    Raises:
+        ResourceDoesNotExistError: If the actuator configuration does not exist.
+        ResourceHasChildrenError: If the actuator configuration has dependent resources.
+        DeleteFromDatabaseError: If a database error occurs during deletion.
+    """
     resource_id = parameters.resource_ids[0]
 
     sql = get_sql_store(project_context=parameters.ado_configuration.project_context)
@@ -42,21 +47,15 @@ def delete_actuator_configuration(parameters: AdoDeleteCommandParameters) -> Non
 
         if not children_resources.empty:
             spinner.stop()
-            console_print(
-                cannot_delete_resource_due_to_children_resources(
-                    resource_kind=CoreResourceKinds.ACTUATORCONFIGURATION,
-                    resource_id=resource_id,
-                    children_resources=children_resources,
-                ),
-                stderr=True,
+            raise ResourceHasChildrenError(
+                resource_id=resource_id,
+                kind=CoreResourceKinds.ACTUATORCONFIGURATION,
+                children_resources=children_resources,
             )
-            raise typer.Exit(1)
 
         spinner.update(ADO_SPINNER_DELETING_FROM_DB)
         try:
             sql.delete_actuator_configuration(resource_id)
-        except DeleteFromDatabaseError:
+        except Exception:
             spinner.stop()
             raise
-
-    console_print(SUCCESS, stderr=True)

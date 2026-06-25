@@ -187,6 +187,11 @@ class TrimSampleSelector(BaseSampler):
                 self.params.targetOutput,
                 self.params.missing_target_variables.defaultValue,  # type: ignore[arg-type]
             )
+            # Accumulate so future iterations can re-apply synthetic rows after
+            # each fresh get_source_and_target() call.
+            self._injected_rows_df = pd.concat(
+                [self._injected_rows_df, one_additional_row], ignore_index=True
+            )
             current_source_df = pd.concat(
                 [current_source_df, one_additional_row], ignore_index=True
             )
@@ -298,6 +303,13 @@ class TrimSampleSelector(BaseSampler):
                 discoverySpace,
                 self.params.targetOutput,
             )
+            # Re-apply any synthetic rows injected in previous iterations;
+            # they are not persisted to the discovery space so get_source_and_target
+            # will never return them.
+            if not self._injected_rows_df.empty:
+                current_source_df = pd.concat(
+                    [current_source_df, self._injected_rows_df], ignore_index=True
+                )
 
             if i == 0:
                 previous_source_df = current_source_df
@@ -601,8 +613,8 @@ class TrimSampleSelector(BaseSampler):
                     self.params.finalModelAutoGluonArgs.tabularPredictorArgs.get(
                         "path", self.params.outputDirectory
                     )
-                    + "_finalized"
-                )
+                    or ""
+                ) + "_finalized"
 
                 logger_trim_sampler.info(
                     f"Stopping criteria hit after measuring {i} entities.\n"
@@ -932,3 +944,4 @@ class TrimSampleSelector(BaseSampler):
     def __init__(self, parameters: TrimParameters) -> None:
         self.params = parameters
         self._missing_count: int = 0
+        self._injected_rows_df: pd.DataFrame = pd.DataFrame()

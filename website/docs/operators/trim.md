@@ -58,9 +58,9 @@ TRIM is particularly valuable when:
 > TRIM requires that your experiment can obtain a target variable measurement
 > for every entity in the space and that these measurements are of the same type
 > (numbers or strings, vectors are not supported). If some entities in your
-> space are expected to not produce a target variable measurement, set
-> [`defaultForUnmeasuredProperties`](#defaultforunmeasuredproperties) to a
-> representative float value. More details
+> space are expected to not produce a target variable measurement, configure
+> [`missing_target_variables`](#missing_target_variables) — set `mode` to
+> `InjectDefaultValue` (supply a `defaultValue`) or `Skip`. More details
 > [in the troubleshooting section](#debugging-and-troubleshooting).
 
 <!-- markdownlint-enable no-blanks-blockquote -->
@@ -192,29 +192,61 @@ parameters:
   targetOutput: pressure
 ```
 
-#### `defaultForUnmeasuredProperties`
+#### `missing_target_variables`
 
-**Type:** `float | None`
+**Type:** nested block
 
-**Default:** `None`
+**Default:** `{mode: RaiseError}`
 
-**Purpose:** Optional default value injected for the target variable when an
-entity does not produce a measurement for it (e.g. due to an
-`InvalidMeasurement`). When `None` (default), TRIM raises an
-`InsufficientDataError` if any entity yields no target measurement. Set a float
-to allow the iterative modeling phase to continue by substituting this value for
-those entities.
+**Purpose:** Controls how both the no-priors and the iterative sampler handle
+entities that do not produce a measurement for `targetOutput` (e.g. due to an
+`InvalidMeasurement`). Three modes are available:
 
-**Tuning Guidance:** Choose a value that is meaningfully distinct from valid
-measurements in your space — for example, `-1.0` if all real measurements are
-non-negative, or `0.0` if the target is always positive. An inappropriate
-default can silently degrade model quality.
+<!-- markdownlint-disable MD013 MD060 -->
 
-**Example:**
+| Mode | Behaviour |
+|---|---|
+| `RaiseError` | Raise `InsufficientDataError` immediately **(default)** |
+| `InjectDefaultValue` | Inject `defaultValue` as a synthetic row; entity counts towards the sampling quota |
+| `Skip` | Permanently drop the entity; does **not** count towards the quota |
+
+**Sub-fields:**
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `mode` | `str` | `RaiseError` | One of `RaiseError`, `InjectDefaultValue`, `Skip` |
+| `defaultValue` | `float \| None` | `None` | Required when `mode: InjectDefaultValue`. The value substituted for the target variable. |
+| `budget` | `int \| None` | `None` | Maximum number of entities allowed to miss the target before raising `InsufficientDataError`. Must be `> 0` when set. |
+
+<!-- markdownlint-enable MD013 MD060 -->
+
+**Tuning Guidance:**
+
+- Use `InjectDefaultValue` when missing measurements are occasional and you want
+  the model to treat those entities as having a known sentinel value (e.g.
+  `-1.0` for a non-negative target, or `0.0` for a strictly positive one). An
+  inappropriate `defaultValue` can silently degrade model quality.
+- Use `Skip` when entities that cannot produce a target measurement should be
+  excluded entirely from model training. TRIM will draw extra candidates from
+  the pool to compensate.
+- Set `budget` to cap total misses and surface unexpected failures early.
+
+**Examples:**
 
 ```yaml
+# Inject a sentinel value for entities that cannot be measured
 parameters:
-  defaultForUnmeasuredProperties: -1.0
+  missing_target_variables:
+    mode: InjectDefaultValue
+    defaultValue: -1.0
+```
+
+```yaml
+# Silently skip unmeasurable entities; fail after 5 misses
+parameters:
+  missing_target_variables:
+    mode: Skip
+    budget: 5
 ```
 
 ---
@@ -602,9 +634,10 @@ TRIM maintains a rolling holdout set:
 By default, TRIM assumes that all measurements produce the observed target
 output property. If an entity does not produce a value for the target variable,
 TRIM raises `InsufficientDataError`. If this is expected behaviour in your
-experiment (e.g. some entities don't measure the target variable), set
-[`defaultForUnmeasuredProperties`](#defaultforunmeasuredproperties) to a float
-that represents those cases and TRIM will inject it instead of raising.
+experiment (e.g. some entities don't measure the target variable), configure
+[`missing_target_variables`](#missing_target_variables): set `mode` to
+`InjectDefaultValue` (and supply a `defaultValue`) to substitute a sentinel, or
+to `Skip` to exclude those entities from model training entirely.
 
 To inspect what happened you can show the entities in the space with the
 following command

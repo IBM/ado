@@ -9,6 +9,7 @@ import pydantic
 if TYPE_CHECKING:
     import pandas as pd
 
+    from orchestrator.core.datacontainer.stats import DataContainerStatistics
     from orchestrator.core.discoveryspace.stats import DiscoverySpaceStatistics
 
 from orchestrator.core.resources import ADOResource, CoreResourceKinds
@@ -355,6 +356,24 @@ class ResourceStore(abc.ABC):
             mapping each to its
             :class:`~orchestrator.core.discoveryspace.stats.DiscoverySpaceStatistics`.
             Space IDs that have no operations are included with zero counts.
+        """
+
+    @abc.abstractmethod
+    def get_datacontainer_stats(
+        self,
+        datacontainer_ids: set[str],
+    ) -> "dict[str, DataContainerStatistics]":
+        """Return lightweight statistics for a set of DataContainer IDs.
+
+        Args:
+            datacontainer_ids: A set of DataContainer identifiers to query.
+
+        Returns:
+            A ``dict`` keyed by DataContainer ID mapping each to its
+            :class:`~orchestrator.core.datacontainer.stats.DataContainerStatistics`.
+            IDs that are not present in the database are returned with all-zero
+            stats.  An empty input set returns an empty dict immediately
+            (no query issued).
         """
 
 

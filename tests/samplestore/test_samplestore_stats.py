@@ -1,14 +1,11 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-"""Tests for SampleStoreStatistics model and samplestore_statistics_for_stores."""
+"""Tests for SampleStoreStatistics and SQLSampleStore.samplestore_statistics."""
 
 from collections.abc import Callable
 
 from orchestrator.core.samplestore.sql import SQLSampleStore
-from orchestrator.core.samplestore.stats import (
-    samplestore_statistics_for_stores,
-)
 from orchestrator.schema.request import MeasurementRequest
 
 # ---------------------------------------------------------------------------
@@ -66,59 +63,3 @@ def test_samplestore_statistics_reflect_simulation(
     experiment_refs = {str(r.experimentReference) for r in requests}
     assert len(experiment_refs) == 1
     assert after.number_of_experiments == before.number_of_experiments + 1
-
-
-# ---------------------------------------------------------------------------
-# samplestore_statistics_for_stores
-# ---------------------------------------------------------------------------
-
-
-def test_statistics_for_stores_empty_list_returns_empty_dict() -> None:
-    """An empty list returns {} without touching any database."""
-    assert samplestore_statistics_for_stores([]) == {}
-
-
-def test_statistics_for_stores_keyed_by_identifier_with_correct_counts(
-    simulate_ml_multi_cloud_random_walk_operation: Callable[
-        [int, int, int, str | None],
-        tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
-    ],
-    empty_sample_store: SQLSampleStore,
-    random_identifier: Callable[[], str],
-) -> None:
-    """Returns one entry per store keyed by identifier; counts are consistent with direct calls.
-
-    Uses two stores — a populated ml_multi_cloud store and an empty store — to
-    verify that the batching wrapper delegates correctly and does not mix up results.
-    """
-    populated_store, _, _ = simulate_ml_multi_cloud_random_walk_operation(
-        number_entities=3,
-        number_requests=2,
-        measurements_per_result=1,
-        operation_id=random_identifier(),
-    )
-
-    # Sanity-check that the two stores are distinct
-    assert populated_store.identifier != empty_sample_store.identifier
-
-    result = samplestore_statistics_for_stores([populated_store, empty_sample_store])
-
-    assert set(result.keys()) == {
-        populated_store.identifier,
-        empty_sample_store.identifier,
-    }
-
-    # Results must match what direct calls return
-    assert (
-        result[populated_store.identifier] == populated_store.samplestore_statistics()
-    )
-    assert (
-        result[empty_sample_store.identifier]
-        == empty_sample_store.samplestore_statistics()
-    )
-
-    # The populated store must have more results than the empty one
-    assert (
-        result[populated_store.identifier].number_of_results
-        > result[empty_sample_store.identifier].number_of_results
-    )

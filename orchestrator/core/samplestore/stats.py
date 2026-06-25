@@ -1,12 +1,9 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-from typing import TYPE_CHECKING, Annotated
+from typing import Annotated
 
 import pydantic
-
-if TYPE_CHECKING:
-    from orchestrator.core.samplestore.sql import SQLSampleStore
 
 
 class SampleStoreStatistics(pydantic.BaseModel):
@@ -36,26 +33,3 @@ class SampleStoreStatistics(pydantic.BaseModel):
             )
         ),
     ]
-
-
-def samplestore_statistics_for_stores(
-    stores: "SQLSampleStore | list[SQLSampleStore]",
-) -> "dict[str, SampleStoreStatistics]":
-    """Compute statistics for one or more sample stores.
-
-    Args:
-        stores: A single :class:`~orchestrator.core.samplestore.sql.SQLSampleStore`
-            instance or a list of them.  An empty list returns ``{}`` without
-            any database access.
-
-    Returns:
-        A ``dict`` mapping each store's
-        :attr:`~orchestrator.core.samplestore.sql.SQLSampleStore.identifier`
-        to its :class:`SampleStoreStatistics`.
-    """
-    store_list = stores if isinstance(stores, list) else [stores]
-
-    if not store_list:
-        return {}
-
-    return {store.identifier: store.samplestore_statistics() for store in store_list}

@@ -114,10 +114,10 @@ def _report_deletion_results(
         if successes:
             console_print(SUCCESS)
         elif failures:
+            resource_id, error = failures[0]
             console_print(
-                _deletion_error_message(
-                    resource_id=failures[0][0], error=failures[0][1]
-                ),
+                f"Failed to delete {resource_id}: "
+                f"{_deletion_error_message(resource_id=resource_id, error=error)}",
                 stderr=True,
             )
         return

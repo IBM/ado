@@ -20,6 +20,8 @@ import pandas as pd
 from autogluon.tabular import TabularDataset, TabularPredictor
 
 from orchestrator.core.discoveryspace.samplers import BaseSampler
+from trim.samplers.missing_target_utils import record_missing_and_check_budget
+from trim.samplers.no_priors_parameters import MissingTargetMode
 from trim.samplers.no_priors_utils import (
     get_index_list_van_der_corput,
     get_list_of_entities_from_df_and_space,
@@ -119,50 +121,83 @@ class TrimSampleSelector(BaseSampler):
         entity: list[Entity],
         discoverySpace: DiscoverySpace,
         additional_info: str,
-    ) -> tuple[pd.DataFrame, pd.DataFrame]:
+    ) -> tuple[pd.DataFrame, pd.DataFrame, bool]:
         """Handle the case where an entity yielded no target variable measurement.
 
-        When ``defaultForUnmeasuredProperties`` is ``None`` (default), raises
-        ``InsufficientDataError`` with a hint to set the parameter.  When it is
-        set, logs a warning and injects a synthetic row so the iterator can
-        continue.
+        Dispatches to one of three behaviours based on
+        ``self.params.missing_target_variables.mode``:
+
+        - ``RaiseError``: calls
+          :func:`~trim.utils.logging_utils.log_unable_to_proceed_with_iterative_modeling_and_raise_error`
+          (never returns).
+        - ``InjectDefaultValue``: injects a synthetic row via
+          :func:`~trim.trim_sampler._make_default_row` so model training
+          proceeds normally; records the entity via
+          :func:`~trim.samplers.missing_target_utils.record_missing_and_check_budget`;
+          returns ``skip=False``.
+        - ``Skip``: records the entity; does **not** inject a row; returns
+          ``skip=True`` so ``_core_iterator_logic`` can ``continue`` without
+          yielding.
+
+        The early-exit guard (``len(one_additional_row) != 0``) returns
+        ``skip=False`` when a measurement was present — the normal path.
 
         Args:
-            one_additional_row: The (empty) diff DataFrame from split_common_and_diff.
+            one_additional_row: The diff DataFrame from split_common_and_diff.
+                Non-empty means the entity produced a measurement (normal path).
             current_source_df: The source DataFrame for this iteration.
             entity: The batch of entities that was just yielded (length 1).
             discoverySpace: The discovery space being operated on.
-            additional_info: Context string passed to the error function.
+            additional_info: Context string passed to the error / budget helper.
 
         Returns:
-            Tuple of (one_additional_row, current_source_df) — both updated when
-            a default is injected, unchanged when the default is None (never
-            reached since an exception is raised instead).
+            Tuple of ``(one_additional_row, current_source_df, skip)`` where
+            ``skip=True`` signals the caller to ``continue`` without yielding
+            the entity to the next stage.
         """
         if len(one_additional_row) != 0:
-            return one_additional_row, current_source_df
+            return one_additional_row, current_source_df, False
 
-        if self.params.defaultForUnmeasuredProperties is None:
+        mode = self.params.missing_target_variables.mode
+        entity_id = entity[0].identifier  # always set after check_identifier validator
+
+        if mode == MissingTargetMode.RaiseError:
             log_unable_to_proceed_with_iterative_modeling_and_raise_error(
                 discoverySpace=discoverySpace,
                 target_output=self.params.targetOutput,
                 additional_info=additional_info,
             )
 
+        self._missing_count = record_missing_and_check_budget(
+            params=self.params,
+            entity_id=entity_id,  # type: ignore[arg-type]
+            missing_count=self._missing_count,
+            discoverySpace=discoverySpace,
+            additional_info=additional_info,
+        )
+
+        if mode == MissingTargetMode.InjectDefaultValue:
+            logger_trim_sampler.warning(
+                f"Entity '{entity_id}' did not produce a measurement for "
+                f"target variable '{self.params.targetOutput}'. "
+                f"Injecting default value {self.params.missing_target_variables.defaultValue}."
+            )
+            one_additional_row = _make_default_row(
+                entity[0],
+                self.params.targetOutput,
+                self.params.missing_target_variables.defaultValue,  # type: ignore[arg-type]
+            )
+            current_source_df = pd.concat(
+                [current_source_df, one_additional_row], ignore_index=True
+            )
+            return one_additional_row, current_source_df, False
+
+        # MissingTargetMode.Skip
         logger_trim_sampler.warning(
-            f"Entity '{entity[0].identifier}' did not produce a measurement for "
-            f"target variable '{self.params.targetOutput}'. "
-            f"Injecting default value {self.params.defaultForUnmeasuredProperties}."
+            f"Entity '{entity_id}' did not produce a measurement for "
+            f"target variable '{self.params.targetOutput}'. Skipping entity."
         )
-        one_additional_row = _make_default_row(
-            entity[0],
-            self.params.targetOutput,
-            self.params.defaultForUnmeasuredProperties,
-        )
-        current_source_df = pd.concat(
-            [current_source_df, one_additional_row], ignore_index=True
-        )
-        return one_additional_row, current_source_df
+        return one_additional_row, current_source_df, True
 
     def _core_iterator_logic(
         self,
@@ -174,12 +209,52 @@ class TrimSampleSelector(BaseSampler):
         Core iterator logic shared between sync and async implementations.
         This is a synchronous generator that yields entities based on the TRIM algorithm.
         """
+        # Filter entities that no-priors already flagged as unable to yield a target.
+        skip_set = set(self.params.missing_target_variables.skip_entities)
+        if skip_set:
+            logger_trim_sampler.info(
+                f"TrimSampleSelector: removing {len(skip_set)} pre-skipped entities "
+                f"from list_of_entities before the main loop."
+            )
+            list_of_entities = [
+                e for e in list_of_entities if e.identifier not in skip_set
+            ]
+
         numberEntities = len(list_of_entities)
 
         initial_source_df, _target_df = get_source_and_target(
             discoverySpace,
             self.params.targetOutput,
         )
+
+        # In InjectDefaultValue mode, synthesise rows for the pre-skipped entities
+        # so they are present in initial_source_df for all AutoGluon training.
+        if (
+            skip_set
+            and self.params.missing_target_variables.mode
+            == MissingTargetMode.InjectDefaultValue
+        ):
+            default_val = self.params.missing_target_variables.defaultValue
+            skip_rows = []
+            for entity in skip_set:
+                # Retrieve the Entity object from the discovery space by identifier.
+                matching = [
+                    e
+                    for e in discoverySpace.matchingEntities()
+                    if e.identifier == entity
+                ]
+                if matching:
+                    skip_rows.append(
+                        _make_default_row(matching[0], self.params.targetOutput, default_val)  # type: ignore[arg-type]
+                    )
+            if skip_rows:
+                initial_source_df = pd.concat(
+                    [initial_source_df, *skip_rows], ignore_index=True
+                )
+                logger_trim_sampler.info(
+                    f"Prepended {len(skip_rows)} default rows for pre-skipped entities "
+                    f"into initial_source_df (defaultValue={default_val})."
+                )
 
         if logger_trim_sampler.isEnabledFor(logging.DEBUG):
             initial_source_df.to_csv(
@@ -250,13 +325,17 @@ class TrimSampleSelector(BaseSampler):
                         shorter_df_that_you_subtract=previous_source_df,
                     )
                 )
-                one_additional_row, current_source_df = self._handle_missing_target_row(
-                    one_additional_row=one_additional_row,
-                    current_source_df=current_source_df,
-                    entity=entity,
-                    discoverySpace=discoverySpace,
-                    additional_info=f"Detected during Iterative Modeling, when the source space size is {len(train_df)}.",
+                one_additional_row, current_source_df, skip = (
+                    self._handle_missing_target_row(
+                        one_additional_row=one_additional_row,
+                        current_source_df=current_source_df,
+                        entity=entity,
+                        discoverySpace=discoverySpace,
+                        additional_info=f"Detected during Iterative Modeling, when the source space size is {len(train_df)}.",
+                    )
                 )
+                if skip:
+                    continue
 
                 log_after_split_common_and_diff(
                     i,
@@ -285,13 +364,17 @@ class TrimSampleSelector(BaseSampler):
                     longer_df_from_which_you_subtract=current_source_df,
                     shorter_df_that_you_subtract=previous_source_df,
                 )
-                one_additional_row, current_source_df = self._handle_missing_target_row(
-                    one_additional_row=one_additional_row,
-                    current_source_df=current_source_df,
-                    entity=entity,
-                    discoverySpace=discoverySpace,
-                    additional_info=f"Detected during Iterative Modeling, when the training DataFrame size is {len(train_df)}.",
+                one_additional_row, current_source_df, skip = (
+                    self._handle_missing_target_row(
+                        one_additional_row=one_additional_row,
+                        current_source_df=current_source_df,
+                        entity=entity,
+                        discoverySpace=discoverySpace,
+                        additional_info=f"Detected during Iterative Modeling, when the training DataFrame size is {len(train_df)}.",
+                    )
                 )
+                if skip:
+                    continue
                 yielded_rows += one_additional_row
                 previous_holdout_df = current_holdout_df
 
@@ -307,13 +390,17 @@ class TrimSampleSelector(BaseSampler):
                     longer_df_from_which_you_subtract=current_source_df,
                     shorter_df_that_you_subtract=previous_source_df,
                 )
-                one_additional_row, current_source_df = self._handle_missing_target_row(
-                    one_additional_row=one_additional_row,
-                    current_source_df=current_source_df,
-                    entity=entity,
-                    discoverySpace=discoverySpace,
-                    additional_info=f"Detected during Iterative Modeling, when the training DataFrame size is {len(train_df)}.",
+                one_additional_row, current_source_df, skip = (
+                    self._handle_missing_target_row(
+                        one_additional_row=one_additional_row,
+                        current_source_df=current_source_df,
+                        entity=entity,
+                        discoverySpace=discoverySpace,
+                        additional_info=f"Detected during Iterative Modeling, when the training DataFrame size is {len(train_df)}.",
+                    )
                 )
+                if skip:
+                    continue
 
                 log_before_first_holdout_update(
                     one_additional_row,
@@ -844,3 +931,4 @@ class TrimSampleSelector(BaseSampler):
 
     def __init__(self, parameters: TrimParameters) -> None:
         self.params = parameters
+        self._missing_count: int = 0

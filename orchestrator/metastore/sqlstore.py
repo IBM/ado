@@ -13,6 +13,7 @@ import orchestrator.core
 import orchestrator.metastore
 import orchestrator.metastore.sql.statements
 import orchestrator.utilities
+from orchestrator.core.datacontainer.stats import DataContainerStatistics
 from orchestrator.core.discoveryspace.stats import DiscoverySpaceStatistics
 from orchestrator.core.operation.config import DiscoveryOperationEnum
 from orchestrator.core.resources import ADOResourceEventEnum, CoreResourceKinds
@@ -1823,3 +1824,119 @@ class SQLResourceStore(ResourceStore):
             return result[space_ids]  # type: ignore[index,arg-type]
 
         return result
+
+    # ---------------------------------------------------------------------------
+    # DataContainer statistics
+    # ---------------------------------------------------------------------------
+
+    def get_datacontainer_stats(
+        self,
+        datacontainer_ids: set[str],
+    ) -> dict[str, DataContainerStatistics]:
+        """Return lightweight statistics for a set of DataContainer IDs.
+
+        Args:
+            datacontainer_ids: A set of DataContainer identifiers to query.
+
+        Returns:
+            A ``dict`` keyed by DataContainer ID mapping each to its
+            :class:`~orchestrator.core.datacontainer.stats.DataContainerStatistics`.
+            IDs that are not present in the database are returned with all-zero
+            stats.  An empty input set returns an empty dict immediately (no
+            query issued).
+
+        Raises:
+            SystemError: If the underlying SQL query fails.
+        """
+        if not datacontainer_ids:
+            return {}
+
+        # MySQL uses JSON_LENGTH() which counts object members correctly.
+        # SQLite's json_array_length() only counts array elements and returns 0
+        # for objects, so we use correlated subqueries with json_each() instead.
+        is_sqlite = self.engine.dialect.name == "sqlite"
+
+        if is_sqlite:
+            query_text = """
+                SELECT
+                    identifier,
+                    (SELECT count(*)
+                     FROM json_each(json_extract(data, '$.config.tabularData'))
+                    ) AS num_tables,
+                    (SELECT count(*)
+                     FROM json_each(json_extract(data, '$.config.locationData'))
+                    ) AS num_locations,
+                    (SELECT count(*)
+                     FROM json_each(json_extract(data, '$.config.data'))
+                    ) AS num_key_values,
+                    COALESCE(
+                        LENGTH(JSON_EXTRACT(data, '$.config'))
+                        - LENGTH(JSON_EXTRACT(data, '$.config.metadata')),
+                        0
+                    ) AS data_bytes
+                FROM resources
+                WHERE identifier IN :ids
+            """
+        else:
+            # On MySQL, JSON_LENGTH of a JSON null scalar returns 1 (scalar
+            # length is 1 per the spec).  We must guard with JSON_TYPE to
+            # return 0 for absent/null fields.
+            # For byte count, JSON_STORAGE_SIZE returns the actual binary
+            # storage size of the JSON value, which is more accurate than
+            # LENGTH(JSON_EXTRACT(...)) (text representation length).
+            query_text = """
+                SELECT
+                    identifier,
+                    IF(JSON_TYPE(data->'$.config.tabularData') = 'NULL',
+                       0, COALESCE(JSON_LENGTH(
+                           data->'$.config.tabularData'
+                       ), 0)) AS num_tables,
+                    IF(JSON_TYPE(data->'$.config.locationData') = 'NULL',
+                       0, COALESCE(JSON_LENGTH(
+                           data->'$.config.locationData'
+                       ), 0)) AS num_locations,
+                    IF(JSON_TYPE(data->'$.config.data') = 'NULL',
+                       0, COALESCE(JSON_LENGTH(
+                           data->'$.config.data'
+                       ), 0)) AS num_key_values,
+                    COALESCE(
+                        JSON_STORAGE_SIZE(JSON_EXTRACT(data, '$.config'))
+                        - JSON_STORAGE_SIZE(JSON_EXTRACT(data, '$.config.metadata')),
+                        0
+                    ) AS data_bytes
+                FROM resources
+                WHERE identifier IN :ids
+            """
+
+        try:
+            with self.engine.begin() as conn:
+                query = sqlalchemy.text(query_text).bindparams(
+                    sqlalchemy.bindparam("ids", expanding=True),
+                    ids=list(datacontainer_ids),
+                )
+                rows_by_id = {row.identifier: row for row in conn.execute(query)}
+        except Exception as error:
+            msg = f"Unable to get statistics for datacontainer(s) {datacontainer_ids}"
+            self.log.critical(f"{msg}. Error: {error}")
+            raise SystemError(f"{msg}. Error: {error}") from error
+
+        empty_stats = DataContainerStatistics(
+            number_of_tables=0,
+            number_of_locations=0,
+            number_of_key_values=0,
+            total_data_bytes=0,
+        )
+
+        return {
+            container_id: (
+                DataContainerStatistics(
+                    number_of_tables=row.num_tables,
+                    number_of_locations=row.num_locations,
+                    number_of_key_values=row.num_key_values,
+                    total_data_bytes=row.data_bytes,
+                )
+                if (row := rows_by_id.get(container_id)) is not None
+                else empty_stats
+            )
+            for container_id in datacontainer_ids
+        }

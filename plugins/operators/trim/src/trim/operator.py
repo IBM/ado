@@ -105,7 +105,7 @@ def trim(
         )
         no_priors_rwparams = RandomWalkParameters(
             samplerConfig=no_priors_sampler_config,
-            batchSize=params.noPriorParameters.batchSize,
+            batchSize=1,
             numberEntities=params.samplingBudget.minPoints - len(source_df),
             singleMeasurement=True,
         )
@@ -127,6 +127,22 @@ def trim(
             ),
             **no_priors_rwparams.model_dump(),
         )
+
+        # Propagate entities that produced no target measurement during no-priors
+        # into TrimParameters so TrimSampleSelector never re-yields them.
+        # Decrease the missing_target_variables.budget of TrimSampleSelector too.
+        no_target = (
+            params.noPriorParameters.missing_target_variables.no_target_variable_entities
+        )
+        if no_target:
+            logger_trim.info(
+                f"Copying {len(no_target)} no-target entities from no-priors phase "
+                "into params.missing_target_variables.skip_entities."
+            )
+            params.missing_target_variables.skip_entities = list(no_target)
+
+            if params.missing_target_variables.budget is not None:
+                params.missing_target_variables.budget -= len(no_target)
 
         source_df, target_df = get_source_and_target(
             discoverySpace, params.targetOutput

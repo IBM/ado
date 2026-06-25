@@ -7,7 +7,10 @@ from typing import Annotated
 import pydantic
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from trim.samplers.no_priors_parameters import NoPriorsParameters
+from trim.samplers.no_priors_parameters import (
+    BaseTrimSamplerParameters,
+    NoPriorsParameters,
+)
 
 
 class SamplingBudget(pydantic.BaseModel):
@@ -66,7 +69,7 @@ class AutoGluonArgs(BaseModel):
     ]
 
 
-class TrimParameters(BaseModel):
+class TrimParameters(BaseTrimSamplerParameters):
     model_config = ConfigDict(extra="allow")  # Allows optional extra params
 
     autoGluonArgs: Annotated[
@@ -145,16 +148,6 @@ class TrimParameters(BaseModel):
         ),
     ] = NoPriorsParameters(targetOutput="")
 
-    defaultForUnmeasuredProperties: Annotated[
-        float | None,
-        pydantic.Field(
-            description="Optional default value injected for the target variable when an entity "
-            "does not produce a measurement for it (e.g. due to an InvalidMeasurement). "
-            "When None (default) TRIM raises an error as usual; set a float to allow the "
-            "iterative modeling phase to continue by substituting this value.",
-        ),
-    ] = None
-
     # disablePredictiveModeling: Annotated[
     #     bool,
     #     pydantic.Field(
@@ -232,6 +225,19 @@ class TrimParameters(BaseModel):
                 f"  Setting noPriorParameters.targetOutput = '{self.targetOutput}'"
             )
             self.noPriorParameters.targetOutput = self.targetOutput
+        return self
+
+    @model_validator(mode="after")
+    def propagate_missing_target_variables(self) -> "TrimParameters":
+        """Propagate the top-level missing_target_variables into noPriorParameters.
+
+        This ensures both samplers share a single policy object configured in
+        one place (at the TrimParameters level).
+
+        Returns:
+            The validated model instance.
+        """
+        self.noPriorParameters.missing_target_variables = self.missing_target_variables
         return self
 
 

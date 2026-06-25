@@ -10,7 +10,8 @@ from pydantic import BaseModel
 from orchestrator.core.discoveryspace.samplers import BaseSampler
 from orchestrator.core.discoveryspace.space import DiscoverySpace, Entity
 from orchestrator.modules.operators.discovery_space_manager import DiscoverySpaceManager
-from trim.samplers.no_priors_parameters import NoPriorsParameters
+from trim.samplers.missing_target_utils import record_missing_and_check_budget
+from trim.samplers.no_priors_parameters import MissingTargetMode, NoPriorsParameters
 from trim.samplers.no_priors_utils import (
     get_list_of_entities_from_df_and_space,
     get_source_and_target,
@@ -33,19 +34,31 @@ class NoPriorsSampleSelector(BaseSampler):
     async def remoteEntityIterator(
         self, remoteDiscoverySpace: DiscoverySpaceManager, batchsize: int = 1
     ) -> typing.AsyncGenerator[list[Entity], None]:
-        """
-        Generate entities for no-priors characterization sampling.
+        """Generate entities for no-priors characterization sampling.
 
-        Orders the target space using a high-dimensional sampling strategy (e.g., CLHS, Sobol)
-        without relying on prior model knowledge or feature importance.
+        Orders the full target space using a high-dimensional sampling strategy
+        (e.g., CLHS, Sobol) without relying on prior model knowledge.  Applies
+        the ``missing_target_variables`` policy when an entity does not produce a
+        target measurement:
+
+        - ``RaiseError``: raises immediately.
+        - ``InjectDefaultValue``: counts towards the quota (the TRIM phase will
+          inject the synthetic row); appends to ``no_target_variable_entities``.
+        - ``Skip``: does **not** count towards the quota; appends to
+          ``no_target_variable_entities``.  The pool is large enough to keep
+          drawing until the quota is met or the pool is exhausted.
 
         Args:
-            remoteDiscoverySpace: Manager for the discovery space state
-            batchsize: Number of entities to yield per iteration
+            remoteDiscoverySpace: Manager for the discovery space state.
+            batchsize: Number of entities to yield per iteration (must be 1).
 
         Yields:
-            List of Entity objects to be measured, in the determined order
+            List of Entity objects to be measured, in the determined order.
         """
+        if batchsize != 1:
+            raise ValueError(
+                f"NoPriorsSampleSelector.remoteEntityIterator expects batchsize=1, got {batchsize}"
+            )
 
         async def iterator_closure(
             stateHandle: DiscoverySpaceManager,  # type: ignore[name-defined]
@@ -60,29 +73,32 @@ class NoPriorsSampleSelector(BaseSampler):
             )
             logger_no_priors.info(f"Target dataframe has length {len(target_df)}")
 
-            # The 'samples' parameter specifies the number of NEW entities to sample,
-            # regardless of how many entities have already been measured in the space
             logger_no_priors.info(
                 f"Space has {len(source_df)} measured entities. "
                 f"Sampling {self.params.samples} new entities as requested."
             )
-            target_df = order_df_for_sampling_with_no_priors(
+            # Order the full pool (all unsampled candidates) so Skip mode can
+            # draw more than `samples` without running out early.
+            full_pool_df = order_df_for_sampling_with_no_priors(
                 target_df,
                 [
                     cp.identifier
                     for cp in discoverySpace.entitySpace.constitutiveProperties
                 ],
-                self.params.samples,
+                len(target_df),
                 strategy=self.params.sampling_strategy,
             )
-            list_of_entities_for_no_prior_characterization = (
-                get_list_of_entities_from_df_and_space(
-                    df=target_df, space=discoverySpace
-                )
+            full_pool = get_list_of_entities_from_df_and_space(
+                df=full_pool_df, space=discoverySpace
             )
 
+            # Remove entities pre-flagged to skip (populated by operator.py).
+            skip_set = set(self.params.missing_target_variables.skip_entities)
+            pool = [e for e in full_pool if e.identifier not in skip_set]
+
             logger_no_priors.info(
-                "\n\nCharacterization with no-priors finished. Starting Iterative Modeling.\n"
+                f"No-priors pool: {len(pool)} candidates "
+                f"(quota={self.params.samples}, {len(skip_set)} pre-skipped).\n"
             )
 
             async def iterator() -> typing.AsyncGenerator[list[Entity], None]:  # type: ignore[name-defined]
@@ -90,43 +106,84 @@ class NoPriorsSampleSelector(BaseSampler):
                     "\n\nIteration over sorted entities for no priors characterization starts.\n"
                 )
                 await asyncio.sleep(0.1)
-                for i in range(
-                    0, len(list_of_entities_for_no_prior_characterization), batchsize
-                ):
-                    entities = list_of_entities_for_no_prior_characterization[
-                        i : i + batchsize
-                    ]
-                    if len(entities) == 0:
-                        logger_no_priors.info(
-                            "\n\nCharacterization with no-priors finished.\n"
-                        )
+
+                quota_count = 0
+                quota = self.params.samples
+
+                for entity in pool:
+                    if quota_count >= quota:
                         break
+
+                    # Snapshot source space before yielding.
+                    ds_before = await stateHandle.discoverySpace.remote()
+                    source_before, _ = get_source_and_target(
+                        ds_before, self.params.targetOutput
+                    )
+
+                    yield [entity]
+                    await asyncio.sleep(0.001)
+
+                    # Check whether a target measurement appeared.
+                    ds_after = await stateHandle.discoverySpace.remote()
+                    source_after, _ = get_source_and_target(
+                        ds_after, self.params.targetOutput
+                    )
+                    hit = len(source_after) > len(source_before)
+
+                    if hit:
+                        quota_count += 1
                     else:
-                        yield entities
+                        mode = self.params.missing_target_variables.mode
+                        self._missing_count = record_missing_and_check_budget(
+                            params=self.params,
+                            entity_id=entity.identifier,  # type: ignore[arg-type]
+                            missing_count=self._missing_count,
+                            discoverySpace=ds_after,
+                            additional_info=(
+                                f"Detected during no-priors characterization "
+                                f"(quota {quota_count}/{quota})."
+                            ),
+                        )
+                        if mode == MissingTargetMode.InjectDefaultValue:
+                            # Entity will get a synthetic row in the TRIM phase;
+                            # it still counts towards the quota.
+                            quota_count += 1
+                        # MissingTargetMode.Skip: quota_count not incremented.
+
+                if quota_count < quota:
+                    logger_no_priors.warning(
+                        f"No-priors pool exhausted after {quota_count}/{quota} entities "
+                        "with target measurements. The operator will handle the shortfall."
+                    )
+
                 logger_no_priors.info("\n\nCharacterization with no-priors finished.\n")
 
             return iterator
 
         retval = await iterator_closure(remoteDiscoverySpace)
-
         return retval()
 
     def entityIterator(
         self, discoverySpace: DiscoverySpace, batchsize: int = 1
     ) -> typing.Generator[list[Entity], None, None]:
-        """
-        Generate entities for no-priors characterization sampling (synchronous version).
+        """Generate entities for no-priors characterization sampling (synchronous).
 
-        Orders the target space using a high-dimensional sampling strategy (e.g., CLHS, Sobol)
-        without relying on prior model knowledge or feature importance.
+        Orders the full target space using a high-dimensional sampling strategy
+        (e.g., CLHS, Sobol) without relying on prior model knowledge.  Applies
+        the ``missing_target_variables`` policy when an entity does not produce a
+        target measurement.
 
         Args:
-            discoverySpace: The discovery space to sample from
-            batchsize: Number of entities to yield per iteration
+            discoverySpace: The discovery space to sample from.
+            batchsize: Number of entities to yield per iteration (must be 1).
 
         Yields:
-            List of Entity objects to be measured, in the determined order
+            List of Entity objects to be measured, in the determined order.
         """
+        if batchsize != 1:
+            raise ValueError(
+                f"NoPriorsSampleSelector.entityIterator expects batchsize=1, got {batchsize}"
+            )
 
         def iterator_closure(
             space: DiscoverySpace,
@@ -140,43 +197,79 @@ class NoPriorsSampleSelector(BaseSampler):
             )
             logger_no_priors.info(f"Target dataframe has length {len(target_df)}")
 
-            # The 'samples' parameter specifies the number of NEW entities to sample,
-            # regardless of how many entities have already been measured in the space
             logger_no_priors.info(
                 f"Space has {len(source_df)} measured entities. "
                 f"Sampling {self.params.samples} new entities as requested."
             )
-            target_df = order_df_for_sampling_with_no_priors(
+            # Order the full pool so Skip mode can draw more than `samples`.
+            full_pool_df = order_df_for_sampling_with_no_priors(
                 target_df,
                 [cp.identifier for cp in space.entitySpace.constitutiveProperties],
-                self.params.samples,
+                len(target_df),
                 strategy=self.params.sampling_strategy,
             )
-            list_of_entities_for_no_prior_characterization = (
-                get_list_of_entities_from_df_and_space(df=target_df, space=space)
+            full_pool = get_list_of_entities_from_df_and_space(
+                df=full_pool_df, space=space
             )
 
+            # Remove entities pre-flagged to skip.
+            skip_set = set(self.params.missing_target_variables.skip_entities)
+            pool = [e for e in full_pool if e.identifier not in skip_set]
+
             logger_no_priors.info(
-                "\n\nCharacterization with no-priors finished. Starting Iterative Modeling.\n"
+                f"No-priors pool: {len(pool)} candidates "
+                f"(quota={self.params.samples}, {len(skip_set)} pre-skipped).\n"
             )
 
             def iterator() -> typing.Generator[list[Entity], None, None]:
                 logger_no_priors.info(
                     "\n\nIteration over sorted entities for no priors characterization starts.\n"
                 )
-                for i in range(
-                    0, len(list_of_entities_for_no_prior_characterization), batchsize
-                ):
-                    entities = list_of_entities_for_no_prior_characterization[
-                        i : i + batchsize
-                    ]
-                    if len(entities) == 0:
-                        logger_no_priors.info(
-                            "\n\nCharacterization with no-priors finished.\n"
-                        )
+                quota_count = 0
+                quota = self.params.samples
+
+                for entity in pool:
+                    if quota_count >= quota:
                         break
+
+                    # Snapshot source space before yielding.
+                    source_before, _ = get_source_and_target(
+                        space, self.params.targetOutput
+                    )
+
+                    yield [entity]
+
+                    # Check whether a target measurement appeared.
+                    source_after, _ = get_source_and_target(
+                        space, self.params.targetOutput
+                    )
+                    hit = len(source_after) > len(source_before)
+
+                    if hit:
+                        quota_count += 1
                     else:
-                        yield entities
+                        mode = self.params.missing_target_variables.mode
+                        self._missing_count = record_missing_and_check_budget(
+                            params=self.params,
+                            entity_id=entity.identifier,  # type: ignore[arg-type]
+                            missing_count=self._missing_count,
+                            discoverySpace=space,
+                            additional_info=(
+                                f"Detected during no-priors characterization "
+                                f"(quota {quota_count}/{quota})."
+                            ),
+                        )
+                        if mode == MissingTargetMode.InjectDefaultValue:
+                            # Counts towards quota; TRIM phase injects the row.
+                            quota_count += 1
+                        # MissingTargetMode.Skip: quota_count not incremented.
+
+                if quota_count < quota:
+                    logger_no_priors.warning(
+                        f"No-priors pool exhausted after {quota_count}/{quota} entities "
+                        "with target measurements. The operator will handle the shortfall."
+                    )
+
                 logger_no_priors.info("\n\nCharacterization with no-priors finished.\n")
 
             return iterator
@@ -190,3 +283,4 @@ class NoPriorsSampleSelector(BaseSampler):
 
     def __init__(self, parameters: NoPriorsParameters) -> None:
         self.params = parameters
+        self._missing_count: int = 0

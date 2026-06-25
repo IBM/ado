@@ -1,12 +1,163 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
+import enum
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, BeforeValidator, Field
+from pydantic import BaseModel, BeforeValidator, Field, field_validator, model_validator
+from pydantic.json_schema import SkipJsonSchema
 
 
-class NoPriorsParameters(BaseModel):
+class MissingTargetMode(str, enum.Enum):
+    """Policy for entities that do not produce a target variable measurement.
+
+    Attributes:
+        RaiseError: Raise ``InsufficientDataError`` immediately (default).
+        InjectDefaultValue: Inject ``MissingTargetMeasurements.defaultValue``
+            as a synthetic row so the entity still counts towards the sampling
+            quota.
+        Skip: Permanently drop the entity; it does **not** count towards the
+            sampling quota but does count against ``budget``.
+    """
+
+    RaiseError = "RaiseError"
+    InjectDefaultValue = "InjectDefaultValue"
+    Skip = "Skip"
+
+
+class MissingTargetMeasurements(BaseModel):
+    """Configuration for how TRIM handles entities that do not produce a target measurement.
+
+    Three modes are supported (see :class:`MissingTargetMode`):
+
+    - ``RaiseError`` (default): raise ``InsufficientDataError`` immediately.
+    - ``InjectDefaultValue``: inject ``defaultValue`` as a synthetic row and count
+      the entity towards the sampling quota / budget.
+    - ``Skip``: permanently drop the entity; it does **not** count towards the
+      sampling quota but does count against ``budget``.
+
+    ``budget`` (default ``None``) caps the total number of missing-target entities
+    that are tolerated across the whole sampler run.  When exceeded, an
+    ``InsufficientDataError`` is raised regardless of mode.
+    """
+
+    mode: Annotated[
+        MissingTargetMode,
+        Field(
+            description=(
+                "How to handle entities that do not produce a measurement for the "
+                "target variable. 'RaiseError' raises immediately (default). "
+                "'InjectDefaultValue' injects ``defaultValue`` as a synthetic row. "
+                "'Skip' permanently drops the entity from consideration."
+            ),
+            default=MissingTargetMode.RaiseError,
+        ),
+    ] = MissingTargetMode.RaiseError
+
+    budget: Annotated[
+        int | None,
+        Field(
+            description=(
+                "Maximum number of entities that may fail to measure the target "
+                "variable before an InsufficientDataError is raised. "
+                "Must be > 0 when set. Use None for no limit."
+            ),
+            default=None,
+        ),
+    ] = None
+
+    defaultValue: Annotated[
+        float | None,
+        Field(
+            description=(
+                "The value injected for the target variable when mode is "
+                "'InjectDefaultValue' and an entity does not produce a measurement. "
+                "Required when mode is 'InjectDefaultValue'; ignored otherwise."
+            ),
+            default=None,
+        ),
+    ] = None
+
+    skip_entities: Annotated[
+        SkipJsonSchema[list[str]],
+        Field(
+            default_factory=list,
+            exclude=True,
+            description=(
+                "Runtime-only. Entity identifiers to suppress from yielding so that "
+                "the sampler does not even attempt to measure the target variable for "
+                "them. Populated by operator.py after the no-priors phase."
+            ),
+        ),
+    ]
+
+    no_target_variable_entities: Annotated[
+        SkipJsonSchema[list[str]],
+        Field(
+            default_factory=list,
+            exclude=True,
+            description=(
+                "Runtime-only. The sampler stores the identifiers of entities it "
+                "yielded and for which no target measurement was produced."
+            ),
+        ),
+    ]
+
+    @field_validator("budget", mode="after")
+    @classmethod
+    def budget_must_be_positive(cls, v: int | None) -> int | None:
+        """Validate that budget, when set, is strictly positive.
+
+        Args:
+            v: The budget value to validate.
+
+        Returns:
+            The validated budget value.
+
+        Raises:
+            ValueError: When ``v`` is not None and not greater than 0.
+        """
+        if v is not None and v <= 0:
+            raise ValueError(f"budget must be > 0, got {v}")
+        return v
+
+    @model_validator(mode="after")
+    def default_value_required_for_inject_mode(self) -> "MissingTargetMeasurements":
+        """Validate that defaultValue is provided when mode is InjectDefaultValue.
+
+        Returns:
+            The validated model instance.
+
+        Raises:
+            ValueError: When mode is ``InjectDefaultValue`` and defaultValue is None.
+        """
+        if (
+            self.mode == MissingTargetMode.InjectDefaultValue
+            and self.defaultValue is None
+        ):
+            raise ValueError(
+                "defaultValue must be set when mode is 'InjectDefaultValue'"
+            )
+        return self
+
+
+class BaseTrimSamplerParameters(BaseModel):
+    """Base parameter class shared by all TRIM sampler parameter models."""
+
+    missing_target_variables: Annotated[
+        MissingTargetMeasurements,
+        Field(
+            description=(
+                "Configures how both the no-priors sampler and the TRIM iterative "
+                "sampler handle entities that do not produce a measurement for the "
+                "target variable."
+            ),
+            default_factory=MissingTargetMeasurements,
+        ),
+    ]
+
+
+class NoPriorsParameters(BaseTrimSamplerParameters):
     """
     Parameters for sampling high-dimensional spaces without prior model structure.
 

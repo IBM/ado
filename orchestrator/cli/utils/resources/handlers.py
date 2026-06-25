@@ -31,6 +31,7 @@ from orchestrator.cli.utils.output.prints import (
     cyan,
 )
 from orchestrator.cli.utils.resources.formatters import (
+    format_ado_get_stats_for_datacontainers,
     format_ado_get_stats_for_operations,
     format_ado_get_stats_for_samplestores,
     format_ado_get_stats_for_spaces,
@@ -314,6 +315,7 @@ def _handle_stats_format(
     - discovery spaces (columns: EXPERIMENTS, OPERATIONS, EXPLORE_OPERATIONS,
       MEASURED_ENTITIES)
     - sample stores (columns: ENTITIES, RESULTS, EXPERIMENTS)
+    - data containers (columns: TABLES, LOCATIONS, KEY_VALUES, DATA_BYTES)
 
     For any other resource type the handler prints an error message and exits
     with code 1.
@@ -324,11 +326,12 @@ def _handle_stats_format(
         CoreResourceKinds.OPERATION,
         CoreResourceKinds.DISCOVERYSPACE,
         CoreResourceKinds.SAMPLESTORE,
+        CoreResourceKinds.DATACONTAINER,
     }
     if resource_type is not None and resource_type not in _SUPPORTED:
         console_print(
             f"{ERROR}The 'stats' output format is only supported for operations, "
-            f"discovery spaces, and sample stores.",
+            f"discovery spaces, sample stores, and data containers.",
             stderr=True,
         )
         raise typer.Exit(1)
@@ -357,6 +360,12 @@ def _handle_stats_format(
             )
         elif resource_type == CoreResourceKinds.SAMPLESTORE:
             enriched_df = format_ado_get_stats_for_samplestores(
+                base_df,
+                sql_store_for_stats,
+                spinner=status,
+            )
+        elif resource_type == CoreResourceKinds.DATACONTAINER:
+            enriched_df = format_ado_get_stats_for_datacontainers(
                 base_df,
                 sql_store_for_stats,
                 spinner=status,

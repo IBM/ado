@@ -440,6 +440,76 @@ def format_ado_get_stats_for_samplestores(
     return df
 
 
+def _format_bytes(n: int) -> str:
+    """Return a compact human-readable representation of a byte count.
+
+    Uses 1024-based binary units (B, KiB, MiB, GiB, TiB).  Values below
+    1 KiB are shown as ``"<n> B"``.  Larger values are shown with one
+    decimal place and the appropriate unit suffix, e.g. ``"4.9 KiB"`` or
+    ``"1.2 MiB"``.
+
+    Args:
+        n: Number of bytes (non-negative integer).
+
+    Returns:
+        A short human-readable string such as ``"512 B"`` or ``"3.7 MiB"``.
+    """
+    for unit in ("B", "KiB", "MiB", "GiB"):
+        if n < 1024:
+            return f"{n} {unit}" if unit == "B" else f"{n:.1f} {unit}"
+        n //= 1024
+    return f"{n:.1f} TiB"
+
+
+def format_ado_get_stats_for_datacontainers(
+    df: "pd.DataFrame",
+    sql_store: "SQLStore",
+    spinner: "Status | None" = None,
+) -> "pd.DataFrame":
+    """Append 4 statistics columns to a data containers DataFrame.
+
+    Issues one batched stats query for all containers at once.
+
+    Args:
+        df: DataFrame with at least an ``IDENTIFIER`` column (one row per
+            data container).
+        sql_store: The ``SQLStore`` to use for stats queries.
+        spinner: Optional rich status spinner to update with progress messages.
+
+    Returns:
+        The same DataFrame with four extra columns appended:
+        ``TABLES``, ``LOCATIONS``, ``KEY_VALUES``, ``DATA_BYTES``.
+        ``DATA_BYTES`` is formatted as a human-readable size (e.g. ``"4.9 KB"``).
+        Containers with no recorded data show ``0`` / ``"0 B"`` in all stats columns.
+    """
+    datacontainer_ids: set[str] = set(df["IDENTIFIER"])
+
+    if spinner is not None:
+        spinner.update("Calculating stats for data containers...")
+
+    stats_by_id = sql_store.get_datacontainer_stats(datacontainer_ids)
+
+    _int_columns = [
+        ("TABLES", "number_of_tables"),
+        ("LOCATIONS", "number_of_locations"),
+        ("KEY_VALUES", "number_of_key_values"),
+    ]
+    for col, attr in _int_columns:
+        df[col] = df["IDENTIFIER"].apply(
+            lambda cid, a=attr: (
+                getattr(stats_by_id[cid], a, 0) if cid in stats_by_id else 0
+            )
+        )
+
+    df["DATA_BYTES"] = df["IDENTIFIER"].apply(
+        lambda cid: _format_bytes(
+            stats_by_id[cid].total_data_bytes if cid in stats_by_id else 0
+        )
+    )
+
+    return df
+
+
 def format_resource_for_ado_get_custom_format(
     to_print: (
         ADOResource

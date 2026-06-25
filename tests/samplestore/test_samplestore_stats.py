@@ -78,7 +78,7 @@ def test_statistics_for_stores_empty_list_returns_empty_dict() -> None:
     assert samplestore_statistics_for_stores([]) == {}
 
 
-def test_statistics_for_stores_keyed_by_uri_with_correct_counts(
+def test_statistics_for_stores_keyed_by_identifier_with_correct_counts(
     simulate_ml_multi_cloud_random_walk_operation: Callable[
         [int, int, int, str | None],
         tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
@@ -86,7 +86,7 @@ def test_statistics_for_stores_keyed_by_uri_with_correct_counts(
     empty_sample_store: SQLSampleStore,
     random_identifier: Callable[[], str],
 ) -> None:
-    """Returns one entry per store keyed by uri; counts are consistent with direct calls.
+    """Returns one entry per store keyed by identifier; counts are consistent with direct calls.
 
     Uses two stores — a populated ml_multi_cloud store and an empty store — to
     verify that the batching wrapper delegates correctly and does not mix up results.
@@ -99,18 +99,26 @@ def test_statistics_for_stores_keyed_by_uri_with_correct_counts(
     )
 
     # Sanity-check that the two stores are distinct
-    assert populated_store.uri != empty_sample_store.uri
+    assert populated_store.identifier != empty_sample_store.identifier
 
     result = samplestore_statistics_for_stores([populated_store, empty_sample_store])
 
-    assert set(result.keys()) == {populated_store.uri, empty_sample_store.uri}
+    assert set(result.keys()) == {
+        populated_store.identifier,
+        empty_sample_store.identifier,
+    }
 
     # Results must match what direct calls return
-    assert result[populated_store.uri] == populated_store.samplestore_statistics()
-    assert result[empty_sample_store.uri] == empty_sample_store.samplestore_statistics()
+    assert (
+        result[populated_store.identifier] == populated_store.samplestore_statistics()
+    )
+    assert (
+        result[empty_sample_store.identifier]
+        == empty_sample_store.samplestore_statistics()
+    )
 
     # The populated store must have more results than the empty one
     assert (
-        result[populated_store.uri].number_of_results
-        > result[empty_sample_store.uri].number_of_results
+        result[populated_store.identifier].number_of_results
+        > result[empty_sample_store.identifier].number_of_results
     )

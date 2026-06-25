@@ -49,7 +49,8 @@ def samplestore_statistics_for_stores(
             any database access.
 
     Returns:
-        A ``dict`` mapping each store's :attr:`~orchestrator.core.samplestore.base.ActiveSampleStore.uri`
+        A ``dict`` mapping each store's
+        :attr:`~orchestrator.core.samplestore.sql.SQLSampleStore.identifier`
         to its :class:`SampleStoreStatistics`.
     """
     store_list = stores if isinstance(stores, list) else [stores]
@@ -57,4 +58,4 @@ def samplestore_statistics_for_stores(
     if not store_list:
         return {}
 
-    return {store.uri: store.samplestore_statistics() for store in store_list}
+    return {store.identifier: store.samplestore_statistics() for store in store_list}

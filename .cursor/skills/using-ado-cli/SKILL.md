@@ -130,6 +130,10 @@ uv run ado get space SPACE_ID -o stats --no-trunc
 # Get statistics for all sample stores
 uv run ado get samplestores -o stats --output-file samplestores-stats.txt
 uv run ado get samplestore SAMPLESTORE_ID -o stats --no-trunc
+
+# Get statistics for all data containers
+uv run ado get datacontainers -o stats --output-file datacontainers-stats.txt
+uv run ado get datacontainer DATACONTAINER_ID -o stats --no-trunc
 ```
 
 `-o stats` extends the table with statistics columns:
@@ -139,6 +143,7 @@ uv run ado get samplestore SAMPLESTORE_ID -o stats --no-trunc
 - **Discovery Spaces**: `EXPERIMENTS`, `OPERATIONS`, `EXPLORE_OPERATIONS`,
   `MEASURED_ENTITIES`.
 - **Sample Stores**: `ENTITIES`, `RESULTS`, `EXPERIMENTS`.
+- **Data Containers**: `TABLES`, `LOCATIONS`, `KEY_VALUES`, `DATA_BYTES`.
 
 ### ado create
 

@@ -84,7 +84,8 @@ type.
 ### Resource Statistics
 
 `-o stats` adds statistics columns to the table without fetching full resource
-data. Supported for **operations**, **discovery spaces**, and **sample stores**.
+data. Supported for **operations**, **discovery spaces**, **sample stores**, and
+**data containers**.
 
 ```bash
 # Operations
@@ -98,6 +99,10 @@ uv run ado get space SPACE_ID -o stats --no-trunc
 # Sample Stores
 uv run ado get samplestores -o stats --output-file samplestores-stats.txt
 uv run ado get samplestore SAMPLESTORE_ID -o stats --no-trunc
+
+# Data Containers
+uv run ado get datacontainers -o stats --output-file datacontainers-stats.txt
+uv run ado get datacontainer DATACONTAINER_ID -o stats --no-trunc
 ```
 
 **Operations** extra columns: `TOTAL_RESULTS`, `SUCCESSFUL_RESULTS`,
@@ -108,6 +113,9 @@ result).
 `EXPLORE_OPERATIONS`, `MEASURED_ENTITIES`.
 
 **Sample Stores** extra columns: `ENTITIES`, `RESULTS`, `EXPERIMENTS`.
+
+**Data Containers** extra columns: `TABLES`, `LOCATIONS`, `KEY_VALUES`,
+`DATA_BYTES`.
 
 ### Filtering Resources
 

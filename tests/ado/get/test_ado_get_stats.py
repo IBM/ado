@@ -3,6 +3,7 @@
 import datetime
 import os
 import pathlib
+import typing
 from collections.abc import Callable
 
 import pandas as pd
@@ -19,6 +20,9 @@ from orchestrator.metastore.project import ProjectContext
 from orchestrator.schema.request import MeasurementRequest
 from orchestrator.utilities.rich import dataframe_to_rich_table, render_to_string
 from tests.conftest import requires_sqlite_3_38
+
+if typing.TYPE_CHECKING:
+    from orchestrator.core import DataContainerResource
 
 # A past timestamp far enough from "now" that AGE is stable across a test run.
 _CREATED_7_DAYS_AGO = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(
@@ -483,6 +487,121 @@ def test_ado_get_samplestores_stats_values(
                 "ENTITIES": after.number_of_entities,
                 "RESULTS": after.number_of_results,
                 "EXPERIMENTS": after.number_of_experiments,
+            },
+            index=pd.Index([0]),
+        )
+        rendered_output = render_to_string(
+            dataframe_to_rich_table(
+                expected_output,
+                show_index=True,
+                show_edge=True,
+                box=rich.box.SQUARE,
+                do_not_truncate_columns=True,
+            ),
+            auto_width=True,
+        )
+        assert (
+            rendered_output in result.output
+        ), f"Expected output:\n{rendered_output}\nnot found in:\n{result.output}"
+
+
+@requires_sqlite_3_38
+def test_ado_get_datacontainers_stats_columns_present(
+    tmp_path: pathlib.Path,
+    mysql_test_instance: MySqlContainer,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+    data_container_resource: "DataContainerResource",
+    create_resources: Callable,
+) -> None:
+    """ado get datacontainers -o stats exits 0 and shows all four stats column headers."""
+    runner = CliRunner()
+    create_active_ado_context(
+        runner=runner, path=tmp_path, project_context=valid_ado_project_context
+    )
+
+    create_resources([data_container_resource])
+
+    result = runner.invoke(
+        ado,
+        [
+            "--override-ado-app-dir",
+            tmp_path,
+            "get",
+            "datacontainers",
+            "-o",
+            "stats",
+            "--no-trunc",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    if os.environ.get("CI", "false") != "true":
+        for col in ("TABLES", "LOCATIONS", "KEY_VALUES", "DATA_BYTES"):
+            assert col in result.output, f"Column {col!r} missing from output"
+
+
+@requires_sqlite_3_38
+def test_ado_get_datacontainers_stats_values(
+    tmp_path: pathlib.Path,
+    mysql_test_instance: MySqlContainer,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+    data_container_resource: "DataContainerResource",
+    create_resources: Callable,
+    backdate_resource: Callable[[str, CoreResourceKinds, "datetime.datetime"], None],
+) -> None:
+    """Stats values for a known datacontainer match expected counts in the rendered table."""
+    from orchestrator.metastore.sqlstore import SQLStore
+
+    runner = CliRunner()
+    create_active_ado_context(
+        runner=runner, path=tmp_path, project_context=valid_ado_project_context
+    )
+
+    create_resources([data_container_resource])
+
+    sql_store = SQLStore(project_context=valid_ado_project_context)
+    stats_by_id = sql_store.get_datacontainer_stats(
+        {data_container_resource.identifier}
+    )
+    stats = stats_by_id[data_container_resource.identifier]
+
+    container_id = data_container_resource.identifier
+    backdate_resource(
+        container_id, CoreResourceKinds.DATACONTAINER, _CREATED_7_DAYS_AGO
+    )
+
+    result = runner.invoke(
+        ado,
+        [
+            "--override-ado-app-dir",
+            tmp_path,
+            "get",
+            "datacontainers",
+            "-o",
+            "stats",
+            "--no-trunc",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    if os.environ.get("CI", "false") != "true":
+        from orchestrator.cli.utils.resources.formatters import _format_bytes
+
+        expected_output = pd.DataFrame(
+            data={
+                "IDENTIFIER": container_id,
+                "NAME": "",
+                "AGE": _EXPECTED_AGE,
+                "TABLES": stats.number_of_tables,
+                "LOCATIONS": stats.number_of_locations,
+                "KEY_VALUES": stats.number_of_key_values,
+                "DATA_BYTES": _format_bytes(stats.total_data_bytes),
             },
             index=pd.Index([0]),
         )

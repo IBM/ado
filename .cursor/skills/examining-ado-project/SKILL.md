@@ -97,6 +97,14 @@ Goal: volume of work, recency, and which spaces attract the most operations.
 
    Adds `ENTITIES`, `RESULTS`, and `EXPERIMENTS` columns.
 
+6. **Data Containers (with statistics)**
+
+   ```bash
+   uv run ado get datacontainers -o stats --output-file datacontainers-stats.txt
+   ```
+
+   Adds `TABLES`, `LOCATIONS`, `KEY_VALUES`, and `DATA_BYTES` columns.
+
 **Synthesis:** cluster mentally (or in notes) by **creation time** to see bursts
 of activity; count operations **per space** from the operations listing to see
 which spaces are busiest.

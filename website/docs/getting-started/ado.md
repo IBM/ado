@@ -538,6 +538,8 @@ Where:
         - **Discovery Spaces**: `EXPERIMENTS`, `OPERATIONS`,
           `EXPLORE_OPERATIONS`, `MEASURED_ENTITIES`.
         - **Sample Stores**: `ENTITIES`, `RESULTS`, `EXPERIMENTS`.
+        - **Data Containers**: `TABLES`, `LOCATIONS`, `KEY_VALUES`,
+          `DATA_BYTES`.
 
     <!-- prettier-ignore-end -->
 
@@ -762,6 +764,18 @@ ado get samplestores -o stats
 
 ```shell
 ado get samplestore --use-latest -o stats
+```
+
+##### Getting statistics for all Data Containers
+
+```shell
+ado get datacontainers -o stats
+```
+
+##### Getting statistics for a single Data Container
+
+```shell
+ado get datacontainer --use-latest -o stats
 ```
 
 ### ado show

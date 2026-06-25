@@ -2,7 +2,10 @@
 # SPDX-License-Identifier: MIT
 
 import logging
+import os
+import pathlib
 import sys
+import tempfile
 import time
 from typing import Any, Literal
 
@@ -145,7 +148,8 @@ CutPasses = ConstitutiveProperty(
     },
     propertyDomain=PropertyDomain(
         variableType=VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
-        values=[-1, 0, 1, 5],
+        domainRange=[-1, 201],
+        interval=1,
     ),
 )
 
@@ -187,7 +191,40 @@ Parallel = ConstitutiveProperty(
     metadata={
         "description": (
             "If True, run each of the n_seeds solver instances as a Ray remote task. "
-            "If False, run all seeds in serial."
+            "If False, run all seeds in serial. Ray failures on individual seeds "
+            "produce null metrics and a ray_task_failed solve_status for that seed "
+            "without failing the whole measurement (partial-OK policy)."
+        )
+    },
+    propertyDomain=PropertyDomain(
+        variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE,
+        values=[False, True],
+    ),
+)
+
+WarmStartFile = ConstitutiveProperty(
+    identifier="warm_start_file",
+    metadata={
+        "description": (
+            "Path to a CPLEX MIP-start file (.mst, or .sol with the same XML structure). "
+            "Empty string disables warm start. Applied before solve on every seed run. "
+            "For remote execution, use a bare filename and ship the file via "
+            "execution context additionalFiles."
+        )
+    },
+    propertyDomain=PropertyDomain(
+        variableType=VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE,
+        values=["", "/path/to/warm_start.mst"],
+    ),
+)
+
+ExportSolution = ConstitutiveProperty(
+    identifier="export_solution",
+    metadata={
+        "description": (
+            "If True, export the incumbent as MST XML in best_solution_mst. "
+            "If False (default), best_solution_mst is still returned but each "
+            "seed element is an empty string (no export work, no storage bloat)."
         )
     },
     propertyDomain=PropertyDomain(
@@ -243,6 +280,89 @@ def _apply_cut_passes_all(model: object, level: int) -> None:
 
 # Sentinel for "no incumbent" from CPLEX (e.g. 1e75).
 _NO_INCUMBENT_SENTINEL = 1e70
+
+
+def _normalize_cplex_value(value: float | None) -> float | None:
+    """Return ``None`` when CPLEX uses a large sentinel for a missing value."""
+    if value is None:
+        return None
+    if abs(value) >= _NO_INCUMBENT_SENTINEL:
+        return None
+    return float(value)
+
+
+def _load_warm_start(model: object, warm_start_file: str) -> str | None:
+    """Load a MIP start from disk. Return an error status string on failure."""
+    if not warm_start_file:
+        return None
+    if not pathlib.Path(warm_start_file).is_file():
+        return f"warm_start_file_not_found: {warm_start_file}"
+    try:
+        model.MIP_starts.read(warm_start_file)
+        model.parameters.advance.set(1)
+    except Exception as exc:  # noqa: BLE001
+        return f"warm_start_read_error: {exc}"
+    return None
+
+
+def _export_incumbent_mst(model: object, objective_value: float | None) -> str:
+    """Export the incumbent as warm-start-ready MST XML, with SOL fallback."""
+    import cplex
+
+    if _normalize_cplex_value(objective_value) is None:
+        return ""
+
+    try:
+        values = model.solution.get_values()
+    except cplex.exceptions.CplexSolverError:
+        return ""
+
+    if not values:
+        return ""
+
+    try:
+        model.MIP_starts.delete()
+        model.MIP_starts.add(values)
+        with tempfile.NamedTemporaryFile(suffix=".mst", delete=False) as handle:
+            temp_path = handle.name
+        try:
+            model.MIP_starts.write(temp_path)
+            return pathlib.Path(temp_path).read_text(encoding="utf-8")
+        finally:
+            os.unlink(temp_path)
+    except Exception:  # noqa: BLE001
+        logger.debug("MST export failed; falling back to SOL format", exc_info=True)
+
+    try:
+        with tempfile.NamedTemporaryFile(suffix=".sol", delete=False) as handle:
+            temp_path = handle.name
+        try:
+            model.solution.write(temp_path)
+            return pathlib.Path(temp_path).read_text(encoding="utf-8")
+        finally:
+            os.unlink(temp_path)
+    except Exception:  # noqa: BLE001
+        logger.debug("SOL export fallback failed", exc_info=True)
+        return ""
+
+
+def _structured_seed_failure(
+    *,
+    solve_time: float,
+    solve_status: str,
+    progress_samples: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Build a single-seed result dict for a failed or aborted run."""
+    return {
+        "solve_time_s": solve_time,
+        "objective_value": None,
+        "best_bound": None,
+        "mip_gap": None,
+        "nodes_explored": 0,
+        "solve_status": solve_status,
+        "best_solution_mst": "",
+        "progress_samples": progress_samples or [],
+    }
 
 
 def _make_progress_callback(
@@ -312,11 +432,16 @@ def _align_to_grid(
     for t in time_grid:
         while sample_idx < len(samples) and samples[sample_idx]["elapsed"] <= t:
             s = samples[sample_idx]
-            last["best_objective"] = s["best_objective"]
-            last["best_bound"] = s["best_bound"]
+            # None means "not updated at this sample"; forward-fill prior values.
+            if s["best_objective"] is not None:
+                last["best_objective"] = s["best_objective"]
+            if s["best_bound"] is not None:
+                last["best_bound"] = s["best_bound"]
             nodes = s["nodes_explored"]
-            last["nodes_explored"] = float(nodes) if nodes is not None else None
-            last["mip_gap"] = s["mip_gap"]
+            if nodes is not None:
+                last["nodes_explored"] = float(nodes)
+            if s["mip_gap"] is not None:
+                last["mip_gap"] = s["mip_gap"]
             sample_idx += 1
         aligned["best_objective"].append(last["best_objective"])
         aligned["best_bound"].append(last["best_bound"])
@@ -369,19 +494,42 @@ def _append_terminal_progress_sample(
     """Append one sample at solve end so the aligned grid includes the final MIP state.
 
     Periodic MIPInfoCallback samples can omit the last jump to optimality if the
-    solver finishes between two callback ticks; ``objective_values`` then reflect
-    the optimum while ``best_bound_over_time`` would otherwise forward-fill a
-    stale bound.
-    """
-    import cplex
+    solver finishes between two callback ticks.  This terminal sample ensures
+    the aligned grid always reflects the final incumbent and best bound.
 
-    best_bound: float | None = None
-    try:
-        best_bound = float(model.solution.MIP.get_best_objective_value())
-    except (cplex.exceptions.CplexSolverError, AttributeError, TypeError, ValueError):
+    Best bound selection:
+    - ``mip_gap == 0`` (proven optimal): best bound converges to ``objective_value``.
+    - Non-optimal (e.g. time limit): forward-fill the last callback-recorded bound.
+      The post-solve CPLEX solution API may return the incumbent rather than the
+      LP-relaxation dual bound, so it is only used as a fallback when no callback
+      samples exist (``progress_interval_s == 0``).
+    """
+    if mip_gap is not None and mip_gap == 0.0 and objective_value is not None:
+        best_bound: float | None = objective_value
+    else:
         best_bound = None
-    if best_bound is not None and abs(best_bound) >= _NO_INCUMBENT_SENTINEL:
-        best_bound = None
+        for prev in reversed(progress_samples):
+            prev_bound = prev.get("best_bound")
+            if prev_bound is not None:
+                best_bound = prev_bound
+                break
+        if best_bound is None:
+            # No callback samples available (progress_interval_s == 0).
+            # The post-solve API may return the incumbent for non-optimal solves,
+            # so this is a best-effort fallback only.
+            import cplex
+
+            try:
+                api_bound = float(model.solution.MIP.get_best_objective_value())
+                if abs(api_bound) < _NO_INCUMBENT_SENTINEL:
+                    best_bound = api_bound
+            except (
+                cplex.exceptions.CplexSolverError,
+                AttributeError,
+                TypeError,
+                ValueError,
+            ):
+                pass
 
     progress_samples.append(
         {
@@ -392,6 +540,71 @@ def _append_terminal_progress_sample(
             "mip_gap": mip_gap,
         }
     )
+
+
+def estimate_mip_memory_bytes(mps_file_path: str) -> int:
+    """Estimate the Ray memory resource request for a single CPLEX seed task.
+
+    Uses a power-law formula to scale the estimate with MPS file size while
+    dampening growth for large instances.  The result is used both as the Ray
+    task memory reservation and as the basis for the CPLEX WorkMem limit.
+
+    Formula:
+        estimated_peak_gb = floor_gb + (file_size_mb ** 0.75) * 0.5
+        total_requested_gb = estimated_peak_gb * 1.20  (20% OS/Python headroom)
+
+    The exponent 0.75 reflects that peak B&B memory grows sub-linearly with
+    model size: larger models have deeper trees but also more pruning.  The
+    floor of 4 GB covers solver initialisation overhead for trivial instances.
+
+    Args:
+        mps_file_path: Path to the MPS/LP instance file.
+
+    Returns:
+        Memory request in bytes for ``ray.remote(memory=...)``.
+    """
+    import os
+
+    file_size_bytes = os.path.getsize(mps_file_path)
+    file_size_mb = file_size_bytes / (1024**2)
+    floor_gb = 4.0
+    scale_factor = 0.5
+    exponent = 0.75
+    estimated_peak_gb = floor_gb + (file_size_mb**exponent) * scale_factor
+    total_requested_gb = estimated_peak_gb * 1.20
+    return int(total_requested_gb * (1024**3))
+
+
+def _collect_parallel_seed_results(
+    refs: list[object],
+) -> list[dict[str, Any]]:
+    """Collect per-seed Ray task results with partial-OK failure handling.
+
+    If an individual seed task fails (for example runtime environment setup on a
+    worker node), a structured failure entry is returned for that seed index and
+    collection continues for the remaining refs.
+
+    Args:
+        refs: Ray object refs returned by ``remote_fn.remote(seed)``.
+
+    Returns:
+        One single-seed result dict per ref, in seed order.
+    """
+    import ray
+
+    results: list[dict[str, Any]] = []
+    for seed_index, ref in enumerate(refs):
+        try:
+            results.append(ray.get(ref))
+        except Exception as exc:  # noqa: PERF203
+            logger.warning("Ray seed task %d failed: %s", seed_index, exc)
+            results.append(
+                _structured_seed_failure(
+                    solve_time=0.0,
+                    solve_status=f"ray_task_failed: {exc}",
+                )
+            )
+    return results
 
 
 def _run_single_seed(
@@ -410,6 +623,9 @@ def _run_single_seed(
     cut_passes_all: CutPassesAllLevel = "cplex_default",
     mip_emphasis: int = 0,
     progress_interval_s: float = 0,
+    workmem_mb: int = 0,
+    warm_start_file: str = "",
+    export_solution: bool = False,
 ) -> dict[str, Any]:
     """Run CPLEX on a single MPS instance with the given random seed and parameters.
 
@@ -427,10 +643,17 @@ def _run_single_seed(
         mip_emphasis: MIP emphasis (CPX_PARAM_MIPEMPHASIS): 0-5, see property
             metadata; default 0 matches CPLEX balanced emphasis.
         progress_interval_s: If > 0, capture progress at this interval (seconds).
+        workmem_mb: When > 0, sets CPLEX WorkMem (CPX_PARAM_WORKMEM) to this
+            value in MB and enables compressed on-disk node files
+            (CPX_PARAM_NODEFILEIND=3) so the solver spills to disk rather than
+            crashing OOM.  Should be ~80% of the Ray task memory reservation.
+        warm_start_file: Optional CPLEX MIP-start file path; empty disables warm start.
+        export_solution: If True, populate best_solution_mst with MST XML.
 
     Returns:
-        Dictionary with keys: solve_time_s, objective_value, mip_gap,
-        nodes_explored, solve_status, and progress_samples when progress_interval_s > 0.
+        Dictionary with keys: solve_time_s, objective_value, best_bound, mip_gap,
+        nodes_explored, solve_status, best_solution_mst, and progress_samples when
+        progress_interval_s > 0.
     """
     import cplex
 
@@ -444,6 +667,19 @@ def _run_single_seed(
     model.set_results_stream(sys.stdout)
 
     model.read(mps_file)
+    warm_start_error = _load_warm_start(model, warm_start_file)
+    if warm_start_error is not None:
+        logger.warning(
+            "Warm start failed on seed %d: %s",
+            seed,
+            warm_start_error,
+        )
+        logger.info("End solver %d of %d", solver_n, n_seeds)
+        return _structured_seed_failure(
+            solve_time=0.0,
+            solve_status=warm_start_error,
+        )
+
     model.parameters.randomseed.set(seed)
     model.parameters.threads.set(n_threads)
     model.parameters.emphasis.mip.set(mip_emphasis)
@@ -455,6 +691,9 @@ def _run_single_seed(
     model.parameters.timelimit.set(time_limit_s)
     model.parameters.mip.display.set(4)
     model.parameters.mip.interval.set(100)
+    if workmem_mb > 0:
+        model.parameters.workmem.set(float(workmem_mb))
+        model.parameters.mip.strategy.file.set(3)
     if cut_passes_all != "cplex_default":
         _apply_cut_passes_all(model, int(cut_passes_all))
 
@@ -501,21 +740,17 @@ def _run_single_seed(
         status = f"cplex_error_{error_code}" if error_code else f"cplex_error: {exc}"
         logger.warning("CPLEX solver error on seed %d: %s", seed, exc)
         logger.info("End solver %d of %d", solver_n, n_seeds)
-        return {
-            "solve_time_s": solve_time,
-            "objective_value": None,
-            "mip_gap": None,
-            "nodes_explored": 0,
-            "solve_status": status,
-            "progress_samples": [],
-        }
+        return _structured_seed_failure(
+            solve_time=solve_time,
+            solve_status=status,
+        )
     solve_time = time.perf_counter() - t0
 
     status = model.solution.get_status_string()
     nodes = model.solution.progress.get_num_nodes_processed()
 
     try:
-        obj = model.solution.get_objective_value()
+        obj = _normalize_cplex_value(model.solution.get_objective_value())
     except cplex.exceptions.CplexSolverError:
         obj = None
 
@@ -523,6 +758,8 @@ def _run_single_seed(
         gap = model.solution.MIP.get_mip_relative_gap()
     except cplex.exceptions.CplexSolverError:
         gap = None
+
+    best_solution_mst = _export_incumbent_mst(model, obj) if export_solution else ""
 
     logger.debug(
         "Seed %d finished: status=%s, time=%.2fs, obj=%s, gap=%s, nodes=%d",
@@ -536,22 +773,36 @@ def _run_single_seed(
 
     logger.info("End solver %d of %d", solver_n, n_seeds)
 
-    if progress_interval_s > 0:
-        _append_terminal_progress_sample(
-            model=model,
-            progress_samples=progress_samples,
-            solve_time=solve_time,
-            objective_value=obj,
-            mip_gap=gap,
-            nodes_explored=nodes,
-        )
+    # Always append the terminal sample.  When progress_interval_s > 0 it is
+    # included in time-series alignment; in all cases it is the canonical source
+    # for the scalar best_bound derived below.
+    _append_terminal_progress_sample(
+        model=model,
+        progress_samples=progress_samples,
+        solve_time=solve_time,
+        objective_value=obj,
+        mip_gap=gap,
+        nodes_explored=nodes,
+    )
+
+    # Scalar best_bound: last non-None best_bound in progress_samples.
+    # The terminal sample sets this to objective_value at optimality (mip_gap == 0)
+    # and forward-fills the last callback-recorded LP-relaxation bound otherwise,
+    # avoiding the post-solve CPLEX API which may return the incumbent.
+    best_bound: float | None = None
+    for prev in reversed(progress_samples):
+        if prev.get("best_bound") is not None:
+            best_bound = prev["best_bound"]
+            break
 
     return {
         "solve_time_s": solve_time,
         "objective_value": obj,
+        "best_bound": best_bound,
         "mip_gap": gap,
         "nodes_explored": nodes,
         "solve_status": status,
+        "best_solution_mst": best_solution_mst,
         "progress_samples": progress_samples,
     }
 
@@ -571,6 +822,8 @@ def _run_single_seed(
         MipEmphasis,
         Parallel,
         ProgressInterval,
+        WarmStartFile,
+        ExportSolution,
     ],
     output_property_identifiers=[
         "solve_times",
@@ -578,6 +831,8 @@ def _run_single_seed(
         "mip_gaps",
         "nodes_explored",
         "solve_statuses",
+        "best_bounds",
+        "best_solution_mst",
         "progress_time_grid",
         "objective_over_time",
         "best_bound_over_time",
@@ -609,6 +864,8 @@ def solve_mip(
     mip_emphasis: int = 0,
     parallel: bool = True,
     progress_interval_s: float = 0,
+    warm_start_file: str = "",
+    export_solution: bool = False,
 ) -> dict[str, list]:
     """Solve a MIP instance with CPLEX across multiple random seeds.
 
@@ -630,14 +887,21 @@ def solve_mip(
             per family; ``cplex_default`` leaves CPLEX defaults unchanged.
         mip_emphasis: CPLEX MIP emphasis (0=balanced through 5=heuristic); default 0.
         parallel: If True, run each seed as a Ray remote task (requires ray_remote).
-            If False, run seeds in serial.
+            If False, run seeds in serial. With parallel=True, Ray task failures on
+            individual seeds are recorded as ``ray_task_failed: ...`` in
+            solve_statuses with null metrics for that seed; successful seeds are
+            still returned (partial-OK policy).
         progress_interval_s: If > 0, capture intermediate progress at this interval
             (seconds). Outputs progress_time_grid and aligned time-series.
+        warm_start_file: Optional CPLEX MIP-start file applied before each seed solve.
+        export_solution: If True, populate best_solution_mst with MST XML per seed.
 
     Returns:
         Dictionary with vector-valued outputs (one element per seed):
         - solve_times: Wall-clock solve times in seconds.
         - objective_values: Best objective values found.
+        - best_bounds: Final MIP best bounds.
+        - best_solution_mst: MST XML strings for warm-start round-trip, or ``""``.
         - mip_gaps: Final relative MIP gaps.
         - nodes_explored: B&B nodes processed.
         - solve_statuses: CPLEX status strings.
@@ -650,6 +914,11 @@ def solve_mip(
           the last periodic callback.
     """
     import ray
+
+    mem_bytes = estimate_mip_memory_bytes(mps_file)
+    # 80% of the Ray task reservation: CPLEX WorkMem budget in MB, leaving 20%
+    # headroom for the Python interpreter and Ray worker overhead.
+    workmem_mb = int(mem_bytes / (1024**2) * 0.80)
 
     def _run_one(seed: int) -> dict[str, Any]:
         return _run_single_seed(
@@ -667,6 +936,9 @@ def solve_mip(
             cut_passes_all=cut_passes_all,
             mip_emphasis=mip_emphasis,
             progress_interval_s=progress_interval_s,
+            warm_start_file=warm_start_file,
+            export_solution=export_solution,
+            workmem_mb=workmem_mb,
         )
 
     if parallel:
@@ -675,9 +947,9 @@ def solve_mip(
                 "parallel=True requires the experiment to run with ray_remote "
                 "(use_ray=True). Ray is not initialized."
             )
-        remote_fn = ray.remote(num_cpus=n_threads)(_run_one)
+        remote_fn = ray.remote(num_cpus=n_threads, memory=mem_bytes)(_run_one)
         refs = [remote_fn.remote(seed) for seed in range(n_seeds)]
-        results = ray.get(refs)
+        results = _collect_parallel_seed_results(refs)
     else:
         results = []
         for seed in range(n_seeds):
@@ -687,6 +959,8 @@ def solve_mip(
     out: dict[str, list] = {
         "solve_times": [r["solve_time_s"] for r in results],
         "objective_values": [r["objective_value"] for r in results],
+        "best_bounds": [r["best_bound"] for r in results],
+        "best_solution_mst": [r["best_solution_mst"] for r in results],
         "mip_gaps": [r["mip_gap"] for r in results],
         "nodes_explored": [r["nodes_explored"] for r in results],
         "solve_statuses": [r["solve_status"] for r in results],

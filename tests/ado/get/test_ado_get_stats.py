@@ -392,7 +392,7 @@ def test_ado_get_space_stats_single_resource(
 
 
 @requires_sqlite_3_38
-@pytest.mark.parametrize("resource_kind", ["samplestores"])
+@pytest.mark.parametrize("resource_kind", ["actuatorconfigurations"])
 def test_ado_get_stats_unsupported_resource_type_exits_1(
     tmp_path: pathlib.Path,
     mysql_test_instance: MySqlContainer,
@@ -402,7 +402,7 @@ def test_ado_get_stats_unsupported_resource_type_exits_1(
     ],
     resource_kind: str,
 ) -> None:
-    """ado get <non-operation> -o stats exits 1 with an error message."""
+    """ado get <unsupported-resource> -o stats exits 1 with an error message."""
     runner = CliRunner()
     create_active_ado_context(
         runner=runner, path=tmp_path, project_context=valid_ado_project_context
@@ -424,3 +424,78 @@ def test_ado_get_stats_unsupported_resource_type_exits_1(
     if os.environ.get("CI", "false") != "true":
         assert "stats" in result.output.lower()
         assert "operation" in result.output.lower()
+
+
+@requires_sqlite_3_38
+def test_ado_get_samplestores_stats_values(
+    tmp_path: pathlib.Path,
+    mysql_test_instance: MySqlContainer,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+    ml_multi_cloud_sample_store: SQLSampleStore,
+    backdate_resource: Callable[[str, CoreResourceKinds, datetime.datetime], None],
+    simulate_ml_multi_cloud_random_walk_operation: Callable[
+        [int, int, int, str | None],
+        tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
+    ],
+) -> None:
+    """Stats values for a known samplestore match expected counts in the rendered table."""
+    runner = CliRunner()
+    create_active_ado_context(
+        runner=runner, path=tmp_path, project_context=valid_ado_project_context
+    )
+
+    number_entities = 3
+    number_requests = 1
+
+    simulate_ml_multi_cloud_random_walk_operation(
+        number_entities=number_entities,
+        number_requests=number_requests,
+        measurements_per_result=1,
+    )
+
+    after = ml_multi_cloud_sample_store.samplestore_statistics()
+    store_id = ml_multi_cloud_sample_store.identifier
+    backdate_resource(store_id, CoreResourceKinds.SAMPLESTORE, _CREATED_7_DAYS_AGO)
+
+    result = runner.invoke(
+        ado,
+        [
+            "--override-ado-app-dir",
+            tmp_path,
+            "get",
+            "samplestores",
+            "-o",
+            "stats",
+            "--no-trunc",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    if os.environ.get("CI", "false") != "true":
+        expected_output = pd.DataFrame(
+            data={
+                "IDENTIFIER": store_id,
+                "NAME": "ml_multi_cloud",
+                "AGE": _EXPECTED_AGE,
+                "ENTITIES": after.number_of_entities,
+                "RESULTS": after.number_of_results,
+                "EXPERIMENTS": after.number_of_experiments,
+            },
+            index=pd.Index([0]),
+        )
+        rendered_output = render_to_string(
+            dataframe_to_rich_table(
+                expected_output,
+                show_index=True,
+                show_edge=True,
+                box=rich.box.SQUARE,
+                do_not_truncate_columns=True,
+            ),
+            auto_width=True,
+        )
+        assert (
+            rendered_output in result.output
+        ), f"Expected output:\n{rendered_output}\nnot found in:\n{result.output}"

@@ -32,6 +32,7 @@ from orchestrator.cli.utils.output.prints import (
 )
 from orchestrator.cli.utils.resources.formatters import (
     format_ado_get_stats_for_operations,
+    format_ado_get_stats_for_samplestores,
     format_ado_get_stats_for_spaces,
     format_default_ado_get_multiple_resources,
     format_default_ado_get_single_resource,
@@ -307,18 +308,27 @@ def _handle_stats_format(
 ) -> None:
     """Handle STATS output format - TABLE columns plus measurement/space stats columns.
 
-    Supported for operations (columns: TOTAL_RESULTS, SUCCESSFUL_RESULTS,
-    FAILED_RESULTS, MEASURED_ENTITIES) and discovery spaces (columns:
-    EXPERIMENTS, OPERATIONS, EXPLORE_OPERATIONS, MEASURED_ENTITIES).  For any
-    other resource type the handler prints an error message and exits with code 1.
+    Supported for:
+    - operations (columns: TOTAL_RESULTS, SUCCESSFUL_RESULTS, FAILED_RESULTS,
+      MEASURED_ENTITIES)
+    - discovery spaces (columns: EXPERIMENTS, OPERATIONS, EXPLORE_OPERATIONS,
+      MEASURED_ENTITIES)
+    - sample stores (columns: ENTITIES, RESULTS, EXPERIMENTS)
+
+    For any other resource type the handler prints an error message and exits
+    with code 1.
     """
     from orchestrator.core import CoreResourceKinds
 
-    _SUPPORTED = {CoreResourceKinds.OPERATION, CoreResourceKinds.DISCOVERYSPACE}
+    _SUPPORTED = {
+        CoreResourceKinds.OPERATION,
+        CoreResourceKinds.DISCOVERYSPACE,
+        CoreResourceKinds.SAMPLESTORE,
+    }
     if resource_type is not None and resource_type not in _SUPPORTED:
         console_print(
-            f"{ERROR}The 'stats' output format is only supported for operations "
-            f"and discovery spaces.",
+            f"{ERROR}The 'stats' output format is only supported for operations, "
+            f"discovery spaces, and sample stores.",
             stderr=True,
         )
         raise typer.Exit(1)
@@ -341,6 +351,12 @@ def _handle_stats_format(
     with Status(ADO_SPINNER_GETTING_OUTPUT_READY) as status:
         if resource_type == CoreResourceKinds.DISCOVERYSPACE:
             enriched_df = format_ado_get_stats_for_spaces(
+                base_df,
+                sql_store_for_stats,
+                spinner=status,
+            )
+        elif resource_type == CoreResourceKinds.SAMPLESTORE:
+            enriched_df = format_ado_get_stats_for_samplestores(
                 base_df,
                 sql_store_for_stats,
                 spinner=status,

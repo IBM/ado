@@ -89,6 +89,14 @@ Goal: volume of work, recency, and which spaces attract the most operations.
    Adds `EXPERIMENTS`, `OPERATIONS`, `EXPLORE_OPERATIONS`, and
    `MEASURED_ENTITIES` columns.
 
+5. **Sample Stores (with statistics)**
+
+   ```bash
+   uv run ado get samplestores -o stats --output-file samplestores-stats.txt
+   ```
+
+   Adds `ENTITIES`, `RESULTS`, and `EXPERIMENTS` columns.
+
 **Synthesis:** cluster mentally (or in notes) by **creation time** to see bursts
 of activity; count operations **per space** from the operations listing to see
 which spaces are busiest.

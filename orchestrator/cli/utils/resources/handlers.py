@@ -32,6 +32,7 @@ from orchestrator.cli.utils.output.prints import (
 )
 from orchestrator.cli.utils.resources.formatters import (
     format_ado_get_stats_for_operations,
+    format_ado_get_stats_for_spaces,
     format_default_ado_get_multiple_resources,
     format_default_ado_get_single_resource,
     format_resource_for_ado_get_custom_format,
@@ -304,16 +305,20 @@ def _handle_stats_format(
     dataframe: "pd.DataFrame | None",
     resources: "list[ADOResource] | ADOResource | None",
 ) -> None:
-    """Handle STATS output format - TABLE columns plus 7 measurement stats columns.
+    """Handle STATS output format - TABLE columns plus measurement/space stats columns.
 
-    Only supported for operations.  For any other resource type the handler
-    prints an error message and exits with code 1.
+    Supported for operations (columns: TOTAL_RESULTS, SUCCESSFUL_RESULTS,
+    FAILED_RESULTS, MEASURED_ENTITIES) and discovery spaces (columns:
+    EXPERIMENTS, OPERATIONS, EXPLORE_OPERATIONS, MEASURED_ENTITIES).  For any
+    other resource type the handler prints an error message and exits with code 1.
     """
     from orchestrator.core import CoreResourceKinds
 
-    if resource_type is not None and resource_type != CoreResourceKinds.OPERATION:
+    _SUPPORTED = {CoreResourceKinds.OPERATION, CoreResourceKinds.DISCOVERYSPACE}
+    if resource_type is not None and resource_type not in _SUPPORTED:
         console_print(
-            f"{ERROR}The 'stats' output format is only supported for operations.",
+            f"{ERROR}The 'stats' output format is only supported for operations "
+            f"and discovery spaces.",
             stderr=True,
         )
         raise typer.Exit(1)
@@ -334,11 +339,18 @@ def _handle_stats_format(
         project_context=parameters.ado_configuration.project_context
     )
     with Status(ADO_SPINNER_GETTING_OUTPUT_READY) as status:
-        enriched_df = format_ado_get_stats_for_operations(
-            base_df,
-            sql_store_for_stats,
-            spinner=status,
-        )
+        if resource_type == CoreResourceKinds.DISCOVERYSPACE:
+            enriched_df = format_ado_get_stats_for_spaces(
+                base_df,
+                sql_store_for_stats,
+                spinner=status,
+            )
+        else:
+            enriched_df = format_ado_get_stats_for_operations(
+                base_df,
+                sql_store_for_stats,
+                spinner=status,
+            )
 
     _render_dataframe_table_output(enriched_df, parameters)
 

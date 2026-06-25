@@ -119,13 +119,21 @@ uv run ado get space --use-latest -o yaml
 # Get the latest operation as YAML
 uv run ado get operation --use-latest -o yaml
 
-# Get measurement statistics for all operations (operations only)
+# Get measurement statistics for all operations
 uv run ado get operations -o stats --output-file operations-stats.txt
 uv run ado get operation OPERATION_ID -o stats --no-trunc
+
+# Get statistics for all discovery spaces
+uv run ado get spaces -o stats --output-file spaces-stats.txt
+uv run ado get space SPACE_ID -o stats --no-trunc
 ```
 
-`-o stats` extends the table with `TOTAL_RESULTS`, `SUCCESSFUL_RESULTS`,
-`FAILED_RESULTS`, and `MEASURED_ENTITIES`.
+`-o stats` extends the table with statistics columns:
+
+- **Operations**: `TOTAL_RESULTS`, `SUCCESSFUL_RESULTS`, `FAILED_RESULTS`,
+  `MEASURED_ENTITIES`.
+- **Discovery Spaces**: `EXPERIMENTS`, `OPERATIONS`, `EXPLORE_OPERATIONS`,
+  `MEASURED_ENTITIES`.
 
 ### ado create
 

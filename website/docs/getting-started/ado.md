@@ -531,10 +531,12 @@ Where:
     - The `config` format displays the `config` field of the matching resources.
     - The `raw` format displays the raw resource as stored in the database,
       performing no validation.
-    - The `stats` format augments the default `table` output with four additional
-      measurement statistics columns: `TOTAL_RESULTS`, `SUCCESSFUL_RESULTS`,
-      `FAILED_RESULTS`, and `MEASURED_ENTITIES`. This format is **only supported
-      for operations**.
+    - The `stats` format augments the default `table` output with additional
+      statistics columns. Supported resource types and their columns are:
+        - **Operations**: `TOTAL_RESULTS`, `SUCCESSFUL_RESULTS`,
+          `FAILED_RESULTS`, `MEASURED_ENTITIES`.
+        - **Discovery Spaces**: `EXPERIMENTS`, `OPERATIONS`,
+          `EXPLORE_OPERATIONS`, `MEASURED_ENTITIES`.
 
     <!-- prettier-ignore-end -->
 
@@ -735,6 +737,18 @@ ado get operations -o stats
 
 ```shell
 ado get operation randomwalk-0.5.0-123abc -o stats
+```
+
+##### Getting statistics for all Discovery Spaces
+
+```shell
+ado get spaces -o stats
+```
+
+##### Getting statistics for a single Discovery Space
+
+```shell
+ado get space --use-latest -o stats
 ```
 
 ### ado show

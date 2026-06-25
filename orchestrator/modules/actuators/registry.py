@@ -18,6 +18,11 @@ from orchestrator.modules.actuators.catalog import (
     ExperimentCatalog,
     ExperimentVersionMismatchError,
 )
+from orchestrator.schema.experiment import (
+    Experiment,
+    ExperimentInterfaceIssue,
+    ExperimentInterfaceIssueKind,
+)
 from orchestrator.schema.measurementspace import MeasurementSpace
 from orchestrator.schema.reference import ExperimentReference
 from orchestrator.utilities.logging import configure_logging
@@ -25,7 +30,7 @@ from orchestrator.utilities.logging import configure_logging
 if typing.TYPE_CHECKING:
     import pandas as pd
 
-    from orchestrator.schema.experiment import Experiment, ParameterizedExperiment
+    from orchestrator.schema.experiment import ParameterizedExperiment
 
 configure_logging()
 
@@ -47,6 +52,76 @@ class MissingActuatorConfigurationForCatalogError(Exception):
 
 class UnexpectedCatalogRetrievalError(Exception):
     """The actuator catalog method raised on unexpected exception"""
+
+
+_MEASUREMENT_SPACE_INTERFACE_ISSUE_TEMPLATES: dict[
+    ExperimentInterfaceIssueKind, str
+] = {
+    ExperimentInterfaceIssueKind.MISSING_REQUIRED_CONSTITUTIVE_IN_PROVIDED: (
+        "measurement-space experiment requires constitutive input "
+        "{propertyIdentifier!r} that is not declared in the actuator catalog"
+    ),
+    ExperimentInterfaceIssueKind.EXTRA_REQUIRED_CONSTITUTIVE_IN_PROVIDED: (
+        "actuator catalog experiment requires constitutive input "
+        "{propertyIdentifier!r} that is not required in the measurement-space "
+        "experiment"
+    ),
+    ExperimentInterfaceIssueKind.MISSING_REQUIRED_OBSERVED_IN_PROVIDED: (
+        "measurement-space experiment requires observed input "
+        "{observedIdentifier!r} that is not declared in the actuator catalog"
+    ),
+    ExperimentInterfaceIssueKind.EXTRA_REQUIRED_OBSERVED_IN_PROVIDED: (
+        "actuator catalog experiment requires observed input "
+        "{observedIdentifier!r} that is not required in the measurement-space "
+        "experiment"
+    ),
+    ExperimentInterfaceIssueKind.PARAMETERIZED_OPTIONAL_NOT_IN_PROVIDED: (
+        "measurement-space experiment parameterizes optional input "
+        "{propertyIdentifier!r} that is not optional in the actuator catalog"
+    ),
+    ExperimentInterfaceIssueKind.OPTIONAL_NOT_DECLARED_IN_PROVIDED: (
+        "measurement-space experiment declares optional input "
+        "{propertyIdentifier!r} that is not declared in the actuator catalog"
+    ),
+    ExperimentInterfaceIssueKind.DOMAIN_NOT_COMPATIBLE: (
+        "domain for {propertyIdentifier!r} in the measurement-space experiment is "
+        "not compatible with the actuator catalog"
+    ),
+    ExperimentInterfaceIssueKind.PARAMETERIZED_VALUE_OUT_OF_DOMAIN: (
+        "parameterized value {value!r} for {propertyIdentifier!r} in the "
+        "measurement-space experiment is not in the actuator catalog property domain"
+    ),
+    ExperimentInterfaceIssueKind.OPTIONAL_DEFAULT_MISMATCH: (
+        "default value for optional input {propertyIdentifier!r} is "
+        "{expectedDefault!r} in the measurement-space experiment but "
+        "{providedDefault!r} in the actuator catalog"
+    ),
+    ExperimentInterfaceIssueKind.OUTPUT_NOT_IN_PROVIDED: (
+        "output {targetIdentifier!r} declared in the measurement-space experiment "
+        "is not produced by the actuator catalog experiment"
+    ),
+}
+
+
+def format_measurement_space_interface_issue(
+    expected_experiment: Experiment,
+    issue: ExperimentInterfaceIssue,
+) -> str:
+    """Format a structured interface issue for measurement-space support checks.
+
+    Args:
+        expected_experiment: The measurement-space experiment being validated.
+        issue: Structured interface mismatch returned by compatibility checking.
+
+    Returns:
+        A user-facing issue string for logging or error reporting.
+    """
+    template = _MEASUREMENT_SPACE_INTERFACE_ISSUE_TEMPLATES[issue.kind]
+    detail = template.format(**issue.model_dump(exclude={"kind"}, exclude_none=True))
+    return (
+        f"ExperimentInterfaceMismatchError: "
+        f"{expected_experiment.actuatorIdentifier}.{expected_experiment}: {detail}"
+    )
 
 
 class ActuatorRegistry:
@@ -574,12 +649,15 @@ class ActuatorRegistry:
 
         Uses :meth:`~orchestrator.modules.actuators.catalog.ExperimentCatalog.experimentForReference`
         with ``resolve=True`` so that major version mismatches are detected and reported.
+        When lookup succeeds, also compares the measurement-space experiment interface
+        against the registry catalog experiment (inputs, domains, optional defaults,
+        and outputs). All interface mismatches for an experiment are collected.
 
         Returns:
-            A list with one entry per experiment that is not supported.
-            An empty list means no issues were found.
+            A list of issue strings. An empty list means no issues were found.
         """
         from orchestrator.modules.actuators.base import DeprecatedExperimentError
+        from orchestrator.schema.experiment import check_experiment_interface_compatible
 
         issues = []
         for experiment in measurement_space.experiments:
@@ -587,6 +665,16 @@ class ActuatorRegistry:
             try:
                 catalog = self.catalogForActuatorIdentifier(ref.actuatorIdentifier)
                 catalog.experimentForReference(ref, resolve=True)
+                provided_experiment = catalog.experimentForReference(ref, resolve=False)
+                if provided_experiment is not None:
+                    interface_issues = check_experiment_interface_compatible(
+                        expected_experiment=experiment,
+                        provided_experiment=provided_experiment,
+                    )
+                    issues.extend(
+                        format_measurement_space_interface_issue(experiment, issue)
+                        for issue in interface_issues
+                    )
             except ExperimentVersionMismatchError as error:  # noqa: PERF203
                 issues.append(f"AlgorithmVersionMismatchError: {error!s}")
             except UnknownExperimentError as error:

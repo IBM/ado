@@ -123,19 +123,19 @@ class DiscoverySpaceConfiguration(pydantic.BaseModel):
             ):
                 continue
 
-            keys_to_remove = {
-                "values",
-                "interval",
-                "domainRange",
-                "probabilityFunction",
-            }
-            overlapping_keys = set(property[property_domain_key].keys()).difference(
-                keys_to_remove
+            deprecated_keys = {"values", "interval", "domainRange"}
+
+            # Only rewrite if at least one deprecated key has a non-None value.
+            # Key presence alone is not a reliable signal because dump_python always
+            # emits all fields (including None defaults), so we check the values.
+            has_deprecated_data = any(
+                property[property_domain_key].get(k) is not None
+                for k in deprecated_keys
             )
 
-            # If the propertyDomain has any of the keys above, we rewrite it completely
-            # to just contain BINARY_VARIABLE_TYPE instead of popping each key.
-            if overlapping_keys:
+            # If the propertyDomain has non-null data in any deprecated key, rewrite it
+            # completely to just contain BINARY_VARIABLE_TYPE.
+            if has_deprecated_data:
 
                 property[property_domain_key] = {
                     variable_type_key: VariableTypeEnum.BINARY_VARIABLE_TYPE.value

@@ -518,5 +518,235 @@ class TestValidatorDataIntegrity:
         assert result == data
         assert "new_field" not in result
 
+    def test_operation_operator_name_field_rename(
+        self, legacy_migrators_loaded: None
+    ) -> None:
+        """Test the operationName to operatorName operation migrator."""
+        migrator = LegacyMigratorRegistry.get_migrator(
+            "operation_operator_name_field_rename"
+        )
+        assert migrator is not None
+        assert migrator.resource_type == CoreResourceKinds.OPERATION
+
+        old_data = {
+            "config": {
+                "operation": {
+                    "module": {
+                        "operationName": "detect_anomalous_series",
+                        "operationType": "characterize",
+                    }
+                }
+            }
+        }
+
+        migrated_data = migrator.migrator_function(old_data.copy())
+
+        module = migrated_data["config"]["operation"]["module"]
+        assert module["operatorName"] == "detect_anomalous_series"
+        assert module["operationType"] == "characterize"
+        assert "operationName" not in module
+
+    def test_samplestore_created_timezone_utc(
+        self, legacy_migrators_loaded: None
+    ) -> None:
+        """Test the naive sample store created timestamp migrator."""
+        migrator = LegacyMigratorRegistry.get_migrator(
+            "samplestore_created_timezone_utc"
+        )
+        assert migrator is not None
+        assert migrator.resource_type == CoreResourceKinds.SAMPLESTORE
+
+        old_data = {
+            "kind": "samplestore",
+            "created": "2024-03-22T11:46:31.301815",
+            "config": {},
+        }
+
+        migrated_data = migrator.migrator_function(old_data.copy())
+
+        assert migrated_data["created"] == "2024-03-22T11:46:31.301815Z"
+
+    def test_operation_created_timezone_utc(
+        self, legacy_migrators_loaded: None
+    ) -> None:
+        """Test the naive operation created timestamp migrator."""
+        migrator = LegacyMigratorRegistry.get_migrator("operation_created_timezone_utc")
+        assert migrator is not None
+        assert migrator.resource_type == CoreResourceKinds.OPERATION
+
+        old_data = {
+            "kind": "operation",
+            "created": "2024-03-22T11:46:31.301815",
+            "config": {},
+        }
+
+        migrated_data = migrator.migrator_function(old_data.copy())
+
+        assert migrated_data["created"] == "2024-03-22T11:46:31.301815Z"
+
+    def test_discoveryspace_created_timezone_utc(
+        self, legacy_migrators_loaded: None
+    ) -> None:
+        """Test the naive discovery space created timestamp migrator."""
+        migrator = LegacyMigratorRegistry.get_migrator(
+            "discoveryspace_created_timezone_utc"
+        )
+        assert migrator is not None
+        assert migrator.resource_type == CoreResourceKinds.DISCOVERYSPACE
+
+        old_data = {
+            "kind": "discoveryspace",
+            "created": "2024-03-22T11:46:31.301815",
+            "config": {},
+        }
+
+        migrated_data = migrator.migrator_function(old_data.copy())
+
+        assert migrated_data["created"] == "2024-03-22T11:46:31.301815Z"
+
+    def test_discoveryspace_entitysource_field_removal(
+        self, legacy_migrators_loaded: None
+    ) -> None:
+        """Test removal of legacy discovery space entitySource config."""
+        migrator = LegacyMigratorRegistry.get_migrator(
+            "discoveryspace_entitysource_field_removal"
+        )
+        assert migrator is not None
+        assert migrator.resource_type == CoreResourceKinds.DISCOVERYSPACE
+
+        old_data = {
+            "config": {
+                "entitySource": {
+                    "module": {
+                        "moduleClass": "SQLEntitySource",
+                        "moduleName": "orchestrator.model.sqlstore",
+                        "modulePath": ".",
+                        "moduleType": "entity_source",
+                    },
+                    "parameters": {
+                        "configuration": {
+                            "active": True,
+                            "database": "lattice-qcd",
+                            "host": "percona-mysql-haproxy",
+                            "password": "secret",
+                            "sslVerify": False,
+                            "user": "lattice-qcd",
+                        },
+                        "identifier": "f660cf",
+                    },
+                },
+                "entitySpace": [],
+            }
+        }
+
+        migrated_data = migrator.migrator_function(old_data.copy())
+
+        assert migrated_data["config"]["sampleStoreIdentifier"] == "f660cf"
+        assert "entitySource" not in migrated_data["config"]
+
+    def test_operation_space_identifier_field_removal(
+        self, legacy_migrators_loaded: None
+    ) -> None:
+        """Test removal of legacy operation spaceIdentifier config."""
+        migrator = LegacyMigratorRegistry.get_migrator(
+            "operation_space_identifier_field_removal"
+        )
+        assert migrator is not None
+        assert migrator.resource_type == CoreResourceKinds.OPERATION
+
+        old_data = {
+            "config": {
+                "metadata": {},
+                "operation": {
+                    "module": {
+                        "moduleClass": "RandomWalk",
+                        "moduleName": "orchestrator.agents.optimizers",
+                        "modulePath": ".",
+                        "moduleType": "operation",
+                    },
+                    "parameters": {
+                        "batchSize": 1,
+                        "mode": "sequential",
+                        "numberIterations": 240,
+                        "samplerType": "generator",
+                        "singleMeasurement": False,
+                    },
+                },
+                "spaceIdentifier": "space-e0c297-8f8b8c",
+                "spaces": ["space-e0c297-8f8b8c"],
+            }
+        }
+
+        migrated_data = migrator.migrator_function(old_data.copy())
+
+        assert "spaceIdentifier" not in migrated_data["config"]
+        assert migrated_data["config"]["spaces"] == ["space-e0c297-8f8b8c"]
+
+    def test_discoveryspace_additional_entity_sources_field_removal(
+        self, legacy_migrators_loaded: None
+    ) -> None:
+        """Test removal of legacy discovery space additionalEntitySources config."""
+        migrator = LegacyMigratorRegistry.get_migrator(
+            "discoveryspace_additional_entity_sources_field_removal"
+        )
+        assert migrator is not None
+        assert migrator.resource_type == CoreResourceKinds.DISCOVERYSPACE
+
+        old_data = {
+            "config": {
+                "additionalEntitySources": None,
+                "entitySourceIdentifier": "1d5055",
+                "entitySpace": [],
+                "experiments": {"experiments": []},
+            }
+        }
+
+        migrated_data = migrator.migrator_function(old_data.copy())
+
+        assert "additionalEntitySources" not in migrated_data["config"]
+        assert migrated_data["config"]["entitySourceIdentifier"] == "1d5055"
+
+    def test_operation_result_field_removal(
+        self, legacy_migrators_loaded: None
+    ) -> None:
+        """Test removal of legacy top-level operation result field."""
+        migrator = LegacyMigratorRegistry.get_migrator("operation_result_field_removal")
+        assert migrator is not None
+        assert migrator.resource_type == CoreResourceKinds.OPERATION
+
+        old_data = {
+            "config": {
+                "actuatorConfigurationIdentifiers": [
+                    "actuatorconfiguration-geospatial-actuator-fee26c65"
+                ],
+                "actuators": None,
+                "metadata": {"description": None, "labels": None, "name": None},
+                "operation": {
+                    "module": {
+                        "moduleClass": "RandomWalk",
+                        "moduleFunction": None,
+                        "moduleName": "orchestrator.modules.operators.randomwalk",
+                        "modulePath": ".",
+                        "moduleType": "operation",
+                    },
+                    "parameters": {
+                        "batchSize": 1,
+                        "mode": "sequential",
+                        "numberEntities": "all",
+                        "samplerType": "generator",
+                        "singleMeasurement": False,
+                    },
+                },
+                "spaceIdentifier": "space-c1846f-1d5055",
+                "spaces": ["space-c1846f-1d5055"],
+            },
+            "result": None,
+        }
+
+        migrated_data = migrator.migrator_function(old_data.copy())
+
+        assert "result" not in migrated_data
+        assert migrated_data["config"]["spaces"] == ["space-c1846f-1d5055"]
+
 
 # Made with Bob

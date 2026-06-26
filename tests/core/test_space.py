@@ -281,6 +281,114 @@ def test_discovery_space_config_experiment_field_conversion(
     assert config_copy.convert_experiments_to_reference_list() == ds_config
 
 
+def test_strip_binary_variable_types_data_skips_clean_binary_domain() -> None:
+    """Validator must NOT rewrite a BINARY propertyDomain that has no non-null deprecated data."""
+    from orchestrator.schema.domain import VariableTypeEnum
+
+    # A clean binary domain (only variableType set, as stored after a successful upgrade)
+    entity_space_data = [
+        {
+            "identifier": "flash_attn",
+            "propertyDomain": {
+                "variableType": VariableTypeEnum.BINARY_VARIABLE_TYPE.value,
+            },
+            "propertyType": "CONSTITUTIVE_PROPERTY_TYPE",
+        }
+    ]
+
+    config = DiscoverySpaceConfiguration(
+        entitySpace=entity_space_data,
+        experiments=[],
+        sampleStoreIdentifier="test",
+    )
+
+    domain = config.entitySpace[0].propertyDomain
+    assert domain is not None
+    assert domain.variableType == VariableTypeEnum.BINARY_VARIABLE_TYPE
+    # A clean BINARY domain stores values=None; domain_values returns [False, True]
+    assert domain.values is None
+    assert domain.domain_values == [False, True]
+
+
+def test_strip_binary_variable_types_data_skips_already_validated_binary_property() -> (
+    None
+):
+    """Validator must NOT rewrite a BINARY domain when receiving already-validated objects.
+
+    dump_python always emits all fields (values=None, interval=None, etc.) even for a
+    clean domain, so the validator must check non-null values, not key presence.
+    This is the upgrade-idempotency case: running 'ado upgrade space' on an already-
+    upgraded space must not trigger the deprecation warning again.
+    """
+    from orchestrator.schema.domain import PropertyDomain, VariableTypeEnum
+    from orchestrator.schema.property import ConstitutiveProperty
+
+    # Already-validated ConstitutiveProperty with clean binary domain
+    clean_prop = ConstitutiveProperty(
+        identifier="flash_attn",
+        propertyDomain=PropertyDomain(
+            variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE
+        ),
+        propertyType="CONSTITUTIVE_PROPERTY_TYPE",
+    )
+
+    import warnings
+
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        config = DiscoverySpaceConfiguration(
+            entitySpace=[clean_prop],
+            experiments=[],
+            sampleStoreIdentifier="test",
+        )
+
+    domain = config.entitySpace[0].propertyDomain
+    assert domain is not None
+    assert domain.variableType == VariableTypeEnum.BINARY_VARIABLE_TYPE
+    assert domain.values is None
+    # No deprecation warning should have been emitted
+    deprecation_warnings = [
+        w for w in caught if "auto-upgraded" in str(w.message).lower()
+    ]
+    assert (
+        deprecation_warnings == []
+    ), f"Unexpected deprecation warning on clean binary domain: {deprecation_warnings}"
+
+
+def test_strip_binary_variable_types_data_rewrites_legacy_binary_domain() -> None:
+    """Validator MUST rewrite a BINARY propertyDomain that has non-null deprecated data."""
+    from orchestrator.schema.domain import VariableTypeEnum
+
+    # A legacy binary domain with deprecated 'values' field set to non-null
+    entity_space_data = [
+        {
+            "identifier": "flash_attn",
+            "propertyDomain": {
+                "variableType": VariableTypeEnum.BINARY_VARIABLE_TYPE.value,
+                "values": [True, False],
+                "interval": None,
+                "domainRange": None,
+                "probabilityFunction": {"identifier": "uniform", "parameters": None},
+            },
+            "propertyType": "CONSTITUTIVE_PROPERTY_TYPE",
+        }
+    ]
+
+    import warnings
+
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter("always")
+        config = DiscoverySpaceConfiguration(
+            entitySpace=entity_space_data,
+            experiments=[],
+            sampleStoreIdentifier="test",
+        )
+
+    domain = config.entitySpace[0].propertyDomain
+    assert domain is not None
+    assert domain.variableType == VariableTypeEnum.BINARY_VARIABLE_TYPE
+
+
 def test_sampled_entities(ml_multi_cloud_space: DiscoverySpace) -> None:
 
     assert (len(ml_multi_cloud_space.sampledEntities())) == 0

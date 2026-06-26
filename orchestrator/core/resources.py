@@ -112,6 +112,22 @@ class ADOResource(pydantic.BaseModel):
 
     model_config = pydantic.ConfigDict(extra="forbid")
 
+    @pydantic.model_validator(mode="before")
+    @classmethod
+    def check_if_ado_provenance_should_be_populated(
+        cls, data: object, info: pydantic.ValidationInfo
+    ) -> object:
+        """Based on validation context decides if empty ado provenance field
+        should be set to None or left to auto-populate"""
+        if (
+            isinstance(data, dict)
+            and info.context
+            and info.context.get("populate_ado_provenance") is False
+            and "provenance" not in data
+        ):
+            return {**data, "provenance": {"ado": None}}
+        return data
+
 
 def warn_deprecated_resource_model_in_use(
     affected_resource: CoreResourceKinds,

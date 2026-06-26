@@ -61,7 +61,7 @@ def create_actuator_configuration(parameters: AdoCreateCommandParameters) -> str
 
     resource_to_be_created = ActuatorConfigurationResource(
         config=actuatorconfig_configuration,
-        provenance=ActuatorConfigurationProvenanceInfo.at_creation(actuators=actuators),
+        provenance=ActuatorConfigurationProvenanceInfo(actuators=actuators),
     )
 
     sql = get_sql_store(project_context=parameters.ado_configuration.project_context)

@@ -381,11 +381,8 @@ def add_operation_output_to_metastore(
 ) -> None:
 
     if output:
-        from orchestrator.core.metadata import with_ado_core_provenance
-
         resource: ADOResource
         for resource in output.resources:
-            resource = with_ado_core_provenance(resource)
             try:
                 metastore.addResourceWithRelationships(
                     resource, relatedIdentifiers=[operation.identifier]
@@ -423,7 +420,7 @@ def add_operation_and_output_to_metastore(
         operatorIdentifier=operator_module.operatorIdentifier,
         config=operation_resource_configuration,
         status=[output.exitStatus],
-        provenance=OperationProvenanceInfo.at_creation(operators=operators),
+        provenance=OperationProvenanceInfo(operators=operators),
     )
 
     # ValueError means the resource has already been added
@@ -494,7 +491,7 @@ def create_operation_and_add_to_metastore(
         operationType=op_module.operationType,
         operatorIdentifier=op_module.operatorIdentifier,
         config=operation_resource_configuration,
-        provenance=OperationProvenanceInfo.at_creation(operators=operators),
+        provenance=OperationProvenanceInfo(operators=operators),
     )
 
     related_identifiers = [

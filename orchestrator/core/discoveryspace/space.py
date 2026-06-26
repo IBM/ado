@@ -571,7 +571,7 @@ class DiscoverySpace:
                     if provenance is not None:
                         custom_experiments[experiment.identifier] = provenance
 
-        return DiscoverySpaceProvenanceInfo.at_creation(
+        return DiscoverySpaceProvenanceInfo(
             actuators=actuators,
             customExperiments=custom_experiments,
         )
@@ -1007,9 +1007,9 @@ class DiscoverySpace:
         )
 
         if provenance is None:
-            final_provenance = OperationProvenanceInfo.at_creation(operators={})
+            final_provenance = OperationProvenanceInfo(operators={})
         else:
-            final_provenance = OperationProvenanceInfo.at_creation(
+            final_provenance = OperationProvenanceInfo(
                 operators={script_module.operatorIdentifier: provenance},
             )
 

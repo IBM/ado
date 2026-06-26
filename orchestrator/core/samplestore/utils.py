@@ -31,16 +31,10 @@ def create_sample_store_resource(
         Tuple of (SampleStoreResource, ActiveSampleStore instance)
     """
 
-    from orchestrator.core.metadata import ProvenanceInfo
-
     source = SampleStore.from_configuration(configuration)
 
     # Create and store resource
-    resource = SampleStoreResource(
-        identifier=source.identifier,
-        config=configuration,
-        provenance=ProvenanceInfo.at_creation(),
-    )
+    resource = SampleStoreResource(identifier=source.identifier, config=configuration)
 
     # Note: The resource store will apply custom dump/load for SQLSampleStores
     # This removes/re-adds the storage location info

@@ -2,16 +2,13 @@
 # SPDX-License-Identifier: MIT
 
 
-from typing import TYPE_CHECKING, Annotated
+from typing import Annotated
 
 import pydantic
 from pydantic import ConfigDict
 from typing_extensions import Self
 
 from orchestrator.utilities.pydantic import Pep440VersionStr
-
-if TYPE_CHECKING:
-    from orchestrator.core.resources import ADOResource
 
 
 class ConfigurationMetadata(pydantic.BaseModel):
@@ -154,7 +151,6 @@ class ProvenanceInfo(pydantic.BaseModel):
     ado: Annotated[
         PackageProvenance | None,
         pydantic.Field(
-            default=None,
             description=(
                 "ado-core distribution frozen at resource creation time. "
                 "None for resources created before this field existed or when "
@@ -163,26 +159,17 @@ class ProvenanceInfo(pydantic.BaseModel):
         ),
     ] = None
 
+    @pydantic.model_validator(mode="before")
     @classmethod
-    def resolve_ado_provenance(cls) -> PackageProvenance | None:
-        """Return installed ``ado-core`` package provenance, if available."""
-        return PackageProvenance.from_distribution_name("ado-core")
-
-    @classmethod
-    def at_creation(cls, **fields: object) -> Self:
-        """Build provenance for a newly created resource.
-
-        Resolves ``ado-core`` provenance when ``ado`` is not supplied.
-
-        Args:
-            **fields: Provenance field values for this model or subclass.
-
-        Returns:
-            A provenance instance with ``ado`` populated when available.
-        """
-        if fields.get("ado") is None:
-            fields["ado"] = cls.resolve_ado_provenance()
-        return cls(**fields)
+    def check_if_ado_provenance_should_be_populated(
+        cls, data: object, info: pydantic.ValidationInfo
+    ) -> object:
+        """Set ``ado`` from context when missing or explicitly null."""
+        if not isinstance(data, dict) or data.get("ado") is not None:
+            return data
+        if not (info.context and info.context.get("populate_ado_provenance") is False):
+            return {**data, "ado": PackageProvenance.from_distribution_name("ado-core")}
+        return {**data, "ado": None}
 
     @pydantic.model_validator(mode="after")
     def validate_provenance_field_values(self) -> Self:
@@ -198,23 +185,3 @@ class ProvenanceInfo(pydantic.BaseModel):
                         f"got {type(item)}"
                     )
         return self
-
-
-def with_ado_core_provenance(resource: "ADOResource") -> "ADOResource":
-    """Return a resource with ``ado-core`` provenance set when missing.
-
-    Args:
-        resource: Resource being prepared for persistence.
-
-    Returns:
-        The same resource, or a copy whose provenance was rebuilt via
-        :meth:`ProvenanceInfo.at_creation` when ``provenance.ado`` was ``None``.
-    """
-    if resource.provenance.ado is not None:
-        return resource
-
-    provenance_type = type(resource.provenance)
-    provenance_fields = resource.provenance.model_dump(exclude={"ado"})
-    return resource.model_copy(
-        update={"provenance": provenance_type.at_creation(**provenance_fields)}
-    )

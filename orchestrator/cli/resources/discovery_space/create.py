@@ -213,6 +213,7 @@ def create_discovery_space(parameters: AdoCreateCommandParameters) -> str | None
             identifier="default", kind=CoreResourceKinds.SAMPLESTORE
         ):
             from orchestrator.core import SampleStoreResource
+            from orchestrator.core.metadata import ProvenanceInfo
             from orchestrator.core.samplestore.config import (
                 SampleStoreConfiguration,
                 SampleStoreModuleConf,
@@ -232,6 +233,7 @@ def create_discovery_space(parameters: AdoCreateCommandParameters) -> str | None
                                 storageLocation=parameters.ado_configuration.project_context.metadataStore,
                             )
                         ),
+                        provenance=ProvenanceInfo.at_creation(),
                     )
                 )
 

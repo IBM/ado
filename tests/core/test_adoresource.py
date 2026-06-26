@@ -77,3 +77,21 @@ def test_resource_has_status_ser_deser(
     assert deser.status[0].event == ADOResourceEventEnum.CREATED
     assert deser.status[1].event == OperationResourceEventEnum.FINISHED
     assert deser.status[1].exit_state == OperationExitStateEnum.FAIL
+
+
+def test_resource_provenance_ser_deser(
+    sample_store_resource: SampleStoreResource,
+) -> None:
+    """Check that provenance is serialized and deserialized with a resource."""
+    from orchestrator.core.metadata import PackageProvenance, ProvenanceInfo
+
+    ado = PackageProvenance(
+        distributionName="ado-core",
+        distributionVersion="1.2.3",
+    )
+    resource = sample_store_resource.model_copy(
+        update={"provenance": ProvenanceInfo(ado=ado)}
+    )
+    dump = resource.model_dump()
+    deser = SampleStoreResource.model_validate(dump)
+    assert deser.provenance.ado == ado

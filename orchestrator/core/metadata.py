@@ -2,13 +2,16 @@
 # SPDX-License-Identifier: MIT
 
 
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
 import pydantic
 from pydantic import ConfigDict
 from typing_extensions import Self
 
 from orchestrator.utilities.pydantic import Pep440VersionStr
+
+if TYPE_CHECKING:
+    from orchestrator.core.resources import ADOResource
 
 
 class ConfigurationMetadata(pydantic.BaseModel):
@@ -139,25 +142,55 @@ class PackageProvenance(pydantic.BaseModel):
 
 
 class ProvenanceInfo(pydantic.BaseModel):
-    """Base model for plugin provenance stored on ADO resources.
+    """Base model for provenance stored on ADO resources.
 
-    Subclasses declare named maps of plugin identifiers to the distribution
-    that provided each plugin at resource creation time. All declared fields
-    must be ``dict[str, PackageProvenance]``.
+    Records the ``ado-core`` distribution at resource creation time and, in
+    subclasses, named maps of plugin identifiers to the distribution that
+    provided each plugin. Plugin map fields must be ``dict[str, PackageProvenance]``.
     """
 
     model_config = ConfigDict(extra="forbid")
 
+    ado: Annotated[
+        PackageProvenance | None,
+        pydantic.Field(
+            default=None,
+            description=(
+                "ado-core distribution frozen at resource creation time. "
+                "None for resources created before this field existed or when "
+                "the installed version could not be resolved."
+            ),
+        ),
+    ] = None
+
+    @classmethod
+    def resolve_ado_provenance(cls) -> PackageProvenance | None:
+        """Return installed ``ado-core`` package provenance, if available."""
+        return PackageProvenance.from_distribution_name("ado-core")
+
+    @classmethod
+    def at_creation(cls, **fields: object) -> Self:
+        """Build provenance for a newly created resource.
+
+        Resolves ``ado-core`` provenance when ``ado`` is not supplied.
+
+        Args:
+            **fields: Provenance field values for this model or subclass.
+
+        Returns:
+            A provenance instance with ``ado`` populated when available.
+        """
+        if fields.get("ado") is None:
+            fields["ado"] = cls.resolve_ado_provenance()
+        return cls(**fields)
+
     @pydantic.model_validator(mode="after")
     def validate_provenance_field_values(self) -> Self:
-        """Ensure every declared field is a dict of PackageProvenance instances."""
+        """Ensure plugin map fields are dicts of PackageProvenance instances."""
         for field_name in type(self).model_fields:
             value = getattr(self, field_name)
             if not isinstance(value, dict):
-                raise ValueError(
-                    f"{field_name} must be a dict[str, PackageProvenance], "
-                    f"got {type(value)}"
-                )
+                continue
             for key, item in value.items():
                 if not isinstance(item, PackageProvenance):
                     raise ValueError(
@@ -165,3 +198,23 @@ class ProvenanceInfo(pydantic.BaseModel):
                         f"got {type(item)}"
                     )
         return self
+
+
+def with_ado_core_provenance(resource: "ADOResource") -> "ADOResource":
+    """Return a resource with ``ado-core`` provenance set when missing.
+
+    Args:
+        resource: Resource being prepared for persistence.
+
+    Returns:
+        The same resource, or a copy whose provenance was rebuilt via
+        :meth:`ProvenanceInfo.at_creation` when ``provenance.ado`` was ``None``.
+    """
+    if resource.provenance.ado is not None:
+        return resource
+
+    provenance_type = type(resource.provenance)
+    provenance_fields = resource.provenance.model_dump(exclude={"ado"})
+    return resource.model_copy(
+        update={"provenance": provenance_type.at_creation(**provenance_fields)}
+    )

@@ -104,7 +104,9 @@ class ADOResource(pydantic.BaseModel):
         ProvenanceInfo,
         pydantic.Field(
             default_factory=ProvenanceInfo,
-            description="Plugin package provenance frozen at resource creation time.",
+            description=(
+                "ado-core and plugin package provenance frozen at resource creation time."
+            ),
         ),
     ]
 

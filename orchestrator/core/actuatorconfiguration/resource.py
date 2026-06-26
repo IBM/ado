@@ -46,6 +46,8 @@ class ActuatorConfigurationResource(ADOResource):
         ActuatorConfigurationProvenanceInfo,
         pydantic.Field(
             default_factory=ActuatorConfigurationProvenanceInfo,
-            description="Plugin package provenance frozen at resource creation time.",
+            description=(
+                "ado-core and plugin package provenance frozen at resource creation time."
+            ),
         ),
     ]

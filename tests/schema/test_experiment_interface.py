@@ -289,6 +289,34 @@ def test_missing_target_output_in_provided(
     )
 
 
+def test_provided_only_optional_properties_are_compatible(
+    mock_parameterizable_experiment: Experiment,
+) -> None:
+    """Provided-only optional parameters do not break interface compatibility."""
+    provided_experiment = mock_parameterizable_experiment.model_copy(
+        update={
+            "optionalProperties": (
+                *mock_parameterizable_experiment.optionalProperties,
+                ConstitutiveProperty(identifier="new_provided_optional"),
+            ),
+            "defaultParameterization": (
+                *mock_parameterizable_experiment.defaultParameterization,
+                ConstitutivePropertyValue(
+                    value=1,
+                    property=ConstitutivePropertyDescriptor(
+                        identifier="new_provided_optional"
+                    ),
+                ),
+            ),
+        }
+    )
+    issues = check_experiment_interface_compatible(
+        expected_experiment=mock_parameterizable_experiment,
+        provided_experiment=provided_experiment,
+    )
+    assert issues == []
+
+
 def test_multiple_interface_issues_are_collected(
     mock_parameterizable_experiment: Experiment,
     requiredProperties: list[ConstitutiveProperty],

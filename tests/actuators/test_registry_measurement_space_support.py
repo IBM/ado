@@ -101,6 +101,8 @@ def test_check_measurement_space_supported_allows_provided_optional_extension(
 ) -> None:
     """Provided-only optional parameters remain compatible."""
     catalog = global_registry.catalogForActuatorIdentifier("mock")
+    major_version_identifier = mock_parameterizable_experiment.major_version_identifier
+    original_experiment = catalog._experiments[major_version_identifier]
     extended_provided_experiment = mock_parameterizable_experiment.model_copy(
         update={
             "optionalProperties": (
@@ -118,17 +120,18 @@ def test_check_measurement_space_supported_allows_provided_optional_extension(
             ),
         }
     )
-    catalog._experiments[extended_provided_experiment.major_version_identifier] = (
-        extended_provided_experiment
-    )
+    try:
+        catalog._experiments[major_version_identifier] = extended_provided_experiment
 
-    measurement_space = MeasurementSpace(
-        configuration=MeasurementSpaceConfiguration(
-            experiments=[mock_parameterizable_experiment]
+        measurement_space = MeasurementSpace(
+            configuration=MeasurementSpaceConfiguration(
+                experiments=[mock_parameterizable_experiment]
+            )
         )
-    )
-    issues = global_registry.checkMeasurementSpaceSupported(measurement_space)
-    assert issues == []
+        issues = global_registry.checkMeasurementSpaceSupported(measurement_space)
+        assert issues == []
+    finally:
+        catalog._experiments[major_version_identifier] = original_experiment
 
 
 def test_check_measurement_space_supported_unknown_experiment_error_prefix(

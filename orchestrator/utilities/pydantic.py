@@ -82,7 +82,9 @@ def validate_rfc_1123(value: str | None) -> str | None:
 
 ignore_plugin_validation_context: dict[str, bool] = {"ignore_plugin_validation": True}
 
-populate_ado_provenance_context: dict[str, bool] = {"populate_ado_provenance": False}
+do_not_populate_ado_provenance_context: dict[str, bool] = {
+    "populate_ado_provenance": False
+}
 
 
 def merge_validation_context(

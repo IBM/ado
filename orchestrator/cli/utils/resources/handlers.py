@@ -751,7 +751,11 @@ def handle_ado_upgrade(
 
     # Import resource class mapping for validation
     from orchestrator.core import kindmap
-    from orchestrator.utilities.pydantic import ignore_plugin_validation_context
+    from orchestrator.utilities.pydantic import (
+        do_not_populate_ado_provenance_context,
+        ignore_plugin_validation_context,
+        merge_validation_context,
+    )
 
     # When legacy migrators are specified, work with raw data
     with Status(ADO_SPINNER_QUERYING_DB) as status:
@@ -787,7 +791,11 @@ def handle_ado_upgrade(
 
                 # Validate the migrated resource (don't save yet)
                 resource = resource_class.model_validate(
-                    resource_dict, context=ignore_plugin_validation_context
+                    resource_dict,
+                    context=merge_validation_context(
+                        ignore_plugin_validation_context,
+                        do_not_populate_ado_provenance_context,
+                    ),
                 )
                 migrations.append((identifier, resource))
 

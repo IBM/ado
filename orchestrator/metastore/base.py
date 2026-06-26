@@ -456,7 +456,14 @@ def sample_store_load(
             "storageLocation"
         ] = storage_location.model_dump()
 
-    return SampleStoreResource.model_validate(sample_store_resource_dict)
+    from orchestrator.utilities.pydantic import (
+        do_not_populate_ado_provenance_context,
+    )
+
+    return SampleStoreResource.model_validate(
+        sample_store_resource_dict,
+        context=do_not_populate_ado_provenance_context,
+    )
 
 
 kind_custom_model_dump = {CoreResourceKinds.SAMPLESTORE.value: sample_store_dump}

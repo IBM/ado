@@ -294,7 +294,9 @@ def _create_environment(
                         enforce_eager=values.get("enforce_eager", 0) == 1,
                         io_processor_plugin=values.get("io_processor_plugin"),
                         otlp_traces_endpoint=otlp_traces_endpoint,
-                        renderer_num_workers=renderer_num_workers,
+                        renderer_num_workers=(
+                            renderer_num_workers if renderer_num_workers > 0 else None
+                        ),
                         check_interval=check_interval,
                         timeout=timeout,
                     )

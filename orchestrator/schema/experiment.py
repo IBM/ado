@@ -5,6 +5,7 @@ import enum
 import importlib.metadata
 import sys
 import typing
+from collections.abc import Iterable
 from typing import Annotated
 
 import pydantic
@@ -17,8 +18,10 @@ from orchestrator.schema.property import (
     AbstractPropertyDescriptor,
     ConcretePropertyDescriptor,
     ConstitutiveProperty,
+    ConstitutivePropertyDescriptor,
     MeasuredPropertyTypeEnum,
     Property,
+    PropertyDescriptor,
 )
 from orchestrator.schema.property_value import (
     ConstitutivePropertyValue,
@@ -688,6 +691,31 @@ class Experiment(pydantic.BaseModel):
         return [e for e in self.requiredProperties if isinstance(e, ObservedProperty)]
 
     @property
+    def optional_property_descriptors(self) -> set[ConstitutivePropertyDescriptor]:
+        """Return identifiers of optional constitutive properties on this experiment."""
+        return {prop.descriptor() for prop in self.optionalProperties}
+
+    @property
+    def required_constitutive_property_descriptors(
+        self,
+    ) -> set[ConstitutivePropertyDescriptor]:
+        """Return identifiers of required constitutive properties on this experiment."""
+        return {prop.descriptor() for prop in self.requiredConstitutiveProperties}
+
+    def constitutive_property_for_identifier(
+        self, property_identifier: str
+    ) -> ConstitutiveProperty | None:
+        """Return a declared constitutive property by identifier, if present."""
+
+        v = [
+            p
+            for p in self.requiredConstitutiveProperties + list(self.optionalProperties)
+            if p.identifier == property_identifier
+        ]
+
+        return None if len(v) == 0 else v[0]
+
+    @property
     def references_of_required_input_experiments(
         self,
     ) -> set[ExperimentReference]:
@@ -907,6 +935,13 @@ class ParameterizedExperiment(Experiment):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     @property
+    def parameterized_optional_property_descriptors(
+        self,
+    ) -> set[ConstitutivePropertyDescriptor]:
+        """Return identifiers of optional properties with custom parameterization."""
+        return {value.property for value in self.parameterization}
+
+    @property
     def major_version_parameterized_identifier(self) -> str:
         """Return the major version parameterized identifier.
 
@@ -1115,25 +1150,14 @@ class ExperimentInterfaceIssue(pydantic.BaseModel):
         ExperimentInterfaceIssueKind,
         pydantic.Field(description="The kind of interface mismatch detected"),
     ]
-    propertyIdentifier: Annotated[
+    identifier: Annotated[
         str | None,
         pydantic.Field(
             default=None,
-            description="Constitutive property identifier related to the mismatch",
-        ),
-    ] = None
-    observedIdentifier: Annotated[
-        str | None,
-        pydantic.Field(
-            default=None,
-            description="Observed property identifier related to the mismatch",
-        ),
-    ] = None
-    targetIdentifier: Annotated[
-        str | None,
-        pydantic.Field(
-            default=None,
-            description="Target property identifier related to the mismatch",
+            description=(
+                "Property identifier related to the mismatch. Refers to a "
+                "constitutive, observed, or target property depending on kind."
+            ),
         ),
     ] = None
     value: Annotated[
@@ -1161,24 +1185,195 @@ class ExperimentInterfaceIssue(pydantic.BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
 
-def _constitutive_property_by_identifier(
-    experiment: "Experiment", property_identifier: str
-) -> ConstitutiveProperty | None:
-    """Return a constitutive property by identifier, if present."""
-    for prop in experiment.requiredConstitutiveProperties:
-        if prop.identifier == property_identifier:
-            return prop
-    for prop in experiment.optionalProperties:
-        if prop.identifier == property_identifier:
-            return prop
-    return None
+def _issues_for_ids(
+    ids: Iterable[Property | PropertyDescriptor | ObservedProperty],
+    kind: ExperimentInterfaceIssueKind,
+) -> list[ExperimentInterfaceIssue]:
+    """Build interface issues with ``identifier`` set for each id."""
+    return [
+        ExperimentInterfaceIssue(kind=kind, identifier=prop.identifier) for prop in ids
+    ]
 
 
-def _parameterized_optional_identifiers(experiment: "Experiment") -> set[str]:
-    """Return optional property identifiers with custom parameterization."""
-    if isinstance(experiment, ParameterizedExperiment):
-        return {value.property.identifier for value in experiment.parameterization}
-    return set()
+def _check_required_constitutive_interface(
+    expected: Experiment | ParameterizedExperiment,
+    provided: Experiment,
+) -> list[ExperimentInterfaceIssue]:
+    """Check required constitutive input compatibility.
+
+    Missing required constitutive inputs are satisfied when the property is
+    declared anywhere in the provided experiment (required or optional).
+    Extra required inputs are those required by provided but not by expected.
+    """
+
+    return [
+        *_issues_for_ids(
+            expected.required_constitutive_property_descriptors
+            - provided.required_constitutive_property_descriptors,
+            ExperimentInterfaceIssueKind.MISSING_REQUIRED_CONSTITUTIVE_IN_PROVIDED,
+        ),
+        *_issues_for_ids(
+            provided.required_constitutive_property_descriptors
+            - expected.required_constitutive_property_descriptors,
+            ExperimentInterfaceIssueKind.EXTRA_REQUIRED_CONSTITUTIVE_IN_PROVIDED,
+        ),
+    ]
+
+
+def _check_required_observed_interface(
+    expected: Experiment | ParameterizedExperiment,
+    provided: Experiment,
+) -> list[ExperimentInterfaceIssue]:
+    """Check required observed input compatibility.
+
+    Extra required observed inputs are those required by provided but not by
+    expected.
+    """
+    expected_required = set(expected.requiredObservedProperties)
+    provided_required = set(provided.requiredObservedProperties)
+    missing = expected_required - provided_required
+    extra = provided_required - expected_required
+    return [
+        *_issues_for_ids(
+            missing,
+            ExperimentInterfaceIssueKind.MISSING_REQUIRED_OBSERVED_IN_PROVIDED,
+        ),
+        *_issues_for_ids(
+            extra,
+            ExperimentInterfaceIssueKind.EXTRA_REQUIRED_OBSERVED_IN_PROVIDED,
+        ),
+    ]
+
+
+def _check_parameterized_optional_presence(
+    expected: Experiment | ParameterizedExperiment,
+    provided: Experiment,
+) -> list[ExperimentInterfaceIssue]:
+    """Check that parameterized optional inputs exist in the provided experiment."""
+
+    if isinstance(expected, ParameterizedExperiment):
+        missing_ids = {
+            p.property for p in expected.parameterization
+        } - provided.optional_property_descriptors
+        return _issues_for_ids(
+            missing_ids,
+            ExperimentInterfaceIssueKind.PARAMETERIZED_OPTIONAL_NOT_IN_PROVIDED,
+        )
+
+    return []
+
+
+def _check_constitutive_domains(
+    expected: Experiment | ParameterizedExperiment, provided: Experiment
+) -> list[ExperimentInterfaceIssue]:
+    """Check constitutive property presence and domain compatibility.
+
+    Optional-not-declared is reported separately from parameterized-optional
+    presence. Domain checks run only when the property is found in provided.
+    """
+    issues: list[ExperimentInterfaceIssue] = []
+    constitutive_properties_to_check = list(
+        expected.requiredConstitutiveProperties
+    ) + list(expected.optionalProperties)
+    for expected_property in constitutive_properties_to_check:
+        provided_property = provided.constitutive_property_for_identifier(
+            expected_property.identifier
+        )
+        if (
+            provided_property is None
+            and expected_property.descriptor() in expected.optional_property_descriptors
+        ):
+            issues.append(
+                ExperimentInterfaceIssue(
+                    kind=ExperimentInterfaceIssueKind.OPTIONAL_NOT_DECLARED_IN_PROVIDED,
+                    identifier=expected_property.identifier,
+                )
+            )
+            continue
+
+        if not expected_property.propertyDomain.isSubDomain(
+            provided_property.propertyDomain
+        ):
+            issues.append(
+                ExperimentInterfaceIssue(
+                    kind=ExperimentInterfaceIssueKind.DOMAIN_NOT_COMPATIBLE,
+                    identifier=expected_property.identifier,
+                )
+            )
+    return issues
+
+
+def _check_parameterized_values(
+    expected: Experiment | ParameterizedExperiment, provided: Experiment
+) -> list[ExperimentInterfaceIssue]:
+    """Check that parameterized values fall within provided property domains."""
+    if not isinstance(expected, ParameterizedExperiment):
+        return []
+
+    issues: list[ExperimentInterfaceIssue] = []
+    for parameterized_value in expected.parameterization:
+        provided_property = provided.constitutive_property_for_identifier(
+            parameterized_value.property.identifier
+        )
+        if provided_property is None:
+            continue
+        if not provided_property.propertyDomain.valueInDomain(
+            parameterized_value.value
+        ):
+            issues.append(
+                ExperimentInterfaceIssue(
+                    kind=ExperimentInterfaceIssueKind.PARAMETERIZED_VALUE_OUT_OF_DOMAIN,
+                    identifier=parameterized_value.property.identifier,
+                    value=parameterized_value.value,
+                )
+            )
+    return issues
+
+
+def _check_optional_defaults(
+    expected: Experiment | ParameterizedExperiment, provided: Experiment
+) -> list[ExperimentInterfaceIssue]:
+    """Check non-parameterized optional default values match between experiments.
+
+    Parameterized optionals are skipped because defaults come from
+    parameterization instead.
+    """
+    issues: list[ExperimentInterfaceIssue] = []
+    optional_to_check = expected.optional_property_descriptors
+    if isinstance(expected, ParameterizedExperiment):
+        optional_to_check = (
+            optional_to_check - expected.parameterized_optional_property_descriptors
+        )
+
+    for optional_property in optional_to_check:
+        if optional_property not in provided.optional_property_descriptors:
+            continue
+        expected_default = expected.valueForOptionalProperty(
+            optional_property.identifier
+        ).value
+        provided_default = provided.valueForOptionalProperty(
+            optional_property.identifier
+        ).value
+        if expected_default != provided_default:
+            issues.append(
+                ExperimentInterfaceIssue(
+                    kind=ExperimentInterfaceIssueKind.OPTIONAL_DEFAULT_MISMATCH,
+                    identifier=optional_property.identifier,
+                    expectedDefault=expected_default,
+                    providedDefault=provided_default,
+                )
+            )
+    return issues
+
+
+def _check_target_outputs(
+    expected: Experiment | ParameterizedExperiment, provided: Experiment
+) -> list[ExperimentInterfaceIssue]:
+    """Check that expected outputs are a subset of provided outputs."""
+    return _issues_for_ids(
+        set(expected.targetProperties) - set(provided.targetProperties),
+        ExperimentInterfaceIssueKind.OUTPUT_NOT_IN_PROVIDED,
+    )
 
 
 def check_experiment_interface_compatible(
@@ -1192,6 +1387,27 @@ def check_experiment_interface_compatible(
     the expected experiment, and that expected outputs are a subset of provided
     outputs. Collects all mismatches rather than stopping at the first failure.
 
+    Checks performed (in order):
+
+    1. ``missing_required_constitutive_in_provided`` — expected required
+       constitutive input not declared in provided (required or optional).
+    2. ``extra_required_constitutive_in_provided`` — provided requires a
+       constitutive input that expected does not require.
+    3. ``missing_required_observed_in_provided`` — expected required observed
+       input not required in provided.
+    4. ``extra_required_observed_in_provided`` — provided requires an observed
+       input that expected does not require.
+    5. ``parameterized_optional_not_in_provided`` — parameterized optional not
+       declared optional in provided.
+    6. ``optional_not_declared_in_provided`` — expected optional not declared
+       anywhere in provided.
+    7. ``domain_not_compatible`` — expected property domain not a subdomain of
+       provided property domain.
+    8. ``parameterized_value_out_of_domain`` — parameterized value outside
+       provided property domain.
+    9. ``optional_default_mismatch`` — non-parameterized optional defaults differ.
+    10. ``output_not_in_provided`` — expected output not produced by provided.
+
     Args:
         expected_experiment: Experiment declaring the required interface.
         provided_experiment: Experiment declaring the supported interface.
@@ -1199,156 +1415,43 @@ def check_experiment_interface_compatible(
     Returns:
         A list of structured interface issues. An empty list means compatibility.
     """
-    issues: list[ExperimentInterfaceIssue] = []
-    parameterized_optional_ids = _parameterized_optional_identifiers(
-        expected_experiment
-    )
-    provided_optional_ids = {
-        prop.identifier for prop in provided_experiment.optionalProperties
-    }
-    expected_required_constitutive_ids = {
-        prop.identifier for prop in expected_experiment.requiredConstitutiveProperties
-    }
-    provided_required_constitutive_ids = {
-        prop.identifier for prop in provided_experiment.requiredConstitutiveProperties
-    }
-    expected_required_observed_ids = {
-        prop.identifier for prop in expected_experiment.requiredObservedProperties
-    }
-    provided_required_observed_ids = {
-        prop.identifier for prop in provided_experiment.requiredObservedProperties
-    }
-
-    issues.extend(
-        ExperimentInterfaceIssue(
-            kind=ExperimentInterfaceIssueKind.MISSING_REQUIRED_CONSTITUTIVE_IN_PROVIDED,
-            propertyIdentifier=property_identifier,
-        )
-        for property_identifier in expected_required_constitutive_ids
-        if _constitutive_property_by_identifier(
-            provided_experiment, property_identifier
-        )
-        is None
-    )
-
-    issues.extend(
-        ExperimentInterfaceIssue(
-            kind=ExperimentInterfaceIssueKind.EXTRA_REQUIRED_CONSTITUTIVE_IN_PROVIDED,
-            propertyIdentifier=property_identifier,
-        )
-        for property_identifier in provided_required_constitutive_ids
-        if property_identifier not in expected_required_constitutive_ids
-    )
-
-    issues.extend(
-        ExperimentInterfaceIssue(
-            kind=ExperimentInterfaceIssueKind.MISSING_REQUIRED_OBSERVED_IN_PROVIDED,
-            observedIdentifier=observed_identifier,
-        )
-        for observed_identifier in expected_required_observed_ids
-        if observed_identifier not in provided_required_observed_ids
-    )
-
-    issues.extend(
-        ExperimentInterfaceIssue(
-            kind=ExperimentInterfaceIssueKind.EXTRA_REQUIRED_OBSERVED_IN_PROVIDED,
-            observedIdentifier=observed_identifier,
-        )
-        for observed_identifier in provided_required_observed_ids
-        if observed_identifier not in expected_required_observed_ids
-    )
-
-    issues.extend(
-        ExperimentInterfaceIssue(
-            kind=ExperimentInterfaceIssueKind.PARAMETERIZED_OPTIONAL_NOT_IN_PROVIDED,
-            propertyIdentifier=property_identifier,
-        )
-        for property_identifier in parameterized_optional_ids
-        if property_identifier not in provided_optional_ids
-    )
-
-    constitutive_properties_to_check = list(
-        expected_experiment.requiredConstitutiveProperties
-    ) + list(expected_experiment.optionalProperties)
-    expected_optional_ids = {
-        prop.identifier for prop in expected_experiment.optionalProperties
-    }
-    for expected_property in constitutive_properties_to_check:
-        provided_property = _constitutive_property_by_identifier(
-            provided_experiment, expected_property.identifier
-        )
-        if provided_property is None:
-            if expected_property.identifier in expected_optional_ids:
-                issues.append(
-                    ExperimentInterfaceIssue(
-                        kind=ExperimentInterfaceIssueKind.OPTIONAL_NOT_DECLARED_IN_PROVIDED,
-                        propertyIdentifier=expected_property.identifier,
-                    )
-                )
-            continue
-
-        if not expected_property.propertyDomain.isSubDomain(
-            provided_property.propertyDomain
-        ):
-            issues.append(
-                ExperimentInterfaceIssue(
-                    kind=ExperimentInterfaceIssueKind.DOMAIN_NOT_COMPATIBLE,
-                    propertyIdentifier=expected_property.identifier,
-                )
+    return [
+        *(
+            _check_required_constitutive_interface(
+                expected=expected_experiment, provided=provided_experiment
             )
-
-    if isinstance(expected_experiment, ParameterizedExperiment):
-        for parameterized_value in expected_experiment.parameterization:
-            provided_property = _constitutive_property_by_identifier(
-                provided_experiment, parameterized_value.property.identifier
+        ),
+        *(
+            _check_required_observed_interface(
+                expected=expected_experiment, provided=provided_experiment
             )
-            if provided_property is None:
-                continue
-            if not provided_property.propertyDomain.valueInDomain(
-                parameterized_value.value
-            ):
-                issues.append(
-                    ExperimentInterfaceIssue(
-                        kind=ExperimentInterfaceIssueKind.PARAMETERIZED_VALUE_OUT_OF_DOMAIN,
-                        propertyIdentifier=parameterized_value.property.identifier,
-                        value=parameterized_value.value,
-                    )
-                )
-
-    for optional_property in expected_experiment.optionalProperties:
-        if optional_property.identifier in parameterized_optional_ids:
-            continue
-        if optional_property.identifier not in provided_optional_ids:
-            continue
-        expected_default = expected_experiment.valueForOptionalProperty(
-            optional_property.identifier
-        ).value
-        provided_default = provided_experiment.valueForOptionalProperty(
-            optional_property.identifier
-        ).value
-        if expected_default != provided_default:
-            issues.append(
-                ExperimentInterfaceIssue(
-                    kind=ExperimentInterfaceIssueKind.OPTIONAL_DEFAULT_MISMATCH,
-                    propertyIdentifier=optional_property.identifier,
-                    expectedDefault=expected_default,
-                    providedDefault=provided_default,
-                )
+        ),
+        *(
+            _check_parameterized_optional_presence(
+                expected=expected_experiment, provided=provided_experiment
             )
-
-    provided_target_ids = {
-        target.identifier for target in provided_experiment.targetProperties
-    }
-    issues.extend(
-        ExperimentInterfaceIssue(
-            kind=ExperimentInterfaceIssueKind.OUTPUT_NOT_IN_PROVIDED,
-            targetIdentifier=target_property.identifier,
-        )
-        for target_property in expected_experiment.targetProperties
-        if target_property.identifier not in provided_target_ids
-    )
-
-    return issues
+        ),
+        *(
+            _check_constitutive_domains(
+                expected=expected_experiment, provided=provided_experiment
+            )
+        ),
+        *(
+            _check_parameterized_values(
+                expected=expected_experiment, provided=provided_experiment
+            )
+        ),
+        *(
+            _check_optional_defaults(
+                expected=expected_experiment, provided=provided_experiment
+            )
+        ),
+        *(
+            _check_target_outputs(
+                expected=expected_experiment, provided=provided_experiment
+            )
+        ),
+    ]
 
 
 def experiment_type_discriminator(experiment: typing.Any) -> str:  # noqa: ANN401

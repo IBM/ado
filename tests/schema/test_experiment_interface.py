@@ -46,7 +46,7 @@ def test_missing_required_constitutive_input_in_provided(
     assert any(
         issue.kind
         == ExperimentInterfaceIssueKind.MISSING_REQUIRED_CONSTITUTIVE_IN_PROVIDED
-        and issue.propertyIdentifier == "test_req1"
+        and issue.identifier == "test_req1"
         for issue in issues
     )
 
@@ -74,7 +74,7 @@ def test_extra_required_constitutive_input_in_provided(
     assert any(
         issue.kind
         == ExperimentInterfaceIssueKind.EXTRA_REQUIRED_CONSTITUTIVE_IN_PROVIDED
-        and issue.propertyIdentifier == "provided_only_req"
+        and issue.identifier == "provided_only_req"
         for issue in issues
     )
 
@@ -99,7 +99,7 @@ def test_missing_required_observed_input_in_provided(
     )
     assert any(
         issue.kind == ExperimentInterfaceIssueKind.MISSING_REQUIRED_OBSERVED_IN_PROVIDED
-        and issue.observedIdentifier == observed_input.identifier
+        and issue.identifier == observed_input.identifier
         for issue in issues
     )
 
@@ -124,7 +124,7 @@ def test_extra_required_observed_input_in_provided(
     )
     assert any(
         issue.kind == ExperimentInterfaceIssueKind.EXTRA_REQUIRED_OBSERVED_IN_PROVIDED
-        and issue.observedIdentifier == observed_input.identifier
+        and issue.identifier == observed_input.identifier
         for issue in issues
     )
 
@@ -156,7 +156,7 @@ def test_incompatible_constitutive_domain(
     )
     assert any(
         issue.kind == ExperimentInterfaceIssueKind.DOMAIN_NOT_COMPATIBLE
-        and issue.propertyIdentifier == "test_req1"
+        and issue.identifier == "test_req1"
         for issue in issues
     )
 
@@ -192,7 +192,7 @@ def test_parameterized_optional_missing_from_provided(
     assert any(
         issue.kind
         == ExperimentInterfaceIssueKind.PARAMETERIZED_OPTIONAL_NOT_IN_PROVIDED
-        and issue.propertyIdentifier == "test_opt1"
+        and issue.identifier == "test_opt1"
         for issue in issues
     )
 
@@ -235,7 +235,7 @@ def test_parameterized_value_outside_provided_domain(
     )
     assert any(
         issue.kind == ExperimentInterfaceIssueKind.PARAMETERIZED_VALUE_OUT_OF_DOMAIN
-        and issue.propertyIdentifier == "test_opt1"
+        and issue.identifier == "test_opt1"
         and issue.value == "C"
         for issue in issues
     )
@@ -262,7 +262,7 @@ def test_non_parameterized_optional_default_mismatch(
     )
     assert any(
         issue.kind == ExperimentInterfaceIssueKind.OPTIONAL_DEFAULT_MISMATCH
-        and issue.propertyIdentifier == "test_opt1"
+        and issue.identifier == "test_opt1"
         and issue.expectedDefault == "A"
         and issue.providedDefault == "B"
         for issue in issues
@@ -284,7 +284,7 @@ def test_missing_target_output_in_provided(
     )
     assert any(
         issue.kind == ExperimentInterfaceIssueKind.OUTPUT_NOT_IN_PROVIDED
-        and issue.targetIdentifier == "measurable_one"
+        and issue.identifier == "measurable_one"
         for issue in issues
     )
 

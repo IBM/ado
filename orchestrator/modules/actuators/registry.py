@@ -47,45 +47,45 @@ _MEASUREMENT_SPACE_INTERFACE_ISSUE_TEMPLATES: dict[
 ] = {
     ExperimentInterfaceIssueKind.MISSING_REQUIRED_CONSTITUTIVE_IN_PROVIDED: (
         "measurement-space experiment requires constitutive input "
-        "{propertyIdentifier!r} that is not declared in the actuator catalog"
+        "{identifier!r} that is not declared in the actuator catalog"
     ),
     ExperimentInterfaceIssueKind.EXTRA_REQUIRED_CONSTITUTIVE_IN_PROVIDED: (
         "actuator catalog experiment requires constitutive input "
-        "{propertyIdentifier!r} that is not required in the measurement-space "
+        "{identifier!r} that is not required in the measurement-space "
         "experiment"
     ),
     ExperimentInterfaceIssueKind.MISSING_REQUIRED_OBSERVED_IN_PROVIDED: (
         "measurement-space experiment requires observed input "
-        "{observedIdentifier!r} that is not declared in the actuator catalog"
+        "{identifier!r} that is not declared in the actuator catalog"
     ),
     ExperimentInterfaceIssueKind.EXTRA_REQUIRED_OBSERVED_IN_PROVIDED: (
         "actuator catalog experiment requires observed input "
-        "{observedIdentifier!r} that is not required in the measurement-space "
+        "{identifier!r} that is not required in the measurement-space "
         "experiment"
     ),
     ExperimentInterfaceIssueKind.PARAMETERIZED_OPTIONAL_NOT_IN_PROVIDED: (
         "measurement-space experiment parameterizes optional input "
-        "{propertyIdentifier!r} that is not optional in the actuator catalog"
+        "{identifier!r} that is not optional in the actuator catalog"
     ),
     ExperimentInterfaceIssueKind.OPTIONAL_NOT_DECLARED_IN_PROVIDED: (
         "measurement-space experiment declares optional input "
-        "{propertyIdentifier!r} that is not declared in the actuator catalog"
+        "{identifier!r} that is not declared in the actuator catalog"
     ),
     ExperimentInterfaceIssueKind.DOMAIN_NOT_COMPATIBLE: (
-        "domain for {propertyIdentifier!r} in the measurement-space experiment is "
+        "domain for {identifier!r} in the measurement-space experiment is "
         "not compatible with the actuator catalog"
     ),
     ExperimentInterfaceIssueKind.PARAMETERIZED_VALUE_OUT_OF_DOMAIN: (
-        "parameterized value {value!r} for {propertyIdentifier!r} in the "
+        "parameterized value {value!r} for {identifier!r} in the "
         "measurement-space experiment is not in the actuator catalog property domain"
     ),
     ExperimentInterfaceIssueKind.OPTIONAL_DEFAULT_MISMATCH: (
-        "default value for optional input {propertyIdentifier!r} is "
+        "default value for optional input {identifier!r} is "
         "{expectedDefault!r} in the measurement-space experiment but "
         "{providedDefault!r} in the actuator catalog"
     ),
     ExperimentInterfaceIssueKind.OUTPUT_NOT_IN_PROVIDED: (
-        "output {targetIdentifier!r} declared in the measurement-space experiment "
+        "output {identifier!r} declared in the measurement-space experiment "
         "is not produced by the actuator catalog experiment"
     ),
 }

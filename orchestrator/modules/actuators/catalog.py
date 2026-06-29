@@ -8,6 +8,11 @@ from typing import Annotated, Literal
 
 import pydantic
 
+from orchestrator.modules.actuators.errors import (
+    DeprecatedExperimentError,
+    ExperimentVersionMismatchError,
+    UnknownExperimentError,
+)
 from orchestrator.schema.experiment import Experiment, ParameterizedExperiment
 from orchestrator.schema.reference import ExperimentReference
 
@@ -157,8 +162,6 @@ class ExperimentCatalog(BaseCatalog):
             :class:`~orchestrator.modules.actuators.base.DeprecatedExperimentError`:
                 If the resolved experiment is marked deprecated and ``resolve=True``.
         """
-        from orchestrator.modules.actuators.base import DeprecatedExperimentError
-        from orchestrator.modules.actuators.registry import UnknownExperimentError
 
         experiment: Experiment | None = None
         for candidate in self.experiments:
@@ -244,21 +247,6 @@ class ExperimentCatalog(BaseCatalog):
             )
 
         self._experiments[experiment.major_version_identifier] = experiment
-
-
-class ExperimentVersionMismatchError(Exception):
-    """Raised when the version of a resolved experiment does not match the reference.
-
-    This error is only raised when :meth:`ExperimentCatalog.experimentForReference` is
-    called with ``resolve=True``, ``match_on='fully_qualified_version'``, and the
-    exact version in the catalog differs from the version recorded on the
-    :class:`~orchestrator.schema.reference.ExperimentReference`.
-    """
-
-
-class ExperimentNotInCatalogError(Exception):
-
-    pass
 
 
 class CatalogConfigurationRequirementEnum(enum.Enum):

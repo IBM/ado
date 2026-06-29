@@ -4,12 +4,14 @@ from typing import Annotated, NoReturn
 
 from fastapi import Depends, HTTPException, status
 
-from orchestrator.modules.actuators.base import DeprecatedExperimentError
-from orchestrator.modules.actuators.catalog import ExperimentVersionMismatchError
-from orchestrator.modules.actuators.registry import (
-    ActuatorRegistry,
+from orchestrator.modules.actuators.errors import (
+    DeprecatedExperimentError,
+    ExperimentVersionMismatchError,
     UnexpectedCatalogRetrievalError,
     UnknownExperimentError,
+)
+from orchestrator.modules.actuators.registry import (
+    ActuatorRegistry,
 )
 from orchestrator.schema.entity import Entity
 from orchestrator.schema.reference import ExperimentReference
@@ -35,7 +37,7 @@ def _raise_http_for_experiment_lookup_error(
         ) from error
     if isinstance(error, UnexpectedCatalogRetrievalError):
         raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Catalog for actuator {actuator_id} is unavailable: {error}",
         ) from error
     if isinstance(error, ExperimentVersionMismatchError):

@@ -16,12 +16,12 @@ from orchestrator.core.actuatorconfiguration.config import GenericActuatorParame
 from orchestrator.modules.actuators.base import (
     ActuatorBase,
 )
+from orchestrator.modules.actuators.errors import UnknownExperimentError
 from orchestrator.modules.actuators.executor_supervisor import (
     ExperimentExecutorSupervisor,
     ExperimentExecutorSupervisorParameters,
 )
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
-from orchestrator.modules.actuators.registry import UnknownExperimentError
 from orchestrator.modules.module import (
     ModuleConf,
     ModuleTypeEnum,

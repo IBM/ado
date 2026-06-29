@@ -20,18 +20,6 @@ from orchestrator.schema.reference import ExperimentReference
 moduleLog = logging.getLogger("actuatorsbase")
 
 
-class MeasurementError(Exception):
-    """Raised when an error occurs while an actuator is measuring properties of entities."""
-
-
-class DeprecatedExperimentError(Exception):
-    """Raised when an actuator is attempting to run an experiment that has been deprecated."""
-
-
-class MissingConfigurationForExperimentError(Exception):
-    """Raised when an actuator is attempting to run an experiment but required configuration information is not present"""
-
-
 # The actuator will have to
 # - Take additional input files
 # - Know how to map the entity/inputs to the measurement

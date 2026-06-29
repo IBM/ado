@@ -46,9 +46,9 @@ class ActuatorConfiguration(pydantic.BaseModel):
         if ignore_plugin_validation(info):
             return self
 
+        from orchestrator.modules.actuators.errors import UnknownActuatorError
         from orchestrator.modules.actuators.registry import (
             ActuatorRegistry,
-            UnknownActuatorError,
         )
 
         def validate_or_default_parameters(

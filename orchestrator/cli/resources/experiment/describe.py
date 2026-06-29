@@ -14,18 +14,17 @@ from orchestrator.cli.utils.output.prints import (
 from orchestrator.cli.utils.resources.experiments import (
     _ado_get_actuator_from_experiment_id,
 )
+from orchestrator.modules.actuators.errors import (
+    AmbiguousExperimentIdentifierError,
+    UnknownExperimentError,
+)
 from orchestrator.modules.actuators.registry import (
     ActuatorRegistry,
-    UnknownExperimentError,
 )
 from orchestrator.schema.reference import (
     ExperimentReference,
     _parse_experiment_part_from_string,
 )
-
-
-class AmbiguousExperimentIdentifierError(Exception):
-    """There are multiple matches for the given identifier in the catalog"""
 
 
 def describe_experiment(parameters: AdoDescribeCommandParameters) -> None:

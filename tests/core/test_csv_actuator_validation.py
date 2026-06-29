@@ -12,10 +12,12 @@ import pytest
 
 from orchestrator.core.samplestore.csv import CSVSampleStore, CSVSampleStoreDescription
 from orchestrator.modules.actuators.catalog import ExperimentCatalog
-from orchestrator.modules.actuators.registry import (
-    ActuatorRegistry,
+from orchestrator.modules.actuators.errors import (
     UnknownActuatorError,
     UnknownExperimentError,
+)
+from orchestrator.modules.actuators.registry import (
+    ActuatorRegistry,
 )
 from orchestrator.schema.experiment import Experiment
 from orchestrator.utilities.location import FilePathLocation

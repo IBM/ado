@@ -10,14 +10,16 @@ import pytest
 
 from orchestrator.modules.actuators.catalog import (
     ExperimentCatalog,
-    ExperimentVersionMismatchError,
 )
-from orchestrator.modules.actuators.registry import (
-    ActuatorRegistry,
+from orchestrator.modules.actuators.errors import (
+    ExperimentVersionMismatchError,
     MissingActuatorConfigurationForCatalogError,
     UnexpectedCatalogRetrievalError,
     UnknownActuatorError,
     UnknownExperimentError,
+)
+from orchestrator.modules.actuators.registry import (
+    ActuatorRegistry,
 )
 from orchestrator.schema.domain import PropertyDomain, VariableTypeEnum
 from orchestrator.schema.experiment import Experiment, ParameterizedExperiment

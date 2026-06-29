@@ -27,8 +27,10 @@ from orchestrator.core import CoreResourceKinds
 from orchestrator.core.discoveryspace.config import DiscoverySpaceConfiguration
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.metastore.base import ResourceDoesNotExistError
-from orchestrator.modules.actuators.catalog import ExperimentVersionMismatchError
-from orchestrator.modules.actuators.registry import UnknownExperimentError
+from orchestrator.modules.actuators.errors import (
+    ExperimentVersionMismatchError,
+    UnknownExperimentError,
+)
 
 
 def create_discovery_space(parameters: AdoCreateCommandParameters) -> str | None:

@@ -24,9 +24,9 @@ from ado_actuators.vllm_performance.experiment_executor import (
 from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
 from orchestrator.modules.actuators.base import (
     ActuatorBase,
-    MissingConfigurationForExperimentError,
 )
 from orchestrator.modules.actuators.catalog import ExperimentCatalog
+from orchestrator.modules.actuators.errors import MissingConfigurationForExperimentError
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
 from orchestrator.modules.operators.orchestrate import CLEANER_ACTOR
 from orchestrator.schema.entity import Entity

@@ -5,7 +5,6 @@ import logging
 import typing
 import uuid
 
-import orchestrator.modules.module
 import orchestrator.schema
 from orchestrator.core.actuatorconfiguration.config import (
     GenericActuatorParameters,
@@ -16,12 +15,20 @@ from orchestrator.modules.actuators.base import (
 )
 from orchestrator.modules.actuators.catalog import (
     ExperimentCatalog,
+)
+from orchestrator.modules.actuators.errors import (
+    DeprecatedExperimentError,
     ExperimentVersionMismatchError,
+    MissingActuatorConfigurationForCatalogError,
+    UnexpectedCatalogRetrievalError,
+    UnknownActuatorError,
+    UnknownExperimentError,
 )
 from orchestrator.schema.experiment import (
     Experiment,
     ExperimentInterfaceIssue,
     ExperimentInterfaceIssueKind,
+    ParameterizedExperiment,
 )
 from orchestrator.schema.measurementspace import MeasurementSpace
 from orchestrator.schema.reference import ExperimentReference
@@ -30,29 +37,10 @@ from orchestrator.utilities.logging import configure_logging
 if typing.TYPE_CHECKING:
     import pandas as pd
 
-    from orchestrator.schema.experiment import ParameterizedExperiment
-
 configure_logging()
 
 CATALOG_EXTENSIONS_CONFIGURATION_FILE_NAME = "custom_experiments.yaml"
 moduleLogger = logging.getLogger("registry")
-
-
-class UnknownExperimentError(Exception):
-    pass
-
-
-class UnknownActuatorError(Exception):
-    """The actuator was never registered to the registry"""
-
-
-class MissingActuatorConfigurationForCatalogError(Exception):
-    """The actuator requires configuration information for it catalog, but it hasn't been provided"""
-
-
-class UnexpectedCatalogRetrievalError(Exception):
-    """The actuator catalog method raised on unexpected exception"""
-
 
 _MEASUREMENT_SPACE_INTERFACE_ISSUE_TEMPLATES: dict[
     ExperimentInterfaceIssueKind, str
@@ -458,7 +446,7 @@ class ActuatorRegistry:
             "major_version", "fully_qualified_version"
         ] = "major_version",
         resolve: bool = False,
-    ) -> "Experiment | ParameterizedExperiment":
+    ) -> Experiment | ParameterizedExperiment:
         """Return the experiment corresponding to reference.
 
         Searches the actuator's catalog and any additional catalogs. When
@@ -486,7 +474,6 @@ class ActuatorRegistry:
             UnexpectedCatalogRetrievalError: If the actuators catalog cannot be
             retrieved
         """
-        from orchestrator.modules.actuators.base import DeprecatedExperimentError
 
         log = logging.getLogger("registry")
         additionalCatalogs = (

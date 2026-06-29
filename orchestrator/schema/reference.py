@@ -373,9 +373,9 @@ class ExperimentReference(pydantic.BaseModel):
             ValueError: If the referenced experiment cannot be found or the
                 parameterization is invalid.
         """
+        from orchestrator.modules.actuators.errors import UnknownExperimentError
         from orchestrator.modules.actuators.registry import (
             ActuatorRegistry,
-            UnknownExperimentError,
         )
 
         if self.parameterization is None:

@@ -309,7 +309,7 @@ def test_convert_experiments_to_measurement_space_config_version_mismatch(
     """convert_experiments_to_measurement_space_config fails on FQ version mismatch."""
     import warnings
 
-    from orchestrator.modules.actuators.catalog import ExperimentVersionMismatchError
+    from orchestrator.modules.actuators.errors import ExperimentVersionMismatchError
     from orchestrator.schema.experiment import Experiment
     from orchestrator.schema.property import AbstractPropertyDescriptor
     from orchestrator.schema.reference import ExperimentReference

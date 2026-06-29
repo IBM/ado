@@ -142,14 +142,8 @@ memoization opportunities — a large gap signals other overlapping spaces exist
 For related resources (operations and stores linked to this space), execute:
 
 ```bash
-uv run ado show details space SPACE_ID
+uv run ado show related space SPACE_ID
 ```
-
-This outputs two sections:
-
-**DETAILS** — sampling coverage (same stats, alternative view).
-
-**RELATED RESOURCES** — all operations and stores linked to this space.
 
 > **Performance note**: both `ado show stats discoveryspace` and
 > `ado show details space` are slow as they fetch and aggregate entity data.

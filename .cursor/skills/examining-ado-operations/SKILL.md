@@ -229,15 +229,9 @@ trace, use:
 uv run ado show stats operation $OPERATION_ID
 ```
 
-This outputs the base table columns plus `TOTAL_RESULTS`, `SUCCESSFUL_RESULTS`,
-`FAILED_RESULTS`, `MEASURED_ENTITIES`, `TOTAL_REQUESTS`, `FAILED_REQUESTS`,
-`SUCCESSFUL_REQUESTS`.
-
-For the full detail view:
-
-```bash
-uv run ado show details operation $OPERATION_ID
-```
+This outputs the base table columns output by ado get plus `TOTAL_RESULTS`,
+`SUCCESSFUL_RESULTS`, `FAILED_RESULTS`, `MEASURED_ENTITIES`, `TOTAL_REQUESTS`,
+`FAILED_REQUESTS`, `SUCCESSFUL_REQUESTS`.
 
 Compare this with the number of samples requested in the operator parameters.
 

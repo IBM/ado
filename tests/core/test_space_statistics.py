@@ -30,6 +30,9 @@ def test_heavy_fields_default_to_none() -> None:
     assert stats.number_unmeasured_entities is None
     assert stats.number_matching_entities is None
     assert stats.number_matching_entities_with_measurements is None
+    assert stats.entities_with_all_measurements is None
+    assert stats.entities_with_partial_measurements is None
+    assert stats.matching_entities_with_all_measurements is None
 
 
 def test_nan_unmeasured_entities_round_trip() -> None:
@@ -97,6 +100,9 @@ def test_space_statistics_lightweight_only(
     assert stats.number_unmeasured_entities is None
     assert stats.number_matching_entities is None
     assert stats.number_matching_entities_with_measurements is None
+    assert stats.entities_with_all_measurements is None
+    assert stats.entities_with_partial_measurements is None
+    assert stats.matching_entities_with_all_measurements is None
 
 
 @requires_sqlite_3_38
@@ -119,6 +125,7 @@ def test_space_statistics_full_no_operations(
     assert (
         stats.number_matching_entities_with_measurements == _NUMBER_OF_MATCHING_ENTITIES
     )
+    assert stats.matching_entities_with_all_measurements == _NUMBER_OF_MATCHING_ENTITIES
 
 
 @requires_sqlite_3_38
@@ -131,9 +138,12 @@ def test_space_statistics_full_with_operation(
 ) -> None:
     """Full stats reflect exact measured-entity counts after a single operation."""
     number_entities = 3
+    number_requests = 1
+    measurements_per_result = 2
     simulate_ml_multi_cloud_random_walk_operation(
         number_entities=number_entities,
-        number_requests=1,
+        number_requests=number_requests,
+        measurements_per_result=measurements_per_result,
     )
 
     stats = ml_multi_cloud_space.space_statistics(lightweight_only=False)
@@ -150,6 +160,13 @@ def test_space_statistics_full_with_operation(
     # so all matching entities have measurements regardless of the simulated operation
     assert (
         stats.number_matching_entities_with_measurements == _NUMBER_OF_MATCHING_ENTITIES
+    )
+    assert stats.matching_entities_with_all_measurements == _NUMBER_OF_MATCHING_ENTITIES
+    assert stats.entities_with_all_measurements == number_entities
+    assert stats.entities_with_partial_measurements == 0
+    assert (
+        stats.entities_with_all_measurements + stats.entities_with_partial_measurements
+        == number_entities * number_requests
     )
 
 

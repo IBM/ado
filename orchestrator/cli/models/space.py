@@ -53,52 +53,14 @@ class SpaceDetails:
 
     @classmethod
     def from_space(cls, space: DiscoverySpace) -> "SpaceDetails":
-        import pandas as pd
-
-        # Delegate most fields to space_statistics(lightweight_only=False).
-        # The two "all/partial measurements" fields are not tracked in
-        # DiscoverySpaceStatistics, so we keep a targeted pandas iteration for
-        # those only.
         stats = space.space_statistics(lightweight_only=False)
 
-        # Entities sampled in the space — needed only to compute all/partial split
-        measured_entities_table = space.measuredEntitiesTable(property_type="target")
-        if (
-            measured_entities_table.empty
-            or "identifier" not in measured_entities_table.columns
-        ):
-            measured_entities_table["identifier"] = pd.Series(dtype="str")
-
-        experiments_in_measurement_space = len(space.measurementSpace.experiments)
-        entities_sampled_from_space_with_all_measurements_applied = 0
-        for _, group in measured_entities_table.groupby("identifier"):
-            if group.shape[0] == experiments_in_measurement_space:
-                entities_sampled_from_space_with_all_measurements_applied += 1
-
-        entities_sampled_from_space_with_partial_measurements_applied = (
-            len(measured_entities_table["identifier"].unique())
-            - entities_sampled_from_space_with_all_measurements_applied
-        )
-
-        # Matching entities with measurement space applied — targeted pandas iteration
-        matching_entities_table = space.matchingEntitiesTable(property_type="target")
-        if (
-            matching_entities_table.empty
-            or "identifier" not in matching_entities_table.columns
-        ):
-            matching_entities_table["identifier"] = pd.Series(dtype="str")
-
-        matching_entities_in_sample_store_with_measurement_space_applied = 0
-        for _, group in matching_entities_table.groupby("identifier"):
-            if group.shape[0] == experiments_in_measurement_space:
-                matching_entities_in_sample_store_with_measurement_space_applied += 1
-
         return cls(
-            entities_sampled_from_space_with_all_measurements_applied=entities_sampled_from_space_with_all_measurements_applied,
-            entities_sampled_from_space_with_partial_measurements_applied=entities_sampled_from_space_with_partial_measurements_applied,
+            entities_sampled_from_space_with_all_measurements_applied=stats.entities_with_all_measurements,
+            entities_sampled_from_space_with_partial_measurements_applied=stats.entities_with_partial_measurements,
             entities_yet_to_be_sampled_and_measured_from_space=stats.number_unmeasured_entities,
             entities_matching_the_space=stats.number_matching_entities,
-            matching_entities_in_sample_store_with_measurement_space_applied=matching_entities_in_sample_store_with_measurement_space_applied,
+            matching_entities_in_sample_store_with_measurement_space_applied=stats.matching_entities_with_all_measurements,
             size_of_entity_space=stats.size_of_entity_space,
         )
 

@@ -197,18 +197,21 @@ class MeasurementSpace:
 
         content = []
 
+        def parameterization_string(e: Experiment | ParameterizedExperiment) -> str:
+
+            return (
+                None
+                if isinstance(e, Experiment)
+                # The [1:] is to cut the initial hyphen
+                else identifier_for_parameterized_experiment("", e.parameterization)[1:]
+            )
+
         # Experiments overview table
         data = [
             [
                 reference_string_from_fields(e.actuatorIdentifier, e.identifier),
                 f"v{semver_major(e.version)}" if e.version is not None else None,
-                (
-                    None
-                    if isinstance(e, Experiment)
-                    else identifier_for_parameterized_experiment(
-                        "", e.parameterization
-                    )[1:]
-                ),
+                parameterization_string(e),
             ]
             for e in self.experiments
         ]

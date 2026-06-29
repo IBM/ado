@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 class DiscoverySpaceStatistics(pydantic.BaseModel):
     """Aggregated statistics for a single discovery space.
 
-    Lightweight fields are always populated.  Heavy fields (those that require
+    Lightweight fields are always populated. Heavy fields (those that require
     Python-side computation) are ``None`` when ``lightweight_only=True`` was
     requested or when the field is not applicable (e.g. the entity space is
     continuous or not defined).
@@ -29,19 +29,28 @@ class DiscoverySpaceStatistics(pydantic.BaseModel):
         number_measured_entities: DISTINCT entity IDs that appear in at least one
             measurement result across all operations on this space.
         size_of_entity_space: Total number of points in the entity space when the
-            space is discrete.  ``None`` if the space is continuous, not defined,
+            space is discrete. ``None`` if the space is continuous, not defined,
             or ``lightweight_only=True``.
         number_unmeasured_entities: ``size_of_entity_space`` minus
-            ``number_measured_entities``.  ``None`` when ``lightweight_only=True``.
+            ``number_measured_entities``. ``None`` when ``lightweight_only=True``.
             May be ``math.inf`` for continuous spaces or ``math.nan`` when
             ``size_of_entity_space`` could not be determined.
         number_matching_entities: Count of entities in the sample store that
-            satisfy ``isEntityInSpace`` for this space.  ``None`` when
+            satisfy ``isEntityInSpace`` for this space. ``None`` when
             ``lightweight_only=True``.
         number_matching_entities_with_measurements: Subset of
             ``number_matching_entities`` that have at least one measurement whose
-            experiment reference is in the space's measurement space.  ``None``
+            experiment reference is in the space's measurement space. ``None``
             when ``lightweight_only=True``.
+        entities_with_all_measurements: Entities in the space that have a result
+            for every experiment in the measurement space. ``None`` when
+            ``lightweight_only=True``.
+        entities_with_partial_measurements: Entities with at least one result but
+            not for every experiment in the measurement space. ``None`` when
+            ``lightweight_only=True``.
+        matching_entities_with_all_measurements: Matching entities in the sample
+            store that have a result for every experiment in the measurement
+            space. ``None`` when ``lightweight_only=True``.
     """
 
     # --- Lightweight fields (always populated) ---
@@ -117,6 +126,36 @@ class DiscoverySpaceStatistics(pydantic.BaseModel):
             ),
         ),
     ]
+    entities_with_all_measurements: Annotated[
+        int | None,
+        pydantic.Field(
+            default=None,
+            description=(
+                "Entities in the space that have a result for every experiment in "
+                "the measurement space. None when lightweight_only=True."
+            ),
+        ),
+    ]
+    entities_with_partial_measurements: Annotated[
+        int | None,
+        pydantic.Field(
+            default=None,
+            description=(
+                "Entities with at least one result but not for every experiment in "
+                "the measurement space. None when lightweight_only=True."
+            ),
+        ),
+    ]
+    matching_entities_with_all_measurements: Annotated[
+        int | None,
+        pydantic.Field(
+            default=None,
+            description=(
+                "Matching entities in the sample store that have a result for every "
+                "experiment in the measurement space. None when lightweight_only=True."
+            ),
+        ),
+    ]
 
 
 def lightweight_space_statistics(
@@ -188,6 +227,9 @@ def lightweight_space_statistics(
             number_unmeasured_entities=None,
             number_matching_entities=None,
             number_matching_entities_with_measurements=None,
+            entities_with_all_measurements=None,
+            entities_with_partial_measurements=None,
+            matching_entities_with_all_measurements=None,
         )
         for space_id in space_ids
     }
@@ -282,6 +324,30 @@ def space_statistics_for_spaces(
             and not measurement_exp_refs.isdisjoint(set(e.experimentReferences))
         )
 
+        measured_entities_table = space.measuredEntitiesTable(property_type="target")
+        experiments_in_measurement_space = len(space.measurementSpace.experiments)
+        entities_with_all_measurements = 0
+        if (
+            not measured_entities_table.empty
+            and "identifier" in measured_entities_table
+        ):
+            for _, group in measured_entities_table.groupby("identifier"):
+                if group.shape[0] == experiments_in_measurement_space:
+                    entities_with_all_measurements += 1
+        entities_with_partial_measurements = (
+            number_measured - entities_with_all_measurements
+        )
+
+        matching_entities_table = space.matchingEntitiesTable(property_type="target")
+        matching_entities_with_all_measurements = 0
+        if (
+            not matching_entities_table.empty
+            and "identifier" in matching_entities_table
+        ):
+            for _, group in matching_entities_table.groupby("identifier"):
+                if group.shape[0] == experiments_in_measurement_space:
+                    matching_entities_with_all_measurements += 1
+
         result[space.uri] = DiscoverySpaceStatistics(
             number_of_experiments=base.number_of_experiments,
             number_of_operations=base.number_of_operations,
@@ -291,6 +357,9 @@ def space_statistics_for_spaces(
             number_unmeasured_entities=number_unmeasured,
             number_matching_entities=number_matching,
             number_matching_entities_with_measurements=number_matching_with_measurements,
+            entities_with_all_measurements=entities_with_all_measurements,
+            entities_with_partial_measurements=entities_with_partial_measurements,
+            matching_entities_with_all_measurements=matching_entities_with_all_measurements,
         )
 
     return result

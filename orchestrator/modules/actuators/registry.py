@@ -643,7 +643,7 @@ class ActuatorRegistry:
         Returns:
             A list of issue strings. An empty list means no issues were found.
         """
-        from orchestrator.modules.actuators.base import DeprecatedExperimentError
+        from orchestrator.modules.actuators.errors import DeprecatedExperimentError
         from orchestrator.schema.experiment import check_experiment_interface_compatible
 
         issues = []
@@ -663,7 +663,7 @@ class ActuatorRegistry:
                         for issue in interface_issues
                     )
             except ExperimentVersionMismatchError as error:  # noqa: PERF203
-                issues.append(f"AlgorithmVersionMismatchError: {error!s}")
+                issues.append(f"ExperimentVersionMismatchError: {error!s}")
             except UnknownExperimentError as error:
                 issues.append(f"UnknownExperimentError: {error!s}")
             except UnknownActuatorError as error:

@@ -82,6 +82,28 @@ def validate_rfc_1123(value: str | None) -> str | None:
 
 ignore_plugin_validation_context: dict[str, bool] = {"ignore_plugin_validation": True}
 
+do_not_populate_ado_provenance_context: dict[str, bool] = {
+    "populate_ado_provenance": False
+}
+
+
+def merge_validation_context(
+    *contexts: dict[str, typing.Any] | None,
+) -> dict[str, typing.Any] | None:
+    """Merge optional pydantic validation context dictionaries.
+
+    Args:
+        *contexts: Context dicts to merge; ``None`` entries are skipped.
+
+    Returns:
+        Merged context, or ``None`` when no contexts were supplied.
+    """
+    merged: dict[str, typing.Any] = {}
+    for context in contexts:
+        if context:
+            merged.update(context)
+    return merged or None
+
 
 def ignore_plugin_validation(info: pydantic.ValidationInfo) -> bool:
     """Return True when plugin registry validation should be skipped.

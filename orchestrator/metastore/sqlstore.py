@@ -33,7 +33,11 @@ from orchestrator.metastore.sql.utils import (
     create_sql_resource_store,
     engine_for_sql_store,
 )
-from orchestrator.utilities.pydantic import ignore_plugin_validation_context
+from orchestrator.utilities.pydantic import (
+    do_not_populate_ado_provenance_context,
+    ignore_plugin_validation_context,
+    merge_validation_context,
+)
 
 if TYPE_CHECKING:
     import pandas as pd
@@ -186,7 +190,10 @@ class SQLResourceStore(ResourceStore):
         if custom_model_loader:
             return custom_model_loader(data, self.configuration)
 
-        context = ignore_plugin_validation_context if ignore_plugin_validation else None
+        context = merge_validation_context(
+            ignore_plugin_validation_context if ignore_plugin_validation else None,
+            do_not_populate_ado_provenance_context,
+        )
         return orchestrator.core.kindmap[kind].model_validate(data, context=context)
 
     def get_resource_and_producers(

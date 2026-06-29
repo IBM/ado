@@ -937,6 +937,7 @@ class DiscoverySpace:
         description: str | None = None,
         metadata: dict | None = None,
         operation_type: DiscoveryOperationEnum = DiscoveryOperationEnum.SEARCH,
+        provenance: "orchestrator.core.metadata.PackageProvenance | None" = None,
     ) -> Iterator[str]:
         """Context manager that registers a script operation and manages its lifecycle.
 
@@ -952,6 +953,9 @@ class DiscoverySpace:
             operation_type: Semantic type for the operation (e.g. SEARCH for explore scripts).
                 Script provenance is always recorded on metadata labels under
                 ``execution: script``.
+            provenance: Optional Python distribution provenance for the script module.
+                When provided, stored under ``provenance.operators`` keyed by the
+                script operator identifier.
 
         Yields:
             The operation resource identifier.
@@ -973,6 +977,7 @@ class DiscoverySpace:
         )
         from orchestrator.core.operation.resource import (
             OperationExitStateEnum,
+            OperationProvenanceInfo,
             OperationResource,
             OperationResourceEventEnum,
             OperationResourceStatus,
@@ -1001,10 +1006,18 @@ class DiscoverySpace:
             spaces=[self.uri],
         )
 
+        if provenance is None:
+            final_provenance = OperationProvenanceInfo(operators={})
+        else:
+            final_provenance = OperationProvenanceInfo(
+                operators={script_module.operatorIdentifier: provenance},
+            )
+
         operation = OperationResource(
             operationType=script_module.operationType,
             operatorIdentifier=script_module.operatorIdentifier,
             config=operation_payload,
+            provenance=final_provenance,
         )
 
         self.addOperation(operation)

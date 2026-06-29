@@ -139,25 +139,45 @@ class PackageProvenance(pydantic.BaseModel):
 
 
 class ProvenanceInfo(pydantic.BaseModel):
-    """Base model for plugin provenance stored on ADO resources.
+    """Base model for provenance stored on ADO resources.
 
-    Subclasses declare named maps of plugin identifiers to the distribution
-    that provided each plugin at resource creation time. All declared fields
-    must be ``dict[str, PackageProvenance]``.
+    Records the ``ado-core`` distribution at resource creation time and, in
+    subclasses, named maps of plugin identifiers to the distribution that
+    provided each plugin. Plugin map fields must be ``dict[str, PackageProvenance]``.
     """
 
     model_config = ConfigDict(extra="forbid")
 
+    ado: Annotated[
+        PackageProvenance | None,
+        pydantic.Field(
+            description=(
+                "ado-core distribution frozen at resource creation time. "
+                "None for resources created before this field existed or when "
+                "the installed version could not be resolved."
+            ),
+        ),
+    ] = None
+
+    @pydantic.model_validator(mode="before")
+    @classmethod
+    def check_if_ado_provenance_should_be_populated(
+        cls, data: object, info: pydantic.ValidationInfo
+    ) -> object:
+        """Set ``ado`` from context when missing or explicitly null."""
+        if not isinstance(data, dict) or data.get("ado") is not None:
+            return data
+        if not (info.context and info.context.get("populate_ado_provenance") is False):
+            return {**data, "ado": PackageProvenance.from_distribution_name("ado-core")}
+        return {**data, "ado": None}
+
     @pydantic.model_validator(mode="after")
     def validate_provenance_field_values(self) -> Self:
-        """Ensure every declared field is a dict of PackageProvenance instances."""
+        """Ensure plugin map fields are dicts of PackageProvenance instances."""
         for field_name in type(self).model_fields:
             value = getattr(self, field_name)
             if not isinstance(value, dict):
-                raise ValueError(
-                    f"{field_name} must be a dict[str, PackageProvenance], "
-                    f"got {type(value)}"
-                )
+                continue
             for key, item in value.items():
                 if not isinstance(item, PackageProvenance):
                     raise ValueError(

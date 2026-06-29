@@ -106,7 +106,9 @@ def test_show_stats_discoveryspace_heavy_stats_values(
     stats = data[ml_multi_cloud_space.uri]
 
     assert stats["SIZE_OF_ENTITY_SPACE"] == _ENTITY_SPACE_SIZE
+    assert isinstance(stats["SIZE_OF_ENTITY_SPACE"], int)
     assert stats["UNMEASURED_ENTITIES"] == _ENTITY_SPACE_SIZE - number_entities
+    assert isinstance(stats["UNMEASURED_ENTITIES"], int)
     assert stats["MATCHING_ENTITIES"] == _NUMBER_OF_MATCHING_ENTITIES
     assert stats["MATCHING_WITH_MEASUREMENTS"] == _NUMBER_OF_MATCHING_ENTITIES
     assert stats["ENTITIES_WITH_ALL_MEASUREMENTS"] == number_entities

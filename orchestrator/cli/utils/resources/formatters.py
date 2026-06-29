@@ -570,6 +570,18 @@ def format_ado_get_stats_for_spaces(
                 )
             )
 
+        # Coerce SIZE_OF_ENTITY_SPACE and UNMEASURED_ENTITIES to int where the
+        # value is finite (i.e. not inf/nan/None).  Pandas stores mixed
+        # int/float/None columns as float64, which renders integers as "45.0".
+        def _coerce_to_int_if_finite(v: object) -> object:
+            if isinstance(v, float) and math.isfinite(v):
+                return int(v)
+            return v
+
+        for col in ("SIZE_OF_ENTITY_SPACE", "UNMEASURED_ENTITIES"):
+            if col in df.columns:
+                df[col] = df[col].apply(_coerce_to_int_if_finite)
+
     return df
 
 

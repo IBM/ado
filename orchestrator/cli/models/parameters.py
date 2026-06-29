@@ -15,6 +15,7 @@ from orchestrator.cli.models.types import (
     AdoShowMeasurementsSupportedEntityTypes,
     AdoShowMeasurementsSupportedOutputFormats,
     AdoShowMeasurementsSupportedPropertyFormats,
+    AdoShowStatsSupportedOutputFormats,
     AdoShowSummarySupportedOutputFormats,
     AdoShowTraceSupportedOutputFormats,
 )
@@ -117,6 +118,15 @@ class AdoShowTraceCommandParameters(pydantic.BaseModel):
     output_file: Path | None
     output_format: AdoShowTraceSupportedOutputFormats
     resource_id: str
+
+
+class AdoShowStatsCommandParameters(pydantic.BaseModel):
+    ado_configuration: AdoConfiguration
+    output_format: AdoShowStatsSupportedOutputFormats
+    output_file: Path | None
+    query: list[dict[str, str | None]] | None
+    render_output: bool
+    resource_ids: list[str] | None
 
 
 class AdoShowSummaryCommandParameters(pydantic.BaseModel):

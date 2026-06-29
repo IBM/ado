@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING, Annotated
 import pydantic
 
 if TYPE_CHECKING:
+    from rich.status import Status
+
     from orchestrator.core.discoveryspace.space import DiscoverySpace
     from orchestrator.core.samplestore.base import ActiveSampleStore
     from orchestrator.metastore.base import ResourceStore
@@ -173,11 +175,6 @@ def lightweight_space_statistics(
     ``number_matching_entities``, ``number_matching_entities_with_measurements``)
     are always ``None``.
 
-    .. note::
-        All ``space_ids`` must belong to the **same** sample store instance that
-        is passed in.  Mixing spaces from different sample stores will produce
-        incorrect results.
-
     Args:
         space_ids: Set of space URIs to compute statistics for.
         space_ids_to_operation_ids: Mapping from each space URI to the set of
@@ -238,23 +235,21 @@ def lightweight_space_statistics(
 def space_statistics_for_spaces(
     spaces: "list[DiscoverySpace]",
     lightweight_only: bool = False,
+    spinner: "Status | None" = None,
 ) -> "dict[str, DiscoverySpaceStatistics]":
     """Compute statistics for multiple discovery spaces with minimal DB round-trips.
 
     Issues a single batched metastore query for all spaces, then one batched
-    sample-store query for all spaces.
-
-    .. note::
-        All spaces in the list **must** share the same sample store instance
-        (i.e. ``spaces[0].sample_store`` is used for every space).  Mixing
-        spaces from different sample stores will produce incorrect results.
-        There is only one metastore, so no constraint applies there.
+    sample-store query per distinct sample store (spaces from different sample
+    stores are handled correctly).
 
     Args:
         spaces: List of :class:`~orchestrator.core.discoveryspace.space.DiscoverySpace`
-            instances to summarise.  All spaces must share the same sample store.
+            instances to summarise.  Spaces may belong to different sample stores.
         lightweight_only: When ``True`` skip all Python-side computation and
             return ``None`` for the heavy fields in every space's statistics.
+        spinner: Optional rich status spinner to update with per-space progress
+            messages during the heavy computation pass.
 
     Returns:
         ``dict[space_id, DiscoverySpaceStatistics]`` keyed by
@@ -265,22 +260,27 @@ def space_statistics_for_spaces(
     if not spaces:
         return {}
 
-    space_ids = {s.uri for s in spaces}
-    space_ids_to_operation_ids = {s.uri: set(s.operations) for s in spaces}
-    metastore = spaces[0].metadataStore
-    sample_store = spaces[0].sample_store
-
-    if not all(s.sample_store is sample_store for s in spaces):
-        raise ValueError(
-            "All spaces passed to space_statistics_for_spaces must share the same sample store."
+    # Group spaces by sample store so we can issue one batched query per store.
+    spaces_by_sample_store: dict[str, list[DiscoverySpace]] = {}
+    for space in spaces:
+        spaces_by_sample_store.setdefault(space.sample_store.identifier, []).append(
+            space
         )
 
-    lightweight_stats = lightweight_space_statistics(
-        space_ids=space_ids,
-        space_ids_to_operation_ids=space_ids_to_operation_ids,
-        metastore=metastore,
-        sample_store=sample_store,
-    )
+    metastore = spaces[0].metadataStore
+
+    lightweight_stats: dict[str, DiscoverySpaceStatistics] = {}
+    for store_spaces in spaces_by_sample_store.values():
+        group_space_ids = {s.uri for s in store_spaces}
+        group_operation_ids = {s.uri: set(s.operations) for s in store_spaces}
+        lightweight_stats.update(
+            lightweight_space_statistics(
+                space_ids=group_space_ids,
+                space_ids_to_operation_ids=group_operation_ids,
+                metastore=metastore,
+                sample_store=store_spaces[0].sample_store,
+            )
+        )
 
     if lightweight_only:
         return lightweight_stats
@@ -290,8 +290,13 @@ def space_statistics_for_spaces(
     # ------------------------------------------------------------------
 
     result: dict[str, DiscoverySpaceStatistics] = {}
+    total = len(spaces)
 
-    for space in spaces:
+    for idx, space in enumerate(spaces, start=1):
+        if spinner is not None:
+            spinner.update(
+                f"Computing heavy statistics for {space.uri} ({idx}/{total})"
+            )
         base = lightweight_stats[space.uri]
         number_measured = base.number_measured_entities
 

@@ -143,6 +143,7 @@ class DiscoverySpace:
         identifier: str | None = None,
         metadata_store: "SQLResourceStore | None" = None,
         samplestore_resource: "orchestrator.core.SampleStoreResource | None" = None,
+        sample_store: "orchestrator.core.samplestore.base.SampleStore | None" = None,
         load_experiment_catalog: bool = True,
     ) -> "DiscoverySpace":
         """Creates a discovery space from a config
@@ -158,7 +159,11 @@ class DiscoverySpace:
                 discovery space generates the id versus how the id used to store was generated)
             metadata_store: Optional SQLResourceStore instance to reuse. If None, a new instance will be created.
             samplestore_resource: Optional pre-fetched SampleStoreResource. When provided the metastore
-                round-trip to fetch the samplestore is skipped.
+                round-trip to fetch the samplestore is skipped. Ignored when *sample_store* is provided.
+            sample_store: An already-instantiated SampleStore to use directly. When provided, both
+                the metastore round-trip and the ``SampleStore.from_resource`` call are skipped,
+                and the same object is reused — preserving any in-memory entity cache.
+                Takes precedence over *samplestore_resource*.
             load_experiment_catalog: When ``True`` (default) the samplestore's experiment catalog is
                 loaded and registered with the actuator registry.  Set to ``False`` for read-only
                 paths (e.g. CLI show commands) where replay experiment resolution is not needed.
@@ -174,13 +179,14 @@ class DiscoverySpace:
 
         entitySpace = None
 
-        sample_store = (
-            SampleStore.from_resource(samplestore_resource)
-            if samplestore_resource is not None
-            else SampleStore.from_identifier(
-                identifier=conf.sampleStoreIdentifier, metastore=metadata_store
+        if sample_store is None:
+            sample_store = (
+                SampleStore.from_resource(samplestore_resource)
+                if samplestore_resource is not None
+                else SampleStore.from_identifier(
+                    identifier=conf.sampleStoreIdentifier, metastore=metadata_store
+                )
             )
-        )
 
         if conf.entitySpace is not None:
             entitySpace = EntitySpaceRepresentation.representationFromConfiguration(

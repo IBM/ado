@@ -144,5 +144,3 @@ class AdoTemplateCommandParameters(pydantic.BaseModel):
 
 class AdoUpgradeCommandParameters(pydantic.BaseModel):
     ado_configuration: AdoConfiguration
-    apply_legacy_migrator: list[str] | None = None
-    list_legacy_migrators: bool = False

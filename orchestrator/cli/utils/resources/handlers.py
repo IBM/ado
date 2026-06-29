@@ -25,7 +25,6 @@ from orchestrator.cli.utils.output.prints import (
     ADO_SPINNER_QUERYING_DB,
     ADO_SPINNER_SAVING_TO_DB,
     ERROR,
-    INFO,
     SUCCESS,
     console_print,
     cyan,
@@ -634,270 +633,26 @@ def handle_ado_upgrade(
     parameters: "AdoUpgradeCommandParameters",
     resource_type: "CoreResourceKinds",
 ) -> None:
-    """Upgrade resources, optionally applying legacy migrators
+    """Upgrade resources of the given type.
 
     Args:
-        parameters: Command parameters including legacy migrator options
+        parameters: Command parameters
         resource_type: The type of resource to upgrade
     """
-    # Handle --list-legacy-migrators flag
-    if parameters.list_legacy_migrators:
-        from orchestrator.cli.utils.legacy.list import list_legacy_migrators
-
-        list_legacy_migrators(resource_type)
-        return
-
     sql_store = get_sql_store(
         project_context=parameters.ado_configuration.project_context
     )
 
-    # Normal upgrade path without legacy migrators
-    if not parameters.apply_legacy_migrator:
-
-        with Status(ADO_SPINNER_QUERYING_DB) as status:
-            try:
-                resources = sql_store.getResourcesOfKind(
-                    kind=resource_type.value, ignore_validation_errors=False
-                )
-            except ValueError as err:
-                status.stop()
-                # Validation error occurred - check if legacy migrators can help
-                _handle_upgrade_validation_error(err, resource_type, parameters)
-                raise typer.Exit(1) from err
-
-            for idx, resource in enumerate(resources.values()):
-                status.update(
-                    ADO_SPINNER_SAVING_TO_DB + f" ({idx + 1}/{len(resources)})"
-                )
-                sql_store.updateResource(resource=resource)
-
-        console_print(SUCCESS)
-        return
-
-    # The user has requested legacy migrators
-    legacy_migrators = None
-    # Import migrators package to trigger registration via __init__.py
-    import orchestrator.core.legacy.migrators  # noqa: F401
-    from orchestrator.core.legacy.registry import LegacyMigratorRegistry
-
-    # Validate all migrator IDs exist and match resource type
-    invalid_migrators = []
-    mismatched_migrators = []
-    for migrator_id in parameters.apply_legacy_migrator:
-        migrator = LegacyMigratorRegistry.get_migrator(migrator_id)
-        if migrator is None:
-            invalid_migrators.append(migrator_id)
-        elif migrator.resource_type != resource_type:
-            mismatched_migrators.append(
-                (migrator_id, migrator.resource_type, resource_type)
-            )
-
-    if invalid_migrators:
-        console_print(
-            f"{ERROR}Unknown legacy migrator(s): {', '.join(invalid_migrators)}",
-            stderr=True,
-        )
-        raise typer.Exit(1)
-
-    if mismatched_migrators:
-        for migrator_id, migrator_type, expected_type in mismatched_migrators:
-            console_print(
-                f"{ERROR}Validator '{migrator_id}' is for {migrator_type.value} resources, "
-                f"but you are upgrading {expected_type.value} resources",
-                stderr=True,
-            )
-        raise typer.Exit(1)
-
-    # Resolve dependencies and order migrators
-    try:
-        ordered_ids, missing_deps = LegacyMigratorRegistry.resolve_dependencies(
-            parameters.apply_legacy_migrator
-        )
-
-        if missing_deps:
-            console_print(
-                f"{ERROR}Missing migrator dependencies: {', '.join(missing_deps)}",
-                stderr=True,
-            )
-            raise typer.Exit(1)
-
-        # Get migrators in correct order
-        legacy_migrators = []
-        for migrator_id in ordered_ids:
-            migrator = LegacyMigratorRegistry.get_migrator(migrator_id)
-            if migrator is not None:
-                legacy_migrators.append(migrator)
-
-        # Log the ordering
-        if len(ordered_ids) > len(parameters.apply_legacy_migrator):
-            logger.info(
-                f"Auto-included dependencies: {[vid for vid in ordered_ids if vid not in parameters.apply_legacy_migrator]}"
-            )
-
-        if not legacy_migrators:
-            console_print(
-                f"{ERROR}No migrators were found using the provided identifiers"
-            )
-            raise typer.Exit(1)
-
-        logger.debug(
-            f"Validators in execution order: {[v.identifier for v in legacy_migrators]}"
-        )
-
-    except ValueError as e:
-        # Circular dependency detected
-        console_print(f"{ERROR}{e}", stderr=True)
-        raise typer.Exit(1) from e
-
-    # Import resource class mapping for validation
-    from orchestrator.core import kindmap
-    from orchestrator.utilities.pydantic import ignore_plugin_validation_context
-
-    # When legacy migrators are specified, work with raw data
     with Status(ADO_SPINNER_QUERYING_DB) as status:
-
-        identifiers = sql_store.getResourceIdentifiersOfKind(kind=resource_type.value)
-
-        # Phase 1: Collect and validate all migrations (transaction safety)
-        # Validate all resources before saving any to ensure atomicity
-        migrations = []
-        resource_class = kindmap[resource_type.value]
-
-        for idx, identifier in enumerate(identifiers["IDENTIFIER"]):
-            status.update(
-                ADO_SPINNER_QUERYING_DB
-                + f" - Validating ({idx + 1}/{len(identifiers)})"
-            )
-
-            # Get raw data
-            resource_dict = sql_store.getResourceRaw(identifier)
-            if resource_dict is None:
-                continue
-
-            # Apply legacy migrators
-            try:
-                for migrator in legacy_migrators:
-                    logger.debug(
-                        f"Applying migrator: {migrator.identifier} to {identifier}"
-                    )
-                    resource_dict = migrator.migrator_function(resource_dict)
-                    logger.debug(
-                        f"Validator {migrator.identifier} completed for {identifier}"
-                    )
-
-                # Validate the migrated resource (don't save yet)
-                resource = resource_class.model_validate(
-                    resource_dict, context=ignore_plugin_validation_context
-                )
-                migrations.append((identifier, resource))
-
-            except Exception as e:
-                logger.error(f"Migration failed for {identifier}: {e}")
-                console_print(
-                    f"{ERROR}Migration validation failed for {identifier}: {e}",
-                    stderr=True,
-                )
-                console_print(
-                    f"{INFO}No resources were modified (all-or-nothing transaction safety)",
-                    stderr=True,
-                )
-                raise typer.Exit(1) from e
-
-        # Phase 2: All validations passed, now save all resources
-        logger.info(
-            f"All {len(migrations)} resources validated successfully, applying changes..."
+        resources = sql_store.getResourcesOfKind(
+            kind=resource_type.value, ignore_validation_errors=False
         )
 
-        for idx, (identifier, migrated_resource) in enumerate(migrations):
-            status.update(ADO_SPINNER_SAVING_TO_DB + f" ({idx + 1}/{len(migrations)})")
-
-            try:
-                sql_store.updateResource(resource=migrated_resource)
-            except Exception as e:
-                logger.error(f"Failed to save {identifier}: {e}")
-                console_print(
-                    f"{ERROR}Failed to save {identifier}. Database may be in inconsistent state.",
-                    stderr=True,
-                )
-                console_print(
-                    f"{ERROR}Manual intervention may be required to restore consistency.",
-                    stderr=True,
-                )
-                raise typer.Exit(1) from e
+        for idx, resource in enumerate(resources.values()):
+            status.update(ADO_SPINNER_SAVING_TO_DB + f" ({idx + 1}/{len(resources)})")
+            sql_store.updateResource(resource=resource)
 
     console_print(SUCCESS)
-
-
-def _handle_upgrade_validation_error(
-    error: ValueError,
-    resource_type: "CoreResourceKinds",
-    parameters: "AdoUpgradeCommandParameters",
-) -> None:
-    """Handle validation errors during upgrade by suggesting legacy migrators
-
-    Analyzes the validation error to extract deprecated field names, finds
-    applicable legacy migrators, and displays helpful suggestions to the user.
-
-    Args:
-        error: The ValueError containing validation error details
-        resource_type: The type of resource being upgraded
-        parameters: The upgrade command parameters
-    """
-
-    # Import migrators package to trigger registration via __init__.py
-    import orchestrator.core.legacy.migrators  # noqa: F401
-    from orchestrator.cli.utils.legacy.common import (
-        extract_deprecated_field_paths,
-        print_migrator_suggestions_with_dependencies,
-    )
-    from orchestrator.core.legacy.registry import LegacyMigratorRegistry
-
-    # Extract field paths and error details from the error
-    deprecated_field_paths, field_errors = extract_deprecated_field_paths(
-        error, resource_type
-    )
-
-    # Find applicable legacy migrators using full field paths for precise matching
-    migrators = []
-    if deprecated_field_paths:
-        migrators = LegacyMigratorRegistry.find_migrators_for_deprecated_field_paths(
-            resource_type=resource_type,
-            deprecated_field_paths=deprecated_field_paths,
-        )
-
-    # If no migrators found by field path matching, get all migrators for this resource type
-    if not migrators:
-        migrators = LegacyMigratorRegistry.get_migrators_for_resource(resource_type)
-
-    # Display error message
-    console_print(
-        f"\n[bold red]Validation Error[/bold red] while upgrading {resource_type.value} resources"
-    )
-    console_print(
-        "\n[yellow]Some resources could not be loaded as they are using an unsupported legacy format.[/yellow]"
-    )
-
-    if deprecated_field_paths:
-        console_print(
-            f"\n[bold black]{len(deprecated_field_paths)} field(s) with validation errors:[/bold black]"
-        )
-        # Show detailed error messages for each field path
-        for field_path in sorted(deprecated_field_paths):
-            console_print(f"  • [cyan]{field_path}[/cyan]:")
-            for error_msg in field_errors.get(field_path, []):
-                console_print(f"    - {error_msg}")
-
-    if migrators:
-        print_migrator_suggestions_with_dependencies(
-            migrators=migrators, resource_type=resource_type
-        )
-    else:
-        console_print(
-            "\n[yellow]No legacy migrators are available for this resource type.[/yellow]"
-        )
-        console_print("The resources may be too old or require manual intervention.")
-
-    console_print()
 
 
 def render_trace_output(

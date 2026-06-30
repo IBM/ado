@@ -167,30 +167,6 @@ def log_and_save_characterization(
             logger.debug(f"[Characterization] {name} has no 'identifier' column.")
 
 
-def log_before_first_holdout_update(
-    one_additional_row: pd.DataFrame,
-    current_source_df: pd.DataFrame,
-    previous_source_df: pd.DataFrame,
-    iter_index: int,
-    debugDirectory: str,
-    batchsize: int = 1,
-) -> None:
-    if len(one_additional_row) != 1:
-        logger.error(
-            f"{len(one_additional_row)} point(s) sampled (expected 1), saving data in {debugDirectory}"
-        )
-        one_additional_row.to_csv(os.path.join(f"one_additional_row_{iter_index}.csv"))
-    else:
-        logger.info(
-            f"Check on the length of the additional row to be added to holdout passed at iter {iter_index}"
-        )
-    if len(current_source_df) != len(previous_source_df) + batchsize:
-        logger.warning(
-            f"Length of source df at iter {iter_index}: {len(current_source_df)}"
-            f"It is NOT 1 unit greater than length of source df for {iter_index} - {batchsize}: {len(previous_source_df)}"
-        )
-
-
 def training_guardrail(train_df: pd.DataFrame, targetOutput: str) -> pd.DataFrame:
     if not train_df.equals(train_df.dropna(subset=[str(targetOutput)])):
         logger.warning(

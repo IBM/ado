@@ -147,7 +147,7 @@ def show_stats_for_resources(
     # Show stats for the latest operation as JSON
     ado show stats operation --use-latest -o json
 
-    # Show stats for samplstores matching a label
+    # Show stats for samplestores matching a label
     ado show stats samplestore -l key=value
     """
     ado_configuration: AdoConfiguration = ctx.obj

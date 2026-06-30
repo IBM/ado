@@ -148,6 +148,19 @@ class TrimParameters(BaseTrimSamplerParameters):
         ),
     ] = NoPriorsParameters(targetOutput="")
 
+    no_priors_operation_id: Annotated[
+        str | None,
+        Field(
+            default=None,
+            description=(
+                "Set automatically by the TRIM operator after the no-priors phase. "
+                "TrimSampleSelector uses it to query which entities did not produce "
+                "a target measurement during that phase. "
+                "Do not set this field manually."
+            ),
+        ),
+    ] = None
+
     # disablePredictiveModeling: Annotated[
     #     bool,
     #     pydantic.Field(

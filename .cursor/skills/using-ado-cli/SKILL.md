@@ -194,10 +194,13 @@ uv run ado show measurements space SPACE_ID
 uv run ado show measurements operation OPERATION_ID
 
 # Show in-depth statistics (more columns than ado get -o stats)
+# No IDs = all resources of that type
 uv run ado show stats operation
 uv run ado show stats operation --use-latest -o json
 uv run ado show stats discoveryspace SPACE_ID
 uv run ado show stats samplestore -l key=value
+# Include DESCRIPTION and LABELS columns
+uv run ado show stats operation --details
 ```
 
 ### ado describe
@@ -232,15 +235,15 @@ plus measured properties (outputs).
 
 <!-- markdownlint-disable line-length -->
 
-| Command                       | What It Shows                                                                                                           |
-| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `show measurements operation` | Entities (inputs) and their measurements (outputs) from this operation                                                  |
-| `show measurements space`     | All entities and measurements collected in this space                                                                   |
-| `show trace operation`        | The trace of measurement requests made during an explore operation. Optionally can show per entity measurement metadata |
-| `show stats operation`        | In-depth stats: results (total/successful/failed), measured entities, plus request-level counts                         |
-| `show stats discoveryspace`   | In-depth stats: experiments, operations, measured entities, plus full entity-space coverage columns                     |
-| `show stats samplestore`      | In-depth stats: entities, results, and experiments counts                                                               |
-| `show stats datacontainer`    | In-depth stats: tables, locations, key-values, and data bytes                                                           |
+| Command                       | What It Shows                                                                                                            |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `show measurements operation` | Entities (inputs) and their measurements (outputs) from this operation                                                   |
+| `show measurements space`     | All entities and measurements collected in this space                                                                    |
+| `show trace operation`        | The trace of measurement requests made during an explore operation. Optionally can show per entity measurement metadata  |
+| `show stats operation`        | In-depth stats: results (total/successful/failed), measured entities, plus request-level counts. No IDs = all operations |
+| `show stats discoveryspace`   | In-depth stats: experiments, operations, measured entities, plus full entity-space coverage columns. No IDs = all spaces |
+| `show stats samplestore`      | In-depth stats: entities, results, and experiments counts. No IDs = all sample stores                                    |
+| `show stats datacontainer`    | In-depth stats: tables, locations, key-values, and data bytes. No IDs = all data containers                              |
 
 <!-- markdownlint-enable line-length -->
 

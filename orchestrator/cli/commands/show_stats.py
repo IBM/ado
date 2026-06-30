@@ -117,6 +117,14 @@ def show_stats_for_resources(
             show_default=False,
         ),
     ] = None,
+    show_details: Annotated[
+        bool,
+        typer.Option(
+            "--details",
+            help="Output additional information on each object, such as names and descriptions.",
+            show_default=True,
+        ),
+    ] = False,
     render_output: Annotated[
         bool,
         typer.Option(
@@ -173,6 +181,7 @@ def show_stats_for_resources(
         query=query_filters if (query or labels) else None,
         render_output=render_output,
         resource_ids=ids,
+        show_details=show_details,
     )
 
     method_mapping = {

@@ -1323,6 +1323,7 @@ The complete syntax of the `ado show stats` command is as follows:
 ado show stats RESOURCE_TYPE [IDS...] [--use-latest] \
                [--query | -q <path=value>] \
                [--label | -l <key=value>] \
+               [--details] \
                [--output | -o <table|md-table|csv|json|yaml>] \
                [--output-file <path>] \
                [--render]
@@ -1353,6 +1354,8 @@ Where:
 - `--query` (or `-q`) and `--label` (or `-l`) filter which resources are
   included (same semantics as `ado get`). Cannot be used together with explicit
   IDs.
+- `--details` appends `DESCRIPTION` and `LABELS` columns to the output,
+  mirroring the behaviour of `ado get --details`.
 - `--output` (or `-o`) selects the output format:
 
     <!-- prettier-ignore-start -->

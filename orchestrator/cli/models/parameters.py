@@ -127,6 +127,7 @@ class AdoShowStatsCommandParameters(pydantic.BaseModel):
     query: list[dict[str, str | None]] | None
     render_output: bool
     resource_ids: list[str] | None
+    show_details: bool
 
 
 class AdoShowSummaryCommandParameters(pydantic.BaseModel):

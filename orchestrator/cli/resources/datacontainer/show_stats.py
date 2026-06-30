@@ -49,6 +49,7 @@ def show_datacontainer_stats(parameters: AdoShowStatsCommandParameters) -> None:
                 resources=build_resource_listing_dataframe(
                     resources=datacontainer_resources,
                     resource_kind=CoreResourceKinds.DATACONTAINER,
+                    show_details=parameters.show_details,
                 ),
                 resource_kind=CoreResourceKinds.DATACONTAINER,
             )
@@ -56,6 +57,7 @@ def show_datacontainer_stats(parameters: AdoShowStatsCommandParameters) -> None:
             datacontainer_resources = sql_store.getResourceIdentifiersOfKind(
                 kind=CoreResourceKinds.DATACONTAINER.value,
                 field_selectors=parameters.query,
+                details=parameters.show_details,
             )
             base_df = format_default_ado_get_multiple_resources(
                 resources=datacontainer_resources,

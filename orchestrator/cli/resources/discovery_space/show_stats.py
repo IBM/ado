@@ -62,6 +62,7 @@ def show_discovery_space_stats(parameters: AdoShowStatsCommandParameters) -> Non
             resources=build_resource_listing_dataframe(
                 resources=space_resources,
                 resource_kind=CoreResourceKinds.DISCOVERYSPACE,
+                show_details=parameters.show_details,
             ),
             resource_kind=CoreResourceKinds.DISCOVERYSPACE,
         )

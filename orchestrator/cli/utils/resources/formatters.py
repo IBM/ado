@@ -164,6 +164,7 @@ def build_resource_listing_dataframe(
     resources: dict[str, "ADOResource"],
     resource_kind: "CoreResourceKinds",
     sort_by_age_descending: bool = False,
+    show_details: bool = False,
 ) -> "pd.DataFrame":
     """Build the same DataFrame shape as ``getResourceIdentifiersOfKind`` from a resources dict.
 
@@ -177,12 +178,16 @@ def build_resource_listing_dataframe(
         resource_kind: The kind of the resources (determines extra columns).
         sort_by_age_descending: When ``True``, sort the resulting DataFrame by
             ``AGE`` in descending order and reset the index.
+        show_details: When ``True``, include ``DESCRIPTION`` and ``LABELS``
+            columns in the returned DataFrame.
 
     Returns:
         A ``pd.DataFrame`` with columns ``IDENTIFIER``, ``NAME``, ``AGE``
         (as ``datetime.timedelta``) and, for operations, additionally
-        ``STATUS`` (JSON string) and ``SPACE``. The DataFrame is compatible
-        with :func:`format_default_ado_get_multiple_resources`.
+        ``STATUS`` (JSON string) and ``SPACE``. When ``show_details`` is
+        ``True`` the columns also include ``DESCRIPTION`` and ``LABELS``.
+        The DataFrame is compatible with
+        :func:`format_default_ado_get_multiple_resources`.
     """
     import pandas as pd
 
@@ -198,6 +203,10 @@ def build_resource_listing_dataframe(
             "AGE": now - resource.created,
         }
 
+        if show_details:
+            row["DESCRIPTION"] = metadata.description
+            row["LABELS"] = json.dumps(metadata.labels) if metadata.labels else None
+
         if resource_kind == CoreResourceKinds.OPERATION:
             row["STATUS"] = pydantic.RootModel[list[ADOResourceStatus]](
                 resource.status
@@ -207,6 +216,8 @@ def build_resource_listing_dataframe(
         return row
 
     columns = ["IDENTIFIER", "NAME", "AGE"]
+    if show_details:
+        columns = ["IDENTIFIER", "NAME", "DESCRIPTION", "LABELS", "AGE"]
     if resource_kind == CoreResourceKinds.OPERATION:
         columns.extend(["STATUS", "SPACE"])
 

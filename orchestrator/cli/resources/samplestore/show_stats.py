@@ -49,6 +49,7 @@ def show_samplestore_stats(parameters: AdoShowStatsCommandParameters) -> None:
                 resources=build_resource_listing_dataframe(
                     resources=samplestore_resources,
                     resource_kind=CoreResourceKinds.SAMPLESTORE,
+                    show_details=parameters.show_details,
                 ),
                 resource_kind=CoreResourceKinds.SAMPLESTORE,
             )
@@ -56,6 +57,7 @@ def show_samplestore_stats(parameters: AdoShowStatsCommandParameters) -> None:
             samplestore_resources = sql_store.getResourceIdentifiersOfKind(
                 kind=CoreResourceKinds.SAMPLESTORE.value,
                 field_selectors=parameters.query,
+                details=parameters.show_details,
             )
             base_df = format_default_ado_get_multiple_resources(
                 resources=samplestore_resources,

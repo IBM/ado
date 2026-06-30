@@ -17,8 +17,9 @@ tested elsewhere.
   request-level columns (TOTAL_REQUESTS, FAILED_REQUESTS, SUCCESSFUL_REQUESTS).
 
 All other aspects (output formats, --use-latest, samplestore, datacontainer,
-query filters) are already covered by ``tests/ado/get/test_ado_get_stats.py``
-and ``tests/core/test_space_statistics.py``.
+query filters, loading all resources when no IDs are supplied, ``--details``
+columns) are already covered by ``tests/ado/get/test_ado_get_stats.py`` and
+``tests/core/test_space_statistics.py``.
 """
 
 import json

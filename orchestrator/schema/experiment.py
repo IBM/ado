@@ -1279,16 +1279,14 @@ def _check_constitutive_domains(
         provided_property = provided.constitutive_property_for_identifier(
             expected_property.identifier
         )
-        if (
-            provided_property is None
-            and expected_property.descriptor() in expected.optional_property_descriptors
-        ):
-            issues.append(
-                ExperimentInterfaceIssue(
-                    kind=ExperimentInterfaceIssueKind.OPTIONAL_NOT_DECLARED_IN_PROVIDED,
-                    identifier=expected_property.identifier,
+        if provided_property is None:
+            if expected_property.descriptor() in expected.optional_property_descriptors:
+                issues.append(
+                    ExperimentInterfaceIssue(
+                        kind=ExperimentInterfaceIssueKind.OPTIONAL_NOT_DECLARED_IN_PROVIDED,
+                        identifier=expected_property.identifier,
+                    )
                 )
-            )
             continue
 
         if not expected_property.propertyDomain.isSubDomain(

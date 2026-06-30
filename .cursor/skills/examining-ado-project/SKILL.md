@@ -80,6 +80,13 @@ Goal: volume of work, recency, and which spaces attract the most operations.
    `MEASURED_ENTITIES` against the operator's `numberEntities` to check sampling
    completeness.
 
+   For richer stats that also include request-level counts
+   (`TOTAL_REQUESTS`, `FAILED_REQUESTS`, `SUCCESSFUL_REQUESTS`):
+
+   ```bash
+   uv run ado show stats operation --output-file operations-fullstats.csv -o csv
+   ```
+
 4. **Discovery Spaces (with statistics)**
 
    ```bash
@@ -88,6 +95,17 @@ Goal: volume of work, recency, and which spaces attract the most operations.
 
    Adds `EXPERIMENTS`, `OPERATIONS`, `EXPLORE_OPERATIONS`, and
    `MEASURED_ENTITIES` columns.
+
+   For richer stats that also include full entity-space coverage columns
+   (`SIZE_OF_ENTITY_SPACE`, `UNMEASURED_ENTITIES`, `MATCHING_ENTITIES`, etc.):
+
+   ```bash
+   uv run ado show stats discoveryspace --output-file spaces-fullstats.csv -o csv
+   ```
+
+   > **Performance note**: `ado show stats discoveryspace` is slower than
+   > `ado get spaces -o stats` as it instantiates each `DiscoverySpace`.
+   > Prefer `ado get -o stats` for a quick overview across many spaces.
 
 5. **Sample Stores (with statistics)**
 

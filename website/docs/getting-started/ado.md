@@ -782,7 +782,7 @@ ado get datacontainer --use-latest -o stats
 
 When interacting with resources, we might be interested in seeing some of their
 details, entities measured, or related resources. `ado show` provides this with
-the four following subcommands.
+the five following subcommands.
 
 #### ado show details
 
@@ -1304,6 +1304,142 @@ ado show summary space my-space-id -o md --output-file summary.md
 
 ```shell
 ado show summary space -q 'config.entitySpace={"propertyDomain":{"values":["granite-7b-base"]}}'
+```
+
+#### ado show stats
+
+_show stats_ supports displaying in-depth statistics for one or more resources.
+It always outputs the same base columns as the corresponding `ado get` table
+(e.g. `IDENTIFIER`, `NAME`, `AGE`) plus a richer set of statistics columns than
+the `ado get -o stats` view. For operations, it also includes request-level
+columns; for discovery spaces, it also includes full entity-space coverage
+columns.
+
+The complete syntax of the `ado show stats` command is as follows:
+
+<!-- markdownlint-disable line-length -->
+
+```shell
+ado show stats RESOURCE_TYPE [IDS...] [--use-latest] \
+               [--query | -q <path=value>] \
+               [--label | -l <key=value>] \
+               [--details] \
+               [--output | -o <table|md-table|csv|json|yaml>] \
+               [--output-file <path>] \
+               [--render]
+```
+
+<!-- markdownlint-enable line-length -->
+
+Where:
+
+- `RESOURCE_TYPE` is one of the supported resource types. See
+  [Resource Type Shorthands](#resource-type-shorthands) for shorthand aliases.
+  Currently supported:
+
+    <!-- prettier-ignore-start -->
+
+    - _discoveryspace_ (_space_)
+    - _operation_ (_op_)
+    - _samplestore_ (_store_)
+    - _datacontainer_ (_dcr_)
+
+    <!-- prettier-ignore-end -->
+
+- `IDS` is an optional list of one or more resource identifiers to show
+  statistics for. If omitted, statistics are shown for all resources of the
+  given type.
+- `--use-latest` shows statistics for the most recently created resource of the
+  selected type. Ignored if resource identifiers are also specified.
+- `--query` (or `-q`) and `--label` (or `-l`) filter which resources are
+  included (same semantics as `ado get`). Cannot be used together with explicit
+  IDs.
+- `--details` appends `DESCRIPTION` and `LABELS` columns to the output,
+  mirroring the behaviour of `ado get --details`.
+- `--output` (or `-o`) selects the output format:
+
+    <!-- prettier-ignore-start -->
+
+    - `table` (**default**) — rich console table.
+    - `md-table` — Markdown table.
+    - `csv` — CSV format.
+    - `json` — JSON.
+    - `yaml` — YAML.
+
+    <!-- prettier-ignore-end -->
+
+- `--output-file` writes the output to the specified file instead of stdout.
+- `--render` renders the output in the console. Only supported for `md-table`
+  output.
+
+The statistics columns produced per resource type are:
+
+<!-- prettier-ignore-start -->
+
+- **Operations**: `TOTAL_RESULTS`, `SUCCESSFUL_RESULTS`, `FAILED_RESULTS`,
+  `MEASURED_ENTITIES`, `TOTAL_REQUESTS`, `FAILED_REQUESTS`,
+  `SUCCESSFUL_REQUESTS`.
+- **Discovery Spaces**: `EXPERIMENTS`, `OPERATIONS`, `EXPLORE_OPERATIONS`,
+  `MEASURED_ENTITIES`, `SIZE_OF_ENTITY_SPACE`, `UNMEASURED_ENTITIES`,
+  `MATCHING_ENTITIES`, `MATCHING_WITH_MEASUREMENTS`,
+  `ENTITIES_WITH_ALL_MEASUREMENTS`, `ENTITIES_WITH_PARTIAL_MEASUREMENTS`,
+  `MATCHING_ENTITIES_WITH_ALL_MEASUREMENTS`.
+- **Sample Stores**: `ENTITIES`, `RESULTS`, `EXPERIMENTS`.
+- **Data Containers**: `TABLES`, `LOCATIONS`, `KEY_VALUES`, `DATA_BYTES`.
+
+<!-- prettier-ignore-end -->
+
+!!! note
+
+    `ado show stats discoveryspace` computes full entity-space coverage
+    statistics including the heavy columns (`SIZE_OF_ENTITY_SPACE`,
+    `UNMEASURED_ENTITIES`, `MATCHING_ENTITIES`, etc.). This is slower than
+    `ado get spaces -o stats` because it instantiates each
+    `DiscoverySpace` and queries the sample store. Use `ado get -o stats` for
+    quick overviews.
+
+##### Examples
+
+###### Show full statistics for all operations
+
+```shell
+ado show stats operation
+```
+
+###### Show full statistics for a specific discovery space
+
+```shell
+ado show stats discoveryspace space-abc123-456def
+```
+
+###### Show full statistics for the latest operation as JSON
+
+```shell
+ado show stats operation --use-latest -o json
+```
+
+###### Show full statistics for the latest operation as YAML
+
+```shell
+ado show stats operation --use-latest -o yaml
+```
+
+###### Show full statistics for sample stores matching a label
+
+```shell
+ado show stats samplestore -l team=research
+```
+
+###### Show full statistics for all discovery spaces as a Markdown table
+
+```shell
+ado show stats discoveryspace -o md-table
+```
+
+###### Save full statistics to a file
+
+```shell
+ado show stats operation --output-file operations-stats.csv -o csv
 ```
 
 ### ado template

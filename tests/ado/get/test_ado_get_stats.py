@@ -618,3 +618,102 @@ def test_ado_get_datacontainers_stats_values(
         assert (
             rendered_output in result.output
         ), f"Expected output:\n{rendered_output}\nnot found in:\n{result.output}"
+
+
+@requires_sqlite_3_38
+def test_ado_get_operation_stats_details_columns(
+    tmp_path: pathlib.Path,
+    mysql_test_instance: MySqlContainer,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+    simulate_ml_multi_cloud_random_walk_operation: Callable[
+        [int, int, int, str | None, datetime.datetime | None],
+        tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
+    ],
+) -> None:
+    """ado get operation <id> -o stats --details adds DESCRIPTION and LABELS columns.
+
+    The operation config (randomwalk_ml_multicloud_operation.yaml) carries the
+    description 'Perform a random walk on all points in a space', so that string
+    must appear in the rendered table when --details is given.  LABELS must also
+    be present as a column header.
+    """
+    runner = CliRunner()
+    create_active_ado_context(
+        runner=runner, path=tmp_path, project_context=valid_ado_project_context
+    )
+
+    operation_id = "op-stats-details-op-001"
+    simulate_ml_multi_cloud_random_walk_operation(
+        number_entities=1,
+        number_requests=1,
+        measurements_per_result=1,
+        operation_id=operation_id,
+    )
+
+    result = runner.invoke(
+        ado,
+        [
+            "--override-ado-app-dir",
+            tmp_path,
+            "get",
+            "operation",
+            operation_id,
+            "-o",
+            "stats",
+            "--details",
+            "--no-trunc",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    if os.environ.get("CI", "false") != "true":
+        assert "DESCRIPTION" in result.output, "DESCRIPTION column missing from output"
+        assert "LABELS" in result.output, "LABELS column missing from output"
+        assert (
+            "Perform a random walk on all points in a space" in result.output
+        ), "Operation description missing from output"
+
+
+@requires_sqlite_3_38
+def test_ado_get_space_stats_details_columns(
+    tmp_path: pathlib.Path,
+    mysql_test_instance: MySqlContainer,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+    ml_multi_cloud_space: DiscoverySpace,
+) -> None:
+    """ado get space <id> -o stats --details adds DESCRIPTION and LABELS columns.
+
+    The ml_multicloud_basic space YAML carries no description or labels, so the
+    DESCRIPTION column must be present but empty, and LABELS must be present as
+    a column header with no value.
+    """
+    runner = CliRunner()
+    create_active_ado_context(
+        runner=runner, path=tmp_path, project_context=valid_ado_project_context
+    )
+
+    result = runner.invoke(
+        ado,
+        [
+            "--override-ado-app-dir",
+            tmp_path,
+            "get",
+            "space",
+            ml_multi_cloud_space.uri,
+            "-o",
+            "stats",
+            "--details",
+            "--no-trunc",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    if os.environ.get("CI", "false") != "true":
+        assert "DESCRIPTION" in result.output, "DESCRIPTION column missing from output"
+        assert "LABELS" in result.output, "LABELS column missing from output"

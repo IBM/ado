@@ -166,6 +166,22 @@ class AdoShowTraceSupportedResourceTypes(Enum):
     SAMPLE_STORE = _SAMPLE_STORE_SINGULAR
 
 
+#################### ado show stats ####################
+class AdoShowStatsSupportedOutputFormats(enum.Enum):
+    TABLE = _TABLE
+    MARKDOWN_TABLE = _MARKDOWN_TABLE
+    CSV = _CSV
+    JSON = _JSON
+    YAML = _YAML
+
+
+class AdoShowStatsSupportedResourceTypes(Enum):
+    DISCOVERY_SPACE = _DISCOVERY_SPACE_SINGULAR
+    OPERATION = _OPERATION_SINGULAR
+    SAMPLE_STORE = _SAMPLE_STORE_SINGULAR
+    DATA_CONTAINER = _DATA_CONTAINER_SINGULAR
+
+
 #################### ado show summary ####################
 class AdoShowSummarySupportedOutputFormats(enum.Enum):
     TABLE = _TABLE

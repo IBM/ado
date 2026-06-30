@@ -51,6 +51,7 @@ if typing.TYPE_CHECKING:
     from rich.status import Status
 
     from orchestrator.cli.models.parameters import AdoGetCommandParameters
+    from orchestrator.metastore.project import ProjectContext
     from orchestrator.metastore.sqlstore import SQLStore
 
 
@@ -159,12 +160,88 @@ def format_default_ado_get_multiple_resources(
     return resources[columns]
 
 
+def build_resource_listing_dataframe(
+    resources: dict[str, "ADOResource"],
+    resource_kind: "CoreResourceKinds",
+    sort_by_age_descending: bool = False,
+    show_details: bool = False,
+) -> "pd.DataFrame":
+    """Build the same DataFrame shape as ``getResourceIdentifiersOfKind`` from a resources dict.
+
+    Used when specific identifiers are requested so that only those resources are
+    fetched (via ``getResources``) instead of loading every resource of that kind
+    and then filtering in-memory.
+
+    Args:
+        resources: Mapping of identifier → ``ADOResource`` as returned by
+            ``sql_store.getResources``.
+        resource_kind: The kind of the resources (determines extra columns).
+        sort_by_age_descending: When ``True``, sort the resulting DataFrame by
+            ``AGE`` in descending order and reset the index.
+        show_details: When ``True``, include ``DESCRIPTION`` and ``LABELS``
+            columns in the returned DataFrame.
+
+    Returns:
+        A ``pd.DataFrame`` with columns ``IDENTIFIER``, ``NAME``, ``AGE``
+        (as ``datetime.timedelta``) and, for operations, additionally
+        ``STATUS`` (JSON string) and ``SPACE``. When ``show_details`` is
+        ``True`` the columns also include ``DESCRIPTION`` and ``LABELS``.
+        The DataFrame is compatible with
+        :func:`format_default_ado_get_multiple_resources`.
+    """
+    import pandas as pd
+
+    now = datetime.datetime.now(datetime.timezone.utc)
+
+    def resource_to_row(
+        identifier: str, resource: "ADOResource"
+    ) -> dict[str, typing.Any]:
+        metadata = resource.config.metadata or ConfigurationMetadata()
+        row = {
+            "IDENTIFIER": identifier,
+            "NAME": metadata.name,
+            "AGE": now - resource.created,
+        }
+
+        if show_details:
+            row["DESCRIPTION"] = metadata.description
+            row["LABELS"] = json.dumps(metadata.labels) if metadata.labels else None
+
+        if resource_kind == CoreResourceKinds.OPERATION:
+            row["STATUS"] = pydantic.RootModel[list[ADOResourceStatus]](
+                resource.status
+            ).model_dump_json()
+            row["SPACE"] = resource.config.spaces[0] if resource.config.spaces else None
+
+        return row
+
+    columns = ["IDENTIFIER", "NAME", "AGE"]
+    if show_details:
+        columns = ["IDENTIFIER", "NAME", "DESCRIPTION", "LABELS", "AGE"]
+    if resource_kind == CoreResourceKinds.OPERATION:
+        columns.extend(["STATUS", "SPACE"])
+
+    df = pd.DataFrame(
+        [
+            resource_to_row(identifier, resource)
+            for identifier, resource in resources.items()
+        ],
+        columns=columns,
+    )
+
+    if sort_by_age_descending:
+        df = df.sort_values(by="AGE", ascending=False).reset_index(drop=True)
+
+    return df
+
+
 def format_ado_get_stats_for_operations(
     df: "pd.DataFrame",
     sql_store: "SQLStore",
     spinner: "Status | None" = None,
+    include_request_columns: bool = False,
 ) -> "pd.DataFrame":
-    """Append 4 measurement-statistics columns to an operations DataFrame.
+    """Append measurement-statistics columns to an operations DataFrame.
 
     Issues two queries regardless of the number of operations:
     one recursive-CTE query to resolve operation→samplestore relationships,
@@ -177,22 +254,34 @@ def format_ado_get_stats_for_operations(
         sql_store: The ``SQLStore`` to use for relationship and samplestore
             queries.
         spinner: Optional rich status spinner to update with progress messages.
+        include_request_columns: When ``True``, also append
+            ``TOTAL_REQUESTS``, ``FAILED_REQUESTS``, and
+            ``SUCCESSFUL_REQUESTS`` columns in addition to the default
+            result-level columns. Defaults to ``False``.
 
     Returns:
-        The same DataFrame with four extra columns appended:
-        ``TOTAL_RESULTS``, ``SUCCESSFUL_RESULTS``, ``FAILED_RESULTS``,
-        ``MEASURED_ENTITIES``. Operations with no recorded measurements show
-        ``0`` in all stats columns.
+        The same DataFrame with extra columns appended.
+        Always appended: ``TOTAL_RESULTS``, ``SUCCESSFUL_RESULTS``,
+        ``FAILED_RESULTS``, ``MEASURED_ENTITIES``.
+        Appended when *include_request_columns* is ``True``:
+        ``TOTAL_REQUESTS``, ``FAILED_REQUESTS``, ``SUCCESSFUL_REQUESTS``.
+        Operations with no recorded measurements show ``0`` in all stats
+        columns.
     """
 
     from orchestrator.core.resources import CoreResourceKinds
     from orchestrator.core.samplestore.base import SampleStore
 
-    _STATS_COLUMNS = [
+    _RESULT_COLUMNS = [
         "TOTAL_RESULTS",
         "SUCCESSFUL_RESULTS",
         "FAILED_RESULTS",
         "MEASURED_ENTITIES",
+    ]
+    _REQUEST_COLUMNS = [
+        "TOTAL_REQUESTS",
+        "FAILED_REQUESTS",
+        "SUCCESSFUL_REQUESTS",
     ]
 
     operation_ids: set[str] = set(df["IDENTIFIER"])
@@ -245,11 +334,17 @@ def format_ado_get_stats_for_operations(
                 "SUCCESSFUL_RESULTS": stat.successful_results,
                 "FAILED_RESULTS": stat.failed_results,
                 "MEASURED_ENTITIES": stat.measured_entities,
+                "TOTAL_REQUESTS": stat.total_requests,
+                "FAILED_REQUESTS": stat.failed_requests,
+                "SUCCESSFUL_REQUESTS": stat.successful_requests,
             }
 
-    # Attach stats columns; operations with no samplestore mapping show 0.
-    zeros = dict.fromkeys(_STATS_COLUMNS, 0)
-    for col in _STATS_COLUMNS:
+    # Attach result-level stats columns; operations with no samplestore mapping show 0.
+    all_columns = _RESULT_COLUMNS + (
+        _REQUEST_COLUMNS if include_request_columns else []
+    )
+    zeros = dict.fromkeys(_RESULT_COLUMNS + _REQUEST_COLUMNS, 0)
+    for col in all_columns:
         df[col] = df["IDENTIFIER"].apply(
             lambda operation_id, c=col: stats_lookup.get(operation_id, zeros)[c]
         )
@@ -261,43 +356,65 @@ def format_ado_get_stats_for_spaces(
     df: "pd.DataFrame",
     sql_store: "SQLStore",
     spinner: "Status | None" = None,
+    include_heavy: bool = False,
+    space_resources: "dict[str, ADOResource] | None" = None,
+    project_context: "ProjectContext | None" = None,
 ) -> "pd.DataFrame":
-    """Append 4 space-statistics columns to a discovery spaces DataFrame.
+    """Append statistics columns to a discovery spaces DataFrame.
 
-    Issues a metastore stats query for all spaces at once, then resolves each
-    space's linked operations and sample stores.  For each distinct sample
-    store a single batched :meth:`space_entity_statistics` query is issued.
+    Issues a single batched query for all spaces' child operations, then a
+    single batched query for their parent sample stores.
+
+    When ``include_heavy=False`` (default), also issues a metastore stats
+    query and a ``space_entity_statistics`` query per distinct sample store,
+    then appends four lightweight columns.
+
+    When ``include_heavy=True``, builds full
+    :class:`~orchestrator.core.discoveryspace.space.DiscoverySpace` instances
+    per samplestore group and delegates to
+    :func:`~orchestrator.core.discoveryspace.stats.space_statistics_for_spaces`
+    (which issues both the metastore and sample-store queries internally),
+    then appends all lightweight **and** heavy columns in one pass.
 
     Args:
         df: DataFrame with at least an ``IDENTIFIER`` column (one row per
             discovery space).
         sql_store: The ``SQLStore`` to use for relationship and stats queries.
         spinner: Optional rich status spinner to update with progress messages.
+        include_heavy: When ``True`` also compute and append the heavy stats
+            columns (``SIZE_OF_ENTITY_SPACE``, ``UNMEASURED_ENTITIES``,
+            ``MATCHING_ENTITIES``, ``MATCHING_WITH_MEASUREMENTS``,
+            ``ENTITIES_WITH_ALL_MEASUREMENTS``,
+            ``ENTITIES_WITH_PARTIAL_MEASUREMENTS``,
+            ``MATCHING_ENTITIES_WITH_ALL_MEASUREMENTS``).
+            Requires ``space_resources`` and ``project_context``.
+        space_resources: Mapping of space identifier → hydrated
+            :class:`~orchestrator.core.resources.ADOResource`.  Required when
+            ``include_heavy=True``; ignored otherwise.
+        project_context: Project context used to instantiate
+            :class:`~orchestrator.core.discoveryspace.space.DiscoverySpace`.
+            Required when ``include_heavy=True``; ignored otherwise.
 
     Returns:
-        The same DataFrame with four extra columns appended:
-        ``EXPERIMENTS``, ``OPERATIONS``, ``EXPLORE_OPERATIONS``,
-        ``MEASURED_ENTITIES``.
+        The same DataFrame with extra columns appended.
+        Lightweight columns: ``EXPERIMENTS``, ``OPERATIONS``,
+        ``EXPLORE_OPERATIONS``, ``MEASURED_ENTITIES``.
+        Heavy columns (only when ``include_heavy=True``):
+        ``SIZE_OF_ENTITY_SPACE``, ``UNMEASURED_ENTITIES``,
+        ``MATCHING_ENTITIES``, ``MATCHING_WITH_MEASUREMENTS``,
+        ``ENTITIES_WITH_ALL_MEASUREMENTS``,
+        ``ENTITIES_WITH_PARTIAL_MEASUREMENTS``,
+        ``MATCHING_ENTITIES_WITH_ALL_MEASUREMENTS``.
         Spaces with no recorded operations or sample store show ``0`` in all
-        stats columns.
+        lightweight stats columns; heavy columns show ``None`` for spaces
+        where the value cannot be determined.
     """
     from orchestrator.core.resources import CoreResourceKinds
     from orchestrator.core.samplestore.base import SampleStore
 
-    _STATS_COLUMNS = [
-        "EXPERIMENTS",
-        "OPERATIONS",
-        "EXPLORE_OPERATIONS",
-        "MEASURED_ENTITIES",
-    ]
-
     space_ids: set[str] = set(df["IDENTIFIER"])
 
-    # Query 1: metastore stats (number_of_experiments, number_of_operations,
-    # number_of_explore_operations) for all spaces in one SQL query.
-    metastore_stats = sql_store.get_space_metastore_stats(space_ids)
-
-    # Query 2: for each space, get its child operations.
+    # Query 1: for each space, get its child operations.
     # Returns {space_id: {CoreResourceKinds.OPERATION: set[operation_id]}}
     space_child_relationships: dict[str, dict[CoreResourceKinds, set[str]]] = (
         sql_store.get_resources_by_relationship(
@@ -317,7 +434,7 @@ def format_ado_get_stats_for_spaces(
             CoreResourceKinds.OPERATION, set()
         )
 
-    # Query 3: for each space, get its parent sample store(s),
+    # Query 2: for each space, get its parent sample store(s),
     # returning hydrated SampleStoreResource objects.
     # Returns {space_id: {CoreResourceKinds.SAMPLESTORE: {samplestore_id: SampleStoreResource}}}
     space_parent_relationships: dict[
@@ -341,46 +458,140 @@ def format_ado_get_stats_for_spaces(
             samplestore_id_to_resource[samplestore_id] = samplestore_resource
             samplestore_id_to_space_ids.setdefault(samplestore_id, set()).add(space_id)
 
-    # For each distinct sample store, issue one batched space_entity_statistics query.
-    space_id_to_measured_entity_count: dict[str, int] = {}
-    total_samplestores = len(samplestore_id_to_space_ids)
-    for index, (samplestore_id, samplestore_space_ids) in enumerate(
-        samplestore_id_to_space_ids.items(), start=1
-    ):
-        if spinner is not None:
-            spinner.update(
-                f"Calculating stats for spaces in samplestore {index}/{total_samplestores}: {samplestore_id}"
-            )
-        sample_store = SampleStore.from_resource(
-            samplestore_id_to_resource[samplestore_id]
-        )
-        operation_ids_per_space = {
-            space_id: space_id_to_operation_ids[space_id]
-            for space_id in samplestore_space_ids
-        }
-        entity_stats_per_space = sample_store.space_entity_statistics(
-            space_ids_to_operation_ids=operation_ids_per_space
-        )
-        for space_id, entity_stats in entity_stats_per_space.items():
-            space_id_to_measured_entity_count[space_id] = (
-                entity_stats.number_measured_entities or 0
-            )
+    from orchestrator.core.discoveryspace.stats import (
+        DiscoverySpaceStatistics,
+        space_statistics_for_spaces,
+    )
 
-    # Attach stats columns; spaces with no data show 0.
-    # get_space_metastore_stats always returns an entry for every requested
-    # space_id, so direct attribute access is safe.
+    all_stats: dict[str, DiscoverySpaceStatistics] = {}
+    total_samplestores = len(samplestore_id_to_space_ids)
+
+    if include_heavy:
+        # Heavy path: build all DiscoverySpace instances first (phase 1), then
+        # compute statistics in a single pass (phase 2).  Keeping the two phases
+        # separate means the spinner never alternates between "Initialising" and
+        # "Computing statistics" messages.
+        from orchestrator.core.discoveryspace.space import DiscoverySpace
+
+        # Phase 1: initialise all spaces.
+        total_spaces = len(space_ids)
+        all_spaces: list[DiscoverySpace] = []
+        for (
+            samplestore_id,
+            samplestore_space_ids,
+        ) in samplestore_id_to_space_ids.items():
+            sample_store = SampleStore.from_resource(
+                samplestore_id_to_resource[samplestore_id]
+            )
+            for space_id in samplestore_space_ids:
+                if spinner is not None:
+                    spinner.update(
+                        f"Initialising space {space_id} ({len(all_spaces) + 1}/{total_spaces})"
+                    )
+                all_spaces.append(
+                    DiscoverySpace.from_configuration(
+                        conf=space_resources[space_id].config,
+                        project_context=project_context,  # type: ignore[arg-type]
+                        identifier=space_id,
+                        sample_store=sample_store,
+                    )
+                )
+
+        # Phase 2: compute statistics for all spaces at once.
+        all_stats.update(
+            space_statistics_for_spaces(
+                all_spaces, lightweight_only=False, spinner=spinner
+            )
+        )
+    else:
+        # Lightweight path: issue a metastore stats query and one
+        # space_entity_statistics query per distinct sample store.
+        metastore_stats = sql_store.get_space_metastore_stats(space_ids)
+
+        for index, (samplestore_id, samplestore_space_ids) in enumerate(
+            samplestore_id_to_space_ids.items(), start=1
+        ):
+            if spinner is not None:
+                spinner.update(
+                    f"Calculating stats for spaces in samplestore {index}/{total_samplestores}: {samplestore_id}"
+                )
+            sample_store = SampleStore.from_resource(
+                samplestore_id_to_resource[samplestore_id]
+            )
+            operation_ids_per_space = {
+                space_id: space_id_to_operation_ids[space_id]
+                for space_id in samplestore_space_ids
+            }
+            entity_stats_per_space = sample_store.space_entity_statistics(
+                space_ids_to_operation_ids=operation_ids_per_space
+            )
+            for space_id, entity_stats in entity_stats_per_space.items():
+                all_stats[space_id] = DiscoverySpaceStatistics(
+                    number_of_experiments=metastore_stats[
+                        space_id
+                    ].number_of_experiments,
+                    number_of_operations=metastore_stats[space_id].number_of_operations,
+                    number_of_explore_operations=metastore_stats[
+                        space_id
+                    ].number_of_explore_operations,
+                    number_measured_entities=entity_stats.number_measured_entities or 0,
+                )
+
+    # Attach lightweight columns; spaces with no data show 0.
     df["EXPERIMENTS"] = df["IDENTIFIER"].apply(
-        lambda space_id: metastore_stats[space_id].number_of_experiments
+        lambda space_id: (
+            all_stats[space_id].number_of_experiments if space_id in all_stats else 0
+        )
     )
     df["OPERATIONS"] = df["IDENTIFIER"].apply(
-        lambda space_id: metastore_stats[space_id].number_of_operations
+        lambda space_id: (
+            all_stats[space_id].number_of_operations if space_id in all_stats else 0
+        )
     )
     df["EXPLORE_OPERATIONS"] = df["IDENTIFIER"].apply(
-        lambda space_id: metastore_stats[space_id].number_of_explore_operations
+        lambda space_id: (
+            all_stats[space_id].number_of_explore_operations
+            if space_id in all_stats
+            else 0
+        )
     )
     df["MEASURED_ENTITIES"] = df["IDENTIFIER"].apply(
-        lambda space_id: space_id_to_measured_entity_count.get(space_id, 0)
+        lambda space_id: (
+            all_stats[space_id].number_measured_entities if space_id in all_stats else 0
+        )
     )
+
+    # Attach heavy columns only when requested.
+    if include_heavy:
+        _heavy_field_map = {
+            "SIZE_OF_ENTITY_SPACE": "size_of_entity_space",
+            "UNMEASURED_ENTITIES": "number_unmeasured_entities",
+            "MATCHING_ENTITIES": "number_matching_entities",
+            "MATCHING_WITH_MEASUREMENTS": "number_matching_entities_with_measurements",
+            "ENTITIES_WITH_ALL_MEASUREMENTS": "entities_with_all_measurements",
+            "ENTITIES_WITH_PARTIAL_MEASUREMENTS": "entities_with_partial_measurements",
+            "MATCHING_ENTITIES_WITH_ALL_MEASUREMENTS": "matching_entities_with_all_measurements",
+        }
+        for col, field in _heavy_field_map.items():
+            df[col] = df["IDENTIFIER"].apply(
+                lambda space_id, field_name=field: (
+                    getattr(all_stats[space_id], field_name, None)
+                    if space_id in all_stats
+                    else None
+                )
+            )
+
+        # Coerce SIZE_OF_ENTITY_SPACE and UNMEASURED_ENTITIES to int where the
+        # value is finite (i.e. not inf/nan/None).  Pandas stores mixed
+        # int/float/None columns as float64, which renders integers as "45.0".
+        def _coerce_to_int_if_finite(v: object) -> object:
+            if isinstance(v, float) and math.isfinite(v):
+                return int(v)
+            return v
+
+        for col in ("SIZE_OF_ENTITY_SPACE", "UNMEASURED_ENTITIES"):
+            if col in df.columns:
+                df[col] = df[col].apply(_coerce_to_int_if_finite)
 
     return df
 

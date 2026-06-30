@@ -21,8 +21,6 @@ def test_default_construction() -> None:
     assert m.mode == MissingTargetMode.RaiseError
     assert m.budget is None
     assert m.defaultValue is None
-    assert m.skip_entities == []
-    assert m.no_target_variable_entities == []
 
 
 def test_budget_zero_rejected() -> None:
@@ -102,20 +100,6 @@ def test_round_trip_skip() -> None:
 # ---------------------------------------------------------------------------
 # Runtime-only fields absent from model_dump
 # ---------------------------------------------------------------------------
-
-
-def test_skip_entities_absent_from_dump() -> None:
-    """skip_entities is a SkipJsonSchema field and must not appear in model_dump."""
-    m = MissingTargetMeasurements()
-    dumped = m.model_dump()
-    assert "skip_entities" not in dumped
-
-
-def test_no_target_variable_entities_absent_from_dump() -> None:
-    """no_target_variable_entities must not appear in model_dump."""
-    m = MissingTargetMeasurements()
-    dumped = m.model_dump()
-    assert "no_target_variable_entities" not in dumped
 
 
 # ---------------------------------------------------------------------------

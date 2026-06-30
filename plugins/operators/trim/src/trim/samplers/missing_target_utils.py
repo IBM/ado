@@ -135,9 +135,7 @@ def record_missing_and_check_budget(
       :func:`~trim.utils.logging_utils.log_unable_to_proceed_with_iterative_modeling_and_raise_error`
       (never returns).
     - ``MissingTargetMode.InjectDefaultValue`` / ``MissingTargetMode.Skip``:
-      appends ``entity_id`` to
-      ``params.missing_target_variables.no_target_variable_entities``, increments
-      ``missing_count``, and raises
+      increments ``missing_count`` and raises
       :class:`~trim.utils.exceptions.InsufficientDataError` when ``missing_count``
       exceeds ``budget`` (if set).
 
@@ -168,8 +166,7 @@ def record_missing_and_check_budget(
             additional_info=additional_info,
         )
 
-    # InjectDefaultValue or Skip — record and check budget
-    mtv.no_target_variable_entities.append(entity_id)
+    # InjectDefaultValue or Skip — check budget
     missing_count += 1
 
     budget = mtv.budget

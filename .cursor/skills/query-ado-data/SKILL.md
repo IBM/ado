@@ -36,8 +36,6 @@ DOs:
 - Fetch metadata over fetching data
   - if a query can be answered via metadata it is much faster
   - filter via metadata first if possible, before obtaining data
-  - IMPORTANT: ado show details space can be slow as it internally fetches
-    spaces data to calculate - prefer using metadata
 - Consider writing a script directly using SQLResourceStore API if the CLI is
   not expressive enough BEFORE fetching data
   - you can make batch requests e.g. getResources - much faster than one-by-one
@@ -46,7 +44,7 @@ DOs:
 DONTs
 
 - Do not fetch discoveryspace or operation data for summary queries
-  - Do not use: ado show measurements, ado show trace, ado show details
+  - Do not use: ado show measurements, ado show trace
   - Do not instantiating DiscoverySpace instances or SQLStore instance
 - Only use these commands or classes when drilling down on a narrow set of
   resources
@@ -194,14 +192,6 @@ uv run ado show related $RESOURCETYPE [RESOURCE_ID] [--use-latest]
 
 ```bash
 uv run ado show related space space-abc123-456def
-```
-
-### Get Resource Details
-
-View detailed information about a specific resource:
-
-```bash
-uv run ado show details $RESOURCETYPE [RESOURCE_ID] [--use-latest]
 ```
 
 ## Querying Data

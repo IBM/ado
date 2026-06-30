@@ -533,7 +533,7 @@ TRIM operations create metadata tracking:
 Access via:
 
 ```bash
-ado show details operation $OPERATION_IDENTIFIER
+ado show stats operation $OPERATION_IDENTIFIER
 ```
 
 ---

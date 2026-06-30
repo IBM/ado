@@ -84,11 +84,6 @@ class AdoEditCommandParameters(pydantic.BaseModel):
     )
 
 
-class AdoShowDetailsCommandParameters(pydantic.BaseModel):
-    ado_configuration: AdoConfiguration
-    resource_id: str
-
-
 class AdoShowMeasurementsCommandParameters(pydantic.BaseModel):
     ado_configuration: AdoConfiguration
     aggregation_method: PropertyAggregationMethodEnum | None

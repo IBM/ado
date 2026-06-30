@@ -59,14 +59,14 @@ uv run ado show measurements operation OPERATION_ID -o csv --output-file measure
 
 These plausible-sounding commands do not exist in ado. Do not write them:
 
-| ❌ Does not exist | ✅ Correct equivalent                   |
-| ----------------- | --------------------------------------- |
-| `ado run`         | `ado create operation -f op.yaml`       |
-| `ado start`       | `ado create operation -f op.yaml`       |
-| `ado execute`     | `ado create operation -f op.yaml`       |
-| `ado launch`      | `ado create operation -f op.yaml`       |
-| `ado list`        | `ado get spaces` / `ado get operations` |
-| `ado status`      | `ado show details space SPACE_ID`       |
+| ❌ Does not exist | ✅ Correct equivalent                    |
+| ----------------- | ---------------------------------------- |
+| `ado run`         | `ado create operation -f op.yaml`        |
+| `ado start`       | `ado create operation -f op.yaml`        |
+| `ado execute`     | `ado create operation -f op.yaml`        |
+| `ado launch`      | `ado create operation -f op.yaml`        |
+| `ado list`        | `ado get spaces` / `ado get operations`  |
+| `ado status`      | `ado show stats discoveryspace SPACE_ID` |
 
 **Key principle**: `ado create operation` both _defines_ and _starts_ the
 operation in a single command. There is no separate "run" step.
@@ -183,9 +183,6 @@ Always prefer a non-interative edit with `-p` / `--patch` or `--patch-file`. Use
 Retrieves details and data from resources.
 
 ```bash
-# Get a summary of what has been sampled from the space
-uv run ado show details space SPACE_ID
-
 # Inspect the trace of measurement requests for an operation
 uv run ado show trace operation OPERATION_ID
 

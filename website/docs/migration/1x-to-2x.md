@@ -108,3 +108,34 @@ ado show summary space -l issue=123 -o csv --output-file summary.csv
 ado show stats discoveryspace space-abc123-456def
 ado show stats discoveryspace -l issue=123 -o csv --output-file summary.csv
 ```
+
+### Removed: `ado show details`
+
+The `ado show details` command has been removed entirely.
+
+**`ado show details discoveryspace`** used to display aggregate statistics about
+a space (number of experiments, measured entities, etc.). Use
+`ado show stats discoveryspace` for the same numeric statistics, and
+`ado show related discoveryspace` to list resources associated with the space.
+
+**`ado show details operation`** used to display statistics stored in operation
+metadata after an operation finished. Use `ado show stats operation` for numeric
+operation statistics, and `ado show related operation` to list resources
+associated with the operation.
+
+**Before (ado 1.x):**
+
+```shell
+ado show details space space-abc123-456def
+ado show details operation randomwalk-0.5.0-123abc
+```
+
+**After (ado 2.x):**
+
+```shell
+ado show stats discoveryspace space-abc123-456def
+ado show related discoveryspace space-abc123-456def
+
+ado show stats operation randomwalk-0.5.0-123abc
+ado show related operation randomwalk-0.5.0-123abc
+```

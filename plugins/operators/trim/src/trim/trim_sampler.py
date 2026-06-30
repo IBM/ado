@@ -20,7 +20,12 @@ import pandas as pd
 from autogluon.tabular import TabularDataset, TabularPredictor
 
 from orchestrator.core.discoveryspace.samplers import BaseSampler
-from trim.samplers.missing_target_utils import record_missing_and_check_budget
+from trim.samplers.missing_target_utils import (
+    entity_hit_in_source,
+    entity_measured_target,
+    entity_row_in_source,
+    record_missing_and_check_budget,
+)
 from trim.samplers.no_priors_parameters import MissingTargetMode
 from trim.samplers.no_priors_utils import (
     get_index_list_van_der_corput,
@@ -41,8 +46,6 @@ from orchestrator.utilities.pandas import sort_rows_by_column_names
 from trim.utils.exceptions import InsufficientDataError
 from trim.utils.logging_utils import (
     log_after_first_holdout_creation,
-    log_after_split_common_and_diff,
-    log_before_first_holdout_update,
     log_unable_to_proceed_with_iterative_modeling_and_raise_error,
     save_source_train_holdout_dfs,
     training_guardrail,
@@ -140,12 +143,14 @@ class TrimSampleSelector(BaseSampler):
           ``skip=True`` so ``_core_iterator_logic`` can ``continue`` without
           yielding.
 
-        The early-exit guard (``len(one_additional_row) != 0``) returns
-        ``skip=False`` when a measurement was present — the normal path.
+        Hit detection is done via :func:`entity_hit_in_source` which matches on
+        constitutive property values, not the identifier string, to avoid
+        int/float formatting mismatches after a DB round-trip.
 
         Args:
-            one_additional_row: The diff DataFrame from split_common_and_diff.
-                Non-empty means the entity produced a measurement (normal path).
+            one_additional_row: The diff DataFrame from split_common_and_diff
+                (used when hit; may be empty if the entity already appeared in
+                a previous diff but is still present now).
             current_source_df: The source DataFrame for this iteration.
             entity: The batch of entities that was just yielded (length 1).
             discoverySpace: The discovery space being operated on.
@@ -156,7 +161,7 @@ class TrimSampleSelector(BaseSampler):
             ``skip=True`` signals the caller to ``continue`` without yielding
             the entity to the next stage.
         """
-        if len(one_additional_row) != 0:
+        if entity_hit_in_source(entity[0], current_source_df):
             return one_additional_row, current_source_df, False
 
         mode = self.params.missing_target_variables.mode
@@ -204,6 +209,66 @@ class TrimSampleSelector(BaseSampler):
             f"target variable '{self.params.targetOutput}'. Skipping entity."
         )
         return one_additional_row, current_source_df, True
+
+    def _check_yielded_entity(
+        self,
+        entity: list[Entity],
+        current_source_df: pd.DataFrame,
+        discoverySpace: DiscoverySpace,
+        additional_info: str,
+    ) -> tuple[pd.DataFrame, pd.DataFrame, bool]:
+        """Check whether a just-yielded entity produced a target measurement.
+
+        Uses :meth:`~orchestrator.core.discoveryspace.space.DiscoverySpace.entity_for_point`
+        to look up the entity directly from the store (a targeted lookup, not a
+        full DataFrame rebuild), then reads its
+        :meth:`~orchestrator.schema.entity.Entity.seriesRepresentation` to decide
+        whether the target output column is present and non-null.
+
+        On a hit the new row is appended to *current_source_df* and returned,
+        keeping the caller's view of the source up-to-date without ever calling
+        :func:`get_source_and_target` again.
+
+        Called immediately after every ``yield entity`` in
+        ``_core_iterator_logic``.  Mirrors the post-yield check in
+        :class:`~trim.samplers.no_priors_sampler.NoPriorsSampleSelector`.
+
+        Args:
+            entity: The batch that was just yielded (length 1).
+            current_source_df: The caller's current source DataFrame.  The new
+                row is appended to this and the updated frame is returned.
+            discoverySpace: The active discovery space.
+            additional_info: Context string forwarded to
+                :meth:`_handle_missing_target_row`.
+
+        Returns:
+            Tuple of ``(one_additional_row, current_source_df, skip)`` — the
+            same triple returned by :meth:`_handle_missing_target_row`, with
+            *current_source_df* updated to include the new row (or a synthetic
+            default row on ``InjectDefaultValue``).
+        """
+        hit, series = entity_measured_target(
+            entity[0], discoverySpace, self.params.targetOutput
+        )
+
+        if hit:
+            one_additional_row = series.to_frame().T.reset_index(drop=True)
+            current_source_df = pd.concat(
+                [current_source_df, one_additional_row], ignore_index=True
+            )
+            return one_additional_row, current_source_df, False
+
+        # Target missing — pass the current source into _handle_missing_target_row
+        # so it can apply RaiseError / InjectDefaultValue / Skip without
+        # re-fetching the full DataFrame from the store.
+        one_additional_row = entity_row_in_source(entity[0], current_source_df)
+        return self._handle_missing_target_row(
+            one_additional_row=one_additional_row,
+            current_source_df=current_source_df,
+            entity=entity,
+            discoverySpace=discoverySpace,
+            additional_info=additional_info,
+        )
 
     def _core_iterator_logic(
         self,
@@ -287,11 +352,18 @@ class TrimSampleSelector(BaseSampler):
         metric_dict = {}
         comparison_indices = []
         previous_holdout_df = pd.DataFrame({})
+        train_df = initial_source_df
+        # Number of entities successfully kept (measured + not skipped).
+        # Used for phase thresholds instead of the raw loop index `i`, which
+        # advances even for skipped entities and would give wrong phase transitions.
+        kept_count = 0
         # Ring-like data structures
         yielded_entities = deque(maxlen=self.params.holdoutSize)
         yielded_rows = RowsRing(
             maxlen=(self.params.holdoutSize or self.params.iterationSize)
         )
+        current_source_df = initial_source_df
+
         for i in range(0, numberEntities, batchsize):
             entity = list_of_entities[i : i + batchsize]
 
@@ -300,20 +372,7 @@ class TrimSampleSelector(BaseSampler):
                 _ = self.finalize_model(discoverySpace)
                 break
 
-            current_source_df, _current_batch_size_target_df = get_source_and_target(
-                discoverySpace,
-                self.params.targetOutput,
-            )
-            # Re-apply any synthetic rows injected in previous iterations;
-            # they are not persisted to the discovery space so get_source_and_target
-            # will never return them.
-            if not self._injected_rows_df.empty:
-                current_source_df = pd.concat(
-                    [current_source_df, self._injected_rows_df], ignore_index=True
-                )
-
-            if i == 0:
-                previous_source_df = current_source_df
+            if kept_count == 0:
                 train_df = current_source_df
                 logger_trim_sampler.debug(
                     "During the initial iterations the holdout is empty"
@@ -321,9 +380,24 @@ class TrimSampleSelector(BaseSampler):
                 logger_trim_sampler.info(
                     f"Yielding {len(entity)} entity, which is {entity}"
                 )
-                yielded_entities += entity
                 yield entity
+                one_additional_row, current_source_df, skip = (
+                    self._check_yielded_entity(
+                        entity=entity,
+                        current_source_df=current_source_df,
+                        discoverySpace=discoverySpace,
+                        additional_info=f"Detected during Iterative Modeling (first entity), when the source space size is {len(train_df)}.",
+                    )
+                )
+                if not skip:
+                    yielded_entities += entity
+                    kept_count += 1
+                train_df = current_source_df
                 continue
+
+            # The row for the current entity comes from current_source_df which
+            # is maintained incrementally — no full re-fetch needed.
+            one_additional_row = entity_row_in_source(entity[0], current_source_df)
 
             # TODO: the first holdout set can also be obtained from the source space
             # atm we sample new points from the target and put these into the holdout
@@ -331,13 +405,7 @@ class TrimSampleSelector(BaseSampler):
             # source and holdout df, the rationale here would be selecting the holdout set first
             # to prioritize representativeness in the OOS set, and put the remaining points in
             # the test set
-            elif i < self.params.iterationSize:
-                compare_to_previous_source_df, one_additional_row = (
-                    split_common_and_diff(
-                        longer_df_from_which_you_subtract=current_source_df,
-                        shorter_df_that_you_subtract=previous_source_df,
-                    )
-                )
+            if kept_count < self.params.iterationSize:
                 one_additional_row, current_source_df, skip = (
                     self._handle_missing_target_row(
                         one_additional_row=one_additional_row,
@@ -350,32 +418,27 @@ class TrimSampleSelector(BaseSampler):
                 if skip:
                     continue
 
-                log_after_split_common_and_diff(
-                    i,
-                    compare_to_previous_source_df,
-                    previous_source_df,
-                    one_additional_row,
-                    directory=self.params.debugDirectory,
-                )
                 yielded_rows += one_additional_row
-                yielded_entities += entity
-                previous_source_df = current_source_df
                 logger_trim_sampler.info(
                     f"Yielding {len(entity)} entity, which is {entity}"
                 )
                 yield entity
+                _, current_source_df, skip = self._check_yielded_entity(
+                    entity=entity,
+                    current_source_df=current_source_df,
+                    discoverySpace=discoverySpace,
+                    additional_info=f"Detected during Iterative Modeling, when the source space size is {len(train_df)}.",
+                )
+                if not skip:
+                    yielded_entities += entity
+                    kept_count += 1
                 continue
-
             elif (
-                i == self.params.iterationSize
+                kept_count == self.params.iterationSize
             ):  # at this point we build the first model
                 train_df, current_holdout_df = split_common_and_diff(
                     longer_df_from_which_you_subtract=current_source_df,
                     shorter_df_that_you_subtract=initial_source_df,
-                )
-                _, one_additional_row = split_common_and_diff(
-                    longer_df_from_which_you_subtract=current_source_df,
-                    shorter_df_that_you_subtract=previous_source_df,
                 )
                 one_additional_row, current_source_df, skip = (
                     self._handle_missing_target_row(
@@ -394,15 +457,12 @@ class TrimSampleSelector(BaseSampler):
                 log_after_first_holdout_creation(
                     current_holdout_df,
                     yielded_rows,
-                    iter_index=i,
+                    iter_index=kept_count,
                     params=self.params,
                 )
 
-            else:  # i > self.params.iterationSize
-                train_df, one_additional_row = split_common_and_diff(
-                    longer_df_from_which_you_subtract=current_source_df,
-                    shorter_df_that_you_subtract=previous_source_df,
-                )
+            else:  # kept_count > self.params.iterationSize
+                train_df = current_source_df
                 one_additional_row, current_source_df, skip = (
                     self._handle_missing_target_row(
                         one_additional_row=one_additional_row,
@@ -415,15 +475,6 @@ class TrimSampleSelector(BaseSampler):
                 if skip:
                     continue
 
-                log_before_first_holdout_update(
-                    one_additional_row,
-                    current_source_df,
-                    previous_source_df,
-                    iter_index=i,
-                    debugDirectory=self.params.debugDirectory,
-                    batchsize=batchsize,
-                )
-
                 yielded_rows += one_additional_row
                 current_holdout_df = pd.DataFrame(yielded_rows.df)
 
@@ -431,14 +482,13 @@ class TrimSampleSelector(BaseSampler):
                     logger_trim_sampler.warning("Holdout dataframe is not changing!")
 
             # we rename appropriately
-            previous_source_df = current_source_df
             previous_holdout_df = current_holdout_df
             if logger_trim_sampler.isEnabledFor(logging.DEBUG):
                 save_source_train_holdout_dfs(
                     current_source_df=current_source_df,
                     train_df=train_df,
                     current_holdout_df=current_holdout_df,
-                    iter=i,
+                    iter=kept_count,
                     directory=self.params.debugDirectory,
                 )
 
@@ -465,7 +515,7 @@ class TrimSampleSelector(BaseSampler):
             )
 
             logger_trim_sampler.info(
-                f"Fitting AutoGluon TabularPredictor, iteration {i}..."
+                f"Fitting AutoGluon TabularPredictor, iteration {kept_count}..."
             )
             predictor.fit(train_data=train_data, **self.params.autoGluonArgs.fitArgs)
 
@@ -479,7 +529,7 @@ class TrimSampleSelector(BaseSampler):
             else:
                 best_model_name, best_score_val = None, None
 
-            metric_dict[i] = {
+            metric_dict[kept_count] = {
                 "metric": training_metric,
                 "best_model": best_model_name,
                 "best_score_val": best_score_val,
@@ -489,8 +539,8 @@ class TrimSampleSelector(BaseSampler):
             }
 
             logger_trim_sampler.info(
-                f"[Batch under consideration: {i}] Training metric: {training_metric};\n"
-                f"Best model: {best_model_name}; score_val: {best_score_val:.2f}; holdout_score: {metric_dict[i]['holdout_score']:.2f}",
+                f"[Batch under consideration: {kept_count}] Training metric: {training_metric};\n"
+                f"Best model: {best_model_name}; score_val: {best_score_val:.2f}; holdout_score: {metric_dict[kept_count]['holdout_score']:.2f}",
             )
 
             # Capture model path and delete the folder
@@ -503,53 +553,55 @@ class TrimSampleSelector(BaseSampler):
             should_stop = 0
 
             # for the first 2*iterationSize we do not have enough data to compare
-            # i need to go up to self.params.iterationSize * 3
-            # if I want that I have one iteration size of models already measured:
-            # i<iter_size: no models
-            # itersize =< i< itersize *2 : 1st iter of models
-            # itersize*2 =< i< itersize *3 : 2nd iter of models
+            # kept_count < iter_size: no models
+            # iter_size <= kept_count < iter_size*2 : 1st iter of models
+            # iter_size*2 <= kept_count < iter_size*3 : 2nd iter of models
             if (
-                i < self.params.iterationSize * 3 - 1
+                kept_count < self.params.iterationSize * 3 - 1
                 or not self.params.stoppingCriterion.enabled
             ):
                 yield entity
-                yielded_entities += entity
+                _, current_source_df, skip = self._check_yielded_entity(
+                    entity=entity,
+                    current_source_df=current_source_df,
+                    discoverySpace=discoverySpace,
+                    additional_info=f"Detected during Iterative Modeling, when the training DataFrame size is {len(train_df)}.",
+                )
+                if not skip:
+                    yielded_entities += entity
+                    kept_count += 1
                 continue
 
             # NOTE: at the moment comparison does NOT happen at every params.iterationSize steps
             # instead, it happens at every batchsize=1 step, in a rolling fashion,
             else:
-                comparison_indices.append(i)
+                comparison_indices.append(kept_count)
                 # NOTE: if batchsize==iterationSize will compare just two models,
                 # one model from prev_iter_list_range, whose len would be 1, and
                 # one model from this_iter_list_range, whose len would be 1
                 _prev_iter_list_range = list(
                     range(
-                        i
+                        kept_count
                         - self.params.iterationSize * 2
                         + 1,  # this index might be included
-                        i
+                        kept_count
                         - self.params.iterationSize
                         + 1,  # this index cannot be included
                     )
                 )
                 _this_iter_list_range = list(
                     range(
-                        i - self.params.iterationSize + 1,
-                        i
-                        + 1,  # this index cannot be included, but i can be included (this is desired)
+                        kept_count - self.params.iterationSize + 1,
+                        kept_count
+                        + 1,  # this index cannot be included, but kept_count can be included (this is desired)
                     )
                 )
                 # I filter these to keep only points that I know correspond to models
                 prev_iter_list_range = [
-                    i
-                    for i in _prev_iter_list_range
-                    if i in list(range(0, numberEntities, batchsize))
+                    k for k in _prev_iter_list_range if k in metric_dict
                 ]
                 this_iter_list_range = [
-                    i
-                    for i in _this_iter_list_range
-                    if i in list(range(0, numberEntities, batchsize))
+                    k for k in _this_iter_list_range if k in metric_dict
                 ]
 
                 logger_trim_sampler.info(
@@ -598,7 +650,7 @@ class TrimSampleSelector(BaseSampler):
                     mean_ratio = 1
                     std_ratio = 1
                 logger_trim_sampler.info(
-                    f"Testing stopping criterion after measuring {i} points, "
+                    f"Testing stopping criterion after measuring {kept_count} points, "
                     "mean_ratio={mean_ratio} and std_ratio={std_ratio}"
                 )
                 should_stop = stopping_bool_from_ratios(
@@ -618,7 +670,7 @@ class TrimSampleSelector(BaseSampler):
                 ) + "_finalized"
 
                 logger_trim_sampler.info(
-                    f"Stopping criteria hit after measuring {i} entities.\n"
+                    f"Stopping criteria hit after measuring {kept_count} entities.\n"
                     f"On a iteration of batch size {self.params.iterationSize}.\n"
                     "Performance of the model on the holdout set is estimated as:"
                     f"Mean performance of the model on the holdout set over the last iteration: {np.array(scores_this_iteration).mean()}"
@@ -630,9 +682,18 @@ class TrimSampleSelector(BaseSampler):
                 break
 
             else:
-                yield_log_string = f"Stopping not triggered for i={i}"
+                yield_log_string = f"Stopping not triggered for kept_count={kept_count}"
                 logger_trim_sampler.info(yield_log_string)
                 yield entity
+                _, current_source_df, skip = self._check_yielded_entity(
+                    entity=entity,
+                    current_source_df=current_source_df,
+                    discoverySpace=discoverySpace,
+                    additional_info=f"Detected during Iterative Modeling, when the training DataFrame size is {len(train_df)}.",
+                )
+                if not skip:
+                    yielded_entities += entity
+                    kept_count += 1
 
     async def remoteEntityIterator(
         self,
@@ -886,7 +947,7 @@ class TrimSampleSelector(BaseSampler):
             )
 
         # Check that rows with NaNs in train_target_cols equal len(target_df)
-        nan_rows_count = merged_df[[self.params.targetOutput]].isna().any(axis=1).sum()
+        nan_rows_count = merged_df[[self.params.targetOutput]].isna().any(axis=1).sum()  # type: ignore[union-attr]
         if nan_rows_count != len(target_df):
             msg = (
                 f"Validation failed: Expected {len(target_df)} rows with NaNs in {self.params.targetOutput}, "

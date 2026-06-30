@@ -10,7 +10,10 @@ from pydantic import BaseModel
 from orchestrator.core.discoveryspace.samplers import BaseSampler
 from orchestrator.core.discoveryspace.space import DiscoverySpace, Entity
 from orchestrator.modules.operators.discovery_space_manager import DiscoverySpaceManager
-from trim.samplers.missing_target_utils import record_missing_and_check_budget
+from trim.samplers.missing_target_utils import (
+    entity_measured_target,
+    record_missing_and_check_budget,
+)
 from trim.samplers.no_priors_parameters import MissingTargetMode, NoPriorsParameters
 from trim.samplers.no_priors_utils import (
     get_list_of_entities_from_df_and_space,
@@ -117,16 +120,9 @@ class NoPriorsSampleSelector(BaseSampler):
                     yield [entity]
                     await asyncio.sleep(0.001)
 
-                    # Check whether this specific entity has a target value.
-                    # get_source_and_target returns only rows with a non-null
-                    # targetOutput, so presence of the identifier is sufficient.
                     ds_after = await stateHandle.discoverySpace.remote()
-                    source_after, _ = get_source_and_target(
-                        ds_after, self.params.targetOutput
-                    )
-                    hit = (
-                        not source_after.empty
-                        and entity.identifier in source_after["identifier"].values
+                    hit, _ = entity_measured_target(
+                        entity, ds_after, self.params.targetOutput
                     )
 
                     if hit:
@@ -233,15 +229,8 @@ class NoPriorsSampleSelector(BaseSampler):
 
                     yield [entity]
 
-                    # Check whether this specific entity has a target value.
-                    # get_source_and_target returns only rows with a non-null
-                    # targetOutput, so presence of the identifier is sufficient.
-                    source_after, _ = get_source_and_target(
-                        space, self.params.targetOutput
-                    )
-                    hit = (
-                        not source_after.empty
-                        and entity.identifier in source_after["identifier"].values
+                    hit, _ = entity_measured_target(
+                        entity, space, self.params.targetOutput
                     )
 
                     if hit:

@@ -27,6 +27,8 @@ from orchestrator.schema.virtual_property import PropertyAggregationMethodEnum
 if TYPE_CHECKING:
     from collections.abc import Hashable
 
+    from pandas.core.frame import DataFrame
+
     from orchestrator.metastore.project import ProjectContext
     from orchestrator.schema.entity import Entity
 
@@ -620,7 +622,7 @@ def get_df_all_entities_no_measurements(
     discoverySpace: DiscoverySpace | str,
 ) -> pd.DataFrame:
     """
-    Return a DataFrame of all entities in the Discovery Space.
+    Return a DataFrame of all entities in the Discovery Space, does not return the measurements.
 
     Returns:
         DataFrame with columns: ['identifier', <constitutive properties>]
@@ -638,6 +640,66 @@ def get_df_all_entities_no_measurements(
         list_of_dicts_to_convert.append(ed)
 
     return pd.DataFrame(list_of_dicts_to_convert)
+
+
+def homogenize_aggregated_observed_properties(
+    df: pd.DataFrame,
+    el: str,
+) -> pd.DataFrame:
+    """Normalise an observed-property column that may appear under two names.
+
+    ``matchingEntitiesTable(property_type="observed", aggregationMethod=mean)``
+    uses the fully-qualified observed-property identifier as the column name
+    (e.g. ``"may_fail-value"``).  When an entity has been measured more than
+    once the aggregated column is named ``"{el}-mean"``; when measured exactly
+    once it keeps the bare identifier ``"{el}"``.  In a mixed DataFrame both
+    columns may be present simultaneously.
+
+    This function ensures the caller always receives the data under ``el``:
+
+    * **Only** ``{el}`` present (single measurement): no-op.
+    * **Only** ``{el}-mean`` present (all rows multi-measurement): rename to
+      ``el``.
+    * **Both** present (mixed): overwrite ``el`` with ``{el}-mean`` on rows
+      where ``{el}-mean`` is non-null; keep existing ``el`` where ``{el}-mean``
+      is null; drop ``{el}-mean``.
+    * Neither present: return ``df`` unchanged.
+
+    Args:
+        df: The DataFrame returned by ``matchingEntitiesTable``.
+        el: The fully-qualified observed-property identifier to normalise
+            (e.g. ``"may_fail-value"``).
+
+    Returns:
+        The DataFrame with the column normalised to ``el``.
+    """
+    mean_col = f"{el}-mean"
+    has_el = el in df.columns
+    has_mean = mean_col in df.columns
+
+    if has_mean and not has_el:
+        # Only the aggregated form exists — simple rename.
+        logger.warning(
+            f"Column '{mean_col}' (instead of '{el}', which is not present) "
+            f"found in the DataFrame from matchingEntitiesTable. Renaming to '{el}'."
+        )
+        df.rename(columns={mean_col: el}, inplace=True)
+
+    elif has_mean and has_el:
+        # Both forms present (mixed single/multi-measurement rows).
+        # Overwrite el with {el}-mean where {el}-mean is non-null; keep
+        # pre-existing el values only where {el}-mean is null.
+        logger.warning(
+            f"Both '{mean_col}' and '{el}' found in the DataFrame from "
+            f"matchingEntitiesTable. Overwriting '{el}' with '{mean_col}' "
+            f"where '{mean_col}' is non-null, then dropping '{mean_col}'."
+        )
+        non_null_mask = df[mean_col].notna()
+        if non_null_mask.any():
+            df.loc[non_null_mask, el] = df.loc[non_null_mask, mean_col]
+        df.drop(columns=[mean_col], inplace=True)
+
+    return df
 
 
 def get_df_at_least_one_measured_value(
@@ -662,7 +724,7 @@ def get_df_at_least_one_measured_value(
 
     df = pd.DataFrame(
         space.matchingEntitiesTable(
-            property_type="target",
+            property_type="observed",
             aggregationMethod=PropertyAggregationMethodEnum.mean,
         )
     )
@@ -673,50 +735,16 @@ def get_df_at_least_one_measured_value(
         )
         return df
 
-    all_df_cols = list(df.columns)
+    # With property_type="observed" the column name is the fully-qualified
+    # observed-property identifier (e.g. "may_fail-value").  An entity measured
+    # once contributes column "{el}"; measured multiple times contributes
+    # "{el}-mean".  A mixed DataFrame can have both simultaneously.
     valid_targetOutput_list = []
     for el in targetOutput_list:
-        if el in all_df_cols:
+        df = homogenize_aggregated_observed_properties(df, el)
+        if el in df.columns:
             valid_targetOutput_list.append(el)
-        elif f"{el}-mean" in all_df_cols and el not in all_df_cols:
-            logger.warning(
-                f"Column named '{el}-mean' (instead of '{el}', which is not present)"
-                "found in the DataFrame obtained through matchingEntitiesTable. "
-                f"Renaming it to '{el}'."
-            )
-            df.rename(columns={f"{el}-mean": el}, inplace=True)
-            valid_targetOutput_list += [el]
-        elif f"{el}-mean" in all_df_cols and el in all_df_cols:
-            logger.warning(
-                f"Columns named '{el}-mean' and '{el}'"
-                "found in the DataFrame obtained through matchingEntitiesTable. "
-                f"Renaming it to '{el}'."
-            )
-            logger.error("Unexpected behavior can happen!")
-            df.rename(columns={f"{el}-mean": el}, inplace=True)
-            valid_targetOutput_list += [el]
-        else:
-            # experimentSeries names columns by the short target-property identifier
-            # (e.g. "value-mean") rather than the experiment-qualified name
-            # (e.g. "may_fail-value-mean").  If el ends with the base name of a
-            # "*-mean" column in the DataFrame, rename that column to el.
-            matching_col = next(
-                (
-                    c
-                    for c in all_df_cols
-                    if c.endswith("-mean") and el.endswith(c[: -len("-mean")])
-                ),
-                None,
-            )
-            if matching_col is not None:
-                logger.warning(
-                    f"Column named '{matching_col}' found in the DataFrame obtained "
-                    f"through matchingEntitiesTable; expected '{el}' or '{el}-mean'. "
-                    f"The target property identifier is a suffix of the requested "
-                    f"targetOutput. Renaming '{matching_col}' to '{el}'."
-                )
-                df.rename(columns={matching_col: el}, inplace=True)
-                valid_targetOutput_list += [el]
+
     col_list += valid_targetOutput_list
 
     if valid_targetOutput_list != targetOutput_list:
@@ -769,8 +797,12 @@ def get_source_and_target(
     Returns:
         Tuple of (source_df, target_df)
     """
-    dfm = get_df_at_least_one_measured_value(discoverySpace, [targetOutput])
+    # dfm contains all the entities in the SampleStore which contain at least 1 target measurement
+    dfm: DataFrame = get_df_at_least_one_measured_value(discoverySpace, [targetOutput])
+    # dfu is a CSV containing all entity identifiers and constitutive properties, no observed properties
     dfu = get_df_all_entities_no_measurements(discoverySpace)
+
+    # We will use dfu to split the space into 2 parts: measured (source) and not measured (target)
     keys = [c for c in dfu.columns if c in dfm.columns and c != "identifier"]
 
     if dfm.empty:

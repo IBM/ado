@@ -15,48 +15,6 @@ from trim.utils.rowsring import RowsRing
 logger = logging.getLogger(__name__)
 
 
-def log_after_split_common_and_diff(
-    iter_index: int,
-    previous_source_from_split_df: pd.DataFrame,
-    previous_source_df: pd.DataFrame,
-    one_additional_row: pd.DataFrame,
-    directory: str,
-) -> None:
-    if not previous_source_from_split_df.reset_index(drop=True).equals(
-        previous_source_df.reset_index(drop=True)
-    ):
-        logger.warning(
-            f"Length of the source dataframe obtained from comparing the entities retrieved before and after making a measurement= {len(previous_source_from_split_df)},"
-            f"Length of the source dataframe at the previous iteration = {len(previous_source_df)}"
-        )
-        logger.error(
-            f"Unexpected behaviour of dataframes, saving data in the directory: {directory}"
-        )
-        previous_source_from_split_df.to_csv(
-            os.path.join(directory, f"Mismatch_iter{iter_index}_{iter_index}.csv")
-        )
-        previous_source_df.to_csv(
-            os.path.join(directory, f"Mismatch_iter{iter_index}_{iter_index-1}.csv")
-        )
-    else:
-        logger.debug(
-            "Equality of these two dataframes after resetting the index has been checked."
-            "These datasets are:"
-            "\t - The source dataframe obtained from comparing the entities retrieved before and after making a measurement"
-            "\t - The source dataframe at the previous iteration."
-        )
-
-    if len(one_additional_row) != 1:
-        logger.error(
-            f"{len(one_additional_row)} point(s) sampled (expected 1), saving data in {directory}"
-        )
-        one_additional_row.to_csv(f"one_additional_row_{iter_index}.csv")
-    else:
-        logger.debug(
-            "The number of rows that we are adding to the previous source space is 1, as expected"
-        )
-
-
 def log_after_first_holdout_creation(
     current_holdout_df: pd.DataFrame,
     yielded_rows: RowsRing,
@@ -164,30 +122,6 @@ def log_and_save_characterization(
             )
         else:
             logger.debug(f"[Characterization] {name} has no 'identifier' column.")
-
-
-def log_before_first_holdout_update(
-    one_additional_row: pd.DataFrame,
-    current_source_df: pd.DataFrame,
-    previous_source_df: pd.DataFrame,
-    iter_index: int,
-    debugDirectory: str,
-    batchsize: int = 1,
-) -> None:
-    if len(one_additional_row) != 1:
-        logger.error(
-            f"{len(one_additional_row)} point(s) sampled (expected 1), saving data in {debugDirectory}"
-        )
-        one_additional_row.to_csv(os.path.join(f"one_additional_row_{iter_index}.csv"))
-    else:
-        logger.info(
-            f"Check on the length of the additional row to be added to holdout passed at iter {iter_index}"
-        )
-    if len(current_source_df) != len(previous_source_df) + batchsize:
-        logger.warning(
-            f"Length of source df at iter {iter_index}: {len(current_source_df)}"
-            f"It is NOT 1 unit greater than length of source df for {iter_index} - {batchsize}: {len(previous_source_df)}"
-        )
 
 
 def training_guardrail(train_df: pd.DataFrame, targetOutput: str) -> pd.DataFrame:

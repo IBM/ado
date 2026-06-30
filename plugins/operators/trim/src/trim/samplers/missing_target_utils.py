@@ -3,7 +3,9 @@
 
 import logging
 
-from orchestrator.core.discoveryspace.space import DiscoverySpace
+import pandas as pd
+
+from orchestrator.core.discoveryspace.space import DiscoverySpace, Entity
 from trim.samplers.no_priors_parameters import (
     BaseTrimSamplerParameters,
     MissingTargetMode,
@@ -14,6 +16,105 @@ from trim.utils.logging_utils import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def entity_measured_target(
+    entity: Entity,
+    discoverySpace: DiscoverySpace,
+    target_output: str,
+) -> tuple[bool, "pd.Series"]:
+    """Check whether *entity* has a non-null measurement for *target_output*.
+
+    Looks up the entity directly from the sample store via
+    :meth:`~orchestrator.core.discoveryspace.space.DiscoverySpace.entity_for_point`
+    and inspects its
+    :meth:`~orchestrator.schema.entity.Entity.seriesRepresentation`.  This avoids
+    rebuilding the full source DataFrame on every post-yield check.
+
+    Args:
+        entity: The entity that was just yielded and measured.
+        discoverySpace: The active discovery space (re-fetches the stored entity
+            with up-to-date measurement results).
+        target_output: Identifier of the target property column.
+
+    Returns:
+        A ``(hit, series)`` tuple where *hit* is ``True`` when the stored entity
+        has a non-null value for *target_output*, and *series* is the full
+        :class:`pandas.Series` from ``seriesRepresentation`` (useful for
+        constructing a DataFrame row without a second store call).
+    """
+    point = {
+        cpv.property.identifier: cpv.value
+        for cpv in entity.constitutive_property_values
+    }
+    stored = discoverySpace.entity_for_point(point)  # type: ignore[arg-type]
+    series = stored.seriesRepresentation(experimentReferences=None)
+    target_val = series.get(target_output)
+    hit = target_val is not None and not (
+        # pd.isna returns a scalar bool for scalar input; for array-like
+        # values (rare) treat the entity as measured if any value is non-null.
+        pd.isna(target_val)
+        if not hasattr(target_val, "__len__")
+        else all(pd.isna(v) for v in target_val)
+    )
+    return hit, series
+
+
+def _entity_mask(entity: Entity, source_df: pd.DataFrame) -> "pd.Series | bool":
+    """Return a boolean mask selecting rows in *source_df* that match *entity*.
+
+    Matches on constitutive property values to avoid int/float identifier
+    formatting mismatches after a DB round-trip.
+    """
+    mask: bool | pd.Series = True
+    for cpv in entity.constitutive_property_values:
+        col = cpv.property.identifier
+        if col in source_df.columns:
+            mask = mask & (source_df[col] == cpv.value)
+    return mask
+
+
+def entity_hit_in_source(entity: Entity, source_df: pd.DataFrame) -> bool:
+    """Return True if *entity* has a row in *source_df*.
+
+    Matches on constitutive property values rather than the identifier string
+    to avoid false misses caused by int/float formatting differences.  After a
+    DB round-trip pydantic coerces ``numpy.int64`` values to ``float``, turning
+    an identifier like ``"foo.60"`` into ``"foo.60.0"``, which would never
+    match the freshly-constructed pool identifier.
+
+    Args:
+        entity: The entity to look up.
+        source_df: DataFrame returned by ``get_source_and_target`` (only rows
+            with a non-null target output, columns include all constitutive
+            property identifiers).
+
+    Returns:
+        ``True`` if a row whose constitutive property columns all match the
+        entity's values is found in *source_df*.
+    """
+    if source_df.empty:
+        return False
+    mask = _entity_mask(entity, source_df)
+    return bool(mask.any()) if not isinstance(mask, bool) else False
+
+
+def entity_row_in_source(entity: Entity, source_df: pd.DataFrame) -> pd.DataFrame:
+    """Return the row(s) in *source_df* that correspond to *entity*.
+
+    Args:
+        entity: The entity to look up.
+        source_df: DataFrame returned by ``get_source_and_target``.
+
+    Returns:
+        A (possibly empty) sub-DataFrame of the matching rows.
+    """
+    if source_df.empty:
+        return source_df
+    mask = _entity_mask(entity, source_df)
+    if isinstance(mask, bool):
+        return source_df.iloc[0:0]  # empty with same columns
+    return source_df[mask]
 
 
 def record_missing_and_check_budget(

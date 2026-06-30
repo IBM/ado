@@ -82,3 +82,29 @@ ado show trace operation <OP-ID> --filter requestid=<ID> -o yaml
 ado show trace space <SPACE-ID> --filter requestid=<ID> -o yaml
 ado show trace store <SAMPLE-STORE-ID> --filter requestid=<ID> -o yaml
 ```
+
+### Removed: `ado show summary`
+
+The `ado show summary` command has been removed entirely. The markdown
+prose-report output format (`-o md-report`) it provided has no direct
+replacement.
+
+For numeric and tabular space statistics (EXPERIMENTS, OPERATIONS,
+EXPLORE_OPERATIONS, MEASURED_ENTITIES, SIZE_OF_ENTITY_SPACE,
+UNMEASURED_ENTITIES, MATCHING_ENTITIES, MATCHING_WITH_MEASUREMENTS,
+ENTITIES_WITH_ALL_MEASUREMENTS, ENTITIES_WITH_PARTIAL_MEASUREMENTS,
+MATCHING_ENTITIES_WITH_ALL_MEASUREMENTS), use `ado show stats discoveryspace`.
+
+**Before (ado 1.x):**
+
+```shell
+ado show summary space space-abc123-456def
+ado show summary space -l issue=123 -o csv --output-file summary.csv
+```
+
+**After (ado 2.x):**
+
+```shell
+ado show stats discoveryspace space-abc123-456def
+ado show stats discoveryspace -l issue=123 -o csv --output-file summary.csv
+```

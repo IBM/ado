@@ -15,9 +15,6 @@ from orchestrator.cli.commands.show_related import (
 from orchestrator.cli.commands.show_stats import (
     register_show_stats_command,
 )
-from orchestrator.cli.commands.show_summary import (
-    register_show_summary_command,
-)
 from orchestrator.cli.commands.show_trace import (
     register_show_trace_command,
 )
@@ -37,7 +34,6 @@ register_show_details_command(show_command)
 register_show_measurements_command(show_command)
 register_show_related_command(show_command)
 register_show_stats_command(show_command)
-register_show_summary_command(show_command)
 register_show_trace_command(show_command)
 
 

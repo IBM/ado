@@ -182,18 +182,6 @@ class AdoShowStatsSupportedResourceTypes(Enum):
     DATA_CONTAINER = _DATA_CONTAINER_SINGULAR
 
 
-#################### ado show summary ####################
-class AdoShowSummarySupportedOutputFormats(enum.Enum):
-    TABLE = _TABLE
-    MARKDOWN_TABLE = _MARKDOWN_TABLE
-    MARKDOWN_REPORT = _MARKDOWN_REPORT
-    CSV = _CSV
-
-
-class AdoShowSummarySupportedResourceTypes(Enum):
-    DISCOVERY_SPACE = _DISCOVERY_SPACE_SINGULAR
-
-
 #################### ado template ####################
 class AdoTemplateSupportedResourceTypes(Enum):
     ACTUATOR_CONFIGURATION = _ACTUATOR_CONFIGURATION_SINGULAR

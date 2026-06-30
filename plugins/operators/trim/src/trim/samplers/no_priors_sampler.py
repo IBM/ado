@@ -46,10 +46,9 @@ class NoPriorsSampleSelector(BaseSampler):
 
         - ``RaiseError``: raises immediately.
         - ``InjectDefaultValue``: counts towards the quota (the TRIM phase will
-          inject the synthetic row); appends to ``no_target_variable_entities``.
-        - ``Skip``: does **not** count towards the quota; appends to
-          ``no_target_variable_entities``.  The pool is large enough to keep
-          drawing until the quota is met or the pool is exhausted.
+          inject the synthetic row).
+        - ``Skip``: does **not** count towards the quota.  The pool is large
+          enough to keep drawing until the quota is met or the pool is exhausted.
 
         Args:
             remoteDiscoverySpace: Manager for the discovery space state.
@@ -95,13 +94,11 @@ class NoPriorsSampleSelector(BaseSampler):
                 df=full_pool_df, space=discoverySpace
             )
 
-            # Remove entities pre-flagged to skip (populated by operator.py).
-            skip_set = set(self.params.missing_target_variables.skip_entities)
-            pool = [e for e in full_pool if e.identifier not in skip_set]
+            pool = full_pool
 
             logger_no_priors.info(
                 f"No-priors pool: {len(pool)} candidates "
-                f"(quota={self.params.samples}, {len(skip_set)} pre-skipped).\n"
+                f"(quota={self.params.samples}).\n"
             )
 
             async def iterator() -> typing.AsyncGenerator[list[Entity], None]:  # type: ignore[name-defined]
@@ -207,13 +204,11 @@ class NoPriorsSampleSelector(BaseSampler):
                 df=full_pool_df, space=space
             )
 
-            # Remove entities pre-flagged to skip.
-            skip_set = set(self.params.missing_target_variables.skip_entities)
-            pool = [e for e in full_pool if e.identifier not in skip_set]
+            pool = full_pool
 
             logger_no_priors.info(
                 f"No-priors pool: {len(pool)} candidates "
-                f"(quota={self.params.samples}, {len(skip_set)} pre-skipped).\n"
+                f"(quota={self.params.samples}).\n"
             )
 
             def iterator() -> typing.Generator[list[Entity], None, None]:

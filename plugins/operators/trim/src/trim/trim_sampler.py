@@ -183,7 +183,7 @@ class TrimSampleSelector(BaseSampler):
         )
 
         if mode == MissingTargetMode.InjectDefaultValue:
-            logger_trim_sampler.warning(
+            logger_trim_sampler.info(
                 f"Entity '{entity_id}' did not produce a measurement for "
                 f"target variable '{self.params.targetOutput}'. "
                 f"Injecting default value {self.params.missing_target_variables.defaultValue}."
@@ -204,7 +204,7 @@ class TrimSampleSelector(BaseSampler):
             return one_additional_row, current_source_df, False
 
         # MissingTargetMode.Skip
-        logger_trim_sampler.warning(
+        logger_trim_sampler.info(
             f"Entity '{entity_id}' did not produce a measurement for "
             f"target variable '{self.params.targetOutput}'. Skipping entity."
         )
@@ -270,6 +270,44 @@ class TrimSampleSelector(BaseSampler):
             additional_info=additional_info,
         )
 
+    def _no_target_entities_from_no_priors(
+        self, discoverySpace: DiscoverySpace
+    ) -> list[Entity]:
+        """Return entities from the no-priors operation that produced no target measurement.
+
+        Uses ``params.no_priors_operation_id`` to query the measurement requests
+        recorded for the no-priors phase, then filters to those whose entity has
+        no valid measurement for the target output.
+
+        Returns an empty list when ``no_priors_operation_id`` is ``None`` (i.e.
+        no no-priors phase was run).
+
+        Args:
+            discoverySpace: The active discovery space.
+
+        Returns:
+            List of Entity objects that did not produce a target measurement.
+        """
+        op_id = self.params.no_priors_operation_id
+        if op_id is None:
+            return []
+
+        requests = discoverySpace.measurement_requests_for_operation(op_id)
+        no_target = [
+            entity
+            for req in requests
+            for entity in req.entities
+            if not entity_measured_target(
+                entity, discoverySpace, self.params.targetOutput
+            )[0]
+        ]
+        if no_target:
+            logger_trim_sampler.warning(
+                f"TrimSampleSelector: {len(no_target)} entities from no-priors phase "
+                "produced no target measurement."
+            )
+        return no_target
+
     def _core_iterator_logic(
         self,
         discoverySpace: DiscoverySpace,
@@ -281,9 +319,10 @@ class TrimSampleSelector(BaseSampler):
         This is a synchronous generator that yields entities based on the TRIM algorithm.
         """
         # Filter entities that no-priors already flagged as unable to yield a target.
-        skip_set = set(self.params.missing_target_variables.skip_entities)
+        no_target_entities = self._no_target_entities_from_no_priors(discoverySpace)
+        skip_set = {e.identifier for e in no_target_entities}
         if skip_set:
-            logger_trim_sampler.info(
+            logger_trim_sampler.warning(
                 f"TrimSampleSelector: removing {len(skip_set)} pre-skipped entities "
                 f"from list_of_entities before the main loop."
             )
@@ -301,31 +340,22 @@ class TrimSampleSelector(BaseSampler):
         # In InjectDefaultValue mode, synthesise rows for the pre-skipped entities
         # so they are present in initial_source_df for all AutoGluon training.
         if (
-            skip_set
+            no_target_entities
             and self.params.missing_target_variables.mode
             == MissingTargetMode.InjectDefaultValue
         ):
             default_val = self.params.missing_target_variables.defaultValue
-            skip_rows = []
-            for entity in skip_set:
-                # Retrieve the Entity object from the discovery space by identifier.
-                matching = [
-                    e
-                    for e in discoverySpace.matchingEntities()
-                    if e.identifier == entity
-                ]
-                if matching:
-                    skip_rows.append(
-                        _make_default_row(matching[0], self.params.targetOutput, default_val)  # type: ignore[arg-type]
-                    )
-            if skip_rows:
-                initial_source_df = pd.concat(
-                    [initial_source_df, *skip_rows], ignore_index=True
-                )
-                logger_trim_sampler.info(
-                    f"Prepended {len(skip_rows)} default rows for pre-skipped entities "
-                    f"into initial_source_df (defaultValue={default_val})."
-                )
+            skip_rows = [
+                _make_default_row(entity, self.params.targetOutput, default_val)  # type: ignore[arg-type]
+                for entity in no_target_entities
+            ]
+            initial_source_df = pd.concat(
+                [initial_source_df, *skip_rows], ignore_index=True
+            )
+            logger_trim_sampler.info(
+                f"Prepended {len(skip_rows)} default rows for pre-skipped entities "
+                f"into initial_source_df (defaultValue={default_val})."
+            )
 
         if logger_trim_sampler.isEnabledFor(logging.DEBUG):
             initial_source_df.to_csv(
@@ -368,7 +398,7 @@ class TrimSampleSelector(BaseSampler):
             entity = list_of_entities[i : i + batchsize]
 
             if len(entity) == 0:
-                logger_trim_sampler.warning("No Entities remaining.")
+                logger_trim_sampler.info("No Entities remaining.")
                 _ = self.finalize_model(discoverySpace)
                 break
 
@@ -891,6 +921,26 @@ class TrimSampleSelector(BaseSampler):
             discoverySpace, self.params.targetOutput
         )
 
+        # In InjectDefaultValue mode inject synthetic default rows for any entities
+        # from the no-priors phase that produced no target measurement.  This must
+        # happen before the minPoints check so those rows count towards the budget.
+        if (
+            self.params.missing_target_variables.mode
+            == MissingTargetMode.InjectDefaultValue
+        ):
+            no_target_entities = self._no_target_entities_from_no_priors(discoverySpace)
+            if no_target_entities:
+                default_val = self.params.missing_target_variables.defaultValue
+                default_rows = [
+                    _make_default_row(entity, self.params.targetOutput, default_val)  # type: ignore[arg-type]
+                    for entity in no_target_entities
+                ]
+                source_df = pd.concat([source_df, *default_rows], ignore_index=True)
+                logger_trim_sampler.info(
+                    f"Injected {len(default_rows)} default rows into source_df "
+                    f"(defaultValue={default_val})."
+                )
+
         if logger_trim_sampler.isEnabledFor(logging.DEBUG):
             source_df.to_csv(
                 os.path.join(self.params.debugDirectory, "Initial_source_space.csv")
@@ -917,7 +967,7 @@ class TrimSampleSelector(BaseSampler):
             )
             logger_trim_sampler.info(info_str)
             if len(source_df) > 10:
-                logger_trim_sampler.warning(
+                logger_trim_sampler.info(
                     "Attempting iterative modelling with 10 source space points"
                 )
             else:

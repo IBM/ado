@@ -5,7 +5,6 @@ import enum
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, BeforeValidator, Field, field_validator, model_validator
-from pydantic.json_schema import SkipJsonSchema
 
 
 class MissingTargetMode(str, enum.Enum):
@@ -77,31 +76,6 @@ class MissingTargetMeasurements(BaseModel):
             default=None,
         ),
     ] = None
-
-    skip_entities: Annotated[
-        SkipJsonSchema[list[str]],
-        Field(
-            default_factory=list,
-            exclude=True,
-            description=(
-                "Runtime-only. Entity identifiers to suppress from yielding so that "
-                "the sampler does not even attempt to measure the target variable for "
-                "them. Populated by operator.py after the no-priors phase."
-            ),
-        ),
-    ]
-
-    no_target_variable_entities: Annotated[
-        SkipJsonSchema[list[str]],
-        Field(
-            default_factory=list,
-            exclude=True,
-            description=(
-                "Runtime-only. The sampler stores the identifiers of entities it "
-                "yielded and for which no target measurement was produced."
-            ),
-        ),
-    ]
 
     @field_validator("budget", mode="after")
     @classmethod

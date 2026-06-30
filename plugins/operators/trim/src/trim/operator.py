@@ -15,7 +15,6 @@ from trim.trim_pydantic import (
 )  # Importing this way works when the package is installed
 from trim.utils.logging_utils import (
     log_and_save_characterization,
-    log_unable_to_proceed_with_iterative_modeling_and_raise_error,
 )
 
 logger_trim = logging.getLogger(__name__)
@@ -64,6 +63,13 @@ def trim(
     random_walk = explore.operators["random_walk"].function
 
     params = TrimParameters.model_validate(kwargs)
+
+    if params.no_priors_operation_id is not None:
+        raise ValueError(
+            "The 'no_priors_operation_id' field of TrimParameters is set "
+            "automatically by the TRIM operator and must not be configured by the user."
+        )
+
     logger_trim.info(
         "Transfer Refined Iterative Modeling starts."
         f"Target variable = {params.targetOutput}"
@@ -113,7 +119,7 @@ def trim(
             singleMeasurement=True,
         )
 
-        op_output_characterization_no_prior = random_walk(
+        op_output_characterization_no_prior: OperationOutput = random_walk(
             discoverySpace=discoverySpace,
             operationInfo=FunctionOperationInfo.model_validate(
                 {
@@ -131,49 +137,15 @@ def trim(
             **no_priors_rwparams.model_dump(),
         )
 
-        # Propagate entities that produced no target measurement during no-priors
-        # into TrimParameters so TrimSampleSelector never re-yields them.
-        # Decrease the missing_target_variables.budget of TrimSampleSelector too.
-        no_target = (
-            params.noPriorParameters.missing_target_variables.no_target_variable_entities
-        )
-        if no_target:
-            logger_trim.info(
-                f"Copying {len(no_target)} no-target entities from no-priors phase "
-                "into params.missing_target_variables.skip_entities."
-            )
-            params.missing_target_variables.skip_entities = list(no_target)
-
-            if params.missing_target_variables.budget is not None:
-                params.missing_target_variables.budget -= len(no_target)
-
-        source_df, target_df = get_source_and_target(
-            discoverySpace, params.targetOutput
+        params.no_priors_operation_id = (
+            op_output_characterization_no_prior.operation.identifier
         )
 
         if logger_trim.isEnabledFor(logging.DEBUG):
-            logger_trim.debug(
-                "Saving updated source space after no-priors characterization"
+            source_df, target_df = get_source_and_target(
+                discoverySpace, params.targetOutput
             )
             log_and_save_characterization(source_df, target_df)
-
-        effective_count = len(source_df)
-
-        if params.missing_target_variables.mode == MissingTargetMode.InjectDefaultValue:
-            # In InjectDefaultValue mode the missing entities will be synthetically
-            # filled by TrimSampleSelector, so they count towards minPoints.
-            effective_count += len(params.missing_target_variables.skip_entities)
-
-        if effective_count < params.samplingBudget.minPoints:
-            log_unable_to_proceed_with_iterative_modeling_and_raise_error(
-                discoverySpace,
-                target_output=params.targetOutput,
-                additional_info=(
-                    f"This was detected during the no-priors characterization phase: "
-                    f"{params.samplingBudget.minPoints - effective_count} out of "
-                    f"{params.samplingBudget.minPoints}."
-                ),
-            )
 
     # TRIM Iterative Modeling
     trim_module = SamplerModuleConf(
@@ -194,7 +166,7 @@ def trim(
         singleMeasurement=True,
     )
 
-    op_output_iterative_modeling = random_walk(
+    op_output_iterative_modeling: OperationOutput = random_walk(
         discoverySpace=discoverySpace,
         operationInfo=FunctionOperationInfo.model_validate(
             {

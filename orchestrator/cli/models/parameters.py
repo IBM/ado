@@ -16,7 +16,6 @@ from orchestrator.cli.models.types import (
     AdoShowMeasurementsSupportedOutputFormats,
     AdoShowMeasurementsSupportedPropertyFormats,
     AdoShowStatsSupportedOutputFormats,
-    AdoShowSummarySupportedOutputFormats,
     AdoShowTraceSupportedOutputFormats,
 )
 from orchestrator.core import CoreResourceKinds
@@ -128,17 +127,6 @@ class AdoShowStatsCommandParameters(pydantic.BaseModel):
     render_output: bool
     resource_ids: list[str] | None
     show_details: bool
-
-
-class AdoShowSummaryCommandParameters(pydantic.BaseModel):
-    ado_configuration: AdoConfiguration
-    columns_to_hide: list[str] | None
-    include_properties: list[str] | None
-    output_file: Path | None
-    output_format: AdoShowSummarySupportedOutputFormats
-    query: list[dict[str, str | None]] | None
-    render_output: bool
-    resource_ids: list[str]
 
 
 class AdoTemplateCommandParameters(pydantic.BaseModel):

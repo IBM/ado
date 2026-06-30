@@ -170,7 +170,15 @@ class TrimParameters(BaseTrimSamplerParameters):
 
     @classmethod
     def example_configuration(cls) -> "TrimParameters":
-        return cls(targetOutput="TO_BE_SET")
+        """Return a template instance that omits the internal no_priors_operation_id field."""
+
+        class _Template(cls):  # type: ignore[valid-type]
+            no_priors_operation_id: Annotated[
+                str | None,
+                Field(default=None, exclude=True),
+            ] = None
+
+        return _Template(targetOutput="TO_BE_SET")
 
     @model_validator(mode="after")
     def set_final_model_args(self) -> "TrimParameters":

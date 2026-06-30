@@ -74,7 +74,6 @@ def trim(
     source_df, target_df = get_source_and_target(
         discoverySpace, params.targetOutput, log_string="First query"
     )
-    initial_source_space_size = len(source_df)
 
     op_output_characterization_no_prior = OperationOutput.model_validate(
         {
@@ -104,10 +103,13 @@ def trim(
             module=no_priors_module,
             parameters=params.noPriorParameters,
         )
+        # Pass the full unsampled pool to random_walk so it never cuts the
+        # iterator short.  The NoPriorsSampleSelector's own quota_count guard
+        # stops iterating once enough hits are collected regardless of mode.
         no_priors_rwparams = RandomWalkParameters(
             samplerConfig=no_priors_sampler_config,
             batchSize=1,
-            numberEntities=params.samplingBudget.minPoints - len(source_df),
+            numberEntities="all",
             singleMeasurement=True,
         )
 
@@ -181,15 +183,14 @@ def trim(
     trim_sampler_config = CustomSamplerConfiguration(
         module=trim_module, parameters=params
     )
-    numberEntities_iterative_modeling = (
-        len(source_df) - initial_source_space_size
-        if op_output_characterization_no_prior.operation
-        else params.samplingBudget.maxPoints
-    )
+
+    # Pass the full unsampled pool to random_walk so it never cuts the
+    # iterator short. Similar to NoPriorsSampleSelector the TrimSampleSelector quota
+    # stops iterating once enough hits are collected regardless of mode.
     trim_rwparams = RandomWalkParameters(
         samplerConfig=trim_sampler_config,
         batchSize=1,
-        numberEntities=numberEntities_iterative_modeling,
+        numberEntities="all",
         singleMeasurement=True,
     )
 

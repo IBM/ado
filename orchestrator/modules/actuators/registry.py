@@ -651,8 +651,7 @@ class ActuatorRegistry:
             ref = experiment.reference
             try:
                 catalog = self.catalogForActuatorIdentifier(ref.actuatorIdentifier)
-                catalog.experimentForReference(ref, resolve=True)
-                provided_experiment = catalog.experimentForReference(ref, resolve=False)
+                provided_experiment = catalog.experimentForReference(ref, resolve=True)
                 if provided_experiment is not None:
                     interface_issues = check_experiment_interface_compatible(
                         expected_experiment=experiment,

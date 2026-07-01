@@ -90,7 +90,7 @@ def validated_experiment_id(
 
     Raises:
         HTTPException: If the experiment is not associated with the actuator
-            (404 Not Found), the catalog is unavailable (503 Service Unavailable),
+            (404 Not Found), the catalog is unavailable (500 Internal Server Error),
             or the experiment is deprecated (410 Gone).
     """
     try:

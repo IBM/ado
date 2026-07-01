@@ -707,13 +707,14 @@ class Experiment(pydantic.BaseModel):
     ) -> ConstitutiveProperty | None:
         """Return a declared constitutive property by identifier, if present."""
 
-        v = [
-            p
-            for p in self.requiredConstitutiveProperties + list(self.optionalProperties)
-            if p.identifier == property_identifier
-        ]
-
-        return None if len(v) == 0 else v[0]
+        return next(
+            (
+                p
+                for p in (*self.requiredConstitutiveProperties, *self.optionalProperties)
+                if p.identifier == property_identifier
+            ),
+            None,
+        )
 
     @property
     def references_of_required_input_experiments(

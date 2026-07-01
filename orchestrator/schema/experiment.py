@@ -710,7 +710,10 @@ class Experiment(pydantic.BaseModel):
         return next(
             (
                 p
-                for p in (*self.requiredConstitutiveProperties, *self.optionalProperties)
+                for p in (
+                    *self.requiredConstitutiveProperties,
+                    *self.optionalProperties,
+                )
                 if p.identifier == property_identifier
             ),
             None,
@@ -1186,7 +1189,7 @@ class ExperimentInterfaceIssue(pydantic.BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
 
-def _issues_for_ids(
+def _create_issues_of_kind_for_ids(
     ids: Iterable[Property | PropertyDescriptor | ObservedProperty],
     kind: ExperimentInterfaceIssueKind,
 ) -> list[ExperimentInterfaceIssue]:
@@ -1208,12 +1211,12 @@ def _check_required_constitutive_interface(
     """
 
     return [
-        *_issues_for_ids(
+        *_create_issues_of_kind_for_ids(
             expected.required_constitutive_property_descriptors
             - provided.required_constitutive_property_descriptors,
             ExperimentInterfaceIssueKind.MISSING_REQUIRED_CONSTITUTIVE_IN_PROVIDED,
         ),
-        *_issues_for_ids(
+        *_create_issues_of_kind_for_ids(
             provided.required_constitutive_property_descriptors
             - expected.required_constitutive_property_descriptors,
             ExperimentInterfaceIssueKind.EXTRA_REQUIRED_CONSTITUTIVE_IN_PROVIDED,
@@ -1235,11 +1238,11 @@ def _check_required_observed_interface(
     missing = expected_required - provided_required
     extra = provided_required - expected_required
     return [
-        *_issues_for_ids(
+        *_create_issues_of_kind_for_ids(
             missing,
             ExperimentInterfaceIssueKind.MISSING_REQUIRED_OBSERVED_IN_PROVIDED,
         ),
-        *_issues_for_ids(
+        *_create_issues_of_kind_for_ids(
             extra,
             ExperimentInterfaceIssueKind.EXTRA_REQUIRED_OBSERVED_IN_PROVIDED,
         ),
@@ -1256,7 +1259,7 @@ def _check_parameterized_optional_presence(
         missing_ids = {
             p.property for p in expected.parameterization
         } - provided.optional_property_descriptors
-        return _issues_for_ids(
+        return _create_issues_of_kind_for_ids(
             missing_ids,
             ExperimentInterfaceIssueKind.PARAMETERIZED_OPTIONAL_NOT_IN_PROVIDED,
         )
@@ -1369,7 +1372,7 @@ def _check_target_outputs(
     expected: Experiment | ParameterizedExperiment, provided: Experiment
 ) -> list[ExperimentInterfaceIssue]:
     """Check that expected outputs are a subset of provided outputs."""
-    return _issues_for_ids(
+    return _create_issues_of_kind_for_ids(
         set(expected.targetProperties) - set(provided.targetProperties),
         ExperimentInterfaceIssueKind.OUTPUT_NOT_IN_PROVIDED,
     )

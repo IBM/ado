@@ -636,7 +636,7 @@ def test_operator_metadata_identifier_property() -> None:
         example_configuration=_P(),
         type=DiscoveryOperationEnum.SEARCH,
     )
-    assert meta.operatorIdentifier == "my_op@0.1.0"
+    assert meta.operatorIdentifier == "my_op@2.0.0"
 
 
 def test_operator_metadata_identifier_default_version() -> None:

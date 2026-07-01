@@ -33,7 +33,7 @@ def test_operator_metadata_identifier_uses_at_separator() -> None:
         example_configuration=_ExampleConfig(),
         type=DiscoveryOperationEnum.SEARCH,
     )
-    assert meta.operatorIdentifier == "my_op@0.1.0"
+    assert meta.operatorIdentifier == "my_op@2.0.0"
 
 
 def test_operator_metadata_reference_includes_version() -> None:

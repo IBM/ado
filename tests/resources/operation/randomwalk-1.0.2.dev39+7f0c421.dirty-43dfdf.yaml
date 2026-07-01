@@ -15,7 +15,7 @@ identifier: randomwalk-1.0.2.dev39+7f0c421.dirty-43dfdf
 metadata:
   entities_submitted: 10
   experiments_requested: 10
-operationType: search
+operationType: explore
 operatorIdentifier: randomwalk-1.0.2.dev39+7f0c421.dirty
 status:
   - event: created

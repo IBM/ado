@@ -8,7 +8,7 @@ spaces:
 operation:
   module:
     operatorName: "random_walk"
-    operationType: "search"
+    operationType: "explore"
   parameters:
     numberEntities: 20
     batchSize: 5

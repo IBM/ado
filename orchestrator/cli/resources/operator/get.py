@@ -104,12 +104,6 @@ def get_operator(parameters: AdoGetCommandParameters) -> None:
     else:
         console_print("Available operators by type:")
 
-    # AP: We want to rename some DiscoveryOperationEnums
-    type_names_mapping = {"search": "explore"}
-    operators["TYPE"] = operators["TYPE"].replace(type_names_mapping)
-
-    # After renaming some entries in the TYPE column
-    # the values may not be sorted anymore
     operators = operators.sort_values(by=["TYPE", "OPERATOR"]).reset_index(drop=True)
 
     from orchestrator.cli.utils.resources.handlers import handle_ado_get

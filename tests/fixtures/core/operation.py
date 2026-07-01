@@ -32,7 +32,7 @@ def ml_multi_cloud_operation_resource(
             ml_multi_cloud_operation_configuration.spaces = [space_id]
 
         return OperationResource(
-            operationType=DiscoveryOperationEnum.SEARCH,
+            operationType=DiscoveryOperationEnum.EXPLORE,
             operatorIdentifier=random_identifier(),
             config=ml_multi_cloud_operation_configuration,
         )
@@ -97,7 +97,7 @@ def operation_resource(
     # Create a random operation resource
     return OperationResource(
         config=operation_configuration,
-        operationType=orchestrator.core.operation.config.DiscoveryOperationEnum.SEARCH,
+        operationType=orchestrator.core.operation.config.DiscoveryOperationEnum.EXPLORE,
         operatorIdentifier="randomwalk-0.3.1",
     )
 

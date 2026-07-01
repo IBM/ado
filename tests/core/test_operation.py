@@ -23,6 +23,11 @@ from orchestrator.core.resources import ADOResourceEventEnum, CoreResourceKinds
 from orchestrator.modules.module import load_module_class_or_function
 
 
+def test_discovery_operation_enum_legacy_search_redirects_to_explore() -> None:
+    """Legacy 'search' value is accepted and redirected to EXPLORE via _missing_."""
+    assert DiscoveryOperationEnum("search") is DiscoveryOperationEnum.EXPLORE
+
+
 @pytest.fixture
 def operation_result() -> dict:
 
@@ -38,7 +43,7 @@ def operation_resource(
     # This auto-generates the operation identifier
     return OperationResource(
         operatorIdentifier="test_operator",
-        operationType=DiscoveryOperationEnum.SEARCH,
+        operationType=DiscoveryOperationEnum.EXPLORE,
         config=operation_configuration,
     )
 
@@ -194,9 +199,9 @@ def test_script_operator_conf_round_trip() -> None:
     script_module = ScriptOperatorConf(
         name="grid-sweep",
         version="1.0.0",
-        operationType=DiscoveryOperationEnum.SEARCH,
+        operationType=DiscoveryOperationEnum.EXPLORE,
     )
-    assert script_module.operationType == DiscoveryOperationEnum.SEARCH
+    assert script_module.operationType == DiscoveryOperationEnum.EXPLORE
     assert script_module.operatorIdentifier == "script-grid-sweep-1.0.0"
 
     operation_configuration = DiscoveryOperationConfiguration(
@@ -215,7 +220,7 @@ def test_script_operator_conf_round_trip() -> None:
     assert isinstance(restored.operation.module, ScriptOperatorConf)
     assert restored.operation.module.name == "grid-sweep"
     assert restored.operation.module.version == "1.0.0"
-    assert restored.operation.module.operationType == DiscoveryOperationEnum.SEARCH
+    assert restored.operation.module.operationType == DiscoveryOperationEnum.EXPLORE
     assert restored.operation.parameters == {}
 
 

@@ -957,5 +957,5 @@ class RandomWalk(Explore):
             description=cls.description(),
             configuration_model=RandomWalkParameters,
             example_configuration=RandomWalkParameters(),
-            type=DiscoveryOperationEnum.SEARCH,
+            type=DiscoveryOperationEnum.EXPLORE,
         )

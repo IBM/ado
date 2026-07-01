@@ -64,7 +64,7 @@ def test_operator_module_conf(
 
     assert (
         operator_module_conf.operationType
-        == orchestrator.core.operation.config.DiscoveryOperationEnum.SEARCH
+        == orchestrator.core.operation.config.DiscoveryOperationEnum.EXPLORE
     )
     cls = load_module_class_or_function(operator_module_conf)
     expected_name = cls.operator_metadata().name

@@ -88,7 +88,7 @@ characterize = OperatorCollection(
     type=orchestrator.core.operation.config.DiscoveryOperationEnum.CHARACTERIZE
 )
 explore = OperatorCollection(
-    type=orchestrator.core.operation.config.DiscoveryOperationEnum.SEARCH
+    type=orchestrator.core.operation.config.DiscoveryOperationEnum.EXPLORE
 )
 modify = OperatorCollection(
     type=orchestrator.core.operation.config.DiscoveryOperationEnum.MODIFY
@@ -110,7 +110,7 @@ learn = OperatorCollection(
 )
 operationCollectionMap = {
     orchestrator.core.operation.config.DiscoveryOperationEnum.CHARACTERIZE: characterize,
-    orchestrator.core.operation.config.DiscoveryOperationEnum.SEARCH: explore,
+    orchestrator.core.operation.config.DiscoveryOperationEnum.EXPLORE: explore,
     orchestrator.core.operation.config.DiscoveryOperationEnum.MODIFY: modify,
     orchestrator.core.operation.config.DiscoveryOperationEnum.EXPORT: export,
     orchestrator.core.operation.config.DiscoveryOperationEnum.COMPARE: compare,

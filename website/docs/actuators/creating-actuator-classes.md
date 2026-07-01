@@ -1,4 +1,5 @@
 <!-- markdownlint-disable first-line-h1 -->
+<!-- markdownlint-disable first-line-h1 -->
 
 !!! info end
 
@@ -211,13 +212,14 @@ my_experiment = Experiment(
 
 ### Resolving experiment references in `submit`
 
-In your `submit` method, use `catalog.resolve_reference(reference)` to obtain
+In your `submit` method,
+use `catalog.experimentForReference(reference, resolve=True)` to obtain
 the experiment object.  This call:
 
-- performs the catalog lookup with semantic version awareness,
+- searches the catalog for matching experiments based on major version,
 - raises `UnknownExperimentError` if the reference cannot be resolved,
-- raises `DeprecatedExperimentError` if the experiment is deprecated, and
-- wraps the result in a `ParameterizedExperiment` if the reference carries
+- raises `DeprecatedExperimentError` if the matching experiment is deprecated, and
+- creates a `ParameterizedExperiment` instance if the reference carries
   parameterization.
 
 <!-- markdownlint-disable code-block-style -->

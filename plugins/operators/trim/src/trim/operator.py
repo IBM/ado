@@ -20,6 +20,77 @@ from trim.utils.logging_utils import (
 logger_trim = logging.getLogger(__name__)
 
 
+def _resolve_target_output(
+    params: "TrimParameters",
+    discoverySpace: DiscoverySpace,
+) -> "TrimParameters":
+    """Resolve and validate ``params.targetOutput`` against the measurement space.
+
+    ``targetOutput`` must ultimately be the *observed property identifier* —
+    the fully-qualified ``"{experimentId}-{targetPropertyId}"`` string — because
+    ``get_source_and_target`` uses ``property_type="observed"`` which keys
+    columns by that identifier.
+
+    As a convenience, if the user supplied the bare *target property identifier*
+    (e.g. ``"pressure"`` instead of ``"calculate_pressure_ideal_gas-pressure"``)
+    **and** exactly one experiment in the space produces that target, this
+    function silently rewrites both ``params.targetOutput`` and
+    ``params.noPriorParameters.targetOutput`` to the full form.
+
+    Args:
+        params: Validated ``TrimParameters`` as parsed from kwargs.
+        discoverySpace: The discovery space being characterised.
+
+    Returns:
+        ``params`` with ``targetOutput`` (and the nested copy in
+        ``noPriorParameters``) set to the fully-qualified observed property
+        identifier.
+
+    Raises:
+        ValueError: When ``targetOutput`` is a bare target property identifier
+            that matches zero or more than one observed property in the space.
+    """
+    observed_properties = discoverySpace.measurementSpace.observedProperties
+
+    # Already a fully-qualified observed property identifier — validate it exists.
+    if params.targetOutput in {op.identifier for op in observed_properties}:
+        return params
+
+    # Try to resolve as a bare target property identifier.
+    matches = [
+        op
+        for op in observed_properties
+        if op.targetProperty.identifier == params.targetOutput
+    ]
+
+    if len(matches) == 1:
+        resolved = matches[0].identifier
+        logger_trim.info(
+            f"targetOutput '{params.targetOutput}' resolved to observed property "
+            f"identifier '{resolved}'."
+        )
+        params.targetOutput = resolved
+        params.noPriorParameters.targetOutput = resolved
+        return params
+
+    if len(matches) == 0:
+        valid = sorted({op.identifier for op in observed_properties})
+        raise ValueError(
+            f"targetOutput '{params.targetOutput}' does not match any observed "
+            f"property in the measurement space. "
+            f"Valid observed property identifiers are: {valid}"
+        )
+
+    # len(matches) > 1: ambiguous — multiple experiments produce the same target.
+    candidates = sorted(op.identifier for op in matches)
+    raise ValueError(
+        f"targetOutput '{params.targetOutput}' is ambiguous: multiple experiments "
+        f"in the measurement space produce this target property. "
+        f"Specify the fully-qualified observed property identifier instead. "
+        f"Candidates: {candidates}"
+    )
+
+
 @characterize_operation(
     name="trim",
     configuration_model=TrimParameters,
@@ -69,6 +140,8 @@ def trim(
             "The 'no_priors_operation_id' field of TrimParameters is set "
             "automatically by the TRIM operator and must not be configured by the user."
         )
+
+    params = _resolve_target_output(params, discoverySpace)
 
     logger_trim.info(
         "Transfer Refined Iterative Modeling starts."

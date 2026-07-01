@@ -54,7 +54,7 @@ either the full name or the shorthand interchangeably in any command.
 | datacontainer         | dcr       | `ado describe dcr container-123`    |
 | discoveryspace        | space     | `ado create space -f space.yaml`    |
 | experiment            | exp       | `ado get exp`                       |
-| operation             | op        | `ado show details op operation-456` |
+| operation             | op        | `ado get op operation-456`          |
 | samplestore           | store     | `ado get store`                     |
 
 #### Usage Examples
@@ -782,51 +782,7 @@ ado get datacontainer --use-latest -o stats
 
 When interacting with resources, we might be interested in seeing some of their
 details, entities measured, or related resources. `ado show` provides this with
-the five following subcommands.
-
-#### ado show details
-
-_show details_ supports displaying aggregate details about resources and related
-resources.
-
-The complete syntax of the `ado show details` command is as follows:
-
-```shell
-ado show details RESOURCE_TYPE [RESOURCE_ID] [--use-latest]
-```
-
-Where:
-
-- `RESOURCE_TYPE` is one of the supported resource types. See
-  [Resource Type Shorthands](#resource-type-shorthands) for shorthand aliases.
-  Currently supported:
-
-    <!-- prettier-ignore-start -->
-
-    - _discoveryspace_ (_space_)
-    - _operation_ (_op_)
-
-    <!-- prettier-ignore-end -->
-
-- `RESOURCE_ID` is the unique identifier of the resource you want to see details
-  for.
-- `--use-latest` will use the identifier of the latest (i.e. most recent)
-  resource of RESOURCE_TYPE from the current context. It is ignored if a
-  RESOURCE_ID is provided.
-
-##### Examples
-
-###### Show details for a space
-
-```shell
-ado show details space space-abc123-456def
-```
-
-###### Show details for the latest space
-
-```shell
-ado show details space --use-latest
-```
+the four following subcommands.
 
 #### ado show measurements
 

@@ -113,12 +113,6 @@ class AdoGetSupportedResourceTypes(Enum):
     SAMPLE_STORE = _SAMPLE_STORE_SINGULAR
 
 
-#################### ado show details ####################
-class AdoShowDetailsSupportedResourceTypes(Enum):
-    DISCOVERY_SPACE = _DISCOVERY_SPACE_SINGULAR
-    OPERATION = _OPERATION_SINGULAR
-
-
 #################### ado show measurements ####################
 class AdoShowMeasurementsSupportedEntityTypes(Enum):
     MEASURED = "measured"

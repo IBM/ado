@@ -3,9 +3,6 @@
 
 import typer
 
-from orchestrator.cli.commands.show_details import (
-    register_show_details_command,
-)
 from orchestrator.cli.commands.show_measurements import (
     register_show_measurements_command,
 )
@@ -30,7 +27,6 @@ show_command = typer.Typer(
     rich_markup_mode="rich",
 )
 
-register_show_details_command(show_command)
 register_show_measurements_command(show_command)
 register_show_related_command(show_command)
 register_show_stats_command(show_command)

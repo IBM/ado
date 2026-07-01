@@ -145,9 +145,8 @@ For related resources (operations and stores linked to this space), execute:
 uv run ado show related space SPACE_ID
 ```
 
-> **Performance note**: both `ado show stats discoveryspace` and
-> `ado show details space` are slow as they fetch and aggregate entity data.
-> Use only when sampling coverage is needed.
+> **Performance note**: `ado show stats discoveryspace` is slow as it fetches
+> and aggregates entity data. Use only when sampling coverage is needed.
 
 ### Step 3: Check for existing report
 

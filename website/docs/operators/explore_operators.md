@@ -159,13 +159,13 @@ config:
   spaces:
     - space-8f1cfb-91ecfb
 created: "2024-10-07T06:46:08.176924Z"
-identifier: randomwalk-0.6.4-1be83b
+identifier: random_walk@2.0.0-1be83b
 kind: operation
 metadata:
   entities_submitted: 160
   experiments_requested: 160
 operationType: search
-operatorIdentifier: randomwalk-0.6.4
+operatorIdentifier: random_walk@2.0.0
 result: null
 status: []
 version: v1

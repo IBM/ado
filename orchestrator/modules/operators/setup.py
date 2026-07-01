@@ -195,6 +195,7 @@ def setup_operator(
     operator_reference = OperatorReference(
         operatorName=operator_metadata.name,
         operationType=operator_metadata.type,
+        operatorVersion=operator_metadata.version,
     )
     conf_string = orchestrator.utilities.output.pydantic_model_as_yaml(
         DiscoveryOperationConfiguration(

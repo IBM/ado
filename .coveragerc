@@ -9,4 +9,3 @@ omit =
     */tests/*
     */__init__.py
 show_missing = True
-

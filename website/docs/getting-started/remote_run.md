@@ -85,6 +85,41 @@ wait: false
 
 <!-- markdownlint-enable line-length -->
 
+### Runtime environment setup options
+
+When many jobs start at once (for example during cluster autoscaling,
+many concurrent measurements), Ray may
+need extra time to install each job's runtime environment on workers. Use the
+optional `runtimeEnv` block to tune Ray's runtime-env behaviour.
+
+- `setupTimeoutSeconds` (default `600`): maximum seconds to create the runtime
+  environment on a worker. Use `-1` to disable the timeout.
+- `eagerInstall` (default `true`): if `true`, install the runtime environment
+  on a worker when the job starts; if `false`, install lazily when the
+  first task runs.
+
+<!-- markdownlint-disable line-length -->
+
+```yaml
+executionType:
+  type: cluster
+  clusterUrl: "http://ray-cluster.my-namespace.svc.cluster.local:8265"
+packages:
+  fromPyPI:
+    - ado-core
+runtimeEnv:
+  setupTimeoutSeconds: 1200
+  eagerInstall: false
+envVars:
+  PYTHONUNBUFFERED: "x"
+wait: false
+```
+
+<!-- markdownlint-enable line-length -->
+
+If `runtimeEnv` the defaults are used.
+These are the same as the Ray defaults.
+
 ## Submitting commands
 
 <!-- markdownlint-disable MD007 -->
@@ -145,7 +180,8 @@ ado -c mysql_project.yaml --remote remote_context.yaml create operation -f opera
 > 1. Copy the project context file and any `-f` resource files to a temporary
 >    working directory.
 > 2. Build wheels for any `fromSource` plugin paths.
-> 3. Generate a `runtime_env.yaml` from the `packages` and `envVars` fields.
+> 3. Generate a `runtime_env.yaml` from the `packages`, `envVars`, and optional
+>    `runtimeEnv` fields.
 > 4. Start a port-forward if `portForward` is configured.
 > 5. Run `ray job submit` with the assembled working directory and runtime
 >    environment.

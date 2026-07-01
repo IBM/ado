@@ -80,7 +80,7 @@ def test_get_robotic_lab_actuator() -> None:
 
 
 @requires_sqlite_3_38
-def test_field_querying(
+def test_field_filtering(
     tmp_path: pathlib.Path,
     mysql_test_instance: MySqlContainer,
     sql_store: SQLStore,
@@ -144,7 +144,7 @@ def test_field_querying(
             tmp_path,
             "get",
             "operations",
-            "-q",
+            "--filter",
             "config.operation.parameters.batchSize=1",
         ],
     )
@@ -167,7 +167,7 @@ def test_field_querying(
             tmp_path,
             "get",
             "operations",
-            "-q",
+            "--filter",
             "config.operation.parameters.batchSize=1.0",
         ],
     )
@@ -190,7 +190,7 @@ def test_field_querying(
             tmp_path,
             "get",
             "operations",
-            "-q",
+            "--filter",
             'config.parameters.batchSize="1"',
         ],
     )
@@ -208,7 +208,7 @@ def test_field_querying(
             tmp_path,
             "get",
             "samplestores",
-            "-q",
+            "--filter",
             "config.metadata.name=null",
         ],
     )
@@ -226,7 +226,7 @@ def test_field_querying(
             tmp_path,
             "get",
             "samplestores",
-            "-q",
+            "--filter",
             'config.metadata.name="null"',
         ],
     )
@@ -244,7 +244,7 @@ def test_field_querying(
             tmp_path,
             "get",
             "operations",
-            "-q",
+            "--filter",
             "config.operation.parameters.singleMeasurement=false",
         ],
     )
@@ -267,7 +267,7 @@ def test_field_querying(
             tmp_path,
             "get",
             "operations",
-            "-q",
+            "--filter",
             'config.parameters.singleMeasurement="false"',
         ],
     )
@@ -285,7 +285,7 @@ def test_field_querying(
             tmp_path,
             "get",
             "operations",
-            "-q",
+            "--filter",
             'status=[{"event": "finished", "exit_state": "success"}]',
         ],
     )
@@ -309,7 +309,7 @@ def test_field_querying(
             tmp_path,
             "get",
             "operations",
-            "-q",
+            "--filter",
             "config.spaces=space-7dab39-c0c30f",
         ],
     )
@@ -332,7 +332,7 @@ def test_field_querying(
             tmp_path,
             "get",
             "operations",
-            "-q",
+            "--filter",
             'config={"spaces": ["space-7dab39-c0c30f"]}',
         ],
     )
@@ -355,7 +355,7 @@ def test_field_querying(
             tmp_path,
             "get",
             "operations",
-            "-q",
+            "--filter",
             'config.operation.parameters={"batchSize": 2, "samplerConfig": {"mode": "sequential"}}',
         ],
     )
@@ -379,7 +379,7 @@ def test_field_querying(
             tmp_path,
             "get",
             "actuatorconfigurations",
-            "-q",
+            "--filter",
             'config.parameters.outer_field.inner_field.test_value="found_it"',
         ],
     )
@@ -401,7 +401,7 @@ def test_field_querying(
             tmp_path,
             "get",
             "actuatorconfigurations",
-            "-q",
+            "--filter",
             'config.parameters.outer_field={"inner_field": {"test_value": "found_it"}}',
         ],
     )
@@ -423,7 +423,7 @@ def test_field_querying(
             tmp_path,
             "get",
             "actuatorconfigurations",
-            "-q",
+            "--filter",
             'config.parameters.outer_field.another_field="simple"',
         ],
     )

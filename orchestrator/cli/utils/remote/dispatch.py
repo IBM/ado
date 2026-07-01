@@ -501,6 +501,12 @@ def _write_runtime_env(
     if remote_context.envVars:
         runtime_env["env_vars"] = dict(remote_context.envVars)
 
+    if remote_context.runtimeEnv is not None:
+        runtime_env["config"] = {
+            "setup_timeout_seconds": remote_context.runtimeEnv.setupTimeoutSeconds,
+            "eager_install": remote_context.runtimeEnv.eagerInstall,
+        }
+
     dest.write_text(yaml.dump(runtime_env, default_flow_style=False))
     log.debug("Wrote runtime_env.yaml to %s", dest)
 

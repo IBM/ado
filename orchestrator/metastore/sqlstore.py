@@ -4,7 +4,7 @@
 import json
 import logging
 import os
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 import pydantic
 import sqlalchemy
@@ -13,6 +13,9 @@ import orchestrator.core
 import orchestrator.metastore
 import orchestrator.metastore.sql.statements
 import orchestrator.utilities
+from orchestrator.core.datacontainer.stats import DataContainerStatistics
+from orchestrator.core.discoveryspace.stats import DiscoverySpaceStatistics
+from orchestrator.core.operation.config import DiscoveryOperationEnum
 from orchestrator.core.resources import ADOResourceEventEnum, CoreResourceKinds
 from orchestrator.metastore.base import (
     DeleteFromDatabaseError,
@@ -29,6 +32,11 @@ from orchestrator.metastore.sql.utils import (
     check_table_exists,
     create_sql_resource_store,
     engine_for_sql_store,
+)
+from orchestrator.utilities.pydantic import (
+    do_not_populate_ado_provenance_context,
+    ignore_plugin_validation_context,
+    merge_validation_context,
 )
 
 if TYPE_CHECKING:
@@ -160,6 +168,34 @@ class SQLResourceStore(ResourceStore):
     def engine(self) -> sqlalchemy.Engine:
         return self._engine
 
+    def _deserialize_resource(
+        self,
+        kind: str,
+        data: dict,
+        *,
+        ignore_plugin_validation: bool = True,
+    ) -> orchestrator.core.resources.ADOResource:
+        """Deserialize stored JSON into a typed resource model.
+
+        Args:
+            kind: Resource kind string from the metastore.
+            data: Parsed JSON resource payload.
+            ignore_plugin_validation: When True, skip plugin registry validation
+                on nested operation and actuator configuration fields.
+
+        Returns:
+            Deserialized resource instance.
+        """
+        custom_model_loader = kind_custom_model_load.get(kind)
+        if custom_model_loader:
+            return custom_model_loader(data, self.configuration)
+
+        context = merge_validation_context(
+            ignore_plugin_validation_context if ignore_plugin_validation else None,
+            do_not_populate_ado_provenance_context,
+        )
+        return orchestrator.core.kindmap[kind].model_validate(data, context=context)
+
     def get_resource_and_producers(
         self,
         identifier: str,
@@ -240,11 +276,7 @@ class SQLResourceStore(ResourceStore):
             data_raw = mapping[f"r{i}_data"]
             kind_val = mapping[f"r{i}_kind"]
             d = json.loads(data_raw) if isinstance(data_raw, str) else data_raw
-            custom_loader = kind_custom_model_load.get(kind_val)
-            if custom_loader:
-                resource = custom_loader(d, self.configuration)
-            else:
-                resource = orchestrator.core.kindmap[kind_val](**d)
+            resource = self._deserialize_resource(kind_val, d)
 
             if orchestrator.core.resources.VersionIsGreaterThan(
                 resource.version, d.get("version", "v0")
@@ -298,6 +330,7 @@ class SQLResourceStore(ResourceStore):
         identifier: str,
         kind: CoreResourceKinds,
         raise_error_if_no_resource: bool = False,
+        ignore_plugin_validation: bool = True,
     ) -> orchestrator.core.resources.ADOResource | None:
         """Retrieve a resource from the SQL store.
 
@@ -318,6 +351,10 @@ class SQLResourceStore(ResourceStore):
                 :class:`~orchestrator.metastore.base.ResourceDoesNotExistError`
                 is raised when the resource cannot be found.  When ``False``
                 (default) the method simply returns ``None``.
+            ignore_plugin_validation: When ``True`` (default), nested operation
+                and actuator configuration fields skip plugin registry
+                validation during deserialization. Set to ``False`` when
+                loading resources for runtime use.
 
         Returns:
             An instance of the appropriate
@@ -354,11 +391,11 @@ class SQLResourceStore(ResourceStore):
         resource = None
         if table.shape[0] > 0:
             d = json.loads(table.data[0])
-            custom_model_loader = kind_custom_model_load.get(table.kind[0])
-            if custom_model_loader:
-                resource = custom_model_loader(d, self.configuration)
-            else:
-                resource = orchestrator.core.kindmap[table.kind[0]](**d)
+            resource = self._deserialize_resource(
+                table.kind[0],
+                d,
+                ignore_plugin_validation=ignore_plugin_validation,
+            )
 
             # The stored resource should always have a version - if somehow it doesn't we want this to fail
             if orchestrator.core.resources.VersionIsGreaterThan(
@@ -372,7 +409,10 @@ class SQLResourceStore(ResourceStore):
         return resource
 
     def getResources(
-        self, identifiers: list[str], ignore_validation_errors: bool = True
+        self,
+        identifiers: list[str],
+        ignore_validation_errors: bool = True,
+        ignore_plugin_validation: bool = True,
     ) -> dict[str, orchestrator.core.resources.ADOResource]:
         """Retrieve multiple resources by identifier.
 
@@ -437,12 +477,12 @@ class SQLResourceStore(ResourceStore):
                     table.identifier, table.data, table.kind, strict=True
                 ):
                     d = json.loads(data)
-                    custom_model_loader = kind_custom_model_load.get(kind)
                     try:
-                        if custom_model_loader:
-                            resource = custom_model_loader(d, self.configuration)
-                        else:
-                            resource = orchestrator.core.kindmap[kind].model_validate(d)
+                        resource = self._deserialize_resource(
+                            kind,
+                            d,
+                            ignore_plugin_validation=ignore_plugin_validation,
+                        )
                     except Exception as error:
                         msg = f"Unable to create pydantic model for resource with id: {identifier} with data: {data}. {error}"
                         if ignore_validation_errors:
@@ -818,9 +858,6 @@ class SQLResourceStore(ResourceStore):
             getRelatedObjectResourceIdentifiers
                 The inverse relationship: fetches subjects where the given
                 identifier is the *subject*.
-            getRelatedResourceIdentifiers
-                Convenience wrapper that returns a dataframe with both subject
-                and object relationships merged.
         """
 
         import pandas as pd
@@ -890,9 +927,6 @@ class SQLResourceStore(ResourceStore):
             getRelatedSubjectResourceIdentifiers
                 The inverse relationship: fetches subjects where the given
                 identifier is the *object*.
-            getRelatedResourceIdentifiers
-                Convenience wrapper that returns a dataframe with both subject
-                and object relationships merged.
         """
 
         import pandas as pd
@@ -921,88 +955,6 @@ class SQLResourceStore(ResourceStore):
         related_kinds = table["kind"].values
 
         return pd.DataFrame({"IDENTIFIER": related_identifiers, "TYPE": related_kinds})
-
-    def getRelatedResourceIdentifiers(
-        self, identifier: str, kind: str | None = None, version: str | None = None
-    ) -> "pd.DataFrame":
-        """
-        Retrieve identifiers of resources that are related to ``identifier`` either as a
-        subject or an object.
-
-        This method concatenates the results of
-        :meth:`getRelatedObjectResourceIdentifiers` and
-        :meth:`getRelatedSubjectResourceIdentifiers`.  The returned
-        :class:`pandas.DataFrame` has two columns:
-
-        * ``IDENTIFIER`` - the resource identifier
-        * ``TYPE``      - the resource kind
-
-        Args:
-            identifier : str
-                The resource identifier for which related resources are being
-                queried.
-            kind : str, optional
-                Filter by the resource *kind*.  If ``None`` (default) no kind
-                filtering is applied.
-            version : str, optional
-                Filter by the resource *version*.  If ``None`` (default) no
-                version filtering is applied.
-
-        Returns:
-            pandas.DataFrame
-                A DataFrame containing the identifiers of all related resources.
-                If no relationships exist an empty DataFrame is returned.
-        """
-
-        import pandas as pd
-
-        relatedAsObject = self.getRelatedObjectResourceIdentifiers(
-            identifier=identifier, kind=kind, version=version
-        )
-        relatedAsSubject = self.getRelatedSubjectResourceIdentifiers(
-            identifier=identifier, kind=kind, version=version
-        )
-
-        return pd.DataFrame(
-            {
-                "IDENTIFIER": relatedAsObject["IDENTIFIER"].values.tolist()
-                + relatedAsSubject["IDENTIFIER"].values.tolist(),
-                "TYPE": relatedAsObject["TYPE"].values.tolist()
-                + relatedAsSubject["TYPE"].values.tolist(),
-            }
-        )
-
-    def getRelatedResources(
-        self, identifier: str, kind: CoreResourceKinds | None = None
-    ) -> dict[str, orchestrator.core.resources.ADOResource]:
-        """
-        Retrieve all resources that are related to a given identifier.
-
-        Args:
-            identifier (str):
-                The identifier of the primary resource.  The method will fetch
-                every other resource that shares a relationship with this
-                identifier - either as the **subject** or **object** of a
-                relationship entry in ``resource_relationships``.
-            kind (orchestrator.core.resources.CoreResourceKinds, optional):
-                If supplied, only resources whose ``kind`` matches this value
-                are returned.  Pass ``None`` (the default) to retrieve
-                resources of any kind.
-
-        Returns:
-            dict[str, orchestrator.core.resources.ADOResource]:
-                A mapping from resource identifier to a fully deserialized
-                ``ADOResource`` instance.  The dictionary keys are the
-                identifiers of all resources that are related to
-                ``identifier``; the values are the corresponding
-                resource objects.  When ``kind`` is set, the dictionary
-                contains only resources of that kind.
-        """
-
-        identifiers = self.getRelatedResourceIdentifiers(
-            identifier=identifier, kind=kind.value
-        )
-        return self.getResources(identifiers=identifiers["IDENTIFIER"])
 
     def containsResourceWithIdentifier(
         self, identifier: str, kind: CoreResourceKinds | None = None
@@ -1571,3 +1523,458 @@ class SQLResourceStore(ResourceStore):
                     resource_kind=CoreResourceKinds.DOCUMENT,
                     rollback_occurred=True,
                 ) from e
+
+    # ---------------------------------------------------------------------------
+    # Hierarchy traversal
+    # ---------------------------------------------------------------------------
+
+    def get_resources_by_relationship(
+        self,
+        kind: CoreResourceKinds,
+        identifier: str | set[str] | None,
+        hierarchy_direction: Literal["up", "down", "both"],
+        max_hops: int | None = None,
+        identifiers_only: bool = False,
+        include_start_resources: bool = False,
+    ) -> (
+        dict[CoreResourceKinds, set[str]]
+        | dict[str, dict[CoreResourceKinds, set[str]]]
+        | dict[CoreResourceKinds, dict[str, "orchestrator.core.resources.ADOResource"]]
+        | dict[
+            str,
+            dict[
+                CoreResourceKinds,
+                dict[str, "orchestrator.core.resources.ADOResource"],
+            ],
+        ]
+    ):
+        """Walk the resource hierarchy stored in ``resource_relationships``.
+
+        Issues at most three SQL queries: when ``identifier=None`` a seed query
+        fetches all identifiers of ``kind`` via
+        :meth:`getResourceIdentifiersOfKind`; then one recursive traversal query
+        via :func:`orchestrator.metastore.sql.statements.graph_traversal_query`;
+        and, when ``identifiers_only=False``, one additional batched resource
+        query via :meth:`getResources`. When ``identifier`` is a ``str`` or
+        ``set[str]`` only the latter two queries (or one, if
+        ``identifiers_only=True``) are issued.
+
+        Args:
+            kind: The :class:`~orchestrator.core.resources.CoreResourceKinds` of
+                the starting resources.
+            identifier: Controls which resources are used as traversal origins.
+
+                * ``str`` — a single start resource identifier; the return value
+                  is unwrapped (no outer origin key).
+                * ``set[str]`` — multiple explicit start resource identifiers.
+                * ``None`` — all resources of ``kind`` are used as start
+                  resources (seeded via :meth:`getResourceIdentifiersOfKind`).
+                  Not supported when ``hierarchy_direction='both'``.
+                * An **empty set** returns an empty result immediately.
+
+            hierarchy_direction: ``'up'`` (child → parent), ``'down'``
+                (parent → child), or ``'both'``.
+            max_hops: Maximum number of relationship hops to follow from each
+                start resource. When ``None`` the traversal runs to the full
+                depth of the hierarchy. For ``hierarchy_direction='both'`` the
+                limit is applied independently to each direction (e.g.
+                ``max_hops=1`` yields one hop up *and* one hop down). Values
+                exceeding the hierarchy maximum (currently 3, matching the 4
+                resource levels) are silently capped at that maximum.
+            identifiers_only: When ``False`` (default) discovered identifiers
+                are hydrated into full
+                :class:`~orchestrator.core.resources.ADOResource` objects via
+                :meth:`getResources`. When ``True`` only discovered identifiers
+                are returned.
+            include_start_resources: When ``True``, the start resource(s)
+                provided via ``identifier`` are included in the returned result
+                under their own ``kind`` key, alongside the discovered related
+                resources. Requires ``identifiers_only=False`` and
+                ``identifier`` to be a ``str`` or ``set[str]`` (not ``None``);
+                raises ``ValueError`` if either constraint is violated.
+
+        Returns:
+            The return type depends on whether a single identifier (``str``) or
+            multiple identifiers (``set`` / ``None``) were requested, and
+            whether ``identifiers_only`` is set:
+
+            * single identifier, hydrated    → ``dict[CoreResourceKinds, dict[str, ADOResource]]``
+            * multiple identifiers, hydrated → ``dict[str, dict[CoreResourceKinds, dict[str, ADOResource]]]``
+            * single identifier, ids only    → ``dict[CoreResourceKinds, set[str]]``
+            * multiple identifiers, ids only → ``dict[str, dict[CoreResourceKinds, set[str]]]``
+
+            By default start identifiers are **excluded** from the returned
+            results. Pass ``include_start_resources=True`` to include them.
+
+        Raises:
+            ValueError: If ``hierarchy_direction`` is not ``'up'``, ``'down'``
+                or ``'both'``.
+            ValueError: If ``identifier=None`` is used with
+                ``hierarchy_direction='both'``.
+            ValueError: If ``include_start_resources=True`` is used together
+                with ``identifiers_only=True``.
+            ValueError: If ``include_start_resources=True`` is used with
+                ``identifier=None``.
+        """
+        # ------------------------------------------------------------------
+        # 0. Validate parameters eagerly
+        # ------------------------------------------------------------------
+        if hierarchy_direction not in {"up", "down", "both"}:
+            raise ValueError(
+                f"hierarchy_direction must be 'up', 'down' or 'both', got {hierarchy_direction!r}"
+            )
+
+        if max_hops is not None and max_hops < 1:
+            raise ValueError(f"max_hops must be a positive integer, got {max_hops!r}")
+
+        if include_start_resources and identifiers_only:
+            raise ValueError(
+                "include_start_resources=True requires identifiers_only=False"
+            )
+
+        if include_start_resources and identifier is None:
+            raise ValueError(
+                "include_start_resources=True requires identifier to be a str or set[str], not None"
+            )
+
+        if identifier is None and hierarchy_direction == "both":
+            raise ValueError(
+                "identifier=None is not supported for hierarchy_direction='both'"
+            )
+
+        # ------------------------------------------------------------------
+        # 1. Resolve the requested identifiers and record whether a single
+        #    identifier was requested (determines the unwrapped return shape)
+        # ------------------------------------------------------------------
+        _single_identifier_requested: bool
+        _identifiers_requested: set[str]
+
+        if identifier is None:
+            _single_identifier_requested = False
+            df = self.getResourceIdentifiersOfKind(kind=kind.value)
+            _identifiers_requested = set(df["IDENTIFIER"].tolist())
+        elif isinstance(identifier, str):
+            _single_identifier_requested = True
+            _identifiers_requested = {identifier}
+        else:
+            # set[str]
+            _single_identifier_requested = False
+            _identifiers_requested = identifier
+
+        # Empty identifier set → immediate empty result
+        if not _identifiers_requested:
+            return {}
+
+        # ------------------------------------------------------------------
+        # 2. Build and execute the single traversal query
+        # ------------------------------------------------------------------
+        # The hierarchy maximum (3 hops across 4 levels) is enforced inside
+        # graph_traversal_query; passing max_hops=None lets it use the full cap.
+        query = orchestrator.metastore.sql.statements.graph_traversal_query(
+            kind=kind,
+            hierarchy_direction=hierarchy_direction,
+            origin_identifiers=_identifiers_requested,
+            max_hops=max_hops,
+        )
+
+        with self.engine.connect() as connectable:
+            raw_rows = connectable.execute(query).fetchall()
+
+        # ------------------------------------------------------------------
+        # 3. Build the mapping
+        #    { origin_id -> { CoreResourceKinds -> {related_id, ...} } }
+        # ------------------------------------------------------------------
+        related_by_origin: dict[str, dict[CoreResourceKinds, set[str]]] = {}
+        identifiers_to_fetch: set[str] = set()
+
+        for row in raw_rows:
+            origin_identifier = row.origin_identifier
+            identifier_to = row.identifier
+            identifier_to_kind = row.kind
+
+            # Don't include the start identifiers in discovered results
+            # This should never happen, if it does, we have a bug.
+            if identifier_to in _identifiers_requested:
+                continue
+
+            identifiers_to_fetch.add(identifier_to)
+            resource_kind = CoreResourceKinds(identifier_to_kind)
+            related_by_origin.setdefault(origin_identifier, {}).setdefault(
+                resource_kind, set()
+            ).add(identifier_to)
+
+        # ------------------------------------------------------------------
+        # 4. Shape the result
+        # ------------------------------------------------------------------
+        if identifiers_only:
+            if _single_identifier_requested:
+                return related_by_origin.get(next(iter(_identifiers_requested)), {})
+            return related_by_origin
+
+        # Hydrated mode: fetch all discovered identifiers in one query,
+        # then rebuild the graph with full resources.
+        # When include_start_resources is True, also fetch the start resources.
+        if include_start_resources:
+            identifiers_to_fetch = identifiers_to_fetch.union(_identifiers_requested)
+
+        resources = self.getResources(identifiers=list(identifiers_to_fetch))
+
+        hydrated: dict[
+            str,
+            dict[CoreResourceKinds, dict[str, orchestrator.core.resources.ADOResource]],
+        ] = {}
+
+        for origin_identifier, related_identifiers_by_kind in related_by_origin.items():
+
+            hydrated_related_resources_by_kind: dict[
+                CoreResourceKinds,
+                dict[str, orchestrator.core.resources.ADOResource],
+            ] = {}
+
+            for (
+                resource_kind,
+                related_identifiers,
+            ) in related_identifiers_by_kind.items():
+
+                hydrated_related_resources_by_kind[resource_kind] = {
+                    identifier: resources[identifier]
+                    for identifier in related_identifiers
+                    if identifier in resources
+                }
+
+            if include_start_resources and origin_identifier in resources:
+                start_resource = resources[origin_identifier]
+                hydrated_related_resources_by_kind.setdefault(kind, {})[
+                    origin_identifier
+                ] = start_resource
+
+            if hydrated_related_resources_by_kind:
+                hydrated[origin_identifier] = hydrated_related_resources_by_kind
+
+        # When include_start_resources is True but a start identifier had no
+        # related resources, it won't appear in related_by_origin yet — ensure
+        # it still gets an entry in hydrated.
+        if include_start_resources:
+            for start_id in _identifiers_requested:
+                if start_id not in hydrated and start_id in resources:
+                    hydrated[start_id] = {kind: {start_id: resources[start_id]}}
+
+        if _single_identifier_requested:
+            return hydrated.get(next(iter(_identifiers_requested)), {})
+
+        return hydrated
+
+    # ---------------------------------------------------------------------------
+    # Space statistics
+    # ---------------------------------------------------------------------------
+
+    def get_space_metastore_stats(
+        self,
+        space_ids: str | set[str],
+    ) -> "DiscoverySpaceStatistics | dict[str, DiscoverySpaceStatistics]":
+        """Return lightweight metastore-level statistics for one or many spaces.
+
+        Issues a single SQL query that anchors on each space's ``resources``
+        row and left-joins to ``resource_relationships`` / ``resources`` to
+        count operations.  The experiment count and operation counts are
+        therefore fetched in one round-trip.
+
+        Args:
+            space_ids: A single space identifier (``str``) or a set of space
+                identifiers (``set[str]``).
+
+        Returns:
+            :class:`~orchestrator.core.discoveryspace.stats.DiscoverySpaceStatistics`
+            for a single ``str`` input, or a
+            ``dict[str, DiscoverySpaceStatistics]`` for a ``set[str]`` input.
+
+        Raises:
+            SystemError: If the underlying SQL query fails.
+        """
+        single = isinstance(space_ids, str)
+        _space_ids: set[str] = {space_ids} if single else set(space_ids)
+
+        if not _space_ids:
+            return {}  # type: ignore[return-value]
+
+        # ------------------------------------------------------------------
+        # Single query: anchor on the space row so every requested space is
+        # returned even when it has no operations (LEFT JOIN).
+        # The experiment list lives at $.config.experiments.experiments inside
+        # the space's own resources.data column.
+        # MySQL uses JSON_LENGTH(); SQLite uses json_array_length().
+        # ------------------------------------------------------------------
+        is_sqlite = self.engine.dialect.name == "sqlite"
+        array_length_fn = "json_array_length" if is_sqlite else "JSON_LENGTH"
+
+        query_text = f"""
+            SELECT
+                sp.identifier AS space_id,
+                COALESCE({array_length_fn}(
+                    JSON_EXTRACT(sp.data, '$.config.experiments.experiments')
+                ), 0) AS num_experiments,
+                COUNT(op.identifier) AS total_operations,
+                COUNT(
+                    CASE
+                        WHEN JSON_EXTRACT(op.data, '$.operationType') = :explore_type
+                        THEN 1
+                    END
+                ) AS explore_operations
+            FROM resources sp
+            LEFT JOIN resource_relationships rr
+                ON rr.subject_identifier = sp.identifier
+            LEFT JOIN resources op
+                ON op.identifier = rr.object_identifier
+                AND op.kind = :op_kind
+            WHERE sp.identifier IN :space_ids
+            GROUP BY sp.identifier, sp.data
+        """  # noqa: S608 - identifier is an internal column name, not untrusted input
+
+        try:
+            with self.engine.begin() as conn:
+                query = sqlalchemy.text(query_text).bindparams(
+                    sqlalchemy.bindparam("space_ids", expanding=True),
+                    space_ids=list(_space_ids),
+                    explore_type=DiscoveryOperationEnum.SEARCH.value,
+                    op_kind=CoreResourceKinds.OPERATION.value,
+                )
+
+                rows = {row.space_id: row for row in conn.execute(query)}
+
+        except Exception as error:
+            msg = f"Unable to get statistics for space(s) {space_ids}"
+            self.log.critical(f"{msg}. Error: {error}")
+            raise SystemError(f"{msg}. Error: {error}") from error
+
+        result: dict[str, DiscoverySpaceStatistics] = {
+            sid: DiscoverySpaceStatistics(
+                number_of_experiments=rows[sid].num_experiments if sid in rows else 0,
+                number_of_operations=rows[sid].total_operations if sid in rows else 0,
+                number_of_explore_operations=(
+                    rows[sid].explore_operations if sid in rows else 0
+                ),
+                number_measured_entities=0,
+            )
+            for sid in _space_ids
+        }
+
+        if single:
+            return result[space_ids]  # type: ignore[index,arg-type]
+
+        return result
+
+    # ---------------------------------------------------------------------------
+    # DataContainer statistics
+    # ---------------------------------------------------------------------------
+
+    def get_datacontainer_stats(
+        self,
+        datacontainer_ids: set[str],
+    ) -> dict[str, DataContainerStatistics]:
+        """Return lightweight statistics for a set of DataContainer IDs.
+
+        Args:
+            datacontainer_ids: A set of DataContainer identifiers to query.
+
+        Returns:
+            A ``dict`` keyed by DataContainer ID mapping each to its
+            :class:`~orchestrator.core.datacontainer.stats.DataContainerStatistics`.
+            IDs that are not present in the database are returned with all-zero
+            stats.  An empty input set returns an empty dict immediately (no
+            query issued).
+
+        Raises:
+            SystemError: If the underlying SQL query fails.
+        """
+        if not datacontainer_ids:
+            return {}
+
+        # MySQL uses JSON_LENGTH() which counts object members correctly.
+        # SQLite's json_array_length() only counts array elements and returns 0
+        # for objects, so we use correlated subqueries with json_each() instead.
+        is_sqlite = self.engine.dialect.name == "sqlite"
+
+        if is_sqlite:
+            query_text = """
+                SELECT
+                    identifier,
+                    (SELECT count(*)
+                     FROM json_each(json_extract(data, '$.config.tabularData'))
+                    ) AS num_tables,
+                    (SELECT count(*)
+                     FROM json_each(json_extract(data, '$.config.locationData'))
+                    ) AS num_locations,
+                    (SELECT count(*)
+                     FROM json_each(json_extract(data, '$.config.data'))
+                    ) AS num_key_values,
+                    COALESCE(
+                        LENGTH(JSON_EXTRACT(data, '$.config'))
+                        - LENGTH(JSON_EXTRACT(data, '$.config.metadata')),
+                        0
+                    ) AS data_bytes
+                FROM resources
+                WHERE identifier IN :ids
+            """
+        else:
+            # On MySQL, JSON_LENGTH of a JSON null scalar returns 1 (scalar
+            # length is 1 per the spec).  We must guard with JSON_TYPE to
+            # return 0 for absent/null fields.
+            # For byte count, JSON_STORAGE_SIZE returns the actual binary
+            # storage size of the JSON value, which is more accurate than
+            # LENGTH(JSON_EXTRACT(...)) (text representation length).
+            query_text = """
+                SELECT
+                    identifier,
+                    IF(JSON_TYPE(data->'$.config.tabularData') = 'NULL',
+                       0, COALESCE(JSON_LENGTH(
+                           data->'$.config.tabularData'
+                       ), 0)) AS num_tables,
+                    IF(JSON_TYPE(data->'$.config.locationData') = 'NULL',
+                       0, COALESCE(JSON_LENGTH(
+                           data->'$.config.locationData'
+                       ), 0)) AS num_locations,
+                    IF(JSON_TYPE(data->'$.config.data') = 'NULL',
+                       0, COALESCE(JSON_LENGTH(
+                           data->'$.config.data'
+                       ), 0)) AS num_key_values,
+                    COALESCE(
+                        JSON_STORAGE_SIZE(JSON_EXTRACT(data, '$.config'))
+                        - JSON_STORAGE_SIZE(JSON_EXTRACT(data, '$.config.metadata')),
+                        0
+                    ) AS data_bytes
+                FROM resources
+                WHERE identifier IN :ids
+            """
+
+        try:
+            with self.engine.begin() as conn:
+                query = sqlalchemy.text(query_text).bindparams(
+                    sqlalchemy.bindparam("ids", expanding=True),
+                    ids=list(datacontainer_ids),
+                )
+                rows_by_id = {row.identifier: row for row in conn.execute(query)}
+        except Exception as error:
+            msg = f"Unable to get statistics for datacontainer(s) {datacontainer_ids}"
+            self.log.critical(f"{msg}. Error: {error}")
+            raise SystemError(f"{msg}. Error: {error}") from error
+
+        empty_stats = DataContainerStatistics(
+            number_of_tables=0,
+            number_of_locations=0,
+            number_of_key_values=0,
+            total_data_bytes=0,
+        )
+
+        return {
+            container_id: (
+                DataContainerStatistics(
+                    number_of_tables=row.num_tables,
+                    number_of_locations=row.num_locations,
+                    number_of_key_values=row.num_key_values,
+                    total_data_bytes=row.data_bytes,
+                )
+                if (row := rows_by_id.get(container_id)) is not None
+                else empty_stats
+            )
+            for container_id in datacontainer_ids
+        }

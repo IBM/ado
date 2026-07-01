@@ -214,11 +214,11 @@ Suppose an experiment declares the following required input domains:
   domain:
    values: [granite-3-8b, llama3-8b, mistral-7b-v0.1, granite-34b-code-base]
 
-- identifier: batch_size 
+- identifier: batch_size
   domain:
     domainRange: [1, 4097]
     interval: 1
-    
+
 - identifier: temperature
   domain:
     domainRange: [0.0, 100.0]

@@ -43,7 +43,7 @@ from orchestrator.metastore.base import (
     NoRelatedResourcesError,
     ResourceDoesNotExistError,
 )
-from orchestrator.modules.actuators.registry import UnknownExperimentError
+from orchestrator.modules.actuators.errors import UnknownExperimentError
 
 CREATE_OPERATION_PANEL_NAME = "Operation-specific options"
 CREATE_SPACE_PANEL_NAME = "Space-specific options"

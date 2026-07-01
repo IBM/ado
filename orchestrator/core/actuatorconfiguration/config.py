@@ -8,6 +8,7 @@ import pydantic
 from pydantic import ConfigDict
 
 from orchestrator.core.metadata import ConfigurationMetadata
+from orchestrator.utilities.pydantic import ignore_plugin_validation
 
 if typing.TYPE_CHECKING:  # pragma: nocover
     from orchestrator.modules.actuators.base import ActuatorBase
@@ -41,10 +42,13 @@ class ActuatorConfiguration(pydantic.BaseModel):
     ] = ConfigurationMetadata()
 
     @pydantic.model_validator(mode="after")
-    def validate_model(self) -> "ActuatorConfiguration":
+    def validate_model(self, info: pydantic.ValidationInfo) -> "ActuatorConfiguration":
+        if ignore_plugin_validation(info):
+            return self
+
+        from orchestrator.modules.actuators.errors import UnknownActuatorError
         from orchestrator.modules.actuators.registry import (
             ActuatorRegistry,
-            UnknownActuatorError,
         )
 
         def validate_or_default_parameters(

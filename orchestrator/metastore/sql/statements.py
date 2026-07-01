@@ -3,54 +3,104 @@
 
 import json
 from types import NoneType
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 import sqlalchemy
 
 from orchestrator.core.resources import ADOResource
 
+if TYPE_CHECKING:
+    from orchestrator.core.resources import CoreResourceKinds
 
-def simulate_json_contains_on_sqlite(path: str, candidate: str) -> str:
+# The resource hierarchy has 4 levels (samplestore → discoveryspace →
+# operation → {datacontainer, actuatorconfiguration}), so the maximum
+# meaningful hop count between any two levels is 3.
+_MAX_HIERARCHY_HOPS = 3
+
+
+def _quote_sql_identifier(identifier: str) -> str:
+    """
+    Quote a SQL identifier to prevent SQL injection.
+
+    Uses double quotes and escapes any double quotes in the identifier by doubling them,
+    which is the standard SQL way to escape quotes in identifiers.
+
+    Args:
+        identifier: The identifier to quote
+
+    Returns:
+        The quoted identifier safe for use in SQL
+    """
+    # Escape any double quotes by doubling them, then wrap in double quotes
+    escaped = identifier.replace('"', '""')
+    return f'"{escaped}"'
+
+
+def simulate_json_contains_on_sqlite(
+    path: str,
+    candidate: str,
+    table_name: str = "resources",
+    json_column: str = "data",
+    id_column: str = "identifier",
+) -> str:
     """
     Simulate MySQL's JSON_CONTAINS on SQLite.
+
     On MySQL, JSON_CONTAINS allows searching for a JSON document within a JSON field.
     It matches all documents that contains at least the provided JSON document.
 
     In our simulated version, we prepare a subquery that can be used in a WHERE statement
-    that filters resources making sure their identifier is one that has all the fields
+    that filters rows making sure their ID is one that has all the fields
     from the candidate document.
 
     Args:
         path (str): The path to the JSON field to check.
         candidate (str): The JSON document to check.
+        table_name (str): Name of the table to query (default: "resources").
+        json_column (str): Name of the JSON column to search (default: "data").
+        id_column (str): Name of the ID column to return (default: "identifier").
 
     Returns:
         str: The SQLite query that checks whether the provided document exists.
+
+    Raises:
+        ValueError: If table_name, json_column, or id_column contain invalid characters.
     """
+    # Quote SQL identifiers to prevent SQL injection
+    quoted_table_name = _quote_sql_identifier(table_name)
+    quoted_json_column = _quote_sql_identifier(json_column)
+    quoted_id_column = _quote_sql_identifier(id_column)
 
     # The subqueries produced by check_field_in_sqlite_json_document need to be
     # INTERSECT-ed to make sure we only retrieve the identifiers that match all
     # the subqueries.
-    subqueries = check_field_in_sqlite_json_document(json.loads(candidate), path)
+    subqueries = check_field_in_sqlite_json_document(
+        json.loads(candidate), path, id_column=quoted_id_column
+    )
 
     return ("""
-        identifier IN (
+        {id_column} IN (
             WITH F AS (
-                SELECT r.identifier, jt.key, jt.value, jt.path
+                SELECT t.{id_column}, jt.key, jt.value, jt.path
                 FROM
-                    resources r,
-                    json_tree(r.data, '{path}') jt
+                    {table_name} t,
+                    json_tree(t.{json_column}, '{path}') jt
             )
             {subqueries}
         )
-        """).format(  # noqa: S608 - we don't care about local sql injection
+        """).format(  # noqa: S608 - identifiers are quoted to prevent injection
         path=path,
+        table_name=quoted_table_name,
+        json_column=quoted_json_column,
+        id_column=quoted_id_column,
         subqueries="\n            INTERSECT ".join(subqueries),
     )
 
 
 def check_field_in_sqlite_json_document(
-    candidate: dict | list | str | float, path: str
+    candidate: dict | list | str | float,
+    path: str,
+    id_column: str = "identifier",
 ) -> list[str]:
     """
     Generate SQLite-compatible SQL fragments to check for the presence of specific fields or values
@@ -70,11 +120,17 @@ def check_field_in_sqlite_json_document(
             - If a scalar (str, int, float), generates a simple query checking for value presence.
             - If a dict or list, recursively builds queries for nested fields and values.
         path (str): The JSON path (e.g., '$.config.spaces') used to locate the field within the document.
+        id_column (str): Name of the ID column to select (default: "identifier").
 
     Returns:
         list[str]: A list of SQL SELECT statements that can be combined via INTERSECT
         to filter rows whose JSON documents contain the specified structure or values.
+
+    Raises:
+        ValueError: If id_column contains invalid characters.
     """
+    # Note: id_column is expected to already be quoted by the caller
+    # (simulate_json_contains_on_sqlite) to prevent SQL injection
     _ScalarType = str | int | float | bool | None
 
     def _searchable_scalar_value_for_query_string(value: _ScalarType) -> str:
@@ -89,7 +145,7 @@ def check_field_in_sqlite_json_document(
         raise ValueError(f"Unexpected type {type(value)}")
 
     fragments = []
-    preamble = "SELECT identifier FROM F WHERE "
+    preamble = f"SELECT {id_column} FROM F WHERE "  # noqa: S608 - id_column is quoted by caller
 
     # The user has provided a scalar candidate.
     # There are two options:
@@ -178,13 +234,17 @@ def check_field_in_sqlite_json_document(
         # Example:
         #   - ado get operation -q 'status=[{"event": "finished", "exit_state": "success"}]'
         if isinstance(field, list | dict):
-            fragments.extend(check_field_in_sqlite_json_document(field, path))
+            fragments.extend(
+                check_field_in_sqlite_json_document(field, path, id_column)
+            )
             continue
 
         # When dealing with lists we use recursion to ensure we process
         # their contents.
         if isinstance(candidate, list):
-            fragments.extend(check_field_in_sqlite_json_document(field, path))
+            fragments.extend(
+                check_field_in_sqlite_json_document(field, path, id_column)
+            )
             continue
 
         # We now know that:
@@ -208,7 +268,7 @@ def check_field_in_sqlite_json_document(
 
             fragments.extend(
                 check_field_in_sqlite_json_document(
-                    candidate[field], f"{path}%.{field_pattern}"
+                    candidate[field], f"{path}%.{field_pattern}", id_column
                 )
             )
             continue
@@ -489,3 +549,181 @@ def resource_select_latest_by_kinds(
         FROM ranked_resources
         WHERE rn = 1
     """).bindparams(sqlalchemy.bindparam("kinds", value=kinds, expanding=True))
+
+
+def graph_traversal_query(
+    kind: "CoreResourceKinds",
+    hierarchy_direction: Literal["up", "down", "both"],
+    origin_identifiers: set[str],
+    max_hops: int | None = None,
+) -> sqlalchemy.TextClause:
+    """Build and return a recursive CTE traversal SQL for the resource hierarchy.
+
+    The query normalizes the stored relationships into logical directed edges:
+
+    * samplestore → discoveryspace
+    * discoveryspace → operation
+    * operation → datacontainer
+    * operation → actuatorconfiguration
+
+    Traversal starts from every identifier in ``origin_identifiers`` whose
+    resource kind matches ``kind`` and recursively follows those logical edges
+    upward, downward, or in both directions.
+
+    Args:
+        kind: Starting resource kind.
+        hierarchy_direction: ``'up'``, ``'down'`` or ``'both'``.
+        origin_identifiers: Set of start resource identifiers to bind.
+        max_hops: Maximum number of hops to follow from the start resource.
+            When ``None`` the traversal runs to the full depth of the
+            hierarchy. For ``hierarchy_direction='both'`` the limit is applied
+            independently to each direction (up and down). Must be a positive
+            integer; values exceeding the hierarchy maximum are silently capped
+            at that maximum.
+
+    Returns:
+        A bound :class:`sqlalchemy.TextClause` ready to execute.
+
+    Raises:
+        ValueError: If ``hierarchy_direction`` is invalid.
+    """
+    if hierarchy_direction not in {"up", "down", "both"}:
+        raise ValueError(
+            "hierarchy_direction must be 'up', 'down' or 'both', "
+            f"got {hierarchy_direction!r}"
+        )
+
+    if max_hops is not None and max_hops < 1:
+        raise ValueError(f"max_hops must be a positive integer, got {max_hops!r}")
+
+    effective_max_hops = (
+        _MAX_HIERARCHY_HOPS if max_hops is None else min(max_hops, _MAX_HIERARCHY_HOPS)
+    )
+
+    # Builds the recursive CTE for one direction. Going "up" follows edges
+    # backward (to→from); going "down" follows them forward (from→to).
+    def _traversal_cte(direction: Literal["up", "down"], n: int) -> str:
+        cte_name = f"{direction}_traversal"
+        next_kind = "from_kind" if direction == "up" else "to_kind"
+        next_id = "from_identifier" if direction == "up" else "to_identifier"
+        join_col = (
+            "to_identifier" if direction == "up" else "from_identifier"
+        )  # anchor: opposite end of next_id
+        return f""",
+        {cte_name} AS (
+            SELECT origin.identifier AS origin_identifier,
+                   origin.kind       AS current_kind,
+                   origin.identifier AS current_identifier,
+                   0                 AS depth
+            FROM   resources origin
+            WHERE  origin.kind = :start_kind
+              AND  origin.identifier IN :origins
+
+            UNION ALL
+
+            SELECT {cte_name}.origin_identifier AS origin_identifier,
+                   logical_edges.{next_kind}    AS current_kind,
+                   logical_edges.{next_id}      AS current_identifier,
+                   {cte_name}.depth + 1         AS depth
+            FROM   {cte_name}
+            JOIN   logical_edges
+              ON   logical_edges.{join_col} = {cte_name}.current_identifier
+            WHERE  {cte_name}.depth < {n}
+        )"""  # noqa: S608
+
+    # Produces the final SELECT from a single traversal CTE, excluding the seed row (depth > 0).
+    def _single_select(d: Literal["up", "down"]) -> str:
+        cte_name = f"{d}_traversal"
+        return f"""
+        SELECT {cte_name}.origin_identifier AS origin_identifier,
+               {cte_name}.current_identifier AS identifier,
+               {cte_name}.current_kind AS kind
+        FROM   {cte_name}
+        WHERE  {cte_name}.depth > 0"""  # noqa: S608
+
+    # logical_edges is a non-recursive CTE; WITH RECURSIVE is required at the
+    # clause level by SQLite because the subsequent traversal CTEs are recursive.
+    logical_edges_sql = """
+        WITH RECURSIVE logical_edges AS (
+            SELECT parent.identifier AS from_identifier,
+                   parent.kind       AS from_kind,
+                   child.identifier  AS to_identifier,
+                   child.kind        AS to_kind
+            FROM   resource_relationships rr
+            JOIN   resources parent
+              ON   parent.identifier = rr.subject_identifier
+            JOIN   resources child
+              ON   child.identifier = rr.object_identifier
+            WHERE  (parent.kind = :samplestore_kind AND child.kind = :discoveryspace_kind)
+                OR (parent.kind = :discoveryspace_kind AND child.kind = :operation_kind)
+                OR (parent.kind = :operation_kind AND child.kind = :datacontainer_kind)
+
+            UNION ALL
+
+            -- actuatorconfiguration is stored as subject with operation as object,
+            -- so the logical parent→child direction is reversed compared to the
+            -- other relationships above.
+            SELECT parent.identifier AS from_identifier,
+                   parent.kind       AS from_kind,
+                   child.identifier  AS to_identifier,
+                   child.kind        AS to_kind
+            FROM   resource_relationships rr
+            JOIN   resources child
+              ON   child.identifier = rr.subject_identifier
+             AND   child.kind = :actuatorconfiguration_kind
+            JOIN   resources parent
+              ON   parent.identifier = rr.object_identifier
+             AND   parent.kind = :operation_kind
+        )
+    """
+
+    if hierarchy_direction == "up":
+        traversal_sql = _traversal_cte("up", effective_max_hops) + _single_select("up")
+    elif hierarchy_direction == "down":
+        traversal_sql = _traversal_cte("down", effective_max_hops) + _single_select(
+            "down"
+        )
+    else:
+        # Both directions: up_traversal and down_traversal run independently,
+        # each bounded by effective_max_hops, then UNIONed.
+        traversal_sql = f"""
+        {_traversal_cte("up", effective_max_hops).strip()}
+        {_traversal_cte("down", effective_max_hops).strip()}
+        SELECT related.origin_identifier AS origin_identifier,
+               related.identifier AS identifier,
+               related.kind AS kind
+        FROM   (
+            {_single_select("up").strip()}
+
+            UNION ALL
+
+            {_single_select("down").strip()}
+        ) related
+        """  # noqa: S608
+
+    from orchestrator.core.resources import CoreResourceKinds
+
+    binds = [
+        sqlalchemy.bindparam(key="start_kind", value=kind.value),
+        sqlalchemy.bindparam(
+            key="origins", value=list(origin_identifiers), expanding=True
+        ),
+        sqlalchemy.bindparam(
+            key="samplestore_kind", value=CoreResourceKinds.SAMPLESTORE.value
+        ),
+        sqlalchemy.bindparam(
+            key="discoveryspace_kind", value=CoreResourceKinds.DISCOVERYSPACE.value
+        ),
+        sqlalchemy.bindparam(
+            key="operation_kind", value=CoreResourceKinds.OPERATION.value
+        ),
+        sqlalchemy.bindparam(
+            key="datacontainer_kind", value=CoreResourceKinds.DATACONTAINER.value
+        ),
+        sqlalchemy.bindparam(
+            key="actuatorconfiguration_kind",
+            value=CoreResourceKinds.ACTUATORCONFIGURATION.value,
+        ),
+    ]
+
+    return sqlalchemy.text(logical_edges_sql + traversal_sql).bindparams(*binds)

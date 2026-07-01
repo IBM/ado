@@ -18,18 +18,42 @@ COLOR_FORMAT = (
     "%(log_color)s%(message)s"
 )
 
+# Guard flag to make configure_logging() idempotent within a process.
+# Many modules call configure_logging() at module level so that they work
+# correctly when imported directly (e.g. inside Ray workers).  In the test
+# suite those same modules may be lazily imported for the first time inside a
+# typer CliRunner.invoke() call, at which point sys.stderr has been replaced by
+# the runner's captured-output buffer.  Without this guard the root logger
+# handler would point to that temporary buffer; once the invoke() returns and
+# the buffer is closed, every subsequent log call raises
+# "ValueError: I/O operation on closed file." and pollutes following invocations
+# with "--- Logging error ---" text captured via Python's handleError() fallback.
+_logging_configured = False
+
 
 def uniform_color(color: str) -> dict:
+    """Return a dict mapping every log level name to *color*."""
     return dict.fromkeys(["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], color)
 
 
 def configure_logging() -> None:
+    """Configure the root logger with a colorized (or plain) stream handler.
 
-    # Create a root logger
+    Idempotent: the full handler setup only runs once per process.  Subsequent
+    calls merely update the root logger's effective level from the ``LOGLEVEL``
+    environment variable, which is safe to do at any time.
+    """
+    global _logging_configured
+
     import os
 
     logger = logging.getLogger()
     LOGLEVEL = os.environ.get("LOGLEVEL", "WARNING").upper()
+
+    if _logging_configured:
+        logger.setLevel(LOGLEVEL)
+        return
+
     logging.basicConfig(level=LOGLEVEL, format=FORMAT)
 
     color_formatter = colorlog.ColoredFormatter(
@@ -67,3 +91,4 @@ def configure_logging() -> None:
         console_handler.setFormatter(logging.Formatter(fmt=FORMAT))
 
     logger.addHandler(console_handler)
+    _logging_configured = True

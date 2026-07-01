@@ -98,6 +98,55 @@ ExecutionTypeUnion = Annotated[
 ]
 
 
+# Ray RuntimeEnvironmentConfiguration defaults
+# Used in next class
+RAY_DEFAULT_SETUP_TIMEOUT_SECONDS = 600
+RAY_DEFAULT_EAGER_INSTALL = True
+
+
+class RuntimeEnvironmentConfiguration(pydantic.BaseModel):
+    """Ray ``runtime_env.config`` options for remote job submission.
+
+    Maps to Ray's ``RuntimeEnvConfig`` (see Ray handling-dependencies docs).
+    Field defaults match Ray's defaults and are always written when ``runtimeEnv``
+    is present on the execution context.
+    """
+
+    model_config = pydantic.ConfigDict(extra="forbid")
+
+    setupTimeoutSeconds: Annotated[
+        int,
+        pydantic.Field(
+            description=(
+                "Maximum seconds to create the job runtime environment on a worker. "
+                "Use -1 to disable the timeout."
+            ),
+        ),
+    ] = RAY_DEFAULT_SETUP_TIMEOUT_SECONDS
+
+    eagerInstall: Annotated[
+        bool,
+        pydantic.Field(
+            description=(
+                "If true, install the job runtime environment on nodes when the job "
+                "starts. If false, install lazily when the first task runs."
+            ),
+        ),
+    ] = RAY_DEFAULT_EAGER_INSTALL
+
+    @pydantic.field_validator("setupTimeoutSeconds")
+    @classmethod
+    def validate_setup_timeout_seconds(cls, value: int) -> int:
+        """Validate setup timeout matches Ray rules."""
+        if value == -1:
+            return value
+        if value <= 0:
+            raise ValueError(
+                "setupTimeoutSeconds must be greater than zero or -1 to disable timeout"
+            )
+        return value
+
+
 class PackageConfiguration(pydantic.BaseModel):
     """Configuration for Python packages to install in the Ray job environment."""
 
@@ -169,6 +218,16 @@ class RemoteExecutionContext(pydantic.BaseModel):
             default_factory=dict,
         ),
     ]
+
+    runtimeEnv: Annotated[
+        RuntimeEnvironmentConfiguration | None,
+        pydantic.Field(
+            description=(
+                "Optional Ray runtime environment configuration (setup timeout, "
+                "eager install). Written to the ``config`` section of runtime_env.yaml."
+            ),
+        ),
+    ] = None
 
     additionalFiles: Annotated[
         list[str],

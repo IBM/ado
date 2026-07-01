@@ -8,11 +8,11 @@ import pydantic
 import yaml
 
 from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
-from orchestrator.modules.actuators.base import ActuatorBase, DeprecatedExperimentError
+from orchestrator.modules.actuators.base import ActuatorBase
 from orchestrator.modules.actuators.catalog import ExperimentCatalog
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
 from orchestrator.schema.entity import Entity
-from orchestrator.schema.experiment import Experiment, ParameterizedExperiment
+from orchestrator.schema.experiment import Experiment
 from orchestrator.schema.reference import ExperimentReference
 from orchestrator.schema.request import MeasurementRequest
 
@@ -123,21 +123,10 @@ class RoboticLab(ActuatorBase):
             requestid=str(uuid.uuid4())[:6],  # Create UID as you like
         )
 
-        ## Check if the requested experiment is deprecated
+        ## Resolve the experiment from the catalog (validates version, deprecation, and parameterization)
         experiment = self.__class__.catalog().experimentForReference(
-            request.experimentReference
+            request.experimentReference, resolve=True
         )
-
-        ## Check if the experiment has parameterization fields and create the right ParameterizedExperiment instance
-        ## Note: this is necessary for getting values of optional properties that the discoverySpace overrides
-        if experimentReference.parameterization:
-            experiment = ParameterizedExperiment(
-                parameterization=experimentReference.parameterization,
-                **experiment.model_dump(),
-            )
-
-        if experiment.deprecated is True:
-            raise DeprecatedExperimentError(f"Experiment {experiment} is deprecated")
 
         ## Execute experiment
         ## Note: Here the experiment instance is just past for convenience since we retrieved it above

@@ -306,7 +306,7 @@ above, it is `randomwalk-0.9.4.dev30+564196d4.dirty-b8a233`.
 The command
 
 ```commandline
-ado show entities operation --use-latest
+ado show measurements operation --use-latest
 ```
 
 displays the results of the operation i.e. the entities sampled and the
@@ -519,16 +519,16 @@ Here are a variety of commands you can try after executing the example above:
 There are multiple ways to view the entities related to a `discoveryspace`. Try:
 
 ```commandline
-ado show entities space --use-latest
-ado show entities space --use-latest --aggregate mean
-ado show entities space --use-latest --include unmeasured
-ado show entities space --use-latest --property-format target
+ado show measurements space --use-latest
+ado show measurements space --use-latest --aggregate mean
+ado show measurements space --use-latest --include unmeasured
+ado show measurements space --use-latest --property-format target
 ```
 
 Also,
 
 ```commandline
-ado show details space --use-latest
+ado show stats discoveryspace --use-latest
 ```
 
 will give you a summary of what has been measured.
@@ -567,7 +567,8 @@ ado template operation --include-schema --operator-name random_walk
 ### Rerun
 
 An interesting thing to try is to run the operation again and compare the output
-of `show entities operation` for the two operations, and `show entities space`.
+of `show measurements operation` for the two operations, and
+`show measurements space`.
 
 ## Takeaways
 
@@ -583,10 +584,10 @@ of `show entities operation` for the two operations, and `show entities space`.
   been completed on an entity and reuse it
 - **provenance**: `ado` stores the relationship between the resources it
   creates.
-- **results viewing**: `ado show entities` outputs the data in a
+- **results viewing**: `ado show measurements` outputs the data in a
   `discoveryspace` or measured in an `operation`.
 - **measurement timeseries**: The sequence (timeseries) of measurements,
   successful or not, of each `operation` is preserved.
-- **`discoveryspace` views**: By default `ado show entities space` only shows
-  successfully measured entities, but you can see what has not been measured if
-  you want.
+- **`discoveryspace` views**: By default `ado show measurements space` only
+  shows successfully measured entities, but you can see what has not been
+  measured if you want.

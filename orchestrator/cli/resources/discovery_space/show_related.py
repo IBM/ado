@@ -22,4 +22,5 @@ def show_resources_related_to_discovery_space(
         resource_type=CoreResourceKinds.DISCOVERYSPACE,
         sql=sql_store,
         hide_banner=True,
+        max_hops=parameters.max_hops,
     )

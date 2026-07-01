@@ -18,7 +18,7 @@ def get_experiment(parameters: AdoGetCommandParameters) -> None:
     """
     List experiments and their actuators.
 
-    Basic mode: Shows EXPERIMENT ID and ACTUATOR ID columns
+    Basic mode: Shows ACTUATOR ID, EXPERIMENT ID, and VERSION columns
     Details mode: Adds DESCRIPTION and DEPRECATED columns
     """
 
@@ -55,11 +55,12 @@ def get_experiment(parameters: AdoGetCommandParameters) -> None:
         data = []
 
         if not parameters.show_details:
-            columns = ["ACTUATOR ID", "EXPERIMENT ID"]
+            columns = ["ACTUATOR ID", "EXPERIMENT ID", "VERSION"]
         else:
             columns = [
                 "ACTUATOR ID",
                 "EXPERIMENT ID",
+                "VERSION",
                 "DESCRIPTION",
             ]
 
@@ -82,10 +83,11 @@ def get_experiment(parameters: AdoGetCommandParameters) -> None:
                 ):
                     continue
 
-                # Have Actuator ID and Experiment ID by default
+                # Have Actuator ID, Experiment ID, and VERSION by default
                 row = [
                     actuator_id,
                     experiment.identifier,
+                    experiment.version,
                 ]
 
                 # Show details adds description

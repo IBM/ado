@@ -27,7 +27,10 @@ from orchestrator.core import CoreResourceKinds
 from orchestrator.core.discoveryspace.config import DiscoverySpaceConfiguration
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.metastore.base import ResourceDoesNotExistError
-from orchestrator.modules.actuators.registry import UnknownExperimentError
+from orchestrator.modules.actuators.errors import (
+    ExperimentVersionMismatchError,
+    UnknownExperimentError,
+)
 
 
 def create_discovery_space(parameters: AdoCreateCommandParameters) -> str | None:
@@ -170,7 +173,7 @@ def create_discovery_space(parameters: AdoCreateCommandParameters) -> str | None
         )
         with Status("Creating your sample store"):
             sample_store_resource, _ = create_sample_store_resource(
-                conf=sample_store_configuration, resourceStore=sql_store
+                configuration=sample_store_configuration, resource_store=sql_store
             )
 
         space_configuration.sampleStoreIdentifier = sample_store_resource.identifier
@@ -191,6 +194,12 @@ def create_discovery_space(parameters: AdoCreateCommandParameters) -> str | None
         except UnknownExperimentError as error:
             console_print(
                 f"{ERROR}Unknown experiment in configuration. This can be due to an actuator not being installed or if the referenced experiment is external: {error}",
+                stderr=True,
+            )
+            raise typer.Exit(1) from error
+        except ExperimentVersionMismatchError as error:
+            console_print(
+                f"{ERROR}Experiment version mismatch in configuration: {error}",
                 stderr=True,
             )
             raise typer.Exit(1) from error
@@ -244,6 +253,13 @@ def create_discovery_space(parameters: AdoCreateCommandParameters) -> str | None
             )
         except ResourceDoesNotExistError:
             raise
+        except ExperimentVersionMismatchError as error:
+            status.stop()
+            console_print(
+                f"{ERROR}Experiment version mismatch when creating the discovery space: {error}",
+                stderr=True,
+            )
+            raise typer.Exit(1) from error
         except Exception as error:
             status.stop()
             console_print(

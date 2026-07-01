@@ -14,8 +14,10 @@ from rich.status import Status
 from orchestrator.cli.models.types import (
     AdoEditSupportedEditors,
     AdoGetSupportedOutputFormats,
+    AdoShowTraceSupportedOutputFormats,
 )
 from orchestrator.cli.utils.generic.wrappers import get_sql_store
+from orchestrator.cli.utils.output.dataframes import df_to_output
 from orchestrator.cli.utils.output.prints import (
     ADO_GET_CONFIG_ONLY_WHEN_SINGLE_RESOURCE,
     ADO_INFO_EMPTY_DATAFRAME,
@@ -23,18 +25,22 @@ from orchestrator.cli.utils.output.prints import (
     ADO_SPINNER_QUERYING_DB,
     ADO_SPINNER_SAVING_TO_DB,
     ERROR,
-    INFO,
     SUCCESS,
     console_print,
     cyan,
 )
 from orchestrator.cli.utils.resources.formatters import (
+    format_ado_get_stats_for_datacontainers,
+    format_ado_get_stats_for_operations,
+    format_ado_get_stats_for_samplestores,
+    format_ado_get_stats_for_spaces,
     format_default_ado_get_multiple_resources,
     format_default_ado_get_single_resource,
     format_resource_for_ado_get_custom_format,
 )
 from orchestrator.core.metadata import ConfigurationMetadata
 from orchestrator.metastore.base import ResourceDoesNotExistError
+from orchestrator.utilities.output import pydantic_model_as_yaml
 from orchestrator.utilities.rich import dataframe_to_rich_table
 
 logger = logging.getLogger(__name__)
@@ -44,11 +50,108 @@ if typing.TYPE_CHECKING:
 
     from orchestrator.cli.models.parameters import (
         AdoGetCommandParameters,
+        AdoShowTraceCommandParameters,
         AdoUpgradeCommandParameters,
     )
     from orchestrator.core import ADOResource, CoreResourceKinds
     from orchestrator.metastore.project import ProjectContext
     from orchestrator.metastore.sqlstore import SQLStore
+
+
+def _render_dataframe_table_output(
+    df: "pd.DataFrame", parameters: "AdoGetCommandParameters"
+) -> None:
+    """Render a DataFrame as a rich table or print the empty-data message."""
+    import rich.box
+
+    if df.empty:
+        console_print(ADO_INFO_EMPTY_DATAFRAME, stderr=True)
+        return
+
+    if parameters.output_file:
+        do_not_truncate = True
+    else:
+        do_not_truncate = (
+            ["IDENTIFIER"] if not parameters.no_trunc else parameters.no_trunc
+        )
+
+    table = dataframe_to_rich_table(
+        df,
+        box=rich.box.SQUARE,
+        show_index=True,
+        show_edge=True,
+        do_not_truncate_columns=do_not_truncate,
+    )
+    _write_or_print_output(table, parameters.output_file)
+
+
+def _build_table_output_dataframe(
+    parameters: "AdoGetCommandParameters",
+    resource_type: "CoreResourceKinds | None",
+    dataframe: "pd.DataFrame | None",
+    resources: "list[ADOResource] | ADOResource | None",
+) -> "pd.DataFrame":
+    """Build the DataFrame used by table-like get output formats."""
+    import pandas as pd
+
+    if dataframe is not None:
+        return dataframe
+
+    if resources is not None:
+        if isinstance(resources, list):
+            if not resources:
+                return pd.DataFrame()
+            return pd.concat(
+                [
+                    format_default_ado_get_single_resource(
+                        resource=resource, show_details=parameters.show_details
+                    )
+                    for resource in resources
+                ],
+                ignore_index=True,
+            )
+
+        return format_default_ado_get_single_resource(
+            resource=resources, show_details=parameters.show_details
+        )
+
+    if resource_type is None:
+        console_print(
+            f"{ERROR}resource_type must be provided when dataframe and resources are None",
+            stderr=True,
+        )
+        raise typer.Exit(1)
+
+    sql_store = get_sql_store(
+        project_context=parameters.ado_configuration.project_context
+    )
+    with Status(ADO_SPINNER_QUERYING_DB) as status:
+        if not parameters.resource_id:
+            resources_df = sql_store.getResourceIdentifiersOfKind(
+                kind=resource_type.value,
+                field_selectors=parameters.field_selectors,
+                details=parameters.show_details,
+            )
+
+            status.update(ADO_SPINNER_GETTING_OUTPUT_READY)
+            return format_default_ado_get_multiple_resources(
+                resources=resources_df,
+                resource_kind=resource_type,
+            )
+
+        resource = sql_store.getResource(
+            identifier=parameters.resource_id, kind=resource_type
+        )
+
+        if not resource:
+            status.stop()
+            raise ResourceDoesNotExistError(
+                resource_id=parameters.resource_id, kind=resource_type
+            )
+
+        return format_default_ado_get_single_resource(
+            resource=resource, show_details=parameters.show_details
+        )
 
 
 def handle_ado_get(
@@ -78,6 +181,8 @@ def handle_ado_get(
             _handle_name_format(parameters, resource_type, dataframe, resources)
         case AdoGetSupportedOutputFormats.TABLE:
             _handle_table_format(parameters, resource_type, dataframe, resources)
+        case AdoGetSupportedOutputFormats.STATS:
+            _handle_stats_format(parameters, resource_type, dataframe, resources)
         case AdoGetSupportedOutputFormats.RAW:
             _handle_raw_format(parameters, resource_type)
         case (
@@ -186,104 +291,92 @@ def _handle_table_format(
     resources: "list[ADOResource] | ADOResource | None",
 ) -> None:
     """Handle TABLE output format - render DataFrame as table."""
-    import pandas as pd
-    import rich.box
+    output_df = _build_table_output_dataframe(
+        parameters=parameters,
+        resource_type=resource_type,
+        dataframe=dataframe,
+        resources=resources,
+    )
+    return _render_dataframe_table_output(output_df, parameters)
 
-    def _handle_df_output_for_table_format(df: "pd.DataFrame") -> None:
-        if df.empty:
-            console_print(ADO_INFO_EMPTY_DATAFRAME, stderr=True)
-            return
 
-        # When writing to file, avoid truncating columns by default
-        if parameters.output_file:
-            do_not_truncate = True
-        else:
-            do_not_truncate = (
-                ["IDENTIFIER"] if not parameters.no_trunc else parameters.no_trunc
-            )
+def _handle_stats_format(
+    parameters: "AdoGetCommandParameters",
+    resource_type: "CoreResourceKinds | None",
+    dataframe: "pd.DataFrame | None",
+    resources: "list[ADOResource] | ADOResource | None",
+) -> None:
+    """Handle STATS output format - TABLE columns plus measurement/space stats columns.
 
-        table = dataframe_to_rich_table(
-            df,
-            box=rich.box.SQUARE,
-            show_index=True,
-            show_edge=True,
-            do_not_truncate_columns=do_not_truncate,
-        )
-        _write_or_print_output(table, parameters.output_file)
-        return
+    Supported for:
+    - operations (columns: TOTAL_RESULTS, SUCCESSFUL_RESULTS, FAILED_RESULTS,
+      MEASURED_ENTITIES)
+    - discovery spaces (columns: EXPERIMENTS, OPERATIONS, EXPLORE_OPERATIONS,
+      MEASURED_ENTITIES)
+    - sample stores (columns: ENTITIES, RESULTS, EXPERIMENTS)
+    - data containers (columns: TABLES, LOCATIONS, KEY_VALUES, DATA_BYTES)
 
-    # If dataframe provided, use it directly
-    if dataframe is not None:
-        return _handle_df_output_for_table_format(dataframe)
+    For any other resource type the handler prints an error message and exits
+    with code 1.
+    """
+    from orchestrator.core import CoreResourceKinds
 
-    # If resources provided, convert to DataFrame
-    if resources is not None:
-        if isinstance(resources, list):
-            # Multiple resources: build DataFrame manually
-            if not resources:
-                console_print(ADO_INFO_EMPTY_DATAFRAME, stderr=True)
-                return None
-            # Build DataFrame from resources
-            output_df = pd.concat(
-                [
-                    format_default_ado_get_single_resource(
-                        resource=resource, show_details=parameters.show_details
-                    )
-                    for resource in resources
-                ],
-                ignore_index=True,
-            )
-        else:
-            # Single resource
-            output_df = format_default_ado_get_single_resource(
-                resource=resources, show_details=parameters.show_details
-            )
-
-        return _handle_df_output_for_table_format(output_df)
-
-    # Otherwise use DB query
-    if resource_type is None:
+    _SUPPORTED = {
+        CoreResourceKinds.OPERATION,
+        CoreResourceKinds.DISCOVERYSPACE,
+        CoreResourceKinds.SAMPLESTORE,
+        CoreResourceKinds.DATACONTAINER,
+    }
+    if resource_type is not None and resource_type not in _SUPPORTED:
         console_print(
-            f"{ERROR}resource_type must be provided when dataframe and resources are None",
+            f"{ERROR}The 'stats' output format is only supported for operations, "
+            f"discovery spaces, sample stores, and data containers.",
             stderr=True,
         )
         raise typer.Exit(1)
 
-    sql_store = get_sql_store(
+    base_df = _build_table_output_dataframe(
+        parameters=parameters,
+        resource_type=resource_type,
+        dataframe=dataframe,
+        resources=resources,
+    )
+
+    if base_df.empty:
+        _render_dataframe_table_output(base_df, parameters)
+        return
+
+    # Append stats columns.
+    sql_store_for_stats = get_sql_store(
         project_context=parameters.ado_configuration.project_context
     )
-    with Status(ADO_SPINNER_QUERYING_DB) as status:
-        if not parameters.resource_id:
-            # Multiple resources
-            resources_df = sql_store.getResourceIdentifiersOfKind(
-                kind=resource_type.value,
-                field_selectors=parameters.field_selectors,
-                details=parameters.show_details,
+    with Status(ADO_SPINNER_GETTING_OUTPUT_READY) as status:
+        if resource_type == CoreResourceKinds.DISCOVERYSPACE:
+            enriched_df = format_ado_get_stats_for_spaces(
+                base_df,
+                sql_store_for_stats,
+                spinner=status,
             )
-
-            status.update(ADO_SPINNER_GETTING_OUTPUT_READY)
-            output_df = format_default_ado_get_multiple_resources(
-                resources=resources_df,
-                resource_kind=resource_type,
+        elif resource_type == CoreResourceKinds.SAMPLESTORE:
+            enriched_df = format_ado_get_stats_for_samplestores(
+                base_df,
+                sql_store_for_stats,
+                spinner=status,
             )
-
+        elif resource_type == CoreResourceKinds.DATACONTAINER:
+            enriched_df = format_ado_get_stats_for_datacontainers(
+                base_df,
+                sql_store_for_stats,
+                spinner=status,
+            )
         else:
-            # Single resource
-            resource = sql_store.getResource(
-                identifier=parameters.resource_id, kind=resource_type
+            enriched_df = format_ado_get_stats_for_operations(
+                base_df,
+                sql_store_for_stats,
+                spinner=status,
             )
 
-            if not resource:
-                status.stop()
-                raise ResourceDoesNotExistError(
-                    resource_id=parameters.resource_id, kind=resource_type
-                )
-
-            output_df = format_default_ado_get_single_resource(
-                resource=resource, show_details=parameters.show_details
-            )
-
-    return _handle_df_output_for_table_format(output_df)
+    _render_dataframe_table_output(enriched_df, parameters)
 
 
 def _handle_raw_format(
@@ -403,6 +496,7 @@ def print_related_resources(
     resource_type: "CoreResourceKinds",
     sql: "SQLStore",
     hide_banner: bool = False,
+    max_hops: int | None = None,
 ) -> None:
     with Status(ADO_SPINNER_QUERYING_DB) as status:
         if not sql.containsResourceWithIdentifier(identifier=resource_id):
@@ -410,20 +504,27 @@ def print_related_resources(
             raise ResourceDoesNotExistError(resource_id=resource_id, kind=resource_type)
 
         status.update("Finding related resources")
-        related_resources = sql.getRelatedResourceIdentifiers(resource_id)
+        related_resources = sql.get_resources_by_relationship(
+            kind=resource_type,
+            identifier=resource_id,
+            hierarchy_direction="both",
+            max_hops=max_hops,
+            identifiers_only=True,
+        )
 
-    if related_resources.empty:
+    if not related_resources:
         console_print("There are no related resources", stderr=True)
         return
 
     if not hide_banner:
         console_print(rich.rule.Rule(title="RELATED RESOURCES"))
-    previous_resource_kind = ""
-    for _, row in related_resources.iterrows():
-        if row["TYPE"] != previous_resource_kind:
-            console_print(cyan(row["TYPE"]))
-            previous_resource_kind = row["TYPE"]
-        console_print(f"  - {row['IDENTIFIER']}")
+
+    for kind, identifiers in sorted(
+        related_resources.items(), key=lambda kv: kv[0].value
+    ):
+        console_print(cyan(kind.value))
+        for identifier in identifiers:
+            console_print(f"  - {identifier}")
 
 
 def strategic_merge_configuration_metadata(
@@ -532,265 +633,115 @@ def handle_ado_upgrade(
     parameters: "AdoUpgradeCommandParameters",
     resource_type: "CoreResourceKinds",
 ) -> None:
-    """Upgrade resources, optionally applying legacy migrators
+    """Upgrade resources of the given type.
 
     Args:
-        parameters: Command parameters including legacy migrator options
+        parameters: Command parameters
         resource_type: The type of resource to upgrade
     """
-    # Handle --list-legacy-migrators flag
-    if parameters.list_legacy_migrators:
-        from orchestrator.cli.utils.legacy.list import list_legacy_migrators
-
-        list_legacy_migrators(resource_type)
-        return
-
     sql_store = get_sql_store(
         project_context=parameters.ado_configuration.project_context
     )
 
-    # Normal upgrade path without legacy migrators
-    if not parameters.apply_legacy_migrator:
-
-        with Status(ADO_SPINNER_QUERYING_DB) as status:
-            try:
-                resources = sql_store.getResourcesOfKind(
-                    kind=resource_type.value, ignore_validation_errors=False
-                )
-            except ValueError as err:
-                status.stop()
-                # Validation error occurred - check if legacy migrators can help
-                _handle_upgrade_validation_error(err, resource_type, parameters)
-                raise typer.Exit(1) from err
-
-            for idx, resource in enumerate(resources.values()):
-                status.update(
-                    ADO_SPINNER_SAVING_TO_DB + f" ({idx + 1}/{len(resources)})"
-                )
-                sql_store.updateResource(resource=resource)
-
-        console_print(SUCCESS)
-        return
-
-    # The user has requested legacy migrators
-    legacy_migrators = None
-    # Import migrators package to trigger registration via __init__.py
-    import orchestrator.core.legacy.migrators  # noqa: F401
-    from orchestrator.core.legacy.registry import LegacyMigratorRegistry
-
-    # Validate all migrator IDs exist and match resource type
-    invalid_migrators = []
-    mismatched_migrators = []
-    for migrator_id in parameters.apply_legacy_migrator:
-        migrator = LegacyMigratorRegistry.get_migrator(migrator_id)
-        if migrator is None:
-            invalid_migrators.append(migrator_id)
-        elif migrator.resource_type != resource_type:
-            mismatched_migrators.append(
-                (migrator_id, migrator.resource_type, resource_type)
-            )
-
-    if invalid_migrators:
-        console_print(
-            f"{ERROR}Unknown legacy migrator(s): {', '.join(invalid_migrators)}",
-            stderr=True,
-        )
-        raise typer.Exit(1)
-
-    if mismatched_migrators:
-        for migrator_id, migrator_type, expected_type in mismatched_migrators:
-            console_print(
-                f"{ERROR}Validator '{migrator_id}' is for {migrator_type.value} resources, "
-                f"but you are upgrading {expected_type.value} resources",
-                stderr=True,
-            )
-        raise typer.Exit(1)
-
-    # Resolve dependencies and order migrators
-    try:
-        ordered_ids, missing_deps = LegacyMigratorRegistry.resolve_dependencies(
-            parameters.apply_legacy_migrator
-        )
-
-        if missing_deps:
-            console_print(
-                f"{ERROR}Missing migrator dependencies: {', '.join(missing_deps)}",
-                stderr=True,
-            )
-            raise typer.Exit(1)
-
-        # Get migrators in correct order
-        legacy_migrators = []
-        for migrator_id in ordered_ids:
-            migrator = LegacyMigratorRegistry.get_migrator(migrator_id)
-            if migrator is not None:
-                legacy_migrators.append(migrator)
-
-        # Log the ordering
-        if len(ordered_ids) > len(parameters.apply_legacy_migrator):
-            logger.info(
-                f"Auto-included dependencies: {[vid for vid in ordered_ids if vid not in parameters.apply_legacy_migrator]}"
-            )
-
-        if not legacy_migrators:
-            console_print(
-                f"{ERROR}No migrators were found using the provided identifiers"
-            )
-            raise typer.Exit(1)
-
-        logger.debug(
-            f"Validators in execution order: {[v.identifier for v in legacy_migrators]}"
-        )
-
-    except ValueError as e:
-        # Circular dependency detected
-        console_print(f"{ERROR}{e}", stderr=True)
-        raise typer.Exit(1) from e
-
-    # Import resource class mapping for validation
-    from orchestrator.core import kindmap
-
-    # When legacy migrators are specified, work with raw data
     with Status(ADO_SPINNER_QUERYING_DB) as status:
-
-        identifiers = sql_store.getResourceIdentifiersOfKind(kind=resource_type.value)
-
-        # Phase 1: Collect and validate all migrations (transaction safety)
-        # Validate all resources before saving any to ensure atomicity
-        migrations = []
-        resource_class = kindmap[resource_type.value]
-
-        for idx, identifier in enumerate(identifiers["IDENTIFIER"]):
-            status.update(
-                ADO_SPINNER_QUERYING_DB
-                + f" - Validating ({idx + 1}/{len(identifiers)})"
-            )
-
-            # Get raw data
-            resource_dict = sql_store.getResourceRaw(identifier)
-            if resource_dict is None:
-                continue
-
-            # Apply legacy migrators
-            try:
-                for migrator in legacy_migrators:
-                    logger.debug(
-                        f"Applying migrator: {migrator.identifier} to {identifier}"
-                    )
-                    resource_dict = migrator.migrator_function(resource_dict)
-                    logger.debug(
-                        f"Validator {migrator.identifier} completed for {identifier}"
-                    )
-
-                # Validate the migrated resource (don't save yet)
-                resource = resource_class.model_validate(resource_dict)
-                migrations.append((identifier, resource))
-
-            except Exception as e:
-                logger.error(f"Migration failed for {identifier}: {e}")
-                console_print(
-                    f"{ERROR}Migration validation failed for {identifier}: {e}",
-                    stderr=True,
-                )
-                console_print(
-                    f"{INFO}No resources were modified (all-or-nothing transaction safety)",
-                    stderr=True,
-                )
-                raise typer.Exit(1) from e
-
-        # Phase 2: All validations passed, now save all resources
-        logger.info(
-            f"All {len(migrations)} resources validated successfully, applying changes..."
+        resources = sql_store.getResourcesOfKind(
+            kind=resource_type.value, ignore_validation_errors=False
         )
 
-        for idx, (identifier, migrated_resource) in enumerate(migrations):
-            status.update(ADO_SPINNER_SAVING_TO_DB + f" ({idx + 1}/{len(migrations)})")
-
-            try:
-                sql_store.updateResource(resource=migrated_resource)
-            except Exception as e:
-                logger.error(f"Failed to save {identifier}: {e}")
-                console_print(
-                    f"{ERROR}Failed to save {identifier}. Database may be in inconsistent state.",
-                    stderr=True,
-                )
-                console_print(
-                    f"{ERROR}Manual intervention may be required to restore consistency.",
-                    stderr=True,
-                )
-                raise typer.Exit(1) from e
+        for idx, resource in enumerate(resources.values()):
+            status.update(ADO_SPINNER_SAVING_TO_DB + f" ({idx + 1}/{len(resources)})")
+            sql_store.updateResource(resource=resource)
 
     console_print(SUCCESS)
 
 
-def _handle_upgrade_validation_error(
-    error: ValueError,
-    resource_type: "CoreResourceKinds",
-    parameters: "AdoUpgradeCommandParameters",
+def render_trace_output(
+    measurement_requests: list,
+    parameters: "AdoShowTraceCommandParameters",
+    *,
+    include_operation_id: bool = False,
+    operation_space_map: dict[str, str] | None = None,
 ) -> None:
-    """Handle validation errors during upgrade by suggesting legacy migrators
+    """Render measurement trace data to the configured output format.
 
-    Analyzes the validation error to extract deprecated field names, finds
-    applicable legacy migrators, and displays helpful suggestions to the user.
+    This is the shared rendering step used by all ``show trace`` handlers.
+    It handles YAML serialisation, DataFrame construction, column reordering,
+    column hiding, and final output.
 
     Args:
-        error: The ValueError containing validation error details
-        resource_type: The type of resource being upgraded
-        parameters: The upgrade command parameters
+        measurement_requests: The fetched measurement requests (already filtered).
+        parameters: The ``AdoShowTraceCommandParameters`` carrying output format,
+            hide_fields, no_trunc, output_file, and unroll_entities settings.
+        include_operation_id: When True, each row is stamped with the request's
+            own operation ID (read from ``request.operation_id``).
+        operation_space_map: When not None, a mapping from operation ID to space ID.
+            Each row is stamped with the space ID for its operation.
     """
+    import pandas as pd
 
-    # Import migrators package to trigger registration via __init__.py
-    import orchestrator.core.legacy.migrators  # noqa: F401
-    from orchestrator.cli.utils.legacy.common import (
-        extract_deprecated_field_paths,
-        print_migrator_suggestions_with_dependencies,
+    from orchestrator.cli.resources.trace_common import (
+        REQUEST_COLUMN,
+        REQUEST_COLUMNS_MOVE_TO_END,
+        RESULT_COLUMN,
+        RESULT_COLUMNS_MOVE_TO_END,
+        build_request_level_rows,
+        build_result_level_rows,
     )
-    from orchestrator.core.legacy.registry import LegacyMigratorRegistry
+    from orchestrator.utilities.pandas import reorder_dataframe_columns
 
-    # Extract field paths and error details from the error
-    deprecated_field_paths, field_errors = extract_deprecated_field_paths(
-        error, resource_type
-    )
+    # YAML path: serialise the raw pydantic objects and return early
+    if parameters.output_format == AdoShowTraceSupportedOutputFormats.YAML:
+        yaml_output = pydantic_model_as_yaml(measurement_requests)  # type: ignore[arg-type]
+        if parameters.output_file:
+            parameters.output_file.write_text(yaml_output)
+        else:
+            console_print(yaml_output)
+        return
 
-    # Find applicable legacy migrators using full field paths for precise matching
-    migrators = []
-    if deprecated_field_paths:
-        migrators = LegacyMigratorRegistry.find_migrators_for_deprecated_field_paths(
-            resource_type=resource_type,
-            deprecated_field_paths=deprecated_field_paths,
+    # Build rows for the chosen view mode
+    if parameters.unroll_entities:
+        rows = build_result_level_rows(
+            measurement_requests,
+            include_operation_id=include_operation_id,
+            operation_space_map=operation_space_map,
         )
-
-    # If no migrators found by field path matching, get all migrators for this resource type
-    if not migrators:
-        migrators = LegacyMigratorRegistry.get_migrators_for_resource(resource_type)
-
-    # Display error message
-    console_print(
-        f"\n[bold red]Validation Error[/bold red] while upgrading {resource_type.value} resources"
-    )
-    console_print(
-        "\n[yellow]Some resources could not be loaded as they are using an unsupported legacy format.[/yellow]"
-    )
-
-    if deprecated_field_paths:
-        console_print(
-            f"\n[bold black]{len(deprecated_field_paths)} field(s) with validation errors:[/bold black]"
-        )
-        # Show detailed error messages for each field path
-        for field_path in sorted(deprecated_field_paths):
-            console_print(f"  • [cyan]{field_path}[/cyan]:")
-            for error_msg in field_errors.get(field_path, []):
-                console_print(f"    - {error_msg}")
-
-    console_print()
-    if migrators:
-        print_migrator_suggestions_with_dependencies(
-            migrators=migrators, resource_type=resource_type
-        )
+        move_to_end = RESULT_COLUMNS_MOVE_TO_END
+        id_col = RESULT_COLUMN.REQUEST_ID.value
+        space_id_col = RESULT_COLUMN.SPACE_ID.value
+        op_id_col = RESULT_COLUMN.OPERATION_ID.value
     else:
-        console_print(
-            "\n[yellow]No legacy migrators are available for this resource type.[/yellow]"
+        rows = build_request_level_rows(
+            measurement_requests,
+            include_operation_id=include_operation_id,
+            operation_space_map=operation_space_map,
         )
-        console_print("The resources may be too old or require manual intervention.")
+        move_to_end = REQUEST_COLUMNS_MOVE_TO_END
+        id_col = REQUEST_COLUMN.REQUEST_ID.value
+        space_id_col = REQUEST_COLUMN.SPACE_ID.value
+        op_id_col = REQUEST_COLUMN.OPERATION_ID.value
 
-    console_print()
+    # Build move_to_start: Request ID always first, then Space ID and
+    # Operation ID when present (space before operation).
+    move_to_start = [id_col]
+    if operation_space_map is not None:
+        move_to_start.append(space_id_col)
+    if include_operation_id:
+        move_to_start.append(op_id_col)
+
+    df = pd.DataFrame(rows)
+
+    df = reorder_dataframe_columns(
+        df=df,
+        move_to_start=move_to_start,
+        move_to_end=move_to_end,
+    )
+
+    if parameters.hide_fields:
+        df = df.drop(parameters.hide_fields, axis="columns", errors="ignore")
+
+    df_to_output(
+        df=df,
+        output_format=parameters.output_format.value,
+        output_file=parameters.output_file,
+        no_trunc=parameters.no_trunc,
+    )

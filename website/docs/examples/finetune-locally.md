@@ -4,8 +4,8 @@
 >
 > This example illustrates:
 >
-> 1. Setting up a local environment for running finetuning performance benchmarks
->    using SFTTrainer
+> 1. Setting up a local environment for running finetuning performance
+>    benchmarks using SFTTrainer
 >
 > 2. Benchmarking a set of finetuning configurations for a small model using a
 >    local context and only the CPU
@@ -100,9 +100,9 @@ ado context local
 SFTTrainer includes parameters that control its behavior. For example, it pushes
 any training metrics it collects, like system profiling metadata, to an
 [AIM](https://github.com/aimhubio/aim) server by default. It also features
-parameters that specify important paths, such as the location of the Hugging Face
-cache and the directory where the actuator expects to find files like the test
-dataset.
+parameters that specify important paths, such as the location of the Hugging
+Face cache and the directory where the actuator expects to find files like the
+test dataset.
 
 In this section you will configure the actuator for running experiments locally
 and storing data under the path `/tmp/ado-sft-trainer-hello-world/`.
@@ -202,43 +202,45 @@ To create the Discovery Space:
 
 1. Create the file `space.yaml` with the following content
 
-    <!-- markdownlint-disable line-length -->
-    ```yaml
-    experiments:
-      - experimentIdentifier: finetune_full_benchmark-v1.0.0
-        actuatorIdentifier: SFTTrainer
-        parameterization:
-          - property:
-              identifier: fms_hf_tuning_version
-            value: "2.8.2"
-          - property:
-              identifier: stop_after_seconds
-            value: 30
-          - property:
-              identifier: flash_attn
-            value: False
+   <!-- markdownlint-disable line-length -->
 
-    entitySpace:
-      - identifier: "model_name"
-        propertyDomain:
-          values: ["smollm2-135m"]
-      - identifier: "number_gpus"
-        propertyDomain:
-          values: [0]
-      - identifier: "model_max_length"
-        propertyDomain:
-          values: [512, 1024]
-      - identifier: "batch_size"
-        propertyDomain:
-          values: [1, 2]
-    ```
-    <!-- markdownlint-enable line-length -->
+   ```yaml
+   experiments:
+     - experimentIdentifier: finetune_full_benchmark-v1.0.0
+       actuatorIdentifier: SFTTrainer
+       parameterization:
+         - property:
+             identifier: fms_hf_tuning_version
+           value: "2.8.2"
+         - property:
+             identifier: stop_after_seconds
+           value: 30
+         - property:
+             identifier: flash_attn
+           value: False
+
+   entitySpace:
+     - identifier: "model_name"
+       propertyDomain:
+         values: ["smollm2-135m"]
+     - identifier: "number_gpus"
+       propertyDomain:
+         values: [0]
+     - identifier: "model_max_length"
+       propertyDomain:
+         values: [512, 1024]
+     - identifier: "batch_size"
+       propertyDomain:
+         values: [1, 2]
+   ```
+
+   <!-- markdownlint-enable line-length -->
 
 2. Create the space:
 
-    ```commandline
-    ado create space -f space.yaml
-    ```
+   ```commandline
+   ado create space -f space.yaml
+   ```
 
    The space will use the `default` sample store.
 
@@ -246,42 +248,46 @@ To create the Discovery Space:
 
 1. Create the file `operation.yaml` with the following content:
 
-    ```yaml
-    spaces:
-      - <will be set by ado>
-    actuatorConfigurationIdentifiers:
-      - <will be set by ado>
+   ```yaml
+   spaces:
+     - <will be set by ado>
+   actuatorConfigurationIdentifiers:
+     - <will be set by ado>
 
-    operation:
-      module:
-        operatorName: "random_walk"
-        operationType: "search"
-      parameters:
-        numberEntities: all
-        singleMeasurement: True
-        samplerConfig:
-          mode: sequential
-          samplerType: generator
-    ```
+   operation:
+     module:
+       operatorName: "random_walk"
+       operationType: "search"
+     parameters:
+       numberEntities: all
+       singleMeasurement: True
+       samplerConfig:
+         mode: sequential
+         samplerType: generator
+   ```
 
 2. Create the operation
 
-    ```commandline
-    ado create operation -f operation.yaml \
-                --use-latest space --use-latest actuatorconfiguration
-    ```
+   ```commandline
+   ado create operation -f operation.yaml \
+               --use-latest space --use-latest actuatorconfiguration
+   ```
 
 The operation will execute the measurements (i.e. apply the experiment
 **finetune_full_benchmark-v1.0.0** on the 4 entities) based on the definition of
 your `discoveryspace`. The remaining three measurements will reuse both the
 cached model weights and the cached data, making them faster to complete.
 
+<!-- markdownlint-disable code-block-style -->
+
 !!! info end
-    <!-- markdownlint-disable-next-line code-block-style -->
+
     Each measurement takes about two minutes to complete, with a total of four
     measurements. Ray may take a few minutes to build the Ray runtime
     environment on participating ray workers, so expect the operation to take around
     10 minutes to complete.
+
+<!-- markdownlint-enable code-block-style -->
 
 ### Examine the results of the exploration
 
@@ -291,7 +297,7 @@ measurements:
 <!-- markdownlint-disable line-length -->
 
 ```commandline
-ado show entities space --output csv --use-latest > entities.csv
+ado show measurements space --output csv --use-latest > entities.csv
 ```
 
 <!-- markdownlint-enable line-length -->
@@ -324,6 +330,7 @@ experiment in the SFTTrainer docs. The complete list of measured properties is
 
 ## Next steps
 
+<!-- prettier-ignore-start -->
 <!-- markdownlint-disable line-length -->
 <!-- markdownlint-disable-next-line no-inline-html -->
 <div class="grid cards" markdown>
@@ -354,3 +361,5 @@ experiment in the SFTTrainer docs. The complete list of measured properties is
 
 </div>
 <!-- markdownlint-enable line-length -->
+
+<!-- prettier-ignore-end -->

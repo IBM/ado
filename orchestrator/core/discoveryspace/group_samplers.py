@@ -57,7 +57,19 @@ def _build_point_group_values(
     :return: A frozen set of (key,value) pairs
     """
 
-    return frozenset({(k, v) for k, v in point.items() if k in group})
+    def make_hashable(
+        value: list | tuple | str | float | bool,
+    ) -> tuple | str | float | bool:
+        """
+        Normalize data structures so they can be used in frozenset creation.
+
+        Converts lists to tuples to make them hashable.
+        """
+        if isinstance(value, list):
+            return tuple(value)
+        return value
+
+    return frozenset({(k, make_hashable(v)) for k, v in point.items() if k in group})
 
 
 def _build_groups_dict(

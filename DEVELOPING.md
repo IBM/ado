@@ -151,7 +151,7 @@ markdownlint-cli2 "**/*.md" "#.venv" --fix
 > <!-- prettier-ignore-start -->
 >
 > ...content...
-> 
+>
 > <!-- prettier-ignore-end -->
 > ```
 

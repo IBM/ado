@@ -5,47 +5,111 @@ import logging
 import typing
 import uuid
 
-import orchestrator.modules.module
 import orchestrator.schema
 from orchestrator.core.actuatorconfiguration.config import (
     GenericActuatorParameters,
 )
+from orchestrator.core.metadata import PackageProvenance
 from orchestrator.modules.actuators.base import (
     ActuatorBase,
 )
 from orchestrator.modules.actuators.catalog import (
     ExperimentCatalog,
 )
+from orchestrator.modules.actuators.errors import (
+    DeprecatedExperimentError,
+    ExperimentVersionMismatchError,
+    MissingActuatorConfigurationForCatalogError,
+    UnexpectedCatalogRetrievalError,
+    UnknownActuatorError,
+    UnknownExperimentError,
+)
+from orchestrator.schema.experiment import (
+    Experiment,
+    ExperimentInterfaceIssue,
+    ExperimentInterfaceIssueKind,
+    ParameterizedExperiment,
+)
 from orchestrator.schema.measurementspace import MeasurementSpace
 from orchestrator.schema.reference import ExperimentReference
-from orchestrator.utilities.distribution import distribution_from_module
 from orchestrator.utilities.logging import configure_logging
 
 if typing.TYPE_CHECKING:
     import pandas as pd
-
-    from orchestrator.schema.experiment import Experiment
 
 configure_logging()
 
 CATALOG_EXTENSIONS_CONFIGURATION_FILE_NAME = "custom_experiments.yaml"
 moduleLogger = logging.getLogger("registry")
 
+_MEASUREMENT_SPACE_INTERFACE_ISSUE_TEMPLATES: dict[
+    ExperimentInterfaceIssueKind, str
+] = {
+    ExperimentInterfaceIssueKind.MISSING_REQUIRED_CONSTITUTIVE_IN_PROVIDED: (
+        "measurement-space experiment requires constitutive input "
+        "{identifier!r} that is not declared in the actuator catalog"
+    ),
+    ExperimentInterfaceIssueKind.EXTRA_REQUIRED_CONSTITUTIVE_IN_PROVIDED: (
+        "actuator catalog experiment requires constitutive input "
+        "{identifier!r} that is not required in the measurement-space "
+        "experiment"
+    ),
+    ExperimentInterfaceIssueKind.MISSING_REQUIRED_OBSERVED_IN_PROVIDED: (
+        "measurement-space experiment requires observed input "
+        "{identifier!r} that is not declared in the actuator catalog"
+    ),
+    ExperimentInterfaceIssueKind.EXTRA_REQUIRED_OBSERVED_IN_PROVIDED: (
+        "actuator catalog experiment requires observed input "
+        "{identifier!r} that is not required in the measurement-space "
+        "experiment"
+    ),
+    ExperimentInterfaceIssueKind.PARAMETERIZED_OPTIONAL_NOT_IN_PROVIDED: (
+        "measurement-space experiment parameterizes optional input "
+        "{identifier!r} that is not optional in the actuator catalog"
+    ),
+    ExperimentInterfaceIssueKind.OPTIONAL_NOT_DECLARED_IN_PROVIDED: (
+        "measurement-space experiment declares optional input "
+        "{identifier!r} that is not declared in the actuator catalog"
+    ),
+    ExperimentInterfaceIssueKind.DOMAIN_NOT_COMPATIBLE: (
+        "domain for {identifier!r} in the measurement-space experiment is "
+        "not compatible with the actuator catalog"
+    ),
+    ExperimentInterfaceIssueKind.PARAMETERIZED_VALUE_OUT_OF_DOMAIN: (
+        "parameterized value {value!r} for {identifier!r} in the "
+        "measurement-space experiment is not in the actuator catalog property domain"
+    ),
+    ExperimentInterfaceIssueKind.OPTIONAL_DEFAULT_MISMATCH: (
+        "default value for optional input {identifier!r} is "
+        "{expectedDefault!r} in the measurement-space experiment but "
+        "{providedDefault!r} in the actuator catalog"
+    ),
+    ExperimentInterfaceIssueKind.OUTPUT_NOT_IN_PROVIDED: (
+        "output {identifier!r} declared in the measurement-space experiment "
+        "is not produced by the actuator catalog experiment"
+    ),
+}
 
-class UnknownExperimentError(Exception):
-    pass
 
+def format_measurement_space_interface_issue(
+    expected_experiment: Experiment,
+    issue: ExperimentInterfaceIssue,
+) -> str:
+    """Format a structured interface issue for measurement-space support checks.
 
-class UnknownActuatorError(Exception):
-    """The actuator was never registered to the registry"""
+    Args:
+        expected_experiment: The measurement-space experiment being validated.
+        issue: Structured interface mismatch returned by compatibility checking.
 
-
-class MissingActuatorConfigurationForCatalogError(Exception):
-    """The actuator requires configuration information for it catalog, but it hasn't been provided"""
-
-
-class UnexpectedCatalogRetrievalError(Exception):
-    """The actuator catalog method raised on unexpected exception"""
+    Returns:
+        A user-facing issue string for logging or error reporting.
+    """
+    template = _MEASUREMENT_SPACE_INTERFACE_ISSUE_TEMPLATES[issue.kind]
+    detail = template.format(**issue.model_dump(exclude={"kind"}, exclude_none=True))
+    return (
+        f"ExperimentInterfaceMismatchError: "
+        f"{expected_experiment.actuatorIdentifier}.{expected_experiment}: {detail}"
+    )
 
 
 class ActuatorRegistry:
@@ -87,7 +151,7 @@ class ActuatorRegistry:
         self.actuatorIdentifierMap: dict[str, type[ActuatorBase]] = {}
         # Maps actuator ids to ExperimentCatalog instances
         self.catalogIdentifierMap: dict[str, ExperimentCatalog] = {}
-        # Maps actuator ids to metadata (version and description)
+        # Maps actuator ids to metadata (version, description, and distributionName)
         self.actuatorMetadataMap: dict[str, dict[str, str | None]] = {}
         self.log = logging.getLogger("registry")
         self.id = uuid.uuid4()
@@ -186,7 +250,11 @@ class ActuatorRegistry:
         except (AttributeError, IndexError):
             pass
 
-        return {"version": version, "description": description}
+        return {
+            "version": version,
+            "description": description,
+            "distributionName": "ado-core",
+        }
 
     def _get_plugin_actuator_metadata(
         self, actuator_class: "type[ActuatorBase]"
@@ -199,29 +267,32 @@ class ActuatorRegistry:
         Returns:
             Dictionary with 'version' and 'description' keys
         """
-        import importlib.metadata
+        from orchestrator.core.metadata import PackageProvenance
 
-        version = None
         description = None
+        provenance = PackageProvenance.from_module_name(actuator_class.__module__)
+        if provenance is not None:
+            try:
+                import importlib.metadata
 
-        try:
-            # Get the module name from the actuator class
-            module_name = actuator_class.__module__
-
-            # Find the distribution that contains this module
-            dist_name = distribution_from_module(module_name)
-
-            if dist_name:
-                # Get distribution metadata
-                dist = importlib.metadata.distribution(dist_name)
-                version = dist.metadata.get("Version", None)
+                dist = importlib.metadata.distribution(provenance.distributionName)
                 description = dist.metadata.get("Summary", None)
-        except Exception as e:
-            self.log.debug(
-                f"Could not extract metadata for plugin actuator {actuator_class}: {e}"
-            )
+            except Exception as e:
+                self.log.debug(
+                    f"Could not extract description for plugin actuator "
+                    f"{actuator_class}: {e}"
+                )
+            return {
+                "version": provenance.distributionVersion,
+                "description": description,
+                "distributionName": provenance.distributionName,
+            }
 
-        return {"version": version, "description": description}
+        return {
+            "version": None,
+            "description": None,
+            "distributionName": None,
+        }
 
     def registerActuator(
         self,
@@ -250,13 +321,38 @@ class ActuatorRegistry:
 
             self.actuatorMetadataMap[actuatorid] = metadata
 
+    def provenance_for_actuator(self, identifier: str) -> PackageProvenance | None:
+        """Return the package provenance for a registered actuator.
+
+        Returns ``None`` if the actuator is not registered or its distribution
+        could not be resolved (e.g. the actuator was loaded from an unpackaged
+        local path).
+
+        Args:
+            identifier: The actuator identifier.
+
+        Returns:
+            A :class:`~orchestrator.core.metadata.PackageProvenance` instance,
+            or ``None`` if provenance is unavailable.
+        """
+        metadata = self.actuatorMetadataMap.get(identifier)
+        if metadata is None:
+            return None
+        dist_name = metadata.get("distributionName")
+        version = metadata.get("version")
+        if dist_name is None or version is None:
+            return None
+        return PackageProvenance(
+            distributionName=dist_name, distributionVersion=version
+        )
+
     def catalogForActuatorIdentifier(self, actuatorid: str) -> ExperimentCatalog:
         """Returns the catalog for a given actuator via its identifier
 
-        If the actuator has not been registered this method raises ActuatorNotFoundError
+        If the actuator has not been registered this method raises UnknownActuatorError
 
         If an actuator catalog requires configuration and this has not been provided
-        then this method will raise a UnconfiguredActuatorCatalogError
+        then this method will raise a MissingActuatorConfigurationForCatalogError
 
         Any other exception while retrieving the catalog will raise UnexpectedCatalogRetrievalError
         """
@@ -267,7 +363,7 @@ class ActuatorRegistry:
 
         actuator = self.actuatorForIdentifier(
             actuatorid=actuatorid
-        )  # type: ActuatorBase
+        )  # type: type[ActuatorBase]
 
         cfg = None
         try:
@@ -345,21 +441,38 @@ class ActuatorRegistry:
         self,
         reference: ExperimentReference,
         additionalCatalogs: list[ExperimentCatalog] | None = None,
-    ) -> "Experiment":
-        """
-        Returns the Experiment object corresponding to reference
+        *,
+        match_on: typing.Literal[
+            "major_version", "fully_qualified_version"
+        ] = "major_version",
+        resolve: bool = False,
+    ) -> Experiment | ParameterizedExperiment:
+        """Return the experiment corresponding to reference.
 
-        By default, searches all actuator catalogs
+        Searches the actuator's catalog and any additional catalogs. When
+        ``resolve=True``, applies strict version matching, rejects deprecated
+        experiments, and wraps parameterization. The registry always raises on
+        miss; it never returns ``None``.
 
-        Params:
-            reference: A reference to an experiment (ExperimentReference)
-            additionalCatalogs: Additional catalogs to search for the experiment
+        Args:
+            reference: A reference to an experiment.
+            additionalCatalogs: Additional catalogs to search for the experiment.
+            match_on: ``"major_version"`` (default) or ``"fully_qualified_version"``.
+            resolve: When ``True``, apply version checks, deprecated checks, and
+                parameterization.
+
         Returns:
-            The matching experiment
-        Raises:
-            Raises UnknownExperimentError if the experiment cannot be found in any catalog
-            Raises UnknownActuatorError if the actuator cannot be found
+            The matching experiment or parameterized experiment.
 
+        Raises:
+            UnknownExperimentError: If the experiment cannot be found in any catalog.
+            UnknownActuatorError: If the actuator cannot be found.
+            ExperimentVersionMismatchError: When ``resolve=True`` and
+                ``match_on='fully_qualified_version'`` with a version mismatch.
+            DeprecatedExperimentError: When ``resolve=True`` and the experiment
+                is deprecated.
+            UnexpectedCatalogRetrievalError: If the actuators catalog cannot be
+            retrieved
         """
 
         log = logging.getLogger("registry")
@@ -367,52 +480,80 @@ class ActuatorRegistry:
             additionalCatalogs if additionalCatalogs is not None else []
         )
 
-        # Get Catalog for Actuator
-        experiment = None
+        catalogs_to_try: list[ExperimentCatalog] = []
+        actuator_catalog: ExperimentCatalog | None = None
+
         try:
             log.debug(
                 f"Checking registry for the catalog of actuator {reference.actuatorIdentifier}"
             )
-            catalog = self.catalogForActuatorIdentifier(
+            # Either raises or returns non None
+            actuator_catalog = self.catalogForActuatorIdentifier(
                 actuatorid=reference.actuatorIdentifier
             )
-            experiment = catalog.experimentForReference(reference)
-            if experiment is not None:
-                log.debug(f"Found {experiment}")
-            else:
-                log.debug(f"No experiment matching {reference} found")
-        except KeyError:
-            try:
-                self.actuatorForIdentifier(reference.actuatorIdentifier)
-            except UnknownActuatorError:
-                log.warning(
-                    f"No actuator registered called {reference.actuatorIdentifier}"
-                )
-            else:
-                log.warning(
-                    f"No catalog registered for actuator {reference.actuatorIdentifier}"
-                )
+            catalogs_to_try.append(actuator_catalog)
+        except UnknownActuatorError:
+            log.warning(f"No actuator registered called {reference.actuatorIdentifier}")
+            raise
+        except UnexpectedCatalogRetrievalError:
+            # We continue as their may be additional catalogs
+            log.warning(
+                f"Unable to retrieve the catalog for {reference.actuatorIdentifier}"
+            )
+        except MissingActuatorConfigurationForCatalogError:
+            # We continue as there may be additional catalogs
+            log.warning(
+                f"The catalog for {reference.actuatorIdentifier} requires configuration but this has not been supplied"
+            )
 
-        if experiment is None:
-            for catalog in additionalCatalogs:
-                log.debug(f"Checking external catalog {catalog} for {reference}")
-                log.debug(f"Known experiments {catalog.experiments}")
-                experiment = catalog.experimentForReference(reference)
+        catalogs_to_try.extend(additionalCatalogs)
+
+        if not catalogs_to_try:
+            raise UnexpectedCatalogRetrievalError(
+                f"No catalogs available for {reference.actuatorIdentifier}"
+            )
+
+        # Now try to find the experiment
+        experiment = None
+        for catalog in catalogs_to_try:
+            log.debug(
+                f"Looking up {reference} from catalog {catalog} with match_on={match_on}, resolve={resolve}"
+            )
+            try:
+                experiment = catalog.experimentForReference(
+                    reference, match_on=match_on, resolve=resolve
+                )
+            except ExperimentVersionMismatchError:
+                raise
+            except UnknownExperimentError:
+                log.debug(f"No experiment matching {reference} found in {catalog}")
+                continue
+            except DeprecatedExperimentError:
+                raise
+            else:
                 if experiment is not None:
                     log.debug(f"Found {experiment}")
                     break
-                log.warning(f"No experiment matching {reference} found")
 
-        if experiment is None:
-            # AP: we haven't been able to find either the actuator
-            #     or the experiment. We want to raise an accurate error
-            if not self.actuatorForIdentifier(reference.actuatorIdentifier):
-                raise UnknownActuatorError(reference.actuatorIdentifier)
-            log.error(
-                f"The {reference.actuatorIdentifier}  actuator was found but it did not contain "
-                f"the {reference.experimentIdentifier} experiment."
-            )
-            raise UnknownExperimentError(reference)
+        if not experiment:
+            if actuator_catalog is not None:
+                message = (
+                    f"The {reference.actuatorIdentifier} actuator was found but a match to "
+                    f"{reference} was not found using mode {match_on}."
+                )
+                candidates = actuator_catalog.experiments_matching_identifier(reference)
+                if candidates:
+                    available_versions = ", ".join(
+                        sorted({e.version for e in candidates if e.version})
+                    )
+                    message = f"{message} Available versions in catalog: {available_versions}."
+            else:
+                message = (
+                    f"No match for {reference} was found in the available catalogs "
+                    f"using mode {match_on}."
+                )
+
+            raise UnknownExperimentError(message)
 
         return experiment
 
@@ -491,20 +632,43 @@ class ActuatorRegistry:
     def checkMeasurementSpaceSupported(
         self, measurement_space: MeasurementSpace
     ) -> list:
-        """Checks that all the actuators and experiments in measurement_space are in/available via the registry
+        """Check that all actuators and experiments in *measurement_space* are available.
+
+        Uses :meth:`~orchestrator.modules.actuators.catalog.ExperimentCatalog.experimentForReference`
+        with ``resolve=True`` so that major version mismatches are detected and reported.
+        When lookup succeeds, also compares the measurement-space experiment interface
+        against the registry catalog experiment (inputs, domains, optional defaults,
+        and outputs). All interface mismatches for an experiment are collected.
 
         Returns:
-            A list with an entry for each experiment that is not supported. Empty list means no issues
+            A list of issue strings. An empty list means no issues were found.
         """
+        from orchestrator.modules.actuators.errors import DeprecatedExperimentError
+        from orchestrator.schema.experiment import check_experiment_interface_compatible
 
         issues = []
         for experiment in measurement_space.experiments:
+            ref = experiment.reference
             try:
-                self.experimentForReference(experiment.reference)
-            except UnknownExperimentError as error:  # noqa: PERF203
+                catalog = self.catalogForActuatorIdentifier(ref.actuatorIdentifier)
+                provided_experiment = catalog.experimentForReference(ref, resolve=True)
+                if provided_experiment is not None:
+                    interface_issues = check_experiment_interface_compatible(
+                        expected_experiment=experiment,
+                        provided_experiment=provided_experiment,
+                    )
+                    issues.extend(
+                        format_measurement_space_interface_issue(experiment, issue)
+                        for issue in interface_issues
+                    )
+            except ExperimentVersionMismatchError as error:  # noqa: PERF203
+                issues.append(f"ExperimentVersionMismatchError: {error!s}")
+            except UnknownExperimentError as error:
                 issues.append(f"UnknownExperimentError: {error!s}")
             except UnknownActuatorError as error:
                 issues.append(f"UnknownActuatorError: {error!s}")
+            except DeprecatedExperimentError as error:
+                issues.append(f"DeprecatedExperimentError: {error!s}")
             except Exception as error:
                 issues.append(str(error))
 

@@ -143,6 +143,7 @@ class DiscoverySpace:
         identifier: str | None = None,
         metadata_store: "SQLResourceStore | None" = None,
         samplestore_resource: "orchestrator.core.SampleStoreResource | None" = None,
+        sample_store: "orchestrator.core.samplestore.base.SampleStore | None" = None,
         load_experiment_catalog: bool = True,
     ) -> "DiscoverySpace":
         """Creates a discovery space from a config
@@ -158,16 +159,20 @@ class DiscoverySpace:
                 discovery space generates the id versus how the id used to store was generated)
             metadata_store: Optional SQLResourceStore instance to reuse. If None, a new instance will be created.
             samplestore_resource: Optional pre-fetched SampleStoreResource. When provided the metastore
-                round-trip to fetch the samplestore is skipped.
-            load_experiment_catalog: When ``True`` (default) the samplestore's experiment catalog is
-                loaded and registered with the actuator registry.  Set to ``False`` for read-only
-                paths (e.g. CLI show commands) where replay experiment resolution is not needed.
+                round-trip to fetch the samplestore is skipped. Ignored when *sample_store* is provided.
+            sample_store: An already-instantiated SampleStore to use directly. When provided, both
+                the metastore round-trip and the ``SampleStore.from_resource`` call are skipped,
+                and the same object is reused — preserving any in-memory entity cache.
+                Takes precedence over *samplestore_resource*.
+            load_experiment_catalog: When ``True`` (default) experiments from the samplestore
+                catalog are also registered with the global actuator registry. When ``False``,
+                the catalog is still loaded locally for measurement-space resolution but not
+                registered globally. Use ``False`` for read-only paths (e.g. CLI show commands)
+                to avoid conflicting with experiments already registered in the same process.
 
         """
 
-        from orchestrator.core.samplestore.utils import (
-            load_sample_store_from_resource,
-        )
+        from orchestrator.core.samplestore.base import SampleStore
 
         if metadata_store is None:
             metadata_store = orchestrator.metastore.sqlstore.SQLResourceStore(
@@ -176,22 +181,24 @@ class DiscoverySpace:
 
         entitySpace = None
 
-        if samplestore_resource is None:
-            samplestore_resource = metadata_store.getResource(
-                identifier=conf.sampleStoreIdentifier,
-                kind=CoreResourceKinds.SAMPLESTORE,
-                raise_error_if_no_resource=True,
+        if sample_store is None:
+            sample_store = (
+                SampleStore.from_resource(samplestore_resource)
+                if samplestore_resource is not None
+                else SampleStore.from_identifier(
+                    identifier=conf.sampleStoreIdentifier, metastore=metadata_store
+                )
             )
-        sample_store = load_sample_store_from_resource(samplestore_resource)
 
         if conf.entitySpace is not None:
             entitySpace = EntitySpaceRepresentation.representationFromConfiguration(
                 conf.entitySpace
             )
 
-        ## Add any external experiments to the replay actuators catalog
+        ## Load external experiments from the sample store for measurement-space
+        ## resolution. Only register them globally when requested.
         externalCatalogs = []
-        if load_experiment_catalog and sample_store is not None:
+        if sample_store is not None:
             moduleLogger.debug(
                 f"Loading external experiments from sample store: {sample_store.identifier}"
             )
@@ -202,14 +209,15 @@ class DiscoverySpace:
                 moduleLogger.debug(
                     f"Loaded external catalog {catalog} based on sample store {sample_store}"
                 )
-                ActuatorRegistry.globalRegistry().updateCatalogs(
-                    ActuatorCatalogExtension(experiments=catalog.experiments)
-                )
-                moduleLogger.debug(
-                    ActuatorRegistry.globalRegistry()
-                    .catalogForActuatorIdentifier("replay")
-                    .experiments
-                )
+                if load_experiment_catalog:
+                    ActuatorRegistry.globalRegistry().updateCatalogs(
+                        ActuatorCatalogExtension(experiments=catalog.experiments)
+                    )
+                    moduleLogger.debug(
+                        ActuatorRegistry.globalRegistry()
+                        .catalogForActuatorIdentifier("replay")
+                        .experiments
+                    )
 
         if isinstance(
             conf.experiments,
@@ -537,13 +545,56 @@ class DiscoverySpace:
             metadata=metadata,
         )
 
+    def _build_provenance(
+        self,
+    ) -> "orchestrator.core.discoveryspace.resource.DiscoverySpaceProvenanceInfo":
+        """Resolve package provenance for all actuators and custom experiments.
+
+        Returns:
+            DiscoverySpaceProvenanceInfo mapping actuators and custom experiments
+            to the distributions that provided them at space creation time.
+        """
+        from orchestrator.core.discoveryspace.resource import (
+            DiscoverySpaceProvenanceInfo,
+        )
+        from orchestrator.core.metadata import PackageProvenance
+        from orchestrator.modules.actuators.registry import ActuatorRegistry
+
+        registry = ActuatorRegistry.globalRegistry()
+        actuators: dict[str, PackageProvenance] = {}
+        custom_experiments: dict[str, PackageProvenance] = {}
+
+        for experiment in self.measurementSpace.experiments:
+            actuator_id = experiment.actuatorIdentifier
+
+            # Per-actuator provenance (deduplicated)
+            if actuator_id not in actuators:
+                provenance = registry.provenance_for_actuator(actuator_id)
+                if provenance is not None:
+                    actuators[actuator_id] = provenance
+
+            # Per-custom-experiment provenance
+            if actuator_id == "custom_experiments":
+                module_conf = experiment.metadata.get("module")
+                if module_conf is not None:
+                    provenance = PackageProvenance.from_module_conf(module_conf)
+                    if provenance is not None:
+                        custom_experiments[experiment.identifier] = provenance
+
+        return DiscoverySpaceProvenanceInfo(
+            actuators=actuators,
+            customExperiments=custom_experiments,
+        )
+
     @property
     def resource(
         self,
     ) -> orchestrator.core.discoveryspace.resource.DiscoverySpaceResource:
 
         return orchestrator.core.discoveryspace.resource.DiscoverySpaceResource(
-            identifier=self._identifier, config=self.config
+            identifier=self._identifier,
+            config=self.config,
+            provenance=self._build_provenance(),
         )
 
     def saveSpace(self) -> None:
@@ -569,19 +620,15 @@ class DiscoverySpace:
     def sampledEntities(self) -> list[Entity]:
         """Returns the entities sampled so far in the space"""
 
-        operation_ids_series = self.operations["IDENTIFIER"]
+        operation_ids = self.operations
 
-        # Convert pandas Series to list for easier handling
-        # Check if empty using .empty property (pandas Series can't be used in boolean context)
-        if operation_ids_series.empty:
+        if not operation_ids:
             return []
-
-        operation_ids = operation_ids_series.tolist()
 
         # Optimize for single operation: use direct query (1 query instead of 2)
         if len(operation_ids) == 1:
             sampled_entities = self.sample_store.entities_in_operation(
-                operation_id=operation_ids[0]
+                operation_id=next(iter(operation_ids))
             )
         else:
             # Multiple operations: get entity IDs first, then fetch entities
@@ -856,13 +903,16 @@ class DiscoverySpace:
         return self._metadataStore
 
     @property
-    def operations(self) -> "DataFrame":
-        """Returns a table of all the operations executed on this space"""
+    def operations(self) -> set[str]:
+        """Returns the identifiers of all operations executed on this space"""
 
-        return self._metadataStore.getRelatedResourceIdentifiers(
+        return self._metadataStore.get_resources_by_relationship(
+            kind=orchestrator.core.resources.CoreResourceKinds.DISCOVERYSPACE,
             identifier=self.uri,
-            kind=orchestrator.core.resources.CoreResourceKinds.OPERATION.value,
-        )
+            hierarchy_direction="down",
+            max_hops=1,
+            identifiers_only=True,
+        ).get(orchestrator.core.resources.CoreResourceKinds.OPERATION, set())
 
     def addOperation(self, operation: OperationResource) -> None:
         """Add information on a new operation on the space
@@ -897,6 +947,7 @@ class DiscoverySpace:
         description: str | None = None,
         metadata: dict | None = None,
         operation_type: DiscoveryOperationEnum = DiscoveryOperationEnum.SEARCH,
+        provenance: "orchestrator.core.metadata.PackageProvenance | None" = None,
     ) -> Iterator[str]:
         """Context manager that registers a script operation and manages its lifecycle.
 
@@ -912,6 +963,9 @@ class DiscoverySpace:
             operation_type: Semantic type for the operation (e.g. SEARCH for explore scripts).
                 Script provenance is always recorded on metadata labels under
                 ``execution: script``.
+            provenance: Optional Python distribution provenance for the script module.
+                When provided, stored under ``provenance.operators`` keyed by the
+                script operator identifier.
 
         Yields:
             The operation resource identifier.
@@ -933,6 +987,7 @@ class DiscoverySpace:
         )
         from orchestrator.core.operation.resource import (
             OperationExitStateEnum,
+            OperationProvenanceInfo,
             OperationResource,
             OperationResourceEventEnum,
             OperationResourceStatus,
@@ -961,10 +1016,18 @@ class DiscoverySpace:
             spaces=[self.uri],
         )
 
+        if provenance is None:
+            final_provenance = OperationProvenanceInfo(operators={})
+        else:
+            final_provenance = OperationProvenanceInfo(
+                operators={script_module.operatorIdentifier: provenance},
+            )
+
         operation = OperationResource(
             operationType=script_module.operationType,
             operatorIdentifier=script_module.operatorIdentifier,
             config=operation_payload,
+            provenance=final_provenance,
         )
 
         self.addOperation(operation)
@@ -1022,8 +1085,8 @@ class DiscoverySpace:
 
     @_perform_preflight_checks_for_sample_store_methods
     def measurement_requests_for_operation(
-        self, operation_id: str
-    ) -> list[MeasurementRequest]:
+        self, operation_id: str | set[str]
+    ) -> list[MeasurementRequest] | dict[str, list[MeasurementRequest]]:
         return self.sample_store.measurement_requests_for_operation(
             operation_id=operation_id
         )
@@ -1036,6 +1099,7 @@ class DiscoverySpace:
             operation_id=operation_id
         )
 
+    @_perform_preflight_checks_for_sample_store_methods
     def operation_entity_statistics(self, operation_id: str) -> dict[str, int]:
         """
         Compute entity-level statistics for an operation using SQL aggregation.
@@ -1081,3 +1145,110 @@ class DiscoverySpace:
                 {result.entityIdentifier for result in measurement_results}
             ),
         }
+
+    @_perform_preflight_checks_for_sample_store_methods
+    def operation_measurement_statistics(
+        self, operation_ids: set[str] | None = None
+    ) -> "list[orchestrator.core.operation.stats.OperationMeasurementStatistics]":
+        """Compute aggregated measurement statistics for one or more operations.
+
+        Delegates to the SQL implementation for SQL-backed stores. For all
+        other stores, falls back to a Python implementation that iterates the
+        measurement requests per operation.
+
+        Args:
+            operation_ids: Set of operation identifiers to aggregate. Pass
+                ``None`` to aggregate across all operations in the store.
+                Passing an empty set raises ``ValueError``.
+
+        Returns:
+            A list of OperationMeasurementStatistics instances, one per
+            operation found in the store.
+
+        Raises:
+            ValueError: If ``operation_ids`` is an empty set.
+        """
+        if operation_ids is not None and len(operation_ids) == 0:
+            raise ValueError("operation_ids must be a non-empty set or None")
+
+        import orchestrator.core.samplestore.sql
+        from orchestrator.core.operation.stats import OperationMeasurementStatistics
+
+        if isinstance(
+            self.sample_store, orchestrator.core.samplestore.sql.SQLSampleStore
+        ):
+            return self.sample_store.operation_measurement_statistics(
+                operation_ids=operation_ids
+            )
+
+        # Python fallback for non-SQL stores
+        from orchestrator.schema.request import MeasurementRequestStateEnum
+        from orchestrator.schema.result import ValidMeasurementResult
+
+        # Determine which operation IDs to iterate
+        ids_to_process: set[str] = (
+            self.operations if operation_ids is None else operation_ids
+        )
+
+        result_list: list[OperationMeasurementStatistics] = []
+        for op_id in ids_to_process:
+            requests = self.measurement_requests_for_operation(operation_id=op_id)
+
+            total_requests = len(requests)
+            failed_requests = sum(
+                1 for r in requests if r.status == MeasurementRequestStateEnum.FAILED
+            )
+            successful_requests = sum(
+                1 for r in requests if r.status == MeasurementRequestStateEnum.SUCCESS
+            )
+
+            total_results = 0
+            successful_results = 0
+            failed_results = 0
+            measured_entity_ids: set[str] = set()
+
+            for request in requests:
+                for result in request.measurements:
+                    total_results += 1
+                    if isinstance(result, ValidMeasurementResult):
+                        successful_results += 1
+                    else:
+                        failed_results += 1
+                    measured_entity_ids.add(result.entityIdentifier)
+
+            result_list.append(
+                OperationMeasurementStatistics(
+                    operation_id=op_id,
+                    total_requests=total_requests,
+                    failed_requests=failed_requests,
+                    successful_requests=successful_requests,
+                    total_results=total_results,
+                    successful_results=successful_results,
+                    failed_results=failed_results,
+                    measured_entities=len(measured_entity_ids),
+                )
+            )
+
+        return result_list
+
+    def space_statistics(
+        self, lightweight_only: bool = False
+    ) -> "orchestrator.core.discoveryspace.stats.DiscoverySpaceStatistics":
+        """Compute statistics for this discovery space.
+
+        Delegates to
+        :func:`~orchestrator.core.discoveryspace.stats.space_statistics_for_spaces`
+        for a single space.
+
+        Args:
+            lightweight_only: When ``True`` skip all Python-side computation
+                and return ``None`` for the heavy fields.
+
+        Returns:
+            :class:`~orchestrator.core.discoveryspace.stats.DiscoverySpaceStatistics`
+        """
+        from orchestrator.core.discoveryspace.stats import space_statistics_for_spaces
+
+        return space_statistics_for_spaces([self], lightweight_only=lightweight_only)[
+            self.uri
+        ]

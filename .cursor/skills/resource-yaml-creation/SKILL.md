@@ -18,7 +18,7 @@ problem formulation workflow, see
 
 Every resource YAML should include a `metadata` block. The CLI uses these for
 display (`ado get --details`) and filtering (`ado get --label`,
-`ado get --query`).
+`ado get --filter`).
 
 ```yaml
 metadata:
@@ -32,8 +32,8 @@ metadata:
 
 - `name` and `description` are shown by `ado get --details`
 - `labels` support filtering: `uv run ado get spaces --label project=my_project`
-- `--query` supports path-based filtering across any field:
-  `uv run ado get spaces --query "metadata.name=my_space"`
+- `--filter` supports path-based filtering across any field:
+  `uv run ado get spaces --filter "metadata.name=my_space"`
 
 ## Dynamic Reference Resolution
 

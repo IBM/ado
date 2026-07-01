@@ -499,7 +499,7 @@ Balanced approach for production use:
 To see the entities sampled during a TRIM operation:
 
 ```bash
-ado show entities operation $OPERATION_IDENTIFIER
+ado show measurements operation $OPERATION_IDENTIFIER
 ```
 
 This displays entities in the order they were sampled, showing the progression
@@ -533,7 +533,7 @@ TRIM operations create metadata tracking:
 Access via:
 
 ```bash
-ado show details operation $OPERATION_IDENTIFIER
+ado show stats operation $OPERATION_IDENTIFIER
 ```
 
 ---
@@ -575,7 +575,7 @@ target output property, if this is not the case TRIM raises
 the space with the following command
 
 ```terminal
-ado show entities --use-latest space
+ado show measurements --use-latest space
 ```
 
 Looking at the output you will find out if the target output property
@@ -597,7 +597,7 @@ you see on your terminal. To facilitate the detection of the column, you can run
 the same command with a property filter:
 
 ```terminal
-ado show entities --use-latest space --property [targetOutput]
+ado show measurements --use-latest space --property [targetOutput]
 ```
 
 Here, remember to replace `"[targetOutput]"` with `targetOutput`.

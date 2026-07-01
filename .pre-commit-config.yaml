@@ -2,14 +2,29 @@ default_install_hook_types:
   - pre-commit
   - commit-msg
 default_stages: [pre-commit]
+# AutoGluon model artefacts (pkl, json, txt, csv) must not be reformatted —
+# even an end-of-file change can break model loading.
+exclude: "plugins/custom_experiments/autoconf/autoconf/AutoGluonModels/(?!README\\.md|changelog\\.md)"
 repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-yaml
+        # --unsafe is required to allow !!python/name: tags used in website/mkdocs.yml
+        args: ["--unsafe"]
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-added-large-files
+      - id: debug-statements
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
   - repo: https://github.com/ibm/detect-secrets
     rev: 0.13.1+ibm.64.dss
     hooks:
       - id: detect-secrets # pragma: whitelist secret
         args: [--baseline, .secrets.baseline, --use-all-plugins, --fail-on-unaudited]
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.15
+    rev: v0.15.20
     hooks:
       - id: ruff
         args:
@@ -35,7 +50,7 @@ repos:
         additional_dependencies: ['tomli']
         args: ['--toml', 'pyproject.toml']
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.11.17
+    rev: 0.11.25
     hooks:
       - id: uv-lock
       - id: uv-export
@@ -53,7 +68,7 @@ repos:
     hooks:
       - id: yamlfmt
   - repo: https://github.com/tombi-toml/tombi-pre-commit
-    rev: v1.1.1
+    rev: v1.1.6
     hooks:
       - id: tombi-format
         args: ["--offline"]

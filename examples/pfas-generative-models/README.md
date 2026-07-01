@@ -103,13 +103,13 @@ ado create operation -f operation_random_walk_test.yaml --use-latest space
 To see the fingerprints of the ten sampled entities (molecules) run:
 
 ```commandline
-ado show entities space --use-latest
+ado show measurements space --use-latest
 ```
 
 Try as well:
 
 ```commandline
-ado show details space --use-latest
+ado show stats discoveryspace --use-latest
 ```
 
 ## Next Steps
@@ -123,7 +123,7 @@ ado show details space --use-latest
 2. Have someone with distributed access the same project and retrieve the
    results.
 3. Have them run another operation and observe how you can retrieve the results
-4. If you run multiple operations, try using `ado show entities operation` to
+4. If you run multiple operations, try using `ado show measurements operation` to
    get the output from a particular operation
 
 <!-- prettier-ignore-end -->

@@ -69,6 +69,60 @@ Goal: volume of work, recency, and which spaces attract the most operations.
    together with `uv run ado get operator --details` to understand more about
    the operators used.
 
+3. **Operations (with measurement statistics)**
+
+   ```bash
+   uv run ado get operations -o stats --output-file operations-stats.txt
+   ```
+
+   Adds `TOTAL_RESULTS`, `SUCCESSFUL_RESULTS`, `FAILED_RESULTS`, and
+   `MEASURED_ENTITIES` columns. For explore operations, compare
+   `MEASURED_ENTITIES` against the operator's `numberEntities` to check sampling
+   completeness.
+
+   For richer stats that also include request-level counts
+   (`TOTAL_REQUESTS`, `FAILED_REQUESTS`, `SUCCESSFUL_REQUESTS`):
+
+   ```bash
+   uv run ado show stats operation --output-file operations-fullstats.csv -o csv
+   ```
+
+4. **Discovery Spaces (with statistics)**
+
+   ```bash
+   uv run ado get spaces -o stats --output-file spaces-stats.txt
+   ```
+
+   Adds `EXPERIMENTS`, `OPERATIONS`, `EXPLORE_OPERATIONS`, and
+   `MEASURED_ENTITIES` columns.
+
+   For richer stats that also include full entity-space coverage columns
+   (`SIZE_OF_ENTITY_SPACE`, `UNMEASURED_ENTITIES`, `MATCHING_ENTITIES`, etc.):
+
+   ```bash
+   uv run ado show stats discoveryspace --output-file spaces-fullstats.csv -o csv
+   ```
+
+   > **Performance note**: `ado show stats discoveryspace` is slower than
+   > `ado get spaces -o stats` as it instantiates each `DiscoverySpace`.
+   > Prefer `ado get -o stats` for a quick overview across many spaces.
+
+5. **Sample Stores (with statistics)**
+
+   ```bash
+   uv run ado get samplestores -o stats --output-file samplestores-stats.txt
+   ```
+
+   Adds `ENTITIES`, `RESULTS`, and `EXPERIMENTS` columns.
+
+6. **Data Containers (with statistics)**
+
+   ```bash
+   uv run ado get datacontainers -o stats --output-file datacontainers-stats.txt
+   ```
+
+   Adds `TABLES`, `LOCATIONS`, `KEY_VALUES`, and `DATA_BYTES` columns.
+
 **Synthesis:** cluster mentally (or in notes) by **creation time** to see bursts
 of activity; count operations **per space** from the operations listing to see
 which spaces are busiest.
@@ -179,9 +233,9 @@ Write a concise markdown report
      report, there has been new activity — proceed to write a new report.
   3. If not, ask the user whether they want to replace it.
   4. If finer-grained confirmation is needed, fetch the YAML of the most recent
-     space or operation (`uv run ado get space SPACE_ID -o yaml --output-file
-     SPACE_ID.yaml`, or the same pattern for `operation`) and read its
-     `creationTimestamp` field.
+     space or operation
+     (`uv run ado get space SPACE_ID -o yaml --output-file SPACE_ID.yaml`, or
+     the same pattern for `operation`) and read its `creationTimestamp` field.
 
 ### Project summary
 
@@ -203,9 +257,12 @@ Write a concise markdown report
 
 - Operator mix and whether **parameters** or **operator choice** evolve over
   time.
-- Which operations **submitted** the most entities (from operation YAML/config).
+- Which operations **submitted** the most entities (from operation YAML/config)
+  and which produced the most results (from the stats).
 - What **analysis**-style operations ran (infer from operator names and
   parameters).
+- Make a note of operations with failed measurements and highlight ones with
+  abnormal failure rates (from the stats).
 
 After writing the local report file, persist it as a document resource. Since a
 project report spans many resources, set `relatedResources` to the identifiers

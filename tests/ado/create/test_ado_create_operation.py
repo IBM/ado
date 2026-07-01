@@ -252,4 +252,4 @@ def test_create_ml_multi_cloud_operation_success_lhc_sampler(
             "space",
         ],
     )
-    assert result.exit_code == 0
+    assert result.exit_code == 0, result.output

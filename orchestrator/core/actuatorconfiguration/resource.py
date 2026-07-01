@@ -7,8 +7,24 @@ from typing import Annotated, Any
 import pydantic
 
 from orchestrator.core.actuatorconfiguration.config import ActuatorConfiguration
+from orchestrator.core.metadata import PackageProvenance, ProvenanceInfo
 from orchestrator.core.resources import ADOResource, CoreResourceKinds
 from orchestrator.utilities.pydantic import Defaultable
+
+
+class ActuatorConfigurationProvenanceInfo(ProvenanceInfo):
+    """Plugin provenance for an actuator configuration resource."""
+
+    actuators: Annotated[
+        dict[str, PackageProvenance],
+        pydantic.Field(
+            default_factory=dict,
+            description=(
+                "Mapping of actuator identifier to the Python distribution that "
+                "provided it at the time this configuration was created."
+            ),
+        ),
+    ]
 
 
 class ActuatorConfigurationResource(ADOResource):
@@ -24,5 +40,14 @@ class ActuatorConfigurationResource(ADOResource):
         Defaultable[str],
         pydantic.Field(
             default_factory=_identifier_from_data,
+        ),
+    ]
+    provenance: Annotated[
+        ActuatorConfigurationProvenanceInfo,
+        pydantic.Field(
+            default_factory=ActuatorConfigurationProvenanceInfo,
+            description=(
+                "ado-core and plugin package provenance frozen at resource creation time."
+            ),
         ),
     ]

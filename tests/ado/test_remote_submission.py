@@ -31,6 +31,7 @@ from orchestrator.core.remotecontext.config import (
     PackageConfiguration,
     PortForwardConfiguration,
     RemoteExecutionContext,
+    RuntimeEnvironmentConfiguration,
 )
 from orchestrator.metastore.project import ProjectContext
 from orchestrator.utilities.output import pydantic_model_as_yaml
@@ -638,6 +639,58 @@ def test_write_runtime_env_local_wheel_in_pypi(tmp_path: pathlib.Path) -> None:
     assert "ado-core" in loaded["uv"]
     assert f"${{RAY_RUNTIME_ENV_CREATE_WORKING_DIR}}/{local_whl.name}" in loaded["uv"]
     assert str(local_whl) not in loaded["uv"]
+
+
+def test_write_runtime_env_with_ray_config(tmp_path: pathlib.Path) -> None:
+    """runtimeEnv maps to Ray config keys in runtime_env.yaml."""
+    ctx = RemoteExecutionContext(
+        executionType=ClusterExecutionType(clusterUrl="http://localhost:8265"),
+        packages=PackageConfiguration(fromPyPI=["ado-core"]),
+        runtimeEnv=RuntimeEnvironmentConfiguration(
+            setupTimeoutSeconds=1200,
+            eagerInstall=False,
+        ),
+    )
+    dest = tmp_path / "runtime_env.yaml"
+    working_dir = tmp_path / "working"
+    working_dir.mkdir()
+    _write_runtime_env(ctx, [], dest, tmp_path, working_dir, set())
+
+    loaded = yaml.safe_load(dest.read_text())
+    assert loaded["config"]["setup_timeout_seconds"] == 1200
+    assert loaded["config"]["eager_install"] is False
+
+
+def test_write_runtime_env_ray_defaults(tmp_path: pathlib.Path) -> None:
+    """runtimeEnv with default field values writes Ray defaults explicitly."""
+    ctx = RemoteExecutionContext(
+        executionType=ClusterExecutionType(clusterUrl="http://localhost:8265"),
+        runtimeEnv=RuntimeEnvironmentConfiguration(),
+    )
+    dest = tmp_path / "runtime_env.yaml"
+    working_dir = tmp_path / "working"
+    working_dir.mkdir()
+    _write_runtime_env(ctx, [], dest, tmp_path, working_dir, set())
+
+    loaded = yaml.safe_load(dest.read_text())
+    assert loaded["config"]["setup_timeout_seconds"] == 600
+    assert loaded["config"]["eager_install"] is True
+
+
+def test_write_runtime_env_omits_config_when_runtime_env_unset(
+    tmp_path: pathlib.Path,
+) -> None:
+    """Omit runtimeEnv on the execution context to avoid a config block."""
+    ctx = RemoteExecutionContext(
+        executionType=ClusterExecutionType(clusterUrl="http://localhost:8265"),
+    )
+    dest = tmp_path / "runtime_env.yaml"
+    working_dir = tmp_path / "working"
+    working_dir.mkdir()
+    _write_runtime_env(ctx, [], dest, tmp_path, working_dir, set())
+
+    loaded = yaml.safe_load(dest.read_text())
+    assert "config" not in loaded
 
 
 # ---------------------------------------------------------------------------

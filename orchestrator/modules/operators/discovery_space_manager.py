@@ -270,7 +270,12 @@ class DiscoverySpaceManager:
                 subscriber_copy = self._subscribers.copy()
                 for subscriberName, subscriber in subscriber_copy.items():
                     self.log.info(f"Notifying subscriber {subscriber}")
-                    subscriber.onError.remote(error)
+                    # Wrap in a plain Exception so the argument is always
+                    # serializable across the Ray remote boundary.  The
+                    # original exception (e.g. ActorUnavailableError) may
+                    # hold unresolvable ObjectRef state that causes the
+                    # .remote() call itself to fail silently.
+                    subscriber.onError.remote(Exception(str(error)))
                     self.log.info("Unsubscribing subscriber due to error")
                     self.unsubscribeFromUpdates(subscriberName)
                     self.log.info("Complete")
@@ -288,7 +293,7 @@ class DiscoverySpaceManager:
                             f"Exception {error} while notifying subscriber of update {subscriber}"
                         )
                         self.log.info("Notifying subscriber")
-                        subscriber.onError.remote(error)
+                        subscriber.onError.remote(Exception(str(error)))
                         self.log.info("Unsubscribing subscriber due to error")
                         self.unsubscribeFromUpdates(subscriberName)
 

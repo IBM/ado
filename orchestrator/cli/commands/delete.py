@@ -18,17 +18,74 @@ from orchestrator.cli.resources.document.delete import delete_document
 from orchestrator.cli.resources.operation.delete import delete_operation
 from orchestrator.cli.resources.sample_store.delete import delete_sample_store
 from orchestrator.cli.utils.input.parsers import enum_choice_with_plural_parser
-from orchestrator.cli.utils.output.prints import console_print
+from orchestrator.cli.utils.output.prints import (
+    cannot_delete_resource_due_to_children_resources,
+    console_print,
+    context_not_in_available_contexts_error_str,
+    could_not_delete_resource_from_database_error_str,
+)
 from orchestrator.metastore.base import (
+    ContextDoesNotExistError,
     DeleteFromDatabaseError,
+    NonEmptySampleStorePreventingDeletionError,
     NoRelatedResourcesError,
+    NotSupportedOnSQLiteError,
     ResourceDoesNotExistError,
+    ResourceHasChildrenError,
+    RunningOperationsPreventingDeletionError,
 )
 
 if typing.TYPE_CHECKING:
     from orchestrator.cli.core.config import AdoConfiguration
 
 CONTEXT_ONLY_PANEL_NAME = "Context-only options"
+
+
+def _deletion_error_message(resource_id: str, error: Exception) -> str:
+    from orchestrator.cli.utils.output.prints import (
+        ERROR,
+        HINT,
+        cyan,
+        magenta,
+    )
+
+    if isinstance(error, ResourceDoesNotExistError):
+        return "Resource does not exist"
+    if isinstance(error, ContextDoesNotExistError):
+        return context_not_in_available_contexts_error_str(
+            requested_context=error.resource_id,
+            available_contexts=error.available_contexts,
+        )
+    if isinstance(error, NoRelatedResourcesError):
+        return "No related resources found"
+    if isinstance(error, ResourceHasChildrenError):
+        return cannot_delete_resource_due_to_children_resources(
+            resource_kind=error.kind,
+            resource_id=error.resource_id,
+            children_resources=error.children_resources,
+        )
+    if isinstance(error, NotSupportedOnSQLiteError):
+        return (
+            f"{ERROR}Checking for running operations using the same sample store as "
+            f"operation {magenta(resource_id)} is not supported on local contexts.\n"
+            f"{HINT}Make sure there are no such operations, and force the deletion by adding the "
+            f"{cyan('--force')} flag."
+        )
+    if isinstance(error, RunningOperationsPreventingDeletionError):
+        return (
+            f"{ERROR}Operation {magenta(error.operation_id)} cannot be deleted "
+            f"because the following operations have started and have not completed: "
+            f"{error.running_operations}\n"
+            f"{HINT}You can force the deletion by adding the {cyan('--force')} flag."
+        )
+    if isinstance(error, NonEmptySampleStorePreventingDeletionError):
+        return (
+            f"{ERROR}{error}\n"
+            f"{HINT}You can force the deletion by adding the {cyan('--force')} flag."
+        )
+    if isinstance(error, DeleteFromDatabaseError):
+        return could_not_delete_resource_from_database_error_str(error)
+    return str(error)
 
 
 def _report_deletion_results(
@@ -48,15 +105,22 @@ def _report_deletion_results(
     """
     from orchestrator.cli.utils.output.prints import (
         SUCCESS,
-        console_print,
         magenta,
     )
 
     total = len(successes) + len(failures)
 
-    # If only one resource and it succeeded, use simple success message
-    if total == 1 and len(successes) == 1:
-        console_print(SUCCESS)
+    # If only one resource, avoid batch-style summary output.
+    if total == 1:
+        if successes:
+            console_print(SUCCESS)
+        elif failures:
+            resource_id, error = failures[0]
+            console_print(
+                f"Failed to delete {resource_id}: "
+                f"{_deletion_error_message(resource_id=resource_id, error=error)}",
+                stderr=True,
+            )
         return
 
     # Report individual results
@@ -66,19 +130,10 @@ def _report_deletion_results(
         )
 
     for resource_id, error in failures:
-        error_msg = str(error)
-        # Extract meaningful error message
-        if isinstance(error, ResourceDoesNotExistError):
-            error_msg = "Resource does not exist"
-        elif isinstance(error, NoRelatedResourcesError):
-            error_msg = "No related resources found"
-        elif isinstance(error, DeleteFromDatabaseError):
-            error_msg = "Failed to delete from database"
-        elif "children" in error_msg.lower():
-            error_msg = "Cannot delete due to dependent resources"
-
         console_print(
-            f":x: Failed to delete {magenta(resource_id)}: {error_msg}", stderr=True
+            f"Failed to delete {resource_id}: "
+            f"{_deletion_error_message(resource_id=resource_id, error=error)}",
+            stderr=True,
         )
 
     # Summary
@@ -188,15 +243,16 @@ def delete_resource(
             method_mapping[resource_type](parameters=single_params)
             successes.append(resource_id)
         except (
+            ContextDoesNotExistError,
             ResourceDoesNotExistError,
+            ResourceHasChildrenError,
             NoRelatedResourcesError,
+            NotSupportedOnSQLiteError,
+            RunningOperationsPreventingDeletionError,
+            NonEmptySampleStorePreventingDeletionError,
             DeleteFromDatabaseError,
         ) as e:
             failures.append((resource_id, e))
-        except typer.Exit:
-            # Resource-specific delete functions may raise typer.Exit
-            # Treat this as a failure for this resource
-            failures.append((resource_id, Exception("Deletion failed")))
         finally:
             console_print("")
 

@@ -4,7 +4,7 @@
 import pathlib
 from collections.abc import Callable
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -61,7 +61,7 @@ class TestRequiredProperties:
 
 class TestOptionalProperties:
     def test_all_optional_properties_present(self, experiment: Experiment) -> None:
-        """All twelve optional properties must be defined."""
+        """All fourteen optional properties must be defined."""
         optional_ids = {p.identifier for p in experiment.optionalProperties}
         expected = {
             "n_seeds",
@@ -76,6 +76,8 @@ class TestOptionalProperties:
             "mip_emphasis",
             "parallel",
             "progress_interval_s",
+            "warm_start_file",
+            "export_solution",
         }
         assert expected == optional_ids
 
@@ -167,11 +169,12 @@ class TestOptionalProperties:
         assert sorted(prop.propertyDomain.values) == [-1, 0, 5, 25, 100]
 
     def test_cut_passes_domain_values(self, experiment: Experiment) -> None:
-        """cut_passes domain must contain exactly [-1, 0, 1, 5]."""
+        """cut_passes domain must span integers -1 through 200 (exclusive upper 201)."""
         prop = next(
             p for p in experiment.optionalProperties if p.identifier == "cut_passes"
         )
-        assert sorted(prop.propertyDomain.values) == [-1, 0, 1, 5]
+        assert prop.propertyDomain.domainRange == [-1, 201]
+        assert prop.propertyDomain.interval == 1
 
 
 class TestDefaultParameterization:
@@ -259,6 +262,20 @@ class TestDefaultParameterization:
         }
         assert param_map["progress_interval_s"] == 0
 
+    def test_warm_start_file_default(self, experiment: Experiment) -> None:
+        """Default warm_start_file must be empty string (disabled)."""
+        param_map = {
+            p.property.identifier: p.value for p in experiment.defaultParameterization
+        }
+        assert param_map["warm_start_file"] == ""
+
+    def test_export_solution_default(self, experiment: Experiment) -> None:
+        """Default export_solution must be False."""
+        param_map = {
+            p.property.identifier: p.value for p in experiment.defaultParameterization
+        }
+        assert not param_map["export_solution"]
+
 
 class TestTargetProperties:
     def test_all_target_properties_present(self, experiment: Experiment) -> None:
@@ -270,6 +287,8 @@ class TestTargetProperties:
             "mip_gaps",
             "nodes_explored",
             "solve_statuses",
+            "best_bounds",
+            "best_solution_mst",
             "progress_time_grid",
             "objective_over_time",
             "best_bound_over_time",
@@ -297,9 +316,11 @@ class TestSolveMipVectorOutput:
         return {
             "solve_time_s": float(seed + 1),
             "objective_value": -100.0 - seed,
+            "best_bound": -90.0 - seed,
             "mip_gap": 0.01 * seed,
             "nodes_explored": 100 * (seed + 1),
             "solve_status": "optimal",
+            "best_solution_mst": "",
             "progress_samples": [],
         }
 
@@ -318,6 +339,8 @@ class TestSolveMipVectorOutput:
         assert len(result["mip_gaps"]) == 3
         assert len(result["nodes_explored"]) == 3
         assert len(result["solve_statuses"]) == 3
+        assert len(result["best_bounds"]) == 3
+        assert len(result["best_solution_mst"]) == 3
 
     def test_output_keys_match_target_properties(
         self, solve_mip_func: Callable[..., Any]
@@ -335,12 +358,61 @@ class TestSolveMipVectorOutput:
             "mip_gaps",
             "nodes_explored",
             "solve_statuses",
+            "best_bounds",
+            "best_solution_mst",
             "progress_time_grid",
             "objective_over_time",
             "best_bound_over_time",
             "nodes_explored_over_time",
             "mip_gap_over_time",
         }
+
+    def test_export_solution_false_returns_empty_mst_strings(
+        self, solve_mip_func: Callable[..., Any]
+    ) -> None:
+        """With export_solution=False, aggregated best_solution_mst must be empty strings."""
+
+        def capture(**kw: Any) -> dict[str, Any]:  # noqa: ANN401
+            assert kw["export_solution"] is False
+            return self._make_seed_result(kw["seed"])
+
+        with patch(
+            "cplex_mip_experiments.solve_mip._run_single_seed",
+            side_effect=capture,
+        ):
+            result = solve_mip_func(
+                mps_file=DEFAULT_MPS,
+                n_seeds=2,
+                export_solution=False,
+                parallel=False,
+            )
+
+        assert result["best_solution_mst"] == ["", ""]
+
+    def test_export_solution_true_passes_flag_to_run_single_seed(
+        self, solve_mip_func: Callable[..., Any]
+    ) -> None:
+        """export_solution=True must be forwarded to _run_single_seed."""
+        seen: list[bool] = []
+
+        def capture(**kw: Any) -> dict[str, Any]:  # noqa: ANN401
+            seen.append(kw["export_solution"])
+            result = self._make_seed_result(kw["seed"])
+            result["best_solution_mst"] = "<CPLEXSolution/>"
+            return result
+
+        with patch(
+            "cplex_mip_experiments.solve_mip._run_single_seed",
+            side_effect=capture,
+        ):
+            solve_mip_func(
+                mps_file=DEFAULT_MPS,
+                n_seeds=2,
+                export_solution=True,
+                parallel=False,
+            )
+
+        assert seen == [True, True]
 
     def test_seeds_are_zero_indexed_and_sequential(
         self, solve_mip_func: Callable[..., Any]
@@ -383,6 +455,39 @@ class TestSolveMipVectorOutput:
             pytest.raises(ValueError, match="parallel=True requires"),
         ):
             solve_mip_func(mps_file=DEFAULT_MPS, n_seeds=2, parallel=True)
+
+    def test_parallel_ray_seed_failure_returns_partial_results(
+        self, solve_mip_func: Callable[..., Any]
+    ) -> None:
+        """parallel=True must return full vectors when some Ray seed tasks fail."""
+        refs = [object(), object(), object()]
+
+        def fake_ray_get(ref: object) -> dict[str, Any]:
+            index = refs.index(ref)
+            if index == 1:
+                raise RuntimeError("Failed to set up runtime environment")
+            return self._make_seed_result(index)
+
+        with (
+            patch("ray.is_initialized", return_value=True),
+            patch(
+                "cplex_mip_experiments.solve_mip.estimate_mip_memory_bytes",
+                return_value=4096,
+            ),
+            patch("ray.remote") as mock_remote,
+            patch("ray.get", side_effect=fake_ray_get),
+        ):
+            mock_remote.return_value = lambda fn: type(
+                "RemoteFn", (), {"remote": lambda _self, seed: refs[seed]}
+            )()
+            result = solve_mip_func(mps_file=DEFAULT_MPS, n_seeds=3, parallel=True)
+
+        assert len(result["solve_times"]) == 3
+        assert result["solve_statuses"][0] == "optimal"
+        assert result["solve_statuses"][1].startswith("ray_task_failed:")
+        assert result["solve_statuses"][2] == "optimal"
+        assert result["objective_values"][1] is None
+        assert result["nodes_explored"][1] == 0
 
     def test_progress_interval_produces_aligned_time_series(
         self, solve_mip_func: Callable[..., Any]
@@ -429,6 +534,65 @@ class TestSolveMipVectorOutput:
         assert result["objective_over_time"][0][0] == -100.0
         assert result["objective_over_time"][0][1] == -105.0
         assert result["objective_over_time"][0][2] == -105.0  # forward-fill
+
+
+class TestCollectParallelSeedResults:
+    """``_collect_parallel_seed_results`` applies partial-OK policy for Ray tasks."""
+
+    def _success(self, seed: int) -> dict[str, Any]:
+        """Return a minimal successful single-seed result."""
+        return {
+            "solve_time_s": float(seed + 1),
+            "objective_value": -1.0,
+            "mip_gap": 0.01,
+            "nodes_explored": 10,
+            "solve_status": "optimal",
+            "progress_samples": [],
+        }
+
+    def test_all_seeds_succeed(self) -> None:
+        """All Ray refs returning results must be collected in order."""
+        from cplex_mip_experiments.solve_mip import _collect_parallel_seed_results
+
+        refs = ["ref-0", "ref-1"]
+        with patch("ray.get", side_effect=[self._success(0), self._success(1)]):
+            results = _collect_parallel_seed_results(refs)
+
+        assert len(results) == 2
+        assert results[0]["solve_status"] == "optimal"
+        assert results[1]["solve_status"] == "optimal"
+
+    def test_one_seed_ray_failure_substitutes_structured_failure(self) -> None:
+        """A failed Ray ref must not prevent collecting other seed results."""
+        from cplex_mip_experiments.solve_mip import _collect_parallel_seed_results
+
+        refs = ["ref-0", "ref-1", "ref-2"]
+
+        def fake_get(ref: str) -> dict[str, Any]:
+            if ref == "ref-1":
+                raise RuntimeError("runtime env timeout")
+            return self._success(refs.index(ref))
+
+        with patch("ray.get", side_effect=fake_get):
+            results = _collect_parallel_seed_results(refs)
+
+        assert len(results) == 3
+        assert results[0]["solve_status"] == "optimal"
+        assert results[1]["solve_status"] == "ray_task_failed: runtime env timeout"
+        assert results[1]["objective_value"] is None
+        assert results[2]["solve_status"] == "optimal"
+
+    def test_all_seeds_ray_failure_returns_failure_vectors(self) -> None:
+        """When every Ray ref fails, output vectors still match n_seeds."""
+        from cplex_mip_experiments.solve_mip import _collect_parallel_seed_results
+
+        refs = ["ref-0", "ref-1"]
+        with patch("ray.get", side_effect=RuntimeError("worker died")):
+            results = _collect_parallel_seed_results(refs)
+
+        assert len(results) == 2
+        assert all(r["solve_status"] == "ray_task_failed: worker died" for r in results)
+        assert all(r["objective_value"] is None for r in results)
 
 
 class TestApplyCutPassesAll:
@@ -498,6 +662,36 @@ class TestBuildTimeGridAndAlign:
         aligned = _align_to_grid(samples, grid)
         assert aligned["best_bound"][-1] == -16.0
         assert aligned["best_objective"][-1] == -16.0
+
+    def test_align_preserves_bound_when_terminal_sample_has_none_bound(self) -> None:
+        """Terminal sample with None best_bound must not erase the last known bound."""
+        from cplex_mip_experiments.solve_mip import _align_to_grid, _build_time_grid
+
+        last_callback_bound = 0.0036462444963870537
+        samples = [
+            {
+                "elapsed": 7140.0,
+                "best_objective": 0.005212002548830863,
+                "best_bound": last_callback_bound,
+                "nodes_explored": 100,
+                "mip_gap": 0.01,
+            },
+            {
+                "elapsed": 7208.16956991516,
+                "best_objective": 0.005212002548830863,
+                "best_bound": None,
+                "nodes_explored": 200,
+                "mip_gap": None,
+            },
+        ]
+        grid = _build_time_grid(60.0, 7200.0, 7208.16956991516)
+        aligned = _align_to_grid(samples, grid)
+        assert aligned["best_bound"][-3:] == [
+            last_callback_bound,
+            last_callback_bound,
+            last_callback_bound,
+        ]
+        assert aligned["best_objective"][-1] == 0.005212002548830863
 
 
 @pytest.mark.skipif(not HAS_CPLEX, reason="CPLEX Python API not installed")
@@ -590,6 +784,193 @@ class TestCommunityEditionLimits:
         assert result["solve_status"] == "cplex_error_1234"
         assert result["objective_value"] is None
         assert result["mip_gap"] is None
+        assert result["best_bound"] is None
+        assert result["best_solution_mst"] == ""
+
+
+class TestBestBoundSentinel:
+    def test_normalize_sentinel_values(self) -> None:
+        """CPLEX sentinel magnitudes must be treated as missing bounds/objectives."""
+        from cplex_mip_experiments.solve_mip import _normalize_cplex_value
+
+        assert _normalize_cplex_value(1e75) is None
+        assert _normalize_cplex_value(-1e75) is None
+        assert _normalize_cplex_value(-16.0) == -16.0
+        assert _normalize_cplex_value(None) is None
+
+
+class TestAppendTerminalProgressSample:
+    """``_append_terminal_progress_sample`` must set best_bound correctly."""
+
+    def test_optimal_uses_objective_value(self) -> None:
+        """When mip_gap == 0.0, best_bound must be set to objective_value."""
+        from unittest.mock import MagicMock
+
+        from cplex_mip_experiments.solve_mip import _append_terminal_progress_sample
+
+        samples: list[dict] = []
+        _append_terminal_progress_sample(
+            model=MagicMock(),
+            progress_samples=samples,
+            solve_time=12.5,
+            objective_value=0.005212,
+            mip_gap=0.0,
+            nodes_explored=500,
+        )
+        assert len(samples) == 1
+        assert samples[-1]["best_bound"] == 0.005212
+        assert samples[-1]["best_objective"] == 0.005212
+
+    def test_non_optimal_forward_fills_last_callback_bound(self) -> None:
+        """When mip_gap != 0.0, best_bound must be the last callback-recorded bound."""
+        from unittest.mock import MagicMock
+
+        from cplex_mip_experiments.solve_mip import _append_terminal_progress_sample
+
+        last_callback_bound = 0.003623
+        samples: list[dict] = [
+            {
+                "elapsed": 60.0,
+                "best_objective": 0.005212,
+                "best_bound": last_callback_bound,
+                "nodes_explored": 100,
+                "mip_gap": 0.305,
+            }
+        ]
+        _append_terminal_progress_sample(
+            model=MagicMock(),
+            progress_samples=samples,
+            solve_time=120.0,
+            objective_value=0.005212,
+            mip_gap=0.305,
+            nodes_explored=200,
+        )
+        assert samples[-1]["best_bound"] == last_callback_bound
+
+    def test_non_optimal_does_not_use_post_solve_api_when_callback_samples_exist(
+        self,
+    ) -> None:
+        """When callback samples are present, post-solve API must not be called."""
+        from unittest.mock import MagicMock
+
+        from cplex_mip_experiments.solve_mip import _append_terminal_progress_sample
+
+        model = MagicMock()
+        samples: list[dict] = [
+            {
+                "elapsed": 60.0,
+                "best_objective": 0.005212,
+                "best_bound": 0.003623,
+                "nodes_explored": 100,
+                "mip_gap": 0.3,
+            }
+        ]
+        _append_terminal_progress_sample(
+            model=model,
+            progress_samples=samples,
+            solve_time=120.0,
+            objective_value=0.005212,
+            mip_gap=0.3,
+            nodes_explored=200,
+        )
+        model.solution.MIP.get_best_objective_value.assert_not_called()
+
+    def test_non_optimal_no_callback_samples_uses_api_fallback(self) -> None:
+        """Without callback samples, post-solve API is used as best-effort fallback."""
+        import sys
+        from unittest.mock import MagicMock
+
+        from cplex_mip_experiments.solve_mip import _append_terminal_progress_sample
+
+        model = MagicMock()
+        model.solution.MIP.get_best_objective_value.return_value = 0.003800
+
+        # Provide a stub cplex module so the lazy import inside the fallback path
+        # succeeds even when the real CPLEX package is not installed.
+        mock_cplex = MagicMock()
+        mock_cplex.exceptions.CplexSolverError = Exception
+        samples: list[dict] = []
+        with patch.dict(sys.modules, {"cplex": mock_cplex}):
+            _append_terminal_progress_sample(
+                model=model,
+                progress_samples=samples,
+                solve_time=120.0,
+                objective_value=0.005212,
+                mip_gap=0.27,
+                nodes_explored=50,
+            )
+        assert samples[-1]["best_bound"] == 0.003800
+
+    def test_non_optimal_none_mip_gap_forward_fills(self) -> None:
+        """None mip_gap must not trigger the optimality branch."""
+        from unittest.mock import MagicMock
+
+        from cplex_mip_experiments.solve_mip import _append_terminal_progress_sample
+
+        last_bound = 0.0036
+        samples: list[dict] = [
+            {
+                "elapsed": 60.0,
+                "best_objective": 0.005212,
+                "best_bound": last_bound,
+                "nodes_explored": 100,
+                "mip_gap": None,
+            }
+        ]
+        _append_terminal_progress_sample(
+            model=MagicMock(),
+            progress_samples=samples,
+            solve_time=120.0,
+            objective_value=0.005212,
+            mip_gap=None,
+            nodes_explored=200,
+        )
+        assert samples[-1]["best_bound"] == last_bound
+
+    def test_scalar_best_bound_from_time_limited_solve(
+        self, solve_mip_func: Callable[..., Any]
+    ) -> None:
+        """For a time-limited run, best_bounds must reflect the LP-relaxation bound
+        from the last callback sample, not the incumbent objective value."""
+        last_callback_bound = 0.003623
+
+        def make_time_limited_result(**kw: object) -> dict[str, Any]:
+            return {
+                "solve_time_s": 120.0,
+                "objective_value": 0.005212,
+                "best_bound": last_callback_bound,
+                "mip_gap": 0.305,
+                "nodes_explored": 500,
+                "solve_status": "time limit exceeded",
+                "best_solution_mst": "",
+                "progress_samples": [
+                    {
+                        "elapsed": 60.0,
+                        "best_objective": 0.005212,
+                        "best_bound": last_callback_bound,
+                        "nodes_explored": 300,
+                        "mip_gap": 0.305,
+                    }
+                ],
+            }
+
+        with patch(
+            "cplex_mip_experiments.solve_mip._run_single_seed",
+            side_effect=make_time_limited_result,
+        ):
+            result = solve_mip_func(
+                mps_file=DEFAULT_MPS,
+                n_seeds=2,
+                progress_interval_s=60.0,
+                time_limit_s=120.0,
+                parallel=False,
+            )
+
+        for bound, obj in zip(
+            result["best_bounds"], result["objective_values"], strict=True
+        ):
+            assert bound == last_callback_bound
+            assert bound != obj
 
 
 @pytest.mark.skipif(not HAS_CPLEX, reason="CPLEX Python API not installed")
@@ -614,9 +995,11 @@ class TestRunSingleSeedIntegration:
         assert set(result.keys()) == {
             "solve_time_s",
             "objective_value",
+            "best_bound",
             "mip_gap",
             "nodes_explored",
             "solve_status",
+            "best_solution_mst",
             "progress_samples",
         }
 
@@ -639,3 +1022,279 @@ class TestRunSingleSeedIntegration:
         )
         assert isinstance(result["solve_time_s"], float)
         assert result["solve_time_s"] > 0.0
+
+    def test_run_single_seed_populates_best_bound(self) -> None:
+        """_run_single_seed must return a numeric best_bound on successful solve."""
+        from cplex_mip_experiments.solve_mip import _run_single_seed
+
+        result = _run_single_seed(
+            mps_file=DEFAULT_MPS,
+            seed=0,
+            seed_index=0,
+            n_seeds=1,
+            node_selection=1,
+            variable_selection=0,
+            heuristic_frequency=0,
+            time_limit_s=10.0,
+            n_threads=1,
+            rins_frequency=0,
+            cut_passes=0,
+        )
+        assert result["best_bound"] is not None
+        assert isinstance(result["best_bound"], float)
+
+    def test_export_solution_false_yields_empty_mst(self) -> None:
+        """export_solution=False must not populate best_solution_mst."""
+        from cplex_mip_experiments.solve_mip import _run_single_seed
+
+        result = _run_single_seed(
+            mps_file=DEFAULT_MPS,
+            seed=0,
+            seed_index=0,
+            n_seeds=1,
+            node_selection=1,
+            variable_selection=0,
+            heuristic_frequency=0,
+            time_limit_s=10.0,
+            n_threads=1,
+            rins_frequency=0,
+            cut_passes=0,
+            export_solution=False,
+        )
+        assert result["best_solution_mst"] == ""
+
+    def test_export_solution_true_yields_mst_xml(self) -> None:
+        """export_solution=True must export warm-start-ready MST XML."""
+        from cplex_mip_experiments.solve_mip import _run_single_seed
+
+        result = _run_single_seed(
+            mps_file=DEFAULT_MPS,
+            seed=0,
+            seed_index=0,
+            n_seeds=1,
+            node_selection=1,
+            variable_selection=0,
+            heuristic_frequency=0,
+            time_limit_s=10.0,
+            n_threads=1,
+            rins_frequency=0,
+            cut_passes=0,
+            export_solution=True,
+        )
+        assert result["best_solution_mst"]
+        assert "CPLEXSolution" in result["best_solution_mst"]
+
+    def test_warm_start_round_trip(self, tmp_path: pathlib.Path) -> None:
+        """Exported MST must be loadable as a warm start for a second solve."""
+        from cplex_mip_experiments.solve_mip import _run_single_seed
+
+        first = _run_single_seed(
+            mps_file=DEFAULT_MPS,
+            seed=0,
+            seed_index=0,
+            n_seeds=1,
+            node_selection=1,
+            variable_selection=0,
+            heuristic_frequency=0,
+            time_limit_s=10.0,
+            n_threads=1,
+            rins_frequency=0,
+            cut_passes=0,
+            export_solution=True,
+        )
+        mst_path = tmp_path / "warm.mst"
+        mst_path.write_text(first["best_solution_mst"], encoding="utf-8")
+
+        _run_single_seed(
+            mps_file=DEFAULT_MPS,
+            seed=1,
+            seed_index=0,
+            n_seeds=1,
+            node_selection=1,
+            variable_selection=0,
+            heuristic_frequency=0,
+            time_limit_s=10.0,
+            n_threads=1,
+            rins_frequency=0,
+            cut_passes=0,
+            warm_start_file=str(mst_path),
+        )
+
+
+class TestEstimateMemoryBytes:
+    """``estimate_mip_memory_bytes`` implements the power-law formula."""
+
+    def _call(self, file_size_bytes: int) -> int:
+        from cplex_mip_experiments.solve_mip import estimate_mip_memory_bytes
+
+        with patch("os.path.getsize", return_value=file_size_bytes):
+            return estimate_mip_memory_bytes("/fake/file.mps")
+
+    def test_returns_int(self) -> None:
+        """Return value must be an int."""
+        result = self._call(0)
+        assert isinstance(result, int)
+
+    def test_floor_applied_for_zero_byte_file(self) -> None:
+        """A zero-byte file must still return at least floor_gb * 1.20 bytes."""
+        floor_gb = 4.0
+        safety = 1.20
+        min_expected = int(floor_gb * safety * (1024**3))
+        assert self._call(0) >= min_expected
+
+    def test_floor_applied_for_tiny_file(self) -> None:
+        """A 1-byte file is dominated by the floor; result is within 1% of zero-byte case."""
+        zero_byte = self._call(0)
+        one_byte = self._call(1)
+        assert abs(one_byte - zero_byte) / zero_byte < 0.01
+
+    def test_monotonic_larger_file_larger_estimate(self) -> None:
+        """A 100 MB file must produce a larger estimate than a 1 MB file."""
+        small = self._call(1 * 1024**2)
+        large = self._call(100 * 1024**2)
+        assert large > small
+
+    def test_sub_linear_growth(self) -> None:
+        """Doubling the file size must not double the estimate (power-law damping)."""
+        base = self._call(10 * 1024**2)
+        doubled = self._call(20 * 1024**2)
+        assert doubled < base * 2
+
+    def test_known_value_23mb(self) -> None:
+        """23 MB file: estimate must be substantially less than the old linear ~46 GB."""
+        result_bytes = self._call(23 * 1024**2)
+        result_gb = result_bytes / (1024**3)
+        # Old formula gave ~46 GB; new formula should be well below 30 GB
+        assert result_gb < 30.0
+        # Must still be above the 4 GB floor
+        assert result_gb > 4.0
+
+
+class TestRunSingleSeedCplexMemoryParams:
+    """``_run_single_seed`` sets WorkMem and NodeFileInd when workmem_mb > 0."""
+
+    def _make_mock_model(self) -> MagicMock:
+        """Return a MagicMock that stands in for a cplex.Cplex() model."""
+        model = MagicMock()
+        model.solution.get_status_string.return_value = "optimal"
+        model.solution.progress.get_num_nodes_processed.return_value = 10
+        model.solution.get_objective_value.return_value = -1.0
+        model.solution.MIP.get_mip_relative_gap.return_value = 0.0
+        return model
+
+    @pytest.mark.skipif(not HAS_CPLEX, reason="CPLEX Python API not installed")
+    def test_workmem_set_when_workmem_mb_positive(self) -> None:
+        """model.parameters.workmem.set must be called with float(workmem_mb)."""
+        import cplex
+        from cplex_mip_experiments.solve_mip import _run_single_seed
+
+        mock_model = self._make_mock_model()
+        with patch.object(cplex, "Cplex", return_value=mock_model):
+            _run_single_seed(
+                mps_file=DEFAULT_MPS,
+                seed=0,
+                seed_index=0,
+                n_seeds=1,
+                node_selection=1,
+                variable_selection=0,
+                heuristic_frequency=0,
+                time_limit_s=10.0,
+                n_threads=1,
+                rins_frequency=0,
+                cut_passes=0,
+                workmem_mb=8192,
+            )
+        mock_model.parameters.workmem.set.assert_called_once_with(float(8192))
+
+    @pytest.mark.skipif(not HAS_CPLEX, reason="CPLEX Python API not installed")
+    def test_nodefile_set_when_workmem_mb_positive(self) -> None:
+        """model.parameters.mip.strategy.file.set must be called with 3."""
+        import cplex
+        from cplex_mip_experiments.solve_mip import _run_single_seed
+
+        mock_model = self._make_mock_model()
+        with patch.object(cplex, "Cplex", return_value=mock_model):
+            _run_single_seed(
+                mps_file=DEFAULT_MPS,
+                seed=0,
+                seed_index=0,
+                n_seeds=1,
+                node_selection=1,
+                variable_selection=0,
+                heuristic_frequency=0,
+                time_limit_s=10.0,
+                n_threads=1,
+                rins_frequency=0,
+                cut_passes=0,
+                workmem_mb=8192,
+            )
+        mock_model.parameters.mip.strategy.file.set.assert_called_once_with(3)
+
+    @pytest.mark.skipif(not HAS_CPLEX, reason="CPLEX Python API not installed")
+    def test_workmem_not_set_when_workmem_mb_zero(self) -> None:
+        """Neither workmem nor nodefile must be set when workmem_mb=0 (default)."""
+        import cplex
+        from cplex_mip_experiments.solve_mip import _run_single_seed
+
+        mock_model = self._make_mock_model()
+        with patch.object(cplex, "Cplex", return_value=mock_model):
+            _run_single_seed(
+                mps_file=DEFAULT_MPS,
+                seed=0,
+                seed_index=0,
+                n_seeds=1,
+                node_selection=1,
+                variable_selection=0,
+                heuristic_frequency=0,
+                time_limit_s=10.0,
+                n_threads=1,
+                rins_frequency=0,
+                cut_passes=0,
+                workmem_mb=0,
+            )
+        mock_model.parameters.workmem.set.assert_not_called()
+        mock_model.parameters.mip.strategy.file.set.assert_not_called()
+
+
+class TestSolveMipWorkmemPropagation:
+    """``solve_mip`` derives workmem_mb from estimate and passes it to _run_single_seed."""
+
+    def _make_seed_result(self) -> dict[str, Any]:
+        return {
+            "solve_time_s": 1.0,
+            "objective_value": -1.0,
+            "best_bound": -1.0,
+            "mip_gap": 0.0,
+            "nodes_explored": 10,
+            "solve_status": "optimal",
+            "best_solution_mst": "",
+            "progress_samples": [],
+        }
+
+    def test_serial_path_passes_workmem_mb_to_run_single_seed(
+        self, solve_mip_func: Callable[..., Any]
+    ) -> None:
+        """Serial solve_mip must pass workmem_mb=80% of estimate to _run_single_seed."""
+        captured_workmem: list[int] = []
+
+        def capture(**kw: Any) -> dict[str, Any]:  # noqa: ANN401
+            captured_workmem.append(kw.get("workmem_mb", -1))
+            return self._make_seed_result()
+
+        fake_mem_bytes = 10 * 1024**3  # 10 GB
+
+        with (
+            patch(
+                "cplex_mip_experiments.solve_mip.estimate_mip_memory_bytes",
+                return_value=fake_mem_bytes,
+            ),
+            patch(
+                "cplex_mip_experiments.solve_mip._run_single_seed",
+                side_effect=capture,
+            ),
+        ):
+            solve_mip_func(mps_file=DEFAULT_MPS, n_seeds=2, parallel=False)
+
+        expected_workmem_mb = int(fake_mem_bytes / (1024**2) * 0.80)
+        assert len(captured_workmem) == 2
+        assert all(w == expected_workmem_mb for w in captured_workmem)

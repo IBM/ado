@@ -1,5 +1,6 @@
 <!-- markdownlint-disable code-block-style -->
-<!-- markdownlint-disable-next-line first-line-h1 -->
+<!-- markdownlint-disable first-line-h1 -->
+
 ## Overview
 
 > [!TIP]
@@ -26,8 +27,8 @@ Use the `random_walk` operator when you want to:
 
 The `random_walk` operator supports
 [memoization](../core-concepts/data-sharing.md#memoization): if it samples the
-same entity twice, and that entity has already had the measurement space applied,
-it will replay the already measured values (by default).
+same entity twice, and that entity has already had the measurement space
+applied, it will replay the already measured values (by default).
 
 ### What happens if I apply multiple `random_walk` operations to a space?
 
@@ -133,8 +134,8 @@ system for (N-1) additional entities to be measured but it will not be used.
 
 ### Batch Size and Concurrent Experiments
 
-When it comes to managing resources during an exploration, the key variable
-to control is the number of concurrent experiments.
+When it comes to managing resources during an exploration, the key variable to
+control is the number of concurrent experiments.
 
 For the `random_walk` operator, this number is its `batchSize` parameter (the
 number of initial entities submitted) multiplied by the number of experiments in
@@ -222,7 +223,7 @@ grouped:
 !!! info end
 
     The flat modes sample entities directly.
-    For the grouped modes, the sampling is done on 2 levels - 
+    For the grouped modes, the sampling is done on 2 levels -
     groups and then entities in the groups. The group level
     sampling can be either sequential or random, while group member level is always
     sequential
@@ -311,8 +312,7 @@ spaces:
 
 ## Custom Samplers
 
-`random_walk` can also use custom samplers for
-more complex sampling schemes.
+`random_walk` can also use custom samplers for more complex sampling schemes.
 
 For custom samplers the `samplerConfig` field has the following structure:
 
@@ -346,19 +346,19 @@ space:
 - **`sobol`**: Sobol sequences are low-discrepancy quasi-random sequences widely
   used for space-filling designs. They provide better coverage than pure random
   sampling by ensuring points are well-distributed across all dimensions.
-- **`clhs`**: Concatenated Latin Hypercube Sampling (CLHS) samples each dimension
-  independently without replacement, cycling through all values before repeating.
-  This ensures each dimension is uniformly covered.
+- **`clhs`**: Concatenated Latin Hypercube Sampling (CLHS) samples each
+  dimension independently without replacement, cycling through all values before
+  repeating. This ensures each dimension is uniformly covered.
 
-**Collision Handling**: Sobol sampling may produce collisions (duplicate points),
-when this happens the sampler automatically falls back to CLHS to ensure
-the requested number of unique samples.
+**Collision Handling**: Sobol sampling may produce collisions (duplicate
+points), when this happens the sampler automatically falls back to CLHS to
+ensure the requested number of unique samples.
 
 ##### Example: Sobol Sampling
 
-Here we write an example using Sobol ordering for quasi-random
-low-discrepancy coverage. Make sure to install the TRIM package first.
-Then install TRIM custom experiments with
+Here we write an example using Sobol ordering for quasi-random low-discrepancy
+coverage. Make sure to install the TRIM package first. Then install TRIM custom
+experiments with
 
 ```bash
 pip install examples/trim/custom_experiments/
@@ -390,15 +390,15 @@ samplerConfig:
     sampling_strategy: sobol
 ```
 
-Since `batchSize: 1` the operation will sample one point at a time, this
-ensures that the sequence of measurements has the desired uniform coverage
+Since `batchSize: 1` the operation will sample one point at a time, this ensures
+that the sequence of measurements has the desired uniform coverage
 
 ```bash
-ado show entities operation --use-latest  -o csv --output-file your_file.csv
+ado show measurements operation --use-latest  -o csv --output-file your_file.csv
 ```
 
-The file `your_file.csv` will contain the sequence of sampled points, you
-will see something like this:
+The file `your_file.csv` will contain the sequence of sampled points, you will
+see something like this:
 
 <!-- markdownlint-disable line-length -->
 
@@ -476,17 +476,16 @@ which can take the following values:
 
 ## Memoization: Reusing existing measurements
 
-If `singleMeasurement:` is False, all experiments are applied to
-ALL entities sampled, even if they already have the results for that
-experiment.
+If `singleMeasurement:` is False, all experiments are applied to ALL entities
+sampled, even if they already have the results for that experiment.
 
 By setting `singleMeasurement:` to True (the default) a random walk operation
-will check if an experiment has already been applied to an entity and,
-if it has, reuse a.k.a. replay, the result.
+will check if an experiment has already been applied to an entity and, if it
+has, reuse a.k.a. replay, the result.
 
 If the entity has multiple results for the same experiment, each one will be
-replayed.
-See [replayed measurements](explore_operators.md#memoization-replaying-measurements)
+replayed. See
+[replayed measurements](explore_operators.md#memoization-replaying-measurements)
 for more details.
 
 ## Retrying Failed Measurements
@@ -541,6 +540,7 @@ request index 5 has been retried 2 times.
 
 ## What's next
 
+<!-- prettier-ignore-start -->
 <!-- markdownlint-disable line-length -->
 <!-- markdownlint-disable-next-line no-inline-html -->
 <div class="grid cards" markdown>
@@ -563,3 +563,5 @@ request index 5 has been retried 2 times.
 
 </div>
 <!-- markdownlint-enable line-length -->
+
+<!-- prettier-ignore-end -->

@@ -15,38 +15,40 @@ from orchestrator.schema.request import MeasurementRequest, MeasurementRequestSt
 
 def test_custom_experiment_unknown_keys_are_dropped() -> None:
     @custom_experiments.custom_experiment(output_property_identifiers=["x", "y"])
-    def f(x: int, y: int):
+    def f_unknown_dropped(x: int, y: int):
         return {"x": 1, "y": 2, "z": 3, "foo": 4}
 
-    exp = f._experiment
+    exp = f_unknown_dropped._experiment
     entity = SpacePoint.model_validate({"entity": {"x": 10, "y": 20}}).to_entity()
     observed_values = custom_experiments._call_decorated_custom_experiment(
-        f, exp, entity
+        f_unknown_dropped, exp, entity
     )
     identifiers = {v.property.targetProperty.identifier for v in observed_values}
     assert identifiers == {"x", "y"}
 
 
 def test_custom_experiment_only_unknown_keys_raises_value_error() -> None:
-    @custom_experiments.custom_experiment(output_property_identifiers=["x", "y"])
-    def f(x: int, y: int):
+    @custom_experiments.custom_experiment(output_property_identifiers=["x2", "y2"])
+    def f_only_unknown(x2: int, y2: int):
         return {"z": 3, "foo": 4}  # none of these match the output property identifiers
 
-    exp = f._experiment
-    entity = SpacePoint.model_validate({"entity": {"x": 1, "y": 2}}).to_entity()
+    exp = f_only_unknown._experiment
+    entity = SpacePoint.model_validate({"entity": {"x2": 1, "y2": 2}}).to_entity()
     with pytest.raises(ValueError, match="No valid output properties"):
-        custom_experiments._call_decorated_custom_experiment(f, exp, entity)
+        custom_experiments._call_decorated_custom_experiment(
+            f_only_unknown, exp, entity
+        )
 
 
 def test_custom_experiment_partial_output_keys() -> None:
     @custom_experiments.custom_experiment(output_property_identifiers=["a", "b", "c"])
-    def f(a: int, b: int, c: int):
+    def f_partial(a: int, b: int, c: int):
         return {"a": 10, "junk": 999}
 
-    exp = f._experiment
+    exp = f_partial._experiment
     entity = SpacePoint.model_validate({"entity": {"a": 1, "b": 2, "c": 3}}).to_entity()
     observed_values = custom_experiments._call_decorated_custom_experiment(
-        f, exp, entity
+        f_partial, exp, entity
     )
     identifiers = {v.property.targetProperty.identifier for v in observed_values}
     assert "a" in identifiers
@@ -55,13 +57,13 @@ def test_custom_experiment_partial_output_keys() -> None:
 
 def test_custom_experiment_exact_output_keys() -> None:
     @custom_experiments.custom_experiment(output_property_identifiers=["foo", "bar"])
-    def f(foo: int, bar: int):
+    def f_exact(foo: int, bar: int):
         return {"foo": 123, "bar": 456}
 
-    exp = f._experiment
+    exp = f_exact._experiment
     entity = SpacePoint.model_validate({"entity": {"foo": 1, "bar": 2}}).to_entity()
     observed_values = custom_experiments._call_decorated_custom_experiment(
-        f, exp, entity
+        f_exact, exp, entity
     )
     identifiers = {v.property.targetProperty.identifier for v in observed_values}
     assert "foo" in identifiers

@@ -18,7 +18,7 @@ from orchestrator.metastore.base import (
     ResourceDoesNotExistError,
 )
 from orchestrator.metastore.project import ProjectContext
-from orchestrator.modules.actuators.registry import UnknownExperimentError
+from orchestrator.modules.actuators.errors import UnknownExperimentError
 
 
 def handle_resource_does_not_exist(

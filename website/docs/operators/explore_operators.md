@@ -1,5 +1,6 @@
 <!-- markdownlint-disable code-block-style -->
-<!-- markdownlint-disable-next-line first-line-h1 -->
+<!-- markdownlint-disable first-line-h1 -->
+
 A core task is sampling and measuring `entities` from a `discoveryspace` and
 this is the objective of explore `operators`. In fact, other than copying data
 from an external source, `operations` using _explore_ `operators` are the only
@@ -16,7 +17,7 @@ sequence, hence there is an associated timeseries. This timeseries is recorded
 for every `explore` operation. To see it via `ado` CLI use:
 
 ```commandline
-ado show entities operation $OPERATION_IDENTIFIER
+ado show measurements operation $OPERATION_IDENTIFIER
 ```
 
 This will output a table of the entities in the order they were sampled during
@@ -26,6 +27,7 @@ You can access this information programmatically by modifying the following
 snippet:
 
 <!-- markdownlint-disable line-length -->
+
 ```python
 import yaml
 from orchestrator.core.discoveryspace.space import DiscoverySpace
@@ -41,6 +43,7 @@ space = DiscoverySpace.from_stored_configuration(project_context=c, space_identi
 space.complete_measurement_request_with_results_timeseries(operation_id="operation_abc123",
                                                            limit_to_properties=["someexperiment.someproperty"])
 ```
+
 <!-- markdownlint-enable line-length -->
 
 Importantly, the same entity can be visited by multiple different `operations`.
@@ -68,11 +71,11 @@ A core goal of `ado` is transparent data-sharing. This is enabled via the
 [common context provided by `samplestores`](../resources/sample-stores.md) and
 the schema used to store `entities`.
 
-To leverage this data-sharing capability explore operations will, by default, not
-re-measure an entity they sample if it already has data for that measurement.
-For example, an explore operation samples an entity from a space whose
-`measurementspace` includes an experiment called "myexperiment-v1". If it sees
-the entity has values for experiment `myexperiment-v1`, it won't execute it
+To leverage this data-sharing capability explore operations will, by default,
+not re-measure an entity they sample if it already has data for that
+measurement. For example, an explore operation samples an entity from a space
+whose `measurementspace` includes an experiment called "myexperiment-v1". If it
+sees the entity has values for experiment `myexperiment-v1`, it won't execute it
 again, instead it replays it, a feature called **memoization**.
 
 This means if a different user sampled and measured this entity with this
@@ -81,13 +84,13 @@ execution time.
 
 Explore operators should allow turning memoization on and off.
 
-If memoization is off, the entity will be re-measured with the
-experiment and it will have two values for each
+If memoization is off, the entity will be re-measured with the experiment and it
+will have two values for each
 [observed property](../core-concepts/actuators.md#target-and-observed-properties)
-of that experiment. Going back to our example above, if `myexperiment-v1` was executed
-again, and it measured properties `prop1` and `prop2`, then the entity will have
-two values for `myexperiment-v1.prop1` and `myexperiment-v1.prop2`, one from
-each time the experiment was applied to that entity.
+of that experiment. Going back to our example above, if `myexperiment-v1` was
+executed again, and it measured properties `prop1` and `prop2`, then the entity
+will have two values for `myexperiment-v1.prop1` and `myexperiment-v1.prop2`,
+one from each time the experiment was applied to that entity.
 
 What if you switch it on but an entity has multiple measurements of the same
 experiment? In this case _each existing measurement is replayed_. In our
@@ -97,7 +100,8 @@ replayed: the first and the second.
 
 > [!NOTE]
 >
-> See [Shared Sample Stores: Memoization](../core-concepts/data-sharing.md#memoization)
+> See
+> [Shared Sample Stores: Memoization](../core-concepts/data-sharing.md#memoization)
 > for further details on how memoization works at storage-level
 
 ### Failed measurements
@@ -121,10 +125,12 @@ When an explore operation finishes, the system (top-level) metadata field of the
 associated `operation` resource is updated with the following fields.
 
 <!-- markdownlint-disable line-length -->
+
 ```python
 entities_submitted: #The number of entities sampled from the space
 experiments_requested: #The number of experiments requested - should be (number of experiments in measurement space)*entitiesSampled
 ```
+
 <!-- markdownlint-enable line-length -->
 
 Example from a completed random walk `operation`:
@@ -173,16 +179,13 @@ added, and some fraction of the requested entities will have been sampled. Some
 
 Commands that reflect changing state during an `operation`:
 
-- `ado show entities space`
-- `ado show entities operation`
-- `ado show details space`
+- `ado show measurements space`
+- `ado show measurements operation`
+- `ado show stats discoveryspace`
 
 Commands that do not reflect changing state during an `operation`:
 
 - `ado get operation $OPERATION_IDENTIFIER`
-- `ado show details operation $OPERATION_IDENTIFIER`
 
 The `operation` resource itself will be updated with metadata when the operation
 finishes but not while it is running.
-`ado show details operation $OPERATION_IDENTIFIER` uses this metadata, so it
-will not be correct until the operation is finished.

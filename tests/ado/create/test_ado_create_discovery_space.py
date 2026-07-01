@@ -125,10 +125,8 @@ def test_create_discovery_space_fail_with_default_sample_store_with_replay_actua
 
     assert result.exit_code == 1, result.output
     assert "The default sample store was requested to be used." in result.output
-    assert (
-        "The following experiment was not found: replay.benchmark_performance"
-        in result.output
-    )
+    assert "replay.benchmark_performance" in result.output
+    assert "The following experiment was not found:" in result.output
 
 
 def test_create_discovery_space_success(

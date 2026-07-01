@@ -6,8 +6,3 @@ entitySpace:
 experiments:
   - experimentIdentifier: 'molgx-toxicity-inference-experiment'
     actuatorIdentifier: 'replay'
-    targetProperties:
-      - pka
-      - logws
-      - "biodegradation halflife"
-      - ld50

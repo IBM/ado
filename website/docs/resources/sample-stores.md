@@ -1,5 +1,6 @@
 <!-- markdownlint-disable code-block-style -->
-<!-- markdownlint-disable-next-line first-line-h1 -->
+<!-- markdownlint-disable first-line-h1 -->
+
 A `samplestore` resource is a database containing
 [`entities`](../core-concepts/entity-spaces.md#entities) along with results of
 experiments that have been applied to them.
@@ -36,10 +37,12 @@ ado show related samplestore $SAMPLE_STORE_IDENTIFIER
 
 > [!TIP]
 >
-> The greater the similarity between two `discoveryspace`s, the greater
-> the chance they can share data. So it is usually beneficial to ensure that
-> such `discoveryspace`s use the same `samplestore`.
+> The greater the similarity between two `discoveryspace`s, the greater the
+> chance they can share data. So it is usually beneficial to ensure that such
+> `discoveryspace`s use the same `samplestore`.
+
 <!-- markdownlint-disable-next-line no-blanks-blockquote -->
+
 > [!WARNING]
 >
 > If you use two different `samplestore`s for similar `discoveryspace`s there is
@@ -51,8 +54,8 @@ ado show related samplestore $SAMPLE_STORE_IDENTIFIER
 allow read and write; and **passive** Sample Stores that only have read
 capabilities (for example a CSV file containing measurement data).
 
-All `samplestore` resources created with `ado` will be **active**. However,
-they can copy data in from **passive** Sample Stores.
+All `samplestore` resources created with `ado` will be **active**. However, they
+can copy data in from **passive** Sample Stores.
 
 ## The primary Sample Store type: SQLSampleStore
 
@@ -139,7 +142,7 @@ copyFrom:
       identifierColumn: "config"
       experiments:
         - experimentIdentifier: "benchmark_performance"
-          constitutivePropertyMap: 
+          constitutivePropertyMap:
             - cpu_type
           observedPropertyMap:
             - wallClockRuntime
@@ -152,13 +155,13 @@ You access the entities in a `samplestore` via a discovery space attached to it.
 For an existing `discoveryspace` to retrieve all entities that match it run
 
 ```commandline
-ado show entities space $SPACEID --include matching
+ado show measurements space $SPACEID --include matching
 ```
 
 You can also define a `discoveryspace` in a YAML and run:
 
 ```commandline
-ado show entities space --file $FILE
+ado show measurements space --file $FILE
 ```
 
 This allows you to see what entities match a space without having to create it.
@@ -174,6 +177,7 @@ When you want to copy from another SQLSampleStore you need the identifier and
 the metastore URL to the project it is in
 
 <!-- markdownlint-disable line-length -->
+
 ```yaml
 copyFrom:
   - identifier: source_abc123
@@ -187,6 +191,7 @@ copyFrom:
       user: my_project # The user field is the name of the project containing the samplestore
       password: XXXXXXX
 ```
+
 <!-- markdownlint-enable line-length -->
 
 ### CSVSampleStore
@@ -197,10 +202,11 @@ properties or observed properties.
 
 #### Importing data from external experiments
 
-The below YAML illustrates importing data from a CSV for an experiment
-which is not provided by an installed `ado` actuator.
+The below YAML illustrates importing data from a CSV for an experiment which is
+not provided by an installed `ado` actuator.
 
 <!-- markdownlint-disable line-length -->
+
 ```yaml
 copyFrom:
   - module:
@@ -215,14 +221,15 @@ copyFrom:
         - experimentIdentifier: 'benchmark_performance' # The experiment name you want the following properties to be associated with
           constitutivePropertyMap: # A list of columns which contain constitutive properties. Can also be a dict of property name to column name pairs
             - cpu_value
-          observedPropertyMap: # Dict of target property name:column id pairs, or list of column ids 
+          observedPropertyMap: # Dict of target property name:column id pairs, or list of column ids
             wallClockRuntime: 'wall-clock runtime' # The key is the target property name, the value is the column containing the values for that property
 ```
+
 <!-- markdownlint-enable line-length -->
 
-You must specify which CSV columns contain observed properties (measurements/results)
-and which contain constitutive properties (input parameters/configurations).
-You can do this in one of two ways.
+You must specify which CSV columns contain observed properties
+(measurements/results) and which contain constitutive properties (input
+parameters/configurations). You can do this in one of two ways.
 
 1. **Use CSV column names as-is** - Pass a list:
 
@@ -232,18 +239,19 @@ You can do this in one of two ways.
      - memory_gb
    ```
 
-   This uses `cpu_value` and `memory_gb` as both the column names AND property names.
+   This uses `cpu_value` and `memory_gb` as both the column names AND property
+   names.
 
 2. **Rename columns** - Pass a dictionary:
 
    ```yaml
    observedPropertyMap:
-     wallClockRuntime: 'wall-clock runtime'
-     throughput: 'requests_per_sec'
+     wallClockRuntime: "wall-clock runtime"
+     throughput: "requests_per_sec"
    ```
 
-   This reads from CSV columns `wall-clock runtime` and `requests_per_sec`,
-   but names them `wallClockRuntime` and `throughput` in the experiment.
+   This reads from CSV columns `wall-clock runtime` and `requests_per_sec`, but
+   names them `wallClockRuntime` and `throughput` in the experiment.
 
 #### Importing data from existing actuators
 
@@ -255,21 +263,23 @@ actuator and experiment identifiers. The property mappings
 experiment definition.
 
 <!-- markdownlint-disable line-length -->
+
 ```yaml
 copyFrom:
   - module:
       moduleClass: CSVSampleStore
       moduleName: orchestrator.core.samplestore.csv
     storageLocation:
-      path: 'results_export.csv'
+      path: "results_export.csv"
     parameters:
-      generatorIdentifier: 'vllm-benchmark-run'
-      identifierColumn: 'config'
+      generatorIdentifier: "vllm-benchmark-run"
+      identifierColumn: "config"
       experiments:
-        - experimentIdentifier: 'test-deployment-v1'
-          actuatorIdentifier: 'vllm_performance'  # Specify the actual actuator
-          propertyFormat: 'target' # if the columns for observed properties use target property names or observed property names
+        - experimentIdentifier: "test-deployment-v1"
+          actuatorIdentifier: "vllm_performance" # Specify the actual actuator
+          propertyFormat: "target" # if the columns for observed properties use target property names or observed property names
 ```
+
 <!-- markdownlint-enable line-length -->
 
 `ado` will verify that:
@@ -277,22 +287,21 @@ copyFrom:
 1. The specified actuator exists in the current instance
 2. The experiment exists in that actuator's catalog
 3. The CSV contains all required constitutive properties for the experiment
-(i.e. has columns with correct names)
+   (i.e. has columns with correct names)
 
-If the columns in the CSV don't match the experiments constitutive/observed properties
-you can use the `observedPropertyMap` and/or `constitutivePropertyMap` fields to
-provide a mapping.
-If these are provided the keys will be validated against the experiment definition.
+If the columns in the CSV don't match the experiments constitutive/observed
+properties you can use the `observedPropertyMap` and/or
+`constitutivePropertyMap` fields to provide a mapping. If these are provided the
+keys will be validated against the experiment definition.
 
 If any validation fails, a detailed error message will indicate what's wrong.
 
 > [!WARNING] Parameterized Experiments
 >
-> Importing parameterized experiment is not supported yet.
-> If you use a parameterized experiment identifier the data will fail to
-> import with an UnknownExperimentError
-> If you use the base experiment identifier the data will be mapped to the wrong
-> experiment
+> Importing parameterized experiment is not supported yet. If you use a
+> parameterized experiment identifier the data will fail to import with an
+> UnknownExperimentError If you use the base experiment identifier the data will
+> be mapped to the wrong experiment
 
 ## Deleting sample stores
 

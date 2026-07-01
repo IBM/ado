@@ -10,7 +10,7 @@ from orchestrator.cli.utils.resources.mappings import (
 )
 from orchestrator.core.resources import CoreResourceKinds
 from orchestrator.metastore.base import DeleteFromDatabaseError
-from orchestrator.modules.actuators.registry import UnknownExperimentError
+from orchestrator.modules.actuators.errors import UnknownExperimentError
 
 if typing.TYPE_CHECKING:
     import pandas as pd

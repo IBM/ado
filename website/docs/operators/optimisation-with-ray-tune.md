@@ -42,7 +42,8 @@ Using RayTune via the ado `ray_tune` operator brings the following advantages:
 
 - Distributed storage and sharing of optimization runs and their results
 - Automatic recording of provenance
-- Transparent and distributed [memoization](../core-concepts/data-sharing.md#memoization)
+- Transparent and distributed
+  [memoization](../core-concepts/data-sharing.md#memoization)
 - Fully declarative interface, no need for programming
 
 However, there are a few drawbacks:
@@ -645,7 +646,7 @@ To see all the configurations (entities) visited during an optimization
 operation $OPERATION_IDENTIFIER run
 
 ```commandline
-ado show entities operation $OPERATION_IDENTIFIER
+ado show measurements operation $OPERATION_IDENTIFIER
 ```
 
 !!! info end

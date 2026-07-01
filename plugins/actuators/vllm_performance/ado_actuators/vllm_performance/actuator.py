@@ -24,14 +24,13 @@ from ado_actuators.vllm_performance.experiment_executor import (
 from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
 from orchestrator.modules.actuators.base import (
     ActuatorBase,
-    DeprecatedExperimentError,
-    MissingConfigurationForExperimentError,
 )
 from orchestrator.modules.actuators.catalog import ExperimentCatalog
+from orchestrator.modules.actuators.errors import MissingConfigurationForExperimentError
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
 from orchestrator.modules.operators.orchestrate import CLEANER_ACTOR
 from orchestrator.schema.entity import Entity
-from orchestrator.schema.experiment import Experiment, ParameterizedExperiment
+from orchestrator.schema.experiment import Experiment
 from orchestrator.schema.reference import ExperimentReference
 from orchestrator.schema.request import MeasurementRequest
 from orchestrator.utilities.environment import extract_package_specs_from_job_env
@@ -227,22 +226,10 @@ class VLLMPerformanceTest(ActuatorBase):
             requestid=str(uuid.uuid4())[:6],  # Create UID as you like
         )
 
-        # Check if the requested experiment is deprecated
+        # Resolve the experiment from the catalog (validates version, deprecation, and parameterization)
         experiment = self.__class__.catalog().experimentForReference(
-            request.experimentReference
+            request.experimentReference, resolve=True
         )
-        """
-        Check if the experiment has parameterization fields and create the right ParameterizedExperiment instance
-        Note: this is necessary for getting values of optional properties that the discoverySpace overrides
-        """
-        if experimentReference.parameterization:
-            experiment = ParameterizedExperiment(
-                parameterization=experimentReference.parameterization,
-                **experiment.model_dump(),
-            )
-
-        if experiment.deprecated is True:
-            raise DeprecatedExperimentError(f"Experiment {experiment} is deprecated")
 
         # We make sure the tool required for this experiments gets installed in the Ray worker python environment
         # unless developer_mode is enabled

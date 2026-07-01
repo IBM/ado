@@ -59,7 +59,7 @@ You can install these actuators as follows:
 !!! info
 
     Some plugins may have dependencies that may require credentials to access.
-    Check the plugin's documentation if you encounter issues installing 
+    Check the plugin's documentation if you encounter issues installing
     a specific actuator.
 
 === "From PyPi"

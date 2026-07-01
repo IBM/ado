@@ -71,21 +71,26 @@ def describe_experiment(parameters: AdoDescribeCommandParameters) -> None:
         catalog = registry.catalogForActuatorIdentifier(reference.actuatorIdentifier)
         matches = catalog.experiments_matching_identifier(reference)
         if len(matches) == 0:
-            raise UnknownExperimentError(
+            error = UnknownExperimentError(
                 f"The {reference.actuatorIdentifier} actuator was found but it did not "
                 f"contain the {reference.experimentIdentifier} experiment."
             )
+            console_print(f"{ERROR}{error}", stderr=True)
+            raise typer.Exit(1) from error
         if len(matches) > 1:
             available_versions = ", ".join(
                 sorted({e.version for e in matches if e.version is not None})
             )
-            raise AmbiguousExperimentIdentifierError(
+            error = AmbiguousExperimentIdentifierError(
                 f"The given identifier, {reference.experimentIdentifier!r}, is ambiguous: "
                 f"catalog contains {len(matches)} versions "
                 f"({available_versions}). "
                 f"Specify a version suffix, e.g. "
                 f"{reference.experimentIdentifier}@<version>."
             )
+            console_print(f"{ERROR}{error}", stderr=True)
+            raise typer.Exit(1) from error
+
         experiment = matches[0]
 
     console_print(experiment)

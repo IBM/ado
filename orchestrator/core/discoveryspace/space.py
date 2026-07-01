@@ -143,6 +143,7 @@ class DiscoverySpace:
         identifier: str | None = None,
         metadata_store: "SQLResourceStore | None" = None,
         samplestore_resource: "orchestrator.core.SampleStoreResource | None" = None,
+        sample_store: "orchestrator.core.samplestore.base.SampleStore | None" = None,
         load_experiment_catalog: bool = True,
     ) -> "DiscoverySpace":
         """Creates a discovery space from a config
@@ -158,7 +159,11 @@ class DiscoverySpace:
                 discovery space generates the id versus how the id used to store was generated)
             metadata_store: Optional SQLResourceStore instance to reuse. If None, a new instance will be created.
             samplestore_resource: Optional pre-fetched SampleStoreResource. When provided the metastore
-                round-trip to fetch the samplestore is skipped.
+                round-trip to fetch the samplestore is skipped. Ignored when *sample_store* is provided.
+            sample_store: An already-instantiated SampleStore to use directly. When provided, both
+                the metastore round-trip and the ``SampleStore.from_resource`` call are skipped,
+                and the same object is reused — preserving any in-memory entity cache.
+                Takes precedence over *samplestore_resource*.
             load_experiment_catalog: When ``True`` (default) the samplestore's experiment catalog is
                 loaded and registered with the actuator registry.  Set to ``False`` for read-only
                 paths (e.g. CLI show commands) where replay experiment resolution is not needed.
@@ -174,13 +179,14 @@ class DiscoverySpace:
 
         entitySpace = None
 
-        sample_store = (
-            SampleStore.from_resource(samplestore_resource)
-            if samplestore_resource is not None
-            else SampleStore.from_identifier(
-                identifier=conf.sampleStoreIdentifier, metastore=metadata_store
+        if sample_store is None:
+            sample_store = (
+                SampleStore.from_resource(samplestore_resource)
+                if samplestore_resource is not None
+                else SampleStore.from_identifier(
+                    identifier=conf.sampleStoreIdentifier, metastore=metadata_store
+                )
             )
-        )
 
         if conf.entitySpace is not None:
             entitySpace = EntitySpaceRepresentation.representationFromConfiguration(
@@ -937,6 +943,7 @@ class DiscoverySpace:
         description: str | None = None,
         metadata: dict | None = None,
         operation_type: DiscoveryOperationEnum = DiscoveryOperationEnum.SEARCH,
+        provenance: "orchestrator.core.metadata.PackageProvenance | None" = None,
     ) -> Iterator[str]:
         """Context manager that registers a script operation and manages its lifecycle.
 
@@ -952,6 +959,9 @@ class DiscoverySpace:
             operation_type: Semantic type for the operation (e.g. SEARCH for explore scripts).
                 Script provenance is always recorded on metadata labels under
                 ``execution: script``.
+            provenance: Optional Python distribution provenance for the script module.
+                When provided, stored under ``provenance.operators`` keyed by the
+                script operator identifier.
 
         Yields:
             The operation resource identifier.
@@ -973,6 +983,7 @@ class DiscoverySpace:
         )
         from orchestrator.core.operation.resource import (
             OperationExitStateEnum,
+            OperationProvenanceInfo,
             OperationResource,
             OperationResourceEventEnum,
             OperationResourceStatus,
@@ -1001,10 +1012,18 @@ class DiscoverySpace:
             spaces=[self.uri],
         )
 
+        if provenance is None:
+            final_provenance = OperationProvenanceInfo(operators={})
+        else:
+            final_provenance = OperationProvenanceInfo(
+                operators={script_module.operatorIdentifier: provenance},
+            )
+
         operation = OperationResource(
             operationType=script_module.operationType,
             operatorIdentifier=script_module.operatorIdentifier,
             config=operation_payload,
+            provenance=final_provenance,
         )
 
         self.addOperation(operation)
@@ -1207,3 +1226,25 @@ class DiscoverySpace:
             )
 
         return result_list
+
+    def space_statistics(
+        self, lightweight_only: bool = False
+    ) -> "orchestrator.core.discoveryspace.stats.DiscoverySpaceStatistics":
+        """Compute statistics for this discovery space.
+
+        Delegates to
+        :func:`~orchestrator.core.discoveryspace.stats.space_statistics_for_spaces`
+        for a single space.
+
+        Args:
+            lightweight_only: When ``True`` skip all Python-side computation
+                and return ``None`` for the heavy fields.
+
+        Returns:
+            :class:`~orchestrator.core.discoveryspace.stats.DiscoverySpaceStatistics`
+        """
+        from orchestrator.core.discoveryspace.stats import space_statistics_for_spaces
+
+        return space_statistics_for_spaces([self], lightweight_only=lightweight_only)[
+            self.uri
+        ]

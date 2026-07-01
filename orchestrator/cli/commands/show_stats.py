@@ -7,14 +7,17 @@ from typing import Annotated
 
 import typer
 
-from orchestrator.cli.models.parameters import AdoShowSummaryCommandParameters
+from orchestrator.cli.models.parameters import AdoShowStatsCommandParameters
 from orchestrator.cli.models.types import (
-    AdoShowSummarySupportedOutputFormats,
-    AdoShowSummarySupportedResourceTypes,
+    AdoShowStatsSupportedOutputFormats,
+    AdoShowStatsSupportedResourceTypes,
 )
-from orchestrator.cli.resources.discovery_space.show_summary import (
-    show_discovery_space_summary,
+from orchestrator.cli.resources.datacontainer.show_stats import show_datacontainer_stats
+from orchestrator.cli.resources.discovery_space.show_stats import (
+    show_discovery_space_stats,
 )
+from orchestrator.cli.resources.operation.show_stats import show_operation_stats
+from orchestrator.cli.resources.samplestore.show_stats import show_samplestore_stats
 from orchestrator.cli.utils.input.parsers import (
     enum_choice_with_plural_parser,
     parse_key_value_pairs,
@@ -26,34 +29,28 @@ from orchestrator.cli.utils.output.prints import (
 from orchestrator.cli.utils.queries.parser import (
     prepare_query_filters_for_db,
 )
-from orchestrator.core.samplestore.base import (
-    FailedToDecodeStoredEntityError,
-    FailedToDecodeStoredMeasurementResultForEntityError,
-)
 
 if typing.TYPE_CHECKING:
     from orchestrator.cli.core.config import AdoConfiguration
 
-TABLE_ONLY_OPTIONS = "Table-only Options"
 
-
-def show_summary_for_resources(
+def show_stats_for_resources(
     ctx: typer.Context,
     resource_type: Annotated[
-        AdoShowSummarySupportedResourceTypes,
+        AdoShowStatsSupportedResourceTypes,
         typer.Argument(
             ...,
-            help="The kind of the resource to show a summary for.",
+            help="The kind of the resource to show full statistics for.",
             show_default=False,
-            parser=enum_choice_with_plural_parser(AdoShowSummarySupportedResourceTypes),
-            metavar=f"[{'|'.join(m.value for m in AdoShowSummarySupportedResourceTypes)}]",
+            parser=enum_choice_with_plural_parser(AdoShowStatsSupportedResourceTypes),
+            metavar=f"[{'|'.join(m.value for m in AdoShowStatsSupportedResourceTypes)}]",
         ),
     ],
     ids: Annotated[
         list[str] | None,
         typer.Argument(
             ...,
-            help="The ids of the resources to show a summary for.",
+            help="The ids of the resources to show statistics for.",
             show_default=False,
         ),
     ] = None,
@@ -61,7 +58,7 @@ def show_summary_for_resources(
         bool,
         typer.Option(
             "--use-latest",
-            help="Show summary for the latest identifier of the selected resource type. "
+            help="Show stats for the latest identifier of the selected resource type. "
             "Ignored if resource identifiers are also specified.",
             show_default=False,
         ),
@@ -98,40 +95,16 @@ def show_summary_for_resources(
             show_default=False,
         ),
     ] = None,
-    include_properties: Annotated[
-        list[str] | None,
-        typer.Option(
-            "--with-property",
-            "-p",
-            help="Add constitutive properties to the output. Can be specified multiple times.",
-            show_default=False,
-        ),
-    ] = None,
-    columns_to_hide: Annotated[
-        list[str] | None,
-        typer.Option(
-            "--hide",
-            help="Hide certain columns from the output. The following values can be used to hide default columns:"
-            " id (Space ID);"
-            " experiment (Experiments);"
-            " matching (Matching and Measured);"
-            " sampled (Sampled and Measured);"
-            " name (Name);"
-            " description (Description);",
-            show_default=False,
-            rich_help_panel=TABLE_ONLY_OPTIONS,
-        ),
-    ] = None,
     output_format: Annotated[
-        AdoShowSummarySupportedOutputFormats,
+        AdoShowStatsSupportedOutputFormats,
         typer.Option(
             "--output",
             "-o",
-            help="The format in which to output the summary. "
+            help="The format in which to output the statistics. "
             "Options: table (rich console table), md-table (markdown table), "
-            "md-report (markdown prose report), csv (CSV format).",
+            "csv (CSV format), json (JSON), yaml (YAML).",
         ),
-    ] = AdoShowSummarySupportedOutputFormats.TABLE.value,
+    ] = AdoShowStatsSupportedOutputFormats.TABLE.value,
     output_file: Annotated[
         pathlib.Path | None,
         typer.Option(
@@ -144,40 +117,44 @@ def show_summary_for_resources(
             show_default=False,
         ),
     ] = None,
+    show_details: Annotated[
+        bool,
+        typer.Option(
+            "--details",
+            help="Output additional information on each object, such as names and descriptions.",
+            show_default=True,
+        ),
+    ] = False,
     render_output: Annotated[
         bool,
         typer.Option(
             "--render",
-            help="Render the output in the console. Only supported for markdown table and markdown report output.",
+            help="Render the output in the console. Only supported for markdown table output.",
         ),
     ] = False,
 ) -> None:
     """
-    Show a formatted summary of one or more discovery spaces.
-
-    See https://ibm.github.io/ado/getting-started/ado/#ado-show-summary
-    for detailed documentation and examples.
+    Show full in-depth statistics for one or more resources.
 
     Examples:
 
-    # Show a high-level summary of the discovery space as a rich table
-    ado show summary space <space-id>
+    # Show stats for all operations
+    ado show stats operation
 
-    # Show a high-level summary of the latest discovery space as a rich table
-    ado show summary space --use-latest
+    # Show stats for a specific discovery space
+    ado show stats discoveryspace <space-id>
 
-    # Show a high-level summary of discovery spaces matching a label
-    ado show summary space -l key=value
+    # Show stats for the latest operation as JSON
+    ado show stats operation --use-latest -o json
 
-    # Show a detailed summary of the discovery space as a Markdown report
-    ado show summary space <space-id> -o md-report
+    # Show stats for samplestores matching a label
+    ado show stats samplestore -l key=value
     """
     ado_configuration: AdoConfiguration = ctx.obj
 
     if use_latest:
         from orchestrator.cli.utils.generic.common import get_effective_resource_id
 
-        # Handle single ID case - get_effective_resource_id handles precedence
         resource_id = get_effective_resource_id(
             explicit_resource_id=ids[0] if ids else None,
             resource_type=resource_type.value,
@@ -186,44 +163,44 @@ def show_summary_for_resources(
         ids = [resource_id]
 
     try:
-        query = prepare_query_filters_for_db(parse_key_value_pairs(query))
+        query_filters = prepare_query_filters_for_db(parse_key_value_pairs(query))
         if labels:
             for parsed_label in parse_key_value_pairs(labels):
                 for k, v in parsed_label.items():
-                    query.extend(
+                    query_filters.extend(
                         prepare_query_filters_for_db({"config.metadata.labels": {k: v}})
                     )
     except ValueError as e:
         console_print(f"{ERROR}{e}", stderr=True)
         raise typer.Exit(1) from e
 
-    parameters = AdoShowSummaryCommandParameters(
+    parameters = AdoShowStatsCommandParameters(
         ado_configuration=ado_configuration,
-        columns_to_hide=columns_to_hide,
-        include_properties=include_properties,
-        output_file=output_file,
         output_format=output_format,
-        query=query,
+        output_file=output_file,
+        query=query_filters if (query or labels) else None,
         render_output=render_output,
         resource_ids=ids,
+        show_details=show_details,
     )
 
     method_mapping = {
-        AdoShowSummarySupportedResourceTypes.DISCOVERY_SPACE: show_discovery_space_summary
+        AdoShowStatsSupportedResourceTypes.DISCOVERY_SPACE: show_discovery_space_stats,
+        AdoShowStatsSupportedResourceTypes.OPERATION: show_operation_stats,
+        AdoShowStatsSupportedResourceTypes.SAMPLE_STORE: show_samplestore_stats,
+        AdoShowStatsSupportedResourceTypes.DATA_CONTAINER: show_datacontainer_stats,
     }
 
-    try:
-        method_mapping[resource_type](parameters=parameters)
-    except (
-        FailedToDecodeStoredEntityError,
-        FailedToDecodeStoredMeasurementResultForEntityError,
-    ) as e:
-        console_print(f"{ERROR}{e}", stderr=True)
-        raise typer.Exit(1) from e
+    method_mapping[resource_type](parameters=parameters)
 
 
-def register_show_summary_command(app: typer.Typer) -> None:
+def register_show_stats_command(app: typer.Typer) -> None:
+    """Register the 'stats' subcommand onto the given typer app.
+
+    Args:
+        app: The typer application to register the command on.
+    """
     app.command(
-        name="summary",
+        name="stats",
         no_args_is_help=True,
-    )(show_summary_for_resources)
+    )(show_stats_for_resources)

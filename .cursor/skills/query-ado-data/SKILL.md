@@ -36,8 +36,6 @@ DOs:
 - Fetch metadata over fetching data
   - if a query can be answered via metadata it is much faster
   - filter via metadata first if possible, before obtaining data
-  - IMPORTANT: ado show details space can be slow as it internally fetches
-    spaces data to calculate - prefer using metadata
 - Consider writing a script directly using SQLResourceStore API if the CLI is
   not expressive enough BEFORE fetching data
   - you can make batch requests e.g. getResources - much faster than one-by-one
@@ -46,7 +44,7 @@ DOs:
 DONTs
 
 - Do not fetch discoveryspace or operation data for summary queries
-  - Do not use: ado show measurements, ado show trace, ado show details
+  - Do not use: ado show measurements, ado show trace
   - Do not instantiating DiscoverySpace instances or SQLStore instance
 - Only use these commands or classes when drilling down on a narrow set of
   resources
@@ -80,6 +78,42 @@ type.
 **Resource types**: `operations` (`op`), `discoveryspaces` (`space`),
 `samplestores` (`store`), `datacontainers` (`dcr`), `actuatorconfigurations`
 (`ac`)
+
+### Resource Statistics
+
+`-o stats` adds statistics columns to the table without fetching full resource
+data. Supported for **operations**, **discovery spaces**, **sample stores**, and
+**data containers**.
+
+```bash
+# Operations
+uv run ado get operations -o stats --output-file operations-stats.txt
+uv run ado get operation OPERATION_ID -o stats --no-trunc
+
+# Discovery Spaces
+uv run ado get spaces -o stats --output-file spaces-stats.txt
+uv run ado get space SPACE_ID -o stats --no-trunc
+
+# Sample Stores
+uv run ado get samplestores -o stats --output-file samplestores-stats.txt
+uv run ado get samplestore SAMPLESTORE_ID -o stats --no-trunc
+
+# Data Containers
+uv run ado get datacontainers -o stats --output-file datacontainers-stats.txt
+uv run ado get datacontainer DATACONTAINER_ID -o stats --no-trunc
+```
+
+**Operations** extra columns: `TOTAL_RESULTS`, `SUCCESSFUL_RESULTS`,
+`FAILED_RESULTS`, `MEASURED_ENTITIES` (distinct entities with at least one
+result).
+
+**Discovery Spaces** extra columns: `EXPERIMENTS`, `OPERATIONS`,
+`EXPLORE_OPERATIONS`, `MEASURED_ENTITIES`.
+
+**Sample Stores** extra columns: `ENTITIES`, `RESULTS`, `EXPERIMENTS`.
+
+**Data Containers** extra columns: `TABLES`, `LOCATIONS`, `KEY_VALUES`,
+`DATA_BYTES`.
 
 ### Filtering Resources
 
@@ -158,14 +192,6 @@ uv run ado show related $RESOURCETYPE [RESOURCE_ID] [--use-latest]
 
 ```bash
 uv run ado show related space space-abc123-456def
-```
-
-### Get Resource Details
-
-View detailed information about a specific resource:
-
-```bash
-uv run ado show details $RESOURCETYPE [RESOURCE_ID] [--use-latest]
 ```
 
 ## Querying Data

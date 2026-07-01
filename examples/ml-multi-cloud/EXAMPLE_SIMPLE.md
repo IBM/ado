@@ -528,7 +528,7 @@ ado show measurements space --use-latest --property-format target
 Also,
 
 ```commandline
-ado show details space --use-latest
+ado show stats discoveryspace --use-latest
 ```
 
 will give you a summary of what has been measured.

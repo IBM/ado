@@ -222,9 +222,16 @@ Relevant Documentation
 
 ### Step 1: Get Details on what was Sampled and Measured
 
+To get a numerical overview of results and requests before diving into the
+trace, use:
+
 ```bash
-uv run ado show details operation $OPERATION_ID
+uv run ado show stats operation $OPERATION_ID
 ```
+
+This outputs the base table columns output by ado get plus `TOTAL_RESULTS`,
+`SUCCESSFUL_RESULTS`, `FAILED_RESULTS`, `MEASURED_ENTITIES`, `TOTAL_REQUESTS`,
+`FAILED_REQUESTS`, `SUCCESSFUL_REQUESTS`.
 
 Compare this with the number of samples requested in the operator parameters.
 

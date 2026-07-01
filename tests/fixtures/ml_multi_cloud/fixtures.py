@@ -1,6 +1,7 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
+import datetime
 import pathlib
 import random
 from collections.abc import Callable
@@ -12,7 +13,11 @@ import orchestrator.core.actuatorconfiguration.config
 import orchestrator.core.discoveryspace.config
 import orchestrator.core.samplestore.csv
 import orchestrator.utilities.location
-from orchestrator.core import ActuatorConfigurationResource, OperationResource
+from orchestrator.core import (
+    ActuatorConfigurationResource,
+    CoreResourceKinds,
+    OperationResource,
+)
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.operation.config import (
     DiscoveryOperationEnum,
@@ -26,7 +31,7 @@ from orchestrator.core.samplestore.config import (
 from orchestrator.core.samplestore.csv import CSVSampleStore
 from orchestrator.core.samplestore.sql import SQLSampleStore
 from orchestrator.metastore.project import ProjectContext
-from orchestrator.metastore.sqlstore import SQLResourceStore
+from orchestrator.metastore.sqlstore import SQLResourceStore, SQLStore
 from orchestrator.modules.actuators.registry import ActuatorRegistry
 from orchestrator.schema.entity import Entity
 from orchestrator.schema.experiment import Experiment
@@ -307,7 +312,7 @@ def simulate_ml_multi_cloud_random_walk_operation(
     ],
     ml_multi_cloud_benchmark_performance_experiment: Experiment,
 ) -> Callable[
-    [int, int, int, str | None],
+    [int, int, int, str | None, "datetime.datetime | None"],
     tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
 ]:
     def _simulate_ml_multi_cloud_random_walk_operation(
@@ -315,6 +320,7 @@ def simulate_ml_multi_cloud_random_walk_operation(
         number_requests: int = 3,
         measurements_per_result: int = 2,
         operation_id: str | None = None,
+        created: "datetime.datetime | None" = None,
     ) -> tuple[SQLSampleStore, list[MeasurementRequest], list[str]]:
         operation_id = operation_id or random_identifier()
         sample_store = ml_multi_cloud_sample_store
@@ -323,13 +329,16 @@ def simulate_ml_multi_cloud_random_walk_operation(
             project_context=valid_ado_project_context, ensureExists=True
         )
 
+        resource = OperationResource(
+            identifier=operation_id,
+            config=ml_multi_cloud_operation_configuration,
+            operationType=DiscoveryOperationEnum.SEARCH,
+            operatorIdentifier="doesnt-matter",
+        )
+        if created is not None:
+            resource.created = created
         sql.addResourceWithRelationships(
-            OperationResource(
-                identifier=operation_id,
-                config=ml_multi_cloud_operation_configuration,
-                operationType=DiscoveryOperationEnum.SEARCH,
-                operatorIdentifier="doesnt-matter",
-            ),
+            resource,
             relatedIdentifiers=ml_multi_cloud_operation_configuration.spaces,
         )
 
@@ -366,3 +375,28 @@ def simulate_ml_multi_cloud_random_walk_operation(
         return sample_store, requests, request_ids
 
     return _simulate_ml_multi_cloud_random_walk_operation
+
+
+@pytest.fixture
+def backdate_resource(
+    valid_ado_project_context: ProjectContext,
+) -> Callable[[str, CoreResourceKinds, datetime.datetime], None]:
+    """Return a callable that overwrites the ``created`` timestamp of any resource.
+
+    Args:
+        identifier: The resource identifier to backdate.
+        kind: The ``CoreResourceKinds`` of the resource.
+        created: The new ``created`` timestamp to set.
+    """
+
+    def _backdate_resource(
+        identifier: str,
+        kind: CoreResourceKinds,
+        created: datetime.datetime,
+    ) -> None:
+        sql = SQLStore(project_context=valid_ado_project_context)
+        resource = sql.getResource(identifier=identifier, kind=kind)
+        resource.created = created
+        sql.updateResource(resource)
+
+    return _backdate_resource

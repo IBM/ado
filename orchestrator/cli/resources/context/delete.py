@@ -1,37 +1,32 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-import typer
 import yaml
 from rich.prompt import Confirm
 
 from orchestrator.cli.models.parameters import AdoDeleteCommandParameters
-from orchestrator.cli.utils.output.prints import (
-    HINT,
-    INFO,
-    SUCCESS,
-    WARN,
-    console_print,
-    context_not_in_available_contexts_error_str,
-    cyan,
-)
+from orchestrator.cli.utils.output.prints import HINT, INFO, WARN, console_print, cyan
+from orchestrator.metastore.base import ContextDoesNotExistError
 from orchestrator.utilities.dictionaries import get_nested_value
 
 
 def delete_context(parameters: AdoDeleteCommandParameters) -> None:
-    # Extract the single resource_id from the list
+    """Delete a single context.
+
+    Args:
+        parameters: Delete command parameters containing the context id and options.
+
+    Raises:
+        ContextDoesNotExistError: If the requested context does not exist.
+    """
     resource_id = parameters.resource_ids[0]
 
     available_contexts = parameters.ado_configuration.available_contexts
     if resource_id not in available_contexts:
-        console_print(
-            context_not_in_available_contexts_error_str(
-                requested_context=resource_id,
-                available_contexts=available_contexts,
-            ),
-            stderr=True,
+        raise ContextDoesNotExistError(
+            resource_id=resource_id,
+            available_contexts=available_contexts,
         )
-        raise typer.Exit(1)
 
     configuration_file = parameters.ado_configuration.project_context_path_for_context(
         resource_id
@@ -64,7 +59,6 @@ def delete_context(parameters: AdoDeleteCommandParameters) -> None:
             )
 
     configuration_file.unlink()
-    console_print(SUCCESS, stderr=True)
 
     if resource_id == parameters.ado_configuration.active_context:
         parameters.ado_configuration.active_context = None

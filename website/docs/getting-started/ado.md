@@ -54,7 +54,7 @@ either the full name or the shorthand interchangeably in any command.
 | datacontainer         | dcr       | `ado describe dcr container-123`    |
 | discoveryspace        | space     | `ado create space -f space.yaml`    |
 | experiment            | exp       | `ado get exp`                       |
-| operation             | op        | `ado show details op operation-456` |
+| operation             | op        | `ado get op operation-456`          |
 | samplestore           | store     | `ado get store`                     |
 
 #### Usage Examples
@@ -475,7 +475,7 @@ The complete syntax of the `ado get` command is as follows:
 <!-- markdownlint-disable line-length -->
 
 ```shell
-ado get RESOURCE_TYPE [RESOURCE_ID] [--output | -o <default | yaml | json | config | raw>] \
+ado get RESOURCE_TYPE [RESOURCE_ID] [--output | -o <default | yaml | json | config | raw | stats>] \
                                     [--output-file <path>] \
                                     [--use-latest] \
                                     [--exclude-default | --no-exclude-default] \
@@ -531,6 +531,15 @@ Where:
     - The `config` format displays the `config` field of the matching resources.
     - The `raw` format displays the raw resource as stored in the database,
       performing no validation.
+    - The `stats` format augments the default `table` output with additional
+      statistics columns. Supported resource types and their columns are:
+        - **Operations**: `TOTAL_RESULTS`, `SUCCESSFUL_RESULTS`,
+          `FAILED_RESULTS`, `MEASURED_ENTITIES`.
+        - **Discovery Spaces**: `EXPERIMENTS`, `OPERATIONS`,
+          `EXPLORE_OPERATIONS`, `MEASURED_ENTITIES`.
+        - **Sample Stores**: `ENTITIES`, `RESULTS`, `EXPERIMENTS`.
+        - **Data Containers**: `TABLES`, `LOCATIONS`, `KEY_VALUES`,
+          `DATA_BYTES`.
 
     <!-- prettier-ignore-end -->
 
@@ -721,55 +730,59 @@ ado get spaces -o name --output-file space-ids.txt
 ado get spaces --output-file spaces-table.txt
 ```
 
+##### Getting measurement statistics for all Operations
+
+```shell
+ado get operations -o stats
+```
+
+##### Getting measurement statistics for a single Operation
+
+```shell
+ado get operation randomwalk-0.5.0-123abc -o stats
+```
+
+##### Getting statistics for all Discovery Spaces
+
+```shell
+ado get spaces -o stats
+```
+
+##### Getting statistics for a single Discovery Space
+
+```shell
+ado get space --use-latest -o stats
+```
+
+##### Getting statistics for all Sample Stores
+
+```shell
+ado get samplestores -o stats
+```
+
+##### Getting statistics for a single Sample Store
+
+```shell
+ado get samplestore --use-latest -o stats
+```
+
+##### Getting statistics for all Data Containers
+
+```shell
+ado get datacontainers -o stats
+```
+
+##### Getting statistics for a single Data Container
+
+```shell
+ado get datacontainer --use-latest -o stats
+```
+
 ### ado show
 
 When interacting with resources, we might be interested in seeing some of their
 details, entities measured, or related resources. `ado show` provides this with
 the four following subcommands.
-
-#### ado show details
-
-_show details_ supports displaying aggregate details about resources and related
-resources.
-
-The complete syntax of the `ado show details` command is as follows:
-
-```shell
-ado show details RESOURCE_TYPE [RESOURCE_ID] [--use-latest]
-```
-
-Where:
-
-- `RESOURCE_TYPE` is one of the supported resource types. See
-  [Resource Type Shorthands](#resource-type-shorthands) for shorthand aliases.
-  Currently supported:
-
-    <!-- prettier-ignore-start -->
-
-    - _discoveryspace_ (_space_)
-    - _operation_ (_op_)
-
-    <!-- prettier-ignore-end -->
-
-- `RESOURCE_ID` is the unique identifier of the resource you want to see details
-  for.
-- `--use-latest` will use the identifier of the latest (i.e. most recent)
-  resource of RESOURCE_TYPE from the current context. It is ignored if a
-  RESOURCE_ID is provided.
-
-##### Examples
-
-###### Show details for a space
-
-```shell
-ado show details space space-abc123-456def
-```
-
-###### Show details for the latest space
-
-```shell
-ado show details space --use-latest
-```
 
 #### ado show measurements
 
@@ -1122,131 +1135,140 @@ ado show related space space-abc123-456def
 ado show related space space-abc123-456def --max-hops 1
 ```
 
-#### ado show summary
+#### ado show stats
 
-_show summary_ supports generating overviews about discovery spaces. The content
-can be provided in the following formats:
+_show stats_ supports displaying in-depth statistics for one or more resources.
+It always outputs the same base columns as the corresponding `ado get` table
+(e.g. `IDENTIFIER`, `NAME`, `AGE`) plus a richer set of statistics columns than
+the `ado get -o stats` view. For operations, it also includes request-level
+columns; for discovery spaces, it also includes full entity-space coverage
+columns.
 
-- Markdown table (for high level overviews).
-- Markdown text (for an easy to read and more in-depth format)
-- CSV
-
-The complete syntax of the `ado show summary` command is as follows:
-
-```shell
-ado show summary RESOURCE_TYPE [RESOURCE_IDS...] [--use-latest] \
-                 [--query | -q <path=candidate>] \
-                 [--label | -l <LABEL> ] \
-                 [--with-property | -p <PROPERTY> ] \
-                 [--output | -o <md | table | csv>] \
-                 [--output-file <path>]
-```
-
-Where:
-
-- `RESOURCE_TYPE` is always discoveryspace (space). See
-  [Resource Type Shorthands](#resource-type-shorthands) for the shorthand alias.
-- `RESOURCE_IDS` are one or more space-separated space identifiers.
-- `--use-latest` will add the identifier of the latest (i.e. most recent) space
-  from the current context to the RESOURCE_IDS.
-- By using (optionally multiple times) the `--query` (or `-q`) flag, users can
-  restrict the resources returned by requiring that a field in the resource is
-  equal to a provided value or that the content of a JSON document appear in the
-  resource. This flag can be specified multiple times (even in conjunction with
-  `-l` to further filter results).
-- By using (optionally multiple times) the `--label` (or `-l`) flag, users can
-  restrict the resources returned by means of the labels set in the resource's
-  metadata. Labels must be specified in the `key=value` format. This flag can be
-  specified multiple times (even in conjunction with `-q` to further filter
-  results).
-- `--with-property | -p` displays values for a subset of the constitutive
-  properties. Cannot be used when the output format is `md-report`.
-- `--output` (or `-o`) allows choosing the output format in which the
-  information should be displayed. Can be one of either:
-
-    <!-- prettier-ignore-start -->
-
-    - `table` (**default**) - for a formatted table output.
-    - `md-table` - for a table in Markdown format.
-    - `md-report` - for a report in Markdown format.
-    - `csv` - for CSV format.
-
-    <!-- prettier-ignore-end -->
-
-- `--output-file` specifies a file path to write the output to. If not provided,
-  output is written to stdout.
-
-##### Examples
-
-###### Get the summary of a space as a rich table
-
-```shell
-ado show summary space space-abc123-456def
-```
+The complete syntax of the `ado show stats` command is as follows:
 
 <!-- markdownlint-disable line-length -->
 
-###### Get the summary of a space as a rich table and include the constitutive property MY_PROPERTY
+```shell
+ado show stats RESOURCE_TYPE [IDS...] [--use-latest] \
+               [--query | -q <path=value>] \
+               [--label | -l <key=value>] \
+               [--details] \
+               [--output | -o <table|md-table|csv|json|yaml>] \
+               [--output-file <path>] \
+               [--render]
+```
 
 <!-- markdownlint-enable line-length -->
 
+Where:
+
+- `RESOURCE_TYPE` is one of the supported resource types. See
+  [Resource Type Shorthands](#resource-type-shorthands) for shorthand aliases.
+  Currently supported:
+
+    <!-- prettier-ignore-start -->
+
+    - _discoveryspace_ (_space_)
+    - _operation_ (_op_)
+    - _samplestore_ (_store_)
+    - _datacontainer_ (_dcr_)
+
+    <!-- prettier-ignore-end -->
+
+- `IDS` is an optional list of one or more resource identifiers to show
+  statistics for. If omitted, statistics are shown for all resources of the
+  given type.
+- `--use-latest` shows statistics for the most recently created resource of the
+  selected type. Ignored if resource identifiers are also specified.
+- `--query` (or `-q`) and `--label` (or `-l`) filter which resources are
+  included (same semantics as `ado get`). Cannot be used together with explicit
+  IDs.
+- `--details` appends `DESCRIPTION` and `LABELS` columns to the output,
+  mirroring the behaviour of `ado get --details`.
+- `--output` (or `-o`) selects the output format:
+
+    <!-- prettier-ignore-start -->
+
+    - `table` (**default**) — rich console table.
+    - `md-table` — Markdown table.
+    - `csv` — CSV format.
+    - `json` — JSON.
+    - `yaml` — YAML.
+
+    <!-- prettier-ignore-end -->
+
+- `--output-file` writes the output to the specified file instead of stdout.
+- `--render` renders the output in the console. Only supported for `md-table`
+  output.
+
+The statistics columns produced per resource type are:
+
+<!-- prettier-ignore-start -->
+
+- **Operations**: `TOTAL_RESULTS`, `SUCCESSFUL_RESULTS`, `FAILED_RESULTS`,
+  `MEASURED_ENTITIES`, `TOTAL_REQUESTS`, `FAILED_REQUESTS`,
+  `SUCCESSFUL_REQUESTS`.
+- **Discovery Spaces**: `EXPERIMENTS`, `OPERATIONS`, `EXPLORE_OPERATIONS`,
+  `MEASURED_ENTITIES`, `SIZE_OF_ENTITY_SPACE`, `UNMEASURED_ENTITIES`,
+  `MATCHING_ENTITIES`, `MATCHING_WITH_MEASUREMENTS`,
+  `ENTITIES_WITH_ALL_MEASUREMENTS`, `ENTITIES_WITH_PARTIAL_MEASUREMENTS`,
+  `MATCHING_ENTITIES_WITH_ALL_MEASUREMENTS`.
+- **Sample Stores**: `ENTITIES`, `RESULTS`, `EXPERIMENTS`.
+- **Data Containers**: `TABLES`, `LOCATIONS`, `KEY_VALUES`, `DATA_BYTES`.
+
+<!-- prettier-ignore-end -->
+
+!!! note
+
+    `ado show stats discoveryspace` computes full entity-space coverage
+    statistics including the heavy columns (`SIZE_OF_ENTITY_SPACE`,
+    `UNMEASURED_ENTITIES`, `MATCHING_ENTITIES`, etc.). This is slower than
+    `ado get spaces -o stats` because it instantiates each
+    `DiscoverySpace` and queries the sample store. Use `ado get -o stats` for
+    quick overviews.
+
+##### Examples
+
+###### Show full statistics for all operations
+
 ```shell
-ado show summary space space-abc123-456def -p MY_PROPERTY
+ado show stats operation
 ```
 
-###### Get the summary of multiple spaces as a rich table via identifiers
+###### Show full statistics for a specific discovery space
 
 ```shell
-ado show summary space space-abc123-456def space-ghi789-123jkl
+ado show stats discoveryspace space-abc123-456def
 ```
 
-###### Get the summary of multiple spaces as a rich table via key-value labels
+###### Show full statistics for the latest operation as JSON
 
 ```shell
-ado show summary space -l issue=123
+ado show stats operation --use-latest -o json
 ```
 
-###### Get the summary of a space as a Markdown report
+###### Show full statistics for the latest operation as YAML
 
 ```shell
-ado show summary space space-abc123-456def -o md-report
+ado show stats operation --use-latest -o yaml
 ```
 
-###### Get the summary of a multiple spaces as a CSV file via key-value labels
+###### Show full statistics for sample stores matching a label
 
 ```shell
-ado show summary space -l issue=123 -o csv > summary.csv
+ado show stats samplestore -l team=research
 ```
 
-Or to write to a file directly (recommended - ensures columns aren't truncated
-and handles file write errors):
+###### Show full statistics for all discovery spaces as a Markdown table
 
 ```shell
-ado show summary space -l issue=123 -o csv --output-file summary.csv
+ado show stats discoveryspace -o md-table
 ```
 
-###### Save table summary output to a file
+###### Save full statistics to a file
 
 ```shell
-ado show summary space my-space-id --output-file summary-table.txt
-```
-
-###### Save markdown summary output to a file
-
-```shell
-ado show summary space my-space-id -o md --output-file summary.md
-```
-
-###### Get the summary of spaces that include granite-7b-base in the property domain
-
-!!! info
-
-    More information on field-level querying is provided in the
-    [searching the metastore](../resources/metastore.md#searching-the-metastore)
-     section
-
-```shell
-ado show summary space -q 'config.entitySpace={"propertyDomain":{"values":["granite-7b-base"]}}'
+ado show stats operation --output-file operations-stats.csv -o csv
 ```
 
 ### ado template
@@ -1374,8 +1396,7 @@ When required, you can run this command to update all resources of a given kind
 in the database.
 
 ```shell
-ado upgrade RESOURCE_TYPE [--apply-legacy-migrator <VALIDATOR_ID>] \
-                          [--list-legacy-migrators]
+ado upgrade RESOURCE_TYPE
 ```
 
 Where:
@@ -1394,33 +1415,12 @@ Where:
 
     <!-- prettier-ignore-end -->
 
-- `--apply-legacy-migrator` applies a specific legacy migrator by identifier
-  during the upgrade process. This option can be specified multiple times to
-  apply multiple validators. Legacy validators handle deprecated field
-  migrations and schema transformations.
-
-- `--list-legacy-migrators` lists all available legacy migrators for the
-  specified resource type, showing their identifiers, descriptions, and
-  deprecated field paths.
-
 #### Examples
 
 ##### Upgrade all operation resources
 
 ```shell
 ado upgrade operations
-```
-
-##### List available legacy migrators for sample stores
-
-```shell
-ado upgrade samplestores --list-legacy-migrators
-```
-
-##### Apply a legacy migrator during upgrade
-
-```shell
-ado upgrade samplestores --apply-legacy-migrator samplestore_kind_entitysource_to_samplestore
 ```
 
 ### ado version

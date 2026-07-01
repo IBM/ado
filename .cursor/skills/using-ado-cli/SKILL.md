@@ -37,7 +37,8 @@ uv run ado [COMMAND] [SUBCOMMAND1] [SUBCOMMAND2] --help
 For `ado get` and `ado show` subcommands:
 
 - `-o` / `--output` selects the **output format** (for example `yaml`, `table`,
-  `csv`, or `json`; allowed values depend on the command — use `--help`).
+  `csv`, `json`, or `stats`; allowed values depend on the command — use
+  `--help`).
 - `--output-file PATH` writes formatted output to **PATH** instead of stdout.
 
 Shell redirects (`>`) work for simple cases. Prefer `--output-file` when:
@@ -58,14 +59,14 @@ uv run ado show measurements operation OPERATION_ID -o csv --output-file measure
 
 These plausible-sounding commands do not exist in ado. Do not write them:
 
-| ❌ Does not exist | ✅ Correct equivalent                   |
-| ----------------- | --------------------------------------- |
-| `ado run`         | `ado create operation -f op.yaml`       |
-| `ado start`       | `ado create operation -f op.yaml`       |
-| `ado execute`     | `ado create operation -f op.yaml`       |
-| `ado launch`      | `ado create operation -f op.yaml`       |
-| `ado list`        | `ado get spaces` / `ado get operations` |
-| `ado status`      | `ado show details space SPACE_ID`       |
+| ❌ Does not exist | ✅ Correct equivalent                    |
+| ----------------- | ---------------------------------------- |
+| `ado run`         | `ado create operation -f op.yaml`        |
+| `ado start`       | `ado create operation -f op.yaml`        |
+| `ado execute`     | `ado create operation -f op.yaml`        |
+| `ado launch`      | `ado create operation -f op.yaml`        |
+| `ado list`        | `ado get spaces` / `ado get operations`  |
+| `ado status`      | `ado show stats discoveryspace SPACE_ID` |
 
 **Key principle**: `ado create operation` both _defines_ and _starts_ the
 operation in a single command. There is no separate "run" step.
@@ -103,7 +104,7 @@ needed beyond a local Ray instance (started automatically).
 Lists resources of a given type and gets resource YAML
 
 ```bash
-#List all spaces
+# List all spaces
 uv run ado get spaces
 
 # Get the YAML for a space (console)
@@ -117,7 +118,32 @@ uv run ado get space --use-latest -o yaml
 
 # Get the latest operation as YAML
 uv run ado get operation --use-latest -o yaml
+
+# Get measurement statistics for all operations
+uv run ado get operations -o stats --output-file operations-stats.txt
+uv run ado get operation OPERATION_ID -o stats --no-trunc
+
+# Get statistics for all discovery spaces
+uv run ado get spaces -o stats --output-file spaces-stats.txt
+uv run ado get space SPACE_ID -o stats --no-trunc
+
+# Get statistics for all sample stores
+uv run ado get samplestores -o stats --output-file samplestores-stats.txt
+uv run ado get samplestore SAMPLESTORE_ID -o stats --no-trunc
+
+# Get statistics for all data containers
+uv run ado get datacontainers -o stats --output-file datacontainers-stats.txt
+uv run ado get datacontainer DATACONTAINER_ID -o stats --no-trunc
 ```
+
+`-o stats` extends the table with statistics columns:
+
+- **Operations**: `TOTAL_RESULTS`, `SUCCESSFUL_RESULTS`, `FAILED_RESULTS`,
+  `MEASURED_ENTITIES`.
+- **Discovery Spaces**: `EXPERIMENTS`, `OPERATIONS`, `EXPLORE_OPERATIONS`,
+  `MEASURED_ENTITIES`.
+- **Sample Stores**: `ENTITIES`, `RESULTS`, `EXPERIMENTS`.
+- **Data Containers**: `TABLES`, `LOCATIONS`, `KEY_VALUES`, `DATA_BYTES`.
 
 ### ado create
 
@@ -157,15 +183,21 @@ Always prefer a non-interative edit with `-p` / `--patch` or `--patch-file`. Use
 Retrieves details and data from resources.
 
 ```bash
-# Get a summary of what has been sampled from the space
-uv run ado show details space SPACE_ID
-
 # Inspect the trace of measurement requests for an operation
 uv run ado show trace operation OPERATION_ID
 
 # Get entities and measurements
 uv run ado show measurements space SPACE_ID
 uv run ado show measurements operation OPERATION_ID
+
+# Show in-depth statistics (more columns than ado get -o stats)
+# No IDs = all resources of that type
+uv run ado show stats operation
+uv run ado show stats operation --use-latest -o json
+uv run ado show stats discoveryspace SPACE_ID
+uv run ado show stats samplestore -l key=value
+# Include DESCRIPTION and LABELS columns
+uv run ado show stats operation --details
 ```
 
 ### ado describe
@@ -200,11 +232,15 @@ plus measured properties (outputs).
 
 <!-- markdownlint-disable line-length -->
 
-| Command                       | What It Shows                                                                                                           |
-| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `show measurements operation` | Entities (inputs) and their measurements (outputs) from this operation                                                  |
-| `show measurements space`     | All entities and measurements collected in this space                                                                   |
-| `show trace operation`        | The trace of measurement requests made during an explore operation. Optionally can show per entity measurement metadata |
+| Command                       | What It Shows                                                                                                            |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `show measurements operation` | Entities (inputs) and their measurements (outputs) from this operation                                                   |
+| `show measurements space`     | All entities and measurements collected in this space                                                                    |
+| `show trace operation`        | The trace of measurement requests made during an explore operation. Optionally can show per entity measurement metadata  |
+| `show stats operation`        | In-depth stats: results (total/successful/failed), measured entities, plus request-level counts. No IDs = all operations |
+| `show stats discoveryspace`   | In-depth stats: experiments, operations, measured entities, plus full entity-space coverage columns. No IDs = all spaces |
+| `show stats samplestore`      | In-depth stats: entities, results, and experiments counts. No IDs = all sample stores                                    |
+| `show stats datacontainer`    | In-depth stats: tables, locations, key-values, and data bytes. No IDs = all data containers                              |
 
 <!-- markdownlint-enable line-length -->
 

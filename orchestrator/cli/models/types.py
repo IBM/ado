@@ -26,6 +26,7 @@ _MARKDOWN_REPORT = "md-report"
 _MARKDOWN_TABLE = "md-table"
 _NAME = "name"
 _RAW = "raw"
+_STATS = "stats"
 _TABLE = "table"
 _YAML = "yaml"
 
@@ -95,6 +96,7 @@ class AdoGetSupportedOutputFormats(Enum):
     JSON = _JSON
     NAME = _NAME
     RAW = _RAW
+    STATS = _STATS
     TABLE = _TABLE
     YAML = _YAML
 
@@ -109,12 +111,6 @@ class AdoGetSupportedResourceTypes(Enum):
     OPERATION = _OPERATION_SINGULAR
     OPERATOR = _OPERATOR_SINGULAR
     SAMPLE_STORE = _SAMPLE_STORE_SINGULAR
-
-
-#################### ado show details ####################
-class AdoShowDetailsSupportedResourceTypes(Enum):
-    DISCOVERY_SPACE = _DISCOVERY_SPACE_SINGULAR
-    OPERATION = _OPERATION_SINGULAR
 
 
 #################### ado show measurements ####################
@@ -164,16 +160,20 @@ class AdoShowTraceSupportedResourceTypes(Enum):
     SAMPLE_STORE = _SAMPLE_STORE_SINGULAR
 
 
-#################### ado show summary ####################
-class AdoShowSummarySupportedOutputFormats(enum.Enum):
+#################### ado show stats ####################
+class AdoShowStatsSupportedOutputFormats(enum.Enum):
     TABLE = _TABLE
     MARKDOWN_TABLE = _MARKDOWN_TABLE
-    MARKDOWN_REPORT = _MARKDOWN_REPORT
     CSV = _CSV
+    JSON = _JSON
+    YAML = _YAML
 
 
-class AdoShowSummarySupportedResourceTypes(Enum):
+class AdoShowStatsSupportedResourceTypes(Enum):
     DISCOVERY_SPACE = _DISCOVERY_SPACE_SINGULAR
+    OPERATION = _OPERATION_SINGULAR
+    SAMPLE_STORE = _SAMPLE_STORE_SINGULAR
+    DATA_CONTAINER = _DATA_CONTAINER_SINGULAR
 
 
 #################### ado template ####################

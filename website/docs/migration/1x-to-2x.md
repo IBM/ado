@@ -82,3 +82,60 @@ ado show trace operation <OP-ID> --filter requestid=<ID> -o yaml
 ado show trace space <SPACE-ID> --filter requestid=<ID> -o yaml
 ado show trace store <SAMPLE-STORE-ID> --filter requestid=<ID> -o yaml
 ```
+
+### Removed: `ado show summary`
+
+The `ado show summary` command has been removed entirely. The markdown
+prose-report output format (`-o md-report`) it provided has no direct
+replacement.
+
+For numeric and tabular space statistics (EXPERIMENTS, OPERATIONS,
+EXPLORE_OPERATIONS, MEASURED_ENTITIES, SIZE_OF_ENTITY_SPACE,
+UNMEASURED_ENTITIES, MATCHING_ENTITIES, MATCHING_WITH_MEASUREMENTS,
+ENTITIES_WITH_ALL_MEASUREMENTS, ENTITIES_WITH_PARTIAL_MEASUREMENTS,
+MATCHING_ENTITIES_WITH_ALL_MEASUREMENTS), use `ado show stats discoveryspace`.
+
+**Before (ado 1.x):**
+
+```shell
+ado show summary space space-abc123-456def
+ado show summary space -l issue=123 -o csv --output-file summary.csv
+```
+
+**After (ado 2.x):**
+
+```shell
+ado show stats discoveryspace space-abc123-456def
+ado show stats discoveryspace -l issue=123 -o csv --output-file summary.csv
+```
+
+### Removed: `ado show details`
+
+The `ado show details` command has been removed entirely.
+
+**`ado show details discoveryspace`** used to display aggregate statistics about
+a space (number of experiments, measured entities, etc.). Use
+`ado show stats discoveryspace` for the same numeric statistics, and
+`ado show related discoveryspace` to list resources associated with the space.
+
+**`ado show details operation`** used to display statistics stored in operation
+metadata after an operation finished. Use `ado show stats operation` for numeric
+operation statistics, and `ado show related operation` to list resources
+associated with the operation.
+
+**Before (ado 1.x):**
+
+```shell
+ado show details space space-abc123-456def
+ado show details operation randomwalk-0.5.0-123abc
+```
+
+**After (ado 2.x):**
+
+```shell
+ado show stats discoveryspace space-abc123-456def
+ado show related discoveryspace space-abc123-456def
+
+ado show stats operation randomwalk-0.5.0-123abc
+ado show related operation randomwalk-0.5.0-123abc
+```

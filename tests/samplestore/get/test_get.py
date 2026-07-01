@@ -1272,3 +1272,148 @@ def test_operation_measurement_statistics_empty_set(
         ValueError, match="operation_ids must be a non-empty set or None"
     ):
         sample_store.operation_measurement_statistics(operation_ids=set())
+
+
+def test_space_entity_statistics_empty_mapping(
+    simulate_ml_multi_cloud_random_walk_operation: Callable[
+        [int, int, int, str | None],
+        tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
+    ],
+) -> None:
+    """An empty mapping returns an empty dict."""
+    sample_store, _requests, _ids = simulate_ml_multi_cloud_random_walk_operation()
+
+    result = sample_store.space_entity_statistics(space_ids_to_operation_ids={})
+
+    assert result == {}
+
+
+def test_space_entity_statistics_empty_operations_for_space(
+    random_identifier: Callable[[], str],
+    simulate_ml_multi_cloud_random_walk_operation: Callable[
+        [int, int, int, str | None],
+        tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
+    ],
+) -> None:
+    """A space mapped to an empty operation set returns 0 measured entities."""
+    space_id = random_identifier()
+    sample_store, _requests, _ids = simulate_ml_multi_cloud_random_walk_operation()
+
+    result = sample_store.space_entity_statistics(
+        space_ids_to_operation_ids={space_id: set()},
+    )
+
+    assert result[space_id].number_measured_entities == 0
+    assert result[space_id].number_matching_entities is None
+    assert result[space_id].number_matching_entities_with_measurements is None
+
+
+def test_space_entity_statistics_single_operation(
+    random_identifier: Callable[[], str],
+    simulate_ml_multi_cloud_random_walk_operation: Callable[
+        [int, int, int, str | None],
+        tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
+    ],
+) -> None:
+    """A single space/operation returns the correct distinct entity count."""
+    space_id = random_identifier()
+    operation_id = random_identifier()
+    number_entities = 3
+    number_requests = 2
+
+    sample_store, requests, _ = simulate_ml_multi_cloud_random_walk_operation(
+        number_entities=number_entities,
+        number_requests=number_requests,
+        operation_id=operation_id,
+    )
+
+    expected_entities = {
+        result.entityIdentifier
+        for request in requests
+        for result in request.measurements
+    }
+
+    result = sample_store.space_entity_statistics(
+        space_ids_to_operation_ids={space_id: {operation_id}},
+    )
+
+    assert result[space_id].number_measured_entities == len(expected_entities)
+    assert result[space_id].number_matching_entities is None
+    assert result[space_id].number_matching_entities_with_measurements is None
+
+
+def test_space_entity_statistics_multiple_operations(
+    random_identifier: Callable[[], str],
+    simulate_ml_multi_cloud_random_walk_operation: Callable[
+        [int, int, int, str | None],
+        tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
+    ],
+) -> None:
+    """Multiple operations in one space: entities counted distinctly across all ops."""
+    space_id = random_identifier()
+    op_id_a = random_identifier()
+    op_id_b = random_identifier()
+
+    sample_store, requests_a, _ = simulate_ml_multi_cloud_random_walk_operation(
+        number_entities=2,
+        number_requests=1,
+        operation_id=op_id_a,
+    )
+    _, requests_b, _ = simulate_ml_multi_cloud_random_walk_operation(
+        number_entities=2,
+        number_requests=1,
+        operation_id=op_id_b,
+    )
+
+    all_entity_ids = {
+        result.entityIdentifier
+        for requests in (requests_a, requests_b)
+        for request in requests
+        for result in request.measurements
+    }
+
+    result = sample_store.space_entity_statistics(
+        space_ids_to_operation_ids={space_id: {op_id_a, op_id_b}},
+    )
+
+    assert result[space_id].number_measured_entities == len(all_entity_ids)
+    assert result[space_id].number_matching_entities is None
+    assert result[space_id].number_matching_entities_with_measurements is None
+
+
+def test_space_entity_statistics_multiple_spaces(
+    random_identifier: Callable[[], str],
+    simulate_ml_multi_cloud_random_walk_operation: Callable[
+        [int, int, int, str | None],
+        tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
+    ],
+) -> None:
+    """Multiple spaces in one call each get correct independent entity counts."""
+    space_id_a = random_identifier()
+    space_id_b = random_identifier()
+    op_id_a = random_identifier()
+    op_id_b = random_identifier()
+
+    sample_store, requests_a, _ = simulate_ml_multi_cloud_random_walk_operation(
+        number_entities=3,
+        number_requests=1,
+        operation_id=op_id_a,
+    )
+    _, requests_b, _ = simulate_ml_multi_cloud_random_walk_operation(
+        number_entities=2,
+        number_requests=1,
+        operation_id=op_id_b,
+    )
+
+    expected_a = {r.entityIdentifier for req in requests_a for r in req.measurements}
+    expected_b = {r.entityIdentifier for req in requests_b for r in req.measurements}
+
+    result = sample_store.space_entity_statistics(
+        space_ids_to_operation_ids={
+            space_id_a: {op_id_a},
+            space_id_b: {op_id_b},
+        },
+    )
+
+    assert result[space_id_a].number_measured_entities == len(expected_a)
+    assert result[space_id_b].number_measured_entities == len(expected_b)

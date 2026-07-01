@@ -58,7 +58,9 @@ class DiscoverySpaceResource(ADOResource):
         DiscoverySpaceProvenanceInfo,
         pydantic.Field(
             default_factory=DiscoverySpaceProvenanceInfo,
-            description="Plugin package provenance frozen at resource creation time.",
+            description=(
+                "ado-core and plugin package provenance frozen at resource creation time."
+            ),
         ),
     ]
 

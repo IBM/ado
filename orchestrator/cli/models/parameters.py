@@ -15,7 +15,7 @@ from orchestrator.cli.models.types import (
     AdoShowMeasurementsSupportedEntityTypes,
     AdoShowMeasurementsSupportedOutputFormats,
     AdoShowMeasurementsSupportedPropertyFormats,
-    AdoShowSummarySupportedOutputFormats,
+    AdoShowStatsSupportedOutputFormats,
     AdoShowTraceSupportedOutputFormats,
 )
 from orchestrator.core import CoreResourceKinds
@@ -84,11 +84,6 @@ class AdoEditCommandParameters(pydantic.BaseModel):
     )
 
 
-class AdoShowDetailsCommandParameters(pydantic.BaseModel):
-    ado_configuration: AdoConfiguration
-    resource_id: str
-
-
 class AdoShowMeasurementsCommandParameters(pydantic.BaseModel):
     ado_configuration: AdoConfiguration
     aggregation_method: PropertyAggregationMethodEnum | None
@@ -119,15 +114,14 @@ class AdoShowTraceCommandParameters(pydantic.BaseModel):
     resource_id: str
 
 
-class AdoShowSummaryCommandParameters(pydantic.BaseModel):
+class AdoShowStatsCommandParameters(pydantic.BaseModel):
     ado_configuration: AdoConfiguration
-    columns_to_hide: list[str] | None
-    include_properties: list[str] | None
+    output_format: AdoShowStatsSupportedOutputFormats
     output_file: Path | None
-    output_format: AdoShowSummarySupportedOutputFormats
     query: list[dict[str, str | None]] | None
     render_output: bool
-    resource_ids: list[str]
+    resource_ids: list[str] | None
+    show_details: bool
 
 
 class AdoTemplateCommandParameters(pydantic.BaseModel):
@@ -144,5 +138,3 @@ class AdoTemplateCommandParameters(pydantic.BaseModel):
 
 class AdoUpgradeCommandParameters(pydantic.BaseModel):
     ado_configuration: AdoConfiguration
-    apply_legacy_migrator: list[str] | None = None
-    list_legacy_migrators: bool = False

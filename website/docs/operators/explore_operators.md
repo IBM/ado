@@ -181,14 +181,11 @@ Commands that reflect changing state during an `operation`:
 
 - `ado show measurements space`
 - `ado show measurements operation`
-- `ado show details space`
+- `ado show stats discoveryspace`
 
 Commands that do not reflect changing state during an `operation`:
 
 - `ado get operation $OPERATION_IDENTIFIER`
-- `ado show details operation $OPERATION_IDENTIFIER`
 
 The `operation` resource itself will be updated with metadata when the operation
 finishes but not while it is running.
-`ado show details operation $OPERATION_IDENTIFIER` uses this metadata, so it
-will not be correct until the operation is finished.

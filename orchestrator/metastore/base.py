@@ -9,6 +9,9 @@ import pydantic
 if TYPE_CHECKING:
     import pandas as pd
 
+    from orchestrator.core.datacontainer.stats import DataContainerStatistics
+    from orchestrator.core.discoveryspace.stats import DiscoverySpaceStatistics
+
 from orchestrator.core.resources import ADOResource, CoreResourceKinds
 from orchestrator.core.samplestore.resource import SampleStoreResource
 from orchestrator.utilities.location import (
@@ -35,6 +38,28 @@ class NoRelatedResourcesError(ValueError):
         super().__init__(
             f"The resource with id, {resource_id}, does not have any related resources of kind {kind}"
         )
+
+
+class ResourceHasChildrenError(ValueError):
+    def __init__(
+        self,
+        resource_id: str,
+        kind: CoreResourceKinds,
+        children_resources: "pd.DataFrame",
+    ) -> None:
+        self.resource_id = resource_id
+        self.kind = kind
+        self.children_resources = children_resources
+        super().__init__(
+            f"Cannot delete {kind.value} {resource_id} because it has children resources"
+        )
+
+
+class ContextDoesNotExistError(ValueError):
+    def __init__(self, resource_id: str, available_contexts: list[str]) -> None:
+        self.resource_id = resource_id
+        self.available_contexts = available_contexts
+        super().__init__(f"Context {resource_id} does not exist")
 
 
 class DatabaseOperationError(Exception): ...
@@ -327,6 +352,52 @@ class ResourceStore(abc.ABC):
             ValueError: If arguments are invalid or incompatible.
         """
 
+    @abc.abstractmethod
+    def get_space_metastore_stats(
+        self,
+        space_ids: str | set[str],
+    ) -> "DiscoverySpaceStatistics | dict[str, DiscoverySpaceStatistics]":
+        """Return lightweight metastore-level statistics for one or many spaces.
+
+        All counts are computed with pure SQL against the ``resources`` and
+        ``resource_relationships`` tables — no sample store access is needed.
+        The returned :class:`~orchestrator.core.discoveryspace.stats.DiscoverySpaceStatistics`
+        objects only have ``number_of_experiments``, ``number_of_operations``,
+        and ``number_of_explore_operations`` populated; all other fields are
+        ``None`` or ``0`` as appropriate.
+
+        Args:
+            space_ids: A single space identifier (``str``) or a set of space
+                identifiers (``set[str]``).
+
+        Returns:
+            When ``space_ids`` is a ``str``: a
+            :class:`~orchestrator.core.discoveryspace.stats.DiscoverySpaceStatistics`
+            for that space.
+            When ``space_ids`` is a ``set[str]``: a ``dict`` keyed by space ID
+            mapping each to its
+            :class:`~orchestrator.core.discoveryspace.stats.DiscoverySpaceStatistics`.
+            Space IDs that have no operations are included with zero counts.
+        """
+
+    @abc.abstractmethod
+    def get_datacontainer_stats(
+        self,
+        datacontainer_ids: set[str],
+    ) -> "dict[str, DataContainerStatistics]":
+        """Return lightweight statistics for a set of DataContainer IDs.
+
+        Args:
+            datacontainer_ids: A set of DataContainer identifiers to query.
+
+        Returns:
+            A ``dict`` keyed by DataContainer ID mapping each to its
+            :class:`~orchestrator.core.datacontainer.stats.DataContainerStatistics`.
+            IDs that are not present in the database are returned with all-zero
+            stats.  An empty input set returns an empty dict immediately
+            (no query issued).
+        """
+
 
 def sample_store_dump(
     sample_store_resource: SampleStoreResource,
@@ -385,7 +456,14 @@ def sample_store_load(
             "storageLocation"
         ] = storage_location.model_dump()
 
-    return SampleStoreResource.model_validate(sample_store_resource_dict)
+    from orchestrator.utilities.pydantic import (
+        do_not_populate_ado_provenance_context,
+    )
+
+    return SampleStoreResource.model_validate(
+        sample_store_resource_dict,
+        context=do_not_populate_ado_provenance_context,
+    )
 
 
 kind_custom_model_dump = {CoreResourceKinds.SAMPLESTORE.value: sample_store_dump}

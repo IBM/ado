@@ -123,30 +123,30 @@ Extract and summarise:
 
 ### Step 2: Sampling coverage and related resources
 
-Execute
+To get measured entities, experiments, operations, and full entity-space
+coverage columns, use:
 
 ```bash
-uv run ado show details space SPACE_ID
+uv run ado show stats discoveryspace SPACE_ID
 ```
 
-This outputs two sections:
+This outputs the base table columns plus full entity-space coverage columns:
+`SIZE_OF_ENTITY_SPACE`, `UNMEASURED_ENTITIES`, `MATCHING_ENTITIES`,
+`MATCHING_WITH_MEASUREMENTS`, `ENTITIES_WITH_ALL_MEASUREMENTS`,
+`ENTITIES_WITH_PARTIAL_MEASUREMENTS`, `MATCHING_ENTITIES_WITH_ALL_MEASUREMENTS`.
 
-**DETAILS** — sampling coverage:
+Compare `MEASURED_ENTITIES` vs `SIZE_OF_ENTITY_SPACE` to understand exploration
+progress. Compare `MEASURED_ENTITIES` vs `MATCHING_ENTITIES` to understand
+memoization opportunities — a large gap signals other overlapping spaces exist.
 
-- Total entities in the space
-- How many have been measured
-- How many have failed measurements
-- How many are unmeasured
-- How many are matching
+For related resources (operations and stores linked to this space), execute:
 
-Compare measured vs total to understand exploration progress. Compare measured
-vs matching to understand memoization opportunities. Also, a signal that other
-overlapping spaces exist.
+```bash
+uv run ado show related space SPACE_ID
+```
 
-**RELATED RESOURCES** — all operations and stores linked to this space.
-
-> **Performance note**: `ado show details space` is slow as it fetches and
-> aggregates entity data. Use only when sampling coverage is needed.
+> **Performance note**: `ado show stats discoveryspace` is slow as it fetches
+> and aggregates entity data. Use only when sampling coverage is needed.
 
 ### Step 3: Check for existing report
 

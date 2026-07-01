@@ -265,6 +265,7 @@ def _create_environment(
                             f"Threadpool requested but not supported by image {image_name}"
                         )
 
+                    renderer_num_workers = int(values.get("renderer_num_workers", 0))
                     create_test_environment(
                         k8s_name=env.k8s_name,
                         model=model,
@@ -294,9 +295,7 @@ def _create_environment(
                         io_processor_plugin=values.get("io_processor_plugin"),
                         otlp_traces_endpoint=otlp_traces_endpoint,
                         renderer_num_workers=(
-                            int(values.get("renderer_num_workers"))
-                            if int(values.get("renderer_num_workers"), 0) > 0
-                            else None
+                            renderer_num_workers if renderer_num_workers > 0 else None
                         ),
                         check_interval=check_interval,
                         timeout=timeout,

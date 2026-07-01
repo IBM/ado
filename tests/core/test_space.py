@@ -435,11 +435,51 @@ def test_operation_context_success_lifecycle(pfas_space: DiscoverySpace) -> None
         SCRIPT_OPERATION_LABEL_KEY: SCRIPT_OPERATION_EXECUTION_LABEL,
         "source": "test",
     }
+    assert operation.provenance.ado is not None
+    assert operation.provenance.ado.distributionName == "ado-core"
+    assert operation.provenance.operators == {}
 
     lifecycle_statuses = _operation_lifecycle_statuses(operation)
     assert lifecycle_statuses[0].event == OperationResourceEventEnum.STARTED
     assert lifecycle_statuses[-1].event == OperationResourceEventEnum.FINISHED
     assert lifecycle_statuses[-1].exit_state == OperationExitStateEnum.SUCCESS
+
+
+def test_operation_context_with_optional_provenance(pfas_space: DiscoverySpace) -> None:
+    """operation_context stores optional script package provenance under operators."""
+    from importlib.metadata import version
+
+    from orchestrator.core.metadata import PackageProvenance
+    from orchestrator.core.operation.resource import OperationResource
+
+    script_provenance = PackageProvenance(
+        distributionName="ado-core",
+        distributionVersion=version("ado-core"),
+    )
+
+    with pfas_space.operation_context(
+        name="provenance-script",
+        provenance=script_provenance,
+    ) as operation_id:
+        assert operation_id.startswith("operation-script-provenance-script-")
+
+    operation = pfas_space.metadataStore.getResource(
+        identifier=operation_id,
+        kind=CoreResourceKinds.OPERATION,
+    )
+    assert isinstance(operation, OperationResource)
+    assert operation.provenance.ado is not None
+    assert operation.provenance.operators == {
+        "script-provenance-script-0.1.0": script_provenance,
+    }
+
+
+def test_discovery_space_resource_has_ado_before_persist(
+    pfas_space: DiscoverySpace,
+) -> None:
+    """DiscoverySpace.resource includes ado provenance before metastore persist."""
+    assert pfas_space.resource.provenance.ado is not None
+    assert pfas_space.resource.provenance.ado.distributionName == "ado-core"
 
 
 def test_operation_context_failure_lifecycle(pfas_space: DiscoverySpace) -> None:

@@ -12,6 +12,9 @@ from orchestrator.cli.utils.output.prints import (
     WARN,
     console_print,
 )
+from orchestrator.cli.utils.resources.experiments import (
+    _ado_experiment_from_cli_resource_id,
+)
 
 
 def get_experiment(parameters: AdoGetCommandParameters) -> None:
@@ -40,7 +43,6 @@ def get_experiment(parameters: AdoGetCommandParameters) -> None:
             orchestrator.modules.actuators.registry.ActuatorRegistry.globalRegistry()
         )
 
-        # Validate output format
         if parameters.output_format != AdoGetSupportedOutputFormats.TABLE:
             spinner.stop()
             console_print(
@@ -50,7 +52,6 @@ def get_experiment(parameters: AdoGetCommandParameters) -> None:
             )
             raise typer.Exit(1)
 
-        # Collect experiment data
         spinner.update(ADO_SPINNER_GETTING_OUTPUT_READY)
         data = []
 
@@ -67,43 +68,43 @@ def get_experiment(parameters: AdoGetCommandParameters) -> None:
         if parameters.show_deprecated:
             columns.append("SUPPORTED")
 
-        # Iterate through all actuators and their experiments
-        for actuator_id in sorted(registry.actuatorIdentifierMap.keys()):
-            catalog = registry.catalogForActuatorIdentifier(actuator_id)
-
-            for experiment in catalog.experiments:
-                # Skip deprecated experiments unless explicitly requested
-                if experiment.deprecated and not parameters.show_deprecated:
-                    continue
-
-                # Filter by specific experiment ID if provided
-                if (
-                    parameters.resource_id
-                    and experiment.identifier != parameters.resource_id
-                ):
-                    continue
-
-                # Have Actuator ID, Experiment ID, and VERSION by default
-                row = [
-                    actuator_id,
-                    experiment.identifier,
-                    experiment.version,
+        if parameters.resource_id:
+            matched_experiment = _ado_experiment_from_cli_resource_id(
+                parameters.resource_id,
+                registry=registry,
+            )
+            if matched_experiment.deprecated and not parameters.show_deprecated:
+                experiments_to_show = []
+            else:
+                experiments_to_show = [
+                    (matched_experiment.actuatorIdentifier, matched_experiment)
                 ]
+        else:
+            experiments_to_show = []
+            for actuator_id in sorted(registry.actuatorIdentifierMap.keys()):
+                catalog = registry.catalogForActuatorIdentifier(actuator_id)
+                for experiment in catalog.experiments:
+                    if experiment.deprecated and not parameters.show_deprecated:
+                        continue
+                    experiments_to_show.append((actuator_id, experiment))
 
-                # Show details adds description
-                if parameters.show_details:
-                    row.append(experiment.metadata.get("description", ""))
+        for actuator_id, experiment in experiments_to_show:
+            row = [
+                actuator_id,
+                experiment.identifier,
+                experiment.version,
+            ]
 
-                # Show deprecated requires adding the supported column
-                if parameters.show_deprecated:
-                    row.append(not experiment.deprecated)
+            if parameters.show_details:
+                row.append(experiment.metadata.get("description", ""))
 
-                data.append(row)
+            if parameters.show_deprecated:
+                row.append(not experiment.deprecated)
 
-        # Create DataFrame
+            data.append(row)
+
         output_df = pd.DataFrame(data=data, columns=columns)
 
-        # Check if we found the requested experiment
         if parameters.resource_id and output_df.empty:
             spinner.stop()
             console_print(
@@ -112,7 +113,6 @@ def get_experiment(parameters: AdoGetCommandParameters) -> None:
             )
             raise typer.Exit(1)
 
-        # Sort by actuator ID (primary) and experiment ID (secondary)
         if not output_df.empty:
             output_df = output_df.sort_values(
                 by=["ACTUATOR ID", "EXPERIMENT ID"], ignore_index=True
@@ -122,5 +122,4 @@ def get_experiment(parameters: AdoGetCommandParameters) -> None:
 
     from orchestrator.cli.utils.resources.handlers import handle_ado_get
 
-    # Use unified handler for rendering
     handle_ado_get(parameters=parameters, dataframe=output_df)

@@ -314,10 +314,7 @@ def custom_experiment(
         ray_options: A dictionary containing ray remote task options.
             The keys and allowed values are defined by RayRemoteOptions.
         version: Algorithm version string in strict SemVer format (``"MAJOR.MINOR.PATCH"``).
-            Use this to declare the scientific identity of the experiment independently of the
-            Python package version.  The MAJOR component is encoded into memoisation keys so
-            that results from different major versions are never reused.
-            If omitted a :class:`DeprecationWarning` is emitted at registration time.
+            Can be None.
 
     Returns:
         A decorator that wraps a function to work with ado's custom experiment system.

@@ -75,7 +75,7 @@ spaces: ###The spaces to operate on
 operation: #The operators
   module: # The operator will be random_walk
     operatorName: random_walk
-    operationType: search
+    operationType: explore
   parameters: # The parameters for this RandomWalk operation
     numberEntities: 60
     batchSize: 1
@@ -108,17 +108,6 @@ module:
   operatorName: rifferla # The name of the operator
   operationType: modify #The type of the operation/operator
 ```
-
-> [!WARNING]
->
-> To use operators listed with type _explore_ by `ado get operators`, currently
-> you must set operationType to **search** e.g.
->
-> ```yaml
-> module:
->  operatorName: random_walk
->  operationType: search # note: search not explore
-> ```
 
 ### Passing actuator parameters
 
@@ -212,7 +201,7 @@ kind: operation
 metadata:
   entities_submitted: 11
   experiments_requested: 11
-operationType: search
+operationType: explore
 operatorIdentifier: raytune-0.7.5.dev10+g731d1e21.d20241218
 status:
   - event: created

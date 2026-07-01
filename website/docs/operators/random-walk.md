@@ -91,7 +91,7 @@ metadata:
 operation:
   module:
     operatorName: random_walk
-    operationType: search
+    operationType: explore
   parameters:
     batchSize: 1
     samplerConfig:
@@ -292,7 +292,7 @@ metadata:
 operation:
   module:
     operatorName: random_walk
-    operationType: search
+    operationType: explore
   parameters:
     batchSize: 1
     samplerConfig:

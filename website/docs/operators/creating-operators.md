@@ -571,7 +571,7 @@ class MySearchOperator(Explore):
             description="A minimal example search operator.",
             configuration_model=MySearchParameters,
             example_configuration=MySearchParameters(),
-            type=DiscoveryOperationEnum.SEARCH,
+            type=DiscoveryOperationEnum.EXPLORE,
         )
 
     # --- callbacks from DiscoverySpaceManager --------------------------------

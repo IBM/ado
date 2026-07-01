@@ -63,10 +63,10 @@ def show_stats_for_resources(
             show_default=False,
         ),
     ] = False,
-    query: Annotated[
+    filters: Annotated[
         list[str] | None,
         typer.Option(
-            "--query",
+            "--filter",
             "-q",
             help="""
             Filter results by values contained in the resources. Will return all resources that match
@@ -76,7 +76,7 @@ def show_stats_for_resources(
             and value is a JSON document.
 
             Please refer to the documentation provided for more information and examples:
-            https://ibm.github.io/ado/getting-started/ado/#using-the-field-level-querying-functionality
+            https://ibm.github.io/ado/getting-started/ado/#searching-and-filtering
             """,
             show_default=False,
         ),
@@ -163,11 +163,11 @@ def show_stats_for_resources(
         ids = [resource_id]
 
     try:
-        query_filters = prepare_query_filters_for_db(parse_key_value_pairs(query))
+        filter_conditions = prepare_query_filters_for_db(parse_key_value_pairs(filters))
         if labels:
             for parsed_label in parse_key_value_pairs(labels):
                 for k, v in parsed_label.items():
-                    query_filters.extend(
+                    filter_conditions.extend(
                         prepare_query_filters_for_db({"config.metadata.labels": {k: v}})
                     )
     except ValueError as e:
@@ -178,7 +178,7 @@ def show_stats_for_resources(
         ado_configuration=ado_configuration,
         output_format=output_format,
         output_file=output_file,
-        query=query_filters if (query or labels) else None,
+        filters=filter_conditions if (filters or labels) else None,
         render_output=render_output,
         resource_ids=ids,
         show_details=show_details,

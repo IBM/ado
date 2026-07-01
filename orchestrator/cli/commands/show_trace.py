@@ -3,7 +3,7 @@
 
 import pathlib
 import typing
-from typing import Annotated
+from typing import Annotated, Any
 
 import typer
 
@@ -78,6 +78,7 @@ def show_trace_for_resources(
         list[str] | None,
         typer.Option(
             "--filter",
+            "-q",
             help="Filter using YAML field names from the data model. "
             "Can be used multiple times for AND logic. "
             "Only request-level filters are supported. "
@@ -176,18 +177,18 @@ def show_trace_for_resources(
         )
 
     # Parse filters and prepare for DB
-    field_selectors = []
+    filter_conditions: list[dict[str, Any]] = []
     if filters:
         try:
             parsed_filters = parse_key_value_pairs(filters)
-            field_selectors = prepare_query_filters_for_db(parsed_filters)
+            filter_conditions = prepare_query_filters_for_db(parsed_filters)
         except ValueError as e:
             console_print(f"{ERROR}{e}", stderr=True)
             raise typer.Exit(1) from e
 
     parameters = AdoShowTraceCommandParameters(
         ado_configuration=ado_configuration,
-        field_selectors=field_selectors,  # type: ignore[arg-type]
+        field_selectors=filter_conditions,  # type: ignore[arg-type]
         hide_fields=hide_fields,
         unroll_entities=unroll_entities,
         no_trunc=no_trunc,

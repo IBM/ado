@@ -32,9 +32,9 @@ def show_samplestore_stats(parameters: AdoShowStatsCommandParameters) -> None:
         parameters: Command parameters including resource IDs, output format,
             output file, query filters, and render flag.
     """
-    if parameters.query and parameters.resource_ids:
+    if parameters.filters and parameters.resource_ids:
         console_print(
-            f"{ERROR}You cannot specify samplestore ids and queries/labels at the same time",
+            f"{ERROR}You cannot specify samplestore ids and filters/labels at the same time",
             stderr=True,
         )
         raise typer.Exit(1)
@@ -56,7 +56,7 @@ def show_samplestore_stats(parameters: AdoShowStatsCommandParameters) -> None:
         else:
             samplestore_resources = sql_store.getResourceIdentifiersOfKind(
                 kind=CoreResourceKinds.SAMPLESTORE.value,
-                field_selectors=parameters.query,
+                field_selectors=parameters.filters,
                 details=parameters.show_details,
             )
             base_df = format_default_ado_get_multiple_resources(
@@ -65,9 +65,9 @@ def show_samplestore_stats(parameters: AdoShowStatsCommandParameters) -> None:
             )
 
         if base_df.empty:
-            if parameters.query:
+            if parameters.filters:
                 console_print(
-                    f"{ERROR}The query/labels provided did not match any samplestore.",
+                    f"{ERROR}The filter/labels provided did not match any samplestore.",
                     stderr=True,
                 )
                 raise typer.Exit(1)

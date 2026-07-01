@@ -84,10 +84,10 @@ def get_resource(
             show_default=False,
         ),
     ] = False,
-    query: Annotated[
+    filters: Annotated[
         list[str] | None,
         typer.Option(
-            "--query",
+            "--filter",
             "-q",
             help="""
             Filter results by values contained in the resources. Will return all resources that match
@@ -97,7 +97,7 @@ def get_resource(
             and value is a JSON document.
 
             Please refer to the documentation provided for more information and examples:
-            https://ibm.github.io/ado/getting-started/ado/#using-the-field-level-querying-functionality
+            https://ibm.github.io/ado/getting-started/ado/#searching-and-filtering
             """,
             show_default=False,
         ),
@@ -221,7 +221,7 @@ def get_resource(
             help="""
             Provide a point configuration to match a space. Only for spaces.
 
-            If set, disregards --query and --label.
+            If set, disregards --filter and --label.
             """,
             file_okay=True,
             dir_okay=False,
@@ -236,7 +236,7 @@ def get_resource(
             help="""
             Provide a space configuration to match other spaces. Only for spaces.
 
-            If set, disregards --query and --label, and uses the table output format.
+            If set, disregards --filter and --label, and uses the table output format.
             """,
             file_okay=True,
             dir_okay=False,
@@ -252,7 +252,7 @@ def get_resource(
             Provide a space id to match other spaces. Only for spaces.
             Takes precedence over --matching-space.
 
-            If set, disregards --query and --label, and uses the table output format.
+            If set, disregards --filter and --label, and uses the table output format.
             """,
             show_default=False,
             rich_help_panel=DISCOVERY_SPACE_ONLY_OPTIONS,
@@ -345,11 +345,11 @@ def get_resource(
         exclude_unset = True
 
     try:
-        field_selectors = prepare_query_filters_for_db(parse_key_value_pairs(query))
+        filter_conditions = prepare_query_filters_for_db(parse_key_value_pairs(filters))
         if labels:
             for parsed_label in parse_key_value_pairs(labels):
                 for k, v in parsed_label.items():
-                    field_selectors.extend(
+                    filter_conditions.extend(
                         prepare_query_filters_for_db({"config.metadata.labels": {k: v}})
                     )
     except ValueError as e:
@@ -362,7 +362,7 @@ def get_resource(
         exclude_fields=exclude_fields,
         exclude_none=exclude_none,
         exclude_unset=exclude_unset,
-        field_selectors=field_selectors,
+        field_selectors=filter_conditions,
         matching_point=matching_point,
         matching_space_id=matching_space_id,
         matching_space=matching_space,

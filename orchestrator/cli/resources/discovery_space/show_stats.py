@@ -37,9 +37,9 @@ def show_discovery_space_stats(parameters: AdoShowStatsCommandParameters) -> Non
         parameters: Command parameters including resource IDs, output format,
             output file, query filters, and render flag.
     """
-    if parameters.query and parameters.resource_ids:
+    if parameters.filters and parameters.resource_ids:
         console_print(
-            f"{ERROR}You cannot specify space ids and queries/labels at the same time",
+            f"{ERROR}You cannot specify space ids and filters/labels at the same time",
             stderr=True,
         )
         raise typer.Exit(1)
@@ -55,7 +55,7 @@ def show_discovery_space_stats(parameters: AdoShowStatsCommandParameters) -> Non
         else:
             space_resources = sql_store.getResourcesOfKind(
                 kind=CoreResourceKinds.DISCOVERYSPACE.value,
-                field_selectors=parameters.query,
+                field_selectors=parameters.filters,
             )
 
         base_df = format_default_ado_get_multiple_resources(
@@ -68,9 +68,9 @@ def show_discovery_space_stats(parameters: AdoShowStatsCommandParameters) -> Non
         )
 
         if base_df.empty:
-            if parameters.query:
+            if parameters.filters:
                 console_print(
-                    f"{ERROR}The query/labels provided did not match any space.",
+                    f"{ERROR}The filter/labels provided did not match any space.",
                     stderr=True,
                 )
                 raise typer.Exit(1)

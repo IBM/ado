@@ -118,7 +118,7 @@ class AdoShowStatsCommandParameters(pydantic.BaseModel):
     ado_configuration: AdoConfiguration
     output_format: AdoShowStatsSupportedOutputFormats
     output_file: Path | None
-    query: list[dict[str, str | None]] | None
+    filters: list[dict[str, str | None]] | None
     render_output: bool
     resource_ids: list[str] | None
     show_details: bool

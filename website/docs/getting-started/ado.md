@@ -482,7 +482,7 @@ ado get RESOURCE_TYPE [RESOURCE_ID] [--output | -o <default | yaml | json | conf
                                     [--exclude-unset | --no-exclude-unset ] \
                                     [--exclude-none | --no-exclude-none ] \
                                     [--minimize] \
-                                    [--query | -q <path=value>] \
+                                    [--filter | -q <path=value>] \
                                     [--label | -l <key=value>] \
                                     [--details] [--show-deprecated] \
                                     [--matching-point <point.yaml>] \
@@ -576,7 +576,7 @@ Where:
 See [searching the metastore](../resources/metastore.md#searching-the-metastore)
 for detailed information on the following options, including syntax.
 
-- By using (optionally multiple times) the `--query` (or `-q`) flag, users can
+- By using (optionally multiple times) the `--filter` (or `-q`) flag, users can
   restrict the resources returned by requiring that a field in the resource
   contains a given value. This flag can be specified multiple times (even in
   conjunction with `-l` to further filter results).
@@ -616,12 +616,12 @@ ado get spaces --details
 
 !!! info
 
-    More information on field-level querying is provided in the
+    More information on field-level filtering is provided in the
     [searching the metastore](../resources/metastore.md#searching-the-metastore)
     section
 
 ```shell
-ado get space -q 'config.entitySpace={"propertyDomain":{"values":["granite-7b-base"]}}'
+ado get space --filter 'config.entitySpace={"propertyDomain":{"values":["granite-7b-base"]}}'
 ```
 
 ##### Getting all Discovery Spaces with certain labels
@@ -1180,7 +1180,7 @@ Where:
   given type.
 - `--use-latest` shows statistics for the most recently created resource of the
   selected type. Ignored if resource identifiers are also specified.
-- `--query` (or `-q`) and `--label` (or `-l`) filter which resources are
+- `--filter` (or `-q`) and `--label` (or `-l`) filter which resources are
   included (same semantics as `ado get`). Cannot be used together with explicit
   IDs.
 - `--details` appends `DESCRIPTION` and `LABELS` columns to the output,

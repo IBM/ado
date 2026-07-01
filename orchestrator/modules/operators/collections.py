@@ -206,7 +206,7 @@ def _validate_explore_cls(t: type, metadata: OperatorMetadata) -> None:
 def explore_operation(
     cls: "type[DiscoveryOperationBase]",
 ) -> "type[DiscoveryOperationBase]":
-    """Decorator that registers an explore (search) operator class.
+    """Decorator that registers an explore operator class.
 
     All metadata is sourced from the class's ``operator_metadata()``
     classmethod.  The decorator generates an :class:`OperatorFunction`,
@@ -222,7 +222,7 @@ def explore_operation(
                     version="0.1.0",
                     configuration_model=MyOpParameters,
                     example_configuration=MyOpParameters(),
-                    type=DiscoveryOperationEnum.SEARCH,
+                    type=DiscoveryOperationEnum.EXPLORE,
                 )
 
             async def run(self) -> OperationOutput | None: ...

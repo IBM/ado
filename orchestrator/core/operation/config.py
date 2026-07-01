@@ -361,7 +361,7 @@ class ScriptOperatorConf(pydantic.BaseModel):
         DiscoveryOperationEnum,
         pydantic.Field(
             description=(
-                "Semantic operation type (e.g. search, characterize). "
+                "Semantic operation type (e.g. explore, characterize). "
                 "Script provenance is recorded separately via operation metadata labels."
             ),
         ),

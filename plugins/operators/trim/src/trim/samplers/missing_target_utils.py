@@ -28,8 +28,15 @@ def entity_measured_target(
     Looks up the entity directly from the sample store via
     :meth:`~orchestrator.core.discoveryspace.space.DiscoverySpace.entity_for_point`
     and inspects its
-    :meth:`~orchestrator.schema.entity.Entity.seriesRepresentation`.  This avoids
-    rebuilding the full source DataFrame on every post-yield check.
+    :attr:`~orchestrator.schema.entity.Entity.observedPropertyValues` to decide
+    whether a measurement for *target_output* exists.
+
+    .. note::
+        The check inspects ``observedPropertyValues`` directly rather than using
+        ``seriesRepresentation`` because ``seriesRepresentation`` keys values by
+        the *observed property identifier* (``"{experimentId}-{targetPropertyId}"``).
+        ``target_output`` is always the fully-qualified observed property identifier,
+        as guaranteed by :func:`~trim.operator._resolve_target_output`.
 
     Args:
         entity: The entity that was just yielded and measured.
@@ -49,13 +56,15 @@ def entity_measured_target(
     }
     stored = discoverySpace.entity_for_point(point)  # type: ignore[arg-type]
     series = stored.seriesRepresentation(experimentReferences=None)
-    target_val = series.get(target_output)
-    hit = target_val is not None and not (
-        # pd.isna returns a scalar bool for scalar input; for array-like
-        # values (rare) treat the entity as measured if any value is non-null.
-        pd.isna(target_val)
-        if not hasattr(target_val, "__len__")
-        else all(pd.isna(v) for v in target_val)
+    # target_output is the fully-qualified observed property identifier
+    # ("{experimentId}-{targetPropertyId}"), as guaranteed by
+    # _resolve_target_output in operator.py.  Match against
+    # val.property.identifier (the observed property identifier) directly.
+    hit = any(
+        val.property.identifier == target_output
+        and val.value is not None
+        and not bool(pd.isna(val.value))  # type: ignore[arg-type]
+        for val in stored.observedPropertyValues
     )
     return hit, series
 

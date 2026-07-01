@@ -13,7 +13,10 @@ from orchestrator.schema.property import (
     ConstitutivePropertyDescriptor,
 )
 from orchestrator.schema.property_value import ConstitutivePropertyValue
-from orchestrator.schema.reference import ExperimentReference
+from orchestrator.schema.reference import (
+    ExperimentReference,
+    _parse_experiment_part_from_string,
+)
 from orchestrator.schema.result import ValidMeasurementResult
 
 
@@ -280,6 +283,84 @@ def test_experiment_reference_from_invalid_string() -> None:
 
     # This should work as there only needs to be 1 .
     ExperimentReference.referenceFromString("string.with.more_separators")
+
+
+def test_parse_experiment_part_hyphenated_base_without_parameterization() -> None:
+    """Hyphenated experiment identifiers without params parse as a single base id."""
+    base, version, parameterization = _parse_experiment_part_from_string(
+        "transformer-toxicity-inference-experiment"
+    )
+    assert base == "transformer-toxicity-inference-experiment"
+    assert version is None
+    assert parameterization is None
+
+
+def test_parse_experiment_part_hyphenated_base_with_parameterization() -> None:
+    """Parameterization starts at the first propertyIdentifier.value segment."""
+    base, version, parameterization = _parse_experiment_part_from_string(
+        "my-experiment-timeout.120"
+    )
+    assert base == "my-experiment"
+    assert version is None
+    assert parameterization is not None
+    assert len(parameterization) == 1
+    assert parameterization[0].property.identifier == "timeout"
+    assert parameterization[0].value == 120
+
+
+def test_parse_experiment_part_multiple_parameterization_segments() -> None:
+    """Multiple propertyIdentifier.value segments parse including negative values."""
+    base, version, parameterization = _parse_experiment_part_from_string(
+        "solve_mip-test_opt1.C-test_opt2.-1"
+    )
+    assert base == "solve_mip"
+    assert version is None
+    assert parameterization is not None
+    assert len(parameterization) == 2
+    assert parameterization[0].property.identifier == "test_opt1"
+    assert parameterization[0].value == "C"
+    assert parameterization[1].property.identifier == "test_opt2"
+    assert parameterization[1].value == -1
+
+
+def test_reference_from_string_hyphenated_base_with_parameterization() -> None:
+    """referenceFromString round-trips hyphenated base ids with parameterization."""
+    parsed = ExperimentReference.referenceFromString("act.my-experiment-timeout.120")
+    assert parsed.actuatorIdentifier == "act"
+    assert parsed.experimentIdentifier == "my-experiment"
+    assert parsed.parameterization is not None
+    assert parsed.parameterization[0].property.identifier == "timeout"
+    assert parsed.parameterization[0].value == 120
+
+
+def test_reference_from_string_versioned_hyphenated_base_with_parameterization() -> (
+    None
+):
+    """Version suffix parsing preserves hyphenated base experiment identifiers."""
+    parsed = ExperimentReference.referenceFromString(
+        "act.my-experiment@1.0.0-timeout.120"
+    )
+    assert parsed.experimentIdentifier == "my-experiment"
+    assert parsed.experimentVersion == "1.0.0"
+    assert parsed.parameterization is not None
+    assert parsed.parameterization[0].value == 120
+
+
+def test_parse_experiment_part_rejects_trailing_non_parameterization() -> None:
+    """Segments after parameterization must be propertyIdentifier.value pairs."""
+    with pytest.raises(
+        ValueError,
+        match=r"Invalid parameterization segment 'timeout\.120-garbage'",
+    ):
+        _parse_experiment_part_from_string("solve_mip-timeout.120-garbage")
+
+
+def test_parse_experiment_part_rejects_parameterization_before_base() -> None:
+    """Parameterization cannot precede the base experiment identifier."""
+    with pytest.raises(
+        ValueError, match="Parameterization cannot appear before the base experiment"
+    ):
+        _parse_experiment_part_from_string("-timeout.120")
 
 
 def test_experiment_reference_equality_non_reference() -> None:

@@ -309,7 +309,7 @@ def measure_or_replay(
         MeasurementError: If the experimentReference cannot be executed by the actuator as it is
             deprecated w.r.t the actuator version being used.
     """
-    from orchestrator.modules.actuators.base import (
+    from orchestrator.modules.actuators.errors import (
         DeprecatedExperimentError,
         MeasurementError,
         MissingConfigurationForExperimentError,

@@ -27,7 +27,10 @@ from orchestrator.core import CoreResourceKinds
 from orchestrator.core.discoveryspace.config import DiscoverySpaceConfiguration
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.metastore.base import ResourceDoesNotExistError
-from orchestrator.modules.actuators.registry import UnknownExperimentError
+from orchestrator.modules.actuators.errors import (
+    ExperimentVersionMismatchError,
+    UnknownExperimentError,
+)
 
 
 def create_discovery_space(parameters: AdoCreateCommandParameters) -> str | None:
@@ -194,6 +197,12 @@ def create_discovery_space(parameters: AdoCreateCommandParameters) -> str | None
                 stderr=True,
             )
             raise typer.Exit(1) from error
+        except ExperimentVersionMismatchError as error:
+            console_print(
+                f"{ERROR}Experiment version mismatch in configuration: {error}",
+                stderr=True,
+            )
+            raise typer.Exit(1) from error
 
         console_print(ADO_CREATE_DRY_RUN_CONFIG_VALID, stderr=True)
         return None
@@ -244,6 +253,13 @@ def create_discovery_space(parameters: AdoCreateCommandParameters) -> str | None
             )
         except ResourceDoesNotExistError:
             raise
+        except ExperimentVersionMismatchError as error:
+            status.stop()
+            console_print(
+                f"{ERROR}Experiment version mismatch when creating the discovery space: {error}",
+                stderr=True,
+            )
+            raise typer.Exit(1) from error
         except Exception as error:
             status.stop()
             console_print(

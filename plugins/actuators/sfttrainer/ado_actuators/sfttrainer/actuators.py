@@ -58,7 +58,7 @@ from orchestrator.core.actuatorconfiguration.config import GenericActuatorParame
 # as the base class of your Actuator class ray (for an unknown reason) rejects your Actuator
 # the first time you try to use it. It claims that it does not have any `async` methods (i.e. coroutines)
 # Using `from ... import` fixes this behaviour however we don't know why.
-from orchestrator.modules.actuators.base import ActuatorBase, DeprecatedExperimentError
+from orchestrator.modules.actuators.base import ActuatorBase
 from orchestrator.schema.entity import Entity
 from orchestrator.schema.experiment import Experiment, ParameterizedExperiment
 from orchestrator.schema.observed_property import ObservedPropertyValue
@@ -1190,17 +1190,10 @@ class SFTTrainer(ActuatorBase):
                 )
 
             try:
-                exp = catalog.experimentForReference(request.experimentReference)
-                if exp is None:
-                    raise KeyError(request.experimentReference)
-                ## Check if the experiment has parameterization fields and create the right ParameterizedExperiment instance
-                ## Note: this is necessary for getting values of optional properties that the discoverySpace overrides
-                if request.experimentReference.parameterization:
-                    exp = ParameterizedExperiment(
-                        parameterization=request.experimentReference.parameterization,
-                        **exp.model_dump(),
-                    )
-
+                # Resolve the experiment from the catalog (validates version, deprecation, and parameterization)
+                exp = catalog.experimentForReference(
+                    request.experimentReference, resolve=True
+                )
             except Exception as e:
                 self.log.debug(f"Exception while discovering experiment: {e}")
                 raise InternalInconsistencyError(e) from e
@@ -1395,13 +1388,8 @@ class SFTTrainer(ActuatorBase):
 
         requests = []
 
-        # AP 29/08/2024:
-        # Before doing anything, we must ensure the experiment is not deprecated
-        experiment = catalog.experimentForReference(experimentReference)
-        if experiment.deprecated:
-            raise DeprecatedExperimentError(
-                f"Experiment {experiment.identifier} is deprecated"
-            )
+        # Resolve the experiment from the catalog (validates version, deprecation, and parameterization)
+        catalog.experimentForReference(experimentReference, resolve=True)
 
         for index in range(len(entities)):
             entity = entities[index]

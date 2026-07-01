@@ -141,3 +141,48 @@ def validate_pep440_version(value: str) -> str:
 
 
 Pep440VersionStr = Annotated[str, AfterValidator(validate_pep440_version)]
+
+
+_STRICT_SEMVER_PATTERN = re.compile(r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$")
+
+
+def validate_strict_semver(value: str) -> str:
+    """Validate that *value* is a strict MAJOR.MINOR.PATCH SemVer string.
+
+    Pre-release identifiers and build metadata are not accepted.
+
+    Args:
+        value: The version string to validate.
+
+    Returns:
+        The original version string unchanged.
+
+    Raises:
+        ValueError: If *value* is not a valid strict SemVer string.
+    """
+    if not _STRICT_SEMVER_PATTERN.match(value):
+        raise ValueError(
+            f"Version {value!r} is not a valid strict SemVer string. "
+            "Expected MAJOR.MINOR.PATCH where each component is a non-negative integer "
+            "(e.g. '1.0.0', '2.3.1'). Pre-release identifiers and build metadata are not accepted."
+        )
+    return value
+
+
+StrictSemVerStr = Annotated[str, AfterValidator(validate_strict_semver)]
+
+
+def semver_major(version: StrictSemVerStr) -> int:
+    """Extract the MAJOR component from a strict SemVer string.
+
+    Args:
+        version: A strict SemVer string (e.g. ``"1.2.3"``).
+
+    Returns:
+        The integer major version component.
+
+    Raises:
+        ValueError: If *version* is not a valid strict SemVer string.
+    """
+    validated = validate_strict_semver(version)
+    return int(validated.split(".", maxsplit=1)[0])

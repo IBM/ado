@@ -6,7 +6,10 @@ import typing
 
 import pydantic
 
-from orchestrator.modules.actuators.catalog import ExperimentCatalog
+from orchestrator.modules.actuators.catalog import (
+    ExperimentCatalog,
+)
+from orchestrator.modules.actuators.errors import ExperimentVersionMismatchError
 from orchestrator.schema.entity import (
     CheckRequiredObservedPropertyValuesPresent,
     Entity,
@@ -21,7 +24,11 @@ from orchestrator.schema.experiment import (
 )
 from orchestrator.schema.observed_property import ObservedProperty
 from orchestrator.schema.property import AbstractPropertyDescriptor
-from orchestrator.schema.reference import ExperimentReference
+from orchestrator.schema.reference import (
+    ExperimentReference,
+    identifier_for_parameterized_experiment,
+    reference_string_from_fields,
+)
 from orchestrator.schema.request import MeasurementRequest
 from orchestrator.schema.virtual_property import VirtualObservedProperty
 from orchestrator.utilities.logging import configure_logging
@@ -72,10 +79,10 @@ class MeasurementSpace:
             If you only want to use some properties of use the observedProperties parameter
             Note: If you pass the experiment and then a selection of its properties, all the properties will be
             used
-        experimentCatalogs: A list of ExperimentCatalog instances.
-            These will be searched for the experiments used to measure the properties
-            in addition to default catalogs.
-            Use this to pass external catalogs i.e. catalogs containing experiments there is no actuator for
+        experimentCatalogs: Supplementary catalogs searched after the registered actuator
+            catalog for each reference. Each reference must name a registered actuator;
+            use this for replay-backed external catalogs (experiments stored under the
+            ``replay`` actuator with no executing actuator plugin).
         """
 
         # Validate parameterization for the provided experiment references
@@ -102,19 +109,19 @@ class MeasurementSpace:
             log.debug(f"looking for experiment {ref}")
             try:
                 experiment = globalRegistry.experimentForReference(
-                    ref, experimentCatalogs
-                )  # type: Experiment
+                    ref,
+                    experimentCatalogs,
+                    match_on="fully_qualified_version",
+                    resolve=True,
+                )
             except (
-                orchestrator.modules.actuators.registry.UnknownExperimentError,
-                orchestrator.modules.actuators.registry.UnknownActuatorError,
+                orchestrator.modules.actuators.errors.UnknownExperimentError,
+                orchestrator.modules.actuators.errors.UnknownActuatorError,
+                orchestrator.modules.actuators.errors.UnexpectedCatalogRetrievalError,
+                ExperimentVersionMismatchError,
             ):
                 raise
             else:
-                if ref.parameterization:
-                    experiment = ParameterizedExperiment(
-                        parameterization=ref.parameterization, **experiment.model_dump()
-                    )
-
                 experiments.append(experiment)
                 processedReferences.append(ref)
 
@@ -185,13 +192,33 @@ class MeasurementSpace:
         from rich.panel import Panel
         from rich.text import Text
 
+        from orchestrator.utilities.pydantic import semver_major
         from orchestrator.utilities.rich import dataframe_to_rich_table
 
         content = []
 
+        def parameterization_string(e: Experiment | ParameterizedExperiment) -> str:
+
+            return (
+                None
+                if isinstance(e, Experiment)
+                # The [1:] is to cut the initial hyphen
+                else identifier_for_parameterized_experiment("", e.parameterization)[1:]
+            )
+
         # Experiments overview table
-        data = [[e.reference, not e.deprecated] for e in self.experiments]
-        df = pd.DataFrame(data, columns=["experiment", "supported"])
+        data = [
+            [
+                reference_string_from_fields(e.actuatorIdentifier, e.identifier),
+                f"v{semver_major(e.version)}" if e.version is not None else None,
+                parameterization_string(e),
+            ]
+            for e in self.experiments
+        ]
+        df = pd.DataFrame(
+            data,
+            columns=["base identifier", "required major version", "parameterization"],
+        )
         content.extend(
             [
                 Text("Experiments:", style="bold"),
@@ -222,8 +249,17 @@ class MeasurementSpace:
             df = pd.DataFrame(
                 data, columns=["parameter", "type", "value", "parameterized"]
             )
+            interface_text = Text()
+            interface_text.append("Expected Interface", style="bold")
+
+            if e.version:
+                interface_text.append(f" (from v{e.version})\n")
+            else:
+                interface_text.append("\n")
+
             exp_content.extend(
                 [
+                    interface_text,
                     Text("Inputs:", style="bold"),
                     Panel(dataframe_to_rich_table(df), box=rich.box.SIMPLE_HEAD),
                 ]
@@ -243,7 +279,14 @@ class MeasurementSpace:
                 [
                     Panel(
                         Group(*exp_content),
-                        title=Text(str(e.reference), style="bold green"),
+                        title=Text(
+                            (
+                                str(e.major_version_parameterized_identifier)
+                                if isinstance(e, ParameterizedExperiment)
+                                else e.major_version_identifier
+                            ),
+                            style="bold green",
+                        ),
                         box=rich.box.HORIZONTALS,
                     ),
                     Text(),

@@ -5,10 +5,12 @@ import re
 import pytest
 
 from orchestrator.core.discoveryspace.samplers import sample_random_entity_from_space
-from orchestrator.modules.actuators.registry import (
-    ActuatorRegistry,
+from orchestrator.modules.actuators.errors import (
     UnknownActuatorError,
     UnknownExperimentError,
+)
+from orchestrator.modules.actuators.registry import (
+    ActuatorRegistry,
 )
 from orchestrator.schema.entityspace import EntitySpaceRepresentation
 from orchestrator.schema.experiment import Experiment, ParameterizedExperiment

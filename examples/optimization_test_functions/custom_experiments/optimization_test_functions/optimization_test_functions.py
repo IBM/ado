@@ -58,6 +58,7 @@ moduleLog = logging.getLogger()
     ],
     parameterization={"num_blocks": 1, "name": "rosenbrock"},
     output_property_identifiers=["function_value"],
+    version="1.0.0",
 )
 def nevergrad_opt_3d_test_func(
     x0: float, x1: float, x2: float, name: str, num_blocks: int

@@ -164,9 +164,11 @@ class DiscoverySpace:
                 the metastore round-trip and the ``SampleStore.from_resource`` call are skipped,
                 and the same object is reused — preserving any in-memory entity cache.
                 Takes precedence over *samplestore_resource*.
-            load_experiment_catalog: When ``True`` (default) the samplestore's experiment catalog is
-                loaded and registered with the actuator registry.  Set to ``False`` for read-only
-                paths (e.g. CLI show commands) where replay experiment resolution is not needed.
+            load_experiment_catalog: When ``True`` (default) experiments from the samplestore
+                catalog are also registered with the global actuator registry. When ``False``,
+                the catalog is still loaded locally for measurement-space resolution but not
+                registered globally. Use ``False`` for read-only paths (e.g. CLI show commands)
+                to avoid conflicting with experiments already registered in the same process.
 
         """
 
@@ -193,9 +195,10 @@ class DiscoverySpace:
                 conf.entitySpace
             )
 
-        ## Add any external experiments to the replay actuators catalog
+        ## Load external experiments from the sample store for measurement-space
+        ## resolution. Only register them globally when requested.
         externalCatalogs = []
-        if load_experiment_catalog and sample_store is not None:
+        if sample_store is not None:
             moduleLogger.debug(
                 f"Loading external experiments from sample store: {sample_store.identifier}"
             )
@@ -206,14 +209,15 @@ class DiscoverySpace:
                 moduleLogger.debug(
                     f"Loaded external catalog {catalog} based on sample store {sample_store}"
                 )
-                ActuatorRegistry.globalRegistry().updateCatalogs(
-                    ActuatorCatalogExtension(experiments=catalog.experiments)
-                )
-                moduleLogger.debug(
-                    ActuatorRegistry.globalRegistry()
-                    .catalogForActuatorIdentifier("replay")
-                    .experiments
-                )
+                if load_experiment_catalog:
+                    ActuatorRegistry.globalRegistry().updateCatalogs(
+                        ActuatorCatalogExtension(experiments=catalog.experiments)
+                    )
+                    moduleLogger.debug(
+                        ActuatorRegistry.globalRegistry()
+                        .catalogForActuatorIdentifier("replay")
+                        .experiments
+                    )
 
         if isinstance(
             conf.experiments,

@@ -1,9 +1,11 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
+import enum
 import importlib.metadata
 import sys
 import typing
+from collections.abc import Iterable
 from typing import Annotated
 
 import pydantic
@@ -16,8 +18,10 @@ from orchestrator.schema.property import (
     AbstractPropertyDescriptor,
     ConcretePropertyDescriptor,
     ConstitutiveProperty,
+    ConstitutivePropertyDescriptor,
     MeasuredPropertyTypeEnum,
     Property,
+    PropertyDescriptor,
 )
 from orchestrator.schema.property_value import (
     ConstitutivePropertyValue,
@@ -35,6 +39,7 @@ from orchestrator.schema.virtual_property import (
     PropertyAggregationMethodEnum,
     VirtualObservedProperty,
 )
+from orchestrator.utilities.pydantic import StrictSemVerStr, semver_major
 
 if typing.TYPE_CHECKING:  # pragma: nocover
     from rich.console import RenderableType
@@ -113,6 +118,74 @@ class Experiment(pydantic.BaseModel):
             description="Default values for the optional properties",
         ),
     ]
+    version: Annotated[
+        StrictSemVerStr | None,
+        pydantic.Field(
+            description=(
+                "Algorithm version for this experiment following strict SemVer "
+                "(MAJOR.MINOR.PATCH). MAJOR identifies the memoisation boundary: "
+                "results from different major versions are never reused. MINOR covers "
+                "backward-compatible extensions (new outputs/inputs). PATCH covers "
+                "bug fixes and refactoring that do not change observable outputs."
+            ),
+        ),
+    ] = None
+
+    @property
+    def major_version_identifier(self) -> str:
+        """Return the major version identifier.
+
+        For versioned experiments this is ``'{identifier}@v{major}'``,
+        e.g. ``'solve_mip@v1'``.  For unversioned experiments (legacy) this
+        is identical to :attr:`identifier`.
+
+        Two experiments with the same major version identifier perform the same
+        science — their results are interchangeable.
+
+        Returns:
+            The major version identifier string.
+        """
+        if self.version is not None:
+            return f"{self.identifier}@v{semver_major(self.version)}"
+        return self.identifier
+
+    @property
+    def fully_qualified_identifier(self) -> str:
+        """Return the fully-qualified identifier encoding the exact version.
+
+        For versioned experiments this is ``'{identifier}@{version}'``,
+        e.g. ``'solve_mip@1.0.3'``.  For unversioned experiments this is
+        identical to :attr:`identifier`.
+
+        Returns:
+            The fully-qualified identifier string.
+        """
+        if self.version is not None:
+            return f"{self.identifier}@{self.version}"
+        return self.identifier
+
+    def __eq__(self, other: object) -> bool:  # noqa: ANN401
+        """Two experiments are equal when they share the same major version identifier.
+
+        Experiments with the same base name and same major version are
+        considered to perform the same science regardless of minor/patch
+        version differences.
+
+        Returns:
+            True if both experiments have the same actuator and major version
+            identifier.
+        """
+        if not isinstance(other, Experiment):
+            return False
+        if isinstance(other, ParameterizedExperiment):
+            return False
+        return (
+            self.actuatorIdentifier == other.actuatorIdentifier
+            and self.major_version_identifier == other.major_version_identifier
+        )
+
+    def __hash__(self) -> int:
+        return hash((self.actuatorIdentifier, self.major_version_identifier))
 
     @classmethod
     def experimentWithAbstractPropertyIdentifiers(
@@ -244,27 +317,12 @@ class Experiment(pydantic.BaseModel):
 
         return value
 
-    def __eq__(self, other: object) -> bool:  # noqa: ANN401
-        """Experiments are equal if they have the same identifier"""
-
-        if isinstance(other, Experiment):
-            return (
-                (self.actuatorIdentifier == other.actuatorIdentifier)
-                and (self.identifier == other.identifier)
-                and (self.identifier == other.identifier)
-            )
-        return False
-
     def __str__(self) -> str:
 
         return reference_string_from_fields(
             actuator_identifier=self.actuatorIdentifier,
             experiment_identifier=self.identifier,
         )
-
-    def __hash__(self) -> int:
-
-        return hash(str(self))
 
     def __rich__(self) -> "RenderableType":
         """Render this experiment using rich."""
@@ -275,13 +333,26 @@ class Experiment(pydantic.BaseModel):
 
         from orchestrator.utilities.rich import get_rich_repr
 
+        fq_identifier = f"{self.actuatorIdentifier}.{self.fully_qualified_identifier}"
         content = [
             Text.assemble(
                 ("Identifier: ", "bold"),
-                (f"{self.actuatorIdentifier}.{self.identifier}", "bold green"),
+                (
+                    fq_identifier,
+                    "bold green",
+                ),
                 overflow="fold",
             )
         ]
+
+        if self.version is not None:
+            content.append(
+                Text.assemble(
+                    ("Version: ", "bold"),
+                    (self.version, "green"),
+                    overflow="fold",
+                )
+            )
 
         if self.metadata.get("description"):
             content.extend(
@@ -410,11 +481,18 @@ class Experiment(pydantic.BaseModel):
 
     @property
     def reference(self) -> ExperimentReference:
-        """Returns an ExperimentReference for the receiver"""
+        """Return an ExperimentReference for the receiver.
 
+        The reference carries the experiment's algorithm version so that
+        memoisation and comparison use the major version identifier automatically.
+
+        Returns:
+            An ExperimentReference for this experiment.
+        """
         return ExperimentReference(
             experimentIdentifier=self.identifier,
             actuatorIdentifier=self.actuatorIdentifier,
+            experimentVersion=self.version,
         )
 
     @property
@@ -489,7 +567,8 @@ class Experiment(pydantic.BaseModel):
         params:
             experiment: The experiment to check against
             exactMath: If True `experiment` must provide exactly the same property i.e. matching parameterization.
-                If False `experiment` must have the same base experiment.
+                If False `experiment` must measure the same base experiment as each required
+                input (any algorithm version satisfies — the target metric is unchanged).
         """
 
         retval = True
@@ -503,10 +582,9 @@ class Experiment(pydantic.BaseModel):
                         break
             else:
                 for input_ref in self.references_of_required_input_experiments:
-                    # Compare the supplied experiment to the input ref
-                    # If it is not equal to all required input refs then it doesn't provide all requirements
-                    if not experiment.reference.compareWithoutParameterization(
-                        input_ref
+                    if not (
+                        experiment.actuatorIdentifier == input_ref.actuatorIdentifier
+                        and experiment.identifier == input_ref.experimentIdentifier
                     ):
                         retval = False
                         break
@@ -611,6 +689,35 @@ class Experiment(pydantic.BaseModel):
         """
 
         return [e for e in self.requiredProperties if isinstance(e, ObservedProperty)]
+
+    @property
+    def optional_property_descriptors(self) -> set[ConstitutivePropertyDescriptor]:
+        """Return identifiers of optional constitutive properties on this experiment."""
+        return {prop.descriptor() for prop in self.optionalProperties}
+
+    @property
+    def required_constitutive_property_descriptors(
+        self,
+    ) -> set[ConstitutivePropertyDescriptor]:
+        """Return identifiers of required constitutive properties on this experiment."""
+        return {prop.descriptor() for prop in self.requiredConstitutiveProperties}
+
+    def constitutive_property_for_identifier(
+        self, property_identifier: str
+    ) -> ConstitutiveProperty | None:
+        """Return a declared constitutive property by identifier, if present."""
+
+        return next(
+            (
+                p
+                for p in (
+                    *self.requiredConstitutiveProperties,
+                    *self.optionalProperties,
+                )
+                if p.identifier == property_identifier
+            ),
+            None,
+        )
 
     @property
     def references_of_required_input_experiments(
@@ -832,11 +939,25 @@ class ParameterizedExperiment(Experiment):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     @property
-    def parameterizedIdentifier(self) -> str:
-        """
-        The identifier for the parameterized version of the experiment.
-        Different parameterized versions of an experiment have a different parameterized identifier.
-        Their experimentIdentifier field, which identifies the base experiment, will be the same.
+    def parameterized_optional_property_descriptors(
+        self,
+    ) -> set[ConstitutivePropertyDescriptor]:
+        """Return identifiers of optional properties with custom parameterization."""
+        return {value.property for value in self.parameterization}
+
+    @property
+    def major_version_parameterized_identifier(self) -> str:
+        """Return the major version parameterized identifier.
+
+        Uses the base experiment's :attr:`~Experiment.major_version_identifier`
+        as the prefix so that the memoisation key encodes the major algorithm
+        version.  For example: ``'solve_mip@v1-time_limit_s.3600'``.
+
+        Returns:
+            major version parameterized identifier string.
+
+        Raises:
+            ValueError: If parameterization is empty.
         """
         if not self.parameterization:
             raise ValueError(
@@ -844,20 +965,23 @@ class ParameterizedExperiment(Experiment):
             )
 
         return identifier_for_parameterized_experiment(
-            self.identifier, self.parameterization
+            self.major_version_identifier, self.parameterization
         )
 
     def __eq__(self, other: object) -> bool:  # noqa: ANN401
-        """ParameterizedExperiments are equal if they have the same parameterizedIdentifier
+        """ParameterizedExperiments are equal when they share the same major_version_parameterized_identifier.
 
-        A ParameterizedExperiment can only be equal to another ParameterizedExperiment
-        A ParameterizedExperiment is not equal to its parent Experiment.
+        A ParameterizedExperiment can only be equal to another
+        ParameterizedExperiment; it is never equal to its parent Experiment.
+
+        Returns:
+            True if both share the same actuator and parameterized identifier.
         """
-
         retval = False
         if isinstance(other, ParameterizedExperiment):
             retval = (self.actuatorIdentifier == other.actuatorIdentifier) and (
-                self.parameterizedIdentifier == other.parameterizedIdentifier
+                self.major_version_parameterized_identifier
+                == other.major_version_parameterized_identifier
             )
 
         return retval
@@ -866,7 +990,7 @@ class ParameterizedExperiment(Experiment):
 
         return reference_string_from_fields(
             actuator_identifier=self.actuatorIdentifier,
-            experiment_identifier=self.parameterizedIdentifier,
+            experiment_identifier=self.major_version_parameterized_identifier,
         )
 
     def __hash__(self) -> int:
@@ -883,7 +1007,9 @@ class ParameterizedExperiment(Experiment):
 
         content = []
         content.append(
-            Text(f"Parameterized Identifier: {self.parameterizedIdentifier}")
+            Text(
+                f"Parameterized Identifier: {self.major_version_parameterized_identifier}"
+            )
         )
         content.append(Text())
 
@@ -973,11 +1099,17 @@ class ParameterizedExperiment(Experiment):
 
     @property
     def reference(self) -> ExperimentReference:
+        """Return an ExperimentReference for this parameterized experiment.
 
+        Returns:
+            An ExperimentReference carrying the parameterization and
+            algorithm version.
+        """
         return ExperimentReference(
             experimentIdentifier=self.identifier,
             actuatorIdentifier=self.actuatorIdentifier,
             parameterization=self.parameterization,
+            experimentVersion=self.version,
         )
 
     def valueForOptionalProperty(
@@ -996,6 +1128,332 @@ class ParameterizedExperiment(Experiment):
             ) from error
 
         return retval
+
+
+class ExperimentInterfaceIssueKind(str, enum.Enum):
+    """Kinds of experiment interface mismatches detected by compatibility checks."""
+
+    MISSING_REQUIRED_CONSTITUTIVE_IN_PROVIDED = (
+        "missing_required_constitutive_in_provided"
+    )
+    EXTRA_REQUIRED_CONSTITUTIVE_IN_PROVIDED = "extra_required_constitutive_in_provided"
+    MISSING_REQUIRED_OBSERVED_IN_PROVIDED = "missing_required_observed_in_provided"
+    EXTRA_REQUIRED_OBSERVED_IN_PROVIDED = "extra_required_observed_in_provided"
+    PARAMETERIZED_OPTIONAL_NOT_IN_PROVIDED = "parameterized_optional_not_in_provided"
+    OPTIONAL_NOT_DECLARED_IN_PROVIDED = "optional_not_declared_in_provided"
+    DOMAIN_NOT_COMPATIBLE = "domain_not_compatible"
+    PARAMETERIZED_VALUE_OUT_OF_DOMAIN = "parameterized_value_out_of_domain"
+    OPTIONAL_DEFAULT_MISMATCH = "optional_default_mismatch"
+    OUTPUT_NOT_IN_PROVIDED = "output_not_in_provided"
+
+
+class ExperimentInterfaceIssue(pydantic.BaseModel):
+    """A structured description of an experiment interface mismatch."""
+
+    kind: Annotated[
+        ExperimentInterfaceIssueKind,
+        pydantic.Field(description="The kind of interface mismatch detected"),
+    ]
+    identifier: Annotated[
+        str | None,
+        pydantic.Field(
+            default=None,
+            description=(
+                "Property identifier related to the mismatch. Refers to a "
+                "constitutive, observed, or target property depending on kind."
+            ),
+        ),
+    ] = None
+    value: Annotated[
+        typing.Any | None,
+        pydantic.Field(
+            default=None,
+            description="Parameterized value related to the mismatch",
+        ),
+    ] = None
+    expectedDefault: Annotated[
+        typing.Any | None,
+        pydantic.Field(
+            default=None,
+            description="Default value declared by the expected experiment",
+        ),
+    ] = None
+    providedDefault: Annotated[
+        typing.Any | None,
+        pydantic.Field(
+            default=None,
+            description="Default value declared by the provided experiment",
+        ),
+    ] = None
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+
+def _create_issues_of_kind_for_ids(
+    ids: Iterable[Property | PropertyDescriptor | ObservedProperty],
+    kind: ExperimentInterfaceIssueKind,
+) -> list[ExperimentInterfaceIssue]:
+    """Build interface issues with ``identifier`` set for each id."""
+    return [
+        ExperimentInterfaceIssue(kind=kind, identifier=prop.identifier) for prop in ids
+    ]
+
+
+def _check_required_constitutive_interface(
+    expected: Experiment | ParameterizedExperiment,
+    provided: Experiment,
+) -> list[ExperimentInterfaceIssue]:
+    """Check required constitutive input compatibility.
+
+    Missing required constitutive inputs are satisfied when the property is
+    declared anywhere in the provided experiment (required or optional).
+    Extra required inputs are those required by provided but not by expected.
+    """
+
+    return [
+        *_create_issues_of_kind_for_ids(
+            expected.required_constitutive_property_descriptors
+            - provided.required_constitutive_property_descriptors,
+            ExperimentInterfaceIssueKind.MISSING_REQUIRED_CONSTITUTIVE_IN_PROVIDED,
+        ),
+        *_create_issues_of_kind_for_ids(
+            provided.required_constitutive_property_descriptors
+            - expected.required_constitutive_property_descriptors,
+            ExperimentInterfaceIssueKind.EXTRA_REQUIRED_CONSTITUTIVE_IN_PROVIDED,
+        ),
+    ]
+
+
+def _check_required_observed_interface(
+    expected: Experiment | ParameterizedExperiment,
+    provided: Experiment,
+) -> list[ExperimentInterfaceIssue]:
+    """Check required observed input compatibility.
+
+    Extra required observed inputs are those required by provided but not by
+    expected.
+    """
+    expected_required = set(expected.requiredObservedProperties)
+    provided_required = set(provided.requiredObservedProperties)
+    missing = expected_required - provided_required
+    extra = provided_required - expected_required
+    return [
+        *_create_issues_of_kind_for_ids(
+            missing,
+            ExperimentInterfaceIssueKind.MISSING_REQUIRED_OBSERVED_IN_PROVIDED,
+        ),
+        *_create_issues_of_kind_for_ids(
+            extra,
+            ExperimentInterfaceIssueKind.EXTRA_REQUIRED_OBSERVED_IN_PROVIDED,
+        ),
+    ]
+
+
+def _check_parameterized_optional_presence(
+    expected: Experiment | ParameterizedExperiment,
+    provided: Experiment,
+) -> list[ExperimentInterfaceIssue]:
+    """Check that parameterized optional inputs exist in the provided experiment."""
+
+    if isinstance(expected, ParameterizedExperiment):
+        missing_ids = {
+            p.property for p in expected.parameterization
+        } - provided.optional_property_descriptors
+        return _create_issues_of_kind_for_ids(
+            missing_ids,
+            ExperimentInterfaceIssueKind.PARAMETERIZED_OPTIONAL_NOT_IN_PROVIDED,
+        )
+
+    return []
+
+
+def _check_constitutive_domains(
+    expected: Experiment | ParameterizedExperiment, provided: Experiment
+) -> list[ExperimentInterfaceIssue]:
+    """Check constitutive property presence and domain compatibility.
+
+    Optional-not-declared is reported separately from parameterized-optional
+    presence. Domain checks run only when the property is found in provided.
+    """
+    issues: list[ExperimentInterfaceIssue] = []
+    constitutive_properties_to_check = list(
+        expected.requiredConstitutiveProperties
+    ) + list(expected.optionalProperties)
+    for expected_property in constitutive_properties_to_check:
+        provided_property = provided.constitutive_property_for_identifier(
+            expected_property.identifier
+        )
+        if provided_property is None:
+            if expected_property.descriptor() in expected.optional_property_descriptors:
+                issues.append(
+                    ExperimentInterfaceIssue(
+                        kind=ExperimentInterfaceIssueKind.OPTIONAL_NOT_DECLARED_IN_PROVIDED,
+                        identifier=expected_property.identifier,
+                    )
+                )
+            continue
+
+        if not expected_property.propertyDomain.isSubDomain(
+            provided_property.propertyDomain
+        ):
+            issues.append(
+                ExperimentInterfaceIssue(
+                    kind=ExperimentInterfaceIssueKind.DOMAIN_NOT_COMPATIBLE,
+                    identifier=expected_property.identifier,
+                )
+            )
+    return issues
+
+
+def _check_parameterized_values(
+    expected: Experiment | ParameterizedExperiment, provided: Experiment
+) -> list[ExperimentInterfaceIssue]:
+    """Check that parameterized values fall within provided property domains."""
+    if not isinstance(expected, ParameterizedExperiment):
+        return []
+
+    issues: list[ExperimentInterfaceIssue] = []
+    for parameterized_value in expected.parameterization:
+        provided_property = provided.constitutive_property_for_identifier(
+            parameterized_value.property.identifier
+        )
+        if provided_property is None:
+            continue
+        if not provided_property.propertyDomain.valueInDomain(
+            parameterized_value.value
+        ):
+            issues.append(
+                ExperimentInterfaceIssue(
+                    kind=ExperimentInterfaceIssueKind.PARAMETERIZED_VALUE_OUT_OF_DOMAIN,
+                    identifier=parameterized_value.property.identifier,
+                    value=parameterized_value.value,
+                )
+            )
+    return issues
+
+
+def _check_optional_defaults(
+    expected: Experiment | ParameterizedExperiment, provided: Experiment
+) -> list[ExperimentInterfaceIssue]:
+    """Check non-parameterized optional default values match between experiments.
+
+    Parameterized optionals are skipped because defaults come from
+    parameterization instead.
+    """
+    issues: list[ExperimentInterfaceIssue] = []
+    optional_to_check = expected.optional_property_descriptors
+    if isinstance(expected, ParameterizedExperiment):
+        optional_to_check = (
+            optional_to_check - expected.parameterized_optional_property_descriptors
+        )
+
+    for optional_property in optional_to_check:
+        if optional_property not in provided.optional_property_descriptors:
+            continue
+        expected_default = expected.valueForOptionalProperty(
+            optional_property.identifier
+        ).value
+        provided_default = provided.valueForOptionalProperty(
+            optional_property.identifier
+        ).value
+        if expected_default != provided_default:
+            issues.append(
+                ExperimentInterfaceIssue(
+                    kind=ExperimentInterfaceIssueKind.OPTIONAL_DEFAULT_MISMATCH,
+                    identifier=optional_property.identifier,
+                    expectedDefault=expected_default,
+                    providedDefault=provided_default,
+                )
+            )
+    return issues
+
+
+def _check_target_outputs(
+    expected: Experiment | ParameterizedExperiment, provided: Experiment
+) -> list[ExperimentInterfaceIssue]:
+    """Check that expected outputs are a subset of provided outputs."""
+    return _create_issues_of_kind_for_ids(
+        set(expected.targetProperties) - set(provided.targetProperties),
+        ExperimentInterfaceIssueKind.OUTPUT_NOT_IN_PROVIDED,
+    )
+
+
+def check_experiment_interface_compatible(
+    expected_experiment: "Experiment",
+    provided_experiment: "Experiment",
+) -> list[ExperimentInterfaceIssue]:
+    """Check that a provided experiment supports an expected experiment interface.
+
+    Verifies that inputs declared in the expected experiment are supported by the
+    provided experiment, that provided-only required inputs are also declared in
+    the expected experiment, and that expected outputs are a subset of provided
+    outputs. Collects all mismatches rather than stopping at the first failure.
+
+    Checks performed (in order):
+
+    1. ``missing_required_constitutive_in_provided`` — expected required
+       constitutive input not declared in provided (required or optional).
+    2. ``extra_required_constitutive_in_provided`` — provided requires a
+       constitutive input that expected does not require.
+    3. ``missing_required_observed_in_provided`` — expected required observed
+       input not required in provided.
+    4. ``extra_required_observed_in_provided`` — provided requires an observed
+       input that expected does not require.
+    5. ``parameterized_optional_not_in_provided`` — parameterized optional not
+       declared optional in provided.
+    6. ``optional_not_declared_in_provided`` — expected optional not declared
+       anywhere in provided.
+    7. ``domain_not_compatible`` — expected property domain not a subdomain of
+       provided property domain.
+    8. ``parameterized_value_out_of_domain`` — parameterized value outside
+       provided property domain.
+    9. ``optional_default_mismatch`` — non-parameterized optional defaults differ.
+    10. ``output_not_in_provided`` — expected output not produced by provided.
+
+    Args:
+        expected_experiment: Experiment declaring the required interface.
+        provided_experiment: Experiment declaring the supported interface.
+
+    Returns:
+        A list of structured interface issues. An empty list means compatibility.
+    """
+    return [
+        *(
+            _check_required_constitutive_interface(
+                expected=expected_experiment, provided=provided_experiment
+            )
+        ),
+        *(
+            _check_required_observed_interface(
+                expected=expected_experiment, provided=provided_experiment
+            )
+        ),
+        *(
+            _check_parameterized_optional_presence(
+                expected=expected_experiment, provided=provided_experiment
+            )
+        ),
+        *(
+            _check_constitutive_domains(
+                expected=expected_experiment, provided=provided_experiment
+            )
+        ),
+        *(
+            _check_parameterized_values(
+                expected=expected_experiment, provided=provided_experiment
+            )
+        ),
+        *(
+            _check_optional_defaults(
+                expected=expected_experiment, provided=provided_experiment
+            )
+        ),
+        *(
+            _check_target_outputs(
+                expected=expected_experiment, provided=provided_experiment
+            )
+        ),
+    ]
 
 
 def experiment_type_discriminator(experiment: typing.Any) -> str:  # noqa: ANN401

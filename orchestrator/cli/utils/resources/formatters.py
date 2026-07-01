@@ -494,6 +494,7 @@ def format_ado_get_stats_for_spaces(
                         project_context=project_context,  # type: ignore[arg-type]
                         identifier=space_id,
                         sample_store=sample_store,
+                        load_experiment_catalog=False,
                     )
                 )
 

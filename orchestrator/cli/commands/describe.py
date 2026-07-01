@@ -28,7 +28,7 @@ from orchestrator.metastore.base import (
     NoRelatedResourcesError,
     ResourceDoesNotExistError,
 )
-from orchestrator.modules.actuators.registry import (
+from orchestrator.modules.actuators.errors import (
     UnknownActuatorError,
     UnknownExperimentError,
 )

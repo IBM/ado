@@ -4,11 +4,16 @@
 import abc
 import enum
 import logging
-from typing import Annotated
+from typing import Annotated, Literal
 
 import pydantic
 
-from orchestrator.schema.experiment import Experiment
+from orchestrator.modules.actuators.errors import (
+    DeprecatedExperimentError,
+    ExperimentVersionMismatchError,
+    UnknownExperimentError,
+)
+from orchestrator.schema.experiment import Experiment, ParameterizedExperiment
 from orchestrator.schema.reference import ExperimentReference
 
 
@@ -50,11 +55,17 @@ class BaseCatalog(abc.ABC):
 
     @property
     @abc.abstractmethod
-    def experimentsMap(self) -> dict:
+    def experiment_major_version_identifiers(self) -> list[str]:
         pass
 
     @abc.abstractmethod
-    def experimentForReference(self, reference: ExperimentReference) -> Experiment:
+    def experimentForReference(
+        self,
+        reference: ExperimentReference,
+        *,
+        match_on: Literal["major_version", "fully_qualified_version"] = "major_version",
+        resolve: bool = False,
+    ) -> Experiment | ParameterizedExperiment | None:
         pass
 
 
@@ -102,41 +113,140 @@ class ExperimentCatalog(BaseCatalog):
         return self._identifier
 
     @property
-    def experimentsMap(self) -> dict[str, Experiment]:
-        return {e.identifier: e for e in self.experiments}
+    def experiment_major_version_identifiers(self) -> list[str]:
+        """Return the major version identifiers of the experiments in the catalog
 
-    def experimentForReference(self, reference: ExperimentReference) -> Experiment:
-        """Returns the experiment matching reference or None if there is no match
+        Returns:
+            A list of major version identifiers.
+        """
+        return [e.major_version_identifier for e in self.experiments]
 
-        Note: Here an experiment matches a reference if they have same actuator id and experiment id.
-        In particular if the ExperimentReference is parameterized it does not affect the matching
+    def experimentForReference(
+        self,
+        reference: ExperimentReference,
+        *,
+        match_on: Literal["major_version", "fully_qualified_version"] = "major_version",
+        resolve: bool = False,
+    ) -> Experiment | ParameterizedExperiment | None:
+        """Return the experiment matching reference.
+
+        Matching compares on actuator and major version experiment identifier.
+        When ``match_on='fully_qualified_version'``, the exact version must also
+        match. When ``resolve=True``, deprecated experiments cause an error
+        to be raised and references with parameterization are wrapped in
+         :class:`ParameterizedExperiment`.
+
+        The catalog stores at most one experiment per major version identifier.
+
+        Args:
+            reference: The experiment reference to look up.
+            match_on: ``"major_version"`` (default) — match on MAJOR version only.
+                ``"fully_qualified_version"`` — additionally requires the exact
+                version (MAJOR.MINOR.PATCH) to match.
+            resolve: When ``True``, raise on miss or version mismatch, reject
+                deprecated experiments, and apply parameterization from the
+                reference. When ``False``, return ``None`` on miss or version
+                mismatch.
+
+        Returns:
+            The matching :class:`~orchestrator.schema.experiment.Experiment` or
+            :class:`~orchestrator.schema.experiment.ParameterizedExperiment`, or
+            ``None`` if no match is found and ``resolve=False``.
+
+        Raises:
+            ExperimentVersionMismatchError: When ``resolve=True``,
+                ``match_on='fully_qualified_version'``, and the resolved
+                experiment's version does not match the reference's version.
+            :class:`~orchestrator.modules.actuators.registry.UnknownExperimentError`:
+                If no matching experiment is found and ``resolve=True``.
+            :class:`~orchestrator.modules.actuators.base.DeprecatedExperimentError`:
+                If the resolved experiment is marked deprecated and ``resolve=True``.
         """
 
-        experiments = self.experiments
-        match = [
+        experiment: Experiment | None = None
+        for candidate in self.experiments:
+            if (
+                candidate.reference.actuatorIdentifier == reference.actuatorIdentifier
+                and candidate.reference.major_version_experiment_identifier
+                == reference.major_version_experiment_identifier
+            ):
+                experiment = candidate
+                break
+
+        if experiment is None:
+            if resolve:
+                raise UnknownExperimentError(
+                    f"No experiment matching {reference!s} found in catalog {self._identifier!r}."
+                )
+            return None
+
+        if (
+            match_on == "fully_qualified_version"
+            and experiment.fully_qualified_identifier
+            != reference.fully_qualified_experiment_identifier
+        ):
+            if resolve:
+                raise ExperimentVersionMismatchError(
+                    f"Algorithm version mismatch for experiment "
+                    f"{reference.experimentIdentifier!r} in catalog {self._identifier!r}. "
+                    f"Reference requires version "
+                    f"{reference.fully_qualified_experiment_identifier!r} but catalog "
+                    f"provides {experiment.fully_qualified_identifier!r}."
+                )
+            return None
+
+        if resolve and experiment.deprecated:
+            raise DeprecatedExperimentError(
+                f"{experiment.actuatorIdentifier}.{experiment.identifier} is deprecated."
+            )
+
+        if resolve and reference.parameterization:
+            return ParameterizedExperiment(
+                parameterization=reference.parameterization, **experiment.model_dump()
+            )
+        return experiment
+
+    def experiments_matching_identifier(
+        self, reference: ExperimentReference
+    ) -> list[Experiment]:
+        """Return experiments with the same actuator and base experiment as reference
+
+        Args:
+            reference: The experiment reference whose identifier and actuator
+                should be matched.
+
+        Returns:
+            Experiments with the same actuator and experiment identifier.
+        """
+        return [
             e
-            for e in experiments
-            if e.reference.compareWithoutParameterization(reference)
+            for e in self.experiments
+            if e.actuatorIdentifier == reference.actuatorIdentifier
+            and e.identifier == reference.experimentIdentifier
         ]
-        return None if len(match) == 0 else match[0]
 
     def addExperiment(self, experiment: Experiment) -> None:
+        """Add an experiment to the catalog.
 
-        if self._experiments.get(experiment.identifier) is not None:
-            self.log.warning(
-                f"Experiment with identifier {experiment.identifier} already in receiver. Overwriting"
+        Args:
+            experiment: The experiment to add.
+
+        Raises:
+            ValueError: If an experiment with the same major version identifier is
+                already present
+        """
+
+        existing = self._experiments.get(experiment.major_version_identifier)
+        if existing is not None:
+            if existing.model_dump() == experiment.model_dump():
+                # Identical experiment already registered — idempotent re-add is fine
+                return
+            raise ValueError(
+                f"An experiment with major version identifier {experiment.major_version_identifier!r} "
+                f"is already registered in catalog {self._identifier!r}. "
             )
-            self.log.debug(
-                f"New experiment {experiment.model_dump()}, existing experiment "
-                f"{self._experiments.get(experiment.identifier).model_dump()}"
-            )
 
-        self._experiments[experiment.identifier] = experiment
-
-
-class ExperimentNotInCatalogError(Exception):
-
-    pass
+        self._experiments[experiment.major_version_identifier] = experiment
 
 
 class CatalogConfigurationRequirementEnum(enum.Enum):

@@ -16,9 +16,9 @@ from orchestrator.cli.utils.output.prints import (
 )
 from orchestrator.core.actuatorconfiguration.config import ActuatorConfiguration
 from orchestrator.core.metadata import ConfigurationMetadata
+from orchestrator.modules.actuators.errors import UnknownActuatorError
 from orchestrator.modules.actuators.registry import (
     ActuatorRegistry,
-    UnknownActuatorError,
 )
 
 

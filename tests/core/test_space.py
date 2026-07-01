@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import datetime
+import pathlib
 import re
 from collections.abc import Callable
 
@@ -337,6 +338,40 @@ def test_convert_experiments_to_measurement_space_config_version_mismatch(
     )
     with pytest.raises(ExperimentVersionMismatchError):
         config.convert_experiments_to_measurement_space_config()
+
+
+def test_from_configuration_load_experiment_catalog_false_does_not_reregister(
+    valid_ado_project_context: ProjectContext,
+    ml_multi_cloud_space: DiscoverySpace,
+) -> None:
+    """Read-only reloads must resolve experiments without global re-registration.
+
+    ``SQLSampleStore.experimentCatalog()`` can return a different experiment
+    definition on subsequent calls (non-deterministic ``LIMIT 1``). Re-loading
+    a space for stats must not call ``updateCatalogs`` again.
+    """
+    space_configuration = DiscoverySpaceConfiguration.model_validate(
+        yaml.safe_load(
+            pathlib.Path("examples/ml-multi-cloud/ml_multicloud_space.yaml").read_text()
+        )
+    )
+    space_configuration.sampleStoreIdentifier = (
+        ml_multi_cloud_space.sample_store.identifier
+    )
+
+    reloaded_space = DiscoverySpace.from_configuration(
+        conf=space_configuration,
+        project_context=valid_ado_project_context,
+        identifier=ml_multi_cloud_space.uri,
+        sample_store=ml_multi_cloud_space.sample_store,
+        load_experiment_catalog=False,
+    )
+
+    assert reloaded_space.measurementSpace.experiments
+    assert (
+        reloaded_space.measurementSpace.experiments[0].identifier
+        == "benchmark_performance"
+    )
 
 
 def test_sampled_entities(ml_multi_cloud_space: DiscoverySpace) -> None:

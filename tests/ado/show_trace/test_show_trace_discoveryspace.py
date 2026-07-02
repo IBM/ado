@@ -49,8 +49,6 @@ def test_show_trace_discoveryspace_single_operation(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            str(tmp_path),
             "show",
             "trace",
             "discoveryspace",
@@ -102,8 +100,6 @@ def test_show_trace_discoveryspace_multi_operation(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            str(tmp_path),
             "show",
             "trace",
             "discoveryspace",
@@ -134,8 +130,6 @@ def test_show_trace_discoveryspace_nonexistent(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            str(tmp_path),
             "show",
             "trace",
             "discoveryspace",

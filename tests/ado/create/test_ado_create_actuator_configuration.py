@@ -19,8 +19,6 @@ def test_create_actuator_configuration_dry_run_success(tmp_path: pathlib.Path) -
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "create",
             "actuatorconfiguration",
             "-f",
@@ -52,8 +50,6 @@ def test_create_actuator_configuration_dry_run_failure(tmp_path: pathlib.Path) -
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "create",
             "actuatorconfiguration",
             "-f",
@@ -86,8 +82,6 @@ def test_create_actuator_configuration(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "create",
             "actuatorconfiguration",
             "-f",

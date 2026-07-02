@@ -29,8 +29,6 @@ def test_delete_actuator_configuration_no_related(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "delete",
             "actuatorconfiguration",
             ml_multi_cloud_correct_actuatorconfiguration.identifier,
@@ -62,8 +60,6 @@ def test_delete_actuator_configuration_with_related_resource(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "delete",
             "actuatorconfiguration",
             ml_multi_cloud_correct_actuatorconfiguration.identifier,
@@ -94,8 +90,6 @@ def test_delete_nonexistent_actuator_configuration(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "delete",
             "actuatorconfiguration",
             "does-not-exist",

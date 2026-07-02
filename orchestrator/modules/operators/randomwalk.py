@@ -8,7 +8,6 @@ import typing
 import uuid
 from builtins import anext
 from collections.abc import AsyncGenerator
-from importlib.metadata import version
 from queue import Empty, Queue
 from typing import Annotated, Literal
 
@@ -953,7 +952,7 @@ class RandomWalk(Explore):
         """Returns operator metadata for the random_walk explore operator."""
         return OperatorMetadata(
             name="random_walk",
-            version=version("ado-core"),
+            version="2.0.0",
             description=cls.description(),
             configuration_model=RandomWalkParameters,
             example_configuration=RandomWalkParameters(),

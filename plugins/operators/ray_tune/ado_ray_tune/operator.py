@@ -984,11 +984,9 @@ class RayTune(Explore):
     @classmethod
     def operator_metadata(cls) -> OperatorMetadata:
         """Returns operator metadata for the ray_tune explore operator."""
-        from importlib.metadata import version
-
         return OperatorMetadata(
             name="ray_tune",
-            version=version("ado-ray-tune"),
+            version="2.0.0",
             description=cls.description(),
             configuration_model=RayTuneConfiguration,
             example_configuration=RayTuneConfiguration(

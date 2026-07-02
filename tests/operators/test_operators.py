@@ -53,7 +53,7 @@ def test_operator_function_conf() -> None:
     )
     assert function.validateOperatorExists()
     assert function.operatorName == "rifferla"
-    assert function.operatorIdentifier.split("-")[0] == "rifferla"
+    assert function.operatorIdentifier.split("@")[0] == "rifferla"
 
 
 def test_operator_module_conf(
@@ -68,7 +68,7 @@ def test_operator_module_conf(
     )
     cls = load_module_class_or_function(operator_module_conf)
     expected_name = cls.operator_metadata().name
-    assert operator_module_conf.operatorIdentifier.startswith(f"{expected_name}-")
+    assert operator_module_conf.operatorIdentifier.startswith(f"{expected_name}@")
 
 
 def test_characterize(expected_characterize_operators: list[str]) -> None:
@@ -125,8 +125,8 @@ def test_explore_operator_function_configurations(
         assert operationConf is not None
         assert operationConf.validateOperatorExists()
         assert operationConf.operatorName == operationName
-        # operatorIdentifier must be <registeredName>-<version>, matching ado get operators
-        assert operationConf.operatorIdentifier.startswith(f"{operationName}-")
+        # operatorIdentifier must be <registeredName>@<version>, matching ado get operators
+        assert operationConf.operatorIdentifier.startswith(f"{operationName}@")
 
 
 def test_explore_operator_class_registration(
@@ -147,11 +147,11 @@ def test_explore_operator_function_conf_identifier_matches_registered_name() -> 
             operationType=orchestrator.core.operation.config.DiscoveryOperationEnum.EXPLORE,
         )
         # The identifier must start with the registered function name, not the
-        # class name (e.g. "random_walk-v0.1", not "randomwalk-1.7.1.dev...")
+        # class name (e.g. "random_walk@2.0.0", not "RandomWalk@...")
         identifier = conf.operatorIdentifier
         assert identifier.startswith(
-            f"{name}-"
-        ), f"Expected identifier to start with '{name}-', got '{identifier}'"
+            f"{name}@"
+        ), f"Expected identifier to start with '{name}@', got '{identifier}'"
 
 
 def test_operator_function_configuration_incorrect_type(
@@ -618,7 +618,7 @@ def test_operator_default_and_validate(
 
 
 def test_operator_metadata_identifier_property() -> None:
-    """OperatorMetadata.operatorIdentifier returns '{name}-{version}'."""
+    """OperatorMetadata.operatorIdentifier returns '{name}@{version}'."""
     import pydantic
 
     from orchestrator.core.operation.config import (
@@ -631,16 +631,16 @@ def test_operator_metadata_identifier_property() -> None:
 
     meta = OperatorMetadata(
         name="my_op",
-        version="v2.0",
+        version="2.0.0",
         configuration_model=_P,
         example_configuration=_P(),
         type=DiscoveryOperationEnum.EXPLORE,
     )
-    assert meta.operatorIdentifier == "my_op-v2.0"
+    assert meta.operatorIdentifier == "my_op@2.0.0"
 
 
 def test_operator_metadata_identifier_default_version() -> None:
-    """OperatorMetadata.operatorIdentifier uses '0.1.0' when version is not supplied."""
+    """OperatorMetadata.operatorIdentifier uses '2.0.0' when version is not supplied."""
     import pydantic
 
     from orchestrator.core.operation.config import (
@@ -657,11 +657,11 @@ def test_operator_metadata_identifier_default_version() -> None:
         example_configuration=_P(),
         type=DiscoveryOperationEnum.EXPLORE,
     )
-    assert meta.operatorIdentifier == "op-0.1.0"
+    assert meta.operatorIdentifier == "op@0.1.0"
 
 
-def test_operator_metadata_version_valid_pep440() -> None:
-    """OperatorMetadata accepts valid PEP 440 version strings."""
+def test_operator_metadata_version_valid_semver() -> None:
+    """OperatorMetadata accepts valid strict SemVer version strings."""
     import pydantic
 
     from orchestrator.core.operation.config import (
@@ -675,11 +675,8 @@ def test_operator_metadata_version_valid_pep440() -> None:
     valid_versions = [
         "0.1.0",
         "1.2.3",
-        "1.0.0.dev5",
-        "1.7.1.dev82+1ee4e59.dirty",
-        "2.0.0a1",
-        "2.0.0rc1",
-        "v1.0.0",
+        "2.0.0",
+        "10.20.30",
     ]
     for ver in valid_versions:
         meta = OperatorMetadata(
@@ -692,8 +689,8 @@ def test_operator_metadata_version_valid_pep440() -> None:
         assert meta.version == ver
 
 
-def test_operator_metadata_version_invalid_pep440() -> None:
-    """OperatorMetadata rejects strings that are not valid PEP 440 versions."""
+def test_operator_metadata_version_invalid_semver() -> None:
+    """OperatorMetadata rejects strings that are not valid strict SemVer versions."""
     import pydantic
 
     from orchestrator.core.operation.config import (
@@ -704,9 +701,17 @@ def test_operator_metadata_version_invalid_pep440() -> None:
     class _P(pydantic.BaseModel):
         pass
 
-    invalid_versions = ["not-a-version", "hello", "1.0.0-final"]
+    invalid_versions = [
+        "not-a-version",
+        "hello",
+        "1.0.0-final",
+        "1.0.2.dev17+5e50632",
+        "2.0.0a1",
+        "v1.0.0",
+        "1.0",
+    ]
     for ver in invalid_versions:
-        with pytest.raises(pydantic.ValidationError, match="PEP 440"):
+        with pytest.raises(pydantic.ValidationError, match="SemVer"):
             OperatorMetadata(
                 name="op",
                 version=ver,

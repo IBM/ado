@@ -23,7 +23,7 @@ from orchestrator.modules.module import (
     load_module_class_or_function,
 )
 from orchestrator.schema.measurementspace import MeasurementSpaceConfiguration
-from orchestrator.utilities.pydantic import Pep440VersionStr, ignore_plugin_validation
+from orchestrator.utilities.pydantic import StrictSemVerStr, ignore_plugin_validation
 
 if typing.TYPE_CHECKING:
     import orchestrator.modules.operators.base
@@ -222,11 +222,11 @@ class OperatorMetadata(pydantic.BaseModel):
         ),
     ] = None
     version: Annotated[
-        Pep440VersionStr,
+        StrictSemVerStr,
         pydantic.Field(
             description=(
-                "PEP 440 version string for the operator (e.g. '0.1.0', "
-                "'1.2.3.dev4+abc.dirty').  Validated on construction."
+                "Versioning information for this operator (strict SemVer "
+                "MAJOR.MINOR.PATCH)."
             ),
         ),
     ] = "0.1.0"
@@ -280,8 +280,17 @@ class OperatorMetadata(pydantic.BaseModel):
 
     @property
     def operatorIdentifier(self) -> str:
-        """Canonical identifier for this operator: ``{name}-{version}``."""
-        return f"{self.name}-{self.version}"
+        """Canonical identifier for this operator: ``{name}@{version}``."""
+        return f"{self.name}@{self.version}"
+
+    @property
+    def reference(self) -> "OperatorReference":
+        """Return an :class:`OperatorReference` for this operator."""
+        return OperatorReference(
+            operatorName=self.name,
+            operationType=self.type,
+            operatorVersion=self.version,
+        )
 
 
 class OperatorReference(pydantic.BaseModel):
@@ -297,6 +306,16 @@ class OperatorReference(pydantic.BaseModel):
         DiscoveryOperationEnum, pydantic.Field(description="The type of the operation")
     ]
     operatorName: Annotated[str, pydantic.Field(description="The name of the operator")]
+    operatorVersion: Annotated[
+        StrictSemVerStr | None,
+        pydantic.Field(
+            description=(
+                "Versioning information of the referenced operator (strict SemVer "
+                "MAJOR.MINOR.PATCH). When omitted at creation time, resolved from "
+                "the operator registry and pinned on the stored resource."
+            ),
+        ),
+    ] = None
 
     def validateOperatorExists(self) -> bool:
 
@@ -335,20 +354,25 @@ class OperatorReference(pydantic.BaseModel):
 
     @property
     def operatorIdentifier(self) -> str:
-        """Canonical identifier delegated to ``OperatorMetadata.operatorIdentifier``.
+        """Canonical identifier for this operator reference.
 
         Returns:
-            ``"{operatorName}-{version}"`` as stored in the operator registry,
-            or ``"{operatorName}-None"`` if the operator is not yet registered.
+            ``"{operatorName}@{version}"`` using the pinned ``operatorVersion``
+            when set, otherwise the version from the operator registry, or
+            ``"{operatorName}@None"`` if the operator is not registered.
         """
-        import orchestrator.modules.operators.collections
+        if self.operatorVersion is not None:
+            return f"{self.operatorName}@{self.operatorVersion}"
 
-        collection = orchestrator.modules.operators.collections.operationCollectionMap[
-            self.operationType
-        ]
+        from orchestrator.modules.operators.collections import (
+            operator_metadata_for_reference,
+        )
 
-        operator = collection.operators.get(self.operatorName)
-        return operator.operatorIdentifier if operator else f"{self.operatorName}-None"
+        try:
+            metadata = operator_metadata_for_reference(self)
+        except ValueError:
+            return f"{self.operatorName}@None"
+        return metadata.operatorIdentifier
 
 
 class ScriptOperatorConf(pydantic.BaseModel):
@@ -500,14 +524,12 @@ class DiscoveryOperationConfiguration(pydantic.BaseModel):
             self.parameters = {}
         else:
             from orchestrator.modules.operators.collections import (
-                operationCollectionMap,
+                operator_metadata_for_reference,
+                resolve_operator_reference,
             )
 
-            operation_type = self.module.operationType
-            operator_name = self.module.operatorName
-            operator_metadata = operationCollectionMap[operation_type].operators[
-                operator_name
-            ]
+            self.module = resolve_operator_reference(self.module)
+            operator_metadata = operator_metadata_for_reference(self.module)
             self.parameters = operator_metadata.configuration_model.model_validate(
                 self.parameters
             )

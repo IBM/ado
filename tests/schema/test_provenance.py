@@ -241,9 +241,8 @@ def test_operator_metadata_version_is_independent_of_package_provenance() -> Non
     metadata = explore.operators.get("random_walk")
     assert metadata is not None
     assert metadata.provenance is not None
-    # random_walk uses version("ado-core") for operator identity, but the fields
-    # remain semantically distinct on OperatorMetadata.
-    assert metadata.version
+    # random_walk declares an explicit algorithm version independent of package provenance.
+    assert metadata.version == "2.0.0"
     assert metadata.provenance.distributionName == "ado-core"
 
 

@@ -43,7 +43,7 @@ def test_space_exists(
         runner=runner, path=tmp_path, project_context=valid_ado_project_context
     )
 
-    result = runner.invoke(ado, ["--override-ado-app-dir", tmp_path, "get", "spaces"])
+    result = runner.invoke(ado, ["get", "spaces"])
     assert result.exit_code == 0
     # Travis CI cannot capture output reliably
     if os.environ.get("CI", "false") != "true":
@@ -140,8 +140,6 @@ def test_field_filtering(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "get",
             "operations",
             "--filter",
@@ -163,8 +161,6 @@ def test_field_filtering(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "get",
             "operations",
             "--filter",
@@ -186,8 +182,6 @@ def test_field_filtering(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "get",
             "operations",
             "--filter",
@@ -204,8 +198,6 @@ def test_field_filtering(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "get",
             "samplestores",
             "--filter",
@@ -222,8 +214,6 @@ def test_field_filtering(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "get",
             "samplestores",
             "--filter",
@@ -240,8 +230,6 @@ def test_field_filtering(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "get",
             "operations",
             "--filter",
@@ -263,8 +251,6 @@ def test_field_filtering(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "get",
             "operations",
             "--filter",
@@ -281,8 +267,6 @@ def test_field_filtering(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "get",
             "operations",
             "--filter",
@@ -305,8 +289,6 @@ def test_field_filtering(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "get",
             "operations",
             "--filter",
@@ -328,8 +310,6 @@ def test_field_filtering(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "get",
             "operations",
             "--filter",
@@ -351,8 +331,6 @@ def test_field_filtering(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "get",
             "operations",
             "--filter",
@@ -375,8 +353,6 @@ def test_field_filtering(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "get",
             "actuatorconfigurations",
             "--filter",
@@ -397,8 +373,6 @@ def test_field_filtering(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "get",
             "actuatorconfigurations",
             "--filter",
@@ -419,8 +393,6 @@ def test_field_filtering(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "get",
             "actuatorconfigurations",
             "--filter",
@@ -480,8 +452,6 @@ def test_get_space_with_use_latest(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "get",
             "space",
             "--use-latest",
@@ -542,8 +512,6 @@ def test_get_operation_with_use_latest(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "get",
             "operation",
             "--use-latest",
@@ -603,8 +571,6 @@ def test_get_with_use_latest_and_explicit_id(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "get",
             "space",
             space_1.identifier,
@@ -664,9 +630,7 @@ def test_get_with_use_latest_table_format(
     sql_store.addResource(space_2)
 
     # Test with table format (default)
-    result = runner.invoke(
-        ado, ["--override-ado-app-dir", tmp_path, "get", "space", "--use-latest"]
-    )
+    result = runner.invoke(ado, ["get", "space", "--use-latest"])
     assert result.exit_code == 0
     if os.environ.get("CI", "false") != "true":
         # Should return the latest space (space_2)
@@ -717,8 +681,6 @@ def test_get_with_use_latest_name_format(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "get",
             "space",
             "--use-latest",

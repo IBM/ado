@@ -21,8 +21,6 @@ def test_create_sample_store_dry_run_success(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "create",
             "samplestore",
             "-f",
@@ -52,8 +50,6 @@ def test_create_sample_store_dry_run_failure(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "create",
             "samplestore",
             "-f",
@@ -86,8 +82,6 @@ def test_create_sample_store_success(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "create",
             "samplestore",
             "-f",
@@ -114,8 +108,6 @@ def test_create_sample_store_success_new_sample_store(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "create",
             "samplestore",
             "--new-sample-store",
@@ -152,8 +144,6 @@ def test_create_sample_store_failure_because_hardcoded_storage_location(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "create",
             "samplestore",
             "-f",

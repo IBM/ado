@@ -107,6 +107,7 @@ def _run_operation_harness(
     operator_reference = OperatorReference(
         operatorName=operator_metadata.name,
         operationType=operator_metadata.type,
+        operatorVersion=operator_metadata.version,
     )
     operation_resource = create_operation_and_add_to_metastore(
         discovery_space=discovery_space,

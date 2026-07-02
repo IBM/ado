@@ -1785,7 +1785,7 @@ class SQLResourceStore(ResourceStore):
                 COUNT(op.identifier) AS total_operations,
                 COUNT(
                     CASE
-                        WHEN JSON_EXTRACT(op.data, '$.operationType') = :explore_type
+                        WHEN JSON_EXTRACT(op.data, '$.operationType') IN (:explore_type, :explore_type_legacy)
                         THEN 1
                     END
                 ) AS explore_operations
@@ -1804,7 +1804,8 @@ class SQLResourceStore(ResourceStore):
                 query = sqlalchemy.text(query_text).bindparams(
                     sqlalchemy.bindparam("space_ids", expanding=True),
                     space_ids=list(_space_ids),
-                    explore_type=DiscoveryOperationEnum.SEARCH.value,
+                    explore_type=DiscoveryOperationEnum.EXPLORE.value,
+                    explore_type_legacy="search",
                     op_kind=CoreResourceKinds.OPERATION.value,
                 )
 

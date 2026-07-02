@@ -51,8 +51,6 @@ def test_ado_edit_mutex_patch_and_patch_file(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            str(tmp_path),
             "edit",
             "samplestore",
             "dummy",
@@ -94,8 +92,6 @@ def test_ado_edit_editor_ignored_with_patch_file(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            str(tmp_path),
             "edit",
             "samplestore",
             store.identifier,
@@ -141,8 +137,6 @@ def test_ado_edit_metadata_merges_into_store(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            str(tmp_path),
             "edit",
             "samplestore",
             store.identifier,
@@ -181,8 +175,6 @@ def test_ado_edit_inline_patch(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            str(tmp_path),
             "edit",
             "samplestore",
             store.identifier,
@@ -221,8 +213,6 @@ def test_ado_edit_metadata_rejects_non_mapping_yaml(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            str(tmp_path),
             "edit",
             "samplestore",
             store.identifier,

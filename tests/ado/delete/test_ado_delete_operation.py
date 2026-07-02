@@ -71,8 +71,6 @@ def test_delete_ml_multi_cloud_operation(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "delete",
             "operation",
             operation_id,

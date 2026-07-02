@@ -60,8 +60,6 @@ def test_ado_get_operations_stats_columns_present(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "get",
             "operations",
             "-o",
@@ -117,8 +115,6 @@ def test_ado_get_operations_stats_values(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "get",
             "operation",
             operation_id,
@@ -196,8 +192,6 @@ def test_ado_get_operation_stats_single_resource(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "get",
             "operation",
             operation_id,
@@ -277,8 +271,6 @@ def test_ado_get_spaces_stats_values(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "get",
             "space",
             space_id,
@@ -355,8 +347,6 @@ def test_ado_get_space_stats_single_resource(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "get",
             "space",
             space_id,
@@ -415,8 +405,6 @@ def test_ado_get_stats_unsupported_resource_type_exits_1(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "get",
             resource_kind,
             "-o",
@@ -467,8 +455,6 @@ def test_ado_get_samplestores_stats_values(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "get",
             "samplestores",
             "-o",
@@ -527,8 +513,6 @@ def test_ado_get_datacontainers_stats_columns_present(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "get",
             "datacontainers",
             "-o",
@@ -579,8 +563,6 @@ def test_ado_get_datacontainers_stats_values(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "get",
             "datacontainers",
             "-o",
@@ -656,8 +638,6 @@ def test_ado_get_operation_stats_details_columns(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "get",
             "operation",
             operation_id,
@@ -701,8 +681,6 @@ def test_ado_get_space_stats_details_columns(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "get",
             "space",
             ml_multi_cloud_space.uri,

@@ -90,8 +90,6 @@ def test_show_stats_discoveryspace_heavy_stats_values(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            str(tmp_path),
             "show",
             "stats",
             "discoveryspace",
@@ -164,8 +162,6 @@ def test_show_stats_operation_request_level_stats_values(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            str(tmp_path),
             "show",
             "stats",
             "operation",

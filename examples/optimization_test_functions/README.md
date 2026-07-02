@@ -285,7 +285,7 @@ Operation:
     operation:
       module:
         operatorName: ray_tune
-        operationType: search
+        operationType: explore
       parameters:
         tuneConfig:
           max_concurrent_trials: 2
@@ -302,7 +302,7 @@ kind: operation
 metadata:
   entities_submitted: 40
   experiments_requested: 40
-operationType: search
+operationType: explore
 operatorIdentifier: raytune-1.4.1.dev6+b30c6f74
 status:
   - event: created

@@ -27,7 +27,7 @@ class DiscoverySpaceStatistics(pydantic.BaseModel):
             measurement space.
         number_of_operations: Total number of operations linked to this space.
         number_of_explore_operations: Number of operations whose ``operationType``
-            is ``search``.
+            is ``explore``.
         number_measured_entities: DISTINCT entity IDs that appear in at least one
             measurement result across all operations on this space.
         size_of_entity_space: Total number of points in the entity space when the
@@ -71,7 +71,7 @@ class DiscoverySpaceStatistics(pydantic.BaseModel):
     number_of_explore_operations: Annotated[
         int,
         pydantic.Field(
-            description=("Number of operations whose operationType is 'search'.")
+            description=("Number of operations whose operationType is 'explore'.")
         ),
     ]
     number_measured_entities: Annotated[

@@ -4,6 +4,25 @@ ado 2.x introduces a set of breaking changes that remove obsolete commands and
 APIs. This guide describes each breaking change and shows how to update your
 workflows.
 
+## Non-breaking changes
+
+### Renamed: `operationType: search` → `operationType: explore`
+
+The `explore` operation type was previously serialised as `"search"`. It is now
+serialised as `"explore"` to match what is shown in `ado get operators`.
+
+**Existing YAML files and stored operations continue to work without
+modification.** The value `"search"` is transparently accepted and treated as
+`"explore"` when loading any resource.
+
+To update stored operation records to the new canonical value, run:
+
+```shell
+ado upgrade operations
+```
+
+New operations and YAML files should use `operationType: explore`.
+
 ## Breaking Changes
 
 ### Removed: `ado show requests` and `ado show results`

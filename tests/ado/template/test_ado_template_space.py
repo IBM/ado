@@ -19,8 +19,6 @@ def test_template_space(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "template",
             "space",
             "--output-file",
@@ -39,8 +37,6 @@ def test_template_space_from_experiment(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "template",
             "space",
             "--from-experiment",

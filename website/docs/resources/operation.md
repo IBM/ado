@@ -75,7 +75,7 @@ spaces: ###The spaces to operate on
 operation: #The operators
   module: # The operator will be random_walk
     operatorName: random_walk
-    operationType: search
+    operationType: explore
   parameters: # The parameters for this RandomWalk operation
     numberEntities: 60
     batchSize: 1
@@ -107,18 +107,13 @@ for example:
 module:
   operatorName: rifferla # The name of the operator
   operationType: modify #The type of the operation/operator
+  # operatorVersion: "2.0.0" # Optional: pin a specific algorithm version
 ```
 
-> [!WARNING]
->
-> To use operators listed with type _explore_ by `ado get operators`, currently
-> you must set operationType to **search** e.g.
->
-> ```yaml
-> module:
->  operatorName: random_walk
->  operationType: search # note: search not explore
-> ```
+When `operatorVersion` is omitted, at operation create time the
+currently installed version is resolved and used.
+Set `operatorVersion` explicitly to pin a specific operator version; a mismatch
+with the registry raises an error at create time.
 
 ### Passing actuator parameters
 
@@ -171,8 +166,8 @@ ones described in [resources](resources.md#common-features-of-resources) These
 are (with example values):
 
 ```yaml
-operationType: characterize # The type of the operation: characterize, modify etc.
-operatorIdentifier: profile-1.1 # The identifier of the operator including its version
+operationType: characterize # characterize, modify, etc.
+operatorIdentifier: profile@2.0.0 # operator id including versioning information
 ```
 
 ## Getting `operation` output
@@ -207,13 +202,13 @@ completed
 
 ```yaml
 created: "2024-12-19T10:54:42.015388Z"
-identifier: raytune-0.7.5.dev10+g731d1e21.d20241218-ax-018647
+identifier: raytune@2.0.0-optuna-018647
 kind: operation
 metadata:
   entities_submitted: 11
   experiments_requested: 11
-operationType: search
-operatorIdentifier: raytune-0.7.5.dev10+g731d1e21.d20241218
+operationType: explore
+operatorIdentifier: ray_tune@2.0.0
 status:
   - event: created
     recorded_at: "2025-09-02T09:09:02.187149Z"

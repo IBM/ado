@@ -406,32 +406,37 @@ def operator_metadata_for_reference(ref: OperatorReference) -> OperatorMetadata:
 
 
 def resolve_operator_reference(ref: OperatorReference) -> OperatorReference:
-    """Resolve and pin the versioning information for an operator reference.
+    """Resolves an operator reference against the available operators and returns the result
 
-    When ``operatorVersion`` is omitted, the version from the operator registry is
-    pinned on the returned reference. When ``operatorVersion`` is set, it must
-    match the registry exactly.
+    Resolution means:
+    - Check the operator exists.
+    - If the reference specifies a version: check this version exists
+    - If the reference does not specify a version: set it to the version in the catalog
 
     Args:
         ref: Operator reference to resolve.
 
     Returns:
-        A copy of *ref* with ``operatorVersion`` set to the resolved version.
+        Returns an OperatorReference instance with operatorVersion set.
+        Note: This will be a different object if the input ref.operatorVersion is None
 
     Raises:
         ValueError: If the operator is not registered.
-        OperatorVersionMismatchError: If ``operatorVersion`` is set and does not
+        OperatorVersionMismatchError: If ``ref.operatorVersion`` is set and does not
             match the registry.
     """
+
     metadata = operator_metadata_for_reference(ref)
     if ref.operatorVersion is None:
-        return ref.model_copy(update={"operatorVersion": metadata.version})
-    if ref.operatorVersion != metadata.version:
+        ref = ref.model_copy()
+        ref.operatorVersion = metadata.version
+    elif ref.operatorVersion != metadata.version:
         raise OperatorVersionMismatchError(
             f"Algorithm version mismatch for operator {ref.operatorName!r} "
             f"of type {ref.operationType.value!r}. Reference requires version "
             f"{ref.operatorVersion!r} but registry provides {metadata.version!r}."
         )
+
     return ref
 
 

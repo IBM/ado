@@ -21,8 +21,6 @@ def test_create_discovery_space_dry_run_success(tmp_path: pathlib.Path) -> None:
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "create",
             "space",
             "-f",
@@ -51,8 +49,6 @@ def test_create_discovery_space_dry_run_failure(tmp_path: pathlib.Path) -> None:
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "create",
             "space",
             "-f",
@@ -75,8 +71,6 @@ def test_create_discovery_space_fail_no_sample_store(tmp_path: pathlib.Path) -> 
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "create",
             "space",
             "-f",
@@ -112,8 +106,6 @@ def test_create_discovery_space_fail_with_default_sample_store_with_replay_actua
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "create",
             "space",
             "-f",
@@ -156,8 +148,6 @@ def test_create_discovery_space_success(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "create",
             "space",
             "-f",
@@ -189,8 +179,6 @@ def test_create_discovery_space_success_new_sample_store(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "create",
             "space",
             "-f",
@@ -226,8 +214,6 @@ def test_create_discovery_space_success_with_latest_samplestore(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "create",
             "samplestore",
             "--new-sample-store",
@@ -238,8 +224,6 @@ def test_create_discovery_space_success_with_latest_samplestore(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "create",
             "space",
             "-f",
@@ -266,8 +250,6 @@ def test_create_discovery_space_fail_new_sample_store_with_replay(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "create",
             "space",
             "-f",
@@ -305,8 +287,6 @@ def test_create_discovery_space_success_set_sample_store(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "create",
             "space",
             "-f",
@@ -343,8 +323,6 @@ def test_create_discovery_space_success_with_sample_store_from_file_with_replay_
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "create",
             "space",
             "-f",

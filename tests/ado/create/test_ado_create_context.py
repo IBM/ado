@@ -21,8 +21,6 @@ def test_create_context_dry_run_success(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "create",
             "context",
             "-f",
@@ -55,8 +53,6 @@ def test_create_context_dry_run_failure(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "create",
             "context",
             "-f",
@@ -80,7 +76,7 @@ def test_create_context(
     runner = CliRunner()
     result = runner.invoke(
         ado,
-        ["--override-ado-app-dir", tmp_path, "create", "context", "-f", context_file],
+        ["create", "context", "-f", context_file],
     )
 
     assert result.exit_code == 0

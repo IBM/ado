@@ -35,3 +35,12 @@ def apply_isolated_ado_app_dir(
         )
 
     monkeypatch.setattr(AdoConfiguration, "load", load_with_isolated_app_dir)
+
+
+@pytest.fixture(autouse=True)
+def isolated_ado_app_dir(
+    tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+) -> pathlib.Path:
+    """Fixture wrapper around :func:`apply_isolated_ado_app_dir`."""
+    apply_isolated_ado_app_dir(tmp_path, monkeypatch)
+    return tmp_path

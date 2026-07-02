@@ -41,8 +41,6 @@ def test_show_related_max_hops_default_traverses_full_hierarchy(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            str(tmp_path),
             "show",
             "related",
             "operation",
@@ -76,8 +74,6 @@ def test_show_related_max_hops_1_excludes_grandparent(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            str(tmp_path),
             "show",
             "related",
             "operation",
@@ -114,8 +110,6 @@ def test_show_related_max_hops_2_includes_grandparent(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            str(tmp_path),
             "show",
             "related",
             "operation",
@@ -149,8 +143,6 @@ def test_show_related_max_hops_zero_is_rejected(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            str(tmp_path),
             "show",
             "related",
             "operation",
@@ -182,8 +174,6 @@ def test_show_related_max_hops_above_maximum_is_rejected(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            str(tmp_path),
             "show",
             "related",
             "operation",

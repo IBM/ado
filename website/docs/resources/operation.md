@@ -178,7 +178,7 @@ are (with example values):
 
 ```yaml
 operationType: characterize # characterize, modify, etc.
-operatorIdentifier: profile@2.0.0 # operator id including algorithm version
+operatorIdentifier: profile@2.0.0 # operator id including versioning information
 ```
 
 ## Getting `operation` output

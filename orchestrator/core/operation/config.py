@@ -218,7 +218,7 @@ class OperatorMetadata(pydantic.BaseModel):
         StrictSemVerStr,
         pydantic.Field(
             description=(
-                "Algorithm version for this operator (strict SemVer "
+                "Versioning information for this operator (strict SemVer "
                 "MAJOR.MINOR.PATCH)."
             ),
         ),
@@ -303,8 +303,8 @@ class OperatorReference(pydantic.BaseModel):
         StrictSemVerStr | None,
         pydantic.Field(
             description=(
-                "Algorithm version of the referenced operator (strict SemVer "
-                "MAJOR.MINOR.PATCH). When omitted at create time, resolved from "
+                "Versioning information of the referenced operator (strict SemVer "
+                "MAJOR.MINOR.PATCH). When omitted at creation time, resolved from "
                 "the operator registry and pinned on the stored resource."
             ),
         ),

@@ -406,7 +406,7 @@ def operator_metadata_for_reference(ref: OperatorReference) -> OperatorMetadata:
 
 
 def resolve_operator_reference(ref: OperatorReference) -> OperatorReference:
-    """Resolve and pin the algorithm version for an operator reference.
+    """Resolve and pin the versioning information for an operator reference.
 
     When ``operatorVersion`` is omitted, the version from the operator registry is
     pinned on the returned reference. When ``operatorVersion`` is set, it must

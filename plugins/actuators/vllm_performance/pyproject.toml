@@ -35,7 +35,12 @@ vllm_performance = "ado_actuators.vllm_performance.actuator:VLLMPerformanceTest"
 guidellm = [
   "guidellm>=0.5.3",
 ]
+
 vllm = [
+  # AP 02/07/2026
+  # Scanners are flagging opencv-python-headless==5.0.0.93 as
+  # potentially malicious. While we think it's a false positive,
+  # we use the <5 qualifier to prevent the major OpenCV bump.
   "opencv-python-headless<5",
   "vllm>=0.12.0,!=0.15.*;sys_platform!='darwin'",
 ]

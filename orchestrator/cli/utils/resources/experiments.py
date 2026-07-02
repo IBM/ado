@@ -141,58 +141,6 @@ def experiment_reference_from_cli_resource_id(
     )
 
 
-def lookup_experiment_for_reference(
-    reference: ExperimentReference,
-    *,
-    registry: ActuatorRegistry | None = None,
-) -> Experiment:
-    """Look up a catalog experiment for a parsed reference.
-
-    Args:
-        reference: Experiment reference to resolve.
-        registry: Optional actuator registry. Defaults to the global registry.
-
-    Returns:
-        Matching catalog experiment.
-
-    Raises:
-        UnknownExperimentError: If the experiment is not present in the catalog.
-        AmbiguousExperimentIdentifierError: If multiple catalog versions match.
-    """
-    registry = registry or ActuatorRegistry.globalRegistry()
-    catalog = registry.catalogForActuatorIdentifier(reference.actuatorIdentifier)
-
-    experiment = catalog.experimentForReference(
-        reference, match_on="fully_qualified_version"
-    )
-    if experiment is not None:
-        return experiment
-
-    experiment = catalog.experimentForReference(reference, match_on="major_version")
-    if experiment is not None:
-        return experiment
-
-    matches = catalog.experiments_matching_identifier(reference)
-    if len(matches) == 0:
-        raise UnknownExperimentError(
-            f"The {reference.actuatorIdentifier} actuator was found but it did not "
-            f"contain the {reference.experimentIdentifier} experiment."
-        )
-    if len(matches) > 1:
-        available_versions = ", ".join(
-            sorted({matched.version for matched in matches if matched.version})
-        )
-        raise AmbiguousExperimentIdentifierError(
-            f"The given identifier, {reference.experimentIdentifier!r}, is ambiguous: "
-            f"catalog contains {len(matches)} versions "
-            f"({available_versions}). "
-            f"Specify a version suffix, e.g. "
-            f"{reference.experimentIdentifier}@<version>."
-        )
-
-    return matches[0]
-
-
 def experiment_from_cli_resource_id(
     resource_id: str,
     *,
@@ -202,7 +150,8 @@ def experiment_from_cli_resource_id(
     reference = experiment_reference_from_cli_resource_id(
         resource_id, registry=registry
     )
-    return lookup_experiment_for_reference(reference, registry=registry)
+    registry = registry or ActuatorRegistry.globalRegistry()
+    return registry.experimentForReference(reference, match_on="any", resolve=False)
 
 
 def _ado_experiment_from_cli_resource_id(

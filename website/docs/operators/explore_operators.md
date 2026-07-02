@@ -148,7 +148,7 @@ config:
   operation:
     module:
       operatorName: random_walk
-      operationType: search
+      operationType: explore
     parameters:
       batchSize: 4
       singleMeasurement: false
@@ -164,7 +164,7 @@ kind: operation
 metadata:
   entities_submitted: 160
   experiments_requested: 160
-operationType: search
+operationType: explore
 operatorIdentifier: random_walk@2.0.0
 result: null
 status: []

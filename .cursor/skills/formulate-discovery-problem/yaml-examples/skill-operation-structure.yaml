@@ -5,7 +5,7 @@ spaces:
 operation:
   module:
     operatorName: random_walk # could be any operator_name
-    operationType: search # or modify, characterize, etc.
+    operationType: explore # or modify, characterize, etc.
   parameters:
     # These must include the appropriate parameters for the operator
     # that is defined by operatorName. In this case we override

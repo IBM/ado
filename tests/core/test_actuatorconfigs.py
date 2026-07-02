@@ -77,7 +77,7 @@ def test_operation_get_resource_without_plugin_validation(
     )
 
     resource = OperationResource(
-        operationType=DiscoveryOperationEnum.SEARCH,
+        operationType=DiscoveryOperationEnum.EXPLORE,
         operatorIdentifier="randomwalk-0.1.0",
         config=operation_configuration,
     )

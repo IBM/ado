@@ -64,7 +64,7 @@ def test_operator_module_conf(
 
     assert (
         operator_module_conf.operationType
-        == orchestrator.core.operation.config.DiscoveryOperationEnum.SEARCH
+        == orchestrator.core.operation.config.DiscoveryOperationEnum.EXPLORE
     )
     cls = load_module_class_or_function(operator_module_conf)
     expected_name = cls.operator_metadata().name
@@ -120,7 +120,7 @@ def test_explore_operator_function_configurations(
     for operationName in expected_explore_operators:
         operationConf = orchestrator.core.operation.config.OperatorReference(
             operatorName=operationName,
-            operationType=orchestrator.core.operation.config.DiscoveryOperationEnum.SEARCH,
+            operationType=orchestrator.core.operation.config.DiscoveryOperationEnum.EXPLORE,
         )
         assert operationConf is not None
         assert operationConf.validateOperatorExists()
@@ -144,7 +144,7 @@ def test_explore_operator_function_conf_identifier_matches_registered_name() -> 
     for name in ["random_walk", "ray_tune"]:
         conf = orchestrator.core.operation.config.OperatorReference(
             operatorName=name,
-            operationType=orchestrator.core.operation.config.DiscoveryOperationEnum.SEARCH,
+            operationType=orchestrator.core.operation.config.DiscoveryOperationEnum.EXPLORE,
         )
         # The identifier must start with the registered function name, not the
         # class name (e.g. "random_walk@2.0.0", not "RandomWalk@...")
@@ -634,7 +634,7 @@ def test_operator_metadata_identifier_property() -> None:
         version="2.0.0",
         configuration_model=_P,
         example_configuration=_P(),
-        type=DiscoveryOperationEnum.SEARCH,
+        type=DiscoveryOperationEnum.EXPLORE,
     )
     assert meta.operatorIdentifier == "my_op@2.0.0"
 
@@ -655,7 +655,7 @@ def test_operator_metadata_identifier_default_version() -> None:
         name="op",
         configuration_model=_P,
         example_configuration=_P(),
-        type=DiscoveryOperationEnum.SEARCH,
+        type=DiscoveryOperationEnum.EXPLORE,
     )
     assert meta.operatorIdentifier == "op@0.1.0"
 
@@ -684,7 +684,7 @@ def test_operator_metadata_version_valid_semver() -> None:
             version=ver,
             configuration_model=_P,
             example_configuration=_P(),
-            type=DiscoveryOperationEnum.SEARCH,
+            type=DiscoveryOperationEnum.EXPLORE,
         )
         assert meta.version == ver
 
@@ -717,7 +717,7 @@ def test_operator_metadata_version_invalid_semver() -> None:
                 version=ver,
                 configuration_model=_P,
                 example_configuration=_P(),
-                type=DiscoveryOperationEnum.SEARCH,
+                type=DiscoveryOperationEnum.EXPLORE,
             )
 
 
@@ -732,7 +732,7 @@ def test_operator_function_conf_identifier_delegates_to_operator_metadata() -> N
     for name in ["random_walk", "ray_tune"]:
         conf = OperatorReference(
             operatorName=name,
-            operationType=DiscoveryOperationEnum.SEARCH,
+            operationType=DiscoveryOperationEnum.EXPLORE,
         )
         assert conf.operatorIdentifier == explore.operators[name].operatorIdentifier
 
@@ -763,7 +763,7 @@ def test_explore_operation_class_decorator_registers_function() -> None:
                 description="A test operator.",
                 configuration_model=_Params,
                 example_configuration=_Params(),
-                type=DiscoveryOperationEnum.SEARCH,
+                type=DiscoveryOperationEnum.EXPLORE,
             )
 
         def operationIdentifier(self) -> str:
@@ -809,7 +809,7 @@ def test_explore_operation_class_decorator_cls_stored() -> None:
                 version="0.1.0",
                 configuration_model=_ParamsCls,
                 example_configuration=_ParamsCls(),
-                type=DiscoveryOperationEnum.SEARCH,
+                type=DiscoveryOperationEnum.EXPLORE,
             )
 
         async def run(self) -> None:
@@ -844,7 +844,7 @@ def test_explore_operation_class_decorator_metadata_from_class() -> None:
                 description="Another test operator.",
                 configuration_model=_Params2,
                 example_configuration=_Params2(),
-                type=DiscoveryOperationEnum.SEARCH,
+                type=DiscoveryOperationEnum.EXPLORE,
             )
 
         def operationIdentifier(self) -> str:
@@ -859,11 +859,11 @@ def test_explore_operation_class_decorator_metadata_from_class() -> None:
     assert registered.description == "Another test operator."
     assert registered.configuration_model is _Params2
     assert isinstance(registered.example_configuration, _Params2)
-    assert registered.type == DiscoveryOperationEnum.SEARCH
+    assert registered.type == DiscoveryOperationEnum.EXPLORE
 
 
 def test_explore_operation_class_decorator_missing_operator_metadata_raises() -> None:
-    """Decorating a Search subclass without operator_metadata() raises NotImplementedError."""
+    """Decorating an Explore subclass without operator_metadata() raises NotImplementedError."""
 
     from orchestrator.modules.operators.base import Explore
     from orchestrator.modules.operators.collections import explore_operation

@@ -86,7 +86,7 @@ See
 
 ### Operation Types
 
-- `search` - Exploration/optimization operations (e.g., random_walk, ray_tune)
+- `explore` - Exploration/optimization operations (e.g., random_walk, ray_tune)
 - `modify` - Space modification operations
 - `characterize` - Analysis/characterization operations
 - `compare` - Comparison operations

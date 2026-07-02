@@ -31,7 +31,7 @@ if typing.TYPE_CHECKING:
 
 class DiscoveryOperationEnum(enum.Enum):
     CHARACTERIZE = "characterize"
-    SEARCH = "search"
+    EXPLORE = "explore"
     COMPARE = "compare"
     MODIFY = "modify"
     STUDY = "study"
@@ -40,6 +40,13 @@ class DiscoveryOperationEnum(enum.Enum):
     QUERY = "query"
     EXPORT = "export"
     SCRIPT = "script"
+
+    @classmethod
+    def _missing_(cls, value: object) -> "DiscoveryOperationEnum | None":
+        """Accept the legacy 'search' value and redirect it to EXPLORE."""
+        if value == "search":
+            return cls.EXPLORE
+        return None
 
 
 def get_actuator_configurations(
@@ -378,11 +385,11 @@ class ScriptOperatorConf(pydantic.BaseModel):
         DiscoveryOperationEnum,
         pydantic.Field(
             description=(
-                "Semantic operation type (e.g. search, characterize). "
+                "Semantic operation type (e.g. explore, characterize). "
                 "Script provenance is recorded separately via operation metadata labels."
             ),
         ),
-    ] = DiscoveryOperationEnum.SEARCH
+    ] = DiscoveryOperationEnum.EXPLORE
 
     @property
     def operatorIdentifier(self) -> str:

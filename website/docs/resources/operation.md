@@ -75,7 +75,7 @@ spaces: ###The spaces to operate on
 operation: #The operators
   module: # The operator will be random_walk
     operatorName: random_walk
-    operationType: search
+    operationType: explore
   parameters: # The parameters for this RandomWalk operation
     numberEntities: 60
     batchSize: 1
@@ -114,17 +114,6 @@ When `operatorVersion` is omitted, at operation create time the
 currently installed version is resolved and used.
 Set `operatorVersion` explicitly to pin a specific operator version; a mismatch
 with the registry raises an error at create time.
-
-> [!WARNING]
->
-> To use operators listed with type _explore_ by `ado get operators`, currently
-> you must set operationType to **search** e.g.
->
-> ```yaml
-> module:
->  operatorName: random_walk
->  operationType: search # note: search not explore
-> ```
 
 ### Passing actuator parameters
 
@@ -218,7 +207,7 @@ kind: operation
 metadata:
   entities_submitted: 11
   experiments_requested: 11
-operationType: search
+operationType: explore
 operatorIdentifier: ray_tune@2.0.0
 status:
   - event: created

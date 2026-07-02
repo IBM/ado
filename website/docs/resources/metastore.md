@@ -280,7 +280,7 @@ Where:
     metadata:
       entities_submitted: 48
       experiments_requested: 74
-    operationType: search
+    operationType: explore
     operatorIdentifier: randomwalk-1.0.2.dev30+a96d4d1.dirty
     status:
     - event: created

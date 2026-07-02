@@ -181,7 +181,7 @@ def test_provenance_for_plugin_actuator() -> None:
 
 def test_provenance_for_random_walk_operator() -> None:
     """The built-in random_walk explore operator should resolve a distribution."""
-    prov = provenance_for_operator("random_walk", DiscoveryOperationEnum.SEARCH)
+    prov = provenance_for_operator("random_walk", DiscoveryOperationEnum.EXPLORE)
     assert prov is not None
     assert prov.distributionName
     assert prov.distributionVersion
@@ -189,7 +189,7 @@ def test_provenance_for_random_walk_operator() -> None:
 
 def test_provenance_for_unknown_operator_returns_none() -> None:
     """Non-existent operator name returns None."""
-    prov = provenance_for_operator("nonexistent_op_xyz", DiscoveryOperationEnum.SEARCH)
+    prov = provenance_for_operator("nonexistent_op_xyz", DiscoveryOperationEnum.EXPLORE)
     assert prov is None
 
 
@@ -212,7 +212,7 @@ def test_operator_metadata_provenance_lifecycle() -> None:
         version="99.0.0",
         configuration_model=_ExampleConfig,
         example_configuration=_ExampleConfig(),
-        type=DiscoveryOperationEnum.SEARCH,
+        type=DiscoveryOperationEnum.EXPLORE,
         provenance=prov,
     )
 

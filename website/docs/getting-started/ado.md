@@ -1323,7 +1323,7 @@ Where:
     <!-- prettier-ignore-start -->
 
     - `characterize`
-    - `search`
+    - `explore`
     - `compare`
     - `modify`
     - `study`

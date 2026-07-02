@@ -28,7 +28,7 @@ import pydantic
 import ray
 from ray.actor import ActorHandle
 
-from orchestrator.modules.actuators.base import ActuatorBase, DeprecatedExperimentError
+from orchestrator.modules.actuators.base import ActuatorBase
 from orchestrator.modules.actuators.executor_supervisor import (
     ExperimentExecutorSupervisor,
     ExperimentExecutorSupervisorParameters,
@@ -57,7 +57,7 @@ def _execute_experiments_serial(
     request: MeasurementRequest,
     *,
     fn: Callable[..., dict[str, Any]],
-    experiment: Experiment,
+    experiment: Experiment | ParameterizedExperiment,
 ) -> MeasurementRequest:
     """Run fn for each entity serially in the current process.
 
@@ -68,17 +68,12 @@ def _execute_experiments_serial(
     Args:
         request: The request describing the experiment batch.
         fn: Callable ``(**kwargs) -> dict[str, Any]``.
-        experiment: The base Experiment being executed.  If the experiment
-            reference carries a parameterization it is applied here.
+        experiment: The  Experiment or ParameterizedExperiment being executed.
 
     Returns:
         The completed MeasurementRequest.
     """
-    if request.experimentReference.parameterization:
-        experiment = ParameterizedExperiment(
-            parameterization=request.experimentReference.parameterization,
-            **experiment.model_dump(),
-        )
+
     results: list[MeasurementResult] = []
     for entity in request.entities:
         try:
@@ -133,7 +128,7 @@ def _execute_experiments_parallel(
     request: MeasurementRequest,
     *,
     fn: Callable[..., dict[str, Any]],
-    experiment: Experiment,
+    experiment: Experiment | ParameterizedExperiment,
 ) -> MeasurementRequest:
     """Run fn for each entity in parallel using nested Ray tasks.
 
@@ -143,17 +138,12 @@ def _execute_experiments_parallel(
     Args:
         request: The request describing the experiment batch.
         fn: Callable ``(**kwargs) -> dict[str, Any]`` — must be picklable.
-        experiment: The base Experiment being executed.  If the experiment
-            reference carries a parameterization it is applied here.
+        experiment: The  Experiment or Parameterized experiment being executed.
 
     Returns:
         The completed MeasurementRequest.
     """
-    if request.experimentReference.parameterization:
-        experiment = ParameterizedExperiment(
-            parameterization=request.experimentReference.parameterization,
-            **experiment.model_dump(),
-        )
+
     futures = [
         _ray_fn_runner.remote(fn, experiment.propertyValuesFromEntity(entity))
         for entity in request.entities
@@ -352,7 +342,7 @@ class StandardActuator(ActuatorBase):
 
         Raises:
             KeyError: If no implementation exists for the requested experiment.
-            ValueError: If the experiment is not found in the catalog.
+            UnknownExperimentError: If the experiment is not found in the catalog.
             DeprecatedExperimentError: If the experiment is deprecated.
         """
         fn, experiment = self._resolve_fn_and_experiment(request)
@@ -368,34 +358,26 @@ class StandardActuator(ActuatorBase):
     def _resolve_fn_and_experiment(
         self,
         request: MeasurementRequest,
-    ) -> tuple[Callable[..., dict[str, Any]], Experiment]:
+    ) -> tuple[Callable[..., dict[str, Any]], Experiment | ParameterizedExperiment]:
         """Look up the experiment object and its implementation callable.
 
         Args:
             request: The MeasurementRequest whose ``experimentReference`` is resolved.
 
         Returns:
-            Tuple of ``(fn, experiment)`` where experiment is the base
-            ``Experiment`` from the catalog.  Any parameterization from the
-            reference is applied later by the executor.
+            Tuple of ``(fn, experiment)`` where experiment is the resolved
+            experiment based on the catalog (Experiment or ParameterizedExperiment)
 
         Raises:
-            ValueError: If the experiment is not found in the catalog.
+            UnknownExperimentError: If the experiment is not found in the catalog.
             DeprecatedExperimentError: If the experiment is deprecated.
             KeyError: If no implementation exists for the experiment identifier.
         """
         experiment: Experiment | None = (
-            type(self).catalog().experimentForReference(request.experimentReference)
+            type(self)
+            .catalog()
+            .experimentForReference(request.experimentReference, resolve=True)
         )
-        if experiment is None:
-            raise ValueError(
-                f"Experiment {request.experimentReference!r} not found in catalog"
-            )
-
-        if experiment.deprecated:
-            raise DeprecatedExperimentError(
-                f"Experiment {experiment.identifier!r} is deprecated"
-            )
 
         implementations = self._experiment_implementations()
         experiment_id = experiment.identifier

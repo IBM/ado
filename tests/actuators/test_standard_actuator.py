@@ -14,6 +14,7 @@ import pytest
 from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
 from orchestrator.modules.actuators.base import DeprecatedExperimentError
 from orchestrator.modules.actuators.catalog import ExperimentCatalog
+from orchestrator.modules.actuators.errors import UnknownExperimentError
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue, NullQueue
 from orchestrator.modules.actuators.standard import (
     StandardActuator,
@@ -296,14 +297,14 @@ def test_execute_with_use_ray() -> None:
     assert observed[0].value == pytest.approx(14.0)
 
 
-def test_execute_unknown_experiment_raises_value_error() -> None:
-    """execute() raises ValueError when the reference is absent from the catalog."""
+def test_execute_unknown_experiment_raises() -> None:
+    """execute() raises UnknownExperimentError when the reference is absent from the catalog."""
     actuator = _DoubleXActuator()
     missing_ref = ExperimentReference(
         actuatorIdentifier=_ACTUATOR_ID,
         experimentIdentifier="nonexistent_experiment",
     )
-    with pytest.raises(ValueError, match="not found in catalog"):
+    with pytest.raises(UnknownExperimentError, match="No experiment matching"):
         actuator.execute(
             entities=[_entity()],
             experimentReference=missing_ref,

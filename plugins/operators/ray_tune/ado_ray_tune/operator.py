@@ -998,5 +998,5 @@ class RayTune(Explore):
                 ),
                 runtimeConfig=OrchRunConfig(),
             ),
-            type=DiscoveryOperationEnum.SEARCH,
+            type=DiscoveryOperationEnum.EXPLORE,
         )

@@ -1206,7 +1206,7 @@ def two_op_hierarchy(
     )
     op1 = OperationResource(
         config=op1_config,
-        operationType=DiscoveryOperationEnum.SEARCH,
+        operationType=DiscoveryOperationEnum.EXPLORE,
         operatorIdentifier="test-op-1",
     )
     sql_store.addResourceWithRelationships(op1, relatedIdentifiers=[ds.identifier])
@@ -1217,7 +1217,7 @@ def two_op_hierarchy(
     )
     op2 = OperationResource(
         config=op2_config,
-        operationType=DiscoveryOperationEnum.SEARCH,
+        operationType=DiscoveryOperationEnum.EXPLORE,
         operatorIdentifier="test-op-2",
     )
     sql_store.addResourceWithRelationships(op2, relatedIdentifiers=[ds.identifier])

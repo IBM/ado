@@ -568,10 +568,10 @@ class MySearchOperator(Explore):
         return OperatorMetadata(
             name="my_search",
             version="0.1.0",
-            description="A minimal example search operator.",
+            description="A minimal example explore operator.",
             configuration_model=MySearchParameters,
             example_configuration=MySearchParameters(),
-            type=DiscoveryOperationEnum.SEARCH,
+            type=DiscoveryOperationEnum.EXPLORE,
         )
 
     # --- callbacks from DiscoverySpaceManager --------------------------------

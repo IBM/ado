@@ -332,7 +332,7 @@ def simulate_ml_multi_cloud_random_walk_operation(
         resource = OperationResource(
             identifier=operation_id,
             config=ml_multi_cloud_operation_configuration,
-            operationType=DiscoveryOperationEnum.SEARCH,
+            operationType=DiscoveryOperationEnum.EXPLORE,
             operatorIdentifier="doesnt-matter",
         )
         if created is not None:

@@ -443,7 +443,7 @@ experiment.
    operation:
      module:
        operatorName: "random_walk"
-       operationType: "search"
+       operationType: "explore"
      parameters:
        numberEntities: all
        singleMeasurement: True

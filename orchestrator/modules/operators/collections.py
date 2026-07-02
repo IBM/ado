@@ -88,7 +88,7 @@ characterize = OperatorCollection(
     type=orchestrator.core.operation.config.DiscoveryOperationEnum.CHARACTERIZE
 )
 explore = OperatorCollection(
-    type=orchestrator.core.operation.config.DiscoveryOperationEnum.SEARCH
+    type=orchestrator.core.operation.config.DiscoveryOperationEnum.EXPLORE
 )
 modify = OperatorCollection(
     type=orchestrator.core.operation.config.DiscoveryOperationEnum.MODIFY
@@ -110,7 +110,7 @@ learn = OperatorCollection(
 )
 operationCollectionMap = {
     orchestrator.core.operation.config.DiscoveryOperationEnum.CHARACTERIZE: characterize,
-    orchestrator.core.operation.config.DiscoveryOperationEnum.SEARCH: explore,
+    orchestrator.core.operation.config.DiscoveryOperationEnum.EXPLORE: explore,
     orchestrator.core.operation.config.DiscoveryOperationEnum.MODIFY: modify,
     orchestrator.core.operation.config.DiscoveryOperationEnum.EXPORT: export,
     orchestrator.core.operation.config.DiscoveryOperationEnum.COMPARE: compare,
@@ -206,7 +206,7 @@ def _validate_explore_cls(t: type, metadata: OperatorMetadata) -> None:
 def explore_operation(
     cls: "type[DiscoveryOperationBase]",
 ) -> "type[DiscoveryOperationBase]":
-    """Decorator that registers an explore (search) operator class.
+    """Decorator that registers an explore operator class.
 
     All metadata is sourced from the class's ``operator_metadata()``
     classmethod.  The decorator generates an :class:`OperatorFunction`,
@@ -222,7 +222,7 @@ def explore_operation(
                     version="0.1.0",
                     configuration_model=MyOpParameters,
                     example_configuration=MyOpParameters(),
-                    type=DiscoveryOperationEnum.SEARCH,
+                    type=DiscoveryOperationEnum.EXPLORE,
                 )
 
             async def run(self) -> OperationOutput | None: ...

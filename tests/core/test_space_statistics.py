@@ -150,7 +150,7 @@ def test_space_statistics_full_with_operation(
 
     assert stats.number_of_experiments == _NUMBER_OF_EXPERIMENTS
     assert stats.number_of_operations == 1
-    # The simulated operation uses operationType="search", which counts as explore
+    # The simulated operation uses operationType="explore"
     assert stats.number_of_explore_operations == 1
     assert stats.number_measured_entities == number_entities
     assert stats.size_of_entity_space == _ENTITY_SPACE_SIZE

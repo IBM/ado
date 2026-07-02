@@ -462,9 +462,10 @@ def test_operation_context_success_lifecycle(pfas_space: DiscoverySpace) -> None
     assert operation_id in pfas_space.operations
     assert isinstance(operation.config.operation.module, ScriptOperatorConf)
     assert (
-        operation.config.operation.module.operationType == DiscoveryOperationEnum.SEARCH
+        operation.config.operation.module.operationType
+        == DiscoveryOperationEnum.EXPLORE
     )
-    assert operation.operationType == DiscoveryOperationEnum.SEARCH
+    assert operation.operationType == DiscoveryOperationEnum.EXPLORE
     assert operation.config.metadata.description == "Script operation for testing"
     assert operation.config.metadata.labels == {
         SCRIPT_OPERATION_LABEL_KEY: SCRIPT_OPERATION_EXECUTION_LABEL,

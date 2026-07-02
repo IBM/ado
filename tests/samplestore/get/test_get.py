@@ -206,7 +206,7 @@ def test_operation_entity_statistics_mixed_valid_invalid(
         OperationResource(
             identifier=operation_id,
             config=ml_multi_cloud_operation_configuration,
-            operationType=DiscoveryOperationEnum.SEARCH,
+            operationType=DiscoveryOperationEnum.EXPLORE,
             operatorIdentifier="test-operator",
         ),
         relatedIdentifiers=ml_multi_cloud_operation_configuration.spaces,
@@ -833,7 +833,7 @@ def test_entities_in_operation_empty_operation(
         OperationResource(
             identifier=operation_id,
             config=ml_multi_cloud_operation_configuration,
-            operationType=DiscoveryOperationEnum.SEARCH,
+            operationType=DiscoveryOperationEnum.EXPLORE,
             operatorIdentifier="test-operator",
         )
     )
@@ -1029,7 +1029,7 @@ def test_operation_measurement_statistics_mixed_valid_invalid(
         OperationResource(
             identifier=operation_id,
             config=ml_multi_cloud_operation_configuration,
-            operationType=DiscoveryOperationEnum.SEARCH,
+            operationType=DiscoveryOperationEnum.EXPLORE,
             operatorIdentifier="test-operator",
         ),
         relatedIdentifiers=ml_multi_cloud_operation_configuration.spaces,

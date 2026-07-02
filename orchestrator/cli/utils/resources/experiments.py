@@ -141,19 +141,6 @@ def experiment_reference_from_cli_resource_id(
     )
 
 
-def experiment_from_cli_resource_id(
-    resource_id: str,
-    *,
-    registry: ActuatorRegistry | None = None,
-) -> Experiment:
-    """Parse a CLI experiment resource identifier and return the catalog entry."""
-    reference = experiment_reference_from_cli_resource_id(
-        resource_id, registry=registry
-    )
-    registry = registry or ActuatorRegistry.globalRegistry()
-    return registry.experimentForReference(reference, match_on="any", resolve=False)
-
-
 def _ado_experiment_from_cli_resource_id(
     resource_id: str,
     *,
@@ -161,7 +148,13 @@ def _ado_experiment_from_cli_resource_id(
 ) -> Experiment:
     """Parse CLI input and look up the experiment, exiting on lookup failure."""
     try:
-        return experiment_from_cli_resource_id(resource_id, registry=registry)
+        cli_reference = experiment_reference_from_cli_resource_id(
+            resource_id, registry=registry
+        )
+        registry = registry or ActuatorRegistry.globalRegistry()
+        return registry.experimentForReference(
+            cli_reference, match_on="any", resolve=False
+        )
     except NoActuatorWithExperimentError as error:
         base_experiment_identifier, _, _ = _parse_experiment_part_from_string(
             resource_id, allow_parameterization=False
@@ -199,7 +192,13 @@ def _ado_resolved_experiment_reference_from_cli_resource_id(
 ) -> ExperimentReference:
     """Parse CLI input and return a resolved reference, exiting on lookup failure."""
     try:
-        return experiment_from_cli_resource_id(resource_id, registry=registry).reference
+        cli_reference = experiment_reference_from_cli_resource_id(
+            resource_id, registry=registry
+        )
+        registry = registry or ActuatorRegistry.globalRegistry()
+        return registry.experimentForReference(
+            cli_reference, match_on="any", resolve=False
+        ).reference
     except NoActuatorWithExperimentError as error:
         base_experiment_identifier, _, _ = _parse_experiment_part_from_string(
             resource_id, allow_parameterization=False

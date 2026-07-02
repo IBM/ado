@@ -39,6 +39,11 @@ vllm = [
   "vllm>=0.12.0,!=0.15.*;sys_platform!='darwin'",
 ]
 
+[dependency-groups]
+resolution-helpers = [
+  "opencv-python-headless<5",
+]
+
 [build-system]
 requires = ["setuptools", "setuptools_scm"]
 build-backend = "setuptools.build_meta"

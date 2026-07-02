@@ -1592,7 +1592,7 @@ rich==15.0.0 \
     --hash=sha256:33bd4ef74232fb73fe9279a257718407f169c09b78a87ad3d296f548e27de0bb \
     --hash=sha256:edd07a4824c6b40189fb7ac9bc4c52536e9780fbbfbddf6f1e2502c31b068c36
     # via typer
-rpds-py==0.30.0 ; python_full_version < '3.11' \
+rpds-py==0.30.0; python_full_version < '3.11' \
     --hash=sha256:07ae8a593e1c3c6b82ca3292efbe73c30b61332fd612e05abee07c79359f292f \
     --hash=sha256:0a59119fc6e3f460315fe9d08149f8102aa322299deaa5cab5b40092345c2136 \
     --hash=sha256:0c0e95f6819a19965ff420f65578bacb0b00f251fefe2c8b23347c37174271f3 \
@@ -1711,7 +1711,7 @@ rpds-py==0.30.0 ; python_full_version < '3.11' \
     # via
     #   jsonschema
     #   referencing
-rpds-py==2026.5.1 ; python_full_version >= '3.11' \
+rpds-py==2026.6.3 ; python_full_version >= '3.11' \
     --hash=sha256:01d17b29c0c23d82b1f4751147ec49cf451f1fc2554eb9ef5f957e55d2656ead \
     --hash=sha256:036a36a87fb1cd3b214d11c4b3c4f7d2ddad933625dca1c900b56a057c07740a \
     --hash=sha256:0408a24e44feb919423dc6d9da677cb5cddb894d2ca9e763967d156d9c60fab4 \

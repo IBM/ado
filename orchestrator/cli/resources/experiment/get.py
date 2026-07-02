@@ -13,7 +13,7 @@ from orchestrator.cli.utils.output.prints import (
     console_print,
 )
 from orchestrator.cli.utils.resources.experiments import (
-    _ado_experiment_from_cli_resource_id,
+    _ado_lookup_cli_experiment,
 )
 
 
@@ -69,7 +69,7 @@ def get_experiment(parameters: AdoGetCommandParameters) -> None:
             columns.append("SUPPORTED")
 
         if parameters.resource_id:
-            matched_experiment = _ado_experiment_from_cli_resource_id(
+            matched_experiment = _ado_lookup_cli_experiment(
                 parameters.resource_id,
                 registry=registry,
             )

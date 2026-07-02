@@ -11,7 +11,7 @@ from orchestrator.cli.utils.output.prints import (
     ADO_SPINNER_GETTING_OUTPUT_READY,
 )
 from orchestrator.cli.utils.resources.experiments import (
-    _ado_resolved_experiment_reference_from_cli_resource_id,
+    _ado_lookup_cli_experiment,
 )
 from orchestrator.core.discoveryspace.config import DiscoverySpaceConfiguration
 from orchestrator.schema.measurementspace import MeasurementSpace
@@ -29,7 +29,7 @@ def template_discovery_space(parameters: AdoTemplateCommandParameters) -> None:
     with Status(ADO_SPINNER_GETTING_OUTPUT_READY):
         if parameters.from_experiments:
             experiment_references = [
-                _ado_resolved_experiment_reference_from_cli_resource_id(experiment_id)
+                _ado_lookup_cli_experiment(experiment_id).reference
                 for experiment_id in parameters.from_experiments
             ]
 

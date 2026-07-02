@@ -9,7 +9,7 @@ from orchestrator.cli.utils.output.prints import (
     console_print,
 )
 from orchestrator.cli.utils.resources.experiments import (
-    _ado_experiment_from_cli_resource_id,
+    _ado_lookup_cli_experiment,
 )
 from orchestrator.modules.actuators.registry import (
     ActuatorRegistry,
@@ -20,9 +20,8 @@ def describe_experiment(parameters: AdoDescribeCommandParameters) -> None:
 
     with Status(ADO_SPINNER_INITIALIZING_ACTUATOR_REGISTRY):
         registry = ActuatorRegistry.globalRegistry()
-        experiment = _ado_experiment_from_cli_resource_id(
-            parameters.resource_id,
-            registry=registry,
+        experiment = _ado_lookup_cli_experiment(
+            parameters.resource_id, registry=registry
         )
 
     console_print(experiment)

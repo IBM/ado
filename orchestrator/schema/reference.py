@@ -15,7 +15,11 @@ from orchestrator.schema.property import (
 from orchestrator.schema.property_value import (
     ConstitutivePropertyValue,
 )
-from orchestrator.utilities.pydantic import StrictSemVerStr, semver_major
+from orchestrator.utilities.pydantic import (
+    _STRICT_SEMVER_PATTERN,
+    StrictSemVerStr,
+    semver_major,
+)
 
 _FQ_VERSION_WITH_PARAMS_PATTERN = re.compile(
     r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-(.*))?$"
@@ -173,9 +177,7 @@ def _parse_experiment_part_from_string(
     if "@" in experiment_part:
         base_identifier, version_and_params = experiment_part.split("@", maxsplit=1)
         if not allow_parameterization:
-            version_match = re.match(
-                r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$", version_and_params
-            )
+            version_match = re.match(_STRICT_SEMVER_PATTERN, version_and_params)
             if version_match is not None:
                 version: StrictSemVerStr = (
                     f"{version_match.group(1)}.{version_match.group(2)}.{version_match.group(3)}"

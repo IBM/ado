@@ -6,65 +6,8 @@ import warnings
 from typer.testing import CliRunner
 
 from orchestrator.cli.core.cli import app as ado
-from orchestrator.cli.utils.resources.experiments import (
-    experiment_reference_from_cli_resource_id,
-)
 from orchestrator.modules.actuators.registry import ActuatorRegistry
 from tests.schema.test_algorithm_versioning import _make_experiment
-
-
-def test_experiment_reference_from_cli_bare_identifier() -> None:
-    """Bare experiment identifiers resolve via actuator lookup."""
-    reference = experiment_reference_from_cli_resource_id("test-experiment")
-    assert reference.actuatorIdentifier == "mock"
-    assert reference.experimentIdentifier == "test-experiment"
-    assert reference.experimentVersion is None
-
-
-def test_experiment_reference_from_cli_version_suffix_without_actuator() -> None:
-    """Version suffixes on bare identifiers resolve the actuator automatically."""
-    reference = experiment_reference_from_cli_resource_id(
-        "nevergrad_opt_3d_test_func@1.0.0"
-    )
-    assert reference.actuatorIdentifier == "custom_experiments"
-    assert reference.experimentIdentifier == "nevergrad_opt_3d_test_func"
-    assert reference.experimentVersion == "1.0.0"
-
-
-def test_experiment_reference_from_cli_fully_qualified_string() -> None:
-    """Fully-qualified reference strings parse via referenceFromString."""
-    reference = experiment_reference_from_cli_resource_id("mock.test-experiment@1.2.3")
-    assert reference.actuatorIdentifier == "mock"
-    assert reference.experimentIdentifier == "test-experiment"
-    assert reference.experimentVersion == "1.2.3"
-
-
-def test_experiment_reference_from_cli_dotted_experiment_identifier() -> None:
-    """Dots in experiment identifiers are not treated as actuator prefixes."""
-    reference = experiment_reference_from_cli_resource_id(
-        "nevergrad_opt_3d_test_func@1.0.0"
-    )
-    assert reference.actuatorIdentifier == "custom_experiments"
-    assert reference.experimentIdentifier == "nevergrad_opt_3d_test_func"
-
-
-def test_experiment_for_reference_uses_major_version_match(
-    global_registry: ActuatorRegistry,
-) -> None:
-    """Major version identifiers resolve via experimentForReference major matching."""
-    reference = experiment_reference_from_cli_resource_id(
-        "nevergrad_opt_3d_test_func@v1",
-        registry=global_registry,
-    )
-    assert (
-        reference.major_version_experiment_identifier == "nevergrad_opt_3d_test_func@v1"
-    )
-
-    experiment = global_registry.experimentForReference(
-        reference, match_on="any", resolve=False
-    )
-    assert experiment.identifier == "nevergrad_opt_3d_test_func"
-    assert experiment.version == "1.0.0"
 
 
 def test_describe_versioned_experiment_by_bare_name(

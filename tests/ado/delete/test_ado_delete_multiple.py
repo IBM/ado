@@ -70,8 +70,6 @@ def test_delete_multiple_operations_success(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "delete",
             "operation",
             *operation_ids,
@@ -142,8 +140,6 @@ def test_delete_multiple_operations_partial_failure(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "delete",
             "operation",
             valid_op_1,
@@ -216,8 +212,6 @@ def test_delete_single_operation_backward_compatible(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "delete",
             "operation",
             operation_id,
@@ -256,8 +250,6 @@ def test_delete_multiple_operations_all_fail(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "delete",
             "operation",
             "non-existent-1",

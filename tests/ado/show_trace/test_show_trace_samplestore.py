@@ -49,8 +49,6 @@ def test_show_trace_samplestore_single_operation(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            str(tmp_path),
             "show",
             "trace",
             "samplestore",
@@ -105,8 +103,6 @@ def test_show_trace_samplestore_multi_operation(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            str(tmp_path),
             "show",
             "trace",
             "samplestore",
@@ -138,8 +134,6 @@ def test_show_trace_samplestore_nonexistent(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            str(tmp_path),
             "show",
             "trace",
             "samplestore",

@@ -24,9 +24,7 @@ def test_delete_nonexistent_context(
     )
 
     nonexistent_name = "i-do-not-exist"
-    result = runner.invoke(
-        ado, ["--override-ado-app-dir", tmp_path, "delete", "context", nonexistent_name]
-    )
+    result = runner.invoke(ado, ["delete", "context", nonexistent_name])
     assert result.exit_code == 1
     # Travis CI cannot capture output reliably
     if os.environ.get("CI", "false") != "true":

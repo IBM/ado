@@ -15,8 +15,10 @@ from orchestrator.modules.actuators.base import (
 )
 from orchestrator.modules.actuators.catalog import (
     ExperimentCatalog,
+    ExperimentReferenceMatchMode,
 )
 from orchestrator.modules.actuators.errors import (
+    AmbiguousExperimentIdentifierError,
     DeprecatedExperimentError,
     ExperimentVersionMismatchError,
     MissingActuatorConfigurationForCatalogError,
@@ -442,9 +444,7 @@ class ActuatorRegistry:
         reference: ExperimentReference,
         additionalCatalogs: list[ExperimentCatalog] | None = None,
         *,
-        match_on: typing.Literal[
-            "major_version", "fully_qualified_version"
-        ] = "major_version",
+        match_on: ExperimentReferenceMatchMode = "major_version",
         resolve: bool = False,
     ) -> Experiment | ParameterizedExperiment:
         """Return the experiment corresponding to reference.
@@ -457,7 +457,9 @@ class ActuatorRegistry:
         Args:
             reference: A reference to an experiment.
             additionalCatalogs: Additional catalogs to search for the experiment.
-            match_on: ``"major_version"`` (default) or ``"fully_qualified_version"``.
+            match_on: ``"major_version"`` (default), ``"fully_qualified_version"``,
+                ``"base"``, or ``"any"``. See
+                :meth:`~orchestrator.modules.actuators.catalog.ExperimentCatalog.experimentForReference`.
             resolve: When ``True``, apply version checks, deprecated checks, and
                 parameterization.
 
@@ -467,6 +469,9 @@ class ActuatorRegistry:
         Raises:
             UnknownExperimentError: If the experiment cannot be found in any catalog.
             UnknownActuatorError: If the actuator cannot be found.
+            AmbiguousExperimentIdentifierError: When ``match_on='base'`` or
+                ``match_on='any'`` finds multiple catalog versions for the same
+                base identifier.
             ExperimentVersionMismatchError: When ``resolve=True`` and
                 ``match_on='fully_qualified_version'`` with a version mismatch.
             DeprecatedExperimentError: When ``resolve=True`` and the experiment
@@ -524,6 +529,8 @@ class ActuatorRegistry:
                     reference, match_on=match_on, resolve=resolve
                 )
             except ExperimentVersionMismatchError:
+                raise
+            except AmbiguousExperimentIdentifierError:
                 raise
             except UnknownExperimentError:
                 log.debug(f"No experiment matching {reference} found in {catalog}")

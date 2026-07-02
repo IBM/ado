@@ -32,11 +32,11 @@ def test_operator_metadata_reference() -> None:
         version="2.0.0",
         configuration_model=_ExampleConfig,
         example_configuration=_ExampleConfig(),
-        type=DiscoveryOperationEnum.SEARCH,
+        type=DiscoveryOperationEnum.EXPLORE,
     )
     ref = meta.reference
     assert ref.operatorName == "my_op"
-    assert ref.operationType == DiscoveryOperationEnum.SEARCH
+    assert ref.operationType == DiscoveryOperationEnum.EXPLORE
     assert ref.operatorVersion == "2.0.0"
     assert meta.operatorIdentifier == "my_op@2.0.0"
 
@@ -49,7 +49,7 @@ def test_operator_metadata_rejects_non_semver_version() -> None:
             version="1.0.2.dev17+5e50632",
             configuration_model=_ExampleConfig,
             example_configuration=_ExampleConfig(),
-            type=DiscoveryOperationEnum.SEARCH,
+            type=DiscoveryOperationEnum.EXPLORE,
         )
 
 
@@ -57,7 +57,7 @@ def test_operator_reference_identifier_without_pinned_version() -> None:
     """OperatorReference without operatorVersion resolves from registry."""
     ref = OperatorReference(
         operatorName="random_walk",
-        operationType=DiscoveryOperationEnum.SEARCH,
+        operationType=DiscoveryOperationEnum.EXPLORE,
     )
     assert ref.operatorIdentifier == explore.operators["random_walk"].operatorIdentifier
 
@@ -66,7 +66,7 @@ def test_resolve_operator_reference_pins_when_version_omitted() -> None:
     """Omitted operatorVersion is pinned from the registry."""
     ref = OperatorReference(
         operatorName="random_walk",
-        operationType=DiscoveryOperationEnum.SEARCH,
+        operationType=DiscoveryOperationEnum.EXPLORE,
     )
     resolved = resolve_operator_reference(ref)
     assert resolved.operatorVersion == explore.operators["random_walk"].version
@@ -78,7 +78,7 @@ def test_resolve_operator_reference_exact_match() -> None:
     random_walk_version = explore.operators["random_walk"].version
     ref = OperatorReference(
         operatorName="random_walk",
-        operationType=DiscoveryOperationEnum.SEARCH,
+        operationType=DiscoveryOperationEnum.EXPLORE,
         operatorVersion=random_walk_version,
     )
     # This should not raise an error or change operatorVersion field value
@@ -90,7 +90,7 @@ def test_resolve_operator_reference_mismatch_raises() -> None:
     """Explicit operatorVersion mismatch raises OperatorVersionMismatchError."""
     ref = OperatorReference(
         operatorName="random_walk",
-        operationType=DiscoveryOperationEnum.SEARCH,
+        operationType=DiscoveryOperationEnum.EXPLORE,
         operatorVersion="1.0.0",
     )
     with pytest.raises(
@@ -104,7 +104,7 @@ def test_discovery_operation_configuration_pins_operator_version() -> None:
     config = DiscoveryOperationConfiguration(
         module=OperatorReference(
             operatorName="random_walk",
-            operationType=DiscoveryOperationEnum.SEARCH,
+            operationType=DiscoveryOperationEnum.EXPLORE,
         ),
         parameters={"numberEntities": 1, "batchSize": 1},
     )
@@ -119,7 +119,7 @@ def test_discovery_operation_resource_configuration_round_trip() -> None:
         operation=DiscoveryOperationConfiguration(
             module=OperatorReference(
                 operatorName="random_walk",
-                operationType=DiscoveryOperationEnum.SEARCH,
+                operationType=DiscoveryOperationEnum.EXPLORE,
             ),
             parameters={"numberEntities": 1, "batchSize": 1},
         ),

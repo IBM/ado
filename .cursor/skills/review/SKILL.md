@@ -1,3 +1,15 @@
+---
+name: review
+description: >-
+  Review committed changes in the current branch. Use when the user asks to
+  review, audit, or critique a branch — covers code quality, skill quality,
+  bugs, linting issues, and adherence to project guidelines. Produces a
+  structured review report written to a markdown file.
+metadata:
+  user-invocable: true
+  disable-model-invocation: true
+---
+
 # review
 
 ## General Rules
@@ -13,7 +25,7 @@
 
 When evaluating changes to code evaluate against the guidelines in
 [AGENTS.md](../../AGENTS.md) and
-[plugin-development.md](../rules/plugin-development.mdc)
+[plugin-development.mdc](../rules/plugin-development.mdc)
 
 - Format the review report with these sections (omit if not relevant):
   - Overview: What is changed
@@ -28,12 +40,12 @@ When evaluating changes to code evaluate against the guidelines in
 
 ## Skill Review
 
-Agent skills are text documents under .cursor/skills/.
+Agent skills are text documents under `.agents/skills/`.
 
 - Evaluate based on [Agent Skills Guidelines](../../AGENTS.md#agent-skills).
 - For each skill (new or modified) ensure you check the following for related
   content
-  - .cursor, examples/, website/docs, AGENTS.md,
+  - `.agents/skills/`, `examples/`, `website/docs/`, `AGENTS.md`
 
 When evaluating new or modified skills (new or changes) use this structure per
 skill:
@@ -62,12 +74,12 @@ skill:
        plugin-development.mdc, etc.)
 5. **Medium Issues**
    - In this section include issues like the following:
-       - Inline code that should link to an existing example file instead
-       - Formatting problems, structural issues, or misleading text
-       - Mistakes in code examples
-       - Inconsistencies with other skill files or agent files
-       - File or directory paths referenced in the skill that do not exist in the
-         repo
+     - Inline code that should link to an existing example file instead
+     - Formatting problems, structural issues, or misleading text
+     - Mistakes in code examples
+     - Inconsistencies with other skill files or agent files
+     - File or directory paths referenced in the skill that do not exist in the
+       repo
 6. **Summary**
    - Summarize the review.
    - Be clear if the skill should be (a) largely kept as is; (b) requires major

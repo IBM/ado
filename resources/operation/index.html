@@ -12,7 +12,7 @@
 <span class=nt>operation</span><span class=p>:</span><span class=w> </span><span class=c1>#The operators</span>
 <span class=w>  </span><span class=nt>module</span><span class=p>:</span><span class=w> </span><span class=c1># The operator will be random_walk</span>
 <span class=w>    </span><span class=nt>operatorName</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">random_walk</span>
-<span class=w>    </span><span class=nt>operationType</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">search</span>
+<span class=w>    </span><span class=nt>operationType</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">explore</span>
 <span class=w>  </span><span class=nt>parameters</span><span class=p>:</span><span class=w> </span><span class=c1># The parameters for this RandomWalk operation</span>
 <span class=w>    </span><span class=nt>numberEntities</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">60</span>
 <span class=w>    </span><span class=nt>batchSize</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
@@ -30,10 +30,7 @@
 </code></pre></div> <p>You use this information to specify the operator to use in the operation YAML, for example:</p> <div class=highlight><pre><span></span><code><span class=nt>module</span><span class=p>:</span>
 <span class=w>  </span><span class=nt>operatorName</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">rifferla</span><span class=w> </span><span class=c1># The name of the operator</span>
 <span class=w>  </span><span class=nt>operationType</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">modify</span><span class=w> </span><span class=c1>#The type of the operation/operator</span>
-</code></pre></div> <div class="admonition warning"> <p class=admonition-title>Warning</p> <p>To use operators listed with type <em>explore</em> by <code>ado get operators</code>, currently you must set operationType to <strong>search</strong> e.g.</p> <div class=highlight><pre><span></span><code><span class=nt>module</span><span class=p>:</span>
-<span class=w> </span><span class=nt>operatorName</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">random_walk</span>
-<span class=w> </span><span class=nt>operationType</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">search</span><span class=w> </span><span class=c1># note: search not explore</span>
-</code></pre></div> </div> <h3 id=passing-actuator-parameters>Passing actuator parameters<a class=headerlink href=#passing-actuator-parameters title="Permanent link">&para;</a></h3> <p>If you need to provide parameters to the actuators defined on the space, you can do it via the <code>actuatorConfigurationIdentifiers</code> field.</p> <p>For example, the below shows an operation specifying an actuator configuration for the <code>st4sd</code> actuator.</p> <div class=highlight><pre><span></span><code><span class=nt>spaces</span><span class=p>:</span><span class=w> </span><span class=c1>###The spaces to operate on</span>
+</code></pre></div> <h3 id=passing-actuator-parameters>Passing actuator parameters<a class=headerlink href=#passing-actuator-parameters title="Permanent link">&para;</a></h3> <p>If you need to provide parameters to the actuators defined on the space, you can do it via the <code>actuatorConfigurationIdentifiers</code> field.</p> <p>For example, the below shows an operation specifying an actuator configuration for the <code>st4sd</code> actuator.</p> <div class=highlight><pre><span></span><code><span class=nt>spaces</span><span class=p>:</span><span class=w> </span><span class=c1>###The spaces to operate on</span>
 <span class=w>  </span><span class="p p-Indicator">-</span><span class=w> </span><span class=s>&quot;space-630588-bfebfe&quot;</span>
 <span class=nt>operation</span><span class=p>:</span><span class=w> </span><span class=c1>#The operators</span>
 <span class=w>  </span><span class="l l-Scalar l-Scalar-Plain">...</span><span class=w> </span><span class=c1># The operation config</span>
@@ -50,7 +47,7 @@
 <span class=nt>metadata</span><span class=p>:</span>
 <span class=w>  </span><span class=nt>entities_submitted</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">11</span>
 <span class=w>  </span><span class=nt>experiments_requested</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">11</span>
-<span class=nt>operationType</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">search</span>
+<span class=nt>operationType</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">explore</span>
 <span class=nt>operatorIdentifier</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">raytune-0.7.5.dev10+g731d1e21.d20241218</span>
 <span class=nt>status</span><span class=p>:</span>
 <span class=w>  </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>event</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">created</span>

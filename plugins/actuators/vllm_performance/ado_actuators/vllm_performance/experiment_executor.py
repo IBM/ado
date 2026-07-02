@@ -6,6 +6,7 @@ import logging
 import subprocess
 import time
 import traceback
+from typing import Any
 
 import ray
 from ado_actuators.vllm_performance.actuator_parameters import (
@@ -17,8 +18,11 @@ from ado_actuators.vllm_performance.env_manager import (
     EnvironmentState,
 )
 from ado_actuators.vllm_performance.k8s import (
+    InvalidImageStructureError,
     K8sConnectionError,
     K8sEnvironmentCreationError,
+    UnsupportedThreadpoolConfigurationError,
+    VLLMVersionExtractionError,
 )
 from ado_actuators.vllm_performance.k8s.create_environment import (
     create_test_environment,
@@ -26,6 +30,7 @@ from ado_actuators.vllm_performance.k8s.create_environment import (
 from ado_actuators.vllm_performance.k8s.yaml_support.build_components import (
     VLLMDtype,
 )
+from ado_actuators.vllm_performance.version_utils import VLLMVersionChecker
 from ado_actuators.vllm_performance.vllm_performance_test.benchmark_models import (
     BenchmarkParameters,
     BenchmarkResult,
@@ -53,6 +58,30 @@ from orchestrator.utilities.support import (
 logger = logging.getLogger(__name__)
 
 
+def _is_threadpool_requested(values: dict[str, Any]) -> bool:
+    """
+    Determine whether threadpool-related functionality is requested.
+
+    Threadpool is implied whenever renderer_num_workers is explicitly provided
+    with an integer positive value. A value of 0 means "no threadpool".
+
+    :param values: experiment values dictionary
+    :return: True if threadpool-related functionality should be enabled
+    :raises ValueError: if renderer_num_workers is negative
+    """
+    renderer_workers = values.get("renderer_num_workers")
+    if renderer_workers is None:
+        return False
+
+    renderer_workers_int = int(renderer_workers)
+    if renderer_workers_int < 0:
+        raise ValueError(
+            f"renderer_num_workers must be non-negative, got {renderer_workers}"
+        )
+
+    return renderer_workers_int != 0
+
+
 def _build_entity_env(values: dict[str, str]) -> str:
     """
     This is the list of entity parameters that define the environment:
@@ -67,6 +96,7 @@ def _build_entity_env(values: dict[str, str]) -> str:
         * gpu memory utilization
         * data type
         * cpu offload
+        * renderer_num_workers
     Build entity based environment parameters
     :param values: experiment values
     :return: definition
@@ -83,6 +113,7 @@ def _build_entity_env(values: dict[str, str]) -> str:
         "dtype": values.get("dtype"),
         "cpu_offload": values.get("cpu_offload"),
         "max_num_seq": values.get("max_num_seq"),
+        "renderer_num_workers": values.get("renderer_num_workers"),
     }
     return json.dumps(env_values)
 
@@ -190,12 +221,57 @@ def _create_environment(
                     )
                 )
                 try:
+                    image_value = values.get("image", "")
+                    if not image_value:
+                        raise InvalidImageStructureError("Image value cannot be empty")
+                    logger.info(f"Evaluating image value: {image_value}")
+                    if isinstance(image_value, str):
+                        try:
+                            vllm_version_str = (
+                                VLLMVersionChecker.extract_version_from_image(
+                                    image_value
+                                )
+                            )
+                        except VLLMVersionExtractionError as e:
+                            logger.error(f"Failed to extract version from image: {e}")
+                            vllm_version_str = image_value
+
+                        if vllm_version_str is not None:
+                            is_threadpool_allowed = (
+                                VLLMVersionChecker.supports_threadpool(vllm_version_str)
+                            )
+                        else:
+                            # Assume threadpool is allowed if cannot infer vllm version
+                            is_threadpool_allowed = True
+                        image_name = image_value
+                    elif isinstance(image_value, list):
+                        if len(image_value) != 2:
+                            raise InvalidImageStructureError(
+                                f"Image value as list must have exactly 2 elements "
+                                f"[image_name, version], got {len(image_value)} in {image_value}"
+                            )
+                        is_threadpool_allowed = VLLMVersionChecker.supports_threadpool(
+                            image_value[1]
+                        )
+                        image_name = image_value[0]
+                    else:
+                        raise InvalidImageStructureError(
+                            f"Invalid type for image: {type(image_value)}"
+                        )
+
+                    threadpool_requested = _is_threadpool_requested(values)
+                    if threadpool_requested and not is_threadpool_allowed:
+                        raise UnsupportedThreadpoolConfigurationError(
+                            f"Threadpool requested but not supported by image {image_name}"
+                        )
+
+                    renderer_num_workers = int(values.get("renderer_num_workers", 0))
                     create_test_environment(
                         k8s_name=env.k8s_name,
                         model=model,
                         in_cluster=actuator.in_cluster,
                         verify_ssl=actuator.verify_ssl,
-                        image=values.get("image"),
+                        image=image_name,
                         image_pull_secret_name=actuator.image_pull_secret_name,
                         deployment_template=actuator.deployment_template,
                         service_template=actuator.service_template,
@@ -218,6 +294,9 @@ def _create_environment(
                         enforce_eager=values.get("enforce_eager", 0) == 1,
                         io_processor_plugin=values.get("io_processor_plugin"),
                         otlp_traces_endpoint=otlp_traces_endpoint,
+                        renderer_num_workers=(
+                            renderer_num_workers if renderer_num_workers > 0 else None
+                        ),
                         check_interval=check_interval,
                         timeout=timeout,
                     )
@@ -494,6 +573,8 @@ def run_resource_and_workload_experiment(
         except (
             K8sEnvironmentCreationError,
             K8sConnectionError,
+            UnsupportedThreadpoolConfigurationError,
+            InvalidImageStructureError,
             VLLMBenchmarkError,
         ) as error:
             logger.error(f"Error running tests for entity {entity.identifier}: {error}")

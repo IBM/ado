@@ -109,7 +109,7 @@ ado show measurements space --use-latest
 Try as well:
 
 ```commandline
-ado show details space --use-latest
+ado show stats discoveryspace --use-latest
 ```
 
 ## Next Steps

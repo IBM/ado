@@ -91,7 +91,7 @@ metadata:
 operation:
   module:
     operatorName: random_walk
-    operationType: search
+    operationType: explore
   parameters:
     batchSize: 1
     samplerConfig:
@@ -223,7 +223,7 @@ grouped:
 !!! info end
 
     The flat modes sample entities directly.
-    For the grouped modes, the sampling is done on 2 levels - 
+    For the grouped modes, the sampling is done on 2 levels -
     groups and then entities in the groups. The group level
     sampling can be either sequential or random, while group member level is always
     sequential
@@ -292,7 +292,7 @@ metadata:
 operation:
   module:
     operatorName: random_walk
-    operationType: search
+    operationType: explore
   parameters:
     batchSize: 1
     samplerConfig:

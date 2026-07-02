@@ -15,6 +15,7 @@ from sqlalchemy.exc import InvalidRequestError, SQLAlchemyError
 import orchestrator.core.samplestore.config
 import orchestrator.core.samplestore.csv
 import orchestrator.metastore.sql.statements
+from orchestrator.core.discoveryspace.stats import DiscoverySpaceStatistics
 from orchestrator.core.samplestore.base import (
     ActiveSampleStore,
     FailedToDecodeStoredEntityError,
@@ -56,6 +57,11 @@ from orchestrator.utilities.pandas import (
 if TYPE_CHECKING:
     import pandas as pd
     from rich.console import RenderableType
+
+    from orchestrator.core.operation.stats import OperationMeasurementStatistics
+    from orchestrator.core.samplestore.stats import (  # noqa: F401 — used in annotations
+        SampleStoreStatistics,
+    )
 
 # Process-level cache of (db_url, tablename) pairs for which the four DDL tables
 # have already been verified to exist, along with their reflected metadata.
@@ -1483,23 +1489,331 @@ class SQLSampleStore(ActiveSampleStore):
             self.log.critical(f"{msg}. Error: {error}")
             raise SystemError(f"{msg}. Error: {error}") from error
 
-    def measurement_requests_for_operation(
-        self,
-        operation_id: str,
-        filters: list[dict[str, str]] | None = None,
-    ) -> list[MeasurementRequest]:
-        """
-        Fetch measurement requests for an operation, optionally filtered.
+    def operation_measurement_statistics(
+        self, operation_ids: set[str] | None = None
+    ) -> "list[OperationMeasurementStatistics]":
+        """Compute aggregated measurement statistics for one or more operations.
+
+        Computes all statistics in a single query grouped by operation_id to
+        avoid multiple DB round-trips: request counts (total/failed/successful),
+        result counts (total/valid/invalid), and distinct measured entity count.
 
         Args:
-            operation_id: The operation identifier
+            operation_ids: Set of operation identifiers to aggregate. Pass
+                ``None`` to aggregate across all operations in the store.
+                Passing an empty set raises ``ValueError``.
+
+        Returns:
+            A list of OperationMeasurementStatistics instances, one per
+            operation found in the store.
+
+        Raises:
+            ValueError: If ``operation_ids`` is an empty set.
+        """
+        if operation_ids is not None and len(operation_ids) == 0:
+            raise ValueError("operation_ids must be a non-empty set or None")
+
+        from sqlalchemy import case, func, select
+
+        from orchestrator.core.operation.stats import OperationMeasurementStatistics
+
+        req_table = self._request_table
+        reqres_table = self._request_result_table
+        res_table = self._result_table
+
+        # Equivalent SQL:
+        #
+        #   SELECT
+        #     req.operation_id,
+        #     COUNT(DISTINCT req.uid) AS total_requests,
+        #     COUNT(DISTINCT CASE WHEN req.status = 'Failed' THEN req.uid END) AS failed_requests,
+        #     COUNT(DISTINCT CASE WHEN req.status = 'Success' THEN req.uid END) AS successful_requests,
+        #     COUNT(res.uid) AS total_results,
+        #     SUM(CASE WHEN JSON_EXTRACT(res.data, '$.reason') IS NULL     THEN 1 ELSE 0 END) AS successful_results,
+        #     SUM(CASE WHEN JSON_EXTRACT(res.data, '$.reason') IS NOT NULL THEN 1 ELSE 0 END) AS failed_results,
+        #     COUNT(DISTINCT res.entity_id) AS measured_entities
+        #   FROM <tablename>_measurement_requests req
+        #   LEFT JOIN <tablename>_measurement_requests_results reqres ON reqres.request_uid = req.uid
+        #   LEFT JOIN <tablename>_measurement_results            res  ON reqres.result_uid  = res.uid
+        #   [WHERE req.operation_id IN (...)]          -- only when operation_ids is not None
+        #   GROUP BY req.operation_id
+
+        reason_is_null = func.json_extract(res_table.c.data, "$.reason").is_(None)
+
+        stmt = (
+            select(
+                # req.operation_id
+                req_table.c.operation_id,
+                # COUNT(DISTINCT req.uid) AS total_requests,
+                func.count(func.distinct(req_table.c.uid)).label("total_requests"),
+                # COUNT(DISTINCT CASE WHEN req.status = 'Failed' THEN req.uid END) AS failed_requests,
+                func.count(
+                    func.distinct(
+                        case(
+                            (
+                                req_table.c.status
+                                == MeasurementRequestStateEnum.FAILED.value,
+                                req_table.c.uid,
+                            ),
+                            else_=None,
+                        )
+                    )
+                ).label("failed_requests"),
+                # COUNT(DISTINCT CASE WHEN req.status = 'Success' THEN req.uid END) AS successful_requests,
+                func.count(
+                    func.distinct(
+                        case(
+                            (
+                                req_table.c.status
+                                == MeasurementRequestStateEnum.SUCCESS.value,
+                                req_table.c.uid,
+                            ),
+                            else_=None,
+                        )
+                    )
+                ).label("successful_requests"),
+                # COUNT(res.uid) AS total_results,
+                func.count(res_table.c.uid).label("total_results"),
+                # SUM(CASE WHEN JSON_EXTRACT(res.data, '$.reason') IS NULL THEN 1 ELSE 0 END) AS successful_results,
+                func.sum(case((reason_is_null, 1), else_=0)).label(
+                    "successful_results"
+                ),
+                # SUM(CASE WHEN JSON_EXTRACT(res.data, '$.reason') IS NOT NULL THEN 1 ELSE 0 END) AS failed_results,
+                func.sum(case((~reason_is_null, 1), else_=0)).label("failed_results"),
+                # COUNT(DISTINCT res.entity_id) AS measured_entities
+                func.count(func.distinct(res_table.c.entity_id)).label(
+                    "measured_entities"
+                ),
+            )
+            # FROM <tablename>_measurement_requests req
+            .select_from(req_table)
+            # LEFT JOIN <tablename>_measurement_requests_results reqres ON reqres.request_uid = req.uid
+            .outerjoin(reqres_table, reqres_table.c.request_uid == req_table.c.uid)
+            # LEFT JOIN <tablename>_measurement_results res ON reqres.result_uid = res.uid
+            .outerjoin(res_table, reqres_table.c.result_uid == res_table.c.uid)
+            # GROUP BY req.operation_id
+            .group_by(req_table.c.operation_id)
+        )
+
+        if operation_ids is not None:
+            stmt = stmt.where(req_table.c.operation_id.in_(operation_ids))
+
+        try:
+            with self.engine.begin() as connectable:
+                rows = connectable.execute(stmt).all()
+                return [
+                    OperationMeasurementStatistics(
+                        operation_id=row.operation_id,
+                        total_requests=row.total_requests or 0,
+                        failed_requests=row.failed_requests or 0,
+                        successful_requests=row.successful_requests or 0,
+                        total_results=row.total_results or 0,
+                        successful_results=row.successful_results or 0,
+                        failed_results=row.failed_results or 0,
+                        measured_entities=row.measured_entities or 0,
+                    )
+                    for row in rows
+                ]
+        except SQLAlchemyError as error:
+            msg = f"Unable to get measurement statistics for operation IDs {operation_ids}"
+            self.log.critical(f"{msg}. Error: {error}")
+            raise SystemError(f"{msg}. Error: {error}") from error
+
+    def samplestore_statistics(self) -> "SampleStoreStatistics":
+        """Compute aggregate statistics for this sample store in a single query.
+
+        Issues exactly one query that returns three scalar counts via subqueries:
+        total entities, total measurement results, and distinct experiment
+        references.
+
+        Returns:
+            A :class:`~orchestrator.core.samplestore.stats.SampleStoreStatistics`
+            instance with all three counters populated.
+
+        Raises:
+            SystemError: If the underlying database query fails.
+        """
+        from sqlalchemy import func, select
+
+        from orchestrator.core.samplestore.stats import SampleStoreStatistics
+
+        entity_table = self._metadata.tables[self._tablename]
+        req_table = self._request_table
+        res_table = self._result_table
+
+        # Equivalent SQL:
+        #
+        #   SELECT
+        #     (SELECT COUNT(identifier)
+        #        FROM sqlsource_{id})                              AS number_of_entities,
+        #     (SELECT COUNT(uid)
+        #        FROM sqlsource_{id}_measurement_results)          AS number_of_results,
+        #     (SELECT COUNT(DISTINCT experiment_reference)
+        #        FROM sqlsource_{id}_measurement_requests)         AS number_of_experiments
+
+        stmt = select(
+            select(func.count(entity_table.c.identifier))
+            .scalar_subquery()
+            .label("number_of_entities"),
+            select(func.count(res_table.c.uid))
+            .scalar_subquery()
+            .label("number_of_results"),
+            select(func.count(func.distinct(req_table.c.experiment_reference)))
+            .scalar_subquery()
+            .label("number_of_experiments"),
+        )
+
+        try:
+            with self.engine.begin() as connectable:
+                row = connectable.execute(stmt).one()
+                return SampleStoreStatistics(
+                    number_of_entities=row.number_of_entities or 0,
+                    number_of_results=row.number_of_results or 0,
+                    number_of_experiments=row.number_of_experiments or 0,
+                )
+        except SQLAlchemyError as error:
+            msg = f"Unable to get statistics for sample store {self._tablename}"
+            self.log.critical(f"{msg}. Error: {error}")
+            raise SystemError(f"{msg}. Error: {error}") from error
+
+    def space_entity_statistics(
+        self,
+        space_ids_to_operation_ids: dict[str, set[str]],
+    ) -> "dict[str, DiscoverySpaceStatistics]":
+        """Compute entity-level statistics for one or more discovery spaces.
+
+        Issues a single SQL query that fetches all distinct
+        ``(operation_id, entity_id)`` pairs across every operation referenced
+        in *space_ids_to_operation_ids*, then groups the results by space ID
+        in Python.  This approach is portable across all supported backends
+        (SQLite, MySQL).
+
+        ``number_matching_entities`` and
+        ``number_matching_entities_with_measurements`` are not computed here
+        (they require Python-side ``isEntityInSpace`` evaluation) and are
+        always ``None`` in the returned models.
+
+        Args:
+            space_ids_to_operation_ids: Mapping of space ID to the set of
+                operation IDs that belong to that space.  Spaces with an empty
+                operation-ID set are returned with ``number_measured_entities``
+                equal to ``0``.  An empty mapping returns an empty dict.
+
+        Returns:
+            A ``dict`` keyed by space ID.  Each value is a
+            :class:`~orchestrator.core.discoveryspace.stats.DiscoverySpaceStatistics`
+            with ``number_measured_entities`` populated and all other fields at
+            their defaults (``None``).
+
+        Raises:
+            SystemError: If the underlying SQL query fails.
+        """
+        if not space_ids_to_operation_ids:
+            return {}
+
+        # Separate spaces that have no operations (return 0 immediately) from
+        # those that need a DB query.
+        empty_space_ids = {
+            space_id
+            for space_id, operation_ids in space_ids_to_operation_ids.items()
+            if not operation_ids
+        }
+        spaces_to_query = {
+            space_id: operation_ids
+            for space_id, operation_ids in space_ids_to_operation_ids.items()
+            if operation_ids
+        }
+
+        result: dict[str, DiscoverySpaceStatistics] = {
+            space_id: DiscoverySpaceStatistics(
+                number_of_experiments=0,
+                number_of_operations=0,
+                number_of_explore_operations=0,
+                number_measured_entities=0,
+            )
+            for space_id in empty_space_ids
+        }
+
+        if not spaces_to_query:
+            return result
+
+        # Flat set of all operation IDs across all queried spaces.
+        operation_ids = {
+            operation_id
+            for operation_ids in spaces_to_query.values()
+            for operation_id in operation_ids
+        }
+        # Reverse map: operation_id → space_id (each operation belongs to one space).
+        operation_id_to_space_id: dict[str, str] = {
+            operation_id: space_id
+            for space_id, operation_ids in spaces_to_query.items()
+            for operation_id in operation_ids
+        }
+
+        try:
+            from sqlalchemy import select
+
+            req_table = self._request_table
+            reqres_table = self._request_result_table
+            res_table = self._result_table
+
+            # Fetch all distinct (operation_id, entity_id) pairs in one query.
+            stmt = (
+                select(
+                    req_table.c.operation_id,
+                    res_table.c.entity_id,
+                )
+                .select_from(req_table)
+                .join(reqres_table, reqres_table.c.request_uid == req_table.c.uid)
+                .join(res_table, reqres_table.c.result_uid == res_table.c.uid)
+                .where(req_table.c.operation_id.in_(operation_ids))
+                .distinct()
+            )
+
+            with self.engine.begin() as connectable:
+                rows = connectable.execute(stmt).fetchall()
+
+            # Group distinct entity IDs per space in Python.
+            entity_ids_by_space_id: dict[str, set[str]] = {
+                space_id: set() for space_id in spaces_to_query
+            }
+            for row in rows:
+                space_id = operation_id_to_space_id[row.operation_id]
+                entity_ids_by_space_id[space_id].add(row.entity_id)
+
+            for space_id, entity_ids in entity_ids_by_space_id.items():
+                result[space_id] = DiscoverySpaceStatistics(
+                    number_of_experiments=0,
+                    number_of_operations=0,
+                    number_of_explore_operations=0,
+                    number_measured_entities=len(entity_ids),
+                )
+
+        except SQLAlchemyError as error:
+            msg = f"Unable to get entity statistics for spaces {set(spaces_to_query)}"
+            self.log.critical(f"{msg}. Error: {error}")
+            raise SystemError(f"{msg}. Error: {error}") from error
+
+        return result
+
+    def measurement_requests_for_operation(
+        self,
+        operation_id: str | set[str],
+        filters: list[dict[str, str]] | None = None,
+    ) -> list[MeasurementRequest] | dict[str, list[MeasurementRequest]]:
+        """
+        Fetch measurement requests for one or more operations, optionally filtered.
+
+        Args:
+            operation_id: The operation identifier, or a set of operation identifiers
             filters: Optional DB-level filters from prepare_query_filters_for_db()
                      Format: [{"$.path": "value"}, ...]
                      Supports filtering on request fields (status, requestIndex, etc.)
                      and nested JSON fields (metadata.*, experimentReference.*)
 
         Returns:
-            List of MeasurementRequest objects matching the filters
+            A list of MeasurementRequest objects when passed a single operation ID,
+            or a dict keyed by operation ID when passed a set of operation IDs
         """
         from sqlalchemy import and_, select
 
@@ -1508,12 +1822,10 @@ class SQLSampleStore(ActiveSampleStore):
         )
 
         try:
-            # Use cached table metadata from initialization
             req_table = self._request_table
             reqres_table = self._request_result_table
             res_table = self._result_table
 
-            # Build query using SQLAlchemy
             stmt = (
                 select(
                     req_table.c.uid,
@@ -1531,10 +1843,13 @@ class SQLSampleStore(ActiveSampleStore):
                 .select_from(req_table)
                 .join(reqres_table, reqres_table.c.request_uid == req_table.c.uid)
                 .join(res_table, reqres_table.c.result_uid == res_table.c.uid)
-                .where(req_table.c.operation_id == operation_id)
             )
 
-            # Apply filters if provided
+            if isinstance(operation_id, set):
+                stmt = stmt.where(req_table.c.operation_id.in_(operation_id))
+            else:
+                stmt = stmt.where(req_table.c.operation_id == operation_id)
+
             if filters:
                 filter_builder = MeasurementFilterBuilder(
                     dialect=self.engine.dialect.name
@@ -1547,7 +1862,6 @@ class SQLSampleStore(ActiveSampleStore):
                 if filter_conditions:
                     stmt = stmt.where(and_(*filter_conditions))
 
-            # Add ordering
             stmt = stmt.order_by(
                 req_table.c.request_index,
                 req_table.c.insert_id,
@@ -1558,11 +1872,25 @@ class SQLSampleStore(ActiveSampleStore):
             with self.engine.begin() as connectable:
                 cur = connectable.execute(stmt)
         except SQLAlchemyError as error:
-            msg = f"Unable to get the measurement results for operation {operation_id}"
+            msg = (
+                f"Unable to get the measurement requests for operations {operation_id}"
+                if isinstance(operation_id, set)
+                else f"Unable to get the measurement requests for operation {operation_id}"
+            )
             self.log.critical(f"{msg}. Error: {error}")
             raise SystemError(f"{msg}. Error: {error}") from error
 
-        return self._measurement_requests_cursor_to_pydantic(db_cursor=cur)
+        requests = self._measurement_requests_cursor_to_pydantic(db_cursor=cur)
+        if not isinstance(operation_id, set):
+            return requests
+
+        requests_by_operation_id: dict[str, list[MeasurementRequest]] = {
+            requested_operation_id: [] for requested_operation_id in operation_id
+        }
+        for request in requests:
+            requests_by_operation_id[request.operation_id].append(request)
+
+        return requests_by_operation_id
 
     def measurement_request_by_id(
         self, measurement_request_id: str

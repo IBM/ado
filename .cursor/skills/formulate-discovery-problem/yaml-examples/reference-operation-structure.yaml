@@ -4,7 +4,7 @@ spaces: [space_id_1, space_id_2] # Required - list of space identifiers
 operation: # Required - operation definition
   module: # Required - operator specification
     operatorName: name # Required - operator identifier
-    operationType: type # Required - search/modify/characterize/etc.
+    operationType: type # Required - explore/modify/characterize/etc.
   parameters: # Required - operator-specific parameters
     param1: value1
     param2: value2

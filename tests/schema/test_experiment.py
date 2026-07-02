@@ -129,6 +129,34 @@ def test_parameterized_experiment_is_hashable(
     experiment_is_hashable(parameterized_experiment)
 
 
+def test_experiment_and_parameterized_experiment_equality_is_symmetric(
+    mock_parameterizable_experiment: Experiment,
+    customParameterization: list[ConstitutivePropertyValue],
+) -> None:
+    """Base and parameterized experiments must never compare equal.
+
+    ParameterizedExperiment.__eq__ only accepts other ParameterizedExperiment
+    instances. Experiment.__eq__ must reject ParameterizedExperiment too so
+    equality is symmetric and safe for sets and dicts.
+    """
+    base_exp = mock_parameterizable_experiment
+    param_exp = ParameterizedExperiment(
+        parameterization=customParameterization,
+        **base_exp.model_dump(),
+    )
+
+    forward = base_exp == param_exp
+    reverse = param_exp == base_exp
+    assert forward == reverse, (
+        f"asymmetric equality: base == param is {forward!r}, "
+        f"param == base is {reverse!r}"
+    )
+    assert not Experiment.__eq__(base_exp, param_exp)
+    assert not forward
+    assert not reverse
+    assert len({base_exp, param_exp}) == 2
+
+
 def test_parameterized_experiment_base_equality_methods(
     parameterized_experiment: ParameterizedExperiment, global_registry: ActuatorRegistry
 ) -> None:
@@ -425,6 +453,26 @@ def test_experiment_rich_print(experiment: Experiment) -> None:
     Console().print(experiment)
 
 
+def test_experiment_rich_print_includes_fully_qualified_identifier() -> None:
+    """__rich__ displays actuator.FQ identifier and version when set."""
+    from io import StringIO
+
+    from rich.console import Console
+
+    experiment = Experiment(
+        actuatorIdentifier="test_actuator",
+        identifier="solve_mip",
+        targetProperties=[],
+        version="1.2.3",
+    )
+    output = StringIO()
+    Console(file=output, width=120).print(experiment)
+    rendered = output.getvalue()
+    assert "test_actuator.solve_mip@1.2.3" in rendered
+    assert "Version:" in rendered
+    assert "1.2.3" in rendered
+
+
 def test_measurement_types(experiment: Experiment) -> None:
     """Test that created experiments have the correct measurements types"""
 
@@ -479,7 +527,10 @@ def test_create_parameterized_experiment(
     assert p != experimentWithOptions
     assert p == p
     assert p == param_copy
-    assert p.parameterizedIdentifier == param_copy.parameterizedIdentifier
+    assert (
+        p.major_version_parameterized_identifier
+        == param_copy.major_version_parameterized_identifier
+    )
     assert p.identifier == param_copy.identifier
 
     # To test the reference we have to add the experiment to the registry
@@ -488,8 +539,8 @@ def test_create_parameterized_experiment(
     ).addExperiment(experimentWithOptions)
 
     assert (
-        p.reference.parameterizedExperimentIdentifier
-        == param_copy.reference.parameterizedExperimentIdentifier
+        p.reference.major_version_parameterized_experiment_identifier
+        == param_copy.reference.major_version_parameterized_experiment_identifier
     )
 
     # Check the parameterized experiments id is as expected.
@@ -497,7 +548,10 @@ def test_create_parameterized_experiment(
     pstr = "-".join(
         [f"{v.property.identifier}.{v.value}" for v in customParameterization]
     )
-    assert p.parameterizedIdentifier == f"{experimentWithOptions.identifier}-{pstr}"
+    assert (
+        p.major_version_parameterized_identifier
+        == f"{experimentWithOptions.identifier}-{pstr}"
+    )
 
     # Test parameterization with duplicate property fails
     with pytest.raises(
@@ -845,6 +899,32 @@ def test_experiment_provides_requirements(
             mock_parameterizable_experiment
         )
     )
+
+
+def test_experiment_provides_requirements_ignores_version() -> None:
+    """exactMatch=False matches on base experiment name regardless of version."""
+    from orchestrator.schema.property import AbstractPropertyDescriptor
+
+    prerequisite = Experiment(
+        actuatorIdentifier="test_actuator",
+        identifier="solve_mip",
+        targetProperties=[AbstractPropertyDescriptor(identifier="bound")],
+        version="1.0.0",
+    )
+    dependent = Experiment(
+        actuatorIdentifier="test_actuator",
+        identifier="analyze_mip",
+        requiredProperties=(prerequisite.observedProperties[0],),
+        targetProperties=[AbstractPropertyDescriptor(identifier="analysis")],
+        version="1.0.0",
+    )
+    candidate = Experiment(
+        actuatorIdentifier="test_actuator",
+        identifier="solve_mip",
+        targetProperties=[AbstractPropertyDescriptor(identifier="bound")],
+        version="2.0.0",
+    )
+    assert dependent.experimentProvidesRequirements(candidate, exactMatch=False)
 
 
 @pytest.fixture(scope="module")

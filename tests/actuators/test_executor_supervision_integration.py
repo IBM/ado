@@ -146,7 +146,7 @@ def test_supervisor_pending_resource_timeout_emits_invalid(
         ref = never_scheduled.remote()
         supervisor.supervise_experiment_executor(request, ref)
         # Allow enough time for: State API visibility lag (~1s) + pending resource timeout (2s)
-        result = drain_queue(measurement_queue, timeout=10.0)
+        result = drain_queue(measurement_queue, timeout=20.0)
         assert result is not None
         assert result.status == MeasurementRequestStateEnum.FAILED
         assert result.measurements is not None

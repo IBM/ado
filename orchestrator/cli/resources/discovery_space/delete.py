@@ -1,7 +1,6 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-import typer
 from rich.status import Status
 
 from orchestrator.cli.models.parameters import AdoDeleteCommandParameters
@@ -9,19 +8,25 @@ from orchestrator.cli.utils.generic.wrappers import get_sql_store
 from orchestrator.cli.utils.output.prints import (
     ADO_SPINNER_DELETING_FROM_DB,
     ADO_SPINNER_QUERYING_DB,
-    SUCCESS,
-    cannot_delete_resource_due_to_children_resources,
-    console_print,
 )
 from orchestrator.core import CoreResourceKinds
 from orchestrator.metastore.base import (
-    DeleteFromDatabaseError,
     ResourceDoesNotExistError,
+    ResourceHasChildrenError,
 )
 
 
 def delete_discovery_space(parameters: AdoDeleteCommandParameters) -> None:
-    # Extract the single resource_id from the list
+    """Delete a single discovery space.
+
+    Args:
+        parameters: Delete command parameters containing the discovery space id.
+
+    Raises:
+        ResourceDoesNotExistError: If the discovery space does not exist.
+        ResourceHasChildrenError: If the discovery space has dependent resources.
+        DeleteFromDatabaseError: If a database error occurs during deletion.
+    """
     resource_id = parameters.resource_ids[0]
 
     sql = get_sql_store(project_context=parameters.ado_configuration.project_context)
@@ -41,21 +46,15 @@ def delete_discovery_space(parameters: AdoDeleteCommandParameters) -> None:
         )
         if not children_resources.empty:
             status.stop()
-            console_print(
-                cannot_delete_resource_due_to_children_resources(
-                    resource_kind=CoreResourceKinds.DISCOVERYSPACE,
-                    resource_id=resource_id,
-                    children_resources=children_resources,
-                ),
-                stderr=True,
+            raise ResourceHasChildrenError(
+                resource_id=resource_id,
+                kind=CoreResourceKinds.DISCOVERYSPACE,
+                children_resources=children_resources,
             )
-            raise typer.Exit(1)
 
         status.update(ADO_SPINNER_DELETING_FROM_DB)
         try:
             sql.delete_discovery_space(identifier=resource_id)
-        except DeleteFromDatabaseError:
+        except Exception:
             status.stop()
             raise
-
-    console_print(SUCCESS)

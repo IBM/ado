@@ -151,6 +151,7 @@ def test_execute_nevergrad_opt_3d_test_func(
             orchestrator.schema.reference.ExperimentReference(
                 actuatorIdentifier="custom_experiments",
                 experimentIdentifier="nevergrad_opt_3d_test_func",
+                experimentVersion="1.0.0",
             )
         ],
     )

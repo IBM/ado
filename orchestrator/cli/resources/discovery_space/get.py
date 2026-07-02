@@ -20,6 +20,7 @@ from orchestrator.cli.utils.output.prints import (
 )
 from orchestrator.cli.utils.queries.parser import prepare_query_filters_for_db
 from orchestrator.cli.utils.resources.formatters import (
+    build_resource_listing_dataframe,
     format_default_ado_get_multiple_resources,
 )
 from orchestrator.core import DiscoverySpaceResource
@@ -45,8 +46,10 @@ def get_discovery_space(parameters: AdoGetCommandParameters) -> None:
         # For TABLE format, use DataFrame
         if parameters.output_format == AdoGetSupportedOutputFormats.TABLE:
             output_df = format_default_ado_get_multiple_resources(
-                resources=_discovery_space_resource_list_to_ado_get_default_dataframe(
-                    resources=matching_spaces, parameters=parameters
+                resources=build_resource_listing_dataframe(
+                    resources={space.identifier: space for space in matching_spaces},
+                    resource_kind=CoreResourceKinds.DISCOVERYSPACE,
+                    sort_by_age_descending=True,
                 ),
                 resource_kind=CoreResourceKinds.DISCOVERYSPACE,
             )
@@ -242,33 +245,4 @@ def _find_spaces_matching_space(
         result_df
         if parameters.show_details
         else result_df[["IDENTIFIER", "NAME", "AGE", "RELATION_TO_INPUT_SPACE"]]
-    )
-
-
-def _discovery_space_resource_list_to_ado_get_default_dataframe(
-    resources: list[DiscoverySpaceResource],
-    parameters: AdoGetCommandParameters,
-) -> "pd.DataFrame":
-    from datetime import datetime, timezone
-
-    import pandas as pd
-
-    result_df = pd.DataFrame(
-        [
-            {
-                "IDENTIFIER": space_resource.identifier,
-                "NAME": space_resource.config.metadata.name,
-                "DESCRIPTION": space_resource.config.metadata.labels,
-                "AGE": datetime.now(timezone.utc) - space_resource.created,
-            }
-            for space_resource in resources
-        ]
-    )
-    result_df = result_df.sort_values(by="AGE", ascending=False)
-    result_df = result_df.reset_index(drop=True)
-
-    return (
-        result_df
-        if parameters.show_details
-        else result_df[["IDENTIFIER", "NAME", "AGE"]]
     )

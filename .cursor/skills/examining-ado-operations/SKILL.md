@@ -36,8 +36,8 @@ on, and whether measurements and results look healthy.
 Operations are applied to discoveryspaces. There are different types of
 operation. The General Workflow can be applied to all types of operation.
 
-In addition, the Explore/Search Workflow operations can be applied to
-Explore/Search operations.
+In addition, the Explore Operation Workflow can be applied to
+Explore operations.
 
 - Read [operations](../../../website/docs/resources/operation.md) documentation
   for details
@@ -115,9 +115,9 @@ However, it is possible it failed in a way that meant it could not record the
 failure. In this case:
 
 1. Determine how long it has been running.
-2. If it is many hours and the operationType is not search/explore flag that
+2. If it is many hours and the operationType is not explore flag that
    there may be a problem
-3. If it is many hours and the operationType is search/explore proceed use
+3. If it is many hours and the operationType is explore proceed use
    specific techniques in Explore Operation Workflow to determine if its still
    running
 
@@ -201,11 +201,11 @@ uv run ado get datacontainer $DATACONTAINER_IDENTIFIER -o yaml --output-file dat
 
 For each output resource summarize what it is/contains.
 
-## Explore/Search Operation Workflow
+## Explore Operation Workflow
 
 The following assumes the General Workflow has been applied.
 
-Explore/Search operations sample entities from a discovery space and make
+Explore operations sample entities from a discovery space and make
 measurements on them.
 
 Notes:
@@ -222,9 +222,16 @@ Relevant Documentation
 
 ### Step 1: Get Details on what was Sampled and Measured
 
+To get a numerical overview of results and requests before diving into the
+trace, use:
+
 ```bash
-uv run ado show details operation $OPERATION_ID
+uv run ado show stats operation $OPERATION_ID
 ```
+
+This outputs the base table columns output by ado get plus `TOTAL_RESULTS`,
+`SUCCESSFUL_RESULTS`, `FAILED_RESULTS`, `MEASURED_ENTITIES`, `TOTAL_REQUESTS`,
+`FAILED_REQUESTS`, `SUCCESSFUL_REQUESTS`.
 
 Compare this with the number of samples requested in the operator parameters.
 
@@ -233,7 +240,7 @@ were completed there are no issues ->
 [examine entities](#step-3-get-entities-and-measurements)
 
 If the state is not finished ->
-[Use the diagnose if sampling operation running workflow](#diagnose-if-an-explore-or-search-operation-is-running-workflow).
+[Use the diagnose if sampling operation running workflow](#diagnose-if-an-explore-operation-is-running-workflow).
 For all other combinations ->
 [Diagnose sampling issues](#step-2-optional-diagnose-sampling-issues)
 
@@ -278,7 +285,7 @@ Perform an analysis of the measurements, checking e.g. distributions of metrics,
 metric outliers, correlations between metrics. Take into account the domain of
 the experiment and meaning of metrics when looking for patterns.
 
-## Diagnose if an Explore or Search Operation is Running Workflow
+## Diagnose if an Explore Operation is Running Workflow
 
 - Check if the operation is submitting experiments in batches
 - Confirm if the operation uses continuous batching (new experiment requested

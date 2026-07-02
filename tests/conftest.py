@@ -8,8 +8,7 @@ from collections.abc import Callable, Generator
 import pytest
 import ray
 
-from orchestrator.core.legacy.registry import LegacyMigratorRegistry
-
+from .fixtures.ado_cli_isolation import *
 from .fixtures.core.datacontainer import *
 from .fixtures.core.samplestore import *
 from .fixtures.core.generators import *
@@ -61,89 +60,7 @@ def initialize_ray() -> Generator[None, None, None]:
     """
     ray.init(
         ignore_reinit_error=True,
+        object_store_memory=200 * 1024 * 1024,  # 200 MB per xdist worker
     )
     yield
     ray.shutdown()
-
-
-@pytest.fixture(scope="session", autouse=True)
-def session_legacy_migrators() -> dict:
-    """Load legacy migrators once per session and return a copy.
-
-    This session-scoped fixture ensures migrators are loaded once at the start
-    of the test session and the registered migrators are saved. This copy can
-    then be used by test-scoped fixtures to reset the registry state.
-
-    Returns:
-        A dictionary copy of all registered migrators
-    """
-    # Import to trigger registration - this happens once per test session
-    import orchestrator.core.legacy.migrators  # noqa: F401
-
-    # Return a copy of the registered migrators
-    return LegacyMigratorRegistry._migrators.copy()
-
-
-@pytest.fixture
-def isolated_legacy_migrator_registry() -> Generator[None, None, None]:
-    """Isolate the LegacyMigratorRegistry for each test.
-
-    This fixture ensures that modifications to the registry in one test
-    do not affect other tests, even when running with pytest -n auto.
-
-    The fixture:
-    1. Saves the current registry state before the test
-    2. Clears the registry for the test
-    3. Restores the original state after the test
-
-    Usage:
-        def test_something(isolated_legacy_migrator_registry):
-            # Registry starts empty
-            # Register validators as needed for this test
-            # Changes won't affect other tests
-    """
-    # Save the current state
-    original_migrators = LegacyMigratorRegistry._migrators.copy()
-
-    # Clear for this test
-    LegacyMigratorRegistry._migrators.clear()
-
-    try:
-        yield
-    finally:
-        # Restore original state
-        LegacyMigratorRegistry._migrators = original_migrators
-
-
-@pytest.fixture
-def legacy_migrators_loaded(
-    session_legacy_migrators: dict,
-) -> Generator[None, None, None]:
-    """Ensure legacy migrators are loaded and isolated for the test.
-
-    This fixture:
-    1. Resets the registry to the session state (all validators loaded)
-    2. Allows the test to run (potentially modifying the registry)
-    3. Restores the registry to the session state after the test
-
-    This ensures:
-    - All validators are available to the test
-    - Test modifications don't affect other tests
-    - Consistent behavior across pytest-xdist workers
-
-    The session_legacy_migrators fixture loads validators once per test session,
-    and this fixture resets to that known-good state before and after each test.
-
-    Usage:
-        def test_with_real_migrators(legacy_migrators_loaded):
-            # All validators are registered and available
-            # Test can use them without affecting other tests
-    """
-    # Reset registry to session state before test
-    LegacyMigratorRegistry._migrators = session_legacy_migrators.copy()
-
-    try:
-        yield
-    finally:
-        # Restore registry to session state after test
-        LegacyMigratorRegistry._migrators = session_legacy_migrators.copy()

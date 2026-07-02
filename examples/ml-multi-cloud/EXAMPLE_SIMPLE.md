@@ -244,7 +244,7 @@ config:
   operation:
     module:
       operatorName: random_walk
-      operationType: search
+      operationType: explore
     parameters:
       batchSize: 1
       numberEntities: 48
@@ -259,7 +259,7 @@ kind: operation
 metadata:
   entities_submitted: 48
   experiments_requested: 74
-operationType: search
+operationType: explore
 operatorIdentifier: randomwalk-0.9.4.dev30+564196d4.dirty
 status:
   - event: created
@@ -528,7 +528,7 @@ ado show measurements space --use-latest --property-format target
 Also,
 
 ```commandline
-ado show details space --use-latest
+ado show stats discoveryspace --use-latest
 ```
 
 will give you a summary of what has been measured.

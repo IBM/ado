@@ -85,6 +85,47 @@ The `vllm_performance` actuator implements twelve experiments:
 - `test-geospatial-endpoint-guidellm-custom-dataset-v1`: Benchmark existing
   geospatial model endpoints with custom datasets using GuideLLM.
 
+> [!NOTE] Threadpool Support for Geospatial Models
+>
+> Geospatial experiments support threadpool pre/post processing for improved
+> performance when processing satellite imagery. The `renderer_num_workers`
+> parameter controls this feature:
+>
+> - **renderer_num_workers**: Controls threadpool-based rendering:
+>   - Set to `0` to disable threadpool (compatible with all vLLM versions)
+>   - Set to a positive value (e.g., `64`) to enable threadpool with that many workers
+>   - If not specified, threadpool is disabled
+>
+> **Version Requirements:** Threadpool support requires vLLM version 0.20.0 or
+> later. The actuator automatically validates version compatibility when you
+> specify an `image` parameter. If you request threadpool
+> (renderer_num_workers > 0) with an incompatible vLLM version, the experiment
+> will fail with an `UnsupportedThreadpoolConfigurationError`.
+>
+> **Example:**
+>
+> ```yaml
+> # Test v0.18.0 without threadpool
+> - image: ["quay.io/mgazzetti/vllm-performance/vllm:v0.18.0-tt.v1.2.5", "0.18.0"]
+>   renderer_num_workers: 0  # Explicitly disable threadpool
+>
+> # Test v0.20.1 with threadpool
+> - image: ["quay.io/mgazzetti/vllm-performance/vllm:vllm.v0.20.1-tt.v1.2.7", "0.20.1"]
+>   renderer_num_workers: 64  # Enable threadpool with 64 workers
+> ```
+>
+> **Image Format:** To enable version validation, specify the image as a list
+> with the image name and version:
+>
+> ```yaml
+> image:
+>   - ["your-registry/vllm:v0.20.1-custom", "0.20.1"]
+> ```
+>
+> Alternatively, if using standard vLLM image naming (e.g.,
+> `vllm/vllm-openai:v0.20.1`), the actuator will automatically extract the
+> version from the image tag.
+
 ---
 
 ## Running single experiments: Quick endpoint and deployment tests

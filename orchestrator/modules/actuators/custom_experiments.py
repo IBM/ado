@@ -15,8 +15,8 @@ import orchestrator.modules.actuators.catalog
 from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
 from orchestrator.modules.actuators.base import (
     ActuatorBase,
-    DeprecatedExperimentError,
 )
+from orchestrator.modules.actuators.errors import UnknownExperimentError
 from orchestrator.modules.actuators.executor_supervisor import (
     ExperimentExecutorSupervisor,
     ExperimentExecutorSupervisorParameters,
@@ -31,7 +31,7 @@ from orchestrator.schema.entity import (
     CheckRequiredObservedPropertyValuesPresent,
     Entity,
 )
-from orchestrator.schema.experiment import Experiment, ParameterizedExperiment
+from orchestrator.schema.experiment import Experiment
 from orchestrator.schema.observed_property import (
     ObservedProperty,
     ObservedPropertyValue,
@@ -297,32 +297,34 @@ def custom_experiment(
     metadata: dict[str, Any] | None = None,  # noqa: ANN401
     use_ray: bool = True,
     ray_options: dict | None = None,
+    version: str | None = None,
 ) -> Callable[
     [Callable[..., Any]],  # noqa: ANN401
     Callable[[tuple[Any, ...], dict[str, Any]], Any],  # noqa: ANN401
 ]:
-    """
-    Decorator for custom experiment functions.
+    """Decorator for custom experiment functions.
 
     Args:
         required_properties: List of ConstitutiveProperty instances that are required input values.
         output_property_identifiers: List of strings identifying the output property names.
         optional_properties: List of ConstitutiveProperty instances that are optional input values.
         parameterization: Tuple of parameters for default parameterization.
-        metadata: Metadata for the experiment
-        use_ray: If True the CustomExperiments actuator will launch the experiment as a ray remote task
+        metadata: Metadata for the experiment.
+        use_ray: If True the CustomExperiments actuator will launch the experiment as a ray remote task.
         ray_options: A dictionary containing ray remote task options.
-            The keys and allowed values are defined by RayRemoteOptions
+            The keys and allowed values are defined by RayRemoteOptions.
+        version: Algorithm version string in strict SemVer format (``"MAJOR.MINOR.PATCH"``).
+            Can be None.
 
     Returns:
-        A decorator that wraps a function to work with ado's custom experiment system
+        A decorator that wraps a function to work with ado's custom experiment system.
 
     Raises:
-        ValueError: If Unable to generate custom function via decorator e.g.
-        - No required properties provided, and they could not be derived from signature:
-        - Optional properties provided but parameterization could not be derived from signature:
-        - No optional properties provided and they could not be derived from signature
-        - Function parameter names did not include all property identifiers
+        ValueError: If Unable to generate custom experiment via decorator e.g.
+            - No required properties provided, and they could not be derived from signature.
+            - Optional properties provided but parameterization could not be derived from signature.
+            - No optional properties provided and they could not be derived from signature.
+            - Function parameter names did not include all property identifiers.
 
     Example:
 
@@ -337,7 +339,8 @@ def custom_experiment(
 
     @custom_experiment(
         required_properties=[mass, volume],
-        output_properties=["density"]
+        output_properties=["density"],
+        version="1.0.0",
     )
     def calculate_density(mass, volume):
         density_value = mass / volume if volume else None
@@ -412,6 +415,7 @@ def custom_experiment(
             ),
             deprecated=False,
             metadata=metadata,
+            version=version,
         )
         func._experiment = experiment
 
@@ -768,21 +772,21 @@ class CustomExperiments(ActuatorBase):
             f"Received a request to measure {experimentReference} on {[e.identifier for e in entities]}"
         )
 
-        if self._catalog.experimentForReference(experimentReference) is None:
+        try:
+            targetExperiment = self._catalog.experimentForReference(
+                experimentReference, resolve=True
+            )
+        # ExperimentVersionMismatchError can't be raised as we don't use FQI
+        # DeprecatedExperimentError can't be raised as there is no custom experiment deprecation
+        except UnknownExperimentError as error:
             if self._catalog.experiments:
                 raise ValueError(
                     f"Requested experiments {experimentReference} is not in the CustomExperiments actuator catalog. "
-                    f"Known experiments are {list(self._catalog.experimentsMap.keys())}"
-                )
+                    f"Known experiments are {self._catalog.experiment_major_version_identifiers}"
+                ) from error
             raise ValueError(
                 f"Requested experiments {experimentReference} is not in the CustomExperiments actuator catalog (which is empty). "
-            )
-
-        targetExperiment = self._catalog.experimentForReference(experimentReference)
-        if targetExperiment.deprecated:
-            raise DeprecatedExperimentError(
-                f"{targetExperiment.actuatorIdentifier}.{targetExperiment.identifier} is deprecated."
-            )
+            ) from error
 
         # Check all required property values are present to actuate on
         for entity in entities:
@@ -806,12 +810,6 @@ class CustomExperiments(ActuatorBase):
 
         self.log.debug(f"Create measurement request {request}")
         # TODO: Allow functions to specify if they should be remote
-
-        if experimentReference.parameterization:
-            targetExperiment = ParameterizedExperiment(
-                parameterization=experimentReference.parameterization,
-                **targetExperiment.model_dump(),
-            )
 
         # Fetch custom_experiment function for this identifier
         fn = self._functionImplementations[

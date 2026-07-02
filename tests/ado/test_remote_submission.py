@@ -1006,8 +1006,6 @@ def test_cli_remote_sqlite_guard(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            str(tmp_path),
             "-c",
             str(sqlite_context_yaml_file),
             "--remote",
@@ -1028,8 +1026,6 @@ def test_cli_remote_missing_file(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            str(tmp_path),
             "--remote",
             str(tmp_path / "nonexistent.yaml"),
             "get",
@@ -1051,8 +1047,6 @@ def test_cli_remote_invalid_yaml(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            str(tmp_path),
             "-c",
             str(mysql_context_yaml_file),
             "--remote",
@@ -1082,8 +1076,6 @@ def test_cli_execution_context_dispatches_remotely(
         result = runner.invoke(
             ado,
             [
-                "--override-ado-app-dir",
-                str(tmp_path),
                 "-c",
                 str(mysql_context_yaml_file),
                 "--remote",
@@ -1113,8 +1105,6 @@ def test_cli_execution_context_auto_sqlite_guard(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            str(tmp_path),
             "--remote",
             str(remote_context_file),
             "get",

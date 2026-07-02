@@ -169,7 +169,7 @@ def orchestrate_explore_operation(
 ) -> OperationOutput:
     """Orchestrates an explore operation.
 
-    This function sets up and executes an explore (search) operation. It handles:
+    This function sets up and executes an explore operation. It handles:
     - Initializing the resource cleaner
     - Validating the measurement space consistency
     - Validating actuator configurations against the space

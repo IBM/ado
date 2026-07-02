@@ -1,15 +1,56 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
-from typing import Annotated
+from typing import Annotated, NoReturn
 
 from fastapi import Depends, HTTPException, status
 
+from orchestrator.modules.actuators.errors import (
+    DeprecatedExperimentError,
+    ExperimentVersionMismatchError,
+    UnexpectedCatalogRetrievalError,
+    UnknownExperimentError,
+)
 from orchestrator.modules.actuators.registry import (
     ActuatorRegistry,
-    UnknownExperimentError,
 )
 from orchestrator.schema.entity import Entity
 from orchestrator.schema.reference import ExperimentReference
+
+
+def _raise_http_for_experiment_lookup_error(
+    actuator_id: str, experiment_id: str, error: Exception
+) -> NoReturn:
+    """Translate experiment lookup failures into HTTP exceptions.
+
+    Args:
+        actuator_id: Actuator identifier from the request.
+        experiment_id: Experiment identifier from the request.
+        error: The exception raised by :meth:`ActuatorRegistry.experimentForReference`.
+
+    Raises:
+        HTTPException: Mapped from registry or catalog lookup errors.
+    """
+    if isinstance(error, UnknownExperimentError):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Actuator {actuator_id} does not have experiment {experiment_id}",
+        ) from error
+    if isinstance(error, UnexpectedCatalogRetrievalError):
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Catalog for actuator {actuator_id} is unavailable: {error}",
+        ) from error
+    if isinstance(error, ExperimentVersionMismatchError):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(error),
+        ) from error
+    if isinstance(error, DeprecatedExperimentError):
+        raise HTTPException(
+            status_code=status.HTTP_410_GONE,
+            detail=str(error),
+        ) from error
+    raise error
 
 
 def validated_actuator_id(actuator_id: str) -> str:
@@ -49,7 +90,8 @@ def validated_experiment_id(
 
     Raises:
         HTTPException: If the experiment is not associated with the actuator
-            (404 Not Found).
+            (404 Not Found), the catalog is unavailable (500 Internal Server Error),
+            or the experiment is deprecated (410 Gone).
     """
     try:
         ActuatorRegistry().experimentForReference(
@@ -57,11 +99,13 @@ def validated_experiment_id(
                 experimentIdentifier=experiment_id, actuatorIdentifier=actuator_id
             )
         )
-    except UnknownExperimentError as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Actuator {actuator_id} does not have experiment {experiment_id}",
-        ) from e
+    except (
+        UnknownExperimentError,
+        UnexpectedCatalogRetrievalError,
+        ExperimentVersionMismatchError,
+        DeprecatedExperimentError,
+    ) as error:
+        _raise_http_for_experiment_lookup_error(actuator_id, experiment_id, error)
 
     return experiment_id
 
@@ -85,11 +129,19 @@ def validated_entities_for_experiment(
     Raises:
         HTTPException: If any entity is invalid for the experiment (422 Unprocessable Entity).
     """
-    requested_experiment = ActuatorRegistry().experimentForReference(
-        ExperimentReference(
-            experimentIdentifier=experiment_id, actuatorIdentifier=actuator_id
+    try:
+        requested_experiment = ActuatorRegistry().experimentForReference(
+            ExperimentReference(
+                experimentIdentifier=experiment_id, actuatorIdentifier=actuator_id
+            )
         )
-    )
+    except (
+        UnknownExperimentError,
+        UnexpectedCatalogRetrievalError,
+        ExperimentVersionMismatchError,
+        DeprecatedExperimentError,
+    ) as error:
+        _raise_http_for_experiment_lookup_error(actuator_id, experiment_id, error)
 
     try:
         for entity in entities:

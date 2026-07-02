@@ -22,6 +22,8 @@ from orchestrator.schema.property_value import PropertyValue
 from orchestrator.schema.request import MeasurementRequest
 
 if typing.TYPE_CHECKING:
+    from orchestrator.core.discoveryspace.stats import DiscoverySpaceStatistics
+    from orchestrator.core.operation.stats import OperationMeasurementStatistics
     from orchestrator.core.samplestore.config import (
         SampleStoreConfiguration,
         SampleStoreReference,
@@ -498,6 +500,56 @@ class ActiveSampleStore(SampleStore, ABC):
     def operation_entity_statistics(self, operation_id: str) -> dict[str, int]:
         """
         Compute entity-level statistics for an operation."""
+
+    @abc.abstractmethod
+    def operation_measurement_statistics(
+        self, operation_ids: set[str] | None = None
+    ) -> "list[OperationMeasurementStatistics]":
+        """Compute aggregated measurement statistics for one or more operations.
+
+        Args:
+            operation_ids: Set of operation identifiers to aggregate. Pass
+                ``None`` to aggregate across all operations in the store.
+                Passing an empty set raises ``ValueError``.
+
+        Returns:
+            A list of OperationMeasurementStatistics instances, one per
+            operation found in the store.
+
+        Raises:
+            ValueError: If ``operation_ids`` is an empty set.
+        """
+
+    @abc.abstractmethod
+    def space_entity_statistics(
+        self,
+        space_ids_to_operation_ids: dict[str, set[str]],
+    ) -> "dict[str, DiscoverySpaceStatistics]":
+        """Compute entity-level statistics for one or more discovery spaces.
+
+        Issues a single SQL query for all spaces at once, then groups results
+        by space ID in Python.
+
+        The ``number_matching_entities`` and
+        ``number_matching_entities_with_measurements`` fields require
+        Python-side ``isEntityInSpace`` evaluation and are not computed here;
+        they are always returned as ``None``.
+
+        Args:
+            space_ids_to_operation_ids: Mapping of space ID to the set of
+                operation IDs that belong to that space.  Spaces with an empty
+                operation-ID set are returned with ``number_measured_entities``
+                equal to ``0``.  An empty mapping returns an empty dict.
+
+        Returns:
+            A ``dict`` keyed by space ID.  Each value is a
+            :class:`~orchestrator.core.discoveryspace.stats.DiscoverySpaceStatistics`
+            with ``number_measured_entities`` populated and all other fields at
+            their defaults (``None``).
+
+        Raises:
+            SystemError: If the underlying SQL query fails.
+        """
 
 
 class MockParams(pydantic.BaseModel):

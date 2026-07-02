@@ -16,5 +16,6 @@ entitySpace:
 experiments:
   - actuatorIdentifier: custom_experiments
     experimentIdentifier: nevergrad_opt_3d_test_func
+    experimentVersion: 1.0.0
 metadata:
   name: 'rosenbrock_3d'

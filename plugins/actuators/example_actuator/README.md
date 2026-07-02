@@ -3,11 +3,11 @@
 This repository contains an example for creating an actuator for `ado`.
 
 For more about actuators - what they represent, how to create them, etc. - see
-the  
+the
 [`ado` documentation](https://ibm.github.io/ado/actuators/working-with-actuators/).
 
 This example defines an actuator called `robotic_lab` with one experiment called
-`peptide_mineralization`. The example is fully installable and works as-is,  
+`peptide_mineralization`. The example is fully installable and works as-is,
 the only caveat being that it uses made up properties for measurement.
 
 ## Installing

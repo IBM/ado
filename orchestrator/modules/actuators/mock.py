@@ -9,7 +9,8 @@ import uuid
 import orchestrator.modules.actuators.catalog
 import orchestrator.schema.property_value
 from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
-from orchestrator.modules.actuators.base import ActuatorBase, DeprecatedExperimentError
+from orchestrator.modules.actuators.base import ActuatorBase
+from orchestrator.modules.actuators.errors import DeprecatedExperimentError
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
 from orchestrator.schema.entity import Entity
 from orchestrator.schema.experiment import Experiment

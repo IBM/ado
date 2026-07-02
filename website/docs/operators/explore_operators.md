@@ -148,7 +148,7 @@ config:
   operation:
     module:
       operatorName: random_walk
-      operationType: search
+      operationType: explore
     parameters:
       batchSize: 4
       singleMeasurement: false
@@ -159,13 +159,13 @@ config:
   spaces:
     - space-8f1cfb-91ecfb
 created: "2024-10-07T06:46:08.176924Z"
-identifier: randomwalk-0.6.4-1be83b
+identifier: random_walk@2.0.0-1be83b
 kind: operation
 metadata:
   entities_submitted: 160
   experiments_requested: 160
-operationType: search
-operatorIdentifier: randomwalk-0.6.4
+operationType: explore
+operatorIdentifier: random_walk@2.0.0
 result: null
 status: []
 version: v1
@@ -181,14 +181,11 @@ Commands that reflect changing state during an `operation`:
 
 - `ado show measurements space`
 - `ado show measurements operation`
-- `ado show details space`
+- `ado show stats discoveryspace`
 
 Commands that do not reflect changing state during an `operation`:
 
 - `ado get operation $OPERATION_IDENTIFIER`
-- `ado show details operation $OPERATION_IDENTIFIER`
 
 The `operation` resource itself will be updated with metadata when the operation
 finishes but not while it is running.
-`ado show details operation $OPERATION_IDENTIFIER` uses this metadata, so it
-will not be correct until the operation is finished.

@@ -1,4 +1,5 @@
 <!-- markdownlint-disable first-line-h1 -->
+<!-- markdownlint-disable first-line-h1 -->
 
 !!! info end
 
@@ -166,6 +167,91 @@ From the `submit` callers point of view this means:
    `MeasurementQueue` containing the experiment results.
 
 For everything else the actuator developer is free to implement as they want.
+
+## Algorithm versioning for experiments
+
+Each `Experiment` you expose in your catalog should declare an algorithm version
+via the `version` field.  Use a strict `MAJOR.MINOR.PATCH` SemVer string:
+
+<!-- markdownlint-disable code-block-style -->
+
+```python
+from orchestrator.schema.experiment import Experiment
+
+my_experiment = Experiment(
+    actuatorIdentifier="my_actuator",
+    identifier="run_benchmark",
+    targetProperties=[...],
+    version="1.0.0",  # algorithm version
+)
+```
+
+<!-- markdownlint-enable code-block-style -->
+
+**Version bump rules:**
+
+| Change type | Rule | Example |
+| --- | --- | --- |
+| Bug fix, refactoring, logging | No bump (PATCH is fine) | `1.0.0 → 1.0.1` |
+| New output / input, same core behaviour | Minor bump | `1.0.0 → 1.1.0` |
+| Mathematical / algorithmic change | **Major bump** | `1.0.0 → 2.0.0` |
+
+<!-- markdownlint-disable no-blanks-blockquote -->
+
+> [!IMPORTANT]
+> Only the MAJOR version is encoded into the memoisation key.  A major version
+> bump means ado treats all previously cached results as belonging to a
+> **different** experiment — they will not be reused.  Minor and patch bumps are
+> transparent to the cache.
+
+> [!NOTE]
+> Experiments without a declared version emit a `DeprecationWarning` at
+> registration time.
+
+<!-- markdownlint-enable no-blanks-blockquote -->
+
+### Resolving experiment references in `submit`
+
+In your `submit` method,
+use `catalog.experimentForReference(reference, resolve=True)` to obtain
+the experiment object.  This call:
+
+- searches the catalog for matching experiments based on major version,
+- raises `UnknownExperimentError` if the reference cannot be resolved,
+- raises `DeprecatedExperimentError` if the matching experiment is deprecated, and
+- creates a `ParameterizedExperiment` instance if the reference carries
+  parameterization.
+
+<!-- markdownlint-disable code-block-style -->
+
+```python
+from orchestrator.modules.actuators.catalog import ExperimentCatalog
+
+async def submit(self, entities, request):
+    experiment = self.__class__.catalog().resolve_reference(
+        request.experimentReference
+    )
+    # experiment is now an Experiment or ParameterizedExperiment
+    ...
+```
+
+<!-- markdownlint-enable code-block-style -->
+
+### Mixed-version sampleStores
+
+When a sampleStore accumulates results from **both** `v1` and `v2` of the same
+experiment (e.g. after a major version bump), the observed property identifiers
+differ:
+
+- `run_benchmark@v1` results are stored under `run_benchmark@v1-<property>`
+- `run_benchmark@v2` results are stored under `run_benchmark@v2-<property>`
+
+In CSV exports these appear as **separate columns**.  Entities measured under
+only one version will have `NaN` in the other version's column.  This is
+intentional and correct — the two versions represent different scientific
+definitions and their results are not interchangeable.
+
+---
 
 ## Enabling custom configuration of an actuator
 

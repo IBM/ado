@@ -1,7 +1,6 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-import typer
 from rich.status import Status
 
 from orchestrator.cli.models.parameters import AdoDeleteCommandParameters
@@ -9,23 +8,27 @@ from orchestrator.cli.utils.generic.wrappers import get_sql_store
 from orchestrator.cli.utils.output.prints import (
     ADO_SPINNER_DELETING_FROM_DB,
     ADO_SPINNER_QUERYING_DB,
-    ERROR,
-    HINT,
-    SUCCESS,
-    cannot_delete_resource_due_to_children_resources,
-    console_print,
-    cyan,
 )
 from orchestrator.core import CoreResourceKinds
 from orchestrator.metastore.base import (
-    DeleteFromDatabaseError,
-    NonEmptySampleStorePreventingDeletionError,
     ResourceDoesNotExistError,
+    ResourceHasChildrenError,
 )
 
 
 def delete_sample_store(parameters: AdoDeleteCommandParameters) -> None:
-    # Extract the single resource_id from the list
+    """Delete a single sample store.
+
+    Args:
+        parameters: Delete command parameters containing the sample store id and options.
+
+    Raises:
+        ResourceDoesNotExistError: If the sample store does not exist.
+        ResourceHasChildrenError: If the sample store has dependent resources.
+        NonEmptySampleStorePreventingDeletionError: If the sample store contains data
+            and force deletion was not requested.
+        DeleteFromDatabaseError: If a database error occurs during deletion.
+    """
     resource_id = parameters.resource_ids[0]
 
     sql = get_sql_store(project_context=parameters.ado_configuration.project_context)
@@ -45,30 +48,17 @@ def delete_sample_store(parameters: AdoDeleteCommandParameters) -> None:
 
         if not children_resources.empty:
             spinner.stop()
-            console_print(
-                cannot_delete_resource_due_to_children_resources(
-                    resource_kind=CoreResourceKinds.SAMPLESTORE,
-                    resource_id=resource_id,
-                    children_resources=children_resources,
-                ),
-                stderr=True,
+            raise ResourceHasChildrenError(
+                resource_id=resource_id,
+                kind=CoreResourceKinds.SAMPLESTORE,
+                children_resources=children_resources,
             )
-            raise typer.Exit(1)
 
         spinner.update(ADO_SPINNER_DELETING_FROM_DB)
         try:
             sql.delete_sample_store(
                 identifier=resource_id, force_deletion=parameters.force
             )
-        except NonEmptySampleStorePreventingDeletionError as e:
-            spinner.stop()
-            console_print(
-                f"{ERROR}{e}\n{HINT}You can force the deletion by adding the {cyan('--force')} flag.",
-                stderr=True,
-            )
-            raise typer.Exit(1) from e
-        except DeleteFromDatabaseError:
+        except Exception:
             spinner.stop()
             raise
-
-    console_print(SUCCESS)

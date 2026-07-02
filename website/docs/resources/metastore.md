@@ -228,7 +228,7 @@ will retrieve all operations that have the label `labelone` with the value
 
 ### Searching inside resource representations
 
-For more advanced searches, `ado` provides the `--query` option to find
+For more advanced searches, `ado` provides the `--filter` option to find
 resources based on the contents of their
 [stored representation](resources.md/#common-features-of-resources). This option
 can be specified multiple times and in conjunction with the `-l` option to find
@@ -237,14 +237,14 @@ resources that match all the specified filters.
 The syntax is:
 
 ```commandline
--q 'path=candidate'
+--filter 'path=candidate'
 ```
 
 !!! warning inline end
 
-    We suggest using single quotation marks around the candidate passed to the -q
-    option. **This is required when dealing with strings, dictionaries, and
-    arrays**.
+    We suggest using single quotation marks around the candidate passed to the
+    --filter option. **This is required when dealing with strings, dictionaries,
+    and arrays**.
 
 Where:
 
@@ -280,7 +280,7 @@ Where:
     metadata:
       entities_submitted: 48
       experiments_requested: 74
-    operationType: search
+    operationType: explore
     operatorIdentifier: randomwalk-1.0.2.dev30+a96d4d1.dirty
     status:
     - event: created
@@ -316,14 +316,16 @@ If the candidate is a scalar (a string in double quotes, a number, `true`,
 **same type** (treating integers and floats as equivalent) and has the **same
 value**.
 
-- ✅ `ado get operations -q 'config.operation.parameters.batchSize=1'` (1 == 1)
-- ✅ `ado get operations -q 'config.operation.parameters.batchSize=1.0'` (1.0 ==
-  1, floats and ints count as same type)
-- ❌ `ado get operations -q 'config.operation.parameters.batchSize="1"'` ("1" !=
-  1, type mismatch)
-- ✅ `ado get operation -q 'config.operation.parameters.singleMeasurement=true'`
-- ❌ `ado get operation -q 'config.operation.parameters.singleMeasurement=True'`
+<!-- markdownlint-disable line-length -->
+- ✅ `ado get operations --filter 'config.operation.parameters.batchSize=1'` (1 == 1)
+- ✅ `ado get operations --filter 'config.operation.parameters.batchSize=1.0'`
+  (1.0 == 1, floats and ints count as same type)
+- ❌ `ado get operations --filter 'config.operation.parameters.batchSize="1"'`
+  ("1" != 1, type mismatch)
+- ✅ `ado get operation --filter 'config.operation.parameters.singleMeasurement=true'`
+- ❌ `ado get operation --filter 'config.operation.parameters.singleMeasurement=True'`
   (`true` and `false` are the only boolean values in JSON)
+<!-- markdownlint-enable line-length -->
 
 ##### The path points to an array
 
@@ -331,20 +333,21 @@ value**.
 it **contains all elements of the candidate**.
 
 - ✅
-  `ado get operation -q 'status=[{"event": "finished", "exit_state": "success"}]'`
+  `ado get operation --filter 'status=[{"event": "finished", "exit_state": "success"}]'`
   (all keys are contained)
 - ❌
-  `ado get operation -q 'status=[{"exit_state": "success"}, {"exit_state": "failure"}]'`
+  <!-- markdownlint-disable-next-line line-length -->
+  `ado get operation --filter 'status=[{"exit_state": "success"}, {"exit_state": "failure"}]'`
   (no operation can have both a `success` and a `failure` exit state)
 
 **If the candidate is not an array**, the array at the specified path will match
 if it **contains the candidate**.
 
-- ✅ `ado get operation -q 'status={"exit_state": "success"}'` (status has an
-  element that contains the key `exit_state` and value `success`)
-- ✅ `ado get operation -q 'config.spaces=space-3904a4-96dd91'` (the string is
-  part of the array)
-- ❌ `ado get operation -q 'status={"event": "fake"}'` (no element of the
+- ✅ `ado get operation --filter 'status={"exit_state": "success"}'`
+  (status has an element that contains the key `exit_state` and value `success`)
+- ✅ `ado get operation --filter 'config.spaces=space-3904a4-96dd91'`
+  (the string is part of the array)
+- ❌ `ado get operation --filter 'status={"event": "fake"}'` (no element of the
   `status` array has the value `fake` for the `event` key)
 
 ##### The path points to a dictionary (JSON object)
@@ -354,10 +357,10 @@ match if it contains all keys and corresponding values from the candidate.
 
 <!-- markdownlint-disable line-length -->
 - ✅
-  `ado get operation -q 'config.operation.parameters={"batchSize": 1, "samplerConfig": {"mode": "random"}}'`
+  `ado get operation --filter 'config.operation.parameters={"batchSize": 1, "samplerConfig": {"mode": "random"}}'`
 - ❌
-  `ado get operation -q 'config.operation.parameters={"batchSize": 1, "samplerConfig": {"mode": "smart"}}'`
-  (the operation's `samplerConfig.mode` is `random`)
+  `ado get operation --filter 'config.operation.parameters={"batchSize": 1, "samplerConfig": {"mode": "smart"}}'`
+  (the operation's `samplerConfig.mode` is `random`)
 <!-- markdownlint-enable line-length -->
 
 !!! tip
@@ -371,34 +374,34 @@ match if it contains all keys and corresponding values from the candidate.
 
 ##### Finding operations using a certain operator
 
-If you want to query operations that use the RayTune operator you can do it
+If you want to filter operations that use the RayTune operator you can do it
 with:
 
 ```commandline
-ado get operations -q config.operation.module.moduleClass=RayTune
+ado get operations --filter config.operation.module.moduleClass=RayTune
 ```
 
 ##### Finding spaces with a boolean parameterization
 
-To query all spaces are parameterized with the `bf16` property with the boolean
-value `true`, you will have to query using the value `1` instead. This is
+To filter all spaces parameterized with the `bf16` property with the boolean
+value `true`, you will have to filter using the value `1` instead. This is
 because `ado` applies a type conversion to boolean values in
 [properties](/ado/resources/discovery-spaces/#defining-the-domains-of-constitutive-properties-in-the-entityspace):
 
 <!-- markdownlint-disable line-length -->
 ```commandline
-ado get spaces -q 'config.experiments={"experiments":{"parameterization":[{"property":{"identifier":"bf16"},"value":1}]}}
+ado get spaces --filter 'config.experiments={"experiments":{"parameterization":[{"property":{"identifier":"bf16"},"value":1}]}}
 ```
 <!-- markdownlint-enable line-length -->
 
 ##### Finding spaces with a specific experiment
 
-To query all spaces that contain the
+To filter all spaces that contain the
 `finetune-lora-fsdp-r-4-a-16-tm-default-v2.0.0` experiment:
 
 <!-- markdownlint-disable line-length -->
 ```commandline
-ado get spaces -q 'config.experiments={"experiments":{"identifier":"finetune-lora-fsdp-r-4-a-16-tm-default-v2.0.0"}}'
+ado get spaces --filter 'config.experiments={"experiments":{"identifier":"finetune-lora-fsdp-r-4-a-16-tm-default-v2.0.0"}}'
 ```
 <!-- markdownlint-enable line-length -->
 
@@ -407,9 +410,9 @@ To also include those using `NVIDIA-A100-SXM4-80GB` for `gpu_model` and
 
 <!-- markdownlint-disable line-length -->
 ```commandline
-ado get spaces -q 'config.entitySpace={"identifier": "model_name", "propertyDomain":{"values":["mistral-7b-v0.1"]}}' \
-               -q 'config.entitySpace={"identifier": "gpu_model", "propertyDomain":{"values":["NVIDIA-A100-SXM4-80GB"]}}' \
-               -q 'config.experiments={"experiments":{"identifier":"finetune-lora-fsdp-r-4-a-16-tm-default-v2.0.0"}}'
+ado get spaces --filter 'config.entitySpace={"identifier": "model_name", "propertyDomain":{"values":["mistral-7b-v0.1"]}}' \
+               --filter 'config.entitySpace={"identifier": "gpu_model", "propertyDomain":{"values":["NVIDIA-A100-SXM4-80GB"]}}' \
+               --filter 'config.experiments={"experiments":{"identifier":"finetune-lora-fsdp-r-4-a-16-tm-default-v2.0.0"}}'
 ```
 <!-- markdownlint-enable line-length -->
 

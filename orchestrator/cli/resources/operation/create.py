@@ -33,6 +33,7 @@ from orchestrator.core.operation.operation import OperationException, OperationO
 from orchestrator.core.operation.resource import (
     OperationExitStateEnum,
 )
+from orchestrator.modules.operators.errors import OperatorVersionMismatchError
 
 
 def create_operation(parameters: AdoCreateCommandParameters) -> str | None:
@@ -52,6 +53,12 @@ def create_operation(parameters: AdoCreateCommandParameters) -> str | None:
             stderr=True,
         )
         raise typer.Exit(1) from e
+    except OperatorVersionMismatchError as error:
+        console_print(
+            f"{ERROR}Operator version mismatch when creating the operation: {error}",
+            stderr=True,
+        )
+        raise typer.Exit(1) from error
 
     if parameters.override_values:
         op_resource_configuration = override_values_in_pydantic_model(

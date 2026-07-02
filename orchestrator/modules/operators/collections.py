@@ -15,6 +15,7 @@ from orchestrator.core.operation.config import (
     DiscoveryOperationEnum,
     FunctionOperationInfo,
     OperatorMetadata,
+    OperatorReference,
 )
 from orchestrator.modules.operators.base import (
     DiscoveryOperationBase,
@@ -23,6 +24,7 @@ from orchestrator.modules.operators.base import (
     OperatorFunction,
     validate_operator_function_signature,
 )
+from orchestrator.modules.operators.errors import OperatorVersionMismatchError
 from orchestrator.modules.operators.orchestrate import (
     orchestrate_explore_operation,
     orchestrate_general_operation,
@@ -88,7 +90,7 @@ characterize = OperatorCollection(
     type=orchestrator.core.operation.config.DiscoveryOperationEnum.CHARACTERIZE
 )
 explore = OperatorCollection(
-    type=orchestrator.core.operation.config.DiscoveryOperationEnum.SEARCH
+    type=orchestrator.core.operation.config.DiscoveryOperationEnum.EXPLORE
 )
 modify = OperatorCollection(
     type=orchestrator.core.operation.config.DiscoveryOperationEnum.MODIFY
@@ -110,7 +112,7 @@ learn = OperatorCollection(
 )
 operationCollectionMap = {
     orchestrator.core.operation.config.DiscoveryOperationEnum.CHARACTERIZE: characterize,
-    orchestrator.core.operation.config.DiscoveryOperationEnum.SEARCH: explore,
+    orchestrator.core.operation.config.DiscoveryOperationEnum.EXPLORE: explore,
     orchestrator.core.operation.config.DiscoveryOperationEnum.MODIFY: modify,
     orchestrator.core.operation.config.DiscoveryOperationEnum.EXPORT: export,
     orchestrator.core.operation.config.DiscoveryOperationEnum.COMPARE: compare,
@@ -206,7 +208,7 @@ def _validate_explore_cls(t: type, metadata: OperatorMetadata) -> None:
 def explore_operation(
     cls: "type[DiscoveryOperationBase]",
 ) -> "type[DiscoveryOperationBase]":
-    """Decorator that registers an explore (search) operator class.
+    """Decorator that registers an explore operator class.
 
     All metadata is sourced from the class's ``operator_metadata()``
     classmethod.  The decorator generates an :class:`OperatorFunction`,
@@ -222,7 +224,7 @@ def explore_operation(
                     version="0.1.0",
                     configuration_model=MyOpParameters,
                     example_configuration=MyOpParameters(),
-                    type=DiscoveryOperationEnum.SEARCH,
+                    type=DiscoveryOperationEnum.EXPLORE,
                 )
 
             async def run(self) -> OperationOutput | None: ...
@@ -376,6 +378,66 @@ def export_operation(
         return wrapper
 
     return _register
+
+
+def operator_metadata_for_reference(ref: OperatorReference) -> OperatorMetadata:
+    """Return registry metadata for an operator reference.
+
+    Args:
+        ref: Operator reference carrying ``operatorName`` and ``operationType``.
+
+    Returns:
+        The :class:`~orchestrator.core.operation.config.OperatorMetadata` for the
+        referenced operator.
+
+    Raises:
+        ValueError: If the operation type is unknown or the operator is not registered.
+    """
+    collection = operationCollectionMap.get(ref.operationType)
+    if collection is None:
+        raise ValueError(f"Unknown operation type {ref.operationType}")
+
+    metadata = collection.operators.get(ref.operatorName)
+    if metadata is None:
+        raise ValueError(
+            f"Operator {ref.operatorName} had no functions of type {ref.operationType}"
+        )
+    return metadata
+
+
+def resolve_operator_reference(ref: OperatorReference) -> OperatorReference:
+    """Resolves an operator reference against the available operators and returns the result
+
+    Resolution means:
+    - Check the operator exists.
+    - If the reference specifies a version: check this version exists
+    - If the reference does not specify a version: set it to the version in the catalog
+
+    Args:
+        ref: Operator reference to resolve.
+
+    Returns:
+        Returns an OperatorReference instance with operatorVersion set.
+        Note: This will be a different object if the input ref.operatorVersion is None
+
+    Raises:
+        ValueError: If the operator is not registered.
+        OperatorVersionMismatchError: If ``ref.operatorVersion`` is set and does not
+            match the registry.
+    """
+
+    metadata = operator_metadata_for_reference(ref)
+    if ref.operatorVersion is None:
+        ref = ref.model_copy()
+        ref.operatorVersion = metadata.version
+    elif ref.operatorVersion != metadata.version:
+        raise OperatorVersionMismatchError(
+            f"Algorithm version mismatch for operator {ref.operatorName!r} "
+            f"of type {ref.operationType.value!r}. Reference requires version "
+            f"{ref.operatorVersion!r} but registry provides {metadata.version!r}."
+        )
+
+    return ref
 
 
 def provenance_for_operator(

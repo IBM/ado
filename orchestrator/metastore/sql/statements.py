@@ -3,11 +3,19 @@
 
 import json
 from types import NoneType
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 import sqlalchemy
 
 from orchestrator.core.resources import ADOResource
+
+if TYPE_CHECKING:
+    from orchestrator.core.resources import CoreResourceKinds
+
+# The resource hierarchy has 4 levels (samplestore → discoveryspace →
+# operation → {datacontainer, actuatorconfiguration}), so the maximum
+# meaningful hop count between any two levels is 3.
+_MAX_HIERARCHY_HOPS = 3
 
 
 def _quote_sql_identifier(identifier: str) -> str:
@@ -541,3 +549,181 @@ def resource_select_latest_by_kinds(
         FROM ranked_resources
         WHERE rn = 1
     """).bindparams(sqlalchemy.bindparam("kinds", value=kinds, expanding=True))
+
+
+def graph_traversal_query(
+    kind: "CoreResourceKinds",
+    hierarchy_direction: Literal["up", "down", "both"],
+    origin_identifiers: set[str],
+    max_hops: int | None = None,
+) -> sqlalchemy.TextClause:
+    """Build and return a recursive CTE traversal SQL for the resource hierarchy.
+
+    The query normalizes the stored relationships into logical directed edges:
+
+    * samplestore → discoveryspace
+    * discoveryspace → operation
+    * operation → datacontainer
+    * operation → actuatorconfiguration
+
+    Traversal starts from every identifier in ``origin_identifiers`` whose
+    resource kind matches ``kind`` and recursively follows those logical edges
+    upward, downward, or in both directions.
+
+    Args:
+        kind: Starting resource kind.
+        hierarchy_direction: ``'up'``, ``'down'`` or ``'both'``.
+        origin_identifiers: Set of start resource identifiers to bind.
+        max_hops: Maximum number of hops to follow from the start resource.
+            When ``None`` the traversal runs to the full depth of the
+            hierarchy. For ``hierarchy_direction='both'`` the limit is applied
+            independently to each direction (up and down). Must be a positive
+            integer; values exceeding the hierarchy maximum are silently capped
+            at that maximum.
+
+    Returns:
+        A bound :class:`sqlalchemy.TextClause` ready to execute.
+
+    Raises:
+        ValueError: If ``hierarchy_direction`` is invalid.
+    """
+    if hierarchy_direction not in {"up", "down", "both"}:
+        raise ValueError(
+            "hierarchy_direction must be 'up', 'down' or 'both', "
+            f"got {hierarchy_direction!r}"
+        )
+
+    if max_hops is not None and max_hops < 1:
+        raise ValueError(f"max_hops must be a positive integer, got {max_hops!r}")
+
+    effective_max_hops = (
+        _MAX_HIERARCHY_HOPS if max_hops is None else min(max_hops, _MAX_HIERARCHY_HOPS)
+    )
+
+    # Builds the recursive CTE for one direction. Going "up" follows edges
+    # backward (to→from); going "down" follows them forward (from→to).
+    def _traversal_cte(direction: Literal["up", "down"], n: int) -> str:
+        cte_name = f"{direction}_traversal"
+        next_kind = "from_kind" if direction == "up" else "to_kind"
+        next_id = "from_identifier" if direction == "up" else "to_identifier"
+        join_col = (
+            "to_identifier" if direction == "up" else "from_identifier"
+        )  # anchor: opposite end of next_id
+        return f""",
+        {cte_name} AS (
+            SELECT origin.identifier AS origin_identifier,
+                   origin.kind       AS current_kind,
+                   origin.identifier AS current_identifier,
+                   0                 AS depth
+            FROM   resources origin
+            WHERE  origin.kind = :start_kind
+              AND  origin.identifier IN :origins
+
+            UNION ALL
+
+            SELECT {cte_name}.origin_identifier AS origin_identifier,
+                   logical_edges.{next_kind}    AS current_kind,
+                   logical_edges.{next_id}      AS current_identifier,
+                   {cte_name}.depth + 1         AS depth
+            FROM   {cte_name}
+            JOIN   logical_edges
+              ON   logical_edges.{join_col} = {cte_name}.current_identifier
+            WHERE  {cte_name}.depth < {n}
+        )"""  # noqa: S608
+
+    # Produces the final SELECT from a single traversal CTE, excluding the seed row (depth > 0).
+    def _single_select(d: Literal["up", "down"]) -> str:
+        cte_name = f"{d}_traversal"
+        return f"""
+        SELECT {cte_name}.origin_identifier AS origin_identifier,
+               {cte_name}.current_identifier AS identifier,
+               {cte_name}.current_kind AS kind
+        FROM   {cte_name}
+        WHERE  {cte_name}.depth > 0"""  # noqa: S608
+
+    # logical_edges is a non-recursive CTE; WITH RECURSIVE is required at the
+    # clause level by SQLite because the subsequent traversal CTEs are recursive.
+    logical_edges_sql = """
+        WITH RECURSIVE logical_edges AS (
+            SELECT parent.identifier AS from_identifier,
+                   parent.kind       AS from_kind,
+                   child.identifier  AS to_identifier,
+                   child.kind        AS to_kind
+            FROM   resource_relationships rr
+            JOIN   resources parent
+              ON   parent.identifier = rr.subject_identifier
+            JOIN   resources child
+              ON   child.identifier = rr.object_identifier
+            WHERE  (parent.kind = :samplestore_kind AND child.kind = :discoveryspace_kind)
+                OR (parent.kind = :discoveryspace_kind AND child.kind = :operation_kind)
+                OR (parent.kind = :operation_kind AND child.kind = :datacontainer_kind)
+
+            UNION ALL
+
+            -- actuatorconfiguration is stored as subject with operation as object,
+            -- so the logical parent→child direction is reversed compared to the
+            -- other relationships above.
+            SELECT parent.identifier AS from_identifier,
+                   parent.kind       AS from_kind,
+                   child.identifier  AS to_identifier,
+                   child.kind        AS to_kind
+            FROM   resource_relationships rr
+            JOIN   resources child
+              ON   child.identifier = rr.subject_identifier
+             AND   child.kind = :actuatorconfiguration_kind
+            JOIN   resources parent
+              ON   parent.identifier = rr.object_identifier
+             AND   parent.kind = :operation_kind
+        )
+    """
+
+    if hierarchy_direction == "up":
+        traversal_sql = _traversal_cte("up", effective_max_hops) + _single_select("up")
+    elif hierarchy_direction == "down":
+        traversal_sql = _traversal_cte("down", effective_max_hops) + _single_select(
+            "down"
+        )
+    else:
+        # Both directions: up_traversal and down_traversal run independently,
+        # each bounded by effective_max_hops, then UNIONed.
+        traversal_sql = f"""
+        {_traversal_cte("up", effective_max_hops).strip()}
+        {_traversal_cte("down", effective_max_hops).strip()}
+        SELECT related.origin_identifier AS origin_identifier,
+               related.identifier AS identifier,
+               related.kind AS kind
+        FROM   (
+            {_single_select("up").strip()}
+
+            UNION ALL
+
+            {_single_select("down").strip()}
+        ) related
+        """  # noqa: S608
+
+    from orchestrator.core.resources import CoreResourceKinds
+
+    binds = [
+        sqlalchemy.bindparam(key="start_kind", value=kind.value),
+        sqlalchemy.bindparam(
+            key="origins", value=list(origin_identifiers), expanding=True
+        ),
+        sqlalchemy.bindparam(
+            key="samplestore_kind", value=CoreResourceKinds.SAMPLESTORE.value
+        ),
+        sqlalchemy.bindparam(
+            key="discoveryspace_kind", value=CoreResourceKinds.DISCOVERYSPACE.value
+        ),
+        sqlalchemy.bindparam(
+            key="operation_kind", value=CoreResourceKinds.OPERATION.value
+        ),
+        sqlalchemy.bindparam(
+            key="datacontainer_kind", value=CoreResourceKinds.DATACONTAINER.value
+        ),
+        sqlalchemy.bindparam(
+            key="actuatorconfiguration_kind",
+            value=CoreResourceKinds.ACTUATORCONFIGURATION.value,
+        ),
+    ]
+
+    return sqlalchemy.text(logical_edges_sql + traversal_sql).bindparams(*binds)

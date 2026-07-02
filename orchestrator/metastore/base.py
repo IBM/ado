@@ -2,12 +2,15 @@
 # SPDX-License-Identifier: MIT
 
 import abc
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 import pydantic
 
 if TYPE_CHECKING:
     import pandas as pd
+
+    from orchestrator.core.datacontainer.stats import DataContainerStatistics
+    from orchestrator.core.discoveryspace.stats import DiscoverySpaceStatistics
 
 from orchestrator.core.resources import ADOResource, CoreResourceKinds
 from orchestrator.core.samplestore.resource import SampleStoreResource
@@ -35,6 +38,28 @@ class NoRelatedResourcesError(ValueError):
         super().__init__(
             f"The resource with id, {resource_id}, does not have any related resources of kind {kind}"
         )
+
+
+class ResourceHasChildrenError(ValueError):
+    def __init__(
+        self,
+        resource_id: str,
+        kind: CoreResourceKinds,
+        children_resources: "pd.DataFrame",
+    ) -> None:
+        self.resource_id = resource_id
+        self.kind = kind
+        self.children_resources = children_resources
+        super().__init__(
+            f"Cannot delete {kind.value} {resource_id} because it has children resources"
+        )
+
+
+class ContextDoesNotExistError(ValueError):
+    def __init__(self, resource_id: str, available_contexts: list[str]) -> None:
+        self.resource_id = resource_id
+        self.available_contexts = available_contexts
+        super().__init__(f"Context {resource_id} does not exist")
 
 
 class DatabaseOperationError(Exception): ...
@@ -201,36 +226,6 @@ class ResourceStore(abc.ABC):
         """Returns identifiers of resources that have a relationship with "identifier" where "identifier" is the subject"""
 
     @abc.abstractmethod
-    def getRelatedResourceIdentifiers(
-        self, identifier: str, kind: str | None = None, version: str | None = None
-    ) -> "pd.DataFrame":
-        """Returns a DataFrame of resource identifiers related to a given resource identifier
-
-        The returned identifiers can optionally be limited to those of a given kind
-
-        Parameters:
-            identifier: A string. Identifies a resource object
-            kind: A string. A resource object type as defined by CoreResourceKinds
-            version: A version of the kind. If None all versions of the resource kind are returned
-
-        Returns:
-            A pandas DataFrame
-
-            The DataFrame has one column "IDENTIFIER" that contains the identifiers of the related resources.
-
-            If there are no related resources for the identifier this method returns an empty DataFrame
-        """
-
-    @abc.abstractmethod
-    def getRelatedResources(
-        self, identifier: str, kind: CoreResourceKinds | None = None
-    ) -> dict[str, ADOResource]:
-        """
-        Returns all resource object associated with identifier.
-        Optionally returns only resources of the provided kind.
-        """
-
-    @abc.abstractmethod
     def containsResourceWithIdentifier(
         self, identifier: str, kind: CoreResourceKinds | None = None
     ) -> bool:
@@ -315,6 +310,94 @@ class ResourceStore(abc.ABC):
     def delete_actuator_configuration(self, identifier: str) -> None:
         pass
 
+    @abc.abstractmethod
+    def get_resources_by_relationship(
+        self,
+        kind: CoreResourceKinds,
+        identifier: str | set[str] | None,
+        hierarchy_direction: Literal["up", "down", "both"],
+        max_hops: int | None = None,
+        identifiers_only: bool = False,
+        include_start_resources: bool = False,
+    ) -> (
+        dict[CoreResourceKinds, set[str]]
+        | dict[str, dict[CoreResourceKinds, set[str]]]
+        | dict[CoreResourceKinds, dict[str, ADOResource]]
+        | dict[str, dict[CoreResourceKinds, dict[str, ADOResource]]]
+    ):
+        """Walk the resource hierarchy and return related resources.
+
+        Args:
+            kind: The :class:`~orchestrator.core.resources.CoreResourceKinds` of
+                the starting resources.
+            identifier: Controls which resources are used as traversal origins.
+                ``str`` for a single start resource, ``set[str]`` for multiple,
+                or ``None`` to seed from all resources of ``kind``.
+            hierarchy_direction: ``'up'`` (child → parent), ``'down'``
+                (parent → child), or ``'both'``.
+            max_hops: Maximum number of relationship hops to follow. ``None``
+                traverses to the full depth of the hierarchy.
+            identifiers_only: When ``True`` return only discovered identifiers;
+                when ``False`` (default) return hydrated
+                :class:`~orchestrator.core.resources.ADOResource` objects.
+            include_start_resources: When ``True`` include the start resource(s)
+                in the result. Requires ``identifiers_only=False`` and
+                ``identifier`` to be a ``str`` or ``set[str]``.
+
+        Returns:
+            A nested dict whose shape depends on whether a single or multiple
+            identifiers were requested and whether ``identifiers_only`` is set.
+
+        Raises:
+            ValueError: If arguments are invalid or incompatible.
+        """
+
+    @abc.abstractmethod
+    def get_space_metastore_stats(
+        self,
+        space_ids: str | set[str],
+    ) -> "DiscoverySpaceStatistics | dict[str, DiscoverySpaceStatistics]":
+        """Return lightweight metastore-level statistics for one or many spaces.
+
+        All counts are computed with pure SQL against the ``resources`` and
+        ``resource_relationships`` tables — no sample store access is needed.
+        The returned :class:`~orchestrator.core.discoveryspace.stats.DiscoverySpaceStatistics`
+        objects only have ``number_of_experiments``, ``number_of_operations``,
+        and ``number_of_explore_operations`` populated; all other fields are
+        ``None`` or ``0`` as appropriate.
+
+        Args:
+            space_ids: A single space identifier (``str``) or a set of space
+                identifiers (``set[str]``).
+
+        Returns:
+            When ``space_ids`` is a ``str``: a
+            :class:`~orchestrator.core.discoveryspace.stats.DiscoverySpaceStatistics`
+            for that space.
+            When ``space_ids`` is a ``set[str]``: a ``dict`` keyed by space ID
+            mapping each to its
+            :class:`~orchestrator.core.discoveryspace.stats.DiscoverySpaceStatistics`.
+            Space IDs that have no operations are included with zero counts.
+        """
+
+    @abc.abstractmethod
+    def get_datacontainer_stats(
+        self,
+        datacontainer_ids: set[str],
+    ) -> "dict[str, DataContainerStatistics]":
+        """Return lightweight statistics for a set of DataContainer IDs.
+
+        Args:
+            datacontainer_ids: A set of DataContainer identifiers to query.
+
+        Returns:
+            A ``dict`` keyed by DataContainer ID mapping each to its
+            :class:`~orchestrator.core.datacontainer.stats.DataContainerStatistics`.
+            IDs that are not present in the database are returned with all-zero
+            stats.  An empty input set returns an empty dict immediately
+            (no query issued).
+        """
+
 
 def sample_store_dump(
     sample_store_resource: SampleStoreResource,
@@ -373,7 +456,14 @@ def sample_store_load(
             "storageLocation"
         ] = storage_location.model_dump()
 
-    return SampleStoreResource.model_validate(sample_store_resource_dict)
+    from orchestrator.utilities.pydantic import (
+        do_not_populate_ado_provenance_context,
+    )
+
+    return SampleStoreResource.model_validate(
+        sample_store_resource_dict,
+        context=do_not_populate_ado_provenance_context,
+    )
 
 
 kind_custom_model_dump = {CoreResourceKinds.SAMPLESTORE.value: sample_store_dump}

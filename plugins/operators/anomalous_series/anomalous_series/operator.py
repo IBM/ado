@@ -123,7 +123,7 @@ class DetectAnomalousSeries(pydantic.BaseModel):
     """,
     configuration_model=DetectAnomalousSeries,
     example_configuration=DetectAnomalousSeries.example_configuration(),
-    version="1.0",
+    version="1.0.0",
 )
 def detect_anomalous_series(
     discoverySpace: DiscoverySpace,

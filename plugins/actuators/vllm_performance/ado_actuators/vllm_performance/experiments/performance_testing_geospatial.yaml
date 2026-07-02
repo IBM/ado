@@ -130,7 +130,7 @@ performance_testing-geospatial-full:
         description: "(deployment) Docker image to use to create vllm deployments"
       propertyDomain:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
-        values: ["your/image/with/vllm/and/terratorch:0.1"]
+        values: ["quay.io/mgazzetti/vllm-performance/vllm:vllm.v0.20.1-tt.v1.2.7"]
     - identifier: n_cpus
       metadata:
         description: "(deployment) the number of CPUs to use"
@@ -207,10 +207,17 @@ performance_testing-geospatial-full:
       propertyDomain:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
         values: [None, "terratorch_segmentation"]
+    - identifier: 'renderer_num_workers'
+      metadata:
+        description: "Number of renderer workers for threadpool-based rendering. Set to 0 to disable threadpool (for vLLM versions < 0.20.0). Set to a positive value to enable threadpool (requires vLLM >= 0.20.0). If not specified, threadpool is disabled."
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [0, 128]
+        interval: 1
   defaultParameterization:
     - property:
         identifier: 'image'
-      value: "your/image/with/vllm/and/terratorch:0.1"
+      value: "quay.io/mgazzetti/vllm-performance/vllm:vllm.v0.20.1-tt.v1.2.7"
     - property:
         identifier: n_cpus
       value: 8
@@ -259,6 +266,9 @@ performance_testing-geospatial-full:
     - property:
         identifier: 'dataset'
       value: 'india_url_in_b64_out'
+    - property:
+        identifier: 'renderer_num_workers'
+      value: 0
   # measurements
   targetProperties:
     - identifier: "duration"
@@ -323,7 +333,9 @@ performance_testing-geospatial-full-custom-dataset:
         description: "(deployment) Docker image to use to create vllm deployments"
       propertyDomain:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
-        values: ["your/image/with/vllm/and/terratorch:0.1"]
+        values:
+          - ["quay.io/mgazzetti/vllm-performance/vllm:v0.18.0-tt.v1.2.5", "0.18.0"]
+          - ["quay.io/mgazzetti/vllm-performance/vllm:vllm.v0.20.1-tt.v1.2.7", "0.20.1"]
     - identifier: n_cpus
       metadata:
         description: "(deployment) the number of CPUs to use"
@@ -400,10 +412,17 @@ performance_testing-geospatial-full-custom-dataset:
       propertyDomain:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
         values: ["terratorch_segmentation"]
+    - identifier: 'renderer_num_workers'
+      metadata:
+        description: "Number of renderer workers for threadpool-based rendering. Set to 0 to disable threadpool (for vLLM versions < 0.20.0). Set to a positive value to enable threadpool (requires vLLM >= 0.20.0). If not specified, threadpool is disabled."
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [0, 128]
+        interval: 1
   defaultParameterization:
     - property:
         identifier: 'image'
-      value: "your/image/with/vllm/and/terratorch:0.1"
+      value: "quay.io/mgazzetti/vllm-performance/vllm:vllm.v0.20.1-tt.v1.2.7"
     - property:
         identifier: n_cpus
       value: 8
@@ -449,6 +468,9 @@ performance_testing-geospatial-full-custom-dataset:
     - property:
         identifier: 'io_processor_plugin'
       value: "terratorch_segmentation"
+    - property:
+        identifier: 'renderer_num_workers'
+      value: 0
   # measurements
   targetProperties:
     - identifier: "duration"
@@ -663,7 +685,7 @@ performance_testing-geospatial-full-guidellm:
         description: "(deployment) Docker image to use to create vllm deployments"
       propertyDomain:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
-        values: ["your/image/with/vllm/and/terratorch:0.1"]
+        values: ["quay.io/mgazzetti/vllm-performance/vllm:vllm.v0.20.1-tt.v1.2.7"]
     - identifier: n_cpus
       metadata:
         description: "(deployment) the number of CPUs to use"
@@ -740,10 +762,17 @@ performance_testing-geospatial-full-guidellm:
       propertyDomain:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
         values: [None, "terratorch_segmentation"]
+    - identifier: 'renderer_num_workers'
+      metadata:
+        description: "Number of renderer workers for threadpool-based rendering. Set to 0 to disable threadpool (for vLLM versions < 0.20.0). Set to a positive value to enable threadpool (requires vLLM >= 0.20.0). If not specified, threadpool is disabled."
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [0, 128]
+        interval: 1
   defaultParameterization:
     - property:
         identifier: 'image'
-      value: "your/image/with/vllm/and/terratorch:0.1"
+      value: "quay.io/mgazzetti/vllm-performance/vllm:vllm.v0.20.1-tt.v1.2.7"
     - property:
         identifier: n_cpus
       value: 8
@@ -792,6 +821,9 @@ performance_testing-geospatial-full-guidellm:
     - property:
         identifier: 'dataset'
       value: 'india_url_in_b64_out'
+    - property:
+        identifier: 'renderer_num_workers'
+      value: 0
   targetProperties:
     - identifier: "duration"
     - identifier: "completed"
@@ -854,7 +886,7 @@ performance_testing-geospatial-guidellm-deployment-custom-dataset:
         description: "(deployment) Docker image to use to create vllm deployments"
       propertyDomain:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
-        values: ["your/image/with/vllm/and/terratorch:0.1"]
+        values: ["quay.io/mgazzetti/vllm-performance/vllm:vllm.v0.20.1-tt.v1.2.7"]
     - identifier: n_cpus
       metadata:
         description: "(deployment) the number of CPUs to use"
@@ -933,10 +965,17 @@ performance_testing-geospatial-guidellm-deployment-custom-dataset:
       propertyDomain:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
         values: [None, "terratorch_segmentation"]
+    - identifier: 'renderer_num_workers'
+      metadata:
+        description: "Number of renderer workers for threadpool-based rendering. Set to 0 to disable threadpool (for vLLM versions < 0.20.0). Set to a positive value to enable threadpool (requires vLLM >= 0.20.0). If not specified, threadpool is disabled."
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [0, 128]
+        interval: 1
   defaultParameterization:
     - property:
         identifier: 'image'
-      value: "your/image/with/vllm/and/terratorch:0.1"
+      value: "quay.io/mgazzetti/vllm-performance/vllm:vllm.v0.20.1-tt.v1.2.7"
     - property:
         identifier: n_cpus
       value: 8
@@ -982,6 +1021,9 @@ performance_testing-geospatial-guidellm-deployment-custom-dataset:
     - property:
         identifier: 'io_processor_plugin'
       value: "terratorch_segmentation"
+    - property:
+        identifier: 'renderer_num_workers'
+      value: 0
   targetProperties:
     - identifier: "duration"
     - identifier: "completed"

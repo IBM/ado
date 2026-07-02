@@ -62,7 +62,10 @@ def measurement_space_from_discovery_configuration(
 
     catalog = ActuatorRegistry.globalRegistry().catalogForActuatorIdentifier("replay")
     for exp in measurementspace.experiments:
-        if exp.actuatorIdentifier == "replay":
+        if (
+            exp.actuatorIdentifier == "replay"
+            and catalog.experimentForReference(exp.reference) is None
+        ):
             catalog.addExperiment(exp)
 
     assert (

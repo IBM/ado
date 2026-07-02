@@ -5,7 +5,7 @@ spaces:
 operation:
   module:
     operatorName: "random_walk"
-    operationType: "search"
+    operationType: "explore"
   parameters:
     numberEntities: 43000
     batchSize: 1000

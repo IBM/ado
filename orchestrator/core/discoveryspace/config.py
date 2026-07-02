@@ -9,7 +9,6 @@ import pydantic
 from pydantic import ConfigDict
 
 from orchestrator.core.metadata import ConfigurationMetadata
-from orchestrator.schema.experiment import ParameterizedExperiment
 from orchestrator.schema.measurementspace import MeasurementSpaceConfiguration
 from orchestrator.schema.property import ConstitutiveProperty
 from orchestrator.schema.reference import ExperimentReference
@@ -157,16 +156,7 @@ class DiscoverySpaceConfiguration(pydantic.BaseModel):
         return self.model_copy(
             update={
                 "experiments": [
-                    ExperimentReference(
-                        experimentIdentifier=experiment.identifier,
-                        actuatorIdentifier=experiment.actuatorIdentifier,
-                        parameterization=(
-                            experiment.parameterization
-                            if isinstance(experiment, ParameterizedExperiment)
-                            else None
-                        ),
-                    )
-                    for experiment in self.experiments.experiments
+                    experiment.reference for experiment in self.experiments.experiments
                 ]
             }
         )
@@ -183,18 +173,12 @@ class DiscoverySpaceConfiguration(pydantic.BaseModel):
 
         gr = ActuatorRegistry.globalRegistry()
 
-        experiments = []
-        for ref in self.experiments:
-            if ref.parameterization:
-                # We have to fetch the base experiment from the registry and parameterize it
-                experiments.append(
-                    ParameterizedExperiment(
-                        parameterization=ref.parameterization,
-                        **gr.experimentForReference(ref).model_dump(),
-                    )
-                )
-            else:
-                experiments.append(gr.experimentForReference(ref))
+        experiments = [
+            gr.experimentForReference(
+                ref, match_on="fully_qualified_version", resolve=True
+            )
+            for ref in self.experiments
+        ]
 
         return self.model_copy(
             update={

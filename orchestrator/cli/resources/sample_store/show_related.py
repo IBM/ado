@@ -22,4 +22,5 @@ def show_resources_related_to_sample_store(
         resource_type=CoreResourceKinds.SAMPLESTORE,
         sql=sql_store,
         hide_banner=True,
+        max_hops=parameters.max_hops,
     )

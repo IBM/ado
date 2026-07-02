@@ -205,16 +205,6 @@ def experiment_from_cli_resource_id(
     return lookup_experiment_for_reference(reference, registry=registry)
 
 
-def resolved_experiment_reference_from_cli_resource_id(
-    resource_id: str,
-    *,
-    registry: ActuatorRegistry | None = None,
-) -> ExperimentReference:
-    """Parse a CLI experiment resource identifier and return a resolved reference."""
-    experiment = experiment_from_cli_resource_id(resource_id, registry=registry)
-    return experiment.reference
-
-
 def _ado_experiment_from_cli_resource_id(
     resource_id: str,
     *,
@@ -260,9 +250,7 @@ def _ado_resolved_experiment_reference_from_cli_resource_id(
 ) -> ExperimentReference:
     """Parse CLI input and return a resolved reference, exiting on lookup failure."""
     try:
-        return resolved_experiment_reference_from_cli_resource_id(
-            resource_id, registry=registry
-        )
+        return experiment_from_cli_resource_id(resource_id, registry=registry).reference
     except NoActuatorWithExperimentError as error:
         base_experiment_identifier, _, _ = _parse_experiment_part_from_string(
             resource_id, allow_parameterization=False

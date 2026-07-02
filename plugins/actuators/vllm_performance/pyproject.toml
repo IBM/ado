@@ -36,12 +36,8 @@ guidellm = [
   "guidellm>=0.5.3",
 ]
 vllm = [
-  "vllm>=0.12.0,!=0.15.*;sys_platform!='darwin'",
-]
-
-[dependency-groups]
-resolution-helpers = [
   "opencv-python-headless<5",
+  "vllm>=0.12.0,!=0.15.*;sys_platform!='darwin'",
 ]
 
 [build-system]

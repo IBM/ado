@@ -264,13 +264,9 @@ guidellm = [
     { name = "guidellm", version = "0.7.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.14'" },
 ]
 vllm = [
+    { name = "opencv-python-headless" },
     { name = "vllm", version = "0.19.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.14' and sys_platform != 'darwin'" },
     { name = "vllm", version = "0.24.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.14' and sys_platform != 'darwin'" },
-]
-
-[package.dev-dependencies]
-resolution-helpers = [
-    { name = "opencv-python-headless" },
 ]
 
 [package.metadata]
@@ -279,12 +275,10 @@ requires-dist = [
     { name = "datasets", specifier = ">=2.20.0" },
     { name = "guidellm", marker = "extra == 'guidellm'", specifier = ">=0.5.3" },
     { name = "kubernetes", specifier = ">=31.0.0,!=36.0.0" },
+    { name = "opencv-python-headless", marker = "extra == 'vllm'", specifier = "<5" },
     { name = "vllm", marker = "sys_platform != 'darwin' and extra == 'vllm'", specifier = ">=0.12.0,!=0.15.*" },
 ]
 provides-extras = ["guidellm", "vllm"]
-
-[package.metadata.requires-dev]
-resolution-helpers = [{ name = "opencv-python-headless", specifier = "<5" }]
 
 [[package]]
 name = "aim"

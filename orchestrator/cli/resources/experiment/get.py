@@ -105,14 +105,6 @@ def get_experiment(parameters: AdoGetCommandParameters) -> None:
 
         output_df = pd.DataFrame(data=data, columns=columns)
 
-        if parameters.resource_id and output_df.empty:
-            spinner.stop()
-            console_print(
-                f"{ERROR}Experiment {parameters.resource_id} does not exist.",
-                stderr=True,
-            )
-            raise typer.Exit(1)
-
         if not output_df.empty:
             output_df = output_df.sort_values(
                 by=["ACTUATOR ID", "EXPERIMENT ID"], ignore_index=True

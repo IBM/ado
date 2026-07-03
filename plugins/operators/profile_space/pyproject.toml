@@ -17,9 +17,31 @@ dynamic = ["version"]
 [project.entry-points."ado.operators"]
 profile_space = "profile_space.operator"
 
-[tool.setuptools_scm]
-root = "../../../"
-local_scheme = "node-and-timestamp"
+[build-system]
+requires = ["hatchling", "uv-dynamic-versioning>=0.7.0"]
+build-backend = "hatchling.build"
 
-[tool.setuptools_scm.tag]
-regex = "^(?:[^/]+/)?(?P<version>[vV]?\\d+(?:\\.\\d+)*)$"
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
+
+[tool.hatch.build.targets.wheel]
+packages = ["profile_space"]
+
+[tool.uv-dynamic-versioning]
+vcs = "git"
+style = "pep440"
+pattern = "default-unprefixed"
+pattern-prefix = "profile-space/"
+fallback-version = "0.0.0"
+format-jinja = """
+{%- set metadata = [
+    distance != 0 and "g" ~ commit,
+    distance != 0 and "d" ~ timestamp,
+    dirty and "dirty"
+] -%}
+{{ serialize_pep440(
+    distance == 0 and base or bump_version(base),
+    dev=distance or None,
+    metadata=metadata | select | list
+) }}
+"""

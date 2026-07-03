@@ -222,10 +222,11 @@ entities that do not produce a measurement for `targetOutput` (e.g. due to an
 
 **Tuning Guidance:**
 
-- Use `InjectDefaultValue` when missing measurements are occasional and you want
-  the model to treat those entities as having a known sentinel value (e.g.
-  `-1.0` for a non-negative target, or `0.0` for a strictly positive one). An
-  inappropriate `defaultValue` can silently degrade model quality.
+- Use `InjectDefaultValue` when missing measurements are rare and you want
+  the model to treat those entities as having a known value in use cases
+  such as [censored regression](https://en.wikipedia.org/wiki/Censored_regression_model).
+  We recommend extreme caution in using this mode, as it typically degrades
+   model quality.
 - Use `Skip` when entities that cannot produce a target measurement should be
   excluded entirely from model training. TRIM will draw extra candidates from
   the pool to compensate.

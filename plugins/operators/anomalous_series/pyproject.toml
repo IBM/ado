@@ -1,5 +1,5 @@
 [project]
-name = "anomalous_series"
+name = "ado-anomalous-series"
 dependencies = []
 dynamic = ["version"]
 

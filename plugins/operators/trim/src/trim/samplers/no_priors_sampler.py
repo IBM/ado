@@ -41,7 +41,7 @@ class NoPriorsSampleSelector(BaseSampler):
 
         Orders the full target space using a high-dimensional sampling strategy
         (e.g., CLHS, Sobol) without relying on prior model knowledge.  Applies
-        the ``missing_target_variables`` policy when an entity does not produce a
+        the ``missingTargetVariables`` policy when an entity does not produce a
         target measurement:
 
         - ``RaiseError``: raises immediately.
@@ -125,7 +125,7 @@ class NoPriorsSampleSelector(BaseSampler):
                     if hit:
                         quota_count += 1
                     else:
-                        mode = self.params.missing_target_variables.mode
+                        mode = self.params.missingTargetVariables.mode
                         self._missing_count = record_missing_and_check_budget(
                             params=self.params,
                             entity_id=entity.identifier,  # type: ignore[arg-type]
@@ -162,7 +162,7 @@ class NoPriorsSampleSelector(BaseSampler):
 
         Orders the full target space using a high-dimensional sampling strategy
         (e.g., CLHS, Sobol) without relying on prior model knowledge.  Applies
-        the ``missing_target_variables`` policy when an entity does not produce a
+        the ``missingTargetVariables`` policy when an entity does not produce a
         target measurement.
 
         Args:
@@ -231,7 +231,7 @@ class NoPriorsSampleSelector(BaseSampler):
                     if hit:
                         quota_count += 1
                     else:
-                        mode = self.params.missing_target_variables.mode
+                        mode = self.params.missingTargetVariables.mode
                         self._missing_count = record_missing_and_check_budget(
                             params=self.params,
                             entity_id=entity.identifier,  # type: ignore[arg-type]

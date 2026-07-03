@@ -594,11 +594,10 @@ class ActuatorRegistry:
         Returns:
             set[str]: A set of actuator identifiers
         """
-        registry = ActuatorRegistry.globalRegistry()
         actuators_with_target_experiment: set[str] = set()
 
-        for actuator_id in registry.actuatorIdentifierMap:
-            catalog = registry.catalogForActuatorIdentifier(actuator_id)
+        for actuator_id in self.actuatorIdentifierMap:
+            catalog = self.catalogForActuatorIdentifier(actuator_id)
             for experiment in catalog.experiments:
                 if experiment.identifier == experiment_base_identifier:
                     actuators_with_target_experiment.add(actuator_id)

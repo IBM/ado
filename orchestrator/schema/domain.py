@@ -31,6 +31,7 @@ class VariableTypeEnum(str, enum.Enum):
     BINARY_VARIABLE_TYPE = "BINARY_VARIABLE_TYPE"  # the value of the variable is binary
     UNKNOWN_VARIABLE_TYPE = "UNKNOWN_VARIABLE_TYPE"  # the type of value of the variable is unknown/unspecified
     IDENTIFIER_VARIABLE_TYPE = "IDENTIFIER_VARIABLE_TYPE"  # the value is some type of, possible unique, identifier
+    VECTOR_VARIABLE_TYPE = "VECTOR_VARIABLE_TYPE"  # the value is a vector
 
 
 class ProbabilityFunctionsEnum(str, enum.Enum):
@@ -63,13 +64,13 @@ def _internal_range_values(lower: float, upper: float, interval: float) -> list:
     """
 
     if not is_float_range(interval=interval, domain_range=[lower, upper]):
-        return list(np.arange(lower, upper, interval))
+        return [int(el) for el in np.arange(lower, upper, interval)]
     num = int(np.floor((upper - lower) / interval)) + 1
     values = [lower + i * interval for i in range(num)]
     if values[-1] == upper:
         values = values[:-1]
     # values = np.linspace(lower, upper, num)[:-1]
-    return list(np.round(values, 10))
+    return [float(el) for el in np.round(values, 10)]
 
 
 def is_subdomain_of_unknown_domain(
@@ -523,6 +524,10 @@ class PropertyDomain(pydantic.BaseModel):
                 raise ValueError(
                     "The domainRange field for a BINARY_VARIABLE_TYPE must be None"
                 )
+        elif value == VariableTypeEnum.VECTOR_VARIABLE_TYPE:
+            raise ValueError(
+                "Vector variables are not supported by PropertyDomain - use VectorPropertyDomain instead"
+            )
 
         return value
 

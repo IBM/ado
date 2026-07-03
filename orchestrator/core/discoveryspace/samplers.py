@@ -352,7 +352,7 @@ class ExplicitEntitySpaceGridSampleGenerator(BaseSampler):
                 entitySpace=entitySpace
             ):
                 raise ValueError(
-                    f"Cannot use ExplicitEntitySpaceGridSampleGenerator with {entitySpace}"
+                    f"ExplicitEntitySpaceGridSampleGenerator is not compatible with {entitySpace}"
                 )
 
             def sequential_iterator() -> typing.Generator[list[Entity], None, None]:
@@ -409,7 +409,7 @@ class ExplicitEntitySpaceGridSampleGenerator(BaseSampler):
             entitySpace=entitySpace
         ):
             raise ValueError(
-                f"Cannot use ExplicitEntitySpaceGridSampleGenerator with {entitySpace}"
+                f"ExplicitEntitySpaceGridSampleGenerator is not compatible with {entitySpace}"
             )
 
         def iterator_closure(
@@ -474,7 +474,7 @@ class ExplicitEntitySpaceGridSampleGenerator(BaseSampler):
                 entitySpace=entitySpace
             ):
                 raise ValueError(
-                    f"Cannot use ExplicitEntitySpaceGridSampleGenerator with {entitySpace}"
+                    f"ExplicitEntitySpaceGridSampleGenerator is not compatible with {entitySpace}"
                 )
 
             async def sequential_iterator() -> (

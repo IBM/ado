@@ -662,7 +662,7 @@ class ActuatorRegistry:
         actuator_id = next(iter(actuators_with_target_experiment))
 
         reference = ExperimentReference.referenceFromString(
-            f"{actuator_id}.{base_experiment_identifier}",
+            f"{actuator_id}.{experiment_identifier}",
             allow_parameterization=allow_parameterization,
         )
         return self.experimentForReference(

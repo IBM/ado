@@ -192,11 +192,6 @@ class TrimSampleSelector(BaseSampler):
                 self.params.targetOutput,
                 self.params.missingTargetVariables.defaultValue,  # type: ignore[arg-type]
             )
-            # Accumulate so future iterations can re-apply synthetic rows after
-            # each fresh get_source_and_target() call.
-            self._injected_rows_df = pd.concat(
-                [self._injected_rows_df, one_additional_row], ignore_index=True
-            )
             current_source_df = pd.concat(
                 [current_source_df, one_additional_row], ignore_index=True
             )
@@ -1055,4 +1050,3 @@ class TrimSampleSelector(BaseSampler):
     def __init__(self, parameters: TrimParameters) -> None:
         self.params = parameters
         self._missing_count: int = 0
-        self._injected_rows_df: pd.DataFrame = pd.DataFrame()

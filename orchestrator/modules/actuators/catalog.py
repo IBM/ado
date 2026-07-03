@@ -144,7 +144,7 @@ class ExperimentCatalog(BaseCatalog):
             f"{reference.experimentIdentifier}@<version>."
         )
 
-    def _finalize_experiment_for_reference(
+    def _check_and_parameterize_experiment(
         self,
         reference: ExperimentReference,
         experiment: Experiment,
@@ -225,7 +225,7 @@ class ExperimentCatalog(BaseCatalog):
                         f"No experiment matching {reference!s} found in catalog {self._identifier!r}."
                     )
                 return None
-            return self._finalize_experiment_for_reference(
+            return self._check_and_parameterize_experiment(
                 reference, experiment, resolve=resolve
             )
 
@@ -239,7 +239,7 @@ class ExperimentCatalog(BaseCatalog):
                 return None
             if len(matches) > 1:
                 raise self._ambiguous_experiment_identifier_error(reference, matches)
-            return self._finalize_experiment_for_reference(
+            return self._check_and_parameterize_experiment(
                 reference, matches[0], resolve=resolve
             )
 
@@ -275,7 +275,7 @@ class ExperimentCatalog(BaseCatalog):
                 )
             return None
 
-        return self._finalize_experiment_for_reference(
+        return self._check_and_parameterize_experiment(
             reference, experiment, resolve=resolve
         )
 

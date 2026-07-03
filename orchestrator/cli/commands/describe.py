@@ -36,7 +36,6 @@ from orchestrator.modules.actuators.errors import (
 if typing.TYPE_CHECKING:
     from orchestrator.cli.core.config import AdoConfiguration
 
-EXPERIMENT_ONLY_OPTIONS = "Experiment-only options"
 SPACE_ONLY_OPTIONS = "Space-only options"
 
 
@@ -82,17 +81,6 @@ def describe_resource(
             resolve_path=True,
         ),
     ] = None,
-    actuator_id: Annotated[
-        str | None,
-        typer.Option(
-            help="""
-            The id of the actuator that provides the experiment. Auto-determined if not provided.
-
-            Only used when resource_type is experiment.""",
-            show_default=False,
-            rich_help_panel=EXPERIMENT_ONLY_OPTIONS,
-        ),
-    ] = None,
 ) -> None:
     """
     Print a human-friendly description of a resource or an experiment.
@@ -108,8 +96,8 @@ def describe_resource(
     # Describe a space from a space configuration file
     ado describe space -f <space.yaml>
 
-    # Describe an experiment and explicitly specify the actuator id
-    ado describe experiment <experiment-id> --actuator-id <actuator-id>
+    # Describe an experiment, optionally with actuator prefix
+    ado describe experiment <actuator-id>.<experiment-id>
     """
     ado_configuration: AdoConfiguration = ctx.obj
 
@@ -148,7 +136,6 @@ def describe_resource(
         raise typer.Exit(1)
 
     parameters = AdoDescribeCommandParameters(
-        actuator_id=actuator_id,
         ado_configuration=ado_configuration,
         resource_id=resource_id,
         resource_configuration=resource_configuration,
@@ -181,5 +168,5 @@ def register_describe_command(app: typer.Typer) -> None:
     app.command(
         name="describe",
         no_args_is_help=True,
-        options_metavar="[-f | --file <file.yaml>] [--actuator-id <id>]",
+        options_metavar="[-f | --file <file.yaml>]",
     )(describe_resource)

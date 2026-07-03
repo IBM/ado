@@ -15,11 +15,15 @@ from orchestrator.modules.actuators.base import (
 )
 from orchestrator.modules.actuators.catalog import (
     ExperimentCatalog,
+    ExperimentReferenceMatchMode,
 )
 from orchestrator.modules.actuators.errors import (
+    AmbiguousExperimentIdentifierError,
     DeprecatedExperimentError,
     ExperimentVersionMismatchError,
     MissingActuatorConfigurationForCatalogError,
+    NoActuatorWithExperimentError,
+    TooManyActuatorsWithExperimentError,
     UnexpectedCatalogRetrievalError,
     UnknownActuatorError,
     UnknownExperimentError,
@@ -31,7 +35,10 @@ from orchestrator.schema.experiment import (
     ParameterizedExperiment,
 )
 from orchestrator.schema.measurementspace import MeasurementSpace
-from orchestrator.schema.reference import ExperimentReference
+from orchestrator.schema.reference import (
+    ExperimentReference,
+    _parse_experiment_part_from_string,
+)
 from orchestrator.utilities.logging import configure_logging
 
 if typing.TYPE_CHECKING:
@@ -89,6 +96,19 @@ _MEASUREMENT_SPACE_INTERFACE_ISSUE_TEMPLATES: dict[
         "is not produced by the actuator catalog experiment"
     ),
 }
+
+
+def _split_resource_id_prefix(resource_id: str) -> tuple[str | None, str]:
+    """Split ``resource_id`` on the first ``.`` unless ``@`` precedes it."""
+    dot_index = resource_id.find(".")
+    if dot_index == -1:
+        return None, resource_id
+
+    at_index = resource_id.find("@")
+    if at_index != -1 and at_index < dot_index:
+        return None, resource_id
+
+    return resource_id[:dot_index], resource_id[dot_index + 1 :]
 
 
 def format_measurement_space_interface_issue(
@@ -442,9 +462,7 @@ class ActuatorRegistry:
         reference: ExperimentReference,
         additionalCatalogs: list[ExperimentCatalog] | None = None,
         *,
-        match_on: typing.Literal[
-            "major_version", "fully_qualified_version"
-        ] = "major_version",
+        match_on: ExperimentReferenceMatchMode = "major_version",
         resolve: bool = False,
     ) -> Experiment | ParameterizedExperiment:
         """Return the experiment corresponding to reference.
@@ -457,7 +475,9 @@ class ActuatorRegistry:
         Args:
             reference: A reference to an experiment.
             additionalCatalogs: Additional catalogs to search for the experiment.
-            match_on: ``"major_version"`` (default) or ``"fully_qualified_version"``.
+            match_on: ``"major_version"`` (default), ``"fully_qualified_version"``,
+                ``"base"``, or ``"any"``. See
+                :meth:`~orchestrator.modules.actuators.catalog.ExperimentCatalog.experimentForReference`.
             resolve: When ``True``, apply version checks, deprecated checks, and
                 parameterization.
 
@@ -467,6 +487,9 @@ class ActuatorRegistry:
         Raises:
             UnknownExperimentError: If the experiment cannot be found in any catalog.
             UnknownActuatorError: If the actuator cannot be found.
+            AmbiguousExperimentIdentifierError: When ``match_on='base'`` or
+                ``match_on='any'`` finds multiple catalog versions for the same
+                base identifier.
             ExperimentVersionMismatchError: When ``resolve=True`` and
                 ``match_on='fully_qualified_version'`` with a version mismatch.
             DeprecatedExperimentError: When ``resolve=True`` and the experiment
@@ -525,6 +548,8 @@ class ActuatorRegistry:
                 )
             except ExperimentVersionMismatchError:
                 raise
+            except AmbiguousExperimentIdentifierError:
+                raise
             except UnknownExperimentError:
                 log.debug(f"No experiment matching {reference} found in {catalog}")
                 continue
@@ -556,6 +581,93 @@ class ActuatorRegistry:
             raise UnknownExperimentError(message)
 
         return experiment
+
+    def actuators_containing_experiment_with_base_identifier(
+        self, experiment_base_identifier: str
+    ) -> set[str]:
+        """
+        Returns the set of actuators that contain an experiment with given base identifier
+
+        Args:
+            experiment_base_identifier (str): The base identifier of the experiment.
+
+        Returns:
+            set[str]: A set of actuator identifiers
+        """
+        actuators_with_target_experiment: set[str] = set()
+
+        for actuator_id in self.actuatorIdentifierMap:
+            catalog = self.catalogForActuatorIdentifier(actuator_id)
+            for experiment in catalog.experiments:
+                if experiment.identifier == experiment_base_identifier:
+                    actuators_with_target_experiment.add(actuator_id)
+
+        return actuators_with_target_experiment
+
+    def experiment_for_experiment_identifier(
+        self,
+        experiment_identifier: str,
+        *,
+        allow_parameterization: bool = True,
+        match_on: ExperimentReferenceMatchMode = "major_version",
+        resolve: bool = False,
+    ) -> Experiment:
+        """Returns experiment matching an experiment identifier string
+
+        Args:
+            experiment_identifier: Bare experiment identifier, versioned identifier with an
+                ``@MAJOR.MINOR.PATCH`` suffix, or a fully-qualified reference
+                string of the form ``actuator_id.experiment_id``.
+            allow_parameterization: If True (default) string parsing considers that
+                parameterization could be present in the identifier.
+                If False, string parsing assumes there is no parameterization.
+            match_on: ``"major_version"`` (default), ``"fully_qualified_version"``,
+                ``"base"``, or ``"any"``. See
+                :meth:`~orchestrator.modules.actuators.catalog.ExperimentCatalog.experimentForReference`.
+            resolve: When ``True``, apply version checks, deprecated checks, and
+                parameterization.
+
+        Returns:
+            Parsed experiment reference.
+
+        Raises:
+            NoActuatorWithExperimentError: If no actuator implements the experiment.
+            TooManyActuatorsWithExperimentError: If multiple actuators implement the
+                experiment.
+            ValueError: If ``resource_id`` is not a valid experiment reference string.
+        """
+
+        prefix, _ = _split_resource_id_prefix(experiment_identifier)
+        if prefix is not None and prefix in self.actuatorIdentifierMap:
+            reference = ExperimentReference.referenceFromString(
+                experiment_identifier, allow_parameterization=allow_parameterization
+            )
+            return self.experimentForReference(
+                reference, match_on=match_on, resolve=resolve
+            )
+
+        base_experiment_identifier, _, _ = _parse_experiment_part_from_string(
+            experiment_identifier, allow_parameterization=False
+        )
+        actuators_with_target_experiment = (
+            self.actuators_containing_experiment_with_base_identifier(
+                base_experiment_identifier
+            )
+        )
+
+        if len(actuators_with_target_experiment) > 1:
+            raise TooManyActuatorsWithExperimentError(actuators_with_target_experiment)
+        if len(actuators_with_target_experiment) == 0:
+            raise NoActuatorWithExperimentError
+        actuator_id = next(iter(actuators_with_target_experiment))
+
+        reference = ExperimentReference.referenceFromString(
+            f"{actuator_id}.{experiment_identifier}",
+            allow_parameterization=allow_parameterization,
+        )
+        return self.experimentForReference(
+            reference, match_on=match_on, resolve=resolve
+        )
 
     @property
     def catalogs(self) -> list[ExperimentCatalog]:

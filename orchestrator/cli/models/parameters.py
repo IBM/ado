@@ -64,7 +64,6 @@ class AdoDeleteCommandParameters(pydantic.BaseModel):
 
 
 class AdoDescribeCommandParameters(pydantic.BaseModel):
-    actuator_id: str | None
     ado_configuration: AdoConfiguration
     resource_id: str | None
     resource_configuration: Path | None
@@ -127,7 +126,7 @@ class AdoShowStatsCommandParameters(pydantic.BaseModel):
 class AdoTemplateCommandParameters(pydantic.BaseModel):
     actuator_identifier: str | None
     ado_configuration: AdoConfiguration
-    from_experiments: list[dict[str, str | None]] | None
+    from_experiments: list[str] | None
     include_schema: bool
     operator_name: str | None
     operator_type: DiscoveryOperationEnum | None

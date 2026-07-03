@@ -363,6 +363,51 @@ def test_parse_experiment_part_rejects_parameterization_before_base() -> None:
         _parse_experiment_part_from_string("-timeout.120")
 
 
+def test_parse_experiment_part_without_parameterization_when_disabled() -> None:
+    """CLI parsing keeps dotted experiment identifiers intact."""
+    base, version, parameterization = _parse_experiment_part_from_string(
+        "my-experiment-timeout.120",
+        allow_parameterization=False,
+    )
+    assert base == "my-experiment-timeout.120"
+    assert version is None
+    assert parameterization is None
+
+
+def test_reference_from_string_without_parameterization_when_disabled() -> None:
+    """referenceFromString can skip parameterization parsing for CLI input."""
+    parsed = ExperimentReference.referenceFromString(
+        "act.my-experiment-timeout.120",
+        allow_parameterization=False,
+    )
+    assert parsed.actuatorIdentifier == "act"
+    assert parsed.experimentIdentifier == "my-experiment-timeout.120"
+    assert parsed.parameterization is None
+
+
+def test_parse_experiment_part_major_version_identifier_when_disabled() -> None:
+    """CLI parsing accepts major version identifiers such as @v1."""
+    base, version, parameterization = _parse_experiment_part_from_string(
+        "nevergrad_opt_3d_test_func@v1",
+        allow_parameterization=False,
+    )
+    assert base == "nevergrad_opt_3d_test_func"
+    assert version == "1.0.0"
+    assert parameterization is None
+
+
+def test_reference_from_string_major_version_identifier_when_disabled() -> None:
+    """CLI reference parsing accepts major version identifiers such as @v1."""
+    parsed = ExperimentReference.referenceFromString(
+        "custom_experiments.nevergrad_opt_3d_test_func@v1",
+        allow_parameterization=False,
+    )
+    assert parsed.actuatorIdentifier == "custom_experiments"
+    assert parsed.experimentIdentifier == "nevergrad_opt_3d_test_func"
+    assert parsed.experimentVersion == "1.0.0"
+    assert parsed.major_version_experiment_identifier == "nevergrad_opt_3d_test_func@v1"
+
+
 def test_experiment_reference_equality_non_reference() -> None:
 
     ref = ExperimentReference(experimentIdentifier="test", actuatorIdentifier="test")

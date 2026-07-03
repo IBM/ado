@@ -246,7 +246,7 @@ For example, to see the input requirements of the experiment
 `finetune_full_benchmark-v1.0.0` you can run:
 
 ```shell
-ado describe experiment finetune_full_benchmark-v1.0.0 --actuator-id SFTTrainer
+ado describe experiment finetune_full_benchmark-v1.0.0
 ```
 
 you will get output like

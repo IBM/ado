@@ -15,11 +15,16 @@ from orchestrator.schema.property import (
 from orchestrator.schema.property_value import (
     ConstitutivePropertyValue,
 )
-from orchestrator.utilities.pydantic import StrictSemVerStr, semver_major
+from orchestrator.utilities.pydantic import (
+    _STRICT_SEMVER_PATTERN,
+    StrictSemVerStr,
+    semver_major,
+)
 
 _FQ_VERSION_WITH_PARAMS_PATTERN = re.compile(
     r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-(.*))?$"
 )
+_MAJOR_VERSION_ID_SUFFIX_PATTERN = re.compile(r"^v(0|[1-9]\d*)$")
 # Split parameterization segments on '-' only before the next prop.value pair,
 # not on '-' that begins a negative numeric value (e.g. test_opt2.-1).
 _PARAMETERIZATION_SEGMENT_SPLIT = re.compile(r"-(?=[^.-][^.]*\.)")
@@ -154,12 +159,16 @@ def _parameterization_from_suffix(
 
 def _parse_experiment_part_from_string(
     experiment_part: str,
+    *,
+    allow_parameterization: bool = True,
 ) -> tuple[str, StrictSemVerStr | None, list[ConstitutivePropertyValue] | None]:
     """Parse the experiment portion of a reference string.
 
     Args:
         experiment_part: The substring after ``actuatorIdentifier.`` in a
             reference string representation.
+        allow_parameterization: When ``False``, treat the experiment part as a
+            plain identifier (no ``propertyIdentifier.value`` suffix parsing).
 
     Returns:
         A tuple of base experiment identifier, optional strict SemVer version,
@@ -167,11 +176,27 @@ def _parse_experiment_part_from_string(
     """
     if "@" in experiment_part:
         base_identifier, version_and_params = experiment_part.split("@", maxsplit=1)
+        if not allow_parameterization:
+            version_match = re.match(_STRICT_SEMVER_PATTERN, version_and_params)
+            if version_match is not None:
+                version: StrictSemVerStr = (
+                    f"{version_match.group(1)}.{version_match.group(2)}.{version_match.group(3)}"
+                )
+                return base_identifier, version, None
+            major_version_match = _MAJOR_VERSION_ID_SUFFIX_PATTERN.match(
+                version_and_params
+            )
+            if major_version_match is not None:
+                major = major_version_match.group(1)
+                return base_identifier, f"{major}.0.0", None
+            raise ValueError(
+                f"Cannot parse version suffix in {experiment_part!r}. "
+                "Version must be strict SemVer MAJOR.MINOR.PATCH (e.g. @1.0.0) "
+                "or a major version identifier (e.g. @v1)."
+            )
         version_match = _FQ_VERSION_WITH_PARAMS_PATTERN.match(version_and_params)
         if version_match is not None:
-            version: StrictSemVerStr = (
-                f"{version_match.group(1)}.{version_match.group(2)}.{version_match.group(3)}"
-            )
+            version = f"{version_match.group(1)}.{version_match.group(2)}.{version_match.group(3)}"
             parameterization_suffix = version_match.group(4)
             parameterization = (
                 _parameterization_from_suffix(parameterization_suffix)
@@ -184,6 +209,9 @@ def _parse_experiment_part_from_string(
             "Version must be strict SemVer MAJOR.MINOR.PATCH (e.g. @1.0.0). "
             "Legacy forms like @v1 are not supported."
         )
+
+    if not allow_parameterization:
+        return experiment_part, None, None
 
     base_identifier, parameterization_suffix = _split_base_and_parameterization_suffix(
         experiment_part
@@ -275,7 +303,12 @@ class ExperimentReference(pydantic.BaseModel):
         return self.experimentIdentifier
 
     @classmethod
-    def referenceFromString(cls, stringRepresentation: str) -> "ExperimentReference":
+    def referenceFromString(
+        cls,
+        stringRepresentation: str,
+        *,
+        allow_parameterization: bool = True,
+    ) -> "ExperimentReference":
         """Convert a string representation into an ExperimentReference.
 
         Parses strings of the form ``'{actuatorId}.{experimentId}'``, where
@@ -291,6 +324,8 @@ class ExperimentReference(pydantic.BaseModel):
 
         Args:
             stringRepresentation: The string to parse.
+            allow_parameterization: When ``False``, do not parse
+                ``propertyIdentifier.value`` suffixes from the experiment part.
 
         Returns:
             A new ExperimentReference.
@@ -314,7 +349,9 @@ class ExperimentReference(pydantic.BaseModel):
             experiment_identifier,
             experiment_version,
             parameterization,
-        ) = _parse_experiment_part_from_string(experiment_part)
+        ) = _parse_experiment_part_from_string(
+            experiment_part, allow_parameterization=allow_parameterization
+        )
 
         return cls(
             experimentIdentifier=experiment_identifier,

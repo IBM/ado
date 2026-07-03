@@ -34,7 +34,7 @@ from orchestrator.schema.result import ValidMeasurementResult
 from orchestrator.utilities.support import (
     compute_measurement_status,
     create_measurement_result,
-    dict_to_measurements,
+    observed_property_values_from_dict,
 )
 
 # ---------------------------------------------------------------------------
@@ -99,7 +99,7 @@ def _custom_execute(request: MeasurementRequest) -> MeasurementRequest:
     results = [
         create_measurement_result(
             entity.identifier,
-            dict_to_measurements({"result": 99.0}, _TEST_EXPERIMENT),
+            observed_property_values_from_dict({"result": 99.0}, _TEST_EXPERIMENT),
             request.experimentReference,
         )
         for entity in request.entities

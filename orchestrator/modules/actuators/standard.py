@@ -42,7 +42,7 @@ from orchestrator.schema.result import MeasurementResult  # noqa: TC001
 from orchestrator.utilities.support import (
     compute_measurement_status,
     create_measurement_result,
-    dict_to_measurements,
+    observed_property_values_from_dict,
 )
 
 logger = logging.getLogger(__name__)
@@ -79,7 +79,7 @@ def _execute_experiments_serial(
         try:
             input_values = experiment.propertyValuesFromEntity(entity)
             result_dict = fn(**input_values)
-            values = dict_to_measurements(result_dict, experiment)
+            values = observed_property_values_from_dict(result_dict, experiment)
             results.append(
                 create_measurement_result(
                     entity.identifier, values, request.experimentReference
@@ -168,7 +168,7 @@ def _execute_experiments_parallel(
                 )
             )
         else:
-            values = dict_to_measurements(result_dict, experiment)
+            values = observed_property_values_from_dict(result_dict, experiment)
             results.append(
                 create_measurement_result(
                     entity.identifier, values, request.experimentReference

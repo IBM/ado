@@ -12,9 +12,11 @@ import cloudpickle
 import pytest
 
 from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
-from orchestrator.modules.actuators.base import DeprecatedExperimentError
 from orchestrator.modules.actuators.catalog import ExperimentCatalog
-from orchestrator.modules.actuators.errors import UnknownExperimentError
+from orchestrator.modules.actuators.errors import (
+    DeprecatedExperimentError,
+    UnknownExperimentError,
+)
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue, NullQueue
 from orchestrator.modules.actuators.standard import (
     StandardActuator,

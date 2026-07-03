@@ -25,3 +25,6 @@ exclude = ["build", "build.*", "tests"]
 
 [tool.setuptools_scm]
 root = "../../../"
+
+[tool.setuptools_scm.tag]
+regex = "^(?:[^/]+/)?(?P<version>[vV]?\\d+(?:\\.\\d+)*)$"

@@ -66,6 +66,9 @@ vllm_performance = [
 root = "../../../"
 local_scheme = "node-and-timestamp"
 
+[tool.setuptools_scm.tag]
+regex = "^(?:[^/]+/)?(?P<version>[vV]?\\d+(?:\\.\\d+)*)$"
+
 # Required when added as a workspace package
 [tool.uv.sources]
 ado-core = { workspace = true }

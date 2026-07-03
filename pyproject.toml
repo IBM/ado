@@ -84,12 +84,12 @@ docs = [
 ]
 
 test = [
+  "ado-anomalous-series",
   "ado-autoconf ; python_full_version < '3.14'",
   "ado-ray-tune",
   "ado-sfttrainer ; python_full_version < '3.13'",
   "ado-trim ; python_full_version < '3.14'",
   "ado-vllm-performance",
-  "anomalous-series",
   "cloudpickle>=3.1.2",
   "density-test",
   "optimization-test-functions",
@@ -148,7 +148,7 @@ ado-ray-tune = { workspace = true, editable = true }
 ado-sfttrainer = { path = "plugins/actuators/sfttrainer", editable = true }
 ado-trim = { path = "plugins/operators/trim", editable = true }
 ado-vllm-performance = { workspace = true, editable = true }
-anomalous-series = { workspace = true, editable = true }
+ado-anomalous-series = { workspace = true, editable = true }
 density-test = { workspace = true, editable = true }
 optimization-test-functions = { workspace = true, editable = true }
 pfas-custom-functions = { workspace = true, editable = true }

@@ -20,16 +20,20 @@ required-markers = [
 
 [manifest]
 members = [
+    "ado-anomalous-series",
     "ado-core",
     "ado-ray-tune",
     "ado-vllm-performance",
-    "anomalous-series",
     "density-test",
     "optimization-test-functions",
     "pfas-custom-functions",
     "robotic-lab",
     "trim-custom-experiments",
 ]
+
+[[package]]
+name = "ado-anomalous-series"
+source = { editable = "plugins/operators/anomalous_series" }
 
 [[package]]
 name = "ado-autoconf"
@@ -107,13 +111,12 @@ docs = [
     { name = "pymdown-extensions" },
 ]
 test = [
+    { name = "ado-anomalous-series" },
     { name = "ado-autoconf", marker = "python_full_version < '3.14'" },
     { name = "ado-ray-tune" },
     { name = "ado-sfttrainer", marker = "python_full_version < '3.13'" },
     { name = "ado-trim", marker = "python_full_version < '3.14'" },
     { name = "ado-vllm-performance" },
-    { name = "anomalous-series" },
-    { name = "cloudpickle" },
     { name = "density-test" },
     { name = "optimization-test-functions" },
     { name = "pfas-custom-functions" },
@@ -170,13 +173,12 @@ docs = [
     { name = "pymdown-extensions", specifier = ">=10.15" },
 ]
 test = [
+    { name = "ado-anomalous-series", editable = "plugins/operators/anomalous_series" },
     { name = "ado-autoconf", marker = "python_full_version < '3.14'", editable = "plugins/custom_experiments/autoconf" },
     { name = "ado-ray-tune", editable = "plugins/operators/ray_tune" },
     { name = "ado-sfttrainer", marker = "python_full_version < '3.13'", editable = "plugins/actuators/sfttrainer" },
     { name = "ado-trim", marker = "python_full_version < '3.14'", editable = "plugins/operators/trim" },
     { name = "ado-vllm-performance", editable = "plugins/actuators/vllm_performance" },
-    { name = "anomalous-series", editable = "plugins/operators/anomalous_series" },
-    { name = "cloudpickle", specifier = ">=3.1.2" },
     { name = "density-test", editable = "examples/density_example" },
     { name = "optimization-test-functions", editable = "examples/optimization_test_functions/custom_experiments" },
     { name = "pfas-custom-functions", editable = "examples/pfas-generative-models/custom_actuator_function" },
@@ -601,10 +603,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/ee/67/531ea369ba64dcff5
 wheels = [
     { url = "https://files.pythonhosted.org/packages/78/b6/6307fbef88d9b5ee7421e68d78a9f162e0da4900bc5f5793f6d3d0e34fb8/annotated_types-0.7.0-py3-none-any.whl", hash = "sha256:1f02e8b43a8fbbc3f3e0d4f0f4bfc8131bcb4eebe8849b8e5c773f3a1c582a53", size = 13643, upload-time = "2024-05-20T21:33:24.1Z" },
 ]
-
-[[package]]
-name = "anomalous-series"
-source = { editable = "plugins/operators/anomalous_series" }
 
 [[package]]
 name = "anthropic"

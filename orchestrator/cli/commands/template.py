@@ -20,7 +20,6 @@ from orchestrator.cli.resources.operation.template import template_operation
 from orchestrator.cli.resources.sample_store.template import template_sample_store
 from orchestrator.cli.utils.input.parsers import (
     enum_choice_with_plural_parser,
-    parse_key_value_pairs,
 )
 
 if typing.TYPE_CHECKING:
@@ -80,7 +79,7 @@ def template_resource(
             If unset, a generic actuatorconfiguration will be output.
 
             If an actuator id is required to uniquely identify an experiment,
-            must be specified in the form actuator_id:experiment_id.
+            include it in the resource id as actuator_id.experiment_id.
 
             Disregarded when resource type is not space.
             """,
@@ -153,11 +152,6 @@ def template_resource(
     ado template operation --operator-name ray_tune
     """
     ado_configuration: AdoConfiguration = ctx.obj
-
-    #
-    from_experiments = parse_key_value_pairs(
-        from_experiments, separator=":", allow_only_key=True, invert_key_value=True
-    )
 
     parameters = AdoTemplateCommandParameters(
         actuator_identifier=actuator_identifier,

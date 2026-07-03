@@ -11,11 +11,10 @@ from orchestrator.cli.utils.output.prints import (
     ADO_SPINNER_GETTING_OUTPUT_READY,
 )
 from orchestrator.cli.utils.resources.experiments import (
-    _ado_get_actuator_from_experiment_id,
+    _ado_lookup_cli_experiment,
 )
 from orchestrator.core.discoveryspace.config import DiscoverySpaceConfiguration
 from orchestrator.schema.measurementspace import MeasurementSpace
-from orchestrator.schema.reference import ExperimentReference
 
 if typing.TYPE_CHECKING:
     from orchestrator.schema.entityspace import EntitySpaceRepresentation
@@ -29,19 +28,10 @@ def template_discovery_space(parameters: AdoTemplateCommandParameters) -> None:
 
     with Status(ADO_SPINNER_GETTING_OUTPUT_READY):
         if parameters.from_experiments:
-
-            experiment_references = []
-            for pair in parameters.from_experiments:
-                for experiment_id, actuator_id in pair.items():
-                    actuator_id = actuator_id or _ado_get_actuator_from_experiment_id(
-                        experiment_id=experiment_id, actuator_id=actuator_id
-                    )
-                    experiment_references.append(
-                        ExperimentReference(
-                            actuatorIdentifier=actuator_id,
-                            experimentIdentifier=experiment_id,
-                        )
-                    )
+            experiment_references = [
+                _ado_lookup_cli_experiment(experiment_id).reference
+                for experiment_id in parameters.from_experiments
+            ]
 
             measurement_space = (
                 MeasurementSpace.measurementSpaceFromExperimentReferences(
@@ -51,13 +41,6 @@ def template_discovery_space(parameters: AdoTemplateCommandParameters) -> None:
             entity_space: EntitySpaceRepresentation = (
                 measurement_space.compatibleEntitySpace()
             )
-            experiment_references = [
-                ExperimentReference(
-                    experimentIdentifier=e.experimentIdentifier,
-                    actuatorIdentifier=e.actuatorIdentifier,
-                )
-                for e in experiment_references
-            ]
 
             model_instance = DiscoverySpaceConfiguration(
                 sampleStoreIdentifier="ID",
@@ -74,7 +57,6 @@ def template_discovery_space(parameters: AdoTemplateCommandParameters) -> None:
 
     if parameters.include_schema:
         if parameters.output_file is None:
-            # If outputting to stdout, also output schema to stdout
             serialise_pydantic_model_json_schema(model_instance, None)
         else:
             schema_output_path = pathlib.Path(

@@ -10,15 +10,14 @@ dynamic = ["version"]
 robotic_lab = "robotic_lab_actuator.actuator:RoboticLab"
 
 [build-system]
-requires = ["setuptools", "setuptools_scm"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling", "uv-dynamic-versioning>=0.7.0"]
+build-backend = "hatchling.build"
 
-[tool.setuptools]
-include-package-data = true  # This is on by default, including it for clarity
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
 
-[tool.setuptools.packages.find]
-where = ["src"]
-exclude = ["build", "build.*", "examples"]
+[tool.hatch.build.targets.wheel]
+packages = ["src/robotic_lab_actuator"]
 
 [tool.setuptools.package-data]
 # Note: This is optional. If you don't specify every non python file that's in SCM will be added
@@ -26,14 +25,26 @@ robotic_lab_actuator = [
   "experiments.yaml",  # Optional file that contains definitions for experiment catalog
 ]
 
-[tool.setuptools_scm]
-root = "../../../"
-local_scheme = "node-and-timestamp"
-
-[tool.setuptools_scm.tag]
-regex = "^(?:[^/]+/)?(?P<version>[vV]?\\d+(?:\\.\\d+)*)$"
-
 # Required when added as a workspace package.
 # Do not include it if you're developing an actuator outside of the ado repo
 [tool.uv.sources]
 ado-core = { workspace = true }
+
+[tool.uv-dynamic-versioning]
+vcs = "git"
+style = "pep440"
+pattern = "default-unprefixed"
+pattern-prefix = "example-actuator/"
+fallback-version = "0.0.0"
+format-jinja = """
+{%- set metadata = [
+    distance != 0 and "g" ~ commit,
+    distance != 0 and "d" ~ timestamp,
+    dirty and "dirty"
+] -%}
+{{ serialize_pep440(
+    distance == 0 and base or bump_version(base),
+    dev=distance or None,
+    metadata=metadata | select | list
+) }}
+"""

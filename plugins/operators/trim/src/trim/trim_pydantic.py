@@ -250,7 +250,7 @@ class TrimParameters(BaseTrimSamplerParameters):
 
     @model_validator(mode="after")
     def propagate_missing_target_variables(self) -> "TrimParameters":
-        """Propagate the top-level missing_target_variables into noPriorParameters.
+        """Propagate the top-level missingTargetVariables into noPriorParameters.
 
         This ensures both samplers share a single policy object configured in
         one place (at the TrimParameters level).
@@ -258,7 +258,7 @@ class TrimParameters(BaseTrimSamplerParameters):
         Returns:
             The validated model instance.
         """
-        self.noPriorParameters.missing_target_variables = self.missing_target_variables
+        self.noPriorParameters.missingTargetVariables = self.missingTargetVariables
         return self
 
 

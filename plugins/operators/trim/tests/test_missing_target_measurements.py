@@ -108,18 +108,18 @@ def test_round_trip_skip() -> None:
 
 
 def test_no_priors_parameters_round_trip() -> None:
-    """NoPriorsParameters with missing_target_variables round-trips correctly."""
+    """NoPriorsParameters with missingTargetVariables round-trips correctly."""
     original = NoPriorsParameters(
         targetOutput="latency",
-        missing_target_variables=MissingTargetMeasurements(
+        missingTargetVariables=MissingTargetMeasurements(
             mode=MissingTargetMode.Skip, budget=2
         ),
     )
     dumped = original.model_dump()
     restored = NoPriorsParameters.model_validate(dumped)
     assert restored.targetOutput == "latency"
-    assert restored.missing_target_variables.mode == MissingTargetMode.Skip
-    assert restored.missing_target_variables.budget == 2
+    assert restored.missingTargetVariables.mode == MissingTargetMode.Skip
+    assert restored.missingTargetVariables.budget == 2
 
 
 # ---------------------------------------------------------------------------
@@ -128,33 +128,31 @@ def test_no_priors_parameters_round_trip() -> None:
 
 
 def test_trim_parameters_round_trip() -> None:
-    """TrimParameters with missing_target_variables round-trips correctly."""
+    """TrimParameters with missingTargetVariables round-trips correctly."""
     original = TrimParameters(
         targetOutput="throughput",
-        missing_target_variables=MissingTargetMeasurements(
+        missingTargetVariables=MissingTargetMeasurements(
             mode=MissingTargetMode.InjectDefaultValue, defaultValue=0.0
         ),
     )
     dumped = original.model_dump()
     restored = TrimParameters.model_validate(dumped)
-    assert (
-        restored.missing_target_variables.mode == MissingTargetMode.InjectDefaultValue
-    )
-    assert restored.missing_target_variables.defaultValue == 0.0
+    assert restored.missingTargetVariables.mode == MissingTargetMode.InjectDefaultValue
+    assert restored.missingTargetVariables.defaultValue == 0.0
 
 
-def test_trim_parameters_propagates_missing_target_variables() -> None:
-    """TrimParameters.propagate_missing_target_variables copies the policy into noPriorParameters."""
+def test_trim_parameters_propagates_missingTargetVariables() -> None:
+    """TrimParameters.propagate_missingTargetVariables copies the policy into noPriorParameters."""
     params = TrimParameters(
         targetOutput="throughput",
-        missing_target_variables=MissingTargetMeasurements(
+        missingTargetVariables=MissingTargetMeasurements(
             mode=MissingTargetMode.Skip, budget=4
         ),
     )
     assert (
-        params.noPriorParameters.missing_target_variables.mode == MissingTargetMode.Skip
+        params.noPriorParameters.missingTargetVariables.mode == MissingTargetMode.Skip
     )
-    assert params.noPriorParameters.missing_target_variables.budget == 4
+    assert params.noPriorParameters.missingTargetVariables.budget == 4
 
 
 def test_trim_parameters_no_default_for_unmeasured_properties() -> None:

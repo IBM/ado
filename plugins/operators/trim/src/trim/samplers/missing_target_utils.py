@@ -149,7 +149,7 @@ def record_missing_and_check_budget(
       exceeds ``budget`` (if set).
 
     Args:
-        params: The sampler parameters containing the ``missing_target_variables``
+        params: The sampler parameters containing the ``missingTargetVariables``
             policy.  Must expose a ``targetOutput`` attribute (present on both
             :class:`~trim.samplers.no_priors_parameters.NoPriorsParameters` and
             :class:`~trim.trim_pydantic.TrimParameters`).
@@ -166,7 +166,7 @@ def record_missing_and_check_budget(
         InsufficientDataError: When mode is ``RaiseError`` or the budget is
             exceeded.
     """
-    mtv = params.missing_target_variables
+    mtv = params.missingTargetVariables
 
     if mtv.mode == MissingTargetMode.RaiseError:
         log_unable_to_proceed_with_iterative_modeling_and_raise_error(

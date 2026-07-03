@@ -118,7 +118,7 @@ class MissingTargetMeasurements(BaseModel):
 class BaseTrimSamplerParameters(BaseModel):
     """Base parameter class shared by all TRIM sampler parameter models."""
 
-    missing_target_variables: Annotated[
+    missingTargetVariables: Annotated[
         MissingTargetMeasurements,
         Field(
             description=(

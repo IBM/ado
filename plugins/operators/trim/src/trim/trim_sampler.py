@@ -129,7 +129,7 @@ class TrimSampleSelector(BaseSampler):
         """Handle the case where an entity yielded no target variable measurement.
 
         Dispatches to one of three behaviours based on
-        ``self.params.missing_target_variables.mode``:
+        ``self.params.missingTargetVariables.mode``:
 
         - ``RaiseError``: calls
           :func:`~trim.utils.logging_utils.log_unable_to_proceed_with_iterative_modeling_and_raise_error`
@@ -164,7 +164,7 @@ class TrimSampleSelector(BaseSampler):
         if entity_hit_in_source(entity[0], current_source_df):
             return one_additional_row, current_source_df, False
 
-        mode = self.params.missing_target_variables.mode
+        mode = self.params.missingTargetVariables.mode
         entity_id = entity[0].identifier  # always set after check_identifier validator
 
         if mode == MissingTargetMode.RaiseError:
@@ -186,12 +186,12 @@ class TrimSampleSelector(BaseSampler):
             logger_trim_sampler.info(
                 f"Entity '{entity_id}' did not produce a measurement for "
                 f"target variable '{self.params.targetOutput}'. "
-                f"Injecting default value {self.params.missing_target_variables.defaultValue}."
+                f"Injecting default value {self.params.missingTargetVariables.defaultValue}."
             )
             one_additional_row = _make_default_row(
                 entity[0],
                 self.params.targetOutput,
-                self.params.missing_target_variables.defaultValue,  # type: ignore[arg-type]
+                self.params.missingTargetVariables.defaultValue,  # type: ignore[arg-type]
             )
             # Accumulate so future iterations can re-apply synthetic rows after
             # each fresh get_source_and_target() call.
@@ -341,10 +341,10 @@ class TrimSampleSelector(BaseSampler):
         # so they are present in initial_source_df for all AutoGluon training.
         if (
             no_target_entities
-            and self.params.missing_target_variables.mode
+            and self.params.missingTargetVariables.mode
             == MissingTargetMode.InjectDefaultValue
         ):
-            default_val = self.params.missing_target_variables.defaultValue
+            default_val = self.params.missingTargetVariables.defaultValue
             skip_rows = [
                 _make_default_row(entity, self.params.targetOutput, default_val)  # type: ignore[arg-type]
                 for entity in no_target_entities
@@ -925,12 +925,12 @@ class TrimSampleSelector(BaseSampler):
         # from the no-priors phase that produced no target measurement.  This must
         # happen before the minPoints check so those rows count towards the budget.
         if (
-            self.params.missing_target_variables.mode
+            self.params.missingTargetVariables.mode
             == MissingTargetMode.InjectDefaultValue
         ):
             no_target_entities = self._no_target_entities_from_no_priors(discoverySpace)
             if no_target_entities:
-                default_val = self.params.missing_target_variables.defaultValue
+                default_val = self.params.missingTargetVariables.defaultValue
                 default_rows = [
                     _make_default_row(entity, self.params.targetOutput, default_val)  # type: ignore[arg-type]
                     for entity in no_target_entities

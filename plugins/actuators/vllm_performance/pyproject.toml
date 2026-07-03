@@ -65,7 +65,9 @@ vllm_performance = [
 [tool.setuptools_scm]
 root = "../../../"
 local_scheme = "node-and-timestamp"
-tag_regex = "^(?P<version>[vV]?\\d+(?:\\.\\d+)*)$"
+
+[tool.setuptools_scm.tag]
+regex = "^(?:[^/]+/)?(?P<version>[vV]?\\d+(?:\\.\\d+)*)$"
 
 # Required when added as a workspace package
 [tool.uv.sources]

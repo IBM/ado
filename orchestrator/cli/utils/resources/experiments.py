@@ -41,12 +41,12 @@ def _ado_lookup_cli_experiment(
         base_experiment_identifier, _, _ = _parse_experiment_part_from_string(
             resource_id, allow_parameterization=False
         )
+        sorted_actuators_with_experiment = sorted(error.actuators_with_experiments)
+        example = f"{sorted_actuators_with_experiment[0]}.{base_experiment_identifier}"
         console_print(
             f"{ERROR}Experiment {magenta(base_experiment_identifier)} was found in "
-            f"multiple actuators: {error.actuators_with_experiments}. "
-            "Specify the actuator in the resource id, e.g. "
-            f"{next(iter(error.actuators_with_experiments))}."
-            f"{base_experiment_identifier}.",
+            f"multiple actuators: {sorted_actuators_with_experiment}. "
+            f"Specify the actuator in the resource id, e.g. {example}",
             stderr=True,
         )
         raise typer.Exit(1) from error

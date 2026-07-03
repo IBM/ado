@@ -1,21 +1,24 @@
 <!-- markdownlint-disable first-line-h1 -->
-<!-- markdownlint-disable first-line-h1 -->
 
-!!! info end
+>[!INFO]
+>
+> A [complete template actuator](https://github.com/IBM/ado/tree/main/plugins/actuators/example_actuator)
+> is available.
+> This example actuator is functional out-of-the-box
+> and can be used as the basis to create new actuators.
 
-    A complete template actuator can be found
-    [here](https://github.com/IBM/ado/tree/main/plugins/actuators/example_actuator).
-    This example actuator is functional out-of-the-box
-    and can be used as the basis to create new actuators.
+[Custom experiments](creating-custom-experiments.md) cover many use cases for
+extending `ado` with new experiments. However, sometimes you need more control
+over how the experiments are run. For example, you might need to connect to,
+configure and manage an external environment, like a Kubernetes cluster.
 
-Developers can write their own [actuator](../core-concepts/actuators.md) plugins
-to add new experiments (a.k.a. tests, experiment protocols) in new domains to
-`ado`. Actuator plugins are written in Python and can live in their own
-repository.
-
-The main part of writing an actuator plugin is writing a Python class that
-implements a specific interface. `ado` then interacts with your plugin, and the
-experiments it provides, via an instance of this class.
+For such situations developers can write their own
+[actuators](../core-concepts/actuators.md). Actuators allow you to control and
+customize the entire experiment submission process giving great flexibility and
+power. You can also expose customization options to users via
+[`actuatorconfigurations`](#enabling-custom-configuration-of-an-actuator).
+Like custom experiments actuator are supplied as plugin **python
+packages**.
 
 This page gives an overview of how to get started creating your own actuator.
 It's not intended to be comprehensive. After reading this page the best resource
@@ -28,6 +31,142 @@ or to check an existing actuator plugin.
 - Knowledge of Python
 - Knowledge of [pydantic](https://docs.pydantic.dev/latest/) is useful, but not
   necessary
+
+## The Actuator Class
+
+The main part of writing an actuator plugin is writing (at least) one Python
+class that implements a specific interface.
+
+- is a subclass of `orchestrator.modules.actuators.base.StandardActuator`.
+- defines a class attribute `identifier`, which is human-readable name of the
+  actuator
+- implements the `catalog()` method
+- _either_
+  - simple case: override `_experiment_implementations()`
+  - complex case: overrides `_get_request_executor`
+
+The simple case is for when your actuators experiments are independent of each
+other i.e. executing one experiment does not care about other experiments. The
+complex case is for when your experiments require access to shared state.
+
+### The catalog method
+
+The `catalog()` method returns an `ExperimentCatalog` instance detailing the
+experiments your actuator provides.
+
+Each entry in the catalog is an `Experiment` model instance that describes the
+name, version, input properties and output properties of an experiment. It
+**does not contain** the implementation of the experiment.
+
+Our
+[example implementation](https://github.com/IBM/ado/tree/main/plugins/actuators/example_actuator)
+demonstrates reading the catalog from YAML. The catalog can also be built in
+code.
+
+### Simple case: Independent experiments
+
+If your experiments can be executed independently, requiring no shared state,
+you can override the method `_experiment_implementations`.
+
+In this case, implement each experiment as a python function i.e. one python
+function for each `Experiment` entry your `ExperimentCatalog`. The
+`_experiment_implementations()` method then returns a dict that maps each
+experiment identifier to the corresponding function e.g.
+
+```python
+def _experiment_implementations(self) -> dict[str, Callable[..., dict[str, Any]]]:
+
+    return {'myexperiment': my_experiment_fn()}
+```
+
+The parameter names of the function must be the same as the input property
+identifiers of the `Experiment`. The output of the function must be a dict that
+maps the target property identifiers of the Experiment to their measured values.
+
+For example, for an Experiment instance like
+
+```yaml
+# it's properties which  match what is defined here
+peptide_mineralization:
+  identifier: peptide_mineralization
+  actuatorIdentifier: "robotic_lab"
+  requiredProperties:
+    - identifier: "peptide_identifier"
+      propertyDomain:
+        variableType: "CATEGORICAL_VARIABLE_TYPE"
+        values: ["test_peptide", "test_peptide_new"]
+    - identifier: "peptide_concentration"
+      propertyDomain:
+        values: [0.1, 0.4, 0.6, 0.8]
+        variableType: "DISCRETE_VARIABLE_TYPE"
+  targetProperties: # What properties experiment will measure
+    - identifier: adsorption_timeseries
+    - identifier: adsorption_plateau_value
+```
+
+The function would look like
+
+```python
+def peptide_mineralization_fn(peptide_identifier, peptide_concentration):
+
+    ...
+    return {'adsoprtion_timeseries':timeseries,
+            'adsorption_plateau_value':plateau}
+```
+
+### Complex case: Experiments with shared state
+
+If your experiments require access to shared state e.g. a queue object, an
+environment manager object, then you can override the method
+`_get_request_executor`.
+
+This method that takes a `MeasurementRequest` instance that describes the
+experiment to run. Note, the `use_ray` parameter is used by default
+implementation and can be safely ignored when overridden.
+
+```python
+    def _get_request_executor(
+        self,
+        request: MeasurementRequest,
+        use_ray: bool = False,
+    ) -> Callable[[], MeasurementRequest]:
+```
+
+The `get_request_executor` method must return a zero-argument `Callable` that
+executes the requested experiment and returns a completed `MeasurementRequest`
+(measurements and status set). The function must be picklable.
+
+Other than that the function returned may do anything. This can include
+executing the experiment in ray workers, creating pods, or submitting jobs to
+batch-schedulers.
+
+We recommend using `functools.partial` if you want to customize a module-level
+function for this purpose. For example, you can define a generic function that
+has parameters for experiment description, and certain instance variables. Then
+use `functools.partial` to bind values to these parameters and return the
+result.
+
+### Executing experiments
+
+You can execute experiments with your Actuator in scripts using the `execute`
+method
+
+e.g.
+
+```python
+result = actuator.execute(entities,
+                        experiment_reference,
+                        requesterid: "script",
+                        requestIndex: 0,)
+```
+
+where `entities` is a list of one or more `Entity` instances representing the
+points you want to measure, and `experiment_reference`, is an
+`ExperimentReference` instance describing the experiment to execute.
+`requesterid` and `requestindex` are tracking information that will be contained
+in the returned result.
+
+## The Actuator Plugin Package
 
 ### pyproject.toml
 
@@ -73,50 +212,13 @@ robotic_lab = "robotic_lab_actuator.actuator:RoboticLab"
 <!-- markdownlint-enable code-block-style -->
 <!-- markdownlint-enable line-length -->
 
-## The Actuator Class
-
-Your actuator plugin package must contain at least one class that is a subclass
-of `orchestrator.modules.actuators.base.ActuatorBase`. Each of these subclasses
-is an interface to a set of experiments (or tests)
-
-The subclass has to implement two methods:
-
-- `catalog`: This returns an
-  `orchestrator.modules.actuators.catalog.ExperimentCatalog` instance detailing
-  the experiments your actuator provides.
-- `submit`: This is an `async` method that `ado` will call to run an Experiment
-  on an Entity.
-
-A sketch example:
-
-<!-- markdownlint-disable line-length -->
-<!-- markdownlint-disable code-block-style -->
-
-```python
-import orchestrator.modules.actuators.base
-from orchestrator.schema.entity import Entity
-from orchestrator.schema.experiment import Experiment
-from orchestrator.modules.actuators.catalog import ExperimentCatalog
-
-class MyActuator(orchestrator.modules.actuators.base):
-
-  async def submit(self, entities: [Entity], experiment: Experiment) -> list[str]: #Returns a list of identifiers for the created experiments
-    ...
-
-  def catalog(self, **kwargs) -> ExperimentCatalog:
-    pass
-```
-
-<!-- markdownlint-enable code-block-style -->
-<!-- markdownlint-enable line-length -->
-
 ### Telling ado about your actuator class(es)
 
 Actuator plugins must register their actuator classes using the `ado.actuators`
 entry point in `pyproject.toml`. This allows ado to automatically discover and
 load your actuator when the plugin is installed.
 
-Add an entry point in your `pyproject.toml`:
+This is done via the following lines in the `pyproject.toml`
 
 <!-- markdownlint-disable code-block-style -->
 
@@ -129,129 +231,10 @@ my-actuator = "myplugin.actuators:MyActuator"
 
 The entry point format is:
 
-- **Entry point name**: A unique identifier for your actuator (e.g.,
-  `my-actuator`)
-- **Module path**: The full Python path to your actuator class (e.g.,
+- **Entry point name**: : A unique identifier within the ado.actuators group
+  (e.g., `my-actuator`)
+- **Module path**: The path to your actuator class (e.g.,
   `myplugin.actuators:MyActuator`)
-
-Your actuator class must:
-
-- Inherit from `ActuatorBase`
-- Define a class attribute `identifier: str` that matches your entry point name
-- Implement the required `submit()` and `catalog()` methods
-
-### What an actuator is expected to do on `submit`
-
-The key method of an `actuator` is the `submit` method as this is what runs an
-experiment. On a call to this method three things are expected to happen in the
-Actuator:
-
-- One or more `MeasurementRequest` instances are created representing an
-  execution of the experiment that was requested
-  - `One or more` as the actuator can launch a separate experiment for each
-    entity or one for them all. Which method is used depends on developer choice
-- Launch the experiment asynchronously and return the `MeasurementRequest`
-  identifier(s)
-  - i.e. It is expected that the `submit` method will return almost immediately
-    and the requested experiments will be executed asynchronously
-- When an experiment has finished
-  - Add the results to the relevant `MeasurementRequest` instance
-  - Put the `MeasurementRequest` on the `MeasurementQueue` that was provided to
-    the actuator on `__init__`
-
-From the `submit` callers point of view this means:
-
-1. It expects to immediately get back a set of strings that are
-   MeasurementRequest ids
-2. At some later time it will find MeasurementRequests with these ids on the
-   `MeasurementQueue` containing the experiment results.
-
-For everything else the actuator developer is free to implement as they want.
-
-## Algorithm versioning for experiments
-
-Each `Experiment` you expose in your catalog should declare an algorithm version
-via the `version` field.  Use a strict `MAJOR.MINOR.PATCH` SemVer string:
-
-<!-- markdownlint-disable code-block-style -->
-
-```python
-from orchestrator.schema.experiment import Experiment
-
-my_experiment = Experiment(
-    actuatorIdentifier="my_actuator",
-    identifier="run_benchmark",
-    targetProperties=[...],
-    version="1.0.0",  # algorithm version
-)
-```
-
-<!-- markdownlint-enable code-block-style -->
-
-**Version bump rules:**
-
-| Change type | Rule | Example |
-| --- | --- | --- |
-| Bug fix, refactoring, logging | No bump (PATCH is fine) | `1.0.0 → 1.0.1` |
-| New output / input, same core behaviour | Minor bump | `1.0.0 → 1.1.0` |
-| Mathematical / algorithmic change | **Major bump** | `1.0.0 → 2.0.0` |
-
-<!-- markdownlint-disable no-blanks-blockquote -->
-
-> [!IMPORTANT]
-> Only the MAJOR version is encoded into the memoisation key.  A major version
-> bump means ado treats all previously cached results as belonging to a
-> **different** experiment — they will not be reused.  Minor and patch bumps are
-> transparent to the cache.
-
-> [!NOTE]
-> Experiments without a declared version emit a `DeprecationWarning` at
-> registration time.
-
-<!-- markdownlint-enable no-blanks-blockquote -->
-
-### Resolving experiment references in `submit`
-
-In your `submit` method,
-use `catalog.experimentForReference(reference, resolve=True)` to obtain
-the experiment object.  This call:
-
-- searches the catalog for matching experiments based on major version,
-- raises `UnknownExperimentError` if the reference cannot be resolved,
-- raises `DeprecatedExperimentError` if the matching experiment is deprecated, and
-- creates a `ParameterizedExperiment` instance if the reference carries
-  parameterization.
-
-<!-- markdownlint-disable code-block-style -->
-
-```python
-from orchestrator.modules.actuators.catalog import ExperimentCatalog
-
-async def submit(self, entities, request):
-    experiment = self.__class__.catalog().resolve_reference(
-        request.experimentReference
-    )
-    # experiment is now an Experiment or ParameterizedExperiment
-    ...
-```
-
-<!-- markdownlint-enable code-block-style -->
-
-### Mixed-version sampleStores
-
-When a sampleStore accumulates results from **both** `v1` and `v2` of the same
-experiment (e.g. after a major version bump), the observed property identifiers
-differ:
-
-- `run_benchmark@v1` results are stored under `run_benchmark@v1-<property>`
-- `run_benchmark@v2` results are stored under `run_benchmark@v2-<property>`
-
-In CSV exports these appear as **separate columns**.  Entities measured under
-only one version will have `NaN` in the other version's column.  This is
-intentional and correct — the two versions represent different scientific
-definitions and their results are not interchangeable.
-
----
 
 ## Enabling custom configuration of an actuator
 
@@ -761,13 +744,12 @@ using provided Rich message helpers:
 You should send these messages to the `RichConsoleQueue` actor and update or
 stop them when state changes.
 
-!!! tip end
-
-    Use the `request id` of the MeasurementRequest you're operating on
-    as the message `id` (and include it in the message `label`).
-    This allows your actuator to support progress for multiple experiments
-    running concurrently, and the UI will clearly indicate which progress
-    output is tied to which experiment request.
+> [!INFO]
+> Use the `request id` of the MeasurementRequest you're operating on
+> as the message `id` (and include it in the message `label`).
+> This allows your actuator to support progress for multiple experiments
+> running concurrently, and the UI will clearly indicate which progress
+> output is tied to which experiment request.
 
 ### Example usage
 

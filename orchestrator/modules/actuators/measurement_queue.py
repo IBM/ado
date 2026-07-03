@@ -4,6 +4,27 @@
 import ray.util.queue
 
 
+class NullQueue:
+    """No-op queue when no real MeasurementQueue is provided.
+
+    Satisfies the put/put_nowait interface of MeasurementQueue without requiring
+    Ray to be initialised. Intended for use with StandardActuator.execute() when
+    called outside of an ado operation context.
+    """
+
+    def put(
+        self, item: object, block: bool = True, timeout: float | None = None
+    ) -> None:
+        """Silently discard item."""
+
+    def put_nowait(self, item: object) -> None:
+        """Silently discard item."""
+
+    def ray_namespace(self) -> str | None:
+        """Return None — no Ray namespace in null context."""
+        return None
+
+
 class MeasurementQueue(ray.util.queue.Queue):
     """Class used to relay measurements for an explore operation
 

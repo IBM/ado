@@ -71,7 +71,7 @@ def test_custom_experiments(
     import orchestrator.modules.actuators.base
     import orchestrator.modules.actuators.registry
 
-    ray.init(ignore_reinit_error=True, runtime_env={"working_dir": None})
+    ray.init(ignore_reinit_error=True)
 
     # noinspection PyUnresolvedReferences
     custom_experiments = ray.remote(

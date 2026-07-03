@@ -59,7 +59,7 @@ TRIM is particularly valuable when:
 > for every entity in the space and that these measurements are of the same type
 > (numbers or strings, vectors are not supported). If some entities in your
 > space are expected to not produce a target variable measurement, configure
-> [`missing_target_variables`](#missing_target_variables) — set `mode` to
+> [`missingTargetVariables`](#missingtargetvariables) — set `mode` to
 > `InjectDefaultValue` (supply a `defaultValue`) or `Skip`. More details
 > [in the troubleshooting section](#debugging-and-troubleshooting).
 
@@ -192,7 +192,7 @@ parameters:
   targetOutput: pressure
 ```
 
-#### `missing_target_variables`
+#### `missingTargetVariables`
 
 **Type:** nested block
 
@@ -207,8 +207,8 @@ entities that do not produce a measurement for `targetOutput` (e.g. due to an
 | Mode | Behaviour |
 |---|---|
 | `RaiseError` | Raise `InsufficientDataError` immediately **(default)** |
-| `InjectDefaultValue` | Inject `defaultValue` as a synthetic row; entity counts towards the sampling quota |
-| `Skip` | Permanently drop the entity; does **not** count towards the quota |
+| `InjectDefaultValue` | Inject `defaultValue` as a synthetic row; entity counts towards the sampling budget |
+| `Skip` | Permanently drop the entity; does **not** count towards the budget |
 
 **Sub-fields:**
 
@@ -237,7 +237,7 @@ entities that do not produce a measurement for `targetOutput` (e.g. due to an
 ```yaml
 # Inject a sentinel value for entities that cannot be measured
 parameters:
-  missing_target_variables:
+  missingTargetVariables:
     mode: InjectDefaultValue
     defaultValue: -1.0
 ```
@@ -245,7 +245,7 @@ parameters:
 ```yaml
 # Silently skip unmeasurable entities; fail after 5 misses
 parameters:
-  missing_target_variables:
+  missingTargetVariables:
     mode: Skip
     budget: 5
 ```
@@ -636,9 +636,9 @@ By default, TRIM assumes that all measurements produce the observed target
 output property. If an entity does not produce a value for the target variable,
 TRIM raises `InsufficientDataError`. If this is expected behaviour in your
 experiment (e.g. some entities don't measure the target variable), configure
-[`missing_target_variables`](#missing_target_variables): set `mode` to
+[`missingTargetVariables`](#missingtargetvariables): set `mode` to
 to `Skip` to exclude those entities from model training entirely,
-advanced users can also use `InjectDefaultValue` (and supply a `defaultValue`) 
+advanced users can also use `InjectDefaultValue` (and supply a `defaultValue`)
 to impute missing values of those entities with the supplied `defaultValue`.
 
 To inspect what happened you can show the entities in the space with the

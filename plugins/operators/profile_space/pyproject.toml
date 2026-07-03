@@ -20,3 +20,4 @@ profile_space = "profile_space.operator"
 [tool.setuptools_scm]
 root = "../../../"
 local_scheme = "node-and-timestamp"
+tag_regex = "^(?P<version>[vV]?\\d+(?:\\.\\d+)*)$"

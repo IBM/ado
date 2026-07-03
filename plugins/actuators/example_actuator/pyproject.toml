@@ -29,6 +29,7 @@ robotic_lab_actuator = [
 [tool.setuptools_scm]
 root = "../../../"
 local_scheme = "node-and-timestamp"
+tag_regex = "^(?P<version>[vV]?\\d+(?:\\.\\d+)*)$"
 
 # Required when added as a workspace package.
 # Do not include it if you're developing an actuator outside of the ado repo

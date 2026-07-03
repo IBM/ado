@@ -90,7 +90,7 @@ def log_unable_to_proceed_with_iterative_modeling_and_raise_error(
         f"Additional info: {additional_info} "
         "This is insufficient for starting the Iterative Modeling phase, the operation will exit with an error. "
         "If some entities in your space are expected to not measure the target variable consider setting "
-        "`missing_target_variables.mode` to 'InjectDefaultValue' (and providing `missing_target_variables.defaultValue`) "
+        "`missingTargetVariables.mode` to 'InjectDefaultValue' (and providing `missingTargetVariables.defaultValue`) "
         "or to 'Skip'. "
         "For more information, refer to the documentation here: `https://ibm.github.io/ado/operators/trim/`."
     )

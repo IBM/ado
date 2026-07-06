@@ -32,15 +32,21 @@ packages = ["autoconf"]
 [tool.hatch.version]
 source = "uv-dynamic-versioning"
 
-[tool.setuptools.packages.find]
-where = ["."]
-exclude = ["build", "build.*", "yamls"]
-
 [tool.uv-dynamic-versioning]
 vcs = "git"
 style = "pep440"
 pattern = "default-unprefixed"
+pattern-prefix = "autoconf/"
 fallback-version = "0.0.0"
-tagged-metadata = true
-dirty = true
-bump = true
+format-jinja = """
+{%- set metadata = [
+    distance != 0 and "g" ~ commit,
+    distance != 0 and "d" ~ timestamp,
+    dirty and "dirty"
+] -%}
+{{ serialize_pep440(
+    distance == 0 and base or bump_version(base),
+    dev=distance or None,
+    metadata=metadata | select | list
+) }}
+"""

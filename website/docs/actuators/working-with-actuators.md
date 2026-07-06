@@ -149,19 +149,13 @@ This is described in the
 
 Some additional notes about this process when you are developing an actuator:
 
-- Make sure plugin code changes are committed (if using `setuptools_scm` for
-  versioning)
-    - If they are not committed then the version of the built wheel will not
-    change i.e. it will be same as for a wheel built before the changes
-    - If a wheel with this version was already installed in ray cluster by a
-    previous job, Ray will use the cached version instead of your updated one
-    - To avoid this for uncommitted (dirty) changes, use
-      `local_scheme = "node-and-timestamp"` in your plugin's
-      `[tool.setuptools_scm]` configuration. This appends the git node and a
-      timestamp to the version, making each dirty build uniquely versioned even
-      on the same day.
+- Make sure plugin code changes are committed before building a wheel for remote
+  use.
+    - Uncommitted changes produce a unique dev version (e.g.
+      `X.Y.Z.devN+g<commit>.d<timestamp>`), so Ray will not serve a stale cached
+      wheel. However, the safest approach is to commit before building.
 - Ensure new files to be packaged with the wheel are committed
-    - The setup.py for the plugins only adds committed non-python files
+    - Only committed non-python files are included in the wheel
 
 ## What's next
 

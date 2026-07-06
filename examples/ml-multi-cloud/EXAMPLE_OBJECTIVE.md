@@ -477,7 +477,7 @@ new cost function:
 - _Break the discoveryspace_: See what happens if you try to create the
   `discoveryspace` without the experiment that provides input to the cost
   function.
-- _Examine the requests_: Run `ado show requests operation` to see what is
+- _Examine the requests_: Run `ado show trace operation` to see what is
   replayed (`benchmark_performance`) and what is calculated
   (`ml_multicloud_cost-v1.0`)
 

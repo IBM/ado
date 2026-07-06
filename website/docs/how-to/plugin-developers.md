@@ -76,7 +76,7 @@ details:
 - [Creating Custom Experiments](../actuators/creating-custom-experiments.md):
   Use Python functions as experiments via the `@custom_experiment` decorator.
 - [Creating Actuator Classes](../actuators/creating-actuator-classes.md): Define
-  full actuator classes with `actuator_definitions.yaml`. A complete
+  full actuator classes registered via Python entry points. A complete
   [template actuator](https://github.com/IBM/ado/tree/main/plugins/actuators/example_actuator)
   is available as a reference.
 - [Creating Operators](../operators/creating-operators.md): Implement new search

@@ -38,7 +38,7 @@ entitySpace: #A list of constitutive properties
   - identifier: my_property1 # The id of the first dimension/constitutive property of the space
   - identifier: my_property2
 experiments: # A list of experiments. The measurementspace of this discovery space
-  - acuatatorIdentifier: someactuator # The id of the actuator that contains the experiment
+  - actuatorIdentifier: someactuator # The id of the actuator that contains the experiment
     experimentIdentifier: experiment_one # The id of the experiment to execute
 metadata:
   description: "This is an example discovery space"

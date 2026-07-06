@@ -551,8 +551,8 @@ ado show related operation --use-latest
 The following commands give more details of the operation timeseries:
 
 ```commandline
-ado show results operation --use-latest
-ado show requests operation --use-latest
+ado show trace operation --use-latest --unroll-entities
+ado show trace operation --use-latest
 ```
 
 ### Resource templates

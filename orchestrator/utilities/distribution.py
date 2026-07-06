@@ -58,4 +58,29 @@ def distribution_from_module(module_name: str) -> str | None:
         except Exception:  # noqa: S110
             pass
 
-    return None
+    # Fallback for src-layout editable installs: packages_distributions() has no
+    # entry for the top-level package because hatchling only adds a .pth file
+    # (no source files appear in RECORD). Scan all editable distributions and
+    # check whether the module lives under their source root.
+    # Use the longest (most specific) matching source root to avoid false
+    # positives from parent-directory editable installs (e.g. ado-core installed
+    # from the repo root would match every plugin module as well).
+    most_specific_dist_name: str | None = None
+    most_specific_source_root: Path | None = None
+    for dist in im.distributions():
+        try:
+            direct_url = dist.read_text("direct_url.json")
+            if direct_url:
+                data = json.loads(direct_url)
+                if "dir_info" in data:
+                    source_root = Path(data["url"].replace("file://", "")).resolve()
+                    if module_path.is_relative_to(source_root) and (
+                        most_specific_source_root is None
+                        or len(source_root.parts) > len(most_specific_source_root.parts)
+                    ):
+                        most_specific_source_root = source_root
+                        most_specific_dist_name = dist.metadata["Name"]
+        except Exception:  # noqa: PERF203, S110
+            pass
+
+    return most_specific_dist_name

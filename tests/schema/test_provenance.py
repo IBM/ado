@@ -94,6 +94,21 @@ def test_package_provenance_from_module_name_unknown() -> None:
     )
 
 
+def test_package_provenance_from_module_name_src_layout() -> None:
+    """from_module_name resolves src-layout editable installs (robotic_lab_actuator).
+
+    robotic_lab is installed as a src-layout editable: hatchling adds
+    plugins/actuators/example_actuator/src to sys.path via a .pth file, so
+    importlib.metadata.packages_distributions() has no entry for
+    'robotic_lab_actuator'. Resolution must fall back to scanning
+    direct_url.json for all distributions.
+    """
+    prov = PackageProvenance.from_module_name("robotic_lab_actuator.actuator")
+    assert prov is not None
+    assert prov.distributionName == "robotic_lab"
+    assert prov.distributionVersion
+
+
 def test_package_provenance_from_module_conf_dict() -> None:
     """from_module_conf resolves provenance from a moduleName dict."""
     prov = PackageProvenance.from_module_conf(

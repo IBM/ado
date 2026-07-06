@@ -146,8 +146,8 @@ though the tools we mention in
 [our development guide](https://ibm.github.io/ado/getting-started/developing),
 namely:
 
-- [Black](https://ibm.github.io/ado/getting-started/developing#code-style)
-- [Ruff](https://ibm.github.io/ado/getting-started/developing#linting-code-with-ruff)
+- [Ruff format](https://ibm.github.io/ado/getting-started/developing#code-style)
+- [Ruff check](https://ibm.github.io/ado/getting-started/developing#linting-code-with-ruff)
 - [uv](https://ibm.github.io/ado/getting-started/developing#verifying-lockfile-integrity)
 - [Copywrite](https://ibm.github.io/ado/getting-started/developing#copyright-and-license-headers)
 - [Markdownlint-cli2](https://ibm.github.io/ado/getting-started/developing#linting-markdown-with-markdownlint-cli2)
@@ -158,7 +158,7 @@ checks pass. To verify that your code conforms to these rules you can run the
 following commands:
 
 ```commandline
-black --check . --extend-exclude website
+ruff format --check . --exclude website
 ruff check --exclude website
 uv lock --check
 copywrite headers --plan

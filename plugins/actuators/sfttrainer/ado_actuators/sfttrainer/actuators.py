@@ -209,6 +209,14 @@ class ActuatorParameters(
         ),
     ] = "cache"
 
+    ray_environment_setup_timeout_seconds: Annotated[
+        int,
+        pydantic.Field(
+            description="Downloading and building the wheels can take longer than the default 600 seconds that Ray "
+            "enforces."
+        ),
+    ] = 3600
+
     @pydantic.field_validator("model_map", mode="before")
     @classmethod
     def upgrade_simple_model_map(
@@ -338,6 +346,12 @@ def prepare_runtime_environment(
     # This is useful for handling models we download from huggingface
     runtime_env["env_vars"] = runtime_env.get("env_vars", {})
     runtime_env["env_vars"]["HF_HOME"] = args.hf_home
+
+    # VV: Downloading and building the wheels can take longer than the default 600
+    # seconds that Ray enforces
+    runtime_env["config"] = {
+        "setup_timeout_seconds": actuator_parameters.ray_environment_setup_timeout_seconds
+    }
 
     return runtime_env
 
@@ -652,6 +666,7 @@ class SFTTrainer(ActuatorBase):
                 "model_map",
                 "num_tokens_cache_directory",
                 "match_exact_dependencies",
+                "ray_environment_setup_timeout_seconds",
             },
         )
 

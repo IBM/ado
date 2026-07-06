@@ -177,36 +177,26 @@ to the following:
 <!-- markdownlint-disable code-block-style -->
 
 ```toml
-[build-system]
-requires = ["setuptools", "setuptools_scm"]
-build-backend = "setuptools.build_meta"
-
-[tool.setuptools]
-include-package-data = true # This is on by default, including it for clarity
-
-[tool.setuptools_scm]
-local_scheme = "node-and-timestamp"
-
-[tool.setuptools.packages.find]
-where = ["."]
-
-[tool.setuptools.package-data]
-# Note: This is optional.
-# If you don't specify every non Python file that's in SCM will be added
-robotic_lab_actuator = [
-    "experiments.yaml" # Optional file that contains definitions for experiment catalog
-]
-
 [project]
-name="robotic_lab" # Change to your preferred name, along with the actual package
-description="A template for creating an actuator" # Change to describing your actuator
-dependencies=[
+name = "robotic_lab"  # Change to your preferred name, along with the actual package
+description = "A template for creating an actuator"  # Change to describing your actuator
+dependencies = [
     "ado-core"
 ]
 dynamic = ["version"]
 
 [project.entry-points."ado.actuators"]
 robotic_lab = "robotic_lab_actuator.actuator:RoboticLab"
+
+[build-system]
+requires = ["hatchling", "uv-dynamic-versioning>=0.7.0"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/robotic_lab_actuator"]
 ```
 
 <!-- markdownlint-enable code-block-style -->

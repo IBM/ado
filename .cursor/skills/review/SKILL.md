@@ -46,8 +46,8 @@ For any PR that touches a plugin directory (`plugins/`):
   - Code Critical Issues: Critical problems with code implementation or
     structure
   - Code Medium Issues
-  - Linting Issues: Issues raised by black, ruff, or markdownlint-cli2 (these
-    block commits)
+  - Linting Issues: Issues raised by ruff format, ruff check, or
+    markdownlint-cli2 (these block commits)
 
 ## Skill Review
 

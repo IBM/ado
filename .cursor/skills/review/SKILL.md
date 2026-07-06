@@ -27,6 +27,17 @@ When evaluating changes to code evaluate against the guidelines in
 [AGENTS.md](../../AGENTS.md) and
 [plugin-development.mdc](../rules/plugin-development.mdc)
 
+### Plugin versioning
+
+For any PR that touches a plugin directory (`plugins/`):
+
+- If the change is a bug fix, new feature, or breaking change, verify `VERSION`
+  was bumped (patch / minor / major respectively per semver). Report it as a
+  medium issue if it was not.
+- If the plugin has a `version=` argument in a `@characterize_operation` (or
+  equivalent) decorator, verify it matches `VERSION`. Report a critical issue if
+  it does not.
+
 - Format the review report with these sections (omit if not relevant):
   - Overview: What is changed
   - Bugs: Any potential bugs

@@ -86,6 +86,7 @@ docs = [
 test = [
   "ado-anomalous-series",
   "ado-autoconf ; python_full_version < '3.14'",
+  "ado-profile-space ; python_full_version < '3.14'",
   "ado-ray-tune",
   "ado-sfttrainer ; python_full_version < '3.13'",
   "ado-trim ; python_full_version < '3.14'",
@@ -94,7 +95,6 @@ test = [
   "density-test",
   "optimization-test-functions",
   "pfas-custom-functions",
-  "profile-space ; python_full_version < '3.14'",
   "robotic-lab",
   "trim-custom-experiments",
 ]
@@ -152,7 +152,7 @@ ado-anomalous-series = { workspace = true, editable = true }
 density-test = { workspace = true, editable = true }
 optimization-test-functions = { workspace = true, editable = true }
 pfas-custom-functions = { workspace = true, editable = true }
-profile-space = { path = "plugins/operators/profile_space", editable = true }
+ado-profile-space = { path = "plugins/operators/profile_space", editable = true }
 robotic-lab = { workspace = true, editable = true }
 trim-custom-experiments = { workspace = true, editable = true }
 detect-secrets = { git = "https://github.com/ibm/detect-secrets.git", rev = "master" }

@@ -144,10 +144,10 @@ class TestExecuteBfclBenchmarkCommand:
 class TestBenchmarkParametersBfclCategories:
     """Test the bfcl_categories field on BenchmarkParameters."""
 
-    def test_default_is_none(self) -> None:
-        """bfcl_categories defaults to None."""
+    def test_default_is_simple_live_simple_multiple(self) -> None:
+        """bfcl_categories defaults to 'simple,live_simple,multiple'."""
         params = BenchmarkParameters(model="some-model")
-        assert params.bfcl_categories is None
+        assert params.bfcl_categories == "simple,live_simple,multiple"
 
     def test_set_bfcl_categories(self) -> None:
         """bfcl_categories can be set to a string."""

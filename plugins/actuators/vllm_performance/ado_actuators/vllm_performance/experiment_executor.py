@@ -574,8 +574,7 @@ def run_resource_and_workload_experiment(
                 result = execute_bfcl_benchmark(
                     base_url=benchmark_parameters.endpoint,
                     model=benchmark_parameters.model,
-                    bfcl_categories=benchmark_parameters.bfcl_categories
-                    or "simple,live_simple,multiple",
+                    bfcl_categories=benchmark_parameters.bfcl_categories,
                     num_prompts=benchmark_parameters.num_prompts,
                     request_rate=benchmark_parameters.request_rate,
                     max_concurrency=benchmark_parameters.max_concurrency,
@@ -757,8 +756,7 @@ def run_workload_experiment(
                 result = execute_bfcl_benchmark(
                     base_url=benchmark_parameters.endpoint,
                     model=benchmark_parameters.model,
-                    bfcl_categories=benchmark_parameters.bfcl_categories
-                    or "simple,live_simple,multiple",
+                    bfcl_categories=benchmark_parameters.bfcl_categories,
                     num_prompts=benchmark_parameters.num_prompts,
                     request_rate=benchmark_parameters.request_rate,
                     max_concurrency=benchmark_parameters.max_concurrency,

@@ -19,12 +19,6 @@ source = "uv-dynamic-versioning"
 [tool.hatch.build.targets.wheel]
 packages = ["src/robotic_lab_actuator"]
 
-[tool.setuptools.package-data]
-# Note: This is optional. If you don't specify every non python file that's in SCM will be added
-robotic_lab_actuator = [
-  "experiments.yaml",  # Optional file that contains definitions for experiment catalog
-]
-
 # Required when added as a workspace package.
 # Do not include it if you're developing an actuator outside of the ado repo
 [tool.uv.sources]

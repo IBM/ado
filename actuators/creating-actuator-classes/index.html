@@ -31,36 +31,26 @@
                         <span class=n>experiment_reference</span><span class=p>,</span>
                         <span class=n>requesterid</span><span class=p>:</span> <span class=s2>&quot;script&quot;</span><span class=p>,</span>
                         <span class=n>requestIndex</span><span class=p>:</span> <span class=mi>0</span><span class=p>,)</span>
-</code></pre></div> <p>where <code>entities</code> is a list of one or more <code>Entity</code> instances representing the points you want to measure, and <code>experiment_reference</code>, is an <code>ExperimentReference</code> instance describing the experiment to execute. <code>requesterid</code> and <code>requestindex</code> are tracking information that will be contained in the returned result.</p> <h2 id=the-actuator-plugin-package>The Actuator Plugin Package<a class=headerlink href=#the-actuator-plugin-package title="Permanent link">&para;</a></h2> <h3 id=pyprojecttoml>pyproject.toml<a class=headerlink href=#pyprojecttoml title="Permanent link">&para;</a></h3> <p>The <code>pyproject.toml</code> file for an actuator plugin should contain fields similar to the following:</p> <div class=highlight><pre><span></span><code><span class=k>[build-system]</span>
-<span class=n>requires</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=p>[</span><span class=s2>&quot;setuptools&quot;</span><span class=p>,</span><span class=w> </span><span class=s2>&quot;setuptools_scm&quot;</span><span class=p>]</span>
-<span class=n>build-backend</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s2>&quot;setuptools.build_meta&quot;</span>
-
-<span class=k>[tool.setuptools]</span>
-<span class=n>include-package-data</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=kc>true</span><span class=w> </span><span class=c1># This is on by default, including it for clarity</span>
-
-<span class=k>[tool.setuptools_scm]</span>
-<span class=n>local_scheme</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s2>&quot;node-and-timestamp&quot;</span>
-
-<span class=k>[tool.setuptools.packages.find]</span>
-<span class=n>where</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=p>[</span><span class=s2>&quot;.&quot;</span><span class=p>]</span>
-
-<span class=k>[tool.setuptools.package-data]</span>
-<span class=c1># Note: This is optional.</span>
-<span class=c1># If you don&#39;t specify every non Python file that&#39;s in SCM will be added</span>
-<span class=n>robotic_lab_actuator</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=p>[</span>
-<span class=w>    </span><span class=s2>&quot;experiments.yaml&quot;</span><span class=w> </span><span class=c1># Optional file that contains definitions for experiment catalog</span>
-<span class=p>]</span>
-
-<span class=k>[project]</span>
-<span class=n>name</span><span class=o>=</span><span class=s2>&quot;robotic_lab&quot;</span><span class=w> </span><span class=c1># Change to your preferred name, along with the actual package</span>
-<span class=n>description</span><span class=o>=</span><span class=s2>&quot;A template for creating an actuator&quot;</span><span class=w> </span><span class=c1># Change to describing your actuator</span>
-<span class=n>dependencies</span><span class=o>=</span><span class=p>[</span>
+</code></pre></div> <p>where <code>entities</code> is a list of one or more <code>Entity</code> instances representing the points you want to measure, and <code>experiment_reference</code>, is an <code>ExperimentReference</code> instance describing the experiment to execute. <code>requesterid</code> and <code>requestindex</code> are tracking information that will be contained in the returned result.</p> <h2 id=the-actuator-plugin-package>The Actuator Plugin Package<a class=headerlink href=#the-actuator-plugin-package title="Permanent link">&para;</a></h2> <h3 id=pyprojecttoml>pyproject.toml<a class=headerlink href=#pyprojecttoml title="Permanent link">&para;</a></h3> <p>The <code>pyproject.toml</code> file for an actuator plugin should contain fields similar to the following:</p> <div class=highlight><pre><span></span><code><span class=k>[project]</span>
+<span class=n>name</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s2>&quot;robotic_lab&quot;</span><span class=w>  </span><span class=c1># Change to your preferred name, along with the actual package</span>
+<span class=n>description</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s2>&quot;A template for creating an actuator&quot;</span><span class=w>  </span><span class=c1># Change to describing your actuator</span>
+<span class=n>dependencies</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=p>[</span>
 <span class=w>    </span><span class=s2>&quot;ado-core&quot;</span>
 <span class=p>]</span>
 <span class=n>dynamic</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=p>[</span><span class=s2>&quot;version&quot;</span><span class=p>]</span>
 
 <span class=k>[project.entry-points.</span><span class=s2>&quot;ado.actuators&quot;</span><span class=k>]</span>
 <span class=n>robotic_lab</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s2>&quot;robotic_lab_actuator.actuator:RoboticLab&quot;</span>
+
+<span class=k>[build-system]</span>
+<span class=n>requires</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=p>[</span><span class=s2>&quot;hatchling&quot;</span><span class=p>,</span><span class=w> </span><span class=s2>&quot;uv-dynamic-versioning&gt;=0.7.0&quot;</span><span class=p>]</span>
+<span class=n>build-backend</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s2>&quot;hatchling.build&quot;</span>
+
+<span class=k>[tool.hatch.version]</span>
+<span class=n>source</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s2>&quot;uv-dynamic-versioning&quot;</span>
+
+<span class=k>[tool.hatch.build.targets.wheel]</span>
+<span class=n>packages</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=p>[</span><span class=s2>&quot;src/robotic_lab_actuator&quot;</span><span class=p>]</span>
 </code></pre></div> <h3 id=telling-ado-about-your-actuator-classes>Telling ado about your actuator class(es)<a class=headerlink href=#telling-ado-about-your-actuator-classes title="Permanent link">&para;</a></h3> <p>Actuator plugins must register their actuator classes using the <code>ado.actuators</code> entry point in <code>pyproject.toml</code>. This allows ado to automatically discover and load your actuator when the plugin is installed.</p> <p>This is done via the following lines in the <code>pyproject.toml</code></p> <div class=highlight><pre><span></span><code><span class=k>[project.entry-points.</span><span class=s2>&quot;ado.actuators&quot;</span><span class=k>]</span>
 <span class=n>my-actuator</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s2>&quot;myplugin.actuators:MyActuator&quot;</span>
 </code></pre></div> <p>The entry point format is:</p> <ul> <li><strong>Entry point name</strong>: : A unique identifier within the ado.actuators group (e.g., <code>my-actuator</code>)</li> <li><strong>Module path</strong>: The path to your actuator class (e.g., <code>myplugin.actuators:MyActuator</code>)</li> </ul> <h2 id=enabling-custom-configuration-of-an-actuator>Enabling custom configuration of an actuator<a class=headerlink href=#enabling-custom-configuration-of-an-actuator title="Permanent link">&para;</a></h2> <p>Actuators may require a custom configuration (i.e., parameters) to be provided. For example, an actuator calling an inference server can require an endpoint to connect and its related authorisation token.</p> <p><code>ado</code> provides this capability through the <code>GenericActuatorParameters</code> class, which allows developers to define a Pydantic model of the parameters expected by the actuator. This model will be validated at runtime.</p> <p>To write your own actuator parameters class, simply create a class that inherits from <code>GenericActuatorParameters</code> and add a reference to it in the <code>parameters_class</code> class variable of your Actuator, as such:</p> <div class=highlight><pre><span></span><code><span class=kn>from</span><span class=w> </span><span class=nn>orchestrator.core.actuatorconfiguration.config</span><span class=w> </span><span class=kn>import</span> <span class=n>GenericActuatorParameters</span>

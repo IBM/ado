@@ -125,8 +125,8 @@ contribution.
 
         pytest path/to/your/plugin/tests/
 
-3. **Check Formatting:** Format with **black** and lint with **ruff** to stay
-    consistent with the core framework.
+3. **Check Formatting:** Format with **ruff format** and lint with **ruff check**
+    to stay consistent with the core framework.
 
 4. **Validate Resources:** Always use `--dry-run` to check your resource files
     before running them.

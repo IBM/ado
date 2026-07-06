@@ -186,7 +186,7 @@ dependencies = [
 dynamic = ["version"]
 
 [project.entry-points."ado.actuators"]
-robotic_lab = "robotic_lab.actuator:RoboticLab"
+robotic_lab = "robotic_lab_actuator.actuator:RoboticLab"
 
 [build-system]
 requires = ["hatchling", "uv-dynamic-versioning>=0.7.0"]
@@ -196,7 +196,7 @@ build-backend = "hatchling.build"
 source = "uv-dynamic-versioning"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/robotic_lab"]
+packages = ["src/robotic_lab_actuator"]
 ```
 
 <!-- markdownlint-enable code-block-style -->

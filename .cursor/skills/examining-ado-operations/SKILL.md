@@ -72,7 +72,7 @@ re-fetching.
 ### Large output files
 
 The output for a chosen `-o`/`--output` **format** can be very large (for
-example from `show measurements`, `show requests`, or `show results`). Use
+example from `show measurements` or `show trace`). Use
 `--output-file` with the destination path and, when inspecting these files:
 
 - Use wc to count the file size first before using head/tail/cat etc. on it.
@@ -250,24 +250,29 @@ First run these two commands to get the metadata on what was requested and
 measured, noting the [guidelines on large files](#large-output-files):
 
 ```bash
-uv run ado show requests operation OPERATION_ID \
-  -o csv --output-file OPERATION_ID_requests.csv
-uv run ado show results operation OPERATION_ID \
-  -o csv --output-file OPERATION_ID_results.csv
+uv run ado show trace operation OPERATION_ID \
+  -o csv --output-file OPERATION_ID_trace.csv
 ```
 
-- **requests**: This is metadata on what the sampling operation asked an
+Use `--unroll-entities` to include per-entity result metadata (validity,
+reasons for invalidity, etc.) in the trace output:
+
+```bash
+uv run ado show trace operation OPERATION_ID --unroll-entities \
+  -o csv --output-file OPERATION_ID_trace_entities.csv
+```
+
+- **trace**: This is metadata on what the sampling operation asked an
   actuator to measure. It includes the timestamp of when the request was
-  created - at the moment the completion time is not available. The requests
-  contain the results of executing the request
-- **results**: This is metadata on an actual measurement triggered by a request
-  - ValidMeasurementResult: The experiment executed and return one or more
-    observed property values
+  created. Each row represents a measurement request.
+- **trace --unroll-entities**: Each row in the output represents an entity
+  result within a request, showing per-entity measurement metadata such as
+  validity and reasons for invalidity.
   - InvalidMeasurementResult: The experiment failed for some reason
 
-From the output of `show requests` and `show results` identify **failed** or
-**invalid** rows, **reasons** for invalidity, and anomalies in **timing** or
-**ordering** if those columns are present.
+From the trace output, identify **failed** or **invalid** rows, **reasons**
+for invalidity, and anomalies in **timing** or **ordering** if those columns
+are present.
 
 ### Step 3: Get entities and measurements
 
@@ -290,8 +295,7 @@ the experiment and meaning of metrics when looking for patterns.
 - Check if the operation is submitting experiments in batches
 - Confirm if the operation uses continuous batching (new experiment requested
   once one has finished) or static batch (full batch finishes then next starts)
-- Get the requests and results timeseries using `ado show requests` and
-  `ado show results`
+- Get the requests and results timeseries using `ado show trace`
 - For continuous batching
   - Use the request time-series to determine the typical inter-request start
     time after the first batch i.e. this tells you how often after the first

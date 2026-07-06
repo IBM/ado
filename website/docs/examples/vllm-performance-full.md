@@ -189,14 +189,14 @@ When the output indicates that the experiment has finished, you can inspect the
 results of all operations run so far on the space with:
 
 ```commandline
-ado show entities space --output csv --use-latest > entities.csv
+ado show measurements space --output csv --use-latest > entities.csv
 ```
 
 > [!NOTE]
 >
 > At any time after an operation, $OPERATION_ID, is finished you can run
-> `ado show entities operation $OPERATION_ID` to see the sampling time-series of
-> that operation.
+> `ado show measurements operation $OPERATION_ID` to see the sampling
+> time-series of that operation.
 
 ## Next steps
 

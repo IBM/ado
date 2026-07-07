@@ -4,6 +4,7 @@
 import logging
 
 import pydantic
+from ado_actuators.vllm_performance.k8s import K8sDeploymentCreationTimeoutError
 from ado_actuators.vllm_performance.k8s.manage_components import (
     ComponentsManager,
 )
@@ -125,11 +126,23 @@ def create_test_environment(
         renderer_num_workers=renderer_num_workers,
     )
     logger.debug("deployment created")
-    c_manager.wait_deployment_ready(
-        k8s_name=k8s_name,
-        check_interval=check_interval,
-        timeout=timeout,
-    )
+
+    try:
+        c_manager.wait_deployment_ready(
+            k8s_name=k8s_name,
+            check_interval=check_interval,
+            timeout=timeout,
+        )
+    except K8sDeploymentCreationTimeoutError as e:
+        # If the deployment creation times out we try to delete the existing
+        # one to make sure we don't try to re-create the same deployment
+        # during retries.
+        logger.debug(
+            "Creating the {k8s_name} deployment has timed out. Deleting the deployment."
+        )
+        c_manager.delete_deployment(k8s_name=k8s_name, raise_if_not_found=False)
+        raise (e)
+
     logger.info("deployment ready")
     # service
     c_manager.create_service(k8s_name=k8s_name, template=service_template)

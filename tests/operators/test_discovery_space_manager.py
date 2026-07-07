@@ -166,9 +166,9 @@ def test_on_error_passes_plain_exception_to_subscriber(
             "onError was not called on the subscriber within 15 s after "
             "the queue actor was killed"
         )
-        assert (
-            type(captured_error) is Exception
-        ), f"Expected a plain Exception but received {type(captured_error)}"
+        assert type(captured_error) is Exception, (
+            f"Expected a plain Exception but received {type(captured_error)}"
+        )
     finally:
         ray.kill(state)
         ray.kill(subscriber)

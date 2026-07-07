@@ -552,8 +552,7 @@ def _run_ray_submit(
     result = subprocess.run(cmd)  # noqa: S603
     if result.returncode != 0:
         log.error(
-            "ray job submit exited with code %d. "
-            "Check the output above for details.",
+            "ray job submit exited with code %d. Check the output above for details.",
             result.returncode,
         )
     return result.returncode

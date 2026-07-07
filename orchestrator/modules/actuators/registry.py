@@ -381,9 +381,7 @@ class ActuatorRegistry:
             CatalogConfigurationRequirementEnum,
         )
 
-        actuator = self.actuatorForIdentifier(
-            actuatorid=actuatorid
-        )  # type: type[ActuatorBase]
+        actuator = self.actuatorForIdentifier(actuatorid=actuatorid)  # type: type[ActuatorBase]
 
         cfg = None
         try:

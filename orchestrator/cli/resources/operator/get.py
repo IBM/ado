@@ -44,7 +44,6 @@ def get_operator(parameters: AdoGetCommandParameters) -> None:
 
     # Handle NAME output format
     if parameters.output_format == AdoGetSupportedOutputFormats.NAME:
-
         # Collect all operator names
         operator_names = []
         for (

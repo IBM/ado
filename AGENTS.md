@@ -69,7 +69,7 @@ These guidelines apply to all code development in the ado codebase.
 
 ## Developer Tools
 
-- All development tools (ruff, black, pytest, etc.) are available in the
+- All development tools (ruff, pytest, etc.) are available in the
   project's **uv-managed virtual environment**.
 - Do not install tools globally.
 - Use the following pattern to execute tools:
@@ -103,16 +103,16 @@ Use Test Driven Development
 ### Code Linting
 
 - Linting must be run after any code changes and must pass before running tests.
-- Run **black** after changes:
+- Run **ruff format** after changes:
 
-  uv run black $DIR
+  uv run ruff format $DIR
 
-- Run **ruff** after changes:
+- Run **ruff check** after changes:
 
   uv run ruff check --fix $DIR
 
 - Fix any issues reported by ruff that it could not fix automatically.
-- Run black and ruff at directory level for efficiency (e.g. `orchestrator/`,
+- Run ruff format and ruff check at directory level for efficiency (e.g. `orchestrator/`,
   `plugins/`, `tests/`).
 - Run the mkdocs linter on markdown files (\*.md) that have added or modified:
 

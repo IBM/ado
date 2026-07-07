@@ -28,7 +28,6 @@ class MeasurementResultStateEnum(str, enum.Enum):
 
 
 class MeasurementResult(pydantic.BaseModel):
-
     uid: Annotated[
         str,
         pydantic.Field(
@@ -213,7 +212,6 @@ class ValidMeasurementResult(MeasurementResult):
         }
 
         for measurement in self.measurements:
-
             key = (
                 f"{measurement.property.targetProperty.identifier}"
                 if output_format == "target"
@@ -223,7 +221,6 @@ class ValidMeasurementResult(MeasurementResult):
             rep[key] = measurement.value
 
         if virtual_target_property_identifiers:
-
             observed_properties = [
                 p.property
                 for p in self.measurements
@@ -238,9 +235,7 @@ class ValidMeasurementResult(MeasurementResult):
                 if not virtual_observed_properties:
                     continue
 
-                for (
-                    virtual_observed_property
-                ) in virtual_observed_properties:  # type: VirtualObservedProperty
+                for virtual_observed_property in virtual_observed_properties:  # type: VirtualObservedProperty
                     if output_format == "target":
                         rep[
                             virtual_observed_property.virtualTargetPropertyIdentifier

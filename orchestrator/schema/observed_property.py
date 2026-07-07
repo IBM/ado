@@ -46,7 +46,8 @@ class ObservedProperty(pydantic.BaseModel):
     @pydantic.field_validator("targetProperty", mode="before")
     @classmethod
     def convert_property_to_descriptor(
-        cls, value: typing.Any  # noqa: ANN401
+        cls,
+        value: typing.Any,  # noqa: ANN401
     ) -> "PropertyDescriptor | typing.Any":  # noqa: ANN401
 
         # We allow instantiation with Property models and their subclass but they are converted

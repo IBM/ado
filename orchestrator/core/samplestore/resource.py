@@ -10,7 +10,6 @@ from orchestrator.utilities.pydantic import Defaultable
 
 
 class SampleStoreResource(ADOResource):
-
     @staticmethod
     def _generate_sample_store_identifier() -> str:
         import uuid

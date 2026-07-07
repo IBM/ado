@@ -32,9 +32,9 @@ from orchestrator.schema.result import ValidMeasurementResult
 
 
 @pytest.fixture
-def value_for_value_type() -> (
-    typing.Callable[[ValueTypeEnum], int | float | str | bytes | None]
-):
+def value_for_value_type() -> typing.Callable[
+    [ValueTypeEnum], int | float | str | bytes | None
+]:
     def _value_for_value_type(
         value_type: ValueTypeEnum = ValueTypeEnum.NUMERIC_VALUE_TYPE,
     ) -> int | float | str | bytes | None:

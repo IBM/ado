@@ -442,7 +442,7 @@ def get_index_list_nn_high_dimensional(
     out_of_bounds_list = [i for i in indices if i > maximum_n]
     if out_of_bounds_list:
         logger.error(
-            f"The following indices are out of bound: {out_of_bounds_list}, maximum admissible value is {maximum_n-1}"
+            f"The following indices are out of bound: {out_of_bounds_list}, maximum admissible value is {maximum_n - 1}"
         )
 
     return indices

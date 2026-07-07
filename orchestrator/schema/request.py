@@ -100,7 +100,9 @@ class MeasurementRequest(pydantic.BaseModel, validate_assignment=True):
     @pydantic.model_validator(mode="wrap")
     @classmethod
     def fail_on_measurements_reassignment(
-        cls, data: Any, handler: "ValidatorFunctionWrapHandler"  # noqa: ANN401
+        cls,
+        data: Any,  # noqa: ANN401
+        handler: "ValidatorFunctionWrapHandler",  # noqa: ANN401
     ) -> "MeasurementRequest":
 
         def populate_measurement_results_in_entities(
@@ -293,7 +295,6 @@ class MeasurementRequest(pydantic.BaseModel, validate_assignment=True):
         measurement_series = []
         occurrences = {}
         for idx, s in enumerate(result_series):
-
             # Update occurrences counter
             result_index = s["identifier"] if s["identifier"] in occurrences else 0
 

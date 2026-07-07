@@ -452,9 +452,9 @@ def sample_store_load(
         sample_store_resource_dict["config"]["specification"]["module"]["moduleClass"]
         == "SQLSampleStore"
     ):
-        sample_store_resource_dict["config"]["specification"][
-            "storageLocation"
-        ] = storage_location.model_dump()
+        sample_store_resource_dict["config"]["specification"]["storageLocation"] = (
+            storage_location.model_dump()
+        )
 
     from orchestrator.utilities.pydantic import (
         do_not_populate_ado_provenance_context,

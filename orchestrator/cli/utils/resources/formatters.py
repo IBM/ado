@@ -152,7 +152,6 @@ def format_default_ado_get_multiple_resources(
     # AP: the default formatting of timedelta objects is too verbose
     # we convert it to
     if "AGE" in resources.columns:
-
         resources["AGE"] = resources["AGE"].apply(
             lambda x: timedelta_to_string(x.total_seconds())
         )

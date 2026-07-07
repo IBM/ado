@@ -278,7 +278,7 @@ After making changes to plugin code, run linting at the plugin directory level:
 
 ```bash
 cd plugins/actuators/your_plugin/
-uv run black .
+uv run ruff format .
 uv run ruff check --fix .
 uv run tombi fmt .
 ```

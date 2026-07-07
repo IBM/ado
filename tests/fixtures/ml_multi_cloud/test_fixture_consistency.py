@@ -19,9 +19,9 @@ def test_create_ml_multicloud_sample_store(
         identifier=ml_multi_cloud_sample_store.identifier,
         kind=CoreResourceKinds.SAMPLESTORE,
     )
-    assert (
-        sample_store_resource is not None
-    ), "The SQL Store couldn't retrieve the sample store"
+    assert sample_store_resource is not None, (
+        "The SQL Store couldn't retrieve the sample store"
+    )
 
 
 def test_create_ml_multicloud_space(
@@ -45,6 +45,6 @@ def test_create_ml_multicloud_actuatorconfiguration(
         identifier=ml_multi_cloud_correct_actuatorconfiguration.identifier,
         kind=CoreResourceKinds.ACTUATORCONFIGURATION,
     )
-    assert (
-        actuatorconfiguration_resource is not None
-    ), "The SQL Store couldn't retrieve the actuatorconfiguration"
+    assert actuatorconfiguration_resource is not None, (
+        "The SQL Store couldn't retrieve the actuatorconfiguration"
+    )

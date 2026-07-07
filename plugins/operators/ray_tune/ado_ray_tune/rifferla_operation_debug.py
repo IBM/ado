@@ -24,7 +24,6 @@ project = "caikit-testharness"
 
 
 if __name__ == "__main__":
-
     project_context = orchestrator.metastore.project.ProjectContext(
         project=project
     )  # from environment as default

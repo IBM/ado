@@ -171,7 +171,6 @@ def validate_operator_function_signature(fn: typing.Callable) -> None:
 
 
 class DiscoveryOperationBase(metaclass=abc.ABCMeta):
-
     def operationIdentifier(self) -> str:
         """A unique id for the operation instance being run by the operator.
 

@@ -294,7 +294,6 @@ def output_operation_results(
 
     # We add the rows in descending order
     for row_number, (_, row) in enumerate(df[::-1].iterrows()):
-
         if row_limit and row_number == row_limit:
             break
 

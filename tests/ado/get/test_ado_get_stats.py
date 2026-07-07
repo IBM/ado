@@ -151,9 +151,9 @@ def test_ado_get_operations_stats_values(
             ),
             auto_width=True,
         )
-        assert (
-            rendered_output in result.output
-        ), f"Expected output:\n{rendered_output}\nnot found in:\n{result.output}"
+        assert rendered_output in result.output, (
+            f"Expected output:\n{rendered_output}\nnot found in:\n{result.output}"
+        )
 
 
 @requires_sqlite_3_38
@@ -228,9 +228,9 @@ def test_ado_get_operation_stats_single_resource(
             ),
             auto_width=True,
         )
-        assert (
-            rendered_output in result.output
-        ), f"Expected output:\n{rendered_output}\nnot found in:\n{result.output}"
+        assert rendered_output in result.output, (
+            f"Expected output:\n{rendered_output}\nnot found in:\n{result.output}"
+        )
 
 
 @requires_sqlite_3_38
@@ -304,9 +304,9 @@ def test_ado_get_spaces_stats_values(
             ),
             auto_width=True,
         )
-        assert (
-            rendered_output in result.output
-        ), f"Expected output:\n{rendered_output}\nnot found in:\n{result.output}"
+        assert rendered_output in result.output, (
+            f"Expected output:\n{rendered_output}\nnot found in:\n{result.output}"
+        )
 
 
 @requires_sqlite_3_38
@@ -380,9 +380,9 @@ def test_ado_get_space_stats_single_resource(
             ),
             auto_width=True,
         )
-        assert (
-            rendered_output in result.output
-        ), f"Expected output:\n{rendered_output}\nnot found in:\n{result.output}"
+        assert rendered_output in result.output, (
+            f"Expected output:\n{rendered_output}\nnot found in:\n{result.output}"
+        )
 
 
 @requires_sqlite_3_38
@@ -486,9 +486,9 @@ def test_ado_get_samplestores_stats_values(
             ),
             auto_width=True,
         )
-        assert (
-            rendered_output in result.output
-        ), f"Expected output:\n{rendered_output}\nnot found in:\n{result.output}"
+        assert rendered_output in result.output, (
+            f"Expected output:\n{rendered_output}\nnot found in:\n{result.output}"
+        )
 
 
 @requires_sqlite_3_38
@@ -597,9 +597,9 @@ def test_ado_get_datacontainers_stats_values(
             ),
             auto_width=True,
         )
-        assert (
-            rendered_output in result.output
-        ), f"Expected output:\n{rendered_output}\nnot found in:\n{result.output}"
+        assert rendered_output in result.output, (
+            f"Expected output:\n{rendered_output}\nnot found in:\n{result.output}"
+        )
 
 
 @requires_sqlite_3_38
@@ -652,9 +652,9 @@ def test_ado_get_operation_stats_details_columns(
     if os.environ.get("CI", "false") != "true":
         assert "DESCRIPTION" in result.output, "DESCRIPTION column missing from output"
         assert "LABELS" in result.output, "LABELS column missing from output"
-        assert (
-            "Perform a random walk on all points in a space" in result.output
-        ), "Operation description missing from output"
+        assert "Perform a random walk on all points in a space" in result.output, (
+            "Operation description missing from output"
+        )
 
 
 @requires_sqlite_3_38

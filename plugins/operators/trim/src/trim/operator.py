@@ -78,7 +78,7 @@ def trim(
     op_output_characterization_no_prior = OperationOutput.model_validate(
         {
             "metadata": {
-                "skipping operation": f"Prior source space characterization: {len(source_df)} sample. Minimal sample size: {params.samplingBudget.minPoints }"
+                "skipping operation": f"Prior source space characterization: {len(source_df)} sample. Minimal sample size: {params.samplingBudget.minPoints}"
             }
         }
     )

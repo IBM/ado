@@ -73,9 +73,9 @@ def test_avoid_oom_recommender_finds_minimum_when_oom_expected() -> None:
 
     # Should recommend more than 1 GPU
     assert result["can_recommend"] is True
-    assert (
-        result["gpus"] > 1
-    ), f"Expected gpus > 1 when original would OOM, but got {result['gpus']}"
+    assert result["gpus"] > 1, (
+        f"Expected gpus > 1 when original would OOM, but got {result['gpus']}"
+    )
 
 
 def test_avoid_oom_recommender_no_valid_config_exists() -> None:

@@ -78,7 +78,8 @@ def simulate_json_contains_on_sqlite(
         json.loads(candidate), path, id_column=quoted_id_column
     )
 
-    return ("""
+    return (
+        """
         {id_column} IN (
             WITH F AS (
                 SELECT t.{id_column}, jt.key, jt.value, jt.path
@@ -88,7 +89,8 @@ def simulate_json_contains_on_sqlite(
             )
             {subqueries}
         )
-        """).format(  # noqa: S608 - identifiers are quoted to prevent injection
+        """
+    ).format(  # noqa: S608 - identifiers are quoted to prevent injection
         path=path,
         table_name=quoted_table_name,
         json_column=quoted_json_column,
@@ -220,7 +222,7 @@ def check_field_in_sqlite_json_document(
             f"(F.key LIKE '{path[2:]}%' AND F.value {_searchable_scalar_value_for_query_string(candidate)}) OR "
             f"(F.path LIKE '{path}' AND F.value {_searchable_scalar_value_for_query_string(candidate)}) OR "
             f"(F.path = '{path[:last_dot_index]}' AND "
-            f"F.key = '{path[last_dot_index+1:]}' AND "
+            f"F.key = '{path[last_dot_index + 1 :]}' AND "
             f"F.value {_searchable_scalar_value_for_query_string(candidate)})"
         ]
 
@@ -229,7 +231,6 @@ def check_field_in_sqlite_json_document(
     #   - Objects (dictionaries)
     # Both can be iterated, returning either list elements or keys
     for field in candidate:
-
         # If the list element or the dictionary key is not a scalar, we need recursion.
         # Example:
         #   - ado get operation -q 'status=[{"event": "finished", "exit_state": "success"}]'

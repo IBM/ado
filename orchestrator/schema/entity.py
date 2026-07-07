@@ -475,8 +475,9 @@ class Entity(pydantic.BaseModel):
 
         return list(
             filter(
-                lambda x: x.property.targetProperty.identifier
-                == targetProperty.identifier,
+                lambda x: (
+                    x.property.targetProperty.identifier == targetProperty.identifier
+                ),
                 self.observedPropertyValues,
             )
         )
@@ -666,7 +667,6 @@ class Entity(pydantic.BaseModel):
 
         resultsDict = {}
         for e in experimentReferences:
-
             if len(self.propertyValuesFromExperimentReference(e)) == 0:
                 continue
 

@@ -280,9 +280,7 @@ class EntitySpaceRepresentation:
         }
         return self.isPointInSpace(point)
 
-    def isPointCompatibleWithSpace(
-        self, point: dict[str, typing.Any]
-    ) -> bool:  # noqa: ANN401
+    def isPointCompatibleWithSpace(self, point: dict[str, typing.Any]) -> bool:  # noqa: ANN401
         """A point is compatible if the identifiers of all the entityspaces constitutive properties are keys in point
 
         Note: This means the point may have more dimensions (keys/constitutive properties) than the entityspace.

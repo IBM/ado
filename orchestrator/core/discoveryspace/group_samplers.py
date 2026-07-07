@@ -315,9 +315,9 @@ class SequentialGroupSampleSelector(GroupSampler):
     async def remoteEntityGroupIterator(
         self, remoteDiscoverySpace: DiscoverySpaceManager
     ) -> AsyncGenerator[list[Entity], None]:
-        async def iterator_closure() -> (
-            Callable[[], AsyncGenerator[list[Entity], None]]
-        ):
+        async def iterator_closure() -> Callable[
+            [], AsyncGenerator[list[Entity], None]
+        ]:
             discovery_space = await remoteDiscoverySpace.discoverySpace.remote()
             points = _get_space_matching_points(discovery_space=discovery_space)
             return _sequential_iterator_async(

@@ -74,7 +74,6 @@ def create_discovery_space(parameters: AdoCreateCommandParameters) -> str | None
         parameters.with_resources
         and CoreResourceKinds.SAMPLESTORE in parameters.with_resources
     ):
-
         if isinstance(parameters.with_resources[CoreResourceKinds.SAMPLESTORE], str):
             space_configuration.sampleStoreIdentifier = parameters.with_resources[
                 CoreResourceKinds.SAMPLESTORE
@@ -127,7 +126,6 @@ def create_discovery_space(parameters: AdoCreateCommandParameters) -> str | None
         space_configuration.sampleStoreIdentifier = latest_sample_store
 
     elif parameters.new_sample_store:
-
         # Replay experiments cannot use --new-sample-store
         # We want to check whether the replay actuator is being used
         # in the space.

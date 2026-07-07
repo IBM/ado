@@ -276,7 +276,6 @@ class VirtualObservedProperty(pydantic.BaseModel):
 
         # Otherwise, check if it is a target property
         else:
-
             target_properties = [
                 p
                 for p in observed_properties
@@ -295,7 +294,6 @@ class VirtualObservedProperty(pydantic.BaseModel):
 
 
 class VirtualObservedPropertyValue(PropertyValue):
-
     property: Annotated[
         VirtualObservedProperty,
         pydantic.Field(description="The ConstitutiveProperty with the value"),

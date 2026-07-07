@@ -61,7 +61,8 @@ logger_trim_sampler = logging.getLogger(__name__)
 class TrimSampleSelector(BaseSampler):
     @classmethod
     def samplerCompatibleWithDiscoverySpaceRemote(
-        cls, remoteDiscoverySpace: DiscoverySpaceManager  # type: ignore[name-defined]
+        cls,
+        remoteDiscoverySpace: DiscoverySpaceManager,  # type: ignore[name-defined]
     ) -> bool:
         # do you want to return False if no point has been measured?
         return True
@@ -264,7 +265,7 @@ class TrimSampleSelector(BaseSampler):
 
             logger_trim_sampler.info(
                 f"Building and evaluating a predictive model "
-                f"""that includes {batchsize} more {"entities" if batchsize>1 else "entity"} """
+                f"""that includes {batchsize} more {"entities" if batchsize > 1 else "entity"} """
                 f"in the training set:\n {entity}"
             )
             # ensures we only train on rows where the target is measured
@@ -453,7 +454,9 @@ class TrimSampleSelector(BaseSampler):
                 yield entity
 
     async def remoteEntityIterator(
-        self, remoteDiscoverySpace: DiscoverySpaceManager, batchsize: int = 1  # type: ignore[name-defined]
+        self,
+        remoteDiscoverySpace: DiscoverySpaceManager,
+        batchsize: int = 1,  # type: ignore[name-defined]
     ) -> typing.AsyncGenerator[list[Entity], None]:
         """Returns a remoteEntityIterator that returns entities in order"""
 

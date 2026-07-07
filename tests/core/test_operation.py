@@ -147,9 +147,7 @@ def test_operation_config_file_valid(valid_operation_config_file: str) -> None:
     except AttributeError:
         pass
     else:
-        moduleClass = load_module_class_or_function(
-            module
-        )  # type: "orchestrator.modules.operators.base.DiscoveryOperationBase"
+        moduleClass = load_module_class_or_function(module)  # type: "orchestrator.modules.operators.base.DiscoveryOperationBase"
         meta = moduleClass.operator_metadata()
         if meta.configuration_model is not None:
             meta.configuration_model.model_validate(op_cfg.parameters)

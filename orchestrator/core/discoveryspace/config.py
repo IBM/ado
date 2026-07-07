@@ -59,7 +59,6 @@ class DiscoverySpaceProperties(pydantic.BaseModel):
 
 
 class DiscoverySpaceConfiguration(pydantic.BaseModel):
-
     sampleStoreIdentifier: Annotated[
         str,
         pydantic.Field(
@@ -110,7 +109,6 @@ class DiscoverySpaceConfiguration(pydantic.BaseModel):
         property_domain_key = "propertyDomain"
         variable_type_key = "variableType"
         for property in values:
-
             property_domain = property.get(property_domain_key)
             if property_domain_key not in property or not property_domain:
                 continue
@@ -135,7 +133,6 @@ class DiscoverySpaceConfiguration(pydantic.BaseModel):
             # If the propertyDomain has any of the keys above, we rewrite it completely
             # to just contain BINARY_VARIABLE_TYPE instead of popping each key.
             if overlapping_keys:
-
                 property[property_domain_key] = {
                     variable_type_key: VariableTypeEnum.BINARY_VARIABLE_TYPE.value
                 }
@@ -213,7 +210,6 @@ class DiscoverySpaceConfiguration(pydantic.BaseModel):
             return False
 
         for identifier, domain in target_space_constitutive_property_map.items():
-
             # The target space has a property that the reference space does not have
             if identifier not in reference_space_constitutive_property_map:
                 return False

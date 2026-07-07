@@ -59,7 +59,10 @@ class TestActuatorConfigurationWithOTLP:
                 otlp_traces_endpoint="http://jaeger:4318/v1/traces",
             ),
         )
-        assert str(config.parameters.otlp_traces_endpoint) == "http://jaeger:4318/v1/traces"  # type: ignore[union-attr]
+        assert (
+            str(config.parameters.otlp_traces_endpoint)
+            == "http://jaeger:4318/v1/traces"
+        )  # type: ignore[union-attr]
 
     def test_actuator_configuration_without_otlp_endpoint(self) -> None:
         """Test actuator configuration without OTLP endpoint (backward compatibility)"""
@@ -92,7 +95,10 @@ class TestActuatorConfigurationWithOTLP:
 
         # Create new config from serialized dict
         config_restored = ActuatorConfiguration(**config_dict)
-        assert str(config_restored.parameters.otlp_traces_endpoint) == "http://jaeger:4318/v1/traces"  # type: ignore[union-attr]
+        assert (
+            str(config_restored.parameters.otlp_traces_endpoint)
+            == "http://jaeger:4318/v1/traces"
+        )  # type: ignore[union-attr]
 
 
 class TestDeploymentYAMLWithOTLP:

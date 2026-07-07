@@ -281,7 +281,6 @@ def parse_with_resource_options(
 
     for with_option in parse_key_value_pairs(user_provided_options):
         for resource_type, value in with_option.items():
-
             resource_type = resource_shorthands_to_full_names(resource_type)
             if resource_type not in supported_resource_types:
                 console_print(

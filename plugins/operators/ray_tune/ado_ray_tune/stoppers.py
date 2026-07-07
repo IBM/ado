@@ -527,7 +527,7 @@ class BayesianMetricDifferenceStopper(ray.tune.Stopper):
             f"  Threshold: {self.threshold}\n"
             f"  Target Probability: {target_probability}\n"
             f"  Min Samples: {min_samples}\n"
-            f"  Stopping: When {target_probability*100:.0f}% confident difference is "
+            f"  Stopping: When {target_probability * 100:.0f}% confident difference is "
             f"above OR below threshold"
         )
 
@@ -698,7 +698,7 @@ class BayesianMetricDifferenceStopper(ray.tune.Stopper):
 
             print(
                 f"  Stopping after {self.trials_num} trials  - usable differences collected {len(self.differences)} \n"
-                f"  {prob_abs_greater*100:.1f}% confident mean difference is ABOVE threshold\n"
+                f"  {prob_abs_greater * 100:.1f}% confident mean difference is ABOVE threshold\n"
                 f"  Mean difference: {mean_diff:.4f}\n"
                 f"  Standard error: ±{stats_result['se']:.4f}\n"
                 f"  Threshold: {self.threshold}\n"
@@ -714,7 +714,7 @@ class BayesianMetricDifferenceStopper(ray.tune.Stopper):
 
             print(
                 f"  Stopping after {self.trials_num} trials\n"
-                f"  {prob_abs_less*100:.1f}% confident mean difference is BELOW threshold\n"
+                f"  {prob_abs_less * 100:.1f}% confident mean difference is BELOW threshold\n"
                 f"  Mean difference: {mean_diff:.4f}\n"
                 f"  Standard error: ±{stats_result['se']:.4f}\n"
                 f"  Threshold: {self.threshold}\n"

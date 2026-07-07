@@ -77,7 +77,6 @@ else:
 
 
 class FilterModeEnum(enum.Enum):
-
     noFilter = "noFilter"
     measured = "measured"
     unmeasured = "unmeasured"
@@ -97,7 +96,6 @@ class CombinedWalkModeEnum(enum.Enum):
 
 
 class EntityFilter(pydantic.BaseModel):
-
     filterMode: Annotated[
         FilterModeEnum, pydantic.Field(description="Filtering mode for entities")
     ] = FilterModeEnum.noFilter
@@ -163,7 +161,7 @@ class BaseSamplerConfiguration(pydantic.BaseModel):
         ):
             raise ValueError(
                 f"grouping {grouping} has to contain some names for the grouping "
-                f'mode {values.data.get("mode")}'
+                f"mode {values.data.get('mode')}"
             )
 
         return grouping
@@ -260,7 +258,6 @@ class BaseSamplerConfiguration(pydantic.BaseModel):
 
 
 class SamplerModuleConf(ModuleConf):
-
     moduleType: ModuleTypeEnum = ModuleTypeEnum.SAMPLER
     model_config = pydantic.ConfigDict(extra="forbid")
 
@@ -336,7 +333,6 @@ SamplerConfig = Annotated[
 
 
 class RandomWalkParameters(pydantic.BaseModel):
-
     samplerConfig: Annotated[
         SamplerConfig,
         pydantic.Field(
@@ -388,7 +384,7 @@ class RandomWalkParameters(pydantic.BaseModel):
             and values.data.get("numberEntities") < value
         ):
             raise ValueError(
-                f'Number of entities to sample {values.data.get("numberEntities")} '
+                f"Number of entities to sample {values.data.get('numberEntities')} "
                 f"cannot be less than batch size {value}"
             )
 
@@ -396,7 +392,6 @@ class RandomWalkParameters(pydantic.BaseModel):
 
 
 class RequestRetry(pydantic.BaseModel):
-
     measurementRequest: Annotated[
         MeasurementRequest, pydantic.Field(description="The request being retried")
     ]
@@ -509,7 +504,6 @@ class RandomWalk(Explore):
         # Check and/or Determine numberOfEntities to sample
         #
         if self.params.numberEntities == "all":
-
             if entity_space is not None:
                 if entity_space.isDiscreteSpace:
                     try:
@@ -589,7 +583,7 @@ class RandomWalk(Explore):
         print(f"Submitting initial batch of size {self.params.batchSize} entities")
         print(
             f"There are {number_experiments} experiments in measurement space -"
-            f" therefore there can be up to {self.params.batchSize*number_experiments} experiments running concurrently"
+            f" therefore there can be up to {self.params.batchSize * number_experiments} experiments running concurrently"
         )
         # Create batch
         self._entitiesSampled = 0
@@ -617,7 +611,6 @@ class RandomWalk(Explore):
                 )
                 independent_experiments = measurement_space.independentExperiments
                 for experiment in independent_experiments:
-
                     experiment_identifiers = measure_or_replay(
                         requestIndex=self._entitiesSampled,
                         requesterid=self.operationIdentifier(),
@@ -676,9 +669,7 @@ class RandomWalk(Explore):
             )
 
             # Wait for a finished measurement request or an error
-            measurement_request = (
-                await self.update_queue.get()
-            )  # type: typing.Union[MeasurementRequest | Exception]
+            measurement_request = await self.update_queue.get()  # type: typing.Union[MeasurementRequest | Exception]
             if isinstance(measurement_request, Exception):
                 self.criticalError = True
                 self.log.critical(

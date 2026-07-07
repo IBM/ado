@@ -102,7 +102,6 @@ def describe_resource(
     ado_configuration: AdoConfiguration = ctx.obj
 
     if use_latest:
-
         if resource_type != AdoDescribeSupportedResourceTypes.DISCOVERY_SPACE:
             console_print(
                 f"{ERROR}The {cyan('--use-latest')} flag is available only for spaces.",

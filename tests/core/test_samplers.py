@@ -284,9 +284,9 @@ async def test_random_sample_selector(
 
     assert len(entities) != 5, "Expected the last batch not to be equal to batchsize"
 
-    assert count == len(
-        space.matchingEntities()
-    ), "Expected the number of entities iterated was equal to number matching entities in source"
+    assert count == len(space.matchingEntities()), (
+        "Expected the number of entities iterated was equal to number matching entities in source"
+    )
 
     queue = MeasurementQueue()
     manager = DiscoverySpaceManager.remote(space=space, queue=queue)
@@ -303,9 +303,9 @@ async def test_random_sample_selector(
 
     assert len(entities) != 5, "Expected the last batch not to be equal to batchsize"
 
-    assert count == len(
-        space.matchingEntities()
-    ), "Expected the number of entities iterated was equal to number matching entities in source"
+    assert count == len(space.matchingEntities()), (
+        "Expected the number of entities iterated was equal to number matching entities in source"
+    )
 
 
 @pytest.mark.asyncio
@@ -324,13 +324,13 @@ async def test_sequential_sample_selector(
 
     assert len(entities) != 5, "Expected the last batch not to be equal to batchsize"
 
-    assert (
-        entities[-1] == space.matchingEntities()[-1]
-    ), "Expect the last entity of sequential iterator to be last matching entity returned by source"
+    assert entities[-1] == space.matchingEntities()[-1], (
+        "Expect the last entity of sequential iterator to be last matching entity returned by source"
+    )
 
-    assert count == len(
-        space.matchingEntities()
-    ), "Expected the number of entities iterated was equal to number matching entities in source"
+    assert count == len(space.matchingEntities()), (
+        "Expected the number of entities iterated was equal to number matching entities in source"
+    )
 
     queue = MeasurementQueue()
     manager = DiscoverySpaceManager.remote(space=space, queue=queue)
@@ -346,13 +346,13 @@ async def test_sequential_sample_selector(
 
     assert len(entities) != 5, "Expected the last batch not to be equal to batchsize"
 
-    assert count == len(
-        space.matchingEntities()
-    ), "Expected the number of entities iterated was equal to number matching entities in source"
+    assert count == len(space.matchingEntities()), (
+        "Expected the number of entities iterated was equal to number matching entities in source"
+    )
 
-    assert (
-        entities[-1] == space.matchingEntities()[-1]
-    ), "Expect the last entity of sequential iterator to be last matching entity returned by source"
+    assert entities[-1] == space.matchingEntities()[-1], (
+        "Expect the last entity of sequential iterator to be last matching entity returned by source"
+    )
 
 
 def test_sample_random_entity(

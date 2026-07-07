@@ -179,9 +179,7 @@ def _parse_experiment_part_from_string(
         if not allow_parameterization:
             version_match = re.match(_STRICT_SEMVER_PATTERN, version_and_params)
             if version_match is not None:
-                version: StrictSemVerStr = (
-                    f"{version_match.group(1)}.{version_match.group(2)}.{version_match.group(3)}"
-                )
+                version: StrictSemVerStr = f"{version_match.group(1)}.{version_match.group(2)}.{version_match.group(3)}"
                 return base_identifier, version, None
             major_version_match = _MAJOR_VERSION_ID_SUFFIX_PATTERN.match(
                 version_and_params

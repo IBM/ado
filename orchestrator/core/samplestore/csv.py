@@ -153,9 +153,9 @@ class CSVSampleStore(PassiveSampleStore):
         return CSVSampleStoreDescription.model_validate(parameters)
 
     @staticmethod
-    def storage_location_class() -> (
-        type[orchestrator.utilities.location.FilePathLocation]
-    ):
+    def storage_location_class() -> type[
+        orchestrator.utilities.location.FilePathLocation
+    ]:
         return orchestrator.utilities.location.FilePathLocation
 
     @classmethod
@@ -216,7 +216,6 @@ class CSVSampleStore(PassiveSampleStore):
                 propertyFormat=propertyFormat,
             )
         else:
-
             # Read CSV to get headers
             headers = pd.read_csv(csvPath, nrows=0).columns.tolist()
             headers = [h.strip() for h in headers]

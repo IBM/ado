@@ -85,9 +85,9 @@ def test_property_value_preserves_value_type(
 
     val, value_type = property_value
 
-    assert isinstance(
-        val.value, value_type
-    ), f"PropertyValue did not store a {value_type} value as {value_type}. Instead returned {type(val.value)}"
+    assert isinstance(val.value, value_type), (
+        f"PropertyValue did not store a {value_type} value as {value_type}. Instead returned {type(val.value)}"
+    )
 
 
 def test_property_value_preserves_value_type_after_json_serialization(
@@ -104,9 +104,9 @@ def test_property_value_preserves_value_type_after_json_serialization(
     ser = val.model_dump_json()
     dser = ConstitutivePropertyValue.model_validate(json.loads(ser))
 
-    assert isinstance(
-        dser.value, value_type
-    ), f"PropertyValue did not store a {value_type} value as {value_type}. Instead returned {type(val.value)}"
+    assert isinstance(dser.value, value_type), (
+        f"PropertyValue did not store a {value_type} value as {value_type}. Instead returned {type(val.value)}"
+    )
 
 
 def test_property_value_preserves_value_type_after_serialization(
@@ -121,9 +121,9 @@ def test_property_value_preserves_value_type_after_serialization(
     ser = val.model_dump()
     dser = ConstitutivePropertyValue.model_validate(ser)
 
-    assert isinstance(
-        dser.value, value_type
-    ), f"PropertyValue did not store a {value_type} value as {value_type}. Instead returned {type(val.value)}"
+    assert isinstance(dser.value, value_type), (
+        f"PropertyValue did not store a {value_type} value as {value_type}. Instead returned {type(val.value)}"
+    )
 
 
 def test_property_value_checks_value_type(
@@ -192,9 +192,9 @@ def test_string_with_bytes_type_converted_to_blob() -> None:
         valueType=ValueTypeEnum.BLOB_VALUE_TYPE,
     )
 
-    assert (
-        val.value == b"PNG\r89\n\x1a\n\x00\x00"
-    ), "String value with type BLOB_VALUE_TYPE was not converted to bytes as expected"
+    assert val.value == b"PNG\r89\n\x1a\n\x00\x00", (
+        "String value with type BLOB_VALUE_TYPE was not converted to bytes as expected"
+    )
 
 
 def test_type_detection(property_value: tuple[PropertyValue, type]) -> None:

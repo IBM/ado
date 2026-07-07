@@ -675,7 +675,7 @@ class SQLResourceStore(ResourceStore):
         # The DB returns us timedelta objects in seconds, we want Pandas to
         # parse them correctly
         output_df["AGE"] = output_df["AGE"].apply(
-            lambda x: (datetime.timedelta(seconds=x) if not math.isnan(x) else x)
+            lambda x: datetime.timedelta(seconds=x) if not math.isnan(x) else x
         )
 
         if details:
@@ -1138,10 +1138,8 @@ class SQLResourceStore(ResourceStore):
         import sqlalchemy.orm
 
         with sqlalchemy.orm.Session(self.engine) as session:
-
             if not force_deletion:
                 with session.begin():
-
                     results_in_source = session.execute(
                         sqlalchemy.text(
                             f"SELECT COUNT(*) FROM sqlsource_{identifier}_measurement_results"  # noqa: S608 - identifier is trusted
@@ -1161,7 +1159,6 @@ class SQLResourceStore(ResourceStore):
             # to reduce the chances of the DB being left in an unclean state
             try:
                 with session.begin():
-
                     session.execute(
                         sqlalchemy.text(
                             "DELETE FROM resource_relationships WHERE object_identifier=:identifier"
@@ -1213,7 +1210,6 @@ class SQLResourceStore(ResourceStore):
             # supported by SQLite
             try:
                 with session.begin():
-
                     session.execute(
                         sqlalchemy.text(f"DROP TABLE sqlsource_{identifier}")
                     )
@@ -1258,7 +1254,6 @@ class SQLResourceStore(ResourceStore):
         with sqlalchemy.orm.Session(self.engine) as session:
             try:
                 with session.begin():
-
                     # We need the ID of the sample store the operation
                     # belongs to. This is to find all the spaces that
                     # belong to the sample store to see if operations
@@ -1278,7 +1273,6 @@ class SQLResourceStore(ResourceStore):
                     # The user might choose to ignore running operations
                     # <--------- START CHECKS FOR RUNNING OPERATIONS --------->
                     if not ignore_running_operations:
-
                         spaces_in_sample_store = session.execute(
                             sqlalchemy.text(
                                 "SELECT object_identifier "
@@ -1353,25 +1347,29 @@ class SQLResourceStore(ResourceStore):
 
                     # The results that have no link to requests anymore
                     # can now be safely deleted
-                    session.execute(sqlalchemy.text(f"""
+                    session.execute(
+                        sqlalchemy.text(f"""
                             DELETE
                             FROM sqlsource_{sample_store_id}_measurement_results
                             WHERE uid NOT IN (
                                 SELECT DISTINCT(result_uid)
                                 FROM sqlsource_{sample_store_id}_measurement_requests_results
                             )
-                            """))  # noqa: S608 - sample store id is not a user input
+                            """)  # noqa: S608 - sample store id is not a user input
+                    )
 
                     # The requests that have no link to results anymore
                     # can now be safely deleted.
-                    session.execute(sqlalchemy.text(f"""
+                    session.execute(
+                        sqlalchemy.text(f"""
                             DELETE
                             FROM sqlsource_{sample_store_id}_measurement_requests
                             WHERE uid NOT IN (
                                 SELECT DISTINCT(request_uid)
                                 FROM sqlsource_{sample_store_id}_measurement_requests_results
                             )
-                            """))  # noqa: S608 - sample store id is not a user input
+                            """)  # noqa: S608 - sample store id is not a user input
+                    )
 
                     # We must delete the resource from the relationships table
                     # as we otherwise would break its foreign key constraint
@@ -1406,7 +1404,6 @@ class SQLResourceStore(ResourceStore):
         with sqlalchemy.orm.Session(self.engine) as session:
             try:
                 with session.begin():
-
                     session.execute(
                         sqlalchemy.text(
                             r"DELETE FROM resource_relationships WHERE object_identifier=:identifier"
@@ -1437,7 +1434,6 @@ class SQLResourceStore(ResourceStore):
         with sqlalchemy.orm.Session(self.engine) as session:
             try:
                 with session.begin():
-
                     session.execute(
                         sqlalchemy.text(
                             r"DELETE FROM resource_relationships WHERE object_identifier=:identifier"
@@ -1468,7 +1464,6 @@ class SQLResourceStore(ResourceStore):
         with sqlalchemy.orm.Session(self.engine) as session:
             try:
                 with session.begin():
-
                     session.execute(
                         sqlalchemy.text(
                             r"DELETE FROM resource_relationships WHERE object_identifier=:identifier"
@@ -1694,7 +1689,6 @@ class SQLResourceStore(ResourceStore):
         ] = {}
 
         for origin_identifier, related_identifiers_by_kind in related_by_origin.items():
-
             hydrated_related_resources_by_kind: dict[
                 CoreResourceKinds,
                 dict[str, orchestrator.core.resources.ADOResource],
@@ -1704,7 +1698,6 @@ class SQLResourceStore(ResourceStore):
                 resource_kind,
                 related_identifiers,
             ) in related_identifiers_by_kind.items():
-
                 hydrated_related_resources_by_kind[resource_kind] = {
                     identifier: resources[identifier]
                     for identifier in related_identifiers

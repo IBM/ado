@@ -152,6 +152,5 @@ def register_edit_command(app: typer.Typer) -> None:
     app.command(
         name="edit",
         no_args_is_help=True,
-        options_metavar="[-p | --patch <yaml>] [--patch-file <file>] "
-        "[--editor <name>]",
+        options_metavar="[-p | --patch <yaml>] [--patch-file <file>] [--editor <name>]",
     )(edit_resource)

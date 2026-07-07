@@ -28,7 +28,6 @@ class ActuatorConfigurationProvenanceInfo(ProvenanceInfo):
 
 
 class ActuatorConfigurationResource(ADOResource):
-
     @staticmethod
     def _identifier_from_data(data: dict[str, Any]) -> str:
         return f"{data['kind'].value}-{data['config'].actuatorIdentifier}-{str(uuid.uuid4())[:8]}"

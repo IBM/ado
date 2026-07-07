@@ -77,7 +77,6 @@ def template_operation(parameters: AdoTemplateCommandParameters) -> None:
     # The user has requested a specific operator for the template
     # and has provided us with everything we need
     if parameters.operator_name and parameters.operator_type:
-
         if not operator_type_has_operator(
             parameters.operator_name, parameters.operator_type
         ):
@@ -94,7 +93,6 @@ def template_operation(parameters: AdoTemplateCommandParameters) -> None:
     # but didn't provide the operator type, just the name
     # we are sure of this because of the earlier validation
     else:
-
         parameters.operator_type = find_operator_type_by_name(parameters.operator_name)
         if not parameters.operator_type:
             console_print(
@@ -115,7 +113,6 @@ def template_operation(parameters: AdoTemplateCommandParameters) -> None:
     # Certain operators may not have a default configuration model
     # Use an OperatorReference and set the values we have
     if not default_operation_parameters:
-
         console_print(
             f"{WARN}Operator {parameters.operator_name} does not have a specific template. "
             "A generic template will be output.",

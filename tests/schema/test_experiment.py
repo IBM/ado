@@ -297,7 +297,6 @@ def test_create_experiment_with_optional_params(
 
     # Test specifying default parameterization without options fails
     with pytest.raises(pydantic.ValidationError):
-
         Experiment(
             defaultParameterization=tuple(defaultParameterization),
             **experimentRawNoOptional,
@@ -305,7 +304,6 @@ def test_create_experiment_with_optional_params(
 
     # Test default parameterization with missing/incorrect properties fails
     with pytest.raises(pydantic.ValidationError):
-
         Experiment(
             optionalProperties=tuple(optionalProperties),
             defaultParameterization=tuple(defaultParameterization[:-2]),
@@ -648,9 +646,9 @@ def test_experiment_property_values_from_entity(
 
     assert set(expectedValues.keys()) == set(params.keys())
     for k in expectedValues:
-        assert (
-            expectedValues[k] == params[k]
-        ), f"Expected value for {k}: {expectedValues[k]} does not match returned value {params[k]}"
+        assert expectedValues[k] == params[k], (
+            f"Expected value for {k}: {expectedValues[k]} does not match returned value {params[k]}"
+        )
 
     other_values = get_experiment_input_values(entity=entity, experiment=exp)
     assert expectedValues == other_values
@@ -791,7 +789,9 @@ def test_validate_parameterization_function_with_none_values(
 
 # Required so we can test fields are readonly without causing pycharm to flag the test assignments as errors
 def assert_field_is_readonly(
-    instance: Any, field: str, value: Any  # noqa: ANN401
+    instance: Any,  # noqa: ANN401
+    field: str,
+    value: Any,  # noqa: ANN401
 ) -> None:
     with pytest.raises(pydantic.ValidationError):
         setattr(instance, field, value)

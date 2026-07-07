@@ -108,18 +108,36 @@ def test_round_trip_skip() -> None:
 
 
 def test_no_priors_parameters_round_trip() -> None:
-    """NoPriorsParameters with missingTargetVariables round-trips correctly."""
-    original = NoPriorsParameters(
-        targetOutput="latency",
-        missingTargetVariables=MissingTargetMeasurements(
-            mode=MissingTargetMode.Skip, budget=2
-        ),
-    )
+    """NoPriorsParameters round-trips correctly; missingTargetVariables is NOT in the dump."""
+    original = NoPriorsParameters(targetOutput="latency")
     dumped = original.model_dump()
+    assert "missingTargetVariables" not in dumped
     restored = NoPriorsParameters.model_validate(dumped)
     assert restored.targetOutput == "latency"
-    assert restored.missingTargetVariables.mode == MissingTargetMode.Skip
-    assert restored.missingTargetVariables.budget == 2
+    # Default policy is RaiseError
+    assert restored.missingTargetVariables.mode == MissingTargetMode.RaiseError
+
+
+def test_no_priors_parameters_missing_target_variables_not_a_kwarg() -> None:
+    """missingTargetVariables cannot be set via the NoPriorsParameters constructor."""
+    with pytest.raises((ValidationError, TypeError)):
+        NoPriorsParameters(
+            targetOutput="latency",
+            missingTargetVariables=MissingTargetMeasurements(
+                mode=MissingTargetMode.Skip
+            ),
+        )
+
+
+def test_no_priors_parameters_missing_target_variables_settable_at_runtime() -> None:
+    """missingTargetVariables can be set as a runtime attribute (used by TrimParameters)."""
+    params = NoPriorsParameters(targetOutput="latency")
+    policy = MissingTargetMeasurements(mode=MissingTargetMode.Skip, budget=2)
+    params.missingTargetVariables = policy
+    assert params.missingTargetVariables.mode == MissingTargetMode.Skip
+    assert params.missingTargetVariables.budget == 2
+    # Setting it does NOT affect model_dump
+    assert "missingTargetVariables" not in params.model_dump()
 
 
 # ---------------------------------------------------------------------------

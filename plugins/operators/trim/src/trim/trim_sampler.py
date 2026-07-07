@@ -45,7 +45,6 @@ from ado.utilities.pandas import sort_rows_by_column_names
 from trim.utils.exceptions import InsufficientDataError
 from trim.utils.logging_utils import (
     log_after_first_holdout_creation,
-    log_unable_to_proceed_with_iterative_modeling_and_raise_error,
     save_source_train_holdout_dfs,
     training_guardrail,
 )
@@ -144,13 +143,6 @@ class TrimSampleSelector(BaseSampler):
 
         mode = self.params.missingTargetVariables.mode
         entity_id = entity.identifier  # always set after check_identifier validator
-
-        if mode == MissingTargetMode.RaiseError:
-            log_unable_to_proceed_with_iterative_modeling_and_raise_error(
-                discoverySpace=discoverySpace,
-                target_output=self.params.targetOutput,
-                additional_info=additional_info,
-            )
 
         self._missing_count = record_missing_and_check_budget(
             params=self.params,

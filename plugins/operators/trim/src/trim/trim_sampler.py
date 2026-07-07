@@ -521,11 +521,19 @@ class TrimSampleSelector(BaseSampler):
         self,
         discoverySpace: DiscoverySpace,
         list_of_entities: list[Entity],
-        batchsize: int,
     ) -> typing.Generator[list[Entity], None, None]:
-        """
-        Core iterator logic shared between sync and async implementations.
-        This is a synchronous generator that yields entities based on the TRIM algorithm.
+        """Core iterator logic shared between sync and async implementations.
+
+        This generator is driven by ``async_wrapper`` in ``remoteEntityIterator``,
+        which interleaves with the Ray actor event loop. The sequence per entity is:
+
+        Checking last_entity at the top of the next iteration (rather than immediately
+        after yield) is correct because only yielding the event loop AND refreshing
+        the sampleStore is it safe to check if the entity measured the targetOutput.
+
+        In the sync path (``entityIterator`` / tests) there is no Ray boundary:
+        measurements are written into the same in-memory object that the generator
+        holds, so no refresh is needed.
         """
         # Filter entities that no-priors already flagged as unable to yield a target.
         no_target_entities = self._no_target_entities_from_no_priors(discoverySpace)
@@ -604,10 +612,9 @@ class TrimSampleSelector(BaseSampler):
         last_entity = None
         one_additional_row = None
 
-        # This iterator is can be consumed in 2 ways, async and sync.
-        # In async mode we cannot reliably get the results of the entity after yielding it,
-        # the wrapper that iterates this generator calls asyncio.sleep() so it's safe to
-        # get the results of the last yielded entity
+        # Yield the first entity unconditionally; its measurement will be checked
+        # at the top of the first loop iteration after async_wrapper has refreshed
+        # the discoverySpace snapshot.
 
         last_entity = list_of_entities[0]
         logger_trim_sampler.info(f"Yielding {last_entity}")
@@ -675,10 +682,13 @@ class TrimSampleSelector(BaseSampler):
         async def async_wrapper() -> typing.AsyncGenerator[list[Entity], None]:
             await asyncio.sleep(0.001)
             for entity_batch in self._core_iterator_logic(
-                discoverySpace, list_of_entities, batchsize
+                discoverySpace, list_of_entities
             ):
                 yield entity_batch
                 await asyncio.sleep(0.001)  # Allow other async tasks to run
+                # Pull new measurement results written by the actuator actor into
+                # the local discoverySpace copy without re-fetching the full object.
+                discoverySpace.sample_store.refresh()
 
         return async_wrapper()
 
@@ -699,7 +709,7 @@ class TrimSampleSelector(BaseSampler):
             )
         )
 
-        return self._core_iterator_logic(discoverySpace, list_of_entities, batchsize)
+        return self._core_iterator_logic(discoverySpace, list_of_entities)
 
     def finalize_model(
         self,

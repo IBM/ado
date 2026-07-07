@@ -3,7 +3,7 @@
 
 """CLI models package."""
 
-from orchestrator.cli.models.remote_submission import (
+from ado.cli.models.remote_submission import (
     CONTEXT_FLAG,
     FILE_FLAG,
     OVERRIDE_ADO_APP_DIR_FLAG,

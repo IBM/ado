@@ -17,28 +17,28 @@ from urllib.parse import urlparse
 import yaml
 from rich.status import Status
 
-from orchestrator.cli.models.remote_submission import (
+from ado.cli.models.remote_submission import (
     SUBMISSION_FILE_COPY_FLAGS,
     SUBMISSION_STRIP_FLAGS,
     RemoteSubmissionFlagMatch,
     RemoteSubmissionFlagSpec,
 )
-from orchestrator.cli.utils.output.prints import (
+from ado.cli.utils.output.prints import (
     ADO_SPINNER_REMOTE_PORT_FORWARD,
     ADO_SPINNER_REMOTE_PREPARING_FILES,
     console_print,
 )
-from orchestrator.cli.utils.remote.arg_parser import (
+from ado.cli.utils.remote.arg_parser import (
     rewrite_flag_values,
     strip_flags,
 )
-from orchestrator.core.remotecontext.config import (
+from ado.core.remotecontext.config import (
     ClusterExecutionType,
     JobExecutionType,
     PortForwardConfiguration,
     RemoteExecutionContext,
 )
-from orchestrator.metastore.project import ProjectContext
+from ado.metastore.project import ProjectContext
 
 log = logging.getLogger(__name__)
 

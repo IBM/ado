@@ -61,7 +61,7 @@ class OrderedPipPlugin(RuntimeEnvPlugin):
 
     First,
 
-    export RAY_RUNTIME_ENV_PLUGINS='[{"class":"orchestrator.utilities.ray_env.ordered_pip.OrderedPipPlugin"}]'
+    export RAY_RUNTIME_ENV_PLUGINS='[{"class":"ado.utilities.ray_env.ordered_pip.OrderedPipPlugin"}]'
 
     This way Ray will dynamically load this plugin.
 
@@ -103,7 +103,7 @@ class OrderedPipPlugin(RuntimeEnvPlugin):
 
     # VV: Configure Ray to use this RuntimeEnvPlugin last
     priority = 100
-    ClassPath = "orchestrator.utilities.ray_env.ordered_pip.OrderedPipPlugin"
+    ClassPath = "ado.utilities.ray_env.ordered_pip.OrderedPipPlugin"
 
     def __init__(self, resources_dir: str | None = None) -> None:
         self._global_mtx = threading.RLock()

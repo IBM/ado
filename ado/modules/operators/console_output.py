@@ -25,7 +25,7 @@ from rich.progress import (
 )
 from rich.table import Table
 
-from orchestrator.core.discoveryspace.space import DiscoverySpace
+from ado.core.discoveryspace.space import DiscoverySpace
 
 if typing.TYPE_CHECKING:
     import pandas as pd

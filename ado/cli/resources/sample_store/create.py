@@ -6,9 +6,9 @@ import typer
 import yaml
 from rich.status import Status
 
-from orchestrator.cli.models.parameters import AdoCreateCommandParameters
-from orchestrator.cli.utils.generic.wrappers import get_sql_store
-from orchestrator.cli.utils.output.prints import (
+from ado.cli.models.parameters import AdoCreateCommandParameters
+from ado.cli.utils.generic.wrappers import get_sql_store
+from ado.cli.utils.output.prints import (
     ADO_CREATE_DRY_RUN_CONFIG_VALID,
     ADO_SPINNER_SAVING_TO_DB,
     ERROR,
@@ -18,8 +18,8 @@ from orchestrator.cli.utils.output.prints import (
     console_print,
     magenta,
 )
-from orchestrator.cli.utils.pydantic.updaters import override_values_in_pydantic_model
-from orchestrator.core.samplestore.config import (
+from ado.cli.utils.pydantic.updaters import override_values_in_pydantic_model
+from ado.core.samplestore.config import (
     SampleStoreConfiguration,
     SampleStoreModuleConf,
     SampleStoreSpecification,
@@ -34,7 +34,7 @@ def create_sample_store(parameters: AdoCreateCommandParameters) -> str:
             specification=SampleStoreSpecification(
                 module=SampleStoreModuleConf(
                     moduleClass="SQLSampleStore",
-                    moduleName="orchestrator.core.samplestore.sql",
+                    moduleName="ado.core.samplestore.sql",
                 ),
             )
         )
@@ -74,7 +74,7 @@ def create_sample_store(parameters: AdoCreateCommandParameters) -> str:
         console_print(ADO_CREATE_DRY_RUN_CONFIG_VALID, stderr=True)
         return None
 
-    from orchestrator.core.samplestore.utils import create_sample_store_resource
+    from ado.core.samplestore.utils import create_sample_store_resource
 
     sql = get_sql_store(project_context=parameters.ado_configuration.project_context)
     with Status(ADO_SPINNER_SAVING_TO_DB):

@@ -6,16 +6,16 @@ from typing import Annotated
 import pydantic
 from pydantic import ConfigDict
 
-from orchestrator.schema.property import (
+from ado.schema.property import (
     AbstractPropertyDescriptor,
     ConcretePropertyDescriptor,
     Property,
 )
-from orchestrator.schema.property_value import PropertyValue
-from orchestrator.schema.reference import ExperimentReference
+from ado.schema.property_value import PropertyValue
+from ado.schema.reference import ExperimentReference
 
 if typing.TYPE_CHECKING:
-    from orchestrator.schema.property import (
+    from ado.schema.property import (
         MeasuredPropertyTypeEnum,
         PropertyDescriptor,
     )

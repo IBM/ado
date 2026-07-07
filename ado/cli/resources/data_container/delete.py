@@ -3,14 +3,14 @@
 
 from rich.status import Status
 
-from orchestrator.cli.models.parameters import AdoDeleteCommandParameters
-from orchestrator.cli.utils.generic.wrappers import get_sql_store
-from orchestrator.cli.utils.output.prints import (
+from ado.cli.models.parameters import AdoDeleteCommandParameters
+from ado.cli.utils.generic.wrappers import get_sql_store
+from ado.cli.utils.output.prints import (
     ADO_SPINNER_DELETING_FROM_DB,
     ADO_SPINNER_QUERYING_DB,
 )
-from orchestrator.core import CoreResourceKinds
-from orchestrator.metastore.base import (
+from ado.core import CoreResourceKinds
+from ado.metastore.base import (
     ResourceDoesNotExistError,
     ResourceHasChildrenError,
 )

@@ -9,7 +9,7 @@ from typing import Annotated
 import pydantic
 from pydantic import WithJsonSchema
 
-from orchestrator.schema.property import (
+from ado.schema.property import (
     ConstitutiveProperty,
     ConstitutivePropertyDescriptor,
     Property,

@@ -8,12 +8,12 @@ from typing import Annotated
 
 import pydantic
 
-from orchestrator.core.metadata import PackageProvenance, ProvenanceInfo
-from orchestrator.core.operation.config import (
+from ado.core.metadata import PackageProvenance, ProvenanceInfo
+from ado.core.operation.config import (
     DiscoveryOperationEnum,
     DiscoveryOperationResourceConfiguration,
 )
-from orchestrator.core.resources import (
+from ado.core.resources import (
     ADOResource,
     ADOResourceEventEnum,
     ADOResourceStatus,

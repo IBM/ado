@@ -3,8 +3,8 @@
 
 from fastapi import APIRouter, status
 
-from orchestrator.api.routers.v0.actuators.experiments import experiments
-from orchestrator.modules.actuators.registry import ActuatorRegistry
+from ado.api.routers.v0.actuators.experiments import experiments
+from ado.modules.actuators.registry import ActuatorRegistry
 
 router = APIRouter(
     prefix="/actuators",

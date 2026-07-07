@@ -14,12 +14,12 @@ from typing import Annotated, Literal
 import pydantic
 import ray
 
-from orchestrator.core.discoveryspace.group_samplers import (
+from ado.core.discoveryspace.group_samplers import (
     ExplicitEntitySpaceGroupedGridSampleGenerator,
     RandomGroupSampleSelector,
     SequentialGroupSampleSelector,
 )
-from orchestrator.core.discoveryspace.samplers import (
+from ado.core.discoveryspace.samplers import (
     BaseSampler,
     ExplicitEntitySpaceGridSampleGenerator,
     GroupSampler,
@@ -28,29 +28,29 @@ from orchestrator.core.discoveryspace.samplers import (
     SequentialSampleSelector,
     WalkModeEnum,
 )
-from orchestrator.core.operation.config import (
+from ado.core.operation.config import (
     DiscoveryOperationEnum,
     OperatorMetadata,
 )
-from orchestrator.modules.module import (
+from ado.modules.module import (
     ModuleConf,
     ModuleTypeEnum,
     load_module_class_or_function,
 )
-from orchestrator.modules.operators.base import Explore, measure_or_replay
-from orchestrator.modules.operators.collections import explore_operation
-from orchestrator.modules.operators.discovery_space_manager import DiscoverySpaceManager
-from orchestrator.schema.entity import Entity
-from orchestrator.schema.measurementspace import MeasurementSpace
-from orchestrator.schema.request import MeasurementRequest, MeasurementRequestStateEnum
-from orchestrator.utilities.environment import enable_ray_actor_coverage
-from orchestrator.utilities.logging import configure_logging
-from orchestrator.utilities.support import prepare_dependent_experiment_input
+from ado.modules.operators.base import Explore, measure_or_replay
+from ado.modules.operators.collections import explore_operation
+from ado.modules.operators.discovery_space_manager import DiscoverySpaceManager
+from ado.schema.entity import Entity
+from ado.schema.measurementspace import MeasurementSpace
+from ado.schema.request import MeasurementRequest, MeasurementRequestStateEnum
+from ado.utilities.environment import enable_ray_actor_coverage
+from ado.utilities.logging import configure_logging
+from ado.utilities.support import prepare_dependent_experiment_input
 
 if typing.TYPE_CHECKING:
-    from orchestrator.modules.actuators.base import ActuatorBase
-    from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
-    from orchestrator.schema.entityspace import EntitySpaceRepresentation
+    from ado.modules.actuators.base import ActuatorBase
+    from ado.modules.actuators.measurement_queue import MeasurementQueue
+    from ado.schema.entityspace import EntitySpaceRepresentation
 
 import sys
 
@@ -478,7 +478,7 @@ class RandomWalk(Explore):
 
     async def run(self) -> None:
 
-        from orchestrator.modules.operators.console_output import (
+        from ado.modules.operators.console_output import (
             RichConsoleProgressMessage,
         )
 

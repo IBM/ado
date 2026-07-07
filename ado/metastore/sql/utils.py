@@ -3,8 +3,8 @@
 
 import sqlalchemy
 
-from orchestrator.metastore.sql.statements import table_exists_query
-from orchestrator.utilities.location import SQLStoreConfiguration
+from ado.metastore.sql.statements import table_exists_query
+from ado.utilities.location import SQLStoreConfiguration
 
 # Process-level cache: reuse the same SQLAlchemy Engine (and its connection pool)
 # for every call with the same database URL.  This means the metastore and the

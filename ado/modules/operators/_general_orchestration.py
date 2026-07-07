@@ -5,19 +5,19 @@ import inspect
 import logging
 import typing
 
-from orchestrator.core.discoveryspace.space import DiscoverySpace
-from orchestrator.core.operation.config import (
+from ado.core.discoveryspace.space import DiscoverySpace
+from ado.core.operation.config import (
     FunctionOperationInfo,
     OperatorMetadata,
     get_actuator_configurations,
     validate_actuator_configurations_against_space_configuration,
 )
-from orchestrator.core.operation.operation import OperationOutput
-from orchestrator.modules.operators._orchestrate_core import (
+from ado.core.operation.operation import OperationOutput
+from ado.modules.operators._orchestrate_core import (
     _run_operation_harness,
     log_space_details,
 )
-from orchestrator.modules.operators.base import OperatorFunction
+from ado.modules.operators.base import OperatorFunction
 
 moduleLog = logging.getLogger("general_orchestration")
 
@@ -26,7 +26,7 @@ def _operator_callable_for_harness(registered: OperatorFunction) -> OperatorFunc
     """Resolve the callable to execute inside :func:`_run_operation_harness`.
 
     Operators registered via ``characterize_operation`` / ``modify_operation`` /
-    ``export_operation`` store a *wrapper* in :class:`~orchestrator.core.operation.config.OperatorMetadata`
+    ``export_operation`` store a *wrapper* in :class:`~ado.core.operation.config.OperatorMetadata`
     that delegates to :func:`orchestrate_general_operation`. The harness must run the
     underlying implementation (``functools.wraps`` sets ``__wrapped__``); otherwise
     ``run_closure`` re-invokes the wrapper and recurses without bound.

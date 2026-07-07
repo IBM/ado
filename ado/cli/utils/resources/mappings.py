@@ -1,7 +1,7 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-from orchestrator.core import CoreResourceKinds
+from ado.core import CoreResourceKinds
 
 # Shorthands for CLI names
 cli_shorthands_to_cli_names: dict[str, str] = {

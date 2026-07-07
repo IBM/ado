@@ -17,13 +17,13 @@ import pydantic
 import ray
 from pydantic import ConfigDict
 
-from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
-from orchestrator.schema.result import InvalidMeasurementResult
-from orchestrator.utilities.support import compute_measurement_status
+from ado.core.actuatorconfiguration.config import GenericActuatorParameters
+from ado.schema.result import InvalidMeasurementResult
+from ado.utilities.support import compute_measurement_status
 
 if TYPE_CHECKING:
-    from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
-    from orchestrator.schema.request import MeasurementRequest
+    from ado.modules.actuators.measurement_queue import MeasurementQueue
+    from ado.schema.request import MeasurementRequest
 
 
 _SUPERVISOR_RAY_STATE_NAMES = frozenset(
@@ -55,7 +55,7 @@ def _verify_supervisor_ray_states_supported() -> None:
             "Ray State API task states no longer include "
             f"{sorted(missing)} (required by ExperimentExecutorSupervisor). "
             f"Available states: {sorted(api_states)}. "
-            "Update orchestrator.modules.actuators.executor_supervisor."
+            "Update ado.modules.actuators.executor_supervisor."
         )
 
 

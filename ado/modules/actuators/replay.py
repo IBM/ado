@@ -4,20 +4,20 @@
 import logging
 import uuid
 
-import orchestrator.modules.actuators.catalog
-from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
-from orchestrator.modules.actuators.base import ActuatorBase
-from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
-from orchestrator.schema.entity import Entity
-from orchestrator.schema.reference import ExperimentReference
-from orchestrator.schema.request import (
+import ado.modules.actuators.catalog
+from ado.core.actuatorconfiguration.config import GenericActuatorParameters
+from ado.modules.actuators.base import ActuatorBase
+from ado.modules.actuators.measurement_queue import MeasurementQueue
+from ado.schema.entity import Entity
+from ado.schema.reference import ExperimentReference
+from ado.schema.request import (
     MeasurementRequest,
     MeasurementRequestStateEnum,
     ReplayedMeasurement,
 )
-from orchestrator.schema.result import InvalidMeasurementResult
-from orchestrator.utilities.environment import enable_ray_actor_coverage
-from orchestrator.utilities.logging import configure_logging
+from ado.schema.result import InvalidMeasurementResult
+from ado.utilities.environment import enable_ray_actor_coverage
+from ado.utilities.logging import configure_logging
 
 configure_logging()
 moduleLog = logging.getLogger("replay")
@@ -107,7 +107,7 @@ class Replay(ActuatorBase):
         super().__init__(queue=queue, params=params)
         self.log = logging.getLogger("replay")
 
-        self._catalog = orchestrator.modules.actuators.catalog.ExperimentCatalog()
+        self._catalog = ado.modules.actuators.catalog.ExperimentCatalog()
 
     def submit(
         self,
@@ -145,5 +145,5 @@ class Replay(ActuatorBase):
     @classmethod
     def catalog(
         cls, actuator_configuration: GenericActuatorParameters | None = None
-    ) -> orchestrator.modules.actuators.catalog.ExperimentCatalog:
-        return orchestrator.modules.actuators.catalog.ExperimentCatalog()
+    ) -> ado.modules.actuators.catalog.ExperimentCatalog:
+        return ado.modules.actuators.catalog.ExperimentCatalog()

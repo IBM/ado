@@ -1,9 +1,9 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-from orchestrator.cli.models.parameters import AdoEditCommandParameters
-from orchestrator.cli.utils.resources.handlers import handle_edit_resource_metadata
-from orchestrator.core.resources import CoreResourceKinds
+from ado.cli.models.parameters import AdoEditCommandParameters
+from ado.cli.utils.resources.handlers import handle_edit_resource_metadata
+from ado.core.resources import CoreResourceKinds
 
 
 def edit_data_container(parameters: AdoEditCommandParameters) -> None:

@@ -1,14 +1,14 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-from orchestrator.cli.models.parameters import (
+from ado.cli.models.parameters import (
     AdoShowRelatedCommandParameters,
 )
-from orchestrator.cli.utils.generic.wrappers import get_sql_store
-from orchestrator.cli.utils.resources.handlers import (
+from ado.cli.utils.generic.wrappers import get_sql_store
+from ado.cli.utils.resources.handlers import (
     print_related_resources,
 )
-from orchestrator.core.resources import CoreResourceKinds
+from ado.core.resources import CoreResourceKinds
 
 
 def show_resources_related_to_operation(

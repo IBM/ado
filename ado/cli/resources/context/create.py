@@ -7,8 +7,8 @@ import pydantic
 import typer
 import yaml
 
-from orchestrator.cli.models.parameters import AdoCreateCommandParameters
-from orchestrator.cli.utils.output.prints import (
+from ado.cli.models.parameters import AdoCreateCommandParameters
+from ado.cli.utils.output.prints import (
     ADO_CREATE_DRY_RUN_CONFIG_VALID,
     ERROR,
     INFO,
@@ -16,9 +16,9 @@ from orchestrator.cli.utils.output.prints import (
     console_print,
     cyan,
 )
-from orchestrator.cli.utils.pydantic.updaters import override_values_in_pydantic_model
-from orchestrator.metastore.project import ProjectContext
-from orchestrator.utilities.location import (
+from ado.cli.utils.pydantic.updaters import override_values_in_pydantic_model
+from ado.metastore.project import ProjectContext
+from ado.utilities.location import (
     SQLiteStoreConfiguration,
 )
 

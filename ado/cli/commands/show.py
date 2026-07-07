@@ -3,16 +3,16 @@
 
 import typer
 
-from orchestrator.cli.commands.show_measurements import (
+from ado.cli.commands.show_measurements import (
     register_show_measurements_command,
 )
-from orchestrator.cli.commands.show_related import (
+from ado.cli.commands.show_related import (
     register_show_related_command,
 )
-from orchestrator.cli.commands.show_stats import (
+from ado.cli.commands.show_stats import (
     register_show_stats_command,
 )
-from orchestrator.cli.commands.show_trace import (
+from ado.cli.commands.show_trace import (
     register_show_trace_command,
 )
 

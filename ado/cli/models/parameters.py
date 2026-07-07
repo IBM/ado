@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pydantic
 
-from orchestrator.cli.core.config import AdoConfiguration
-from orchestrator.cli.models.types import (
+from ado.cli.core.config import AdoConfiguration
+from ado.cli.models.types import (
     AdoCreateSupportedResourceTypes,
     AdoEditSupportedEditors,
     AdoGetSupportedOutputFormats,
@@ -18,9 +18,9 @@ from orchestrator.cli.models.types import (
     AdoShowStatsSupportedOutputFormats,
     AdoShowTraceSupportedOutputFormats,
 )
-from orchestrator.core import CoreResourceKinds
-from orchestrator.core.operation.config import DiscoveryOperationEnum
-from orchestrator.schema.virtual_property import PropertyAggregationMethodEnum
+from ado.core import CoreResourceKinds
+from ado.core.operation.config import DiscoveryOperationEnum
+from ado.schema.virtual_property import PropertyAggregationMethodEnum
 
 
 class AdoGetCommandParameters(pydantic.BaseModel):

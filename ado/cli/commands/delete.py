@@ -6,24 +6,24 @@ from typing import Annotated
 
 import typer
 
-from orchestrator.cli.models.parameters import AdoDeleteCommandParameters
-from orchestrator.cli.models.types import AdoDeleteSupportedResourceTypes
-from orchestrator.cli.resources.actuator_configuration.delete import (
+from ado.cli.models.parameters import AdoDeleteCommandParameters
+from ado.cli.models.types import AdoDeleteSupportedResourceTypes
+from ado.cli.resources.actuator_configuration.delete import (
     delete_actuator_configuration,
 )
-from orchestrator.cli.resources.context.delete import delete_context
-from orchestrator.cli.resources.data_container.delete import delete_data_container
-from orchestrator.cli.resources.discovery_space.delete import delete_discovery_space
-from orchestrator.cli.resources.operation.delete import delete_operation
-from orchestrator.cli.resources.sample_store.delete import delete_sample_store
-from orchestrator.cli.utils.input.parsers import enum_choice_with_plural_parser
-from orchestrator.cli.utils.output.prints import (
+from ado.cli.resources.context.delete import delete_context
+from ado.cli.resources.data_container.delete import delete_data_container
+from ado.cli.resources.discovery_space.delete import delete_discovery_space
+from ado.cli.resources.operation.delete import delete_operation
+from ado.cli.resources.sample_store.delete import delete_sample_store
+from ado.cli.utils.input.parsers import enum_choice_with_plural_parser
+from ado.cli.utils.output.prints import (
     cannot_delete_resource_due_to_children_resources,
     console_print,
     context_not_in_available_contexts_error_str,
     could_not_delete_resource_from_database_error_str,
 )
-from orchestrator.metastore.base import (
+from ado.metastore.base import (
     ContextDoesNotExistError,
     DeleteFromDatabaseError,
     NonEmptySampleStorePreventingDeletionError,
@@ -35,13 +35,13 @@ from orchestrator.metastore.base import (
 )
 
 if typing.TYPE_CHECKING:
-    from orchestrator.cli.core.config import AdoConfiguration
+    from ado.cli.core.config import AdoConfiguration
 
 CONTEXT_ONLY_PANEL_NAME = "Context-only options"
 
 
 def _deletion_error_message(resource_id: str, error: Exception) -> str:
-    from orchestrator.cli.utils.output.prints import (
+    from ado.cli.utils.output.prints import (
         ERROR,
         HINT,
         cyan,
@@ -102,7 +102,7 @@ def _report_deletion_results(
         failures: List of (resource_id, exception) tuples for failed deletions
         ado_configuration: The ado configuration
     """
-    from orchestrator.cli.utils.output.prints import (
+    from ado.cli.utils.output.prints import (
         SUCCESS,
         magenta,
     )

@@ -7,7 +7,7 @@ from typing import TypeVar
 
 import typer
 
-from orchestrator.cli.utils.resources.mappings import (
+from ado.cli.utils.resources.mappings import (
     cli_shorthands_to_cli_names,
 )
 

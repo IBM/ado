@@ -6,43 +6,43 @@ from typing import Annotated
 
 import typer
 
-from orchestrator.cli.core.config import AdoConfiguration
-from orchestrator.cli.exceptions.handlers import (
+from ado.cli.core.config import AdoConfiguration
+from ado.cli.exceptions.handlers import (
     handle_no_related_resource,
     handle_resource_does_not_exist,
     handle_unknown_experiment_error,
 )
-from orchestrator.cli.models.parameters import AdoCreateCommandParameters
-from orchestrator.cli.models.types import (
+from ado.cli.models.parameters import AdoCreateCommandParameters
+from ado.cli.models.types import (
     AdoCreateSupportedResourceTypes,
     AdoCreateWithResourceSupportedResourceTypes,
 )
-from orchestrator.cli.resources.actuator_configuration.create import (
+from ado.cli.resources.actuator_configuration.create import (
     create_actuator_configuration,
 )
-from orchestrator.cli.resources.context.create import create_context
-from orchestrator.cli.resources.discovery_space.create import create_discovery_space
-from orchestrator.cli.resources.operation.create import create_operation
-from orchestrator.cli.resources.sample_store.create import create_sample_store
-from orchestrator.cli.utils.input.parsers import (
+from ado.cli.resources.context.create import create_context
+from ado.cli.resources.discovery_space.create import create_discovery_space
+from ado.cli.resources.operation.create import create_operation
+from ado.cli.resources.sample_store.create import create_sample_store
+from ado.cli.utils.input.parsers import (
     enum_choice_with_plural_parser,
     enum_choice_with_shorthand_parser,
     parse_key_value_pairs,
     resource_shorthands_to_full_names,
 )
-from orchestrator.cli.utils.output.prints import (
+from ado.cli.utils.output.prints import (
     ERROR,
     HINT,
     bold,
     console_print,
     magenta,
 )
-from orchestrator.core import CoreResourceKinds
-from orchestrator.metastore.base import (
+from ado.core import CoreResourceKinds
+from ado.metastore.base import (
     NoRelatedResourcesError,
     ResourceDoesNotExistError,
 )
-from orchestrator.modules.actuators.errors import UnknownExperimentError
+from ado.modules.actuators.errors import UnknownExperimentError
 
 CREATE_OPERATION_PANEL_NAME = "Operation-specific options"
 CREATE_SPACE_PANEL_NAME = "Space-specific options"

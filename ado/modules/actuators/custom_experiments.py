@@ -11,49 +11,49 @@ from typing import Annotated, Any
 import pydantic
 import ray
 
-import orchestrator.modules.actuators.catalog
-from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
-from orchestrator.modules.actuators.base import (
+import ado.modules.actuators.catalog
+from ado.core.actuatorconfiguration.config import GenericActuatorParameters
+from ado.modules.actuators.base import (
     ActuatorBase,
 )
-from orchestrator.modules.actuators.errors import UnknownExperimentError
-from orchestrator.modules.actuators.executor_supervisor import (
+from ado.modules.actuators.errors import UnknownExperimentError
+from ado.modules.actuators.executor_supervisor import (
     ExperimentExecutorSupervisor,
     ExperimentExecutorSupervisorParameters,
 )
-from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
-from orchestrator.modules.module import (
+from ado.modules.actuators.measurement_queue import MeasurementQueue
+from ado.modules.module import (
     ModuleConf,
     ModuleTypeEnum,
     load_module_class_or_function,
 )
-from orchestrator.schema.entity import (
+from ado.schema.entity import (
     CheckRequiredObservedPropertyValuesPresent,
     Entity,
 )
-from orchestrator.schema.experiment import Experiment
-from orchestrator.schema.observed_property import (
+from ado.schema.experiment import Experiment
+from ado.schema.observed_property import (
     ObservedProperty,
     ObservedPropertyValue,
 )
-from orchestrator.schema.point import SpacePoint
-from orchestrator.schema.property import (
+from ado.schema.point import SpacePoint
+from ado.schema.property import (
     AbstractPropertyDescriptor,
     ConstitutiveProperty,
     ConstitutivePropertyDescriptor,
 )
-from orchestrator.schema.property_value import ConstitutivePropertyValue
-from orchestrator.schema.reference import ExperimentReference
-from orchestrator.schema.request import MeasurementRequest
-from orchestrator.schema.result import InvalidMeasurementResult, ValidMeasurementResult
-from orchestrator.utilities.environment import enable_ray_actor_coverage
-from orchestrator.utilities.logging import configure_logging
-from orchestrator.utilities.support import compute_measurement_status
+from ado.schema.property_value import ConstitutivePropertyValue
+from ado.schema.reference import ExperimentReference
+from ado.schema.request import MeasurementRequest
+from ado.schema.result import InvalidMeasurementResult, ValidMeasurementResult
+from ado.utilities.environment import enable_ray_actor_coverage
+from ado.utilities.logging import configure_logging
+from ado.utilities.support import compute_measurement_status
 
 configure_logging()
 
 # Module-level catalog for custom experiments
-_custom_experiments_catalog = orchestrator.modules.actuators.catalog.ExperimentCatalog(
+_custom_experiments_catalog = ado.modules.actuators.catalog.ExperimentCatalog(
     catalogIdentifier="CustomExperiments"
 )
 
@@ -89,7 +89,7 @@ def _infer_domain_and_property(
     logger = logging.getLogger("custom_experiments")
     from typing import get_args, get_origin
 
-    from orchestrator.schema.domain import PropertyDomain, VariableTypeEnum
+    from ado.schema.domain import PropertyDomain, VariableTypeEnum
 
     if annotation is int:
         domain = PropertyDomain(
@@ -473,8 +473,8 @@ def load_custom_experiments_from_catalog_extensions(identifier: str) -> None:
 
     import yaml
 
-    from orchestrator.modules.actuators.catalog import ActuatorCatalogExtension
-    from orchestrator.modules.actuators.registry import (
+    from ado.modules.actuators.catalog import ActuatorCatalogExtension
+    from ado.modules.actuators.registry import (
         CATALOG_EXTENSIONS_CONFIGURATION_FILE_NAME,
     )
 
@@ -546,9 +546,7 @@ def load_custom_experiments_from_entry_points() -> None:
             )
 
 
-def get_custom_experiments_catalog() -> (
-    orchestrator.modules.actuators.catalog.ExperimentCatalog
-):
+def get_custom_experiments_catalog() -> ado.modules.actuators.catalog.ExperimentCatalog:
     """
     Get the module-level catalog of custom experiments.
 
@@ -861,7 +859,7 @@ class CustomExperiments(ActuatorBase):
     @classmethod
     def catalog(
         cls, actuator_configuration: GenericActuatorParameters | None = None
-    ) -> orchestrator.modules.actuators.catalog.ExperimentCatalog:
+    ) -> ado.modules.actuators.catalog.ExperimentCatalog:
 
         load_custom_experiments_from_catalog_extensions(cls.identifier)
         # Load custom experiments from entry points before returning catalog
@@ -870,7 +868,7 @@ class CustomExperiments(ActuatorBase):
 
     def current_catalog(
         self,
-    ) -> orchestrator.modules.actuators.catalog.ExperimentCatalog:
+    ) -> ado.modules.actuators.catalog.ExperimentCatalog:
         return self._catalog
 
 

@@ -7,11 +7,11 @@ from typing import Annotated
 import pydantic
 from pydantic import ConfigDict
 
-from orchestrator.core.metadata import ConfigurationMetadata
-from orchestrator.utilities.pydantic import ignore_plugin_validation
+from ado.core.metadata import ConfigurationMetadata
+from ado.utilities.pydantic import ignore_plugin_validation
 
 if typing.TYPE_CHECKING:  # pragma: nocover
-    from orchestrator.modules.actuators.base import ActuatorBase
+    from ado.modules.actuators.base import ActuatorBase
 
 
 class GenericActuatorParameters(pydantic.BaseModel):
@@ -46,8 +46,8 @@ class ActuatorConfiguration(pydantic.BaseModel):
         if ignore_plugin_validation(info):
             return self
 
-        from orchestrator.modules.actuators.errors import UnknownActuatorError
-        from orchestrator.modules.actuators.registry import (
+        from ado.modules.actuators.errors import UnknownActuatorError
+        from ado.modules.actuators.registry import (
             ActuatorRegistry,
         )
 

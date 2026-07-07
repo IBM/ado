@@ -3,15 +3,15 @@
 
 from rich.status import Status
 
-from orchestrator.cli.models.parameters import AdoDescribeCommandParameters
-from orchestrator.cli.utils.output.prints import (
+from ado.cli.models.parameters import AdoDescribeCommandParameters
+from ado.cli.utils.output.prints import (
     ADO_SPINNER_INITIALIZING_ACTUATOR_REGISTRY,
     console_print,
 )
-from orchestrator.cli.utils.resources.experiments import (
+from ado.cli.utils.resources.experiments import (
     _ado_lookup_cli_experiment,
 )
-from orchestrator.modules.actuators.registry import (
+from ado.modules.actuators.registry import (
     ActuatorRegistry,
 )
 

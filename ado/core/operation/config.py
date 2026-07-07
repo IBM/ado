@@ -10,23 +10,23 @@ import pydantic
 from pydantic import ConfigDict
 from typing_extensions import Self
 
-from orchestrator.core.actuatorconfiguration.config import ActuatorConfiguration
-from orchestrator.core.discoveryspace.config import (
+from ado.core.actuatorconfiguration.config import ActuatorConfiguration
+from ado.core.discoveryspace.config import (
     DiscoverySpaceConfiguration,
 )
-from orchestrator.core.metadata import ConfigurationMetadata, PackageProvenance
-from orchestrator.core.resources import CoreResourceKinds
-from orchestrator.metastore.project import ProjectContext
-from orchestrator.modules.module import (
+from ado.core.metadata import ConfigurationMetadata, PackageProvenance
+from ado.core.resources import CoreResourceKinds
+from ado.metastore.project import ProjectContext
+from ado.modules.module import (
     ModuleConf,
     ModuleTypeEnum,
     load_module_class_or_function,
 )
-from orchestrator.schema.measurementspace import MeasurementSpaceConfiguration
-from orchestrator.utilities.pydantic import StrictSemVerStr, ignore_plugin_validation
+from ado.schema.measurementspace import MeasurementSpaceConfiguration
+from ado.utilities.pydantic import StrictSemVerStr, ignore_plugin_validation
 
 if typing.TYPE_CHECKING:
-    import orchestrator.modules.operators.base
+    import ado.modules.operators.base
 
 
 class DiscoveryOperationEnum(enum.Enum):
@@ -72,9 +72,9 @@ def get_actuator_configurations(
             or if actuator plugin validation fails
         ResourceDoesNotExistError: If any of the identifiers is not found in the project.
     """
-    import orchestrator.metastore.sqlstore
+    import ado.metastore.sqlstore
 
-    sql = orchestrator.metastore.sqlstore.SQLStore(project_context=project_context)
+    sql = ado.metastore.sqlstore.SQLStore(project_context=project_context)
 
     actuator_configurations = [
         sql.getResource(
@@ -161,9 +161,9 @@ def validate_actuator_configuration_ids_against_space_ids(
         ResourceDoesNotExistError: If any of the identifiers is not found in the project.
 
     """
-    import orchestrator.metastore.sqlstore
+    import ado.metastore.sqlstore
 
-    sql = orchestrator.metastore.sqlstore.SQLStore(project_context=project_context)
+    sql = ado.metastore.sqlstore.SQLStore(project_context=project_context)
     space_configurations: list[DiscoverySpaceConfiguration] = [
         sql.getResource(
             identifier=identifier,
@@ -192,14 +192,14 @@ class OperatorModuleConf(ModuleConf):
 
     @property
     def operationType(self) -> DiscoveryOperationEnum:
-        c: type[orchestrator.modules.operators.base.DiscoveryOperationBase] = (
+        c: type[ado.modules.operators.base.DiscoveryOperationBase] = (
             load_module_class_or_function(self)
         )
         return c.operator_metadata().type
 
     @property
     def operatorIdentifier(self) -> str:
-        c: type[orchestrator.modules.operators.base.DiscoveryOperationBase] = (
+        c: type[ado.modules.operators.base.DiscoveryOperationBase] = (
             load_module_class_or_function(self)
         )
         return c.operator_metadata().operatorIdentifier
@@ -324,7 +324,7 @@ class OperatorReference(pydantic.BaseModel):
         # This happens if an operator registers  a default operation configuration which instantiates this class
         # because the registrations happen on import of each operator
 
-        from orchestrator.modules.operators.collections import operationCollectionMap
+        from ado.modules.operators.collections import operationCollectionMap
 
         if self.operationType not in operationCollectionMap:
             raise ValueError(f"Unknown operation type {self.operationType}")
@@ -341,11 +341,11 @@ class OperatorReference(pydantic.BaseModel):
 
     def operationFunction(
         self,
-    ) -> "typing.Callable[..., orchestrator.modules.operators.base.OperationOutput]":
+    ) -> "typing.Callable[..., ado.modules.operators.base.OperationOutput]":
 
-        import orchestrator.modules.operators.collections
+        import ado.modules.operators.collections
 
-        collection = orchestrator.modules.operators.collections.operationCollectionMap[
+        collection = ado.modules.operators.collections.operationCollectionMap[
             self.operationType
         ]
 
@@ -364,7 +364,7 @@ class OperatorReference(pydantic.BaseModel):
         if self.operatorVersion is not None:
             return f"{self.operatorName}@{self.operatorVersion}"
 
-        from orchestrator.modules.operators.collections import (
+        from ado.modules.operators.collections import (
             operator_metadata_for_reference,
         )
 
@@ -523,7 +523,7 @@ class DiscoveryOperationConfiguration(pydantic.BaseModel):
         elif isinstance(self.module, ScriptOperatorConf):
             self.parameters = {}
         else:
-            from orchestrator.modules.operators.collections import (
+            from ado.modules.operators.collections import (
                 operator_metadata_for_reference,
                 resolve_operator_reference,
             )

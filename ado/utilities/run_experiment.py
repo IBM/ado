@@ -9,7 +9,7 @@ import typing
 from collections.abc import Callable
 from typing import Annotated
 
-# Before `import ray` (see orchestrator.utilities.ray_local_init). Pytest sets this via pytest-env.
+# Before `import ray` (see ado.utilities.ray_local_init). Pytest sets this via pytest-env.
 os.environ.setdefault("RAY_ENABLE_UV_RUN_RUNTIME_ENV", "0")
 
 import ray
@@ -18,26 +18,26 @@ import requests
 import typer
 import yaml
 
-from orchestrator.cli.utils.output.prints import (
+from ado.cli.utils.output.prints import (
     ERROR,
     WARN,
     console_print,
 )
-from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
-from orchestrator.modules.actuators.registry import ActuatorRegistry
-from orchestrator.modules.operators._cleanup import (
+from ado.modules.actuators.measurement_queue import MeasurementQueue
+from ado.modules.actuators.registry import ActuatorRegistry
+from ado.modules.operators._cleanup import (
     initialize_ray_resource_cleaner,
 )
-from orchestrator.modules.operators.orchestrate import graceful_orchestrate_shutdown
-from orchestrator.schema.entity import Entity
-from orchestrator.schema.point import SpacePoint
-from orchestrator.schema.reference import ExperimentReference
-from orchestrator.schema.request import MeasurementRequest
+from ado.modules.operators.orchestrate import graceful_orchestrate_shutdown
+from ado.schema.entity import Entity
+from ado.schema.point import SpacePoint
+from ado.schema.reference import ExperimentReference
+from ado.schema.request import MeasurementRequest
 
 if typing.TYPE_CHECKING:
     from ray.actor import ActorHandle
 
-    from orchestrator.modules.actuators.base import ActuatorBase
+    from ado.modules.actuators.base import ActuatorBase
 
 
 def local_execution_closure(
@@ -65,9 +65,9 @@ def local_execution_closure(
 
     actuator_configurations = {}
     if actuator_configuration_identifiers:
-        from orchestrator.cli.core.config import AdoConfiguration
-        from orchestrator.core.resources import CoreResourceKinds
-        from orchestrator.metastore.sqlstore import SQLStore
+        from ado.cli.core.config import AdoConfiguration
+        from ado.core.resources import CoreResourceKinds
+        from ado.metastore.sqlstore import SQLStore
 
         # get the metastore instance for current project context
         ado_config = AdoConfiguration.load()
@@ -278,7 +278,7 @@ def run(
         int, typer.Option(help="Timeout for web requests.")
     ] = 60,
 ) -> None:
-    from orchestrator.modules.actuators.registry import ActuatorRegistry
+    from ado.modules.actuators.registry import ActuatorRegistry
 
     logging.getLogger().setLevel(os.environ.get("LOGLEVEL", 40))
 

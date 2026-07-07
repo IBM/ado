@@ -8,10 +8,10 @@ from typing import Annotated
 import pydantic
 from pydantic import ConfigDict
 
-from orchestrator.core.metadata import ConfigurationMetadata
-from orchestrator.schema.measurementspace import MeasurementSpaceConfiguration
-from orchestrator.schema.property import ConstitutiveProperty
-from orchestrator.schema.reference import ExperimentReference
+from ado.core.metadata import ConfigurationMetadata
+from ado.schema.measurementspace import MeasurementSpaceConfiguration
+from ado.schema.property import ConstitutiveProperty
+from ado.schema.reference import ExperimentReference
 
 
 class SpaceHierarchy(enum.Enum):
@@ -92,11 +92,11 @@ class DiscoverySpaceConfiguration(pydantic.BaseModel):
     ) -> dict:
         from pydantic import TypeAdapter
 
-        from orchestrator.core.resources import (
+        from ado.core.resources import (
             CoreResourceKinds,
             warn_deprecated_resource_model_in_use,
         )
-        from orchestrator.schema.domain import VariableTypeEnum
+        from ado.schema.domain import VariableTypeEnum
 
         if values is None:
             return values
@@ -163,7 +163,7 @@ class DiscoverySpaceConfiguration(pydantic.BaseModel):
     ) -> "DiscoverySpaceConfiguration":
         """Returns a copy where the experiments field is a MeasurementSpaceConfiguration instance"""
 
-        from orchestrator.modules.actuators.registry import ActuatorRegistry
+        from ado.modules.actuators.registry import ActuatorRegistry
 
         if isinstance(self.experiments, MeasurementSpaceConfiguration):
             return self.model_copy()
@@ -254,8 +254,8 @@ class DiscoverySpaceConfiguration(pydantic.BaseModel):
             (e.g., actuator is not installed).
         """
 
-        from orchestrator.schema.entityspace import EntitySpaceRepresentation
-        from orchestrator.schema.measurementspace import MeasurementSpace
+        from ado.schema.entityspace import EntitySpaceRepresentation
+        from ado.schema.measurementspace import MeasurementSpace
 
         # Skip validation if either entity space or experiments are not defined
         if self.entitySpace is None or self.experiments is None:

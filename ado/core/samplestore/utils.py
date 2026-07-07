@@ -3,21 +3,21 @@
 
 import logging
 
-import orchestrator.core
-import orchestrator.metastore.sqlstore
-from orchestrator.core.samplestore.base import SampleStore
-from orchestrator.core.samplestore.config import SampleStoreConfiguration
-from orchestrator.core.samplestore.resource import SampleStoreResource
+import ado.core
+import ado.metastore.sqlstore
+from ado.core.samplestore.base import SampleStore
+from ado.core.samplestore.config import SampleStoreConfiguration
+from ado.core.samplestore.resource import SampleStoreResource
 
 moduleLogger = logging.getLogger("sample-store-utils")
 
 
 def create_sample_store_resource(
     configuration: SampleStoreConfiguration,
-    resource_store: orchestrator.metastore.sqlstore.SQLStore,
+    resource_store: ado.metastore.sqlstore.SQLStore,
 ) -> tuple[
     SampleStoreResource,
-    orchestrator.core.samplestore.base.ActiveSampleStore,
+    ado.core.samplestore.base.ActiveSampleStore,
 ]:
     """Creates a SampleStore based on a configuration and stores it in the resource store.
 

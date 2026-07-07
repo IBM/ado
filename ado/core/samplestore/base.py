@@ -9,28 +9,28 @@ from typing import Annotated, Literal
 import pydantic
 from pydantic import ConfigDict
 
-import orchestrator.core.samplestore.config
-import orchestrator.metastore.sqlstore
-import orchestrator.utilities.location
-from orchestrator.modules.actuators.catalog import ExperimentCatalog
-from orchestrator.schema.entity import Entity
-from orchestrator.schema.experiment import Experiment
-from orchestrator.schema.property import (
+import ado.core.samplestore.config
+import ado.metastore.sqlstore
+import ado.utilities.location
+from ado.modules.actuators.catalog import ExperimentCatalog
+from ado.schema.entity import Entity
+from ado.schema.experiment import Experiment
+from ado.schema.property import (
     ConstitutivePropertyDescriptor,
 )
-from orchestrator.schema.property_value import PropertyValue
-from orchestrator.schema.request import MeasurementRequest
+from ado.schema.property_value import PropertyValue
+from ado.schema.request import MeasurementRequest
 
 if typing.TYPE_CHECKING:
-    from orchestrator.core.discoveryspace.stats import DiscoverySpaceStatistics
-    from orchestrator.core.operation.stats import OperationMeasurementStatistics
-    from orchestrator.core.samplestore.config import (
+    from ado.core.discoveryspace.stats import DiscoverySpaceStatistics
+    from ado.core.operation.stats import OperationMeasurementStatistics
+    from ado.core.samplestore.config import (
         SampleStoreConfiguration,
         SampleStoreReference,
         SampleStoreSpecification,
     )
-    from orchestrator.core.samplestore.resource import SampleStoreResource
-    from orchestrator.schema.observed_property import ObservedProperty
+    from ado.core.samplestore.resource import SampleStoreResource
+    from ado.schema.observed_property import ObservedProperty
 
 
 class SampleStore(abc.ABC):
@@ -40,8 +40,8 @@ class SampleStore(abc.ABC):
     @abc.abstractmethod
     def experimentCatalogFromReference(
         cls,
-        reference: orchestrator.core.samplestore.config.SampleStoreReference | None,
-    ) -> orchestrator.modules.actuators.catalog.ExperimentCatalog:  # pragma: nocover
+        reference: ado.core.samplestore.config.SampleStoreReference | None,
+    ) -> ado.modules.actuators.catalog.ExperimentCatalog:  # pragma: nocover
         """ "
         Returns a catalog of the external experiments defined by a SampleStore
         Parameters:
@@ -53,9 +53,7 @@ class SampleStore(abc.ABC):
     @abc.abstractmethod
     def experimentCatalog(
         self,
-    ) -> (
-        orchestrator.modules.actuators.catalog.ExperimentCatalog | None
-    ):  # pragma: nocover
+    ) -> ado.modules.actuators.catalog.ExperimentCatalog | None:  # pragma: nocover
         pass
 
     @property
@@ -123,7 +121,7 @@ class SampleStore(abc.ABC):
     @abc.abstractmethod
     def location(
         self,
-    ) -> orchestrator.utilities.location.ResourceLocation:  # pragma: nocover
+    ) -> ado.utilities.location.ResourceLocation:  # pragma: nocover
         """Returns the location the sample store is stored in"""
 
     @staticmethod
@@ -175,11 +173,11 @@ class SampleStore(abc.ABC):
         """
         import logging
 
-        import orchestrator.modules.module
+        import ado.modules.module
 
         logger = logging.getLogger("SampleStore.from_specification")
 
-        source_class = orchestrator.modules.module.load_module_class_or_function(
+        source_class = ado.modules.module.load_module_class_or_function(
             specification.module
         )
         logger.debug(f"Class: {source_class}, Params: {specification.parameters}")
@@ -218,11 +216,11 @@ class SampleStore(abc.ABC):
         """
         import logging
 
-        import orchestrator.modules.module
+        import ado.modules.module
 
         logger = logging.getLogger("SampleStore.from_reference")
 
-        source_class = orchestrator.modules.module.load_module_class_or_function(
+        source_class = ado.modules.module.load_module_class_or_function(
             reference.module
         )
         logger.debug(f"Class: {source_class}, Params: {reference.parameters}")
@@ -328,7 +326,7 @@ class SampleStore(abc.ABC):
     def from_identifier(
         cls,
         identifier: str,
-        metastore: "orchestrator.metastore.sqlstore.SQLStore",
+        metastore: "ado.metastore.sqlstore.SQLStore",
     ) -> "SampleStore":
         """Load a SampleStore by its identifier from the metastore.
 
@@ -345,7 +343,7 @@ class SampleStore(abc.ABC):
         Example:
             >>> store = SampleStore.from_identifier("abc123", metastore)
         """
-        from orchestrator.core.resources import CoreResourceKinds
+        from ado.core.resources import CoreResourceKinds
 
         resource = metastore.getResource(
             kind=CoreResourceKinds.SAMPLESTORE,
@@ -358,7 +356,7 @@ class SampleStore(abc.ABC):
     def from_space_identifier(
         cls,
         space_id: str,
-        metastore: "orchestrator.metastore.sqlstore.SQLStore",
+        metastore: "ado.metastore.sqlstore.SQLStore",
     ) -> "SampleStore":
         """Load the SampleStore associated with a discoveryspace.
 
@@ -375,7 +373,7 @@ class SampleStore(abc.ABC):
         Example:
             >>> store = SampleStore.from_space_identifier("space-123", metastore)
         """
-        from orchestrator.core.resources import CoreResourceKinds
+        from ado.core.resources import CoreResourceKinds
 
         _, samplestore_resource = metastore.get_resource_and_producers(
             identifier=space_id,
@@ -391,7 +389,7 @@ class SampleStore(abc.ABC):
     def from_operation_identifier(
         cls,
         operation_id: str,
-        metastore: "orchestrator.metastore.sqlstore.SQLStore",
+        metastore: "ado.metastore.sqlstore.SQLStore",
     ) -> "SampleStore":
         """Load the SampleStore associated with an operation.
 
@@ -408,7 +406,7 @@ class SampleStore(abc.ABC):
         Example:
             >>> store = SampleStore.from_operation_identifier("op-456", metastore)
         """
-        from orchestrator.core.resources import CoreResourceKinds
+        from ado.core.resources import CoreResourceKinds
 
         _, _, samplestore_resource = metastore.get_resource_and_producers(
             identifier=operation_id,
@@ -543,7 +541,7 @@ class ActiveSampleStore(SampleStore, ABC):
 
         Returns:
             A ``dict`` keyed by space ID.  Each value is a
-            :class:`~orchestrator.core.discoveryspace.stats.DiscoverySpaceStatistics`
+            :class:`~ado.core.discoveryspace.stats.DiscoverySpaceStatistics`
             with ``number_measured_entities`` populated and all other fields at
             their defaults (``None``).
 
@@ -673,8 +671,8 @@ class InternalExperimentDescription(ExperimentDescription):
     @pydantic.model_validator(mode="after")
     def infer_and_validate_property_maps(self) -> "InternalExperimentDescription":
         """Infer property maps from experiment definition and validate"""
-        from orchestrator.modules.actuators.registry import ActuatorRegistry
-        from orchestrator.schema.reference import ExperimentReference
+        from ado.modules.actuators.registry import ActuatorRegistry
+        from ado.schema.reference import ExperimentReference
 
         registry = ActuatorRegistry.globalRegistry()
 
@@ -751,8 +749,8 @@ class InternalExperimentDescription(ExperimentDescription):
     @property
     def experiment(self) -> Experiment:
         """Returns the experiment from the actuator registry"""
-        from orchestrator.modules.actuators.registry import ActuatorRegistry
-        from orchestrator.schema.reference import ExperimentReference
+        from ado.modules.actuators.registry import ActuatorRegistry
+        from ado.schema.reference import ExperimentReference
 
         registry = ActuatorRegistry.globalRegistry()
         exp_ref = ExperimentReference(
@@ -828,7 +826,7 @@ class SampleStoreDescription(pydantic.BaseModel):
     @property
     def constitutiveProperties(self) -> list[ConstitutivePropertyDescriptor]:
         """Return constitutive property descriptors from all experiment descriptions"""
-        from orchestrator.schema.property import ConstitutivePropertyDescriptor
+        from ado.schema.property import ConstitutivePropertyDescriptor
 
         # Collect all unique constitutive property identifiers from experiment descriptions
         property_identifiers = set()

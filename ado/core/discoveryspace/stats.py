@@ -9,9 +9,9 @@ import pydantic
 if TYPE_CHECKING:
     from rich.status import Status
 
-    from orchestrator.core.discoveryspace.space import DiscoverySpace
-    from orchestrator.core.samplestore.base import ActiveSampleStore
-    from orchestrator.metastore.base import ResourceStore
+    from ado.core.discoveryspace.space import DiscoverySpace
+    from ado.core.samplestore.base import ActiveSampleStore
+    from ado.metastore.base import ResourceStore
 
 
 class DiscoverySpaceStatistics(pydantic.BaseModel):
@@ -169,7 +169,7 @@ def lightweight_space_statistics(
     """Compute lightweight statistics for spaces given only their IDs and stores.
 
     Unlike :func:`space_statistics_for_spaces`, this function does not require
-    :class:`~orchestrator.core.discoveryspace.space.DiscoverySpace` instances —
+    :class:`~ado.core.discoveryspace.space.DiscoverySpace` instances —
     it only needs the space IDs, the operation-ID mapping, and the two stores.
     Heavy fields (``size_of_entity_space``, ``number_unmeasured_entities``,
     ``number_matching_entities``, ``number_matching_entities_with_measurements``)
@@ -179,9 +179,9 @@ def lightweight_space_statistics(
         space_ids: Set of space URIs to compute statistics for.
         space_ids_to_operation_ids: Mapping from each space URI to the set of
             operation IDs that belong to that space.
-        metastore: The :class:`~orchestrator.metastore.base.ResourceStore` to
+        metastore: The :class:`~ado.metastore.base.ResourceStore` to
             query for operation/experiment counts.
-        sample_store: The :class:`~orchestrator.core.samplestore.base.ActiveSampleStore`
+        sample_store: The :class:`~ado.core.samplestore.base.ActiveSampleStore`
             to query for measured-entity counts.
 
     Returns:
@@ -244,7 +244,7 @@ def space_statistics_for_spaces(
     stores are handled correctly).
 
     Args:
-        spaces: List of :class:`~orchestrator.core.discoveryspace.space.DiscoverySpace`
+        spaces: List of :class:`~ado.core.discoveryspace.space.DiscoverySpace`
             instances to summarise.  Spaces may belong to different sample stores.
         lightweight_only: When ``True`` skip all Python-side computation and
             return ``None`` for the heavy fields in every space's statistics.
@@ -253,9 +253,9 @@ def space_statistics_for_spaces(
 
     Returns:
         ``dict[space_id, DiscoverySpaceStatistics]`` keyed by
-        :attr:`~orchestrator.core.discoveryspace.space.DiscoverySpace.uri`.
+        :attr:`~ado.core.discoveryspace.space.DiscoverySpace.uri`.
     """
-    from orchestrator.schema.entityspace import EntitySpaceRepresentation
+    from ado.schema.entityspace import EntitySpaceRepresentation
 
     if not spaces:
         return {}

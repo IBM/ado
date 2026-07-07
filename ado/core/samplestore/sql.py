@@ -12,44 +12,44 @@ import pydantic
 import sqlalchemy
 from sqlalchemy.exc import InvalidRequestError, SQLAlchemyError
 
-import orchestrator.core.samplestore.config
-import orchestrator.core.samplestore.csv
-import orchestrator.metastore.sql.statements
-from orchestrator.core.discoveryspace.stats import DiscoverySpaceStatistics
-from orchestrator.core.samplestore.base import (
+import ado.core.samplestore.config
+import ado.core.samplestore.csv
+import ado.metastore.sql.statements
+from ado.core.discoveryspace.stats import DiscoverySpaceStatistics
+from ado.core.samplestore.base import (
     ActiveSampleStore,
     FailedToDecodeStoredEntityError,
     FailedToDecodeStoredMeasurementResultForEntityError,
 )
-from orchestrator.metastore.sql.utils import engine_for_sql_store
-from orchestrator.modules.actuators.catalog import ExperimentCatalog
-from orchestrator.schema.entity import Entity
-from orchestrator.schema.experiment import Experiment
-from orchestrator.schema.property import (
+from ado.metastore.sql.utils import engine_for_sql_store
+from ado.modules.actuators.catalog import ExperimentCatalog
+from ado.schema.entity import Entity
+from ado.schema.experiment import Experiment
+from ado.schema.property import (
     ConstitutiveProperty,
 )
-from orchestrator.schema.reference import ExperimentReference
-from orchestrator.schema.request import (
+from ado.schema.reference import ExperimentReference
+from ado.schema.request import (
     MeasurementRequest,
     MeasurementRequestStateEnum,
     ReplayedMeasurement,
 )
-from orchestrator.schema.result import (
+from ado.schema.result import (
     DuplicateMeasurementResultError,
     InvalidMeasurementResult,
     MeasurementResult,
     MeasurementResultStateEnum,
     ValidMeasurementResult,
 )
-from orchestrator.schema.virtual_property import (
+from ado.schema.virtual_property import (
     PropertyAggregationMethod,
     PropertyAggregationMethodEnum,
 )
-from orchestrator.utilities.location import (
+from ado.utilities.location import (
     SQLiteStoreConfiguration,
     SQLStoreConfiguration,
 )
-from orchestrator.utilities.pandas import (
+from ado.utilities.pandas import (
     filter_dataframe_columns,
     reorder_dataframe_columns,
 )
@@ -58,8 +58,8 @@ if TYPE_CHECKING:
     import pandas as pd
     from rich.console import RenderableType
 
-    from orchestrator.core.operation.stats import OperationMeasurementStatistics
-    from orchestrator.core.samplestore.stats import (  # noqa: F401 — used in annotations
+    from ado.core.operation.stats import OperationMeasurementStatistics
+    from ado.core.samplestore.stats import (  # noqa: F401 — used in annotations
         SampleStoreStatistics,
     )
 
@@ -105,7 +105,7 @@ class SQLSampleStore(ActiveSampleStore):
         propertyFormat: Literal["target", "observed"] = "target",
     ) -> "SQLSampleStore":
 
-        csv_sample_store = orchestrator.core.samplestore.csv.CSVSampleStore.from_csv(
+        csv_sample_store = ado.core.samplestore.csv.CSVSampleStore.from_csv(
             csvPath=csvPath,
             idColumn=idColumn,
             generatorIdentifier=generatorIdentifier,
@@ -130,7 +130,7 @@ class SQLSampleStore(ActiveSampleStore):
         from rich.console import Group
         from rich.text import Text
 
-        from orchestrator.utilities.rich import get_rich_repr
+        from ado.utilities.rich import get_rich_repr
 
         return Group(
             Text.assemble(("Identifier: ", "bold"), (self.uri, "bold green")),
@@ -143,7 +143,7 @@ class SQLSampleStore(ActiveSampleStore):
 
     @classmethod
     def experimentCatalogFromReference(
-        cls, reference: orchestrator.core.samplestore.config.SampleStoreReference
+        cls, reference: ado.core.samplestore.config.SampleStoreReference
     ) -> ExperimentCatalog:
         import pandas as pd
 
@@ -355,8 +355,7 @@ class SQLSampleStore(ActiveSampleStore):
         self,
         identifier: str | None,
         storageLocation: (
-            orchestrator.utilities.location.SQLStoreConfiguration
-            | SQLiteStoreConfiguration
+            ado.utilities.location.SQLStoreConfiguration | SQLiteStoreConfiguration
         ),
         parameters: dict,
     ) -> None:
@@ -463,7 +462,7 @@ class SQLSampleStore(ActiveSampleStore):
         return self._parameters.copy()
 
     @property
-    def location(self) -> orchestrator.utilities.location.SQLStoreConfiguration:
+    def location(self) -> ado.utilities.location.SQLStoreConfiguration:
 
         return self._configuration.model_copy()
 
@@ -958,7 +957,7 @@ class SQLSampleStore(ActiveSampleStore):
             try:
                 # Remote
                 with self.engine.begin() as connectable:
-                    query = orchestrator.metastore.sql.statements.insert_entities_ignore_on_duplicate(
+                    query = ado.metastore.sql.statements.insert_entities_ignore_on_duplicate(
                         sample_store_name=self._tablename,
                         dialect=self.engine.dialect.name,
                     )
@@ -990,7 +989,7 @@ class SQLSampleStore(ActiveSampleStore):
 
     def addMeasurement(
         self,
-        measurementRequest: orchestrator.schema.request.MeasurementRequest,
+        measurementRequest: ado.schema.request.MeasurementRequest,
     ) -> None:
         """Adds the results of a measurement to a set of entities
 
@@ -1096,7 +1095,7 @@ class SQLSampleStore(ActiveSampleStore):
             try:
                 # Remote
                 with self.engine.begin() as connectable:
-                    query = orchestrator.metastore.sql.statements.upsert_entities(
+                    query = ado.metastore.sql.statements.upsert_entities(
                         sample_store_name=self._tablename,
                         dialect=self.engine.dialect.name,
                     )
@@ -1508,7 +1507,7 @@ class SQLSampleStore(ActiveSampleStore):
 
         from sqlalchemy import case, func, select
 
-        from orchestrator.core.operation.stats import OperationMeasurementStatistics
+        from ado.core.operation.stats import OperationMeasurementStatistics
 
         req_table = self._request_table
         reqres_table = self._request_result_table
@@ -1620,7 +1619,7 @@ class SQLSampleStore(ActiveSampleStore):
         references.
 
         Returns:
-            A :class:`~orchestrator.core.samplestore.stats.SampleStoreStatistics`
+            A :class:`~ado.core.samplestore.stats.SampleStoreStatistics`
             instance with all three counters populated.
 
         Raises:
@@ -1628,7 +1627,7 @@ class SQLSampleStore(ActiveSampleStore):
         """
         from sqlalchemy import func, select
 
-        from orchestrator.core.samplestore.stats import SampleStoreStatistics
+        from ado.core.samplestore.stats import SampleStoreStatistics
 
         entity_table = self._metadata.tables[self._tablename]
         req_table = self._request_table
@@ -1694,7 +1693,7 @@ class SQLSampleStore(ActiveSampleStore):
 
         Returns:
             A ``dict`` keyed by space ID.  Each value is a
-            :class:`~orchestrator.core.discoveryspace.stats.DiscoverySpaceStatistics`
+            :class:`~ado.core.discoveryspace.stats.DiscoverySpaceStatistics`
             with ``number_measured_entities`` populated and all other fields at
             their defaults (``None``).
 
@@ -1810,7 +1809,7 @@ class SQLSampleStore(ActiveSampleStore):
         """
         from sqlalchemy import and_, select
 
-        from orchestrator.core.samplestore.orm.measurements_filtering import (
+        from ado.core.samplestore.orm.measurements_filtering import (
             MeasurementFilterBuilder,
         )
 
@@ -1935,7 +1934,7 @@ class SQLSampleStore(ActiveSampleStore):
         """
         from sqlalchemy import and_, select
 
-        from orchestrator.core.samplestore.orm.measurements_filtering import (
+        from ado.core.samplestore.orm.measurements_filtering import (
             MeasurementFilterBuilder,
         )
 

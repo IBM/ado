@@ -9,8 +9,8 @@ import typing
 
 import yaml
 
-from orchestrator.cli.models.types import AdoShowStatsSupportedOutputFormats
-from orchestrator.cli.utils.output.prints import (
+from ado.cli.models.types import AdoShowStatsSupportedOutputFormats
+from ado.cli.utils.output.prints import (
     SUCCESS,
     console_print,
     magenta,
@@ -56,7 +56,7 @@ def render_stats_dataframe(
         case Fmt.TABLE:
             import rich.box
 
-            from orchestrator.utilities.rich import (
+            from ado.utilities.rich import (
                 dataframe_to_rich_table,
                 render_to_string,
             )

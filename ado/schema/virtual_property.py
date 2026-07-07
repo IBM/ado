@@ -8,11 +8,11 @@ import numpy as np
 import pydantic
 from typing_extensions import Self
 
-from orchestrator.schema.observed_property import (
+from ado.schema.observed_property import (
     ObservedProperty,
     ObservedPropertyValue,
 )
-from orchestrator.schema.property_value import PropertyValue
+from ado.schema.property_value import PropertyValue
 
 
 class PropertyAggregationMethodEnum(enum.Enum):

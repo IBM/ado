@@ -7,7 +7,7 @@ import json
 import pydantic
 import typer
 
-from orchestrator.cli.utils.output.prints import ERROR, console_print, cyan
+from ado.cli.utils.output.prints import ERROR, console_print, cyan
 
 
 def override_values_in_pydantic_model(

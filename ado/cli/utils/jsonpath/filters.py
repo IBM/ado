@@ -3,7 +3,7 @@
 
 import typer
 
-from orchestrator.cli.utils.output.prints import ERROR, console_print, cyan
+from ado.cli.utils.output.prints import ERROR, console_print, cyan
 
 
 def remove_fields_from_dictionary(

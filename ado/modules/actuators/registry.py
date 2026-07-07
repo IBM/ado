@@ -5,19 +5,19 @@ import logging
 import typing
 import uuid
 
-import orchestrator.schema
-from orchestrator.core.actuatorconfiguration.config import (
+import ado.schema
+from ado.core.actuatorconfiguration.config import (
     GenericActuatorParameters,
 )
-from orchestrator.core.metadata import PackageProvenance
-from orchestrator.modules.actuators.base import (
+from ado.core.metadata import PackageProvenance
+from ado.modules.actuators.base import (
     ActuatorBase,
 )
-from orchestrator.modules.actuators.catalog import (
+from ado.modules.actuators.catalog import (
     ExperimentCatalog,
     ExperimentReferenceMatchMode,
 )
-from orchestrator.modules.actuators.errors import (
+from ado.modules.actuators.errors import (
     AmbiguousExperimentIdentifierError,
     DeprecatedExperimentError,
     ExperimentVersionMismatchError,
@@ -28,18 +28,18 @@ from orchestrator.modules.actuators.errors import (
     UnknownActuatorError,
     UnknownExperimentError,
 )
-from orchestrator.schema.experiment import (
+from ado.schema.experiment import (
     Experiment,
     ExperimentInterfaceIssue,
     ExperimentInterfaceIssueKind,
     ParameterizedExperiment,
 )
-from orchestrator.schema.measurementspace import MeasurementSpace
-from orchestrator.schema.reference import (
+from ado.schema.measurementspace import MeasurementSpace
+from ado.schema.reference import (
     ExperimentReference,
     _parse_experiment_part_from_string,
 )
-from orchestrator.utilities.logging import configure_logging
+from ado.utilities.logging import configure_logging
 
 if typing.TYPE_CHECKING:
     import pandas as pd
@@ -159,8 +159,8 @@ class ActuatorRegistry:
         import inspect
         import pkgutil
 
-        import orchestrator.modules.actuators as builtin_actuators
-        from orchestrator.modules.actuators.base import ActuatorBase
+        import ado.modules.actuators as builtin_actuators
+        from ado.modules.actuators.base import ActuatorBase
 
         # Maps actuator ids to generic actuator parameter payloads from configuration.
         self.actuatorConfigurationMap: dict[str, GenericActuatorParameters] = {}
@@ -287,7 +287,7 @@ class ActuatorRegistry:
         Returns:
             Dictionary with 'version' and 'description' keys
         """
-        from orchestrator.core.metadata import PackageProvenance
+        from ado.core.metadata import PackageProvenance
 
         description = None
         provenance = PackageProvenance.from_module_name(actuator_class.__module__)
@@ -327,7 +327,7 @@ class ActuatorRegistry:
         Parameters:
             actuatorid: The id of this actuator. This id is how consumers will access it
             actuatorClass: The class that implements the actuator.
-            is_builtin: Whether this is a builtin actuator (from orchestrator.modules.actuators)
+            is_builtin: Whether this is a builtin actuator (from ado.modules.actuators)
         """
 
         if self.actuatorIdentifierMap.get(actuatorid) is None:
@@ -352,7 +352,7 @@ class ActuatorRegistry:
             identifier: The actuator identifier.
 
         Returns:
-            A :class:`~orchestrator.core.metadata.PackageProvenance` instance,
+            A :class:`~ado.core.metadata.PackageProvenance` instance,
             or ``None`` if provenance is unavailable.
         """
         metadata = self.actuatorMetadataMap.get(identifier)
@@ -377,7 +377,7 @@ class ActuatorRegistry:
         Any other exception while retrieving the catalog will raise UnexpectedCatalogRetrievalError
         """
 
-        from orchestrator.modules.actuators.base import (
+        from ado.modules.actuators.base import (
             CatalogConfigurationRequirementEnum,
         )
 
@@ -475,7 +475,7 @@ class ActuatorRegistry:
             additionalCatalogs: Additional catalogs to search for the experiment.
             match_on: ``"major_version"`` (default), ``"fully_qualified_version"``,
                 ``"base"``, or ``"any"``. See
-                :meth:`~orchestrator.modules.actuators.catalog.ExperimentCatalog.experimentForReference`.
+                :meth:`~ado.modules.actuators.catalog.ExperimentCatalog.experimentForReference`.
             resolve: When ``True``, apply version checks, deprecated checks, and
                 parameterization.
 
@@ -621,7 +621,7 @@ class ActuatorRegistry:
                 If False, string parsing assumes there is no parameterization.
             match_on: ``"major_version"`` (default), ``"fully_qualified_version"``,
                 ``"base"``, or ``"any"``. See
-                :meth:`~orchestrator.modules.actuators.catalog.ExperimentCatalog.experimentForReference`.
+                :meth:`~ado.modules.actuators.catalog.ExperimentCatalog.experimentForReference`.
             resolve: When ``True``, apply version checks, deprecated checks, and
                 parameterization.
 
@@ -715,7 +715,7 @@ class ActuatorRegistry:
 
     def updateCatalogs(
         self,
-        catalogExtension: orchestrator.modules.actuators.catalog.ActuatorCatalogExtension,
+        catalogExtension: ado.modules.actuators.catalog.ActuatorCatalogExtension,
     ) -> None:
         """Updates the receivers catalogs with the experiments in catalogExtension
 
@@ -744,7 +744,7 @@ class ActuatorRegistry:
     ) -> list:
         """Check that all actuators and experiments in *measurement_space* are available.
 
-        Uses :meth:`~orchestrator.modules.actuators.catalog.ExperimentCatalog.experimentForReference`
+        Uses :meth:`~ado.modules.actuators.catalog.ExperimentCatalog.experimentForReference`
         with ``resolve=True`` so that major version mismatches are detected and reported.
         When lookup succeeds, also compares the measurement-space experiment interface
         against the registry catalog experiment (inputs, domains, optional defaults,
@@ -753,8 +753,8 @@ class ActuatorRegistry:
         Returns:
             A list of issue strings. An empty list means no issues were found.
         """
-        from orchestrator.modules.actuators.errors import DeprecatedExperimentError
-        from orchestrator.schema.experiment import check_experiment_interface_compatible
+        from ado.modules.actuators.errors import DeprecatedExperimentError
+        from ado.schema.experiment import check_experiment_interface_compatible
 
         issues = []
         for experiment in measurement_space.experiments:

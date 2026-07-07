@@ -5,19 +5,19 @@ import pathlib
 
 import typer
 
-from orchestrator.cli.models.parameters import AdoTemplateCommandParameters
-from orchestrator.cli.utils.output.prints import (
+from ado.cli.models.parameters import AdoTemplateCommandParameters
+from ado.cli.utils.output.prints import (
     ERROR,
     HINT,
     WARN,
     console_print,
     cyan,
 )
-from orchestrator.cli.utils.pydantic.serializers import (
+from ado.cli.utils.pydantic.serializers import (
     serialise_pydantic_model,
     serialise_pydantic_model_json_schema,
 )
-from orchestrator.core.operation.config import (
+from ado.core.operation.config import (
     DiscoveryOperationConfiguration,
     DiscoveryOperationEnum,
     DiscoveryOperationResourceConfiguration,
@@ -26,9 +26,9 @@ from orchestrator.core.operation.config import (
 
 
 def template_operation(parameters: AdoTemplateCommandParameters) -> None:
-    import orchestrator.modules.operators.collections
+    import ado.modules.operators.collections
 
-    operators = orchestrator.modules.operators.collections.operationCollectionMap
+    operators = ado.modules.operators.collections.operationCollectionMap
     supported_operator_types = operators.keys()
 
     # Exit early on wrong configurations
@@ -133,7 +133,7 @@ def template_operation(parameters: AdoTemplateCommandParameters) -> None:
         operation=default_operation_configuration,
     )
 
-    orchestrator.cli.utils.pydantic.serializers.serialise_pydantic_model(
+    ado.cli.utils.pydantic.serializers.serialise_pydantic_model(
         model=model_instance,
         output_path=parameters.output_file,
     )
@@ -146,14 +146,14 @@ def template_operation(parameters: AdoTemplateCommandParameters) -> None:
         )
         if parameters.output_file is None:
             # If outputting to stdout, also output schema to stdout
-            orchestrator.cli.utils.pydantic.serializers.serialise_pydantic_model_json_schema(
+            ado.cli.utils.pydantic.serializers.serialise_pydantic_model_json_schema(
                 schema_model_instance, None
             )
         else:
             schema_output_path = pathlib.Path(
                 parameters.output_file.stem + "_schema.yaml"
             )
-            orchestrator.cli.utils.pydantic.serializers.serialise_pydantic_model_json_schema(
+            ado.cli.utils.pydantic.serializers.serialise_pydantic_model_json_schema(
                 schema_model_instance, schema_output_path
             )
 
@@ -161,10 +161,10 @@ def template_operation(parameters: AdoTemplateCommandParameters) -> None:
 def find_operator_type_by_name(
     operator_name: str,
 ) -> DiscoveryOperationEnum | None:
-    import orchestrator.modules.operators.collections
+    import ado.modules.operators.collections
 
     supported_operator_types = (
-        orchestrator.modules.operators.collections.operationCollectionMap.keys()
+        ado.modules.operators.collections.operationCollectionMap.keys()
     )
 
     for operator_type in supported_operator_types:
@@ -178,11 +178,11 @@ def operator_type_has_operator(
     operator_name: str,
     operator_type: DiscoveryOperationEnum,
 ) -> bool:
-    import orchestrator.modules.operators.collections
+    import ado.modules.operators.collections
 
     return (
         operator_name
-        in orchestrator.modules.operators.collections.operationCollectionMap[
+        in ado.modules.operators.collections.operationCollectionMap[
             operator_type
         ].operators
     )

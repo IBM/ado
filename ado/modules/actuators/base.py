@@ -5,17 +5,17 @@ import abc
 import logging
 import typing
 
-import orchestrator.modules.actuators.catalog
-from orchestrator.core.actuatorconfiguration.config import (
+import ado.modules.actuators.catalog
+from ado.core.actuatorconfiguration.config import (
     GenericActuatorParameters,
 )
-from orchestrator.modules.actuators.catalog import CatalogConfigurationRequirementEnum
-from orchestrator.modules.actuators.measurement_queue import MeasurementQueue, NullQueue
-from orchestrator.schema.entity import (
+from ado.modules.actuators.catalog import CatalogConfigurationRequirementEnum
+from ado.modules.actuators.measurement_queue import MeasurementQueue, NullQueue
+from ado.schema.entity import (
     Entity,
 )
-from orchestrator.schema.measurementspace import MeasurementSpace
-from orchestrator.schema.reference import ExperimentReference
+from ado.schema.measurementspace import MeasurementSpace
+from ado.schema.reference import ExperimentReference
 
 moduleLog = logging.getLogger("actuatorsbase")
 
@@ -81,7 +81,7 @@ class ActuatorBase(abc.ABC):
     @abc.abstractmethod
     def catalog(
         cls, actuator_configuration: GenericActuatorParameters | None = None
-    ) -> orchestrator.modules.actuators.catalog.ExperimentCatalog:
+    ) -> ado.modules.actuators.catalog.ExperimentCatalog:
         """Returns the Actuators ExperimentCatalog
 
         Keyword Parameters:
@@ -130,7 +130,7 @@ class ActuatorBase(abc.ABC):
         Returns a default set of parameters for the actuator.
 
         Returns:
-            An instance of orchestrator.model.config.GenericActuatorParameters
+            An instance of ado.model.config.GenericActuatorParameters
         """
         return (
             cls.parameters_class.model_construct()

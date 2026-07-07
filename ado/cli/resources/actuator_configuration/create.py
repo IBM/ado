@@ -6,9 +6,9 @@ import typer
 import yaml
 from rich.status import Status
 
-from orchestrator.cli.models.parameters import AdoCreateCommandParameters
-from orchestrator.cli.utils.generic.wrappers import get_sql_store
-from orchestrator.cli.utils.output.prints import (
+from ado.cli.models.parameters import AdoCreateCommandParameters
+from ado.cli.utils.generic.wrappers import get_sql_store
+from ado.cli.utils.output.prints import (
     ADO_CREATE_DRY_RUN_CONFIG_VALID,
     ADO_SPINNER_SAVING_TO_DB,
     ERROR,
@@ -16,9 +16,9 @@ from orchestrator.cli.utils.output.prints import (
     console_print,
     magenta,
 )
-from orchestrator.cli.utils.pydantic.updaters import override_values_in_pydantic_model
-from orchestrator.core.actuatorconfiguration.config import ActuatorConfiguration
-from orchestrator.core.actuatorconfiguration.resource import (
+from ado.cli.utils.pydantic.updaters import override_values_in_pydantic_model
+from ado.core.actuatorconfiguration.config import ActuatorConfiguration
+from ado.core.actuatorconfiguration.resource import (
     ActuatorConfigurationResource,
 )
 
@@ -46,10 +46,10 @@ def create_actuator_configuration(parameters: AdoCreateCommandParameters) -> str
         console_print(ADO_CREATE_DRY_RUN_CONFIG_VALID, stderr=True)
         return None
 
-    from orchestrator.core.actuatorconfiguration.resource import (
+    from ado.core.actuatorconfiguration.resource import (
         ActuatorConfigurationProvenanceInfo,
     )
-    from orchestrator.modules.actuators.registry import ActuatorRegistry
+    from ado.modules.actuators.registry import ActuatorRegistry
 
     registry = ActuatorRegistry.globalRegistry()
     actuator_provenance = registry.provenance_for_actuator(

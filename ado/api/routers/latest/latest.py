@@ -11,8 +11,8 @@ This module defines the base :class:`fastapi.APIRouter` instance for the
 
 from fastapi import APIRouter, status
 
-from orchestrator.api.routers.v0.actuators import actuators
-from orchestrator.api.routers.v0.experiments import experiments
+from ado.api.routers.v0.actuators import actuators
+from ado.api.routers.v0.experiments import experiments
 
 # Create the parent router for the latest API version.
 router = APIRouter(

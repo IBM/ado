@@ -4,10 +4,10 @@
 import yaml
 from rich.prompt import Confirm
 
-from orchestrator.cli.models.parameters import AdoDeleteCommandParameters
-from orchestrator.cli.utils.output.prints import HINT, INFO, WARN, console_print, cyan
-from orchestrator.metastore.base import ContextDoesNotExistError
-from orchestrator.utilities.dictionaries import get_nested_value
+from ado.cli.models.parameters import AdoDeleteCommandParameters
+from ado.cli.utils.output.prints import HINT, INFO, WARN, console_print, cyan
+from ado.metastore.base import ContextDoesNotExistError
+from ado.utilities.dictionaries import get_nested_value
 
 
 def delete_context(parameters: AdoDeleteCommandParameters) -> None:

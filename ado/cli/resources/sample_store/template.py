@@ -3,8 +3,8 @@
 
 import pathlib
 
-from orchestrator.cli.models.parameters import AdoTemplateCommandParameters
-from orchestrator.core.samplestore.config import (
+from ado.cli.models.parameters import AdoTemplateCommandParameters
+from ado.core.samplestore.config import (
     SampleStoreConfiguration,
     SampleStoreModuleConf,
     SampleStoreSpecification,
@@ -12,7 +12,7 @@ from orchestrator.core.samplestore.config import (
 
 
 def template_sample_store(parameters: AdoTemplateCommandParameters) -> None:
-    from orchestrator.cli.utils.pydantic.serializers import (
+    from ado.cli.utils.pydantic.serializers import (
         serialise_pydantic_model,
         serialise_pydantic_model_json_schema,
     )
@@ -21,7 +21,7 @@ def template_sample_store(parameters: AdoTemplateCommandParameters) -> None:
         specification=SampleStoreSpecification(
             module=SampleStoreModuleConf(
                 moduleClass="SQLSampleStore",
-                moduleName="orchestrator.core.samplestore.sql",
+                moduleName="ado.core.samplestore.sql",
             )
         )
     )

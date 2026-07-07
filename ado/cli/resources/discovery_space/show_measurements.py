@@ -7,14 +7,14 @@ import typer
 import yaml
 from rich.status import Status
 
-from orchestrator.cli.models.parameters import AdoShowMeasurementsCommandParameters
-from orchestrator.cli.models.types import (
+from ado.cli.models.parameters import AdoShowMeasurementsCommandParameters
+from ado.cli.models.types import (
     AdoShowMeasurementsSupportedEntityTypes,
     AdoShowMeasurementsSupportedPropertyFormats,
 )
-from orchestrator.cli.utils.generic.wrappers import get_sql_store
-from orchestrator.cli.utils.output.dataframes import df_to_output
-from orchestrator.cli.utils.output.prints import (
+from ado.cli.utils.generic.wrappers import get_sql_store
+from ado.cli.utils.output.dataframes import df_to_output
+from ado.cli.utils.output.prints import (
     ADO_SPINNER_INITIALIZING_DISCOVERY_SPACE,
     ADO_SPINNER_QUERYING_DB,
     ERROR,
@@ -25,11 +25,11 @@ from orchestrator.cli.utils.output.prints import (
     cyan,
     magenta,
 )
-from orchestrator.core.discoveryspace.config import DiscoverySpaceConfiguration
-from orchestrator.core.discoveryspace.space import DiscoverySpace
-from orchestrator.core.resources import CoreResourceKinds
-from orchestrator.metastore.base import ResourceDoesNotExistError
-from orchestrator.schema.virtual_property import (
+from ado.core.discoveryspace.config import DiscoverySpaceConfiguration
+from ado.core.discoveryspace.space import DiscoverySpace
+from ado.core.resources import CoreResourceKinds
+from ado.metastore.base import ResourceDoesNotExistError
+from ado.schema.virtual_property import (
     PropertyAggregationMethodEnum,
     VirtualObservedProperty,
 )
@@ -37,7 +37,7 @@ from orchestrator.schema.virtual_property import (
 if typing.TYPE_CHECKING:
     import pandas as pd
 
-    from orchestrator.schema.entity import Entity
+    from ado.schema.entity import Entity
 
 
 def show_discovery_space_measurements(
@@ -213,7 +213,7 @@ def show_discovery_space_measurements(
 
 
 def unmeasured_entities_from_space(space: DiscoverySpace) -> list["Entity"]:
-    from orchestrator.core.discoveryspace.samplers import (
+    from ado.core.discoveryspace.samplers import (
         ExplicitEntitySpaceGridSampleGenerator,
         WalkModeEnum,
     )
@@ -238,7 +238,7 @@ def unmeasured_entities_from_space(space: DiscoverySpace) -> list["Entity"]:
 
 
 def missing_entities_from_space(space: DiscoverySpace) -> list["Entity"]:
-    from orchestrator.core.discoveryspace.samplers import (
+    from ado.core.discoveryspace.samplers import (
         ExplicitEntitySpaceGridSampleGenerator,
         WalkModeEnum,
     )

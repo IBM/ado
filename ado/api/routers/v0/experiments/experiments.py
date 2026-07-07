@@ -5,8 +5,8 @@ import itertools
 
 from fastapi import APIRouter, status
 
-from orchestrator.modules.actuators.registry import ActuatorRegistry
-from orchestrator.schema.experiment import Experiment
+from ado.modules.actuators.registry import ActuatorRegistry
+from ado.schema.experiment import Experiment
 
 router = APIRouter(
     prefix="/experiments",

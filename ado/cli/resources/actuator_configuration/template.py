@@ -6,24 +6,24 @@ import pathlib
 import typer
 from rich.status import Status
 
-from orchestrator.cli.models.parameters import AdoTemplateCommandParameters
-from orchestrator.cli.utils.output.prints import (
+from ado.cli.models.parameters import AdoTemplateCommandParameters
+from ado.cli.utils.output.prints import (
     ADO_SPINNER_INITIALIZING_ACTUATOR_REGISTRY,
     ERROR,
     HINT,
     WARN,
     console_print,
 )
-from orchestrator.core.actuatorconfiguration.config import ActuatorConfiguration
-from orchestrator.core.metadata import ConfigurationMetadata
-from orchestrator.modules.actuators.errors import UnknownActuatorError
-from orchestrator.modules.actuators.registry import (
+from ado.core.actuatorconfiguration.config import ActuatorConfiguration
+from ado.core.metadata import ConfigurationMetadata
+from ado.modules.actuators.errors import UnknownActuatorError
+from ado.modules.actuators.registry import (
     ActuatorRegistry,
 )
 
 
 def template_actuator_configuration(parameters: AdoTemplateCommandParameters) -> None:
-    from orchestrator.cli.utils.pydantic.serializers import (
+    from ado.cli.utils.pydantic.serializers import (
         serialise_pydantic_model,
         serialise_pydantic_model_json_schema,
     )

@@ -3,16 +3,16 @@
 
 import typer
 
-from orchestrator.cli.utils.output.prints import ERROR, console_print, magenta
-from orchestrator.modules.actuators.errors import (
+from ado.cli.utils.output.prints import ERROR, console_print, magenta
+from ado.modules.actuators.errors import (
     AmbiguousExperimentIdentifierError,
     NoActuatorWithExperimentError,
     TooManyActuatorsWithExperimentError,
     UnknownExperimentError,
 )
-from orchestrator.modules.actuators.registry import ActuatorRegistry
-from orchestrator.schema.experiment import Experiment
-from orchestrator.schema.reference import (
+from ado.modules.actuators.registry import ActuatorRegistry
+from ado.schema.experiment import Experiment
+from ado.schema.reference import (
     _parse_experiment_part_from_string,
 )
 

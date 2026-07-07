@@ -6,10 +6,10 @@ from typing import Annotated, Any
 
 import pydantic
 
-from orchestrator.core.actuatorconfiguration.config import ActuatorConfiguration
-from orchestrator.core.metadata import PackageProvenance, ProvenanceInfo
-from orchestrator.core.resources import ADOResource, CoreResourceKinds
-from orchestrator.utilities.pydantic import Defaultable
+from ado.core.actuatorconfiguration.config import ActuatorConfiguration
+from ado.core.metadata import PackageProvenance, ProvenanceInfo
+from ado.core.resources import ADOResource, CoreResourceKinds
+from ado.utilities.pydantic import Defaultable
 
 
 class ActuatorConfigurationProvenanceInfo(ProvenanceInfo):

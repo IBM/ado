@@ -4,22 +4,22 @@
 import typer
 from rich.status import Status
 
-from orchestrator.cli.models.parameters import AdoShowTraceCommandParameters
-from orchestrator.cli.resources.trace_common import (
+from ado.cli.models.parameters import AdoShowTraceCommandParameters
+from ado.cli.resources.trace_common import (
     REQUEST_HIDABLE_FIELDS,
     RESULT_HIDABLE_FIELDS,
 )
-from orchestrator.cli.utils.generic.wrappers import get_sql_store
-from orchestrator.cli.utils.output.prints import (
+from ado.cli.utils.generic.wrappers import get_sql_store
+from ado.cli.utils.output.prints import (
     ADO_SPINNER_QUERYING_DB,
     ERROR,
     console_print,
 )
-from orchestrator.cli.utils.resources.handlers import render_trace_output
-from orchestrator.core.resources import CoreResourceKinds
-from orchestrator.core.samplestore.base import SampleStore
-from orchestrator.core.samplestore.sql import SQLSampleStore
-from orchestrator.metastore.base import (
+from ado.cli.utils.resources.handlers import render_trace_output
+from ado.core.resources import CoreResourceKinds
+from ado.core.samplestore.base import SampleStore
+from ado.core.samplestore.sql import SQLSampleStore
+from ado.metastore.base import (
     NoRelatedResourcesError,
     ResourceDoesNotExistError,
 )

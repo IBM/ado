@@ -3,8 +3,8 @@
 
 import typer
 
-from orchestrator.cli.core.config import AdoConfiguration
-from orchestrator.cli.utils.output.prints import (
+from ado.cli.core.config import AdoConfiguration
+from ado.cli.utils.output.prints import (
     ERROR,
     SUCCESS,
     WARN,

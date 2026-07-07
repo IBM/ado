@@ -8,7 +8,7 @@ import pydantic
 from pydantic import ConfigDict
 from typing_extensions import Self
 
-from orchestrator.utilities.pydantic import Pep440VersionStr
+from ado.utilities.pydantic import Pep440VersionStr
 
 
 class ConfigurationMetadata(pydantic.BaseModel):
@@ -90,9 +90,9 @@ class PackageProvenance(pydantic.BaseModel):
     def from_module_name(cls, module_name: str) -> Self | None:
         """Resolve installed package provenance from a fully qualified module name.
 
-        Modules under the ``orchestrator`` namespace package are resolved to
+        Modules under the ``ado`` namespace package are resolved to
         ``ado-core``. For all other modules, the containing distribution is
-        resolved via :func:`~orchestrator.utilities.distribution.distribution_from_module`.
+        resolved via :func:`~ado.utilities.distribution.distribution_from_module`.
 
         Args:
             module_name: Fully qualified module name (e.g. ``"ado_ray_tune.operator"``).
@@ -101,9 +101,9 @@ class PackageProvenance(pydantic.BaseModel):
             Package provenance for the installed distribution, or ``None`` if it
             could not be resolved.
         """
-        from orchestrator.utilities.distribution import distribution_from_module
+        from ado.utilities.distribution import distribution_from_module
 
-        if module_name.startswith("orchestrator.") or module_name == "orchestrator":
+        if module_name.startswith("ado.") or module_name == "ado":
             return cls.from_distribution_name("ado-core")
 
         try:
@@ -118,7 +118,7 @@ class PackageProvenance(pydantic.BaseModel):
     def from_module_conf(cls, module_conf: object) -> Self | None:
         """Resolve provenance from a module configuration object or dict.
 
-        Accepts a :class:`~orchestrator.modules.module.ModuleConf` instance or a
+        Accepts a :class:`~ado.modules.module.ModuleConf` instance or a
         dict containing ``moduleName``.
 
         Args:

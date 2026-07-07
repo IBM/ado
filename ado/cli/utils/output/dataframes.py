@@ -7,14 +7,14 @@ from typing import Literal
 
 import rich.box
 
-from orchestrator.cli.utils.output.prints import (
+from ado.cli.utils.output.prints import (
     ADO_INFO_EMPTY_DATAFRAME,
     HINT,
     SUCCESS,
     console_print,
     magenta,
 )
-from orchestrator.utilities.rich import dataframe_to_rich_table
+from ado.utilities.rich import dataframe_to_rich_table
 
 if typing.TYPE_CHECKING:
     import pandas as pd
@@ -57,7 +57,7 @@ def df_to_output(
             )
             if output_file:
                 # Convert table to string for file output
-                from orchestrator.utilities.rich import render_to_string
+                from ado.utilities.rich import render_to_string
 
                 output_str = render_to_string(table, auto_width=True)
                 output_file.write_text(output_str)

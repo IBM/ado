@@ -7,10 +7,10 @@ from typing import TYPE_CHECKING, Literal
 
 import sqlalchemy
 
-from orchestrator.core.resources import ADOResource
+from ado.core.resources import ADOResource
 
 if TYPE_CHECKING:
-    from orchestrator.core.resources import CoreResourceKinds
+    from ado.core.resources import CoreResourceKinds
 
 # The resource hierarchy has 4 levels (samplestore → discoveryspace →
 # operation → {datacontainer, actuatorconfiguration}), so the maximum
@@ -702,7 +702,7 @@ def graph_traversal_query(
         ) related
         """  # noqa: S608
 
-    from orchestrator.core.resources import CoreResourceKinds
+    from ado.core.resources import CoreResourceKinds
 
     binds = [
         sqlalchemy.bindparam(key="start_kind", value=kind.value),

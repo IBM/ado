@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 # Before any other imports: Ray's ``uv`` driver hook (see
-# ``orchestrator.utilities.ray_local_init``) reads ``RAY_ENABLE_UV_RUN_RUNTIME_ENV``
+# ``ado.utilities.ray_local_init``) reads ``RAY_ENABLE_UV_RUN_RUNTIME_ENV``
 # at the first ``import ray``. The ``ado create operation`` code path eventually
 # imports ``ray``; this default keeps local ``uv run ado …`` from packaging the
 # whole worktree. Set the variable in the environment to ``1`` to opt in.
@@ -19,28 +19,28 @@ import pydantic
 import typer
 import yaml
 
-from orchestrator.cli.commands.context import (
+from ado.cli.commands.context import (
     register_context_command,
     register_contexts_command,
 )
-from orchestrator.cli.commands.create import register_create_command
-from orchestrator.cli.commands.delete import register_delete_command
-from orchestrator.cli.commands.describe import register_describe_command
-from orchestrator.cli.commands.edit import register_edit_command
-from orchestrator.cli.commands.get import register_get_command
-from orchestrator.cli.commands.show import register_show_command
-from orchestrator.cli.commands.template import register_template_command
-from orchestrator.cli.commands.upgrade import register_upgrade_command
-from orchestrator.cli.commands.version import register_version_command
-from orchestrator.cli.core.config import AdoConfiguration
-from orchestrator.cli.models.types import AdoLoggingLevel
-from orchestrator.cli.utils.output.prints import ERROR, console_print
-from orchestrator.cli.utils.remote.dispatch import (
+from ado.cli.commands.create import register_create_command
+from ado.cli.commands.delete import register_delete_command
+from ado.cli.commands.describe import register_describe_command
+from ado.cli.commands.edit import register_edit_command
+from ado.cli.commands.get import register_get_command
+from ado.cli.commands.show import register_show_command
+from ado.cli.commands.template import register_template_command
+from ado.cli.commands.upgrade import register_upgrade_command
+from ado.cli.commands.version import register_version_command
+from ado.cli.core.config import AdoConfiguration
+from ado.cli.models.types import AdoLoggingLevel
+from ado.cli.utils.output.prints import ERROR, console_print
+from ado.cli.utils.remote.dispatch import (
     dispatch as remote_dispatch,
 )
-from orchestrator.core.remotecontext.config import RemoteExecutionContext
-from orchestrator.utilities.location import SQLiteStoreConfiguration
-from orchestrator.utilities.logging import configure_logging
+from ado.core.remotecontext.config import RemoteExecutionContext
+from ado.utilities.location import SQLiteStoreConfiguration
+from ado.utilities.logging import configure_logging
 
 # Logging conf
 FORMAT = "%(levelname)-9s %(threadName)-30s %(name)-30s: %(funcName)-20s %(asctime)-15s: %(message)s"

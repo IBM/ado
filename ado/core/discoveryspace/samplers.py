@@ -10,12 +10,12 @@ import numpy as np
 import pydantic
 import ray
 
-from orchestrator.core.discoveryspace.space import (
+from ado.core.discoveryspace.space import (
     DiscoverySpace,
 )
-from orchestrator.modules.operators.discovery_space_manager import DiscoverySpaceManager
-from orchestrator.schema.entity import Entity
-from orchestrator.schema.entityspace import EntitySpaceRepresentation
+from ado.modules.operators.discovery_space_manager import DiscoverySpaceManager
+from ado.schema.entity import Entity
+from ado.schema.entityspace import EntitySpaceRepresentation
 
 """Samplers are used to sample entities from a discovery space.
 
@@ -73,7 +73,7 @@ class BaseSampler(abc.ABC):
         """Returns an iterator that samples entities from the discovery space in batchsize groups
 
         Parameters:
-            discoverySpace: An orchestrator.model.space.DiscoverySpace instance
+            discoverySpace: An ado.model.space.DiscoverySpace instance
             batchsize: The iterators will return entities in batches of this size
 
         """
@@ -113,7 +113,7 @@ class GroupSampler(BaseSampler):
         the number of members of the associated group
 
         Parameters:
-            discoverySpace: An orchestrator.model.space.DiscoverySpace instance
+            discoverySpace: An ado.model.space.DiscoverySpace instance
         """
 
     @abc.abstractmethod

@@ -5,7 +5,7 @@ from typing import Annotated, Literal
 
 import pydantic
 
-from orchestrator.utilities.pydantic import validate_rfc_1123
+from ado.utilities.pydantic import validate_rfc_1123
 
 
 class PortForwardConfiguration(pydantic.BaseModel):

@@ -6,23 +6,23 @@ from typing import Annotated
 
 import typer
 
-from orchestrator.cli.models.parameters import (
+from ado.cli.models.parameters import (
     AdoUpgradeCommandParameters,
 )
-from orchestrator.cli.models.types import (
+from ado.cli.models.types import (
     AdoUpgradeSupportedResourceTypes,
 )
-from orchestrator.cli.resources.actuator_configuration.upgrade import (
+from ado.cli.resources.actuator_configuration.upgrade import (
     upgrade_actuator_configuration,
 )
-from orchestrator.cli.resources.data_container.upgrade import upgrade_data_container
-from orchestrator.cli.resources.discovery_space.upgrade import upgrade_discovery_space
-from orchestrator.cli.resources.operation.upgrade import upgrade_operation
-from orchestrator.cli.resources.sample_store.upgrade import upgrade_sample_store
-from orchestrator.cli.utils.input.parsers import enum_choice_with_plural_parser
+from ado.cli.resources.data_container.upgrade import upgrade_data_container
+from ado.cli.resources.discovery_space.upgrade import upgrade_discovery_space
+from ado.cli.resources.operation.upgrade import upgrade_operation
+from ado.cli.resources.sample_store.upgrade import upgrade_sample_store
+from ado.cli.utils.input.parsers import enum_choice_with_plural_parser
 
 if typing.TYPE_CHECKING:
-    from orchestrator.cli.core.config import AdoConfiguration
+    from ado.cli.core.config import AdoConfiguration
 
 
 def upgrade_resource(

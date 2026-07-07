@@ -6,13 +6,13 @@ import typer
 import yaml
 from rich.status import Status
 
-from orchestrator.cli.models.parameters import AdoCreateCommandParameters
-from orchestrator.cli.models.types import AdoCreateSupportedResourceTypes
-from orchestrator.cli.resources.actuator_configuration.create import (
+from ado.cli.models.parameters import AdoCreateCommandParameters
+from ado.cli.models.types import AdoCreateSupportedResourceTypes
+from ado.cli.resources.actuator_configuration.create import (
     create_actuator_configuration,
 )
-from orchestrator.cli.resources.discovery_space.create import create_discovery_space
-from orchestrator.cli.utils.output.prints import (
+from ado.cli.resources.discovery_space.create import create_discovery_space
+from ado.cli.utils.output.prints import (
     ADO_CREATE_DRY_RUN_CONFIG_VALID,
     ERROR,
     INFO,
@@ -23,23 +23,23 @@ from orchestrator.cli.utils.output.prints import (
     magenta,
     value_in_configuration_replaced_with_latest_identifier_for_resource,
 )
-from orchestrator.cli.utils.pydantic.updaters import override_values_in_pydantic_model
-from orchestrator.cli.utils.resources.formatters import most_important_status_update
-from orchestrator.core import CoreResourceKinds
-from orchestrator.core.operation.config import (
+from ado.cli.utils.pydantic.updaters import override_values_in_pydantic_model
+from ado.cli.utils.resources.formatters import most_important_status_update
+from ado.core import CoreResourceKinds
+from ado.core.operation.config import (
     DiscoveryOperationResourceConfiguration,
 )
-from orchestrator.core.operation.operation import OperationException, OperationOutput
-from orchestrator.core.operation.resource import (
+from ado.core.operation.operation import OperationException, OperationOutput
+from ado.core.operation.resource import (
     OperationExitStateEnum,
 )
-from orchestrator.modules.operators.errors import OperatorVersionMismatchError
+from ado.modules.operators.errors import OperatorVersionMismatchError
 
 
 def create_operation(parameters: AdoCreateCommandParameters) -> str | None:
 
-    import orchestrator.modules.operators.orchestrate
-    from orchestrator.modules.operators.base import InterruptedOperationError
+    import ado.modules.operators.orchestrate
+    from ado.modules.operators.base import InterruptedOperationError
 
     try:
         op_resource_configuration: DiscoveryOperationResourceConfiguration = (
@@ -152,7 +152,7 @@ def create_operation(parameters: AdoCreateCommandParameters) -> str | None:
         return None
 
     try:
-        operation_output = orchestrator.modules.operators.orchestrate.orchestrate(
+        operation_output = ado.modules.operators.orchestrate.orchestrate(
             operation_resource_configuration=op_resource_configuration,
             project_context=parameters.ado_configuration.project_context,
             discovery_space_identifier=op_resource_configuration.spaces[0],
@@ -196,7 +196,7 @@ def reuse_requested_latest_identifiers(
     parameters: AdoCreateCommandParameters,
 ) -> None:
     """Fetch latest resource identifiers from database in a single batch query."""
-    from orchestrator.cli.utils.generic.wrappers import get_sql_store
+    from ado.cli.utils.generic.wrappers import get_sql_store
 
     sql_store = get_sql_store(parameters.ado_configuration.project_context)
 

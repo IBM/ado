@@ -6,10 +6,10 @@ from typing import Annotated
 
 import pydantic
 
-from orchestrator.schema.entity import Entity
-from orchestrator.schema.property import ConstitutivePropertyDescriptor
-from orchestrator.schema.property_value import ConstitutivePropertyValue
-from orchestrator.schema.reference import ExperimentReference
+from ado.schema.entity import Entity
+from ado.schema.property import ConstitutivePropertyDescriptor
+from ado.schema.property_value import ConstitutivePropertyValue
+from ado.schema.reference import ExperimentReference
 
 
 class SpacePoint(pydantic.BaseModel):

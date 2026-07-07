@@ -7,10 +7,10 @@ from typing import Annotated
 
 import pydantic
 
-import orchestrator.utilities.location
-from orchestrator.core.metadata import ConfigurationMetadata
-from orchestrator.core.resources import ADOResource, CoreResourceKinds
-from orchestrator.utilities.pydantic import Defaultable
+import ado.utilities.location
+from ado.core.metadata import ConfigurationMetadata
+from ado.core.resources import ADOResource, CoreResourceKinds
+from ado.utilities.pydantic import Defaultable
 
 if typing.TYPE_CHECKING:  # pragma: nocover
     import pandas as pd
@@ -44,7 +44,7 @@ class TabularData(pydantic.BaseModel):
 
     def __rich__(self) -> "RenderableType":
         """Render this tabular data using rich."""
-        from orchestrator.utilities.rich import dataframe_to_rich_table
+        from ado.utilities.rich import dataframe_to_rich_table
 
         return dataframe_to_rich_table(self.dataframe())
 
@@ -59,10 +59,10 @@ class DataContainer(pydantic.BaseModel):
     locationData: Annotated[
         dict[
             str,
-            orchestrator.utilities.location.SQLStoreConfiguration
-            | orchestrator.utilities.location.StorageDatabaseConfiguration
-            | orchestrator.utilities.location.FilePathLocation
-            | orchestrator.utilities.location.ResourceLocation,
+            ado.utilities.location.SQLStoreConfiguration
+            | ado.utilities.location.StorageDatabaseConfiguration
+            | ado.utilities.location.FilePathLocation
+            | ado.utilities.location.ResourceLocation,
         ]
         | None,
         pydantic.Field(
@@ -100,7 +100,7 @@ class DataContainer(pydantic.BaseModel):
         from rich.panel import Panel
         from rich.text import Text
 
-        from orchestrator.utilities.rich import get_rich_repr
+        from ado.utilities.rich import get_rich_repr
 
         content = []
 

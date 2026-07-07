@@ -345,7 +345,7 @@ class PropertyDomain(pydantic.BaseModel):
         from rich.console import Group
         from rich.text import Text
 
-        from orchestrator.utilities.rich import get_rich_repr
+        from ado.utilities.rich import get_rich_repr
 
         lines = [
             Text.assemble(("Type: ", "bold"), self.variableType),
@@ -529,7 +529,7 @@ class PropertyDomain(pydantic.BaseModel):
 
         import numbers
 
-        from orchestrator.utilities.pydantic import (
+        from ado.utilities.pydantic import (
             model_dict_representation_with_field_exclusions_for_custom_model_serializer,
         )
 

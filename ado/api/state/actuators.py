@@ -5,10 +5,10 @@ import typing
 import ray
 from ray.actor import ActorHandle
 
-from orchestrator.modules.actuators.registry import ActuatorRegistry
+from ado.modules.actuators.registry import ActuatorRegistry
 
 if typing.TYPE_CHECKING:
-    from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
+    from ado.modules.actuators.measurement_queue import MeasurementQueue
 
 
 @ray.remote

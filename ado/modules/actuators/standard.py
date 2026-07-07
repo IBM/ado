@@ -28,18 +28,18 @@ import pydantic
 import ray
 from ray.actor import ActorHandle
 
-from orchestrator.modules.actuators.base import ActuatorBase
-from orchestrator.modules.actuators.executor_supervisor import (
+from ado.modules.actuators.base import ActuatorBase
+from ado.modules.actuators.executor_supervisor import (
     ExperimentExecutorSupervisor,
     ExperimentExecutorSupervisorParameters,
 )
-from orchestrator.modules.actuators.measurement_queue import MeasurementQueue, NullQueue
-from orchestrator.schema.entity import Entity
-from orchestrator.schema.experiment import Experiment, ParameterizedExperiment
-from orchestrator.schema.reference import ExperimentReference
-from orchestrator.schema.request import MeasurementRequest
-from orchestrator.schema.result import MeasurementResult  # noqa: TC001
-from orchestrator.utilities.support import (
+from ado.modules.actuators.measurement_queue import MeasurementQueue, NullQueue
+from ado.schema.entity import Entity
+from ado.schema.experiment import Experiment, ParameterizedExperiment
+from ado.schema.reference import ExperimentReference
+from ado.schema.request import MeasurementRequest
+from ado.schema.result import MeasurementResult  # noqa: TC001
+from ado.utilities.support import (
     compute_measurement_status,
     create_measurement_result,
     observed_property_values_from_dict,

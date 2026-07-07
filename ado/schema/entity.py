@@ -10,26 +10,26 @@ from typing import Annotated
 import pydantic
 from pydantic import ConfigDict
 
-from orchestrator.schema.experiment import Experiment
-from orchestrator.schema.observed_property import (
+from ado.schema.experiment import Experiment
+from ado.schema.observed_property import (
     ObservedProperty,
     ObservedPropertyValue,
 )
-from orchestrator.schema.property import (
+from ado.schema.property import (
     ConstitutiveProperty,
     ConstitutivePropertyDescriptor,
     MeasuredPropertyTypeEnum,
     Property,
     PropertyDescriptor,
 )
-from orchestrator.schema.property_value import ConstitutivePropertyValue
-from orchestrator.schema.reference import ExperimentReference
-from orchestrator.schema.result import (
+from ado.schema.property_value import ConstitutivePropertyValue
+from ado.schema.reference import ExperimentReference
+from ado.schema.result import (
     DuplicateMeasurementResultError,
     MeasurementResult,
     ValidMeasurementResult,
 )
-from orchestrator.schema.virtual_property import (
+from ado.schema.virtual_property import (
     PropertyAggregationMethod,
     PropertyAggregationMethodEnum,
     VirtualObservedProperty,
@@ -242,7 +242,7 @@ class Entity(pydantic.BaseModel):
         from rich.panel import Panel
         from rich.text import Text
 
-        from orchestrator.utilities.rich import dataframe_to_rich_table
+        from ado.utilities.rich import dataframe_to_rich_table
 
         content = [
             Text.assemble(

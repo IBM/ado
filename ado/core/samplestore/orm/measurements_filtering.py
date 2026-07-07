@@ -11,7 +11,7 @@ import sqlalchemy
 from sqlalchemy import Column, func, text
 from sqlalchemy.sql import ColumnElement
 
-from orchestrator.metastore.sql.statements import simulate_json_contains_on_sqlite
+from ado.metastore.sql.statements import simulate_json_contains_on_sqlite
 
 logger = logging.getLogger(__name__)
 

@@ -4,17 +4,17 @@ from typing import Annotated, NoReturn
 
 from fastapi import Depends, HTTPException, status
 
-from orchestrator.modules.actuators.errors import (
+from ado.modules.actuators.errors import (
     DeprecatedExperimentError,
     ExperimentVersionMismatchError,
     UnexpectedCatalogRetrievalError,
     UnknownExperimentError,
 )
-from orchestrator.modules.actuators.registry import (
+from ado.modules.actuators.registry import (
     ActuatorRegistry,
 )
-from orchestrator.schema.entity import Entity
-from orchestrator.schema.reference import ExperimentReference
+from ado.schema.entity import Entity
+from ado.schema.reference import ExperimentReference
 
 
 def _raise_http_for_experiment_lookup_error(

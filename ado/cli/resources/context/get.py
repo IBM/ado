@@ -6,9 +6,9 @@ import pydantic
 import typer
 import yaml
 
-from orchestrator.cli.models.parameters import AdoGetCommandParameters
-from orchestrator.cli.models.types import AdoGetSupportedOutputFormats
-from orchestrator.cli.utils.output.prints import (
+from ado.cli.models.parameters import AdoGetCommandParameters
+from ado.cli.models.types import AdoGetSupportedOutputFormats
+from ado.cli.utils.output.prints import (
     ADO_NO_CONTEXT_AVAILABLE_ERROR,
     ERROR,
     HINT,
@@ -16,7 +16,7 @@ from orchestrator.cli.utils.output.prints import (
     context_not_in_available_contexts_error_str,
     cyan,
 )
-from orchestrator.metastore.project import ProjectContext
+from ado.metastore.project import ProjectContext
 
 if typing.TYPE_CHECKING:
     import pandas as pd
@@ -67,7 +67,7 @@ def get_context(
             active_context=parameters.ado_configuration.active_context,
         )
 
-        from orchestrator.cli.utils.resources.handlers import handle_ado_get
+        from ado.cli.utils.resources.handlers import handle_ado_get
 
         handle_ado_get(parameters=parameters, dataframe=contexts_df)
         return
@@ -99,7 +99,7 @@ def get_context(
     if parameters.resource_id:
         to_print = to_print[0]
 
-    from orchestrator.cli.utils.resources.handlers import handle_ado_get
+    from ado.cli.utils.resources.handlers import handle_ado_get
 
     handle_ado_get(parameters=parameters, resources=to_print)
 

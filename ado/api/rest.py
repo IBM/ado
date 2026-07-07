@@ -1,5 +1,5 @@
 """
-"orchestrator/api/rest.py"
+"ado/api/rest.py"
 
 This module defines the FastAPI application and the Ray Serve deployment
 for the ADO (Accelerated Discovery Orchestrator) REST API.
@@ -8,7 +8,7 @@ The module performs the following tasks:
 
 * Creates a FastAPI instance and includes the API routers for the
 latest and v0 endpoints.
-* Configures coloured logging via :func:`orchestrator.utilities.logging.configure_logging`.
+* Configures coloured logging via :func:`ado.utilities.logging.configure_logging`.
 * Instantiates Ray actors to keep a global state for MeasurementRequests and actuators.
 * Exposes the API as a Ray Serve deployment, so it can be served in a Ray Serve cluster.
 
@@ -22,11 +22,11 @@ The code uses the ``serve`` decorator from Ray Serve to expose the
 from fastapi import FastAPI
 from ray import serve
 
-from orchestrator.api.routers.latest import latest
-from orchestrator.api.routers.v0 import v0
-from orchestrator.api.state.actuators import ActuatorDictionaryActor
-from orchestrator.api.state.queue import QueueMonitorActor
-from orchestrator.utilities.logging import configure_logging
+from ado.api.routers.latest import latest
+from ado.api.routers.v0 import v0
+from ado.api.state.actuators import ActuatorDictionaryActor
+from ado.api.state.queue import QueueMonitorActor
+from ado.utilities.logging import configure_logging
 
 app = FastAPI()
 
@@ -42,8 +42,8 @@ class AdoRESTApi:
         """Initialise the REST API deployment.
 
         The constructor configures coloured logging, then creates and
-        keeps references to the :class:`~orchestrator.api.state.queue.QueueMonitorActor`
-        and :class:`~orchestrator.api.state.actuator_actors.ActuatorDictionaryActor`.
+        keeps references to the :class:`~ado.api.state.queue.QueueMonitorActor`
+        and :class:`~ado.api.state.actuator_actors.ActuatorDictionaryActor`.
 
         Keeping the actor references as instance attributes prevents
         Ray from garbage-collecting them while the deployment remains

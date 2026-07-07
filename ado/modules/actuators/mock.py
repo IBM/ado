@@ -6,21 +6,21 @@ import logging
 import random
 import uuid
 
-import orchestrator.modules.actuators.catalog
-import orchestrator.schema.property_value
-from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
-from orchestrator.modules.actuators.base import ActuatorBase
-from orchestrator.modules.actuators.errors import DeprecatedExperimentError
-from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
-from orchestrator.schema.entity import Entity
-from orchestrator.schema.experiment import Experiment
-from orchestrator.schema.observed_property import ObservedPropertyValue
-from orchestrator.schema.property import AbstractPropertyDescriptor
-from orchestrator.schema.reference import ExperimentReference
-from orchestrator.schema.request import MeasurementRequest, MeasurementRequestStateEnum
-from orchestrator.schema.result import InvalidMeasurementResult, ValidMeasurementResult
-from orchestrator.utilities.environment import enable_ray_actor_coverage
-from orchestrator.utilities.logging import configure_logging
+import ado.modules.actuators.catalog
+import ado.schema.property_value
+from ado.core.actuatorconfiguration.config import GenericActuatorParameters
+from ado.modules.actuators.base import ActuatorBase
+from ado.modules.actuators.errors import DeprecatedExperimentError
+from ado.modules.actuators.measurement_queue import MeasurementQueue
+from ado.schema.entity import Entity
+from ado.schema.experiment import Experiment
+from ado.schema.observed_property import ObservedPropertyValue
+from ado.schema.property import AbstractPropertyDescriptor
+from ado.schema.reference import ExperimentReference
+from ado.schema.request import MeasurementRequest, MeasurementRequestStateEnum
+from ado.schema.result import InvalidMeasurementResult, ValidMeasurementResult
+from ado.utilities.environment import enable_ray_actor_coverage
+from ado.utilities.logging import configure_logging
 
 configure_logging()
 
@@ -62,7 +62,7 @@ class MockActuator(ActuatorBase):
         super().__init__(queue=queue, params=params)
         self.log = logging.getLogger("mock-actuator")
         self.log.info(f"Queue is {self._stateUpdateQueue}")
-        self._catalog = orchestrator.modules.actuators.catalog.ExperimentCatalog()
+        self._catalog = ado.modules.actuators.catalog.ExperimentCatalog()
         self.running_tasks = set()
 
     def submit(
@@ -121,7 +121,7 @@ class MockActuator(ActuatorBase):
                             0, 1000
                         ),
                         property=op,
-                        valueType=orchestrator.schema.property_value.ValueTypeEnum.NUMERIC_VALUE_TYPE,
+                        valueType=ado.schema.property_value.ValueTypeEnum.NUMERIC_VALUE_TYPE,
                     )
                     measurements.append(value)
 
@@ -157,8 +157,8 @@ class MockActuator(ActuatorBase):
     @classmethod
     def catalog(
         cls, actuator_configuration: GenericActuatorParameters | None = None
-    ) -> orchestrator.modules.actuators.catalog.ExperimentCatalog:
-        return orchestrator.modules.actuators.catalog.ExperimentCatalog(
+    ) -> ado.modules.actuators.catalog.ExperimentCatalog:
+        return ado.modules.actuators.catalog.ExperimentCatalog(
             catalogIdentifier=cls.identifier,
             experiments={
                 "test-experiment": Experiment(

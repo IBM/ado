@@ -5,12 +5,12 @@ from typing import Any
 
 from rich.console import Console
 
-from orchestrator.cli.utils.resources.mappings import (
+from ado.cli.utils.resources.mappings import (
     resource_kinds_to_human,
 )
-from orchestrator.core.resources import CoreResourceKinds
-from orchestrator.metastore.base import DeleteFromDatabaseError
-from orchestrator.modules.actuators.errors import UnknownExperimentError
+from ado.core.resources import CoreResourceKinds
+from ado.metastore.base import DeleteFromDatabaseError
+from ado.modules.actuators.errors import UnknownExperimentError
 
 if typing.TYPE_CHECKING:
     import pandas as pd

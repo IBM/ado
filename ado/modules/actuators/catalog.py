@@ -8,14 +8,14 @@ from typing import Annotated, Literal
 
 import pydantic
 
-from orchestrator.modules.actuators.errors import (
+from ado.modules.actuators.errors import (
     AmbiguousExperimentIdentifierError,
     DeprecatedExperimentError,
     ExperimentVersionMismatchError,
     UnknownExperimentError,
 )
-from orchestrator.schema.experiment import Experiment, ParameterizedExperiment
-from orchestrator.schema.reference import ExperimentReference
+from ado.schema.experiment import Experiment, ParameterizedExperiment
+from ado.schema.reference import ExperimentReference
 
 ExperimentReferenceMatchMode = Literal[
     "major_version",
@@ -85,7 +85,7 @@ class ExperimentCatalog(BaseCatalog):
         """
         Parameters:
             experiments: A dictionary whose keys are experiment identifiers
-                The values are orchestrator.model.data.Experiment instances
+                The values are ado.model.data.Experiment instances
 
         :return: An ExperimentCatalog subclass
         """
@@ -194,8 +194,8 @@ class ExperimentCatalog(BaseCatalog):
                 mismatch.
 
         Returns:
-            The matching :class:`~orchestrator.schema.experiment.Experiment` or
-            :class:`~orchestrator.schema.experiment.ParameterizedExperiment`, or
+            The matching :class:`~ado.schema.experiment.Experiment` or
+            :class:`~ado.schema.experiment.ParameterizedExperiment`, or
             ``None`` if no match is found and ``resolve=False``.
 
         Raises:

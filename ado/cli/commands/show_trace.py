@@ -7,34 +7,34 @@ from typing import Annotated, Any
 
 import typer
 
-from orchestrator.cli.exceptions.handlers import (
+from ado.cli.exceptions.handlers import (
     handle_no_related_resource,
     handle_resource_does_not_exist,
 )
-from orchestrator.cli.models.parameters import AdoShowTraceCommandParameters
-from orchestrator.cli.models.types import (
+from ado.cli.models.parameters import AdoShowTraceCommandParameters
+from ado.cli.models.types import (
     AdoShowTraceSupportedOutputFormats,
     AdoShowTraceSupportedResourceTypes,
 )
-from orchestrator.cli.resources.discovery_space.show_trace import (
+from ado.cli.resources.discovery_space.show_trace import (
     show_discovery_space_trace,
 )
-from orchestrator.cli.resources.operation.show_trace import show_operation_trace
-from orchestrator.cli.resources.sample_store.show_trace import show_sample_store_trace
-from orchestrator.cli.utils.generic.common import get_effective_resource_id
-from orchestrator.cli.utils.input.parsers import (
+from ado.cli.resources.operation.show_trace import show_operation_trace
+from ado.cli.resources.sample_store.show_trace import show_sample_store_trace
+from ado.cli.utils.generic.common import get_effective_resource_id
+from ado.cli.utils.input.parsers import (
     enum_choice_with_plural_parser,
     parse_key_value_pairs,
 )
-from orchestrator.cli.utils.output.prints import ERROR, console_print
-from orchestrator.cli.utils.queries.parser import prepare_query_filters_for_db
-from orchestrator.metastore.base import (
+from ado.cli.utils.output.prints import ERROR, console_print
+from ado.cli.utils.queries.parser import prepare_query_filters_for_db
+from ado.metastore.base import (
     NoRelatedResourcesError,
     ResourceDoesNotExistError,
 )
 
 if typing.TYPE_CHECKING:
-    from orchestrator.cli.core.config import AdoConfiguration
+    from ado.cli.core.config import AdoConfiguration
 
 
 def show_trace_for_resources(

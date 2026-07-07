@@ -10,49 +10,49 @@ import pydantic
 import typer
 import yaml
 
-from orchestrator.cli.models.types import AdoGetSupportedOutputFormats
-from orchestrator.cli.utils.generic.constants import (
+from ado.cli.models.types import AdoGetSupportedOutputFormats
+from ado.cli.utils.generic.constants import (
     SECONDS_IN_A_DAY,
     SECONDS_IN_A_MINUTE,
     SECONDS_IN_AN_HOUR,
 )
-from orchestrator.cli.utils.jsonpath.filters import remove_fields_from_dictionary
-from orchestrator.cli.utils.output.prints import (
+from ado.cli.utils.jsonpath.filters import remove_fields_from_dictionary
+from ado.cli.utils.output.prints import (
     ADO_GET_CONFIG_ONLY_WHEN_SINGLE_RESOURCE,
     ERROR,
     WARN,
     console_print,
 )
-from orchestrator.cli.utils.pydantic.constants import (
+from ado.cli.utils.pydantic.constants import (
     event_importance_order,
     minimize_output_context,
 )
-from orchestrator.core import (
+from ado.core import (
     ADOResource,
     CoreResourceKinds,
     DiscoverySpaceResource,
     OperationResource,
 )
-from orchestrator.core.discoveryspace.config import DiscoverySpaceConfiguration
-from orchestrator.core.metadata import ConfigurationMetadata
-from orchestrator.core.operation.resource import (
+from ado.core.discoveryspace.config import DiscoverySpaceConfiguration
+from ado.core.metadata import ConfigurationMetadata
+from ado.core.operation.resource import (
     OperationResourceEventEnum,
     OperationResourceStatus,
 )
-from orchestrator.core.resources import ADOResourceEventEnum, ADOResourceStatus
-from orchestrator.schema.domain import VariableTypeEnum
-from orchestrator.utilities.output import (
+from ado.core.resources import ADOResourceEventEnum, ADOResourceStatus
+from ado.schema.domain import VariableTypeEnum
+from ado.utilities.output import (
     printable_pydantic_model,
 )
-from orchestrator.utilities.pandas import reorder_dataframe_columns
+from ado.utilities.pandas import reorder_dataframe_columns
 
 if typing.TYPE_CHECKING:
     import pandas as pd
     from rich.status import Status
 
-    from orchestrator.cli.models.parameters import AdoGetCommandParameters
-    from orchestrator.metastore.project import ProjectContext
-    from orchestrator.metastore.sqlstore import SQLStore
+    from ado.cli.models.parameters import AdoGetCommandParameters
+    from ado.metastore.project import ProjectContext
+    from ado.metastore.sqlstore import SQLStore
 
 
 def format_default_ado_get_single_resource(
@@ -268,8 +268,8 @@ def format_ado_get_stats_for_operations(
         columns.
     """
 
-    from orchestrator.core.resources import CoreResourceKinds
-    from orchestrator.core.samplestore.base import SampleStore
+    from ado.core.resources import CoreResourceKinds
+    from ado.core.samplestore.base import SampleStore
 
     _RESULT_COLUMNS = [
         "TOTAL_RESULTS",
@@ -369,9 +369,9 @@ def format_ado_get_stats_for_spaces(
     then appends four lightweight columns.
 
     When ``include_heavy=True``, builds full
-    :class:`~orchestrator.core.discoveryspace.space.DiscoverySpace` instances
+    :class:`~ado.core.discoveryspace.space.DiscoverySpace` instances
     per samplestore group and delegates to
-    :func:`~orchestrator.core.discoveryspace.stats.space_statistics_for_spaces`
+    :func:`~ado.core.discoveryspace.stats.space_statistics_for_spaces`
     (which issues both the metastore and sample-store queries internally),
     then appends all lightweight **and** heavy columns in one pass.
 
@@ -388,10 +388,10 @@ def format_ado_get_stats_for_spaces(
             ``MATCHING_ENTITIES_WITH_ALL_MEASUREMENTS``).
             Requires ``space_resources`` and ``project_context``.
         space_resources: Mapping of space identifier → hydrated
-            :class:`~orchestrator.core.resources.ADOResource`.  Required when
+            :class:`~ado.core.resources.ADOResource`.  Required when
             ``include_heavy=True``; ignored otherwise.
         project_context: Project context used to instantiate
-            :class:`~orchestrator.core.discoveryspace.space.DiscoverySpace`.
+            :class:`~ado.core.discoveryspace.space.DiscoverySpace`.
             Required when ``include_heavy=True``; ignored otherwise.
 
     Returns:
@@ -408,8 +408,8 @@ def format_ado_get_stats_for_spaces(
         lightweight stats columns; heavy columns show ``None`` for spaces
         where the value cannot be determined.
     """
-    from orchestrator.core.resources import CoreResourceKinds
-    from orchestrator.core.samplestore.base import SampleStore
+    from ado.core.resources import CoreResourceKinds
+    from ado.core.samplestore.base import SampleStore
 
     space_ids: set[str] = set(df["IDENTIFIER"])
 
@@ -457,7 +457,7 @@ def format_ado_get_stats_for_spaces(
             samplestore_id_to_resource[samplestore_id] = samplestore_resource
             samplestore_id_to_space_ids.setdefault(samplestore_id, set()).add(space_id)
 
-    from orchestrator.core.discoveryspace.stats import (
+    from ado.core.discoveryspace.stats import (
         DiscoverySpaceStatistics,
         space_statistics_for_spaces,
     )
@@ -470,7 +470,7 @@ def format_ado_get_stats_for_spaces(
         # compute statistics in a single pass (phase 2).  Keeping the two phases
         # separate means the spinner never alternates between "Initialising" and
         # "Computing statistics" messages.
-        from orchestrator.core.discoveryspace.space import DiscoverySpace
+        from ado.core.discoveryspace.space import DiscoverySpace
 
         # Phase 1: initialise all spaces.
         total_spaces = len(space_ids)
@@ -617,7 +617,7 @@ def format_ado_get_stats_for_samplestores(
         ``ENTITIES``, ``RESULTS``, ``EXPERIMENTS``.
         Stores with no recorded data show ``0`` in all stats columns.
     """
-    from orchestrator.core.samplestore.base import SampleStore
+    from ado.core.samplestore.base import SampleStore
 
     samplestore_ids: list[str] = list(df["IDENTIFIER"])
     total_samplestores = len(samplestore_ids)

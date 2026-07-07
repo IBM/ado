@@ -9,14 +9,14 @@ from typing import Annotated
 import pydantic
 import typer
 
-import orchestrator.utilities.logging
-from orchestrator.utilities.location import (
+import ado.utilities.logging
+from ado.utilities.location import (
     SQLiteStoreConfiguration,
     SQLStoreConfiguration,
     db_scheme_discriminator,
 )
 
-FORMAT = orchestrator.utilities.logging.FORMAT
+FORMAT = ado.utilities.logging.FORMAT
 LOGLEVEL = os.environ.get("LOGLEVEL", "WARNING").upper()
 logging.basicConfig(level=LOGLEVEL, format=FORMAT)
 moduleLog = logging.getLogger("config")
@@ -35,10 +35,10 @@ class ProjectContext(pydantic.BaseModel):
     Provides information for storing/retrieving discovery space information from a project data-store.
 
     Note: The project name determines the names of the timeseries and metadata-store databases and users following
-    orchestrator rules.
+    ado rules.
 
     If None is passed for project name (its default), the name is deduced if possible from the timeseries and
-    metadata-store databases and users following orchestrator rules.
+    metadata-store databases and users following ado rules.
 
     Notes:
     - The project, user and sslVerify fields are used to set the related fields in metadataStore

@@ -6,22 +6,22 @@ import typing
 
 from rich.status import Status
 
-from orchestrator.cli.models.parameters import AdoTemplateCommandParameters
-from orchestrator.cli.utils.output.prints import (
+from ado.cli.models.parameters import AdoTemplateCommandParameters
+from ado.cli.utils.output.prints import (
     ADO_SPINNER_GETTING_OUTPUT_READY,
 )
-from orchestrator.cli.utils.resources.experiments import (
+from ado.cli.utils.resources.experiments import (
     _ado_lookup_cli_experiment,
 )
-from orchestrator.core.discoveryspace.config import DiscoverySpaceConfiguration
-from orchestrator.schema.measurementspace import MeasurementSpace
+from ado.core.discoveryspace.config import DiscoverySpaceConfiguration
+from ado.schema.measurementspace import MeasurementSpace
 
 if typing.TYPE_CHECKING:
-    from orchestrator.schema.entityspace import EntitySpaceRepresentation
+    from ado.schema.entityspace import EntitySpaceRepresentation
 
 
 def template_discovery_space(parameters: AdoTemplateCommandParameters) -> None:
-    from orchestrator.cli.utils.pydantic.serializers import (
+    from ado.cli.utils.pydantic.serializers import (
         serialise_pydantic_model,
         serialise_pydantic_model_json_schema,
     )

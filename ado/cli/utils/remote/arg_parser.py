@@ -4,14 +4,14 @@
 """Position-aware argument parsing utilities for remote submission preparation.
 
 This module provides parsing functions for flags explicitly defined in
-orchestrator.cli.models.remote_submission. These are used to prepare commands
+ado.cli.models.remote_submission. These are used to prepare commands
 for remote execution by handling flags that need special processing (stripping,
 file copying, value rewriting).
 """
 
 from collections.abc import Callable
 
-from orchestrator.cli.models.remote_submission import (
+from ado.cli.models.remote_submission import (
     ParsedRemoteSubmissionFlags,
     RemoteSubmissionFlagMatch,
     RemoteSubmissionFlagSpec,
@@ -38,7 +38,7 @@ def parse_argv_with_positions(
         ValueError: If a flag expecting a value is at the end of argv without a value.
 
     Examples:
-        >>> from orchestrator.cli.models.remote_submission import FILE_FLAG, CONTEXT_FLAG
+        >>> from ado.cli.models.remote_submission import FILE_FLAG, CONTEXT_FLAG
         >>> argv = ["-c", "ctx.yaml", "create", "op", "-f", "op.yaml"]
         >>> parsed = parse_argv_with_positions(argv, [FILE_FLAG, CONTEXT_FLAG])
         >>> len(parsed.handled_flags)
@@ -134,7 +134,7 @@ def strip_flags(
         New argument list without the specified flags.
 
     Examples:
-        >>> from orchestrator.cli.models.remote_submission import REMOTE_FLAG
+        >>> from ado.cli.models.remote_submission import REMOTE_FLAG
         >>> argv = ["-c", "ctx.yaml", "--remote", "exec.yaml", "create", "op"]
         >>> strip_flags(argv, [REMOTE_FLAG])
         ["-c", "ctx.yaml", "create", "op"]
@@ -170,7 +170,7 @@ def rewrite_flag_values(
 
     Examples:
         >>> from pathlib import Path
-        >>> from orchestrator.cli.models.remote_submission import FILE_FLAG
+        >>> from ado.cli.models.remote_submission import FILE_FLAG
         >>> def to_basename(flag, flag_def):
         ...     return Path(flag.value).name if flag.value else flag.value
         >>> argv = ["-f", "/path/to/file.yaml"]

@@ -7,34 +7,34 @@ from typing import Annotated
 
 import typer
 
-from orchestrator.cli.exceptions.handlers import (
+from ado.cli.exceptions.handlers import (
     handle_no_related_resource,
     handle_resource_does_not_exist,
     handle_unknown_experiment_error,
 )
-from orchestrator.cli.models.parameters import AdoDescribeCommandParameters
-from orchestrator.cli.models.types import AdoDescribeSupportedResourceTypes
-from orchestrator.cli.resources.data_container.describe import describe_data_container
-from orchestrator.cli.resources.discovery_space.describe import describe_discovery_space
-from orchestrator.cli.resources.experiment.describe import describe_experiment
-from orchestrator.cli.utils.generic.common import get_effective_resource_id
-from orchestrator.cli.utils.input.parsers import enum_choice_with_plural_parser
-from orchestrator.cli.utils.output.prints import (
+from ado.cli.models.parameters import AdoDescribeCommandParameters
+from ado.cli.models.types import AdoDescribeSupportedResourceTypes
+from ado.cli.resources.data_container.describe import describe_data_container
+from ado.cli.resources.discovery_space.describe import describe_discovery_space
+from ado.cli.resources.experiment.describe import describe_experiment
+from ado.cli.utils.generic.common import get_effective_resource_id
+from ado.cli.utils.input.parsers import enum_choice_with_plural_parser
+from ado.cli.utils.output.prints import (
     ERROR,
     console_print,
     cyan,
 )
-from orchestrator.metastore.base import (
+from ado.metastore.base import (
     NoRelatedResourcesError,
     ResourceDoesNotExistError,
 )
-from orchestrator.modules.actuators.errors import (
+from ado.modules.actuators.errors import (
     UnknownActuatorError,
     UnknownExperimentError,
 )
 
 if typing.TYPE_CHECKING:
-    from orchestrator.cli.core.config import AdoConfiguration
+    from ado.cli.core.config import AdoConfiguration
 
 SPACE_ONLY_OPTIONS = "Space-only options"
 

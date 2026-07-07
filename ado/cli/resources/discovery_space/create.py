@@ -6,10 +6,10 @@ import typer
 import yaml
 from rich.status import Status
 
-from orchestrator.cli.models.parameters import AdoCreateCommandParameters
-from orchestrator.cli.resources.sample_store.create import create_sample_store
-from orchestrator.cli.utils.generic.wrappers import get_sql_store
-from orchestrator.cli.utils.output.prints import (
+from ado.cli.models.parameters import AdoCreateCommandParameters
+from ado.cli.resources.sample_store.create import create_sample_store
+from ado.cli.utils.generic.wrappers import get_sql_store
+from ado.cli.utils.output.prints import (
     ADO_CREATE_DRY_RUN_CONFIG_VALID,
     ADO_SPINNER_SAVING_TO_DB,
     ERROR,
@@ -22,12 +22,12 @@ from orchestrator.cli.utils.output.prints import (
     magenta,
     value_in_configuration_replaced_with_latest_identifier_for_resource,
 )
-from orchestrator.cli.utils.pydantic.updaters import override_values_in_pydantic_model
-from orchestrator.core import CoreResourceKinds
-from orchestrator.core.discoveryspace.config import DiscoverySpaceConfiguration
-from orchestrator.core.discoveryspace.space import DiscoverySpace
-from orchestrator.metastore.base import ResourceDoesNotExistError
-from orchestrator.modules.actuators.errors import (
+from ado.cli.utils.pydantic.updaters import override_values_in_pydantic_model
+from ado.core import CoreResourceKinds
+from ado.core.discoveryspace.config import DiscoverySpaceConfiguration
+from ado.core.discoveryspace.space import DiscoverySpace
+from ado.metastore.base import ResourceDoesNotExistError
+from ado.modules.actuators.errors import (
     ExperimentVersionMismatchError,
     UnknownExperimentError,
 )
@@ -79,7 +79,7 @@ def create_discovery_space(parameters: AdoCreateCommandParameters) -> str | None
                 CoreResourceKinds.SAMPLESTORE
             ]
         else:
-            from orchestrator.cli.models.types import AdoCreateSupportedResourceTypes
+            from ado.cli.models.types import AdoCreateSupportedResourceTypes
 
             space_configuration.sampleStoreIdentifier = create_sample_store(
                 AdoCreateCommandParameters(
@@ -150,18 +150,18 @@ def create_discovery_space(parameters: AdoCreateCommandParameters) -> str | None
 
         console_print(info_message, stderr=True)
 
-        from orchestrator.core.samplestore.config import (
+        from ado.core.samplestore.config import (
             SampleStoreConfiguration,
             SampleStoreModuleConf,
             SampleStoreSpecification,
         )
-        from orchestrator.core.samplestore.utils import create_sample_store_resource
+        from ado.core.samplestore.utils import create_sample_store_resource
 
         sample_store_configuration = SampleStoreConfiguration(
             specification=SampleStoreSpecification(
                 module=SampleStoreModuleConf(
                     moduleClass="SQLSampleStore",
-                    moduleName="orchestrator.core.samplestore.sql",
+                    moduleName="ado.core.samplestore.sql",
                 ),
                 storageLocation=parameters.ado_configuration.project_context.metadataStore,
             )
@@ -219,8 +219,8 @@ def create_discovery_space(parameters: AdoCreateCommandParameters) -> str | None
         if not sql_store.containsResourceWithIdentifier(
             identifier="default", kind=CoreResourceKinds.SAMPLESTORE
         ):
-            from orchestrator.core import SampleStoreResource
-            from orchestrator.core.samplestore.config import (
+            from ado.core import SampleStoreResource
+            from ado.core.samplestore.config import (
                 SampleStoreConfiguration,
                 SampleStoreModuleConf,
                 SampleStoreSpecification,
@@ -234,7 +234,7 @@ def create_discovery_space(parameters: AdoCreateCommandParameters) -> str | None
                             specification=SampleStoreSpecification(
                                 module=SampleStoreModuleConf(
                                     moduleClass="SQLSampleStore",
-                                    moduleName="orchestrator.core.samplestore.sql",
+                                    moduleName="ado.core.samplestore.sql",
                                 ),
                                 storageLocation=parameters.ado_configuration.project_context.metadataStore,
                             )

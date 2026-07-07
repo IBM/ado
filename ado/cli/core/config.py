@@ -8,8 +8,8 @@ import pydantic
 import typer
 import yaml
 
-import orchestrator.metastore.project
-from orchestrator.cli.utils.output.prints import (
+import ado.metastore.project
+from ado.cli.utils.output.prints import (
     ERROR,
     HINT,
     INFO,
@@ -19,8 +19,8 @@ from orchestrator.cli.utils.output.prints import (
     green,
     magenta,
 )
-from orchestrator.metastore.project import ProjectContext
-from orchestrator.utilities.location import SQLiteStoreConfiguration
+from ado.metastore.project import ProjectContext
+from ado.utilities.location import SQLiteStoreConfiguration
 
 ADO_APP_NAME = "ado"
 ADO_CONTEXTS_DIR_NAME = "contexts"
@@ -250,7 +250,7 @@ class AdoConfiguration(pydantic.BaseModel):
 
     def project_context_model_for_context(
         self, context_name: str
-    ) -> orchestrator.metastore.project.ProjectContext:
+    ) -> ado.metastore.project.ProjectContext:
         """
         This function takes in a context name and returns the corresponding project context model.
 
@@ -258,7 +258,7 @@ class AdoConfiguration(pydantic.BaseModel):
         context_name (str): The name of the context.
 
         Returns:
-        orchestrator.metastore.project.ProjectContext: The project context model for the given context.
+        ado.metastore.project.ProjectContext: The project context model for the given context.
 
         Raises:
         ValueError: If no context file exists for the given context name.
@@ -267,7 +267,7 @@ class AdoConfiguration(pydantic.BaseModel):
         if not path or not path.is_file():
             raise ValueError(f"No context file exists for context {context_name}")
 
-        return orchestrator.metastore.project.ProjectContext.model_validate(
+        return ado.metastore.project.ProjectContext.model_validate(
             yaml.safe_load(
                 self.project_context_path_for_context(context_name).read_text()
             )

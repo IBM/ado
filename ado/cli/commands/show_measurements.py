@@ -7,41 +7,41 @@ from typing import Annotated
 
 import typer
 
-from orchestrator.cli.exceptions.handlers import (
+from ado.cli.exceptions.handlers import (
     handle_no_related_resource,
     handle_resource_does_not_exist,
 )
-from orchestrator.cli.models.parameters import AdoShowMeasurementsCommandParameters
-from orchestrator.cli.models.types import (
+from ado.cli.models.parameters import AdoShowMeasurementsCommandParameters
+from ado.cli.models.types import (
     AdoShowMeasurementsSupportedEntityTypes,
     AdoShowMeasurementsSupportedOutputFormats,
     AdoShowMeasurementsSupportedPropertyFormats,
     AdoShowMeasurementsSupportedResourceTypes,
 )
-from orchestrator.cli.resources.discovery_space.show_measurements import (
+from ado.cli.resources.discovery_space.show_measurements import (
     show_discovery_space_measurements,
 )
-from orchestrator.cli.resources.operation.show_measurements import (
+from ado.cli.resources.operation.show_measurements import (
     show_operation_measurements,
 )
-from orchestrator.cli.utils.generic.common import get_effective_resource_id
-from orchestrator.cli.utils.input.parsers import enum_choice_with_plural_parser
-from orchestrator.cli.utils.output.prints import (
+from ado.cli.utils.generic.common import get_effective_resource_id
+from ado.cli.utils.input.parsers import enum_choice_with_plural_parser
+from ado.cli.utils.output.prints import (
     ERROR,
     console_print,
 )
-from orchestrator.core.samplestore.base import (
+from ado.core.samplestore.base import (
     FailedToDecodeStoredEntityError,
     FailedToDecodeStoredMeasurementResultForEntityError,
 )
-from orchestrator.metastore.base import (
+from ado.metastore.base import (
     NoRelatedResourcesError,
     ResourceDoesNotExistError,
 )
-from orchestrator.schema.virtual_property import PropertyAggregationMethodEnum
+from ado.schema.virtual_property import PropertyAggregationMethodEnum
 
 if typing.TYPE_CHECKING:
-    from orchestrator.cli.core.config import AdoConfiguration
+    from ado.cli.core.config import AdoConfiguration
 
 SPACE_PANEL_NAME = "Space-only options"
 

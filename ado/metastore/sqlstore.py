@@ -9,15 +9,15 @@ from typing import TYPE_CHECKING, Literal
 import pydantic
 import sqlalchemy
 
-import orchestrator.core
-import orchestrator.metastore
-import orchestrator.metastore.sql.statements
-import orchestrator.utilities
-from orchestrator.core.datacontainer.stats import DataContainerStatistics
-from orchestrator.core.discoveryspace.stats import DiscoverySpaceStatistics
-from orchestrator.core.operation.config import DiscoveryOperationEnum
-from orchestrator.core.resources import ADOResourceEventEnum, CoreResourceKinds
-from orchestrator.metastore.base import (
+import ado.core
+import ado.metastore
+import ado.metastore.sql.statements
+import ado.utilities
+from ado.core.datacontainer.stats import DataContainerStatistics
+from ado.core.discoveryspace.stats import DiscoverySpaceStatistics
+from ado.core.operation.config import DiscoveryOperationEnum
+from ado.core.resources import ADOResourceEventEnum, CoreResourceKinds
+from ado.metastore.base import (
     DeleteFromDatabaseError,
     NonEmptySampleStorePreventingDeletionError,
     NotSupportedOnSQLiteError,
@@ -27,13 +27,13 @@ from orchestrator.metastore.base import (
     kind_custom_model_dump,
     kind_custom_model_load,
 )
-from orchestrator.metastore.project import ProjectContext
-from orchestrator.metastore.sql.utils import (
+from ado.metastore.project import ProjectContext
+from ado.metastore.sql.utils import (
     check_table_exists,
     create_sql_resource_store,
     engine_for_sql_store,
 )
-from orchestrator.utilities.pydantic import (
+from ado.utilities.pydantic import (
     do_not_populate_ado_provenance_context,
     ignore_plugin_validation_context,
     merge_validation_context,
@@ -53,7 +53,7 @@ class SQLStore(ResourceStore):
     def __new__(cls, project_context: ProjectContext) -> "SQLResourceStore":
         import logging
 
-        FORMAT = orchestrator.utilities.logging.FORMAT
+        FORMAT = ado.utilities.logging.FORMAT
         LOGLEVEL = os.environ.get("LOGLEVEL", "WARNING").upper()
         logging.basicConfig(level=LOGLEVEL, format=FORMAT)
         log = logging.getLogger("SQLStore")
@@ -128,7 +128,7 @@ class SQLResourceStore(ResourceStore):
         self.configuration = project_context.metadataStore
         self._engine = engine_for_sql_store(configuration=project_context.metadataStore)
 
-        FORMAT = orchestrator.utilities.logging.FORMAT
+        FORMAT = ado.utilities.logging.FORMAT
         LOGLEVEL = os.environ.get("LOGLEVEL", "WARNING").upper()
         logging.basicConfig(level=LOGLEVEL, format=FORMAT)
 
@@ -174,7 +174,7 @@ class SQLResourceStore(ResourceStore):
         data: dict,
         *,
         ignore_plugin_validation: bool = True,
-    ) -> orchestrator.core.resources.ADOResource:
+    ) -> ado.core.resources.ADOResource:
         """Deserialize stored JSON into a typed resource model.
 
         Args:
@@ -194,7 +194,7 @@ class SQLResourceStore(ResourceStore):
             ignore_plugin_validation_context if ignore_plugin_validation else None,
             do_not_populate_ado_provenance_context,
         )
-        return orchestrator.core.kindmap[kind].model_validate(data, context=context)
+        return ado.core.kindmap[kind].model_validate(data, context=context)
 
     def get_resource_and_producers(
         self,
@@ -202,7 +202,7 @@ class SQLResourceStore(ResourceStore):
         kind: CoreResourceKinds,
         chain: list[tuple[str, CoreResourceKinds]],
         raise_error_if_no_resource: bool = False,
-    ) -> list[orchestrator.core.resources.ADOResource | None]:
+    ) -> list[ado.core.resources.ADOResource | None]:
         """Fetch a resource and a chain of producer resources in a single SQL JOIN.
 
         Each entry in ``chain`` defines how to reach the next resource: the
@@ -228,7 +228,7 @@ class SQLResourceStore(ResourceStore):
 
         Returns:
             A list of ``len(chain) + 1`` deserialized
-            :class:`~orchestrator.core.resources.ADOResource` instances.  The
+            :class:`~ado.core.resources.ADOResource` instances.  The
             first element corresponds to the starting resource; subsequent
             elements correspond to each hop in ``chain``.
 
@@ -278,7 +278,7 @@ class SQLResourceStore(ResourceStore):
             d = json.loads(data_raw) if isinstance(data_raw, str) else data_raw
             resource = self._deserialize_resource(kind_val, d)
 
-            if orchestrator.core.resources.VersionIsGreaterThan(
+            if ado.core.resources.VersionIsGreaterThan(
                 resource.version, d.get("version", "v0")
             ):
                 self.updateResource(resource)
@@ -331,13 +331,13 @@ class SQLResourceStore(ResourceStore):
         kind: CoreResourceKinds,
         raise_error_if_no_resource: bool = False,
         ignore_plugin_validation: bool = True,
-    ) -> orchestrator.core.resources.ADOResource | None:
+    ) -> ado.core.resources.ADOResource | None:
         """Retrieve a resource from the SQL store.
 
         This method selects the resource with the given *identifier* and
         *kind* from the ``resources`` table.  The JSON payload stored in
         the database is deserialized and converted into the appropriate
-        :class:`~orchestrator.core.resources.ADOResource` subclass.
+        :class:`~ado.core.resources.ADOResource` subclass.
 
         If the stored version is older than the resource instance being
         retrieved (`resource.version`) the object is automatically updated
@@ -345,10 +345,10 @@ class SQLResourceStore(ResourceStore):
 
         Args:
             identifier: The unique identifier of the resource to fetch.
-            kind: The :class:`~orchestrator.core.resources.CoreResourceKinds`
+            kind: The :class:`~ado.core.resources.CoreResourceKinds`
                 enum value that specifies the expected resource kind.
             raise_error_if_no_resource: If ``True``, a
-                :class:`~orchestrator.metastore.base.ResourceDoesNotExistError`
+                :class:`~ado.metastore.base.ResourceDoesNotExistError`
                 is raised when the resource cannot be found.  When ``False``
                 (default) the method simply returns ``None``.
             ignore_plugin_validation: When ``True`` (default), nested operation
@@ -358,7 +358,7 @@ class SQLResourceStore(ResourceStore):
 
         Returns:
             An instance of the appropriate
-            :class:`~orchestrator.core.resources.ADOResource` subclass if the
+            :class:`~ado.core.resources.ADOResource` subclass if the
             resource was found; otherwise ``None`` when
             ``raise_error_if_no_resource`` is ``False``.
 
@@ -373,7 +373,7 @@ class SQLResourceStore(ResourceStore):
               JSON column is parsed.
             * Custom load functions registered in
               ``kind_custom_model_load`` are used when available; otherwise
-              the default Pydantic model from ``orchestrator.core.kindmap``
+              the default Pydantic model from ``ado.core.kindmap``
               is instantiated.
         """
 
@@ -398,7 +398,7 @@ class SQLResourceStore(ResourceStore):
             )
 
             # The stored resource should always have a version - if somehow it doesn't we want this to fail
-            if orchestrator.core.resources.VersionIsGreaterThan(
+            if ado.core.resources.VersionIsGreaterThan(
                 resource.version, d.get("version", "v0")
             ):
                 self.updateResource(resource)
@@ -413,13 +413,13 @@ class SQLResourceStore(ResourceStore):
         identifiers: list[str],
         ignore_validation_errors: bool = True,
         ignore_plugin_validation: bool = True,
-    ) -> dict[str, orchestrator.core.resources.ADOResource]:
+    ) -> dict[str, ado.core.resources.ADOResource]:
         """Retrieve multiple resources by identifier.
 
         This method queries the `resources` table for all rows whose
         ``identifier`` column matches an element of *identifiers*.  The
         JSON payload stored in the `data` column is deserialized and
-        converted into the appropriate :class:`orchestrator.core.resources.ADOResource`
+        converted into the appropriate :class:`ado.core.resources.ADOResource`
         subclass.  The resulting objects are returned in a dictionary that maps each
         identifier to its `ADOResource` instance.  Identifiers that
         are not present in the database are simply omitted from the
@@ -441,7 +441,7 @@ class SQLResourceStore(ResourceStore):
                 is raised when a resource fails validation.
 
         Returns:
-            dict[str, orchestrator.core.resources.ADOResource]:
+            dict[str, ado.core.resources.ADOResource]:
                 A mapping where each key is an identifier found in the
                 database and the value is the corresponding deserialized
                 resource instance. Resources are ordered by their `created`
@@ -517,7 +517,7 @@ class SQLResourceStore(ResourceStore):
         Args:
             kind (str):
                 The kind of resource to filter on.  Must be a value from
-                :class:`orchestrator.core.resources.CoreResourceKinds`.
+                :class:`ado.core.resources.CoreResourceKinds`.
             version (str | None, optional):
                 When provided only resources with this exact version are
                 returned.  Set to ``None`` to ignore the version filter.
@@ -566,36 +566,30 @@ class SQLResourceStore(ResourceStore):
 
         import pandas as pd
 
-        if kind not in [v.value for v in orchestrator.core.resources.CoreResourceKinds]:
+        if kind not in [v.value for v in ado.core.resources.CoreResourceKinds]:
             raise ValueError(f"Unknown kind specified: {kind}")
 
         # SELECT
         select_statement = "SELECT identifier"
-        select_name = (
-            orchestrator.metastore.sql.statements.resource_select_metadata_field(
-                field_name="name", needs_select=False, dialect=self.engine.dialect.name
-            )
+        select_name = ado.metastore.sql.statements.resource_select_metadata_field(
+            field_name="name", needs_select=False, dialect=self.engine.dialect.name
         )
-        select_age = (
-            orchestrator.metastore.sql.statements.resource_select_created_field(
-                as_age=True, needs_select=False, dialect=self.engine.dialect.name
-            )
+        select_age = ado.metastore.sql.statements.resource_select_created_field(
+            as_age=True, needs_select=False, dialect=self.engine.dialect.name
         )
 
         if details:
             select_description = (
-                orchestrator.metastore.sql.statements.resource_select_metadata_field(
+                ado.metastore.sql.statements.resource_select_metadata_field(
                     field_name="description",
                     needs_select=False,
                     dialect=self.engine.dialect.name,
                 )
             )
-            select_labels = (
-                orchestrator.metastore.sql.statements.resource_select_metadata_field(
-                    field_name="labels",
-                    needs_select=False,
-                    dialect=self.engine.dialect.name,
-                )
+            select_labels = ado.metastore.sql.statements.resource_select_metadata_field(
+                field_name="labels",
+                needs_select=False,
+                dialect=self.engine.dialect.name,
             )
 
             select_statement = f"{select_statement} {select_name} {select_description} {select_labels} {select_age} "
@@ -603,21 +597,17 @@ class SQLResourceStore(ResourceStore):
             select_statement = f"{select_statement} {select_name} {select_age} "
 
         # Add the status and space to the resources that have it
-        if kind == orchestrator.core.resources.CoreResourceKinds.OPERATION.value:
-            select_status = (
-                orchestrator.metastore.sql.statements.resource_select_data_field(
-                    field_name="status",
-                    needs_select=False,
-                    dialect=self.engine.dialect.name,
-                )
+        if kind == ado.core.resources.CoreResourceKinds.OPERATION.value:
+            select_status = ado.metastore.sql.statements.resource_select_data_field(
+                field_name="status",
+                needs_select=False,
+                dialect=self.engine.dialect.name,
             )
-            select_space = (
-                orchestrator.metastore.sql.statements.resource_select_data_field(
-                    field_name="config.spaces[0]",
-                    needs_select=False,
-                    dialect=self.engine.dialect.name,
-                    output_field_name="space",
-                )
+            select_space = ado.metastore.sql.statements.resource_select_data_field(
+                field_name="config.spaces[0]",
+                needs_select=False,
+                dialect=self.engine.dialect.name,
+                output_field_name="space",
             )
             select_statement = f"{select_statement} {select_status} {select_space}"
 
@@ -634,21 +624,21 @@ class SQLResourceStore(ResourceStore):
 
         for field_selector in field_selectors:
             for path, candidate in field_selector.items():
-                field_queries += orchestrator.metastore.sql.statements.resource_filter_by_arbitrary_selection(
-                    path=path,
-                    candidate=candidate,
-                    needs_where=False,
-                    dialect=self.engine.dialect.name,
+                field_queries += (
+                    ado.metastore.sql.statements.resource_filter_by_arbitrary_selection(
+                        path=path,
+                        candidate=candidate,
+                        needs_where=False,
+                        dialect=self.engine.dialect.name,
+                    )
                 )
 
         version_filter = f"AND version = '{version}'" if version else ""
         where_statement = f"""{where_statement} {field_queries} {version_filter}"""
 
         # ORDER BY
-        order_by_statement = (
-            orchestrator.metastore.sql.statements.resource_order_by_age_desc(
-                self.engine.dialect.name
-            )
+        order_by_statement = ado.metastore.sql.statements.resource_order_by_age_desc(
+            self.engine.dialect.name
         )
 
         query = f"{select_statement} {from_statement} {where_statement} {order_by_statement};"
@@ -682,7 +672,7 @@ class SQLResourceStore(ResourceStore):
             output_df["DESCRIPTION"] = table["description"]
             output_df["LABELS"] = table["labels"]
 
-        if kind == orchestrator.core.resources.CoreResourceKinds.OPERATION.value:
+        if kind == ado.core.resources.CoreResourceKinds.OPERATION.value:
             columns.insert(-1, "STATUS")
             output_df["STATUS"] = table["status"]
             columns.insert(-1, "SPACE")
@@ -736,7 +726,7 @@ class SQLResourceStore(ResourceStore):
         kind_values = [kind.value for kind in kinds]
 
         # Generate and execute the SQL query (returns bound TextClause)
-        query = orchestrator.metastore.sql.statements.resource_select_latest_by_kinds(
+        query = ado.metastore.sql.statements.resource_select_latest_by_kinds(
             kinds=kind_values,
             dialect=self.engine.dialect.name,
         )
@@ -769,7 +759,7 @@ class SQLResourceStore(ResourceStore):
         version: str | None = None,
         field_selectors: list[dict[str, str]] | None = None,
         ignore_validation_errors: bool = True,
-    ) -> dict[str, orchestrator.core.resources.ADOResource]:
+    ) -> dict[str, ado.core.resources.ADOResource]:
         """
         Retrieve all resources of a given kind.
 
@@ -780,7 +770,7 @@ class SQLResourceStore(ResourceStore):
 
         Args:
             kind (str): The kind of resources to fetch. Must be one of
-                :class:`orchestrator.core.resources.CoreResourceKinds`.
+                :class:`ado.core.resources.CoreResourceKinds`.
             version (str, optional): If supplied, only resources with this
                 exact version are returned.
             field_selectors (list[dict[str, str]], optional): A list of
@@ -792,15 +782,15 @@ class SQLResourceStore(ResourceStore):
                 ValueError is raised when a resource fails validation.
 
         Returns:
-            dict[str, orchestrator.core.resources.ADOResource]: A mapping
+            dict[str, ado.core.resources.ADOResource]: A mapping
             where the key is the resource identifier and the value is the
-            fully-deserialized :class:`orchestrator.core.resources.ADOResource`
+            fully-deserialized :class:`ado.core.resources.ADOResource`
             instance.  An empty dictionary is returned when no matching
             resources are found.
 
         Raises:
             ValueError: If ``kind`` is not a recognised
-                :class:`orchestrator.core.resources.CoreResourceKinds`
+                :class:`ado.core.resources.CoreResourceKinds`
                 value, or if ignore_validation_errors is False and a resource
                 fails validation.
 
@@ -973,9 +963,9 @@ class SQLResourceStore(ResourceStore):
 
         return row_count != 0
 
-    def addResource(self, resource: orchestrator.core.resources.ADOResource) -> None:
+    def addResource(self, resource: ado.core.resources.ADOResource) -> None:
 
-        if not isinstance(resource, orchestrator.core.resources.ADOResource):
+        if not isinstance(resource, ado.core.resources.ADOResource):
             raise ValueError(
                 f"Cannot add resource, {resource}, that is not a subclass of ADOResource"
             )
@@ -987,9 +977,7 @@ class SQLResourceStore(ResourceStore):
                 f"Use updateResource if you want to overwrite it"
             )
         resource.status.append(
-            orchestrator.core.resources.ADOResourceStatus(
-                event=ADOResourceEventEnum.ADDED
-            )
+            ado.core.resources.ADOResourceStatus(event=ADOResourceEventEnum.ADDED)
         )
         custom_model_dump = kind_custom_model_dump.get(resource.kind)
         if custom_model_dump:
@@ -1039,7 +1027,7 @@ class SQLResourceStore(ResourceStore):
 
     def addResourceWithRelationships(
         self,
-        resource: orchestrator.core.resources.ADOResource,
+        resource: ado.core.resources.ADOResource,
         relatedIdentifiers: list,
     ) -> None:
         """For the relationship, the resource id is stored as object and the other ids as subjects
@@ -1060,7 +1048,7 @@ class SQLResourceStore(ResourceStore):
                 subjectIdentifier=identifier, objectIdentifier=resource.identifier
             )
 
-    def updateResource(self, resource: orchestrator.core.resources.ADOResource) -> None:
+    def updateResource(self, resource: ado.core.resources.ADOResource) -> None:
         """Replaces any data stored against "resource.identifier" with resource
 
         Raises:
@@ -1069,9 +1057,7 @@ class SQLResourceStore(ResourceStore):
         """
 
         resource.status.append(
-            orchestrator.core.resources.ADOResourceStatus(
-                event=ADOResourceEventEnum.UPDATED
-            )
+            ado.core.resources.ADOResourceStatus(event=ADOResourceEventEnum.UPDATED)
         )
         custom_model_dump = kind_custom_model_dump.get(resource.kind)
         if custom_model_dump:
@@ -1080,7 +1066,7 @@ class SQLResourceStore(ResourceStore):
             representation = resource.model_dump_json()
 
         with self.engine.begin() as connectable:
-            query = orchestrator.metastore.sql.statements.resource_upsert(
+            query = ado.metastore.sql.statements.resource_upsert(
                 resource=resource,
                 json_representation=representation,
                 dialect=self.engine.dialect.name,
@@ -1503,12 +1489,12 @@ class SQLResourceStore(ResourceStore):
     ) -> (
         dict[CoreResourceKinds, set[str]]
         | dict[str, dict[CoreResourceKinds, set[str]]]
-        | dict[CoreResourceKinds, dict[str, "orchestrator.core.resources.ADOResource"]]
+        | dict[CoreResourceKinds, dict[str, "ado.core.resources.ADOResource"]]
         | dict[
             str,
             dict[
                 CoreResourceKinds,
-                dict[str, "orchestrator.core.resources.ADOResource"],
+                dict[str, "ado.core.resources.ADOResource"],
             ],
         ]
     ):
@@ -1517,14 +1503,14 @@ class SQLResourceStore(ResourceStore):
         Issues at most three SQL queries: when ``identifier=None`` a seed query
         fetches all identifiers of ``kind`` via
         :meth:`getResourceIdentifiersOfKind`; then one recursive traversal query
-        via :func:`orchestrator.metastore.sql.statements.graph_traversal_query`;
+        via :func:`ado.metastore.sql.statements.graph_traversal_query`;
         and, when ``identifiers_only=False``, one additional batched resource
         query via :meth:`getResources`. When ``identifier`` is a ``str`` or
         ``set[str]`` only the latter two queries (or one, if
         ``identifiers_only=True``) are issued.
 
         Args:
-            kind: The :class:`~orchestrator.core.resources.CoreResourceKinds` of
+            kind: The :class:`~ado.core.resources.CoreResourceKinds` of
                 the starting resources.
             identifier: Controls which resources are used as traversal origins.
 
@@ -1547,7 +1533,7 @@ class SQLResourceStore(ResourceStore):
                 resource levels) are silently capped at that maximum.
             identifiers_only: When ``False`` (default) discovered identifiers
                 are hydrated into full
-                :class:`~orchestrator.core.resources.ADOResource` objects via
+                :class:`~ado.core.resources.ADOResource` objects via
                 :meth:`getResources`. When ``True`` only discovered identifiers
                 are returned.
             include_start_resources: When ``True``, the start resource(s)
@@ -1634,7 +1620,7 @@ class SQLResourceStore(ResourceStore):
         # ------------------------------------------------------------------
         # The hierarchy maximum (3 hops across 4 levels) is enforced inside
         # graph_traversal_query; passing max_hops=None lets it use the full cap.
-        query = orchestrator.metastore.sql.statements.graph_traversal_query(
+        query = ado.metastore.sql.statements.graph_traversal_query(
             kind=kind,
             hierarchy_direction=hierarchy_direction,
             origin_identifiers=_identifiers_requested,
@@ -1685,13 +1671,13 @@ class SQLResourceStore(ResourceStore):
 
         hydrated: dict[
             str,
-            dict[CoreResourceKinds, dict[str, orchestrator.core.resources.ADOResource]],
+            dict[CoreResourceKinds, dict[str, ado.core.resources.ADOResource]],
         ] = {}
 
         for origin_identifier, related_identifiers_by_kind in related_by_origin.items():
             hydrated_related_resources_by_kind: dict[
                 CoreResourceKinds,
-                dict[str, orchestrator.core.resources.ADOResource],
+                dict[str, ado.core.resources.ADOResource],
             ] = {}
 
             for (
@@ -1746,7 +1732,7 @@ class SQLResourceStore(ResourceStore):
                 identifiers (``set[str]``).
 
         Returns:
-            :class:`~orchestrator.core.discoveryspace.stats.DiscoverySpaceStatistics`
+            :class:`~ado.core.discoveryspace.stats.DiscoverySpaceStatistics`
             for a single ``str`` input, or a
             ``dict[str, DiscoverySpaceStatistics]`` for a ``set[str]`` input.
 
@@ -1841,7 +1827,7 @@ class SQLResourceStore(ResourceStore):
 
         Returns:
             A ``dict`` keyed by DataContainer ID mapping each to its
-            :class:`~orchestrator.core.datacontainer.stats.DataContainerStatistics`.
+            :class:`~ado.core.datacontainer.stats.DataContainerStatistics`.
             IDs that are not present in the database are returned with all-zero
             stats.  An empty input set returns an empty dict immediately (no
             query issued).

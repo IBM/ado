@@ -6,7 +6,7 @@ from pathlib import Path
 import pydantic
 import yaml
 
-from orchestrator.cli.utils.output.prints import SUCCESS, console_print, magenta
+from ado.cli.utils.output.prints import SUCCESS, console_print, magenta
 
 
 def serialise_pydantic_model(
@@ -14,7 +14,7 @@ def serialise_pydantic_model(
     output_path: Path | None,
     suppress_success_message: bool = False,
 ) -> None:
-    from orchestrator.utilities.output import pydantic_model_as_yaml
+    from ado.utilities.output import pydantic_model_as_yaml
 
     yaml_content = pydantic_model_as_yaml(model)
 

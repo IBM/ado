@@ -6,33 +6,33 @@ import typing
 
 import pydantic
 
-from orchestrator.modules.actuators.catalog import (
+from ado.modules.actuators.catalog import (
     ExperimentCatalog,
 )
-from orchestrator.modules.actuators.errors import ExperimentVersionMismatchError
-from orchestrator.schema.entity import (
+from ado.modules.actuators.errors import ExperimentVersionMismatchError
+from ado.schema.entity import (
     CheckRequiredObservedPropertyValuesPresent,
     Entity,
 )
-from orchestrator.schema.entityspace import (
+from ado.schema.entityspace import (
     EntitySpaceRepresentation,
 )
-from orchestrator.schema.experiment import (
+from ado.schema.experiment import (
     Experiment,
     ExperimentType,
     ParameterizedExperiment,
 )
-from orchestrator.schema.observed_property import ObservedProperty
-from orchestrator.schema.property import AbstractPropertyDescriptor
-from orchestrator.schema.reference import (
+from ado.schema.observed_property import ObservedProperty
+from ado.schema.property import AbstractPropertyDescriptor
+from ado.schema.reference import (
     ExperimentReference,
     identifier_for_parameterized_experiment,
     reference_string_from_fields,
 )
-from orchestrator.schema.request import MeasurementRequest
-from orchestrator.schema.virtual_property import VirtualObservedProperty
-from orchestrator.utilities.logging import configure_logging
-from orchestrator.utilities.rich import render_to_string
+from ado.schema.request import MeasurementRequest
+from ado.schema.virtual_property import VirtualObservedProperty
+from ado.utilities.logging import configure_logging
+from ado.utilities.rich import render_to_string
 
 if typing.TYPE_CHECKING:
     from rich.console import RenderableType
@@ -92,11 +92,11 @@ class MeasurementSpace:
         experiments = []
         log.debug(f"processing {selectedExperiments}")
 
-        import orchestrator.modules.actuators.registry
+        import ado.modules.actuators.registry
 
         log.debug("Getting global registry")
         globalRegistry = (
-            orchestrator.modules.actuators.registry.ActuatorRegistry.globalRegistry()
+            ado.modules.actuators.registry.ActuatorRegistry.globalRegistry()
         )
         log.debug(f"Got global registry {globalRegistry}")
 
@@ -112,9 +112,9 @@ class MeasurementSpace:
                     resolve=True,
                 )
             except (
-                orchestrator.modules.actuators.errors.UnknownExperimentError,
-                orchestrator.modules.actuators.errors.UnknownActuatorError,
-                orchestrator.modules.actuators.errors.UnexpectedCatalogRetrievalError,
+                ado.modules.actuators.errors.UnknownExperimentError,
+                ado.modules.actuators.errors.UnknownActuatorError,
+                ado.modules.actuators.errors.UnexpectedCatalogRetrievalError,
                 ExperimentVersionMismatchError,
             ):
                 raise
@@ -189,8 +189,8 @@ class MeasurementSpace:
         from rich.panel import Panel
         from rich.text import Text
 
-        from orchestrator.utilities.pydantic import semver_major
-        from orchestrator.utilities.rich import dataframe_to_rich_table
+        from ado.utilities.pydantic import semver_major
+        from ado.utilities.rich import dataframe_to_rich_table
 
         content = []
 

@@ -10,9 +10,9 @@ from typing import Annotated, Any
 import pydantic
 from dateutil.tz import tzlocal
 
-from orchestrator.schema.entity import Entity
-from orchestrator.schema.reference import ExperimentReference
-from orchestrator.schema.result import (
+from ado.schema.entity import Entity
+from ado.schema.reference import ExperimentReference
+from ado.schema.result import (
     InvalidMeasurementResult,
     MeasurementResultType,
     ValidMeasurementResult,

@@ -5,14 +5,14 @@ import typing
 
 from rich.panel import Panel
 
-from orchestrator.schema.domain import PropertyDomain, VariableTypeEnum
-from orchestrator.schema.entity import Entity
-from orchestrator.schema.property import ConstitutiveProperty
-from orchestrator.schema.property_value import (
+from ado.schema.domain import PropertyDomain, VariableTypeEnum
+from ado.schema.entity import Entity
+from ado.schema.property import ConstitutiveProperty
+from ado.schema.property_value import (
     constitutive_property_values_from_point,
     validate_point_against_properties,
 )
-from orchestrator.schema.result import MeasurementResult
+from ado.schema.result import MeasurementResult
 
 if typing.TYPE_CHECKING:
     from rich.console import RenderableType
@@ -115,7 +115,7 @@ class EntitySpaceRepresentation:
         from rich.console import Group
         from rich.text import Text
 
-        from orchestrator.utilities.rich import dataframe_to_rich_table, get_rich_repr
+        from ado.utilities.rich import dataframe_to_rich_table, get_rich_repr
 
         content = []
 

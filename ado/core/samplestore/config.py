@@ -7,16 +7,16 @@ from typing import Annotated
 import pydantic
 from pydantic import ConfigDict
 
-import orchestrator.utilities.location
-from orchestrator.core.metadata import ConfigurationMetadata
-from orchestrator.modules.module import (
+import ado.utilities.location
+from ado.core.metadata import ConfigurationMetadata
+from ado.modules.module import (
     ModuleConf,
     ModuleTypeEnum,
     load_module_class_or_function,
 )
 
 if typing.TYPE_CHECKING:
-    from orchestrator.utilities.location import (
+    from ado.utilities.location import (
         SQLiteStoreConfiguration,
         SQLStoreConfiguration,
     )
@@ -63,7 +63,7 @@ class SampleStoreSpecification(pydantic.BaseModel):
         storageLocation: typing.Any | None,  # noqa: ANN401
     ) -> typing.Any | None:  # noqa: ANN401
         if storageLocation is not None and not isinstance(
-            storageLocation, orchestrator.utilities.location.ResourceLocation
+            storageLocation, ado.utilities.location.ResourceLocation
         ):
             raise ValueError(
                 "The storageLocation field must be a ResourceLocation subclass"
@@ -154,15 +154,11 @@ class SampleStoreConfiguration(pydantic.BaseModel):
     def check_sample_store_specification_class_is_active(
         cls, value: SampleStoreSpecification
     ) -> SampleStoreSpecification:
-        import orchestrator.core.samplestore.base
+        import ado.core.samplestore.base
 
-        moduleClass = orchestrator.modules.module.load_module_class_or_function(
-            value.module
-        )
+        moduleClass = ado.modules.module.load_module_class_or_function(value.module)
 
-        if not issubclass(
-            moduleClass, orchestrator.core.samplestore.base.ActiveSampleStore
-        ):
+        if not issubclass(moduleClass, ado.core.samplestore.base.ActiveSampleStore):
             raise ValueError(
                 f"SampleStore module {moduleClass} is not an ActiveSampleStore"
             )

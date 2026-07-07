@@ -3,7 +3,7 @@
 
 import typer
 
-from orchestrator.cli.utils.output.prints import console_print
+from ado.cli.utils.output.prints import console_print
 
 
 def print_version() -> None:

@@ -7,11 +7,11 @@ from typing import Annotated
 import pydantic
 import rich.box
 
-from orchestrator.core.discoveryspace.config import DiscoverySpaceConfiguration
-from orchestrator.core.metadata import PackageProvenance, ProvenanceInfo
-from orchestrator.core.resources import ADOResource, CoreResourceKinds
-from orchestrator.schema.measurementspace import MeasurementSpaceConfiguration
-from orchestrator.utilities.pydantic import Defaultable
+from ado.core.discoveryspace.config import DiscoverySpaceConfiguration
+from ado.core.metadata import PackageProvenance, ProvenanceInfo
+from ado.core.resources import ADOResource, CoreResourceKinds
+from ado.schema.measurementspace import MeasurementSpaceConfiguration
+from ado.utilities.pydantic import Defaultable
 
 if typing.TYPE_CHECKING:
     from rich.console import RenderableType
@@ -69,9 +69,9 @@ class DiscoverySpaceResource(ADOResource):
         from rich.panel import Panel
         from rich.text import Text
 
-        from orchestrator.schema.entityspace import EntitySpaceRepresentation
-        from orchestrator.schema.measurementspace import MeasurementSpace
-        from orchestrator.utilities.rich import get_rich_repr
+        from ado.schema.entityspace import EntitySpaceRepresentation
+        from ado.schema.measurementspace import MeasurementSpace
+        from ado.utilities.rich import get_rich_repr
 
         content = [
             Text("Identifier:", style="bold", end=" "),

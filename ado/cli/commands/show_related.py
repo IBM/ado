@@ -6,38 +6,38 @@ from typing import Annotated
 
 import typer
 
-from orchestrator.cli.exceptions.handlers import (
+from ado.cli.exceptions.handlers import (
     handle_no_related_resource,
     handle_resource_does_not_exist,
 )
-from orchestrator.cli.models.parameters import AdoShowRelatedCommandParameters
-from orchestrator.cli.models.types import AdoShowRelatedSupportedResourceTypes
-from orchestrator.cli.resources.actuator_configuration.show_related import (
+from ado.cli.models.parameters import AdoShowRelatedCommandParameters
+from ado.cli.models.types import AdoShowRelatedSupportedResourceTypes
+from ado.cli.resources.actuator_configuration.show_related import (
     show_resources_related_to_actuator_configuration,
 )
-from orchestrator.cli.resources.data_container.show_related import (
+from ado.cli.resources.data_container.show_related import (
     show_resources_related_to_data_container,
 )
-from orchestrator.cli.resources.discovery_space.show_related import (
+from ado.cli.resources.discovery_space.show_related import (
     show_resources_related_to_discovery_space,
 )
-from orchestrator.cli.resources.operation.show_related import (
+from ado.cli.resources.operation.show_related import (
     show_resources_related_to_operation,
 )
-from orchestrator.cli.resources.sample_store.show_related import (
+from ado.cli.resources.sample_store.show_related import (
     show_resources_related_to_sample_store,
 )
-from orchestrator.cli.utils.generic.common import get_effective_resource_id
-from orchestrator.cli.utils.input.parsers import enum_choice_with_plural_parser
-from orchestrator.cli.utils.output.prints import ERROR, console_print
-from orchestrator.metastore.base import (
+from ado.cli.utils.generic.common import get_effective_resource_id
+from ado.cli.utils.input.parsers import enum_choice_with_plural_parser
+from ado.cli.utils.output.prints import ERROR, console_print
+from ado.metastore.base import (
     NoRelatedResourcesError,
     ResourceDoesNotExistError,
 )
-from orchestrator.metastore.sql.statements import _MAX_HIERARCHY_HOPS
+from ado.metastore.sql.statements import _MAX_HIERARCHY_HOPS
 
 if typing.TYPE_CHECKING:
-    from orchestrator.cli.core.config import AdoConfiguration
+    from ado.cli.core.config import AdoConfiguration
 
 
 def show_related_for_resources(

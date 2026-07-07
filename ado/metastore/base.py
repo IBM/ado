@@ -9,12 +9,12 @@ import pydantic
 if TYPE_CHECKING:
     import pandas as pd
 
-    from orchestrator.core.datacontainer.stats import DataContainerStatistics
-    from orchestrator.core.discoveryspace.stats import DiscoverySpaceStatistics
+    from ado.core.datacontainer.stats import DataContainerStatistics
+    from ado.core.discoveryspace.stats import DiscoverySpaceStatistics
 
-from orchestrator.core.resources import ADOResource, CoreResourceKinds
-from orchestrator.core.samplestore.resource import SampleStoreResource
-from orchestrator.utilities.location import (
+from ado.core.resources import ADOResource, CoreResourceKinds
+from ado.core.samplestore.resource import SampleStoreResource
+from ado.utilities.location import (
     SQLiteStoreConfiguration,
     SQLStoreConfiguration,
 )
@@ -328,7 +328,7 @@ class ResourceStore(abc.ABC):
         """Walk the resource hierarchy and return related resources.
 
         Args:
-            kind: The :class:`~orchestrator.core.resources.CoreResourceKinds` of
+            kind: The :class:`~ado.core.resources.CoreResourceKinds` of
                 the starting resources.
             identifier: Controls which resources are used as traversal origins.
                 ``str`` for a single start resource, ``set[str]`` for multiple,
@@ -339,7 +339,7 @@ class ResourceStore(abc.ABC):
                 traverses to the full depth of the hierarchy.
             identifiers_only: When ``True`` return only discovered identifiers;
                 when ``False`` (default) return hydrated
-                :class:`~orchestrator.core.resources.ADOResource` objects.
+                :class:`~ado.core.resources.ADOResource` objects.
             include_start_resources: When ``True`` include the start resource(s)
                 in the result. Requires ``identifiers_only=False`` and
                 ``identifier`` to be a ``str`` or ``set[str]``.
@@ -361,7 +361,7 @@ class ResourceStore(abc.ABC):
 
         All counts are computed with pure SQL against the ``resources`` and
         ``resource_relationships`` tables — no sample store access is needed.
-        The returned :class:`~orchestrator.core.discoveryspace.stats.DiscoverySpaceStatistics`
+        The returned :class:`~ado.core.discoveryspace.stats.DiscoverySpaceStatistics`
         objects only have ``number_of_experiments``, ``number_of_operations``,
         and ``number_of_explore_operations`` populated; all other fields are
         ``None`` or ``0`` as appropriate.
@@ -372,11 +372,11 @@ class ResourceStore(abc.ABC):
 
         Returns:
             When ``space_ids`` is a ``str``: a
-            :class:`~orchestrator.core.discoveryspace.stats.DiscoverySpaceStatistics`
+            :class:`~ado.core.discoveryspace.stats.DiscoverySpaceStatistics`
             for that space.
             When ``space_ids`` is a ``set[str]``: a ``dict`` keyed by space ID
             mapping each to its
-            :class:`~orchestrator.core.discoveryspace.stats.DiscoverySpaceStatistics`.
+            :class:`~ado.core.discoveryspace.stats.DiscoverySpaceStatistics`.
             Space IDs that have no operations are included with zero counts.
         """
 
@@ -392,7 +392,7 @@ class ResourceStore(abc.ABC):
 
         Returns:
             A ``dict`` keyed by DataContainer ID mapping each to its
-            :class:`~orchestrator.core.datacontainer.stats.DataContainerStatistics`.
+            :class:`~ado.core.datacontainer.stats.DataContainerStatistics`.
             IDs that are not present in the database are returned with all-zero
             stats.  An empty input set returns an empty dict immediately
             (no query issued).
@@ -456,7 +456,7 @@ def sample_store_load(
             storage_location.model_dump()
         )
 
-    from orchestrator.utilities.pydantic import (
+    from ado.utilities.pydantic import (
         do_not_populate_ado_provenance_context,
     )
 

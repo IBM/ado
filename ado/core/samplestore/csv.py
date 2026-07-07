@@ -9,17 +9,17 @@ import pydantic
 if TYPE_CHECKING:
     import pandas as pd
 
-import orchestrator.core.samplestore.config
-import orchestrator.utilities.location
-from orchestrator.core.samplestore.base import (
+import ado.core.samplestore.config
+import ado.utilities.location
+from ado.core.samplestore.base import (
     PassiveSampleStore,
     SampleStoreDescription,
 )
-from orchestrator.modules.actuators.catalog import ExperimentCatalog
-from orchestrator.schema.entity import Entity
-from orchestrator.schema.observed_property import ObservedPropertyValue
-from orchestrator.schema.property_value import ConstitutivePropertyValue
-from orchestrator.schema.result import ValidMeasurementResult
+from ado.modules.actuators.catalog import ExperimentCatalog
+from ado.schema.entity import Entity
+from ado.schema.observed_property import ObservedPropertyValue
+from ado.schema.property_value import ConstitutivePropertyValue
+from ado.schema.result import ValidMeasurementResult
 
 
 def warn_deprecated_csv_sample_store_model_in_use(
@@ -153,15 +153,13 @@ class CSVSampleStore(PassiveSampleStore):
         return CSVSampleStoreDescription.model_validate(parameters)
 
     @staticmethod
-    def storage_location_class() -> type[
-        orchestrator.utilities.location.FilePathLocation
-    ]:
-        return orchestrator.utilities.location.FilePathLocation
+    def storage_location_class() -> type[ado.utilities.location.FilePathLocation]:
+        return ado.utilities.location.FilePathLocation
 
     @classmethod
     def experimentCatalogFromReference(
         cls,
-        reference: orchestrator.core.samplestore.config.SampleStoreReference = None,
+        reference: ado.core.samplestore.config.SampleStoreReference = None,
     ) -> ExperimentCatalog:
         """
         :param reference: A SampleStoreReference instance
@@ -202,7 +200,7 @@ class CSVSampleStore(PassiveSampleStore):
         """
         import pandas as pd
 
-        from orchestrator.core.samplestore.base import (
+        from ado.core.samplestore.base import (
             ExternalExperimentDescription,
             InternalExperimentDescription,
         )
@@ -242,15 +240,13 @@ class CSVSampleStore(PassiveSampleStore):
         )
 
         return CSVSampleStore(
-            storageLocation=orchestrator.utilities.location.FilePathLocation(
-                path=csvPath
-            ),
+            storageLocation=ado.utilities.location.FilePathLocation(path=csvPath),
             parameters=csvDescription,
         )
 
     def __init__(
         self,
-        storageLocation: orchestrator.utilities.location.FilePathLocation,
+        storageLocation: ado.utilities.location.FilePathLocation,
         parameters: CSVSampleStoreDescription,
     ) -> None:
         """
@@ -317,7 +313,7 @@ class CSVSampleStore(PassiveSampleStore):
         return self.sourceDescription.model_copy()
 
     @property
-    def location(self) -> orchestrator.utilities.location.ResourceLocation:
+    def location(self) -> ado.utilities.location.ResourceLocation:
         return self.storageLocation.model_copy()
 
     def _validate_required_columns(self) -> None:

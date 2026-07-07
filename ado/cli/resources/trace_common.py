@@ -147,8 +147,8 @@ def build_request_level_rows(
     Returns:
         A list of row dicts suitable for constructing a pandas DataFrame.
     """
-    from orchestrator.schema.request import ReplayedMeasurement
-    from orchestrator.schema.result import (
+    from ado.schema.request import ReplayedMeasurement
+    from ado.schema.result import (
         InvalidMeasurementResult,
         ValidMeasurementResult,
     )
@@ -218,8 +218,8 @@ def build_result_level_rows(
     Returns:
         A list of row dicts suitable for constructing a pandas DataFrame.
     """
-    from orchestrator.schema.request import ReplayedMeasurement
-    from orchestrator.schema.result import (
+    from ado.schema.request import ReplayedMeasurement
+    from ado.schema.result import (
         InvalidMeasurementResult,
         ValidMeasurementResult,
     )

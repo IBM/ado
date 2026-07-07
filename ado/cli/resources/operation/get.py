@@ -1,9 +1,9 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-from orchestrator.cli.models.parameters import AdoGetCommandParameters
-from orchestrator.cli.utils.resources.handlers import handle_ado_get
-from orchestrator.core.resources import CoreResourceKinds
+from ado.cli.models.parameters import AdoGetCommandParameters
+from ado.cli.utils.resources.handlers import handle_ado_get
+from ado.core.resources import CoreResourceKinds
 
 
 def get_operation(parameters: AdoGetCommandParameters) -> None:

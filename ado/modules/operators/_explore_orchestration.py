@@ -8,39 +8,39 @@ import typing
 import ray
 import ray.util.queue
 
-from orchestrator.core import OperationResource
-from orchestrator.core.discoveryspace.space import DiscoverySpace
-from orchestrator.core.operation.config import (
+from ado.core import OperationResource
+from ado.core.discoveryspace.space import DiscoverySpace
+from ado.core.operation.config import (
     FunctionOperationInfo,
     OperatorMetadata,
 )
-from orchestrator.core.operation.operation import OperationOutput
-from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
-from orchestrator.modules.operators import _cleanup
-from orchestrator.modules.operators._cleanup import (
+from ado.core.operation.operation import OperationOutput
+from ado.modules.actuators.measurement_queue import MeasurementQueue
+from ado.modules.operators import _cleanup
+from ado.modules.operators._cleanup import (
     CLEANER_ACTOR,
     cleanup_callback_functions,
     graceful_operation_shutdown_signal_handler,
     initialize_ray_resource_cleaner,
 )
-from orchestrator.modules.operators._orchestrate_core import (
+from ado.modules.operators._orchestrate_core import (
     _run_operation_harness,
     log_space_details,
 )
-from orchestrator.modules.operators.console_output import (
+from ado.modules.operators.console_output import (
     RichConsoleQueue,
     run_operation_live_updates,
 )
-from orchestrator.modules.operators.discovery_space_manager import DiscoverySpaceManager
+from ado.modules.operators.discovery_space_manager import DiscoverySpaceManager
 
 moduleLog = logging.getLogger("explore_orchestration")
 
 if typing.TYPE_CHECKING:
-    from orchestrator.modules.actuators.base import ActuatorActor
-    from orchestrator.modules.operators.base import (
+    from ado.modules.actuators.base import ActuatorActor
+    from ado.modules.operators.base import (
         OperatorActor,
     )
-    from orchestrator.modules.operators.discovery_space_manager import (
+    from ado.modules.operators.discovery_space_manager import (
         DiscoverySpaceManagerActor,
     )
 
@@ -201,7 +201,7 @@ def orchestrate_explore_operation(
 
     import uuid
 
-    import orchestrator.modules.operators.setup
+    import ado.modules.operators.setup
 
     if not operation_info.ray_namespace:
         operation_info.ray_namespace = (
@@ -233,7 +233,7 @@ def orchestrate_explore_operation(
     # Will raise ray.exceptions.ActorDiedError if any actuator died during init
     # Will raise ValueError if there is a mismatch between  the Actuators and
     # the actuator configurations
-    actuators = orchestrator.modules.operators.setup.setup_actuators(
+    actuators = ado.modules.operators.setup.setup_actuators(
         actuator_configuration_identifiers=operation_info.actuatorConfigurationIdentifiers,
         discovery_space=discovery_space,
         measurement_queue=measurement_queue,
@@ -265,7 +265,7 @@ def orchestrate_explore_operation(
     #
 
     # Create operator actor
-    operator = orchestrator.modules.operators.setup.setup_operator(
+    operator = ado.modules.operators.setup.setup_operator(
         operator_metadata=operator_metadata,
         parameters=parameters,
         discovery_space=discovery_space,

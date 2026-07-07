@@ -4,14 +4,14 @@
 import logging
 from typing import Any, NamedTuple
 
-from orchestrator.schema.entity import Entity
-from orchestrator.schema.experiment import Experiment, ParameterizedExperiment
-from orchestrator.schema.measurementspace import MeasurementSpace
-from orchestrator.schema.observed_property import ObservedPropertyValue
-from orchestrator.schema.property_value import ValueTypeEnum
-from orchestrator.schema.reference import ExperimentReference
-from orchestrator.schema.request import MeasurementRequest, MeasurementRequestStateEnum
-from orchestrator.schema.result import (
+from ado.schema.entity import Entity
+from ado.schema.experiment import Experiment, ParameterizedExperiment
+from ado.schema.measurementspace import MeasurementSpace
+from ado.schema.observed_property import ObservedPropertyValue
+from ado.schema.property_value import ValueTypeEnum
+from ado.schema.reference import ExperimentReference
+from ado.schema.request import MeasurementRequest, MeasurementRequestStateEnum
+from ado.schema.result import (
     InvalidMeasurementResult,
     MeasurementResult,
     ValidMeasurementResult,

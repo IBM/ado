@@ -3,14 +3,14 @@
 
 from rich.status import Status
 
-from orchestrator.cli.models.parameters import AdoShowMeasurementsCommandParameters
-from orchestrator.cli.utils.generic.wrappers import get_sql_store
-from orchestrator.cli.utils.output.dataframes import df_to_output
-from orchestrator.cli.utils.output.prints import (
+from ado.cli.models.parameters import AdoShowMeasurementsCommandParameters
+from ado.cli.utils.generic.wrappers import get_sql_store
+from ado.cli.utils.output.dataframes import df_to_output
+from ado.cli.utils.output.prints import (
     ADO_SPINNER_QUERYING_DB,
 )
-from orchestrator.core.discoveryspace.space import DiscoverySpace
-from orchestrator.metastore.base import (
+from ado.core.discoveryspace.space import DiscoverySpace
+from ado.metastore.base import (
     NoRelatedResourcesError,
     ResourceDoesNotExistError,
 )

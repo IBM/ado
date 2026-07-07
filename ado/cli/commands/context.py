@@ -6,20 +6,20 @@ from typing import Annotated
 
 import typer
 
-from orchestrator.cli.models.parameters import AdoGetCommandParameters
-from orchestrator.cli.models.types import (
+from ado.cli.models.parameters import AdoGetCommandParameters
+from ado.cli.models.types import (
     AdoGetSupportedOutputFormats,
     AdoGetSupportedResourceTypes,
 )
-from orchestrator.cli.resources.context.activate import activate_context
-from orchestrator.cli.resources.context.get import get_context
-from orchestrator.cli.utils.output.prints import (
+from ado.cli.resources.context.activate import activate_context
+from ado.cli.resources.context.get import get_context
+from ado.cli.utils.output.prints import (
     ADO_NO_ACTIVE_CONTEXT_ERROR,
     console_print,
 )
 
 if typing.TYPE_CHECKING:
-    from orchestrator.cli.core.config import AdoConfiguration
+    from ado.cli.core.config import AdoConfiguration
 
 
 def manage_contexts(

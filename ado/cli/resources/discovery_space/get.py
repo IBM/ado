@@ -7,30 +7,30 @@ import typer
 import yaml
 from rich.status import Status
 
-from orchestrator.cli.models.parameters import AdoGetCommandParameters
-from orchestrator.cli.models.types import (
+from ado.cli.models.parameters import AdoGetCommandParameters
+from ado.cli.models.types import (
     AdoGetSupportedOutputFormats,
 )
-from orchestrator.cli.utils.generic.wrappers import get_sql_store
-from orchestrator.cli.utils.output.prints import (
+from ado.cli.utils.generic.wrappers import get_sql_store
+from ado.cli.utils.output.prints import (
     ADO_SPINNER_GETTING_OUTPUT_READY,
     ADO_SPINNER_QUERYING_DB,
     ERROR,
     console_print,
 )
-from orchestrator.cli.utils.queries.parser import prepare_query_filters_for_db
-from orchestrator.cli.utils.resources.formatters import (
+from ado.cli.utils.queries.parser import prepare_query_filters_for_db
+from ado.cli.utils.resources.formatters import (
     build_resource_listing_dataframe,
     format_default_ado_get_multiple_resources,
 )
-from orchestrator.core import DiscoverySpaceResource
-from orchestrator.core.discoveryspace.config import (
+from ado.core import DiscoverySpaceResource
+from ado.core.discoveryspace.config import (
     DiscoverySpaceConfiguration,
     SpaceHierarchy,
 )
-from orchestrator.core.resources import CoreResourceKinds
-from orchestrator.schema.entityspace import EntitySpaceRepresentation
-from orchestrator.schema.point import SpacePoint
+from ado.core.resources import CoreResourceKinds
+from ado.schema.entityspace import EntitySpaceRepresentation
+from ado.schema.point import SpacePoint
 
 if typing.TYPE_CHECKING:
     import pandas as pd
@@ -39,7 +39,7 @@ if typing.TYPE_CHECKING:
 def get_discovery_space(parameters: AdoGetCommandParameters) -> None:
 
     if parameters.matching_point:
-        from orchestrator.cli.utils.resources.handlers import handle_ado_get
+        from ado.cli.utils.resources.handlers import handle_ado_get
 
         matching_spaces = _find_spaces_matching_point(parameters)
 
@@ -61,7 +61,7 @@ def get_discovery_space(parameters: AdoGetCommandParameters) -> None:
         return
 
     if parameters.matching_space or parameters.matching_space_id:
-        from orchestrator.cli.utils.resources.handlers import handle_ado_get
+        from ado.cli.utils.resources.handlers import handle_ado_get
 
         matching_spaces = _find_spaces_matching_space(parameters)
         # Use DataFrame for rendering
@@ -69,7 +69,7 @@ def get_discovery_space(parameters: AdoGetCommandParameters) -> None:
         return
 
     # Standard case: use unified handler with resource_type
-    from orchestrator.cli.utils.resources.handlers import handle_ado_get
+    from ado.cli.utils.resources.handlers import handle_ado_get
 
     handle_ado_get(
         parameters=parameters, resource_type=CoreResourceKinds.DISCOVERYSPACE

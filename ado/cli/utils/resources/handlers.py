@@ -11,14 +11,14 @@ import yaml
 from rich.console import RenderableType
 from rich.status import Status
 
-from orchestrator.cli.models.types import (
+from ado.cli.models.types import (
     AdoEditSupportedEditors,
     AdoGetSupportedOutputFormats,
     AdoShowTraceSupportedOutputFormats,
 )
-from orchestrator.cli.utils.generic.wrappers import get_sql_store
-from orchestrator.cli.utils.output.dataframes import df_to_output
-from orchestrator.cli.utils.output.prints import (
+from ado.cli.utils.generic.wrappers import get_sql_store
+from ado.cli.utils.output.dataframes import df_to_output
+from ado.cli.utils.output.prints import (
     ADO_GET_CONFIG_ONLY_WHEN_SINGLE_RESOURCE,
     ADO_INFO_EMPTY_DATAFRAME,
     ADO_SPINNER_GETTING_OUTPUT_READY,
@@ -29,7 +29,7 @@ from orchestrator.cli.utils.output.prints import (
     console_print,
     cyan,
 )
-from orchestrator.cli.utils.resources.formatters import (
+from ado.cli.utils.resources.formatters import (
     format_ado_get_stats_for_datacontainers,
     format_ado_get_stats_for_operations,
     format_ado_get_stats_for_samplestores,
@@ -38,24 +38,24 @@ from orchestrator.cli.utils.resources.formatters import (
     format_default_ado_get_single_resource,
     format_resource_for_ado_get_custom_format,
 )
-from orchestrator.core.metadata import ConfigurationMetadata
-from orchestrator.metastore.base import ResourceDoesNotExistError
-from orchestrator.utilities.output import pydantic_model_as_yaml
-from orchestrator.utilities.rich import dataframe_to_rich_table
+from ado.core.metadata import ConfigurationMetadata
+from ado.metastore.base import ResourceDoesNotExistError
+from ado.utilities.output import pydantic_model_as_yaml
+from ado.utilities.rich import dataframe_to_rich_table
 
 logger = logging.getLogger(__name__)
 
 if typing.TYPE_CHECKING:
     import pandas as pd
 
-    from orchestrator.cli.models.parameters import (
+    from ado.cli.models.parameters import (
         AdoGetCommandParameters,
         AdoShowTraceCommandParameters,
         AdoUpgradeCommandParameters,
     )
-    from orchestrator.core import ADOResource, CoreResourceKinds
-    from orchestrator.metastore.project import ProjectContext
-    from orchestrator.metastore.sqlstore import SQLStore
+    from ado.core import ADOResource, CoreResourceKinds
+    from ado.metastore.project import ProjectContext
+    from ado.metastore.sqlstore import SQLStore
 
 
 def _render_dataframe_table_output(
@@ -319,7 +319,7 @@ def _handle_stats_format(
     For any other resource type the handler prints an error message and exits
     with code 1.
     """
-    from orchestrator.core import CoreResourceKinds
+    from ado.core import CoreResourceKinds
 
     _SUPPORTED = {
         CoreResourceKinds.OPERATION,
@@ -482,7 +482,7 @@ def _write_or_print_output(
     if output_file:
         # Convert to string if it's a rich renderable
         if not isinstance(content, str):
-            from orchestrator.utilities.rich import render_to_string
+            from ado.utilities.rich import render_to_string
 
             content = render_to_string(content, auto_width=True)
         output_file.write_text(content)
@@ -560,7 +560,7 @@ def handle_edit_resource_metadata(
     import subprocess  # noqa: S404
     import tempfile
 
-    import orchestrator.cli.utils.pydantic.serializers
+    import ado.cli.utils.pydantic.serializers
 
     sql = get_sql_store(project_context=project_context)
     with Status(ADO_SPINNER_QUERYING_DB) as status:
@@ -602,7 +602,7 @@ def handle_edit_resource_metadata(
         # Interactive mode: use editor
         with tempfile.TemporaryDirectory() as d:
             file = pathlib.Path(d) / pathlib.Path("tmp_metadata.yaml")
-            orchestrator.cli.utils.pydantic.serializers.serialise_pydantic_model(
+            ado.cli.utils.pydantic.serializers.serialise_pydantic_model(
                 model=resource.config.metadata,
                 output_path=file,
                 suppress_success_message=True,
@@ -679,7 +679,7 @@ def render_trace_output(
     """
     import pandas as pd
 
-    from orchestrator.cli.resources.trace_common import (
+    from ado.cli.resources.trace_common import (
         REQUEST_COLUMN,
         REQUEST_COLUMNS_MOVE_TO_END,
         RESULT_COLUMN,
@@ -687,7 +687,7 @@ def render_trace_output(
         build_request_level_rows,
         build_result_level_rows,
     )
-    from orchestrator.utilities.pandas import reorder_dataframe_columns
+    from ado.utilities.pandas import reorder_dataframe_columns
 
     # YAML path: serialise the raw pydantic objects and return early
     if parameters.output_format == AdoShowTraceSupportedOutputFormats.YAML:

@@ -12,8 +12,8 @@ from typing import Annotated
 
 import pydantic
 
-from orchestrator.core.metadata import ProvenanceInfo
-from orchestrator.utilities.pydantic import Defaultable
+from ado.core.metadata import ProvenanceInfo
+from ado.utilities.pydantic import Defaultable
 
 
 class CoreResourceKinds(enum.Enum):

@@ -8,24 +8,24 @@ from typing import Annotated
 
 import pydantic
 
-import orchestrator.core.operation.config
-from orchestrator.core.discoveryspace.space import DiscoverySpace
-from orchestrator.core.metadata import PackageProvenance
-from orchestrator.core.operation.config import (
+import ado.core.operation.config
+from ado.core.discoveryspace.space import DiscoverySpace
+from ado.core.metadata import PackageProvenance
+from ado.core.operation.config import (
     DiscoveryOperationEnum,
     FunctionOperationInfo,
     OperatorMetadata,
     OperatorReference,
 )
-from orchestrator.modules.operators.base import (
+from ado.modules.operators.base import (
     DiscoveryOperationBase,
     DiscoverySpaceSubscribingDiscoveryOperation,
     OperationOutput,
     OperatorFunction,
     validate_operator_function_signature,
 )
-from orchestrator.modules.operators.errors import OperatorVersionMismatchError
-from orchestrator.modules.operators.orchestrate import (
+from ado.modules.operators.errors import OperatorVersionMismatchError
+from ado.modules.operators.orchestrate import (
     orchestrate_explore_operation,
     orchestrate_general_operation,
 )
@@ -50,13 +50,13 @@ class OperatorCollection(pydantic.BaseModel):
 
     Operators are added via the decorator functions (e.g. ``characterize_operation``,
     ``explore_operation``).  Each registered name maps to an
-    :class:`~orchestrator.core.operation.config.OperatorMetadata` instance that
+    :class:`~ado.core.operation.config.OperatorMetadata` instance that
     carries the function, version, description, configuration model,
     example configuration, and optional actor class.
 
     Attributes:
         type: The discovery operation type all operators in this collection belong to.
-        operators: Mapping of operator name to :class:`~orchestrator.core.operation.config.OperatorMetadata` instance.
+        operators: Mapping of operator name to :class:`~ado.core.operation.config.OperatorMetadata` instance.
     """
 
     type: DiscoveryOperationEnum
@@ -87,38 +87,32 @@ class OperatorCollection(pydantic.BaseModel):
 
 
 characterize = OperatorCollection(
-    type=orchestrator.core.operation.config.DiscoveryOperationEnum.CHARACTERIZE
+    type=ado.core.operation.config.DiscoveryOperationEnum.CHARACTERIZE
 )
 explore = OperatorCollection(
-    type=orchestrator.core.operation.config.DiscoveryOperationEnum.EXPLORE
+    type=ado.core.operation.config.DiscoveryOperationEnum.EXPLORE
 )
 modify = OperatorCollection(
-    type=orchestrator.core.operation.config.DiscoveryOperationEnum.MODIFY
+    type=ado.core.operation.config.DiscoveryOperationEnum.MODIFY
 )
 export = OperatorCollection(
-    type=orchestrator.core.operation.config.DiscoveryOperationEnum.EXPORT
+    type=ado.core.operation.config.DiscoveryOperationEnum.EXPORT
 )
 compare = OperatorCollection(
-    type=orchestrator.core.operation.config.DiscoveryOperationEnum.COMPARE
+    type=ado.core.operation.config.DiscoveryOperationEnum.COMPARE
 )
-fuse = OperatorCollection(
-    type=orchestrator.core.operation.config.DiscoveryOperationEnum.FUSE
-)
-study = OperatorCollection(
-    type=orchestrator.core.operation.config.DiscoveryOperationEnum.STUDY
-)
-learn = OperatorCollection(
-    type=orchestrator.core.operation.config.DiscoveryOperationEnum.LEARN
-)
+fuse = OperatorCollection(type=ado.core.operation.config.DiscoveryOperationEnum.FUSE)
+study = OperatorCollection(type=ado.core.operation.config.DiscoveryOperationEnum.STUDY)
+learn = OperatorCollection(type=ado.core.operation.config.DiscoveryOperationEnum.LEARN)
 operationCollectionMap = {
-    orchestrator.core.operation.config.DiscoveryOperationEnum.CHARACTERIZE: characterize,
-    orchestrator.core.operation.config.DiscoveryOperationEnum.EXPLORE: explore,
-    orchestrator.core.operation.config.DiscoveryOperationEnum.MODIFY: modify,
-    orchestrator.core.operation.config.DiscoveryOperationEnum.EXPORT: export,
-    orchestrator.core.operation.config.DiscoveryOperationEnum.COMPARE: compare,
-    orchestrator.core.operation.config.DiscoveryOperationEnum.STUDY: study,
-    orchestrator.core.operation.config.DiscoveryOperationEnum.LEARN: learn,
-    orchestrator.core.operation.config.DiscoveryOperationEnum.FUSE: fuse,
+    ado.core.operation.config.DiscoveryOperationEnum.CHARACTERIZE: characterize,
+    ado.core.operation.config.DiscoveryOperationEnum.EXPLORE: explore,
+    ado.core.operation.config.DiscoveryOperationEnum.MODIFY: modify,
+    ado.core.operation.config.DiscoveryOperationEnum.EXPORT: export,
+    ado.core.operation.config.DiscoveryOperationEnum.COMPARE: compare,
+    ado.core.operation.config.DiscoveryOperationEnum.STUDY: study,
+    ado.core.operation.config.DiscoveryOperationEnum.LEARN: learn,
+    ado.core.operation.config.DiscoveryOperationEnum.FUSE: fuse,
 }
 
 #
@@ -183,12 +177,12 @@ def _validate_explore_cls(t: type, metadata: OperatorMetadata) -> None:
 
     Args:
         t: The decorated class.
-        metadata: The :class:`~orchestrator.core.operation.config.OperatorMetadata`
+        metadata: The :class:`~ado.core.operation.config.OperatorMetadata`
             returned by ``t.operator_metadata()``.
 
     Raises:
         TypeError: If ``t`` is not a
-            :class:`~orchestrator.modules.operators.base.DiscoverySpaceSubscribingDiscoveryOperation`
+            :class:`~ado.modules.operators.base.DiscoverySpaceSubscribingDiscoveryOperation`
             subclass, or if ``metadata.cls`` is set to a class other than ``t``.
     """
     if not issubclass(t, DiscoverySpaceSubscribingDiscoveryOperation):
@@ -235,7 +229,7 @@ def explore_operation(
 
     Args:
         cls: The operator class to register.  Must be a subclass of
-            :class:`~orchestrator.modules.operators.base.DiscoverySpaceSubscribingDiscoveryOperation`
+            :class:`~ado.modules.operators.base.DiscoverySpaceSubscribingDiscoveryOperation`
             and must implement ``operator_metadata()``.
 
     Returns:
@@ -387,7 +381,7 @@ def operator_metadata_for_reference(ref: OperatorReference) -> OperatorMetadata:
         ref: Operator reference carrying ``operatorName`` and ``operationType``.
 
     Returns:
-        The :class:`~orchestrator.core.operation.config.OperatorMetadata` for the
+        The :class:`~ado.core.operation.config.OperatorMetadata` for the
         referenced operator.
 
     Raises:
@@ -446,7 +440,7 @@ def provenance_for_operator(
     """Return the package provenance for a registered operator.
 
     Looks up the operator in the collection for ``op_type`` and returns the
-    :class:`~orchestrator.core.metadata.PackageProvenance` recorded on its
+    :class:`~ado.core.metadata.PackageProvenance` recorded on its
     registry metadata at registration time.
 
     Args:
@@ -454,7 +448,7 @@ def provenance_for_operator(
         op_type: The discovery operation type the operator belongs to.
 
     Returns:
-        A :class:`~orchestrator.core.metadata.PackageProvenance` instance,
+        A :class:`~ado.core.metadata.PackageProvenance` instance,
         or ``None`` if provenance is unavailable.
     """
     collection = operationCollectionMap.get(op_type)

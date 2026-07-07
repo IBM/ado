@@ -9,12 +9,12 @@ from typing import Annotated
 
 import pydantic
 
-from orchestrator.schema.observed_property import (
+from ado.schema.observed_property import (
     ObservedProperty,
     ObservedPropertyValue,
 )
-from orchestrator.schema.reference import ExperimentReference
-from orchestrator.schema.virtual_property import (
+from ado.schema.reference import ExperimentReference
+from ado.schema.virtual_property import (
     VirtualObservedProperty,
 )
 

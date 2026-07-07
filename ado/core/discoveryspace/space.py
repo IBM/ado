@@ -9,42 +9,42 @@ from collections.abc import Callable, Iterator
 from functools import wraps
 from typing import Any
 
-import orchestrator.core.discoveryspace.resource
-import orchestrator.core.metadata
-import orchestrator.core.resources
-import orchestrator.core.samplestore.base
-import orchestrator.schema.entity
-import orchestrator.schema.measurementspace
-import orchestrator.schema.property_value
-import orchestrator.schema.virtual_property
-import orchestrator.utilities.logging
-from orchestrator.core.discoveryspace.config import (
+import ado.core.discoveryspace.resource
+import ado.core.metadata
+import ado.core.resources
+import ado.core.samplestore.base
+import ado.schema.entity
+import ado.schema.measurementspace
+import ado.schema.property_value
+import ado.schema.virtual_property
+import ado.utilities.logging
+from ado.core.discoveryspace.config import (
     DiscoverySpaceConfiguration,
     DiscoverySpaceProperties,
 )
-from orchestrator.core.operation.config import DiscoveryOperationEnum
-from orchestrator.core.operation.resource import OperationResource
-from orchestrator.core.resources import CoreResourceKinds
-from orchestrator.metastore.project import ProjectContext
-from orchestrator.modules.actuators.catalog import ActuatorCatalogExtension
-from orchestrator.modules.actuators.registry import ActuatorRegistry
-from orchestrator.schema.entity import Entity
-from orchestrator.schema.entityspace import (
+from ado.core.operation.config import DiscoveryOperationEnum
+from ado.core.operation.resource import OperationResource
+from ado.core.resources import CoreResourceKinds
+from ado.metastore.project import ProjectContext
+from ado.modules.actuators.catalog import ActuatorCatalogExtension
+from ado.modules.actuators.registry import ActuatorRegistry
+from ado.schema.entity import Entity
+from ado.schema.entityspace import (
     EntitySpaceRepresentation,
 )
-from orchestrator.schema.experiment import Experiment
-from orchestrator.schema.measurementspace import MeasurementSpace
-from orchestrator.schema.property_value import constitutive_property_values_from_point
-from orchestrator.schema.request import MeasurementRequest
-from orchestrator.schema.result import MeasurementResult
+from ado.schema.experiment import Experiment
+from ado.schema.measurementspace import MeasurementSpace
+from ado.schema.property_value import constitutive_property_values_from_point
+from ado.schema.request import MeasurementRequest
+from ado.schema.result import MeasurementResult
 
 if typing.TYPE_CHECKING:
     from pandas import DataFrame
     from rich.console import RenderableType
 
-    from orchestrator.metastore.sqlstore import SQLResourceStore, SQLStore
+    from ado.metastore.sqlstore import SQLResourceStore, SQLStore
 
-FORMAT = orchestrator.utilities.logging.FORMAT
+FORMAT = ado.utilities.logging.FORMAT
 LOGLEVEL = os.environ.get("LOGLEVEL", "WARNING").upper()
 logging.basicConfig(level=LOGLEVEL, format=FORMAT)
 
@@ -73,11 +73,9 @@ def _perform_preflight_checks_for_sample_store_methods(
         **kwargs: Any,  # noqa: ANN401
     ) -> Any:  # noqa: ANN401
 
-        import orchestrator.core.samplestore.sql
+        import ado.core.samplestore.sql
 
-        if not isinstance(
-            self.sample_store, orchestrator.core.samplestore.sql.SQLSampleStore
-        ):
+        if not isinstance(self.sample_store, ado.core.samplestore.sql.SQLSampleStore):
             raise ValueError(
                 "The complete_measurement_request_with_results_timeseries method "
                 "requires the use of an SQLSampleStore"
@@ -144,8 +142,8 @@ class DiscoverySpace:
         project_context: ProjectContext,
         identifier: str | None = None,
         metadata_store: "SQLResourceStore | None" = None,
-        samplestore_resource: "orchestrator.core.SampleStoreResource | None" = None,
-        sample_store: "orchestrator.core.samplestore.base.SampleStore | None" = None,
+        samplestore_resource: "ado.core.SampleStoreResource | None" = None,
+        sample_store: "ado.core.samplestore.base.SampleStore | None" = None,
         load_experiment_catalog: bool = True,
     ) -> "DiscoverySpace":
         """Creates a discovery space from a config
@@ -174,10 +172,10 @@ class DiscoverySpace:
 
         """
 
-        from orchestrator.core.samplestore.base import SampleStore
+        from ado.core.samplestore.base import SampleStore
 
         if metadata_store is None:
-            metadata_store = orchestrator.metastore.sqlstore.SQLResourceStore(
+            metadata_store = ado.metastore.sqlstore.SQLResourceStore(
                 project_context=project_context
             )
 
@@ -223,7 +221,7 @@ class DiscoverySpace:
 
         if isinstance(
             conf.experiments,
-            orchestrator.schema.measurementspace.MeasurementSpaceConfiguration,
+            ado.schema.measurementspace.MeasurementSpaceConfiguration,
         ):
             # If we have full MeasurementSpaceConfiguration we can initialize directly
             measurementSpace = MeasurementSpace(configuration=conf.experiments)
@@ -250,8 +248,8 @@ class DiscoverySpace:
         project_context: ProjectContext,
         space_identifier: str,
         metadata_store: "SQLResourceStore | None" = None,
-        space_resource: "orchestrator.core.DiscoverySpaceResource | None" = None,
-        samplestore_resource: "orchestrator.core.SampleStoreResource | None" = None,
+        space_resource: "ado.core.DiscoverySpaceResource | None" = None,
+        samplestore_resource: "ado.core.SampleStoreResource | None" = None,
         load_experiment_catalog: bool = True,
     ) -> "DiscoverySpace":
         """Creates a DiscoverySpace from a stored space identifier.
@@ -266,7 +264,7 @@ class DiscoverySpace:
                 to :meth:`from_configuration` to skip the samplestore round-trip.
             load_experiment_catalog: Forwarded to :meth:`from_configuration`.
         """
-        from orchestrator.metastore.sqlstore import SQLStore
+        from ado.metastore.sqlstore import SQLStore
 
         moduleLogger.debug("Accessing discovery space metadata store")
         if metadata_store is None:
@@ -325,7 +323,7 @@ class DiscoverySpace:
             ResourceDoesNotExistError: If the specified operation or related space do not exist.
             NoRelatedResourcesError: If no sample store is associated with the specified operation or related space.
         """
-        from orchestrator.metastore.sqlstore import SQLStore
+        from ado.metastore.sqlstore import SQLStore
 
         if metadata_store is None:
             metadata_store = SQLStore(project_context=project_context)
@@ -361,16 +359,14 @@ class DiscoverySpace:
         self,
         project_context: ProjectContext,
         identifier: str | None = None,
-        sample_store: (
-            orchestrator.core.samplestore.base.ActiveSampleStore | None
-        ) = None,
+        sample_store: (ado.core.samplestore.base.ActiveSampleStore | None) = None,
         entitySpace: EntitySpaceRepresentation | None = None,
         measurementSpace: MeasurementSpace | None = None,
         properties: (
-            orchestrator.core.discoveryspace.config.DiscoverySpaceProperties | None
+            ado.core.discoveryspace.config.DiscoverySpaceProperties | None
         ) = None,
-        metadata: orchestrator.core.metadata.ConfigurationMetadata | None = None,
-        metadata_store: "orchestrator.metastore.sqlstore.SQLStore | None" = None,
+        metadata: ado.core.metadata.ConfigurationMetadata | None = None,
+        metadata_store: "ado.metastore.sqlstore.SQLStore | None" = None,
     ) -> None:
         """
 
@@ -433,7 +429,7 @@ class DiscoverySpace:
 
         # Access metadata store - reuse provided instance if available
         if metadata_store is None:
-            from orchestrator.metastore.sqlstore import SQLStore
+            from ado.metastore.sqlstore import SQLStore
 
             self._metadataStore = SQLStore(project_context=project_context)
         else:
@@ -505,7 +501,7 @@ class DiscoverySpace:
     @property
     def sample_store(
         self,
-    ) -> orchestrator.core.samplestore.base.ActiveSampleStore:
+    ) -> ado.core.samplestore.base.ActiveSampleStore:
         """Returns the sample store"""
 
         return self._sample_store
@@ -532,12 +528,12 @@ class DiscoverySpace:
         # Note: We store the selfContainedConfig (MeasurementSpaceConfig)
         # as this means the actuators/registry will not have to be queried to rebuild the measurement space
         # This is problematic as all actuators used by the space would have to be loaded requiring one or both of
-        # (a) an explicit import of orchestrator.actuators.base (b) information on all dynamic actuator modules used.
+        # (a) an explicit import of ado.actuators.base (b) information on all dynamic actuator modules used.
 
         metadata = (
             self._metadata
             if self._metadata is not None
-            else orchestrator.core.metadata.ConfigurationMetadata()
+            else ado.core.metadata.ConfigurationMetadata()
         )
 
         return DiscoverySpaceConfiguration(
@@ -549,18 +545,18 @@ class DiscoverySpace:
 
     def _build_provenance(
         self,
-    ) -> "orchestrator.core.discoveryspace.resource.DiscoverySpaceProvenanceInfo":
+    ) -> "ado.core.discoveryspace.resource.DiscoverySpaceProvenanceInfo":
         """Resolve package provenance for all actuators and custom experiments.
 
         Returns:
             DiscoverySpaceProvenanceInfo mapping actuators and custom experiments
             to the distributions that provided them at space creation time.
         """
-        from orchestrator.core.discoveryspace.resource import (
+        from ado.core.discoveryspace.resource import (
             DiscoverySpaceProvenanceInfo,
         )
-        from orchestrator.core.metadata import PackageProvenance
-        from orchestrator.modules.actuators.registry import ActuatorRegistry
+        from ado.core.metadata import PackageProvenance
+        from ado.modules.actuators.registry import ActuatorRegistry
 
         registry = ActuatorRegistry.globalRegistry()
         actuators: dict[str, PackageProvenance] = {}
@@ -591,9 +587,9 @@ class DiscoverySpace:
     @property
     def resource(
         self,
-    ) -> orchestrator.core.discoveryspace.resource.DiscoverySpaceResource:
+    ) -> ado.core.discoveryspace.resource.DiscoverySpaceResource:
 
-        return orchestrator.core.discoveryspace.resource.DiscoverySpaceResource(
+        return ado.core.discoveryspace.resource.DiscoverySpaceResource(
             identifier=self._identifier,
             config=self.config,
             provenance=self._build_provenance(),
@@ -689,7 +685,7 @@ class DiscoverySpace:
         property_type: PropertyFormatType = "observed",
         virtualPropertyIdentifiers: list[str] | None = None,
         aggregationMethod: (
-            orchestrator.schema.virtual_property.PropertyAggregationMethodEnum | None
+            ado.schema.virtual_property.PropertyAggregationMethodEnum | None
         ) = None,
     ) -> "DataFrame":
         """Returns a dataframe contain entities with at least one measured property"""
@@ -732,7 +728,7 @@ class DiscoverySpace:
         property_type: PropertyFormatType = "observed",
         virtualPropertyIdentifiers: list[str] | None = None,
         aggregationMethod: (
-            orchestrator.schema.virtual_property.PropertyAggregationMethodEnum | None
+            ado.schema.virtual_property.PropertyAggregationMethodEnum | None
         ) = None,
     ) -> "DataFrame":
         """Returns a dataframe containing entities in the sample store that match the space definition.
@@ -789,9 +785,9 @@ class DiscoverySpace:
 
     def storedEntitiesWithConstitutivePropertyValues(
         self,
-        values: list[orchestrator.schema.property_value.PropertyValue],
+        values: list[ado.schema.property_value.PropertyValue],
         mode: typing.Literal["strict"] = "strict",
-    ) -> list[None | orchestrator.schema.entity.Entity]:
+    ) -> list[None | ado.schema.entity.Entity]:
         """Returns entities in the discoveryspace that have the given values for their constitutive properties and that are stored in the sample-store
 
         All entities returned will be strict members of this receivers entity space i.e. they will not have constitutive
@@ -909,12 +905,12 @@ class DiscoverySpace:
         """Returns the identifiers of all operations executed on this space"""
 
         return self._metadataStore.get_resources_by_relationship(
-            kind=orchestrator.core.resources.CoreResourceKinds.DISCOVERYSPACE,
+            kind=ado.core.resources.CoreResourceKinds.DISCOVERYSPACE,
             identifier=self.uri,
             hierarchy_direction="down",
             max_hops=1,
             identifiers_only=True,
-        ).get(orchestrator.core.resources.CoreResourceKinds.OPERATION, set())
+        ).get(ado.core.resources.CoreResourceKinds.OPERATION, set())
 
     def addOperation(self, operation: OperationResource) -> None:
         """Add information on a new operation on the space
@@ -949,7 +945,7 @@ class DiscoverySpace:
         description: str | None = None,
         metadata: dict | None = None,
         operation_type: DiscoveryOperationEnum = DiscoveryOperationEnum.EXPLORE,
-        provenance: "orchestrator.core.metadata.PackageProvenance | None" = None,
+        provenance: "ado.core.metadata.PackageProvenance | None" = None,
     ) -> Iterator[str]:
         """Context manager that registers a script operation and manages its lifecycle.
 
@@ -981,13 +977,13 @@ class DiscoverySpace:
                 "load the space from stored configuration first."
             )
 
-        from orchestrator.core.metadata import ConfigurationMetadata
-        from orchestrator.core.operation.config import (
+        from ado.core.metadata import ConfigurationMetadata
+        from ado.core.operation.config import (
             DiscoveryOperationConfiguration,
             DiscoveryOperationResourceConfiguration,
             ScriptOperatorConf,
         )
-        from orchestrator.core.operation.resource import (
+        from ado.core.operation.resource import (
             OperationExitStateEnum,
             OperationProvenanceInfo,
             OperationResource,
@@ -1065,7 +1061,7 @@ class DiscoverySpace:
         output_format: typing.Literal["target", "observed"],
         limit_to_properties: list[str] | None = None,
         aggregation_method: (
-            orchestrator.schema.virtual_property.PropertyAggregationMethodEnum | None
+            ado.schema.virtual_property.PropertyAggregationMethodEnum | None
         ) = None,
     ) -> "DataFrame":
         return self.sample_store.complete_measurement_request_with_results_timeseries(
@@ -1108,11 +1104,9 @@ class DiscoverySpace:
 
         Returns a dictionary with entity counts for the operation.
         """
-        import orchestrator.core.samplestore.sql
+        import ado.core.samplestore.sql
 
-        if isinstance(
-            self.sample_store, orchestrator.core.samplestore.sql.SQLSampleStore
-        ):
+        if isinstance(self.sample_store, ado.core.samplestore.sql.SQLSampleStore):
             return self.sample_store.operation_entity_statistics(
                 operation_id=operation_id
             )
@@ -1120,7 +1114,7 @@ class DiscoverySpace:
         measurement_results = self.measurement_results_for_operation(
             operation_id=operation_id
         )
-        from orchestrator.schema.result import ValidMeasurementResult
+        from ado.schema.result import ValidMeasurementResult
 
         entities_with_all_successful_measurements = {
             result.entityIdentifier for result in measurement_results
@@ -1151,7 +1145,7 @@ class DiscoverySpace:
     @_perform_preflight_checks_for_sample_store_methods
     def operation_measurement_statistics(
         self, operation_ids: set[str] | None = None
-    ) -> "list[orchestrator.core.operation.stats.OperationMeasurementStatistics]":
+    ) -> "list[ado.core.operation.stats.OperationMeasurementStatistics]":
         """Compute aggregated measurement statistics for one or more operations.
 
         Delegates to the SQL implementation for SQL-backed stores. For all
@@ -1173,19 +1167,17 @@ class DiscoverySpace:
         if operation_ids is not None and len(operation_ids) == 0:
             raise ValueError("operation_ids must be a non-empty set or None")
 
-        import orchestrator.core.samplestore.sql
-        from orchestrator.core.operation.stats import OperationMeasurementStatistics
+        import ado.core.samplestore.sql
+        from ado.core.operation.stats import OperationMeasurementStatistics
 
-        if isinstance(
-            self.sample_store, orchestrator.core.samplestore.sql.SQLSampleStore
-        ):
+        if isinstance(self.sample_store, ado.core.samplestore.sql.SQLSampleStore):
             return self.sample_store.operation_measurement_statistics(
                 operation_ids=operation_ids
             )
 
         # Python fallback for non-SQL stores
-        from orchestrator.schema.request import MeasurementRequestStateEnum
-        from orchestrator.schema.result import ValidMeasurementResult
+        from ado.schema.request import MeasurementRequestStateEnum
+        from ado.schema.result import ValidMeasurementResult
 
         # Determine which operation IDs to iterate
         ids_to_process: set[str] = (
@@ -1235,11 +1227,11 @@ class DiscoverySpace:
 
     def space_statistics(
         self, lightweight_only: bool = False
-    ) -> "orchestrator.core.discoveryspace.stats.DiscoverySpaceStatistics":
+    ) -> "ado.core.discoveryspace.stats.DiscoverySpaceStatistics":
         """Compute statistics for this discovery space.
 
         Delegates to
-        :func:`~orchestrator.core.discoveryspace.stats.space_statistics_for_spaces`
+        :func:`~ado.core.discoveryspace.stats.space_statistics_for_spaces`
         for a single space.
 
         Args:
@@ -1247,9 +1239,9 @@ class DiscoverySpace:
                 and return ``None`` for the heavy fields.
 
         Returns:
-            :class:`~orchestrator.core.discoveryspace.stats.DiscoverySpaceStatistics`
+            :class:`~ado.core.discoveryspace.stats.DiscoverySpaceStatistics`
         """
-        from orchestrator.core.discoveryspace.stats import space_statistics_for_spaces
+        from ado.core.discoveryspace.stats import space_statistics_for_spaces
 
         return space_statistics_for_spaces([self], lightweight_only=lightweight_only)[
             self.uri

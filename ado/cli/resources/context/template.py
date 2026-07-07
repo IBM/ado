@@ -3,13 +3,13 @@
 
 import pathlib
 
-from orchestrator.cli.models.parameters import AdoTemplateCommandParameters
-from orchestrator.cli.utils.pydantic.serializers import (
+from ado.cli.models.parameters import AdoTemplateCommandParameters
+from ado.cli.utils.pydantic.serializers import (
     serialise_pydantic_model,
     serialise_pydantic_model_json_schema,
 )
-from orchestrator.metastore.project import ProjectContext
-from orchestrator.utilities.location import (
+from ado.metastore.project import ProjectContext
+from ado.utilities.location import (
     SQLiteStoreConfiguration,
     SQLStoreConfiguration,
 )

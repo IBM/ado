@@ -3,16 +3,16 @@
 import typer
 from rich.status import Status
 
-from orchestrator.cli.models.parameters import AdoGetCommandParameters
-from orchestrator.cli.models.types import AdoGetSupportedOutputFormats
-from orchestrator.cli.utils.output.prints import (
+from ado.cli.models.parameters import AdoGetCommandParameters
+from ado.cli.models.types import AdoGetSupportedOutputFormats
+from ado.cli.utils.output.prints import (
     ADO_SPINNER_GETTING_OUTPUT_READY,
     ADO_SPINNER_INITIALIZING_ACTUATOR_REGISTRY,
     ERROR,
     WARN,
     console_print,
 )
-from orchestrator.cli.utils.resources.experiments import (
+from ado.cli.utils.resources.experiments import (
     _ado_lookup_cli_experiment,
 )
 
@@ -35,13 +35,11 @@ def get_experiment(parameters: AdoGetCommandParameters) -> None:
 
     import pandas as pd
 
-    import orchestrator.modules.actuators
-    import orchestrator.modules.actuators.registry
+    import ado.modules.actuators
+    import ado.modules.actuators.registry
 
     with Status(ADO_SPINNER_INITIALIZING_ACTUATOR_REGISTRY) as spinner:
-        registry = (
-            orchestrator.modules.actuators.registry.ActuatorRegistry.globalRegistry()
-        )
+        registry = ado.modules.actuators.registry.ActuatorRegistry.globalRegistry()
 
         if parameters.output_format != AdoGetSupportedOutputFormats.TABLE:
             spinner.stop()
@@ -112,6 +110,6 @@ def get_experiment(parameters: AdoGetCommandParameters) -> None:
 
         spinner.stop()
 
-    from orchestrator.cli.utils.resources.handlers import handle_ado_get
+    from ado.cli.utils.resources.handlers import handle_ado_get
 
     handle_ado_get(parameters=parameters, dataframe=output_df)

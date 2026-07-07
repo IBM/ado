@@ -5,20 +5,20 @@ from typing import NoReturn
 
 import typer
 
-from orchestrator.cli.utils.output.prints import (
+from ado.cli.utils.output.prints import (
     console_print,
     could_not_delete_resource_from_database_error_str,
     no_related_resources_error_str,
     no_resource_with_id_in_db_error_str,
     unknown_experiment_error_str,
 )
-from orchestrator.metastore.base import (
+from ado.metastore.base import (
     DeleteFromDatabaseError,
     NoRelatedResourcesError,
     ResourceDoesNotExistError,
 )
-from orchestrator.metastore.project import ProjectContext
-from orchestrator.modules.actuators.errors import UnknownExperimentError
+from ado.metastore.project import ProjectContext
+from ado.modules.actuators.errors import UnknownExperimentError
 
 
 def handle_resource_does_not_exist(

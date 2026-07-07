@@ -71,11 +71,11 @@ class ModuleConf(pydantic.BaseModel):
 
         if value is None:
             if values.data.get("moduleType") == ModuleTypeEnum.OPERATION:
-                value = "orchestrator.modules.operators.randomwalk"
+                value = "ado.modules.operators.randomwalk"
             elif values.data.get("moduleType") == ModuleTypeEnum.ACTUATOR:
-                value = "orchestrator.modules.actuators.base"
+                value = "ado.modules.actuators.base"
             elif values.data.get("moduleType") == ModuleTypeEnum.SAMPLE_STORE:
-                value = "orchestrator.core.samplestore.sql"
+                value = "ado.core.samplestore.sql"
 
         return value
 
@@ -112,7 +112,7 @@ def load_module(conf: ModuleConf) -> "ModuleType":
         conf: A ModuleConf
 
     A module is a python module at some path
-    THe module can already be loaded or be a default class in the orchestrator.
+    THe module can already be loaded or be a default class in the ado.
 
     Returns:
         The module
@@ -171,7 +171,7 @@ def load_module_class_or_function(conf: ModuleConf) -> type | typing.Callable:
         conf: A ModuleConf
 
     A module is a python module at some path with some class (the module class)
-    THe module can already be loaded or be a default class in the orchestrator.
+    THe module can already be loaded or be a default class in the ado.
 
     Returns:
         The module class or function

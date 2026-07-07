@@ -4,9 +4,9 @@
 """
 Queue monitor implementation for the Orchestrator API.
 
-The :class:`~orchestrator.api.state.queue.QueueMonitorActor` is a Ray
+The :class:`~ado.api.state.queue.QueueMonitorActor` is a Ray
 remote actor that keeps an in-memory representation of all measurement
-requests.  It listens to a shared :class:`~orchestrator.modules.actuators.measurement_queue.MeasurementQueue`
+requests.  It listens to a shared :class:`~ado.modules.actuators.measurement_queue.MeasurementQueue`
 and updates a nested ``dict`` that maps
 ``ExperimentReference`` ➜ ``requestid`` ➜ :class:`MeasurementRequest`.
 
@@ -21,9 +21,9 @@ import ray
 from fastapi import HTTPException, status
 from ray.util import queue
 
-from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
-from orchestrator.schema.reference import ExperimentReference
-from orchestrator.schema.request import MeasurementRequest
+from ado.modules.actuators.measurement_queue import MeasurementQueue
+from ado.schema.reference import ExperimentReference
+from ado.schema.request import MeasurementRequest
 
 
 @ray.remote

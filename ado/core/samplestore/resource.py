@@ -4,9 +4,9 @@ from typing import Annotated
 
 import pydantic
 
-from orchestrator.core.resources import ADOResource, CoreResourceKinds
-from orchestrator.core.samplestore.config import SampleStoreConfiguration
-from orchestrator.utilities.pydantic import Defaultable
+from ado.core.resources import ADOResource, CoreResourceKinds
+from ado.core.samplestore.config import SampleStoreConfiguration
+from ado.utilities.pydantic import Defaultable
 
 
 class SampleStoreResource(ADOResource):

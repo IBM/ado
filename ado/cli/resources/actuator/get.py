@@ -4,9 +4,9 @@
 import typer
 from rich.status import Status
 
-from orchestrator.cli.models.parameters import AdoGetCommandParameters
-from orchestrator.cli.models.types import AdoGetSupportedOutputFormats
-from orchestrator.cli.utils.output.prints import (
+from ado.cli.models.parameters import AdoGetCommandParameters
+from ado.cli.models.types import AdoGetSupportedOutputFormats
+from ado.cli.utils.output.prints import (
     ADO_SPINNER_GETTING_OUTPUT_READY,
     ADO_SPINNER_INITIALIZING_ACTUATOR_REGISTRY,
     ERROR,
@@ -41,7 +41,7 @@ def get_actuator(parameters: AdoGetCommandParameters) -> None:
 
     import pandas as pd
 
-    from orchestrator.modules.actuators.registry import ActuatorRegistry
+    from ado.modules.actuators.registry import ActuatorRegistry
 
     with Status(ADO_SPINNER_INITIALIZING_ACTUATOR_REGISTRY) as spinner:
         registry = ActuatorRegistry.globalRegistry()
@@ -96,7 +96,7 @@ def get_actuator(parameters: AdoGetCommandParameters) -> None:
 
         spinner.stop()
 
-    from orchestrator.cli.utils.resources.handlers import handle_ado_get
+    from ado.cli.utils.resources.handlers import handle_ado_get
 
     # Use unified handler for rendering
     handle_ado_get(parameters=parameters, dataframe=output_df)

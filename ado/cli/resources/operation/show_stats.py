@@ -4,22 +4,22 @@
 import typer
 from rich.status import Status
 
-from orchestrator.cli.models.parameters import AdoShowStatsCommandParameters
-from orchestrator.cli.utils.generic.wrappers import get_sql_store
-from orchestrator.cli.utils.output.prints import (
+from ado.cli.models.parameters import AdoShowStatsCommandParameters
+from ado.cli.utils.generic.wrappers import get_sql_store
+from ado.cli.utils.output.prints import (
     ADO_INFO_EMPTY_DATAFRAME,
     ADO_SPINNER_GETTING_OUTPUT_READY,
     ADO_SPINNER_QUERYING_DB,
     ERROR,
     console_print,
 )
-from orchestrator.cli.utils.output.stats import render_stats_dataframe
-from orchestrator.cli.utils.resources.formatters import (
+from ado.cli.utils.output.stats import render_stats_dataframe
+from ado.cli.utils.resources.formatters import (
     build_resource_listing_dataframe,
     format_ado_get_stats_for_operations,
     format_default_ado_get_multiple_resources,
 )
-from orchestrator.core.resources import CoreResourceKinds
+from ado.core.resources import CoreResourceKinds
 
 
 def show_operation_stats(parameters: AdoShowStatsCommandParameters) -> None:

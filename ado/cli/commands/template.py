@@ -7,23 +7,23 @@ from typing import Annotated
 
 import typer
 
-import orchestrator.core.operation.config
-import orchestrator.metastore.project
-from orchestrator.cli.models.parameters import AdoTemplateCommandParameters
-from orchestrator.cli.models.types import AdoTemplateSupportedResourceTypes
-from orchestrator.cli.resources.actuator_configuration.template import (
+import ado.core.operation.config
+import ado.metastore.project
+from ado.cli.models.parameters import AdoTemplateCommandParameters
+from ado.cli.models.types import AdoTemplateSupportedResourceTypes
+from ado.cli.resources.actuator_configuration.template import (
     template_actuator_configuration,
 )
-from orchestrator.cli.resources.context.template import template_context
-from orchestrator.cli.resources.discovery_space.template import template_discovery_space
-from orchestrator.cli.resources.operation.template import template_operation
-from orchestrator.cli.resources.sample_store.template import template_sample_store
-from orchestrator.cli.utils.input.parsers import (
+from ado.cli.resources.context.template import template_context
+from ado.cli.resources.discovery_space.template import template_discovery_space
+from ado.cli.resources.operation.template import template_operation
+from ado.cli.resources.sample_store.template import template_sample_store
+from ado.cli.utils.input.parsers import (
     enum_choice_with_plural_parser,
 )
 
 if typing.TYPE_CHECKING:
-    from orchestrator.cli.core.config import AdoConfiguration
+    from ado.cli.core.config import AdoConfiguration
 
 TEMPLATE_OPERATION_PANEL_NAME = "Operation-specific options"
 TEMPLATE_ACTUATORCONFIGURATION_PANEL_NAME = "ActuatorConfiguration-specific options"
@@ -88,7 +88,7 @@ def template_resource(
         ),
     ] = None,
     operator_type: Annotated[
-        orchestrator.core.operation.config.DiscoveryOperationEnum | None,
+        ado.core.operation.config.DiscoveryOperationEnum | None,
         typer.Option(
             help="""
             Type of the operator to use in the operation.

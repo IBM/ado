@@ -5,17 +5,17 @@ import typer
 import yaml
 from rich.status import Status
 
-from orchestrator.cli.models.parameters import AdoDescribeCommandParameters
-from orchestrator.cli.utils.generic.wrappers import get_sql_store
-from orchestrator.cli.utils.output.prints import (
+from ado.cli.models.parameters import AdoDescribeCommandParameters
+from ado.cli.utils.generic.wrappers import get_sql_store
+from ado.cli.utils.output.prints import (
     ADO_SPINNER_QUERYING_DB,
     ERROR,
     console_print,
 )
-from orchestrator.core import DiscoverySpaceResource
-from orchestrator.core.discoveryspace.config import DiscoverySpaceConfiguration
-from orchestrator.core.resources import CoreResourceKinds
-from orchestrator.metastore.base import ResourceDoesNotExistError
+from ado.core import DiscoverySpaceResource
+from ado.core.discoveryspace.config import DiscoverySpaceConfiguration
+from ado.core.resources import CoreResourceKinds
+from ado.metastore.base import ResourceDoesNotExistError
 
 
 def describe_discovery_space(parameters: AdoDescribeCommandParameters) -> None:

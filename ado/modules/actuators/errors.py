@@ -8,7 +8,7 @@ class ExperimentVersionMismatchError(Exception):
     This error is only raised when :meth:`ExperimentCatalog.experimentForReference` is
     called with ``resolve=True``, ``match_on='fully_qualified_version'``, and the
     exact version in the catalog differs from the version recorded on the
-    :class:`~orchestrator.schema.reference.ExperimentReference`.
+    :class:`~ado.schema.reference.ExperimentReference`.
     """
 
 

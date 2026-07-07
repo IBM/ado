@@ -8,14 +8,14 @@ from typing import Annotated
 import pydantic
 from pydantic import ConfigDict
 
-from orchestrator.schema.property import (
+from ado.schema.property import (
     ConstitutiveProperty,
     ConstitutivePropertyDescriptor,
 )
-from orchestrator.schema.property_value import (
+from ado.schema.property_value import (
     ConstitutivePropertyValue,
 )
-from orchestrator.utilities.pydantic import (
+from ado.utilities.pydantic import (
     _STRICT_SEMVER_PATTERN,
     StrictSemVerStr,
     semver_major,
@@ -408,8 +408,8 @@ class ExperimentReference(pydantic.BaseModel):
             ValueError: If the referenced experiment cannot be found or the
                 parameterization is invalid.
         """
-        from orchestrator.modules.actuators.errors import UnknownExperimentError
-        from orchestrator.modules.actuators.registry import (
+        from ado.modules.actuators.errors import UnknownExperimentError
+        from ado.modules.actuators.registry import (
             ActuatorRegistry,
         )
 

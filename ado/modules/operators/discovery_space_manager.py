@@ -10,27 +10,27 @@ import ray
 import ray.util.queue
 from ray.actor import ActorHandle
 
-import orchestrator.core.discoveryspace.space
-import orchestrator.core.operation.resource
-import orchestrator.core.resources
-import orchestrator.schema.entityspace
-import orchestrator.schema.measurementspace
-from orchestrator.core.discoveryspace.config import DiscoverySpaceConfiguration
-from orchestrator.metastore.project import (
+import ado.core.discoveryspace.space
+import ado.core.operation.resource
+import ado.core.resources
+import ado.schema.entityspace
+import ado.schema.measurementspace
+from ado.core.discoveryspace.config import DiscoverySpaceConfiguration
+from ado.metastore.project import (
     ProjectContext,
 )
-from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
-from orchestrator.schema.property_value import PropertyValue
-from orchestrator.schema.request import MeasurementRequest
-from orchestrator.utilities.environment import enable_ray_actor_coverage
-from orchestrator.utilities.logging import configure_logging
+from ado.modules.actuators.measurement_queue import MeasurementQueue
+from ado.schema.property_value import PropertyValue
+from ado.schema.request import MeasurementRequest
+from ado.utilities.environment import enable_ray_actor_coverage
+from ado.utilities.logging import configure_logging
 
 if typing.TYPE_CHECKING:
-    from orchestrator.metastore.sqlstore import SQLStore
-    from orchestrator.schema.entity import Entity
-    from orchestrator.schema.experiment import Experiment, ParameterizedExperiment
-    from orchestrator.schema.observed_property import ObservedProperty
-    from orchestrator.schema.property import AbstractPropertyDescriptor
+    from ado.metastore.sqlstore import SQLStore
+    from ado.schema.entity import Entity
+    from ado.schema.experiment import Experiment, ParameterizedExperiment
+    from ado.schema.observed_property import ObservedProperty
+    from ado.schema.property import AbstractPropertyDescriptor
 
 configure_logging()
 
@@ -81,7 +81,7 @@ class DiscoverySpaceManager:
         log.debug("The definition is for creating a new DiscoverySpace")
         conf = definition
         discoverySpace = (
-            orchestrator.core.discoveryspace.space.DiscoverySpace.from_configuration(
+            ado.core.discoveryspace.space.DiscoverySpace.from_configuration(
                 conf=conf, project_context=project_context, identifier=None
             )
         )
@@ -107,8 +107,10 @@ class DiscoverySpaceManager:
         # Note: Have to trigger loading of base actuators in every remote actor
         log.debug("The definition is for accessing an existing DiscoverySpace")
         conf = project_context
-        discoverySpace = orchestrator.core.discoveryspace.space.DiscoverySpace.from_stored_configuration(
-            conf, space_identifier=space_identifier
+        discoverySpace = (
+            ado.core.discoveryspace.space.DiscoverySpace.from_stored_configuration(
+                conf, space_identifier=space_identifier
+            )
         )
 
         # noinspection PyArgumentList
@@ -119,7 +121,7 @@ class DiscoverySpaceManager:
     def __init__(
         self,
         queue: MeasurementQueue,
-        space: orchestrator.core.discoveryspace.space.DiscoverySpace,
+        space: ado.core.discoveryspace.space.DiscoverySpace,
         namespace: str | None = None,
     ) -> None:
         """
@@ -157,11 +159,11 @@ class DiscoverySpaceManager:
 
         return self._measurement_queue
 
-    def discoverySpace(self) -> orchestrator.core.discoveryspace.space.DiscoverySpace:
+    def discoverySpace(self) -> ado.core.discoveryspace.space.DiscoverySpace:
 
         return self._discoverySpace
 
-    def measurementSpace(self) -> orchestrator.schema.measurementspace.MeasurementSpace:
+    def measurementSpace(self) -> ado.schema.measurementspace.MeasurementSpace:
 
         return self._discoverySpace.measurementSpace
 
@@ -169,7 +171,7 @@ class DiscoverySpaceManager:
 
         self._discoverySpace.saveSpace()
 
-    def entitySpace(self) -> orchestrator.schema.entityspace.EntitySpaceRepresentation:
+    def entitySpace(self) -> ado.schema.entityspace.EntitySpaceRepresentation:
 
         return self._discoverySpace.entitySpace
 

@@ -7,31 +7,31 @@ from typing import Annotated
 
 import typer
 
-from orchestrator.cli.models.parameters import AdoShowStatsCommandParameters
-from orchestrator.cli.models.types import (
+from ado.cli.models.parameters import AdoShowStatsCommandParameters
+from ado.cli.models.types import (
     AdoShowStatsSupportedOutputFormats,
     AdoShowStatsSupportedResourceTypes,
 )
-from orchestrator.cli.resources.datacontainer.show_stats import show_datacontainer_stats
-from orchestrator.cli.resources.discovery_space.show_stats import (
+from ado.cli.resources.datacontainer.show_stats import show_datacontainer_stats
+from ado.cli.resources.discovery_space.show_stats import (
     show_discovery_space_stats,
 )
-from orchestrator.cli.resources.operation.show_stats import show_operation_stats
-from orchestrator.cli.resources.samplestore.show_stats import show_samplestore_stats
-from orchestrator.cli.utils.input.parsers import (
+from ado.cli.resources.operation.show_stats import show_operation_stats
+from ado.cli.resources.samplestore.show_stats import show_samplestore_stats
+from ado.cli.utils.input.parsers import (
     enum_choice_with_plural_parser,
     parse_key_value_pairs,
 )
-from orchestrator.cli.utils.output.prints import (
+from ado.cli.utils.output.prints import (
     ERROR,
     console_print,
 )
-from orchestrator.cli.utils.queries.parser import (
+from ado.cli.utils.queries.parser import (
     prepare_query_filters_for_db,
 )
 
 if typing.TYPE_CHECKING:
-    from orchestrator.cli.core.config import AdoConfiguration
+    from ado.cli.core.config import AdoConfiguration
 
 
 def show_stats_for_resources(
@@ -153,7 +153,7 @@ def show_stats_for_resources(
     ado_configuration: AdoConfiguration = ctx.obj
 
     if use_latest:
-        from orchestrator.cli.utils.generic.common import get_effective_resource_id
+        from ado.cli.utils.generic.common import get_effective_resource_id
 
         resource_id = get_effective_resource_id(
             explicit_resource_id=ids[0] if ids else None,

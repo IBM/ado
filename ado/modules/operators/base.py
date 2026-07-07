@@ -12,33 +12,33 @@ from typing import Protocol
 import ray
 import ray.exceptions
 
-import orchestrator.core.operation.resource
-import orchestrator.core.resources
-import orchestrator.metastore.project
-import orchestrator.modules
-import orchestrator.modules.actuators.replay
-import orchestrator.schema.reference
-from orchestrator.core.discoveryspace.space import DiscoverySpace
-from orchestrator.core.operation.config import (
+import ado.core.operation.resource
+import ado.core.resources
+import ado.metastore.project
+import ado.modules
+import ado.modules.actuators.replay
+import ado.schema.reference
+from ado.core.discoveryspace.space import DiscoverySpace
+from ado.core.operation.config import (
     DiscoveryOperationResourceConfiguration,
     FunctionOperationInfo,
     OperatorModuleConf,
     OperatorReference,
 )
-from orchestrator.core.operation.operation import OperationOutput
-from orchestrator.core.operation.resource import OperationResource
-from orchestrator.metastore.sqlstore import SQLStore
-from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
-from orchestrator.modules.operators.discovery_space_manager import (
+from ado.core.operation.operation import OperationOutput
+from ado.core.operation.resource import OperationResource
+from ado.metastore.sqlstore import SQLStore
+from ado.modules.actuators.measurement_queue import MeasurementQueue
+from ado.modules.operators.discovery_space_manager import (
     DiscoverySpaceUpdateSubscriber,
 )
-from orchestrator.schema.entity import Entity
-from orchestrator.schema.reference import ExperimentReference
+from ado.schema.entity import Entity
+from ado.schema.reference import ExperimentReference
 
 if typing.TYPE_CHECKING:
-    from orchestrator.core.resources import ADOResource
-    from orchestrator.metastore.base import ResourceStore
-    from orchestrator.modules.actuators.base import ActuatorBase
+    from ado.core.resources import ADOResource
+    from ado.metastore.base import ResourceStore
+    from ado.modules.actuators.base import ActuatorBase
 
     from .discovery_space_manager import DiscoverySpaceManagerActor
 
@@ -187,11 +187,11 @@ class DiscoveryOperationBase(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def operator_metadata(
         cls,
-    ) -> "orchestrator.core.operation.config.OperatorMetadata":
-        """Return :class:`~orchestrator.core.operation.config.OperatorMetadata` for this operator.
+    ) -> "ado.core.operation.config.OperatorMetadata":
+        """Return :class:`~ado.core.operation.config.OperatorMetadata` for this operator.
 
         Subclasses must override this method and return an
-        :class:`~orchestrator.core.operation.config.OperatorMetadata` instance
+        :class:`~ado.core.operation.config.OperatorMetadata` instance
         that describes the operator's name, version, type, and configuration
         model.  The ``@explore_operation`` decorator fills in the ``function``
         and ``cls`` fields before registering::
@@ -243,7 +243,7 @@ class DiscoverySpaceSubscribingDiscoveryOperation(
         operationActorName: str,
         namespace: str | None,
         discovery_space_manager: "DiscoverySpaceManagerActor",
-        actuators: dict[str, "orchestrator.modules.actuators.base.ActuatorBase"],
+        actuators: dict[str, "ado.modules.actuators.base.ActuatorBase"],
     ) -> None:
         self.actorName = operationActorName
         self.namespace = namespace
@@ -308,7 +308,7 @@ def measure_or_replay(
         MeasurementError: If the experimentReference cannot be executed by the actuator as it is
             deprecated w.r.t the actuator version being used.
     """
-    from orchestrator.modules.actuators.errors import (
+    from ado.modules.actuators.errors import (
         DeprecatedExperimentError,
         MeasurementError,
         MissingConfigurationForExperimentError,
@@ -321,7 +321,7 @@ def measure_or_replay(
     request_ids: list[str] = []
     if memoize:
         # This will only memoize entities that can be memoized
-        replayed_requests = orchestrator.modules.actuators.replay.replay(
+        replayed_requests = ado.modules.actuators.replay.replay(
             requesterid=requesterid,
             requestIndex=requestIndex,
             entities=entities,
@@ -402,8 +402,8 @@ def add_operation_and_output_to_metastore(
     metastore: SQLStore,
 ) -> OperationResource:
     """Creates an operation resource from the given configuration and adds it and its outputs to the resource store"""
-    from orchestrator.core.operation.resource import OperationProvenanceInfo
-    from orchestrator.modules.operators.collections import provenance_for_operator
+    from ado.core.operation.resource import OperationProvenanceInfo
+    from ado.modules.operators.collections import provenance_for_operator
 
     operator_module = operation_resource_configuration.operation.module
     operators = {}
@@ -462,9 +462,9 @@ def create_operation_and_add_to_metastore(
         OperationResource instance that was created and added to the metastore
     """
 
-    from orchestrator.core.operation.config import DiscoveryOperationConfiguration
-    from orchestrator.core.operation.resource import OperationProvenanceInfo
-    from orchestrator.modules.operators.collections import provenance_for_operator
+    from ado.core.operation.config import DiscoveryOperationConfiguration
+    from ado.core.operation.resource import OperationProvenanceInfo
+    from ado.modules.operators.collections import provenance_for_operator
 
     operation_resource_configuration = DiscoveryOperationResourceConfiguration(
         operation=DiscoveryOperationConfiguration(

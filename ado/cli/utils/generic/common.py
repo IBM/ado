@@ -3,7 +3,7 @@
 
 import typer
 
-from orchestrator.cli.utils.output.prints import (
+from ado.cli.utils.output.prints import (
     ADO_SPINNER_QUERYING_DB,
     WARN,
     console_print,
@@ -11,8 +11,8 @@ from orchestrator.cli.utils.output.prints import (
     magenta,
     using_latest_identifier_for_resource,
 )
-from orchestrator.core import CoreResourceKinds
-from orchestrator.metastore.project import ProjectContext
+from ado.core import CoreResourceKinds
+from ado.metastore.project import ProjectContext
 
 
 def get_effective_resource_id(
@@ -40,7 +40,7 @@ def get_effective_resource_id(
     """
     from rich.status import Status
 
-    from orchestrator.cli.utils.generic.wrappers import get_sql_store
+    from ado.cli.utils.generic.wrappers import get_sql_store
 
     if explicit_resource_id:
         console_print(

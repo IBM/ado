@@ -7,31 +7,31 @@ from typing import Annotated
 
 import typer
 
-from orchestrator.cli.exceptions.handlers import (
+from ado.cli.exceptions.handlers import (
     handle_no_related_resource,
     handle_resource_does_not_exist,
 )
-from orchestrator.cli.models.parameters import AdoEditCommandParameters
-from orchestrator.cli.models.types import (
+from ado.cli.models.parameters import AdoEditCommandParameters
+from ado.cli.models.types import (
     AdoEditSupportedEditors,
     AdoEditSupportedResourceTypes,
 )
-from orchestrator.cli.resources.actuator_configuration.edit import (
+from ado.cli.resources.actuator_configuration.edit import (
     edit_actuator_configuration,
 )
-from orchestrator.cli.resources.data_container.edit import edit_data_container
-from orchestrator.cli.resources.discovery_space.edit import edit_discovery_space
-from orchestrator.cli.resources.operation.edit import edit_operation
-from orchestrator.cli.resources.sample_store.edit import edit_sample_store
-from orchestrator.cli.utils.input.parsers import enum_choice_with_plural_parser
-from orchestrator.cli.utils.output.prints import ERROR, console_print
-from orchestrator.metastore.base import (
+from ado.cli.resources.data_container.edit import edit_data_container
+from ado.cli.resources.discovery_space.edit import edit_discovery_space
+from ado.cli.resources.operation.edit import edit_operation
+from ado.cli.resources.sample_store.edit import edit_sample_store
+from ado.cli.utils.input.parsers import enum_choice_with_plural_parser
+from ado.cli.utils.output.prints import ERROR, console_print
+from ado.metastore.base import (
     NoRelatedResourcesError,
     ResourceDoesNotExistError,
 )
 
 if typing.TYPE_CHECKING:
-    from orchestrator.cli.core.config import AdoConfiguration
+    from ado.cli.core.config import AdoConfiguration
 
 
 def edit_resource(

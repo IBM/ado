@@ -3,14 +3,14 @@
 
 from fastapi import APIRouter, Depends, status
 
-from orchestrator.api.dependencies.validation import (
+from ado.api.dependencies.validation import (
     validated_actuator_id,
     validated_experiment_id,
 )
-from orchestrator.api.routers.v0.actuators.experiments.requests import requests
-from orchestrator.modules.actuators.registry import ActuatorRegistry
-from orchestrator.schema.experiment import Experiment
-from orchestrator.schema.reference import ExperimentReference
+from ado.api.routers.v0.actuators.experiments.requests import requests
+from ado.modules.actuators.registry import ActuatorRegistry
+from ado.schema.experiment import Experiment
+from ado.schema.reference import ExperimentReference
 
 router = APIRouter(
     prefix="/{actuator_id}/experiments",

@@ -8,7 +8,7 @@ from typing import Annotated
 import pydantic
 from pydantic import ConfigDict
 
-from orchestrator.schema.domain import PropertyDomain
+from ado.schema.domain import PropertyDomain
 
 if typing.TYPE_CHECKING:
     from rich.console import RenderableType

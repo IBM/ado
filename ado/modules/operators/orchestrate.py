@@ -11,16 +11,16 @@ import pydantic
 import ray
 import ray.util.queue
 
-from orchestrator.core.discoveryspace.space import DiscoverySpace
-from orchestrator.core.operation.config import (
+from ado.core.discoveryspace.space import DiscoverySpace
+from ado.core.operation.config import (
     DiscoveryOperationResourceConfiguration,
     FunctionOperationInfo,
     OperatorModuleConf,
 )
-from orchestrator.core.operation.operation import OperationException, OperationOutput
-from orchestrator.metastore.base import ResourceDoesNotExistError
-from orchestrator.metastore.project import ProjectContext
-from orchestrator.modules.operators._cleanup import (
+from ado.core.operation.operation import OperationException, OperationOutput
+from ado.metastore.base import ResourceDoesNotExistError
+from ado.metastore.project import ProjectContext
+from ado.modules.operators._cleanup import (
     CLEANER_ACTOR,  # noqa: F401
     ResourceCleaner,  # noqa: F401
     cleanup_callback_functions,
@@ -29,13 +29,13 @@ from orchestrator.modules.operators._cleanup import (
 
 # These functions are re-exported via this module — keep the imports even if
 # not referenced locally.
-from orchestrator.modules.operators._explore_orchestration import (
+from ado.modules.operators._explore_orchestration import (
     orchestrate_explore_operation,  # noqa: F401
 )
-from orchestrator.modules.operators._general_orchestration import (
+from ado.modules.operators._general_orchestration import (
     orchestrate_general_operation,  # noqa: F401
 )
-from orchestrator.utilities.logging import configure_logging
+from ado.utilities.logging import configure_logging
 
 configure_logging()
 moduleLog = logging.getLogger("orch")
@@ -104,7 +104,7 @@ def orchestrate(
         ray.exceptions.ActorDiedError: If there was an error initializing actors
     """
 
-    import orchestrator.modules.operators.setup
+    import ado.modules.operators.setup
 
     #
     # INIT RAY
@@ -205,7 +205,7 @@ def orchestrate(
         )
         raise
     finally:
-        if not orchestrator.modules.operators._cleanup.shutdown_signal_received:
+        if not ado.modules.operators._cleanup.shutdown_signal_received:
             graceful_orchestrate_shutdown()
             cleanup_callback_functions.pop("orchestrate")
 

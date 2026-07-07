@@ -5,21 +5,21 @@ import typing
 import typer
 from rich.status import Status
 
-from orchestrator.cli.utils.output.prints import (
+from ado.cli.utils.output.prints import (
     ADO_SPINNER_CONNECTING_TO_DB,
     ERROR,
     console_print,
 )
-from orchestrator.metastore.project import ProjectContext
+from ado.metastore.project import ProjectContext
 
 if typing.TYPE_CHECKING:
-    from orchestrator.metastore.sqlstore import SQLResourceStore
+    from ado.metastore.sqlstore import SQLResourceStore
 
 
 def get_sql_store(project_context: ProjectContext) -> "SQLResourceStore":
     from sqlalchemy.exc import OperationalError
 
-    from orchestrator.metastore.sqlstore import SQLStore
+    from ado.metastore.sqlstore import SQLStore
 
     with Status(ADO_SPINNER_CONNECTING_TO_DB) as status:
         try:

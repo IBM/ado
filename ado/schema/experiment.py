@@ -11,10 +11,10 @@ from typing import Annotated
 import pydantic
 from pydantic import ConfigDict
 
-from orchestrator.schema.observed_property import (
+from ado.schema.observed_property import (
     ObservedProperty,
 )
-from orchestrator.schema.property import (
+from ado.schema.property import (
     AbstractPropertyDescriptor,
     ConcretePropertyDescriptor,
     ConstitutiveProperty,
@@ -23,28 +23,28 @@ from orchestrator.schema.property import (
     Property,
     PropertyDescriptor,
 )
-from orchestrator.schema.property_value import (
+from ado.schema.property_value import (
     ConstitutivePropertyValue,
     PropertyValue,
     validate_point_against_properties,
 )
-from orchestrator.schema.reference import (
+from ado.schema.reference import (
     ExperimentReference,
     check_parameterization_validity,
     identifier_for_parameterized_experiment,
     reference_string_from_fields,
 )
-from orchestrator.schema.virtual_property import (
+from ado.schema.virtual_property import (
     PropertyAggregationMethod,
     PropertyAggregationMethodEnum,
     VirtualObservedProperty,
 )
-from orchestrator.utilities.pydantic import StrictSemVerStr, semver_major
+from ado.utilities.pydantic import StrictSemVerStr, semver_major
 
 if typing.TYPE_CHECKING:  # pragma: nocover
     from rich.console import RenderableType
 
-    from orchestrator.schema.entity import Entity
+    from ado.schema.entity import Entity
 
 
 class Experiment(pydantic.BaseModel):
@@ -331,7 +331,7 @@ class Experiment(pydantic.BaseModel):
         from rich.panel import Panel
         from rich.text import Text
 
-        from orchestrator.utilities.rich import get_rich_repr
+        from ado.utilities.rich import get_rich_repr
 
         fq_identifier = f"{self.actuatorIdentifier}.{self.fully_qualified_identifier}"
         content = [
@@ -1002,7 +1002,7 @@ class ParameterizedExperiment(Experiment):
         from rich.panel import Panel
         from rich.text import Text
 
-        from orchestrator.utilities.rich import get_rich_repr
+        from ado.utilities.rich import get_rich_repr
 
         content = []
         content.append(

@@ -9,14 +9,14 @@ from typing import Any
 
 import numpy as np
 
-from orchestrator.core.discoveryspace.samplers import (
+from ado.core.discoveryspace.samplers import (
     ExplicitEntitySpaceGridSampleGenerator,
     GroupSampler,
     WalkModeEnum,
 )
-from orchestrator.core.discoveryspace.space import DiscoverySpace
-from orchestrator.modules.operators.discovery_space_manager import DiscoverySpaceManager
-from orchestrator.schema.entity import Entity
+from ado.core.discoveryspace.space import DiscoverySpace
+from ado.modules.operators.discovery_space_manager import DiscoverySpaceManager
+from ado.schema.entity import Entity
 
 moduleLog = logging.getLogger("groupsamplers")
 
@@ -305,7 +305,7 @@ class SequentialGroupSampleSelector(GroupSampler):
         the number of members of the associated group
 
         Parameters:
-            discoverySpace: An orchestrator.model.space.DiscoverySpace instance
+            discoverySpace: An ado.model.space.DiscoverySpace instance
         """
         points = _get_space_matching_points(discovery_space=discoverySpace)
         return _sequential_iterator(
@@ -379,7 +379,7 @@ class RandomGroupSampleSelector(GroupSampler):
         the number of members of the associated group
 
         Parameters:
-            discoverySpace: An orchestrator.model.space.DiscoverySpace instance
+            discoverySpace: An ado.model.space.DiscoverySpace instance
         """
         points = _get_space_matching_points(discovery_space=discoverySpace)
         return _random_iterator(
@@ -454,7 +454,7 @@ class ExplicitEntitySpaceGroupedGridSampleGenerator(
         the number of members of the associated group
 
         Parameters:
-            discoverySpace: An orchestrator.model.space.DiscoverySpace instance
+            discoverySpace: An ado.model.space.DiscoverySpace instance
         """
 
         entity_space = discoverySpace.entitySpace

@@ -3,14 +3,14 @@
 import ray
 from fastapi import APIRouter, Depends, status
 
-from orchestrator.api.dependencies.validation import (
+from ado.api.dependencies.validation import (
     validated_actuator_id,
     validated_entities_for_experiment,
     validated_experiment_id,
 )
-from orchestrator.schema.entity import Entity
-from orchestrator.schema.reference import ExperimentReference
-from orchestrator.schema.request import MeasurementRequest
+from ado.schema.entity import Entity
+from ado.schema.reference import ExperimentReference
+from ado.schema.request import MeasurementRequest
 
 router = APIRouter(
     prefix="/{experiment_id}/requests",

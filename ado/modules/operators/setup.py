@@ -7,21 +7,21 @@ import typing
 
 import pydantic
 
-from orchestrator.core.discoveryspace.space import DiscoverySpace
-from orchestrator.core.operation.config import (
+from ado.core.discoveryspace.space import DiscoverySpace
+from ado.core.operation.config import (
     DiscoveryOperationConfiguration,
     OperatorMetadata,
     OperatorReference,
     get_actuator_configurations,
     validate_actuator_configurations_against_space_configuration,
 )
-from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
-from orchestrator.utilities.logging import configure_logging
+from ado.modules.actuators.measurement_queue import MeasurementQueue
+from ado.utilities.logging import configure_logging
 
 if typing.TYPE_CHECKING:
-    from orchestrator.modules.actuators.base import ActuatorActor
-    from orchestrator.modules.operators.base import OperatorActor
-    from orchestrator.modules.operators.discovery_space_manager import (
+    from ado.modules.actuators.base import ActuatorActor
+    from ado.modules.operators.base import OperatorActor
+    from ado.modules.operators.discovery_space_manager import (
         DiscoverySpaceManagerActor,
     )
 
@@ -49,11 +49,11 @@ def setup_actuators(
 
     import ray
 
-    import orchestrator.modules.actuators.base
-    import orchestrator.modules.actuators.registry
+    import ado.modules.actuators.base
+    import ado.modules.actuators.registry
 
     moduleLog.info("Initialising requested actuators")
-    registry = orchestrator.modules.actuators.registry.ActuatorRegistry.globalRegistry()
+    registry = ado.modules.actuators.registry.ActuatorRegistry.globalRegistry()
     actuators = {}
     namespace = measurement_queue.ray_namespace()
 
@@ -164,7 +164,7 @@ def setup_operator(
 
     import ray
 
-    import orchestrator.utilities.output
+    import ado.utilities.output
 
     moduleLog.info("Creating operation")
 
@@ -197,7 +197,7 @@ def setup_operator(
         operationType=operator_metadata.type,
         operatorVersion=operator_metadata.version,
     )
-    conf_string = orchestrator.utilities.output.pydantic_model_as_yaml(
+    conf_string = ado.utilities.output.pydantic_model_as_yaml(
         DiscoveryOperationConfiguration(
             module=operator_reference, parameters=parameters
         ),

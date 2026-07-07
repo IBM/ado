@@ -3,9 +3,9 @@
 import typer
 from rich.status import Status
 
-from orchestrator.cli.models.parameters import AdoGetCommandParameters
-from orchestrator.cli.models.types import AdoGetSupportedOutputFormats
-from orchestrator.cli.utils.output.prints import (
+from ado.cli.models.parameters import AdoGetCommandParameters
+from ado.cli.models.types import AdoGetSupportedOutputFormats
+from ado.cli.utils.output.prints import (
     ADO_INFO_EMPTY_DATAFRAME,
     ADO_SPINNER_GETTING_OUTPUT_READY,
     ERROR,
@@ -14,7 +14,7 @@ from orchestrator.cli.utils.output.prints import (
     console_print,
     cyan,
 )
-from orchestrator.utilities.strings import (
+from ado.utilities.strings import (
     normalize_and_truncate_at_period,
 )
 
@@ -27,7 +27,7 @@ def get_operator(parameters: AdoGetCommandParameters) -> None:
     with Status(ADO_SPINNER_GETTING_OUTPUT_READY):
         import pandas as pd
 
-        import orchestrator.modules.operators.collections
+        import ado.modules.operators.collections
 
     # Validate output format
     if parameters.output_format not in {
@@ -48,7 +48,7 @@ def get_operator(parameters: AdoGetCommandParameters) -> None:
         operator_names = []
         for (
             collection
-        ) in orchestrator.modules.operators.collections.operationCollectionMap.values():
+        ) in ado.modules.operators.collections.operationCollectionMap.values():
             operator_names.extend(collection.operators.keys())
 
         if parameters.resource_id:
@@ -69,9 +69,7 @@ def get_operator(parameters: AdoGetCommandParameters) -> None:
 
     # Build entries for TABLE format
     entries = []
-    for (
-        collection
-    ) in orchestrator.modules.operators.collections.operationCollectionMap.values():
+    for collection in ado.modules.operators.collections.operationCollectionMap.values():
         for operator_name, operator in collection.operators.items():
             entry = {
                 "OPERATOR": operator_name,
@@ -105,7 +103,7 @@ def get_operator(parameters: AdoGetCommandParameters) -> None:
 
     operators = operators.sort_values(by=["TYPE", "OPERATOR"]).reset_index(drop=True)
 
-    from orchestrator.cli.utils.resources.handlers import handle_ado_get
+    from ado.cli.utils.resources.handlers import handle_ado_get
 
     # Use unified handler for rendering
     handle_ado_get(parameters=parameters, dataframe=operators)

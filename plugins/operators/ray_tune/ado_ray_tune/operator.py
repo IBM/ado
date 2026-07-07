@@ -147,7 +147,7 @@ def retrieve_results(
 
 
 class OrchTrainableParameters(pydantic.BaseModel):
-    """Model for the information the orchestrator needs to pass to tune() and tune_trainable"""
+    """Model for the information ado needs to pass to tune() and tune_trainable"""
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -532,9 +532,9 @@ def tune(
     Parameters:
         search_space: A ray tune search-space dict
         config: A RayTuneConfiguration object with options for the run
-            This includes orchestrator specific options
+            This includes ado specific options
         parameters: A dict with internal parameters that enable the tune_trainable function
-            to interact with the orchestrator while being called by ray tune.
+            to interact with ado while being called by ray tune.
 
     Returns:
         ray.tune.Result instance containing information on the best result found

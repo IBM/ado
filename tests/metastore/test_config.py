@@ -17,17 +17,17 @@ from ado.modules.module import (
 )
 
 
-def test_discovery_storage_conf_dump_reload(orchestrator_project_name: str) -> None:
+def test_discovery_storage_conf_dump_reload() -> None:
 
     conf = ProjectContext(
-        project=orchestrator_project_name,
+        project="project",
         metadataStore=ado.utilities.location.SQLStoreConfiguration(
             scheme="mysql+pymysql",
             host="localhost",
             port=3306,
             user="someuser",
             password="somepass",
-            database=orchestrator_project_name,
+            database="project",
             sslVerify=False,
         ),
     )

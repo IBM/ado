@@ -72,7 +72,7 @@ def create_general_ray_tune_config(
 
 
 class RayTuneOrchestratorConfiguration(pydantic.BaseModel):
-    """Model for specific orchestrator options related to ray tune"""
+    """Model for specific ado options related to ray tune"""
 
     metric_format: Annotated[
         typing.Literal["target", "observed"],
@@ -195,7 +195,7 @@ class OrchStopperAlgorithm(pydantic.BaseModel):
 class OrchTuneConfig(pydantic.BaseModel):
     """Model for options that will initialize a ray.tune.TuneConfig instance
 
-    The aim of this class is to translate fields between the orchestrator RayTune agent's
+    The aim of this class is to translate fields between ado's RayTune agent's
     config and RayTune "TuneConfig"
 
     We need this as the values of certain TuneConfig fields e.g. search_alg, are complex objects which need to
@@ -264,7 +264,7 @@ class OrchTuneConfig(pydantic.BaseModel):
 class OrchRunConfig(pydantic.BaseModel):
     """Model for options that will initialize a ray.tune.RunConfig instance
 
-    The aim of this class is to translate fields between the orchestrator RayTune agent's
+    The aim of this class is to translate fields between ado's RayTune agent's
     config and Ray Air "RunConfig"
 
     We need this as the values of certain RuneConfig fields e.g. stop, are complex objects which need to be
@@ -361,7 +361,7 @@ class RayTuneConfiguration(pydantic.BaseModel):
     ] = OrchRunConfig()
     orchestratorConfig: Annotated[
         RayTuneOrchestratorConfiguration,
-        pydantic.Field(description="orchestrator options"),
+        pydantic.Field(description="ado options"),
     ] = RayTuneOrchestratorConfiguration()
     model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
 

@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 """
-Queue monitor implementation for the Orchestrator API.
+Queue monitor implementation for the ado API.
 
 The :class:`~ado.api.state.queue.QueueMonitorActor` is a Ray
 remote actor that keeps an in-memory representation of all measurement

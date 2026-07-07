@@ -77,8 +77,8 @@ def test_package_provenance_from_distribution_name_unknown() -> None:
     )
 
 
-def test_package_provenance_from_module_name_orchestrator() -> None:
-    """from_module_name maps orchestrator modules to ado-core."""
+def test_package_provenance_from_module_name_ado() -> None:
+    """from_module_name maps ado modules to ado-core."""
     prov = PackageProvenance.from_module_name("ado.modules.operators.randomwalk")
     assert prov is not None
     assert prov.distributionName == "ado-core"

@@ -1,5 +1,5 @@
 """
-Module providing FastAPI routers for v0 of the Orchestrator API.
+Module providing FastAPI routers for v0 of the ado API.
 
 This module defines the base :class:`fastapi.APIRouter` instance for the
 ``/v0`` API namespace and includes the individual routers for the

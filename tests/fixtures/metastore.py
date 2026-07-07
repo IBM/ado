@@ -26,11 +26,6 @@ from ado.modules.module import ModuleConf, ModuleTypeEnum
 from ado.utilities.output import pydantic_model_as_yaml
 
 
-@pytest.fixture
-def orchestrator_project_name() -> str:
-    return "spark-opt"
-
-
 @pytest.fixture(
     params=[
         ModuleTypeEnum.ACTUATOR,

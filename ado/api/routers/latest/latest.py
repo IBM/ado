@@ -1,5 +1,5 @@
 """
-Module providing FastAPI routers for the latest version of the Orchestrator API.
+Module providing FastAPI routers for the latest version of the ado API.
 
 This module defines the base :class:`fastapi.APIRouter` instance for the
 ``latest`` API namespace and includes the individual routers for the

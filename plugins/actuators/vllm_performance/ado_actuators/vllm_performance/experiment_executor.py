@@ -98,6 +98,15 @@ def _build_entity_env(values: dict[str, str]) -> str:
         * data type
         * cpu offload
         * renderer_num_workers
+        * reasoning_parser
+        * tool_call_parser
+        * language_model_only
+        * enable_auto_tool_choice
+        * max_model_len
+        * kv_cache_dtype
+        * quantization
+        * enable_prefix_caching
+        * block_size
     Build entity based environment parameters
     :param values: experiment values
     :return: definition
@@ -120,6 +129,10 @@ def _build_entity_env(values: dict[str, str]) -> str:
         "language_model_only": values.get("language_model_only"),
         "enable_auto_tool_choice": values.get("enable_auto_tool_choice"),
         "max_model_len": values.get("max_model_len"),
+        "kv_cache_dtype": values.get("kv_cache_dtype"),
+        "quantization": values.get("quantization"),
+        "enable_prefix_caching": values.get("enable_prefix_caching"),
+        "block_size": values.get("block_size"),
     }
     return json.dumps(env_values)
 
@@ -305,8 +318,11 @@ def _create_environment(
                         ),
                         reasoning_parser=values.get("reasoning_parser"),
                         tool_call_parser=values.get("tool_call_parser"),
-                        language_model_only=values.get("language_model_only", 0) == 1,
-                        enable_auto_tool_choice=values.get("enable_auto_tool_choice", 0)
+                        language_model_only=int(values.get("language_model_only", 0))
+                        == 1,
+                        enable_auto_tool_choice=int(
+                            values.get("enable_auto_tool_choice", 0)
+                        )
                         == 1,
                         max_model_len=(
                             int(values["max_model_len"])
@@ -315,7 +331,9 @@ def _create_environment(
                         ),
                         kv_cache_dtype=values.get("kv_cache_dtype"),
                         quantization=values.get("quantization"),
-                        enable_prefix_caching=values.get("enable_prefix_caching", 0)
+                        enable_prefix_caching=int(
+                            values.get("enable_prefix_caching", 0)
+                        )
                         == 1,
                         block_size=(
                             int(values["block_size"])

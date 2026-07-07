@@ -254,3 +254,73 @@ class TestNewServerParamsInVllmArgs:
         """When block_size is None, --block-size should NOT be in args."""
         args = self._base_yaml(block_size=None)
         assert "--block-size" not in args, f"--block-size found unexpectedly in: {args}"
+
+
+class TestBuildEntityEnv:
+    """Test that _build_entity_env produces distinct cache keys for each deployment-affecting parameter."""
+
+    def _base_values(self) -> dict:
+        """Return a minimal valid values dict with all required deployment parameters set."""
+        return {
+            "model": "test-model",
+            "image": "vllm/vllm-openai:v0.14.0",
+            "n_gpus": 1,
+            "gpu_type": "NVIDIA-A100-80GB-PCIe",
+            "n_cpus": 4,
+            "memory": "16Gi",
+            "max_batch_tokens": 16384,
+            "gpu_memory_utilization": 0.9,
+            "dtype": "auto",
+            "cpu_offload": 0,
+            "max_num_seq": 256,
+            "renderer_num_workers": None,
+            "reasoning_parser": None,
+            "tool_call_parser": None,
+            "language_model_only": 0,
+            "enable_auto_tool_choice": 0,
+            "max_model_len": None,
+            "kv_cache_dtype": None,
+            "quantization": None,
+            "enable_prefix_caching": 0,
+            "block_size": None,
+        }
+
+    def test_kv_cache_dtype_produces_distinct_key(self) -> None:
+        """Entities differing only in kv_cache_dtype must not share a deployment environment."""
+        from ado_actuators.vllm_performance.experiment_executor import _build_entity_env
+
+        with_value = {**self._base_values(), "kv_cache_dtype": "fp8"}
+        without_value = {**self._base_values(), "kv_cache_dtype": None}
+        assert _build_entity_env(with_value) != _build_entity_env(
+            without_value
+        ), "kv_cache_dtype=fp8 and kv_cache_dtype=None must produce different cache keys"
+
+    def test_quantization_produces_distinct_key(self) -> None:
+        """Entities differing only in quantization must not share a deployment environment."""
+        from ado_actuators.vllm_performance.experiment_executor import _build_entity_env
+
+        with_value = {**self._base_values(), "quantization": "awq"}
+        without_value = {**self._base_values(), "quantization": None}
+        assert _build_entity_env(with_value) != _build_entity_env(
+            without_value
+        ), "quantization=awq and quantization=None must produce different cache keys"
+
+    def test_enable_prefix_caching_produces_distinct_key(self) -> None:
+        """Entities differing only in enable_prefix_caching must not share a deployment environment."""
+        from ado_actuators.vllm_performance.experiment_executor import _build_entity_env
+
+        with_value = {**self._base_values(), "enable_prefix_caching": 1}
+        without_value = {**self._base_values(), "enable_prefix_caching": 0}
+        assert _build_entity_env(with_value) != _build_entity_env(
+            without_value
+        ), "enable_prefix_caching=1 and enable_prefix_caching=0 must produce different cache keys"
+
+    def test_block_size_produces_distinct_key(self) -> None:
+        """Entities differing only in block_size must not share a deployment environment."""
+        from ado_actuators.vllm_performance.experiment_executor import _build_entity_env
+
+        with_value = {**self._base_values(), "block_size": 32}
+        without_value = {**self._base_values(), "block_size": None}
+        assert _build_entity_env(with_value) != _build_entity_env(
+            without_value
+        ), "block_size=32 and block_size=None must produce different cache keys"

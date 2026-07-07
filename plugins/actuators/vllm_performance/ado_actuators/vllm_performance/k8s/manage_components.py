@@ -179,7 +179,9 @@ class ComponentsManager:
             return False
         return any(svc.metadata.name == k8s_name for svc in svcs.items)
 
-    def delete_service(self, k8s_name: str, raise_if_not_found: bool = True) -> None:
+    def delete_service(
+        self, k8s_name: str, suppress_not_found_error: bool = False
+    ) -> None:
         """
         Delete service for model
         :param k8s_name: kubernetes name
@@ -191,7 +193,7 @@ class ComponentsManager:
                 name=k8s_name,
             )
         except ApiException as e:
-            if e.reason != "Not Found" or raise_if_not_found:
+            if e.reason != "Not Found" or not suppress_not_found_error:
                 raise e
 
     def create_service(self, k8s_name: str, template: str | None = None) -> None:
@@ -230,7 +232,9 @@ class ComponentsManager:
                 return True
         return False
 
-    def delete_deployment(self, k8s_name: str, raise_if_not_found: bool = True) -> None:
+    def delete_deployment(
+        self, k8s_name: str, suppress_not_found_error: bool = False
+    ) -> None:
         """
         Delete service for model
         :param k8s_name: kubernetes name
@@ -245,7 +249,7 @@ class ComponentsManager:
                 ),
             )
         except ApiException as e:
-            if e.reason != "Not Found" or raise_if_not_found:
+            if e.reason != "Not Found" or not suppress_not_found_error:
                 raise e
 
     def create_deployment(

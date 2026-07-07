@@ -149,9 +149,9 @@ class EnvironmentManager:
         Deletes a deployment. Intended to be used for cleanup or error recovery
         param: identifier: the deployment identifier
         """
-        self.manager.delete_service(k8s_name=k8s_name, raise_if_not_found=False)
+        self.manager.delete_service(k8s_name=k8s_name, suppress_not_found_error=True)
 
-        self.manager.delete_deployment(k8s_name=k8s_name, raise_if_not_found=False)
+        self.manager.delete_deployment(k8s_name=k8s_name, suppress_not_found_error=True)
 
     def environment_usage(self) -> dict:
         return {"max": self.max_concurrent, "in_use": self.active_environments}

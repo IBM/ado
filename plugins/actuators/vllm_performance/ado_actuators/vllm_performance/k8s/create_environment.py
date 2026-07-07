@@ -146,8 +146,8 @@ def create_test_environment(
         # a retry.
         if isinstance(e, K8sDeploymentCreationTimeoutError):
             logger.debug("Creating the {k8s_name} deployment has timed out")
-        c_manager.delete_deployment(k8s_name=k8s_name, raise_if_not_found=False)
-        c_manager.delete_service(k8s_name=k8s_name, raise_if_not_found=False)
+        c_manager.delete_deployment(k8s_name=k8s_name, suppress_not_found_error=True)
+        c_manager.delete_service(k8s_name=k8s_name, suppress_not_found_error=True)
         raise (e)
 
 

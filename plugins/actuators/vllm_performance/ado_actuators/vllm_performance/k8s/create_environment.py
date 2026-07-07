@@ -105,29 +105,29 @@ def create_test_environment(
     )
     logger.debug("component manager created")
 
-    # deployment
-    c_manager.create_deployment(
-        k8s_name=k8s_name,
-        model=model,
-        gpu_type=gpu_type,
-        node_selector=node_selector,
-        image=image,
-        image_pull_secret_name=image_pull_secret_name,
-        n_gpus=n_gpus,
-        n_cpus=n_cpus,
-        memory=memory,
-        template=deployment_template,
-        claim_name=pvc_name,
-        hf_token=hf_token,
-        enforce_eager=enforce_eager,
-        skip_tokenizer_init=skip_tokenizer_init,
-        io_processor_plugin=io_processor_plugin,
-        otlp_traces_endpoint=otlp_traces_endpoint,
-        renderer_num_workers=renderer_num_workers,
-    )
-    logger.debug(f"Deployment {k8s_name} created")
-
     try:
+        # deployment
+        c_manager.create_deployment(
+            k8s_name=k8s_name,
+            model=model,
+            gpu_type=gpu_type,
+            node_selector=node_selector,
+            image=image,
+            image_pull_secret_name=image_pull_secret_name,
+            n_gpus=n_gpus,
+            n_cpus=n_cpus,
+            memory=memory,
+            template=deployment_template,
+            claim_name=pvc_name,
+            hf_token=hf_token,
+            enforce_eager=enforce_eager,
+            skip_tokenizer_init=skip_tokenizer_init,
+            io_processor_plugin=io_processor_plugin,
+            otlp_traces_endpoint=otlp_traces_endpoint,
+            renderer_num_workers=renderer_num_workers,
+        )
+        logger.debug(f"Deployment {k8s_name} created")
+
         c_manager.wait_deployment_ready(
             k8s_name=k8s_name,
             check_interval=check_interval,

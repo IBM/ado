@@ -37,7 +37,7 @@ or to check an existing actuator plugin.
 The main part of writing an actuator plugin is writing (at least) one Python
 class that implements a specific interface.
 
-- is a subclass of `orchestrator.modules.actuators.base.StandardActuator`.
+- is a subclass of `ado.modules.actuators.base.StandardActuator`.
 - defines a class attribute `identifier`, which is human-readable name of the
   actuator
 - implements the `catalog()` method
@@ -243,8 +243,8 @@ from `GenericActuatorParameters` and add a reference to it in the
 <!-- markdownlint-disable code-block-style -->
 
 ```python
-from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
-from orchestrator.modules.actuators.base import ActuatorBase
+from ado.core.actuatorconfiguration.config import GenericActuatorParameters
+from ado.modules.actuators.base import ActuatorBase
 from typing import Annotated
 import pydantic
 
@@ -398,7 +398,7 @@ Let's imagine we want to change the name of the `authToken` field to be
 <!-- markdownlint-disable code-block-style -->
 
 ```python
-from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
+from ado.core.actuatorconfiguration.config import GenericActuatorParameters
 from typing import Annotated
 import pydantic
 
@@ -439,7 +439,7 @@ from typing import Annotated, Any
 
 import pydantic
 
-from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
+from ado.core.actuatorconfiguration.config import GenericActuatorParameters
 
 class InferenceActuatorParameters(GenericActuatorParameters):
     model_config = pydantic.ConfigDict(extra="forbid")
@@ -469,7 +469,7 @@ class InferenceActuatorParameters(GenericActuatorParameters):
         ):
             raise ValueError(f"Unexpected type {type(values)} in validator")
 
-        from orchestrator.core.actuatorconfiguration.config import (
+        from ado.core.actuatorconfiguration.config import (
             warn_deprecated_actuator_parameters_model_in_use,
         )
 
@@ -559,7 +559,7 @@ Let's imagine we want to change the type of the `endpoint` field to be
 <!-- markdownlint-disable code-block-style -->
 
 ```python
-from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
+from ado.core.actuatorconfiguration.config import GenericActuatorParameters
 from typing import Annotated
 import pydantic
 
@@ -600,7 +600,7 @@ applied. To ensure the users are aware of the change, we will also use the
 <!-- markdownlint-disable code-block-style -->
 
 ```python
-from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
+from ado.core.actuatorconfiguration.config import GenericActuatorParameters
 from typing import Annotated
 import pydantic
 
@@ -625,7 +625,7 @@ class InferenceActuatorParameters(GenericActuatorParameters):
     @pydantic.field_validator("endpoint", mode="before")
     @classmethod
     def convert_endpoint_to_url(cls, value: str | pydantic.HttpUrl):
-        from orchestrator.core.actuatorconfiguration.config import (
+        from ado.core.actuatorconfiguration.config import (
             warn_deprecated_actuator_parameters_model_in_use,
         )
 
@@ -695,7 +695,7 @@ Below is an example of registering a custom class for cleanup:
 <!-- markdownlint-disable code-block-style -->
 
 ```python
-from orchestrator.modules.operators.orchestrate import CLEANER_ACTOR, ResourceCleaner
+from ado.modules.operators.orchestrate import CLEANER_ACTOR, ResourceCleaner
 import ray
 ...
 try:
@@ -715,7 +715,7 @@ at the end of execution
 
 Actuator developers can provide rich, real-time progress output to users running
 experiments, using utilities available in
-`orchestrator.modules.operators.console_output.py`. This is critical for
+`ado.modules.operators.console_output.py`. This is critical for
 long-running operations (such as deployment, environment setup, or
 benchmarking), and helps users visually associate progress with specific
 requests.
@@ -747,7 +747,7 @@ stop them when state changes.
 <!-- markdownlint-disable code-block-style -->
 
 ```python
-from orchestrator.modules.operators.console_output import RichConsoleSpinnerMessage, RichConsoleProgressMessage
+from ado.modules.operators.console_output import RichConsoleSpinnerMessage, RichConsoleProgressMessage
 # Get the console queue where you post progress messages to show
 console = ray.get_actor(name="RichConsoleQueue")
 request_id = request.requestid  # or similar
@@ -797,7 +797,7 @@ parameters includes:
 ```python
 request: MeasurementRequest,  # measurement request
 experiment: Union[Experiment, ParameterizedExperiment],  # experiment definition
-state_update_queue: orchestrator.modules.actuators.measurement_queue.MeasurementQueue,  # state update queue
+state_update_queue: ado.modules.actuators.measurement_queue.MeasurementQueue,  # state update queue
 ```
 
 <!-- markdownlint-enable code-block-style -->
@@ -824,12 +824,12 @@ functions and methods:
 
 - `Experiment.propertyValuesFromEntity` - Get the input values for the
   experiment based on the entity and the experiment definition
-- `orchestrator.utilities.support.observed_property_values_from_dict` - Extract
+- `ado.utilities.support.observed_property_values_from_dict` - Extract
   the values related to an experiment from a dictionary of measurements and
   convert to PropertyValues
-- `orchestrator.utilities.support.create_measurement_result` - Create
+- `ado.utilities.support.create_measurement_result` - Create
   measurement result
-- `orchestrator.utilities.support.compute_measurement_status` - Compute
+- `ado.utilities.support.compute_measurement_status` - Compute
   execution status
-- `orchestrator.utilities.async_task_runner.AsyncTaskRunner` - wait for the
+- `ado.utilities.async_task_runner.AsyncTaskRunner` - wait for the
   completion of an async function and get execution result

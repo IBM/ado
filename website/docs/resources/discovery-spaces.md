@@ -164,8 +164,8 @@ Assuming you have your [context](metastore.md#contexts-and-projects) in a file
 
 ```python
 import yaml
-from orchestrator.metastore.project import ProjectContext
-from orchestrator.core.discoveryspace.space import DiscoverySpace
+from ado.metastore.project import ProjectContext
+from ado.core.discoveryspace.space import DiscoverySpace
 
 with open("my_context.yaml") as f:
     c = ProjectContext.model_validate(yaml.safe_load(f))

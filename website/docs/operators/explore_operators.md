@@ -30,8 +30,8 @@ snippet:
 
 ```python
 import yaml
-from orchestrator.core.discoveryspace.space import DiscoverySpace
-from orchestrator.metastore.project import ProjectContext
+from ado.core.discoveryspace.space import DiscoverySpace
+from ado.metastore.project import ProjectContext
 
 with open("my_context.yaml") as f:
     c = ProjectContext.model_validate(yaml.safe_load(f))

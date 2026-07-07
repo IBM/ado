@@ -43,6 +43,8 @@ repos:
         args:
           - --no-color
           - --verbose
+          - --scopes
+          - anomalous-series,autoconf,changelog,ci,cli,container,contributing,core,cplex-mip,deps,example-actuator,hooks,profile-space,ray-tune,sfttrainer,test,trim,vllm-performance,website
   - repo: https://github.com/codespell-project/codespell
     rev: v2.4.2
     hooks:

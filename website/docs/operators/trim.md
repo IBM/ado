@@ -637,7 +637,7 @@ output property. If an entity does not produce a value for the target variable,
 TRIM raises `InsufficientDataError`. If this is expected behaviour in your
 experiment (e.g. some entities don't measure the target variable), configure
 [`missingTargetVariables`](#missingtargetvariables): set `mode` to
-to `Skip` to exclude those entities from model training entirely,
+`Skip` in order to exclude those entities from model training entirely,
 advanced users can also use `InjectDefaultValue` (and supply a `defaultValue`)
 to impute missing values of those entities with the supplied `defaultValue`.
 

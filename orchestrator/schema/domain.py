@@ -444,7 +444,6 @@ class PropertyDomain(pydantic.BaseModel):
                 value = VariableTypeEnum.DISCRETE_VARIABLE_TYPE
 
         if value == VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE:
-
             if values.data.get("values") is None:
                 raise ValueError(
                     "The values field for a CATEGORICAL_VARIABLE_TYPE was None"
@@ -477,7 +476,6 @@ class PropertyDomain(pydantic.BaseModel):
                 )
 
         elif value == VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE:
-
             if values.data.get("values") is not None:
                 raise ValueError(
                     "The values field of a CONTINUOUS_VARIABLE_TYPE was not None"
@@ -489,7 +487,6 @@ class PropertyDomain(pydantic.BaseModel):
                 )
 
         elif value == VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE:
-
             if values.data.get("interval") is not None:
                 raise ValueError(
                     "The interval field of an OPEN_CATEGORICAL_VARIABLE_TYPE was not None"
@@ -501,7 +498,6 @@ class PropertyDomain(pydantic.BaseModel):
                 )
 
         elif value == VariableTypeEnum.BINARY_VARIABLE_TYPE:
-
             # Binary variables should not have values, interval, or domainRange specified
             # They always default to [False, True].
             # To avoid breaking too many things, however, we accept [False, True]
@@ -720,9 +716,7 @@ class PropertyDomain(pydantic.BaseModel):
         It also includes any unbounded domain with DISCRETE_VARIABLE_TYPE.
         """
 
-        if (
-            self.variableType == VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE
-        ):  # noqa: SIM114
+        if self.variableType == VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE:  # noqa: SIM114
             size = math.inf
         elif (
             self.variableType == VariableTypeEnum.DISCRETE_VARIABLE_TYPE

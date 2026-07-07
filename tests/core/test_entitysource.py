@@ -307,9 +307,9 @@ def test_csv_sample_store_type_parsing(
 ) -> None:
     entity: Entity = ml_multi_cloud_csv_sample_store.entities[0]
     for prop_id in ["cpu_family", "vcpu_size", "nodes", "provider"]:
-        assert entity.valueForConstitutivePropertyIdentifier(
-            prop_id
-        ), f"Expected the entity to have a constitutive property {prop_id}"
+        assert entity.valueForConstitutivePropertyIdentifier(prop_id), (
+            f"Expected the entity to have a constitutive property {prop_id}"
+        )
 
     for prop_id in ["wallClockRuntime", "status"]:
         op = ObservedProperty(
@@ -319,9 +319,9 @@ def test_csv_sample_store_type_parsing(
             ),
             targetProperty=AbstractPropertyDescriptor(identifier=prop_id),
         )
-        assert entity.valuesForObservedPropertyIdentifier(
-            op.identifier
-        ), f"Expected the entity to have an observed property called {op.identifier}"
+        assert entity.valuesForObservedPropertyIdentifier(op.identifier), (
+            f"Expected the entity to have an observed property called {op.identifier}"
+        )
 
     assert (
         entity.valueForConstitutivePropertyIdentifier("cpu_family").valueType

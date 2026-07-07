@@ -43,7 +43,6 @@ class DiscoverySpaceProvenanceInfo(ProvenanceInfo):
 
 
 class DiscoverySpaceResource(ADOResource):
-
     version: str = "v2"
     kind: CoreResourceKinds = CoreResourceKinds.DISCOVERYSPACE
     config: DiscoverySpaceConfiguration

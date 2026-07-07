@@ -349,7 +349,7 @@ def detect_anomalous_series(
                     if len(test_group[test_prop.property].values.unique()) > 0:
                         s = test_group[test_prop.property]
                         print("\t\tTEST FAILED.\n\t\tThe series is:")
-                        print(f'\t\t{test_group[["identifier", test_prop.property]]}')
+                        print(f"\t\t{test_group[['identifier', test_prop.property]]}")
                         print("\n")
                         print(
                             f"\t\tThe series contains the following values for {test_prop.property}:\n\t\t{s.values.unique()}"

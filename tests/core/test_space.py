@@ -214,22 +214,20 @@ def test_discovery_space_config_experiment_field_conversion_parameterized(
     global_registry: ActuatorRegistry,
 ) -> None:
 
-    es = (
-        measurement_space_from_multiple_parameterized_experiments.compatibleEntitySpace()
-    )
+    es = measurement_space_from_multiple_parameterized_experiments.compatibleEntitySpace()
     ds_config = DiscoverySpaceConfiguration(
         entitySpace=es.constitutiveProperties,
         experiments=measurement_space_from_multiple_parameterized_experiments.experimentReferences,
         sampleStoreIdentifier="does-not-matter",
     )
 
-    assert not isinstance(
-        ds_config.experiments, MeasurementSpaceConfiguration
-    ), "Expected the discovery space configuration fixtures experiment field to be a list of experiment references"
+    assert not isinstance(ds_config.experiments, MeasurementSpaceConfiguration), (
+        "Expected the discovery space configuration fixtures experiment field to be a list of experiment references"
+    )
     config_copy = ds_config.convert_experiments_to_measurement_space_config()
-    assert isinstance(
-        config_copy.experiments, MeasurementSpaceConfiguration
-    ), "Expected the experiment field of the copy of the discovery space configuration to be a MeasurementSpaceConfiguration"
+    assert isinstance(config_copy.experiments, MeasurementSpaceConfiguration), (
+        "Expected the experiment field of the copy of the discovery space configuration to be a MeasurementSpaceConfiguration"
+    )
 
     assert (
         config_copy == config_copy.convert_experiments_to_measurement_space_config()
@@ -259,13 +257,13 @@ def test_discovery_space_config_experiment_field_conversion(
         sampleStoreIdentifier="does-not-matter",
     )
 
-    assert not isinstance(
-        ds_config.experiments, MeasurementSpaceConfiguration
-    ), "Expected the discovery space configuration fixtures experiment field to be a list of experiment references"
+    assert not isinstance(ds_config.experiments, MeasurementSpaceConfiguration), (
+        "Expected the discovery space configuration fixtures experiment field to be a list of experiment references"
+    )
     config_copy = ds_config.convert_experiments_to_measurement_space_config()
-    assert isinstance(
-        config_copy.experiments, MeasurementSpaceConfiguration
-    ), "Expected the experiment field of the copy of the discovery space configuration to be a MeasurementSpaceConfiguration"
+    assert isinstance(config_copy.experiments, MeasurementSpaceConfiguration), (
+        "Expected the experiment field of the copy of the discovery space configuration to be a MeasurementSpaceConfiguration"
+    )
 
     assert (
         config_copy == config_copy.convert_experiments_to_measurement_space_config()

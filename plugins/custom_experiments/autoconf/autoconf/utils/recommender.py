@@ -105,7 +105,7 @@ def recommend_min_gpu(
             break
 
     logger.info(f"""Metadata related to the model prediction
-        (number_gpus={job_config.number_gpus or 'Not provided'})
+        (number_gpus={job_config.number_gpus or "Not provided"})
         :{metadata}""")
 
     if min_number_gpus == -1:

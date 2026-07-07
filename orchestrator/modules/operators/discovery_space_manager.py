@@ -36,7 +36,6 @@ configure_logging()
 
 
 class DiscoverySpaceUpdateSubscriber(abc.ABC):
-
     @abc.abstractmethod
     def onUpdate(self, measurementRequest: MeasurementRequest) -> None:
         pass

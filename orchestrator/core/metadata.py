@@ -12,7 +12,6 @@ from orchestrator.utilities.pydantic import Pep440VersionStr
 
 
 class ConfigurationMetadata(pydantic.BaseModel):
-
     model_config = ConfigDict(extra="allow")
 
     name: Annotated[

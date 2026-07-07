@@ -83,6 +83,6 @@ class TestRendererNumWorkersInVllmArgs:
 
         # Verify the value is correct
         idx = args.index("--renderer-num-workers")
-        assert (
-            args[idx + 1] == "32"
-        ), f"Expected renderer_num_workers value to be '32', got '{args[idx + 1]}'"
+        assert args[idx + 1] == "32", (
+            f"Expected renderer_num_workers value to be '32', got '{args[idx + 1]}'"
+        )

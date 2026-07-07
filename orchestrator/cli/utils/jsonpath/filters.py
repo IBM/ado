@@ -13,7 +13,6 @@ def remove_fields_from_dictionary(
     from jsonpath_ng.exceptions import JsonPathLexerError, JsonPathParserError
 
     for field_to_remove in fields_to_remove:
-
         # Ensure we have a valid JSONPath
         try:
             path = jsonpath_ng.ext.parse(field_to_remove)

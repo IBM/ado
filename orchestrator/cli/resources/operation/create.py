@@ -66,7 +66,6 @@ def create_operation(parameters: AdoCreateCommandParameters) -> str | None:
         )
 
     if parameters.with_resources:
-
         if CoreResourceKinds.ACTUATORCONFIGURATION in parameters.with_resources:
             if isinstance(
                 parameters.with_resources[CoreResourceKinds.ACTUATORCONFIGURATION], str

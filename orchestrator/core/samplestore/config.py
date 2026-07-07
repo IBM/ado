@@ -99,7 +99,6 @@ class SampleStoreSpecification(pydantic.BaseModel):
         # However if None is passed explicitly, which would happen on a load of a module which had the "none" default
         # this method will be called
         if storageLocation is not None:
-
             module_name = context.data.get("module")
             if not module_name:
                 return None

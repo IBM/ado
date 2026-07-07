@@ -68,7 +68,9 @@ def _perform_preflight_checks_for_sample_store_methods(
 
     @wraps(f)
     def perform_checks(
-        self: "DiscoverySpace", *args: Any, **kwargs: Any  # noqa: ANN401
+        self: "DiscoverySpace",
+        *args: Any,  # noqa: ANN401
+        **kwargs: Any,  # noqa: ANN401
     ) -> Any:  # noqa: ANN401
 
         import orchestrator.core.samplestore.sql

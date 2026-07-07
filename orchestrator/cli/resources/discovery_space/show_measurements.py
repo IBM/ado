@@ -63,7 +63,6 @@ def show_discovery_space_measurements(
     space_identifier = parameters.resource_id
 
     if parameters.resource_id:
-
         with Status(ADO_SPINNER_QUERYING_DB) as status:
             space_resource = sql.getResource(
                 identifier=parameters.resource_id, kind=CoreResourceKinds.DISCOVERYSPACE
@@ -78,7 +77,6 @@ def show_discovery_space_measurements(
         configuration = space_resource.config
 
     else:
-
         try:
             configuration = DiscoverySpaceConfiguration.model_validate(
                 yaml.safe_load(parameters.resource_configuration.read_text())
@@ -116,7 +114,6 @@ def show_discovery_space_measurements(
         parameters.resource_id = f"from_file_{parameters.resource_configuration.stem}"
 
     with Status(ADO_SPINNER_INITIALIZING_DISCOVERY_SPACE) as status:
-
         space = DiscoverySpace.from_configuration(
             conf=configuration,
             project_context=parameters.ado_configuration.project_context,

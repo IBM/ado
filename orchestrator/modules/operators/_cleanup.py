@@ -16,9 +16,9 @@ moduleLog = logging.getLogger("orchestration_cleanup")
 cleanup_callback_functions: dict[str, Callable[[], None]] = OrderedDict()
 
 
-def graceful_operation_shutdown_signal_handler() -> (
-    typing.Callable[[int, typing.Any | None], None]
-):
+def graceful_operation_shutdown_signal_handler() -> typing.Callable[
+    [int, typing.Any | None], None
+]:
     """Handler which executes cleanup callbacks registered by operations on receiving a signal"""
 
     def handler(sig: int, frame: typing.Any | None) -> None:  # noqa: ANN401

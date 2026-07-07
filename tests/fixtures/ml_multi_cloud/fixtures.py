@@ -65,9 +65,9 @@ def ml_multi_cloud_sample_store_configuration() -> SampleStoreConfiguration:
         ).read_text()
     )
 
-    raw_sample_store_configuration["copyFrom"][0]["storageLocation"][
-        "path"
-    ] = "examples/ml-multi-cloud/ml_export.csv"
+    raw_sample_store_configuration["copyFrom"][0]["storageLocation"]["path"] = (
+        "examples/ml-multi-cloud/ml_export.csv"
+    )
 
     return SampleStoreConfiguration.model_validate(raw_sample_store_configuration)
 
@@ -218,9 +218,9 @@ def random_ml_multi_cloud_benchmark_performance_measurement_results(
         measurements_per_result: int,
         status: MeasurementResultStateEnum | None = None,
     ) -> MeasurementResult:
-        assert (
-            measurements_per_result > 0
-        ), "There need to be at least 1 measurement per result"
+        assert measurements_per_result > 0, (
+            "There need to be at least 1 measurement per result"
+        )
         status = status or MeasurementResultStateEnum.VALID
 
         if status == MeasurementResultStateEnum.VALID:

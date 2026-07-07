@@ -59,7 +59,6 @@ class MeasurementSpaceConfiguration(pydantic.BaseModel):
 
 
 class MeasurementSpace:
-
     @classmethod
     def measurementSpaceFromSelection(
         cls,
@@ -102,9 +101,7 @@ class MeasurementSpace:
         log.debug(f"Got global registry {globalRegistry}")
 
         # First get all the experiments
-        processedReferences = (
-            []
-        )  # Keeps track of what references have been examined. Prevents include experiment with multiple properties multiple times
+        processedReferences = []  # Keeps track of what references have been examined. Prevents include experiment with multiple properties multiple times
         for ref in selectedExperiments:
             log.debug(f"looking for experiment {ref}")
             try:

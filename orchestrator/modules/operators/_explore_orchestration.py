@@ -68,7 +68,6 @@ def graceful_explore_operation_shutdown(
     with Status(
         f"Shutdown ({identifier}) - waiting on all samples to be stored", spinner="dots"
     ) as status:
-
         moduleLog.debug("Shutting down state")
         ray.get(discovery_space_manager.shutdown.remote())
 
@@ -285,8 +284,8 @@ def orchestrate_explore_operation(
     # and the handler is in place
     # Note we can't register the callback until the actors are created so there
     # is a short window where graceful cleanup is not possible on SIGTERM
-    cleanup_callback_functions[identifier] = (
-        lambda: graceful_explore_operation_shutdown(
+    cleanup_callback_functions[identifier] = lambda: (
+        graceful_explore_operation_shutdown(
             identifier=identifier,
             operator=operator,
             discovery_space_manager=discovery_space_manager,

@@ -13,7 +13,6 @@ class ExperimentVersionMismatchError(Exception):
 
 
 class ExperimentNotInCatalogError(Exception):
-
     pass
 
 

@@ -70,7 +70,9 @@ class ExperimentModuleConf(ModuleConf):
 
 
 def _infer_domain_and_property(
-    identifier: str, annotation: type, default: Any  # noqa: ANN401
+    identifier: str,
+    annotation: type,
+    default: Any,  # noqa: ANN401
 ) -> ConstitutiveProperty:
     """This function infers the domain of a parameter from its type and default value.
     Parameters:
@@ -426,7 +428,8 @@ def custom_experiment(
 
         @wraps(func)
         def validated_func(
-            *args: Any, **kwargs: Any  # noqa: ANN401
+            *args: Any,  # noqa: ANN401
+            **kwargs: Any,  # noqa: ANN401
         ) -> Any:  # noqa: ANN401
             # Build property dict from either kwargs or args
             # Prefer kwargs, but support positional for backwards compatibility
@@ -722,7 +725,6 @@ class CustomExperiments(ActuatorBase):
 
         self._functionImplementations = {}
         for experiment in self._catalog.experiments:
-
             function = None
             if module := experiment.metadata.get("module"):
                 experiment_module_conf = ExperimentModuleConf.model_validate(module)

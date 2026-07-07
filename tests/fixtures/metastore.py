@@ -183,9 +183,9 @@ def valid_ado_project_context(
 
 
 @pytest.fixture
-def create_active_ado_context() -> (
-    Callable[[CliRunner, pathlib.Path, ProjectContext], None]
-):
+def create_active_ado_context() -> Callable[
+    [CliRunner, pathlib.Path, ProjectContext], None
+]:
 
     def _create_active_ado_context(
         runner: CliRunner,

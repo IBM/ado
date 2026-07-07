@@ -76,12 +76,12 @@ def test_descriptor_equality_error() -> None:
 
     descriptor = PropertyDescriptor(identifier="my_desc")
     assert descriptor != 1, "Expected descriptor not to equal an integer"
-    assert (
-        descriptor != "my_desc"
-    ), "Experiment descriptor to not equal its identifier as a bare string"
-    assert descriptor == Property(
-        identifier="my_desc"
-    ), "Experiment descriptor to be equal to property with same id"
+    assert descriptor != "my_desc", (
+        "Experiment descriptor to not equal its identifier as a bare string"
+    )
+    assert descriptor == Property(identifier="my_desc"), (
+        "Experiment descriptor to be equal to property with same id"
+    )
 
 
 @pytest.mark.parametrize(
@@ -158,9 +158,9 @@ def test_descriptor_rich_print(
     from orchestrator.utilities.rich import render_to_string
 
     """Test rich print of descriptors is as expected"""
-    assert (
-        render_to_string(descriptor).strip() == f"{descriptor.identifier}"
-    ), "Expected rich print of descriptor to be descriptor id"
+    assert render_to_string(descriptor).strip() == f"{descriptor.identifier}", (
+        "Expected rich print of descriptor to be descriptor id"
+    )
 
 
 @pytest.mark.parametrize(
@@ -183,9 +183,9 @@ def test_descriptor_string_representation(
     """Test __str__ of descriptors is as expected"""
     # NOTE PropertyDescriptor does not have custom __str__ method
 
-    assert (
-        f"{descriptor}" == descriptor.identifier
-    ), f"Expected str rep of descriptor to be {descriptor.identifier}, was {descriptor}"
+    assert f"{descriptor}" == descriptor.identifier, (
+        f"Expected str rep of descriptor to be {descriptor.identifier}, was {descriptor}"
+    )
 
 
 def test_observed_property_hashable(experiment_reference: ExperimentReference) -> None:

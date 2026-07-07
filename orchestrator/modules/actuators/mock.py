@@ -105,7 +105,6 @@ class MockActuator(ActuatorBase):
         failRate = 5
         measurement_results = []
         for entity in entities:
-
             if random.randint(0, 100) < failRate:  # noqa: S311 - not crypto purposes
                 measurement_result = InvalidMeasurementResult(
                     entityIdentifier=entity.identifier,

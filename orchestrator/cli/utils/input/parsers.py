@@ -40,7 +40,6 @@ def parse_key_value_pairs(
     for pair in pairs:
         split_result = pair.split(sep=separator)
         if len(split_result) != 2:  # noqa: PLR2004
-
             # There are instances where we want to allow just one element
             if allow_only_key and len(split_result) == 1:
                 result.append({split_result[0]: None})

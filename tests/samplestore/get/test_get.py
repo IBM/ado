@@ -401,7 +401,6 @@ def test_measurement_requests_for_operation(
         for j in range(len(requests[i].measurements)):
             # Check the values are correct
             if isinstance(requests[i].measurements[j], ValidMeasurementResult):
-
                 assert (
                     requests[i].measurements[j].uid
                     == retrieved_requests[i].measurements[j].uid
@@ -508,7 +507,6 @@ def test_measurement_request_by_id(
     for i in range(len(to_be_found.measurements)):
         # Check the values are correct
         if isinstance(to_be_found.measurements[i], ValidMeasurementResult):
-
             assert len(to_be_found.measurements[i].measurements) == len(
                 result_from_db.measurements[i].measurements
             )
@@ -659,9 +657,9 @@ def test_float_precision_errors_when_retrieving_results(
                 retrieved_request.measurements[0].measurements[0].value
                 - measurement_request.measurements[0].measurements[0].value
             )
-            assert (
-                float_inconsistency < 1e-15
-            ), f"The floats had an error bigger than 1e-15 (was {float_inconsistency}"
+            assert float_inconsistency < 1e-15, (
+                f"The floats had an error bigger than 1e-15 (was {float_inconsistency}"
+            )
             errors_found = True
             break
 

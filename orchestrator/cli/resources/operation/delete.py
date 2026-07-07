@@ -36,7 +36,6 @@ def delete_operation(parameters: AdoDeleteCommandParameters) -> None:
 
     sql = get_sql_store(project_context=parameters.ado_configuration.project_context)
     with Status(ADO_SPINNER_QUERYING_DB) as status:
-
         if not sql.containsResourceWithIdentifier(
             identifier=resource_id,
             kind=CoreResourceKinds.OPERATION,

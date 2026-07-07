@@ -34,7 +34,6 @@ def model_dict_representation_with_field_exclusions_for_custom_model_serializer(
             dict_representation.pop(field_name, None)
 
     for field_name, field_info in model.__class__.model_fields.items():
-
         if field_name not in dict_representation:
             continue
 

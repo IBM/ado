@@ -183,7 +183,7 @@ def main() -> None:
     df = df.sample(frac=1).reset_index(drop=True)
 
     logger.info(
-        f"Percentage of valid runs in the filtered DataFrame: {len(df[df['is_valid']==1]) / len(df)}"
+        f"Percentage of valid runs in the filtered DataFrame: {len(df[df['is_valid'] == 1]) / len(df)}"
     )
 
     # Create suffix for model folder name
@@ -212,7 +212,7 @@ def main() -> None:
     logger.info(f"Size Original:  {size_original} bytes")
     logger.info(f"Size Optimized: {size_opt} bytes")
     logger.info(
-        f"Optimized predictor achieved a {round((1 - (size_opt/size_original)) * 100, 1)}% reduction in disk usage."
+        f"Optimized predictor achieved a {round((1 - (size_opt / size_original)) * 100, 1)}% reduction in disk usage."
     )
     metrics = log_metrics(
         predictor_clone_opt,

@@ -802,7 +802,6 @@ class Experiment(pydantic.BaseModel):
                 else:
                     identifierValueMap[ident] = values[0].value
             else:
-
                 try:
                     identifierValueMap[prop.identifier] = (
                         entity.valueForConstitutivePropertyIdentifier(

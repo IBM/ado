@@ -80,7 +80,6 @@ class OperationProvenanceInfo(ProvenanceInfo):
 
 
 class OperationResource(ADOResource):
-
     version: Annotated[str, pydantic.Field()] = "v1"
     kind: Annotated[CoreResourceKinds, pydantic.Field()] = CoreResourceKinds.OPERATION
     operationType: Annotated[
@@ -115,11 +114,11 @@ class OperationResource(ADOResource):
     @pydantic.model_validator(mode="before")
     @classmethod
     def generate_identifier_if_not_provided(
-        cls, data: typing.Any  # noqa: ANN401
+        cls,
+        data: typing.Any,  # noqa: ANN401
     ) -> "OperationResource":
 
         if isinstance(data, dict):
-
             # Do not do anything if the identifier is already present
             if data.get("identifier", None) is not None:
                 return data

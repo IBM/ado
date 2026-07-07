@@ -194,9 +194,7 @@ def test_string_representation_replayed(
         measurement_result_for_other_entity,
     ]
 
-    assert str(
-        request
-    ) == "{}-experiment-{}-entities-multi-{}-time-{}".format(  # noqa: UP032
+    assert str(request) == "{}-experiment-{}-entities-multi-{}-time-{}".format(  # noqa: UP032
         request.requestid,
         request.experimentReference.experimentIdentifier,
         2,
@@ -326,7 +324,6 @@ def test_measurement_request_mismatched_entities(
 
     # Should fail because both invalid result references an entity that isn't in entities list
     with pytest.raises(pydantic.ValidationError):
-
         MeasurementRequest(
             entities=[entity],
             measurements=(
@@ -349,7 +346,6 @@ def test_measurement_request_mismatched_entities(
     )
 
     with pytest.raises(pydantic.ValidationError):
-
         request.measurements = [valid_measurement_result, invalid_result]
 
 
@@ -369,7 +365,6 @@ def test_measurement_request_mismatched_experiments(
 
     # Should fail because the InvalidResult experiment does not match the request experiment
     with pytest.raises(pydantic.ValidationError):
-
         MeasurementRequest(
             entities=[entity],
             measurements=(

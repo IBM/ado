@@ -18,7 +18,6 @@ if typing.TYPE_CHECKING:  # pragma: nocover
 
 
 class TabularData(pydantic.BaseModel):
-
     data: Annotated[
         dict, pydantic.Field(description="A dictionary representation of tabular data")
     ]
@@ -51,7 +50,6 @@ class TabularData(pydantic.BaseModel):
 
 
 class DataContainer(pydantic.BaseModel):
-
     tabularData: Annotated[
         dict[str, TabularData] | None,
         pydantic.Field(
@@ -130,7 +128,6 @@ class DataContainer(pydantic.BaseModel):
             )
 
         if self.tabularData:
-
             tabular_items = [
                 Panel(
                     Group(

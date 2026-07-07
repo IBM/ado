@@ -188,7 +188,6 @@ class PropertyValue(pydantic.BaseModel):
 
 
 class ConstitutivePropertyValue(PropertyValue):
-
     property: Annotated[
         ConstitutivePropertyDescriptor,
         pydantic.Field(description="The ConstitutiveProperty with the value"),

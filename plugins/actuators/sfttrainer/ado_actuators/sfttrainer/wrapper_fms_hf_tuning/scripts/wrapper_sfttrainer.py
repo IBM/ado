@@ -341,8 +341,7 @@ class CustomAimCallback(AimCallback):
                     # Non local-rank-0 workers also participate in this reduction, but their value is
                     # irrelevant - and it is always False.
                     # Here, we set these values to True so that they don't influence the reduce operation at all.
-                    (not state.is_local_process_zero)
-                    or control.should_training_stop
+                    (not state.is_local_process_zero) or control.should_training_stop
                 ],
                 dtype=torch.uint8,
             ).cuda()

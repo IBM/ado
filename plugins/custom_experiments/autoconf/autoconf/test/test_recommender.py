@@ -190,9 +190,9 @@ def test_min_gpu_recommender_valid_model_name_mapping_granite_3_1_2b() -> None:
                 )
 
                 # Should succeed because name gets mapped
-                assert (
-                    result["can_recommend"] is True
-                ), f"Failed for model: {invalid_name}"
+                assert result["can_recommend"] is True, (
+                    f"Failed for model: {invalid_name}"
+                )
 
                 # Verify the predictor was called with mapped name
                 call_args = mock_predictor.predict.call_args[0][0]
@@ -232,9 +232,9 @@ def test_min_gpu_recommender_valid_model_name_mapping_granite_3_1_8b() -> None:
                     model_version="3.1.0",
                 )
 
-                assert (
-                    result["can_recommend"] is True
-                ), f"Failed for model: {invalid_name}"
+                assert result["can_recommend"] is True, (
+                    f"Failed for model: {invalid_name}"
+                )
                 call_args = mock_predictor.predict.call_args[0][0]
                 assert (
                     call_args["model_name"].values[0] == mapped_models["GRANITE_3_1_8B"]
@@ -271,9 +271,9 @@ def test_min_gpu_recommender_valid_model_name_mapping_llama_3_1_8b() -> None:
                     model_version="3.1.0",
                 )
 
-                assert (
-                    result["can_recommend"] is True
-                ), f"Failed for model: {invalid_name}"
+                assert result["can_recommend"] is True, (
+                    f"Failed for model: {invalid_name}"
+                )
                 call_args = mock_predictor.predict.call_args[0][0]
                 assert (
                     call_args["model_name"].values[0] == mapped_models["LLAMA_3_1_8B"]
@@ -311,9 +311,9 @@ def test_min_gpu_recommender_valid_model_name_mapping_granite_4_variants() -> No
                     model_version="3.1.0",
                 )
 
-                assert (
-                    result["can_recommend"] is True
-                ), f"Failed for model: {invalid_name}"
+                assert result["can_recommend"] is True, (
+                    f"Failed for model: {invalid_name}"
+                )
                 call_args = mock_predictor.predict.call_args[0][0]
                 assert call_args["model_name"].values[0] == mapped_models[expected_key]
 
@@ -349,9 +349,9 @@ def test_min_gpu_recommender_unmapped_model_name_unchanged() -> None:
                 )
 
                 # Should still work, name just not mapped
-                assert (
-                    result["can_recommend"] is True
-                ), f"Failed for model: {unmapped_name}"
+                assert result["can_recommend"] is True, (
+                    f"Failed for model: {unmapped_name}"
+                )
                 call_args = mock_predictor.predict.call_args[0][0]
                 # Name should remain unchanged
                 assert call_args["model_name"].values[0] == unmapped_name

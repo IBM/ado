@@ -126,7 +126,6 @@ class ResourceLocation(pydantic.BaseModel):
 
 
 class FilePathLocation(ResourceLocation):
-
     scheme: Annotated[str, pydantic.Field(description="The resource access scheme")] = (
         "file"
     )
@@ -244,7 +243,6 @@ class SQLStoreConfiguration(StorageDatabaseConfiguration):
 
 
 class SQLiteStoreConfiguration(StorageDatabaseConfiguration):
-
     scheme: Annotated[
         typing.Literal["sqlite"], pydantic.Field(description="The SQLite access scheme")
     ] = "sqlite"

@@ -149,9 +149,9 @@ def test_explore_operator_function_conf_identifier_matches_registered_name() -> 
         # The identifier must start with the registered function name, not the
         # class name (e.g. "random_walk@2.0.0", not "RandomWalk@...")
         identifier = conf.operatorIdentifier
-        assert identifier.startswith(
-            f"{name}@"
-        ), f"Expected identifier to start with '{name}@', got '{identifier}'"
+        assert identifier.startswith(f"{name}@"), (
+            f"Expected identifier to start with '{name}@', got '{identifier}'"
+        )
 
 
 def test_operator_function_configuration_incorrect_type(
@@ -333,24 +333,24 @@ def test_random_walk_custom_sampler_config() -> None:
     )
 
     sampler = config.sampler()
-    assert isinstance(
-        sampler, ExplicitEntitySpaceGridSampleGenerator
-    ), "Expected the sampler to be an instance of ExplicitEntitySpaceGridSampleGenerator"
-    assert (
-        sampler.mode == WalkModeEnum.RANDOM
-    ), "Expected the samplers mode to be RANDOM"
+    assert isinstance(sampler, ExplicitEntitySpaceGridSampleGenerator), (
+        "Expected the sampler to be an instance of ExplicitEntitySpaceGridSampleGenerator"
+    )
+    assert sampler.mode == WalkModeEnum.RANDOM, (
+        "Expected the samplers mode to be RANDOM"
+    )
 
     dump = config.model_dump()
 
     # Check deserialization
     new_config = CustomSamplerConfiguration.model_validate(dump)
     sampler = new_config.sampler()
-    assert isinstance(
-        sampler, ExplicitEntitySpaceGridSampleGenerator
-    ), "Expected the sampler to be an instance of ExplicitEntitySpaceGridSampleGenerator"
-    assert (
-        sampler.mode == WalkModeEnum.RANDOM
-    ), "Expected the samplers mode to be RANDOM"
+    assert isinstance(sampler, ExplicitEntitySpaceGridSampleGenerator), (
+        "Expected the sampler to be an instance of ExplicitEntitySpaceGridSampleGenerator"
+    )
+    assert sampler.mode == WalkModeEnum.RANDOM, (
+        "Expected the samplers mode to be RANDOM"
+    )
 
     # Check validation
     dump["module"]["moduleClass"] = "NonExistantClass"
@@ -377,9 +377,9 @@ def test_random_walk_base_sampler_config(
     sampler = config.sampler()
 
     if samplerType == "generator":
-        assert isinstance(
-            sampler, ExplicitEntitySpaceGridSampleGenerator
-        ), "Expected the sampler to be an instance of ExplicitEntitySpaceGridSampleGenerator"
+        assert isinstance(sampler, ExplicitEntitySpaceGridSampleGenerator), (
+            "Expected the sampler to be an instance of ExplicitEntitySpaceGridSampleGenerator"
+        )
         assert sampler.mode == mode
     else:
         if mode == WalkModeEnum.RANDOM:

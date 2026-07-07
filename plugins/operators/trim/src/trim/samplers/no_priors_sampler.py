@@ -25,7 +25,8 @@ logger_no_priors = logging.getLogger(__name__)
 class NoPriorsSampleSelector(BaseSampler):
     @classmethod
     def samplerCompatibleWithDiscoverySpaceRemote(
-        cls, remoteDiscoverySpace: DiscoverySpaceManager  # type: ignore[name-defined]
+        cls,
+        remoteDiscoverySpace: DiscoverySpaceManager,  # type: ignore[name-defined]
     ) -> bool:
         return True
 

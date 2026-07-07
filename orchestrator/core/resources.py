@@ -67,7 +67,6 @@ class ADOResourceStatus(pydantic.BaseModel):
 
 
 class ADOResource(pydantic.BaseModel):
-
     version: Annotated[str, pydantic.Field()] = "v1"
     kind: Annotated[CoreResourceKinds, pydantic.Field()]
     created: Annotated[

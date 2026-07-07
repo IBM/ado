@@ -44,7 +44,6 @@ class SamplerTypeEnum(enum.Enum):
 
 
 class BaseSamplerParameters(pydantic.BaseModel):
-
     mode: WalkModeEnum
     model_config = pydantic.ConfigDict(extra="forbid")
 
@@ -136,7 +135,6 @@ class GroupSampler(BaseSampler):
 
 
 class RandomSampleSelector(BaseSampler):
-
     @classmethod
     def samplerCompatibleWithDiscoverySpaceRemote(
         cls, remoteDiscoverySpace: DiscoverySpaceManager
@@ -203,7 +201,6 @@ class RandomSampleSelector(BaseSampler):
 
 
 class SequentialSampleSelector(BaseSampler):
-
     @classmethod
     def samplerCompatibleWithDiscoverySpaceRemote(
         cls, remoteDiscoverySpace: DiscoverySpaceManager
@@ -477,9 +474,9 @@ class ExplicitEntitySpaceGridSampleGenerator(BaseSampler):
                     f"Cannot use ExplicitEntitySpaceGridSampleGenerator with {entitySpace}"
                 )
 
-            async def sequential_iterator() -> (
-                typing.AsyncGenerator[list[Entity], None]
-            ):
+            async def sequential_iterator() -> typing.AsyncGenerator[
+                list[Entity], None
+            ]:
 
                 names = [c.identifier for c in entitySpace.constitutiveProperties]
                 batch = []

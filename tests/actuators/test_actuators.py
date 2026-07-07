@@ -104,14 +104,14 @@ def test_custom_experiments(
     # Locally this may not work because we might have more or less of these.
     # SV 7/02/26
     # This test needs to be updated every time a new custom experiment is added to ado
-    assert len(catalog.experiments) == len(
-        expected_identifiers
-    ), "Unexpected number of experiments in the custom_experiments catalog for testing"
+    assert len(catalog.experiments) == len(expected_identifiers), (
+        "Unexpected number of experiments in the custom_experiments catalog for testing"
+    )
 
     identifiers = {e.identifier for e in catalog.experiments}
-    assert (
-        expected_identifiers == identifiers
-    ), f"Expected experiment identifiers {expected_identifiers} but got {identifiers}"
+    assert expected_identifiers == identifiers, (
+        f"Expected experiment identifiers {expected_identifiers} but got {identifiers}"
+    )
     loaded = custom_experiments.loadedExperiment.remote(
         orchestrator.schema.reference.ExperimentReference(
             actuatorIdentifier="custom_experiments", experimentIdentifier="acid_test"

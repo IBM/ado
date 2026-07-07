@@ -16,7 +16,6 @@ from orchestrator.core.operation.resource import (
 
 
 class OperationException(Exception):
-
     def __init__(
         self,
         message: str,

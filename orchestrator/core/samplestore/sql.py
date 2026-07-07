@@ -364,7 +364,6 @@ class SQLSampleStore(ActiveSampleStore):
         import uuid
 
         if identifier is None:
-
             # AP 26/09/2025:
             # This identifier could be a string that gets
             # parsed by --set as an int/float.
@@ -687,9 +686,7 @@ class SQLSampleStore(ActiveSampleStore):
         # Phase 4: Attach measurements to entities (no validation needed - already done)
         total_measurements = 0
         for entity_id, measurement_results in results_by_entity.items():
-
             for measurement_result in measurement_results:
-
                 # We have fetched results starting from self._last_insert_id, which
                 # means:
                 #   1.  Somebody else (e.g., another distributed process) could have
@@ -863,7 +860,6 @@ class SQLSampleStore(ActiveSampleStore):
 
         entities_dict: dict[str, Entity] = {}
         for entity_identifier, entity_representation, result_data in cur:
-
             if entity_identifier in self._entities:
                 entities_dict[entity_identifier] = self._entities[entity_identifier]
                 continue
@@ -947,7 +943,6 @@ class SQLSampleStore(ActiveSampleStore):
             self._entities[entity.identifier] = entity
 
         for index in range(0, len(entities), 5000):
-
             values = [
                 {
                     "identifier": e.identifier,
@@ -1148,9 +1143,7 @@ class SQLSampleStore(ActiveSampleStore):
         entity = None
         failures = 0
         for entity_identifier, entity_representation, result_data in cur:
-
             if entity is None:
-
                 try:
                     entity = Entity.model_validate(json.loads(entity_representation))
                 except Exception as error:
@@ -1204,9 +1197,9 @@ class SQLSampleStore(ActiveSampleStore):
         return parameters
 
     @staticmethod
-    def storage_location_class() -> (
-        type[SQLiteStoreConfiguration | SQLStoreConfiguration]
-    ):
+    def storage_location_class() -> type[
+        SQLiteStoreConfiguration | SQLStoreConfiguration
+    ]:
         return SQLiteStoreConfiguration | SQLStoreConfiguration
 
     def add_measurement_request(self, request: MeasurementRequest) -> uuid.uuid4:
@@ -2066,7 +2059,6 @@ class SQLSampleStore(ActiveSampleStore):
             # If we have already seen this measurement request
             # we are only interested in the entity associated to it
             if uid in entries:
-
                 if not any(e.identifier == entity_id for e in entries[uid].entities):
                     entries[uid].entities.append(entity)
 

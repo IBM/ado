@@ -38,7 +38,6 @@ app.include_router(v0.router, prefix="/api")
 @serve.deployment
 @serve.ingress(app)
 class AdoRESTApi:
-
     def __init__(self) -> None:
         """Initialise the REST API deployment.
 

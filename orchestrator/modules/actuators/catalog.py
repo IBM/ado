@@ -55,7 +55,6 @@ class ActuatorCatalogExtension(pydantic.BaseModel):
 
 
 class BaseCatalog(abc.ABC):
-
     @property
     @abc.abstractmethod
     def experiments(self) -> list[Experiment]:
@@ -323,7 +322,6 @@ class ExperimentCatalog(BaseCatalog):
 
 
 class CatalogConfigurationRequirementEnum(enum.Enum):
-
     REQUIRED = "required"
     NOT_REQUIRED = "not_required"
     OPTIONAL = "optional"

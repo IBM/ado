@@ -486,9 +486,9 @@ class FinetuneContext:
 
             if "num_gpus" in extra:
                 extra["num_gpus"] //= multi_node.num_machines
-                extra["resources"][
-                    self.entity_space.gpu_model
-                ] //= multi_node.num_machines
+                extra["resources"][self.entity_space.gpu_model] //= (
+                    multi_node.num_machines
+                )
 
         return ray.remote(
             num_cpus=number_cpus,
@@ -723,7 +723,7 @@ class SFTTrainer(ActuatorBase):
         for idx in range(number_sample_runs):
             aim_metadata["explore_errors"]["sample_idx"] = idx
             self.log.info(
-                f"Launching {idx+1}/{number_sample_runs} for {exp_id} on {entity_id}"
+                f"Launching {idx + 1}/{number_sample_runs} for {exp_id} on {entity_id}"
             )
             try:
                 # VV: We could run these in parallel
@@ -1181,7 +1181,6 @@ class SFTTrainer(ActuatorBase):
         scalar_observations: dict[str, Any] = {}
 
         try:
-
             if self.typed_parameters is None:
                 # VV: Can't tell what the exact issue is here, so we're basically asking the user to inspect the logs
                 # then re-run the experiments.

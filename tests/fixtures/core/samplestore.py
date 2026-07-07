@@ -42,9 +42,9 @@ def random_sample_store_resource_from_file(
 
         # We must set the storageLocation field before validation, or it will fail
         file_content = json.loads(file.read_text())
-        file_content["config"]["specification"][
-            "storageLocation"
-        ] = valid_ado_project_context.metadataStore.model_dump()
+        file_content["config"]["specification"]["storageLocation"] = (
+            valid_ado_project_context.metadataStore.model_dump()
+        )
 
         # Get the model
         sample_store = (

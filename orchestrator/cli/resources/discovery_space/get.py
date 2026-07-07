@@ -162,7 +162,6 @@ def _find_spaces_matching_space(
                 )
                 raise typer.Exit(1) from error
     else:
-
         with Status(ADO_SPINNER_QUERYING_DB):
             space_resource: DiscoverySpaceResource = sql_store.getResource(
                 identifier=parameters.matching_space_id,

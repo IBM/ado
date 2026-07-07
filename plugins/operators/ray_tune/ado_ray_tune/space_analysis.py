@@ -78,7 +78,6 @@ def get_clusters(
 
 
 class MutualInformationOutput(NamedTuple):
-
     mutual_information: dict[str, float]
     entropy: float
     cluster_labels: Any

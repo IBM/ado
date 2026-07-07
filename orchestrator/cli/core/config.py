@@ -124,7 +124,6 @@ class AdoConfiguration(pydantic.BaseModel):
         # choose one and move on. Otherwise, we will create, activate,
         # and store a default local context.
         if available_contexts := ado_config.available_contexts:
-
             # If the user is running ado context do not fail
             if do_not_fail_on_available_contexts:
                 return ado_config

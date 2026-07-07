@@ -381,9 +381,7 @@ def test_add_operation_and_output(
     assert res.status[0].event == ADOResourceEventEnum.CREATED
     assert res.status[1].event == ADOResourceEventEnum.ADDED
 
-    data_container = (
-        res.config
-    )  # type: orchestrator.core.datacontainer.resource.DataContainer
+    data_container = res.config  # type: orchestrator.core.datacontainer.resource.DataContainer
     for k in data_container.tabularData:
         assert (
             data_container.tabularData[k].data
@@ -498,9 +496,7 @@ def test_custom_sample_store_loading(
 
     model = orchestrator.metastore.base.kind_custom_model_load[
         active_contest_test_sample_store_resource.kind.value
-    ](
-        custom, ado_test_file_project_context.metadataStore
-    )  # type: orchestrator.core.samplestore.resource.SampleStoreResource
+    ](custom, ado_test_file_project_context.metadataStore)  # type: orchestrator.core.samplestore.resource.SampleStoreResource
 
     assert (
         model.config.specification.storageLocation
@@ -597,9 +593,9 @@ def test_get_latest_resource_identifiers_of_kinds_multiple_resources_same_kind(
     assert len(result) == 1
     assert CoreResourceKinds.DISCOVERYSPACE in result
     # Should return the most recently created space
-    assert (
-        result[CoreResourceKinds.DISCOVERYSPACE] == space2.identifier
-    ), f"Previous one was {_space1.identifier}"
+    assert result[CoreResourceKinds.DISCOVERYSPACE] == space2.identifier, (
+        f"Previous one was {_space1.identifier}"
+    )
 
 
 @requires_sqlite_3_38

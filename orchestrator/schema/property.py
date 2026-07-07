@@ -43,7 +43,8 @@ class PropertyDescriptor(pydantic.BaseModel):
     @pydantic.model_validator(mode="before")
     @classmethod
     def property_to_descriptor(
-        cls, value: typing.Any  # noqa: ANN401
+        cls,
+        value: typing.Any,  # noqa: ANN401
     ) -> "PropertyDescriptor | dict | typing.Any":  # noqa: ANN401
 
         if isinstance(value, Property):
@@ -74,7 +75,6 @@ class PropertyDescriptor(pydantic.BaseModel):
 
 
 class AbstractPropertyDescriptor(PropertyDescriptor):
-
     propertyType: MeasuredPropertyTypeEnum = (
         MeasuredPropertyTypeEnum.MEASURED_PROPERTY_TYPE
     )
@@ -82,7 +82,8 @@ class AbstractPropertyDescriptor(PropertyDescriptor):
     @pydantic.model_validator(mode="before")
     @classmethod
     def property_to_descriptor(
-        cls, value: typing.Any  # noqa: ANN401
+        cls,
+        value: typing.Any,  # noqa: ANN401
     ) -> PropertyDescriptor | dict | typing.Any:  # noqa: ANN401
 
         if isinstance(value, Property):
@@ -110,7 +111,6 @@ class ConstitutivePropertyDescriptor(PropertyDescriptor):
 
 
 class ConcretePropertyDescriptor(PropertyDescriptor):
-
     propertyType: Annotated[MeasuredPropertyTypeEnum, pydantic.Field()] = (
         MeasuredPropertyTypeEnum.MEASURED_PROPERTY_TYPE
     )

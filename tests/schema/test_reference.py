@@ -248,9 +248,9 @@ def test_entity_property_values_from_experiment_reference_parameterized(
         f"Testing we do not retrieve values for {base_ref} or {different_parameterized_ref}"
     )
 
-    assert (
-        len(entity.propertyValuesFromExperimentReference(parameterized_ref)) > 0
-    ), f"Expected entity to have values for observed properties of parameterized experiment {parameterized_ref} but it has None"
+    assert len(entity.propertyValuesFromExperimentReference(parameterized_ref)) > 0, (
+        f"Expected entity to have values for observed properties of parameterized experiment {parameterized_ref} but it has None"
+    )
 
     assert len(entity.propertyValuesFromExperimentReference(parameterized_ref)) == len(
         exp.observedProperties
@@ -259,14 +259,16 @@ def test_entity_property_values_from_experiment_reference_parameterized(
         f"experiment {parameterized_ref} but it has {len(entity.propertyValuesFromExperimentReference(parameterized_ref))}"
     )
 
-    assert (
-        len(entity.propertyValuesFromExperimentReference(base_ref)) == 0
-    ), f"Entity had values added for {parameterized_ref}. It should not return any values when given base experiment reference {base_ref}"
+    assert len(entity.propertyValuesFromExperimentReference(base_ref)) == 0, (
+        f"Entity had values added for {parameterized_ref}. It should not return any values when given base experiment reference {base_ref}"
+    )
 
     assert (
         len(entity.propertyValuesFromExperimentReference(different_parameterized_ref))
         == 0
-    ), f"Entity had values added for {parameterized_ref}. It should not return any values when given base experiment reference {different_parameterized_ref}"
+    ), (
+        f"Entity had values added for {parameterized_ref}. It should not return any values when given base experiment reference {different_parameterized_ref}"
+    )
 
 
 def test_experiment_reference_from_invalid_string() -> None:

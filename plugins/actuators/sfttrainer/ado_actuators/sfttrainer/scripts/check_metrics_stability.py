@@ -178,8 +178,8 @@ def _print_summary_statistics(all_metrics: list[dict[str, float]]) -> None:
 
     typer.echo(f"Total benchmarks analyzed: {len(all_metrics)}")
     typer.echo()
-    typer.echo(f'Mean STD {np.mean([x["std"] for x in all_metrics]):.2f}')
-    typer.echo(f'STD of STD {np.std([x["std"] for x in all_metrics]):.2f}')
+    typer.echo(f"Mean STD {np.mean([x['std'] for x in all_metrics]):.2f}")
+    typer.echo(f"STD of STD {np.std([x['std'] for x in all_metrics]):.2f}")
     typer.echo()
     typer.echo("Coefficient of Variation (CV) statistics:")
     typer.echo(f"  Mean CV:    {np.mean(cv_values):.2f}%")

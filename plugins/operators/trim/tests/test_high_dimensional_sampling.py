@@ -51,21 +51,23 @@ class TestConcatenatedLatinHypercubeSampling:
             # Verify all values in range are present (only if n >= dim_size)
             # When n < dim_size, we only expect n unique values
             if n >= dim_size:
-                assert set(value_counts.keys()) == set(
-                    range(dim_size)
-                ), f"Dimension {dim_idx}: Not all values present. Expected {set(range(dim_size))}, got {set(value_counts.keys())}"
+                assert set(value_counts.keys()) == set(range(dim_size)), (
+                    f"Dimension {dim_idx}: Not all values present. Expected {set(range(dim_size))}, got {set(value_counts.keys())}"
+                )
             else:
                 # When n < dim_size, we should have exactly n unique values
-                assert (
-                    len(value_counts) == n
-                ), f"Dimension {dim_idx}: Expected {n} unique values, got {len(value_counts)}"
+                assert len(value_counts) == n, (
+                    f"Dimension {dim_idx}: Expected {n} unique values, got {len(value_counts)}"
+                )
 
             # Verify each value appears floor(n/k) or ceil(n/k) times
             for value, count in value_counts.items():
                 assert count in [
                     floor_count,
                     ceil_count,
-                ], f"Dimension {dim_idx}, value {value}: count {count} not in [{floor_count}, {ceil_count}]"
+                ], (
+                    f"Dimension {dim_idx}, value {value}: count {count} not in [{floor_count}, {ceil_count}]"
+                )
 
             # Additional check: verify the distribution is balanced
             # The number of values with ceil_count should equal n % dim_size
@@ -76,9 +78,9 @@ class TestConcatenatedLatinHypercubeSampling:
                 )
                 expected_ceil_occurrences = n % dim_size
 
-                assert (
-                    ceil_count_occurrences == expected_ceil_occurrences
-                ), f"Dimension {dim_idx}: Expected {expected_ceil_occurrences} values with count {ceil_count}, got {ceil_count_occurrences}"
+                assert ceil_count_occurrences == expected_ceil_occurrences, (
+                    f"Dimension {dim_idx}: Expected {expected_ceil_occurrences} values with count {ceil_count}, got {ceil_count_occurrences}"
+                )
 
     def test_quarter_sampling(self, df_config: dict[str, Any]) -> None:
         """
@@ -97,9 +99,9 @@ class TestConcatenatedLatinHypercubeSampling:
 
         # Basic checks
         assert len(samples) == n, f"Expected {n} samples, got {len(samples)}"
-        assert all(
-            len(sample) == len(dimensions) for sample in samples
-        ), "All samples should have correct dimensionality"
+        assert all(len(sample) == len(dimensions) for sample in samples), (
+            "All samples should have correct dimensionality"
+        )
 
         # Verify stratification
         self._verify_stratification(samples, dimensions, n)
@@ -121,9 +123,9 @@ class TestConcatenatedLatinHypercubeSampling:
 
         # Basic checks
         assert len(samples) == n, f"Expected {n} samples, got {len(samples)}"
-        assert all(
-            len(sample) == len(dimensions) for sample in samples
-        ), "All samples should have correct dimensionality"
+        assert all(len(sample) == len(dimensions) for sample in samples), (
+            "All samples should have correct dimensionality"
+        )
 
         # Verify stratification
         self._verify_stratification(samples, dimensions, n)

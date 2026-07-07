@@ -162,8 +162,8 @@ Custom experiments **must** use the `@custom_experiment` decorator correctly:
 
 ```python
 from typing import Any
-from orchestrator.modules.actuators.custom_experiments import custom_experiment
-from orchestrator.schema.property import ConstitutiveProperty
+from ado.modules.actuators.custom_experiments import custom_experiment
+from ado.schema.property import ConstitutiveProperty
 
 # Define your properties explicitly (or let ado infer from type annotations)
 MyProperty = ConstitutiveProperty(...)

@@ -10,7 +10,7 @@ These guidelines apply to all code development in the ado codebase.
 
 ## Code Structure
 
-- **orchestrator**: main Python package
+- **ado**: main Python package
   - **schema**: pydantic models for properties, entities, experiments, and
     measurement results
   - **core**: pydantic models and associated code for the core resource types
@@ -49,19 +49,19 @@ These guidelines apply to all code development in the ado codebase.
 - Use type annotations on all functions and methods, including return types.
 - Add docstrings to all functions and methods.
 - Use the pydantic annotated form for pydantic fields (see
-  `orchestrator/schema/entity.py`). Assign the default value to the Annotated
+  `ado/schema/entity.py`). Assign the default value to the Annotated
   variable, not inside pydantic.Field. For any mutable default values such as
   dictionaries, lists, tuples, or sets, use `default_factory` inside
   pydantic.Field and do not assign a default to the Annotation.
 - Use discriminated unions when a type is a union (see `ExperimentType` in
-  `orchestrator/schema/experiment.py`).
-- Use the `Defaultable` type from `orchestrator/utilities/pydantic` for pydantic
+  `ado/schema/experiment.py`).
+- Use the `Defaultable` type from `ado/utilities/pydantic` for pydantic
   fields that:
   - accept `None`, but
   - are always defaulted to a different type.
 - Use absolute imports within the repository unless the file already uses
   relative imports.
-- Use `orchestrator.utilities.output.pydantic_model_as_yaml` for serializing
+- Use `ado.utilities.output.pydantic_model_as_yaml` for serializing
   pydantic models to YAML.
 - Use Google style for docstrings.
 
@@ -112,7 +112,7 @@ Use Test Driven Development
   uv run ruff check --fix $DIR
 
 - Fix any issues reported by ruff that it could not fix automatically.
-- Run ruff format and ruff check at directory level for efficiency (e.g. `orchestrator/`,
+- Run ruff format and ruff check at directory level for efficiency (e.g. `ado/`,
   `plugins/`, `tests/`).
 - Run the mkdocs linter on markdown files (\*.md) that have added or modified:
 

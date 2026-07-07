@@ -53,13 +53,13 @@ DONTs
 
 Each resource has a pydantic model. If working in code you can use these models
 
-- discoveryspace, orchestrator/core/discoveryspace/resource.py:
+- discoveryspace, ado/core/discoveryspace/resource.py:
   DiscoverySpaceResource
-- samplestore, orchestrator/core/samplestore/resource.py: SampleStoreResource
-- datacontainer, orchestrator/core/datacontainer/resource.py:
+- samplestore, ado/core/samplestore/resource.py: SampleStoreResource
+- datacontainer, ado/core/datacontainer/resource.py:
   DataContainerResource
-- operation, orchestrator/core/operation/resource.py: OperationResource
-- actuatorconfiguration, orchestrator/core/actuatorconfiguration/resource.py:
+- operation, ado/core/operation/resource.py: OperationResource
+- actuatorconfiguration, ado/core/actuatorconfiguration/resource.py:
   ActuatorConfigurationResource
 
 ## Querying Metadata
@@ -328,7 +328,7 @@ uv run ado show related space SPACE_ID
 ## Advanced Filtering
 
 The metastore class can provide more powerful querying via scripts. See
-orchestrator/metastore/sqlstore.py
+ado/metastore/sqlstore.py
 
 ## References
 

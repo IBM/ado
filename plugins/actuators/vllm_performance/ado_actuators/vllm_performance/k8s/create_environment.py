@@ -125,7 +125,7 @@ def create_test_environment(
         otlp_traces_endpoint=otlp_traces_endpoint,
         renderer_num_workers=renderer_num_workers,
     )
-    logger.debug("deployment created")
+    logger.debug(f"Deployment {k8s_name} created")
 
     try:
         c_manager.wait_deployment_ready(
@@ -133,20 +133,22 @@ def create_test_environment(
             check_interval=check_interval,
             timeout=timeout,
         )
-    except K8sDeploymentCreationTimeoutError as e:
-        # If the deployment creation times out we try to delete the existing
-        # one to make sure we don't try to re-create the same deployment
-        # during retries.
-        logger.debug(
-            "Creating the {k8s_name} deployment has timed out. Deleting the deployment."
-        )
-        c_manager.delete_deployment(k8s_name=k8s_name, raise_if_not_found=False)
-        raise (e)
 
-    logger.info("deployment ready")
-    # service
-    c_manager.create_service(k8s_name=k8s_name, template=service_template)
-    logger.info("service created")
+        logger.info(f"Deployment {k8s_name} ready")
+
+        # service
+        c_manager.create_service(k8s_name=k8s_name, template=service_template)
+        logger.info(f"Service {k8s_name} created")
+
+    except Exception as e:
+        # If the deployment/service creation fail we try to delete the existing
+        # resources if created, to make sure we don't re-create existing resources during
+        # a retry.
+        if isinstance(e, K8sDeploymentCreationTimeoutError):
+            logger.debug("Creating the {k8s_name} deployment has timed out")
+        c_manager.delete_deployment(k8s_name=k8s_name, raise_if_not_found=False)
+        c_manager.delete_service(k8s_name=k8s_name, raise_if_not_found=False)
+        raise (e)
 
 
 if __name__ == "__main__":

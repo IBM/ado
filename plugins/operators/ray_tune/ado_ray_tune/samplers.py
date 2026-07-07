@@ -76,7 +76,7 @@ class LhuSampler(ray.tune.search.Searcher):
         self._samples_generated_so_far = len(self._suggestions)
 
     def set_entity_space(self, entity_space: EntitySpaceRepresentation) -> None:
-        """LHC samplers requires the orchestrators ExplicitEntitySpaceRepresentation
+        """LHC samplers requires the orchestrator's ExplicitEntitySpaceRepresentation
 
         This is because the ray tune search space does not give sufficient information
         for the LHC sampler to work with dimensions that are not categorical"""

@@ -8,7 +8,6 @@ from ado.core.discoveryspace.space import DiscoverySpace
 from ado.core.operation.config import FunctionOperationInfo
 from ado.core.operation.operation import OperationOutput
 from ado.modules.operators.collections import characterize_operation
-from trim.samplers.no_priors_parameters import MissingTargetMode
 from trim.samplers.no_priors_utils import get_source_and_target
 from trim.trim_pydantic import (
     TrimParameters,
@@ -101,7 +100,7 @@ def _resolve_target_output(
                 Retrieves all measured entities from the entity source and samples the others following a certain order.
                 If the number of measured entity is too small, Trim instantiates a no-priors characterization operation.
                 """,
-    version="2.0.3",
+    version="2.1.0",
 )
 def trim(
     discoverySpace: DiscoverySpace = None,  # type: ignore[name-defined]

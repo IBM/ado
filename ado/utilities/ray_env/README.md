@@ -27,7 +27,7 @@ To enable the `OrderedPipPlugin`, set the `RAY_RUNTIME_ENV_PLUGINS` environment
 variable before starting the Ray head and workers.
 
 ```bash
-export RAY_RUNTIME_ENV_PLUGINS='[{"class":"orchestrator.utilities.ray_env.ordered_pip.OrderedPipPlugin"}]'
+export RAY_RUNTIME_ENV_PLUGINS='[{"class":"ado.utilities.ray_env.ordered_pip.OrderedPipPlugin"}]'
 ```
 
 ### Enabling in KubeRay
@@ -39,12 +39,12 @@ head and worker node configurations:
 head:
   containerEnv:
     - name: RAY_RUNTIME_ENV_PLUGINS
-      value: '[{"class":"orchestrator.utilities.ray_env.ordered_pip.OrderedPipPlugin"}]'
+      value: '[{"class":"ado.utilities.ray_env.ordered_pip.OrderedPipPlugin"}]'
 
 worker:
   containerEnv:
     - name: RAY_RUNTIME_ENV_PLUGINS
-      value: '[{"class":"orchestrator.utilities.ray_env.ordered_pip.OrderedPipPlugin"}]'
+      value: '[{"class":"ado.utilities.ray_env.ordered_pip.OrderedPipPlugin"}]'
 ```
 
 ## Configuration Details

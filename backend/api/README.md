@@ -35,7 +35,7 @@ Serving the API locally is very easy. Run the following command in your
 terminal:
 
 ```bash
-serve run orchestrator.api.rest:ado_rest_api
+serve run ado.api.rest:ado_rest_api
 ```
 
 You should see output similar to this:
@@ -43,7 +43,7 @@ You should see output similar to this:
 <!-- markdownlint-disable line-length -->
 
 ```terminaloutput
-2025-09-19 11:50:39,727 INFO scripts.py:507 -- Running import path: 'orchestrator.api.rest:ado_rest_api'.
+2025-09-19 11:50:39,727 INFO scripts.py:507 -- Running import path: 'ado.api.rest:ado_rest_api'.
 2025-09-19 11:50:45,496 INFO worker.py:1942 -- Started a local Ray instance. View the dashboard at 127.0.0.1:8265
 (ProxyActor pid=98735) INFO 2025-09-19 11:50:48,686 proxy 127.0.0.1 -- Proxy starting on node 05f52ce870e3943ff5ec646472a93f5b552fd48ad45cdd8286569db1 (HTTP port: 8000).
 (ProxyActor pid=98735) INFO 2025-09-19 11:50:48,801 proxy 127.0.0.1 -- Got updated endpoints: {}.

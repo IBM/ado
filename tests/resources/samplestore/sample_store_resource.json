@@ -3,7 +3,7 @@
   "config": {
     "specification": {
       "module": {
-        "moduleName": "orchestrator.core.samplestore.sql",
+        "moduleName": "ado.core.samplestore.sql",
         "moduleClass": "SQLSampleStore"
       },
       "parameters": {
@@ -13,7 +13,7 @@
     "copyFrom": [
       {
         "module": {
-          "moduleName": "orchestrator.core.samplestore.csv",
+          "moduleName": "ado.core.samplestore.csv",
           "moduleClass": "CSVSampleStore"
         },
         "parameters": {

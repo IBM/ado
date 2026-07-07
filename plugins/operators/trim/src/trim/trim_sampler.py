@@ -10,7 +10,6 @@ import os
 import pathlib
 import time
 import typing
-from collections import deque
 from datetime import datetime
 from typing import TYPE_CHECKING
 
@@ -120,51 +119,30 @@ class TrimSampleSelector(BaseSampler):
     def _handle_missing_target_row(
         self,
         one_additional_row: pd.DataFrame,
-        current_source_df: pd.DataFrame,
-        entity: list[Entity],
+        entity: Entity,
         discoverySpace: DiscoverySpace,
         additional_info: str,
-    ) -> tuple[pd.DataFrame, pd.DataFrame, bool]:
-        """Handle the case where an entity yielded no target variable measurement.
+    ) -> tuple[pd.DataFrame, bool]:
+        """Apply the missing-target policy for an entity not found in ``current_source_df``.
 
-        Dispatches to one of three behaviours based on
-        ``self.params.missingTargetVariables.mode``:
-
-        - ``RaiseError``: calls
-          :func:`~trim.utils.logging_utils.log_unable_to_proceed_with_iterative_modeling_and_raise_error`
-          (never returns).
-        - ``InjectDefaultValue``: injects a synthetic row via
-          :func:`~trim.trim_sampler._make_default_row` so model training
-          proceeds normally; records the entity via
-          :func:`~trim.samplers.missing_target_utils.record_missing_and_check_budget`;
-          returns ``skip=False``.
-        - ``Skip``: records the entity; does **not** inject a row; returns
-          ``skip=True`` so ``_core_iterator_logic`` can ``continue`` without
-          yielding.
-
-        Hit detection is done via :func:`entity_hit_in_source` which matches on
-        constitutive property values, not the identifier string, to avoid
-        int/float formatting mismatches after a DB round-trip.
+        Raises on ``RaiseError``, injects a default row and returns ``skip=False``
+        on ``InjectDefaultValue``, or returns ``skip=True`` on ``Skip``.
 
         Args:
-            one_additional_row: The diff DataFrame from split_common_and_diff
-                (used when hit; may be empty if the entity already appeared in
-                a previous diff but is still present now).
-            current_source_df: The source DataFrame for this iteration.
-            entity: The batch of entities that was just yielded (length 1).
-            discoverySpace: The discovery space being operated on.
-            additional_info: Context string passed to the error / budget helper.
+            one_additional_row: Row DataFrame for the entity (may be empty).
+            entity: The entity that did not produce a target measurement.
+            discoverySpace: The active discovery space.
+            additional_info: Context string appended to error messages.
 
         Returns:
-            Tuple of ``(one_additional_row, current_source_df, skip)`` where
-            ``skip=True`` signals the caller to ``continue`` without yielding
-            the entity to the next stage.
+            ``(one_additional_row, skip)`` — ``skip=True`` means the entity
+            should be dropped from the current iteration.
         """
-        if entity_hit_in_source(entity[0], current_source_df):
-            return one_additional_row, current_source_df, False
+        if entity_hit_in_source(entity, self.current_source_df):
+            return one_additional_row, False
 
         mode = self.params.missingTargetVariables.mode
-        entity_id = entity[0].identifier  # always set after check_identifier validator
+        entity_id = entity.identifier  # always set after check_identifier validator
 
         if mode == MissingTargetMode.RaiseError:
             log_unable_to_proceed_with_iterative_modeling_and_raise_error(
@@ -188,77 +166,60 @@ class TrimSampleSelector(BaseSampler):
                 f"Injecting default value {self.params.missingTargetVariables.defaultValue}."
             )
             one_additional_row = _make_default_row(
-                entity[0],
+                entity,
                 self.params.targetOutput,
                 self.params.missingTargetVariables.defaultValue,  # type: ignore[arg-type]
             )
-            current_source_df = pd.concat(
-                [current_source_df, one_additional_row], ignore_index=True
+            self.current_source_df = pd.concat(
+                [self.current_source_df, one_additional_row], ignore_index=True
             )
-            return one_additional_row, current_source_df, False
+            return one_additional_row, False
 
         # MissingTargetMode.Skip
         logger_trim_sampler.info(
             f"Entity '{entity_id}' did not produce a measurement for "
             f"target variable '{self.params.targetOutput}'. Skipping entity."
         )
-        return one_additional_row, current_source_df, True
+        return one_additional_row, True
 
-    def _check_yielded_entity(
+    def _did_entity_measure_target_output(
         self,
-        entity: list[Entity],
-        current_source_df: pd.DataFrame,
+        entity: Entity,
         discoverySpace: DiscoverySpace,
         additional_info: str,
-    ) -> tuple[pd.DataFrame, pd.DataFrame, bool]:
+    ) -> tuple[pd.DataFrame, bool]:
         """Check whether a just-yielded entity produced a target measurement.
 
-        Uses :meth:`~orchestrator.core.discoveryspace.space.DiscoverySpace.entity_for_point`
-        to look up the entity directly from the store (a targeted lookup, not a
-        full DataFrame rebuild), then reads its
-        :meth:`~orchestrator.schema.entity.Entity.seriesRepresentation` to decide
-        whether the target output column is present and non-null.
-
-        On a hit the new row is appended to *current_source_df* and returned,
-        keeping the caller's view of the source up-to-date without ever calling
-        :func:`get_source_and_target` again.
-
-        Called immediately after every ``yield entity`` in
-        ``_core_iterator_logic``.  Mirrors the post-yield check in
-        :class:`~trim.samplers.no_priors_sampler.NoPriorsSampleSelector`.
+        Appends the new row to ``current_source_df`` on a hit. On a miss,
+        delegates to ``_handle_missing_target_row`` to apply the configured
+        missing-target policy.
 
         Args:
-            entity: The batch that was just yielded (length 1).
-            current_source_df: The caller's current source DataFrame.  The new
-                row is appended to this and the updated frame is returned.
+            entity: The entity that was just yielded and measured.
             discoverySpace: The active discovery space.
-            additional_info: Context string forwarded to
-                :meth:`_handle_missing_target_row`.
+            additional_info: Context string forwarded to the error helper.
 
         Returns:
-            Tuple of ``(one_additional_row, current_source_df, skip)`` — the
-            same triple returned by :meth:`_handle_missing_target_row`, with
-            *current_source_df* updated to include the new row (or a synthetic
-            default row on ``InjectDefaultValue``).
+            ``(one_additional_row, skip)`` — ``skip=True`` means the entity
+            produced no usable measurement and should be dropped.
         """
         hit, series = entity_measured_target(
-            entity[0], discoverySpace, self.params.targetOutput
+            entity, discoverySpace, self.params.targetOutput
         )
 
         if hit:
             one_additional_row = series.to_frame().T.reset_index(drop=True)
-            current_source_df = pd.concat(
-                [current_source_df, one_additional_row], ignore_index=True
+            self.current_source_df = pd.concat(
+                [self.current_source_df, one_additional_row], ignore_index=True
             )
-            return one_additional_row, current_source_df, False
+            return one_additional_row, False
 
         # Target missing — pass the current source into _handle_missing_target_row
         # so it can apply RaiseError / InjectDefaultValue / Skip without
         # re-fetching the full DataFrame from the store.
-        one_additional_row = entity_row_in_source(entity[0], current_source_df)
+        one_additional_row = entity_row_in_source(entity, self.current_source_df)
         return self._handle_missing_target_row(
             one_additional_row=one_additional_row,
-            current_source_df=current_source_df,
             entity=entity,
             discoverySpace=discoverySpace,
             additional_info=additional_info,
@@ -302,6 +263,260 @@ class TrimSampleSelector(BaseSampler):
             )
         return no_target
 
+    def _handle_new_measured_entity(
+        self,
+        entity: Entity,
+        discoverySpace: DiscoverySpace,
+        row_entity: pd.DataFrame,
+    ) -> bool:
+        """Update internal state for a newly measured (or default-injected) entity.
+
+        Builds the holdout, trains a model, and evaluates the stopping criterion
+        once enough data has been collected.
+
+        Args:
+            entity: The entity whose measurement was just confirmed.
+            discoverySpace: The active discovery space.
+            row_entity: The measured (or synthetic) row for this entity.
+
+        Returns:
+            ``True`` if the stopping criterion was triggered, ``False`` otherwise.
+        """
+        self.train_df = self.current_source_df
+        self.kept_count += 1
+        self.yielded_rows += row_entity
+
+        # TODO: the first holdout set can also be obtained from the source space
+        # atm we sample new points from the target and put these into the holdout
+        # we can instead look at the source at iter=0 and select within this set the best
+        # source and holdout df, the rationale here would be selecting the holdout set first
+        # to prioritize representativeness in the OOS set, and put the remaining points in
+        # the test set
+        if self.kept_count < self.params.iterationSize:
+            return False
+        if (
+            self.kept_count == self.params.iterationSize
+        ):  # at this point we build the first model
+            self.train_df, current_holdout_df = split_common_and_diff(
+                longer_df_from_which_you_subtract=self.current_source_df,
+                shorter_df_that_you_subtract=self.initial_source_df,
+            )
+
+            self.last_holdout_df = current_holdout_df
+
+            log_after_first_holdout_creation(
+                current_holdout_df,
+                self.yielded_rows,
+                iter_index=self.kept_count,
+                params=self.params,
+            )
+            return False
+        # kept_count > self.params.iterationSize
+        row_entity, skip = self._handle_missing_target_row(
+            one_additional_row=row_entity,
+            entity=entity,
+            discoverySpace=discoverySpace,
+            additional_info=f"Detected during Iterative Modeling, when the training DataFrame size is {len(self.train_df)}.",
+        )
+        if skip:
+            return False
+
+        current_holdout_df = pd.DataFrame(self.yielded_rows.df)
+
+        if current_holdout_df.equals(self.last_holdout_df):
+            logger_trim_sampler.warning("Holdout dataframe is not changing!")
+
+        # we rename appropriately
+        self.last_holdout_df = current_holdout_df
+        if logger_trim_sampler.isEnabledFor(logging.DEBUG):
+            save_source_train_holdout_dfs(
+                current_source_df=self.current_source_df,
+                train_df=self.train_df,
+                current_holdout_df=current_holdout_df,
+                iter=self.kept_count,
+                directory=self.params.debugDirectory,
+            )
+
+        ##############  MODEL BUILDING AND EVALUATION  #####################
+
+        logger_trim_sampler.info(
+            "Building and evaluating a predictive model that includes 1 more entity "
+            "in the training set:\n {entity}"
+        )
+        # ensures we only train on rows where the target is measured
+        # TODO: monitor if this is needed
+        self.train_df = training_guardrail(
+            self.train_df, targetOutput=self.params.targetOutput
+        )
+
+        train_data = TabularDataset(self.train_df)
+        holdout_data = TabularDataset(current_holdout_df)
+
+        # NOTE: assigning more weight to target space points does NOT generally improve performance
+        predictor = TabularPredictor(
+            label=self.params.targetOutput,
+            **self.params.autoGluonArgs.tabularPredictorArgs,
+        )
+
+        logger_trim_sampler.info(
+            f"Fitting AutoGluon TabularPredictor, iteration {self.kept_count}..."
+        )
+        predictor.fit(train_data=train_data, **self.params.autoGluonArgs.fitArgs)
+
+        # metric metric used in training
+        training_metric = getattr(predictor, "eval_metric", None)
+        lb = predictor.leaderboard(silent=True)
+        if lb is not None and not lb.empty:
+            best_row = lb.iloc[0]
+            best_model_name = best_row.get("model", None)
+            best_score_val = best_row.get("score_val", None)
+        else:
+            best_model_name, best_score_val = None, None
+
+        self.metric_dict[self.kept_count] = {
+            "metric": training_metric,
+            "best_model": best_model_name,
+            "best_score_val": best_score_val,
+            "holdout_score": predictor.evaluate(holdout_data, silent=True)[
+                predictor.eval_metric.name
+            ],
+        }
+
+        logger_trim_sampler.info(
+            f"[Batch under consideration: {self.kept_count}] Training metric: {training_metric};\n"
+            f"Best model: {best_model_name}; score_val: {best_score_val:.2f}; holdout_score: {self.metric_dict[self.kept_count]['holdout_score']:.2f}",
+        )
+
+        # Capture model path and delete the folder
+        if not logger_trim_sampler.isEnabledFor(logging.DEBUG):
+            model_dir = getattr(predictor, "path", None)
+            logger_trim_sampler.info(f"AutoGluon model directory: {model_dir}")
+            del predictor
+            delete_dir(model_dir=model_dir)
+
+        should_stop = 0
+
+        # for the first 2*iterationSize we do not have enough data to compare
+        # kept_count < iter_size: no models
+        # iter_size <= kept_count < iter_size*2 : 1st iter of models
+        # iter_size*2 <= kept_count < iter_size*3 : 2nd iter of models
+        if (
+            self.kept_count < self.params.iterationSize * 3 - 1
+            or not self.params.stoppingCriterion.enabled
+        ):
+            return False
+
+        # NOTE: at the moment comparison does NOT happen at every params.iterationSize steps
+        # instead, it happens at every batchsize=1 step, in a rolling fashion,
+        # NOTE: if batchsize==iterationSize will compare just two models,
+        # one model from prev_iter_list_range, whose len would be 1, and
+        # one model from this_iter_list_range, whose len would be 1
+        _prev_iter_list_range = list(
+            range(
+                self.kept_count
+                - self.params.iterationSize * 2
+                + 1,  # this index might be included
+                self.kept_count
+                - self.params.iterationSize
+                + 1,  # this index cannot be included
+            )
+        )
+        _this_iter_list_range = list(
+            range(
+                self.kept_count - self.params.iterationSize + 1,
+                self.kept_count
+                + 1,  # this index cannot be included, but kept_count can be included (this is desired)
+            )
+        )
+        # I filter these to keep only points that I know correspond to models
+        prev_iter_list_range = [
+            k for k in _prev_iter_list_range if k in self.metric_dict
+        ]
+        this_iter_list_range = [
+            k for k in _this_iter_list_range if k in self.metric_dict
+        ]
+
+        logger_trim_sampler.info(
+            f"Since iterationSize is {self.params.iterationSize}, "
+            f"We now compare models at the following batch indices\n{prev_iter_list_range}\nand\n{this_iter_list_range}"
+        )
+
+        scores_previous_iteration = [
+            float(self.metric_dict[el]["holdout_score"]) for el in prev_iter_list_range
+        ]
+        scores_this_iteration = [
+            float(self.metric_dict[el]["holdout_score"]) for el in this_iter_list_range
+        ]
+
+        logger_trim_sampler.info(
+            f"Scores that correspond to these i-ranges are:\n{scores_previous_iteration}\nand\n{scores_this_iteration}"
+        )
+
+        try:
+            mean_ratio = (
+                np.array(scores_this_iteration).mean()
+                / np.array(scores_previous_iteration).mean()
+            )
+            if (
+                np.array(scores_previous_iteration).std()
+                * np.array(scores_this_iteration).std()
+                == 0
+            ):
+                logger_trim_sampler.info(
+                    "Product of standard deviation of the scores across batches is 0."
+                    "Setting the ratio to 0"
+                )
+                std_ratio = 0
+
+            else:
+                std_ratio = (
+                    np.array(scores_this_iteration).std()
+                    / np.array(scores_previous_iteration).std()
+                )
+        except Exception as e:
+            logger_trim_sampler.warning(
+                f"Exception occurred: {e}, should stop will be true."
+            )
+            mean_ratio = 1
+            std_ratio = 1
+        logger_trim_sampler.info(
+            f"Testing stopping criterion after measuring {self.kept_count} points, "
+            "mean_ratio={mean_ratio} and std_ratio={std_ratio}"
+        )
+        should_stop = stopping_bool_from_ratios(
+            mean_ratio=mean_ratio,
+            std_ratio=std_ratio,
+            mean_ratio_threshold=self.params.stoppingCriterion.meanThreshold,
+            std_ratio_threshold=self.params.stoppingCriterion.stdThreshold,
+        )
+
+        if should_stop:
+            # Stopping info
+            self.params.finalModelAutoGluonArgs.tabularPredictorArgs["path"] = (
+                self.params.finalModelAutoGluonArgs.tabularPredictorArgs.get(
+                    "path", self.params.outputDirectory
+                )
+                or ""
+            ) + "_finalized"
+
+            logger_trim_sampler.info(
+                f"Stopping criteria hit after measuring {self.kept_count} entities.\n"
+                f"On a iteration of batch size {self.params.iterationSize}.\n"
+                "Performance of the model on the holdout set is estimated as:"
+                f"Mean performance of the model on the holdout set over the last iteration: {np.array(scores_this_iteration).mean()}"
+                f"Standard deviation of the performance of the model on the holdout set over the last iteration: {np.array(scores_this_iteration).std()}"
+            )
+            _predictor = self.finalize_model(
+                discoverySpace=discoverySpace,
+            )
+            return True
+
+        logger_trim_sampler.info(
+            f"Stopping not triggered for kept_count={self.kept_count}"
+        )
+
+        return False
+
     def _core_iterator_logic(
         self,
         discoverySpace: DiscoverySpace,
@@ -326,7 +541,10 @@ class TrimSampleSelector(BaseSampler):
 
         numberEntities = len(list_of_entities)
 
-        initial_source_df, _target_df = get_source_and_target(
+        if not numberEntities:
+            return
+
+        self.initial_source_df, _target_df = get_source_and_target(
             discoverySpace,
             self.params.targetOutput,
         )
@@ -343,8 +561,8 @@ class TrimSampleSelector(BaseSampler):
                 _make_default_row(entity, self.params.targetOutput, default_val)  # type: ignore[arg-type]
                 for entity in no_target_entities
             ]
-            initial_source_df = pd.concat(
-                [initial_source_df, *skip_rows], ignore_index=True
+            self.initial_source_df = pd.concat(
+                [self.initial_source_df, *skip_rows], ignore_index=True
             )
             logger_trim_sampler.info(
                 f"Prepended {len(skip_rows)} default rows for pre-skipped entities "
@@ -352,7 +570,7 @@ class TrimSampleSelector(BaseSampler):
             )
 
         if logger_trim_sampler.isEnabledFor(logging.DEBUG):
-            initial_source_df.to_csv(
+            self.initial_source_df.to_csv(
                 os.path.join(self.params.debugDirectory, "initial_source_df.csv")
             )
 
@@ -362,7 +580,7 @@ class TrimSampleSelector(BaseSampler):
         train_target_cols = [*train_cols, self.params.targetOutput]
         logger_trim_sampler.info(
             f"Trim iterator will measure up to {numberEntities} entities.\n"
-            f"These entities have been ordered using {len(initial_source_df)} measurements from the discovery space."
+            f"These entities have been ordered using {len(self.initial_source_df)} measurements from the discovery space."
         )
 
         logger_trim_sampler.info(
@@ -373,351 +591,68 @@ class TrimSampleSelector(BaseSampler):
         ######################################### MAIN LOOP STARTS #################################################
         ############################################################################################################
 
-        metric_dict = {}
-        comparison_indices = []
-        previous_holdout_df = pd.DataFrame({})
-        train_df = initial_source_df
-        # Number of entities successfully kept (measured + not skipped).
-        # Used for phase thresholds instead of the raw loop index `i`, which
-        # advances even for skipped entities and would give wrong phase transitions.
-        kept_count = 0
-        # Ring-like data structures
-        yielded_entities = deque(maxlen=self.params.holdoutSize)
-        yielded_rows = RowsRing(
+        self.kept_count = 0
+        self.metric_dict = {}
+        self._missing_count = 0
+        self.train_df = pd.DataFrame({})
+        self.last_holdout_df = pd.DataFrame({})
+        self.yielded_rows = RowsRing(
             maxlen=(self.params.holdoutSize or self.params.iterationSize)
         )
-        current_source_df = initial_source_df
+        self.current_source_df = self.initial_source_df
 
-        for i in range(0, numberEntities, batchsize):
-            entity = list_of_entities[i : i + batchsize]
+        last_entity = None
+        one_additional_row = None
 
-            if len(entity) == 0:
-                logger_trim_sampler.info("No Entities remaining.")
-                _ = self.finalize_model(discoverySpace)
-                break
+        # This iterator is can be consumed in 2 ways, async and sync.
+        # In async mode we cannot reliably get the results of the entity after yielding it,
+        # the wrapper that iterates this generator calls asyncio.sleep() so it's safe to
+        # get the results of the last yielded entity
 
-            if kept_count == 0:
-                train_df = current_source_df
-                logger_trim_sampler.debug(
-                    "During the initial iterations the holdout is empty"
-                )
-                logger_trim_sampler.info(
-                    f"Yielding {len(entity)} entity, which is {entity}"
-                )
-                yield entity
-                one_additional_row, current_source_df, skip = (
-                    self._check_yielded_entity(
-                        entity=entity,
-                        current_source_df=current_source_df,
-                        discoverySpace=discoverySpace,
-                        additional_info=f"Detected during Iterative Modeling (first entity), when the source space size is {len(train_df)}.",
-                    )
-                )
-                if not skip:
-                    yielded_entities += entity
-                    kept_count += 1
-                train_df = current_source_df
+        last_entity = list_of_entities[0]
+        logger_trim_sampler.info(f"Yielding {last_entity}")
+        yield list_of_entities[0:1]
+
+        for entity in list_of_entities[1:]:
+            one_additional_row, skip = self._did_entity_measure_target_output(
+                entity=last_entity,
+                discoverySpace=discoverySpace,
+                additional_info=f"Detected during Iterative Modeling (first entity), when the source space size is {len(self.train_df)}.",
+            )
+
+            if skip:
+                # Couldn't measure the last entity, try measuring this one and handle it in the next iteration
+                last_entity = entity
+                yield [entity]
                 continue
 
-            # The row for the current entity comes from current_source_df which
-            # is maintained incrementally — no full re-fetch needed.
-            one_additional_row = entity_row_in_source(entity[0], current_source_df)
+            stop = self._handle_new_measured_entity(
+                entity=last_entity,
+                discoverySpace=discoverySpace,
+                row_entity=one_additional_row,
+            )
 
-            # TODO: the first holdout set can also be obtained from the source space
-            # atm we sample new points from the target and put these into the holdout
-            # we can instead look at the source at iter=0 and select within this set the best
-            # source and holdout df, the rationale here would be selecting the holdout set first
-            # to prioritize representativeness in the OOS set, and put the remaining points in
-            # the test set
-            if kept_count < self.params.iterationSize:
-                one_additional_row, current_source_df, skip = (
-                    self._handle_missing_target_row(
-                        one_additional_row=one_additional_row,
-                        current_source_df=current_source_df,
-                        entity=entity,
-                        discoverySpace=discoverySpace,
-                        additional_info=f"Detected during Iterative Modeling, when the source space size is {len(train_df)}.",
-                    )
-                )
-                if skip:
-                    continue
+            if stop:
+                return
 
-                yielded_rows += one_additional_row
-                logger_trim_sampler.info(
-                    f"Yielding {len(entity)} entity, which is {entity}"
-                )
-                yield entity
-                _, current_source_df, skip = self._check_yielded_entity(
-                    entity=entity,
-                    current_source_df=current_source_df,
+            # Haven't gathered enough points yet, yield the entity and handle it in the next iteration
+            last_entity = entity
+            yield [entity]
+
+        # If we got here, this means that we yielded the very last Entity and need to handle it
+        if last_entity is not None:
+            one_additional_row, skip = self._did_entity_measure_target_output(
+                entity=last_entity,
+                discoverySpace=discoverySpace,
+                additional_info=f"Detected during Iterative Modeling ({self.kept_count+1} entity), when the source space size is {len(self.train_df)}.",
+            )
+
+            if not skip:
+                self._handle_new_measured_entity(
+                    entity=last_entity,
                     discoverySpace=discoverySpace,
-                    additional_info=f"Detected during Iterative Modeling, when the source space size is {len(train_df)}.",
+                    row_entity=one_additional_row,
                 )
-                if not skip:
-                    yielded_entities += entity
-                    kept_count += 1
-                continue
-            elif (
-                kept_count == self.params.iterationSize
-            ):  # at this point we build the first model
-                train_df, current_holdout_df = split_common_and_diff(
-                    longer_df_from_which_you_subtract=current_source_df,
-                    shorter_df_that_you_subtract=initial_source_df,
-                )
-                one_additional_row, current_source_df, skip = (
-                    self._handle_missing_target_row(
-                        one_additional_row=one_additional_row,
-                        current_source_df=current_source_df,
-                        entity=entity,
-                        discoverySpace=discoverySpace,
-                        additional_info=f"Detected during Iterative Modeling, when the training DataFrame size is {len(train_df)}.",
-                    )
-                )
-                if skip:
-                    continue
-                yielded_rows += one_additional_row
-                previous_holdout_df = current_holdout_df
-
-                log_after_first_holdout_creation(
-                    current_holdout_df,
-                    yielded_rows,
-                    iter_index=kept_count,
-                    params=self.params,
-                )
-
-            else:  # kept_count > self.params.iterationSize
-                train_df = current_source_df
-                one_additional_row, current_source_df, skip = (
-                    self._handle_missing_target_row(
-                        one_additional_row=one_additional_row,
-                        current_source_df=current_source_df,
-                        entity=entity,
-                        discoverySpace=discoverySpace,
-                        additional_info=f"Detected during Iterative Modeling, when the training DataFrame size is {len(train_df)}.",
-                    )
-                )
-                if skip:
-                    continue
-
-                yielded_rows += one_additional_row
-                current_holdout_df = pd.DataFrame(yielded_rows.df)
-
-                if current_holdout_df.equals(previous_holdout_df):
-                    logger_trim_sampler.warning("Holdout dataframe is not changing!")
-
-            # we rename appropriately
-            previous_holdout_df = current_holdout_df
-            if logger_trim_sampler.isEnabledFor(logging.DEBUG):
-                save_source_train_holdout_dfs(
-                    current_source_df=current_source_df,
-                    train_df=train_df,
-                    current_holdout_df=current_holdout_df,
-                    iter=kept_count,
-                    directory=self.params.debugDirectory,
-                )
-
-            ##############  MODEL BUILDING AND EVALUATION  #####################
-
-            logger_trim_sampler.info(
-                f"Building and evaluating a predictive model "
-                f"""that includes {batchsize} more {"entities" if batchsize>1 else "entity"} """
-                f"in the training set:\n {entity}"
-            )
-            # ensures we only train on rows where the target is measured
-            # TODO: monitor if this is needed
-            train_df = training_guardrail(
-                train_df, targetOutput=self.params.targetOutput
-            )
-
-            train_data = TabularDataset(train_df)
-            holdout_data = TabularDataset(current_holdout_df)
-
-            # NOTE: assigning more weight to target space points does NOT generally improve performance
-            predictor = TabularPredictor(
-                label=self.params.targetOutput,
-                **self.params.autoGluonArgs.tabularPredictorArgs,
-            )
-
-            logger_trim_sampler.info(
-                f"Fitting AutoGluon TabularPredictor, iteration {kept_count}..."
-            )
-            predictor.fit(train_data=train_data, **self.params.autoGluonArgs.fitArgs)
-
-            # metric metric used in training
-            training_metric = getattr(predictor, "eval_metric", None)
-            lb = predictor.leaderboard(silent=True)
-            if lb is not None and not lb.empty:
-                best_row = lb.iloc[0]
-                best_model_name = best_row.get("model", None)
-                best_score_val = best_row.get("score_val", None)
-            else:
-                best_model_name, best_score_val = None, None
-
-            metric_dict[kept_count] = {
-                "metric": training_metric,
-                "best_model": best_model_name,
-                "best_score_val": best_score_val,
-                "holdout_score": predictor.evaluate(holdout_data, silent=True)[
-                    predictor.eval_metric.name
-                ],
-            }
-
-            logger_trim_sampler.info(
-                f"[Batch under consideration: {kept_count}] Training metric: {training_metric};\n"
-                f"Best model: {best_model_name}; score_val: {best_score_val:.2f}; holdout_score: {metric_dict[kept_count]['holdout_score']:.2f}",
-            )
-
-            # Capture model path and delete the folder
-            if not logger_trim_sampler.isEnabledFor(logging.DEBUG):
-                model_dir = getattr(predictor, "path", None)
-                logger_trim_sampler.info(f"AutoGluon model directory: {model_dir}")
-                del predictor
-                delete_dir(model_dir=model_dir)
-
-            should_stop = 0
-
-            # for the first 2*iterationSize we do not have enough data to compare
-            # kept_count < iter_size: no models
-            # iter_size <= kept_count < iter_size*2 : 1st iter of models
-            # iter_size*2 <= kept_count < iter_size*3 : 2nd iter of models
-            if (
-                kept_count < self.params.iterationSize * 3 - 1
-                or not self.params.stoppingCriterion.enabled
-            ):
-                yield entity
-                _, current_source_df, skip = self._check_yielded_entity(
-                    entity=entity,
-                    current_source_df=current_source_df,
-                    discoverySpace=discoverySpace,
-                    additional_info=f"Detected during Iterative Modeling, when the training DataFrame size is {len(train_df)}.",
-                )
-                if not skip:
-                    yielded_entities += entity
-                    kept_count += 1
-                continue
-
-            # NOTE: at the moment comparison does NOT happen at every params.iterationSize steps
-            # instead, it happens at every batchsize=1 step, in a rolling fashion,
-            else:
-                comparison_indices.append(kept_count)
-                # NOTE: if batchsize==iterationSize will compare just two models,
-                # one model from prev_iter_list_range, whose len would be 1, and
-                # one model from this_iter_list_range, whose len would be 1
-                _prev_iter_list_range = list(
-                    range(
-                        kept_count
-                        - self.params.iterationSize * 2
-                        + 1,  # this index might be included
-                        kept_count
-                        - self.params.iterationSize
-                        + 1,  # this index cannot be included
-                    )
-                )
-                _this_iter_list_range = list(
-                    range(
-                        kept_count - self.params.iterationSize + 1,
-                        kept_count
-                        + 1,  # this index cannot be included, but kept_count can be included (this is desired)
-                    )
-                )
-                # I filter these to keep only points that I know correspond to models
-                prev_iter_list_range = [
-                    k for k in _prev_iter_list_range if k in metric_dict
-                ]
-                this_iter_list_range = [
-                    k for k in _this_iter_list_range if k in metric_dict
-                ]
-
-                logger_trim_sampler.info(
-                    f"Since iterationSize is {self.params.iterationSize}, "
-                    f"We now compare models at the following batch indices\n{prev_iter_list_range}\nand\n{this_iter_list_range}"
-                )
-
-                scores_previous_iteration = [
-                    float(metric_dict[el]["holdout_score"])
-                    for el in prev_iter_list_range
-                ]
-                scores_this_iteration = [
-                    float(metric_dict[el]["holdout_score"])
-                    for el in this_iter_list_range
-                ]
-
-                logger_trim_sampler.info(
-                    f"Scores that correspond to these i-ranges are:\n{scores_previous_iteration}\nand\n{scores_this_iteration}"
-                )
-
-                try:
-                    mean_ratio = (
-                        np.array(scores_this_iteration).mean()
-                        / np.array(scores_previous_iteration).mean()
-                    )
-                    if (
-                        np.array(scores_previous_iteration).std()
-                        * np.array(scores_this_iteration).std()
-                        == 0
-                    ):
-                        logger_trim_sampler.info(
-                            "Product of standard deviation of the scores across batches is 0."
-                            "Setting the ratio to 0"
-                        )
-                        std_ratio = 0
-
-                    else:
-                        std_ratio = (
-                            np.array(scores_this_iteration).std()
-                            / np.array(scores_previous_iteration).std()
-                        )
-                except Exception as e:
-                    logger_trim_sampler.warning(
-                        f"Exception occurred: {e}, should stop will be true."
-                    )
-                    mean_ratio = 1
-                    std_ratio = 1
-                logger_trim_sampler.info(
-                    f"Testing stopping criterion after measuring {kept_count} points, "
-                    "mean_ratio={mean_ratio} and std_ratio={std_ratio}"
-                )
-                should_stop = stopping_bool_from_ratios(
-                    mean_ratio=mean_ratio,
-                    std_ratio=std_ratio,
-                    mean_ratio_threshold=self.params.stoppingCriterion.meanThreshold,
-                    std_ratio_threshold=self.params.stoppingCriterion.stdThreshold,
-                )
-
-            if should_stop:
-                # Stopping info
-                self.params.finalModelAutoGluonArgs.tabularPredictorArgs["path"] = (
-                    self.params.finalModelAutoGluonArgs.tabularPredictorArgs.get(
-                        "path", self.params.outputDirectory
-                    )
-                    or ""
-                ) + "_finalized"
-
-                logger_trim_sampler.info(
-                    f"Stopping criteria hit after measuring {kept_count} entities.\n"
-                    f"On a iteration of batch size {self.params.iterationSize}.\n"
-                    "Performance of the model on the holdout set is estimated as:"
-                    f"Mean performance of the model on the holdout set over the last iteration: {np.array(scores_this_iteration).mean()}"
-                    f"Standard deviation of the performance of the model on the holdout set over the last iteration: {np.array(scores_this_iteration).std()}"
-                )
-                _predictor = self.finalize_model(
-                    discoverySpace=discoverySpace,
-                )
-                break
-
-            else:
-                yield_log_string = f"Stopping not triggered for kept_count={kept_count}"
-                logger_trim_sampler.info(yield_log_string)
-                yield entity
-                _, current_source_df, skip = self._check_yielded_entity(
-                    entity=entity,
-                    current_source_df=current_source_df,
-                    discoverySpace=discoverySpace,
-                    additional_info=f"Detected during Iterative Modeling, when the training DataFrame size is {len(train_df)}.",
-                )
-                if not skip:
-                    yielded_entities += entity
-                    kept_count += 1
 
     async def remoteEntityIterator(
         self, remoteDiscoverySpace: DiscoverySpaceManager, batchsize: int = 1  # type: ignore[name-defined]
@@ -1048,5 +983,26 @@ class TrimSampleSelector(BaseSampler):
         return TrimParameters
 
     def __init__(self, parameters: TrimParameters) -> None:
+        # Sampler configuration parameters.
         self.params = parameters
+        # Running count of entities that did not produce a target measurement.
         self._missing_count: int = 0
+        # Entities yielded so far; kept for potential post-hoc inspection.
+        self.yielded_entities: list[Entity] = []
+        # Per-iteration model metrics keyed by kept_count; used by the stopping criterion.
+        self.metric_dict: dict = {}
+
+        # The most recent holdout DataFrame; updated each time a new holdout is built.
+        self.last_holdout_df: pd.DataFrame = pd.DataFrame({})
+        # Training DataFrame for the current AutoGluon fit; equals current_source_df minus NaN rows.
+        self.train_df: pd.DataFrame = pd.DataFrame({})
+        # Incrementally maintained source DataFrame; one row appended per measured entity.
+        self.current_source_df: pd.DataFrame = pd.DataFrame({})
+        # Snapshot of the source DataFrame at the start of _core_iterator_logic.
+        self.initial_source_df: pd.DataFrame = pd.DataFrame({})
+        # Number of entities successfully kept (measured or default-injected, not skipped).
+        self.kept_count: int = 0
+        # Sliding window of the last holdoutSize measured rows; used to build the rolling holdout.
+        self.yielded_rows = RowsRing(
+            maxlen=(self.params.holdoutSize or self.params.iterationSize)
+        )

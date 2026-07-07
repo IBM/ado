@@ -4,7 +4,15 @@
 import enum
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, BeforeValidator, Field, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    BeforeValidator,
+    ConfigDict,
+    Field,
+    PrivateAttr,
+    field_validator,
+    model_validator,
+)
 
 
 class MissingTargetMode(str, enum.Enum):
@@ -39,6 +47,8 @@ class MissingTargetMeasurements(BaseModel):
     that are tolerated across the whole sampler run.  When exceeded, an
     ``InsufficientDataError`` is raised regardless of mode.
     """
+
+    model_config = ConfigDict(extra="forbid")
 
     mode: Annotated[
         MissingTargetMode,
@@ -116,22 +126,28 @@ class MissingTargetMeasurements(BaseModel):
 
 
 class BaseTrimSamplerParameters(BaseModel):
-    """Base parameter class shared by all TRIM sampler parameter models."""
+    """Base parameter class for the TRIM iterative sampler (TrimParameters only).
+
+    Contains ``missingTargetVariables`` as a proper schema field so it appears in
+    the TRIM operator's configuration schema and is round-tripped through
+    ``model_dump`` / ``model_validate``.
+    """
+
+    model_config = ConfigDict(extra="forbid")
 
     missingTargetVariables: Annotated[
         MissingTargetMeasurements,
         Field(
             description=(
-                "Configures how both the no-priors sampler and the TRIM iterative "
-                "sampler handle entities that do not produce a measurement for the "
-                "target variable."
+                "Configures how the TRIM operator handles entities that do not "
+                "produce a measurement for the target variable."
             ),
             default_factory=MissingTargetMeasurements,
         ),
     ]
 
 
-class NoPriorsParameters(BaseTrimSamplerParameters):
+class NoPriorsParameters(BaseModel):
     """
     Parameters for sampling high-dimensional spaces without prior model structure.
 
@@ -142,7 +158,30 @@ class NoPriorsParameters(BaseTrimSamplerParameters):
         - 'random': selects random points from the beginning
         - 'clhs': refer to concatenated_latin_hypercube_sampling
         - 'sobol': sobol sampling
+
+    ``missingTargetVariables`` is intentionally **not** a schema field.  It is
+    injected at runtime by the ``TrimParameters.propagate_missing_target_variables``
+    model validator so that the no-priors sampler shares the same policy as the
+    TRIM iterative sampler without exposing a redundant configuration knob.
     """
+
+    model_config = ConfigDict(extra="forbid")
+    # Runtime-only: set by TrimParameters.propagate_missing_target_variables.
+    # Excluded from the schema and from model_dump() so users cannot accidentally
+    # configure it here (the authoritative location is TrimParameters.missingTargetVariables).
+    _missingTargetVariables: MissingTargetMeasurements = PrivateAttr(
+        default_factory=MissingTargetMeasurements
+    )
+
+    @property
+    def missingTargetVariables(self) -> MissingTargetMeasurements:
+        """The active missing-target policy (injected by TrimParameters)."""
+        return self._missingTargetVariables
+
+    @missingTargetVariables.setter
+    def missingTargetVariables(self, value: MissingTargetMeasurements) -> None:
+        """Set the active missing-target policy."""
+        self._missingTargetVariables = value
 
     targetOutput: Annotated[
         str,

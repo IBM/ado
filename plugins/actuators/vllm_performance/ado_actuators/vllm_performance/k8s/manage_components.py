@@ -10,6 +10,7 @@ import uuid
 import pydantic
 from ado_actuators.vllm_performance.k8s import (
     K8sConnectionError,
+    K8sDeploymentCreationTimeoutError,
 )
 from ado_actuators.vllm_performance.k8s.yaml_support.build_components import (
     ComponentsYaml,
@@ -178,16 +179,22 @@ class ComponentsManager:
             return False
         return any(svc.metadata.name == k8s_name for svc in svcs.items)
 
-    def delete_service(self, k8s_name: str) -> None:
+    def delete_service(
+        self, k8s_name: str, suppress_not_found_error: bool = False
+    ) -> None:
         """
         Delete service for model
         :param k8s_name: kubernetes name
         :return: boolean
         """
-        self.kube_client_V1.delete_namespaced_service(
-            namespace=self.namespace,
-            name=k8s_name,
-        )
+        try:
+            self.kube_client_V1.delete_namespaced_service(
+                namespace=self.namespace,
+                name=k8s_name,
+            )
+        except ApiException as e:
+            if e.reason != "Not Found" or not suppress_not_found_error:
+                raise e
 
     def create_service(self, k8s_name: str, template: str | None = None) -> None:
         """
@@ -225,19 +232,25 @@ class ComponentsManager:
                 return True
         return False
 
-    def delete_deployment(self, k8s_name: str) -> None:
+    def delete_deployment(
+        self, k8s_name: str, suppress_not_found_error: bool = False
+    ) -> None:
         """
         Delete service for model
         :param k8s_name: kubernetes name
         :return: boolean
         """
-        self.kube_client.delete_namespaced_deployment(
-            namespace=self.namespace,
-            name=k8s_name,
-            body=client.V1DeleteOptions(
-                propagation_policy="Foreground", grace_period_seconds=5
-            ),
-        )
+        try:
+            self.kube_client.delete_namespaced_deployment(
+                namespace=self.namespace,
+                name=k8s_name,
+                body=client.V1DeleteOptions(
+                    propagation_policy="Foreground", grace_period_seconds=5
+                ),
+            )
+        except ApiException as e:
+            if e.reason != "Not Found" or not suppress_not_found_error:
+                raise e
 
     def create_deployment(
         self,
@@ -394,7 +407,9 @@ class ComponentsManager:
             if self._deployment_ready(k8s_name=k8s_name):
                 return
         logger.error("Timed out waiting for deployment to get ready")
-        raise Exception("Timed out waiting for deployment to get ready")
+        raise K8sDeploymentCreationTimeoutError(
+            "Timed out waiting for deployment to get ready"
+        )
 
 
 if __name__ == "__main__":

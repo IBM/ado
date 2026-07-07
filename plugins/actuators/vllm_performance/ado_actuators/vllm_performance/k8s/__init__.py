@@ -14,6 +14,10 @@ class K8sConnectionError(Exception):
     """Error raised when there is an issue connecting to K8s or a service its hosting"""
 
 
+class K8sDeploymentCreationTimeoutError(Exception):
+    """Error raised when the creation of a K8s deployment times out"""
+
+
 class VLLMVersionExtractionError(Exception):
     """Error raised when vLLM version cannot be extracted from image string"""
 

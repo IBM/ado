@@ -143,6 +143,7 @@ def cannot_delete_resource_due_to_children_resources(
     resource_id: str,
     children_resources: "pd.DataFrame",
 ) -> str:
+    set_pandas_display_options()
     return (
         f"{ERROR}Cannot delete {resource_kind.value} {magenta(resource_id)} "
         f"as it has children resources:\n\n{children_resources}\n\n"

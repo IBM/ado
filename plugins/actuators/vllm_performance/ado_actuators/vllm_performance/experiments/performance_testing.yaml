@@ -198,6 +198,18 @@ test-deployment-v1:
     - property:
         identifier: 'gpu_type'
       value: 'NVIDIA-A100-80GB-PCIe'
+    - property:
+        identifier: 'kv_cache_dtype'
+      value: null
+    - property:
+        identifier: 'quantization'
+      value: null
+    - property:
+        identifier: 'enable_prefix_caching'
+      value: 0
+    - property:
+        identifier: 'block_size'
+      value: 16
   # measurements
   targetProperties:
     - identifier: "duration"
@@ -555,6 +567,18 @@ test-deployment-guidellm-v1:
     - property:
         identifier: 'gpu_type'
       value: 'NVIDIA-A100-80GB-PCIe'
+    - property:
+        identifier: 'kv_cache_dtype'
+      value: null
+    - property:
+        identifier: 'quantization'
+      value: null
+    - property:
+        identifier: 'enable_prefix_caching'
+      value: 0
+    - property:
+        identifier: 'block_size'
+      value: 16
   targetProperties:
     - identifier: "duration"
     - identifier: "completed"
@@ -970,6 +994,18 @@ test-text-agent-v1:
     - property:
         identifier: 'bfcl_categories'
       value: 'simple'
+    - property:
+        identifier: 'kv_cache_dtype'
+      value: null
+    - property:
+        identifier: 'quantization'
+      value: null
+    - property:
+        identifier: 'enable_prefix_caching'
+      value: 0
+    - property:
+        identifier: 'block_size'
+      value: 16
   # measurements
   targetProperties:
     - identifier: "duration"

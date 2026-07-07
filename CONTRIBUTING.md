@@ -139,6 +139,29 @@ Where `type` is one of the following:
 - **test**: Adding missing tests or correcting existing tests
 - **chore** (discouraged): Minor changes that don't fit in other categories
 
+And `scope` is one of the following:
+
+- **anomalous-series**: changes to ado-anomalous-series
+- **autoconf**: changes to ado-autoconf
+- **changelog**: changes to the changelog
+- **ci**: changes related to files used by CI
+- **cli**: changes regarding ado-core CLI
+- **container**: changes to the Dockerfiles
+- **contributing**: changes to contributing
+- **core**: anything that involves ado-core and does not fall into a more
+  specific category
+- **cplex-mip**: changes to ado-cplex-mip
+- **deps**: changes to dependencies
+- **example-actuator**: changes to the example actuator
+- **hooks**: changes to pre-commit hooks
+- **profile-space**: changes to ado-profile-space
+- **ray-tune**: changes to ado-ray-tune
+- **sfttrainer**: changes to ado-sfttrainer
+- **test**: changes to tests
+- **trim**: changes to ado-trim
+- **vllm-performance**: changes to ado-vllm-performance
+- **website**: changes to the website
+
 ## Coding style guidelines
 
 We require code and markup to adhere to certain rules. We enforce these rules

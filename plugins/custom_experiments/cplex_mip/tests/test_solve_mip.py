@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from orchestrator.schema.experiment import Experiment
+from ado.schema.experiment import Experiment
 
 DEFAULT_MPS = str(pathlib.Path(__file__).parent / "markshare_4_0.mps.gz")
 
@@ -146,7 +146,7 @@ class TestOptionalProperties:
         prop = next(
             p for p in experiment.optionalProperties if p.identifier == "time_limit_s"
         )
-        from orchestrator.schema.domain import VariableTypeEnum
+        from ado.schema.domain import VariableTypeEnum
 
         assert (
             prop.propertyDomain.variableType

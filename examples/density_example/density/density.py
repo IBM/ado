@@ -3,7 +3,7 @@
 
 from typing import Any
 
-from orchestrator.modules.actuators.custom_experiments import custom_experiment
+from ado.modules.actuators.custom_experiments import custom_experiment
 
 
 @custom_experiment(output_property_identifiers=["density"])

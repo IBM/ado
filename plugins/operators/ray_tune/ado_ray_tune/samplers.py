@@ -9,7 +9,7 @@ import ray
 import ray.tune
 from ray.tune.search.variant_generator import parse_spec_vars
 
-from orchestrator.schema.entityspace import EntitySpaceRepresentation
+from ado.schema.entityspace import EntitySpaceRepresentation
 
 
 class LhuSampler(ray.tune.search.Searcher):

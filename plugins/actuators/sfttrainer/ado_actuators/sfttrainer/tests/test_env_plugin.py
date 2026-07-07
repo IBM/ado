@@ -7,7 +7,7 @@ import ado_actuators.sfttrainer.ray_env.utils as utils
 import pytest
 import ray
 
-import orchestrator.utilities.ray_env.ordered_pip as ordered_pip
+import ado.utilities.ray_env.ordered_pip as ordered_pip
 
 
 @pytest.fixture

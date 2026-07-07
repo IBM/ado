@@ -3,9 +3,9 @@
 
 import logging
 
-from orchestrator.schema.entity import Entity
-from orchestrator.schema.experiment import Experiment
-from orchestrator.schema.observed_property import ObservedPropertyValue
+from ado.schema.entity import Entity
+from ado.schema.experiment import Experiment
+from ado.schema.observed_property import ObservedPropertyValue
 
 moduleLog = logging.getLogger()
 

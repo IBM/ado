@@ -11,38 +11,36 @@ import ado_actuators.sfttrainer.actuators
 import ado_actuators.sfttrainer.wrapper_fms_hf_tuning.tuning_versions as tuning_versions
 import pytest
 
-import orchestrator.metastore.project
-import orchestrator.modules.actuators.base
-import orchestrator.modules.actuators.catalog
-import orchestrator.modules.actuators.custom_experiments
-import orchestrator.modules.actuators.replay
-import orchestrator.modules.module
-import orchestrator.schema.entity
-import orchestrator.schema.experiment
-import orchestrator.schema.property
-import orchestrator.schema.property_value
-import orchestrator.schema.reference
-from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
+import ado.metastore.project
+import ado.modules.actuators.base
+import ado.modules.actuators.catalog
+import ado.modules.actuators.custom_experiments
+import ado.modules.actuators.replay
+import ado.modules.module
+import ado.schema.entity
+import ado.schema.experiment
+import ado.schema.property
+import ado.schema.property_value
+import ado.schema.reference
+from ado.core.actuatorconfiguration.config import GenericActuatorParameters
 
 
 def try_instantiate_experiment(
-    exp: "orchestrator.schema.entity.Experiment",
+    exp: "ado.schema.entity.Experiment",
     entity_values: dict[str, typing.Any],
 ) -> "ado_actuators.sfttrainer.actuators.FinetuneContext":
 
     print("test", json.dumps(entity_values), "for", exp.identifier)
 
     values = [
-        orchestrator.schema.property_value.ConstitutivePropertyValue(
-            property=orchestrator.schema.property.ConstitutivePropertyDescriptor(
-                identifier=k
-            ),
+        ado.schema.property_value.ConstitutivePropertyValue(
+            property=ado.schema.property.ConstitutivePropertyDescriptor(identifier=k),
             value=v,
         )
         for k, v in entity_values.items()
     ]
 
-    entity = orchestrator.schema.entity.Entity(
+    entity = ado.schema.entity.Entity(
         identifier="foo",
         generatorid="notsource",
         constitutive_property_values=tuple(values),

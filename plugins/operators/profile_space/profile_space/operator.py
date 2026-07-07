@@ -4,10 +4,10 @@
 import pandas as pd
 import pydantic
 
-from orchestrator.core.discoveryspace.space import DiscoverySpace
-from orchestrator.core.operation.config import FunctionOperationInfo
-from orchestrator.core.operation.operation import OperationOutput
-from orchestrator.modules.operators.collections import characterize_operation
+from ado.core.discoveryspace.space import DiscoverySpace
+from ado.core.operation.config import FunctionOperationInfo
+from ado.core.operation.operation import OperationOutput
+from ado.modules.operators.collections import characterize_operation
 
 
 class ProfileParameters(pydantic.BaseModel):

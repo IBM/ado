@@ -3,17 +3,17 @@
 
 import logging
 
-import orchestrator.schema.entity
-import orchestrator.schema.experiment
-import orchestrator.schema.property_value
-from orchestrator.schema.observed_property import ObservedPropertyValue
+import ado.schema.entity
+import ado.schema.experiment
+import ado.schema.property_value
+from ado.schema.observed_property import ObservedPropertyValue
 
 moduleLog = logging.getLogger()
 
 """
 Custom experiments must follow this signature
 
-def $CUSTOM_EXPERIMENT_NAME(entity: orchestrator.model.data.Entity, experiment:Experiment) -> [PropertyValue])
+def $CUSTOM_EXPERIMENT_NAME(entity: ado.model.data.Entity, experiment:Experiment) -> [PropertyValue])
 
 entity: The Entity provides access to the measured properties. The function will not be called
 unless all the properties defined for it in the configuration YAML have been calculated.
@@ -37,8 +37,8 @@ def mycustomexperiment(entity):
 
 
 def acid_test(
-    entity: orchestrator.schema.entity.Entity,
-    experiment: orchestrator.schema.experiment.Experiment,
+    entity: ado.schema.entity.Entity,
+    experiment: ado.schema.experiment.Experiment,
     parameters: dict | None = None,
 ) -> list[ObservedPropertyValue]:
     """
@@ -82,6 +82,6 @@ def acid_test(
     pv = ObservedPropertyValue(
         value=value,
         property=isAcidProp,
-        valueType=orchestrator.schema.property_value.ValueTypeEnum.NUMERIC_VALUE_TYPE,
+        valueType=ado.schema.property_value.ValueTypeEnum.NUMERIC_VALUE_TYPE,
     )
     return [pv]

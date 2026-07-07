@@ -17,13 +17,13 @@ import numpy as np
 import yaml
 from pydantic import Field
 
-from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
-from orchestrator.modules.actuators.catalog import ExperimentCatalog
-from orchestrator.modules.actuators.standard import (
+from ado.core.actuatorconfiguration.config import GenericActuatorParameters
+from ado.modules.actuators.catalog import ExperimentCatalog
+from ado.modules.actuators.standard import (
     StandardActuator,
     StandardActuatorParameters,
 )
-from orchestrator.schema.experiment import Experiment
+from ado.schema.experiment import Experiment
 
 
 class RoboticLabParameters(StandardActuatorParameters):

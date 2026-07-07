@@ -48,38 +48,36 @@ from ado_actuators.sfttrainer.experiments.common import (
 from ado_actuators.sfttrainer.ray_env import utils as ray_env_utils
 from ray.util.scheduling_strategies import PlacementGroupSchedulingStrategy
 
-import orchestrator.modules.actuators.catalog
-import orchestrator.schema.property_value
-import orchestrator.schema.request
-from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
+import ado.modules.actuators.catalog
+import ado.schema.property_value
+import ado.schema.request
+from ado.core.actuatorconfiguration.config import GenericActuatorParameters
 
-# VV: If you do import orchestrator.actuators.base and then use
-# orchestrator.actuators.base.ActuatorBase
+# VV: If you do import ado.actuators.base and then use
+# ado.actuators.base.ActuatorBase
 # as the base class of your Actuator class ray (for an unknown reason) rejects your Actuator
 # the first time you try to use it. It claims that it does not have any `async` methods (i.e. coroutines)
 # Using `from ... import` fixes this behaviour however we don't know why.
-from orchestrator.modules.actuators.base import ActuatorBase
-from orchestrator.schema.entity import Entity
-from orchestrator.schema.experiment import Experiment, ParameterizedExperiment
-from orchestrator.schema.observed_property import ObservedPropertyValue
-from orchestrator.schema.reference import ExperimentReference
-from orchestrator.schema.request import MeasurementRequest, MeasurementRequestStateEnum
-from orchestrator.schema.result import InvalidMeasurementResult, ValidMeasurementResult
-from orchestrator.utilities.environment import enable_ray_actor_coverage
+from ado.modules.actuators.base import ActuatorBase
+from ado.schema.entity import Entity
+from ado.schema.experiment import Experiment, ParameterizedExperiment
+from ado.schema.observed_property import ObservedPropertyValue
+from ado.schema.reference import ExperimentReference
+from ado.schema.request import MeasurementRequest, MeasurementRequestStateEnum
+from ado.schema.result import InvalidMeasurementResult, ValidMeasurementResult
+from ado.utilities.environment import enable_ray_actor_coverage
 
 if typing.TYPE_CHECKING:
-    from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
+    from ado.modules.actuators.measurement_queue import MeasurementQueue
 
 # VV: Required module variables
 identifier = ACTUATOR_IDENTIFIER
 
-catalog = orchestrator.modules.actuators.catalog.ExperimentCatalog(
-    catalogIdentifier=identifier
-)
+catalog = ado.modules.actuators.catalog.ExperimentCatalog(catalogIdentifier=identifier)
 
 
 def _init_catalog(
-    catalog: orchestrator.modules.actuators.catalog.ExperimentCatalog,
+    catalog: ado.modules.actuators.catalog.ExperimentCatalog,
 ) -> None:
     full_finetune.add_experiments(catalog=catalog)
     prompt_tuning.add_experiments(catalog=catalog)
@@ -133,7 +131,7 @@ def model_dump_all(model: pydantic.BaseModel) -> dict[str, Any]:
 
 
 class ActuatorParameters(
-    orchestrator.core.actuatorconfiguration.config.GenericActuatorParameters
+    ado.core.actuatorconfiguration.config.GenericActuatorParameters
 ):
     model_config = pydantic.ConfigDict(
         extra="forbid", use_enum_values=True, protected_namespaces=()
@@ -1315,7 +1313,7 @@ class SFTTrainer(ActuatorBase):
             )
             recorded_property_names.append(prop.targetProperty.identifier)
             property_value = ObservedPropertyValue(
-                valueType=orchestrator.schema.property_value.ValueTypeEnum.NUMERIC_VALUE_TYPE,
+                valueType=ado.schema.property_value.ValueTypeEnum.NUMERIC_VALUE_TYPE,
                 value=value,
                 property=prop,
             )
@@ -1417,5 +1415,5 @@ class SFTTrainer(ActuatorBase):
     @classmethod
     def catalog(
         cls, actuator_configuration: GenericActuatorParameters | None = None
-    ) -> orchestrator.modules.actuators.catalog.ExperimentCatalog:
+    ) -> ado.modules.actuators.catalog.ExperimentCatalog:
         return catalog

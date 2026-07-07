@@ -9,7 +9,7 @@ import pydantic
 import ray
 from pydantic import ConfigDict
 
-from orchestrator.modules.module import (
+from ado.modules.module import (
     ModuleConf,
     ModuleTypeEnum,
     load_module_class_or_function,

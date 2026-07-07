@@ -16,7 +16,7 @@ from sklearn.feature_selection import mutual_info_classif
 from sklearn.metrics import mutual_info_score, silhouette_score
 from sklearn.tree import DecisionTreeClassifier
 
-from orchestrator.utilities.naming import get_random_name_extension
+from ado.utilities.naming import get_random_name_extension
 
 
 def get_clusters(

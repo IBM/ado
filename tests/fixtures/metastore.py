@@ -17,7 +17,7 @@ import ado.core
 import ado.metastore
 import ado.metastore.project
 import ado.metastore.sqlstore
-from ado.cli.core.cli import app as ado
+from ado.cli.core.cli import app as ado_app
 from ado.core import DiscoverySpaceResource
 from ado.core.resources import CoreResourceKinds
 from ado.metastore.project import ProjectContext
@@ -196,7 +196,7 @@ def create_active_ado_context() -> Callable[
         context_file.write_text(pydantic_model_as_yaml(project_context))
 
         creation_result = runner.invoke(
-            ado,
+            ado_app,
             [
                 "--override-ado-app-dir",
                 str(path),
@@ -209,7 +209,7 @@ def create_active_ado_context() -> Callable[
         assert creation_result.exit_code == 0
 
         activation_result = runner.invoke(
-            ado,
+            ado_app,
             [
                 "--override-ado-app-dir",
                 str(path),

@@ -5,11 +5,11 @@ from collections.abc import Callable
 import pytest
 import yaml
 
-from orchestrator.core.discoveryspace.config import DiscoverySpaceConfiguration
-from orchestrator.core.discoveryspace.space import DiscoverySpace
-from orchestrator.core.samplestore.base import ActiveSampleStore
-from orchestrator.core.samplestore.config import SampleStoreConfiguration
-from orchestrator.core.samplestore.sql import SQLSampleStore
+from ado.core.discoveryspace.config import DiscoverySpaceConfiguration
+from ado.core.discoveryspace.space import DiscoverySpace
+from ado.core.samplestore.base import ActiveSampleStore
+from ado.core.samplestore.config import SampleStoreConfiguration
+from ado.core.samplestore.sql import SQLSampleStore
 
 
 @pytest.fixture
@@ -17,12 +17,12 @@ def pfas_sample_store_configuration_str() -> str:
     return """
     specification:
       module:
-        moduleName: orchestrator.core.samplestore.sql
+        moduleName: ado.core.samplestore.sql
         moduleClass: SQLSampleStore
     copyFrom:
     - module:
         moduleClass: CSVSampleStore
-        moduleName: orchestrator.core.samplestore.csv
+        moduleName: ado.core.samplestore.csv
       storageLocation:
         path: 'tests/test_generations.csv'
       parameters:

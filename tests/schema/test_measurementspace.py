@@ -4,26 +4,26 @@ import re
 
 import pytest
 
-from orchestrator.core.discoveryspace.samplers import sample_random_entity_from_space
-from orchestrator.modules.actuators.errors import (
+from ado.core.discoveryspace.samplers import sample_random_entity_from_space
+from ado.modules.actuators.errors import (
     UnknownActuatorError,
     UnknownExperimentError,
 )
-from orchestrator.modules.actuators.registry import (
+from ado.modules.actuators.registry import (
     ActuatorRegistry,
 )
-from orchestrator.schema.entityspace import EntitySpaceRepresentation
-from orchestrator.schema.experiment import Experiment, ParameterizedExperiment
-from orchestrator.schema.measurementspace import (
+from ado.schema.entityspace import EntitySpaceRepresentation
+from ado.schema.experiment import Experiment, ParameterizedExperiment
+from ado.schema.measurementspace import (
     MeasurementSpace,
     MeasurementSpaceConfiguration,
 )
-from orchestrator.schema.observed_property import ObservedPropertyValue
-from orchestrator.schema.property import ConstitutiveProperty
-from orchestrator.schema.reference import ExperimentReference
-from orchestrator.schema.request import MeasurementRequest
-from orchestrator.schema.result import ValidMeasurementResult
-from orchestrator.schema.virtual_property import (
+from ado.schema.observed_property import ObservedPropertyValue
+from ado.schema.property import ConstitutiveProperty
+from ado.schema.reference import ExperimentReference
+from ado.schema.request import MeasurementRequest
+from ado.schema.result import ValidMeasurementResult
+from ado.schema.virtual_property import (
     PropertyAggregationMethod,
     PropertyAggregationMethodEnum,
     VirtualObservedProperty,

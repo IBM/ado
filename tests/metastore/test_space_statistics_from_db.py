@@ -4,13 +4,13 @@
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
-from orchestrator.core import ADOResource, DiscoverySpaceResource, OperationResource
-from orchestrator.core.operation.config import DiscoveryOperationEnum
+from ado.core import ADOResource, DiscoverySpaceResource, OperationResource
+from ado.core.operation.config import DiscoveryOperationEnum
 from tests.conftest import requires_sqlite_3_38
 
 if TYPE_CHECKING:
-    from orchestrator.core.discoveryspace.stats import DiscoverySpaceStatistics
-    from orchestrator.metastore.sqlstore import SQLStore
+    from ado.core.discoveryspace.stats import DiscoverySpaceStatistics
+    from ado.metastore.sqlstore import SQLStore
 
 
 @requires_sqlite_3_38

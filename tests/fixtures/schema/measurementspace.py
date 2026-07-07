@@ -5,17 +5,17 @@
 import pytest
 import yaml
 
-import orchestrator.schema
-from orchestrator.core.discoveryspace.config import DiscoverySpaceConfiguration
-from orchestrator.core.samplestore.sql import SQLSampleStore
-from orchestrator.modules.actuators.catalog import ExperimentCatalog
-from orchestrator.modules.actuators.registry import ActuatorRegistry
-from orchestrator.schema.experiment import ParameterizedExperiment
-from orchestrator.schema.measurementspace import (
+import ado.schema
+from ado.core.discoveryspace.config import DiscoverySpaceConfiguration
+from ado.core.samplestore.sql import SQLSampleStore
+from ado.modules.actuators.catalog import ExperimentCatalog
+from ado.modules.actuators.registry import ActuatorRegistry
+from ado.schema.experiment import ParameterizedExperiment
+from ado.schema.measurementspace import (
     MeasurementSpace,
     MeasurementSpaceConfiguration,
 )
-from orchestrator.schema.reference import ExperimentReference
+from ado.schema.reference import ExperimentReference
 
 
 @pytest.fixture
@@ -102,7 +102,7 @@ def parameterized_selectors(
 ) -> list[ExperimentReference]:
 
     return [
-        orchestrator.schema.measurementspace.ExperimentReference(
+        ado.schema.measurementspace.ExperimentReference(
             experimentIdentifier=e.identifier,
             actuatorIdentifier=e.actuatorIdentifier,
             parameterization=e.parameterization,

@@ -6,9 +6,9 @@
 import pytest
 from ado_ray_tune.operator import _validate_points_to_evaluate
 
-from orchestrator.schema.domain import PropertyDomain
-from orchestrator.schema.entityspace import EntitySpaceRepresentation
-from orchestrator.schema.property import ConstitutiveProperty
+from ado.schema.domain import PropertyDomain
+from ado.schema.entityspace import EntitySpaceRepresentation
+from ado.schema.property import ConstitutiveProperty
 
 
 def _pigeon10_entity_space() -> EntitySpaceRepresentation:

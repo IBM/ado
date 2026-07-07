@@ -7,28 +7,28 @@ from collections.abc import Callable
 
 import pytest
 
-from orchestrator.core.samplestore.csv import CSVSampleStore
-from orchestrator.modules.actuators.registry import ActuatorRegistry
-from orchestrator.schema.entity import Entity
-from orchestrator.schema.entityspace import EntitySpaceRepresentation
-from orchestrator.schema.experiment import Experiment, ParameterizedExperiment
-from orchestrator.schema.measurementspace import (
+from ado.core.samplestore.csv import CSVSampleStore
+from ado.modules.actuators.registry import ActuatorRegistry
+from ado.schema.entity import Entity
+from ado.schema.entityspace import EntitySpaceRepresentation
+from ado.schema.experiment import Experiment, ParameterizedExperiment
+from ado.schema.measurementspace import (
     MeasurementSpace,
     MeasurementSpaceConfiguration,
 )
-from orchestrator.schema.observed_property import (
+from ado.schema.observed_property import (
     ObservedProperty,
     ObservedPropertyValue,
 )
-from orchestrator.schema.property import (
+from ado.schema.property import (
     ConstitutiveProperty,
     ConstitutivePropertyDescriptor,
 )
-from orchestrator.schema.property_value import (
+from ado.schema.property_value import (
     ConstitutivePropertyValue,
     ValueTypeEnum,
 )
-from orchestrator.schema.result import ValidMeasurementResult
+from ado.schema.result import ValidMeasurementResult
 
 
 @pytest.fixture
@@ -209,7 +209,7 @@ def entity_for_parameterized_experiment(
             "Can't create an entity from a space that only contains required properties given an experiment that has no required properties"
         )
 
-    from orchestrator.core.discoveryspace.samplers import (
+    from ado.core.discoveryspace.samplers import (
         ExplicitEntitySpaceGridSampleGenerator,
         WalkModeEnum,
     )

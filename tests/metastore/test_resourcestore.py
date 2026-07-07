@@ -7,27 +7,27 @@ from collections.abc import Callable
 import pandas as pd
 import pytest
 
-import orchestrator.core.datacontainer.resource
-import orchestrator.core.discoveryspace.config
-import orchestrator.core.discoveryspace.resource
-import orchestrator.core.operation.config
-import orchestrator.core.samplestore.config
-import orchestrator.core.samplestore.resource
-import orchestrator.metastore.base
-import orchestrator.metastore.sqlstore
-import orchestrator.modules.module
-import orchestrator.modules.operators.base
-import orchestrator.modules.operators.collections
-from orchestrator.core.datacontainer.resource import DataContainerResource
-from orchestrator.core.discoveryspace.resource import DiscoverySpaceResource
-from orchestrator.core.operation.config import DiscoveryOperationResourceConfiguration
-from orchestrator.core.operation.resource import OperationResource
-from orchestrator.core.resources import (
+import ado.core.datacontainer.resource
+import ado.core.discoveryspace.config
+import ado.core.discoveryspace.resource
+import ado.core.operation.config
+import ado.core.samplestore.config
+import ado.core.samplestore.resource
+import ado.metastore.base
+import ado.metastore.sqlstore
+import ado.modules.module
+import ado.modules.operators.base
+import ado.modules.operators.collections
+from ado.core.datacontainer.resource import DataContainerResource
+from ado.core.discoveryspace.resource import DiscoverySpaceResource
+from ado.core.operation.config import DiscoveryOperationResourceConfiguration
+from ado.core.operation.resource import OperationResource
+from ado.core.resources import (
     ADOResourceEventEnum,
     CoreResourceKinds,
 )
-from orchestrator.metastore.project import ProjectContext
-from orchestrator.metastore.sqlstore import SQLStore
+from ado.metastore.project import ProjectContext
+from ado.metastore.sqlstore import SQLStore
 from tests.conftest import requires_sqlite_3_38
 
 # Methods to test:
@@ -51,7 +51,7 @@ def test_get_resources_of_kind(
     resources = resource_store.getResourcesOfKind(resource_type.value)
     for resource in resources.values():
         assert resource
-        assert isinstance(resource, orchestrator.core.kindmap[resource_type.value])
+        assert isinstance(resource, ado.core.kindmap[resource_type.value])
 
     # Check we retrieved the resources for all the resource ids
     expected_ids = resource_store.getResourceIdentifiersOfKind(resource_type.value)
@@ -73,10 +73,7 @@ def test_get_resources_and_get_resource_identifiers_of_kind(
 
     objects = sql_store_with_resources_preloaded.getResources(x["IDENTIFIER"])
 
-    r = [
-        isinstance(e, orchestrator.core.kindmap[resource_type.value])
-        for e in objects.values()
-    ]
+    r = [isinstance(e, ado.core.kindmap[resource_type.value]) for e in objects.values()]
     assert False not in r
 
     # We expect there to be some of the following resource types
@@ -92,9 +89,7 @@ def test_get_resources_and_get_resource_identifiers_of_kind(
 def test_get_resources_sorted_by_created_ascending(
     sql_store: SQLStore,
     random_space_resource_from_file: Callable[[str | None], DiscoverySpaceResource],
-    create_resources: Callable[
-        [list[orchestrator.core.resources.ADOResource], SQLStore], None
-    ],
+    create_resources: Callable[[list[ado.core.resources.ADOResource], SQLStore], None],
 ) -> None:
     """Test that getResources returns resources sorted by created timestamp in ascending order (oldest first)."""
     import datetime
@@ -343,20 +338,17 @@ def test_add_operation_and_output(
     random_space_resource_from_db: Callable[[str | None], DiscoverySpaceResource],
     sql_store: SQLStore,
     random_walk_multicloud_operation_configuration: DiscoveryOperationResourceConfiguration,
-    data_container_resource: orchestrator.core.datacontainer.resource.DataContainerResource,
+    data_container_resource: ado.core.datacontainer.resource.DataContainerResource,
 ) -> None:
-
-    import orchestrator.core.resources
-    import orchestrator.modules.operators.base
 
     space_resource = random_space_resource_from_db()
     space_identifier = space_resource.identifier
     random_walk_multicloud_operation_configuration.spaces = [space_identifier]
 
-    op_resource = orchestrator.modules.operators.base.add_operation_and_output_to_metastore(
+    op_resource = ado.modules.operators.base.add_operation_and_output_to_metastore(
         operation_resource_configuration=random_walk_multicloud_operation_configuration,
         metastore=sql_store,
-        output=orchestrator.modules.operators.base.OperationOutput(
+        output=ado.modules.operators.base.OperationOutput(
             resources=[data_container_resource]
         ),
     )
@@ -381,7 +373,7 @@ def test_add_operation_and_output(
     assert res.status[0].event == ADOResourceEventEnum.CREATED
     assert res.status[1].event == ADOResourceEventEnum.ADDED
 
-    data_container = res.config  # type: orchestrator.core.datacontainer.resource.DataContainer
+    data_container = res.config  # type: ado.core.datacontainer.resource.DataContainer
     for k in data_container.tabularData:
         assert (
             data_container.tabularData[k].data
@@ -455,7 +447,7 @@ def test_delete_unknown_resource_raise_exception(resource_store: SQLStore) -> No
 
 
 def test_custom_sample_store_dump(
-    active_contest_test_sample_store_resource: orchestrator.core.samplestore.resource.SampleStoreResource,
+    active_contest_test_sample_store_resource: ado.core.samplestore.resource.SampleStoreResource,
 ) -> None:
     """Tests that the custom dumper removes storage location information from sample store
     model dict"""
@@ -466,7 +458,7 @@ def test_custom_sample_store_dump(
     )
 
     # Return JSON serialization
-    custom = orchestrator.metastore.base.kind_custom_model_dump[
+    custom = ado.metastore.base.kind_custom_model_dump[
         active_contest_test_sample_store_resource.kind.value
     ](active_contest_test_sample_store_resource)
 
@@ -478,13 +470,13 @@ def test_custom_sample_store_dump(
 
 
 def test_custom_sample_store_loading(
-    active_contest_test_sample_store_resource: orchestrator.core.samplestore.resource.SampleStoreResource,
+    active_contest_test_sample_store_resource: ado.core.samplestore.resource.SampleStoreResource,
     ado_test_file_project_context: ProjectContext,
 ) -> None:
     """Tests that the custom loader inserts the given storage location information into a sample store
     model dict that does not have storage location"""
 
-    custom = orchestrator.metastore.base.kind_custom_model_dump[
+    custom = ado.metastore.base.kind_custom_model_dump[
         active_contest_test_sample_store_resource.kind.value
     ](active_contest_test_sample_store_resource)
 
@@ -494,9 +486,9 @@ def test_custom_sample_store_loading(
 
     assert custom["config"]["specification"].get("storageLocation") is None
 
-    model = orchestrator.metastore.base.kind_custom_model_load[
+    model = ado.metastore.base.kind_custom_model_load[
         active_contest_test_sample_store_resource.kind.value
-    ](custom, ado_test_file_project_context.metadataStore)  # type: orchestrator.core.samplestore.resource.SampleStoreResource
+    ](custom, ado_test_file_project_context.metadataStore)  # type: ado.core.samplestore.resource.SampleStoreResource
 
     assert (
         model.config.specification.storageLocation
@@ -667,7 +659,7 @@ def resource_hierarchy(
     sql_store: SQLStore,
     random_space_resource_from_file: Callable[[str | None], DiscoverySpaceResource],
     operation_resource: OperationResource,
-    data_container_resource: orchestrator.core.datacontainer.resource.DataContainerResource,
+    data_container_resource: ado.core.datacontainer.resource.DataContainerResource,
 ) -> dict:
     """Build and persist a minimal linked hierarchy.
 
@@ -679,9 +671,8 @@ def resource_hierarchy(
 
     import yaml
 
-    import orchestrator.core.actuatorconfiguration.config
-    from orchestrator.core import ActuatorConfigurationResource, SampleStoreResource
-    from orchestrator.core.samplestore.config import (
+    from ado.core import ActuatorConfigurationResource, SampleStoreResource
+    from ado.core.samplestore.config import (
         SampleStoreConfiguration,
         SampleStoreModuleConf,
         SampleStoreSpecification,
@@ -693,7 +684,7 @@ def resource_hierarchy(
             specification=SampleStoreSpecification(
                 module=SampleStoreModuleConf(
                     moduleClass="SQLSampleStore",
-                    moduleName="orchestrator.core.samplestore.sql",
+                    moduleName="ado.core.samplestore.sql",
                 )
             )
         )
@@ -719,11 +710,13 @@ def resource_hierarchy(
     # 5. actuatorconfiguration — stored as subject, operation as object,
     #    matching the production path in addResourceWithRelationships(operation,
     #    relatedIdentifiers=[..., actconf_id]).
-    ac_config = orchestrator.core.actuatorconfiguration.config.ActuatorConfiguration.model_validate(
-        yaml.safe_load(
-            pathlib.Path(
-                "tests/resources/replay_actuatorconfiguration.yaml"
-            ).read_text()
+    ac_config = (
+        ado.core.actuatorconfiguration.config.ActuatorConfiguration.model_validate(
+            yaml.safe_load(
+                pathlib.Path(
+                    "tests/resources/replay_actuatorconfiguration.yaml"
+                ).read_text()
+            )
         )
     )
     ac = ActuatorConfigurationResource(config=ac_config)
@@ -1162,20 +1155,20 @@ def test_both_from_discoveryspace_returns_rooted_ancestors_and_descendants_only(
 def two_op_hierarchy(
     sql_store: SQLStore,
     random_space_resource_from_file: Callable[[str | None], DiscoverySpaceResource],
-    data_container_resource: orchestrator.core.datacontainer.resource.DataContainerResource,
+    data_container_resource: ado.core.datacontainer.resource.DataContainerResource,
 ) -> dict:
     """Two operations sharing the same discoveryspace, each with its own datacontainer."""
 
-    from orchestrator.core import (
+    from ado.core import (
         SampleStoreResource,
     )
-    from orchestrator.core.operation.config import (
+    from ado.core.operation.config import (
         DiscoveryOperationConfiguration,
         DiscoveryOperationEnum,
         DiscoveryOperationResourceConfiguration,
     )
-    from orchestrator.core.operation.resource import OperationResource
-    from orchestrator.core.samplestore.config import (
+    from ado.core.operation.resource import OperationResource
+    from ado.core.samplestore.config import (
         SampleStoreConfiguration,
         SampleStoreModuleConf,
         SampleStoreSpecification,
@@ -1186,7 +1179,7 @@ def two_op_hierarchy(
             specification=SampleStoreSpecification(
                 module=SampleStoreModuleConf(
                     moduleClass="SQLSampleStore",
-                    moduleName="orchestrator.core.samplestore.sql",
+                    moduleName="ado.core.samplestore.sql",
                 )
             )
         )
@@ -1225,7 +1218,7 @@ def two_op_hierarchy(
 
     import pandas as pd
 
-    from orchestrator.core.datacontainer.resource import (
+    from ado.core.datacontainer.resource import (
         DataContainer,
         DataContainerResource,
         TabularData,
@@ -1341,7 +1334,7 @@ def test_hydrated_single_start_returns_resources(
     resource_hierarchy: dict,
 ) -> None:
     """Single-start hydrated mode returns ADOResource objects, no outer origin key."""
-    from orchestrator.core.resources import ADOResource
+    from ado.core.resources import ADOResource
 
     store: SQLStore = resource_hierarchy["store"]
     op_id = resource_hierarchy["operation_id"]
@@ -1393,7 +1386,7 @@ def test_hydrated_multi_start_grouping_matches_identifier_mode(
             )
 
     # Spot-check actual resource objects
-    from orchestrator.core.resources import ADOResource
+    from ado.core.resources import ADOResource
 
     assert isinstance(
         result_hydrated[op1_id][CoreResourceKinds.DATACONTAINER][dc1_id], ADOResource
@@ -1570,8 +1563,8 @@ def test_valid_traversal_with_no_related_resources(
     random_space_resource_from_file: Callable[[str | None], DiscoverySpaceResource],
 ) -> None:
     """A valid traversal that simply finds no related resources returns an empty dict."""
-    from orchestrator.core import SampleStoreResource
-    from orchestrator.core.samplestore.config import (
+    from ado.core import SampleStoreResource
+    from ado.core.samplestore.config import (
         SampleStoreConfiguration,
         SampleStoreModuleConf,
         SampleStoreSpecification,
@@ -1583,7 +1576,7 @@ def test_valid_traversal_with_no_related_resources(
             specification=SampleStoreSpecification(
                 module=SampleStoreModuleConf(
                     moduleClass="SQLSampleStore",
-                    moduleName="orchestrator.core.samplestore.sql",
+                    moduleName="ado.core.samplestore.sql",
                 )
             )
         )
@@ -1610,7 +1603,7 @@ def test_include_start_resources_single_identifier(
     resource_hierarchy: dict,
 ) -> None:
     """include_start_resources=True adds the start resource to the result."""
-    from orchestrator.core.resources import ADOResource
+    from ado.core.resources import ADOResource
 
     store: SQLStore = resource_hierarchy["store"]
     op_id = resource_hierarchy["operation_id"]
@@ -1633,7 +1626,7 @@ def test_include_start_resources_multi_identifier(
     two_op_hierarchy: dict,
 ) -> None:
     """include_start_resources=True adds each start resource in the multi-identifier result."""
-    from orchestrator.core.resources import ADOResource
+    from ado.core.resources import ADOResource
 
     store: SQLStore = two_op_hierarchy["store"]
     op1_id = two_op_hierarchy["op1_id"]
@@ -1661,7 +1654,7 @@ def test_include_start_resources_no_related_resources(
     resource_hierarchy: dict,
 ) -> None:
     """include_start_resources=True still returns the start resource when traversal finds nothing."""
-    from orchestrator.core.resources import ADOResource
+    from ado.core.resources import ADOResource
 
     store: SQLStore = resource_hierarchy["store"]
     ss_id = resource_hierarchy["samplestore_id"]

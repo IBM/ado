@@ -8,17 +8,17 @@ from typing import TYPE_CHECKING
 import pandas as pd
 import pytest
 
-from orchestrator.core import ADOResource, CoreResourceKinds
-from orchestrator.core.samplestore.sql import SQLSampleStore
-from orchestrator.metastore.project import ProjectContext
-from orchestrator.schema.entity import Entity
-from orchestrator.schema.experiment import Experiment
-from orchestrator.schema.request import (
+from ado.core import ADOResource, CoreResourceKinds
+from ado.core.samplestore.sql import SQLSampleStore
+from ado.metastore.project import ProjectContext
+from ado.schema.entity import Entity
+from ado.schema.experiment import Experiment
+from ado.schema.request import (
     MeasurementRequest,
     MeasurementRequestStateEnum,
     ReplayedMeasurement,
 )
-from orchestrator.schema.result import (
+from ado.schema.result import (
     InvalidMeasurementResult,
     MeasurementResult,
     MeasurementResultStateEnum,
@@ -27,7 +27,7 @@ from orchestrator.schema.result import (
 from tests.conftest import requires_sqlite_3_38
 
 if TYPE_CHECKING:
-    from orchestrator.core.operation.config import (
+    from ado.core.operation.config import (
         DiscoveryOperationResourceConfiguration,
     )
 
@@ -190,10 +190,10 @@ def test_operation_entity_statistics_mixed_valid_invalid(
     ml_multi_cloud_operation_configuration: "DiscoveryOperationResourceConfiguration",
 ) -> None:
     """Test operation_entity_statistics with mixed valid and invalid results."""
-    from orchestrator.core import OperationResource
-    from orchestrator.core.operation.config import DiscoveryOperationEnum
-    from orchestrator.metastore.sqlstore import SQLResourceStore
-    from orchestrator.schema.reference import ExperimentReference
+    from ado.core import OperationResource
+    from ado.core.operation.config import DiscoveryOperationEnum
+    from ado.metastore.sqlstore import SQLResourceStore
+    from ado.schema.reference import ExperimentReference
 
     number_entities = 3
     measurements_per_result = 2
@@ -819,9 +819,9 @@ def test_entities_in_operation_empty_operation(
     ml_multi_cloud_operation_configuration: "DiscoveryOperationResourceConfiguration",
 ) -> None:
     """Test entities_in_operation with operation that has no entities."""
-    from orchestrator.core import OperationResource
-    from orchestrator.core.operation.config import DiscoveryOperationEnum
-    from orchestrator.metastore.sqlstore import SQLResourceStore
+    from ado.core import OperationResource
+    from ado.core.operation.config import DiscoveryOperationEnum
+    from ado.metastore.sqlstore import SQLResourceStore
 
     operation_id = random_identifier()
 
@@ -958,7 +958,7 @@ def test_operation_measurement_statistics_all_valid(
     ],
 ) -> None:
     """Test operation_measurement_statistics with all valid measurement results."""
-    from orchestrator.core.operation.stats import OperationMeasurementStatistics
+    from ado.core.operation.stats import OperationMeasurementStatistics
 
     number_entities = 3
     number_requests = 4
@@ -1011,11 +1011,11 @@ def test_operation_measurement_statistics_mixed_valid_invalid(
     ml_multi_cloud_operation_configuration: "DiscoveryOperationResourceConfiguration",
 ) -> None:
     """Test operation_measurement_statistics with mixed valid/invalid results and a failed request."""
-    from orchestrator.core import OperationResource
-    from orchestrator.core.operation.config import DiscoveryOperationEnum
-    from orchestrator.core.operation.stats import OperationMeasurementStatistics
-    from orchestrator.metastore.sqlstore import SQLResourceStore
-    from orchestrator.schema.reference import ExperimentReference
+    from ado.core import OperationResource
+    from ado.core.operation.config import DiscoveryOperationEnum
+    from ado.core.operation.stats import OperationMeasurementStatistics
+    from ado.metastore.sqlstore import SQLResourceStore
+    from ado.schema.reference import ExperimentReference
 
     number_entities = 3
     measurements_per_result = 2
@@ -1120,7 +1120,7 @@ def test_operation_measurement_statistics_measured_entities_distinct(
     ],
 ) -> None:
     """Test that measured_entities counts distinct entities across all results."""
-    from orchestrator.core.operation.stats import OperationMeasurementStatistics
+    from ado.core.operation.stats import OperationMeasurementStatistics
 
     # Use more requests than entities so the same entities appear in multiple requests
     number_entities = 3
@@ -1165,7 +1165,7 @@ def test_operation_measurement_statistics_multiple_ids(
     ],
 ) -> None:
     """Test operation_measurement_statistics with two operation IDs returns two stats objects."""
-    from orchestrator.core.operation.stats import OperationMeasurementStatistics
+    from ado.core.operation.stats import OperationMeasurementStatistics
 
     operation_id_a = random_identifier()
     operation_id_b = random_identifier()
@@ -1220,7 +1220,7 @@ def test_operation_measurement_statistics_no_ids(
     ],
 ) -> None:
     """Test operation_measurement_statistics with operation_ids=None returns all operations."""
-    from orchestrator.core.operation.stats import OperationMeasurementStatistics
+    from ado.core.operation.stats import OperationMeasurementStatistics
 
     operation_id_a = random_identifier()
     operation_id_b = random_identifier()

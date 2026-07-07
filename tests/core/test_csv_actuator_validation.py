@@ -10,17 +10,17 @@ from collections.abc import Generator
 import pandas as pd
 import pytest
 
-from orchestrator.core.samplestore.csv import CSVSampleStore, CSVSampleStoreDescription
-from orchestrator.modules.actuators.catalog import ExperimentCatalog
-from orchestrator.modules.actuators.errors import (
+from ado.core.samplestore.csv import CSVSampleStore, CSVSampleStoreDescription
+from ado.modules.actuators.catalog import ExperimentCatalog
+from ado.modules.actuators.errors import (
     UnknownActuatorError,
     UnknownExperimentError,
 )
-from orchestrator.modules.actuators.registry import (
+from ado.modules.actuators.registry import (
     ActuatorRegistry,
 )
-from orchestrator.schema.experiment import Experiment
-from orchestrator.utilities.location import FilePathLocation
+from ado.schema.experiment import Experiment
+from ado.utilities.location import FilePathLocation
 
 
 @pytest.fixture
@@ -724,8 +724,8 @@ class TestCSVActuatorValidation:
         self, setup_test_actuator: ActuatorRegistry
     ) -> None:
         """Test that SQLSampleStore.from_csv() properly passes through actuatorIdentifier and propertyFormat"""
-        from orchestrator.core.samplestore.sql import SQLSampleStore
-        from orchestrator.utilities.location import SQLiteStoreConfiguration
+        from ado.core.samplestore.sql import SQLSampleStore
+        from ado.utilities.location import SQLiteStoreConfiguration
 
         # Create a CSV file
         with tempfile.NamedTemporaryFile(

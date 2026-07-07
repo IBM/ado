@@ -11,27 +11,27 @@ from typing import Any
 import cloudpickle
 import pytest
 
-from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
-from orchestrator.modules.actuators.catalog import ExperimentCatalog
-from orchestrator.modules.actuators.errors import (
+from ado.core.actuatorconfiguration.config import GenericActuatorParameters
+from ado.modules.actuators.catalog import ExperimentCatalog
+from ado.modules.actuators.errors import (
     DeprecatedExperimentError,
     UnknownExperimentError,
 )
-from orchestrator.modules.actuators.measurement_queue import MeasurementQueue, NullQueue
-from orchestrator.modules.actuators.standard import (
+from ado.modules.actuators.measurement_queue import MeasurementQueue, NullQueue
+from ado.modules.actuators.standard import (
     StandardActuator,
 )
-from orchestrator.schema.domain import PropertyDomain, VariableTypeEnum
-from orchestrator.schema.experiment import Experiment
-from orchestrator.schema.point import SpacePoint
-from orchestrator.schema.property import (
+from ado.schema.domain import PropertyDomain, VariableTypeEnum
+from ado.schema.experiment import Experiment
+from ado.schema.point import SpacePoint
+from ado.schema.property import (
     AbstractPropertyDescriptor,
     ConstitutiveProperty,
 )
-from orchestrator.schema.reference import ExperimentReference
-from orchestrator.schema.request import MeasurementRequest, MeasurementRequestStateEnum
-from orchestrator.schema.result import ValidMeasurementResult
-from orchestrator.utilities.support import (
+from ado.schema.reference import ExperimentReference
+from ado.schema.request import MeasurementRequest, MeasurementRequestStateEnum
+from ado.schema.result import ValidMeasurementResult
+from ado.utilities.support import (
     compute_measurement_status,
     create_measurement_result,
     observed_property_values_from_dict,

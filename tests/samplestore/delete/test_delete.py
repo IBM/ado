@@ -5,8 +5,8 @@ from collections.abc import Callable
 
 import pytest
 
-from orchestrator.core import ADOResource, CoreResourceKinds
-from orchestrator.metastore.sqlstore import SQLStore
+from ado.core import ADOResource, CoreResourceKinds
+from ado.metastore.sqlstore import SQLStore
 
 
 def test_resource_deletion(

@@ -6,8 +6,8 @@ import typing
 import pydantic
 import pytest
 
-from orchestrator.schema.property import ConstitutiveProperty
-from orchestrator.schema.property_value import (
+from ado.schema.property import ConstitutiveProperty
+from ado.schema.property_value import (
     ConstitutivePropertyValue,
     PropertyValue,
     ValueTypeEnum,

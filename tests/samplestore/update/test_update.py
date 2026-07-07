@@ -2,9 +2,9 @@
 # SPDX-License-Identifier: MIT
 from collections.abc import Callable
 
-from orchestrator.core import OperationResource
-from orchestrator.core.resources import ADOResource, CoreResourceKinds
-from orchestrator.metastore.sqlstore import SQLStore
+from ado.core import OperationResource
+from ado.core.resources import ADOResource, CoreResourceKinds
+from ado.metastore.sqlstore import SQLStore
 
 
 def test_update_operation(

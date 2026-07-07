@@ -6,12 +6,12 @@ from collections.abc import Callable
 
 from typer.testing import CliRunner
 
-from orchestrator.cli.core.cli import app as ado
-from orchestrator.core.samplestore.sql import SQLSampleStore
-from orchestrator.metastore.project import ProjectContext
-from orchestrator.metastore.sqlstore import SQLStore
-from orchestrator.schema.experiment import Experiment
-from orchestrator.schema.request import (
+from ado.cli.core.cli import app as ado
+from ado.core.samplestore.sql import SQLSampleStore
+from ado.metastore.project import ProjectContext
+from ado.metastore.sqlstore import SQLStore
+from ado.schema.experiment import Experiment
+from ado.schema.request import (
     MeasurementRequest,
     MeasurementRequestStateEnum,
     ReplayedMeasurement,

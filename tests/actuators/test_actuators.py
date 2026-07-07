@@ -7,20 +7,20 @@ from typing import Any
 import pytest
 import yaml
 
-import orchestrator.metastore.project
-import orchestrator.modules.actuators.base
-import orchestrator.modules.actuators.catalog
-import orchestrator.modules.actuators.custom_experiments
-import orchestrator.modules.actuators.replay
-import orchestrator.modules.module
-import orchestrator.schema.entity
-import orchestrator.schema.experiment
-import orchestrator.schema.property_value
-import orchestrator.schema.reference
-from orchestrator.core.actuatorconfiguration.config import (
+import ado.metastore.project
+import ado.modules.actuators.base
+import ado.modules.actuators.catalog
+import ado.modules.actuators.custom_experiments
+import ado.modules.actuators.replay
+import ado.modules.module
+import ado.schema.entity
+import ado.schema.experiment
+import ado.schema.property_value
+import ado.schema.reference
+from ado.core.actuatorconfiguration.config import (
     ActuatorConfiguration,
 )
-from orchestrator.modules.actuators.catalog import ExperimentCatalog
+from ado.modules.actuators.catalog import ExperimentCatalog
 
 
 @pytest.fixture
@@ -55,8 +55,8 @@ def actuatorCatalogExtensionConfigurationYAML() -> dict[str, Any]:
 @pytest.fixture
 def actuatorCatalogExtensionConfiguration(
     actuatorCatalogExtensionConfigurationYAML: dict[str, Any],
-) -> orchestrator.modules.actuators.catalog.ActuatorCatalogExtensionConf:
-    return orchestrator.modules.actuators.catalog.ActuatorCatalogExtensionConf(
+) -> ado.modules.actuators.catalog.ActuatorCatalogExtensionConf:
+    return ado.modules.actuators.catalog.ActuatorCatalogExtensionConf(
         **actuatorCatalogExtensionConfigurationYAML
     )
 
@@ -68,14 +68,11 @@ def test_custom_experiments(
 
     import ray
 
-    import orchestrator.modules.actuators.base
-    import orchestrator.modules.actuators.registry
-
     ray.init(ignore_reinit_error=True)
 
     # noinspection PyUnresolvedReferences
     custom_experiments = ray.remote(
-        orchestrator.modules.actuators.custom_experiments.CustomExperiments
+        ado.modules.actuators.custom_experiments.CustomExperiments
     ).remote(queue=None, params=objectiveFunctionConfiguration.parameters)
 
     # This is to test that the ObjectiveFunction instance has got the extended catalog
@@ -113,14 +110,14 @@ def test_custom_experiments(
         f"Expected experiment identifiers {expected_identifiers} but got {identifiers}"
     )
     loaded = custom_experiments.loadedExperiment.remote(
-        orchestrator.schema.reference.ExperimentReference(
+        ado.schema.reference.ExperimentReference(
             actuatorIdentifier="custom_experiments", experimentIdentifier="acid_test"
         )
     )
 
     assert ray.get(loaded), "Experiment found but not loaded by custom_experiments"
 
-    c = orchestrator.modules.actuators.registry.ActuatorRegistry().catalogForActuatorIdentifier(
+    c = ado.modules.actuators.registry.ActuatorRegistry().catalogForActuatorIdentifier(
         "custom_experiments"
     )
 
@@ -136,19 +133,17 @@ def test_custom_experiments(
 def test_execute_nevergrad_opt_3d_test_func(
     experiment_catalogs: list[ExperimentCatalog],
 ) -> None:
-    import orchestrator.modules.actuators.registry
-    import orchestrator.schema.request
-    from orchestrator.schema.point import SpacePoint
-    from orchestrator.utilities.run_experiment import local_execution_closure
+    from ado.schema.point import SpacePoint
+    from ado.utilities.run_experiment import local_execution_closure
 
     execute = local_execution_closure(
-        registry=orchestrator.modules.actuators.registry.ActuatorRegistry()
+        registry=ado.modules.actuators.registry.ActuatorRegistry()
     )
 
     point = SpacePoint(
         entity={"x0": 1, "x1": 2, "x2": -1},
         experiments=[
-            orchestrator.schema.reference.ExperimentReference(
+            ado.schema.reference.ExperimentReference(
                 actuatorIdentifier="custom_experiments",
                 experimentIdentifier="nevergrad_opt_3d_test_func",
                 experimentVersion="1.0.0",
@@ -156,18 +151,13 @@ def test_execute_nevergrad_opt_3d_test_func(
         ],
     )
     entity = point.to_entity()
-    request: orchestrator.schema.request.MeasurementRequest = execute(
+    request: ado.schema.request.MeasurementRequest = execute(
         point.experiments[0], entity
     )
 
     assert request is not None
-    assert (
-        request.status
-        == orchestrator.schema.request.MeasurementRequestStateEnum.SUCCESS
-    )
+    assert request.status == ado.schema.request.MeasurementRequestStateEnum.SUCCESS
     assert request.measurements is not None
     assert len(request.measurements) == 1
     assert request.measurements[0].entityIdentifier == entity.identifier
-    assert isinstance(
-        request.measurements[0], orchestrator.schema.result.ValidMeasurementResult
-    )
+    assert isinstance(request.measurements[0], ado.schema.result.ValidMeasurementResult)

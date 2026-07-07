@@ -4,11 +4,11 @@
 
 import rich.box
 
-from orchestrator.cli.utils.resources.formatters import (
+from ado.cli.utils.resources.formatters import (
     format_default_ado_get_single_resource,
 )
-from orchestrator.core import ADOResource
-from orchestrator.utilities.rich import dataframe_to_rich_table, render_to_string
+from ado.core import ADOResource
+from ado.utilities.rich import dataframe_to_rich_table, render_to_string
 
 
 def render_ado_resources_to_cli_output(

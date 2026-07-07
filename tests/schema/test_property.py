@@ -4,8 +4,8 @@
 import pydantic
 import pytest
 
-from orchestrator.schema.observed_property import ObservedProperty
-from orchestrator.schema.property import (
+from ado.schema.observed_property import ObservedProperty
+from ado.schema.property import (
     AbstractProperty,
     AbstractPropertyDescriptor,
     ConcreteProperty,
@@ -15,7 +15,7 @@ from orchestrator.schema.property import (
     Property,
     PropertyDescriptor,
 )
-from orchestrator.schema.reference import ExperimentReference
+from ado.schema.reference import ExperimentReference
 
 
 @pytest.fixture
@@ -155,7 +155,7 @@ def test_descriptor_rich_print(
         | ConstitutivePropertyDescriptor
     ),
 ) -> None:
-    from orchestrator.utilities.rich import render_to_string
+    from ado.utilities.rich import render_to_string
 
     """Test rich print of descriptors is as expected"""
     assert render_to_string(descriptor).strip() == f"{descriptor.identifier}", (

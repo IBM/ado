@@ -8,10 +8,10 @@ import warnings
 
 import pytest
 
-from orchestrator.modules.actuators.catalog import (
+from ado.modules.actuators.catalog import (
     ExperimentCatalog,
 )
-from orchestrator.modules.actuators.errors import (
+from ado.modules.actuators.errors import (
     AmbiguousExperimentIdentifierError,
     ExperimentVersionMismatchError,
     MissingActuatorConfigurationForCatalogError,
@@ -19,19 +19,19 @@ from orchestrator.modules.actuators.errors import (
     UnknownActuatorError,
     UnknownExperimentError,
 )
-from orchestrator.modules.actuators.registry import (
+from ado.modules.actuators.registry import (
     ActuatorRegistry,
 )
-from orchestrator.schema.domain import PropertyDomain, VariableTypeEnum
-from orchestrator.schema.experiment import Experiment, ParameterizedExperiment
-from orchestrator.schema.property import (
+from ado.schema.domain import PropertyDomain, VariableTypeEnum
+from ado.schema.experiment import Experiment, ParameterizedExperiment
+from ado.schema.property import (
     AbstractPropertyDescriptor,
     ConstitutiveProperty,
     ConstitutivePropertyDescriptor,
 )
-from orchestrator.schema.property_value import ConstitutivePropertyValue
-from orchestrator.schema.reference import ExperimentReference
-from orchestrator.utilities.pydantic import StrictSemVerStr, semver_major
+from ado.schema.property_value import ConstitutivePropertyValue
+from ado.schema.reference import ExperimentReference
+from ado.utilities.pydantic import StrictSemVerStr, semver_major
 
 # ─── StrictSemVerStr validation ──────────────────────────────────────────────
 
@@ -962,7 +962,7 @@ def test_measurement_space_from_selection_fq_mismatch(
     global_registry: ActuatorRegistry,
 ) -> None:
     """measurementSpaceFromSelection enforces exact version when experimentVersion is set."""
-    from orchestrator.schema.measurementspace import MeasurementSpace
+    from ado.schema.measurementspace import MeasurementSpace
 
     _add_versioned_experiment_to_mock_catalog(global_registry)
     ref = ExperimentReference(
@@ -978,7 +978,7 @@ def test_measurement_space_from_selection_fq_exact_match(
     global_registry: ActuatorRegistry,
 ) -> None:
     """measurementSpaceFromSelection stores catalog version when YAML pin matches."""
-    from orchestrator.schema.measurementspace import MeasurementSpace
+    from ado.schema.measurementspace import MeasurementSpace
 
     _add_versioned_experiment_to_mock_catalog(global_registry)
     ref = ExperimentReference(

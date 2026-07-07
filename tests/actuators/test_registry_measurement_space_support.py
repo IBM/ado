@@ -3,24 +3,24 @@
 
 """Tests for measurement-space experiment support checks in ActuatorRegistry."""
 
-from orchestrator.modules.actuators.registry import (
+from ado.modules.actuators.registry import (
     ActuatorRegistry,
     format_measurement_space_interface_issue,
 )
-from orchestrator.schema.experiment import (
+from ado.schema.experiment import (
     Experiment,
     check_experiment_interface_compatible,
 )
-from orchestrator.schema.measurementspace import (
+from ado.schema.measurementspace import (
     MeasurementSpace,
     MeasurementSpaceConfiguration,
 )
-from orchestrator.schema.property import (
+from ado.schema.property import (
     AbstractPropertyDescriptor,
     ConstitutiveProperty,
     ConstitutivePropertyDescriptor,
 )
-from orchestrator.schema.property_value import ConstitutivePropertyValue
+from ado.schema.property_value import ConstitutivePropertyValue
 
 
 def test_format_measurement_space_interface_issue(

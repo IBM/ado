@@ -8,11 +8,11 @@ import pytest
 from testcontainers.mysql import MySqlContainer
 from typer.testing import CliRunner
 
-from orchestrator.cli.core.cli import app as ado
-from orchestrator.core.discoveryspace.space import DiscoverySpace
-from orchestrator.core.operation.config import DiscoveryOperationResourceConfiguration
-from orchestrator.metastore.project import ProjectContext
-from orchestrator.utilities.output import pydantic_model_as_yaml
+from ado.cli.core.cli import app as ado
+from ado.core.discoveryspace.space import DiscoverySpace
+from ado.core.operation.config import DiscoveryOperationResourceConfiguration
+from ado.metastore.project import ProjectContext
+from ado.utilities.output import pydantic_model_as_yaml
 from tests.conftest import requires_sqlite_3_38
 
 

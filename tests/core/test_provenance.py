@@ -8,13 +8,13 @@ import pydantic
 import pytest
 import sqlalchemy
 
-from orchestrator.core import SampleStoreResource
-from orchestrator.core.discoveryspace.resource import DiscoverySpaceProvenanceInfo
-from orchestrator.core.metadata import PackageProvenance, ProvenanceInfo
-from orchestrator.core.resources import CoreResourceKinds
-from orchestrator.core.samplestore.config import SampleStoreConfiguration
-from orchestrator.metastore.sqlstore import SQLStore
-from orchestrator.utilities.pydantic import do_not_populate_ado_provenance_context
+from ado.core import SampleStoreResource
+from ado.core.discoveryspace.resource import DiscoverySpaceProvenanceInfo
+from ado.core.metadata import PackageProvenance, ProvenanceInfo
+from ado.core.resources import CoreResourceKinds
+from ado.core.samplestore.config import SampleStoreConfiguration
+from ado.metastore.sqlstore import SQLStore
+from ado.utilities.pydantic import do_not_populate_ado_provenance_context
 
 
 def test_provenance_info_roundtrip_with_ado() -> None:
@@ -221,7 +221,7 @@ def test_update_resource_does_not_inject_ado(
 def test_legacy_discovery_space_resource_loads_without_ado() -> None:
     """Legacy discovery space fixtures validate with ado None under load context."""
     file = pathlib.Path("tests/resources/space/discoveryspace_resource.json")
-    from orchestrator.core import DiscoverySpaceResource
+    from ado.core import DiscoverySpaceResource
 
     space = DiscoverySpaceResource.model_validate(
         json.loads(file.read_text()),

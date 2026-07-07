@@ -6,18 +6,18 @@
 import pydantic
 import pytest
 
-from orchestrator.core.operation.config import (
+from ado.core.operation.config import (
     DiscoveryOperationConfiguration,
     DiscoveryOperationEnum,
     DiscoveryOperationResourceConfiguration,
     OperatorMetadata,
     OperatorReference,
 )
-from orchestrator.modules.operators.collections import (
+from ado.modules.operators.collections import (
     explore,
     resolve_operator_reference,
 )
-from orchestrator.modules.operators.errors import OperatorVersionMismatchError
+from ado.modules.operators.errors import OperatorVersionMismatchError
 
 
 class _ExampleConfig(pydantic.BaseModel):

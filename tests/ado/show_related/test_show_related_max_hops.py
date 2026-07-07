@@ -8,15 +8,15 @@ from collections.abc import Callable
 
 from typer.testing import CliRunner
 
-from orchestrator.cli.core.cli import app as ado
-from orchestrator.core import (
+from ado.cli.core.cli import app as ado
+from ado.core import (
     DiscoverySpaceResource,
     OperationResource,
     SampleStoreResource,
 )
-from orchestrator.metastore.project import ProjectContext
-from orchestrator.metastore.sql.statements import _MAX_HIERARCHY_HOPS
-from orchestrator.metastore.sqlstore import SQLStore
+from ado.metastore.project import ProjectContext
+from ado.metastore.sql.statements import _MAX_HIERARCHY_HOPS
+from ado.metastore.sqlstore import SQLStore
 from tests.conftest import requires_sqlite_3_38
 
 

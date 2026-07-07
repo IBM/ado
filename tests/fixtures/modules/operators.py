@@ -7,12 +7,12 @@ import pytest
 import yaml
 from ado_ray_tune.operator import RayTune
 
-import orchestrator.core
-from orchestrator.core.operation.config import (
+import ado.core
+from ado.core.operation.config import (
     DiscoveryOperationResourceConfiguration,
     OperatorModuleConf,
 )
-from orchestrator.modules.operators.randomwalk import RandomWalk
+from ado.modules.operators.randomwalk import RandomWalk
 
 
 @pytest.fixture
@@ -39,11 +39,11 @@ def expected_explore_operators() -> list[str]:
 def operator_module_conf(request: pytest.FixtureRequest) -> OperatorModuleConf:
 
     if request.param == "RandomWalk":
-        return orchestrator.core.operation.config.OperatorModuleConf(
-            moduleName="orchestrator.modules.operators.randomwalk",
+        return ado.core.operation.config.OperatorModuleConf(
+            moduleName="ado.modules.operators.randomwalk",
             moduleClass=request.param,
         )
-    return orchestrator.core.operation.config.OperatorModuleConf(
+    return ado.core.operation.config.OperatorModuleConf(
         moduleName="ado_ray_tune.operator",
         moduleClass=request.param,
     )

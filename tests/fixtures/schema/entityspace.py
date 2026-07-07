@@ -4,7 +4,7 @@ from typing import Any
 
 import pytest
 
-from orchestrator.schema.property import ConstitutiveProperty
+from ado.schema.property import ConstitutiveProperty
 
 
 @pytest.fixture(params=["discrete", "continuous"])

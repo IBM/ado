@@ -8,12 +8,12 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-from orchestrator.cli.core.cli import app as ado
-from orchestrator.core.discoveryspace.config import DiscoverySpaceConfiguration
-from orchestrator.core.samplestore.sql import SQLSampleStore
-from orchestrator.metastore.project import ProjectContext
-from orchestrator.modules.actuators.registry import ActuatorRegistry
-from orchestrator.utilities.output import pydantic_model_as_yaml
+from ado.cli.core.cli import app as ado
+from ado.core.discoveryspace.config import DiscoverySpaceConfiguration
+from ado.core.samplestore.sql import SQLSampleStore
+from ado.metastore.project import ProjectContext
+from ado.modules.actuators.registry import ActuatorRegistry
+from ado.utilities.output import pydantic_model_as_yaml
 from tests.conftest import requires_sqlite_3_38
 
 

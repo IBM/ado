@@ -5,24 +5,24 @@ from typing import Any
 
 import pytest
 
-from orchestrator.core.discoveryspace.group_samplers import (
+from ado.core.discoveryspace.group_samplers import (
     ExplicitEntitySpaceGroupedGridSampleGenerator,
     RandomGroupSampleSelector,
     SequentialGroupSampleSelector,
     _build_groups_dict,
     _get_space_matching_points,
 )
-from orchestrator.core.discoveryspace.samplers import (
+from ado.core.discoveryspace.samplers import (
     GroupSampler,
     WalkModeEnum,
 )
-from orchestrator.core.discoveryspace.space import DiscoverySpace
-from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
-from orchestrator.modules.operators.discovery_space_manager import (
+from ado.core.discoveryspace.space import DiscoverySpace
+from ado.modules.actuators.measurement_queue import MeasurementQueue
+from ado.modules.operators.discovery_space_manager import (
     DiscoverySpaceManager,
 )
-from orchestrator.schema.entityspace import EntitySpaceRepresentation
-from orchestrator.schema.property import ConstitutiveProperty
+from ado.schema.entityspace import EntitySpaceRepresentation
+from ado.schema.property import ConstitutiveProperty
 
 
 @pytest.fixture(params=[WalkModeEnum.RANDOM, WalkModeEnum.SEQUENTIAL])

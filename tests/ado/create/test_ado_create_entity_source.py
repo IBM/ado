@@ -7,10 +7,10 @@ from collections.abc import Callable
 from testcontainers.mysql import MySqlContainer
 from typer.testing import CliRunner
 
-from orchestrator.cli.core.cli import app as ado
-from orchestrator.core.samplestore.config import SampleStoreConfiguration
-from orchestrator.metastore.project import ProjectContext
-from orchestrator.utilities.output import pydantic_model_as_yaml
+from ado.cli.core.cli import app as ado
+from ado.core.samplestore.config import SampleStoreConfiguration
+from ado.metastore.project import ProjectContext
+from ado.utilities.output import pydantic_model_as_yaml
 
 
 def test_create_sample_store_dry_run_success(

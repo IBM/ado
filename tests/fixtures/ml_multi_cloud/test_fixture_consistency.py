@@ -2,10 +2,10 @@
 # SPDX-License-Identifier: MIT
 from collections.abc import Callable
 
-from orchestrator.core import ActuatorConfigurationResource
-from orchestrator.core.discoveryspace.space import DiscoverySpace
-from orchestrator.core.resources import ADOResource, CoreResourceKinds
-from orchestrator.core.samplestore.sql import SQLSampleStore
+from ado.core import ActuatorConfigurationResource
+from ado.core.discoveryspace.space import DiscoverySpace
+from ado.core.resources import ADOResource, CoreResourceKinds
+from ado.core.samplestore.sql import SQLSampleStore
 
 
 def test_create_ml_multicloud_sample_store(

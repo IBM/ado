@@ -4,13 +4,13 @@
 import math
 from collections.abc import Callable
 
-from orchestrator.core.discoveryspace.space import DiscoverySpace
-from orchestrator.core.discoveryspace.stats import (
+from ado.core.discoveryspace.space import DiscoverySpace
+from ado.core.discoveryspace.stats import (
     DiscoverySpaceStatistics,
     space_statistics_for_spaces,
 )
-from orchestrator.core.samplestore.sql import SQLSampleStore
-from orchestrator.schema.request import MeasurementRequest
+from ado.core.samplestore.sql import SQLSampleStore
+from ado.schema.request import MeasurementRequest
 from tests.conftest import requires_sqlite_3_38
 
 # ---------------------------------------------------------------------------

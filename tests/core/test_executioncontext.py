@@ -5,7 +5,7 @@ import pydantic
 import pytest
 import yaml
 
-from orchestrator.core.remotecontext.config import (
+from ado.core.remotecontext.config import (
     ClusterExecutionType,
     JobExecutionType,
     PackageConfiguration,
@@ -13,7 +13,7 @@ from orchestrator.core.remotecontext.config import (
     RemoteExecutionContext,
     RuntimeEnvironmentConfiguration,
 )
-from orchestrator.utilities.output import pydantic_model_as_yaml
+from ado.utilities.output import pydantic_model_as_yaml
 
 # ---------------------------------------------------------------------------
 # PortForwardConfiguration

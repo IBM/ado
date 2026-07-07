@@ -7,20 +7,20 @@ import pydantic
 import pytest
 import yaml
 
-from orchestrator.core.operation.config import (
+from ado.core.operation.config import (
     DiscoveryOperationConfiguration,
     DiscoveryOperationEnum,
     DiscoveryOperationResourceConfiguration,
     ScriptOperatorConf,
 )
-from orchestrator.core.operation.resource import (
+from ado.core.operation.resource import (
     OperationExitStateEnum,
     OperationResource,
     OperationResourceEventEnum,
     OperationResourceStatus,
 )
-from orchestrator.core.resources import ADOResourceEventEnum, CoreResourceKinds
-from orchestrator.modules.module import load_module_class_or_function
+from ado.core.resources import ADOResourceEventEnum, CoreResourceKinds
+from ado.modules.module import load_module_class_or_function
 
 
 def test_discovery_operation_enum_legacy_search_redirects_to_explore() -> None:
@@ -147,7 +147,7 @@ def test_operation_config_file_valid(valid_operation_config_file: str) -> None:
     except AttributeError:
         pass
     else:
-        moduleClass = load_module_class_or_function(module)  # type: "orchestrator.modules.operators.base.DiscoveryOperationBase"
+        moduleClass = load_module_class_or_function(module)  # type: "ado.modules.operators.base.DiscoveryOperationBase"
         meta = moduleClass.operator_metadata()
         if meta.configuration_model is not None:
             meta.configuration_model.model_validate(op_cfg.parameters)

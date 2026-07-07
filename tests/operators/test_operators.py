@@ -9,28 +9,28 @@ import pydantic
 import pytest
 from ado_ray_tune.operator import RayTune
 
-import orchestrator.core.operation.config
-import orchestrator.core.operation.operation
-import orchestrator.modules.module
-import orchestrator.modules.operators.base
-import orchestrator.modules.operators.collections
-from orchestrator.core.discoveryspace.samplers import (
+import ado.core.operation.config
+import ado.core.operation.operation
+import ado.modules.module
+import ado.modules.operators.base
+import ado.modules.operators.collections
+from ado.core.discoveryspace.samplers import (
     ExplicitEntitySpaceGridSampleGenerator,
     RandomSampleSelector,
     SequentialSampleSelector,
     WalkModeEnum,
 )
-from orchestrator.core.discoveryspace.space import DiscoverySpace
-from orchestrator.core.operation.resource import (
+from ado.core.discoveryspace.space import DiscoverySpace
+from ado.core.operation.resource import (
     DiscoveryOperationResourceConfiguration,
     OperationExitStateEnum,
     OperationResourceEventEnum,
 )
-from orchestrator.core.resources import (
+from ado.core.resources import (
     ADOResourceEventEnum,
     CoreResourceKinds,
 )
-from orchestrator.modules.operators.randomwalk import (
+from ado.modules.operators.randomwalk import (
     BaseSamplerConfiguration,
     CustomSamplerConfiguration,
     RandomWalk,
@@ -41,15 +41,15 @@ from orchestrator.modules.operators.randomwalk import (
 
 def test_operator_function_conf() -> None:
 
-    function = orchestrator.core.operation.config.OperatorReference(
-        operationType=orchestrator.core.operation.config.DiscoveryOperationEnum.MODIFY,
+    function = ado.core.operation.config.OperatorReference(
+        operationType=ado.core.operation.config.DiscoveryOperationEnum.MODIFY,
         operatorName="rifferla",
     )
 
     assert function.operationFunction()
     assert (
         function.operationType
-        == orchestrator.core.operation.config.DiscoveryOperationEnum.MODIFY
+        == ado.core.operation.config.DiscoveryOperationEnum.MODIFY
     )
     assert function.validateOperatorExists()
     assert function.operatorName == "rifferla"
@@ -57,14 +57,14 @@ def test_operator_function_conf() -> None:
 
 
 def test_operator_module_conf(
-    operator_module_conf: orchestrator.core.operation.config.OperatorModuleConf,
+    operator_module_conf: ado.core.operation.config.OperatorModuleConf,
 ) -> None:
 
-    from orchestrator.modules.module import load_module_class_or_function
+    from ado.modules.module import load_module_class_or_function
 
     assert (
         operator_module_conf.operationType
-        == orchestrator.core.operation.config.DiscoveryOperationEnum.EXPLORE
+        == ado.core.operation.config.DiscoveryOperationEnum.EXPLORE
     )
     cls = load_module_class_or_function(operator_module_conf)
     expected_name = cls.operator_metadata().name
@@ -73,32 +73,26 @@ def test_operator_module_conf(
 
 def test_characterize(expected_characterize_operators: list[str]) -> None:
 
-    assert len(
-        orchestrator.modules.operators.collections.characterize.list_operators()
-    ) == len(expected_characterize_operators)
+    assert len(ado.modules.operators.collections.characterize.list_operators()) == len(
+        expected_characterize_operators
+    )
 
     for operation in expected_characterize_operators:
         assert (
-            operation
-            in orchestrator.modules.operators.collections.characterize.list_operators()
+            operation in ado.modules.operators.collections.characterize.list_operators()
         )
-        assert orchestrator.modules.operators.collections.characterize.__getattr__(
-            operation
-        )
+        assert ado.modules.operators.collections.characterize.__getattr__(operation)
 
 
 def test_explore(expected_explore_operators: list[str]) -> None:
 
-    assert len(
-        orchestrator.modules.operators.collections.explore.list_operators()
-    ) == len(expected_explore_operators)
+    assert len(ado.modules.operators.collections.explore.list_operators()) == len(
+        expected_explore_operators
+    )
 
     for operation in expected_explore_operators:
-        assert (
-            operation
-            in orchestrator.modules.operators.collections.explore.list_operators()
-        )
-        assert orchestrator.modules.operators.collections.explore.__getattr__(operation)
+        assert operation in ado.modules.operators.collections.explore.list_operators()
+        assert ado.modules.operators.collections.explore.__getattr__(operation)
 
 
 def test_characterize_operator_function_configurations(
@@ -106,9 +100,9 @@ def test_characterize_operator_function_configurations(
 ) -> None:
 
     for operationName in expected_characterize_operators:
-        operationConf = orchestrator.core.operation.config.OperatorReference(
+        operationConf = ado.core.operation.config.OperatorReference(
             operatorName=operationName,
-            operationType=orchestrator.core.operation.config.DiscoveryOperationEnum.CHARACTERIZE,
+            operationType=ado.core.operation.config.DiscoveryOperationEnum.CHARACTERIZE,
         )
         assert operationConf is not None
 
@@ -118,9 +112,9 @@ def test_explore_operator_function_configurations(
 ) -> None:
 
     for operationName in expected_explore_operators:
-        operationConf = orchestrator.core.operation.config.OperatorReference(
+        operationConf = ado.core.operation.config.OperatorReference(
             operatorName=operationName,
-            operationType=orchestrator.core.operation.config.DiscoveryOperationEnum.EXPLORE,
+            operationType=ado.core.operation.config.DiscoveryOperationEnum.EXPLORE,
         )
         assert operationConf is not None
         assert operationConf.validateOperatorExists()
@@ -134,7 +128,7 @@ def test_explore_operator_class_registration(
 ) -> None:
     """Each explore operator must have its actor class registered in the collection."""
     for name in expected_explore_operators:
-        operator = orchestrator.modules.operators.collections.explore.operators[name]
+        operator = ado.modules.operators.collections.explore.operators[name]
         cls = operator.cls
         assert cls is not None
 
@@ -142,9 +136,9 @@ def test_explore_operator_class_registration(
 def test_explore_operator_function_conf_identifier_matches_registered_name() -> None:
     """operatorIdentifier via OperatorReference must use the registered name."""
     for name in ["random_walk", "ray_tune"]:
-        conf = orchestrator.core.operation.config.OperatorReference(
+        conf = ado.core.operation.config.OperatorReference(
             operatorName=name,
-            operationType=orchestrator.core.operation.config.DiscoveryOperationEnum.EXPLORE,
+            operationType=ado.core.operation.config.DiscoveryOperationEnum.EXPLORE,
         )
         # The identifier must start with the registered function name, not the
         # class name (e.g. "random_walk@2.0.0", not "RandomWalk@...")
@@ -158,12 +152,10 @@ def test_operator_function_configuration_incorrect_type(
     expected_explore_operators: list[str],
 ) -> None:
 
-    operation_type = (
-        orchestrator.core.operation.config.DiscoveryOperationEnum.CHARACTERIZE
-    )
+    operation_type = ado.core.operation.config.DiscoveryOperationEnum.CHARACTERIZE
 
     for operator_name in expected_explore_operators:
-        operationConf = orchestrator.core.operation.config.OperatorReference(
+        operationConf = ado.core.operation.config.OperatorReference(
             operatorName=operator_name,
             operationType=operation_type,
         )
@@ -180,13 +172,11 @@ def test_operator_function_configuration_incorrect_type(
 def test_operator_function_configuration_unknown_function() -> None:
 
     operator_name = "UnknownOperationName"
-    operation_type = (
-        orchestrator.core.operation.config.DiscoveryOperationEnum.CHARACTERIZE
-    )
+    operation_type = ado.core.operation.config.DiscoveryOperationEnum.CHARACTERIZE
 
-    operationConf = orchestrator.core.operation.config.OperatorReference(
+    operationConf = ado.core.operation.config.OperatorReference(
         operatorName="UnknownOperationName",
-        operationType=orchestrator.core.operation.config.DiscoveryOperationEnum.CHARACTERIZE,
+        operationType=ado.core.operation.config.DiscoveryOperationEnum.CHARACTERIZE,
     )
 
     with pytest.raises(
@@ -201,9 +191,9 @@ def test_operator_function_configuration_unknown_function() -> None:
 def test_operator_function_configuration_unknown_type() -> None:
 
     operator_name = "raytune"
-    operation_type = orchestrator.core.operation.config.DiscoveryOperationEnum.STUDY
+    operation_type = ado.core.operation.config.DiscoveryOperationEnum.STUDY
 
-    operationConf = orchestrator.core.operation.config.OperatorReference(
+    operationConf = ado.core.operation.config.OperatorReference(
         operatorName=operator_name,
         operationType=operation_type,
     )
@@ -219,25 +209,23 @@ def test_operator_function_configuration_unknown_type() -> None:
 
 def test_random_walk_operation_configuration() -> None:
 
-    from orchestrator.modules.operators.randomwalk import (
+    from ado.modules.operators.randomwalk import (
         RandomWalk,
         RandomWalkParameters,
     )
 
     assert (
-        orchestrator.modules.operators.collections.explore.operators[
-            "random_walk"
-        ].function
+        ado.modules.operators.collections.explore.operators["random_walk"].function
         is not None
     )
     assert (
-        orchestrator.modules.operators.collections.explore.operators[
+        ado.modules.operators.collections.explore.operators[
             "random_walk"
         ].configuration_model
         == RandomWalkParameters
     )
     assert (
-        orchestrator.modules.operators.collections.explore.operators[
+        ado.modules.operators.collections.explore.operators[
             "random_walk"
         ].example_configuration
         == RandomWalk.operator_metadata().example_configuration
@@ -254,19 +242,17 @@ def test_raytune_operation_configuration(
     )
 
     assert (
-        orchestrator.modules.operators.collections.explore.operators[
-            "ray_tune"
-        ].function
+        ado.modules.operators.collections.explore.operators["ray_tune"].function
         is not None
     )
     assert (
-        orchestrator.modules.operators.collections.explore.operators[
+        ado.modules.operators.collections.explore.operators[
             "ray_tune"
         ].configuration_model
         == RayTuneConfiguration
     )
     assert (
-        orchestrator.modules.operators.collections.explore.operators[
+        ado.modules.operators.collections.explore.operators[
             "ray_tune"
         ].example_configuration
         == RayTune.operator_metadata().example_configuration
@@ -325,7 +311,7 @@ def test_random_walk_custom_sampler_config() -> None:
     config = CustomSamplerConfiguration(
         module=SamplerModuleConf(
             moduleClass="ExplicitEntitySpaceGridSampleGenerator",
-            moduleName="orchestrator.core.discoveryspace.samplers",
+            moduleName="ado.core.discoveryspace.samplers",
         ),
         parameters=ExplicitEntitySpaceGridSampleGenerator.parameters_model()(
             mode=WalkModeEnum.RANDOM
@@ -412,8 +398,6 @@ def test_run_random_walk_operation(
 ) -> None:
     """Test running a random_walk operation via the operation functions"""
 
-    import orchestrator.core.resources
-
     discoverySpace = ml_multi_cloud_space
 
     assert discoverySpace is not None
@@ -421,7 +405,7 @@ def test_run_random_walk_operation(
     randomWalkConf.spaces[0] = ml_multi_cloud_space.uri
     assert RandomWalkParameters.model_validate(randomWalkConf.operation.parameters)
 
-    random_walk_fn = orchestrator.modules.operators.collections.explore.operators[
+    random_walk_fn = ado.modules.operators.collections.explore.operators[
         "random_walk"
     ].function
     assert random_walk_fn is not None
@@ -430,9 +414,7 @@ def test_run_random_walk_operation(
         discoverySpace, **randomWalkConf.operation.parameters.model_dump()
     )
 
-    assert isinstance(
-        operationOutput, orchestrator.core.operation.operation.OperationOutput
-    )
+    assert isinstance(operationOutput, ado.core.operation.operation.OperationOutput)
     assert operationOutput.operation
     # We expect the operationOutput to have an exit status - we know random uses default so it should be SUCCESS
     assert operationOutput.exitStatus.exit_state == OperationExitStateEnum.SUCCESS
@@ -486,17 +468,13 @@ def test_random_walk_fail_invalid_config(
 
     discoverySpace = ml_multi_cloud_space
 
-    import orchestrator.core.resources
-    import orchestrator.modules.actuators
-    import orchestrator.modules.operators.base
-
     assert discoverySpace is not None
     assert invalidRandomWalkConf is not None
 
     # Note: Number of entities being greater than space size (valueGreaterThanSize) raises a ValueError
     # as it is detected at RandomWalk.run() not during configuration validation (which can't check this as it has no access to the space)
     # This is captured and raise as a OperationException
-    random_walk_fn = orchestrator.modules.operators.collections.explore.operators[
+    random_walk_fn = ado.modules.operators.collections.explore.operators[
         "random_walk"
     ].function
     assert random_walk_fn is not None
@@ -505,7 +483,7 @@ def test_random_walk_fail_invalid_config(
         random_walk_fn(
             discoverySpace, **invalidRandomWalkConf.operation.parameters.model_dump()
         )
-    except orchestrator.core.operation.operation.OperationException as error:
+    except ado.core.operation.operation.OperationException as error:
         operation = error.operation
         assert operation
         # Check the operation status are as expected - CREATED, ADDED, STARTED, FINISHED, UPDATED
@@ -543,15 +521,13 @@ def test_run_ray_tune_operation(
 
     from ado_ray_tune.operator import RayTuneConfiguration
 
-    import orchestrator.core.resources
-
     discoverySpace = ml_multi_cloud_space
 
     assert discoverySpace is not None
     assert raytuneConf is not None
     assert RayTuneConfiguration.model_validate(raytuneConf.operation.parameters)
 
-    ray_tune_fn = orchestrator.modules.operators.collections.explore.operators[
+    ray_tune_fn = ado.modules.operators.collections.explore.operators[
         "ray_tune"
     ].function
     assert ray_tune_fn is not None
@@ -560,9 +536,7 @@ def test_run_ray_tune_operation(
         discoverySpace, **raytuneConf.operation.parameters.model_dump()
     )
 
-    assert isinstance(
-        operationOutput, orchestrator.core.operation.operation.OperationOutput
-    )
+    assert isinstance(operationOutput, ado.core.operation.operation.OperationOutput)
     assert operationOutput.operation
 
     # We expect the operationOutput to have an exit status - we know raytune uses default so it should be SUCCESS
@@ -621,7 +595,7 @@ def test_operator_metadata_identifier_property() -> None:
     """OperatorMetadata.operatorIdentifier returns '{name}@{version}'."""
     import pydantic
 
-    from orchestrator.core.operation.config import (
+    from ado.core.operation.config import (
         DiscoveryOperationEnum,
         OperatorMetadata,
     )
@@ -643,7 +617,7 @@ def test_operator_metadata_identifier_default_version() -> None:
     """OperatorMetadata.operatorIdentifier uses '2.0.0' when version is not supplied."""
     import pydantic
 
-    from orchestrator.core.operation.config import (
+    from ado.core.operation.config import (
         DiscoveryOperationEnum,
         OperatorMetadata,
     )
@@ -664,7 +638,7 @@ def test_operator_metadata_version_valid_semver() -> None:
     """OperatorMetadata accepts valid strict SemVer version strings."""
     import pydantic
 
-    from orchestrator.core.operation.config import (
+    from ado.core.operation.config import (
         DiscoveryOperationEnum,
         OperatorMetadata,
     )
@@ -693,7 +667,7 @@ def test_operator_metadata_version_invalid_semver() -> None:
     """OperatorMetadata rejects strings that are not valid strict SemVer versions."""
     import pydantic
 
-    from orchestrator.core.operation.config import (
+    from ado.core.operation.config import (
         DiscoveryOperationEnum,
         OperatorMetadata,
     )
@@ -723,11 +697,11 @@ def test_operator_metadata_version_invalid_semver() -> None:
 
 def test_operator_function_conf_identifier_delegates_to_operator_metadata() -> None:
     """OperatorReference.operatorIdentifier equals explore.operators[name].operatorIdentifier."""
-    from orchestrator.core.operation.config import (
+    from ado.core.operation.config import (
         DiscoveryOperationEnum,
         OperatorReference,
     )
-    from orchestrator.modules.operators.collections import explore
+    from ado.modules.operators.collections import explore
 
     for name in ["random_walk", "ray_tune"]:
         conf = OperatorReference(
@@ -743,12 +717,12 @@ def test_explore_operation_class_decorator_registers_function() -> None:
 
     import pydantic
 
-    from orchestrator.core.operation.config import (
+    from ado.core.operation.config import (
         DiscoveryOperationEnum,
         OperatorMetadata,
     )
-    from orchestrator.modules.operators.base import Explore
-    from orchestrator.modules.operators.collections import explore, explore_operation
+    from ado.modules.operators.base import Explore
+    from ado.modules.operators.collections import explore, explore_operation
 
     class _Params(pydantic.BaseModel):
         pass
@@ -790,12 +764,12 @@ def test_explore_operation_class_decorator_cls_stored() -> None:
     """explore.operators[name].cls is the unwrapped class after class decoration."""
     import pydantic
 
-    from orchestrator.core.operation.config import (
+    from ado.core.operation.config import (
         DiscoveryOperationEnum,
         OperatorMetadata,
     )
-    from orchestrator.modules.operators.base import Explore
-    from orchestrator.modules.operators.collections import explore, explore_operation
+    from ado.modules.operators.base import Explore
+    from ado.modules.operators.collections import explore, explore_operation
 
     class _ParamsCls(pydantic.BaseModel):
         pass
@@ -824,12 +798,12 @@ def test_explore_operation_class_decorator_metadata_from_class() -> None:
     """All OperatorMetadata fields come from the class's operator_metadata()."""
     import pydantic
 
-    from orchestrator.core.operation.config import (
+    from ado.core.operation.config import (
         DiscoveryOperationEnum,
         OperatorMetadata,
     )
-    from orchestrator.modules.operators.base import Explore
-    from orchestrator.modules.operators.collections import explore, explore_operation
+    from ado.modules.operators.base import Explore
+    from ado.modules.operators.collections import explore, explore_operation
 
     class _Params2(pydantic.BaseModel):
         x: int = 42
@@ -865,8 +839,8 @@ def test_explore_operation_class_decorator_metadata_from_class() -> None:
 def test_explore_operation_class_decorator_missing_operator_metadata_raises() -> None:
     """Decorating an Explore subclass without operator_metadata() raises NotImplementedError."""
 
-    from orchestrator.modules.operators.base import Explore
-    from orchestrator.modules.operators.collections import explore_operation
+    from ado.modules.operators.base import Explore
+    from ado.modules.operators.collections import explore_operation
 
     with pytest.raises(NotImplementedError):
 
@@ -878,7 +852,7 @@ def test_explore_operation_class_decorator_missing_operator_metadata_raises() ->
 
 
 def test_random_walk_registration() -> None:
-    from orchestrator.modules.operators.collections import explore
+    from ado.modules.operators.collections import explore
 
     assert "random_walk" in explore.operators
     rw = explore.operators["random_walk"]
@@ -888,7 +862,7 @@ def test_random_walk_registration() -> None:
 
 
 def test_ray_tune_registration() -> None:
-    from orchestrator.modules.operators.collections import explore
+    from ado.modules.operators.collections import explore
 
     assert "ray_tune" in explore.operators
     rt = explore.operators["ray_tune"]
@@ -901,11 +875,11 @@ def test_warn_if_operator_name_reused_logs_for_duplicate(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Reusing an operator name logs a warning before the registry entry is replaced."""
-    from orchestrator.core.operation.config import (
+    from ado.core.operation.config import (
         DiscoveryOperationEnum,
         OperatorMetadata,
     )
-    from orchestrator.modules.operators.collections import _warn_if_operator_name_reused
+    from ado.modules.operators.collections import _warn_if_operator_name_reused
 
     class _Cfg(pydantic.BaseModel):
         pass

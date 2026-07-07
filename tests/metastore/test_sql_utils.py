@@ -4,8 +4,8 @@
 import pytest
 import sqlalchemy
 
-from orchestrator.metastore.sql.statements import table_exists_query
-from orchestrator.metastore.sql.utils import check_table_exists
+from ado.metastore.sql.statements import table_exists_query
+from ado.metastore.sql.utils import check_table_exists
 
 
 def test_table_exists_query_sqlite() -> None:

@@ -6,10 +6,10 @@ from pathlib import Path
 
 from typer.testing import CliRunner
 
-from orchestrator.cli.core.cli import app as ado
-from orchestrator.cli.core.config import AdoConfiguration
-from orchestrator.metastore.project import ProjectContext
-from orchestrator.utilities.output import pydantic_model_as_yaml
+from ado.cli.core.cli import app as ado
+from ado.cli.core.config import AdoConfiguration
+from ado.metastore.project import ProjectContext
+from ado.utilities.output import pydantic_model_as_yaml
 
 
 # ado context

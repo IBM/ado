@@ -5,7 +5,7 @@ import math
 
 import pytest
 
-from orchestrator.schema.domain import (
+from ado.schema.domain import (
     ProbabilityFunction,
     ProbabilityFunctionsEnum,
     PropertyDomain,
@@ -611,7 +611,7 @@ def test_domain_sizes() -> None:
 
 def test_range_in_rich_print() -> None:
 
-    from orchestrator.utilities.rich import render_to_string
+    from ado.utilities.rich import render_to_string
 
     # Continuous
     continuousPropertyDomain = PropertyDomain(domainRange=[-10, 10])
@@ -723,7 +723,7 @@ def test_value_in_domain() -> None:
 def test_property_domain_minimization_is_correct(
     property_domain_all_types: PropertyDomain,
 ) -> None:
-    from orchestrator.cli.utils.pydantic.constants import minimize_output_context
+    from ado.cli.utils.pydantic.constants import minimize_output_context
 
     current_model = property_domain_all_types
     minimized_model = current_model.model_dump_json(context=minimize_output_context)
@@ -840,7 +840,7 @@ def test_open_categorical_variable_type_property_domain() -> None:
 
     import pydantic
 
-    from orchestrator.schema.domain import PropertyDomain, VariableTypeEnum
+    from ado.schema.domain import PropertyDomain, VariableTypeEnum
 
     d = PropertyDomain(variableType=VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE)
     # Type is set

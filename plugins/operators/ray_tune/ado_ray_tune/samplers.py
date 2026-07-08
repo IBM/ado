@@ -9,7 +9,7 @@ import ray
 import ray.tune
 from ray.tune.search.variant_generator import parse_spec_vars
 
-from orchestrator.schema.entityspace import EntitySpaceRepresentation
+from ado.schema.entityspace import EntitySpaceRepresentation
 
 
 class LhuSampler(ray.tune.search.Searcher):
@@ -76,7 +76,7 @@ class LhuSampler(ray.tune.search.Searcher):
         self._samples_generated_so_far = len(self._suggestions)
 
     def set_entity_space(self, entity_space: EntitySpaceRepresentation) -> None:
-        """LHC samplers requires the orchestrators ExplicitEntitySpaceRepresentation
+        """LHC samplers requires ado's ExplicitEntitySpaceRepresentation
 
         This is because the ray tune search space does not give sufficient information
         for the LHC sampler to work with dimensions that are not categorical"""

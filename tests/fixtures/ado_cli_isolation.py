@@ -7,7 +7,7 @@ import pathlib
 
 import pytest
 
-from orchestrator.cli.core.config import AdoConfiguration
+from ado.cli.core.config import AdoConfiguration
 
 
 def apply_isolated_ado_app_dir(

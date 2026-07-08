@@ -7,7 +7,7 @@ from typing import NoReturn
 
 import pandas as pd
 
-from orchestrator.core.discoveryspace.space import DiscoverySpace
+from ado.core.discoveryspace.space import DiscoverySpace
 from trim.trim_pydantic import TrimParameters
 from trim.utils.exceptions import InsufficientDataError
 from trim.utils.rowsring import RowsRing

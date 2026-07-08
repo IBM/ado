@@ -6,8 +6,8 @@
 import json
 from collections.abc import Callable
 
-from orchestrator.core.samplestore.sql import SQLSampleStore
-from orchestrator.schema.request import MeasurementRequest
+from ado.core.samplestore.sql import SQLSampleStore
+from ado.schema.request import MeasurementRequest
 
 
 def test_filter_measurement_requests_by_status(

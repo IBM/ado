@@ -23,14 +23,14 @@ import pytest
 import ray
 from ray.util.queue import Empty as RayQueueEmpty
 
-from orchestrator.modules.actuators.executor_supervisor import (
+from ado.modules.actuators.executor_supervisor import (
     ExperimentExecutorState,
     ExperimentExecutorSupervisor,
     ExperimentExecutorSupervisorConfig,
     _experiment_executor_state_lookup,
 )
-from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
-from orchestrator.schema.request import MeasurementRequest, MeasurementRequestStateEnum
+from ado.modules.actuators.measurement_queue import MeasurementQueue
+from ado.schema.request import MeasurementRequest, MeasurementRequestStateEnum
 from tests.actuators.test_executor_supervision import _sample_request
 
 pytestmark = pytest.mark.xdist_group(name="executor_supervision_ray")

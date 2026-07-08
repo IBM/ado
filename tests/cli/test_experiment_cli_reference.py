@@ -6,9 +6,9 @@ import warnings
 import pytest
 from typer.testing import CliRunner
 
-from orchestrator.cli.core.cli import app as ado
-from orchestrator.modules.actuators.errors import ExperimentVersionMismatchError
-from orchestrator.modules.actuators.registry import ActuatorRegistry
+from ado.cli.core.cli import app as ado
+from ado.modules.actuators.errors import ExperimentVersionMismatchError
+from ado.modules.actuators.registry import ActuatorRegistry
 from tests.schema.test_algorithm_versioning import _make_experiment
 
 

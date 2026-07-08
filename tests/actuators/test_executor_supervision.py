@@ -5,16 +5,16 @@
 
 from __future__ import annotations
 
-from orchestrator.modules.actuators.executor_supervisor import (
+from ado.modules.actuators.executor_supervisor import (
     ExperimentExecutorState,
     ExperimentExecutorSupervisorParameters,
     _ray_api_task_state_names,
     add_invalid_measurement_results,
 )
-from orchestrator.schema.entity import Entity
-from orchestrator.schema.reference import ExperimentReference
-from orchestrator.schema.request import MeasurementRequest, MeasurementRequestStateEnum
-from orchestrator.schema.result import InvalidMeasurementResult
+from ado.schema.entity import Entity
+from ado.schema.reference import ExperimentReference
+from ado.schema.request import MeasurementRequest, MeasurementRequestStateEnum
+from ado.schema.result import InvalidMeasurementResult
 
 
 def _sample_request(requestid: str = "abc123") -> MeasurementRequest:

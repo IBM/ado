@@ -144,7 +144,7 @@ following snippet shows how to access the data in python
 
 ```python
 
-from orchestrator.core.datacontainer.resource import DataContainer
+from ado.core.datacontainer.resource import DataContainer
 import yaml
 
 with open('data.yaml') as f:
@@ -157,6 +157,6 @@ for table in d.tabularData.values():
     ...
 
 for location in d.locationData.values():
-    # Each value in the locationData is a subclass of orchestrator.utilities.location.ResourceLocation
+    # Each value in the locationData is a subclass of ado.utilities.location.ResourceLocation
     print(location.url().unicode_string())
 ```

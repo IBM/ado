@@ -1,0 +1,139 @@
+# Copyright IBM Corporation 2025, 2026
+# SPDX-License-Identifier: MIT
+
+import pathlib
+from pathlib import Path
+
+import pydantic
+
+from ado.cli.core.config import AdoConfiguration
+from ado.cli.models.types import (
+    AdoCreateSupportedResourceTypes,
+    AdoEditSupportedEditors,
+    AdoGetSupportedOutputFormats,
+    AdoGetSupportedResourceTypes,
+    AdoShowMeasurementsSupportedEntityTypes,
+    AdoShowMeasurementsSupportedOutputFormats,
+    AdoShowMeasurementsSupportedPropertyFormats,
+    AdoShowStatsSupportedOutputFormats,
+    AdoShowTraceSupportedOutputFormats,
+)
+from ado.core import CoreResourceKinds
+from ado.core.operation.config import DiscoveryOperationEnum
+from ado.schema.virtual_property import PropertyAggregationMethodEnum
+
+
+class AdoGetCommandParameters(pydantic.BaseModel):
+    ado_configuration: AdoConfiguration
+    exclude_default: bool
+    exclude_fields: list[str] | None
+    exclude_none: bool
+    exclude_unset: bool
+    field_selectors: list[dict[str, str]]
+    matching_point: pathlib.Path | None
+    matching_space_id: str | None
+    matching_space: pathlib.Path | None
+    minimize_output: bool
+    no_trunc: bool | list[str]
+    output_file: pathlib.Path | None
+    output_format: AdoGetSupportedOutputFormats
+    resource_id: str | None
+    resource_type: AdoGetSupportedResourceTypes
+    show_deprecated: bool
+    show_details: bool
+    use_latest: bool
+
+
+class AdoCreateCommandParameters(pydantic.BaseModel):
+    ado_configuration: AdoConfiguration
+    dry_run: bool
+    new_sample_store: bool
+    override_values: list[dict[str, str | None]]
+    resource_configuration_file: Path | None
+    resource_type: AdoCreateSupportedResourceTypes
+    use_default_sample_store: bool
+    use_latest: list[CoreResourceKinds] | None
+    with_resources: dict[CoreResourceKinds, pathlib.Path | str] | None
+
+
+class AdoDeleteCommandParameters(pydantic.BaseModel):
+    ado_configuration: AdoConfiguration
+    delete_local_db: bool | None
+    force: bool
+    resource_ids: list[str]
+
+
+class AdoDescribeCommandParameters(pydantic.BaseModel):
+    ado_configuration: AdoConfiguration
+    resource_id: str | None
+    resource_configuration: Path | None
+
+
+class AdoEditCommandParameters(pydantic.BaseModel):
+    ado_configuration: AdoConfiguration
+    editor: AdoEditSupportedEditors
+    resource_id: str
+    metadata_patch: str | None = pydantic.Field(
+        default=None,
+        description="Inline YAML/JSON patch; mutually exclusive with metadata_path.",
+    )
+    metadata_path: Path | None = pydantic.Field(
+        default=None,
+        description="Path to patch file; mutually exclusive with metadata_patch.",
+    )
+
+
+class AdoShowMeasurementsCommandParameters(pydantic.BaseModel):
+    ado_configuration: AdoConfiguration
+    aggregation_method: PropertyAggregationMethodEnum | None
+    measurements_output_format: AdoShowMeasurementsSupportedOutputFormats
+    measurements_property_format: AdoShowMeasurementsSupportedPropertyFormats
+    measurements_type: AdoShowMeasurementsSupportedEntityTypes
+    no_trunc: bool
+    output_file: Path | None
+    properties: list[str] | None
+    resource_configuration: Path | None
+    resource_id: str | None
+
+
+class AdoShowRelatedCommandParameters(pydantic.BaseModel):
+    ado_configuration: AdoConfiguration
+    resource_id: str
+    max_hops: int | None = None
+
+
+class AdoShowTraceCommandParameters(pydantic.BaseModel):
+    ado_configuration: AdoConfiguration
+    field_selectors: list[dict[str, str]]
+    hide_fields: list[str] | None
+    unroll_entities: bool
+    no_trunc: bool
+    output_file: Path | None
+    output_format: AdoShowTraceSupportedOutputFormats
+    resource_id: str
+
+
+class AdoShowStatsCommandParameters(pydantic.BaseModel):
+    ado_configuration: AdoConfiguration
+    output_format: AdoShowStatsSupportedOutputFormats
+    output_file: Path | None
+    filters: list[dict[str, str | None]] | None
+    render_output: bool
+    resource_ids: list[str] | None
+    show_details: bool
+
+
+class AdoTemplateCommandParameters(pydantic.BaseModel):
+    actuator_identifier: str | None
+    ado_configuration: AdoConfiguration
+    from_experiments: list[str] | None
+    include_schema: bool
+    operator_name: str | None
+    operator_type: DiscoveryOperationEnum | None
+    output_file: Path | None
+    parameters_only_schema: bool
+    template_local_context: bool
+
+
+class AdoUpgradeCommandParameters(pydantic.BaseModel):
+    ado_configuration: AdoConfiguration

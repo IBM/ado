@@ -6,11 +6,11 @@ import sys
 
 import pytest
 
-import orchestrator.modules.operators.randomwalk  # noqa: F401 — loads operator plugins
-from orchestrator.modules.operators._general_orchestration import (
+import ado.modules.operators.randomwalk  # noqa: F401 — loads operator plugins
+from ado.modules.operators._general_orchestration import (
     _operator_callable_for_harness,
 )
-from orchestrator.modules.operators.collections import characterize
+from ado.modules.operators.collections import characterize
 
 
 @pytest.mark.skipif(

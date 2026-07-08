@@ -28,11 +28,11 @@ from collections.abc import Callable
 
 from typer.testing import CliRunner
 
-from orchestrator.cli.core.cli import app as ado
-from orchestrator.core.discoveryspace.space import DiscoverySpace
-from orchestrator.core.samplestore.sql import SQLSampleStore
-from orchestrator.metastore.project import ProjectContext
-from orchestrator.schema.request import MeasurementRequest
+from ado.cli.core.cli import app as ado
+from ado.core.discoveryspace.space import DiscoverySpace
+from ado.core.samplestore.sql import SQLSampleStore
+from ado.metastore.project import ProjectContext
+from ado.schema.request import MeasurementRequest
 from tests.conftest import requires_sqlite_3_38
 
 # Expected constants for the ml_multi_cloud space

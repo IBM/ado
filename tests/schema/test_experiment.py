@@ -6,34 +6,34 @@ from typing import Any
 import pydantic
 import pytest
 
-from orchestrator.modules.actuators.registry import (
+from ado.modules.actuators.registry import (
     ActuatorRegistry,
 )
-from orchestrator.schema.domain import PropertyDomain, VariableTypeEnum
-from orchestrator.schema.entity import Entity
-from orchestrator.schema.experiment import (
+from ado.schema.domain import PropertyDomain, VariableTypeEnum
+from ado.schema.entity import Entity
+from ado.schema.experiment import (
     Experiment,
     ParameterizedExperiment,
 )
-from orchestrator.schema.observed_property import (
+from ado.schema.observed_property import (
     ObservedPropertyValue,
 )
-from orchestrator.schema.property import (
+from ado.schema.property import (
     AbstractProperty,
     ConstitutiveProperty,
     ConstitutivePropertyDescriptor,
     MeasuredPropertyTypeEnum,
 )
-from orchestrator.schema.property_value import (
+from ado.schema.property_value import (
     ConstitutivePropertyValue,
     CustomBytes,
 )
-from orchestrator.schema.reference import (
+from ado.schema.reference import (
     ExperimentReference,
     check_parameterization_validity,
 )
-from orchestrator.schema.result import ValidMeasurementResult
-from orchestrator.utilities.support import get_experiment_input_values
+from ado.schema.result import ValidMeasurementResult
+from ado.utilities.support import get_experiment_input_values
 
 # test experiment from concrete property identifiers
 # Property Retrieval
@@ -903,7 +903,7 @@ def test_experiment_provides_requirements(
 
 def test_experiment_provides_requirements_ignores_version() -> None:
     """exactMatch=False matches on base experiment name regardless of version."""
-    from orchestrator.schema.property import AbstractPropertyDescriptor
+    from ado.schema.property import AbstractPropertyDescriptor
 
     prerequisite = Experiment(
         actuatorIdentifier="test_actuator",

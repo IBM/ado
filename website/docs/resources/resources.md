@@ -164,7 +164,7 @@ above list
 
 ```python
 import yaml
-from orchestrator.core import kindmap
+from ado.core import kindmap
 
 with open("resource.yaml") as f:
     resource = kindmap['discoveryspace'].model_validate(yaml.safe_load(f))

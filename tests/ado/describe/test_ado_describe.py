@@ -8,9 +8,9 @@ from collections.abc import Callable
 from testcontainers.mysql import MySqlContainer
 from typer.testing import CliRunner
 
-from orchestrator.cli.core.cli import app as ado
-from orchestrator.core.discoveryspace.space import DiscoverySpace
-from orchestrator.metastore.project import ProjectContext
+from ado.cli.core.cli import app as ado
+from ado.core.discoveryspace.space import DiscoverySpace
+from ado.metastore.project import ProjectContext
 
 
 def test_describe_nonexistent_space(

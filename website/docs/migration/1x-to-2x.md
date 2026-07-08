@@ -44,6 +44,54 @@ New operations and YAML files should use `operationType: explore`.
 
 ## Breaking Changes
 
+### Renamed: Python import package `orchestrator` → `ado`
+
+The Python import package has been renamed from `orchestrator` to `ado`. This
+is a breaking change for anyone who writes Python code that directly imports
+from the package — custom actuators, operators, custom experiments, or scripts.
+
+**Who is affected:** any code that contains `from orchestrator.` or
+`import orchestrator.` statements, and any samplestore or operation YAML files
+that contain `moduleName` values beginning with `orchestrator.`.
+
+**Before (ado 1.x):**
+
+```python
+from orchestrator.schema.property import ConstitutiveProperty
+from orchestrator.modules.actuators.custom_experiments import custom_experiment
+from orchestrator.schema.experiment import Experiment
+```
+
+**After (ado 2.x):**
+
+```python
+from ado.schema.property import ConstitutiveProperty
+from ado.modules.actuators.custom_experiments import custom_experiment
+from ado.schema.experiment import Experiment
+```
+
+**YAML files:** if you have samplestore or operation YAML files with a
+`moduleName` field, update the value from `orchestrator.*` to `ado.*`:
+
+```yaml
+# Before
+moduleName: orchestrator.modules.samplestores.my_store
+
+# After
+moduleName: ado.modules.samplestores.my_store
+```
+
+To find all affected imports and module names in your codebase, run:
+
+<!-- markdownlint-disable line-length -->
+
+```shell
+grep -rn "from orchestrator\|import orchestrator" .
+grep -rn "orchestrator\." --include="*.yaml" --include="*.json" .
+```
+
+<!-- markdownlint-enable line-length -->
+
 ### Renamed: `--query` → `--filter` in `ado get` and `ado show` commands
 
 The `--query` long flag has been renamed to `--filter` across `ado get`,

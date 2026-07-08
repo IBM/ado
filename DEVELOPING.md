@@ -76,7 +76,7 @@ formatting.
 
 You can format your code by:
 
-- Manually running `ruff format tests/ orchestrator/ plugins/`
+- Manually running `ruff format tests/ ado/ plugins/`
 - Using the
   [Ruff extension for VSCode](https://marketplace.visualstudio.com/items?itemName=charliermarsh.ruff)
   and setting it as the default formatter:

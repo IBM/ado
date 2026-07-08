@@ -3,7 +3,7 @@
 
 import pytest
 
-from orchestrator.core.resources import CoreResourceKinds
+from ado.core.resources import CoreResourceKinds
 
 
 @pytest.fixture(

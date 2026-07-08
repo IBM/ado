@@ -19,7 +19,7 @@ import numpy as np
 import pandas as pd
 from autogluon.tabular import TabularDataset, TabularPredictor
 
-from orchestrator.core.discoveryspace.samplers import BaseSampler
+from ado.core.discoveryspace.samplers import BaseSampler
 from trim.samplers.no_priors_utils import (
     get_index_list_van_der_corput,
     get_list_of_entities_from_df_and_space,
@@ -30,12 +30,12 @@ from trim.trim_pydantic import TrimParameters
 if TYPE_CHECKING:
     from pydantic import BaseModel
 
-    from orchestrator.core.discoveryspace.space import DiscoverySpace, Entity
-    from orchestrator.modules.operators.discovery_space_manager import (
+    from ado.core.discoveryspace.space import DiscoverySpace, Entity
+    from ado.modules.operators.discovery_space_manager import (
         DiscoverySpaceManager,
     )
 
-from orchestrator.utilities.pandas import sort_rows_by_column_names
+from ado.utilities.pandas import sort_rows_by_column_names
 from trim.utils.exceptions import InsufficientDataError
 from trim.utils.logging_utils import (
     log_after_first_holdout_creation,

@@ -418,7 +418,7 @@ request_index,result_index,identifier,experiment_id,generatorid,mol,temperature,
 ### Implementing a Custom Sampler
 
 To implement a custom sampler create a sub-class of
-`orchestrator.core.discovery.samplers.BaseSampler` and implement all required
+`ado.core.discovery.samplers.BaseSampler` and implement all required
 methods
 
 The `BaseSampler` class does not specify any `__init__` parameters. If your

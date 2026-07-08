@@ -4,20 +4,20 @@ from typing import Any
 
 import pytest
 
-from orchestrator.core.discoveryspace.samplers import sample_random_entity_from_space
-from orchestrator.schema.domain import PropertyDomain, VariableTypeEnum
-from orchestrator.schema.entity import Entity
-from orchestrator.schema.entityspace import EntitySpaceRepresentation
-from orchestrator.schema.experiment import Experiment
-from orchestrator.schema.measurementspace import (
+from ado.core.discoveryspace.samplers import sample_random_entity_from_space
+from ado.schema.domain import PropertyDomain, VariableTypeEnum
+from ado.schema.entity import Entity
+from ado.schema.entityspace import EntitySpaceRepresentation
+from ado.schema.experiment import Experiment
+from ado.schema.measurementspace import (
     MeasurementSpace,
     MeasurementSpaceConfiguration,
 )
-from orchestrator.schema.property import (
+from ado.schema.property import (
     AbstractPropertyDescriptor,
     ConstitutiveProperty,
 )
-from orchestrator.schema.property_value import ConstitutivePropertyValue
+from ado.schema.property_value import ConstitutivePropertyValue
 
 
 def test_entity_space_from_measurement_space(

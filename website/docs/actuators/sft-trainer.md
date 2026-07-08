@@ -37,7 +37,7 @@ must already include the appropriate version of `torch`:
 <!-- markdownlint-disable line-length -->
 
 **We recommend using the
-[`ordered_pip`](https://github.com/IBM/ado/blob/main/orchestrator/utilities/ray_env/README.md)
+[`ordered_pip`](https://github.com/IBM/ado/blob/main/ado/utilities/ray_env/README.md)
 RayRuntimeEnv plugin** for all versions of `fms-hf-tuning`. It ensures the
 correct `torch` version is installed before packages that depend on it during
 their build phase. The plugin is included in ado-core and its images (e.g.,

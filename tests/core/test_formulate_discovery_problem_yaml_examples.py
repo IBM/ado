@@ -8,9 +8,9 @@ import pathlib
 import pytest
 import yaml
 
-from orchestrator.core.actuatorconfiguration.config import ActuatorConfiguration
-from orchestrator.core.discoveryspace.config import DiscoverySpaceConfiguration
-from orchestrator.core.operation.config import DiscoveryOperationResourceConfiguration
+from ado.core.actuatorconfiguration.config import ActuatorConfiguration
+from ado.core.discoveryspace.config import DiscoverySpaceConfiguration
+from ado.core.operation.config import DiscoveryOperationResourceConfiguration
 
 YAML_EXAMPLES_DIR = pathlib.Path(
     ".cursor/skills/formulate-discovery-problem/yaml-examples"

@@ -3,11 +3,11 @@
 specification:
   module:
     moduleClass: SQLSampleStore
-    moduleName: orchestrator.core.samplestore.sql
+    moduleName: ado.core.samplestore.sql
 copyFrom:
   - module:
       moduleClass: CSVSampleStore
-      moduleName: orchestrator.core.samplestore.csv
+      moduleName: ado.core.samplestore.csv
     storageLocation:
       path: 'data/GM_Comparison/Transfromer/Sample_0/test_generations.csv'
     parameters:

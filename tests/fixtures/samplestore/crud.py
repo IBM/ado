@@ -5,12 +5,12 @@ from collections.abc import Callable
 import pandas as pd
 import pytest
 
-from orchestrator.core.resources import ADOResource, CoreResourceKinds
-from orchestrator.core.samplestore.sql import SQLSampleStore
-from orchestrator.metastore.sqlstore import (
+from ado.core.resources import ADOResource, CoreResourceKinds
+from ado.core.samplestore.sql import SQLSampleStore
+from ado.metastore.sqlstore import (
     SQLStore,
 )
-from orchestrator.schema.entity import Entity
+from ado.schema.entity import Entity
 
 
 ##################################################################

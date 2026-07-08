@@ -6,15 +6,15 @@ from collections.abc import Callable
 
 from typer.testing import CliRunner
 
-from orchestrator.cli.core.cli import app as ado
-from orchestrator.cli.utils.generic.wrappers import get_sql_store
-from orchestrator.cli.utils.resources.handlers import (
+from ado.cli.core.cli import app as ado
+from ado.cli.utils.generic.wrappers import get_sql_store
+from ado.cli.utils.resources.handlers import (
     strategic_merge_configuration_metadata,
 )
-from orchestrator.core import SampleStoreResource
-from orchestrator.core.metadata import ConfigurationMetadata
-from orchestrator.core.resources import CoreResourceKinds
-from orchestrator.metastore.project import ProjectContext
+from ado.core import SampleStoreResource
+from ado.core.metadata import ConfigurationMetadata
+from ado.core.resources import CoreResourceKinds
+from ado.metastore.project import ProjectContext
 
 
 def test_strategic_merge_preserves_name_merges_labels() -> None:

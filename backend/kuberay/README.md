@@ -145,7 +145,7 @@ with 4 Nodes each with 8 NVIDIA-A100-SXM4-80GB GPUs, 64 CPU cores, and 1TB memor
         resources: '"{\"NVIDIA-A100-SXM4-80GB\": 1}"'
       containerEnv:
         - name: RAY_RUNTIME_ENV_PLUGINS
-          value: '[{"class":"orchestrator.utilities.ray_env.ordered_pip.OrderedPipPlugin"}]'
+          value: '[{"class":"ado.utilities.ray_env.ordered_pip.OrderedPipPlugin"}]'
         - name: OMP_NUM_THREADS
           value: "1"
         - name: OPENBLAS_NUM_THREADS
@@ -186,7 +186,7 @@ with 4 Nodes each with 8 NVIDIA-A100-SXM4-80GB GPUs, 64 CPU cores, and 1TB memor
         resources: '"{\"NVIDIA-A100-SXM4-80GB\": 2}"'
       containerEnv:
         - name: RAY_RUNTIME_ENV_PLUGINS
-          value: '[{"class":"orchestrator.utilities.ray_env.ordered_pip.OrderedPipPlugin"}]'
+          value: '[{"class":"ado.utilities.ray_env.ordered_pip.OrderedPipPlugin"}]'
         - name: OMP_NUM_THREADS
           value: "1"
         - name: OPENBLAS_NUM_THREADS
@@ -227,7 +227,7 @@ with 4 Nodes each with 8 NVIDIA-A100-SXM4-80GB GPUs, 64 CPU cores, and 1TB memor
         resources: '"{\"NVIDIA-A100-SXM4-80GB\": 4}"'
       containerEnv:
         - name: RAY_RUNTIME_ENV_PLUGINS
-          value: '[{"class":"orchestrator.utilities.ray_env.ordered_pip.OrderedPipPlugin"}]'
+          value: '[{"class":"ado.utilities.ray_env.ordered_pip.OrderedPipPlugin"}]'
         - name: OMP_NUM_THREADS
           value: "1"
         - name: OPENBLAS_NUM_THREADS
@@ -268,7 +268,7 @@ with 4 Nodes each with 8 NVIDIA-A100-SXM4-80GB GPUs, 64 CPU cores, and 1TB memor
         resources: '"{\"NVIDIA-A100-SXM4-80GB\": 8, \"full-worker\": 1}"'
       containerEnv:
         - name: RAY_RUNTIME_ENV_PLUGINS
-          value: '[{"class":"orchestrator.utilities.ray_env.ordered_pip.OrderedPipPlugin"}]'
+          value: '[{"class":"ado.utilities.ray_env.ordered_pip.OrderedPipPlugin"}]'
         - name: OMP_NUM_THREADS
           value: "1"
         - name: OPENBLAS_NUM_THREADS
@@ -334,7 +334,7 @@ To enable the `OrderedPipPlugin`, set the `RAY_RUNTIME_ENV_PLUGINS` environment
 variable before starting the Ray head node and workers:
 
 ```bash
-export RAY_RUNTIME_ENV_PLUGINS='[{"class":"orchestrator.utilities.ray_env.ordered_pip.OrderedPipPlugin"}]'
+export RAY_RUNTIME_ENV_PLUGINS='[{"class":"ado.utilities.ray_env.ordered_pip.OrderedPipPlugin"}]'
 ```
 
 When deploying a RayCluster via KubeRay, add this environment variable to both
@@ -343,7 +343,7 @@ head and worker node configurations (see examples below).
 ### Documentation and Usage
 
 For detailed documentation, configuration details, and usage examples, see the
-[OrderedPip Plugin README](https://github.com/IBM/ado/blob/main/orchestrator/utilities/ray_env/README.md).
+[OrderedPip Plugin README](https://github.com/IBM/ado/blob/main/ado/utilities/ray_env/README.md).
 
 ### Example: Using ordered_pip with ray job submit
 

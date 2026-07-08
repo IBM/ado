@@ -6,9 +6,9 @@
 import copy
 from collections.abc import Callable
 
-from orchestrator.core.samplestore.sql import SQLSampleStore
-from orchestrator.schema.entity import Entity
-from orchestrator.schema.result import (
+from ado.core.samplestore.sql import SQLSampleStore
+from ado.schema.entity import Entity
+from ado.schema.result import (
     MeasurementResult,
     MeasurementResultStateEnum,
     ValidMeasurementResult,

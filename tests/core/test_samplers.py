@@ -4,22 +4,22 @@
 import numpy as np
 import pytest
 
-from orchestrator.core.discoveryspace.samplers import (
+from ado.core.discoveryspace.samplers import (
     ExplicitEntitySpaceGridSampleGenerator,
     RandomSampleSelector,
     SequentialSampleSelector,
     WalkModeEnum,
     sample_random_entity_from_space,
 )
-from orchestrator.core.discoveryspace.space import DiscoverySpace
-from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
-from orchestrator.modules.operators.discovery_space_manager import (
+from ado.core.discoveryspace.space import DiscoverySpace
+from ado.modules.actuators.measurement_queue import MeasurementQueue
+from ado.modules.operators.discovery_space_manager import (
     DiscoverySpaceManager,
 )
-from orchestrator.schema.entity import Entity
-from orchestrator.schema.entityspace import EntitySpaceRepresentation
-from orchestrator.schema.measurementspace import MeasurementSpace
-from orchestrator.schema.property import ConstitutiveProperty
+from ado.schema.entity import Entity
+from ado.schema.entityspace import EntitySpaceRepresentation
+from ado.schema.measurementspace import MeasurementSpace
+from ado.schema.property import ConstitutiveProperty
 
 
 @pytest.fixture(params=[WalkModeEnum.RANDOM, WalkModeEnum.SEQUENTIAL])

@@ -203,9 +203,9 @@ parameters of our `calculate_density` function are positive numbers.
 
 ```python
 from typing import Dict, Any
-from orchestrator.modules.actuators.custom_experiments import custom_experiment
-from orchestrator.schema.domain import PropertyDomain, VariableTypeEnum
-from orchestrator.schema.property import ConstitutiveProperty
+from ado.modules.actuators.custom_experiments import custom_experiment
+from ado.schema.domain import PropertyDomain, VariableTypeEnum
+from ado.schema.property import ConstitutiveProperty
 
 mass = ConstitutiveProperty(
     identifier="mass",
@@ -410,7 +410,7 @@ The `custom_experiment` decorator attaches the ado `Experiment` object generated
 from the decoration as an attribute e.g.
 
 ```python
-from orchestrator.schema.experiment import Experiment
+from ado.schema.experiment import Experiment
 
 exp_obj: Experiment = calculate_density._experiment
 print(exp_obj.identifier)  # e.g., 'calculate_density'

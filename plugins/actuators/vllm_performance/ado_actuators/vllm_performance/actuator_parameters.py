@@ -6,8 +6,8 @@ from typing import Annotated, Any
 import pydantic
 from pydantic import AfterValidator
 
-from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
-from orchestrator.utilities.pydantic import validate_rfc_1123
+from ado.core.actuatorconfiguration.config import GenericActuatorParameters
+from ado.utilities.pydantic import validate_rfc_1123
 
 
 # In case we need parameters for our actuator, we create a class
@@ -93,7 +93,7 @@ class VLLMPerformanceTestParameters(GenericActuatorParameters):
         ):
             raise ValueError(f"Unexpected type {type(values)} in validator")
 
-        from orchestrator.core.actuatorconfiguration.config import (
+        from ado.core.actuatorconfiguration.config import (
             warn_deprecated_actuator_parameters_model_in_use,
         )
 

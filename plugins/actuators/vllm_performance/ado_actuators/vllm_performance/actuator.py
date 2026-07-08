@@ -21,19 +21,19 @@ from ado_actuators.vllm_performance.experiment_executor import (
     run_workload_experiment,
 )
 
-from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
-from orchestrator.modules.actuators.base import (
+from ado.core.actuatorconfiguration.config import GenericActuatorParameters
+from ado.modules.actuators.base import (
     ActuatorBase,
 )
-from orchestrator.modules.actuators.catalog import ExperimentCatalog
-from orchestrator.modules.actuators.errors import MissingConfigurationForExperimentError
-from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
-from orchestrator.modules.operators.orchestrate import CLEANER_ACTOR
-from orchestrator.schema.entity import Entity
-from orchestrator.schema.experiment import Experiment
-from orchestrator.schema.reference import ExperimentReference
-from orchestrator.schema.request import MeasurementRequest
-from orchestrator.utilities.environment import extract_package_specs_from_job_env
+from ado.modules.actuators.catalog import ExperimentCatalog
+from ado.modules.actuators.errors import MissingConfigurationForExperimentError
+from ado.modules.actuators.measurement_queue import MeasurementQueue
+from ado.modules.operators.orchestrate import CLEANER_ACTOR
+from ado.schema.entity import Entity
+from ado.schema.experiment import Experiment
+from ado.schema.reference import ExperimentReference
+from ado.schema.request import MeasurementRequest
+from ado.utilities.environment import extract_package_specs_from_job_env
 
 logger = logging.getLogger(__name__)
 

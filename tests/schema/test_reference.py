@@ -5,19 +5,19 @@ import re
 import numpy.random
 import pytest
 
-from orchestrator.modules.actuators.registry import ActuatorRegistry
-from orchestrator.schema.experiment import Experiment
-from orchestrator.schema.measurementspace import MeasurementSpace
-from orchestrator.schema.observed_property import ObservedPropertyValue
-from orchestrator.schema.property import (
+from ado.modules.actuators.registry import ActuatorRegistry
+from ado.schema.experiment import Experiment
+from ado.schema.measurementspace import MeasurementSpace
+from ado.schema.observed_property import ObservedPropertyValue
+from ado.schema.property import (
     ConstitutivePropertyDescriptor,
 )
-from orchestrator.schema.property_value import ConstitutivePropertyValue
-from orchestrator.schema.reference import (
+from ado.schema.property_value import ConstitutivePropertyValue
+from ado.schema.reference import (
     ExperimentReference,
     _parse_experiment_part_from_string,
 )
-from orchestrator.schema.result import ValidMeasurementResult
+from ado.schema.result import ValidMeasurementResult
 
 
 def test_parameterized_reference_equality(
@@ -206,7 +206,7 @@ def test_entity_property_values_from_experiment_reference_parameterized(
 
     # Create an entity space compatible with the measurement space
     es = ms.compatibleEntitySpace()
-    from orchestrator.core.discoveryspace.samplers import (
+    from ado.core.discoveryspace.samplers import (
         ExplicitEntitySpaceGridSampleGenerator,
         WalkModeEnum,
     )

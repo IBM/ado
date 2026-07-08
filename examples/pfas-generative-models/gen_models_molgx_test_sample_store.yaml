@@ -3,7 +3,7 @@
 copyFrom:
   - module:
       moduleClass: CSVSampleStore
-      moduleName: orchestrator.core.samplestore.csv
+      moduleName: ado.core.samplestore.csv
     parameters:
       experiments:
         - actuatorIdentifier: replay
@@ -22,4 +22,4 @@ copyFrom:
 specification:
   module:
     moduleClass: SQLSampleStore
-    moduleName: orchestrator.core.samplestore.sql
+    moduleName: ado.core.samplestore.sql

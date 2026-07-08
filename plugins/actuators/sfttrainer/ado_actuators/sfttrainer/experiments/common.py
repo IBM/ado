@@ -20,15 +20,15 @@ import pydantic.fields
 import pydantic_core
 import yaml
 
-import orchestrator.schema.domain
-import orchestrator.schema.property_value
-from orchestrator.schema.domain import PropertyDomain, VariableTypeEnum
-from orchestrator.schema.experiment import Experiment
-from orchestrator.schema.property import (
+import ado.schema.domain
+import ado.schema.property_value
+from ado.schema.domain import PropertyDomain, VariableTypeEnum
+from ado.schema.experiment import Experiment
+from ado.schema.property import (
     ConstitutiveProperty,
     ConstitutivePropertyDescriptor,
 )
-from orchestrator.schema.property_value import ConstitutivePropertyValue
+from ado.schema.property_value import ConstitutivePropertyValue
 
 
 class InternalInconsistencyError(ValueError):
@@ -293,7 +293,7 @@ def generate_parameterisable_finetune_experiment(
     exp_identifier: str,
     version: str,
     actuator_identifier: str,
-    override_propertydomains: dict[str, orchestrator.schema.domain],
+    override_propertydomains: dict[str, ado.schema.domain],
     required_property_names: list[str],
     default_params: dict[str, str | float | bool | int],
     hardcoded_parameters: dict[str, typing.Any],
@@ -509,7 +509,7 @@ def generate_parameterisable_finetune_experiment(
             "versioning": versioning,
         },
         targetProperties=[
-            orchestrator.schema.property.AbstractPropertyDescriptor(identifier=prop)
+            ado.schema.property.AbstractPropertyDescriptor(identifier=prop)
             for prop in properties
         ],
         optionalProperties=optional_properties,

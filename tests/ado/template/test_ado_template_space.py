@@ -7,8 +7,8 @@ from collections.abc import Callable
 import yaml
 from typer.testing import CliRunner
 
-from orchestrator.cli.core.cli import app as ado
-from orchestrator.core.discoveryspace.config import DiscoverySpaceConfiguration
+from ado.cli.core.cli import app as ado
+from ado.core.discoveryspace.config import DiscoverySpaceConfiguration
 
 
 def test_template_space(

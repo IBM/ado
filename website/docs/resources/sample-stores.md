@@ -113,7 +113,7 @@ copying from other sample stores is:
 specification:
   module:
     moduleClass: SQLSampleStore
-    moduleName: orchestrator.core.samplestore.sql
+    moduleName: ado.core.samplestore.sql
 copyFrom: # An array of Sample Stores data will be copied from
   - identifier: # Optional, the id of the Sample Store if not given in the storageLocation
     module: # The type of this Sample Store
@@ -130,7 +130,7 @@ copying data from a CSV file using `CSVSampleStore`:
 ```yaml
 specification:
   module:
-    moduleName: orchestrator.core.samplestore.sql
+    moduleName: ado.core.samplestore.sql
     moduleClass: SQLSampleStore
 copyFrom:
   - module:
@@ -183,7 +183,7 @@ copyFrom:
   - identifier: source_abc123
     module:
       moduleClass: SQLSampleStore
-      moduleName: orchestrator.core.samplestore.sql
+      moduleName: ado.core.samplestore.sql
     storageLocation:
       host: localhost
       port: 30002
@@ -211,7 +211,7 @@ not provided by an installed `ado` actuator.
 copyFrom:
   - module:
       moduleClass: CSVSampleStore
-      moduleName: orchestrator.core.samplestore.csv
+      moduleName: ado.core.samplestore.csv
     storageLocation:
       path: 'examples/ml-multi-cloud/ml_export.csv'. # The path to the CSV file
     parameters:
@@ -268,7 +268,7 @@ experiment definition.
 copyFrom:
   - module:
       moduleClass: CSVSampleStore
-      moduleName: orchestrator.core.samplestore.csv
+      moduleName: ado.core.samplestore.csv
     storageLocation:
       path: "results_export.csv"
     parameters:

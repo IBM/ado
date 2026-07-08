@@ -7,10 +7,10 @@ from collections.abc import Callable
 import pytest
 import yaml
 
-from orchestrator.core.discoveryspace.config import DiscoverySpaceConfiguration
-from orchestrator.core.discoveryspace.space import DiscoverySpace
-from orchestrator.core.operation.config import DiscoveryOperationResourceConfiguration
-from orchestrator.core.samplestore.sql import SQLSampleStore
+from ado.core.discoveryspace.config import DiscoverySpaceConfiguration
+from ado.core.discoveryspace.space import DiscoverySpace
+from ado.core.operation.config import DiscoveryOperationResourceConfiguration
+from ado.core.samplestore.sql import SQLSampleStore
 
 
 @pytest.fixture

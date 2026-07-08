@@ -11,16 +11,16 @@ import yaml
 from testcontainers.mysql import MySqlContainer
 from typer.testing import CliRunner
 
-from orchestrator.cli.core.cli import app as ado
-from orchestrator.core import (
+from ado.cli.core.cli import app as ado
+from ado.core import (
     ActuatorConfigurationResource,
     OperationResource,
     SampleStoreResource,
 )
-from orchestrator.core.discoveryspace.space import DiscoverySpace
-from orchestrator.metastore.project import ProjectContext
-from orchestrator.metastore.sqlstore import SQLStore
-from orchestrator.utilities.rich import dataframe_to_rich_table, render_to_string
+from ado.core.discoveryspace.space import DiscoverySpace
+from ado.metastore.project import ProjectContext
+from ado.metastore.sqlstore import SQLStore
+from ado.utilities.rich import dataframe_to_rich_table, render_to_string
 from tests.conftest import requires_sqlite_3_38
 from tests.utilities.cli_rendering import (
     render_ado_resources_to_cli_output,
@@ -421,7 +421,7 @@ def test_get_space_with_use_latest(
     ],
 ) -> None:
     """Test getting the latest space using --use-latest flag"""
-    from orchestrator.core import DiscoverySpaceResource
+    from ado.core import DiscoverySpaceResource
 
     runner = CliRunner()
     create_active_ado_context(
@@ -540,7 +540,7 @@ def test_get_with_use_latest_and_explicit_id(
     ],
 ) -> None:
     """Test that explicit ID takes precedence over --use-latest"""
-    from orchestrator.core import DiscoverySpaceResource
+    from ado.core import DiscoverySpaceResource
 
     runner = CliRunner()
     create_active_ado_context(
@@ -602,7 +602,7 @@ def test_get_with_use_latest_table_format(
     ],
 ) -> None:
     """Test --use-latest with table output format (default)"""
-    from orchestrator.core import DiscoverySpaceResource
+    from ado.core import DiscoverySpaceResource
 
     runner = CliRunner()
     create_active_ado_context(
@@ -650,7 +650,7 @@ def test_get_with_use_latest_name_format(
     ],
 ) -> None:
     """Test --use-latest with name output format"""
-    from orchestrator.core import DiscoverySpaceResource
+    from ado.core import DiscoverySpaceResource
 
     runner = CliRunner()
     create_active_ado_context(

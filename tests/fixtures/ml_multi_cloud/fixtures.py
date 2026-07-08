@@ -9,50 +9,50 @@ from collections.abc import Callable
 import pytest
 import yaml
 
-import orchestrator.core.actuatorconfiguration.config
-import orchestrator.core.discoveryspace.config
-import orchestrator.core.samplestore.csv
-import orchestrator.utilities.location
-from orchestrator.core import (
+import ado.core.actuatorconfiguration.config
+import ado.core.discoveryspace.config
+import ado.core.samplestore.csv
+import ado.utilities.location
+from ado.core import (
     ActuatorConfigurationResource,
     CoreResourceKinds,
     OperationResource,
 )
-from orchestrator.core.discoveryspace.space import DiscoverySpace
-from orchestrator.core.operation.config import (
+from ado.core.discoveryspace.space import DiscoverySpace
+from ado.core.operation.config import (
     DiscoveryOperationEnum,
     DiscoveryOperationResourceConfiguration,
 )
-from orchestrator.core.samplestore.base import ActiveSampleStore
-from orchestrator.core.samplestore.config import (
+from ado.core.samplestore.base import ActiveSampleStore
+from ado.core.samplestore.config import (
     SampleStoreConfiguration,
     SampleStoreReference,
 )
-from orchestrator.core.samplestore.csv import CSVSampleStore
-from orchestrator.core.samplestore.sql import SQLSampleStore
-from orchestrator.metastore.project import ProjectContext
-from orchestrator.metastore.sqlstore import SQLResourceStore, SQLStore
-from orchestrator.modules.actuators.registry import ActuatorRegistry
-from orchestrator.schema.entity import Entity
-from orchestrator.schema.experiment import Experiment
-from orchestrator.schema.observed_property import (
+from ado.core.samplestore.csv import CSVSampleStore
+from ado.core.samplestore.sql import SQLSampleStore
+from ado.metastore.project import ProjectContext
+from ado.metastore.sqlstore import SQLResourceStore, SQLStore
+from ado.modules.actuators.registry import ActuatorRegistry
+from ado.schema.entity import Entity
+from ado.schema.experiment import Experiment
+from ado.schema.observed_property import (
     ObservedProperty,
     ObservedPropertyValue,
 )
-from orchestrator.schema.property import AbstractPropertyDescriptor
-from orchestrator.schema.reference import ExperimentReference
-from orchestrator.schema.request import (
+from ado.schema.property import AbstractPropertyDescriptor
+from ado.schema.reference import ExperimentReference
+from ado.schema.request import (
     MeasurementRequest,
     MeasurementRequestStateEnum,
     ReplayedMeasurement,
 )
-from orchestrator.schema.result import (
+from ado.schema.result import (
     InvalidMeasurementResult,
     MeasurementResult,
     MeasurementResultStateEnum,
     ValidMeasurementResult,
 )
-from orchestrator.utilities.output import pydantic_model_as_yaml
+from ado.utilities.output import pydantic_model_as_yaml
 
 
 @pytest.fixture
@@ -100,10 +100,10 @@ def ml_multi_cloud_csv_sample_store(
     )
 
     return CSVSampleStore(
-        storageLocation=orchestrator.utilities.location.FilePathLocation.model_validate(
+        storageLocation=ado.utilities.location.FilePathLocation.model_validate(
             csv_sample_store_parameters.storageLocation
         ),
-        parameters=orchestrator.core.samplestore.csv.CSVSampleStoreDescription.model_validate(
+        parameters=ado.core.samplestore.csv.CSVSampleStoreDescription.model_validate(
             csv_sample_store_parameters.parameters
         ),
     )
@@ -113,13 +113,17 @@ def ml_multi_cloud_csv_sample_store(
 def ml_multi_cloud_space(
     ml_multi_cloud_sample_store: SQLSampleStore,
     create_space: Callable[
-        [orchestrator.core.discoveryspace.config.DiscoverySpaceConfiguration, str],
+        [ado.core.discoveryspace.config.DiscoverySpaceConfiguration, str],
         DiscoverySpace,
     ],
 ) -> DiscoverySpace:
-    space_configuration = orchestrator.core.discoveryspace.config.DiscoverySpaceConfiguration.model_validate(
-        yaml.safe_load(
-            pathlib.Path("examples/ml-multi-cloud/ml_multicloud_space.yaml").read_text()
+    space_configuration = (
+        ado.core.discoveryspace.config.DiscoverySpaceConfiguration.model_validate(
+            yaml.safe_load(
+                pathlib.Path(
+                    "examples/ml-multi-cloud/ml_multicloud_space.yaml"
+                ).read_text()
+            )
         )
     )
     return create_space(space_configuration, ml_multi_cloud_sample_store.identifier)
@@ -144,15 +148,17 @@ def ml_multi_cloud_operation_configuration(
 @pytest.fixture
 def ml_multi_cloud_correct_actuatorconfiguration(
     create_actuatorconfiguration: Callable[
-        [orchestrator.core.actuatorconfiguration.config.ActuatorConfiguration],
+        [ado.core.actuatorconfiguration.config.ActuatorConfiguration],
         ActuatorConfigurationResource,
     ],
 ) -> ActuatorConfigurationResource:
-    actuator_configuration = orchestrator.core.actuatorconfiguration.config.ActuatorConfiguration.model_validate(
-        yaml.safe_load(
-            pathlib.Path(
-                "tests/resources/replay_actuatorconfiguration.yaml"
-            ).read_text()
+    actuator_configuration = (
+        ado.core.actuatorconfiguration.config.ActuatorConfiguration.model_validate(
+            yaml.safe_load(
+                pathlib.Path(
+                    "tests/resources/replay_actuatorconfiguration.yaml"
+                ).read_text()
+            )
         )
     )
     return create_actuatorconfiguration(actuator_configuration)
@@ -161,13 +167,17 @@ def ml_multi_cloud_correct_actuatorconfiguration(
 @pytest.fixture
 def ml_multi_cloud_invalid_actuatorconfiguration(
     create_actuatorconfiguration: Callable[
-        [orchestrator.core.actuatorconfiguration.config.ActuatorConfiguration],
+        [ado.core.actuatorconfiguration.config.ActuatorConfiguration],
         ActuatorConfigurationResource,
     ],
 ) -> ActuatorConfigurationResource:
-    actuator_configuration = orchestrator.core.actuatorconfiguration.config.ActuatorConfiguration.model_validate(
-        yaml.safe_load(
-            pathlib.Path("tests/resources/mock_actuatorconfiguration.yaml").read_text()
+    actuator_configuration = (
+        ado.core.actuatorconfiguration.config.ActuatorConfiguration.model_validate(
+            yaml.safe_load(
+                pathlib.Path(
+                    "tests/resources/mock_actuatorconfiguration.yaml"
+                ).read_text()
+            )
         )
     )
     return create_actuatorconfiguration(actuator_configuration)

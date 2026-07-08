@@ -7,8 +7,8 @@ from collections.abc import Callable
 
 from typer.testing import CliRunner
 
-from orchestrator.cli.core.cli import app as ado
-from orchestrator.metastore.project import ProjectContext
+from ado.cli.core.cli import app as ado
+from ado.metastore.project import ProjectContext
 
 
 def test_delete_nonexistent_context(

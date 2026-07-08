@@ -6,13 +6,13 @@ import uuid
 
 import ray
 
-from orchestrator.core.discoveryspace.config import DiscoverySpaceConfiguration
-from orchestrator.core.discoveryspace.space import DiscoverySpace
-from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
-from orchestrator.modules.operators.discovery_space_manager import DiscoverySpaceManager
+from ado.core.discoveryspace.config import DiscoverySpaceConfiguration
+from ado.core.discoveryspace.space import DiscoverySpace
+from ado.modules.actuators.measurement_queue import MeasurementQueue
+from ado.modules.operators.discovery_space_manager import DiscoverySpaceManager
 
 if typing.TYPE_CHECKING:
-    from orchestrator.schema.entity import Entity
+    from ado.schema.entity import Entity
 
 
 @ray.remote

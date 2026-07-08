@@ -3,7 +3,7 @@
 
 import pytest
 
-from orchestrator.schema.domain import PropertyDomain, VariableTypeEnum
+from ado.schema.domain import PropertyDomain, VariableTypeEnum
 
 
 @pytest.fixture(

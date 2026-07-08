@@ -6,24 +6,24 @@
 import pydantic
 import pytest
 
-from orchestrator.core.actuatorconfiguration.resource import (
+from ado.core.actuatorconfiguration.resource import (
     ActuatorConfigurationProvenanceInfo,
     ActuatorConfigurationResource,
 )
-from orchestrator.core.discoveryspace.resource import (
+from ado.core.discoveryspace.resource import (
     DiscoverySpaceProvenanceInfo,
     DiscoverySpaceResource,
 )
-from orchestrator.core.metadata import PackageProvenance, ProvenanceInfo
-from orchestrator.core.operation.config import (
+from ado.core.metadata import PackageProvenance, ProvenanceInfo
+from ado.core.operation.config import (
     DiscoveryOperationEnum,
 )
-from orchestrator.core.operation.resource import (
+from ado.core.operation.resource import (
     OperationProvenanceInfo,
     OperationResource,
 )
-from orchestrator.modules.actuators.registry import ActuatorRegistry
-from orchestrator.modules.operators.collections import provenance_for_operator
+from ado.modules.actuators.registry import ActuatorRegistry
+from ado.modules.operators.collections import provenance_for_operator
 
 # ---------------------------------------------------------------------------
 # PackageProvenance model
@@ -77,11 +77,9 @@ def test_package_provenance_from_distribution_name_unknown() -> None:
     )
 
 
-def test_package_provenance_from_module_name_orchestrator() -> None:
-    """from_module_name maps orchestrator modules to ado-core."""
-    prov = PackageProvenance.from_module_name(
-        "orchestrator.modules.operators.randomwalk"
-    )
+def test_package_provenance_from_module_name_ado() -> None:
+    """from_module_name maps ado modules to ado-core."""
+    prov = PackageProvenance.from_module_name("ado.modules.operators.randomwalk")
     assert prov is not None
     assert prov.distributionName == "ado-core"
     assert prov.distributionVersion
@@ -112,7 +110,7 @@ def test_package_provenance_from_module_name_src_layout() -> None:
 def test_package_provenance_from_module_conf_dict() -> None:
     """from_module_conf resolves provenance from a moduleName dict."""
     prov = PackageProvenance.from_module_conf(
-        {"moduleName": "orchestrator.modules.operators.randomwalk"}
+        {"moduleName": "ado.modules.operators.randomwalk"}
     )
     assert prov is not None
     assert prov.distributionName == "ado-core"
@@ -179,7 +177,7 @@ def test_provenance_for_unknown_actuator_returns_none() -> None:
 
 def test_provenance_for_plugin_actuator() -> None:
     """Plugin actuators should resolve a non-ado-core distribution name."""
-    from orchestrator.modules.actuators.registry import ActuatorRegistry
+    from ado.modules.actuators.registry import ActuatorRegistry
 
     registry = ActuatorRegistry.globalRegistry()
     # mock actuator is registered as a plugin in test fixtures
@@ -216,7 +214,7 @@ def test_provenance_for_operator_wrong_type_returns_none() -> None:
 
 def test_operator_metadata_provenance_lifecycle() -> None:
     """OperatorMetadata round-trips provenance through model_dump / model_validate."""
-    from orchestrator.core.operation.config import OperatorMetadata
+    from ado.core.operation.config import OperatorMetadata
 
     class _ExampleConfig(pydantic.BaseModel):
         value: int = 1
@@ -240,7 +238,7 @@ def test_operator_metadata_provenance_lifecycle() -> None:
 
 def test_operator_metadata_has_package_provenance() -> None:
     """OperatorMetadata for random_walk has package provenance set at registration."""
-    from orchestrator.modules.operators.collections import explore
+    from ado.modules.operators.collections import explore
 
     metadata = explore.operators.get("random_walk")
     assert metadata is not None
@@ -251,7 +249,7 @@ def test_operator_metadata_has_package_provenance() -> None:
 
 def test_operator_metadata_version_is_independent_of_package_provenance() -> None:
     """Operator version and package provenance capture different information."""
-    from orchestrator.modules.operators.collections import explore
+    from ado.modules.operators.collections import explore
 
     metadata = explore.operators.get("random_walk")
     assert metadata is not None
@@ -336,7 +334,7 @@ def test_operation_resource_provenance_defaults_empty(
 
 def test_actuator_configuration_resource_provenance_lifecycle() -> None:
     """ActuatorConfigurationResource round-trips nested provenance through model_dump."""
-    from orchestrator.core.actuatorconfiguration.config import ActuatorConfiguration
+    from ado.core.actuatorconfiguration.config import ActuatorConfiguration
 
     config = ActuatorConfiguration(actuatorIdentifier="mock")
     prov = PackageProvenance(distributionName="ado-mock", distributionVersion="0.1.0")
@@ -354,7 +352,7 @@ def test_actuator_configuration_resource_provenance_lifecycle() -> None:
 
 def test_actuator_configuration_resource_provenance_defaults_empty() -> None:
     """ActuatorConfigurationResource created without provenance has empty actuators dict."""
-    from orchestrator.core.actuatorconfiguration.config import ActuatorConfiguration
+    from ado.core.actuatorconfiguration.config import ActuatorConfiguration
 
     config = ActuatorConfiguration(actuatorIdentifier="mock")
     resource = ActuatorConfigurationResource(config=config)

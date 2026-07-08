@@ -4,10 +4,10 @@
 
 import pytest
 
-from orchestrator.core.discoveryspace.space import DiscoverySpace
-from orchestrator.core.operation.config import FunctionOperationInfo
-from orchestrator.core.operation.operation import OperationOutput
-from orchestrator.modules.operators.base import validate_operator_function_signature
+from ado.core.discoveryspace.space import DiscoverySpace
+from ado.core.operation.config import FunctionOperationInfo
+from ado.core.operation.operation import OperationOutput
+from ado.modules.operators.base import validate_operator_function_signature
 
 
 def valid_op(

@@ -4,10 +4,10 @@
 
 import logging
 
-from orchestrator.core.discoveryspace.space import DiscoverySpace
-from orchestrator.core.operation.config import FunctionOperationInfo
-from orchestrator.core.operation.operation import OperationOutput
-from orchestrator.modules.operators.collections import characterize_operation
+from ado.core.discoveryspace.space import DiscoverySpace
+from ado.core.operation.config import FunctionOperationInfo
+from ado.core.operation.operation import OperationOutput
+from ado.modules.operators.collections import characterize_operation
 from trim.samplers.no_priors_utils import get_source_and_target
 from trim.trim_pydantic import (
     TrimParameters,
@@ -53,8 +53,8 @@ def trim(
         OperationOutput containing the operation resources and metadata
     """
     # Lazy import to avoid circular import issues during plugin loading
-    from orchestrator.modules.operators.collections import explore
-    from orchestrator.modules.operators.randomwalk import (
+    from ado.modules.operators.collections import explore
+    from ado.modules.operators.randomwalk import (
         CustomSamplerConfiguration,
         RandomWalkParameters,
         SamplerModuleConf,

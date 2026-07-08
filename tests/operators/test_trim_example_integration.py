@@ -11,22 +11,22 @@ import trim_custom_experiments.experiments  # noqa: F401 — registers ideal-gas
 import yaml
 from testcontainers.mysql import MySqlContainer
 
-import orchestrator.modules.operators.randomwalk  # noqa: F401
-from orchestrator.core.discoveryspace.config import DiscoverySpaceConfiguration
-from orchestrator.core.discoveryspace.space import DiscoverySpace
-from orchestrator.core.operation.resource import (
+import ado.modules.operators.randomwalk  # noqa: F401
+from ado.core.discoveryspace.config import DiscoverySpaceConfiguration
+from ado.core.discoveryspace.space import DiscoverySpace
+from ado.core.operation.resource import (
     OperationExitStateEnum,
     OperationResourceEventEnum,
 )
-from orchestrator.core.resources import ADOResourceEventEnum
-from orchestrator.core.samplestore.config import (
+from ado.core.resources import ADOResourceEventEnum
+from ado.core.samplestore.config import (
     SampleStoreConfiguration,
     SampleStoreModuleConf,
     SampleStoreSpecification,
 )
-from orchestrator.core.samplestore.sql import SQLSampleStore
-from orchestrator.metastore.project import ProjectContext
-from orchestrator.modules.operators.collections import characterize
+from ado.core.samplestore.sql import SQLSampleStore
+from ado.metastore.project import ProjectContext
+from ado.modules.operators.collections import characterize
 
 pytest.importorskip("autogluon")
 
@@ -57,7 +57,7 @@ def trim_minimal_discovery_space(
             specification=SampleStoreSpecification(
                 module=SampleStoreModuleConf(
                     moduleClass="SQLSampleStore",
-                    moduleName="orchestrator.core.samplestore.sql",
+                    moduleName="ado.core.samplestore.sql",
                 ),
             )
         )

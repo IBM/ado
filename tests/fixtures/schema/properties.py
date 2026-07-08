@@ -4,8 +4,8 @@
 
 import pytest
 
-from orchestrator.schema.domain import PropertyDomain, VariableTypeEnum
-from orchestrator.schema.property import (
+from ado.schema.domain import PropertyDomain, VariableTypeEnum
+from ado.schema.property import (
     AbstractPropertyDescriptor,
     ConstitutiveProperty,
 )

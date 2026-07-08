@@ -5,28 +5,28 @@ import re
 import numpy as np
 import pytest
 
-from orchestrator.core.samplestore.csv import CSVSampleStore
-from orchestrator.modules.actuators.registry import ActuatorRegistry
-from orchestrator.schema.entity import (
+from ado.core.samplestore.csv import CSVSampleStore
+from ado.modules.actuators.registry import ActuatorRegistry
+from ado.schema.entity import (
     CheckRequiredConstitutivePropertyValuesPresent,
     Entity,
     entity_identifier_from_properties_and_values,
 )
-from orchestrator.schema.experiment import Experiment, ParameterizedExperiment
-from orchestrator.schema.observed_property import (
+from ado.schema.experiment import Experiment, ParameterizedExperiment
+from ado.schema.observed_property import (
     ObservedProperty,
     ObservedPropertyValue,
 )
-from orchestrator.schema.property import (
+from ado.schema.property import (
     AbstractPropertyDescriptor,
     ConcretePropertyDescriptor,
     ConstitutivePropertyDescriptor,
     MeasuredPropertyTypeEnum,
     NonMeasuredPropertyTypeEnum,
 )
-from orchestrator.schema.reference import ExperimentReference
-from orchestrator.schema.result import ValidMeasurementResult
-from orchestrator.schema.virtual_property import (
+from ado.schema.reference import ExperimentReference
+from ado.schema.result import ValidMeasurementResult
+from ado.schema.virtual_property import (
     PropertyAggregationMethod,
     PropertyAggregationMethodEnum,
     VirtualObservedProperty,

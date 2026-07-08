@@ -21,7 +21,7 @@ from ado_actuators.vllm_performance.k8s.yaml_support.build_components import (
 from kubernetes.client import ApiException
 from pydantic import AfterValidator
 
-from orchestrator.utilities.pydantic import validate_rfc_1123
+from ado.utilities.pydantic import validate_rfc_1123
 
 logger = logging.getLogger(__name__)
 

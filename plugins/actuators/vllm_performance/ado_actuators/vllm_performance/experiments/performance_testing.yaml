@@ -991,6 +991,7 @@ test-text-agent-v1:
     - identifier: "p99_e2el_ms"
   metadata:
     description: 'Test inference performance of an agent-style model deployed by vLLM across compute resource and workload configurations'
+  version: 1.0.0
 test-text-agent-endpoint-v1:
   identifier: test-text-agent-endpoint-v1
   actuatorIdentifier: "vllm_performance"
@@ -1174,3 +1175,4 @@ test-text-agent-endpoint-v1:
     - identifier: "p99_e2el_ms"
   metadata:
     description: 'Test inference performance of an agent-style model served by a vLLM endpoint across inference workload configurations'
+  version: 1.0.0

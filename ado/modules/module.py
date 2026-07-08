@@ -64,6 +64,38 @@ class ModuleConf(pydantic.BaseModel):
         ),
     ] = None
 
+    @classmethod
+    def _warn_legacy_module_name(cls, old_name: str, new_name: str) -> None:
+        """Emit a deprecation warning when a legacy orchestrator.* moduleName is rewritten.
+
+        Subclasses should override this to emit a resource-specific rich
+        callout via warn_deprecated_resource_model_in_use. The base
+        implementation falls back to a plain log warning.
+        """
+        moduleLog.warning(
+            "Legacy moduleName %r has been auto-rewritten to %r. "
+            "Update your resource to use the new name. "
+            "See https://ibm.github.io/ado/migration/1x-to-2x/"
+            "#renamed-python-import-package-orchestrator-ado",
+            old_name,
+            new_name,
+        )
+
+    @pydantic.field_validator("moduleName", mode="before")
+    @classmethod
+    def migrate_orchestrator_module_name(cls, value: str | None) -> str | None:
+        """Rewrite legacy 'orchestrator.*' module names to 'ado.*'.
+
+        Resources stored before the orchestrator→ado rename (commit 5687809)
+        have moduleName values prefixed with 'orchestrator.'. This validator
+        transparently rewrites them so existing stored resources remain usable.
+        """
+        if isinstance(value, str) and value.startswith("orchestrator."):
+            rewritten = "ado." + value[len("orchestrator.") :]
+            cls._warn_legacy_module_name(value, rewritten)
+            return rewritten
+        return value
+
     @pydantic.field_validator("moduleName")
     def set_default_module_name_for_type(
         cls, value: str | None, values: "pydantic.FieldValidationInfo"

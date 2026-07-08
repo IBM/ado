@@ -190,6 +190,24 @@ def validate_actuator_configuration_ids_against_space_ids(
 class OperatorModuleConf(ModuleConf):
     moduleType: Annotated[ModuleTypeEnum, pydantic.Field()] = ModuleTypeEnum.OPERATION
 
+    @classmethod
+    def _warn_legacy_module_name(cls, old_name: str, new_name: str) -> None:
+        from ado.core.resources import (
+            CoreResourceKinds,
+            warn_deprecated_resource_model_in_use,
+        )
+
+        warn_deprecated_resource_model_in_use(
+            affected_resource=CoreResourceKinds.OPERATION,
+            deprecated_from_ado_version="2.0.0",
+            removed_from_ado_version="3.0.0",
+            deprecated_fields="moduleName",
+            latest_format_documentation_url=(
+                "https://ibm.github.io/ado/migration/1x-to-2x/"
+                "#renamed-python-import-package-orchestrator-ado"
+            ),
+        )
+
     @property
     def operationType(self) -> DiscoveryOperationEnum:
         c: type[ado.modules.operators.base.DiscoveryOperationBase] = (

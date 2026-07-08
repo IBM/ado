@@ -27,6 +27,24 @@ class SampleStoreModuleConf(ModuleConf):
         ModuleTypeEnum.SAMPLE_STORE
     )
 
+    @classmethod
+    def _warn_legacy_module_name(cls, old_name: str, new_name: str) -> None:
+        from ado.core.resources import (
+            CoreResourceKinds,
+            warn_deprecated_resource_model_in_use,
+        )
+
+        warn_deprecated_resource_model_in_use(
+            affected_resource=CoreResourceKinds.SAMPLESTORE,
+            deprecated_from_ado_version="2.0.0",
+            removed_from_ado_version="3.0.0",
+            deprecated_fields="moduleName",
+            latest_format_documentation_url=(
+                "https://ibm.github.io/ado/migration/1x-to-2x/"
+                "#renamed-python-import-package-orchestrator-ado"
+            ),
+        )
+
 
 class SampleStoreSpecification(pydantic.BaseModel):
     """Model representing a SampleStore"""

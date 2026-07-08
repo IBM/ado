@@ -93,13 +93,14 @@ def test_package_provenance_from_module_name_unknown() -> None:
 
 
 def test_package_provenance_from_module_name_src_layout() -> None:
-    """from_module_name resolves src-layout editable installs (robotic_lab_actuator).
+    """from_module_name resolves robotic_lab_actuator regardless of install mode.
 
-    robotic_lab is installed as a src-layout editable: hatchling adds
-    plugins/actuators/example_actuator/src to sys.path via a .pth file, so
-    importlib.metadata.packages_distributions() has no entry for
-    'robotic_lab_actuator'. Resolution must fall back to scanning
-    direct_url.json for all distributions.
+    In a locked (dev) install robotic_lab is editable (hatchling adds a .pth
+    file so packages_distributions() has no entry for 'robotic_lab_actuator').
+    In a nonlocked tox install it is non-editable but still has no top_level.txt,
+    so packages_distributions() also misses it on Python 3.10 (which only reads
+    top_level.txt, unlike 3.11+ which also infers from RECORD).
+    Resolution falls back to scanning RECORD files across all distributions.
     """
     prov = PackageProvenance.from_module_name("robotic_lab_actuator.actuator")
     assert prov is not None

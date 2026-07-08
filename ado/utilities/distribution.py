@@ -36,7 +36,11 @@ def distribution_from_module(module_name: str) -> str | None:
     module_path = Path(module.__file__).resolve()
     top_level = module_name.split(".")[0]
 
-    # Get all distributions that provide this top-level package
+    # Get all distributions that provide this top-level package.
+    # packages_distributions() only reads top_level.txt on Python 3.10; on 3.11+
+    # it also infers top-level names from RECORD.  When the distribution has no
+    # top_level.txt (e.g. robotic_lab in a non-editable tox install), the lookup
+    # returns an empty list and we fall through to the broader scans below.
     for dist_name in im.packages_distributions().get(top_level, []):
         dist = im.distribution(dist_name)
 
@@ -83,4 +87,20 @@ def distribution_from_module(module_name: str) -> str | None:
         except Exception:  # noqa: PERF203, S110
             pass
 
-    return most_specific_dist_name
+    if most_specific_dist_name is not None:
+        return most_specific_dist_name
+
+    # Last-resort fallback for non-editable installs whose distribution has no
+    # top_level.txt (Python 3.10 only reads top_level.txt; 3.11+ also infers
+    # from RECORD). Scan all distributions' RECORD files for a direct path match.
+    # This is expensive, so it runs only after all cheaper strategies are exhausted.
+    for dist in im.distributions():
+        for file in dist.files or []:
+            try:
+                file_path = Path(dist.locate_file(file)).resolve()
+                if file_path == module_path:
+                    return dist.metadata["Name"]
+            except Exception:  # noqa: PERF203, S110
+                pass
+
+    return None

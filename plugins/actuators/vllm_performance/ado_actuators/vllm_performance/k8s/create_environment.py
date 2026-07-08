@@ -117,6 +117,11 @@ def create_test_environment(
             n_gpus=n_gpus,
             n_cpus=n_cpus,
             memory=memory,
+            max_batch_tokens=max_batch_tokens,
+            gpu_memory_utilization=gpu_memory_utilization,
+            dtype=dtype,
+            cpu_offload=cpu_offload,
+            max_num_seq=max_num_seq,
             template=deployment_template,
             claim_name=pvc_name,
             hf_token=hf_token,
@@ -125,7 +130,6 @@ def create_test_environment(
             io_processor_plugin=io_processor_plugin,
             otlp_traces_endpoint=otlp_traces_endpoint,
             renderer_num_workers=renderer_num_workers,
-            max_batch_tokens=max_batch_tokens,
         )
         logger.debug(f"Deployment {k8s_name} created")
 

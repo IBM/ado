@@ -43,6 +43,11 @@ def create_test_environment(
     io_processor_plugin: str | None = None,
     otlp_traces_endpoint: pydantic.AnyUrl | None = None,
     renderer_num_workers: int | None = None,
+    reasoning_parser: str | None = None,
+    tool_call_parser: str | None = None,
+    language_model_only: bool = False,
+    enable_auto_tool_choice: bool = False,
+    max_model_len: int | None = None,
     check_interval: int = 5,
     timeout: int = 1200,
 ) -> None:
@@ -75,6 +80,11 @@ def create_test_environment(
     :param renderer_num_workers: number of renderer workers when threadpool is enabled
         when provided
     :param otlp_traces_endpoint: OpenTelemetry traces endpoint URL
+    :param reasoning_parser: vLLM reasoning parser to use (e.g. qwen3, deepseek_r1)
+    :param tool_call_parser: vLLM tool call parser to use (e.g. qwen3_coder, hermes)
+    :param language_model_only: flag to run vLLM in language-model-only mode
+    :param enable_auto_tool_choice: flag to enable automatic tool choice in vLLM
+    :param max_model_len: maximum number of tokens the model can process and remember at once
     :param check_interval: wait interval in seconds
     :param timeout: timeout in seconds
     :return:
@@ -130,6 +140,11 @@ def create_test_environment(
             io_processor_plugin=io_processor_plugin,
             otlp_traces_endpoint=otlp_traces_endpoint,
             renderer_num_workers=renderer_num_workers,
+            reasoning_parser=reasoning_parser,
+            tool_call_parser=tool_call_parser,
+            language_model_only=language_model_only,
+            enable_auto_tool_choice=enable_auto_tool_choice,
+            max_model_len=max_model_len,
         )
         logger.debug(f"Deployment {k8s_name} created")
 

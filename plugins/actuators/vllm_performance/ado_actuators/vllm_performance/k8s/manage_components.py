@@ -276,6 +276,11 @@ class ComponentsManager:
         io_processor_plugin: str | None = None,
         otlp_traces_endpoint: pydantic.AnyUrl | None = None,
         renderer_num_workers: int | None = None,
+        reasoning_parser: str | None = None,
+        tool_call_parser: str | None = None,
+        language_model_only: bool = False,
+        enable_auto_tool_choice: bool = False,
+        max_model_len: int | None = None,
     ) -> None:
         """
         create deployment for model
@@ -300,6 +305,11 @@ class ComponentsManager:
         :param skip_tokenizer_init: flag to skip tokenizer initialization in vLLM
         :param io_processor_plugin: name of the IO processor plugin to be used by vLLM
         :param otlp_traces_endpoint: OpenTelemetry traces endpoint URL
+        :param reasoning_parser: vLLM reasoning parser to use (e.g. qwen3, deepseek_r1)
+        :param tool_call_parser: vLLM tool call parser to use (e.g. qwen3_coder, hermes)
+        :param language_model_only: flag to run vLLM in language-model-only mode
+        :param enable_auto_tool_choice: flag to enable automatic tool choice in vLLM
+        :param max_model_len: maximum number of tokens the model can process and remember at once
         :return:
         """
         if node_selector is None:
@@ -329,6 +339,11 @@ class ComponentsManager:
             enforce_eager=enforce_eager,
             otlp_traces_endpoint=otlp_traces_endpoint,
             renderer_num_workers=renderer_num_workers,
+            reasoning_parser=reasoning_parser,
+            tool_call_parser=tool_call_parser,
+            language_model_only=language_model_only,
+            enable_auto_tool_choice=enable_auto_tool_choice,
+            max_model_len=max_model_len,
         )
         logger.debug(json.dumps(deployment_yaml, indent=2))
 

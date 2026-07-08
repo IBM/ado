@@ -114,6 +114,11 @@ def _build_entity_env(values: dict[str, str]) -> str:
         "cpu_offload": values.get("cpu_offload"),
         "max_num_seq": values.get("max_num_seq"),
         "renderer_num_workers": values.get("renderer_num_workers"),
+        "reasoning_parser": values.get("reasoning_parser"),
+        "tool_call_parser": values.get("tool_call_parser"),
+        "language_model_only": values.get("language_model_only"),
+        "enable_auto_tool_choice": values.get("enable_auto_tool_choice"),
+        "max_model_len": values.get("max_model_len"),
     }
     return json.dumps(env_values)
 
@@ -297,6 +302,14 @@ def _create_environment(
                         renderer_num_workers=(
                             renderer_num_workers if renderer_num_workers > 0 else None
                         ),
+                        reasoning_parser=values.get("reasoning_parser"),
+                        tool_call_parser=values.get("tool_call_parser"),
+                        language_model_only=values.get("language_model_only", 0) == 1,
+                        enable_auto_tool_choice=values.get("enable_auto_tool_choice", 0)
+                        == 1,
+                        max_model_len=int(values["max_model_len"])
+                        if values.get("max_model_len") is not None
+                        else None,
                         check_interval=check_interval,
                         timeout=timeout,
                     )

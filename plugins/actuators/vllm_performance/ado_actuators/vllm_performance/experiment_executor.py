@@ -104,9 +104,7 @@ def _build_entity_env(values: dict[str, str]) -> str:
         * enable_auto_tool_choice
         * max_model_len
         * kv_cache_dtype
-        * quantization
         * enable_prefix_caching
-        * block_size
     Build entity based environment parameters
     :param values: experiment values
     :return: definition
@@ -130,9 +128,7 @@ def _build_entity_env(values: dict[str, str]) -> str:
         "enable_auto_tool_choice": values.get("enable_auto_tool_choice"),
         "max_model_len": values.get("max_model_len"),
         "kv_cache_dtype": values.get("kv_cache_dtype"),
-        "quantization": values.get("quantization"),
         "enable_prefix_caching": values.get("enable_prefix_caching"),
-        "block_size": values.get("block_size"),
     }
     return json.dumps(env_values)
 
@@ -330,16 +326,10 @@ def _create_environment(
                             else None
                         ),
                         kv_cache_dtype=values.get("kv_cache_dtype"),
-                        quantization=values.get("quantization"),
                         enable_prefix_caching=int(
                             values.get("enable_prefix_caching", 0)
                         )
                         == 1,
-                        block_size=(
-                            int(values["block_size"])
-                            if values.get("block_size") is not None
-                            else None
-                        ),
                         check_interval=check_interval,
                         timeout=timeout,
                     )

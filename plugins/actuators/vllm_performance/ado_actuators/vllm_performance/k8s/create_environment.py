@@ -49,9 +49,7 @@ def create_test_environment(
     enable_auto_tool_choice: bool = False,
     max_model_len: int | None = None,
     kv_cache_dtype: str | None = None,
-    quantization: str | None = None,
     enable_prefix_caching: bool = False,
-    block_size: int | None = None,
     check_interval: int = 5,
     timeout: int = 1200,
 ) -> None:
@@ -90,9 +88,7 @@ def create_test_environment(
     :param enable_auto_tool_choice: flag to enable automatic tool choice in vLLM
     :param max_model_len: maximum number of tokens the model can process and remember at once
     :param kv_cache_dtype: KV cache data type (e.g. fp8, turboquant_k8v4); if None, vLLM default is used
-    :param quantization: model weight quantization method (e.g. fp8, awq); if None, vLLM default is used
     :param enable_prefix_caching: flag to enable prefix caching in vLLM
-    :param block_size: token block size for vLLM (e.g. 16, 32); if None, vLLM default is used
     :param check_interval: wait interval in seconds
     :param timeout: timeout in seconds
     :return:
@@ -154,9 +150,7 @@ def create_test_environment(
             enable_auto_tool_choice=enable_auto_tool_choice,
             max_model_len=max_model_len,
             kv_cache_dtype=kv_cache_dtype,
-            quantization=quantization,
             enable_prefix_caching=enable_prefix_caching,
-            block_size=block_size,
         )
 
         logger.debug(f"Deployment {k8s_name} created")

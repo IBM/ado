@@ -291,9 +291,9 @@ class TestBuildEntityEnv:
 
         with_value = {**self._base_values(), "kv_cache_dtype": "fp8"}
         without_value = {**self._base_values(), "kv_cache_dtype": None}
-        assert _build_entity_env(with_value) != _build_entity_env(
-            without_value
-        ), "kv_cache_dtype=fp8 and kv_cache_dtype=None must produce different cache keys"
+        assert _build_entity_env(with_value) != _build_entity_env(without_value), (
+            "kv_cache_dtype=fp8 and kv_cache_dtype=None must produce different cache keys"
+        )
 
     def test_quantization_produces_distinct_key(self) -> None:
         """Entities differing only in quantization must not share a deployment environment."""
@@ -301,9 +301,9 @@ class TestBuildEntityEnv:
 
         with_value = {**self._base_values(), "quantization": "awq"}
         without_value = {**self._base_values(), "quantization": None}
-        assert _build_entity_env(with_value) != _build_entity_env(
-            without_value
-        ), "quantization=awq and quantization=None must produce different cache keys"
+        assert _build_entity_env(with_value) != _build_entity_env(without_value), (
+            "quantization=awq and quantization=None must produce different cache keys"
+        )
 
     def test_enable_prefix_caching_produces_distinct_key(self) -> None:
         """Entities differing only in enable_prefix_caching must not share a deployment environment."""
@@ -311,9 +311,9 @@ class TestBuildEntityEnv:
 
         with_value = {**self._base_values(), "enable_prefix_caching": 1}
         without_value = {**self._base_values(), "enable_prefix_caching": 0}
-        assert _build_entity_env(with_value) != _build_entity_env(
-            without_value
-        ), "enable_prefix_caching=1 and enable_prefix_caching=0 must produce different cache keys"
+        assert _build_entity_env(with_value) != _build_entity_env(without_value), (
+            "enable_prefix_caching=1 and enable_prefix_caching=0 must produce different cache keys"
+        )
 
     def test_block_size_produces_distinct_key(self) -> None:
         """Entities differing only in block_size must not share a deployment environment."""
@@ -321,6 +321,6 @@ class TestBuildEntityEnv:
 
         with_value = {**self._base_values(), "block_size": 32}
         without_value = {**self._base_values(), "block_size": None}
-        assert _build_entity_env(with_value) != _build_entity_env(
-            without_value
-        ), "block_size=32 and block_size=None must produce different cache keys"
+        assert _build_entity_env(with_value) != _build_entity_env(without_value), (
+            "block_size=32 and block_size=None must produce different cache keys"
+        )

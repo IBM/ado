@@ -313,6 +313,15 @@ def _create_environment(
                             if values.get("max_model_len") is not None
                             else None
                         ),
+                        kv_cache_dtype=values.get("kv_cache_dtype"),
+                        quantization=values.get("quantization"),
+                        enable_prefix_caching=values.get("enable_prefix_caching", 0)
+                        == 1,
+                        block_size=(
+                            int(values["block_size"])
+                            if values.get("block_size") is not None
+                            else None
+                        ),
                         check_interval=check_interval,
                         timeout=timeout,
                     )

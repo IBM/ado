@@ -125,6 +125,30 @@ test-deployment-v1:
       propertyDomain:
         variableType: 'CATEGORICAL_VARIABLE_TYPE'
         values: ['random']
+    - identifier: 'kv_cache_dtype'
+      metadata:
+        description: "(deployment) KV cache data type for vLLM (e.g. fp8, turboquant_k8v4). If not set, vLLM uses the default."
+      propertyDomain:
+        variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
+        values: ["fp8"]
+    - identifier: 'quantization'
+      metadata:
+        description: "(deployment) Model weight quantization method for vLLM (e.g. fp8, awq). If not set, vLLM uses the default."
+      propertyDomain:
+        variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
+        values: ["fp8", "awq"]
+    - identifier: 'enable_prefix_caching'
+      metadata:
+        description: "(deployment) When 1, enables prefix caching in vLLM. If not set (0), prefix caching is not enabled."
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        values: [0, 1]
+    - identifier: 'block_size'
+      metadata:
+        description: "(deployment) Token block size for vLLM. Acceptable values: 1, 2, 4, 8, 16, 32, 64, 128. If not set, vLLM uses the default."
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        values: [1, 2, 4, 8, 16, 32, 64, 128]
   defaultParameterization:
     - property:
         identifier: 'image'
@@ -458,6 +482,30 @@ test-deployment-guidellm-v1:
       propertyDomain:
         variableType: 'CATEGORICAL_VARIABLE_TYPE'
         values: ['random']
+    - identifier: 'kv_cache_dtype'
+      metadata:
+        description: "(deployment) KV cache data type for vLLM (e.g. fp8, turboquant_k8v4). If not set, vLLM uses the default."
+      propertyDomain:
+        variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
+        values: ["fp8"]
+    - identifier: 'quantization'
+      metadata:
+        description: "(deployment) Model weight quantization method for vLLM (e.g. fp8, awq). If not set, vLLM uses the default."
+      propertyDomain:
+        variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
+        values: ["fp8", "awq"]
+    - identifier: 'enable_prefix_caching'
+      metadata:
+        description: "(deployment) When 1, enables prefix caching in vLLM. If not set (0), prefix caching is not enabled."
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        values: [0, 1]
+    - identifier: 'block_size'
+      metadata:
+        description: "(deployment) Token block size for vLLM. Acceptable values: 1, 2, 4, 8, 16, 32, 64, 128. If not set, vLLM uses the default."
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        values: [1, 2, 4, 8, 16, 32, 64, 128]
   defaultParameterization:
     - property:
         identifier: 'image'
@@ -831,6 +879,30 @@ test-text-agent-v1:
         variableType: 'DISCRETE_VARIABLE_TYPE'
         domainRange: [1024, 1048577]
         interval: 1024
+    - identifier: 'kv_cache_dtype'
+      metadata:
+        description: "(deployment) KV cache data type for vLLM (e.g. fp8, turboquant_k8v4). If not set, vLLM uses the default."
+      propertyDomain:
+        variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
+        values: ["fp8"]
+    - identifier: 'quantization'
+      metadata:
+        description: "(deployment) Model weight quantization method for vLLM (e.g. fp8, awq). If not set, vLLM uses the default."
+      propertyDomain:
+        variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
+        values: ["fp8", "awq"]
+    - identifier: 'enable_prefix_caching'
+      metadata:
+        description: "(deployment) When 1, enables prefix caching in vLLM. If not set (0), prefix caching is not enabled."
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        values: [0, 1]
+    - identifier: 'block_size'
+      metadata:
+        description: "(deployment) Token block size for vLLM. Acceptable values: 1, 2, 4, 8, 16, 32, 64, 128. If not set, vLLM uses the default."
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        values: [1, 2, 4, 8, 16, 32, 64, 128]
   defaultParameterization:
     - property:
         identifier: 'image'

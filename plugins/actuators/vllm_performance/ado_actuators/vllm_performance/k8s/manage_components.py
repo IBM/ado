@@ -281,6 +281,10 @@ class ComponentsManager:
         language_model_only: bool = False,
         enable_auto_tool_choice: bool = False,
         max_model_len: int | None = None,
+        kv_cache_dtype: str | None = None,
+        quantization: str | None = None,
+        enable_prefix_caching: bool = False,
+        block_size: int | None = None,
     ) -> None:
         """
         create deployment for model
@@ -310,6 +314,10 @@ class ComponentsManager:
         :param language_model_only: flag to run vLLM in language-model-only mode
         :param enable_auto_tool_choice: flag to enable automatic tool choice in vLLM
         :param max_model_len: maximum number of tokens the model can process and remember at once
+        :param kv_cache_dtype: KV cache data type (e.g. fp8, turboquant_k8v4); if None, vLLM default is used
+        :param quantization: model weight quantization method (e.g. fp8, awq); if None, vLLM default is used
+        :param enable_prefix_caching: flag to enable prefix caching in vLLM
+        :param block_size: token block size for vLLM (e.g. 16, 32); if None, vLLM default is used
         :return:
         """
         if node_selector is None:
@@ -344,6 +352,10 @@ class ComponentsManager:
             language_model_only=language_model_only,
             enable_auto_tool_choice=enable_auto_tool_choice,
             max_model_len=max_model_len,
+            kv_cache_dtype=kv_cache_dtype,
+            quantization=quantization,
+            enable_prefix_caching=enable_prefix_caching,
+            block_size=block_size,
         )
         logger.debug(json.dumps(deployment_yaml, indent=2))
 

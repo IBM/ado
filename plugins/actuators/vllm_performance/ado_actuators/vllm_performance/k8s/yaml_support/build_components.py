@@ -99,6 +99,10 @@ class ComponentsYaml:
         language_model_only: bool = False,
         enable_auto_tool_choice: bool = False,
         max_model_len: int | None = None,
+        kv_cache_dtype: str | None = None,
+        quantization: str | None = None,
+        enable_prefix_caching: bool = False,
+        block_size: int | None = None,
     ) -> dict[str, Any]:
         """
         Generate deployment yaml
@@ -128,6 +132,10 @@ class ComponentsYaml:
         :param language_model_only: flag to run vLLM in language-model-only mode
         :param enable_auto_tool_choice: flag to enable automatic tool choice in vLLM
         :param max_model_len: maximum number of tokens the model can process and remember at once
+        :param kv_cache_dtype: KV cache data type (e.g. fp8, turboquant_k8v4); if None, vLLM default is used
+        :param quantization: model weight quantization method (e.g. fp8, awq); if None, vLLM default is used
+        :param enable_prefix_caching: flag to enable prefix caching in vLLM
+        :param block_size: token block size for vLLM (e.g. 16, 32); if None, vLLM default is used
         :return:
         """
         if node_selector is None:
@@ -230,6 +238,14 @@ class ComponentsYaml:
             vllm_serve_args.append("--enable-auto-tool-choice")
         if max_model_len is not None:
             vllm_serve_args.extend(["--max-model-len", str(max_model_len)])
+        if kv_cache_dtype is not None:
+            vllm_serve_args.extend(["--kv-cache-dtype", kv_cache_dtype])
+        if quantization is not None:
+            vllm_serve_args.extend(["--quantization", quantization])
+        if enable_prefix_caching:
+            vllm_serve_args.append("--enable-prefix-caching")
+        if block_size is not None:
+            vllm_serve_args.extend(["--block-size", str(block_size)])
 
         # container
         container = spec["containers"][0]

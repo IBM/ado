@@ -1,6 +1,8 @@
 [project]
 name = "ado-anomalous-series"
-dependencies = []
+dependencies = [
+  "ado-core>=2.0.0",
+]
 dynamic = ["version"]
 
 [project.entry-points."ado.operators"]
@@ -15,6 +17,9 @@ source = "uv-dynamic-versioning"
 
 [tool.hatch.build.targets.wheel]
 packages = ["anomalous_series"]
+
+[tool.uv.sources]
+ado-core = { workspace = true }
 
 [tool.uv-dynamic-versioning]
 vcs = "git"

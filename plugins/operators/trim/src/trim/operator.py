@@ -30,7 +30,7 @@ logger_trim = logging.getLogger(__name__)
                 Retrieves all measured entities from the entity source and samples the others following a certain order.
                 If the number of measured entity is too small, Trim instantiates a no-priors characterization operation.
                 """,
-    version="2.0.0",
+    version="2.0.3",
 )
 def trim(
     discoverySpace: DiscoverySpace = None,  # type: ignore[name-defined]

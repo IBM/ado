@@ -7,7 +7,7 @@ readme = "README.md"
 # ref: https://github.com/autogluon/autogluon/blob/master/core/src/autogluon/core/_setup_utils.py#L22
 requires-python = ">=3.10,<3.14"
 dependencies = [
-  "ado-core",
+  "ado-core>=2.0.0",
   "autogluon-tabular[catboost,xgboost]==1.5.0 ; python_full_version < '3.14'",
   "numpy",
   "pandas>=2.2.0",

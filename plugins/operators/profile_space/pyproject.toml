@@ -5,6 +5,7 @@ requires-python = ">=3.10,<3.14"
 # requires numba<0.63 which is incompatible with
 # Python 3.14
 dependencies = [
+  "ado-core>=2.0.0",
   # AP 02/06/2026:
   # We help uv perform a forked resolution by adding
   # a version marker to this dependency. Since this

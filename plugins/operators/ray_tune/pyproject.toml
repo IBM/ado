@@ -1,6 +1,7 @@
 [project]
 name = "ado-ray-tune"
 dependencies = [
+  "ado-core>=2.0.0",
   "bayesian-optimization>=1.4.0",
   "nevergrad>=1.0.12",
   # Numba added support for Python 3.14 only in
@@ -31,6 +32,9 @@ source = "uv-dynamic-versioning"
 
 [tool.hatch.build.targets.wheel]
 packages = ["ado_ray_tune"]
+
+[tool.uv.sources]
+ado-core = { workspace = true }
 
 [tool.uv-dynamic-versioning]
 vcs = "git"

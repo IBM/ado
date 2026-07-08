@@ -62,18 +62,6 @@ def distribution_from_module(module_name: str) -> str | None:
         except Exception:  # noqa: S110
             pass
 
-    # Fallback for non-editable installs whose distribution has no top_level.txt
-    # (Python 3.10 only reads top_level.txt; 3.11+ also infers from RECORD).
-    # Scan all distributions' RECORD files for a direct path match.
-    for dist in im.distributions():
-        for file in dist.files or []:
-            try:
-                file_path = Path(dist.locate_file(file)).resolve()
-                if file_path == module_path:
-                    return dist.metadata["Name"]
-            except Exception:  # noqa: PERF203, S110
-                pass
-
     # Fallback for src-layout editable installs: packages_distributions() has no
     # entry for the top-level package because hatchling only adds a .pth file
     # (no source files appear in RECORD). Scan all editable distributions and
@@ -99,4 +87,20 @@ def distribution_from_module(module_name: str) -> str | None:
         except Exception:  # noqa: PERF203, S110
             pass
 
-    return most_specific_dist_name
+    if most_specific_dist_name is not None:
+        return most_specific_dist_name
+
+    # Last-resort fallback for non-editable installs whose distribution has no
+    # top_level.txt (Python 3.10 only reads top_level.txt; 3.11+ also infers
+    # from RECORD). Scan all distributions' RECORD files for a direct path match.
+    # This is expensive, so it runs only after all cheaper strategies are exhausted.
+    for dist in im.distributions():
+        for file in dist.files or []:
+            try:
+                file_path = Path(dist.locate_file(file)).resolve()
+                if file_path == module_path:
+                    return dist.metadata["Name"]
+            except Exception:  # noqa: PERF203, S110
+                pass
+
+    return None

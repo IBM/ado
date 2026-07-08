@@ -125,6 +125,7 @@ def create_test_environment(
             io_processor_plugin=io_processor_plugin,
             otlp_traces_endpoint=otlp_traces_endpoint,
             renderer_num_workers=renderer_num_workers,
+            max_batch_tokens=max_batch_tokens,
         )
         logger.debug(f"Deployment {k8s_name} created")
 

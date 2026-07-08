@@ -1,3 +1,11 @@
+## [2.0.0](https://github.com/ibm/ado/compare/b399f29cbc435f0330b54b76a79268b90ffeac68..2.0.0) - 2026-07-08
+#### Features
+- (**core**) add upgrade mechanism for orchestrator references in modules (#1187) - ([47a7977](https://github.com/ibm/ado/commit/47a79776cb5f826a742ae82220fa8cd945a53a13)) - Alessandro Pomponio
+#### Build system
+- (**deps**) update dependencies (#1185) - ([b399f29](https://github.com/ibm/ado/commit/b399f29cbc435f0330b54b76a79268b90ffeac68)) - DRL-NextGen
+
+- - -
+
 ## [1.8.0](https://github.com/ibm/ado/compare/5720867a41f2e829b563070d9a81b50d17f7f687..1.8.0) - 2026-04-27
 #### Features
 - (**autoconf**) log confusion matrix (#743) - ([8bfc15e](https://github.com/ibm/ado/commit/8bfc15e0600e24df7eca89c3c377c7c257598ec5)) - Daniele Lotito

@@ -666,8 +666,8 @@ test-endpoint-guidellm-v1:
     - identifier: "p99_e2el_ms"
   metadata:
     description: 'Test inference performance of a model served by vLLM endpoint using GuideLLM benchmark suite across inference workload configurations'
-test-text-agent-deployment-v1:
-  identifier: test-text-agent-deployment-v1
+test-text-agent-v1:
+  identifier: test-text-agent-v1
   actuatorIdentifier: "vllm_performance"
   requiredProperties:
     - identifier: 'model'
@@ -761,8 +761,8 @@ test-text-agent-deployment-v1:
         description: "(deployment) maximum number of batched tokens per iteration"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [8192, 32769]
-        interval: 1024
+        domainRange: [512, 32769]
+        interval: 512
     - identifier: 'max_num_seq'
       metadata:
         description: "(deployment) Maximum number of sequences per iteration"
@@ -788,7 +788,18 @@ test-text-agent-deployment-v1:
         description: "(benchmark) The dataset to use for the benchmark"
       propertyDomain:
         variableType: 'CATEGORICAL_VARIABLE_TYPE'
-        values: ['random']
+        values: ['random', 'bfcl']
+    - identifier: 'bfcl_categories'
+      metadata:
+        description: "(benchmark) Comma-separated BFCL category names to use when dataset=bfcl"
+      propertyDomain:
+        variableType: 'CATEGORICAL_VARIABLE_TYPE'
+        values:
+          - 'simple'
+          - 'multiple'
+          - 'live_simple'
+          - 'simple,multiple'
+          - 'simple,live_simple,multiple'
     - identifier: 'reasoning_parser'
       metadata:
         description: "(deployment) vLLM reasoning parser to use for agent-style models"
@@ -823,7 +834,7 @@ test-text-agent-deployment-v1:
   defaultParameterization:
     - property:
         identifier: 'image'
-      value: "vllm/vllm-openai:v0.14.0"
+      value: "vllm/vllm-openai:v0.24.0"
     - property:
         identifier: n_cpus
       value: 8
@@ -884,6 +895,9 @@ test-text-agent-deployment-v1:
     - property:
         identifier: 'max_model_len'
       value: 262144
+    - property:
+        identifier: 'bfcl_categories'
+      value: 'simple'
   # measurements
   targetProperties:
     - identifier: "duration"
@@ -987,7 +1001,18 @@ test-text-agent-endpoint-v1:
         description: "The dataset to use for the benchmark"
       propertyDomain:
         variableType: 'CATEGORICAL_VARIABLE_TYPE'
-        values: ['random']
+        values: ['random', 'bfcl']
+    - identifier: 'bfcl_categories'
+      metadata:
+        description: "(benchmark) Comma-separated BFCL category names to use when dataset=bfcl"
+      propertyDomain:
+        variableType: 'CATEGORICAL_VARIABLE_TYPE'
+        values:
+          - 'simple'
+          - 'multiple'
+          - 'live_simple'
+          - 'simple,multiple'
+          - 'simple,live_simple,multiple'
     - identifier: 'reasoning_parser'
       metadata:
         description: "(deployment) vLLM reasoning parser to use for agent-style models"
@@ -1053,6 +1078,9 @@ test-text-agent-endpoint-v1:
     - value: 262144
       property:
         identifier: 'max_model_len'
+    - value: 'simple'
+      property:
+        identifier: 'bfcl_categories'
   # measurements
   targetProperties:
     - identifier: "duration"

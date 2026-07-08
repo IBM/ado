@@ -37,6 +37,7 @@ from ado_actuators.vllm_performance.vllm_performance_test.benchmark_models impor
 )
 from ado_actuators.vllm_performance.vllm_performance_test.execute_benchmark import (
     VLLMBenchmarkError,
+    execute_bfcl_benchmark,
     execute_geospatial_benchmark,
     execute_random_benchmark,
 )
@@ -307,9 +308,11 @@ def _create_environment(
                         language_model_only=values.get("language_model_only", 0) == 1,
                         enable_auto_tool_choice=values.get("enable_auto_tool_choice", 0)
                         == 1,
-                        max_model_len=int(values["max_model_len"])
-                        if values.get("max_model_len") is not None
-                        else None,
+                        max_model_len=(
+                            int(values["max_model_len"])
+                            if values.get("max_model_len") is not None
+                            else None
+                        ),
                         check_interval=check_interval,
                         timeout=timeout,
                     )
@@ -566,6 +569,21 @@ def run_resource_and_workload_experiment(
                     dataset=benchmark_parameters.dataset,
                     burstiness=benchmark_parameters.burstiness,
                 )
+            elif benchmark_parameters.dataset == "bfcl":
+                logger.info("Using vLLM BFCL benchmark for deployment")
+                result = execute_bfcl_benchmark(
+                    base_url=benchmark_parameters.endpoint,
+                    model=benchmark_parameters.model,
+                    bfcl_categories=benchmark_parameters.bfcl_categories
+                    or "simple,live_simple,multiple",
+                    num_prompts=benchmark_parameters.num_prompts,
+                    request_rate=benchmark_parameters.request_rate,
+                    max_concurrency=benchmark_parameters.max_concurrency,
+                    hf_token=actuator_parameters.hf_token,
+                    benchmark_retries=actuator_parameters.benchmark_retries,
+                    retries_timeout=actuator_parameters.retries_timeout,
+                    burstiness=benchmark_parameters.burstiness,
+                )
             else:
                 logger.info("Using vLLM random benchmark for deployment")
                 result = execute_random_benchmark(
@@ -732,6 +750,21 @@ def run_workload_experiment(
                     number_input_tokens=benchmark_parameters.number_input_tokens,
                     max_output_tokens=benchmark_parameters.max_output_tokens,
                     dataset=benchmark_parameters.dataset,
+                    burstiness=benchmark_parameters.burstiness,
+                )
+            elif benchmark_parameters.dataset == "bfcl":
+                logger.info("Using vLLM BFCL benchmark for endpoint")
+                result = execute_bfcl_benchmark(
+                    base_url=benchmark_parameters.endpoint,
+                    model=benchmark_parameters.model,
+                    bfcl_categories=benchmark_parameters.bfcl_categories
+                    or "simple,live_simple,multiple",
+                    num_prompts=benchmark_parameters.num_prompts,
+                    request_rate=benchmark_parameters.request_rate,
+                    max_concurrency=benchmark_parameters.max_concurrency,
+                    hf_token=actuator_parameters.hf_token,
+                    benchmark_retries=actuator_parameters.benchmark_retries,
+                    retries_timeout=actuator_parameters.retries_timeout,
                     burstiness=benchmark_parameters.burstiness,
                 )
             else:

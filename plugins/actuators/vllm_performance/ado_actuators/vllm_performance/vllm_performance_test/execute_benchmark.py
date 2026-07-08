@@ -291,6 +291,61 @@ def execute_geospatial_benchmark(
     )
 
 
+BFCL_DATASET_PATH = "gorilla-llm/Berkeley-Function-Calling-Leaderboard"
+
+
+def execute_bfcl_benchmark(
+    base_url: str,
+    model: str,
+    bfcl_categories: str,
+    num_prompts: int = 500,
+    request_rate: int | None = None,
+    max_concurrency: int | None = None,
+    hf_token: str | None = None,
+    benchmark_retries: int = 3,
+    retries_timeout: int = 5,
+    burstiness: float = 1,
+) -> BenchmarkResult:
+    """
+    Execute benchmark with the Berkeley Function-Calling Leaderboard (BFCL) dataset.
+
+    Uses --backend openai-chat and --endpoint /v1/chat/completions (hardcoded).
+    The dataset path is always gorilla-llm/Berkeley-Function-Calling-Leaderboard.
+
+    :param base_url: url for vllm endpoint
+    :param model: model
+    :param bfcl_categories: comma-separated BFCL category names
+        (e.g. "simple,live_simple,multiple")
+    :param num_prompts: number of prompts
+    :param request_rate: request rate
+    :param max_concurrency: maximum number of concurrent requests
+    :param hf_token: huggingface token
+    :param benchmark_retries: number of benchmark execution retries
+    :param retries_timeout: timeout between initial retry
+    :param burstiness: burstiness factor of the request generation, 0 < burstiness < 1
+
+    :return: BenchmarkResult instance
+    """
+    return execute_benchmark(
+        base_url=base_url,
+        backend="openai-chat",
+        model=model,
+        dataset="hf",
+        dataset_path=BFCL_DATASET_PATH,
+        num_prompts=num_prompts,
+        request_rate=request_rate,
+        max_concurrency=max_concurrency,
+        hf_token=hf_token,
+        benchmark_retries=benchmark_retries,
+        retries_timeout=retries_timeout,
+        burstiness=burstiness,
+        custom_args={
+            "--endpoint": "/v1/chat/completions",
+            "--bfcl-categories": bfcl_categories,
+        },
+    )
+
+
 if __name__ == "__main__":
     results = execute_geospatial_benchmark(
         base_url="http://localhost:8000",

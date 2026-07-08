@@ -86,6 +86,164 @@ def _make_default_row(
     return pd.DataFrame([row])
 
 
+def handle_missing_target_output(
+    one_additional_row: pd.DataFrame,
+    entity: Entity,
+    discoverySpace: DiscoverySpace,
+    additional_info: str,
+    *,
+    params: TrimParameters,
+    current_source_df: pd.DataFrame,
+    missing_count: int,
+) -> tuple[pd.DataFrame, bool, pd.DataFrame, int]:
+    """Apply the missing-target policy for an entity not found in ``current_source_df``.
+
+    Raises on ``RaiseError``, injects a default row and returns ``skip=False``
+    on ``InjectDefaultValue``, or returns ``skip=True`` on ``Skip``.
+
+    Args:
+        one_additional_row: Row DataFrame for the entity (may be empty).
+        entity: The entity that did not produce a target measurement.
+        discoverySpace: The active discovery space.
+        additional_info: Context string appended to error messages.
+        params: The active TrimParameters.
+        current_source_df: The current source DataFrame (may be mutated).
+        missing_count: Running count of entities with missing target measurements.
+
+    Returns:
+        ``(one_additional_row, skip, current_source_df, missing_count)`` —
+        ``skip=True`` means the entity should be dropped from the current iteration.
+    """
+    if entity_hit_in_source(entity, current_source_df):
+        return one_additional_row, False, current_source_df, missing_count
+
+    mode = params.missingTargetVariables.mode
+    entity_id = entity.identifier  # always set after check_identifier validator
+
+    missing_count = record_missing_and_check_budget(
+        params=params,
+        entity_id=entity_id,  # type: ignore[arg-type]
+        missing_count=missing_count,
+        discoverySpace=discoverySpace,
+        additional_info=additional_info,
+    )
+
+    if mode == MissingTargetMode.InjectDefaultValue:
+        logger_trim_sampler.info(
+            f"Entity '{entity_id}' did not produce a measurement for "
+            f"target variable '{params.targetOutput}'. "
+            f"Injecting default value {params.missingTargetVariables.defaultValue}."
+        )
+        one_additional_row = _make_default_row(
+            entity,
+            params.targetOutput,
+            params.missingTargetVariables.defaultValue,  # type: ignore[arg-type]
+        )
+        current_source_df = pd.concat(
+            [current_source_df, one_additional_row], ignore_index=True
+        )
+        return one_additional_row, False, current_source_df, missing_count
+
+    # MissingTargetMode.Skip
+    logger_trim_sampler.info(
+        f"Entity '{entity_id}' did not produce a measurement for "
+        f"target variable '{params.targetOutput}'. Skipping entity."
+    )
+    return one_additional_row, True, current_source_df, missing_count
+
+
+def entity_to_dataframe_row(
+    entity: Entity,
+    discoverySpace: DiscoverySpace,
+    additional_info: str,
+    *,
+    params: TrimParameters,
+    current_source_df: pd.DataFrame,
+    missing_count: int,
+) -> tuple[pd.DataFrame, bool, pd.DataFrame, int]:
+    """Convert an entity to a DataFrame row, applying missingTargetProperty mode
+    when the entity did not measure the targetOutput.
+
+    Also returns an updated ``current_source_df`` with the new measured or
+    synthetic row appended.
+
+    Args:
+        entity: The entity that was just yielded and measured.
+        discoverySpace: The active discovery space.
+        additional_info: Context string forwarded to the error helper.
+        params: The active TrimParameters.
+        current_source_df: The current source DataFrame (may be mutated).
+        missing_count: Running count of entities with missing target measurements.
+
+    Returns:
+        ``(one_additional_row, skip, current_source_df, missing_count)``
+        ``one_additional_row`` is the DataFrame row representing the entity
+        (measured or synthetic); ``skip=True`` means the entity produced no
+        usable measurement and should be dropped.
+    """
+    hit, series = entity_measured_target(entity, discoverySpace, params.targetOutput)
+
+    if hit:
+        one_additional_row = series.to_frame().T.reset_index(drop=True)
+        current_source_df = pd.concat(
+            [current_source_df, one_additional_row], ignore_index=True
+        )
+        return one_additional_row, False, current_source_df, missing_count
+
+    # Target missing — pass the current source into _handle_missing_target_row
+    # so it can apply RaiseError / InjectDefaultValue / Skip without
+    # re-fetching the full DataFrame from the store.
+    one_additional_row = entity_row_in_source(entity, current_source_df)
+    return handle_missing_target_output(
+        one_additional_row=one_additional_row,
+        entity=entity,
+        discoverySpace=discoverySpace,
+        additional_info=additional_info,
+        params=params,
+        current_source_df=current_source_df,
+        missing_count=missing_count,
+    )
+
+
+def get_unmeasured_entities_in_no_priors(
+    discoverySpace: DiscoverySpace,
+    params: TrimParameters,
+) -> list[Entity]:
+    """Return entities from the no-priors operation that produced no target measurement.
+
+    Uses ``params.no_priors_operation_id`` to query the measurement requests
+    recorded for the no-priors phase, then filters to those whose entity has
+    no valid measurement for the target output.
+
+    Returns an empty list when ``no_priors_operation_id`` is ``None`` (i.e.
+    no no-priors phase was run).
+
+    Args:
+        discoverySpace: The active discovery space.
+        params: The active TrimParameters.
+
+    Returns:
+        List of Entity objects that did not produce a target measurement.
+    """
+    op_id = params.no_priors_operation_id
+    if op_id is None:
+        return []
+
+    requests = discoverySpace.measurement_requests_for_operation(op_id)
+    no_target = [
+        entity
+        for req in requests
+        for entity in req.entities
+        if not entity_measured_target(entity, discoverySpace, params.targetOutput)[0]
+    ]
+    if no_target:
+        logger_trim_sampler.warning(
+            f"TrimSampleSelector: {len(no_target)} entities from no-priors phase "
+            "produced no target measurement."
+        )
+    return no_target
+
+
 # NOTE: to repeat the operation on the same space you can delete the operation
 # but first make sure that the output of this operation is not used by another operation
 class TrimSampleSelector(BaseSampler):
@@ -116,149 +274,8 @@ class TrimSampleSelector(BaseSampler):
             )
             await debug_dir.mkdir(parents=True, exist_ok=True)
 
-    def _handle_missing_target_row(
+    def _handle_new_measured_or_default_injected_entity(
         self,
-        one_additional_row: pd.DataFrame,
-        entity: Entity,
-        discoverySpace: DiscoverySpace,
-        additional_info: str,
-    ) -> tuple[pd.DataFrame, bool]:
-        """Apply the missing-target policy for an entity not found in ``current_source_df``.
-
-        Raises on ``RaiseError``, injects a default row and returns ``skip=False``
-        on ``InjectDefaultValue``, or returns ``skip=True`` on ``Skip``.
-
-        Args:
-            one_additional_row: Row DataFrame for the entity (may be empty).
-            entity: The entity that did not produce a target measurement.
-            discoverySpace: The active discovery space.
-            additional_info: Context string appended to error messages.
-
-        Returns:
-            ``(one_additional_row, skip)`` — ``skip=True`` means the entity
-            should be dropped from the current iteration.
-        """
-        if entity_hit_in_source(entity, self.current_source_df):
-            return one_additional_row, False
-
-        mode = self.params.missingTargetVariables.mode
-        entity_id = entity.identifier  # always set after check_identifier validator
-
-        self._missing_count = record_missing_and_check_budget(
-            params=self.params,
-            entity_id=entity_id,  # type: ignore[arg-type]
-            missing_count=self._missing_count,
-            discoverySpace=discoverySpace,
-            additional_info=additional_info,
-        )
-
-        if mode == MissingTargetMode.InjectDefaultValue:
-            logger_trim_sampler.info(
-                f"Entity '{entity_id}' did not produce a measurement for "
-                f"target variable '{self.params.targetOutput}'. "
-                f"Injecting default value {self.params.missingTargetVariables.defaultValue}."
-            )
-            one_additional_row = _make_default_row(
-                entity,
-                self.params.targetOutput,
-                self.params.missingTargetVariables.defaultValue,  # type: ignore[arg-type]
-            )
-            self.current_source_df = pd.concat(
-                [self.current_source_df, one_additional_row], ignore_index=True
-            )
-            return one_additional_row, False
-
-        # MissingTargetMode.Skip
-        logger_trim_sampler.info(
-            f"Entity '{entity_id}' did not produce a measurement for "
-            f"target variable '{self.params.targetOutput}'. Skipping entity."
-        )
-        return one_additional_row, True
-
-    def _did_entity_measure_target_output(
-        self,
-        entity: Entity,
-        discoverySpace: DiscoverySpace,
-        additional_info: str,
-    ) -> tuple[pd.DataFrame, bool]:
-        """Check whether a just-yielded entity produced a target measurement.
-
-        Appends the new row to ``current_source_df`` on a hit. On a miss,
-        delegates to ``_handle_missing_target_row`` to apply the configured
-        missing-target policy.
-
-        Args:
-            entity: The entity that was just yielded and measured.
-            discoverySpace: The active discovery space.
-            additional_info: Context string forwarded to the error helper.
-
-        Returns:
-            ``(one_additional_row, skip)`` — ``skip=True`` means the entity
-            produced no usable measurement and should be dropped.
-        """
-        hit, series = entity_measured_target(
-            entity, discoverySpace, self.params.targetOutput
-        )
-
-        if hit:
-            one_additional_row = series.to_frame().T.reset_index(drop=True)
-            self.current_source_df = pd.concat(
-                [self.current_source_df, one_additional_row], ignore_index=True
-            )
-            return one_additional_row, False
-
-        # Target missing — pass the current source into _handle_missing_target_row
-        # so it can apply RaiseError / InjectDefaultValue / Skip without
-        # re-fetching the full DataFrame from the store.
-        one_additional_row = entity_row_in_source(entity, self.current_source_df)
-        return self._handle_missing_target_row(
-            one_additional_row=one_additional_row,
-            entity=entity,
-            discoverySpace=discoverySpace,
-            additional_info=additional_info,
-        )
-
-    def _no_target_entities_from_no_priors(
-        self, discoverySpace: DiscoverySpace
-    ) -> list[Entity]:
-        """Return entities from the no-priors operation that produced no target measurement.
-
-        Uses ``params.no_priors_operation_id`` to query the measurement requests
-        recorded for the no-priors phase, then filters to those whose entity has
-        no valid measurement for the target output.
-
-        Returns an empty list when ``no_priors_operation_id`` is ``None`` (i.e.
-        no no-priors phase was run).
-
-        Args:
-            discoverySpace: The active discovery space.
-
-        Returns:
-            List of Entity objects that did not produce a target measurement.
-        """
-        op_id = self.params.no_priors_operation_id
-        if op_id is None:
-            return []
-
-        requests = discoverySpace.measurement_requests_for_operation(op_id)
-        no_target = [
-            entity
-            for req in requests
-            for entity in req.entities
-            if not entity_measured_target(
-                entity, discoverySpace, self.params.targetOutput
-            )[0]
-        ]
-        if no_target:
-            logger_trim_sampler.warning(
-                f"TrimSampleSelector: {len(no_target)} entities from no-priors phase "
-                "produced no target measurement."
-            )
-        return no_target
-
-    def _handle_new_measured_entity(
-        self,
-        entity: Entity,
         discoverySpace: DiscoverySpace,
         row_entity: pd.DataFrame,
     ) -> bool:
@@ -268,9 +285,9 @@ class TrimSampleSelector(BaseSampler):
         once enough data has been collected.
 
         Args:
-            entity: The entity whose measurement was just confirmed.
             discoverySpace: The active discovery space.
-            row_entity: The measured (or synthetic) row for this entity.
+            row_entity: The measured (or synthetic) row for the entity that was j
+                ust measured (or default-injected)
 
         Returns:
             ``True`` if the stopping criterion was triggered, ``False`` otherwise.
@@ -303,15 +320,6 @@ class TrimSampleSelector(BaseSampler):
                 iter_index=self.kept_count,
                 params=self.params,
             )
-            return False
-        # kept_count > self.params.iterationSize
-        row_entity, skip = self._handle_missing_target_row(
-            one_additional_row=row_entity,
-            entity=entity,
-            discoverySpace=discoverySpace,
-            additional_info=f"Detected during Iterative Modeling, when the training DataFrame size is {len(self.train_df)}.",
-        )
-        if skip:
             return False
 
         current_holdout_df = pd.DataFrame(self.yielded_rows.df)
@@ -529,7 +537,9 @@ class TrimSampleSelector(BaseSampler):
         holds, so no refresh is needed.
         """
         # Filter entities that no-priors already flagged as unable to yield a target.
-        no_target_entities = self._no_target_entities_from_no_priors(discoverySpace)
+        no_target_entities = get_unmeasured_entities_in_no_priors(
+            discoverySpace, self.params
+        )
         skip_set = {e.identifier for e in no_target_entities}
         if skip_set:
             logger_trim_sampler.warning(
@@ -614,10 +624,15 @@ class TrimSampleSelector(BaseSampler):
         yield list_of_entities[0:1]
 
         for entity in list_of_entities[1:]:
-            one_additional_row, skip = self._did_entity_measure_target_output(
-                entity=last_entity,
-                discoverySpace=discoverySpace,
-                additional_info=f"Detected during Iterative Modeling (first entity), when the source space size is {len(self.train_df)}.",
+            one_additional_row, skip, self.current_source_df, self._missing_count = (
+                entity_to_dataframe_row(
+                    entity=last_entity,
+                    discoverySpace=discoverySpace,
+                    additional_info=f"Detected during Iterative Modeling (first entity), when the source space size is {len(self.train_df)}.",
+                    params=self.params,
+                    current_source_df=self.current_source_df,
+                    missing_count=self._missing_count,
+                )
             )
 
             if skip:
@@ -626,8 +641,7 @@ class TrimSampleSelector(BaseSampler):
                 yield [entity]
                 continue
 
-            stop = self._handle_new_measured_entity(
-                entity=last_entity,
+            stop = self._handle_new_measured_or_default_injected_entity(
                 discoverySpace=discoverySpace,
                 row_entity=one_additional_row,
             )
@@ -641,15 +655,19 @@ class TrimSampleSelector(BaseSampler):
 
         # If we got here, this means that we yielded the very last Entity and need to handle it
         if last_entity is not None:
-            one_additional_row, skip = self._did_entity_measure_target_output(
-                entity=last_entity,
-                discoverySpace=discoverySpace,
-                additional_info=f"Detected during Iterative Modeling ({self.kept_count+1} entity), when the source space size is {len(self.train_df)}.",
+            one_additional_row, skip, self.current_source_df, self._missing_count = (
+                entity_to_dataframe_row(
+                    entity=last_entity,
+                    discoverySpace=discoverySpace,
+                    additional_info=f"Detected during Iterative Modeling ({self.kept_count + 1} entity), when the source space size is {len(self.train_df)}.",
+                    params=self.params,
+                    current_source_df=self.current_source_df,
+                    missing_count=self._missing_count,
+                )
             )
 
             if not skip:
-                self._handle_new_measured_entity(
-                    entity=last_entity,
+                self._handle_new_measured_or_default_injected_entity(
                     discoverySpace=discoverySpace,
                     row_entity=one_additional_row,
                 )
@@ -860,7 +878,9 @@ class TrimSampleSelector(BaseSampler):
             self.params.missingTargetVariables.mode
             == MissingTargetMode.InjectDefaultValue
         ):
-            no_target_entities = self._no_target_entities_from_no_priors(discoverySpace)
+            no_target_entities = get_unmeasured_entities_in_no_priors(
+                discoverySpace, self.params
+            )
             if no_target_entities:
                 default_val = self.params.missingTargetVariables.defaultValue
                 default_rows = [

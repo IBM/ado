@@ -5,7 +5,7 @@
 </code></pre></div> <p>These options are interchangeable and can be used depending on your workflow or preference.</p> <h3 id=copying-data-into-a-samplestore>Copying data into a samplestore<a class=headerlink href=#copying-data-into-a-samplestore title="Permanent link">&para;</a></h3> <p>You can specify data to be copied into a new <code>samplestore</code> resource on creation. The data comes from other Sample Stores. The general structure of the YAML when copying from other sample stores is:</p> <div class=highlight><pre><span></span><code><span class=nt>specification</span><span class=p>:</span>
 <span class=w>  </span><span class=nt>module</span><span class=p>:</span>
 <span class=w>    </span><span class=nt>moduleClass</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">SQLSampleStore</span>
-<span class=w>    </span><span class=nt>moduleName</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">orchestrator.core.samplestore.sql</span>
+<span class=w>    </span><span class=nt>moduleName</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">ado.core.samplestore.sql</span>
 <span class=nt>copyFrom</span><span class=p>:</span><span class=w> </span><span class=c1># An array of Sample Stores data will be copied from</span>
 <span class=w>  </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>identifier</span><span class=p>:</span><span class=w> </span><span class=c1># Optional, the id of the Sample Store if not given in the storageLocation</span>
 <span class=w>    </span><span class=nt>module</span><span class=p>:</span><span class=w> </span><span class=c1># The type of this Sample Store</span>
@@ -15,7 +15,7 @@
 <span class=w>    </span><span class=nt>storageLocation</span><span class=p>:</span><span class=w> </span><span class=c1># The location of this Sample Store</span>
 </code></pre></div> <p>The <a href=#sample-store-types>Sample Store types</a> section details how to fill the above fields for the different available Sample Store. Here is an example of copying data from a CSV file using <code>CSVSampleStore</code>:</p> <div class=highlight><pre><span></span><code><span class=nt>specification</span><span class=p>:</span>
 <span class=w>  </span><span class=nt>module</span><span class=p>:</span>
-<span class=w>    </span><span class=nt>moduleName</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">orchestrator.core.samplestore.sql</span>
+<span class=w>    </span><span class=nt>moduleName</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">ado.core.samplestore.sql</span>
 <span class=w>    </span><span class=nt>moduleClass</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">SQLSampleStore</span>
 <span class=nt>copyFrom</span><span class=p>:</span>
 <span class=w>  </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>module</span><span class=p>:</span>
@@ -37,7 +37,7 @@
 <span class=w>  </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>identifier</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">source_abc123</span>
 <span class=w>    </span><span class=nt>module</span><span class=p>:</span>
 <span class=w>      </span><span class=nt>moduleClass</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">SQLSampleStore</span>
-<span class=w>      </span><span class=nt>moduleName</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">orchestrator.core.samplestore.sql</span>
+<span class=w>      </span><span class=nt>moduleName</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">ado.core.samplestore.sql</span>
 <span class=w>    </span><span class=nt>storageLocation</span><span class=p>:</span>
 <span class=w>      </span><span class=nt>host</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">localhost</span>
 <span class=w>      </span><span class=nt>port</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">30002</span>
@@ -47,7 +47,7 @@
 </code></pre></div> <h3 id=csvsamplestore>CSVSampleStore<a class=headerlink href=#csvsamplestore title="Permanent link">&para;</a></h3> <p>This is a passive Sample Store that can be used to extract entities from a CSV file. It is assumed each row is an entity and the columns are constitutive properties or observed properties.</p> <h4 id=importing-data-from-external-experiments>Importing data from external experiments<a class=headerlink href=#importing-data-from-external-experiments title="Permanent link">&para;</a></h4> <p>The below YAML illustrates importing data from a CSV for an experiment which is not provided by an installed <code>ado</code> actuator.</p> <div class=highlight><pre><span></span><code><span class=nt>copyFrom</span><span class=p>:</span>
 <span class=w>  </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>module</span><span class=p>:</span>
 <span class=w>      </span><span class=nt>moduleClass</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">CSVSampleStore</span>
-<span class=w>      </span><span class=nt>moduleName</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">orchestrator.core.samplestore.csv</span>
+<span class=w>      </span><span class=nt>moduleName</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">ado.core.samplestore.csv</span>
 <span class=w>    </span><span class=nt>storageLocation</span><span class=p>:</span>
 <span class=w>      </span><span class=nt>path</span><span class=p>:</span><span class=w> </span><span class=s>&#39;examples/ml-multi-cloud/ml_export.csv&#39;</span><span class="l l-Scalar l-Scalar-Plain">.</span><span class=w> </span><span class=c1># The path to the CSV file</span>
 <span class=w>    </span><span class=nt>parameters</span><span class=p>:</span>
@@ -68,7 +68,7 @@
 </code></pre></div> <p>This reads from CSV columns <code>wall-clock runtime</code> and <code>requests_per_sec</code>, but names them <code>wallClockRuntime</code> and <code>throughput</code> in the experiment.</p> <h4 id=importing-data-from-existing-actuators>Importing data from existing actuators<a class=headerlink href=#importing-data-from-existing-actuators title="Permanent link">&para;</a></h4> <p>When importing CSV data that was exported from <code>ado</code> or contains results from an actuator available in your current instance, you can reference the actual actuator and experiment identifiers. The property mappings (<code>observedPropertyMap</code> and <code>constitutivePropertyMap</code>) become optional because <code>ado</code> can automatically infer the correct column mappings from the actuator's experiment definition.</p> <div class=highlight><pre><span></span><code><span class=nt>copyFrom</span><span class=p>:</span>
 <span class=w>  </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>module</span><span class=p>:</span>
 <span class=w>      </span><span class=nt>moduleClass</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">CSVSampleStore</span>
-<span class=w>      </span><span class=nt>moduleName</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">orchestrator.core.samplestore.csv</span>
+<span class=w>      </span><span class=nt>moduleName</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">ado.core.samplestore.csv</span>
 <span class=w>    </span><span class=nt>storageLocation</span><span class=p>:</span>
 <span class=w>      </span><span class=nt>path</span><span class=p>:</span><span class=w> </span><span class=s>&quot;results_export.csv&quot;</span>
 <span class=w>    </span><span class=nt>parameters</span><span class=p>:</span>

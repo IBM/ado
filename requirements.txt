@@ -430,9 +430,9 @@ fastapi==0.136.3 \
     --hash=sha256:3d2a69bdf04b7e9f3afa292c3bc7a98816bbfafa10bc9b45f3f3700d2f761620 \
     --hash=sha256:e487fae93ad408e6f47641ee4dfe389864fd7bec92e547ea8498fc13f43e83ab
     # via ray
-filelock==3.29.5 \
-    --hash=sha256:6e6034c57a00a020e767f2614a5539863f056de7e7991d6d1473aef7ff73f156 \
-    --hash=sha256:8af830889ba3a0ffcefbd6c7d2af8a54012058103771f2e10848222f476a1693
+filelock==3.29.7 \
+    --hash=sha256:5b481979797ae69e72f0b389d89a80bdd585c260c5b3f1fb9c0a5ba9bb3f195d \
+    --hash=sha256:987db6f789a3a2a59f55081801b2b3697cb97e2a736b5f1a9e99b559285fbc51
     # via
     #   python-discovery
     #   ray

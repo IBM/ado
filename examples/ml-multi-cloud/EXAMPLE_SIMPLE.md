@@ -39,10 +39,10 @@
 > To create the `discoveryspace` and explore it with a random walk execute:
 >
 > ```bash
-> : # Create the space to explore
+> : # Create the space to explore (also creates the samplestore)
 > ado create space -f ml_multicloud_space.yaml --with store=ml_multicloud_sample_store.yaml
 > : # Explore!
-> ado create op -f randomwalk_ml_multicloud_operation.yaml --use-latest space
+> ado create operation -f randomwalk_ml_multicloud_operation.yaml --use-latest space
 > ```
 
 <!-- markdownlint-enable line-length -->
@@ -110,7 +110,7 @@ ado describe space --use-latest
 This will output:
 
 ```terminaloutput
-Identifier: 'space-19b2de-6da1f4'
+Identifier: 'space-ef59e6-2a6318'
 
 Entity Space:
 
@@ -118,66 +118,50 @@ Entity Space:
 
    Categorical properties:
 
-      name       values
-     ────────────────────────────
-      provider   ['A', 'B', 'C']
+      name     ┃ values
+     ━━━━━━━━━━╋━━━━━━━━━━━━━━━━━
+      provider ┃ ['A', 'B', 'C']
 
    Discrete properties:
 
-      name         range   interval   values
-     ──────────────────────────────────────────────
-      cpu_family   None    None       [0, 1]
-      vcpu_size    None    None       [0, 1]
-      nodes        None    None       [2, 3, 4, 5]
+      name       ┃ range ┃ interval ┃ values
+     ━━━━━━━━━━━━╋━━━━━━━╋━━━━━━━━━━╋━━━━━━━━━━━━━━
+      cpu_family ┃ None  ┃ None     ┃ [0, 1]
+      vcpu_size  ┃ None  ┃ None     ┃ [0, 1]
+      nodes      ┃ None  ┃ None     ┃ [2, 3, 4, 5]
 
 
 Measurement Space:
 
    Experiments:
 
-      experiment                                   supported
-     ────────────────────────────────────────────────────────
-      replay.benchmark_performance                 True
-      custom_experiments.ml-multicloud-cost-v1.0   True
+      base identifier              ┃ required major version ┃ parameterization
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━━━╋━━━━━━━━━━━━━━━━━━
+      replay.benchmark_performance ┃ nan                    ┃ nan
 
-    ─────────────────── replay.benchmark_performance ────────────────────
+    ───────────────────────────────────── benchmark_performance ─────────────────────────────────────
+     Expected Interface
+
      Inputs:
 
-        parameter    type       value   parameterized
-       ───────────────────────────────────────────────
-        cpu_family   required   None    na
-        nodes        required   None    na
-        provider     required   None    na
-        vcpu_size    required   None    na
+        parameter  ┃ type     ┃ value ┃ parameterized
+       ━━━━━━━━━━━━╋━━━━━━━━━━╋━━━━━━━╋━━━━━━━━━━━━━━━
+        cpu_family ┃ required ┃ nan   ┃ na
+        nodes      ┃ required ┃ nan   ┃ na
+        provider   ┃ required ┃ nan   ┃ na
+        vcpu_size  ┃ required ┃ nan   ┃ na
 
      Outputs:
 
         target property
-       ──────────────────
+       ━━━━━━━━━━━━━━━━━━
         wallClockRuntime
         status
 
-    ─────────────────────────────────────────────────────────────────────
-
-    ──────────── custom_experiments.ml-multicloud-cost-v1.0 ─────────────
-     Inputs:
-
-        parameter                    type       value   parameterized
-       ───────────────────────────────────────────────────────────────
-        nodes                        required   None    na
-        cpu_family                   required   None    na
-        benchmark_performance-wal…   required   None    na
-
-     Outputs:
-
-        target property
-       ─────────────────
-        total_cost
-
-    ─────────────────────────────────────────────────────────────────────
+    ─────────────────────────────────────────────────────────────────────────────────────────────────
 
 
-Sample Store identifier: 6da1f4
+Sample Store identifier: 2a6318
 ```
 
 > [!NOTE]
@@ -221,63 +205,92 @@ sampled and measured:
 <!-- markdownlint-disable line-length -->
 
 ```commandline
-(RandomWalk pid=14797) Continuous batching: SUBMIT EXPERIMENT. Submitting experiment replay.benchmark_performance for provider.B-cpu_family.1-vcpu_size.1-nodes.4
-(RandomWalk pid=14797)
-(RandomWalk pid=14797) Continuous batching: SUMMARY. Entities sampled and submitted: 2. Experiments completed: 1 Waiting on 1 active requests. There are 0 dependent experiments
-(RandomWalk pid=14797) Continuous Batching: EXPERIMENT COMPLETION. Received finished notification for experiment in measurement request in group 1: request-randomwalk-0.9.6.dev91+884f713b.dirty-c5ed4b-579021-experiment-benchmark_performance-entities-provider.B-cpu_family.1-vcpu_size.1-nodes.4 (explicit_grid_sample_generator)-requester-randomwalk-0.9.6.dev91+884f713b.dirty-c5ed4b-time-2025-07-29 20:03:00.976809+01:00
+(RandomWalk pid=48600) Continuous batching: SUBMIT EXPERIMENT. Submitted experiment
+replay.benchmark_performance for A_f1.0-c0.0-n2. Request identifier: replayed-measurement-fa465c
+(RandomWalk pid=48600)
+(RandomWalk pid=48600) Continuous batching: SUMMARY. Entities sampled and submitted: 2. Experiments
+completed: 1 Waiting on 1 active requests. There are 0 dependent experiments
+(RandomWalk pid=48600) Continuous Batching: EXPERIMENT COMPLETION. Received finished notification for
+experiment in measurement request in group 1:
+replayed-measurement-fa465c-experiment-benchmark_performance-entities-A_f1.0-c0.0-n2
+(multi-cloud-ml)-time-2026-07-09 10:26:50.745505+01:00
 ```
 
 <!-- markdownlint-enable line-length -->
 
-The first line, "SUBMIT EXPERIMENT", indicates the entity -
-`provider.B-cpu_family.1-vcpu_size.1-nodes.4` - and experiment -
-`replay.benchmark_performance` submitted. The next line gives a summary of what
-has happened so far: this is the second entity sampled and submitted; one
-experiment has completed; and the sampler is waiting on one active experiment
-before submitting a new one. Finally, the "EXPERIMENT COMPLETION" line indicates
-the experiment has finished.
+The first line, "SUBMIT EXPERIMENT", indicates the entity - `A_f1.0-c0.0-n2` -
+and experiment - `replay.benchmark_performance` submitted. The next line gives a
+summary of what has happened so far: this is the second entity sampled and
+submitted; one experiment has completed; and the sampler is waiting on one
+active experiment before submitting a new one. Finally, the "EXPERIMENT
+COMPLETION" line indicates the experiment has finished.
 
 The operation will end with information like:
 
 ```yaml
-config:
+=========== Operation Details ============
+
+Space ID: space-ef59e6-2a6318
+Sample Store ID:  2a6318
+Operation:
+ config:
+  actuatorConfigurationIdentifiers: []
+  metadata:
+    description: Perform a random walk on all points in a space
+    name: randomwalk-all
   operation:
     module:
-      operatorName: random_walk
       operationType: explore
+      operatorName: random_walk
+      operatorVersion: 2.0.0
     parameters:
       batchSize: 1
+      filter:
+        filterMode: noFilter
+      maxRetries: 0
       numberEntities: 48
       samplerConfig:
-        mode: sequential
+        grouping: []
+        mode: random
         samplerType: generator
+      singleMeasurement: true
   spaces:
-    - space-65cf33-a8df39
-created: "2025-06-20T13:03:46.763154Z"
-identifier: randomwalk-0.9.4.dev30+564196d4.dirty-b8a233
+  - space-ef59e6-2a6318
+created: '2026-07-09T09:26:50.609258Z'
+identifier: random_walk@2.0.0-31d4c6
 kind: operation
 metadata:
   entities_submitted: 48
   experiments_requested: 74
 operationType: explore
-operatorIdentifier: randomwalk-0.9.4.dev30+564196d4.dirty
+operatorIdentifier: random_walk@2.0.0
+provenance:
+  ado:
+    distributionName: ado-core
+    distributionVersion: 2.0.0
+  operators:
+    random_walk@2.0.0:
+      distributionName: ado-core
+      distributionVersion: 2.0.0
 status:
-  - event: created
-    recorded_at: "2025-06-20T13:03:40.267005Z"
-  - event: added
-    recorded_at: "2025-06-20T13:03:46.764750Z"
-  - event: started
-    recorded_at: "2025-06-20T13:03:46.769169Z"
-  - event: finished
-    exit_state: success
-    recorded_at: "2025-06-20T13:03:48.369516Z"
-  - event: updated
-    recorded_at: "2025-06-20T13:03:48.374765Z"
+- event: created
+  recorded_at: '2026-07-09T09:26:50.609263Z'
+- event: added
+  recorded_at: '2026-07-09T09:26:50.609953Z'
+- event: started
+  recorded_at: '2026-07-09T09:26:50.612872Z'
+- event: updated
+  recorded_at: '2026-07-09T09:26:50.612883Z'
+- event: finished
+  exit_state: success
+  recorded_at: '2026-07-09T09:26:52.072109Z'
+- event: updated
+  recorded_at: '2026-07-09T09:26:52.075540Z'
 version: v1
 ```
 
-The identifier operation is stored in the `identifier` field: in the output
-above, it is `randomwalk-0.9.4.dev30+564196d4.dirty-b8a233`.
+The operation identifier is stored in the `identifier` field: in the output
+above, it is `random_walk@2.0.0-31d4c6`.
 
 > [!NOTE]
 >
@@ -316,199 +329,99 @@ random so the order can be different):
 <!-- markdownlint-disable line-length -->
 
 ```text
-┌───────────────┬──────────────┬───────────────┬───────────────┬────────────┬───────────────┬───────┬──────────┬───────────┬────────────────┬───────────────┬──────────────┬────────────────┬───────────────┬──────────────┬───────┐
-│ request_index │ result_index │ identifier    │ experiment_id │ cpu_family │ generatorid   │ nodes │ provider │ vcpu_size │ reason         │ wallClockRun… │ status       │ total_cost     │ request_id    │ entity_index │ valid │
-├───────────────┼──────────────┼───────────────┼───────────────┼────────────┼───────────────┼───────┼──────────┼───────────┼────────────────┼───────────────┼──────────────┼────────────────┼───────────────┼──────────────┼───────┤
-│ 0             │ 0            │ provider.B-c… │ replay.bench… │ 0.0        │ explicit_gri… │ 3     │ B        │ 1.0       │ Externally     │ not_measured  │ not_measured │ not_measured   │ randomwalk-1… │ 0            │ False │
-│               │              │               │               │            │               │       │          │           │ defined        │               │              │                │               │              │       │
-│               │              │               │               │            │               │       │          │           │ experiments    │               │              │                │               │              │       │
-│               │              │               │               │            │               │       │          │           │ cannot be      │               │              │                │               │              │       │
-│               │              │               │               │            │               │       │          │           │ applied to     │               │              │                │               │              │       │
-│               │              │               │               │            │               │       │          │           │ entities:      │               │              │                │               │              │       │
-│               │              │               │               │            │               │       │          │           │ replay.benchm… │               │              │                │               │              │       │
-│ 1             │ 0            │ C_f1.0-c1.0-… │ replay.bench… │ 1.0        │ multi-cloud-… │ 5     │ C        │ 1.0       │ not_measured   │ 92.171414375… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 1             │ 0            │ C_f1.0-c1.0-… │ replay.bench… │ 1.0        │ multi-cloud-… │ 5     │ C        │ 1.0       │ not_measured   │ 100.97977471… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 1             │ 0            │ C_f1.0-c1.0-… │ custom_exper… │ 1.0        │ multi-cloud-… │ 5     │ C        │ 1.0       │ not_measured   │ not_measured  │ not_measured │ 2.56031706598… │ 9d1c78        │ 0            │ True  │
-│ 1             │ 0            │ C_f1.0-c1.0-… │ custom_exper… │ 1.0        │ multi-cloud-… │ 5     │ C        │ 1.0       │ not_measured   │ not_measured  │ not_measured │ 2.80499374204… │ 2b5c63        │ 0            │ True  │
-│ 2             │ 0            │ provider.B-c… │ replay.bench… │ 0.0        │ explicit_gri… │ 5     │ B        │ 1.0       │ Externally     │ not_measured  │ not_measured │ not_measured   │ randomwalk-1… │ 0            │ False │
-│               │              │               │               │            │               │       │          │           │ defined        │               │              │                │               │              │       │
-│               │              │               │               │            │               │       │          │           │ experiments    │               │              │                │               │              │       │
-│               │              │               │               │            │               │       │          │           │ cannot be      │               │              │                │               │              │       │
-│               │              │               │               │            │               │       │          │           │ applied to     │               │              │                │               │              │       │
-│               │              │               │               │            │               │       │          │           │ entities:      │               │              │                │               │              │       │
-│               │              │               │               │            │               │       │          │           │ replay.benchm… │               │              │                │               │              │       │
-│ 3             │ 0            │ C_f1.0-c0.0-… │ replay.bench… │ 1.0        │ multi-cloud-… │ 5     │ C        │ 0.0       │ not_measured   │ 136.30710506… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 3             │ 0            │ C_f1.0-c0.0-… │ replay.bench… │ 1.0        │ multi-cloud-… │ 5     │ C        │ 0.0       │ not_measured   │ 135.47050046… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 3             │ 0            │ C_f1.0-c0.0-… │ custom_exper… │ 1.0        │ multi-cloud-… │ 5     │ C        │ 0.0       │ not_measured   │ not_measured  │ not_measured │ 3.78630847401… │ ce622d        │ 0            │ True  │
-│ 3             │ 0            │ C_f1.0-c0.0-… │ custom_exper… │ 1.0        │ multi-cloud-… │ 5     │ C        │ 0.0       │ not_measured   │ not_measured  │ not_measured │ 3.76306945747… │ df682d        │ 0            │ True  │
-│ 4             │ 0            │ B_f0.0-c0.0-… │ replay.bench… │ 0.0        │ multi-cloud-… │ 5     │ B        │ 0.0       │ not_measured   │ 103.90595746… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 4             │ 0            │ B_f0.0-c0.0-… │ replay.bench… │ 0.0        │ multi-cloud-… │ 5     │ B        │ 0.0       │ not_measured   │ 112.70569872… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 4             │ 0            │ B_f0.0-c0.0-… │ replay.bench… │ 0.0        │ multi-cloud-… │ 5     │ B        │ 0.0       │ not_measured   │ 113.88505148… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 4             │ 0            │ B_f0.0-c0.0-… │ custom_exper… │ 0.0        │ multi-cloud-… │ 5     │ B        │ 0.0       │ not_measured   │ not_measured  │ not_measured │ 1.44313829806… │ 510954        │ 0            │ True  │
-│ 4             │ 0            │ B_f0.0-c0.0-… │ custom_exper… │ 0.0        │ multi-cloud-… │ 5     │ B        │ 0.0       │ not_measured   │ not_measured  │ not_measured │ 1.56535692678… │ adc911        │ 0            │ True  │
-│ 4             │ 0            │ B_f0.0-c0.0-… │ custom_exper… │ 0.0        │ multi-cloud-… │ 5     │ B        │ 0.0       │ not_measured   │ not_measured  │ not_measured │ 1.58173682623… │ 7dc57c        │ 0            │ True  │
-│ 5             │ 0            │ A_f1.0-c1.0-… │ replay.bench… │ 1.0        │ multi-cloud-… │ 5     │ A        │ 1.0       │ not_measured   │ 105.63729166… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 5             │ 0            │ A_f1.0-c1.0-… │ replay.bench… │ 1.0        │ multi-cloud-… │ 5     │ A        │ 1.0       │ not_measured   │ 96.847161054… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 5             │ 0            │ A_f1.0-c1.0-… │ custom_exper… │ 1.0        │ multi-cloud-… │ 5     │ A        │ 1.0       │ not_measured   │ not_measured  │ not_measured │ 2.93436921305… │ f422f1        │ 0            │ True  │
-│ 5             │ 0            │ A_f1.0-c1.0-… │ custom_exper… │ 1.0        │ multi-cloud-… │ 5     │ A        │ 1.0       │ not_measured   │ not_measured  │ not_measured │ 2.69019891818… │ ad4f2e        │ 0            │ True  │
-│ 6             │ 0            │ B_f1.0-c0.0-… │ replay.bench… │ 1.0        │ multi-cloud-… │ 2     │ B        │ 0.0       │ not_measured   │ 346.07099580… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 6             │ 0            │ B_f1.0-c0.0-… │ custom_exper… │ 1.0        │ multi-cloud-… │ 2     │ B        │ 0.0       │ not_measured   │ not_measured  │ not_measured │ 3.84523328675… │ 884535        │ 0            │ True  │
-│ 7             │ 0            │ provider.B-c… │ replay.bench… │ 1.0        │ explicit_gri… │ 4     │ B        │ 1.0       │ Externally     │ not_measured  │ not_measured │ not_measured   │ randomwalk-1… │ 0            │ False │
-│               │              │               │               │            │               │       │          │           │ defined        │               │              │                │               │              │       │
-│               │              │               │               │            │               │       │          │           │ experiments    │               │              │                │               │              │       │
-│               │              │               │               │            │               │       │          │           │ cannot be      │               │              │                │               │              │       │
-│               │              │               │               │            │               │       │          │           │ applied to     │               │              │                │               │              │       │
-│               │              │               │               │            │               │       │          │           │ entities:      │               │              │                │               │              │       │
-│               │              │               │               │            │               │       │          │           │ replay.benchm… │               │              │                │               │              │       │
-│ 8             │ 0            │ C_f0.0-c1.0-… │ replay.bench… │ 0.0        │ multi-cloud-… │ 2     │ C        │ 1.0       │ not_measured   │ 309.84232401… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 8             │ 0            │ C_f0.0-c1.0-… │ custom_exper… │ 0.0        │ multi-cloud-… │ 2     │ C        │ 1.0       │ not_measured   │ not_measured  │ not_measured │ 1.72134624454… │ 0add34        │ 0            │ True  │
-│ 9             │ 0            │ C_f0.0-c0.0-… │ replay.bench… │ 0.0        │ multi-cloud-… │ 5     │ C        │ 0.0       │ not_measured   │ 138.06051611… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 9             │ 0            │ C_f0.0-c0.0-… │ replay.bench… │ 0.0        │ multi-cloud-… │ 5     │ C        │ 0.0       │ not_measured   │ 150.94715046… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 9             │ 0            │ C_f0.0-c0.0-… │ custom_exper… │ 0.0        │ multi-cloud-… │ 5     │ C        │ 0.0       │ not_measured   │ not_measured  │ not_measured │ 1.91750716831… │ b22cce        │ 0            │ True  │
-│ 9             │ 0            │ C_f0.0-c0.0-… │ custom_exper… │ 0.0        │ multi-cloud-… │ 5     │ C        │ 0.0       │ not_measured   │ not_measured  │ not_measured │ 2.09648820095… │ 6af57d        │ 0            │ True  │
-│ 10            │ 0            │ B_f1.0-c0.0-… │ replay.bench… │ 1.0        │ multi-cloud-… │ 4     │ B        │ 0.0       │ not_measured   │ 202.48239731… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 10            │ 0            │ B_f1.0-c0.0-… │ replay.bench… │ 1.0        │ multi-cloud-… │ 4     │ B        │ 0.0       │ not_measured   │ 193.55997109… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 10            │ 0            │ B_f1.0-c0.0-… │ custom_exper… │ 1.0        │ multi-cloud-… │ 4     │ B        │ 0.0       │ not_measured   │ not_measured  │ not_measured │ 4.49960882928… │ 641651        │ 0            │ True  │
-│ 10            │ 0            │ B_f1.0-c0.0-… │ custom_exper… │ 1.0        │ multi-cloud-… │ 4     │ B        │ 0.0       │ not_measured   │ not_measured  │ not_measured │ 4.30133269098… │ 93c307        │ 0            │ True  │
-│ 11            │ 0            │ C_f1.0-c1.0-… │ replay.bench… │ 1.0        │ multi-cloud-… │ 2     │ C        │ 1.0       │ not_measured   │ 363.28567099… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 11            │ 0            │ C_f1.0-c1.0-… │ custom_exper… │ 1.0        │ multi-cloud-… │ 2     │ C        │ 1.0       │ not_measured   │ not_measured  │ not_measured │ 4.03650745550… │ b2acce        │ 0            │ True  │
-│ 12            │ 0            │ C_f1.0-c1.0-… │ replay.bench… │ 1.0        │ multi-cloud-… │ 4     │ C        │ 1.0       │ not_measured   │ 114.01436853… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 12            │ 0            │ C_f1.0-c1.0-… │ custom_exper… │ 1.0        │ multi-cloud-… │ 4     │ C        │ 1.0       │ not_measured   │ not_measured  │ not_measured │ 2.53365263409… │ 6a3f5f        │ 0            │ True  │
-│ 13            │ 0            │ A_f1.0-c1.0-… │ replay.bench… │ 1.0        │ multi-cloud-… │ 3     │ A        │ 1.0       │ not_measured   │ 151.58562421… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 13            │ 0            │ A_f1.0-c1.0-… │ replay.bench… │ 1.0        │ multi-cloud-… │ 3     │ A        │ 1.0       │ not_measured   │ 155.02856159… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 13            │ 0            │ A_f1.0-c1.0-… │ custom_exper… │ 1.0        │ multi-cloud-… │ 3     │ A        │ 1.0       │ not_measured   │ not_measured  │ not_measured │ 2.52642707029… │ 4454cf        │ 0            │ True  │
-│ 13            │ 0            │ A_f1.0-c1.0-… │ custom_exper… │ 1.0        │ multi-cloud-… │ 3     │ A        │ 1.0       │ not_measured   │ not_measured  │ not_measured │ 2.58380935986… │ dd3bb4        │ 0            │ True  │
-│ 14            │ 0            │ A_f0.0-c0.0-… │ replay.bench… │ 0.0        │ multi-cloud-… │ 2     │ A        │ 0.0       │ not_measured   │ 335.20851802… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 14            │ 0            │ A_f0.0-c0.0-… │ custom_exper… │ 0.0        │ multi-cloud-… │ 2     │ A        │ 0.0       │ not_measured   │ not_measured  │ not_measured │ 1.86226954460… │ e2fc0a        │ 0            │ True  │
-│ 15            │ 0            │ provider.B-c… │ replay.bench… │ 1.0        │ explicit_gri… │ 3     │ B        │ 1.0       │ Externally     │ not_measured  │ not_measured │ not_measured   │ randomwalk-1… │ 0            │ False │
-│               │              │               │               │            │               │       │          │           │ defined        │               │              │                │               │              │       │
-│               │              │               │               │            │               │       │          │           │ experiments    │               │              │                │               │              │       │
-│               │              │               │               │            │               │       │          │           │ cannot be      │               │              │                │               │              │       │
-│               │              │               │               │            │               │       │          │           │ applied to     │               │              │                │               │              │       │
-│               │              │               │               │            │               │       │          │           │ entities:      │               │              │                │               │              │       │
-│               │              │               │               │            │               │       │          │           │ replay.benchm… │               │              │                │               │              │       │
-│ 16            │ 0            │ A_f1.0-c0.0-… │ replay.bench… │ 1.0        │ multi-cloud-… │ 3     │ A        │ 0.0       │ not_measured   │ 206.74496150… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 16            │ 0            │ A_f1.0-c0.0-… │ replay.bench… │ 1.0        │ multi-cloud-… │ 3     │ A        │ 0.0       │ not_measured   │ 236.17150664… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 16            │ 0            │ A_f1.0-c0.0-… │ custom_exper… │ 1.0        │ multi-cloud-… │ 3     │ A        │ 0.0       │ not_measured   │ not_measured  │ not_measured │ 3.44574935833… │ 44cb62        │ 0            │ True  │
-│ 16            │ 0            │ A_f1.0-c0.0-… │ custom_exper… │ 1.0        │ multi-cloud-… │ 3     │ A        │ 0.0       │ not_measured   │ not_measured  │ not_measured │ 3.93619177738… │ 490165        │ 0            │ True  │
-│ 17            │ 0            │ A_f0.0-c0.0-… │ replay.bench… │ 0.0        │ multi-cloud-… │ 3     │ A        │ 0.0       │ not_measured   │ 221.51019692… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 17            │ 0            │ A_f0.0-c0.0-… │ replay.bench… │ 0.0        │ multi-cloud-… │ 3     │ A        │ 0.0       │ not_measured   │ 216.39412736… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 17            │ 0            │ A_f0.0-c0.0-… │ custom_exper… │ 0.0        │ multi-cloud-… │ 3     │ A        │ 0.0       │ not_measured   │ not_measured  │ not_measured │ 1.84591830770… │ bd3d9c        │ 0            │ True  │
-│ 17            │ 0            │ A_f0.0-c0.0-… │ custom_exper… │ 0.0        │ multi-cloud-… │ 3     │ A        │ 0.0       │ not_measured   │ not_measured  │ not_measured │ 1.80328439474… │ 12ea47        │ 0            │ True  │
-│ 18            │ 0            │ A_f1.0-c0.0-… │ replay.bench… │ 1.0        │ multi-cloud-… │ 5     │ A        │ 0.0       │ not_measured   │ 135.91092538… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 18            │ 0            │ A_f1.0-c0.0-… │ replay.bench… │ 1.0        │ multi-cloud-… │ 5     │ A        │ 0.0       │ not_measured   │ 117.94136571… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 18            │ 0            │ A_f1.0-c0.0-… │ custom_exper… │ 1.0        │ multi-cloud-… │ 5     │ A        │ 0.0       │ not_measured   │ not_measured  │ not_measured │ 3.77530348300… │ 8ad2ad        │ 0            │ True  │
-│ 18            │ 0            │ A_f1.0-c0.0-… │ custom_exper… │ 1.0        │ multi-cloud-… │ 5     │ A        │ 0.0       │ not_measured   │ not_measured  │ not_measured │ 3.27614904774… │ 1a0042        │ 0            │ True  │
-│ 19            │ 0            │ A_f0.0-c1.0-… │ replay.bench… │ 0.0        │ multi-cloud-… │ 5     │ A        │ 1.0       │ not_measured   │ 84.453469991… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 19            │ 0            │ A_f0.0-c1.0-… │ replay.bench… │ 0.0        │ multi-cloud-… │ 5     │ A        │ 1.0       │ not_measured   │ 86.230160951… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 19            │ 0            │ A_f0.0-c1.0-… │ custom_exper… │ 0.0        │ multi-cloud-… │ 5     │ A        │ 1.0       │ not_measured   │ not_measured  │ not_measured │ 1.17296486099… │ 96c0ed        │ 0            │ True  │
-│ 19            │ 0            │ A_f0.0-c1.0-… │ custom_exper… │ 0.0        │ multi-cloud-… │ 5     │ A        │ 1.0       │ not_measured   │ not_measured  │ not_measured │ 1.19764112432… │ 6cd3dc        │ 0            │ True  │
-│ 20            │ 0            │ C_f0.0-c1.0-… │ replay.bench… │ 0.0        │ multi-cloud-… │ 5     │ C        │ 1.0       │ not_measured   │ 85.679467439… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 20            │ 0            │ C_f0.0-c1.0-… │ replay.bench… │ 0.0        │ multi-cloud-… │ 5     │ C        │ 1.0       │ not_measured   │ 95.863260507… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 20            │ 0            │ C_f0.0-c1.0-… │ custom_exper… │ 0.0        │ multi-cloud-… │ 5     │ C        │ 1.0       │ not_measured   │ not_measured  │ not_measured │ 1.18999260332… │ b2ddab        │ 0            │ True  │
-│ 20            │ 0            │ C_f0.0-c1.0-… │ custom_exper… │ 0.0        │ multi-cloud-… │ 5     │ C        │ 1.0       │ not_measured   │ not_measured  │ not_measured │ 1.33143417371… │ 55db9b        │ 0            │ True  │
-│ 21            │ 0            │ B_f1.0-c1.0-… │ replay.bench… │ 1.0        │ multi-cloud-… │ 2     │ B        │ 1.0       │ not_measured   │ 298.81930494… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 21            │ 0            │ B_f1.0-c1.0-… │ custom_exper… │ 1.0        │ multi-cloud-… │ 2     │ B        │ 1.0       │ not_measured   │ not_measured  │ not_measured │ 3.32021449936… │ ffbb95        │ 0            │ True  │
-│ 22            │ 0            │ C_f1.0-c0.0-… │ replay.bench… │ 1.0        │ multi-cloud-… │ 3     │ C        │ 0.0       │ not_measured   │ 598.88346576… │ Timed out.   │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 22            │ 0            │ C_f1.0-c0.0-… │ replay.bench… │ 1.0        │ multi-cloud-… │ 3     │ C        │ 0.0       │ not_measured   │ 244.33887457… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 22            │ 0            │ C_f1.0-c0.0-… │ custom_exper… │ 1.0        │ multi-cloud-… │ 3     │ C        │ 0.0       │ not_measured   │ not_measured  │ not_measured │ 9.98139109611… │ 91632b        │ 0            │ True  │
-│ 22            │ 0            │ C_f1.0-c0.0-… │ custom_exper… │ 1.0        │ multi-cloud-… │ 3     │ C        │ 0.0       │ not_measured   │ not_measured  │ not_measured │ 4.07231457630… │ 9e378c        │ 0            │ True  │
-│ 23            │ 0            │ A_f0.0-c0.0-… │ replay.bench… │ 0.0        │ multi-cloud-… │ 5     │ A        │ 0.0       │ not_measured   │ 106.07093071… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 23            │ 0            │ A_f0.0-c0.0-… │ replay.bench… │ 0.0        │ multi-cloud-… │ 5     │ A        │ 0.0       │ not_measured   │ 130.30512285… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 23            │ 0            │ A_f0.0-c0.0-… │ custom_exper… │ 0.0        │ multi-cloud-… │ 5     │ A        │ 0.0       │ not_measured   │ not_measured  │ not_measured │ 1.47320737110… │ 559d56        │ 0            │ True  │
-│ 23            │ 0            │ A_f0.0-c0.0-… │ custom_exper… │ 0.0        │ multi-cloud-… │ 5     │ A        │ 0.0       │ not_measured   │ not_measured  │ not_measured │ 1.80979337294… │ f3a447        │ 0            │ True  │
-│ 24            │ 0            │ A_f1.0-c0.0-… │ replay.bench… │ 1.0        │ multi-cloud-… │ 2     │ A        │ 0.0       │ not_measured   │ 378.31657004… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 24            │ 0            │ A_f1.0-c0.0-… │ custom_exper… │ 1.0        │ multi-cloud-… │ 2     │ A        │ 0.0       │ not_measured   │ not_measured  │ not_measured │ 4.20351744492… │ 221473        │ 0            │ True  │
-│ 25            │ 0            │ A_f1.0-c1.0-… │ replay.bench… │ 1.0        │ multi-cloud-… │ 2     │ A        │ 1.0       │ not_measured   │ 291.90445613… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 25            │ 0            │ A_f1.0-c1.0-… │ custom_exper… │ 1.0        │ multi-cloud-… │ 2     │ A        │ 1.0       │ not_measured   │ not_measured  │ not_measured │ 3.24338284598… │ 43333e        │ 0            │ True  │
-│ 26            │ 0            │ A_f0.0-c0.0-… │ replay.bench… │ 0.0        │ multi-cloud-… │ 4     │ A        │ 0.0       │ not_measured   │ 145.12948369… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 26            │ 0            │ A_f0.0-c0.0-… │ custom_exper… │ 0.0        │ multi-cloud-… │ 4     │ A        │ 0.0       │ not_measured   │ not_measured  │ not_measured │ 1.61254981888… │ d984de        │ 0            │ True  │
-│ 27            │ 0            │ C_f1.0-c1.0-… │ replay.bench… │ 1.0        │ multi-cloud-… │ 3     │ C        │ 1.0       │ not_measured   │ 154.98134708… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 27            │ 0            │ C_f1.0-c1.0-… │ replay.bench… │ 1.0        │ multi-cloud-… │ 3     │ C        │ 1.0       │ not_measured   │ 168.34859228… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 27            │ 0            │ C_f1.0-c1.0-… │ custom_exper… │ 1.0        │ multi-cloud-… │ 3     │ C        │ 1.0       │ not_measured   │ not_measured  │ not_measured │ 2.58302245140… │ 63c714        │ 0            │ True  │
-│ 27            │ 0            │ C_f1.0-c1.0-… │ custom_exper… │ 1.0        │ multi-cloud-… │ 3     │ C        │ 1.0       │ not_measured   │ not_measured  │ not_measured │ 2.80580987135… │ 3390c8        │ 0            │ True  │
-│ 28            │ 0            │ A_f0.0-c1.0-… │ replay.bench… │ 0.0        │ multi-cloud-… │ 3     │ A        │ 1.0       │ not_measured   │ 168.36590766… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 28            │ 0            │ A_f0.0-c1.0-… │ replay.bench… │ 0.0        │ multi-cloud-… │ 3     │ A        │ 1.0       │ not_measured   │ 170.15659737… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 28            │ 0            │ A_f0.0-c1.0-… │ custom_exper… │ 0.0        │ multi-cloud-… │ 3     │ A        │ 1.0       │ not_measured   │ not_measured  │ not_measured │ 1.40304923057… │ 409b9e        │ 0            │ True  │
-│ 28            │ 0            │ A_f0.0-c1.0-… │ custom_exper… │ 0.0        │ multi-cloud-… │ 3     │ A        │ 1.0       │ not_measured   │ not_measured  │ not_measured │ 1.41797164479… │ 06db5c        │ 0            │ True  │
-│ 29            │ 0            │ C_f0.0-c1.0-… │ replay.bench… │ 0.0        │ multi-cloud-… │ 4     │ C        │ 1.0       │ not_measured   │ 121.42492485… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 29            │ 0            │ C_f0.0-c1.0-… │ custom_exper… │ 0.0        │ multi-cloud-… │ 4     │ C        │ 1.0       │ not_measured   │ not_measured  │ not_measured │ 1.34916583167… │ 022af8        │ 0            │ True  │
-│ 30            │ 0            │ B_f1.0-c0.0-… │ replay.bench… │ 1.0        │ multi-cloud-… │ 3     │ B        │ 0.0       │ not_measured   │ 220.19828414… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 30            │ 0            │ B_f1.0-c0.0-… │ replay.bench… │ 1.0        │ multi-cloud-… │ 3     │ B        │ 0.0       │ not_measured   │ 273.71202731… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 30            │ 0            │ B_f1.0-c0.0-… │ custom_exper… │ 1.0        │ multi-cloud-… │ 3     │ B        │ 0.0       │ not_measured   │ not_measured  │ not_measured │ 3.66997140248… │ 3b4610        │ 0            │ True  │
-│ 30            │ 0            │ B_f1.0-c0.0-… │ custom_exper… │ 1.0        │ multi-cloud-… │ 3     │ B        │ 0.0       │ not_measured   │ not_measured  │ not_measured │ 4.56186712185… │ 6bf4dd        │ 0            │ True  │
-│ 31            │ 0            │ B_f0.0-c0.0-… │ replay.bench… │ 0.0        │ multi-cloud-… │ 2     │ B        │ 0.0       │ not_measured   │ 225.17914223… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 31            │ 0            │ B_f0.0-c0.0-… │ replay.bench… │ 0.0        │ multi-cloud-… │ 2     │ B        │ 0.0       │ not_measured   │ 228.14362454… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 31            │ 0            │ B_f0.0-c0.0-… │ custom_exper… │ 0.0        │ multi-cloud-… │ 2     │ B        │ 0.0       │ not_measured   │ not_measured  │ not_measured │ 1.25099523464… │ a302db        │ 0            │ True  │
-│ 31            │ 0            │ B_f0.0-c0.0-… │ custom_exper… │ 0.0        │ multi-cloud-… │ 2     │ B        │ 0.0       │ not_measured   │ not_measured  │ not_measured │ 1.26746458080… │ 62e595        │ 0            │ True  │
-│ 32            │ 0            │ C_f0.0-c1.0-… │ replay.bench… │ 0.0        │ multi-cloud-… │ 3     │ C        │ 1.0       │ not_measured   │ 168.91636371… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 32            │ 0            │ C_f0.0-c1.0-… │ replay.bench… │ 0.0        │ multi-cloud-… │ 3     │ C        │ 1.0       │ not_measured   │ 174.03356242… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 32            │ 0            │ C_f0.0-c1.0-… │ custom_exper… │ 0.0        │ multi-cloud-… │ 3     │ C        │ 1.0       │ not_measured   │ not_measured  │ not_measured │ 1.40763636430… │ 8bfb84        │ 0            │ True  │
-│ 32            │ 0            │ C_f0.0-c1.0-… │ custom_exper… │ 0.0        │ multi-cloud-… │ 3     │ C        │ 1.0       │ not_measured   │ not_measured  │ not_measured │ 1.45027968684… │ f339ac        │ 0            │ True  │
-│ 33            │ 0            │ provider.B-c… │ replay.bench… │ 1.0        │ explicit_gri… │ 5     │ B        │ 1.0       │ Externally     │ not_measured  │ not_measured │ not_measured   │ randomwalk-1… │ 0            │ False │
-│               │              │               │               │            │               │       │          │           │ defined        │               │              │                │               │              │       │
-│               │              │               │               │            │               │       │          │           │ experiments    │               │              │                │               │              │       │
-│               │              │               │               │            │               │       │          │           │ cannot be      │               │              │                │               │              │       │
-│               │              │               │               │            │               │       │          │           │ applied to     │               │              │                │               │              │       │
-│               │              │               │               │            │               │       │          │           │ entities:      │               │              │                │               │              │       │
-│               │              │               │               │            │               │       │          │           │ replay.benchm… │               │              │                │               │              │       │
-│ 34            │ 0            │ B_f0.0-c0.0-… │ replay.bench… │ 0.0        │ multi-cloud-… │ 4     │ B        │ 0.0       │ not_measured   │ 113.87676978… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 34            │ 0            │ B_f0.0-c0.0-… │ replay.bench… │ 0.0        │ multi-cloud-… │ 4     │ B        │ 0.0       │ not_measured   │ 132.54151201… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 34            │ 0            │ B_f0.0-c0.0-… │ custom_exper… │ 0.0        │ multi-cloud-… │ 4     │ B        │ 0.0       │ not_measured   │ not_measured  │ not_measured │ 1.26529744201… │ 91cc7f        │ 0            │ True  │
-│ 34            │ 0            │ B_f0.0-c0.0-… │ custom_exper… │ 0.0        │ multi-cloud-… │ 4     │ B        │ 0.0       │ not_measured   │ not_measured  │ not_measured │ 1.47268346680… │ 16affd        │ 0            │ True  │
-│ 35            │ 0            │ B_f0.0-c1.0-… │ replay.bench… │ 0.0        │ multi-cloud-… │ 2     │ B        │ 1.0       │ not_measured   │ 184.93504953… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 35            │ 0            │ B_f0.0-c1.0-… │ replay.bench… │ 0.0        │ multi-cloud-… │ 2     │ B        │ 1.0       │ not_measured   │ 166.74843192… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 35            │ 0            │ B_f0.0-c1.0-… │ custom_exper… │ 0.0        │ multi-cloud-… │ 2     │ B        │ 1.0       │ not_measured   │ not_measured  │ not_measured │ 1.02741694185… │ 128ae6        │ 0            │ True  │
-│ 35            │ 0            │ B_f0.0-c1.0-… │ custom_exper… │ 0.0        │ multi-cloud-… │ 2     │ B        │ 1.0       │ not_measured   │ not_measured  │ not_measured │ 0.92638017733… │ a75803        │ 0            │ True  │
-│ 36            │ 0            │ C_f0.0-c0.0-… │ replay.bench… │ 0.0        │ multi-cloud-… │ 3     │ C        │ 0.0       │ not_measured   │ 240.07358503… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 36            │ 0            │ C_f0.0-c0.0-… │ replay.bench… │ 0.0        │ multi-cloud-… │ 3     │ C        │ 0.0       │ not_measured   │ 269.09066414… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 36            │ 0            │ C_f0.0-c0.0-… │ custom_exper… │ 0.0        │ multi-cloud-… │ 3     │ C        │ 0.0       │ not_measured   │ not_measured  │ not_measured │ 2.00061320861… │ 24e5c5        │ 0            │ True  │
-│ 36            │ 0            │ C_f0.0-c0.0-… │ custom_exper… │ 0.0        │ multi-cloud-… │ 3     │ C        │ 0.0       │ not_measured   │ not_measured  │ not_measured │ 2.24242220123… │ fa537f        │ 0            │ True  │
-│ 37            │ 0            │ A_f0.0-c1.0-… │ replay.bench… │ 0.0        │ multi-cloud-… │ 2     │ A        │ 1.0       │ not_measured   │ 272.99782156… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 37            │ 0            │ A_f0.0-c1.0-… │ custom_exper… │ 0.0        │ multi-cloud-… │ 2     │ A        │ 1.0       │ not_measured   │ not_measured  │ not_measured │ 1.51665456427… │ 1c5976        │ 0            │ True  │
-│ 38            │ 0            │ A_f1.0-c0.0-… │ replay.bench… │ 1.0        │ multi-cloud-… │ 4     │ A        │ 0.0       │ not_measured   │ 158.70639538… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 38            │ 0            │ A_f1.0-c0.0-… │ custom_exper… │ 1.0        │ multi-cloud-… │ 4     │ A        │ 0.0       │ not_measured   │ not_measured  │ not_measured │ 3.52680878639… │ 9e4db8        │ 0            │ True  │
-│ 39            │ 0            │ C_f1.0-c0.0-… │ replay.bench… │ 1.0        │ multi-cloud-… │ 4     │ C        │ 0.0       │ not_measured   │ 177.72359776… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 39            │ 0            │ C_f1.0-c0.0-… │ custom_exper… │ 1.0        │ multi-cloud-… │ 4     │ C        │ 0.0       │ not_measured   │ not_measured  │ not_measured │ 3.94941328366… │ 70dc0f        │ 0            │ True  │
-│ 40            │ 0            │ A_f1.0-c1.0-… │ replay.bench… │ 1.0        │ multi-cloud-… │ 4     │ A        │ 1.0       │ not_measured   │ 116.31417059… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 40            │ 0            │ A_f1.0-c1.0-… │ custom_exper… │ 1.0        │ multi-cloud-… │ 4     │ A        │ 1.0       │ not_measured   │ not_measured  │ not_measured │ 2.58475934664… │ e809c3        │ 0            │ True  │
-│ 41            │ 0            │ C_f0.0-c0.0-… │ replay.bench… │ 0.0        │ multi-cloud-… │ 2     │ C        │ 0.0       │ not_measured   │ 415.82928490… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 41            │ 0            │ C_f0.0-c0.0-… │ custom_exper… │ 0.0        │ multi-cloud-… │ 2     │ C        │ 0.0       │ not_measured   │ not_measured  │ not_measured │ 2.31016269392… │ 9995f8        │ 0            │ True  │
-│ 42            │ 0            │ B_f1.0-c0.0-… │ replay.bench… │ 1.0        │ multi-cloud-… │ 5     │ B        │ 0.0       │ not_measured   │ 141.99024295… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 42            │ 0            │ B_f1.0-c0.0-… │ replay.bench… │ 1.0        │ multi-cloud-… │ 5     │ B        │ 0.0       │ not_measured   │ 168.79178500… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 42            │ 0            │ B_f1.0-c0.0-… │ custom_exper… │ 1.0        │ multi-cloud-… │ 5     │ B        │ 0.0       │ not_measured   │ not_measured  │ not_measured │ 3.94417341550… │ 875849        │ 0            │ True  │
-│ 42            │ 0            │ B_f1.0-c0.0-… │ custom_exper… │ 1.0        │ multi-cloud-… │ 5     │ B        │ 0.0       │ not_measured   │ not_measured  │ not_measured │ 4.68866069449… │ a0cf51        │ 0            │ True  │
-│ 43            │ 0            │ C_f1.0-c0.0-… │ replay.bench… │ 1.0        │ multi-cloud-… │ 2     │ C        │ 0.0       │ not_measured   │ 463.39653873… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 43            │ 0            │ C_f1.0-c0.0-… │ custom_exper… │ 1.0        │ multi-cloud-… │ 2     │ C        │ 0.0       │ not_measured   │ not_measured  │ not_measured │ 5.14885043038… │ 3b6b15        │ 0            │ True  │
-│ 44            │ 0            │ C_f0.0-c0.0-… │ replay.bench… │ 0.0        │ multi-cloud-… │ 4     │ C        │ 0.0       │ not_measured   │ 188.09087824… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 44            │ 0            │ C_f0.0-c0.0-… │ custom_exper… │ 0.0        │ multi-cloud-… │ 4     │ C        │ 0.0       │ not_measured   │ not_measured  │ not_measured │ 2.08989864720… │ 0be80e        │ 0            │ True  │
-│ 45            │ 0            │ A_f0.0-c1.0-… │ replay.bench… │ 0.0        │ multi-cloud-… │ 4     │ A        │ 1.0       │ not_measured   │ 106.67012143… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 45            │ 0            │ A_f0.0-c1.0-… │ custom_exper… │ 0.0        │ multi-cloud-… │ 4     │ A        │ 1.0       │ not_measured   │ not_measured  │ not_measured │ 1.18522357145… │ 4ae232        │ 0            │ True  │
-│ 46            │ 0            │ B_f0.0-c0.0-… │ replay.bench… │ 0.0        │ multi-cloud-… │ 3     │ B        │ 0.0       │ not_measured   │ 153.51639366… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 46            │ 0            │ B_f0.0-c0.0-… │ replay.bench… │ 0.0        │ multi-cloud-… │ 3     │ B        │ 0.0       │ not_measured   │ 184.44801592… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 46            │ 0            │ B_f0.0-c0.0-… │ replay.bench… │ 0.0        │ multi-cloud-… │ 3     │ B        │ 0.0       │ not_measured   │ 176.28814435… │ ok           │ not_measured   │ replayed-mea… │ 0            │ True  │
-│ 46            │ 0            │ B_f0.0-c0.0-… │ custom_exper… │ 0.0        │ multi-cloud-… │ 3     │ B        │ 0.0       │ not_measured   │ not_measured  │ not_measured │ 1.27930328051… │ 4b56b9        │ 0            │ True  │
-│ 46            │ 0            │ B_f0.0-c0.0-… │ custom_exper… │ 0.0        │ multi-cloud-… │ 3     │ B        │ 0.0       │ not_measured   │ not_measured  │ not_measured │ 1.53706679940… │ d8119b        │ 0            │ True  │
-│ 46            │ 0            │ B_f0.0-c0.0-… │ custom_exper… │ 0.0        │ multi-cloud-… │ 3     │ B        │ 0.0       │ not_measured   │ not_measured  │ not_measured │ 1.46906786958… │ 02acb3        │ 0            │ True  │
-│ 47            │ 0            │ provider.B-c… │ replay.bench… │ 0.0        │ explicit_gri… │ 4     │ B        │ 1.0       │ Externally     │ not_measured  │ not_measured │ not_measured   │ randomwalk-1… │ 0            │ False │
-│               │              │               │               │            │               │       │          │           │ defined        │               │              │                │               │              │       │
-│               │              │               │               │            │               │       │          │           │ experiments    │               │              │                │               │              │       │
-│               │              │               │               │            │               │       │          │           │ cannot be      │               │              │                │               │              │       │
-│               │              │               │               │            │               │       │          │           │ applied to     │               │              │                │               │              │       │
-│               │              │               │               │            │               │       │          │           │ entities:      │               │              │                │               │              │       │
-│               │              │               │               │            │               │       │          │           │ replay.benchm… │               │              │                │               │              │       │
-└───────────────┴──────────────┴───────────────┴───────────────┴────────────┴───────────────┴───────┴──────────┴───────────┴────────────────┴───────────────┴──────────────┴────────────────┴───────────────┴──────────────┴───────┘
+┌───────────────┬──────────────┬─────────────────────────────────────────────┬──────────────────────────────┬────────────┬────────────────────────────────┬───────┬──────────┬───────────┬────────────────────┬──────────────┬──────────────────────────────────────────────────────────────────────────────────────────────┬─────────────────────────────────┬──────────────┬───────┐
+│ request_index │ result_index │ identifier                                  │ experiment_id                │ cpu_family │ generatorid                    │ nodes │ provider │ vcpu_size │ wallClockRuntime   │ status       │ reason                                                                                       │ request_id                      │ entity_index │ valid │
+├───────────────┼──────────────┼─────────────────────────────────────────────┼──────────────────────────────┼────────────┼────────────────────────────────┼───────┼──────────┼───────────┼────────────────────┼──────────────┼──────────────────────────────────────────────────────────────────────────────────────────────┼─────────────────────────────────┼──────────────┼───────┤
+│ 0             │ 0            │ A_f1.0-c0.0-n4                              │ replay.benchmark_performance │ 1.0        │ multi-cloud-ml                 │ 4     │ A        │ 0.0       │ 158.70639538764954 │ ok           │ not_measured                                                                                 │ replayed-measurement-d27306     │ 0            │ True  │
+│ 1             │ 0            │ A_f1.0-c0.0-n2                              │ replay.benchmark_performance │ 1.0        │ multi-cloud-ml                 │ 2     │ A        │ 0.0       │ 378.31657004356384 │ ok           │ not_measured                                                                                 │ replayed-measurement-fa465c     │ 0            │ True  │
+│ 2             │ 0            │ B_f0.0-c0.0-n3                              │ replay.benchmark_performance │ 0.0        │ multi-cloud-ml                 │ 3     │ B        │ 0.0       │ 153.51639366149902 │ ok           │ not_measured                                                                                 │ replayed-measurement-9a5539     │ 0            │ True  │
+│ 2             │ 0            │ B_f0.0-c0.0-n3                              │ replay.benchmark_performance │ 0.0        │ multi-cloud-ml                 │ 3     │ B        │ 0.0       │ 184.44801592826843 │ ok           │ not_measured                                                                                 │ replayed-measurement-a9c3bd     │ 0            │ True  │
+│ 2             │ 0            │ B_f0.0-c0.0-n3                              │ replay.benchmark_performance │ 0.0        │ multi-cloud-ml                 │ 3     │ B        │ 0.0       │ 176.28814435005188 │ ok           │ not_measured                                                                                 │ replayed-measurement-677a17     │ 0            │ True  │
+│ 3             │ 0            │ C_f1.0-c1.0-n2                              │ replay.benchmark_performance │ 1.0        │ multi-cloud-ml                 │ 2     │ C        │ 1.0       │ 363.2856709957123  │ ok           │ not_measured                                                                                 │ replayed-measurement-635508     │ 0            │ True  │
+│ 4             │ 0            │ A_f1.0-c1.0-n3                              │ replay.benchmark_performance │ 1.0        │ multi-cloud-ml                 │ 3     │ A        │ 1.0       │ 151.58562421798706 │ ok           │ not_measured                                                                                 │ replayed-measurement-1dbbb4     │ 0            │ True  │
+│ 4             │ 0            │ A_f1.0-c1.0-n3                              │ replay.benchmark_performance │ 1.0        │ multi-cloud-ml                 │ 3     │ A        │ 1.0       │ 155.02856159210205 │ ok           │ not_measured                                                                                 │ replayed-measurement-de0a9f     │ 0            │ True  │
+│ 5             │ 0            │ C_f1.0-c1.0-n5                              │ replay.benchmark_performance │ 1.0        │ multi-cloud-ml                 │ 5     │ C        │ 1.0       │ 92.17141437530518  │ ok           │ not_measured                                                                                 │ replayed-measurement-e1b41d     │ 0            │ True  │
+│ 5             │ 0            │ C_f1.0-c1.0-n5                              │ replay.benchmark_performance │ 1.0        │ multi-cloud-ml                 │ 5     │ C        │ 1.0       │ 100.97977471351624 │ ok           │ not_measured                                                                                 │ replayed-measurement-e1cdab     │ 0            │ True  │
+│ 6             │ 0            │ A_f1.0-c1.0-n2                              │ replay.benchmark_performance │ 1.0        │ multi-cloud-ml                 │ 2     │ A        │ 1.0       │ 291.90445613861084 │ ok           │ not_measured                                                                                 │ replayed-measurement-73f29c     │ 0            │ True  │
+│ 7             │ 0            │ A_f1.0-c0.0-n5                              │ replay.benchmark_performance │ 1.0        │ multi-cloud-ml                 │ 5     │ A        │ 0.0       │ 135.91092538833618 │ ok           │ not_measured                                                                                 │ replayed-measurement-c48361     │ 0            │ True  │
+│ 7             │ 0            │ A_f1.0-c0.0-n5                              │ replay.benchmark_performance │ 1.0        │ multi-cloud-ml                 │ 5     │ A        │ 0.0       │ 117.94136571884157 │ ok           │ not_measured                                                                                 │ replayed-measurement-40a69e     │ 0            │ True  │
+│ 8             │ 0            │ C_f0.0-c1.0-n4                              │ replay.benchmark_performance │ 0.0        │ multi-cloud-ml                 │ 4     │ C        │ 1.0       │ 121.42492485046388 │ ok           │ not_measured                                                                                 │ replayed-measurement-b59067     │ 0            │ True  │
+│ 9             │ 0            │ C_f0.0-c1.0-n3                              │ replay.benchmark_performance │ 0.0        │ multi-cloud-ml                 │ 3     │ C        │ 1.0       │ 168.9163637161255  │ ok           │ not_measured                                                                                 │ replayed-measurement-f30779     │ 0            │ True  │
+│ 9             │ 0            │ C_f0.0-c1.0-n3                              │ replay.benchmark_performance │ 0.0        │ multi-cloud-ml                 │ 3     │ C        │ 1.0       │ 174.0335624217987  │ ok           │ not_measured                                                                                 │ replayed-measurement-733703     │ 0            │ True  │
+│ 10            │ 0            │ cpu_family.1-nodes.3-provider.B-vcpu_size.1 │ replay.benchmark_performance │ 1.0        │ explicit_grid_sample_generator │ 3     │ B        │ 1.0       │ not_measured       │ not_measured │ Externally defined experiments cannot be applied to entities: replay.benchmark_performance.  │ random_walk@2.0.0-31d4c6-f576d4 │ 0            │ False │
+│ 11            │ 0            │ C_f0.0-c1.0-n2                              │ replay.benchmark_performance │ 0.0        │ multi-cloud-ml                 │ 2     │ C        │ 1.0       │ 309.8423240184784  │ ok           │ not_measured                                                                                 │ replayed-measurement-ea3637     │ 0            │ True  │
+│ 12            │ 0            │ A_f1.0-c0.0-n3                              │ replay.benchmark_performance │ 1.0        │ multi-cloud-ml                 │ 3     │ A        │ 0.0       │ 206.74496150016785 │ ok           │ not_measured                                                                                 │ replayed-measurement-f2c3d8     │ 0            │ True  │
+│ 12            │ 0            │ A_f1.0-c0.0-n3                              │ replay.benchmark_performance │ 1.0        │ multi-cloud-ml                 │ 3     │ A        │ 0.0       │ 236.1715066432953  │ ok           │ not_measured                                                                                 │ replayed-measurement-56beef     │ 0            │ True  │
+│ 13            │ 0            │ B_f1.0-c0.0-n3                              │ replay.benchmark_performance │ 1.0        │ multi-cloud-ml                 │ 3     │ B        │ 0.0       │ 220.19828414916992 │ ok           │ not_measured                                                                                 │ replayed-measurement-d936ad     │ 0            │ True  │
+│ 13            │ 0            │ B_f1.0-c0.0-n3                              │ replay.benchmark_performance │ 1.0        │ multi-cloud-ml                 │ 3     │ B        │ 0.0       │ 273.7120273113251  │ ok           │ not_measured                                                                                 │ replayed-measurement-c2e099     │ 0            │ True  │
+│ 14            │ 0            │ cpu_family.0-nodes.3-provider.B-vcpu_size.1 │ replay.benchmark_performance │ 0.0        │ explicit_grid_sample_generator │ 3     │ B        │ 1.0       │ not_measured       │ not_measured │ Externally defined experiments cannot be applied to entities: replay.benchmark_performance.  │ random_walk@2.0.0-31d4c6-b37048 │ 0            │ False │
+│ 15            │ 0            │ cpu_family.0-nodes.5-provider.B-vcpu_size.1 │ replay.benchmark_performance │ 0.0        │ explicit_grid_sample_generator │ 5     │ B        │ 1.0       │ not_measured       │ not_measured │ Externally defined experiments cannot be applied to entities: replay.benchmark_performance.  │ random_walk@2.0.0-31d4c6-25924a │ 0            │ False │
+│ 16            │ 0            │ C_f1.0-c0.0-n5                              │ replay.benchmark_performance │ 1.0        │ multi-cloud-ml                 │ 5     │ C        │ 0.0       │ 136.3071050643921  │ ok           │ not_measured                                                                                 │ replayed-measurement-708e5a     │ 0            │ True  │
+│ 16            │ 0            │ C_f1.0-c0.0-n5                              │ replay.benchmark_performance │ 1.0        │ multi-cloud-ml                 │ 5     │ C        │ 0.0       │ 135.47050046920776 │ ok           │ not_measured                                                                                 │ replayed-measurement-41dfd1     │ 0            │ True  │
+│ 17            │ 0            │ C_f0.0-c0.0-n2                              │ replay.benchmark_performance │ 0.0        │ multi-cloud-ml                 │ 2     │ C        │ 0.0       │ 415.8292849063873  │ ok           │ not_measured                                                                                 │ replayed-measurement-e4b88a     │ 0            │ True  │
+│ 18            │ 0            │ C_f1.0-c0.0-n2                              │ replay.benchmark_performance │ 1.0        │ multi-cloud-ml                 │ 2     │ C        │ 0.0       │ 463.396538734436   │ ok           │ not_measured                                                                                 │ replayed-measurement-8cde17     │ 0            │ True  │
+│ 19            │ 0            │ A_f0.0-c1.0-n4                              │ replay.benchmark_performance │ 0.0        │ multi-cloud-ml                 │ 4     │ A        │ 1.0       │ 106.67012143135072 │ ok           │ not_measured                                                                                 │ replayed-measurement-6e6eba     │ 0            │ True  │
+│ 20            │ 0            │ cpu_family.0-nodes.4-provider.B-vcpu_size.1 │ replay.benchmark_performance │ 0.0        │ explicit_grid_sample_generator │ 4     │ B        │ 1.0       │ not_measured       │ not_measured │ Externally defined experiments cannot be applied to entities: replay.benchmark_performance.  │ random_walk@2.0.0-31d4c6-305e2c │ 0            │ False │
+│ 21            │ 0            │ A_f0.0-c1.0-n2                              │ replay.benchmark_performance │ 0.0        │ multi-cloud-ml                 │ 2     │ A        │ 1.0       │ 272.99782156944275 │ ok           │ not_measured                                                                                 │ replayed-measurement-f29362     │ 0            │ True  │
+│ 22            │ 0            │ C_f0.0-c1.0-n5                              │ replay.benchmark_performance │ 0.0        │ multi-cloud-ml                 │ 5     │ C        │ 1.0       │ 85.67946743965149  │ ok           │ not_measured                                                                                 │ replayed-measurement-d9a69a     │ 0            │ True  │
+│ 22            │ 0            │ C_f0.0-c1.0-n5                              │ replay.benchmark_performance │ 0.0        │ multi-cloud-ml                 │ 5     │ C        │ 1.0       │ 95.86326050758362  │ ok           │ not_measured                                                                                 │ replayed-measurement-5dd4c0     │ 0            │ True  │
+│ 23            │ 0            │ A_f0.0-c1.0-n5                              │ replay.benchmark_performance │ 0.0        │ multi-cloud-ml                 │ 5     │ A        │ 1.0       │ 84.45346999168396  │ ok           │ not_measured                                                                                 │ replayed-measurement-40ad51     │ 0            │ True  │
+│ 23            │ 0            │ A_f0.0-c1.0-n5                              │ replay.benchmark_performance │ 0.0        │ multi-cloud-ml                 │ 5     │ A        │ 1.0       │ 86.23016095161438  │ ok           │ not_measured                                                                                 │ replayed-measurement-40d15b     │ 0            │ True  │
+│ 24            │ 0            │ A_f0.0-c0.0-n4                              │ replay.benchmark_performance │ 0.0        │ multi-cloud-ml                 │ 4     │ A        │ 0.0       │ 145.12948369979858 │ ok           │ not_measured                                                                                 │ replayed-measurement-345fad     │ 0            │ True  │
+│ 25            │ 0            │ cpu_family.1-nodes.5-provider.B-vcpu_size.1 │ replay.benchmark_performance │ 1.0        │ explicit_grid_sample_generator │ 5     │ B        │ 1.0       │ not_measured       │ not_measured │ Externally defined experiments cannot be applied to entities: replay.benchmark_performance.  │ random_walk@2.0.0-31d4c6-c544ab │ 0            │ False │
+│ 26            │ 0            │ B_f0.0-c0.0-n4                              │ replay.benchmark_performance │ 0.0        │ multi-cloud-ml                 │ 4     │ B        │ 0.0       │ 113.87676978111269 │ ok           │ not_measured                                                                                 │ replayed-measurement-7edf20     │ 0            │ True  │
+│ 26            │ 0            │ B_f0.0-c0.0-n4                              │ replay.benchmark_performance │ 0.0        │ multi-cloud-ml                 │ 4     │ B        │ 0.0       │ 132.5415120124817  │ ok           │ not_measured                                                                                 │ replayed-measurement-a5b1ad     │ 0            │ True  │
+│ 27            │ 0            │ B_f0.0-c1.0-n2                              │ replay.benchmark_performance │ 0.0        │ multi-cloud-ml                 │ 2     │ B        │ 1.0       │ 184.935049533844   │ ok           │ not_measured                                                                                 │ replayed-measurement-da472b     │ 0            │ True  │
+│ 27            │ 0            │ B_f0.0-c1.0-n2                              │ replay.benchmark_performance │ 0.0        │ multi-cloud-ml                 │ 2     │ B        │ 1.0       │ 166.74843192100525 │ ok           │ not_measured                                                                                 │ replayed-measurement-c4bf32     │ 0            │ True  │
+│ 28            │ 0            │ A_f0.0-c0.0-n2                              │ replay.benchmark_performance │ 0.0        │ multi-cloud-ml                 │ 2     │ A        │ 0.0       │ 335.2085180282593  │ ok           │ not_measured                                                                                 │ replayed-measurement-678aae     │ 0            │ True  │
+│ 29            │ 0            │ A_f0.0-c1.0-n3                              │ replay.benchmark_performance │ 0.0        │ multi-cloud-ml                 │ 3     │ A        │ 1.0       │ 168.36590766906738 │ ok           │ not_measured                                                                                 │ replayed-measurement-cd1f84     │ 0            │ True  │
+│ 29            │ 0            │ A_f0.0-c1.0-n3                              │ replay.benchmark_performance │ 0.0        │ multi-cloud-ml                 │ 3     │ A        │ 1.0       │ 170.15659737586975 │ ok           │ not_measured                                                                                 │ replayed-measurement-dd0f9a     │ 0            │ True  │
+│ 30            │ 0            │ B_f0.0-c0.0-n5                              │ replay.benchmark_performance │ 0.0        │ multi-cloud-ml                 │ 5     │ B        │ 0.0       │ 103.90595746040344 │ ok           │ not_measured                                                                                 │ replayed-measurement-73cea7     │ 0            │ True  │
+│ 30            │ 0            │ B_f0.0-c0.0-n5                              │ replay.benchmark_performance │ 0.0        │ multi-cloud-ml                 │ 5     │ B        │ 0.0       │ 112.7056987285614  │ ok           │ not_measured                                                                                 │ replayed-measurement-97139f     │ 0            │ True  │
+│ 30            │ 0            │ B_f0.0-c0.0-n5                              │ replay.benchmark_performance │ 0.0        │ multi-cloud-ml                 │ 5     │ B        │ 0.0       │ 113.88505148887634 │ ok           │ not_measured                                                                                 │ replayed-measurement-f76ee3     │ 0            │ True  │
+│ 31            │ 0            │ B_f1.0-c1.0-n2                              │ replay.benchmark_performance │ 1.0        │ multi-cloud-ml                 │ 2     │ B        │ 1.0       │ 298.8193049430847  │ ok           │ not_measured                                                                                 │ replayed-measurement-7aee8c     │ 0            │ True  │
+│ 32            │ 0            │ C_f1.0-c0.0-n3                              │ replay.benchmark_performance │ 1.0        │ multi-cloud-ml                 │ 3     │ C        │ 0.0       │ 598.8834657669067  │ Timed out.   │ not_measured                                                                                 │ replayed-measurement-ff4df6     │ 0            │ True  │
+│ 32            │ 0            │ C_f1.0-c0.0-n3                              │ replay.benchmark_performance │ 1.0        │ multi-cloud-ml                 │ 3     │ C        │ 0.0       │ 244.33887457847595 │ ok           │ not_measured                                                                                 │ replayed-measurement-02e84b     │ 0            │ True  │
+│ 33            │ 0            │ B_f1.0-c0.0-n2                              │ replay.benchmark_performance │ 1.0        │ multi-cloud-ml                 │ 2     │ B        │ 0.0       │ 346.0709958076477  │ ok           │ not_measured                                                                                 │ replayed-measurement-dc5f7f     │ 0            │ True  │
+│ 34            │ 0            │ C_f1.0-c0.0-n4                              │ replay.benchmark_performance │ 1.0        │ multi-cloud-ml                 │ 4     │ C        │ 0.0       │ 177.72359776496887 │ ok           │ not_measured                                                                                 │ replayed-measurement-88c126     │ 0            │ True  │
+│ 35            │ 0            │ C_f0.0-c0.0-n4                              │ replay.benchmark_performance │ 0.0        │ multi-cloud-ml                 │ 4     │ C        │ 0.0       │ 188.09087824821472 │ ok           │ not_measured                                                                                 │ replayed-measurement-778830     │ 0            │ True  │
+│ 36            │ 0            │ A_f0.0-c0.0-n5                              │ replay.benchmark_performance │ 0.0        │ multi-cloud-ml                 │ 5     │ A        │ 0.0       │ 106.0709307193756  │ ok           │ not_measured                                                                                 │ replayed-measurement-98cdbd     │ 0            │ True  │
+│ 36            │ 0            │ A_f0.0-c0.0-n5                              │ replay.benchmark_performance │ 0.0        │ multi-cloud-ml                 │ 5     │ A        │ 0.0       │ 130.30512285232544 │ ok           │ not_measured                                                                                 │ replayed-measurement-938232     │ 0            │ True  │
+│ 37            │ 0            │ cpu_family.1-nodes.4-provider.B-vcpu_size.1 │ replay.benchmark_performance │ 1.0        │ explicit_grid_sample_generator │ 4     │ B        │ 1.0       │ not_measured       │ not_measured │ Externally defined experiments cannot be applied to entities: replay.benchmark_performance.  │ random_walk@2.0.0-31d4c6-3be514 │ 0            │ False │
+│ 38            │ 0            │ A_f1.0-c1.0-n5                              │ replay.benchmark_performance │ 1.0        │ multi-cloud-ml                 │ 5     │ A        │ 1.0       │ 105.63729166984558 │ ok           │ not_measured                                                                                 │ replayed-measurement-f7f930     │ 0            │ True  │
+│ 38            │ 0            │ A_f1.0-c1.0-n5                              │ replay.benchmark_performance │ 1.0        │ multi-cloud-ml                 │ 5     │ A        │ 1.0       │ 96.8471610546112   │ ok           │ not_measured                                                                                 │ replayed-measurement-ce7af9     │ 0            │ True  │
+│ 39            │ 0            │ B_f1.0-c0.0-n4                              │ replay.benchmark_performance │ 1.0        │ multi-cloud-ml                 │ 4     │ B        │ 0.0       │ 202.48239731788635 │ ok           │ not_measured                                                                                 │ replayed-measurement-ce9983     │ 0            │ True  │
+│ 39            │ 0            │ B_f1.0-c0.0-n4                              │ replay.benchmark_performance │ 1.0        │ multi-cloud-ml                 │ 4     │ B        │ 0.0       │ 193.55997109413147 │ ok           │ not_measured                                                                                 │ replayed-measurement-744787     │ 0            │ True  │
+│ 40            │ 0            │ A_f1.0-c1.0-n4                              │ replay.benchmark_performance │ 1.0        │ multi-cloud-ml                 │ 4     │ A        │ 1.0       │ 116.31417059898376 │ ok           │ not_measured                                                                                 │ replayed-measurement-a1baf4     │ 0            │ True  │
+│ 41            │ 0            │ C_f0.0-c0.0-n3                              │ replay.benchmark_performance │ 0.0        │ multi-cloud-ml                 │ 3     │ C        │ 0.0       │ 240.07358503341675 │ ok           │ not_measured                                                                                 │ replayed-measurement-75c0d5     │ 0            │ True  │
+│ 41            │ 0            │ C_f0.0-c0.0-n3                              │ replay.benchmark_performance │ 0.0        │ multi-cloud-ml                 │ 3     │ C        │ 0.0       │ 269.0906641483307  │ ok           │ not_measured                                                                                 │ replayed-measurement-30997e     │ 0            │ True  │
+│ 42            │ 0            │ B_f0.0-c0.0-n2                              │ replay.benchmark_performance │ 0.0        │ multi-cloud-ml                 │ 2     │ B        │ 0.0       │ 225.1791422367096  │ ok           │ not_measured                                                                                 │ replayed-measurement-338bed     │ 0            │ True  │
+│ 42            │ 0            │ B_f0.0-c0.0-n2                              │ replay.benchmark_performance │ 0.0        │ multi-cloud-ml                 │ 2     │ B        │ 0.0       │ 228.14362454414368 │ ok           │ not_measured                                                                                 │ replayed-measurement-afbdd0     │ 0            │ True  │
+│ 43            │ 0            │ C_f1.0-c1.0-n3                              │ replay.benchmark_performance │ 1.0        │ multi-cloud-ml                 │ 3     │ C        │ 1.0       │ 154.9813470840454  │ ok           │ not_measured                                                                                 │ replayed-measurement-2f17c9     │ 0            │ True  │
+│ 43            │ 0            │ C_f1.0-c1.0-n3                              │ replay.benchmark_performance │ 1.0        │ multi-cloud-ml                 │ 3     │ C        │ 1.0       │ 168.34859228134155 │ ok           │ not_measured                                                                                 │ replayed-measurement-d3d572     │ 0            │ True  │
+│ 44            │ 0            │ C_f0.0-c0.0-n5                              │ replay.benchmark_performance │ 0.0        │ multi-cloud-ml                 │ 5     │ C        │ 0.0       │ 138.0605161190033  │ ok           │ not_measured                                                                                 │ replayed-measurement-b94055     │ 0            │ True  │
+│ 44            │ 0            │ C_f0.0-c0.0-n5                              │ replay.benchmark_performance │ 0.0        │ multi-cloud-ml                 │ 5     │ C        │ 0.0       │ 150.9471504688263  │ ok           │ not_measured                                                                                 │ replayed-measurement-60d9c7     │ 0            │ True  │
+│ 45            │ 0            │ A_f0.0-c0.0-n3                              │ replay.benchmark_performance │ 0.0        │ multi-cloud-ml                 │ 3     │ A        │ 0.0       │ 221.5101969242096  │ ok           │ not_measured                                                                                 │ replayed-measurement-c12d86     │ 0            │ True  │
+│ 45            │ 0            │ A_f0.0-c0.0-n3                              │ replay.benchmark_performance │ 0.0        │ multi-cloud-ml                 │ 3     │ A        │ 0.0       │ 216.394127368927   │ ok           │ not_measured                                                                                 │ replayed-measurement-62e712     │ 0            │ True  │
+│ 46            │ 0            │ C_f1.0-c1.0-n4                              │ replay.benchmark_performance │ 1.0        │ multi-cloud-ml                 │ 4     │ C        │ 1.0       │ 114.01436853408812 │ ok           │ not_measured                                                                                 │ replayed-measurement-215e79     │ 0            │ True  │
+│ 47            │ 0            │ B_f1.0-c0.0-n5                              │ replay.benchmark_performance │ 1.0        │ multi-cloud-ml                 │ 5     │ B        │ 0.0       │ 141.99024295806885 │ ok           │ not_measured                                                                                 │ replayed-measurement-012dd9     │ 0            │ True  │
+│ 47            │ 0            │ B_f1.0-c0.0-n5                              │ replay.benchmark_performance │ 1.0        │ multi-cloud-ml                 │ 5     │ B        │ 0.0       │ 168.79178500175476 │ ok           │ not_measured                                                                                 │ replayed-measurement-09afd9     │ 0            │ True  │
+└───────────────┴──────────────┴─────────────────────────────────────────────┴──────────────────────────────┴────────────┴────────────────────────────────┴───────┴──────────┴───────────┴────────────────────┴──────────────┴──────────────────────────────────────────────────────────────────────────────────────────────┴─────────────────────────────────┴──────────────┴───────┘
 ```
 
 <!-- markdownlint-enable line-length -->
 
 > [!TIP] Some things to note and consider:
 >
-> - The table is in the order the points were measured
-> - Some points have multiple measurements c.f. size of entityspace versus the
->   number of rows in `ml_export.csv`.
-> - Some points were not measured - these are points in the discoveryspace for
->   which no data was present to replay.
+> - The table is in the order the points were measured.
+> - Some points have multiple measurements — compare the entityspace size (48)
+>   to the number of rows in `ml_export.csv`.
+> - Some points were not measured (`valid: False`). These are points in the
+>   discoveryspace for which no matching data was present in `ml_export.csv` to
+>   replay.
+> - The `reason` column shows `not_measured` even for successful results
+>   (`status: ok`). This means the measurement was _replayed_ from existing data
+>   rather than executed live; it is not an error.
 
 ## Exploring Further
 
@@ -525,13 +438,12 @@ ado show measurements space --use-latest --include unmeasured
 ado show measurements space --use-latest --property-format target
 ```
 
-Also,
+Also, the following command will give you summary statistics of what has been
+measured:
 
 ```commandline
 ado show stats discoveryspace --use-latest
 ```
-
-will give you a summary of what has been measured.
 
 > [!NOTE]
 >
@@ -560,15 +472,19 @@ ado show trace operation --use-latest
 Another helpful command is `template` which will output a default example of a
 resource YAML along with an (optional) description of its fields. Try:
 
+<!-- markdownlint-disable line-length -->
+
 ```commandline
-ado template operation --include-schema --operator-name random_walk
+ado template operation --include-schema --operator-name random_walk --output-file random_walk_template.yaml
 ```
+
+<!-- markdownlint-enable line-length -->
 
 ### Rerun
 
 An interesting thing to try is to run the operation again and compare the output
-of `show measurements operation` for the two operations, and
-`show measurements space`.
+of `ado show measurements operation` for the two operations, and
+`ado show measurements space`.
 
 ## Takeaways
 
@@ -581,7 +497,7 @@ of `show measurements operation` for the two operations, and
 - **operations are domain agnostic**: `ado` enables operations to run on
   multiple different domains without modification.
 - **memoization**: By default `ado` will identify if a measurement has already
-  been completed on an entity and reuse it
+  been completed on an entity and reuse it.
 - **provenance**: `ado` stores the relationship between the resources it
   creates.
 - **results viewing**: `ado show measurements` outputs the data in a

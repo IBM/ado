@@ -314,11 +314,8 @@ def _create_environment(
                         ),
                         reasoning_parser=values.get("reasoning_parser"),
                         tool_call_parser=values.get("tool_call_parser"),
-                        language_model_only=int(values.get("language_model_only", 0))
-                        == 1,
-                        enable_auto_tool_choice=int(
-                            values.get("enable_auto_tool_choice", 0)
-                        )
+                        language_model_only=values.get("language_model_only", 0) == 1,
+                        enable_auto_tool_choice=values.get("enable_auto_tool_choice", 0)
                         == 1,
                         max_model_len=(
                             int(values["max_model_len"])
@@ -326,9 +323,7 @@ def _create_environment(
                             else None
                         ),
                         kv_cache_dtype=values.get("kv_cache_dtype"),
-                        enable_prefix_caching=int(
-                            values.get("enable_prefix_caching", 0)
-                        )
+                        enable_prefix_caching=values.get("enable_prefix_caching", 0)
                         == 1,
                         check_interval=check_interval,
                         timeout=timeout,

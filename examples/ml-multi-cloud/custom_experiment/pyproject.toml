@@ -7,13 +7,8 @@ dynamic = ["version"]
 requires = ["hatchling", "uv-dynamic-versioning>=0.7.0"]
 build-backend = "hatchling.build"
 
-[tool.hatch.build]
-include = [
-  "ado_actuators/ml_multi_cloud_custom_experiments/**",
-]
-
 [tool.hatch.build.targets.wheel]
-only-include = ["ado_actuators/ml_multi_cloud_custom_experiments"]
+packages = ["ado_actuators"]
 
 [tool.hatch.version]
 source = "uv-dynamic-versioning"

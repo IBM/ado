@@ -187,8 +187,9 @@ def ml_multi_cloud_invalid_actuatorconfiguration(
 def ml_multi_cloud_cost_experiment() -> Experiment:
     return ActuatorRegistry.globalRegistry().experimentForReference(
         ExperimentReference(
-            experimentIdentifier="ml-multicloud-cost-v1.0",
+            experimentIdentifier="ml-multicloud-cost",
             actuatorIdentifier="custom_experiments",
+            experimentVersion="1.0.0",
         )
     )
 

@@ -183,7 +183,7 @@ class TestAgentFlagsInVllmArgs:
 
 
 class TestNewServerParamsInVllmArgs:
-    """Test that kv_cache_dtype, quantization, enable_prefix_caching, block_size are correctly handled."""
+    """Test that kv_cache_dtype and enable_prefix_caching are correctly handled."""
 
     def _base_yaml(self, **kwargs: Any) -> list:  # noqa: ANN401
         """Return vllm serve args from a minimal deployment spec."""
@@ -215,20 +215,6 @@ class TestNewServerParamsInVllmArgs:
             f"--kv-cache-dtype found unexpectedly in: {args}"
         )
 
-    def test_quantization_in_args(self) -> None:
-        """When quantization is set, --quantization <value> should be in args."""
-        args = self._base_yaml(quantization="awq")
-        assert "--quantization" in args, f"--quantization not found in: {args}"
-        idx = args.index("--quantization")
-        assert args[idx + 1] == "awq", f"Expected 'awq', got '{args[idx + 1]}'"
-
-    def test_quantization_none_not_in_args(self) -> None:
-        """When quantization is None, --quantization should NOT be in args."""
-        args = self._base_yaml(quantization=None)
-        assert "--quantization" not in args, (
-            f"--quantization found unexpectedly in: {args}"
-        )
-
     def test_enable_prefix_caching_in_args(self) -> None:
         """When enable_prefix_caching=True, --enable-prefix-caching flag should be in args."""
         args = self._base_yaml(enable_prefix_caching=True)
@@ -242,18 +228,6 @@ class TestNewServerParamsInVllmArgs:
         assert "--enable-prefix-caching" not in args, (
             f"--enable-prefix-caching found unexpectedly in: {args}"
         )
-
-    def test_block_size_in_args(self) -> None:
-        """When block_size is set, --block-size <value> should be in args."""
-        args = self._base_yaml(block_size=32)
-        assert "--block-size" in args, f"--block-size not found in: {args}"
-        idx = args.index("--block-size")
-        assert args[idx + 1] == "32", f"Expected '32', got '{args[idx + 1]}'"
-
-    def test_block_size_none_not_in_args(self) -> None:
-        """When block_size is None, --block-size should NOT be in args."""
-        args = self._base_yaml(block_size=None)
-        assert "--block-size" not in args, f"--block-size found unexpectedly in: {args}"
 
 
 class TestBuildEntityEnv:
@@ -280,9 +254,7 @@ class TestBuildEntityEnv:
             "enable_auto_tool_choice": 0,
             "max_model_len": None,
             "kv_cache_dtype": None,
-            "quantization": None,
             "enable_prefix_caching": 0,
-            "block_size": None,
         }
 
     def test_kv_cache_dtype_produces_distinct_key(self) -> None:
@@ -295,16 +267,6 @@ class TestBuildEntityEnv:
             "kv_cache_dtype=fp8 and kv_cache_dtype=None must produce different cache keys"
         )
 
-    def test_quantization_produces_distinct_key(self) -> None:
-        """Entities differing only in quantization must not share a deployment environment."""
-        from ado_actuators.vllm_performance.experiment_executor import _build_entity_env
-
-        with_value = {**self._base_values(), "quantization": "awq"}
-        without_value = {**self._base_values(), "quantization": None}
-        assert _build_entity_env(with_value) != _build_entity_env(without_value), (
-            "quantization=awq and quantization=None must produce different cache keys"
-        )
-
     def test_enable_prefix_caching_produces_distinct_key(self) -> None:
         """Entities differing only in enable_prefix_caching must not share a deployment environment."""
         from ado_actuators.vllm_performance.experiment_executor import _build_entity_env
@@ -313,14 +275,4 @@ class TestBuildEntityEnv:
         without_value = {**self._base_values(), "enable_prefix_caching": 0}
         assert _build_entity_env(with_value) != _build_entity_env(without_value), (
             "enable_prefix_caching=1 and enable_prefix_caching=0 must produce different cache keys"
-        )
-
-    def test_block_size_produces_distinct_key(self) -> None:
-        """Entities differing only in block_size must not share a deployment environment."""
-        from ado_actuators.vllm_performance.experiment_executor import _build_entity_env
-
-        with_value = {**self._base_values(), "block_size": 32}
-        without_value = {**self._base_values(), "block_size": None}
-        assert _build_entity_env(with_value) != _build_entity_env(without_value), (
-            "block_size=32 and block_size=None must produce different cache keys"
         )

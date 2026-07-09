@@ -945,7 +945,7 @@ test-text-agent-v1:
       value: 262144
     - property:
         identifier: 'bfcl_categories'
-      value: 'simple'
+      value: 'simple,live_simple,multiple'
     - property:
         identifier: 'kv_cache_dtype'
       value: null
@@ -1133,7 +1133,7 @@ test-text-agent-endpoint-v1:
     - value: 262144
       property:
         identifier: 'max_model_len'
-    - value: 'simple'
+    - value: 'simple,live_simple,multiple'
       property:
         identifier: 'bfcl_categories'
   # measurements

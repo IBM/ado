@@ -2,7 +2,7 @@
 name = "robotic_lab"  # Change to your preferred name, along with the actual package
 description = "A template for creating an actuator"  # Change to describing your actuator
 dependencies = [
-  "ado-core",
+  "ado-core>=2.0.0",
 ]
 dynamic = ["version"]
 

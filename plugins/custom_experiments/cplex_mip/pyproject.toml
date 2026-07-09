@@ -2,7 +2,7 @@
 name = "ado-cplex-mip"
 description = "ado custom experiment for benchmarking CPLEX MIP solver performance across parameter configurations"
 dependencies = [
-  "ado-core",
+  "ado-core>=2.0.0",
   "cplex",
 ]
 dynamic = ["version"]

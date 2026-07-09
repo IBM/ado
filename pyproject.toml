@@ -53,7 +53,6 @@ randomwalk = "ado.modules.operators.randomwalk"
 
 [dependency-groups]
 dev = [
-  "black>=25.1.0",
   "coverage>=7.10.2",
   "detect-secrets @ git+https://github.com/ibm/detect-secrets.git",
   "pip>=25.1.1",

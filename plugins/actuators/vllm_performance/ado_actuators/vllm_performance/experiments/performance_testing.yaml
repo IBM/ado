@@ -841,13 +841,13 @@ test-text-agent:
         description: "(deployment) vLLM reasoning parser to use for agent-style models"
       propertyDomain:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
-        values: ["qwen3", "deepseek_r1"]
+        values: ["qwen3"]
     - identifier: 'tool_call_parser'
       metadata:
         description: "(deployment) vLLM tool call parser to use for agent-style models"
       propertyDomain:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
-        values: ["qwen3_coder", "hermes"]
+        values: ["qwen3_coder"]
     - identifier: 'language_model_only'
       metadata:
         description: "(deployment) When 1, run vLLM in language-model-only mode (disables multimodal processing)"

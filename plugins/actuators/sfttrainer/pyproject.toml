@@ -3,13 +3,7 @@ name = "ado-sfttrainer"
 description = "An actuator for benchmarking fine-tuning of foundation models"  # Change to describing your actuator
 readme = "ado_actuators/sfttrainer/README.md"
 requires-python = ">=3.10,<3.13"
-dependencies = [
-  "ado-core>=2.0.0",
-  "aim>=3.23.0",
-  "jwt",
-  "psutil",
-  "transformers>=4.44.2"
-]
+dependencies = ["aim>=3.23.0", "jwt", "psutil", "transformers>=4.44.2"]
 dynamic = ["version"]
 
 [project.scripts]

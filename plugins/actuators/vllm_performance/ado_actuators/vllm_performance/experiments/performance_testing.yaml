@@ -702,8 +702,8 @@ test-endpoint-guidellm-v1:
     - identifier: "p99_e2el_ms"
   metadata:
     description: 'Test inference performance of a model served by vLLM endpoint using GuideLLM benchmark suite across inference workload configurations'
-test-text-agent-v1:
-  identifier: test-text-agent-v1
+test-text-agent:
+  identifier: test-text-agent
   actuatorIdentifier: "vllm_performance"
   requiredProperties:
     - identifier: 'model'

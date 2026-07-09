@@ -256,7 +256,7 @@ class VLLMPerformanceTest(ActuatorBase):
             "test-geospatial-deployment-custom-dataset-v1",
             "test-geospatial-deployment-guidellm-v1",
             "test-geospatial-deployment-guidellm-custom-dataset-v1",
-            "test-text-agent-v1",
+            "test-text-agent",
         ]:
             if not self.env_manager:
                 raise MissingConfigurationForExperimentError(

@@ -9,26 +9,6 @@
 executing them at scale**. It enables distributed teams of researchers and
 engineers to collaborate, execute experiments, and share data.
 
-## How It Works
-
-ado is built around four key concepts:
-
-- **[Discovery Space](https://ibm.github.io/ado/concepts/discovery-spaces/)**:
-  defines _what_ you want to measure (an
-  [Entity Space](https://ibm.github.io/ado/concepts/entity-spaces/)), _how_ to
-  measure it (a set of
-  [Experiments](https://ibm.github.io/ado/concepts/actuators/)), and _where_
-  results are stored.
-- **[Experiments](https://ibm.github.io/ado/concepts/actuators/)**: pluggable
-  measurement functions, each taking entity properties as input and producing
-  new properties as output.
-- **[Operation](https://ibm.github.io/ado/resources/operation/)**: defines
-  _which_ operator to use (e.g. Ray Tune) and _how_ to parameterise it to drive
-  the experiments over the entity space.
-- **[Sample Store](https://ibm.github.io/ado/concepts/data-sharing/)**: stores
-  measurements and allows transparently reusing prior results across Discovery
-  Spaces and team members.
-
 ## Key Features
 
 - 🔌 **Extensible**: quickly add
@@ -51,6 +31,26 @@ ado is built around four key concepts:
   from the terminal
 - 🤖 **AI-agent ready**: typed resources and bundled skills let coding agents
   [autonomously formulate and run experiments](https://ibm.github.io/ado/how-to/)
+
+## At its _core_
+
+ado is built around four key concepts:
+
+- **[Discovery Space](https://ibm.github.io/ado/concepts/discovery-spaces/)**:
+  defines _what_ you want to measure (an
+  [Entity Space](https://ibm.github.io/ado/concepts/entity-spaces/)), _how_ to
+  measure it (a set of
+  [Experiments](https://ibm.github.io/ado/concepts/actuators/)), and _where_
+  results are stored.
+- **[Experiments](https://ibm.github.io/ado/concepts/actuators/)**: pluggable
+  measurement functions, each taking entity properties as input and producing
+  new properties as output.
+- **[Operation](https://ibm.github.io/ado/resources/operation/)**: defines
+  _which_ operator to use (e.g. Ray Tune) and _how_ to parameterise it to drive
+  the experiments over the entity space.
+- **[Sample Store](https://ibm.github.io/ado/concepts/data-sharing/)**: stores
+  measurements and allows transparently reusing prior results across Discovery
+  Spaces and team members.
 
 ## Quick Start
 
@@ -90,14 +90,13 @@ ado show measurements space --use-latest
 For a deeper walkthrough, see the
 [random-walk tutorial](https://ibm.github.io/ado/examples/random-walk/).
 
-### Foundation Model Experimentation
+## See What We've Built
 
-We have developed `ado` plugins providing advanced capabilities for performance
-testing of foundation models:
+Here are some examples of what the team has built with `ado`:
 
-- ⏱️
+- 🧠
   [Fine-tuning performance benchmarking](https://ibm.github.io/ado/actuators/sft-trainer/)
-- ⏱️
+- 📈
   [Inference performance benchmarking](https://ibm.github.io/ado/examples/vllm-performance-endpoint/)
   (using [vLLM bench](https://docs.vllm.ai/en/stable/cli/bench/serve/) or
   [guidellm](https://github.com/vllm-project/guidellm))

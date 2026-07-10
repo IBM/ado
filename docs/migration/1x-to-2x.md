@@ -6,25 +6,6 @@ workflows.
 
 ## Non-breaking changes
 
-### Renamed: `ado show entities` → `ado show measurements`
-
-The `ado show entities` command has been renamed to `ado show measurements`. All
-options and behaviour are unchanged; only the command name differs.
-
-**Before (ado 1.x):**
-
-```shell
-ado show entities space <space-id>
-ado show entities operation <operation-id> --property-format target -o csv
-```
-
-**After (ado 2.x):**
-
-```shell
-ado show measurements space <space-id>
-ado show measurements operation <operation-id> --property-format target -o csv
-```
-
 ### Renamed: `operationType: search` → `operationType: explore`
 
 The `explore` operation type was previously serialised as `"search"`. It is now
@@ -46,9 +27,9 @@ New operations and YAML files should use `operationType: explore`.
 
 ### Renamed: Python import package `orchestrator` → `ado`
 
-The Python import package has been renamed from `orchestrator` to `ado`. This
-is a breaking change for anyone who writes Python code that directly imports
-from the package — custom actuators, operators, custom experiments, or scripts.
+The Python import package has been renamed from `orchestrator` to `ado`. This is
+a breaking change for anyone who writes Python code that directly imports from
+the package — custom actuators, operators, custom experiments, or scripts.
 
 **Who is affected:** any code that contains `from orchestrator.` or
 `import orchestrator.` statements, and any samplestore or operation YAML files
@@ -91,6 +72,25 @@ grep -rn "orchestrator\." --include="*.yaml" --include="*.json" .
 ```
 
 <!-- markdownlint-enable line-length -->
+
+### Renamed: `ado show entities` → `ado show measurements`
+
+The `ado show entities` command has been renamed to `ado show measurements`. All
+options and behaviour are unchanged; only the command name differs.
+
+**Before (ado 1.x):**
+
+```shell
+ado show entities space <space-id>
+ado show entities operation <operation-id> --property-format target -o csv
+```
+
+**After (ado 2.x):**
+
+```shell
+ado show measurements space <space-id>
+ado show measurements operation <operation-id> --property-format target -o csv
+```
 
 ### Renamed: `--query` → `--filter` in `ado get` and `ado show` commands
 
@@ -180,8 +180,8 @@ For the full `ado show trace` reference, see the
 ### Removed: `ado get measurementrequest`
 
 The `ado get measurementrequest` command (and its `request` alias) has been
-removed. The `ado show trace` command supersedes it: use the `--filter`
-option to look up a specific measurement request by ID.
+removed. The `ado show trace` command supersedes it: use the `--filter` option
+to look up a specific measurement request by ID.
 
 **Before (ado 1.x):**
 

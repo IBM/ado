@@ -36,21 +36,16 @@ engineers to collaborate, execute experiments, and share data.
 
 ado is built around four key concepts:
 
-- **[Discovery Space](https://ibm.github.io/ado/concepts/discovery-spaces/)**:
-  defines _what_ you want to measure (an
-  [Entity Space](https://ibm.github.io/ado/concepts/entity-spaces/)), _how_ to
-  measure it (a set of
-  [Experiments](https://ibm.github.io/ado/concepts/actuators/)), and _where_
-  results are stored.
-- **[Experiments](https://ibm.github.io/ado/concepts/actuators/)**: pluggable
-  measurement functions, each taking entity properties as input and producing
-  new properties as output.
-- **[Operation](https://ibm.github.io/ado/resources/operation/)**: defines
-  _which_ operator to use (e.g. Ray Tune) and _how_ to parameterise it to drive
-  the experiments over the entity space.
-- **[Sample Store](https://ibm.github.io/ado/concepts/data-sharing/)**: stores
-  measurements and allows transparently reusing prior results across Discovery
-  Spaces and team members.
+- **Discovery Space**: defines _what_ you want to measure (an Entity Space),
+  _how_ to measure it (a set of Experiments), and _where_ results are stored.
+- **Experiments**: pluggable measurement functions, each taking entity
+  properties as input and producing new properties as output.
+- **Operation**: defines _which_ operator to use (e.g. Ray Tune) and _how_ to
+  parameterise it to drive the experiments over the entity space.
+- **Sample Store**: stores measurements and allows transparently reusing prior
+  results across Discovery Spaces and team members.
+
+Learn more about these concepts at <https://ibm.github.io/ado/concepts/>.
 
 ## Quick Start
 

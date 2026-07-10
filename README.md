@@ -47,43 +47,14 @@ reuse existing ones, and run the full exploration loop:
   and plugin versions, so an agent always knows where data came from and how
   to reproduce it
 
-## Quick Start
-
-Install `ado` and the example actuator plugin (a virtual environment is
-recommended). For complete instructions see the
-[install guide](https://ibm.github.io/ado/getting-started/install/):
+## Get Started
 
 ```shell
 pip install ado-core
-pip install git+https://github.com/IBM/ado.git#subdirectory=plugins/actuators/example_actuator
 ```
 
-Download the example Discovery Space and Operation YAML files:
-
-```shell
-curl -O https://raw.githubusercontent.com/IBM/ado/refs/heads/main/plugins/actuators/example_actuator/yamls/discoveryspace.yaml
-curl -O https://raw.githubusercontent.com/IBM/ado/refs/heads/main/plugins/actuators/example_actuator/yamls/random_walk_operation.yaml
-```
-
-Create a Discovery Space and run a random-walk operation over it — `ado`
-resolves the space reference automatically:
-
-```shell
-ado create operation -f random_walk_operation.yaml --with space=discoveryspace.yaml
-```
-
-`ado` will create the Discovery Space, sample entities from it using the
-built-in random-walk operator, execute the `peptide_mineralization` experiment
-for each entity, and store the results locally.
-
-Once the operation finishes, inspect the collected measurements:
-
-```shell
-ado show measurements space --use-latest
-```
-
-For a deeper walkthrough, see the
-[random-walk tutorial](https://ibm.github.io/ado/examples/random-walk/).
+For examples and tutorials, see the
+[ado user guide](https://ibm.github.io/ado/user-guide/examples/).
 
 ## See What We've Built
 

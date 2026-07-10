@@ -29,6 +29,29 @@ ado is built around four key concepts:
   measurements and allows transparently reusing prior results across Discovery
   Spaces and team members.
 
+## Key Features
+
+- 🔌 **Extensible**: quickly add
+  [new experiments](https://ibm.github.io/ado/actuators/creating-custom-experiments/)
+  or [operators](https://ibm.github.io/ado/operators/creating-operators/), often
+  as simply as decorating a Python function
+- ⚙️ **Scalable execution**: automatically leverage [Ray](https://www.ray.io/)
+  for parallel and multi-node experiment runs out of the box
+- 🔎 **Optimization & sampling**: run optimizations with our
+  [Ray Tune operator](https://ibm.github.io/ado/operators/optimisation-with-ray-tune/)
+  or a
+  [flexible random-walk sampler](https://ibm.github.io/ado/operators/random-walk/)
+- ♻️ **Automatic data reuse**: reuse existing results transparently with our
+  [memoization features](https://ibm.github.io/ado/core-concepts/data-sharing/)
+- 🔗 **Full provenance**: results and resources are annotated with relationships
+  and the plugin versions used to produce them
+- 🤝 **Collaborative projects**: distributed teams can
+  [share a common data store and results](https://ibm.github.io/ado/resources/metastore/)
+- 💻 **Human-centric CLI**: intuitively inspect, create, and manage resources
+  from the terminal
+- 🤖 **AI-agent ready**: typed resources and bundled skills let coding agents
+  [autonomously formulate and run experiments](https://ibm.github.io/ado/how-to/)
+
 ## Quick Start
 
 Install `ado` and the example actuator plugin (a virtual environment is
@@ -66,29 +89,6 @@ ado show measurements space --use-latest
 
 For a deeper walkthrough, see the
 [random-walk tutorial](https://ibm.github.io/ado/examples/random-walk/).
-
-## Key Features
-
-- 🔌 **Extensible**: quickly add
-  [new experiments](https://ibm.github.io/ado/actuators/creating-custom-experiments/)
-  or [operators](https://ibm.github.io/ado/operators/creating-operators/), often
-  as simply as decorating a Python function
-- ⚙️ **Scalable execution**: automatically leverage [Ray](https://www.ray.io/)
-  for parallel and multi-node experiment runs out of the box
-- 🔎 **Optimization & sampling**: run optimizations with our
-  [Ray Tune operator](https://ibm.github.io/ado/operators/optimisation-with-ray-tune/)
-  or a
-  [flexible random-walk sampler](https://ibm.github.io/ado/operators/random-walk/)
-- ♻️ **Automatic data reuse**: reuse existing results transparently with our
-  [memoization features](https://ibm.github.io/ado/core-concepts/data-sharing/)
-- 🔗 **Full provenance**: results and resources are annotated with relationships
-  and the plugin versions used to produce them
-- 🤝 **Collaborative projects**: distributed teams can
-  [share a common data store and results](https://ibm.github.io/ado/resources/metastore/)
-- 💻 **Human-centric CLI**: intuitively inspect, create, and manage resources
-  from the terminal
-- 🤖 **AI-agent ready**: typed resources and bundled skills let coding agents
-  [autonomously formulate and run experiments](https://ibm.github.io/ado/how-to/)
 
 ### Foundation Model Experimentation
 

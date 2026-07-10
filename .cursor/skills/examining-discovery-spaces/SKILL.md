@@ -66,7 +66,7 @@ Why is it useful to work with matching data?
      sampled spaced to analyze it. You can perform analysis on existing data
      even though no operation has been run on the new discoveryspace.
 2. Memoization: You can understand if there are
-   [memoization opportunities](website/docs/core-concepts/data-sharing.md) that
+   [memoization opportunities](docs/concepts/data-sharing.md) that
    would speed up a operation on the space.
 
 ## Pre-requisites: The Space Identifier

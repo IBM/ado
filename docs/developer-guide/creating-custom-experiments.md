@@ -53,7 +53,7 @@ In the simplest case:
 
 ```python
 {%
-   include "../../../examples/density_example/density/density.py"
+   include "../../examples/density_example/density/density.py"
 %}
 ```
 
@@ -128,14 +128,14 @@ called `custom_experiments`. Your experiment will be listed under the
 ### Testing your custom experiment
 
 You can test your custom experiment using the
-[`run_experiment`](run_experiment.md) command line tool. Save the following YAML
-to a file `point.yaml`
+[`run_experiment`](../user-guide/actuators/run-experiment.md) command line
+tool. Save the following YAML to a file `point.yaml`
 
 <!-- prettier-ignore-start -->
 
 ```yaml
 {%
-   include "../../../examples/density_example/point.yaml"
+   include "../../examples/density_example/point.yaml"
 %}
 ```
 

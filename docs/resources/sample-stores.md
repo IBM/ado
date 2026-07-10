@@ -308,7 +308,7 @@ If any validation fails, a detailed error message will indicate what's wrong.
 !!!info
 
       Please note that
-      [standard deletion constraints](resources.md#deleting-resources) apply alongside
+      [standard deletion constraints](index.md#deleting-resources) apply alongside
       the considerations discussed in this section.
 
 Deleting a sample store is a high-impact operation and should be performed with
@@ -319,7 +319,7 @@ caution. When a sample store is deleted:
   These will be measurements that were copied into the `samplestore` i.e., not
   generated through `ado` operations. All results from `ado` operations would
   have already been subject to
-  [standard deletion constraints](resources.md#deleting-resources).
+  [standard deletion constraints](index.md#deleting-resources).
 - **The corresponding database tables will be dropped**.
 
 This is especially critical when the sample store was populated externally, such

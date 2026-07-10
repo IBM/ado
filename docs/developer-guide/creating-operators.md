@@ -9,8 +9,9 @@
     as the basis to create new operators. It references this document to help tie
     details here to the implementation.
 
-Developers can write their own [operator](working-with-operators.md) plugins to
-add new operations that work on `discoveryspaces` to `ado`. Operator plugins are
+Developers can write their own [operator](../user-guide/operators/index.md)
+plugins to add new operations that work on `discoveryspaces` to `ado`.
+Operator plugins are
 written in Python and can live in their own repository.
 
 The main part of writing an operator plugin, from an integration standpoint, is
@@ -68,7 +69,7 @@ def detect_anomalous_series(
 
 The first thing you need to do is decide what type of operator you are creating.
 The choices are
-[explore, characterize, learn, modify, fuse, export, or compare](working-with-operators.md).
+[explore, characterize, learn, modify, fuse, export, or compare](../user-guide/operators/index.md).
 You then import the decorator for this operator type from
 `ado.modules.operators.collections` and use it to decorate your
 operator function.

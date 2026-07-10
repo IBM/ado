@@ -470,7 +470,7 @@ For rapid prototyping with limited measurement budget:
 <!-- prettier-ignore-start -->
 
 ```yaml
-{% include "../../../../examples/trim/example_yamls/quick_exploration.yaml" %}
+{% include "../../../examples/trim/example_yamls/quick_exploration.yaml" %}
 ```
 
 <!-- prettier-ignore-end -->
@@ -483,7 +483,7 @@ Balanced approach for production use:
 <!-- prettier-ignore-start -->
 
 ```yaml
-{% include "../../../../examples/trim/example_yamls/high_quality_characterization.yaml" %}
+{% include "../../../examples/trim/example_yamls/high_quality_characterization.yaml" %}
 ```
 
 <!-- prettier-ignore-end -->

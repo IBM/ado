@@ -68,7 +68,7 @@ Each explore operation will perform the following steps in some way:
 ### Memoization: Replaying Measurements
 
 A core goal of `ado` is transparent data-sharing. This is enabled via the
-[common context provided by `samplestores`](../resources/sample-stores.md) and
+[common context provided by `samplestores`](../../resources/sample-stores.md) and
 the schema used to store `entities`.
 
 To leverage this data-sharing capability explore operations will, by default,

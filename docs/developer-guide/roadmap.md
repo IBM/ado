@@ -2,7 +2,7 @@
 <!-- prettier-ignore-start -->
 
 {%
-   include-markdown "../../../ROADMAP.md"
+   include-markdown "../../ROADMAP.md"
 %}
 
 <!-- prettier-ignore-end -->

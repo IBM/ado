@@ -56,7 +56,7 @@ Agent skills are text documents under `.agents/skills/`.
 - Evaluate based on [Agent Skills Guidelines](../../AGENTS.md#agent-skills).
 - For each skill (new or modified) ensure you check the following for related
   content
-  - `.agents/skills/`, `examples/`, `website/docs/`, `AGENTS.md`
+  - `.agents/skills/`, `examples/`, `docs/`, `AGENTS.md`
 
 When evaluating new or modified skills (new or changes) use this structure per
 skill:

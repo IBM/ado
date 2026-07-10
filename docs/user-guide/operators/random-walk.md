@@ -485,7 +485,7 @@ has, reuse a.k.a. replay, the result.
 
 If the entity has multiple results for the same experiment, each one will be
 replayed. See
-[replayed measurements](explore_operators.md#memoization-replaying-measurements)
+[replayed measurements](explore-operators.md#memoization-replaying-measurements)
 for more details.
 
 ## Retrying Failed Measurements

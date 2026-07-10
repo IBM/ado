@@ -130,7 +130,7 @@ ado context my-context
 ### ado create
 
 The **ado** CLI provides the _create_ command to create
-[resources](../resources/resources.md) given a YAML file with their
+[resources](../resources/index.md) given a YAML file with their
 configuration.
 
 The complete syntax of the `ado create` command is as follows:
@@ -254,7 +254,7 @@ ado create space -f ds.yaml --set "entitySpace[0].identifier=abcdef"
 ### ado delete
 
 The **ado** CLI provides the delete command to delete
-[resources](../resources/resources.md) given their unique identifier.
+[resources](../resources/index.md) given their unique identifier.
 
 The complete syntax of the `ado delete` command is as follows:
 

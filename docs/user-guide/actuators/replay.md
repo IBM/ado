@@ -4,7 +4,7 @@
 
 The replay actuator allows you to leverage results that were obtained via
 experiments outside of `ado` that are contained in external sources like
-[CSV files](../resources/sample-stores.md#csvsamplestore). We can't repeat these
+[CSV files](../../resources/sample-stores.md#csvsamplestore). We can't repeat these
 experiments, or add new data using them, in `ado` as no actuator exists to do
 so. However, you still might want to define measurement spaces with them so
 entities that have the relevant data can be sampled and the data used, perhaps
@@ -31,7 +31,7 @@ entities for each row. The following example is from
 <!-- prettier-ignore-start -->
 
 ```yaml
-{% include "../../../../examples/ml-multi-cloud/ml_multicloud_sample_store.yaml" %}
+{% include "../../../examples/ml-multi-cloud/ml_multicloud_sample_store.yaml" %}
 ```
 
 <!-- prettier-ignore-end -->

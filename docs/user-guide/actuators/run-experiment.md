@@ -80,7 +80,7 @@ run_experiment example_point.yaml
   - For evaluating multiple points or running large-scale experiments, use a `discoveryspace`
     and the standard `ado` workflow.
 - **No Metastore Tracking:** The results from `run_experiment`
-  are **not** tracked or stored in the `ado` [metastore](../resources/metastore.md).
+  are **not** tracked or stored in the `ado` [metastore](../../resources/metastore.md).
   - This means results are ephemeral and only available in the console output.
 - **For Development & Debugging:** This script is best suited for
   actuator/experiment development, debugging, or quick checks — not for

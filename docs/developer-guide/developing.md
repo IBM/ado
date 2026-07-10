@@ -2,7 +2,7 @@
 <!-- prettier-ignore-start -->
 
 {%
-   include-markdown "../../../DEVELOPING.md"
+   include-markdown "../../DEVELOPING.md"
 %}
 
 <!-- prettier-ignore-end -->

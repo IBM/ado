@@ -55,7 +55,7 @@
     ```
 
     If intend to develop ado, refer to our
-    [development setup guidelines](./developing.md).
+    [development setup guidelines](../developer-guide/developing.md).
 
 ## Installing plugins
 
@@ -137,7 +137,7 @@ You can install these plugins as follows:
 
     Learn what you can do with `ado`
 
-    [Follow the guide :octicons-arrow-right-24:](ado.md)
+    [Follow the guide :octicons-arrow-right-24:](../cli-reference/index.md)
 
 - :octicons-database-24:{ .lg .middle } **Collaborate with others**
 
@@ -145,7 +145,7 @@ You can install these plugins as follows:
 
     Learn how to install the components that allow you to collaborate with others.
 
-    [Installing the Backend Services :octicons-arrow-right-24:](installing-backend-services.md)
+    [Installing the Backend Services :octicons-arrow-right-24:](backend-services.md)
 
 </div>
 <!-- markdownlint-enable line-length -->

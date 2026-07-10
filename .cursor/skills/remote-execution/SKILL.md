@@ -25,7 +25,7 @@ morrigan_vllm_dev_execution.yaml # Morrigan + vllm_performance from source
 The file names are user-defined conventions. Check the repo root for any
 `*_execution.yaml` files to discover what contexts are available.
 
-See `website/docs/getting-started/remote_run.md` for full schema reference.
+See `docs/user-guide/remote-execution.md` for full schema reference.
 
 ---
 

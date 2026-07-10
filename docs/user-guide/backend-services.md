@@ -3,17 +3,17 @@
 <!-- prettier-ignore-start -->
 
 {%
-   include-markdown "../../../backend/mysql/README.md"
+   include-markdown "../../backend/mysql/README.md"
    heading-offset=1
 %}
 
 {%
-   include-markdown "../kuberay.md"
+   include-markdown "../../backend/kuberay/README.md"
    heading-offset=1
 %}
 
 {%
-   include-markdown "../../../backend/api/README.md"
+   include-markdown "../../backend/api/README.md"
    heading-offset=1
 %}
 

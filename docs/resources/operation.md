@@ -162,7 +162,7 @@ missing, the `create` operation will fail with a relevant error.
 ### `operation` resource specific fields
 
 `operation` resources have two additional top-level fields in addition to common
-ones described in [resources](resources.md#common-features-of-resources) These
+ones described in [resources](index.md#common-features-of-resources) These
 are (with example values):
 
 ```yaml
@@ -191,7 +191,7 @@ See [datacontainers](datacontainer.md) for more details.
 ## `operation` status update events
 
 In addition to the
-[status update events common to all resources](resources.md#resource-status)
+[status update events common to all resources](index.md#resource-status)
 `operations` define two more events: `started` and `finished`.
 
 The finished event also has a custom field `exit_state` which described how the
@@ -238,7 +238,7 @@ version: v1
 !!!info
 
     Please note that
-    [standard deletion constraints](resources.md#deleting-resources) apply alongside
+    [standard deletion constraints](index.md#deleting-resources) apply alongside
     the considerations discussed in this section.
 
 !!!warning

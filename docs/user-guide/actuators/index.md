@@ -2,16 +2,16 @@
 An **actuator** is a code module that provides experiment protocols that can
 measure properties of entities. See [actuators](../../concepts/actuators.md)
 for more details on what an actuator is and read
-[discoveryspaces](../resources/discovery-spaces.md) to learn how they are used
+[discoveryspaces](../../resources/discovery-spaces.md) to learn how they are used
 to create `discoveryspaces`.
 
 This section covers how you install and configure actuators,
-[create new actuators to extend `ado`](creating-actuator-classes.md) as well as
-specific documentation for various actuators available.
+[create new actuators to extend `ado`](../../developer-guide/creating-actuator-classes.md)
+as well as specific documentation for various actuators available.
 
-You can also add [your own custom experiments](creating-custom-experiments.md)
+You can also add [your own custom experiments](../../developer-guide/creating-custom-experiments.md)
 using the special actuator
-[_custom_experiments_](creating-custom-experiments.md#using-your-custom-experiment).
+[_custom_experiments_](../../developer-guide/creating-custom-experiments.md#using-your-custom-experiment).
 
 > [!NOTE]  Actuators and Plugins
 >
@@ -111,8 +111,8 @@ The output will be similar to:
 
 `custom_experiments` allows users to create experiments from python functions
 without having to write a full Actuator. The
-[creating custom experiments](creating-custom-experiments.md) page describes
-this in detail.
+[creating custom experiments](../../developer-guide/creating-custom-experiments.md)
+page describes this in detail.
 
 The `replay` actuator allows you to use property values from experiments that
 were performed outside of `ado` i.e. no Actuator exists to measure them. Often
@@ -123,7 +123,7 @@ the [replay actuator](replay.md) page to learn more about how to do this.
 ## Actuator Plugins
 
 Anyone can extend `ado` with **actuator plugins**. All actuator plugins are
-python packages (see [creating actuator classes](creating-actuator-classes.md))
+python packages (see [creating actuator classes](../../developer-guide/creating-actuator-classes.md))
 and can be installed in the usual ways with `pip`.
 
 ### Actuator plugins distributed with `ado`

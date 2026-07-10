@@ -32,7 +32,7 @@ experiments.
 ## Explore the `discoveryspace` with a RandomWalk
 
 This clip demonstrates how to view the available operators and then creating a
-[RandomWalk](user-guide/operators/random-walk.md) [operation](../resources/operation.md)
+[RandomWalk](user-guide/operators/random-walk.md) [operation](resources/operation.md)
 to explore the discovery space created above. The operation is configured to
 sample all 40 of the configurations, a.k.a.
 [entities](concepts/entity-spaces.md), in the `discoveryspace`. After

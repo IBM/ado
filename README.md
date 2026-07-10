@@ -144,7 +144,7 @@ getting the details of an experiment.
 Check the [demo page](https://ibm.github.io/ado/getting-started/demo) for more
 videos.
 
-[![Watch the video](website/docs/getting-started/videos/step1_trimmed_thumbnail.png)](https://github.com/user-attachments/assets/fc4862f3-763b-4967-ab3c-4bd359900a50)
+[![Watch the video](docs/videos/step1_trimmed_thumbnail.png)](https://github.com/user-attachments/assets/fc4862f3-763b-4967-ab3c-4bd359900a50)
 
 ## Citation
 

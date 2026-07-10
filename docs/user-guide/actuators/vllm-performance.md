@@ -131,7 +131,7 @@ The `vllm_performance` actuator implements twelve experiments:
 ## Running single experiments: Quick endpoint and deployment tests
 
 For rapid testing and debugging, you can use the
-[`run_experiment`](run_experiment.md) tool to execute individual experiments on
+[`run_experiment`](run-experiment.md) tool to execute individual experiments on
 a single point (entity). This is ideal when you want to:
 
 - Quickly check if your actuator installation and configuration works
@@ -238,8 +238,8 @@ covers several needs:
   and control automated clean-up.
 
 You supply this configuration information as an `ado`
-[`actuatorconfiguration` resource](../resources/actuatorconfig.md), which is a
-YAML file with the configuration options. An example is:
+[`actuatorconfiguration` resource](../../resources/actuatorconfig.md),
+which is a YAML file with the configuration options. An example is:
 
 <!-- markdownlint-disable line-length -->
 

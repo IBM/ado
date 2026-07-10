@@ -1933,7 +1933,7 @@ following DiscoverySpace for 5 times:
 <!-- prettier-ignore-start -->
 
 ```yaml
-{% include "../../../../plugins/actuators/sfttrainer/examples/metrics-stability-space.yaml" %}
+{% include "../../../plugins/actuators/sfttrainer/examples/metrics-stability-space.yaml" %}
 ```
 
 <!-- prettier-ignore-end -->
@@ -1948,7 +1948,7 @@ Remember to switch off memoization in your RandomWalk operation definition:
 <!-- prettier-ignore-start -->
 
 ```yaml
-{% include "../../../../plugins/actuators/sfttrainer/examples/metrics-stability-operation.yaml" %}
+{% include "../../../plugins/actuators/sfttrainer/examples/metrics-stability-operation.yaml" %}
 ```
 
 <!-- prettier-ignore-end -->
@@ -2341,7 +2341,7 @@ your log output will be similar to the snippet below.
 
     Learn how to use **ActuatorConfiguration** resources to customize the SFTTrainer **Operations**
 
-    [ActuatorConfiguration documentation](../resources/actuatorconfig.md)
+    [ActuatorConfiguration documentation](../../resources/actuatorconfig.md)
 
 - 🖥️ **Ready to try it out?**
 

@@ -39,7 +39,7 @@ operation. The General Workflow can be applied to all types of operation.
 In addition, the Explore Operation Workflow can be applied to
 Explore operations.
 
-- Read [operations](../../../website/docs/resources/operation.md) documentation
+- Read [operations](../../../docs/resources/operation.md) documentation
   for details
 
 ## Pre-requisites: The Operation Identifier
@@ -167,7 +167,7 @@ uv run ado describe space SPACE_ID
 Summarise the: **dimensions** (parameters), **experiments** (actuators,
 experiment types), **entity space** structure, and notable **constraints** or
 metadata. For deeper context, read operator and experiment documentation under
-`website/docs/operators/` and actuator/experiment docs as needed (match
+`docs/user-guide/operators/` and actuator/experiment docs as needed (match
 **operatorIdentifier** and experiment types from the space).
 
 ### Step 5: Get the output resources of the operation
@@ -217,8 +217,8 @@ Notes:
 
 Relevant Documentation
 
-- [sample process](../../../website/docs/core-concepts/discovery-spaces.md#sampling-and-measurement)
-- [memoization](../../../website/docs/core-concepts/data-sharing.md#memoization)
+- [sample process](../../../docs/concepts/discovery-spaces.md#sampling-and-measurement)
+- [memoization](../../../docs/concepts/data-sharing.md#memoization)
 
 ### Step 1: Get Details on what was Sampled and Measured
 

@@ -25,7 +25,7 @@ Operators are grouped into the following types:
 - **compare**: compare one or more `discoveryspaces`
 - **fuse**: create a new `discoveryspace` from a set of input `discoveryspaces`
 
-[This page](explore_operators.md) describes **explore** operators in more detail
+[This page](explore-operators.md) describes **explore** operators in more detail
 as they are the only operators that sample and measure entities.
 
 ## Listing the available operators
@@ -66,7 +66,7 @@ Using an operator involves the following steps:
    - in addition `ado show measurements $OPERATION_IDENTIFIER` for explore
      operations
 
-These steps are covered in detail in [operations](../resources/operation.md).
+These steps are covered in detail in [operations](../../resources/operation.md).
 
 ## What's next
 

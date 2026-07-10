@@ -9,7 +9,7 @@ to configure the actuators used in the operation.
 !!! info end
 
     See
-    [enabling custom configuration of an actuator](../actuators/creating-actuator-classes.md#enabling-custom-configuration-of-an-actuator)
+    [enabling custom configuration of an actuator](../developer-guide/creating-actuator-classes.md#enabling-custom-configuration-of-an-actuator)
     for how to enable this configuration capability for an actuator
 
 Some examples of configuration parameters are:

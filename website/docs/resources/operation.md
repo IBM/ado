@@ -9,9 +9,9 @@ provides the capability to perform a random walk `operation` on a
 
 The `operator` defines the inputs arguments you can set for its `operations`.
 
-The [operators](../operators/working-with-operators.md) section contains more
+The [operators](../user-guide/operators/index.md) section contains more
 details about the available `operators`, their functionality, and how to use
-them. In particular, [explore operators](../operators/explore_operators.md)
+them. In particular, [explore operators](../user-guide/operators/explore-operators.md)
 provides details on how you sample and measure entities from a `discoveryspace`.
 This page covers how you create and work with `operations` using a given
 `operator` in general.
@@ -32,7 +32,7 @@ its fields by executing
 ado template operation --operator-name $OPERATOR_NAME --include-schema
 ```
 
-In addition, check the [operator](../operators/working-with-operators.md)
+In addition, check the [operator](../user-guide/operators/index.md)
 section for an entry for the particular $OPERATOR_NAME for more detail.
 
 !!! info end
@@ -62,10 +62,10 @@ set of parameter values, use one of the following methods
 
 - Follow the previous section and use `ado template operation`
 - Check if there is an entry for the `operator` in the
-  [operator](../operators/working-with-operators.md) section of the
+  [operator](../user-guide/operators/index.md) section of the
   documentation website.
-- Check the [examples](../examples/examples.md) section to see if there is an
-  example of using the given `operator`
+- Check the [examples](../user-guide/examples/index.md) section to see if there
+  is an example of using the given `operator`
 
 For illustrative purposes here is a configuration for a random walk operation
 
@@ -265,5 +265,5 @@ running. This safeguard prevents potential consistency issues, such as deleting
 results that are actively being replayed in a running operation.
 
 To override this restriction, you can use the
-[--force option](../getting-started/ado.md#ado-delete), which allows deletion
+[--force option](../cli-reference/index.md#ado-delete), which allows deletion
 even when other operations are in progress.

@@ -3,7 +3,7 @@
 
 !!! info end
 
-    If you are not familiar with the concept of a Discovery Space check [here](../core-concepts/discovery-spaces.md)
+    If you are not familiar with the concept of a Discovery Space check [here](../concepts/discovery-spaces.md)
 
 ## Creating a `discoveryspace` resource
 
@@ -82,7 +82,7 @@ ado template space --from-experiment finetune-gptq-lora-dp-r-4-a-16-tm-default-v
 ```
 
 More in-depth documentation about this feature can be found in the section about
-[`ado template`](../getting-started/ado.md#ado-template)
+[`ado template`](../cli-reference/index.md#ado-template)
 
 ### Differences between input configuration YAML and stored configuration YAML
 
@@ -113,7 +113,7 @@ by operations on `discoveryspace` A. However, if someone uses method two on
 
 Shared samples stores also allow data to be reused across `discoveryspaces`,
 potentially accelerating exploration operations. See the
-[shared sample store](../core-concepts/data-sharing.md) documentation for
+[shared sample store](../concepts/data-sharing.md) documentation for
 further details.
 
 ## Accessing Entities
@@ -182,7 +182,7 @@ table = space.matchingEntitiesTable()
 !!! info end
 
     For the conceptual distinction between target and observed properties see
-    [Target and Observed Properties](../core-concepts/actuators.md#target-and-observed-properties).
+    [Target and Observed Properties](../concepts/actuators.md#target-and-observed-properties).
 
 There are two formats the measurements can be output controlled by the
 `--property-format` option to `show measurements`
@@ -810,7 +810,7 @@ explains how to use optional properties.
 ## Parameterizing Experiments
 
 If an experiment has
-[optional input properties](../core-concepts/actuators.md#optional-inputs) you
+[optional input properties](../concepts/actuators.md#optional-inputs) you
 can define equivalent properties in the entity space. If you don't, the default
 value for the property will be used.
 

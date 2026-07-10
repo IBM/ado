@@ -24,40 +24,40 @@ allows AI coding agents to **autonomously formulate and run your experiments**.
 - :handshake: _Projects_: Allow distributed groups of users to
   [collaborate and share data](resources/metastore.md)
 - 🔌 _Extendable_: Easily
-  [add new experiments](actuators/creating-custom-experiments.md)
-  or [optimizers and other tools](operators/creating-operators.md)
+  [add new experiments](developer-guide/creating-custom-experiments.md)
+  or [optimizers and other tools](developer-guide/creating-operators.md)
 - :gear: _Scalable_: We use [Ray](https://ray.io) as our execution engine,
   allowing experiments and tools to scale easily
 - :recycle: _Automatic data-reuse_: Avoid repeating work with
-  [transparent reuse of experiment results](core-concepts/data-sharing.md);
+  [transparent reuse of experiment results](concepts/data-sharing.md);
   `ado`'s internal protocols ensure this happens only when it makes sense
 - :link: _Provenance_: Relationships between data and operations are
-  [automatically tracked](getting-started/ado.md#ado-show-related).
+  [automatically tracked](cli-reference/index.md#ado-show-related).
   The versions of `ado-core` and every plugin used to create a resource are also
   recorded, keeping results reproducible and debuggable
 - :mag: _Optimization and sampling_: Out-of-the-box, leverage powerful optimization
-  methods [via Ray Tune](operators/optimisation-with-ray-tune.md)
-  or use our [flexible built-in sampler](operators/random-walk.md)
+  methods [via Ray Tune](user-guide/operators/ray-tune.md)
+  or use our [flexible built-in sampler](user-guide/operators/random-walk.md)
 - :material-robot-outline: _Coding agents_: Supercharge your workflow. `ado`'s
   typed resources and bundled skills enable AI assistants to autonomously
-  formulate, validate, and run experiments. [Learn more](how-to/index.md)
+  formulate, validate, and run experiments. [Learn more](user-guide/index.md)
 
 ### Foundation Model Experimentation
 
 We have developed `ado` plugins providing advanced capabilities for performance
 testing of foundation models:
 
-- :stopwatch: [Fine-tuning performance benchmarking](actuators/sft-trainer.md)
+- :stopwatch: [Fine-tuning performance benchmarking](user-guide/actuators/sft-trainer.md)
 - :stopwatch:
-  [Inference performance benchmarking](examples/vllm-performance-endpoint.md)
+  [Inference performance benchmarking](user-guide/examples/vllm-performance-endpoint.md)
   (using [vLLM bench](https://docs.vllm.ai/en/latest/cli/bench/serve.html) or
   [guidellm](https://github.com/vllm-project/guidellm))
-- :crystal_ball: [Predictive performance model creation](operators/trim.md)
+- :crystal_ball: [Predictive performance model creation](user-guide/operators/trim.md)
 
 ## Requirements
 
 A basic installation of `ado` only requires a recent Python version (3.10 to
-3.14). This will allow you to run [many of our examples](examples/examples.md)
+3.14). This will allow you to run [many of our examples](user-guide/examples/index.md)
 and explore `ado` features.
 
 ### Additional Requirements
@@ -68,11 +68,11 @@ Some advanced features have additional requirements:
 
 - **Distributed Projects** **_(Optional)_**: To support projects with multiple
   users you will need a remote, accessible MySQL database. See
-  [here](getting-started/installing-backend-services.md#using-the-distributed-mysql-backend-for-ado)
+  [here](user-guide/backend-services.md#using-the-distributed-mysql-backend-for-ado)
   for more details
 - **Multi-Node Execution** **_(Optional)_**: To support multi-node or scaled
   execution you may need a multi-node RayCluster. See
-  [here](getting-started/installing-backend-services.md#deploying-kuberay-and-creating-a-raycluster)
+  [here](user-guide/backend-services.md#deploying-kuberay-and-creating-a-raycluster)
   for more details
 <!-- markdownlint-enable descriptive-link-text -->
 
@@ -80,7 +80,7 @@ In addition, `ado` plugins may have additional requirements for executing
 **_realistic_** experiments. For example:
 
 - **_Fine-Tuning Benchmarking_**: Requires a
-  [RayCluster with GPUs](actuators/sft-trainer.md#configure-your-raycluster)
+  [RayCluster with GPUs](user-guide/actuators/sft-trainer.md#configure-your-raycluster)
 - **_vLLM Performance Benchmarking_**: Requires an OpenShift cluster with GPUs
 
 ## Try it out
@@ -118,20 +118,20 @@ In addition, `ado` plugins may have additional requirements for executing
 
     to see a list of the in-built operators.
 
-    Next, we recommend you try our short [tutorial](examples/random-walk.md) which will give an idea of how `ado` works.
+    Next, we recommend you try our short [tutorial](user-guide/examples/random-walk.md) which will give an idea of how `ado` works.
 
 </div>
 <!-- markdownlint-enable line-length -->
 
 ## Example
 
-This video shows listing [actuators](actuators/working-with-actuators.md) and
-getting the details of an experiment. Check [demo](getting-started/demo.md) for
+This video shows listing [actuators](user-guide/actuators/index.md) and
+getting the details of an experiment. Check [demo](demo.md) for
 more videos.
 
 <!-- markdownlint-disable no-inline-html -->
-<video controls preload="auto" poster="getting-started/videos/step1_trimmed_thumbnail.png">
-<source src="getting-started/videos/step1_trimmed.mp4" type="video/mp4">
+<video controls preload="auto" poster="videos/step1_trimmed_thumbnail.png">
+<source src="videos/step1_trimmed.mp4" type="video/mp4">
 </video>
 <!-- markdownlint-enable no-inline-html -->
 
@@ -153,7 +153,7 @@ Networks and Services Joint Undertaking (SNS JU) under grant agreement No.
 
     Jump into our tutorial
 
-    [Taking a random walk :octicons-arrow-right-24:](examples/random-walk.md)
+    [Taking a random walk :octicons-arrow-right-24:](user-guide/examples/random-walk.md)
 
 - :octicons-terminal-24:{ .lg .middle } **Check out the ADO cli**
 
@@ -161,6 +161,6 @@ Networks and Services Joint Undertaking (SNS JU) under grant agreement No.
 
     Get familiar with the capabilities of the `ado` command-line interface.
 
-    [Dive into the CLI reference docs :octicons-arrow-right-24:](getting-started/ado.md)
+    [Dive into the CLI reference docs :octicons-arrow-right-24:](cli-reference/index.md)
 
 </div>

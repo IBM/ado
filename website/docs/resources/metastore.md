@@ -162,7 +162,7 @@ existing database.
 
 ## Searching the Metastore
 
-The [`ado get`](../getting-started/ado.md#ado-get) CLI command lets you easily
+The [`ado get`](../cli-reference/index.md#ado-get) CLI command lets you easily
 retrieve and search
 [resource definitions](https://ibm.github.io/ado/resources/resources/#common-features-of-resources)
 in the metastore in a variety of ways.
@@ -192,7 +192,7 @@ subspace, a superspace, or an exact match.
 ### Searching for spaces containing a point
 
 If you're looking for discovery spaces that **contain** a specific
-[entity](../core-concepts/entity-spaces.md#entities) and (optionally) a list of
+[entity](../concepts/entity-spaces.md#entities) and (optionally) a list of
 experiments, you can use the `--matching-point` option.
 
 This option accepts a YAML file with the following structure:

@@ -2,7 +2,7 @@
 <!-- markdownlint-disable first-line-h1 -->
 
 A `samplestore` resource is a database containing
-[`entities`](../core-concepts/entity-spaces.md#entities) along with results of
+[`entities`](../concepts/entity-spaces.md#entities) along with results of
 experiments that have been applied to them.
 
 ## `samplestore`s and `discoveryspace`s
@@ -27,7 +27,7 @@ that matches the `discoveryspace`.
 When multiple `discoveryspace`s use the same `samplestore` this enables
 transparent data-sharing between the different `discoveryspace`s. When and how
 data is shared is covered in detail in
-[shared sample stores](../core-concepts/data-sharing.md).
+[shared sample stores](../concepts/data-sharing.md).
 
 To see the `discoveryspaces` using a given `samplestore` run
 

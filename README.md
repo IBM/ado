@@ -21,28 +21,31 @@ ado is built around four key concepts (explore them all at
 | **Operation**       | Defines _which_ operator to use (e.g. Ray Tune) and _how_ to parameterise it to drive experiments over the entity space. |
 | **Sample Store**    | Stores measurements and transparently reuses prior results across Discovery Spaces and team members.                     |
 
-## Key Features
+## ado ❤️ agents
 
-- 🔌 _Extensible_: quickly add
-  [new experiments](https://ibm.github.io/ado/actuators/creating-custom-experiments/)
-  or [operators](https://ibm.github.io/ado/operators/creating-operators/), often
-  as simply as decorating a Python function
-- ⚙️ _Scalable execution_: automatically leverage [Ray](https://www.ray.io/) for
-  parallel and multi-node experiment runs out of the box
-- 🔎 _Optimization & sampling_: run optimizations with our
-  [Ray Tune operator](https://ibm.github.io/ado/operators/optimisation-with-ray-tune/)
-  or a
-  [flexible random-walk sampler](https://ibm.github.io/ado/operators/random-walk/)
-- ♻️ _Automatic data reuse_: reuse existing results transparently with our
-  [memoization features](https://ibm.github.io/ado/core-concepts/data-sharing/)
-- 🔗 _Full provenance_: results and resources are annotated with relationships
-  and the plugin versions used to produce them
-- 🤝 _Collaborative projects_: distributed teams can
-  [share a common data store and results](https://ibm.github.io/ado/resources/metastore/)
-- 💻 _Human-centric CLI_: intuitively inspect, create, and manage resources from
-  the terminal
-- 🤖 _AI-agent ready_: typed resources and bundled skills let coding agents
-  [autonomously formulate and run experiments](https://ibm.github.io/ado/how-to/)
+ado's typed resources, expressive CLI, and bundled agent skills make it a
+natural fit for agentic research workflows. Once prompted with a research
+problem, an agent can design the Discovery Space, write new experiments or
+reuse existing ones, and run the full exploration loop:
+
+- 🤖 _Bundled agent skills_: ready-made skills guide agents through
+  [end-to-end discovery workflows](https://ibm.github.io/ado/how-to/) —
+  from formulating a problem to analysing results
+- 🔍 _Self-describing resources_: experiments and operators declare their
+  required properties, so an agent can discover what's available and what's
+  needed without parsing code
+- 🧱 _Validated schemas_: research intent is expressed as structured,
+  validated configurations — constraining the agent to well-defined inputs
+  rather than free-form code generation, reducing hallucinations and keeping
+  experiments repeatable
+- ✅ _Safe execution loop_: `ado template` and `--dry-run` support a tight
+  **generate → validate → fix → run** cycle before any work is committed
+- 📦 _Structured & queryable results_: all measurements and metadata are
+  stored in a structured database, giving agents clean access to data for
+  analysis and refinement
+- 🔗 _Full provenance_: every result is annotated with resource relationships
+  and plugin versions, so an agent always knows where data came from and how
+  to reproduce it
 
 ## Quick Start
 

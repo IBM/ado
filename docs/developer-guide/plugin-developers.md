@@ -34,35 +34,7 @@ setup process.
 
 ## 2. Set Up Your Environment
 
-Based on your chosen strategy, follow the appropriate setup guide below.
-
-### In-Tree Development Workflow
-
-1. **Set up the environment:**
-
-        git clone https://github.com/IBM/ado.git
-        cd ado
-        uv sync --group test
-        source .venv/bin/activate
-
-2. **Create your plugin's directory** under the appropriate `plugins/` folder
-    (e.g., `plugins/actuators/my-new-plugin`).
-
-3. **Install your plugin in editable mode.** Run this command from the
-    **top-level of the `ado` repository**:
-
-        uv pip install -e plugins/<type>/<plugin-name>
-
-### Out-of-Tree Development Workflow
-
-1. **Create your project** and set up a virtual environment.
-
-2. **Add `ado-core` as a dependency** in your plugin's `pyproject.toml` file:
-
-3. **Install your dependencies**, including `ado-core` and your own plugin in
-    editable mode.
-
-        uv pip install -e path/to/your/<plugin-name>
+See [Developing ado](developing.md) for environment setup instructions.
 
 ---
 

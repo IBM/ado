@@ -1,75 +1,68 @@
 <!-- markdownlint-disable-next-line first-line-h1 -->
 ## Tutorial
 
-Our short tutorial, [Taking a random walk](random-walk.md), introduces core
-`ado` concepts and is the recommended place to start.
+Our short tutorial, [Taking a random walk](random-walk.md), is the recommended
+place to start. It walks through the core `ado` workflow — defining a
+`discoveryspace`, running an `operation` to sample and measure points, and
+retrieving the results — using a real cloud workload dataset as the running
+example.
 
-## General Examples
+## Search
 
-The following examples illustrate general features of `ado`. They build on the
-concepts learned in the tutorial and leverage pre-existing data and/or toy
-measurements allowing them to run quickly.
+These examples show how to use `ado` to search a space for the best
+configuration. They build on the tutorial and introduce the `ray_tune` operator,
+which gives access to the RayTune optimisation framework.
 
-- [Search a space with an optimizer](best-configuration-search.md)
-- [Search a space based on a custom objective function](search-custom-objective.md)
-- [Identify the important dimensions of a space](lhu.md)
+- **[Search a space with an optimizer](best-configuration-search.md)** — Use
+  `ray_tune` with a pluggable optimiser to find the minimum of a test function.
+  Also covers creating custom experiments and using parameterisable experiments.
+- **[Search based on a custom objective](search-custom-objective.md)** — Define
+  a dependent experiment that derives a new metric (e.g. cost) from the output
+  of another experiment, then search the combined space.
 
-After following these examples you can also try applying capabilities learned in
-one example to another.
+## Analysis
 
-## Foundation Models Characterization
+These examples show how to use `ado` to analyse and model a configuration space
+after, or instead of, exhaustive measurement.
 
-The following examples illustrate using the
-[vllm_performance](../actuators/vllm-performance.md) and
-[SFTTrainer](../actuators/sft-trainer.md)
-actuators which offer benchmarking experiments for foundation model inference
-and fine-tuning respectively.
+- **[Identify the important dimensions of a space](lhu.md)** — Use the
+  Latin-Hypercube sampler and the `InformationGain` stopper from `ray_tune` to
+  rank which entity-space dimensions most influence a target metric, stopping
+  automatically once the ranking stabilises.
+- **[Quickly building a predictive model](trim.md)** — Use the TRIM operator to
+  intelligently sample just enough points to train an accurate `AutoGluon`
+  surrogate model, stopping once the model quality plateaus. The resulting model
+  can be used for prediction at unmeasured points.
 
-- [Measure throughput of fine-tuning locally](finetune-locally.md)
-- [Measure throughput of fine-tuning on a RayCluster with GPUs](finetune-remotely.md)
-- [Find the request rate giving the highest stable throughput for an inference server](vllm-performance-endpoint.md)
-- [Evaluate different vLLM server deployment configurations on Kubernetes/OpenShift](vllm-performance-full.md)
+## Fine-tuning
 
-## Adding experiments or analysis tools to `ado`
+These examples use the [SFTTrainer](../actuators/sft-trainer.md) actuator to
+benchmark LLM fine-tuning throughput across a workload parameter space (model
+name, batch size, max sequence length, etc.). Start with the local example and
+then scale up to a remote cluster.
 
-The
-[search a space based on a custom objective function](search-custom-objective.md)
-example, combines with the
-[creating a custom experiment](../../developer-guide/creating-custom-experiments.md)
-documentation to illustrate a simple method for adding your own experiments to
-`ado`.
+- **[Measure fine-tuning throughput locally](finetune-locally.md)** — Explore a
+  fine-tuning parameter space on a laptop without GPUs using the
+  `finetune_full_benchmark-v1.0.0` experiment and the `random_walk` operator.
+- **[Measure fine-tuning throughput on a RayCluster](finetune-remotely.md)** —
+  Scale the same exploration to a remote RayCluster with GPUs. Assumes
+  completion of the local example.
 
-For adding actuators, we provide an
-[example template actuator repository](https://github.com/IBM/ado/tree/main/plugins/actuators/example_actuator)
-which can be used with our
-[documentation on writing actuators](../../developer-guide/creating-actuator-classes.md).
+## vLLM Performance
 
-For adding operators, we have an
-[example template operator repository](https://github.com/IBM/ado/tree/main/plugins/actuators/example_actuator)
-which can be used with our
-[documentation on writing operators](../../developer-guide/creating-operators.md).
+These examples use the [vllm_performance](../actuators/vllm-performance.md)
+actuator to benchmark foundation model inference — from a single live endpoint
+to full Kubernetes/OpenShift deployments and specialised geospatial models.
 
-## What's next
-
-<!-- markdownlint-disable line-length -->
-<!-- markdownlint-disable-next-line no-inline-html -->
-<div class="grid cards" markdown>
-
-- :octicons-workflow-24:{ .lg .middle } __Learn about Core Concepts__
-
-      ---
-
-      Find out more about the [core concepts](../../concepts/index.md) underpinning ado.
-
-      [Core concepts :octicons-arrow-right-24:](../../concepts/index.md)
-
-- :octicons-rocket-24:{ .lg .middle } __Extend ado with new Actuators__
-
-    ---
-
-    Learn about how ado can be extended with custom [Actuators](../actuators/index.md) that provide ability to run experiments in new domains.
-
-    [Creating new Actuators :octicons-arrow-right-24:](../actuators/index.md)
-
-</div>
-<!-- markdownlint-enable line-length -->
+- **[Testing the throughput of an inference endpoint](vllm-performance-endpoint.md)**
+  — Find the maximum stable request rate for a running OpenAI API-compatible
+  endpoint by using an optimiser to efficiently probe the request-rate
+  dimension.
+- **[Exploring vLLM deployment configurations](vllm-performance-full.md)** —
+  Evaluate different vLLM server deployment configurations (GPU type, batch
+  size, memory limits) on Kubernetes/OpenShift by combining the
+  `test-deployment-v1` experiment with the `random_walk` operator.
+- **[Benchmarking geospatial models with vLLM](vllm-performance-geospatial.md)**
+  — Benchmark IBM-NASA Prithvi geospatial models for Earth observation tasks
+  (flood detection, land-use classification) using the
+  `test-geospatial-deployment-v1` experiment.

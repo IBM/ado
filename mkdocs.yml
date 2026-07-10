@@ -137,11 +137,11 @@ nav:
       - Home: index.md
       - Demo: demo.md
       - Roadmap: developer-guide/roadmap.md
-  - Getting Started:
-      - user-guide/index.md
+  - User Guide:
+      - Getting Started: user-guide/index.md
       - Migrating from 1.x: migration/1x-to-2x.md
       - Examples:
-          - user-guide/examples/index.md
+          - Examples: user-guide/examples/index.md
           - Tutorial — Taking a random walk: user-guide/examples/random-walk.md
           - Search:
               - Search a space with an optimizer: user-guide/examples/best-configuration-search.md
@@ -152,7 +152,7 @@ nav:
           - Fine-tuning:
               - Measure fine-tuning throughput locally: user-guide/examples/finetune-locally.md
               - Measure fine-tuning throughput on a RayCluster: user-guide/examples/finetune-remotely.md
-          - vLLM:
+          - vLLM Performance:
               - Testing the throughput of an inference endpoint: user-guide/examples/vllm-performance-endpoint.md
               - Exploring vLLM deployment configurations: user-guide/examples/vllm-performance-full.md
               - Benchmarking geospatial models with vLLM: user-guide/examples/vllm-performance-geospatial.md
@@ -175,13 +175,14 @@ nav:
       - Remote Execution: user-guide/remote-execution.md
       - Installing Backend Services: user-guide/backend-services.md
   - Developer Guide:
-      - Plugin Developers: developer-guide/plugin-developers.md
-      - Core Developers: developer-guide/core-developers.md
-      - Adding custom experiments: developer-guide/creating-custom-experiments.md
-      - Creating Actuator Classes: developer-guide/creating-actuator-classes.md
-      - Creating Operators: developer-guide/creating-operators.md
-      - Developing ado: developer-guide/developing.md
-      - Contributing: developer-guide/contributing.md
+      - developer-guide/index.md
+      - Plugin Development:
+          - Adding custom experiments: developer-guide/creating-custom-experiments.md
+          - Creating Actuator Classes: developer-guide/creating-actuator-classes.md
+          - Creating Operators: developer-guide/creating-operators.md
+      - Contributing:
+          - Contributing: developer-guide/contributing.md
+          - Developing ado: developer-guide/developing.md
   - CLI Reference: cli-reference/index.md
   - Concepts:
       - concepts/index.md

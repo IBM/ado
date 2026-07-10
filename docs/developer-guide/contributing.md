@@ -2,7 +2,7 @@
 <!-- prettier-ignore-start -->
 
 {%
-   include-markdown "./contributing_readme.md"
+   include-markdown "../../CONTRIBUTING.md"
 %}
 
 <!-- prettier-ignore-end -->

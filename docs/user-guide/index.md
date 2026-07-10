@@ -4,8 +4,15 @@ This guide is for **researchers and benchmarkers** who want to run experiments,
 explore parameter spaces, and analyse results without writing bespoke data
 management scripts from scratch. If you want to extend `ado` with new
 experiments or search strategies, the
-[Developer Guide](../developer-guide/plugin-developers.md) is your starting
+[Developer Guide](../developer-guide/index.md) is your starting
 point.
+
+!!! tip "New to ado?"
+    Before diving in, familiarise yourself with the key concepts —
+    [Properties and Domains](../concepts/properties-and-domains.md),
+    [Experiments and Actuators](../concepts/actuators.md), and
+    [Discovery Spaces](../concepts/discovery-spaces.md) — so the YAML examples
+    and CLI commands throughout this guide make immediate sense.
 
 ## Choose your workflow
 
@@ -94,6 +101,6 @@ See [Concepts](../concepts/index.md) for a full explanation and
 
 If your research requires a custom benchmark or a novel search algorithm, you
 are ready to move from *researcher* to *plugin developer*. Head to the
-[Developer Guide](../developer-guide/plugin-developers.md) to learn how to add
+[Developer Guide](../developer-guide/index.md) to learn how to add
 new experiments (actuators, custom experiments) and search strategies
 (operators) via `ado`'s plugin model.

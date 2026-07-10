@@ -31,8 +31,8 @@ ado is built around four key concepts (explore them all at
 ## Quick Start
 
 Install `ado` and the example actuator plugin (a virtual environment is
-recommended). For complete instructions see the
-[install guide](user-guide/install.md):
+recommended). For complete instructions see
+[Getting Started](user-guide/index.md#choose-your-workflow):
 
 ```shell
 pip install ado-core

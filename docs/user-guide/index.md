@@ -1,78 +1,99 @@
-# User Guide
+# Getting Started
 
 This guide is for **researchers and benchmarkers** who want to run experiments,
-explore parameter spaces, and analyze results without getting bogged down in
-custom scripting and data management.
+explore parameter spaces, and analyse results without writing bespoke data
+management scripts from scratch. If you want to extend `ado` with new
+experiments or search strategies, the
+[Developer Guide](../developer-guide/plugin-developers.md) is your starting
+point.
 
-## Choose Your Workflow: Manual Control or AI-Assisted
+## Choose your workflow
 
-`ado` is powerful on its own and even more so with a coding agent. Your choice
-depends on how you like to work: direct, hands-on control via a familiar CLI,
-or an AI partner to accelerate complex and exploratory tasks.
+`ado` works well on its own and even better alongside a coding agent. Pick the
+path that matches how you prefer to work.
 
 <!-- markdownlint-disable line-length -->
 
-|                 | **Option A: The Direct CLI Path**                                                    | **Option B: The AI-Assisted Path**                                                                             |
+|                 | **Path A — Direct CLI**                                                              | **Path B — AI-assisted**                                                                                       |
 | :-------------- | :----------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------- |
-| **Best For**    | Quick starts, existing scripts, and experienced CLI users who prefer manual control. | Exploratory research, complex parameter spaces, and iterative analysis where an AI can handle the boilerplate. |
-| **Setup**       | `pip install ado-core` into any virtual environment.                                 | `git clone` the repository and use `uv sync` to create a comprehensive local environment.                      |
-| **Key Feature** | Lightweight and integrates into any standard Python workflow.                        | Unlocks powerful, pre-built **agent skills** that automate complex research tasks.                             |
+| **Best for**    | Quick starts, existing scripts, and experienced CLI users who prefer manual control. | Exploratory research, complex parameter spaces, and iterative analysis where an AI can handle the boilerplate. |
+| **Setup**       | `pip install ado-core`                                                               | `git clone` the repo and run `uv sync`                                                                         |
+| **Key benefit** | Lightweight — integrates into any standard Python workflow.                          | Unlocks built-in **agent skills** that automate complex research tasks.                                        |
 
 <!-- markdownlint-enable line-length -->
 
-## The Universal `ado` Research Workflow
+=== "Path A — Direct CLI"
 
-Whether you choose the CLI path or the agent path, the core research process in
-`ado` remains the same:
+    Make sure you are on **Python 3.10 – 3.14** (`python --version`), and work
+    inside a virtual environment to avoid dependency conflicts:
 
-1. **Choose Your Tools:** Select the `experiments` you want to use
-2. **Define Your Space:** Describe points you want to explore with the
-   experiments in a `discoveryspace` YAML file
-3. **Configure Your Strategy:** Create an `explore operation` YAML that defines
-   the search strategy
-4. **Execute:** Run the operation locally or on a
-   [remote cluster](remote-execution.md) with `ado create operation ...`
-5. **Analyze:** Examine data with `ado show measurements`, run analysis
-   `operators` to get deeper insights, then refine and explore further
+    ```shell
+    python -m venv ado-venv && source ado-venv/bin/activate
+    ```
 
-See [Concepts](../concepts/index.md) for a full explanation and our
-[Examples](examples/index.md) for end-to-end case studies.
+    Install `ado-core` from PyPI:
 
-## `ado` and Coding Agents
+    ```shell
+    pip install ado-core
+    ```
 
-With agent skills loaded, you can ask your coding agent to handle complex tasks
-in natural language:
+    You drive everything through the `ado` CLI. See the
+    [CLI reference](../cli-reference/index.md) and work through the
+    [examples](examples/index.md) to get up to speed.
 
-<!-- markdownlint-disable line-length -->
+=== "Path B — AI-assisted"
 
-| Ask Your Agent to...  | Example Command (Natural Language)                                                        | Underlying Skill              |
-| :-------------------- | :---------------------------------------------------------------------------------------- | :---------------------------- |
-| **Run a full study**  | "Design, run, and analyze an experiment to find the best vLLM config for max throughput." | `conduct-empirical-study`     |
-| **Create YAML files** | "Formulate a discovery space for my new component."                                       | `formulate-discovery-problem` |
-| **Summarize results** | "Examine the operation I just ran and tell me what it found."                             | `examining-ado-operations`    |
-| **Inspect a project** | "Give me an overview of all experiments run in this project so far."                      | `examining-ado-project`       |
-| **Query data**        | "Find all entities where the `lora_rank` was 8 and export their `validation_loss`."       | `query-ado-data`              |
+    Clone the repository and set up the full environment:
 
-<!-- markdownlint-enable line-length -->
+    ```shell
+    git clone https://github.com/IBM/ado.git
+    cd ado
+    uv sync --group test
+    source .venv/bin/activate
+    ```
 
-To unlock the full potential of `ado` as an automated research partner, clone
-the repository and work inside it. This approach gives your coding agent access
-to a library of built-in **skills**:
+    Open the cloned `ado` folder as your workspace root in an agent-enabled IDE
+    (Claude, Cursor, Bob, and others will automatically detect and load the
+    built-in skills).
 
-```bash
-git clone https://github.com/IBM/ado.git
-cd ado
-uv sync --group test
-source .venv/bin/activate
-```
+    With the skills loaded you can ask your agent to handle complex tasks in
+    plain language:
 
-Open the cloned `ado` folder as the workspace root in your agent-enabled IDE.
-Many coding agents, including Claude, Cursor, and Bob, will automatically detect
-and load the skills.
+    <!-- markdownlint-disable line-length -->
 
-## When to Build New Tools
+    | Ask your agent to…    | Example prompt                                                                        | Skill used                    |
+    | :-------------------- | :------------------------------------------------------------------------------------ | :---------------------------- |
+    | **Run a full study**  | "Design, run, and analyse an experiment to find the best vLLM config for throughput." | `conduct-empirical-study`     |
+    | **Create YAML files** | "Formulate a discovery space for my new component."                                   | `formulate-discovery-problem` |
+    | **Summarise results** | "Examine the operation I just ran and tell me what it found."                         | `examining-ado-operations`    |
+    | **Inspect a project** | "Give me an overview of all experiments run in this project so far."                  | `examining-ado-project`       |
+    | **Query data**        | "Find all entities where `lora_rank` was 8 and export their `validation_loss`."       | `query-ado-data`              |
 
-Eventually, your research may require something `ado` doesn't have out of the
-box — a benchmark for a custom system or a novel search algorithm. This is where
-you transition from a researcher to a **plugin developer**. Head over to the
-[Plugin Developers](../developer-guide/plugin-developers.md) guide.
+    <!-- markdownlint-enable line-length -->
+
+## How ado works — the core research loop
+
+Both paths follow the same five-step process:
+
+1. **Choose your tools** — select the `experiments` you want to run
+2. **Define your space** — describe what you want to explore in a
+   `discoveryspace` YAML file
+3. **Configure your strategy** — write an `operation` YAML that sets the search
+   or sampling strategy
+4. **Execute** — run the operation locally or on a
+   [remote cluster](remote-execution.md) with `ado create operation -f operation.yaml`
+5. **Analyse** — inspect results with `ado show measurements`, run analysis
+   `operators`, then refine and continue
+
+See [Concepts](../concepts/index.md) for a full explanation and
+[Examples](examples/index.md) for end-to-end walkthroughs.
+
+---
+
+## Need something ado doesn't have out of the box?
+
+If your research requires a custom benchmark or a novel search algorithm, you
+are ready to move from *researcher* to *plugin developer*. Head to the
+[Developer Guide](../developer-guide/plugin-developers.md) to learn how to add
+new experiments (actuators, custom experiments) and search strategies
+(operators) via `ado`'s plugin model.

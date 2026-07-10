@@ -137,13 +137,12 @@ nav:
       - Home: index.md
       - Demo: demo.md
       - Roadmap: developer-guide/roadmap.md
-  - User Guide:
+  - Getting Started:
       - user-guide/index.md
-      - Migration from 1.x: migration/1x-to-2x.md
-      - Installation: user-guide/install.md
-      - Tutorial — Taking a random walk: user-guide/examples/random-walk.md
+      - Migrating from 1.x: migration/1x-to-2x.md
       - Examples:
           - user-guide/examples/index.md
+          - Tutorial — Taking a random walk: user-guide/examples/random-walk.md
           - Search:
               - Search a space with an optimizer: user-guide/examples/best-configuration-search.md
               - Search based on a custom objective: user-guide/examples/search-custom-objective.md

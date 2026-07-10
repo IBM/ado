@@ -8,7 +8,7 @@
 
     This page provides documentation for the `ado` CLI tool, which needs to be
     installed. If this is not the case, follow the instructions provided in
-    [Installation](../user-guide/install.md)
+    [Getting Started](../user-guide/index.md#choose-your-workflow)
 
 **ado** comes with a CLI utility that is designed to be familiar for users of
 `kubectl` and `oc`. It allows creating and retrieving

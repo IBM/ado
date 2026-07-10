@@ -135,11 +135,6 @@ The following actuators are distributed with `ado`:
 - [vllm_performance](https://github.com/IBM/ado/tree/main/plugins/actuators/vllm_performance):
   An actuator for testing foundation model inference performance
 
-## Installing actuator plugins
-
-Refer to our [installing plugins](../install.md#installing-plugins)
-documentation.
-
 ### Dynamic installation of actuators on a remote Ray cluster
 
 If you are running `ado` operations on a remote Ray cluster, as Ray jobs, you may

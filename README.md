@@ -11,7 +11,8 @@ engineers to collaborate, execute experiments, and share data.
 
 ## At its _core_
 
-ado is built around four key concepts:
+ado is built around four key concepts (explore them all at
+<https://ibm.github.io/ado/concepts/>):
 
 | Concept             | Role                                                                                                                     |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------ |
@@ -19,8 +20,6 @@ ado is built around four key concepts:
 | **Experiments**     | Pluggable measurement functions — take entity properties as input, produce new properties as output.                     |
 | **Operation**       | Defines _which_ operator to use (e.g. Ray Tune) and _how_ to parameterise it to drive experiments over the entity space. |
 | **Sample Store**    | Stores measurements and transparently reuses prior results across Discovery Spaces and team members.                     |
-
-Learn more about these concepts at <https://ibm.github.io/ado/concepts/>.
 
 ## Key Features
 

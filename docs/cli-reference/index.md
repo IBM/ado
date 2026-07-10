@@ -2,6 +2,7 @@
 <!-- markdownlint-disable no-duplicate-heading -->
 <!-- markdownlint-disable ul-indent -->
 <!-- markdownlint-disable first-line-h1 -->
+# CLI Reference
 
 !!! note
 
@@ -18,9 +19,7 @@ This page provides documentation for every command that we support, presented in
 alphabetical order. Refer to the navigation pane on the left to go to the
 section you are more interested in.
 
-## CLI reference
-
-### ado
+## ado
 
 **ado** supports a set of generic options that are passed down to all the other
 commands.
@@ -73,7 +72,7 @@ ado delete operation op-xyz789
 ado delete op op-xyz789
 ```
 
-### ado context
+## ado context
 
 **ado** supports storing configuration and authentication details for multiple
 backends, which in ado terms are called **contexts**.
@@ -84,9 +83,9 @@ The complete syntax of the `ado context` command is as follows:
 ado context [CONTEXT_NAME]
 ```
 
-#### Examples
+### Examples
 
-##### Getting the current context
+#### Getting the current context
 
 Similar to `oc project`, users can see the name of the currently active context
 by running:
@@ -95,7 +94,7 @@ by running:
 ado context
 ```
 
-##### Listing available contexts
+#### Listing available contexts
 
 Similar to `oc projects`, users can list available contexts by running:
 
@@ -117,7 +116,7 @@ ado contexts -o yaml
 ado contexts -o json
 ```
 
-##### Switching between contexts
+#### Switching between contexts
 
 To switch between the available contexts, specify the target context name to the
 `ado context` command. In this example we assume that the `my-context` context
@@ -127,7 +126,7 @@ exists:
 ado context my-context
 ```
 
-### ado create
+## ado create
 
 The **ado** CLI provides the _create_ command to create
 [resources](../resources/index.md) given a YAML file with their
@@ -185,9 +184,9 @@ Where:
 - `--dry-run` is an **optional** flag to only validate the resource
   configuration file provided and not actually creating the resource.
 
-#### Examples
+### Examples
 
-##### Creating a Discovery Space
+#### Creating a Discovery Space
 
 In this example, we assume that the file `ds.yaml` exists and contains a valid
 [Discovery Space](../resources/discovery-spaces.md) definition.
@@ -196,7 +195,7 @@ In this example, we assume that the file `ds.yaml` exists and contains a valid
 ado create -f ds.yaml
 ```
 
-##### Validating a Sample Store definition
+#### Validating a Sample Store definition
 
 In this example, we assume that the file `sample-store.yml` exists, but we make
 no further assumptions on whether its content is a valid
@@ -206,13 +205,13 @@ no further assumptions on whether its content is a valid
 ado create -f sample-store.yml --dry-run
 ```
 
-##### Creating a new sample store with no file
+#### Creating a new sample store with no file
 
 ```shell
 ado create samplestore --new-sample-store
 ```
 
-##### Creating a space with a new sample store
+#### Creating a space with a new sample store
 
 Note that if the space definition `ds.yaml` contains an `sampleStoreIdentifier`,
 it will be ignored, and a new one will be created.
@@ -221,7 +220,7 @@ it will be ignored, and a new one will be created.
 ado create space -f ds.yaml --new-sample-store
 ```
 
-##### Create a space overriding the sample store identifier
+#### Create a space overriding the sample store identifier
 
 ```shell
 ado create space -f ds.yaml --set "sampleStoreIdentifier=abcdef"
@@ -233,25 +232,25 @@ Another option is to use:
 ado create space -f ds.yaml --with store=abcdef
 ```
 
-##### Create a space while providing a sample store definition
+#### Create a space while providing a sample store definition
 
 ```shell
 ado create space -f ds.yaml --with store=store_definition.yaml
 ```
 
-##### Create a space reusing the latest sample store identifier
+#### Create a space reusing the latest sample store identifier
 
 ```shell
 ado create space -f ds.yaml --use-latest samplestore
 ```
 
-##### Create a space renaming a property identifier in the space
+#### Create a space renaming a property identifier in the space
 
 ```shell
 ado create space -f ds.yaml --set "entitySpace[0].identifier=abcdef"
 ```
 
-### ado delete
+## ado delete
 
 The **ado** CLI provides the delete command to delete
 [resources](../resources/index.md) given their unique identifier.
@@ -298,45 +297,45 @@ Where:
   deleting its related context. If neither of these flags are specified, the
   user will be asked whether to delete the DB or not.
 
-#### Examples
+### Examples
 
-##### Deleting a context
+#### Deleting a context
 
 ```shell
 ado delete context my-context
 ```
 
-##### Deleting a local context and preserving the local db
+#### Deleting a local context and preserving the local db
 
 ```shell
 ado delete context my-local-context --no-delete-local-db
 ```
 
-##### Deleting a single space
+#### Deleting a single space
 
 ```shell
 ado delete space space-abc123-456def
 ```
 
-##### Deleting multiple operations
+#### Deleting multiple operations
 
 ```shell
 ado delete operation op-id-1 op-id-2 op-id-3
 ```
 
-##### Deleting multiple operations with force flag
+#### Deleting multiple operations with force flag
 
 ```shell
 ado delete operation op-id-1 op-id-2 op-id-3 --force
 ```
 
-##### Deleting multiple discovery spaces
+#### Deleting multiple discovery spaces
 
 ```shell
 ado delete space space-1 space-2 space-3
 ```
 
-### ado describe
+## ado describe
 
 **ado** provides the `describe` command to retrieve readable information about
 resources.
@@ -372,15 +371,15 @@ Where:
   such as `@v1`, or use the form `actuator_id.experiment_id` when multiple
   actuators implement the same experiment identifier.
 
-#### Examples
+### Examples
 
-##### Describing a Discovery Space
+#### Describing a Discovery Space
 
 ```shell
 ado describe space space-abc123-456def
 ```
 
-### ado edit
+## ado edit
 
 **ado** automatically stores metadata in the backend for some of the resources
 you can create. The fastest way to update these metadata is to use the
@@ -434,39 +433,39 @@ Where:
 For interactive mode, you can set the default editor with the `ADO_EDITOR`
 environment variable.
 
-#### Examples
+### Examples
 
-##### Editing an operation's metadata
+#### Editing an operation's metadata
 
 ```shell
 ado edit operation randomwalk-0.5.0-123abc
 ```
 
-##### Editing a space's metadata using a different editor
+#### Editing a space's metadata using a different editor
 
 ```shell
 ado edit space space-abc123-456def --editor nano
 ```
 
-##### Editing a space's metadata using a different editor (set by environment variable)
+#### Editing a space's metadata using a different editor (set by environment variable)
 
 ```shell
 ADO_EDITOR=nano ado edit space space-abc123-456def
 ```
 
-##### Merging metadata with an inline patch (non-interactive, oc-style)
+#### Merging metadata with an inline patch (non-interactive, oc-style)
 
 ```shell
 ado edit space space-abc123-456def -p "labels: { team: front }"
 ```
 
-##### Merging metadata from a file (non-interactive)
+#### Merging metadata from a file (non-interactive)
 
 ```shell
 ado edit space space-abc123-456def --patch-file extra-metadata.yaml
 ```
 
-### ado get
+## ado get
 
 **ado** allows getting resources in a similar way to `kubectl`. Users can choose
 to either get all resources of a given type or specify a resource identifier to
@@ -573,7 +572,7 @@ Where:
   and allows displaying experiments that have been deprecated. They are
   otherwise hidden by default.
 
-#### Searching and Filtering
+### Searching and Filtering
 
 See [searching the metastore](../resources/metastore.md#searching-the-metastore)
 for detailed information on the following options, including syntax.
@@ -596,15 +595,15 @@ for detailed information on the following options, including syntax.
 - The `--matching-space-id` option works in the same way as `--matching-space`
   but allows the user to provide a space id instead of a configuration
 
-#### Examples
+### Examples
 
-##### Getting all Discovery Spaces
+#### Getting all Discovery Spaces
 
 ```shell
 ado get spaces
 ```
 
-##### Getting all Discovery Spaces with additional details
+#### Getting all Discovery Spaces with additional details
 
 ```shell
 ado get spaces --details
@@ -612,7 +611,7 @@ ado get spaces --details
 
 <!-- markdownlint-disable line-length -->
 
-##### Getting all Discovery Spaces that include granite-7b-base in the property domain
+#### Getting all Discovery Spaces that include granite-7b-base in the property domain
 
 <!-- markdownlint-enable line-length -->
 
@@ -626,13 +625,13 @@ ado get spaces --details
 ado get space --filter 'config.entitySpace={"propertyDomain":{"values":["granite-7b-base"]}}'
 ```
 
-##### Getting all Discovery Spaces with certain labels
+#### Getting all Discovery Spaces with certain labels
 
 ```shell
 ado get spaces -l key1=value1 -l key2=value2
 ```
 
-##### Getting all discovery spaces matching a point
+#### Getting all discovery spaces matching a point
 
 Assuming you have the following file saved as `point.yaml`:
 
@@ -650,7 +649,7 @@ You can run:
 ado get spaces --matching-point point.yaml
 ```
 
-##### Getting all DiscoverySpaces and hiding fields
+#### Getting all DiscoverySpaces and hiding fields
 
 This example shows how to hide the `propertyDomain.variableType` and
 `propertyDomain.domainRange` fields from the Discovery Space's entity space:
@@ -663,7 +662,7 @@ ado get space space-df8077-7535f9 -o yaml \
 
 <!-- markdownlint-disable line-length -->
 
-##### Getting an actuator configuration and hiding the status for the "created" event
+#### Getting an actuator configuration and hiding the status for the "created" event
 
 <!-- markdownlint-enable line-length -->
 
@@ -672,121 +671,121 @@ ado get actuatorconfiguration actuatorconfiguration-myactuator-123456 -o yaml \
   --exclude-field 'status[?(@.event="created")]'
 ```
 
-##### Getting a single Operation
+#### Getting a single Operation
 
 ```shell
 ado get operation randomwalk-0.5.0-123abc
 ```
 
-##### Getting the YAML of a single Operation
+#### Getting the YAML of a single Operation
 
 ```shell
 ado get operation randomwalk-0.5.0-123abc -o yaml
 ```
 
-##### Getting only the identifiers of all Operations
+#### Getting only the identifiers of all Operations
 
 ```shell
 ado get operations -o name
 ```
 
-##### Getting the latest Discovery Space as YAML
+#### Getting the latest Discovery Space as YAML
 
 ```shell
 ado get space --use-latest -o yaml
 ```
 
-##### Getting the latest Operation as YAML
+#### Getting the latest Operation as YAML
 
 ```shell
 ado get operation --use-latest -o yaml
 ```
 
-##### Displaying all current experiments
+#### Displaying all current experiments
 
 ```shell
 ado get experiments --details
 ```
 
-##### Saving a Discovery Space configuration to a file
+#### Saving a Discovery Space configuration to a file
 
 ```shell
 ado get space my-space-id -o yaml --output-file space.yaml
 ```
 
-##### Saving all operations as JSON
+#### Saving all operations as JSON
 
 ```shell
 ado get operations -o json --output-file operations.json
 ```
 
-##### Saving resource identifiers to a file
+#### Saving resource identifiers to a file
 
 ```shell
 ado get spaces -o name --output-file space-ids.txt
 ```
 
-##### Saving table output to a file
+#### Saving table output to a file
 
 ```shell
 ado get spaces --output-file spaces-table.txt
 ```
 
-##### Getting measurement statistics for all Operations
+#### Getting measurement statistics for all Operations
 
 ```shell
 ado get operations -o stats
 ```
 
-##### Getting measurement statistics for a single Operation
+#### Getting measurement statistics for a single Operation
 
 ```shell
 ado get operation randomwalk-0.5.0-123abc -o stats
 ```
 
-##### Getting statistics for all Discovery Spaces
+#### Getting statistics for all Discovery Spaces
 
 ```shell
 ado get spaces -o stats
 ```
 
-##### Getting statistics for a single Discovery Space
+#### Getting statistics for a single Discovery Space
 
 ```shell
 ado get space --use-latest -o stats
 ```
 
-##### Getting statistics for all Sample Stores
+#### Getting statistics for all Sample Stores
 
 ```shell
 ado get samplestores -o stats
 ```
 
-##### Getting statistics for a single Sample Store
+#### Getting statistics for a single Sample Store
 
 ```shell
 ado get samplestore --use-latest -o stats
 ```
 
-##### Getting statistics for all Data Containers
+#### Getting statistics for all Data Containers
 
 ```shell
 ado get datacontainers -o stats
 ```
 
-##### Getting statistics for a single Data Container
+#### Getting statistics for a single Data Container
 
 ```shell
 ado get datacontainer --use-latest -o stats
 ```
 
-### ado show
+## ado show
 
 When interacting with resources, we might be interested in seeing some of their
 details, entities measured, or related resources. `ado show` provides this with
 the four following subcommands.
 
-#### ado show measurements
+### ado show measurements
 
 _show measurements_ supports displaying measurement data (entities with their
 measured properties) that belong to a space or an operation.
@@ -882,11 +881,11 @@ Where:
 
     <!-- prettier-ignore-end -->
 
-##### Examples
+#### Examples
 
 <!-- markdownlint-disable line-length -->
 
-###### Show matching measurements in a Space with target format and output them as CSV
+##### Show matching measurements in a Space with target format and output them as CSV
 
 <!-- markdownlint-enable line-length -->
 
@@ -909,7 +908,7 @@ Or to write CSV to stdout for piping:
 
 <!-- markdownlint-disable line-length -->
 
-###### Show a subset of the properties of measurements that are part of an operation and output them as JSON
+##### Show a subset of the properties of measurements that are part of an operation and output them as JSON
 
 ```shell
 ado show measurements operation randomwalk-0.5.0-123abc -o json \
@@ -919,13 +918,13 @@ ado show measurements operation randomwalk-0.5.0-123abc -o json \
 
 <!-- markdownlint-enable line-length -->
 
-###### Save table output of measurements to a file
+##### Save table output of measurements to a file
 
 ```shell
 ado show measurements space space-abc123-456def --output-file entities-table.txt
 ```
 
-#### ado show trace
+### ado show trace
 
 _show trace_ allows inspecting in detail the trace of entity measurement
 requests made during explore operations. It can provide crucial information for
@@ -974,7 +973,7 @@ ado show trace operation|discoveryspace|samplestore [RESOURCE_ID] [--use-latest]
   output.
 - `--no-trunc` prevents truncation of table content (console output only).
 
-##### Default Trace Output Table
+#### Default Trace Output Table
 
 The default output table shows the time-series of measurement requests with the
 following columns:
@@ -994,7 +993,7 @@ following columns:
 - Invalid Measurements (count)
 - Metadata (request metadata)
 
-##### Expanded Trace Output Table
+#### Expanded Trace Output Table
 
 Specifying `--unroll-entities` unrolls each request so each entity with a
 request processed has its own row containing additional metadata on the result
@@ -1017,7 +1016,7 @@ of applying the requested experiment to it:
 - Request Metadata
 - Result Metadata
 
-#### Filtering Output
+### Filtering Output
 
 The output of show trace can be filtered using the following fields:
 
@@ -1031,27 +1030,27 @@ The output of show trace can be filtered using the following fields:
 
 Filtering reduces the output to the requests matching the filters.
 
-##### Examples
+#### Examples
 
-###### Show the trace for an operation as a table
+##### Show the trace for an operation as a table
 
 ```shell
 ado show trace operation randomwalk-0.5.0-123abc
 ```
 
-###### Show entity level information in the trace table
+##### Show entity level information in the trace table
 
 ```shell
 ado show trace operation randomwalk-0.5.0-123abc --unroll-entities
 ```
 
-###### Show the YAML of a request
+##### Show the YAML of a request
 
 ```shell
 ado show trace operation randomwalk-0.5.0-123abc --filter requestid=abcdef -o yaml
 ```
 
-###### Filter trace on multiple request fields
+##### Filter trace on multiple request fields
 
 <!-- markdownlint-disable line-length -->
 
@@ -1061,25 +1060,25 @@ ado show trace operation randomwalk-0.5.0-123abc --filter status=Success --filte
 
 <!-- markdownlint-enable line-length -->
 
-###### Hide specific columns
+##### Hide specific columns
 
 ```shell
 ado show trace operation randomwalk-0.5.0-123abc --hide metadata --hide timestamp
 ```
 
-###### Show the aggregated trace for all operations in a discovery space
+##### Show the aggregated trace for all operations in a discovery space
 
 ```shell
 ado show trace discoveryspace my-space-123abc
 ```
 
-###### Show the aggregated trace for all discovery spaces sharing a sample store
+##### Show the aggregated trace for all discovery spaces sharing a sample store
 
 ```shell
 ado show trace samplestore my-store-456def
 ```
 
-###### Export the aggregated trace for a discovery space to CSV
+##### Export the aggregated trace for a discovery space to CSV
 
 <!-- markdownlint-disable line-length -->
 
@@ -1089,7 +1088,7 @@ ado show trace discoveryspace my-space-123abc -o csv --output-file trace.csv
 
 <!-- markdownlint-enable line-length -->
 
-#### ado show related
+### ado show related
 
 _show related_ supports displaying resources that are related to the one whose
 id is provided (e.g., operations run on a space). By default the full resource
@@ -1123,21 +1122,21 @@ ado show related RESOURCE_TYPE [RESOURCE_ID] [--use-latest] [--max-hops N]
 - `--max-hops N` limits the traversal to at most `N` relationship hops in each
   direction (1-3). When omitted, the full hierarchy depth is used.
 
-##### Examples
+#### Examples
 
-###### Show resources related to a discovery space
+##### Show resources related to a discovery space
 
 ```shell
 ado show related space space-abc123-456def
 ```
 
-###### Show only directly linked resources (1 hop)
+##### Show only directly linked resources (1 hop)
 
 ```shell
 ado show related space space-abc123-456def --max-hops 1
 ```
 
-#### ado show stats
+### ado show stats
 
 _show stats_ supports displaying in-depth statistics for one or more resources.
 It always outputs the same base columns as the corresponding `ado get` table
@@ -1229,51 +1228,51 @@ The statistics columns produced per resource type are:
     `DiscoverySpace` and queries the sample store. Use `ado get -o stats` for
     quick overviews.
 
-##### Examples
+#### Examples
 
-###### Show full statistics for all operations
+##### Show full statistics for all operations
 
 ```shell
 ado show stats operation
 ```
 
-###### Show full statistics for a specific discovery space
+##### Show full statistics for a specific discovery space
 
 ```shell
 ado show stats discoveryspace space-abc123-456def
 ```
 
-###### Show full statistics for the latest operation as JSON
+##### Show full statistics for the latest operation as JSON
 
 ```shell
 ado show stats operation --use-latest -o json
 ```
 
-###### Show full statistics for the latest operation as YAML
+##### Show full statistics for the latest operation as YAML
 
 ```shell
 ado show stats operation --use-latest -o yaml
 ```
 
-###### Show full statistics for sample stores matching a label
+##### Show full statistics for sample stores matching a label
 
 ```shell
 ado show stats samplestore -l team=research
 ```
 
-###### Show full statistics for all discovery spaces as a Markdown table
+##### Show full statistics for all discovery spaces as a Markdown table
 
 ```shell
 ado show stats discoveryspace -o md-table
 ```
 
-###### Save full statistics to a file
+##### Save full statistics to a file
 
 ```shell
 ado show stats operation --output-file operations-stats.csv -o csv
 ```
 
-### ado template
+## ado template
 
 To assist in creating a resource configuration file, we typically start from a
 reference file. The `ado template` command allows you to create template files
@@ -1348,15 +1347,15 @@ Where:
   `--include-schema`, outputs a generic operation schema. By default (when not
   specifying this flag), the schema will be operator-specific.
 
-#### Examples
+### Examples
 
-##### Creating a template for a context
+#### Creating a template for a context
 
 ```shell
 ado template context
 ```
 
-##### Creating a template for a space that uses a specific experiment
+#### Creating a template for a space that uses a specific experiment
 
 ```shell
 ado template space --from-experiment finetune-gptq-lora-dp-r-4-a-16-tm-default-v1.1.0
@@ -1364,7 +1363,7 @@ ado template space --from-experiment finetune-gptq-lora-dp-r-4-a-16-tm-default-v
 
 <!-- markdownlint-disable line-length -->
 
-##### Creating a template for a space that uses a specific experiment from a specific actuator
+#### Creating a template for a space that uses a specific experiment from a specific actuator
 
 <!-- markdownlint-enable line-length -->
 
@@ -1372,19 +1371,19 @@ ado template space --from-experiment finetune-gptq-lora-dp-r-4-a-16-tm-default-v
 ado template space --from-experiment SFTTrainer.finetune-gptq-lora-dp-r-4-a-16-tm-default-v1.1.0
 ```
 
-##### Creating a template for a Discovery Space with the schema
+#### Creating a template for a Discovery Space with the schema
 
 ```shell
 ado template space --include-schema
 ```
 
-##### Creating an operation template for the Rifferla operator
+#### Creating an operation template for the Rifferla operator
 
 ```shell
 ado template operation --operator-name rifferla
 ```
 
-### ado upgrade
+## ado upgrade
 
 !!! tip
 
@@ -1417,15 +1416,15 @@ Where:
 
     <!-- prettier-ignore-end -->
 
-#### Examples
+### Examples
 
-##### Upgrade all operation resources
+#### Upgrade all operation resources
 
 ```shell
 ado upgrade operations
 ```
 
-### ado version
+## ado version
 
 When unsure about what ado version you are running, you can get this information
 with:

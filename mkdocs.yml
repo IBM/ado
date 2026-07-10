@@ -134,11 +134,12 @@ plugins:
   - gh-admonitions:
 nav:
   - Home:
-      - index.md
+      - Home: index.md
       - Demo: demo.md
-      - Migration from 1.x: migration/1x-to-2x.md
+      - Roadmap: developer-guide/roadmap.md
   - User Guide:
       - user-guide/index.md
+      - Migration from 1.x: migration/1x-to-2x.md
       - Installation: user-guide/install.md
       - Tutorial — Taking a random walk: user-guide/examples/random-walk.md
       - Examples:
@@ -182,9 +183,7 @@ nav:
       - Creating Operators: developer-guide/creating-operators.md
       - Developing ado: developer-guide/developing.md
       - Contributing: developer-guide/contributing.md
-      - Roadmap: developer-guide/roadmap.md
-  - CLI Reference:
-      - cli-reference/index.md
+  - CLI Reference: cli-reference/index.md
   - Concepts:
       - concepts/index.md
       - Properties and Domains: concepts/properties-and-domains.md

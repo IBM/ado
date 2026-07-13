@@ -1,53 +1,94 @@
-# Optimizations with ado
+<!-- markdownlint-disable code-block-style -->
 
-> [!NOTE]
->
-> This example demonstrates:
->
-> 1. Creating and installing custom experiments
->
-> 2. Performing optimizations with `ray_tune`
->
-> 3. Parameterizable and parameterized experiments
+# Search a space with an optimizer
 
-<!-- markdownlint-disable-next-line no-blanks-blockquote -->
+!!! abstract "Intermediate tutorial"
 
-> [!NOTE]
->
-> We recommend trying the
-> [talking a random walk example](random-walk.md)
-> first to get familiar with some basic concepts and commands.
+    This walkthrough assumes you are already familiar with the core `ado`
+    workflow — custom experiments, discovery spaces, and operations. If you are
+    new to `ado`, work through
+    [Your first ado experiment](density-example.md) first.
 
-## The scenario
+    Here we go further: instead of sampling at random, we use `ray_tune` to
+    **drive an optimizer** over a continuous space and locate the best
+    configuration.
 
-**Finding the best entity, or point, according to some metric, is a common
-task.** For example, finding the configuration of an LLM fine-tuning workload
-that gives the highest throughput. Many optimization methods have been developed
-to address this problem and you can access a variety of them via `ado`'s
-`ray_tune` operator, which provides access to the RayTune framework.
+Finding the best entity according to some metric is a common task — for
+example, finding the configuration of an LLM fine-tuning workload that
+maximises throughput. `ado`'s `ray_tune` operator wraps the
+[RayTune](https://docs.ray.io/en/latest/tune/index.html) framework and gives
+you access to a wide range of optimization algorithms with no changes to how
+you define your space or experiments.
 
-**This example demonstrates running optimizations in `ado`** using the problem
-of finding the minimum of standard optimization test functions.
+This walkthrough uses a well-known benchmark — the
+[Rosenbrock function](https://en.wikipedia.org/wiki/Rosenbrock_function) in
+three dimensions — so the focus stays on `ado` mechanics rather than the
+domain.
 
-## Setup
+We will:
 
-### Install the ray_tune ado operator
+1. Install the `ray_tune` operator and a custom experiment that wraps standard
+   optimization test functions
+2. Define a continuous three-dimensional discovery space
+3. Run a Bayesian optimization over it
+4. Inspect the best configuration found and the full trace of visited points
 
-If you haven't already installed the ray_tune operator, run:
+!!! warning "Prerequisites"
 
-```commandline
+    - `ado-core` installed (`pip install ado-core`)
+    - The example package cloned from GitHub (the wheel is not published to
+      PyPI)
+
+    Clone the repository if you have not already done so:
+
+    ```bash
+    git clone https://github.com/ibm/ado.git
+    cd ado
+    ```
+
+    Then install the operator and experiment packages:
+
+    ```bash
+    pip install ado-ray-tune
+    pip install examples/optimization_test_functions/custom_experiments
+    ```
+
+    All commands in this walkthrough are run from the **repository root**
+    (`ado/`).
+
+!!! example "TL;DR"
+
+    Once the packages are installed:
+
+    <!-- markdownlint-disable MD013 -->
+    ```bash
+    ado create space -f examples/optimization_test_functions/space.yaml --use-default-sample-store
+    ado create operation -f examples/optimization_test_functions/operation_bayesopt.yaml --use-latest space
+    ado show related operation --use-latest
+    ado describe datacontainer $DATACONTAINER_ID
+    ado show measurements operation --use-latest
+    ```
+    <!-- markdownlint-enable MD013 -->
+
+## Step 1 — Install the required packages
+
+### The `ray_tune` operator
+
+The `ray_tune` operator is distributed as a separate package:
+
+```bash
 pip install ado-ray-tune
 ```
 
-then, executing
+Confirm it is registered:
 
-```commandline
+```bash
 ado get operators
 ```
 
-should show an entry for `ray_tune` like below
+You should see `ray_tune` listed:
 
-```commandline
+```text
 Available operators by type:
 ┌───────┬─────────────┬─────────┬─────────┐
 │ INDEX │ OPERATOR    │ VERSION │ TYPE    │
@@ -58,37 +99,45 @@ Available operators by type:
 └───────┴─────────────┴─────────┴─────────┘
 ```
 
-### Install the custom `nevergrad_opt_3d_test_func` experiment
+### The `nevergrad_opt_3d_test_func` custom experiment
 
-The `nevergrad_opt_3d_test_func` experiment enables measuring the following
-optimization test functions on a 3d space: 'discus', 'sphere', 'cigar',
-'griewank', 'rosenbrock', 'st1'. See the
-[nevergrad docs](https://github.com/facebookresearch/nevergrad/blob/main/nevergrad/functions/corefuncs.py)
-for definitions of these functions.
+The example ships a custom experiment that wraps a set of standard
+optimization test functions — `discus`, `sphere`, `cigar`, `griewank`,
+`rosenbrock`, `st1` — over a three-dimensional continuous space. See the
+[nevergrad source](https://github.com/facebookresearch/nevergrad/blob/main/nevergrad/functions/corefuncs.py)
+for the function definitions.
 
-To install it:
+Install it from the example directory:
 
 ```bash
-pip install custom_experiments/
+pip install examples/optimization_test_functions/custom_experiments/
 ```
 
-after this running `ado get experiments` should show the following line:
+Confirm `ado` can see it:
+
+```bash
+ado get experiments
+```
+
+You should see `nevergrad_opt_3d_test_func` listed under `custom_experiments`:
 
 <!-- markdownlint-disable line-length -->
 
-```commandline
+```text
 ┌───────┬────────────────────┬────────────────────────────┬─────────┐
 │ INDEX │ ACTUATOR ID        │ EXPERIMENT ID              │ VERSION │
 ├───────┼────────────────────┼────────────────────────────┼─────────┤
 │ 0     │ custom_experiments │ nevergrad_opt_3d_test_func │ 1.0.0   │
-│ 1     │ mock               │ test-experiment            │ None    │
-│ 2     │ mock               │ test-experiment-two        │ None    │
 └───────┴────────────────────┴────────────────────────────┴─────────┘
 ```
 
 <!-- markdownlint-enable line-length -->
 
-and `ado describe experiment nevergrad_opt_3d_test_func` should output
+Inspect the experiment interface:
+
+```bash
+ado describe experiment nevergrad_opt_3d_test_func
+```
 
 ```terminaloutput
 Identifier: custom_experiments.nevergrad_opt_3d_test_func@1.0.0
@@ -147,36 +196,31 @@ Outputs:
  ───────────────────────────────────────────────────────────────────────────────────────────────────────
 ```
 
-## Running the example
+The three required inputs (`x0`, `x1`, `x2`) map to entity-space dimensions.
+The optional `name` parameter selects which test function to evaluate; it
+defaults to `rosenbrock`. The single output, `function_value`, is the metric
+we will optimize against.
 
-### Set active context
+## Step 2 — Define a discovery space
 
-You can use any context, for examples `ado`'s default local context:
+The file `examples/optimization_test_functions/space.yaml` defines a
+three-dimensional continuous space spanning `[-10, 10]` in each dimension,
+with `nevergrad_opt_3d_test_func` (defaulting to `rosenbrock`) as the
+measurement:
 
-```commandline
-ado context local
+```bash
+ado create space -f examples/optimization_test_functions/space.yaml --use-default-sample-store
 ```
 
-### Create the discovery space
-
-The file "space.yaml" contains an example space describing the rosenbrock
-function in 3d, from [-10,10] in each dimension. To create the space execute:
-
-```commandline
-ado create space -f space.yaml --use-default-sample-store
+```text
+Success! Created space with identifier: $DISCOVERY_SPACE_IDENTIFIER
 ```
 
-> [!NOTE]
->
-> `samplestores` can store samples and measurements from multiple different
-> experiments and `discoveryspaces`.
+Inspect the space to confirm the entity and measurement spaces are correct:
 
-This will output a `discoveryspace` id you can use to run an optimization
-operation.
-
-Assuming the space you just created is the most recent space in the current
-context, running `ado describe space --use-latest` will output (identifiers will
-be different):
+```bash
+ado describe space --use-latest
+```
 
 ```terminaloutput
 Identifier: 'space-3d6891-default'
@@ -227,43 +271,26 @@ Measurement Space:
 Sample Store identifier: default
 ```
 
-Here we see,
+!!! tip
 
-- the Entity Space is a 3-dimensional space, with continuous dimensions,
-  spanning [-10,10] in each dimension.
-- the Measurement Space, describing the measurements to apply to each point in
-  the space, contains one experiment - in this case the
-  `custom_experiments.nevergrad_opt_3d_test_func`.
-- The `custom_experiments.nevergrad_opt_3d_test_func` experiment defines one
-  metric, `function_value`.
-- Since the default function used by
-  `custom_experiments.nevergrad_opt_3d_test_func` is `rosenbrock`, for a given
-  point `function_value` will be the value of the 3d `rosenbrock` function at
-  that point.
+    The entity space has **continuous** dimensions, so `ado` cannot enumerate
+    entities in advance — the optimizer proposes points at runtime. This also
+    means memoization rarely saves work here, since the probability of revisiting
+    an identical point is negligible.
 
-Also try:
+## Step 3 — Run an optimization
 
-```commandline
-ado get spaces
+The file `examples/optimization_test_functions/operation_bayesopt.yaml`
+configures a Bayesian optimization run of 40 steps via RayTune:
+
+<!-- markdownlint-disable MD013 -->
+```bash
+ado create operation -f examples/optimization_test_functions/operation_bayesopt.yaml --use-latest space
 ```
+<!-- markdownlint-enable MD013 -->
 
-This will output a list of the spaces created. If this is the first time you are
-following this example it will contain one entry, the identifier of the space
-you just created above.
-
-### Run an optimization
-
-The file `operation_bayesopt.yaml` is an example of running
-[Bayesian Optimization](https://bayesian-optimization.github.io/BayesianOptimization)
-via RayTune. To run execute the following:
-
-```commandline
-ado create operation -f operation_bayesopt.yaml --use-latest space
-```
-
-This will run the optimization for 40 steps. You will see a lot of information
-from RayTune on the progress of the optimization, finishing with a description
-of the operation like below:
+RayTune logs progress to the terminal as it runs. When it finishes you will see
+the operation summary:
 
 ```yaml
 Space ID: space-3d6891-default
@@ -297,48 +324,41 @@ Operation:
 created: '2026-07-09T12:19:14.569324Z'
 identifier: ray_tune@2.0.0-bayesopt-bbfbc5
 kind: operation
-...
 ```
 
-### Specifying the property to optimize
+### Choosing the target metric
 
-In this case there is one experiment with one property in the measurement space,
-so there is only one choice for the property to optimize against i.e.
-`function_value`. However, usually an experiment will measure many properties
-and there may be many measurements.
-
-The target property to optimize against is set by the `metric` field, under the
-operations `parameters` field.
+The `metric` field in the operation YAML tells `ray_tune` which experiment
+output to optimize, and `mode` specifies the direction (`min` or `max`).
+In this example there is a single output (`function_value`), but in spaces
+with multiple experiments or multi-output experiments you will need to be
+explicit:
 
 <!-- markdownlint-disable line-length -->
 
 ```yaml
-  parameters:
-    tuneConfig:
-      metric: "function_value" # The metric that the test function measures
-      mode: 'min'
-      num_samples: 40
-      max_concurrent_trials: 2
-      search_alg:
-        name: bayesopt
+parameters:
+  tuneConfig:
+    metric: "function_value"  # the output property to optimize
+    mode: "min"
+    num_samples: 40
+    max_concurrent_trials: 2
+    search_alg:
+      name: bayesopt
 ```
 
 <!-- markdownlint-enable line-length -->
 
-## See the optimization results
+## Step 4 — Inspect the results
 
 ### Best configuration found
 
-The `ray_tune` operation will create a `datacontainer` resource containing
-information on the best configuration found.
+`ray_tune` persists the best configuration it found as a `datacontainer`
+resource linked to the operation. Retrieve its identifier:
 
-To get the id of the `datacontainer` related to the `operation` use:
-
-```commandline
+```bash
 ado show related operation --use-latest
 ```
-
-This will output something like:
 
 ```terminaloutput
 datacontainer
@@ -349,14 +369,11 @@ samplestore
   - default
 ```
 
-To see the best point found (and in general the contents of the datacontainer)
-use the `describe` CLI command:
+Inspect the data container:
 
-```commandline
+```bash
 ado describe datacontainer $DATACONTAINER_ID
 ```
-
-In this case the output will be something like:
 
 ```terminaloutput
 Identifier: datacontainer-391e170c
@@ -376,57 +393,47 @@ Identifier: datacontainer-391e170c
  ───────────────────────────────────────────────────────────────────────────────────────────────────────
 ```
 
-We can see here that the point found is
+The best point found by the optimizer was `(x0≈0.957, x1≈-0.185, x2≈-2.242)`
+with a `function_value` of approximately 640.63.
 
-```json
-{
-  "x2": -2.241552006735698,
-  "x1": -0.18479435692216645,
-  "x0": 0.957477270215893
-}
-```
+!!! tip
 
-where `function_value` was ~640.63.
+    The global minimum of the 3-d Rosenbrock function is 0, located at
+    `(1, 1, 1)`. Running more samples (`num_samples`) or switching to a
+    stronger optimizer will get you closer.
 
-### Configurations visited
+### Full trace of visited configurations
 
-To see the configurations visited during the optimization you just ran, execute:
+To see every point the optimizer evaluated, along with its measured
+`function_value`:
 
-```commandline
+```bash
 ado show measurements operation --use-latest
 ```
 
-This will output a dataframe containing the results of that operation.
+To see all measurements accumulated on the space across all operations (not
+just this run):
 
-### Operation resource YAML
+```bash
+ado show measurements space --use-latest
+```
 
-If at any point you want to see the details for an operation, for example the
-options used, execute:
+### Retrieving the full operation configuration
 
-```commandline
+If you need to review or reproduce the exact options used in a run:
+
+```bash
 ado get operation $OPERATION_IDENTIFIER -o yaml
 ```
 
-Where `$OPERATION_IDENTIFIER` is the identifier of the operation you just ran.
-This will output the details of this operation in YAML format.
+## Step 5 — Parameterizable experiments
 
-## Parameterizable experiments
+`nevergrad_opt_3d_test_func` is a **parameterizable experiment**: it has
+optional inputs (`name`, `num_blocks`) with default values that you can fix
+at space-creation time.
 
-<!-- markdownlint-disable descriptive-link-text -->
-
-The `nevergrad_opt_3d_test_func` is an example of a **parameterizable
-experiment**. A parameterizable experiment has optional inputs that have default
-values. In this case the optional inputs are `name` and `num_blocks` which you
-can see are listed in the output of `ado describe experiment`
-[here](#install-the-custom-nevergrad_opt_3d_test_func-experiment). In particular
-the "name" parameter defines the optimization test function the experiment will
-use and its default value is 'rosenbrock'.
-
-<!-- markdownlint-enable descriptive-link-text -->
-
-If you want to set a different value for an optional parameter of an experiment
-you do this when creating the `discoveryspace`. For example to set the function
-to `cigar` you would write (snippet from full `discoveryspace` yaml)
+Parameterization is set in the `discoveryspace` YAML, not in the operation.
+For example, to optimize the `cigar` function instead of `rosenbrock`:
 
 ```yaml
 - actuatorIdentifier: custom_experiments
@@ -438,71 +445,63 @@ to `cigar` you would write (snippet from full `discoveryspace` yaml)
         identifier: "name"
 ```
 
-When you set an optional property of a parameterizable experiment we call the
-result a parameterized experiment.
+The resulting parameterized experiment gets a distinct identifier that encodes
+the parameterization, keeping it separate from the base experiment in the
+sample store.
 
-> [!NOTE]
->
-> You can't change the parameterization of an experiment in an existing
-> `discoveryspace` as this changes the measurement and hence the entire space.
-> Using an experiment with a new parameterization requires creating a new
-> `discoveryspace`.
+!!! tip
 
-## Exploring Further
+    You cannot change the parameterization of an experiment in an existing
+    discovery space — doing so would change what is being measured, invalidating
+    the space's identity. Create a new space with the updated parameterization.
 
-Try the following:
+## Summary
 
-- _change optimizer_: The file `operation_nevergrad.yaml` shows using the CMA
-  optimizer from nevergrad. Modify and run in the same way as the BayesOpt example
-- _different results views_: Use `ado show measurements space $SPACE_ID` where
-  `SPACE_ID` is the identifier of the space the operations run on. Compare to
-  the output of `ado show measurements operation`
-- _modify the entity space_: Extending or limiting the dimensions of the entity
-  space considered
-- _change optimizer options_: Change the optimization options and run another
-  optimization. See
-  [the ray tune operator documentation](/ado/user-guide/operators/ray-tune/)
-  for details and further examples on what can be configured.
+| Step | What you did | `ado` concept |
+| :--- | :----------- | :------------ |
+| 1 | Installed `ray_tune` and the custom experiment | Operator / custom experiment |
+| 2 | Defined a continuous 3-D discovery space | Discovery space |
+| 3 | Ran a Bayesian optimization for 40 steps | Operation / `ray_tune` operator |
+| 4 | Retrieved the best configuration and the full trace | `datacontainer` / `ado show measurements` |
+| 5 | Learned how to fix optional experiment inputs | Parameterizable experiments |
+
+## Going further
+
+Try extending this example:
+
+- **Change optimizer** — the file `operation_nevergrad.yaml` uses the CMA
+  optimizer from nevergrad instead of Bayesian optimization
+- **Different result views** — compare `ado show measurements space` with
+  `ado show measurements operation` to understand how space-level and
+  operation-level views differ
+- **Modify the entity space** — change the bounds or number of dimensions to
+  see how the optimizer adapts
+- **Tune optimizer options** — adjust `num_samples`, `max_concurrent_trials`,
+  or `search_alg`; see
+  [the ray_tune operator documentation](/ado/user-guide/operators/ray-tune/)
+  for the full configuration reference
   <!-- codespell:ignore discus -->
-- _parameterize the experiment_: Perform an optimization on the `discus`
-  function - this involves parameterizing the `nevergrad_opt_3d_test_func`.
-  - See how this changes the description of `discoveryspace`.
-- _discretize the space_: Run the optimization on a discretized version of one
-  of the functions and see if memoization works. **Hint**: change the entity
-  space.
-- _find the minimum across all test-functions_: It's possible to search for
-  which test function has the minimum value across the entity space in a single
-  run. Hint: you can use any experiment parameters as entity-space dimensions.
+- **Parameterize the experiment** — optimize the `discus` function by
+  parameterizing `nevergrad_opt_3d_test_func`; observe how the space
+  description changes
+- **Discretize the space** — switch to a discrete entity space and verify that
+  memoization reuses measurements when the optimizer revisits a point
+- **Search across test functions** — it is possible to include `name` as an
+  entity-space dimension and find which test function has the smallest minimum
+  in a single operation
 
-### Extending the `nevergrad_opt_3d_test_func` experiment
+### Extending `nevergrad_opt_3d_test_func`
 
-The `nevergrad_opt_3d_test_func` experiment can be expanded to include more
-functions or options. It is also straightforward to add custom experiment for
-more dimensions. See
-[the documentation for custom experiments](/ado/developer-guide/creating-custom-experiments/)
-to find out more.
+The experiment can be extended to cover additional functions or more
+dimensions. See the
+[custom experiments documentation](/ado/developer-guide/creating-custom-experiments/)
+for guidance.
 
-> [!IMPORTANT] If you change what the function does consider the name of the
-> experiment. If it is not changed in some way the experiment will have the same
-> name as an existing used experiment but do something different which is
-> problematic.
+!!! warning
 
-## Takeaways
-
-- **create-explore-view pattern**: A common pattern in `ado` is to create a
-  `discoveryspace` to describe a set of points to measure, create `operations`
-  on it to explore or analyse it, and then view the results
-- **optimization**: `ado` provides an interface to RayTune allowing all the
-  optimizers supported by RayTune to be used to explore `discoveryspaces`
-- **parameterized experiments**: Experiments can have optional parameters you
-  can set to change what they do. When experiment is parameterized it will have
-  a different id including the parameterization to differentiate it from the
-  base experiment.
-- **custom experiments**: You can add your own Python functions as experiments
-  using `ado`'s custom experiments feature.
-- **continuous dimensions**: `ado` supports `discoveryspaces` with continuous
-  dimensions - however in this case memoization is unlikely to provide benefit
-  as the chances of visiting the same space twice are remote.
+    If you modify what the experiment computes, update its name accordingly.
+    An experiment with the same name as an existing one but different behaviour
+    will corrupt stored measurements.
 
 ## What's next
 
@@ -517,17 +516,19 @@ to find out more.
 
     ---
 
-    Try the [Search a space based on a custom objective function](search-custom-objective.md) example to see how you can define a custom experiment which uses inputs from another experiment.
+    Define a custom experiment that uses outputs from another experiment as
+    its inputs — a common pattern for derived metrics.
 
     [Search a space based on a custom objective function :octicons-arrow-right-24:](search-custom-objective.md)
 
 - :octicons-workflow-24:{ .lg .middle } **Discovering important entity space dimensions**
 
-      ---
+    ---
 
-      Try the [Identify the important dimensions of a space](lhu.md) example to see how you can use `ado` to discover which entity space dimensions most influence a target metric.
+    Use `ado` to identify which entity space dimensions most influence a
+    target metric.
 
-      [Identify the important dimensions of a space :octicons-arrow-right-24:](lhu.md)
+    [Identify the important dimensions of a space :octicons-arrow-right-24:](lhu.md)
 
 </div>
 

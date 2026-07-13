@@ -159,10 +159,8 @@ nav:
               - Benchmarking geospatial models with vLLM: user-guide/examples/vllm-performance-geospatial.md
       - Actuators:
           - Working with actuators: user-guide/actuators/working-with-actuators.md
-          - Guides:
-              - Running experiments on single entities: user-guide/actuators/run-experiment.md
-              - Using externally obtained data: user-guide/actuators/replay.md
-          - Reference:
+          - Actuator Guides:
+              - "The Replay Actuator: Using externally obtained data": user-guide/actuators/replay.md
               - vllm_performance actuator: user-guide/actuators/vllm-performance.md
               - SFTTrainer actuator: user-guide/actuators/sft-trainer.md
       - Operators:
@@ -173,6 +171,7 @@ nav:
               - The Ray Tune Operator: user-guide/operators/ray-tune.md
               - The TRIM Operator: user-guide/operators/trim.md
       - Advanced:
+          - Running experiments on single entities: user-guide/actuators/run-experiment.md
           - Remote Execution: user-guide/remote-execution.md
           - Installing Backend Services: user-guide/backend-services.md
   - Developer Guide:

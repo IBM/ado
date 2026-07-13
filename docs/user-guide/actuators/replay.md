@@ -1,6 +1,6 @@
 <!-- markdownlint-disable first-line-h1 -->
 
-## Using externally obtained data: the replay actuator
+## The Replay Actuator: Using externally obtained data
 
 The replay actuator allows you to leverage results that were obtained via
 experiments outside of `ado` that are contained in external sources like

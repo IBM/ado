@@ -1,37 +1,63 @@
-<!-- markdownlint-disable-next-line first-line-h1 -->
-## Discovery Space
+# Concepts
 
-`ado` is a tool for systematically exploring, measuring, and analysing a space of
-entities - for example, configurations, systems and substances.
-The core concept enabling this is a
-**Discovery Space**. It answers three questions:
+This section explains the core concepts behind `ado`. Reading these pages will
+give you a mental model of how `ado` structures, performs, and shares
+measurements before you start configuring resources or running experiments.
 
-- **How are measurements performed?** A Discovery Space defines
-  a set of [Experiments](actuators.md). Each Experiment
-  takes defined inputs and produces measured outputs. The collection of Experiments
-  is called a [Measurement Space](actuators.md#measurement-space).
-- **What do you want to measure?** A Discovery Space defines an
-  [Entity Space](entity-spaces.md) — the
-  specific set of things, called _Entities_, you want to measure.
-- **What have you measured so far?** A Discovery Space uses
-  a **Sample Store**, a shared database, to read and store measurement
-  results.
+The concepts build on each other in the order they appear below.
 
-For users familiar with `pandas`, a Discovery Space is like a DataFrame that
-knows its own schema, knows how to fill in missing values, and shares data
-transparently with other DataFrames. See [Discovery Spaces](discovery-spaces.md)
-for more.
+## [Properties and Domains](properties-and-domains.md)
 
-## Sample Store
+Everything in `ado` is described through **Properties** — named identifiers
+such as `batch-size` or `gpu-model`. A **Property Domain** constrains the
+values a property can take (categorical, discrete, continuous, binary, or open
+categorical) and controls how values are sampled.
 
-In `ado`, Entities and the results of Experiments on them are kept in a
-**Sample Store** — a shared database that multiple Discovery Spaces can use.
+Properties play three roles: *constitutive* (inputs that identify an entity),
+*target* (what an experiment intends to measure), and *observed* (the
+namespaced value actually recorded by a specific experiment).
 
-If an Experiment has already been run on an Entity, `ado` can reuse the result
-rather than running it again. This transparent data sharing is a core feature of
-`ado`. See [Shared Sample Stores](data-sharing.md) for more details.
+## [Experiments and Actuators](actuators.md)
 
-## What's next
+An **Experiment** measures the values of a set of output properties given a
+set of input properties. Experiments declare required and optional inputs
+(each with a Property Domain) and the target properties they produce as output.
+
+**Actuators** are plugins that group and provide Experiments for a particular
+domain — for example, foundation model fine-tuning or robotic biology. A
+**Measurement Space** is the collection of Experiments used in a Discovery
+Space.
+
+## [Entities and Entity Spaces](entity-spaces.md)
+
+An **Entity** is the thing you want to measure. It is fully described by a set
+of constitutive property values — for example, a specific combination of
+`gpu-model`, `batch-size`, and `model-name`.
+
+An **Entity Space** defines the full set of Entities you want to explore: a set
+of constitutive properties, each with a Property Domain. The space is the
+cartesian product of those domains — every valid combination is a potential
+Entity to measure.
+
+## [Discovery Spaces](discovery-spaces.md)
+
+A **Discovery Space** combines an Entity Space and a Measurement Space. It
+answers three questions: *what* to measure (Entity Space), *how* to measure it
+(Measurement Space), and *where* results are stored (Sample Store).
+
+A Discovery Space is a *view*, not a container — data is fetched from a shared
+Sample Store on demand. An explore operation selects Entities from the space,
+applies the Experiments, and stores the results.
+
+## [Shared Sample Stores](data-sharing.md)
+
+Entities and measurement results are stored in a **Sample Store** — a shared
+database that multiple Discovery Spaces can use. If an Entity has already been
+measured (even by a different Discovery Space using the same store), `ado` can
+reuse the result rather than re-running the Experiment. This transparent
+**memoization** is a core feature of `ado`.
+
+---
 
 <!-- markdownlint-disable line-length -->
 <!-- markdownlint-disable-next-line no-inline-html -->
@@ -50,8 +76,8 @@ rather than running it again. This transparent data sharing is a core feature of
 
     ---
 
-    Try some of our [examples](../user-guide/examples/index.md) if you want to dive
-    straight in.
+    Try some of our [examples](../user-guide/examples/index.md) if you want to
+    dive straight in.
 
     [Our examples :octicons-arrow-right-24:](../user-guide/examples/index.md)
 

@@ -46,8 +46,8 @@ cd ado
 pip install -e examples/density_example/
 ```
 
-Run an operation over a density discovery space — `ado` resolves the space
-reference automatically via `--with`:
+Run a small experiment campaign: sample combinations of `mass` and `volume`,
+compute `density` at each point, and store the results:
 
 ```shell
 ado create operation -f examples/density_example/operation.yaml --with space=examples/density_example/space.yaml

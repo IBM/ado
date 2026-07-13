@@ -18,8 +18,8 @@ experiments**.
 
 ## At its _core_
 
-ado is built around four key concepts (explore them all at
-[concepts](concepts/index.md)):
+ado is built around four key concepts (explore them all in the
+[concepts](concepts/index.md) section):
 
 | Concept             | Role                                                                                                                     |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------ |
@@ -64,9 +64,9 @@ For a deeper walkthrough, see the
 ## ado ❤️ agents
 
 `ado` is designed from the ground up to partner with coding agents, creating a
-powerful automated research assistant. This isn't just about agent skills; `ado`'s
-core design allows an agent to reason about and execute a complete research
-workflow.
+powerful automated research assistant. This isn't just about agent skills;
+`ado`'s core design allows an agent to reason about and execute a complete
+research workflow.
 
 <!-- markdownlint-disable line-length -->
 
@@ -84,8 +84,8 @@ describe a problem, run experiments, read the measurements, and refine its
 approach — all while operating at a high level of abstraction, manipulating
 spaces and operators rather than writing bespoke glue code.
 
-See [Core Concepts](concepts/index.md) and [The ado CLI](cli-reference/index.md)
-for more.
+See the [concepts](concepts/index.md) section and the ado
+[CLI reference](cli-reference/index.md) for more.
 
 ## Use Cases
 

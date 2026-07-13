@@ -1,45 +1,95 @@
+<!-- markdownlint-disable code-block-style -->
+
 # Search based on a custom objective function
 
-> [!NOTE]
->
-> This example shows how to create and use a custom objective function as a
-> dependent experiment — one that consumes the output of another experiment —
-> with `ado`.
+!!! abstract "Intermediate tutorial"
 
-## The scenario
+    This walkthrough assumes you are already familiar with the core `ado`
+    workflow — discovery spaces, operations, and replay. If you are new to `ado`,
+    work through [Beyond the basics: `ado` with real data](random-walk.md) first.
+    If you haven't already, also work through
+    [Search a space with an optimizer](best-configuration-search.md) to get
+    familiar with `ray_tune`.
 
-Often, experiments will not directly produce the value that you are interested
-in. For example, an experiment might measure the run time of an application,
-while **the meaningful metric is the associated cost, which requires knowing
-information like the cost per hour of the GPUs used**. Another common scenario
-involves aggregating data points from one or more experiments into a single
-value.
+    Here we go further: we define a **custom objective function** that consumes
+    the output of another experiment as its input — a common pattern for
+    derived metrics such as cost.
 
-In this example we will install **a custom objective function that calculates a
-cost** for the application workload configurations used in the
-[taking a random walk example](random-walk.md). When the workload
-configuration space is explored using a random walk, both the `wallClockRuntime`
-and the `cost`, as defined by the custom function, will be measured.
+Often, experiments do not directly produce the value you care about. For
+example, an experiment might measure the run time of an application, while
+**the meaningful metric is cost — which requires knowing the price per hour
+of the hardware used**. Another common scenario is aggregating several
+measurements into a single score.
 
-## Prerequisites
+In this example we install a custom experiment that calculates a cost from
+the workload configurations used in the
+[Beyond the basics: `ado` with real data](random-walk.md) example. When the
+space is explored with a random walk, both `wallClockRuntime` and the derived
+`cost` are measured in one pass.
 
-### Install the ray_tune ado operator
+We will:
 
-If you haven't already installed the ray_tune operator, run:
+1. Install the `ray_tune` operator and the custom experiment package
+2. Inspect the custom experiment's interface
+3. Define a discovery space that uses both the `replay` experiment and the
+   custom cost function
+4. Run a random walk and inspect the measurements
 
-```commandline
+!!! warning "Prerequisites"
+
+    - `ado-core` installed (`pip install ado-core`)
+    - The example package cloned from GitHub (the wheel is not published to
+      PyPI)
+
+    Clone the repository if you have not already done so:
+
+    ```bash
+    git clone https://github.com/ibm/ado.git
+    cd ado
+    ```
+
+    A pre-populated sample store is also required. Follow the
+    [instructions in the random walk example](random-walk.md#using-pre-existing-data-with-ado)
+    to load the `ml-multi-cloud` dataset, then export its identifier:
+
+    ```bash
+    export SAMPLE_STORE_IDENTIFIER=<your-samplestore-identifier>
+    ```
+
+    All commands in this walkthrough are run from the **repository root**
+    (`ado/`).
+
+!!! example "TL;DR"
+
+    Once the packages are installed and `SAMPLE_STORE_IDENTIFIER` is set:
+
+    <!-- markdownlint-disable MD013 -->
+    ```bash
+    ado create space -f examples/ml-multi-cloud/ml_multicloud_space_with_custom.yaml --set "sampleStoreIdentifier=$SAMPLE_STORE_IDENTIFIER"
+    ado create operation -f examples/ml-multi-cloud/randomwalk_ml_multicloud_operation.yaml --use-latest space
+    ado show measurements operation --use-latest
+    ```
+    <!-- markdownlint-enable MD013 -->
+
+## Step 1 — Install the required packages
+
+### The `ray_tune` operator
+
+The `ray_tune` operator is distributed as a separate package:
+
+```bash
 pip install ado-ray-tune
 ```
 
-Then verify the operator is registered:
+Confirm it is registered:
 
-```commandline
+```bash
 ado get operators
 ```
 
-The output should show an entry for `ray_tune`:
+You should see `ray_tune` listed:
 
-```commandline
+```text
 Available operators by type:
 ┌───────┬─────────────┬─────────┬─────────┐
 │ INDEX │ OPERATOR    │ VERSION │ TYPE    │
@@ -50,26 +100,27 @@ Available operators by type:
 └───────┴─────────────┴─────────┴─────────┘
 ```
 
-## Installing the custom experiment
+### The `ml-multicloud-cost` custom experiment
 
-The custom experiment is defined in a Python package under
-`custom_experiment/`. To install it run:
+The example ships a custom experiment that derives a cost from two inputs: the
+number of nodes in the configuration and the run time measured by the
+`benchmark_performance` experiment.
 
-```commandline
-pip install custom_experiment/
+Install it from the example directory:
+
+```bash
+pip install examples/ml-multi-cloud/custom_experiment/
 ```
 
-then
+Confirm `ado` can see it:
 
-```commandline
+```bash
 ado get experiments --details
 ```
 
-will output something similar to:
-
 <!-- markdownlint-disable line-length -->
 
-```commandline
+```text
 ┌───────┬────────────────────┬─────────────────────┬─────────┬─────────────┐
 │ INDEX │ ACTUATOR ID        │ EXPERIMENT ID       │ VERSION │ DESCRIPTION │
 ├───────┼────────────────────┼─────────────────────┼─────────┼─────────────┤
@@ -81,9 +132,11 @@ will output something similar to:
 
 <!-- markdownlint-enable line-length -->
 
-You can see the custom experiment provided by the package,
-**ml-multicloud-cost** on the first line. Executing
-`ado describe experiment ml-multicloud-cost` outputs:
+Inspect the experiment interface:
+
+```bash
+ado describe experiment ml-multicloud-cost
+```
 
 <!-- markdownlint-disable line-length -->
 
@@ -124,33 +177,23 @@ Outputs:
 
 <!-- markdownlint-enable line-length -->
 
-From this, you can see the `ml-multicloud-cost` requires an observed
-property, i.e. a property measured by another experiment, as input. From the
-observed property identifier, the experiment is called `benchmark_performance`
-and the property is `wallClockRuntime`.
+The `ml-multicloud-cost` experiment takes `nodes` and `cpu_family` as
+constitutive properties (entity-space dimensions) and `wallClockRuntime` as
+an **observed property** — a measurement produced by another experiment. The
+single output, `total_cost`, is the derived metric.
 
-## Create a discoveryspace that uses the custom experiment
+!!! tip
 
-First create a `samplestore` with the `ml-multi-cloud` example data following
-[these instructions](random-walk.md#using-pre-existing-data-with-ado).
-If you have already completed the
-[taking a random walk example](random-walk.md), reuse the
-`samplestore` you created there. If you cannot recall the identifier, run:
+    The `benchmark_performance-wallClockRuntime` observed property identifier
+    tells you both the source experiment (`benchmark_performance`) and the
+    property name (`wallClockRuntime`). Both experiments must appear in the
+    same discovery space.
 
-```commandline
-ado get samplestores
-```
+## Step 2 — Define a discovery space
 
-and set it as an environment variable before the next step:
-
-```commandline
-export SAMPLE_STORE_IDENTIFIER=<your-samplestore-identifier>
-```
-
-To use the custom experiment, you must add it in the `experiments` list of a
-`discoveryspace`. The `actuatorIdentifier` will be `custom_experiments` and the
-`experimentIdentifier` will be the name of your experiment. For this case the
-relevant section looks like:
+The file `examples/ml-multi-cloud/ml_multicloud_space_with_custom.yaml`
+extends the base space from the random walk example with an additional
+`ml-multicloud-cost` entry:
 
 ```yaml
 experiments:
@@ -161,54 +204,62 @@ experiments:
     experimentVersion: 1.0.0
 ```
 
-The complete `discoveryspace` for this example is given in
-`ml_multicloud_space_with_custom.yaml` To create it execute:
+Create the space, substituting the sample store identifier you exported
+earlier:
 
-```commandline
-ado create space -f ml_multicloud_space_with_custom.yaml --set "sampleStoreIdentifier=$SAMPLE_STORE_IDENTIFIER"
+<!-- markdownlint-disable MD013 -->
+```bash
+ado create space -f examples/ml-multi-cloud/ml_multicloud_space_with_custom.yaml --set "sampleStoreIdentifier=$SAMPLE_STORE_IDENTIFIER"
+```
+<!-- markdownlint-enable MD013 -->
+
+```text
+Success! Created space with identifier: $DISCOVERY_SPACE_IDENTIFIER
 ```
 
-> [!IMPORTANT]
->
-> If an experiment takes the output of another experiment as input both
-> experiments must be in the `discoveryspace`. In the above example if the entry
-> `benchmark_performance` was omitted the `ado create space` command would fail
-> with:
->
-> **SpaceInconsistencyError**: MeasurementSpace does not contain an experiment
-> measuring an observed property required by another experiment in the space
+!!! important
 
-You can view a description of the space using the `ado describe` command:
+    If an experiment takes the output of another experiment as input, both
+    experiments **must** appear in the same discovery space. Omitting
+    `benchmark_performance` in the example above would cause `ado create space`
+    to fail with:
 
-```commandline
+    **SpaceInconsistencyError**: MeasurementSpace does not contain an experiment
+    measuring an observed property required by another experiment in the space
+
+Inspect the space to confirm it contains both experiments:
+
+```bash
 ado describe space --use-latest
 ```
 
-## Exploring the `discoveryspace`
+## Step 3 — Run an operation
 
-To run a `randomwalk` operation on the new space, execute:
+Run a random walk on the new space:
 
-```commandline
-ado create operation -f randomwalk_ml_multicloud_operation.yaml --use-latest space
+<!-- markdownlint-disable MD013 -->
+```bash
+ado create operation -f examples/ml-multi-cloud/randomwalk_ml_multicloud_operation.yaml --use-latest space
 ```
+<!-- markdownlint-enable MD013 -->
 
-This produces an output similar to that described in the
-[taking a random walk example](random-walk.md#exploring-the-discoveryspace)
-and will exit printing the operation identifier. However, in this case there is
-additional information related to the dependent experiment.
+This behaves identically to the
+[random walk example](random-walk.md#exploring-the-discoveryspace), except
+that `ado` now evaluates both experiments for each visited entity. The
+terminal output will show additional detail related to the dependent
+experiment.
 
-When it completes, you can get a table of the points visited with:
+## Step 4 — Inspect the measurements
 
-```commandline
+Retrieve the full table of measurements:
+
+```bash
 ado show measurements operation --use-latest
 ```
 
-You will see a table similar to the following - note the extra column for the
-new cost function (rows truncated for readability):
-
 <!-- markdownlint-disable line-length -->
 
-```commandline
+```text
 ┌───────────────┬──────────────┬─────────────────────────────────────────────┬─────────────────────────────────────────────┬────────────┬───────┬──────────┬───────────┬────────────────────┬──────────────┬────────────────────┬───────┐
 │ request_index │ result_index │ identifier                                  │ experiment_id                               │ cpu_family │ nodes │ provider │ vcpu_size │ wallClockRuntime   │ status       │ total_cost         │ valid │
 ├───────────────┼──────────────┼─────────────────────────────────────────────┼─────────────────────────────────────────────┼────────────┼───────┼──────────┼───────────┼────────────────────┼──────────────┼────────────────────┼───────┤
@@ -218,6 +269,37 @@ new cost function (rows truncated for readability):
 ```
 
 <!-- markdownlint-enable line-length -->
+
+Each entity produces two rows — one per experiment. The `replay` row carries
+`wallClockRuntime`; the `custom_experiments` row carries `total_cost`. Note
+that each row only contains values for the properties measured by its
+respective experiment (`not_measured` elsewhere).
+
+## Summary
+
+| Step | What you did | `ado` concept |
+| :--- | :----------- | :------------ |
+| 1 | Installed `ray_tune` and the custom experiment package | Operator / custom experiment |
+| 2 | Defined a space with both `replay` and the cost function | Discovery space / dependent experiment |
+| 3 | Ran a random walk that evaluated both experiments per entity | Operation / `random_walk` operator |
+| 4 | Retrieved measurements including the derived `total_cost` | `ado show measurements` |
+
+## Going further
+
+Try extending this example:
+
+- **Use a different operator** — swap `random_walk` for `ray_tune` to search
+  for the configuration with the lowest cost; see
+  [Search a space with an optimizer](best-configuration-search.md)
+- **Compose multiple derived metrics** — add a second custom experiment that
+  consumes `total_cost` as an observed property to compute, for example, a
+  cost-per-throughput ratio
+- **Change the cost formula** — edit `objective_function.py` in
+  `examples/ml-multi-cloud/custom_experiment/` and bump the experiment
+  version to keep stored measurements consistent
+- **Inspect space-level measurements** — run `ado show measurements space
+  --use-latest` to see all measurements accumulated across operations, not
+  just the latest one
 
 ## What's next
 
@@ -232,17 +314,20 @@ new cost function (rows truncated for readability):
 
     ---
 
-    Try the [Search a space with an optimizer](best-configuration-search.md) example to see how you can use RayTune in combination with custom experiments, via `ado`.
+    Try the [Search a space with an optimizer](best-configuration-search.md)
+    example to see how you can drive `ray_tune` over a space to find the
+    best-performing configuration.
 
     [Search a space with an optimizer :octicons-arrow-right-24:](best-configuration-search.md)
 
 - :octicons-workflow-24:{ .lg .middle } **Discovering important entity space dimensions**
 
-      ---
+    ---
 
-      Try the [Identify the important dimensions of a space](lhu.md) example to see how you can use `ado` to discover which entity space dimensions most influence a target metric.
+    Use `ado` to identify which entity space dimensions most influence a
+    target metric.
 
-      [Identify the important dimensions of a space :octicons-arrow-right-24:](lhu.md)
+    [Identify the important dimensions of a space :octicons-arrow-right-24:](lhu.md)
 
 </div>
 

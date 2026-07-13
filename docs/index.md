@@ -21,12 +21,12 @@ experiments**.
 ado is built around four key concepts (explore them all in the
 [concepts](concepts/index.md) section):
 
-| Concept             | Role                                                                                                                     |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| **Discovery Space** | Defines _what_ to measure (Entity Space), _how_ to measure it (Experiments), and _where_ to store results.               |
-| **Experiments**     | Pluggable measurement functions — take entity properties as input, produce new properties as output.                     |
-| **Operation**       | Defines _which_ operator to use (e.g. Ray Tune) and _how_ to parameterise it to drive experiments over the entity space. |
-| **Sample Store**    | Stores measurements and transparently reuses prior results across Discovery Spaces and team members.                     |
+| Concept             | Role                                                                                                                 |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| **Discovery Space** | Defines _what_ to measure (Entity Space), _how_ to measure it (Experiments), and _where_ to store results.           |
+| **Experiments**     | Pluggable measurement functions — take entity properties as input, produce new properties as output.                 |
+| **Operation**       | Defines _which_ operator to use (e.g. Ray Tune) and _how_ to parameterise it to explore or analyse the entity space. |
+| **Sample Store**    | Stores measurements and transparently reuses prior results across Discovery Spaces and team members.                 |
 
 ## Quick Start
 

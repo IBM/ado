@@ -103,7 +103,7 @@ steps for you in plain language.
 
     Walk through end-to-end examples that cover common research workflows.
 
-    [Choose an example :octicons-arrow-right-24:](examples/choose-an-example.md)
+    [Choose an example :octicons-arrow-right-24:](examples/index.md)
 
 - :octicons-code-24:{ .lg .middle } **Extend ado**
 

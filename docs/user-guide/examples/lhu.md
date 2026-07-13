@@ -1,52 +1,81 @@
+<!-- markdownlint-disable code-block-style -->
+
 # Identify the important dimensions of a space
 
-> [!NOTE]
->
-> This example shows:
->
-> 1. Using the Latin Hyper-Cube Sampler from the `ray_tune` operator to explore
->    the space
->
-> 2. Using a stopper to halt a `ray_tune` exploration when certain conditions
->    are met
->
-> 3. Specifically, stopping the exploration when the dimensions/properties that
->    have the greatest influence on the target metric are known
+!!! abstract "Intermediate tutorial"
 
-## The scenario
+    This walkthrough assumes you are already familiar with the core `ado`
+    workflow — discovery spaces, operations, and sample stores. If you are new
+    to `ado`, work through
+    [Your first ado experiment](density-example.md) first.
 
-When working with a high-dimensional configuration space, it's natural to ask
+    Here we go further: instead of sampling at random, we use `ray_tune`'s
+    **Latin Hypercube Sampler** to efficiently probe a high-dimensional space
+    and stop automatically once we know which dimensions matter most.
+
+When working with a high-dimensional configuration space it is natural to ask
 **which dimensions have the greatest influence on a specific experimental
-outcome**. For instance, if a workload has 20 tunable parameters, you might want
-to identify which ones most significantly affect a particular throughput metric.
-Understanding this can help narrow future explorations to only the most
-impactful parameters, potentially **reducing the time and resources spent by
-ignoring those that are less relevant**.
+outcome**. For instance, if a workload has 20 tunable parameters you might want
+to identify which ones most significantly affect throughput. Understanding this
+can help narrow future explorations to only the most impactful parameters,
+**reducing the time and resources spent by ignoring those that are less
+relevant**.
 
-The workloads in the `ml_multi_cloud` data set are defined by four parameters,
-`provider`, `cpu_family`, `vcpu_size` and `nodes`, and hence the `entityspace`
-in the related examples have 4 dimensions. Here we will try to find **which
-dimensions have the most influence over the `wallClockRuntime` property.**
+The workloads in the `ml_multi_cloud` dataset are defined by four parameters —
+`provider`, `cpu_family`, `vcpu_size`, and `nodes` — giving the entity space
+four dimensions. This walkthrough finds **which of those dimensions most
+influence `wallClockRuntime`**.
 
-## Pre-requisites
+We will:
 
-### Install the ray_tune ado operator
+1. Install the `ray_tune` operator
+2. Reuse the discovery space from the [random walk example](random-walk.md)
+3. Run a Latin Hypercube sampling operation with an `InformationGain` stopper
+4. Interpret the ranked dimension output
 
-If you haven't already installed the ray_tune operator, run:
+!!! warning "Prerequisites"
 
-```commandline
+    - `ado-core` installed (`pip install ado-core`)
+    - The repository cloned from GitHub:
+
+      ```bash
+      git clone https://github.com/ibm/ado.git
+      cd ado
+      ```
+
+    - The discovery space and sample store from the
+      [random walk example](random-walk.md) already created.
+
+    All commands in this walkthrough are run from the **repository root**
+    (`ado/`).
+
+!!! example "TL;DR"
+
+    Once the packages are installed and the discovery space exists:
+
+    <!-- markdownlint-disable MD013 -->
+    ```bash
+    ado create operation -f examples/ml-multi-cloud/lhc_sampler.yaml --set "spaces[0]=$DISCOVERY_SPACE_IDENTIFIER"
+    ```
+    <!-- markdownlint-enable MD013 -->
+
+## Step 1 — Install the `ray_tune` operator
+
+The `ray_tune` operator is distributed as a separate package:
+
+```bash
 pip install ado-ray-tune
 ```
 
-Then, executing
+Confirm it is registered:
 
-```commandline
+```bash
 ado get operators
 ```
 
-should show an entry for `ray_tune` like below
+You should see `ray_tune` listed:
 
-```commandline
+```text
 Available operators by type:
 ┌───────┬─────────────┬─────────┬─────────┐
 │ INDEX │ OPERATOR    │ VERSION │ TYPE    │
@@ -57,41 +86,50 @@ Available operators by type:
 └───────┴─────────────┴─────────┴─────────┘
 ```
 
-### Creating the `discoveryspace`
+## Step 2 — Reuse the discovery space
 
-This example uses the same `discoveryspace` created in the
-[taking a random walk example](random-walk.md). You can use
-`ado get spaces` to find the identifier.
+This example uses the same discovery space created in the
+[random walk example](random-walk.md). Retrieve its identifier:
 
-## Discovering what workload parameters most impact cost
-
-We will use the
-[Latin-Hyper-Cube sampler](../operators/ray-tune.md#latin-hypercube-sampler)
-to sample points. This is a sampling method which tries maintaining properties
-similar to true random sampling, while ensuring the samples are more evenly
-spread across the space. An example operation file is given in
-[`lhc-sampler.yaml`](https://github.com/IBM/ado/blob/main/examples/ml-multi-cloud/lhc_sampler.yaml).
-
-The operation also configures the exploration to monitor the relationship
-between the four parameters and the cost metric and stop when it has determined
-which are most important using the
-[InformationGain stopper](../operators/ray-tune.md#informationgainstopper).
-
-To execute this operation run (replacing `$DISCOVERY_SPACE_IDENTIFIER` with the
-identifier of the space created in the
-[taking a random walk example](random-walk.md)):
-
-```commandline
-ado create operation -f lhc_sampler.yaml --set "spaces[0]=$DISCOVERY_SPACE_IDENTIFIER"
+```bash
+ado get spaces
 ```
 
-You will see a lot of RayTune-related output as it samples different entities
-using the Latin-Hyper-Cube sampler. The number of samples to obtain is set to 32
-in `lhc_sampler.yaml`, however, the operation will stop before reaching that due
-to the InformationGain stopper. If you look back through the log of the
-operation, within the logs for the last sample you will see lines like:
+Note the identifier — you will pass it to the operation in the next step.
 
-```commandline
+## Step 3 — Run a Latin Hypercube sampling operation
+
+The file `examples/ml-multi-cloud/lhc_sampler.yaml` configures `ray_tune` to
+sample using the
+[Latin Hypercube Sampler](../operators/ray-tune.md#latin-hypercube-sampler) and
+stop automatically when the most influential dimensions are known:
+
+<!-- markdownlint-disable MD013 -->
+```bash
+ado create operation -f examples/ml-multi-cloud/lhc_sampler.yaml --set "spaces[0]=$DISCOVERY_SPACE_IDENTIFIER"
+```
+<!-- markdownlint-enable MD013 -->
+
+The operation is configured to:
+
+- Sample up to **32 points** using the Latin Hypercube Sampler — a method that
+  maintains properties similar to true random sampling while keeping samples
+  more evenly spread across the space.
+- Monitor the mutual information between each dimension and the target metric
+  (`wallClockRuntime`).
+- Stop early via the
+  [InformationGain stopper](../operators/ray-tune.md#informationgainstopper)
+  once the most influential dimensions are identified.
+
+RayTune logs progress to the terminal as it runs. Because the `InformationGain`
+stopper triggers before all 32 samples are collected, the operation finishes
+early.
+
+## Step 4 — Interpret the results
+
+Within the logs for the last sample you will see output like:
+
+```text
 (tune pid=72306) Stopping criteria reached after 14 samples.
 (tune pid=72306) Total search space size is 48, search coverage is 0.2916666666666667.
 (tune pid=72306) Entropy of target variable clusters: 0.6517565611726529 nats.
@@ -105,39 +143,56 @@ operation, within the logs for the last sample you will see lines like:
 (tune pid=72306) Pareto selection:['cpu_family', 'nodes']
 ```
 
-In this table the dimensions are ranked in order of importance, as determined by
-their mutual information with the target variable, wallClockRuntime. The
-`uncertainty%` is the ratio of the dimension's mutual information with the
-entropy of the target variable (or clusters of the target variable to be more
-exact) i.e. how much of the entropy or variance of the target variable is
-explained by the dimension.
+### Reading the ranked dimension table
 
-At the end of the output we can see the stopper has identified a "Pareto
-selection" of three dimensions: ['provider', 'vcpu_size', 'nodes']. This is the
-smallest number of dimensions, whose total mutual information exceeds a
-threshold, which is `0.8` by default.
+The dimensions are ranked by **mutual information** (`mi`) with the target
+variable `wallClockRuntime`. The columns are:
 
-This is chosen as follows:
+| Column | Meaning |
+| :----- | :------ |
+| `rank` | Importance rank (1 = most influential) |
+| `mi` | Mutual information with the target metric (higher = more influential) |
+| `uncertainty%` | The dimension's `mi` as a fraction of the target variable's entropy — how much of the variance in `wallClockRuntime` is explained by this dimension |
 
-- For each possible dimension set size the stopper determines which set explains
-  the most mutual information.
-  - For example, for a set of size 2 dimensions, it evaluates the 6 possible
-    pairs: [nodes,vcpu_size], [nodes, provider], [nodes, cpu_family] ,
-    [vcpu_size, provider], [vcpu_size, nodes], [provider, nodes].
-- This gives one set for each possible dimension set size: 1,2,3 and 4 in this
-  case - the Pareto optimal sets
-- Then the smallest of these sets which exceeds the threshold value is selected.
+In this run `nodes` contributes ~75% of the explainable variance, making it by
+far the most important dimension, while `vcpu_size` is nearly irrelevant.
 
-> [!NOTE]
->
-> Since Latin Hypercube sampling is random, the Pareto set can change slightly
-> from run to run as different entities are used. In this example over multiple
-> runs you should see the Pareto set being 2 or 3 and always including `nodes`.
+### The Pareto selection
+
+At the end of the output the stopper reports a **Pareto selection** — the
+smallest set of dimensions whose combined mutual information exceeds a
+threshold (0.8 by default).
+
+The stopper computes this as follows:
+
+- For each possible set size, it finds the subset that explains the most mutual
+  information. For example, for size 2 it evaluates all 6 pairs:
+  `[nodes, vcpu_size]`, `[nodes, provider]`, `[nodes, cpu_family]`, etc.
+- This produces one optimal set per size (1, 2, 3, 4 in this case) — the
+  Pareto-optimal sets.
+- The smallest set whose total mutual information exceeds the threshold is
+  selected.
+
+!!! note
+
+    Since Latin Hypercube sampling is random, the Pareto set can vary slightly
+    from run to run. Over multiple runs you should see the Pareto set contain
+    2 or 3 dimensions and always include `nodes`.
+
+## Summary
+
+| Step | What you did | `ado` concept |
+| :--- | :----------- | :------------ |
+| 1 | Installed the `ray_tune` operator | Operator |
+| 2 | Located the existing discovery space | Discovery space |
+| 3 | Ran a Latin Hypercube sampling operation with early stopping | Operation / `ray_tune` operator |
+| 4 | Ranked dimensions by mutual information and read the Pareto selection | `InformationGain` stopper |
 
 ## What's next
 
 <!-- markdownlint-disable line-length -->
 <!-- markdownlint-disable no-inline-html -->
+<!-- markdownlint-disable MD046 -->
 <!-- prettier-ignore-start -->
 
 <div class="grid cards" markdown>
@@ -146,7 +201,8 @@ This is chosen as follows:
 
     ---
 
-    Try the [Search a space with an optimizer](best-configuration-search.md) example to see how you can use RayTune, and define custom experiments, via `ado`.
+    Use `ray_tune` to drive a Bayesian optimizer over a continuous space and
+    locate the best configuration.
 
     [Search a space with an optimizer :octicons-arrow-right-24:](best-configuration-search.md)
 
@@ -154,12 +210,14 @@ This is chosen as follows:
 
     ---
 
-    Try the [Search a space based on a custom objective function](search-custom-objective.md) example to see how you can define a custom experiment which uses inputs from another experiment.
+    Define a custom experiment that uses outputs from another experiment as its
+    inputs — a common pattern for derived metrics.
 
     [Search a space based on a custom objective function :octicons-arrow-right-24:](search-custom-objective.md)
 
 </div>
 
-<!-- markdownlint-enable line-length -->
-<!-- markdownlint-enable no-inline-html -->
 <!-- prettier-ignore-end -->
+<!-- markdownlint-enable MD046 -->
+<!-- markdownlint-enable no-inline-html -->
+<!-- markdownlint-enable line-length -->

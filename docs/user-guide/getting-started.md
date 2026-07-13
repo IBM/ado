@@ -24,8 +24,8 @@ new experiments or search strategies, the
 
 ## Core concepts
 
-The loop is driven by four building blocks (explore them all in the
-[concepts](../concepts/index.md) section):
+The loop is possible thanks to these four building blocks (explore them all in
+the [concepts](../concepts/index.md) section):
 
 | Concept             | Role                                                                                                                 |
 | ------------------- | -------------------------------------------------------------------------------------------------------------------- |

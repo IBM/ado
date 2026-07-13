@@ -30,41 +30,36 @@ ado is built around four key concepts (explore them all at
 
 ## Quick Start
 
-Install `ado` and the example actuator plugin (a virtual environment is
-recommended). For complete instructions see
-[Getting Started](user-guide/index.md#choose-your-workflow):
+Install `ado-core` (a virtual environment is recommended). For complete
+instructions see [Getting Started](user-guide/index.md#choose-your-workflow):
 
 ```shell
 pip install ado-core
-pip install git+https://github.com/IBM/ado.git#subdirectory=plugins/actuators/example_actuator
 ```
 
-Download the example Discovery Space and Operation YAML files:
+Clone the repository and install the density example package:
 
 ```shell
-curl -O https://raw.githubusercontent.com/IBM/ado/refs/heads/main/plugins/actuators/example_actuator/yamls/discoveryspace.yaml
-curl -O https://raw.githubusercontent.com/IBM/ado/refs/heads/main/plugins/actuators/example_actuator/yamls/random_walk_operation.yaml
+git clone https://github.com/IBM/ado.git
+cd ado
+pip install -e examples/density_example/
 ```
 
-Create a Discovery Space and run a random-walk operation over it — `ado`
-resolves the space reference automatically:
+Run an operation over a density discovery space — `ado` resolves the space
+reference automatically via `--with`:
 
 ```shell
-ado create operation -f random_walk_operation.yaml --with space=discoveryspace.yaml
+ado create operation -f examples/density_example/operation.yaml --with space=examples/density_example/space.yaml
 ```
-
-`ado` will create the Discovery Space, sample entities from it using the
-built-in random-walk operator, execute the `peptide_mineralization` experiment
-for each entity, and store the results locally.
 
 Once the operation finishes, inspect the collected measurements:
 
 ```shell
-ado show measurements space --use-latest
+ado show measurements operation --use-latest
 ```
 
 For a deeper walkthrough, see the
-[random-walk tutorial](user-guide/examples/random-walk.md).
+[density example tutorial](user-guide/examples/density-example.md).
 
 ## ado ❤️ agents
 

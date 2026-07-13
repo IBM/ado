@@ -61,32 +61,6 @@ ado show measurements operation --use-latest
 For a deeper walkthrough, see the
 [density example tutorial](user-guide/examples/density-example.md).
 
-## ado ❤️ agents
-
-`ado` is designed from the ground up to partner with coding agents, creating a
-powerful automated research assistant. This isn't just about agent skills;
-`ado`'s core design allows an agent to reason about and execute a complete
-research workflow.
-
-<!-- markdownlint-disable line-length -->
-
-| Step                    | Capability                                    | Benefit for Agent-Driven Research                                                                                                                                                                                           |
-| :---------------------- | --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **1. Discover**         | **Self-Describing Experiments and Operators** | Before acting, an agent must understand what's possible. `ado` enables agents to discover exactly what capabilities are available, and what's required to use them, in a structured manner rather than parsing code.        |
-| **2. Model**            | **Clear Separation of Concerns**              | Once possibilities are known, the agent structures the problem. `ado` provides clear separation between the _what_, the _how_, and the _action_, allowing the agent to reason about each part of the problem independently. |
-| **3. Act & Verify**     | **Pre-Run Validation**                        | With a model in mind, the agent can safely execute. Using `ado template` and `ado create --dry-run`, it can create a tight **generate → validate → fix → run** loop.                                                        |
-| **4. Analyze & Refine** | **Structured & Queryable Data**               | All data and metadata created via `ado` is stored in a structured database. This allows the agent to analyze, compare, link, and synthesize data to decide on the next course of action.                                    |
-
-<!-- markdownlint-enable line-length -->
-
-Together, these properties enable a **closed research loop**: an agent can
-describe a problem, run experiments, read the measurements, and refine its
-approach — all while operating at a high level of abstraction, manipulating
-spaces and operators rather than writing bespoke glue code.
-
-See the [concepts](concepts/index.md) section and the ado
-[CLI reference](cli-reference/index.md) for more.
-
 ## Use Cases
 
 Here are some examples of what the team has built with `ado`:

@@ -82,8 +82,8 @@ def create_test_environment(
     :param renderer_num_workers: number of renderer workers when threadpool is enabled
         when provided
     :param otlp_traces_endpoint: OpenTelemetry traces endpoint URL
-    :param reasoning_parser: vLLM reasoning parser to use (e.g. qwen3, deepseek_r1)
-    :param tool_call_parser: vLLM tool call parser to use (e.g. qwen3_coder, hermes)
+    :param reasoning_parser: vLLM reasoning parser to use (e.g. qwen3)
+    :param tool_call_parser: vLLM tool call parser to use (e.g. qwen3_coder)
     :param language_model_only: flag to run vLLM in language-model-only mode
     :param enable_auto_tool_choice: flag to enable automatic tool choice in vLLM
     :param max_model_len: maximum number of tokens the model can process and remember at once

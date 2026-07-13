@@ -12,23 +12,32 @@ new experiments or search strategies, the
     [key concepts](../concepts/index.md) so the YAML examples and CLI commands
     throughout these examples make immediate sense.
 
-## The core research loop with ado
+## The research loop with ado
 
-`ado` organises research around a repeatable five-step process, regardless of
-how you interact with it:
+`ado` organises research around a repeatable five-step process:
 
 1. **Choose your experiments** — select what you want to run
 2. **Define your space** — describe the parameter space you want to explore
-3. **Configure your strategy** — choose how to search or sample that space
-4. **Execute** — run the operation locally or on a remote cluster
+3. **Configure your strategy** — choose how to search or analyse that space
+4. **Execute** — apply the experiments on the points in the space
 5. **Analyse** — inspect results, then refine and continue
+
+## Core concepts
+
+The loop is driven by four building blocks (explore them all in the
+[concepts](../concepts/index.md) section):
+
+| Concept             | Role                                                                                                                 |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| **Discovery Space** | Defines _what_ to measure (Entity Space), _how_ to measure it (Experiments), and _where_ to store results.           |
+| **Experiments**     | Pluggable measurement functions — take entity properties as input, produce new properties as output.                 |
+| **Operation**       | Defines _which_ operator to use (e.g. Ray Tune) and _how_ to parameterise it to explore or analyse the entity space. |
+| **Sample Store**    | Stores measurements and transparently reuses prior results across Discovery Spaces and team members.                 |
 
 ## How do you want to use ado?
 
-The loop above applies to both paths. The difference is how you drive it: Path A
-is a lightweight PyPI install you control entirely through the CLI. Path B clones
-the repo and adds built-in agent skills so an AI coding assistant can handle the
-steps for you in plain language.
+You can run this loop yourself through the CLI, or let an AI coding assistant
+drive it for you using built-in agent skills.
 
 <!-- markdownlint-disable line-length -->
 

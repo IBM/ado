@@ -1,17 +1,13 @@
 <!-- markdownlint-disable code-block-style -->
 
-# Your first ado experiment
+# Running your first ado experiment
 
-!!! abstract "New to `ado`?"
+!!! question "New to `ado`?"
 
     This walkthrough introduces the key concepts — **custom experiments**,
     **discovery spaces**, and **operations** — as we go. If you'd prefer a
     full overview first, the [Concepts](../../concepts/index.md) page has you
     covered.
-
-The simplest way to write an experiment in `ado` is a **custom experiment** —
-a plain Python function decorated with `@custom_experiment`. No boilerplate,
-no subclassing: if you can write a function, you can write an `ado` experiment.
 
 This walkthrough takes you end-to-end through the full `ado` workflow using a
 deliberately simple example — computing density from mass and volume — so you
@@ -19,7 +15,7 @@ can focus on the concepts rather than the domain.
 
 We will:
 
-1. Write a Python function and register it with `ado` as a **custom experiment**
+1. Run a pre-built **custom experiment** that computes density
 2. Test it on a single point
 3. Describe a **discovery space** over a grid of `mass` and `volume` values
 4. Run an **operation** to sample the space and collect results
@@ -59,35 +55,11 @@ We will:
 
 ## Step 1 — The custom experiment
 
-A **custom experiment** is an ordinary Python function decorated with
-`@custom_experiment`. `ado` uses the function signature to infer the inputs
-and registers the function name as the experiment identifier.
+A **custom experiment** is a Python function that `ado` can call as part of a
+discovery workflow. In this example, the experiment is `calculate_density`: it
+takes `mass` and `volume` as inputs and returns `density = mass / volume`.
 
-The density experiment lives in
-`density/density.py`:
-
-```python
-{% include "../../../examples/density_example/density/density.py" %}
-```
-
-A few things to note:
-
-- **Inputs** (`mass`, `volume`) are positional parameters and become the
-  _required properties_ of the experiment. Because they are typed as `float`,
-  `ado` infers a continuous domain for each.
-- **Output** `density` is declared in `output_property_identifiers`. The
-  function returns a dictionary with that key.
-
-The package registers the function with `ado` via an
-[entry point](../../developer-guide/creating-custom-experiments.md) in
-`pyproject.toml`:
-
-```toml
-[project.entry-points."ado.custom_experiments"]
-optimization_test_functions = "density.density"
-```
-
-After installing the package, confirm `ado` can see the experiment:
+Once the prerequisites above are met, confirm `ado` can see the experiment:
 
 ```bash
 ado get experiments
@@ -104,8 +76,8 @@ Available experiments:
 ## Step 2 — Test on a single point
 
 Before wiring the experiment into anything larger, it is useful to verify it
-works on a single point. The file `examples/density_example/point.yaml`
-defines one:
+works on a single point. The file `examples/density_example/point.yaml` defines
+one:
 
 ```yaml
 {% include "../../../examples/density_example/point.yaml" %}
@@ -120,8 +92,12 @@ run_experiment examples/density_example/point.yaml
 You should see output similar to:
 
 ```text
-Results for entity mass=8 volume=4:
-  density: 2.0
+Point: {'mass': 8, 'volume': 4}
+Result:
+[
+  ...
+  density 2.0
+]
 ```
 
 !!! tip
@@ -138,15 +114,19 @@ A **discovery space** brings together two things:
 - an **entity space** — the set of points (entities) to measure
 - a **measurement space** — the experiments to apply to them
 
-The file `examples/density_example/space.yaml` defines a grid of ten masses
-and ten volumes:
+The file `examples/density_example/space.yaml` defines a grid of ten masses and
+ten volumes:
+
+<!-- prettier-ignore-start -->
 
 ```yaml
 {% include "../../../examples/density_example/space.yaml" %}
 ```
 
-The entity space is 10 × 10 = **100 entities** (every combination of
-`mass` and `volume`). The measurement space contains a single experiment:
+<!-- prettier-ignore-end -->
+
+The entity space is 10 × 10 = **100 entities** (every combination of `mass` and
+`volume`). The measurement space contains a single experiment:
 `calculate_density`.
 
 Create the discovery space:
@@ -186,7 +166,7 @@ Measurement Space:
 
       base identifier                         ┃ required major version ┃ parameterization
      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━━━╋━━━━━━━━━━━━━━━━━━
-      custom_experiments.calculate_density    ┃ nan                    ┃ nan
+      custom_experiments.calculate_density    ┃ None                   ┃ None
 ```
 
 ## Step 4 — Run an operation
@@ -195,11 +175,21 @@ An **operation** drives an **operator** over the discovery space. The operator
 decides which entities to visit and in what order. Here we use `random_walk`,
 which samples entities at random.
 
-The file `examples/density_example/operation.yaml` configures a random walk
-that visits 10 of the 100 entities:
+The file `examples/density_example/operation.yaml` configures a random walk that
+visits 10 of the 100 entities:
+
+<!-- prettier-ignore-start -->
 
 ```yaml
 {% include "../../../examples/density_example/operation.yaml" %}
+```
+
+<!-- prettier-ignore-end -->
+
+Create the operation:
+
+```bash
+ado create operation -f examples/density_example/operation.yaml --use-latest space
 ```
 
 !!! tip
@@ -207,12 +197,6 @@ that visits 10 of the 100 entities:
     The `spaces:` field contains a real space identifier used during development
     of this example. The `--use-latest space` flag replaces it with the
     identifier of the discovery space you just created.
-
-Create the operation:
-
-```bash
-ado create operation -f examples/density_example/operation.yaml --use-latest space
-```
 
 `ado` samples and measures entities, printing a line for each one as it
 completes. When finished you will see a summary like:
@@ -224,9 +208,9 @@ metadata:
   entities_submitted: 10
   experiments_requested: 10
 status:
-- event: finished
-  exit_state: success
-  recorded_at: '2026-01-01T12:00:00.000000Z'
+  - event: finished
+    exit_state: success
+    recorded_at: "2026-01-01T12:00:00.000000Z"
 ```
 
 ## Step 5 — View the results
@@ -235,8 +219,8 @@ status:
 ado show measurements operation --use-latest
 ```
 
-This prints every entity sampled in the operation alongside its measured
-density:
+This prints every entity sampled in the operation alongside its measured density
+(some columns have been hidden for simplicity):
 
 <!-- markdownlint-disable MD013 -->
 
@@ -259,7 +243,7 @@ entities visited in this operation):
 ado show measurements space --use-latest
 ```
 
-!!! example
+!!! example "Try it again"
 
     Run the operation a second time. Because `ado` **memoizes** results,
     measurements already in the sample store are reused automatically — no
@@ -267,13 +251,13 @@ ado show measurements space --use-latest
 
 ## Summary
 
-| Step | What you did | `ado` concept |
-| :--- | :----------- | :------------ |
-| 1 | Decorated a Python function with `@custom_experiment` | Custom experiment |
-| 2 | Verified it on one point with `run_experiment` | Point testing |
-| 3 | Described the space of things to measure in `space.yaml` | Discovery space |
-| 4 | Ran a random walk over 10 of the 100 entities | Operation / operator |
-| 5 | Retrieved the measured results | `ado show measurements` |
+| Step | What you did                                             | `ado` concept           |
+| :--- | :------------------------------------------------------- | :---------------------- |
+| 1    | Ran a pre-built custom experiment that computes density  | Custom experiment       |
+| 2    | Verified it on one point with `run_experiment`           | Point testing           |
+| 3    | Described the space of things to measure in `space.yaml` | Discovery space         |
+| 4    | Ran a random walk over 10 of the 100 entities            | Operation / operator    |
+| 5    | Retrieved the measured results                           | `ado show measurements` |
 
 ## What's next
 
@@ -304,5 +288,6 @@ ado show measurements space --use-latest
 </div>
 
 <!-- prettier-ignore-end -->
+
 <!-- markdownlint-enable no-inline-html -->
 <!-- markdownlint-enable line-length -->

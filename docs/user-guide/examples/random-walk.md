@@ -37,7 +37,7 @@
 
     <!-- markdownlint-disable MD013 -->
     ```bash
-    ado create store -f examples/ml-multi-cloud/ml_multicloud_sample_store.yaml
+    ado create store -f examples/ml-multi-cloud/ml_multicloud_sample_store_from_root.yaml
     ado create space -f examples/ml-multi-cloud/ml_multicloud_space.yaml --use-latest samplestore
     ado create operation -f examples/ml-multi-cloud/randomwalk_ml_multicloud_operation.yaml --use-latest space
     ado show measurements operation --use-latest
@@ -53,14 +53,14 @@ providers.
 In `ado`, configurations are called **entities** and are stored, together with
 measurement results, in a [**sample store**](/ado/resources/sample-stores).
 
-The file `examples/ml-multi-cloud/ml_multicloud_sample_store.yaml` tells `ado`
-how to import the CSV:
+The file `examples/ml-multi-cloud/ml_multicloud_sample_store_from_root.yaml`
+tells `ado` how to import the CSV:
 
 <!-- prettier-ignore-start -->
 
 ```yaml
 {%
-    include "../../../examples/ml-multi-cloud/ml_multicloud_sample_store.yaml"
+    include "../../../examples/ml-multi-cloud/ml_multicloud_sample_store_from_root.yaml"
 %}
 ```
 
@@ -68,9 +68,11 @@ how to import the CSV:
 
 Create the sample store:
 
+<!-- markdownlint-disable MD013 -->
 ```bash
-ado create store -f examples/ml-multi-cloud/ml_multicloud_sample_store.yaml
+ado create store -f examples/ml-multi-cloud/ml_multicloud_sample_store_from_root.yaml
 ```
+<!-- markdownlint-enable MD013 -->
 
 ```text
 Success! Created sample store with identifier $SAMPLE_STORE_IDENTIFIER

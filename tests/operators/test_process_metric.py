@@ -9,14 +9,14 @@ from unittest.mock import MagicMock
 import pytest
 from ado_ray_tune.operator import process_metric
 
-from orchestrator.schema.entity import Entity
-from orchestrator.schema.experiment import Experiment, ParameterizedExperiment
-from orchestrator.schema.measurementspace import (
+from ado.schema.entity import Entity
+from ado.schema.experiment import Experiment, ParameterizedExperiment
+from ado.schema.measurementspace import (
     MeasurementSpace,
     MeasurementSpaceConfiguration,
 )
-from orchestrator.schema.property import ConstitutivePropertyDescriptor
-from orchestrator.schema.property_value import ConstitutivePropertyValue
+from ado.schema.property import ConstitutivePropertyDescriptor
+from ado.schema.property_value import ConstitutivePropertyValue
 
 
 def _make_trainable_params(

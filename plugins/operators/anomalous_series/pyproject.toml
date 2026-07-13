@@ -1,11 +1,41 @@
 [project]
-name = "anomalous_series"
-dependencies = []
+name = "ado-anomalous-series"
+dependencies = [
+  "ado-core>=2.0.0",
+]
 dynamic = ["version"]
 
 [project.entry-points."ado.operators"]
 anomalous_series = "anomalous_series.operator"
 
-[tool.setuptools_scm]
-root = "../../../"
-local_scheme = "node-and-timestamp"
+[build-system]
+requires = ["hatchling", "uv-dynamic-versioning>=0.7.0"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
+
+[tool.hatch.build.targets.wheel]
+packages = ["anomalous_series"]
+
+[tool.uv.sources]
+ado-core = { workspace = true }
+
+[tool.uv-dynamic-versioning]
+vcs = "git"
+style = "pep440"
+pattern = "default-unprefixed"
+pattern-prefix = "anomalous-series/"
+fallback-version = "0.0.0"
+format-jinja = """
+{%- set metadata = [
+    distance != 0 and "g" ~ commit,
+    distance != 0 and "d" ~ timestamp,
+    dirty and "dirty"
+] -%}
+{{ serialize_pep440(
+    distance == 0 and base or bump_version(base),
+    dev=distance or None,
+    metadata=metadata | select | list
+) }}
+"""

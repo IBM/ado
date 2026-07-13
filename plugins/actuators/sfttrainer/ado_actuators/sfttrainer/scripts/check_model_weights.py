@@ -62,7 +62,7 @@ def main() -> None:
 
     # VV: if you just added a model to `ModelMap` just copy/paste that entire dictionary here
     # ModelMap = { ..... }
-    # (the version of the fms-hf-tuning Orchestrator Plugin on the ray cluster won't have the changes you just made)
+    # (the version of the ado-sfttrainer package on the ray cluster won't have the changes you just made)
 
     all_models = {
         k: v[WeightsFormat.Vanilla]

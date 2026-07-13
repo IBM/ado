@@ -1,14 +1,14 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-from orchestrator.core import DiscoverySpaceResource, SampleStoreResource
-from orchestrator.core.operation.resource import (
+from ado.core import DiscoverySpaceResource, SampleStoreResource
+from ado.core.operation.resource import (
     OperationExitStateEnum,
     OperationResource,
     OperationResourceEventEnum,
     OperationResourceStatus,
 )
-from orchestrator.core.resources import ADOResourceEventEnum, ADOResourceStatus
+from ado.core.resources import ADOResourceEventEnum, ADOResourceStatus
 
 
 def test_ado_resource_status() -> None:
@@ -83,7 +83,7 @@ def test_resource_provenance_ser_deser(
     sample_store_resource: SampleStoreResource,
 ) -> None:
     """Check that provenance is serialized and deserialized with a resource."""
-    from orchestrator.core.metadata import PackageProvenance, ProvenanceInfo
+    from ado.core.metadata import PackageProvenance, ProvenanceInfo
 
     ado = PackageProvenance(
         distributionName="ado-core",

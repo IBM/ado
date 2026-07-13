@@ -14,8 +14,8 @@ import pydantic
 from pydantic import AfterValidator
 
 if TYPE_CHECKING:
-    from orchestrator.schema.experiment import Experiment, ParameterizedExperiment
-    from orchestrator.schema.observed_property import ObservedPropertyValue
+    from ado.schema.experiment import Experiment, ParameterizedExperiment
+    from ado.schema.observed_property import ObservedPropertyValue
 
 
 def none_if_negative(value: int | None) -> int | None:
@@ -107,8 +107,8 @@ class BenchmarkResult(pydantic.BaseModel):
         :param experiment: Experiment definition with observed properties
         :return: A list of ObservedPropertyValue instances
         """
-        from orchestrator.schema.observed_property import ObservedPropertyValue
-        from orchestrator.schema.property_value import ValueTypeEnum
+        from ado.schema.observed_property import ObservedPropertyValue
+        from ado.schema.property_value import ValueTypeEnum
 
         measured_values = []
         results_dict = self.model_dump()

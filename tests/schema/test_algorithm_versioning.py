@@ -8,29 +8,30 @@ import warnings
 
 import pytest
 
-from orchestrator.modules.actuators.catalog import (
+from ado.modules.actuators.catalog import (
     ExperimentCatalog,
 )
-from orchestrator.modules.actuators.errors import (
+from ado.modules.actuators.errors import (
+    AmbiguousExperimentIdentifierError,
     ExperimentVersionMismatchError,
     MissingActuatorConfigurationForCatalogError,
     UnexpectedCatalogRetrievalError,
     UnknownActuatorError,
     UnknownExperimentError,
 )
-from orchestrator.modules.actuators.registry import (
+from ado.modules.actuators.registry import (
     ActuatorRegistry,
 )
-from orchestrator.schema.domain import PropertyDomain, VariableTypeEnum
-from orchestrator.schema.experiment import Experiment, ParameterizedExperiment
-from orchestrator.schema.property import (
+from ado.schema.domain import PropertyDomain, VariableTypeEnum
+from ado.schema.experiment import Experiment, ParameterizedExperiment
+from ado.schema.property import (
     AbstractPropertyDescriptor,
     ConstitutiveProperty,
     ConstitutivePropertyDescriptor,
 )
-from orchestrator.schema.property_value import ConstitutivePropertyValue
-from orchestrator.schema.reference import ExperimentReference
-from orchestrator.utilities.pydantic import StrictSemVerStr, semver_major
+from ado.schema.property_value import ConstitutivePropertyValue
+from ado.schema.reference import ExperimentReference
+from ado.utilities.pydantic import StrictSemVerStr, semver_major
 
 # ─── StrictSemVerStr validation ──────────────────────────────────────────────
 
@@ -127,6 +128,17 @@ def _catalog_with_versioned_experiment(
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", DeprecationWarning)
         catalog.addExperiment(exp)
+    return catalog
+
+
+def _catalog_with_multiple_major_versions(
+    identifier: str = "solve_mip",
+) -> ExperimentCatalog:
+    catalog = ExperimentCatalog(catalogIdentifier="test")
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", DeprecationWarning)
+        catalog.addExperiment(_make_experiment(identifier, version="1.0.0"))
+        catalog.addExperiment(_make_experiment(identifier, version="2.0.0"))
     return catalog
 
 
@@ -413,6 +425,100 @@ def test_catalog_lookup_both_unversioned() -> None:
         actuatorIdentifier="test_actuator",
     )
     assert catalog.experimentForReference(ref) is not None
+
+
+def test_catalog_lookup_base_single_versioned_match() -> None:
+    """Base matching resolves an unversioned reference to a sole versioned entry."""
+    catalog = _catalog_with_versioned_experiment(version="1.0.0")
+    ref = ExperimentReference(
+        experimentIdentifier="solve_mip",
+        actuatorIdentifier="test_actuator",
+    )
+    result = catalog.experimentForReference(ref, match_on="base")
+    assert result is not None
+    assert result.version == "1.0.0"
+
+
+def test_catalog_lookup_base_ambiguous_raises() -> None:
+    """Base matching raises when multiple catalog versions share a base identifier."""
+    catalog = _catalog_with_multiple_major_versions()
+    ref = ExperimentReference(
+        experimentIdentifier="solve_mip",
+        actuatorIdentifier="test_actuator",
+    )
+    with pytest.raises(AmbiguousExperimentIdentifierError, match="ambiguous"):
+        catalog.experimentForReference(ref, match_on="base", resolve=False)
+
+
+def test_catalog_lookup_any_exact_version() -> None:
+    """Any matching prefers fully qualified matches."""
+    catalog = _catalog_with_versioned_experiment(version="1.0.0")
+    ref = ExperimentReference(
+        experimentIdentifier="solve_mip",
+        actuatorIdentifier="test_actuator",
+        experimentVersion="1.0.0",
+    )
+    result = catalog.experimentForReference(ref, match_on="any")
+    assert result is not None
+    assert result.version == "1.0.0"
+
+
+def test_catalog_lookup_any_major_version() -> None:
+    """Any matching falls back to major version matching."""
+    catalog = _catalog_with_versioned_experiment(version="1.0.0")
+    ref = ExperimentReference(
+        experimentIdentifier="solve_mip",
+        actuatorIdentifier="test_actuator",
+        experimentVersion="1.2.0",
+    )
+    result = catalog.experimentForReference(ref, match_on="any")
+    assert result is not None
+    assert result.version == "1.0.0"
+
+
+def test_catalog_lookup_any_base_identifier() -> None:
+    """Any matching falls back to base identifier matching."""
+    catalog = _catalog_with_versioned_experiment(version="1.0.0")
+    ref = ExperimentReference(
+        experimentIdentifier="solve_mip",
+        actuatorIdentifier="test_actuator",
+    )
+    result = catalog.experimentForReference(ref, match_on="any")
+    assert result is not None
+    assert result.version == "1.0.0"
+
+
+def test_catalog_lookup_any_ambiguous_raises() -> None:
+    """Any matching raises when base identifier matching is ambiguous."""
+    catalog = _catalog_with_multiple_major_versions()
+    ref = ExperimentReference(
+        experimentIdentifier="solve_mip",
+        actuatorIdentifier="test_actuator",
+    )
+    with pytest.raises(AmbiguousExperimentIdentifierError, match="ambiguous"):
+        catalog.experimentForReference(ref, match_on="any", resolve=False)
+
+
+def test_registry_experiment_for_reference_any(
+    global_registry: ActuatorRegistry,
+) -> None:
+    """Registry delegates any matching to the actuator catalog."""
+    catalog = global_registry.catalogForActuatorIdentifier("mock")
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", DeprecationWarning)
+        catalog.addExperiment(
+            _make_experiment("registry_any_lookup_exp", version="1.0.0").model_copy(
+                update={"actuatorIdentifier": "mock"}
+            )
+        )
+
+    ref = ExperimentReference(
+        experimentIdentifier="registry_any_lookup_exp",
+        actuatorIdentifier="mock",
+    )
+    result = global_registry.experimentForReference(ref, match_on="any")
+    assert result.identifier == "registry_any_lookup_exp"
+    assert result.version == "1.0.0"
 
 
 # ─── ExperimentCatalog ────────────────────────────────────────────────────────
@@ -856,7 +962,7 @@ def test_measurement_space_from_selection_fq_mismatch(
     global_registry: ActuatorRegistry,
 ) -> None:
     """measurementSpaceFromSelection enforces exact version when experimentVersion is set."""
-    from orchestrator.schema.measurementspace import MeasurementSpace
+    from ado.schema.measurementspace import MeasurementSpace
 
     _add_versioned_experiment_to_mock_catalog(global_registry)
     ref = ExperimentReference(
@@ -872,7 +978,7 @@ def test_measurement_space_from_selection_fq_exact_match(
     global_registry: ActuatorRegistry,
 ) -> None:
     """measurementSpaceFromSelection stores catalog version when YAML pin matches."""
-    from orchestrator.schema.measurementspace import MeasurementSpace
+    from ado.schema.measurementspace import MeasurementSpace
 
     _add_versioned_experiment_to_mock_catalog(global_registry)
     ref = ExperimentReference(

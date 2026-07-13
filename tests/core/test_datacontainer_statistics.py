@@ -5,11 +5,11 @@
 
 from collections.abc import Callable
 
-from orchestrator.core import DataContainerResource
-from orchestrator.core.datacontainer.resource import DataContainer, TabularData
-from orchestrator.core.resources import ADOResource
-from orchestrator.metastore.sqlstore import SQLStore
-from orchestrator.utilities.location import SQLStoreConfiguration
+from ado.core import DataContainerResource
+from ado.core.datacontainer.resource import DataContainer, TabularData
+from ado.core.resources import ADOResource
+from ado.metastore.sqlstore import SQLStore
+from ado.utilities.location import SQLStoreConfiguration
 
 # ---------------------------------------------------------------------------
 # Integration tests for SQLResourceStore.get_datacontainer_stats

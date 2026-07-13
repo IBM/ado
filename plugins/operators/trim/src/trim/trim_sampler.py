@@ -19,7 +19,7 @@ import numpy as np
 import pandas as pd
 from autogluon.tabular import TabularDataset, TabularPredictor
 
-from orchestrator.core.discoveryspace.samplers import BaseSampler
+from ado.core.discoveryspace.samplers import BaseSampler
 from trim.samplers.no_priors_utils import (
     get_index_list_van_der_corput,
     get_list_of_entities_from_df_and_space,
@@ -30,12 +30,12 @@ from trim.trim_pydantic import TrimParameters
 if TYPE_CHECKING:
     from pydantic import BaseModel
 
-    from orchestrator.core.discoveryspace.space import DiscoverySpace, Entity
-    from orchestrator.modules.operators.discovery_space_manager import (
+    from ado.core.discoveryspace.space import DiscoverySpace, Entity
+    from ado.modules.operators.discovery_space_manager import (
         DiscoverySpaceManager,
     )
 
-from orchestrator.utilities.pandas import sort_rows_by_column_names
+from ado.utilities.pandas import sort_rows_by_column_names
 from trim.utils.exceptions import InsufficientDataError
 from trim.utils.logging_utils import (
     log_after_first_holdout_creation,
@@ -61,7 +61,8 @@ logger_trim_sampler = logging.getLogger(__name__)
 class TrimSampleSelector(BaseSampler):
     @classmethod
     def samplerCompatibleWithDiscoverySpaceRemote(
-        cls, remoteDiscoverySpace: DiscoverySpaceManager  # type: ignore[name-defined]
+        cls,
+        remoteDiscoverySpace: DiscoverySpaceManager,  # type: ignore[name-defined]
     ) -> bool:
         # do you want to return False if no point has been measured?
         return True
@@ -264,7 +265,7 @@ class TrimSampleSelector(BaseSampler):
 
             logger_trim_sampler.info(
                 f"Building and evaluating a predictive model "
-                f"""that includes {batchsize} more {"entities" if batchsize>1 else "entity"} """
+                f"""that includes {batchsize} more {"entities" if batchsize > 1 else "entity"} """
                 f"in the training set:\n {entity}"
             )
             # ensures we only train on rows where the target is measured
@@ -453,7 +454,9 @@ class TrimSampleSelector(BaseSampler):
                 yield entity
 
     async def remoteEntityIterator(
-        self, remoteDiscoverySpace: DiscoverySpaceManager, batchsize: int = 1  # type: ignore[name-defined]
+        self,
+        remoteDiscoverySpace: DiscoverySpaceManager,
+        batchsize: int = 1,  # type: ignore[name-defined]
     ) -> typing.AsyncGenerator[list[Entity], None]:
         """Returns a remoteEntityIterator that returns entities in order"""
 

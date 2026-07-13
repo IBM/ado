@@ -48,13 +48,13 @@ should show an entry for `ray_tune` like below
 
 ```commandline
 Available operators by type:
-┌───────┬─────────────┬─────────┐
-│ INDEX │ OPERATOR    │ TYPE    │
-├───────┼─────────────┼─────────┤
-│ 0     │ random_walk │ explore │
-│ 1     │ ray_tune    │ explore │
-│ 2     │ rifferla    │ modify  │
-└───────┴─────────────┴─────────┘
+┌───────┬─────────────┬─────────┬─────────┐
+│ INDEX │ OPERATOR    │ VERSION │ TYPE    │
+├───────┼─────────────┼─────────┼─────────┤
+│ 0     │ random_walk │ 2.0.0   │ explore │
+│ 1     │ ray_tune    │ 2.0.3   │ explore │
+│ 2     │ rifferla    │ 2.0.3   │ modify  │
+└───────┴─────────────┴─────────┴─────────┘
 ```
 
 ### Creating the `discoveryspace`
@@ -98,17 +98,17 @@ to the InformationGain stopper. If you look back through the log of the
 operation, within the logs for the last sample you will see lines like:
 
 ```commandline
-(tune pid=7959) Stopping criteria reached after 13 samples.
-(tune pid=7959) Total search space size is 48, search coverage is 0.2708333333333333.
-(tune pid=7959) Entropy of target variable clusters: 1.2711814802605799 nats.
-(tune pid=7959) Result:
-(tune pid=7959)     dimension  rank        mi  uncertainty%
-(tune pid=7959) 3       nodes     1  0.524715      0.412778
-(tune pid=7959) 2   vcpu_size     2  0.396410      0.311844
-(tune pid=7959) 0    provider     3  0.246428      0.193858
-(tune pid=7959) 1  cpu_family     4  0.142884      0.112403
-(tune pid=7959)
-(tune pid=7959) Pareto selection:['provider', 'vcpu_size', 'nodes']
+(tune pid=72306) Stopping criteria reached after 14 samples.
+(tune pid=72306) Total search space size is 48, search coverage is 0.2916666666666667.
+(tune pid=72306) Entropy of target variable clusters: 0.6517565611726529 nats.
+(tune pid=72306) Result:
+(tune pid=72306)     dimension  rank        mi  uncertainty%
+(tune pid=72306) 3       nodes     1  0.491089      0.753486
+(tune pid=72306) 1  cpu_family     2  0.352622      0.541033
+(tune pid=72306) 0    provider     3  0.034638      0.053146
+(tune pid=72306) 2   vcpu_size     4  0.000929      0.001425
+(tune pid=72306)
+(tune pid=72306) Pareto selection:['cpu_family', 'nodes']
 ```
 
 In this table the dimensions are ranked in order of importance, as determined by

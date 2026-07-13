@@ -5,20 +5,20 @@ from collections.abc import Callable
 import pytest
 from testcontainers.mysql import MySqlContainer
 
-from orchestrator.core import (
+from ado.core import (
     DiscoverySpaceResource,
     OperationResource,
     SampleStoreResource,
 )
-from orchestrator.core.samplestore.base import ActiveSampleStore
-from orchestrator.core.samplestore.config import (
+from ado.core.samplestore.base import ActiveSampleStore
+from ado.core.samplestore.config import (
     SampleStoreConfiguration,
     SampleStoreModuleConf,
     SampleStoreSpecification,
 )
-from orchestrator.core.samplestore.sql import SQLSampleStore
-from orchestrator.metastore.project import ProjectContext
-from orchestrator.metastore.sqlstore import SQLStore
+from ado.core.samplestore.sql import SQLSampleStore
+from ado.metastore.project import ProjectContext
+from ado.metastore.sqlstore import SQLStore
 
 
 @pytest.fixture
@@ -84,7 +84,7 @@ def empty_sample_store(
         specification=SampleStoreSpecification(
             module=SampleStoreModuleConf(
                 moduleClass="SQLSampleStore",
-                moduleName="orchestrator.core.samplestore.sql",
+                moduleName="ado.core.samplestore.sql",
             ),
         )
     )

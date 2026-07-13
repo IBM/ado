@@ -12,17 +12,17 @@ import rich.box
 from testcontainers.mysql import MySqlContainer
 from typer.testing import CliRunner
 
-from orchestrator.cli.core.cli import app as ado
-from orchestrator.core import CoreResourceKinds
-from orchestrator.core.discoveryspace.space import DiscoverySpace
-from orchestrator.core.samplestore.sql import SQLSampleStore
-from orchestrator.metastore.project import ProjectContext
-from orchestrator.schema.request import MeasurementRequest
-from orchestrator.utilities.rich import dataframe_to_rich_table, render_to_string
+from ado.cli.core.cli import app as ado
+from ado.core import CoreResourceKinds
+from ado.core.discoveryspace.space import DiscoverySpace
+from ado.core.samplestore.sql import SQLSampleStore
+from ado.metastore.project import ProjectContext
+from ado.schema.request import MeasurementRequest
+from ado.utilities.rich import dataframe_to_rich_table, render_to_string
 from tests.conftest import requires_sqlite_3_38
 
 if typing.TYPE_CHECKING:
-    from orchestrator.core import DataContainerResource
+    from ado.core import DataContainerResource
 
 # A past timestamp far enough from "now" that AGE is stable across a test run.
 _CREATED_7_DAYS_AGO = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(
@@ -60,8 +60,6 @@ def test_ado_get_operations_stats_columns_present(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "get",
             "operations",
             "-o",
@@ -117,8 +115,6 @@ def test_ado_get_operations_stats_values(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "get",
             "operation",
             operation_id,
@@ -155,9 +151,9 @@ def test_ado_get_operations_stats_values(
             ),
             auto_width=True,
         )
-        assert (
-            rendered_output in result.output
-        ), f"Expected output:\n{rendered_output}\nnot found in:\n{result.output}"
+        assert rendered_output in result.output, (
+            f"Expected output:\n{rendered_output}\nnot found in:\n{result.output}"
+        )
 
 
 @requires_sqlite_3_38
@@ -196,8 +192,6 @@ def test_ado_get_operation_stats_single_resource(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "get",
             "operation",
             operation_id,
@@ -234,9 +228,9 @@ def test_ado_get_operation_stats_single_resource(
             ),
             auto_width=True,
         )
-        assert (
-            rendered_output in result.output
-        ), f"Expected output:\n{rendered_output}\nnot found in:\n{result.output}"
+        assert rendered_output in result.output, (
+            f"Expected output:\n{rendered_output}\nnot found in:\n{result.output}"
+        )
 
 
 @requires_sqlite_3_38
@@ -277,8 +271,6 @@ def test_ado_get_spaces_stats_values(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "get",
             "space",
             space_id,
@@ -312,9 +304,9 @@ def test_ado_get_spaces_stats_values(
             ),
             auto_width=True,
         )
-        assert (
-            rendered_output in result.output
-        ), f"Expected output:\n{rendered_output}\nnot found in:\n{result.output}"
+        assert rendered_output in result.output, (
+            f"Expected output:\n{rendered_output}\nnot found in:\n{result.output}"
+        )
 
 
 @requires_sqlite_3_38
@@ -355,8 +347,6 @@ def test_ado_get_space_stats_single_resource(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "get",
             "space",
             space_id,
@@ -390,9 +380,9 @@ def test_ado_get_space_stats_single_resource(
             ),
             auto_width=True,
         )
-        assert (
-            rendered_output in result.output
-        ), f"Expected output:\n{rendered_output}\nnot found in:\n{result.output}"
+        assert rendered_output in result.output, (
+            f"Expected output:\n{rendered_output}\nnot found in:\n{result.output}"
+        )
 
 
 @requires_sqlite_3_38
@@ -415,8 +405,6 @@ def test_ado_get_stats_unsupported_resource_type_exits_1(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "get",
             resource_kind,
             "-o",
@@ -467,8 +455,6 @@ def test_ado_get_samplestores_stats_values(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "get",
             "samplestores",
             "-o",
@@ -500,9 +486,9 @@ def test_ado_get_samplestores_stats_values(
             ),
             auto_width=True,
         )
-        assert (
-            rendered_output in result.output
-        ), f"Expected output:\n{rendered_output}\nnot found in:\n{result.output}"
+        assert rendered_output in result.output, (
+            f"Expected output:\n{rendered_output}\nnot found in:\n{result.output}"
+        )
 
 
 @requires_sqlite_3_38
@@ -527,8 +513,6 @@ def test_ado_get_datacontainers_stats_columns_present(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "get",
             "datacontainers",
             "-o",
@@ -556,7 +540,7 @@ def test_ado_get_datacontainers_stats_values(
     backdate_resource: Callable[[str, CoreResourceKinds, "datetime.datetime"], None],
 ) -> None:
     """Stats values for a known datacontainer match expected counts in the rendered table."""
-    from orchestrator.metastore.sqlstore import SQLStore
+    from ado.metastore.sqlstore import SQLStore
 
     runner = CliRunner()
     create_active_ado_context(
@@ -579,8 +563,6 @@ def test_ado_get_datacontainers_stats_values(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "get",
             "datacontainers",
             "-o",
@@ -591,7 +573,7 @@ def test_ado_get_datacontainers_stats_values(
 
     assert result.exit_code == 0, result.output
     if os.environ.get("CI", "false") != "true":
-        from orchestrator.cli.utils.resources.formatters import _format_bytes
+        from ado.cli.utils.resources.formatters import _format_bytes
 
         expected_output = pd.DataFrame(
             data={
@@ -615,9 +597,9 @@ def test_ado_get_datacontainers_stats_values(
             ),
             auto_width=True,
         )
-        assert (
-            rendered_output in result.output
-        ), f"Expected output:\n{rendered_output}\nnot found in:\n{result.output}"
+        assert rendered_output in result.output, (
+            f"Expected output:\n{rendered_output}\nnot found in:\n{result.output}"
+        )
 
 
 @requires_sqlite_3_38
@@ -656,8 +638,6 @@ def test_ado_get_operation_stats_details_columns(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "get",
             "operation",
             operation_id,
@@ -672,9 +652,9 @@ def test_ado_get_operation_stats_details_columns(
     if os.environ.get("CI", "false") != "true":
         assert "DESCRIPTION" in result.output, "DESCRIPTION column missing from output"
         assert "LABELS" in result.output, "LABELS column missing from output"
-        assert (
-            "Perform a random walk on all points in a space" in result.output
-        ), "Operation description missing from output"
+        assert "Perform a random walk on all points in a space" in result.output, (
+            "Operation description missing from output"
+        )
 
 
 @requires_sqlite_3_38
@@ -701,8 +681,6 @@ def test_ado_get_space_stats_details_columns(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "get",
             "space",
             ml_multi_cloud_space.uri,

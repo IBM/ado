@@ -7,8 +7,8 @@ from collections.abc import Callable
 
 from typer.testing import CliRunner
 
-from orchestrator.cli.core.cli import app as ado
-from orchestrator.metastore.project import ProjectContext
+from ado.cli.core.cli import app as ado
+from ado.metastore.project import ProjectContext
 
 
 def test_get_experiments_basic() -> None:
@@ -128,12 +128,8 @@ def test_get_experiments_plural_alias(
         runner=runner, path=tmp_path, project_context=valid_ado_project_context
     )
 
-    result1 = runner.invoke(
-        ado, ["--override-ado-app-dir", tmp_path, "get", "experiment"]
-    )
-    result2 = runner.invoke(
-        ado, ["--override-ado-app-dir", tmp_path, "get", "experiments"]
-    )
+    result1 = runner.invoke(ado, ["get", "experiment"])
+    result2 = runner.invoke(ado, ["get", "experiments"])
     assert result1.exit_code == 0
     assert result2.exit_code == 0
     # Both should produce same output

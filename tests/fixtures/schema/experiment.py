@@ -7,16 +7,16 @@ from typing import Any
 
 import pytest
 
-from orchestrator.modules.actuators.registry import ActuatorRegistry
-from orchestrator.schema.domain import PropertyDomain, VariableTypeEnum
-from orchestrator.schema.experiment import Experiment, ParameterizedExperiment
-from orchestrator.schema.property import (
+from ado.modules.actuators.registry import ActuatorRegistry
+from ado.schema.domain import PropertyDomain, VariableTypeEnum
+from ado.schema.experiment import Experiment, ParameterizedExperiment
+from ado.schema.property import (
     AbstractPropertyDescriptor,
     ConstitutiveProperty,
     ConstitutivePropertyDescriptor,
 )
-from orchestrator.schema.property_value import ConstitutivePropertyValue
-from orchestrator.schema.reference import ExperimentReference
+from ado.schema.property_value import ConstitutivePropertyValue
+from ado.schema.reference import ExperimentReference
 
 
 @pytest.fixture

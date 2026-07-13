@@ -2,29 +2,28 @@
 # SPDX-License-Identifier: MIT
 
 import typing
-from importlib.metadata import version
 from typing import Annotated
 
 import pydantic
 from pydantic import ConfigDict
 
-from orchestrator.core import DataContainerResource
-from orchestrator.core.datacontainer.resource import DataContainer
-from orchestrator.core.discoveryspace.config import EntityFilter
-from orchestrator.core.discoveryspace.space import DiscoverySpace
-from orchestrator.core.operation.config import (
+from ado.core import DataContainerResource
+from ado.core.datacontainer.resource import DataContainer
+from ado.core.discoveryspace.config import EntityFilter
+from ado.core.discoveryspace.space import DiscoverySpace
+from ado.core.operation.config import (
     FunctionOperationInfo,
 )
-from orchestrator.core.operation.operation import OperationOutput
-from orchestrator.core.samplestore.sql import SQLSampleStore
-from orchestrator.modules.operators.collections import modify_operation
-from orchestrator.schema.domain import PropertyDomain
-from orchestrator.schema.entityspace import EntitySpaceRepresentation
-from orchestrator.schema.property import (
+from ado.core.operation.operation import OperationOutput
+from ado.core.samplestore.sql import SQLSampleStore
+from ado.modules.operators.collections import modify_operation
+from ado.schema.domain import PropertyDomain
+from ado.schema.entityspace import EntitySpaceRepresentation
+from ado.schema.property import (
     ConstitutiveProperty,
     NonMeasuredPropertyTypeEnum,
 )
-from orchestrator.schema.reference import ExperimentReference
+from ado.schema.reference import ExperimentReference
 
 
 class RifferlaParameters(pydantic.BaseModel):
@@ -94,7 +93,7 @@ class RifferlaParameters(pydantic.BaseModel):
     "It does this by identifying which entity space dimensions should be fixed to set values, which explored, and setting range limits for those dimensions. "
     "The method leverages Mutual Information to identify dimensions correlated with the desired observed property.",
     example_configuration=RifferlaParameters.example_configuration(),
-    version=version("ado-ray-tune"),
+    version="2.0.3",
 )
 def rifferla(
     discoverySpace: DiscoverySpace,

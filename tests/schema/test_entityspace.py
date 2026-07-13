@@ -4,20 +4,20 @@ from typing import Any
 
 import pytest
 
-from orchestrator.core.discoveryspace.samplers import sample_random_entity_from_space
-from orchestrator.schema.domain import PropertyDomain, VariableTypeEnum
-from orchestrator.schema.entity import Entity
-from orchestrator.schema.entityspace import EntitySpaceRepresentation
-from orchestrator.schema.experiment import Experiment
-from orchestrator.schema.measurementspace import (
+from ado.core.discoveryspace.samplers import sample_random_entity_from_space
+from ado.schema.domain import PropertyDomain, VariableTypeEnum
+from ado.schema.entity import Entity
+from ado.schema.entityspace import EntitySpaceRepresentation
+from ado.schema.experiment import Experiment
+from ado.schema.measurementspace import (
     MeasurementSpace,
     MeasurementSpaceConfiguration,
 )
-from orchestrator.schema.property import (
+from ado.schema.property import (
     AbstractPropertyDescriptor,
     ConstitutiveProperty,
 )
-from orchestrator.schema.property_value import ConstitutivePropertyValue
+from ado.schema.property_value import ConstitutivePropertyValue
 
 
 def test_entity_space_from_measurement_space(
@@ -28,9 +28,7 @@ def test_entity_space_from_measurement_space(
     # constitutive property called "smiles" with no domain
     # The entity space should have one constitutive property called smiles
 
-    entitySpace = (
-        measurement_space.compatibleEntitySpace()
-    )  # type: EntitySpaceRepresentation
+    entitySpace = measurement_space.compatibleEntitySpace()  # type: EntitySpaceRepresentation
 
     assert len(entitySpace.constitutiveProperties) == 1
     assert entitySpace.constitutiveProperties[0].identifier == "smiles"
@@ -340,40 +338,40 @@ def test_entity_space_iterators(
     point = None
     for i, point in enumerate(es.sequential_point_iterator()):  # noqa: B007
         sequential.append(point)
-        assert es.isPointInSpace(
-            dict(zip(ids, point, strict=True))
-        ), "Expected all points iterated over to be in space"
+        assert es.isPointInSpace(dict(zip(ids, point, strict=True))), (
+            "Expected all points iterated over to be in space"
+        )
 
     assert i != 0, "Expected points to be returned"
-    assert (
-        i == es.size - 1
-    ), "Expected the number of points iterated over to be equal to the space size"
+    assert i == es.size - 1, (
+        "Expected the number of points iterated over to be equal to the space size"
+    )
 
-    assert len(set(sequential)) == len(
-        sequential
-    ), "Expected no points to be duplicated"
+    assert len(set(sequential)) == len(sequential), (
+        "Expected no points to be duplicated"
+    )
 
     sequential_repeat = list(es.sequential_point_iterator())
-    assert (
-        sequential == sequential_repeat
-    ), "Expected sequential iterator to be deterministic"
+    assert sequential == sequential_repeat, (
+        "Expected sequential iterator to be deterministic"
+    )
 
     i = 0
     random = []
     for i, point in enumerate(es.random_point_iterator()):  # noqa: B007
         random.append(point)
-        assert es.isPointInSpace(
-            dict(zip(ids, point, strict=True))
-        ), "Expected all points iterated over to be in space"
+        assert es.isPointInSpace(dict(zip(ids, point, strict=True))), (
+            "Expected all points iterated over to be in space"
+        )
 
     assert i != 0, "Expected points to be returned"
-    assert (
-        i == es.size - 1
-    ), "Expected the number of points iterated over to be equal to the space size"
+    assert i == es.size - 1, (
+        "Expected the number of points iterated over to be equal to the space size"
+    )
 
-    assert (
-        random[:5] != sequential[:5]
-    ), "Expected the first five random points to not be identical to first five sequential points"
+    assert random[:5] != sequential[:5], (
+        "Expected the first five random points to not be identical to first five sequential points"
+    )
 
     assert len(set(random)) == len(random), "Expected no points to be duplicated"
 

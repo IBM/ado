@@ -46,11 +46,11 @@ from ado_actuators.vllm_performance.vllm_performance_test.execute_guidellm_bench
 )
 from ray.actor import ActorHandle
 
-from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
-from orchestrator.modules.operators.console_output import RichConsoleSpinnerMessage
-from orchestrator.schema.experiment import Experiment, ParameterizedExperiment
-from orchestrator.schema.request import MeasurementRequest
-from orchestrator.utilities.support import (
+from ado.modules.actuators.measurement_queue import MeasurementQueue
+from ado.modules.operators.console_output import RichConsoleSpinnerMessage
+from ado.schema.experiment import Experiment, ParameterizedExperiment
+from ado.schema.request import MeasurementRequest
+from ado.utilities.support import (
     compute_measurement_status,
     create_measurement_result,
 )
@@ -149,7 +149,7 @@ def _create_environment(
     - If after creation the environment was not in ready state after timeout seconds (1200 default)
 
     """
-    from orchestrator.modules.operators.console_output import (
+    from ado.modules.operators.console_output import (
         RichConsoleSpinnerMessage,
     )
 

@@ -7,7 +7,7 @@ import typing
 from . import common
 
 if typing.TYPE_CHECKING:
-    from orchestrator.modules.actuators.catalog import ExperimentCatalog
+    from ado.modules.actuators.catalog import ExperimentCatalog
 
 
 def add_experiments(catalog: "ExperimentCatalog") -> None:

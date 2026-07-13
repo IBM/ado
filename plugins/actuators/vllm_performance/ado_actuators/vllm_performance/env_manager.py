@@ -21,7 +21,7 @@ from ado_actuators.vllm_performance.k8s.yaml_support.build_components import (
 from kubernetes.client import ApiException
 from pydantic import AfterValidator
 
-from orchestrator.utilities.pydantic import validate_rfc_1123
+from ado.utilities.pydantic import validate_rfc_1123
 
 logger = logging.getLogger(__name__)
 
@@ -149,16 +149,9 @@ class EnvironmentManager:
         Deletes a deployment. Intended to be used for cleanup or error recovery
         param: identifier: the deployment identifier
         """
-        try:
-            self.manager.delete_service(k8s_name=k8s_name)
-        except ApiException as e:
-            if e.reason != "Not Found":
-                raise e
-        try:
-            self.manager.delete_deployment(k8s_name=k8s_name)
-        except ApiException as e:
-            if e.reason != "Not Found":
-                raise e
+        self.manager.delete_service(k8s_name=k8s_name, suppress_not_found_error=True)
+
+        self.manager.delete_deployment(k8s_name=k8s_name, suppress_not_found_error=True)
 
     def environment_usage(self) -> dict:
         return {"max": self.max_concurrent, "in_use": self.active_environments}

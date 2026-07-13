@@ -6,11 +6,11 @@ from collections.abc import Callable
 
 from typer.testing import CliRunner
 
-from orchestrator.cli.core.cli import app as ado
-from orchestrator.core import ActuatorConfigurationResource
-from orchestrator.core.discoveryspace.space import DiscoverySpace
-from orchestrator.metastore.project import ProjectContext
-from orchestrator.metastore.sqlstore import SQLStore
+from ado.cli.core.cli import app as ado
+from ado.core import ActuatorConfigurationResource
+from ado.core.discoveryspace.space import DiscoverySpace
+from ado.metastore.project import ProjectContext
+from ado.metastore.sqlstore import SQLStore
 
 
 def test_delete_actuator_configuration_no_related(
@@ -29,8 +29,6 @@ def test_delete_actuator_configuration_no_related(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "delete",
             "actuatorconfiguration",
             ml_multi_cloud_correct_actuatorconfiguration.identifier,
@@ -62,8 +60,6 @@ def test_delete_actuator_configuration_with_related_resource(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "delete",
             "actuatorconfiguration",
             ml_multi_cloud_correct_actuatorconfiguration.identifier,
@@ -94,8 +90,6 @@ def test_delete_nonexistent_actuator_configuration(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "delete",
             "actuatorconfiguration",
             "does-not-exist",

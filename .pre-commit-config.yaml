@@ -24,17 +24,13 @@ repos:
       - id: detect-secrets # pragma: whitelist secret
         args: [--baseline, .secrets.baseline, --use-all-plugins, --fail-on-unaudited]
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.20
+    rev: v0.15.21
     hooks:
       - id: ruff
         args:
           - --exclude
           - website,plugins/actuators/vllm_performance/ado_actuators/vllm_performance/vllm_performance_test
-  # Using this mirror lets us use mypyc-compiled black, which is about 2x faster
-  - repo: https://github.com/psf/black-pre-commit-mirror
-    rev: 26.5.1
-    hooks:
-      - id: black-jupyter
+      - id: ruff-format
   - repo: https://github.com/compilerla/conventional-pre-commit
     rev: v4.4.0
     hooks:
@@ -43,6 +39,8 @@ repos:
         args:
           - --no-color
           - --verbose
+          - --scopes
+          - anomalous-series,autoconf,changelog,ci,cli,container,contributing,core,cplex-mip,deps,example-actuator,hooks,profile-space,ray-tune,sfttrainer,test,trim,vllm-performance,website
   - repo: https://github.com/codespell-project/codespell
     rev: v2.4.2
     hooks:
@@ -50,7 +48,7 @@ repos:
         additional_dependencies: ['tomli']
         args: ['--toml', 'pyproject.toml']
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.11.25
+    rev: 0.11.28
     hooks:
       - id: uv-lock
       - id: uv-export
@@ -60,7 +58,7 @@ repos:
     hooks:
       - id: add-headers
   - repo: https://github.com/DavidAnson/markdownlint-cli2
-    rev: v0.22.1
+    rev: v0.23.0
     hooks:
       - id: markdownlint-cli2
   - repo: https://github.com/google/yamlfmt
@@ -68,7 +66,7 @@ repos:
     hooks:
       - id: yamlfmt
   - repo: https://github.com/tombi-toml/tombi-pre-commit
-    rev: v1.1.6
+    rev: v1.2.0
     hooks:
       - id: tombi-format
         args: ["--offline"]

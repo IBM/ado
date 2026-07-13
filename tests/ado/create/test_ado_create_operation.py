@@ -8,11 +8,11 @@ import pytest
 from testcontainers.mysql import MySqlContainer
 from typer.testing import CliRunner
 
-from orchestrator.cli.core.cli import app as ado
-from orchestrator.core.discoveryspace.space import DiscoverySpace
-from orchestrator.core.operation.config import DiscoveryOperationResourceConfiguration
-from orchestrator.metastore.project import ProjectContext
-from orchestrator.utilities.output import pydantic_model_as_yaml
+from ado.cli.core.cli import app as ado
+from ado.core.discoveryspace.space import DiscoverySpace
+from ado.core.operation.config import DiscoveryOperationResourceConfiguration
+from ado.metastore.project import ProjectContext
+from ado.utilities.output import pydantic_model_as_yaml
 from tests.conftest import requires_sqlite_3_38
 
 
@@ -50,8 +50,6 @@ def test_create_operation_dry_run_success(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "create",
             "operation",
             "-f",
@@ -90,8 +88,6 @@ def test_create_operation_dry_run_failure(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "create",
             "operation",
             "-f",
@@ -125,8 +121,6 @@ def test_create_operation_success(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "create",
             "operation",
             "-f",
@@ -157,8 +151,6 @@ def test_create_operation_success_set_spaces(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "create",
             "operation",
             "-f",
@@ -194,8 +186,6 @@ def test_create_operation_success_with_discovery_space(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "create",
             "operation",
             "-f",
@@ -227,8 +217,6 @@ def test_create_ml_multi_cloud_operation_success_lhc_sampler(
     space_creation_result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "create",
             "space",
             "-f",
@@ -242,8 +230,6 @@ def test_create_ml_multi_cloud_operation_success_lhc_sampler(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "create",
             "operation",
             "-f",

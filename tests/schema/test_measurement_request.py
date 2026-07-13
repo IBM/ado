@@ -7,20 +7,20 @@ from collections.abc import Callable
 import pydantic
 import pytest
 
-from orchestrator.schema.entity import Entity
-from orchestrator.schema.observed_property import (
+from ado.schema.entity import Entity
+from ado.schema.observed_property import (
     ObservedProperty,
     ObservedPropertyValue,
 )
-from orchestrator.schema.property import AbstractPropertyDescriptor
-from orchestrator.schema.property_value import ConstitutivePropertyValue
-from orchestrator.schema.reference import ExperimentReference
-from orchestrator.schema.request import (
+from ado.schema.property import AbstractPropertyDescriptor
+from ado.schema.property_value import ConstitutivePropertyValue
+from ado.schema.reference import ExperimentReference
+from ado.schema.request import (
     MeasurementRequest,
     MeasurementRequestStateEnum,
     ReplayedMeasurement,
 )
-from orchestrator.schema.result import (
+from ado.schema.result import (
     InvalidMeasurementResult,
     MeasurementResult,
     MeasurementResultStateEnum,
@@ -194,9 +194,7 @@ def test_string_representation_replayed(
         measurement_result_for_other_entity,
     ]
 
-    assert str(
-        request
-    ) == "{}-experiment-{}-entities-multi-{}-time-{}".format(  # noqa: UP032
+    assert str(request) == "{}-experiment-{}-entities-multi-{}-time-{}".format(  # noqa: UP032
         request.requestid,
         request.experimentReference.experimentIdentifier,
         2,
@@ -326,7 +324,6 @@ def test_measurement_request_mismatched_entities(
 
     # Should fail because both invalid result references an entity that isn't in entities list
     with pytest.raises(pydantic.ValidationError):
-
         MeasurementRequest(
             entities=[entity],
             measurements=(
@@ -349,7 +346,6 @@ def test_measurement_request_mismatched_entities(
     )
 
     with pytest.raises(pydantic.ValidationError):
-
         request.measurements = [valid_measurement_result, invalid_result]
 
 
@@ -369,7 +365,6 @@ def test_measurement_request_mismatched_experiments(
 
     # Should fail because the InvalidResult experiment does not match the request experiment
     with pytest.raises(pydantic.ValidationError):
-
         MeasurementRequest(
             entities=[entity],
             measurements=(

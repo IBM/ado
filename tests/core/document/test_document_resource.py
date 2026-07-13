@@ -6,9 +6,9 @@ import re
 import pydantic
 import pytest
 
-from orchestrator.core.document.config import DocumentConfiguration
-from orchestrator.core.document.resource import DocumentResource
-from orchestrator.core.resources import CoreResourceKinds
+from ado.core.document.config import DocumentConfiguration
+from ado.core.document.resource import DocumentResource
+from ado.core.resources import CoreResourceKinds
 
 
 def test_document_resource_lifecycle() -> None:

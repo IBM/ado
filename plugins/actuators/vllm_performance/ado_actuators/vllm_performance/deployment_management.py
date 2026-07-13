@@ -6,7 +6,7 @@ import logging
 
 import ray
 
-from orchestrator.modules.operators.console_output import RichConsoleSpinnerMessage
+from ado.modules.operators.console_output import RichConsoleSpinnerMessage
 
 logger = logging.getLogger(__name__)
 

@@ -5,7 +5,6 @@ from scipy.stats import qmc
 
 
 class LatinHypercubeSampler:
-
     def __init__(self, dict_space: dict) -> None:
         self.dict_space = dict_space
         space_int_repr = []

@@ -7,11 +7,11 @@ from collections.abc import Callable
 import yaml
 from typer.testing import CliRunner
 
-from orchestrator.cli.core.cli import app as ado
-from orchestrator.core.document.config import DocumentConfiguration
-from orchestrator.core.document.resource import DocumentResource
-from orchestrator.metastore.project import ProjectContext
-from orchestrator.metastore.sqlstore import SQLStore
+from ado.cli.core.cli import app as ado
+from ado.core.document.config import DocumentConfiguration
+from ado.core.document.resource import DocumentResource
+from ado.metastore.project import ProjectContext
+from ado.metastore.sqlstore import SQLStore
 
 
 def test_create_document_dry_run_success(tmp_path: pathlib.Path) -> None:

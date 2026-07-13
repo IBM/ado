@@ -4,7 +4,123 @@ ado 2.x introduces a set of breaking changes that remove obsolete commands and
 APIs. This guide describes each breaking change and shows how to update your
 workflows.
 
+## Non-breaking changes
+
+### Renamed: `ado show entities` → `ado show measurements`
+
+The `ado show entities` command has been renamed to `ado show measurements`. All
+options and behaviour are unchanged; only the command name differs.
+
+**Before (ado 1.x):**
+
+```shell
+ado show entities space <space-id>
+ado show entities operation <operation-id> --property-format target -o csv
+```
+
+**After (ado 2.x):**
+
+```shell
+ado show measurements space <space-id>
+ado show measurements operation <operation-id> --property-format target -o csv
+```
+
+### Renamed: `operationType: search` → `operationType: explore`
+
+The `explore` operation type was previously serialised as `"search"`. It is now
+serialised as `"explore"` to match what is shown in `ado get operators`.
+
+**Existing YAML files and stored operations continue to work without
+modification.** The value `"search"` is transparently accepted and treated as
+`"explore"` when loading any resource.
+
+To update stored operation records to the new canonical value, run:
+
+```shell
+ado upgrade operations
+```
+
+New operations and YAML files should use `operationType: explore`.
+
 ## Breaking Changes
+
+### Renamed: Python import package `orchestrator` → `ado`
+
+The Python import package has been renamed from `orchestrator` to `ado`. This
+is a breaking change for anyone who writes Python code that directly imports
+from the package — custom actuators, operators, custom experiments, or scripts.
+
+**Who is affected:** any code that contains `from orchestrator.` or
+`import orchestrator.` statements, and any samplestore or operation YAML files
+that contain `moduleName` values beginning with `orchestrator.`.
+
+**Before (ado 1.x):**
+
+```python
+from orchestrator.schema.property import ConstitutiveProperty
+from orchestrator.modules.actuators.custom_experiments import custom_experiment
+from orchestrator.schema.experiment import Experiment
+```
+
+**After (ado 2.x):**
+
+```python
+from ado.schema.property import ConstitutiveProperty
+from ado.modules.actuators.custom_experiments import custom_experiment
+from ado.schema.experiment import Experiment
+```
+
+**YAML files:** if you have samplestore or operation YAML files with a
+`moduleName` field, update the value from `orchestrator.*` to `ado.*`:
+
+```yaml
+# Before
+moduleName: orchestrator.modules.samplestores.my_store
+
+# After
+moduleName: ado.modules.samplestores.my_store
+```
+
+To find all affected imports and module names in your codebase, run:
+
+<!-- markdownlint-disable line-length -->
+
+```shell
+grep -rn "from orchestrator\|import orchestrator" .
+grep -rn "orchestrator\." --include="*.yaml" --include="*.json" .
+```
+
+<!-- markdownlint-enable line-length -->
+
+### Renamed: `--query` → `--filter` in `ado get` and `ado show` commands
+
+The `--query` long flag has been renamed to `--filter` across `ado get`,
+`ado show trace`, and `ado show stats`. The short alias `-q` is unchanged.
+
+**Before (ado 1.x):**
+
+```shell
+ado get operations --query labels.issue=123
+ado show trace operation <op-id> --query status=failed
+```
+
+**After (ado 2.x):**
+
+```shell
+ado get operations --filter labels.issue=123
+ado show trace operation <op-id> --filter status=failed
+```
+
+### Removed: legacy migrator system in `ado upgrade`
+
+The legacy v1-era migrator system has been removed from `ado upgrade`. The
+individual migration steps it provided (e.g. `entitysource_to_samplestore`,
+`properties_field_removal`, `actuators_field_removal`, and several others) are
+no longer available.
+
+If you have ado resources that were created with a very early 1.x release and
+have never been migrated, those resources can no longer be automatically
+upgraded.
 
 ### Removed: `ado show requests` and `ado show results`
 
@@ -14,7 +130,7 @@ operation in separate views. The `ado show trace` command supersedes both: it
 provides the same information in a single, unified view with additional
 capabilities such as field filtering, and YAML output.
 
-#### Before (ado 1.x)
+**Before (ado 1.x):**
 
 Inspect measurement requests for an operation:
 
@@ -28,7 +144,7 @@ Inspect measurement results metadata for an operation:
 ado show results operation randomwalk-0.5.0-123abc -o csv --output-file results.csv
 ```
 
-#### After (ado 2.x)
+**After (ado 2.x):**
 
 Use `ado show trace` to inspect the trace of measurement requests and optionally
 metadata about the individual entity measurements made (the result metadata)

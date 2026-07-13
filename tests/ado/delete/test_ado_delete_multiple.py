@@ -6,13 +6,13 @@ from collections.abc import Callable
 
 from typer.testing import CliRunner
 
-from orchestrator.cli.core.cli import app as ado
-from orchestrator.core.resources import CoreResourceKinds
-from orchestrator.core.samplestore.sql import SQLSampleStore
-from orchestrator.metastore.project import ProjectContext
-from orchestrator.metastore.sqlstore import SQLStore
-from orchestrator.schema.experiment import Experiment
-from orchestrator.schema.request import (
+from ado.cli.core.cli import app as ado
+from ado.core.resources import CoreResourceKinds
+from ado.core.samplestore.sql import SQLSampleStore
+from ado.metastore.project import ProjectContext
+from ado.metastore.sqlstore import SQLStore
+from ado.schema.experiment import Experiment
+from ado.schema.request import (
     MeasurementRequest,
 )
 from tests.conftest import requires_sqlite_3_38
@@ -70,8 +70,6 @@ def test_delete_multiple_operations_success(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "delete",
             "operation",
             *operation_ids,
@@ -142,8 +140,6 @@ def test_delete_multiple_operations_partial_failure(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "delete",
             "operation",
             valid_op_1,
@@ -216,8 +212,6 @@ def test_delete_single_operation_backward_compatible(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "delete",
             "operation",
             operation_id,
@@ -256,8 +250,6 @@ def test_delete_multiple_operations_all_fail(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "delete",
             "operation",
             "non-existent-1",

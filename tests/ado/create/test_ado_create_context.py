@@ -6,9 +6,9 @@ import pathlib
 import yaml
 from typer.testing import CliRunner
 
-from orchestrator.cli.core.cli import app as ado
-from orchestrator.metastore.project import ProjectContext
-from orchestrator.utilities.output import pydantic_model_as_yaml
+from ado.cli.core.cli import app as ado
+from ado.metastore.project import ProjectContext
+from ado.utilities.output import pydantic_model_as_yaml
 
 
 def test_create_context_dry_run_success(
@@ -21,8 +21,6 @@ def test_create_context_dry_run_success(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "create",
             "context",
             "-f",
@@ -41,7 +39,7 @@ def test_create_context_dry_run_success(
 def test_create_context_dry_run_failure(
     tmp_path: pathlib.Path, valid_ado_sqlite_context_yaml: str
 ) -> None:
-    from orchestrator.utilities.output import pydantic_model_as_yaml
+    from ado.utilities.output import pydantic_model_as_yaml
 
     # Changing the project name will make the context file invalid
     invalid_project_context = ProjectContext.model_validate(
@@ -55,8 +53,6 @@ def test_create_context_dry_run_failure(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "create",
             "context",
             "-f",
@@ -80,7 +76,7 @@ def test_create_context(
     runner = CliRunner()
     result = runner.invoke(
         ado,
-        ["--override-ado-app-dir", tmp_path, "create", "context", "-f", context_file],
+        ["create", "context", "-f", context_file],
     )
 
     assert result.exit_code == 0

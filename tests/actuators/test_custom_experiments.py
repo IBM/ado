@@ -6,11 +6,11 @@ from typing import Literal
 
 import pytest
 
-from orchestrator.modules.actuators import custom_experiments
-from orchestrator.schema.domain import PropertyDomain, VariableTypeEnum
-from orchestrator.schema.point import SpacePoint
-from orchestrator.schema.property import ConstitutiveProperty
-from orchestrator.schema.request import MeasurementRequest, MeasurementRequestStateEnum
+from ado.modules.actuators import custom_experiments
+from ado.schema.domain import PropertyDomain, VariableTypeEnum
+from ado.schema.point import SpacePoint
+from ado.schema.property import ConstitutiveProperty
+from ado.schema.request import MeasurementRequest, MeasurementRequestStateEnum
 
 
 def test_custom_experiment_unknown_keys_are_dropped() -> None:
@@ -125,7 +125,7 @@ def test_derive_required_properties_from_signature_basic() -> None:
 def test_get_parameterization_success_and_failure() -> None:
     import inspect
 
-    from orchestrator.schema.property import ConstitutiveProperty
+    from ado.schema.property import ConstitutiveProperty
 
     def g(x=7, y=9) -> None:
         pass
@@ -242,7 +242,7 @@ def test_custom_experiment_executor_invalid_result_status_is_failed() -> None:
     assert result.status == MeasurementRequestStateEnum.FAILED
     assert result.measurements is not None
     assert len(result.measurements) == 1
-    from orchestrator.schema.result import InvalidMeasurementResult
+    from ado.schema.result import InvalidMeasurementResult
 
     assert isinstance(result.measurements[0], InvalidMeasurementResult)
 

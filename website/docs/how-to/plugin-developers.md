@@ -76,7 +76,7 @@ details:
 - [Creating Custom Experiments](../actuators/creating-custom-experiments.md):
   Use Python functions as experiments via the `@custom_experiment` decorator.
 - [Creating Actuator Classes](../actuators/creating-actuator-classes.md): Define
-  full actuator classes with `actuator_definitions.yaml`. A complete
+  full actuator classes registered via Python entry points. A complete
   [template actuator](https://github.com/IBM/ado/tree/main/plugins/actuators/example_actuator)
   is available as a reference.
 - [Creating Operators](../operators/creating-operators.md): Implement new search
@@ -125,8 +125,8 @@ contribution.
 
         pytest path/to/your/plugin/tests/
 
-3. **Check Formatting:** Format with **black** and lint with **ruff** to stay
-    consistent with the core framework.
+3. **Check Formatting:** Format with **ruff format** and lint with **ruff check**
+    to stay consistent with the core framework.
 
 4. **Validate Resources:** Always use `--dry-run` to check your resource files
     before running them.

@@ -12,20 +12,20 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-from orchestrator.cli.core.cli import app as ado
-from orchestrator.cli.models.remote_submission import (
+from ado.cli.core.cli import app as ado
+from ado.cli.models.remote_submission import (
     CONTEXT_FLAG,
     SUBMISSION_STRIP_FLAGS,
 )
-from orchestrator.cli.utils.remote import strip_flags
-from orchestrator.cli.utils.remote.dispatch import (
+from ado.cli.utils.remote import strip_flags
+from ado.cli.utils.remote.dispatch import (
     _copy_files_and_rewrite_args,
     _port_forward_context,
     _symlink_additional_files,
     _write_runtime_env,
     dispatch,
 )
-from orchestrator.core.remotecontext.config import (
+from ado.core.remotecontext.config import (
     ClusterExecutionType,
     JobExecutionType,
     PackageConfiguration,
@@ -33,8 +33,8 @@ from orchestrator.core.remotecontext.config import (
     RemoteExecutionContext,
     RuntimeEnvironmentConfiguration,
 )
-from orchestrator.metastore.project import ProjectContext
-from orchestrator.utilities.output import pydantic_model_as_yaml
+from ado.metastore.project import ProjectContext
+from ado.utilities.output import pydantic_model_as_yaml
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -731,9 +731,7 @@ def test_port_forward_context_ready_and_teardown() -> None:
     """Port-forward should become ready and terminate on context exit."""
 
     # For patching
-    remote_dispatch_module = importlib.import_module(
-        "orchestrator.cli.utils.remote.dispatch"
-    )
+    remote_dispatch_module = importlib.import_module("ado.cli.utils.remote.dispatch")
 
     fake_proc = _FakePortForwardProcess(
         stdout_data=b"Forwarding from 127.0.0.1:8265 -> 8265\n",
@@ -767,9 +765,7 @@ def test_port_forward_context_ready_and_teardown() -> None:
 def test_port_forward_context_fails_fast_on_early_exit() -> None:
     """Early process exit should fail before readiness timeout."""
 
-    remote_dispatch_module = importlib.import_module(
-        "orchestrator.cli.utils.remote.dispatch"
-    )
+    remote_dispatch_module = importlib.import_module("ado.cli.utils.remote.dispatch")
 
     fake_proc = _FakePortForwardProcess(
         stdout_data=b"",
@@ -1006,8 +1002,6 @@ def test_cli_remote_sqlite_guard(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            str(tmp_path),
             "-c",
             str(sqlite_context_yaml_file),
             "--remote",
@@ -1028,8 +1022,6 @@ def test_cli_remote_missing_file(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            str(tmp_path),
             "--remote",
             str(tmp_path / "nonexistent.yaml"),
             "get",
@@ -1051,8 +1043,6 @@ def test_cli_remote_invalid_yaml(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            str(tmp_path),
             "-c",
             str(mysql_context_yaml_file),
             "--remote",
@@ -1082,8 +1072,6 @@ def test_cli_execution_context_dispatches_remotely(
         result = runner.invoke(
             ado,
             [
-                "--override-ado-app-dir",
-                str(tmp_path),
                 "-c",
                 str(mysql_context_yaml_file),
                 "--remote",
@@ -1113,8 +1101,6 @@ def test_cli_execution_context_auto_sqlite_guard(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            str(tmp_path),
             "--remote",
             str(remote_context_file),
             "get",
@@ -1132,11 +1118,11 @@ def test_cli_execution_context_auto_sqlite_guard(
 
 def test_strip_flags_generic() -> None:
     """Test generic strip_flags function."""
-    from orchestrator.cli.models.remote_submission import (
+    from ado.cli.models.remote_submission import (
         CONTEXT_FLAG,
         REMOTE_FLAG,
     )
-    from orchestrator.cli.utils.remote.arg_parser import strip_flags
+    from ado.cli.utils.remote.arg_parser import strip_flags
 
     argv = ["-c", "ctx.yaml", "--remote", "exec.yaml", "create", "op"]
 
@@ -1155,8 +1141,8 @@ def test_strip_flags_generic() -> None:
 
 def test_strip_flags_preserves_order() -> None:
     """Verify that strip_flags maintains exact argument order."""
-    from orchestrator.cli.models.remote_submission import FILE_FLAG
-    from orchestrator.cli.utils.remote.arg_parser import strip_flags
+    from ado.cli.models.remote_submission import FILE_FLAG
+    from ado.cli.utils.remote.arg_parser import strip_flags
 
     argv = ["cmd", "-f", "a.yaml", "arg1", "-f", "b.yaml", "arg2"]
     result = strip_flags(argv, [FILE_FLAG])
@@ -1165,12 +1151,12 @@ def test_strip_flags_preserves_order() -> None:
 
 def test_rewrite_flag_values_generic() -> None:
     """Test generic rewrite_flag_values function."""
-    from orchestrator.cli.models.remote_submission import (
+    from ado.cli.models.remote_submission import (
         FILE_FLAG,
         RemoteSubmissionFlagMatch,
         RemoteSubmissionFlagSpec,
     )
-    from orchestrator.cli.utils.remote.arg_parser import rewrite_flag_values
+    from ado.cli.utils.remote.arg_parser import rewrite_flag_values
 
     def to_uppercase(
         occ: RemoteSubmissionFlagMatch, flag_def: RemoteSubmissionFlagSpec
@@ -1184,8 +1170,8 @@ def test_rewrite_flag_values_generic() -> None:
 
 def test_extensibility_new_flag() -> None:
     """Test that adding a new flag definition works without code changes."""
-    from orchestrator.cli.models.remote_submission import RemoteSubmissionFlagSpec
-    from orchestrator.cli.utils.remote.arg_parser import strip_flags
+    from ado.cli.models.remote_submission import RemoteSubmissionFlagSpec
+    from ado.cli.utils.remote.arg_parser import strip_flags
 
     # Define a new flag
     NEW_FLAG = RemoteSubmissionFlagSpec(
@@ -1205,8 +1191,8 @@ def test_extensibility_new_flag() -> None:
 
 def test_flag_at_end_without_value() -> None:
     """Flag expecting value at end of argv should raise ValueError."""
-    from orchestrator.cli.models.remote_submission import FILE_FLAG
-    from orchestrator.cli.utils.remote.arg_parser import parse_argv_with_positions
+    from ado.cli.models.remote_submission import FILE_FLAG
+    from ado.cli.utils.remote.arg_parser import parse_argv_with_positions
 
     argv = ["create", "op", "-f"]
     with pytest.raises(ValueError, match="expects a value but is at end"):
@@ -1215,8 +1201,8 @@ def test_flag_at_end_without_value() -> None:
 
 def test_value_starting_with_dash() -> None:
     """Values starting with dash should be treated as values, not flags."""
-    from orchestrator.cli.models.remote_submission import WITH_FLAG
-    from orchestrator.cli.utils.remote.arg_parser import parse_argv_with_positions
+    from ado.cli.models.remote_submission import WITH_FLAG
+    from ado.cli.utils.remote.arg_parser import parse_argv_with_positions
 
     argv = ["--with", "key=-123"]
     parsed = parse_argv_with_positions(argv, [WITH_FLAG])
@@ -1226,16 +1212,16 @@ def test_value_starting_with_dash() -> None:
 
 def test_empty_argv() -> None:
     """Empty argv should be handled gracefully."""
-    from orchestrator.cli.models.remote_submission import REMOTE_FLAG
-    from orchestrator.cli.utils.remote.arg_parser import strip_flags
+    from ado.cli.models.remote_submission import REMOTE_FLAG
+    from ado.cli.utils.remote.arg_parser import strip_flags
 
     assert strip_flags([], [REMOTE_FLAG]) == []
 
 
 def test_multiple_occurrences_same_flag() -> None:
     """Multiple occurrences of same flag should all be processed."""
-    from orchestrator.cli.models.remote_submission import FILE_FLAG
-    from orchestrator.cli.utils.remote.arg_parser import parse_argv_with_positions
+    from ado.cli.models.remote_submission import FILE_FLAG
+    from ado.cli.utils.remote.arg_parser import parse_argv_with_positions
 
     argv = ["-f", "a.yaml", "cmd", "-f", "b.yaml"]
     parsed = parse_argv_with_positions(argv, [FILE_FLAG])
@@ -1246,7 +1232,7 @@ def test_multiple_occurrences_same_flag() -> None:
 
 def test_flag_spec_matches() -> None:
     """Test RemoteSubmissionFlagSpec.matches() method."""
-    from orchestrator.cli.models.remote_submission import RemoteSubmissionFlagSpec
+    from ado.cli.models.remote_submission import RemoteSubmissionFlagSpec
 
     flag = RemoteSubmissionFlagSpec(names=frozenset({"-f", "--file"}), hasValue=True)
     assert flag.matches("-f")
@@ -1257,7 +1243,7 @@ def test_flag_spec_matches() -> None:
 
 def test_flag_spec_extract_value_from_equals_form() -> None:
     """Test RemoteSubmissionFlagSpec.extract_value_from_equals_form() method."""
-    from orchestrator.cli.models.remote_submission import RemoteSubmissionFlagSpec
+    from ado.cli.models.remote_submission import RemoteSubmissionFlagSpec
 
     flag = RemoteSubmissionFlagSpec(names=frozenset({"-f", "--file"}), hasValue=True)
     assert flag.extract_value_from_equals_form("--file=test.yaml") == "test.yaml"
@@ -1268,7 +1254,7 @@ def test_flag_spec_extract_value_from_equals_form() -> None:
 
 def test_flag_spec_get_canonical_name() -> None:
     """Test RemoteSubmissionFlagSpec.get_canonical_name() method."""
-    from orchestrator.cli.models.remote_submission import RemoteSubmissionFlagSpec
+    from ado.cli.models.remote_submission import RemoteSubmissionFlagSpec
 
     flag = RemoteSubmissionFlagSpec(names=frozenset({"-f", "--file"}), hasValue=True)
     assert flag.get_canonical_name() == "--file"
@@ -1276,8 +1262,8 @@ def test_flag_spec_get_canonical_name() -> None:
 
 def test_parse_argv_with_positions_equals_form() -> None:
     """Test parsing flags in --flag=value form."""
-    from orchestrator.cli.models.remote_submission import FILE_FLAG
-    from orchestrator.cli.utils.remote.arg_parser import parse_argv_with_positions
+    from ado.cli.models.remote_submission import FILE_FLAG
+    from ado.cli.utils.remote.arg_parser import parse_argv_with_positions
 
     argv = ["--file=test.yaml", "create", "op"]
     parsed = parse_argv_with_positions(argv, [FILE_FLAG])
@@ -1290,8 +1276,8 @@ def test_parse_argv_with_positions_equals_form() -> None:
 
 def test_reconstruct_argv_maintains_order() -> None:
     """Test that reconstruct_argv maintains original argument order."""
-    from orchestrator.cli.models.remote_submission import CONTEXT_FLAG, FILE_FLAG
-    from orchestrator.cli.utils.remote.arg_parser import parse_argv_with_positions
+    from ado.cli.models.remote_submission import CONTEXT_FLAG, FILE_FLAG
+    from ado.cli.utils.remote.arg_parser import parse_argv_with_positions
 
     argv = ["-c", "ctx.yaml", "create", "op", "-f", "op.yaml"]
     parsed = parse_argv_with_positions(argv, [FILE_FLAG, CONTEXT_FLAG])

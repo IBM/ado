@@ -138,6 +138,7 @@ nav:
       - index.md
       - Demo: getting-started/demo.md
       - Installation: getting-started/install.md
+      - Migrating from 1.x to 2.x: migration/1x-to-2x.md
       - The ado CLI: getting-started/ado.md
       - Installing backend services: getting-started/installing-backend-services.md
       - Running ado on remote ray clusters: getting-started/remote_run.md

@@ -215,11 +215,11 @@ Before finalizing, verify:
 - For detailed schema information, see [reference.md](reference.md)
 - For example workflows, see [examples.md](examples.md)
 - For Pydantic model details, examine:
-  - `orchestrator/schema/experiment.py`
-  - `orchestrator/schema/measurementspace.py`
-  - `orchestrator/schema/entityspace.py`
-  - `orchestrator/core/discoveryspace/config.py`
-  - `orchestrator/core/operation/operation.py`
+  - `ado/schema/experiment.py`
+  - `ado/schema/measurementspace.py`
+  - `ado/schema/entityspace.py`
+  - `ado/core/discoveryspace/config.py`
+  - `ado/core/operation/operation.py`
 
 ## References
 

@@ -1,21 +1,21 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-"""Tests for experiment interface compatibility checks in orchestrator.schema.experiment."""
+"""Tests for experiment interface compatibility checks in ado.schema.experiment."""
 
-from orchestrator.schema.domain import PropertyDomain, VariableTypeEnum
-from orchestrator.schema.experiment import (
+from ado.schema.domain import PropertyDomain, VariableTypeEnum
+from ado.schema.experiment import (
     Experiment,
     ExperimentInterfaceIssueKind,
     ParameterizedExperiment,
     check_experiment_interface_compatible,
 )
-from orchestrator.schema.property import (
+from ado.schema.property import (
     AbstractPropertyDescriptor,
     ConstitutiveProperty,
     ConstitutivePropertyDescriptor,
 )
-from orchestrator.schema.property_value import ConstitutivePropertyValue
+from ado.schema.property_value import ConstitutivePropertyValue
 
 
 def test_compatible_experiments_return_no_issues(

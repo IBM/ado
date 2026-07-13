@@ -14,47 +14,47 @@ import ray.tune
 from pydantic import ConfigDict
 from ray.actor import ActorHandle
 
-import orchestrator.core
-import orchestrator.modules
-from orchestrator.core.datacontainer.resource import (
+import ado.core
+import ado.modules
+from ado.core.datacontainer.resource import (
     DataContainer,
     DataContainerResource,
 )
-from orchestrator.core.discoveryspace.space import (
+from ado.core.discoveryspace.space import (
     SpaceInconsistencyError,
 )
-from orchestrator.core.operation.config import (
+from ado.core.operation.config import (
     DiscoveryOperationEnum,
     OperatorMetadata,
 )
-from orchestrator.core.operation.operation import OperationOutput
-from orchestrator.core.operation.resource import (
+from ado.core.operation.operation import OperationOutput
+from ado.core.operation.resource import (
     OperationExitStateEnum,
     OperationResourceEventEnum,
     OperationResourceStatus,
 )
-from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
-from orchestrator.modules.operators.base import (
+from ado.modules.actuators.measurement_queue import MeasurementQueue
+from ado.modules.operators.base import (
     Explore,
     measure_or_replay,
 )
-from orchestrator.modules.operators.collections import explore_operation
-from orchestrator.modules.operators.discovery_space_manager import DiscoverySpaceManager
-from orchestrator.schema.domain import PropertyDomain
-from orchestrator.schema.entity import (
+from ado.modules.operators.collections import explore_operation
+from ado.modules.operators.discovery_space_manager import DiscoverySpaceManager
+from ado.schema.domain import PropertyDomain
+from ado.schema.entity import (
     Entity,
 )
-from orchestrator.schema.entityspace import EntitySpaceRepresentation
-from orchestrator.schema.measurementspace import (
+from ado.schema.entityspace import EntitySpaceRepresentation
+from ado.schema.measurementspace import (
     MeasurementSpace,
 )
-from orchestrator.schema.property_value import ConstitutivePropertyValue
-from orchestrator.schema.reference import ExperimentReference
-from orchestrator.schema.request import MeasurementRequest
-from orchestrator.schema.result import ValidMeasurementResult
-from orchestrator.schema.virtual_property import VirtualObservedProperty
-from orchestrator.utilities.environment import enable_ray_actor_coverage
-from orchestrator.utilities.support import prepare_dependent_experiment_input
+from ado.schema.property_value import ConstitutivePropertyValue
+from ado.schema.reference import ExperimentReference
+from ado.schema.request import MeasurementRequest
+from ado.schema.result import ValidMeasurementResult
+from ado.schema.virtual_property import VirtualObservedProperty
+from ado.utilities.environment import enable_ray_actor_coverage
+from ado.utilities.support import prepare_dependent_experiment_input
 
 from .config import (
     OrchRunConfig,
@@ -68,13 +68,13 @@ from .samplers import LhuSampler
 if TYPE_CHECKING:  # pragma: nocover
     from ray.tune.search.sample import Domain
 
-    import orchestrator.modules.actuators.base
+    import ado.modules.actuators.base
 
 
 def run_dependent_experiments(
     request: MeasurementRequest,
     measurement_space: MeasurementSpace,
-    actuators: dict[str, "orchestrator.modules.actuators.base.ActuatorBase"],
+    actuators: dict[str, "ado.modules.actuators.base.ActuatorBase"],
     queue: MeasurementQueue,
     requestIndex: int,
     singleMeasurement: bool,
@@ -147,7 +147,7 @@ def retrieve_results(
 
 
 class OrchTrainableParameters(pydantic.BaseModel):
-    """Model for the information the orchestrator needs to pass to tune() and tune_trainable"""
+    """Model for the information ado needs to pass to tune() and tune_trainable"""
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -416,9 +416,7 @@ def tune_trainable(config: dict, parameters: dict) -> dict[str, Any]:
         # So the dependent experiment will not execute more than once.
         for requestid in waitingRequestIds:
             log.debug(f"Checking if request {requestid} is complete")
-            request = ray.get(
-                driver.getRequest.remote(requestid)
-            )  # type: MeasurementRequest
+            request = ray.get(driver.getRequest.remote(requestid))  # type: MeasurementRequest
             if request is not None:
                 log.debug(
                     f"Request {request} for {request.experimentReference} complete"
@@ -534,9 +532,9 @@ def tune(
     Parameters:
         search_space: A ray tune search-space dict
         config: A RayTuneConfiguration object with options for the run
-            This includes orchestrator specific options
+            This includes ado specific options
         parameters: A dict with internal parameters that enable the tune_trainable function
-            to interact with the orchestrator while being called by ray tune.
+            to interact with ado while being called by ray tune.
 
     Returns:
         ray.tune.Result instance containing information on the best result found
@@ -646,7 +644,7 @@ def property_domain_to_ray_distribution(
 ) -> "Domain":
     # Later we can use sample_from to support any distribution
 
-    from orchestrator.schema.domain import ProbabilityFunctionsEnum, VariableTypeEnum
+    from ado.schema.domain import ProbabilityFunctionsEnum, VariableTypeEnum
 
     if domain.variableType == VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE:
         # Categorical values always return choice - currently no method to describe a non-uniform distribution
@@ -783,7 +781,7 @@ class RayTune(Explore):
         operationActorName: str,
         namespace: str,
         discovery_space_manager: DiscoverySpaceManager,
-        actuators: dict[str, "orchestrator.modules.actuators.base.ActuatorBase"],
+        actuators: dict[str, "ado.modules.actuators.base.ActuatorBase"],
         params: dict | None = None,
     ) -> None:
         import os
@@ -840,13 +838,9 @@ class RayTune(Explore):
     async def run(self) -> OperationOutput:
         try:
             # noinspection PyUnresolvedReferences
-            entity_space = (
-                await self.ds_manager.entitySpace.remote()
-            )  # type: EntitySpaceRepresentation
+            entity_space = await self.ds_manager.entitySpace.remote()  # type: EntitySpaceRepresentation
             # noinspection PyUnresolvedReferences
-            measurement_space = (
-                await self.ds_manager.measurementSpace.remote()
-            )  # type: MeasurementSpace
+            measurement_space = await self.ds_manager.measurementSpace.remote()  # type: MeasurementSpace
 
             metric_or_metrics = self.params.tuneConfig.metric
             metric_mode = self.params.orchestratorConfig.metric_format
@@ -984,11 +978,9 @@ class RayTune(Explore):
     @classmethod
     def operator_metadata(cls) -> OperatorMetadata:
         """Returns operator metadata for the ray_tune explore operator."""
-        from importlib.metadata import version
-
         return OperatorMetadata(
             name="ray_tune",
-            version=version("ado-ray-tune"),
+            version="2.0.3",
             description=cls.description(),
             configuration_model=RayTuneConfiguration,
             example_configuration=RayTuneConfiguration(
@@ -998,5 +990,5 @@ class RayTune(Explore):
                 ),
                 runtimeConfig=OrchRunConfig(),
             ),
-            type=DiscoveryOperationEnum.SEARCH,
+            type=DiscoveryOperationEnum.EXPLORE,
         )

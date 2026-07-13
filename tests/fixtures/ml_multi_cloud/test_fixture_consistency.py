@@ -2,10 +2,10 @@
 # SPDX-License-Identifier: MIT
 from collections.abc import Callable
 
-from orchestrator.core import ActuatorConfigurationResource
-from orchestrator.core.discoveryspace.space import DiscoverySpace
-from orchestrator.core.resources import ADOResource, CoreResourceKinds
-from orchestrator.core.samplestore.sql import SQLSampleStore
+from ado.core import ActuatorConfigurationResource
+from ado.core.discoveryspace.space import DiscoverySpace
+from ado.core.resources import ADOResource, CoreResourceKinds
+from ado.core.samplestore.sql import SQLSampleStore
 
 
 def test_create_ml_multicloud_sample_store(
@@ -19,9 +19,9 @@ def test_create_ml_multicloud_sample_store(
         identifier=ml_multi_cloud_sample_store.identifier,
         kind=CoreResourceKinds.SAMPLESTORE,
     )
-    assert (
-        sample_store_resource is not None
-    ), "The SQL Store couldn't retrieve the sample store"
+    assert sample_store_resource is not None, (
+        "The SQL Store couldn't retrieve the sample store"
+    )
 
 
 def test_create_ml_multicloud_space(
@@ -45,6 +45,6 @@ def test_create_ml_multicloud_actuatorconfiguration(
         identifier=ml_multi_cloud_correct_actuatorconfiguration.identifier,
         kind=CoreResourceKinds.ACTUATORCONFIGURATION,
     )
-    assert (
-        actuatorconfiguration_resource is not None
-    ), "The SQL Store couldn't retrieve the actuatorconfiguration"
+    assert actuatorconfiguration_resource is not None, (
+        "The SQL Store couldn't retrieve the actuatorconfiguration"
+    )

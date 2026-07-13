@@ -45,15 +45,14 @@ Issues = "https://github.com/IBM/ado/issues"
 Repository = "https://github.com/IBM/ado"
 
 [project.scripts]
-ado = "orchestrator.cli.core.cli:app"
-run_experiment = "orchestrator.utilities.run_experiment:main"
+ado = "ado.cli.core.cli:app"
+run_experiment = "ado.utilities.run_experiment:main"
 
 [project.entry-points."ado.operators"]
-randomwalk = "orchestrator.modules.operators.randomwalk"
+randomwalk = "ado.modules.operators.randomwalk"
 
 [dependency-groups]
 dev = [
-  "black>=25.1.0",
   "coverage>=7.10.2",
   "detect-secrets @ git+https://github.com/ibm/detect-secrets.git",
   "pip>=25.1.1",
@@ -84,16 +83,17 @@ docs = [
 ]
 
 test = [
+  "ado-anomalous-series",
   "ado-autoconf ; python_full_version < '3.14'",
+  "ado-profile-space ; python_full_version < '3.14'",
   "ado-ray-tune",
   "ado-sfttrainer ; python_full_version < '3.13'",
   "ado-trim ; python_full_version < '3.14'",
   "ado-vllm-performance",
-  "anomalous-series",
+  "cloudpickle>=3.1.2",
   "density-test",
   "optimization-test-functions",
   "pfas-custom-functions",
-  "profile-space ; python_full_version < '3.14'",
   "robotic-lab",
   "trim-custom-experiments",
 ]
@@ -106,7 +106,7 @@ build-backend = "hatchling.build"
 source = "uv-dynamic-versioning"
 
 [tool.hatch.build.targets.wheel]
-packages = ["orchestrator"]
+packages = ["ado"]
 
 # Read by Ray on first `import ray` (pytest-env runs when pytest starts, before conftest).
 [tool.pytest_env]
@@ -147,11 +147,11 @@ ado-ray-tune = { workspace = true, editable = true }
 ado-sfttrainer = { path = "plugins/actuators/sfttrainer", editable = true }
 ado-trim = { path = "plugins/operators/trim", editable = true }
 ado-vllm-performance = { workspace = true, editable = true }
-anomalous-series = { workspace = true, editable = true }
+ado-anomalous-series = { workspace = true, editable = true }
 density-test = { workspace = true, editable = true }
 optimization-test-functions = { workspace = true, editable = true }
 pfas-custom-functions = { workspace = true, editable = true }
-profile-space = { path = "plugins/operators/profile_space", editable = true }
+ado-profile-space = { path = "plugins/operators/profile_space", editable = true }
 robotic-lab = { workspace = true, editable = true }
 trim-custom-experiments = { workspace = true, editable = true }
 detect-secrets = { git = "https://github.com/ibm/detect-secrets.git", rev = "master" }

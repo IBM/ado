@@ -4,12 +4,12 @@
 
 import pytest
 
-from orchestrator.schema.entity import Entity
-from orchestrator.schema.experiment import Experiment
-from orchestrator.schema.observed_property import ObservedPropertyValue
-from orchestrator.schema.property_value import ConstitutivePropertyValue
-from orchestrator.schema.reference import ExperimentReference
-from orchestrator.schema.result import InvalidMeasurementResult, ValidMeasurementResult
+from ado.schema.entity import Entity
+from ado.schema.experiment import Experiment
+from ado.schema.observed_property import ObservedPropertyValue
+from ado.schema.property_value import ConstitutivePropertyValue
+from ado.schema.reference import ExperimentReference
+from ado.schema.result import InvalidMeasurementResult, ValidMeasurementResult
 
 
 @pytest.fixture

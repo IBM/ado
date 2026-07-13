@@ -8,14 +8,14 @@ from collections.abc import Callable
 
 from typer.testing import CliRunner
 
-from orchestrator.cli.core.cli import app as ado
-from orchestrator.cli.resources.trace_common import REQUEST_COLUMN
-from orchestrator.core.discoveryspace.space import DiscoverySpace
-from orchestrator.core.operation.config import DiscoveryOperationResourceConfiguration
-from orchestrator.core.samplestore.sql import SQLSampleStore
-from orchestrator.metastore.project import ProjectContext
-from orchestrator.schema.experiment import Experiment
-from orchestrator.schema.request import MeasurementRequest
+from ado.cli.core.cli import app as ado
+from ado.cli.resources.trace_common import REQUEST_COLUMN
+from ado.core.discoveryspace.space import DiscoverySpace
+from ado.core.operation.config import DiscoveryOperationResourceConfiguration
+from ado.core.samplestore.sql import SQLSampleStore
+from ado.metastore.project import ProjectContext
+from ado.schema.experiment import Experiment
+from ado.schema.request import MeasurementRequest
 from tests.conftest import requires_sqlite_3_38
 
 
@@ -49,8 +49,6 @@ def test_show_trace_samplestore_single_operation(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            str(tmp_path),
             "show",
             "trace",
             "samplestore",
@@ -105,8 +103,6 @@ def test_show_trace_samplestore_multi_operation(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            str(tmp_path),
             "show",
             "trace",
             "samplestore",
@@ -138,8 +134,6 @@ def test_show_trace_samplestore_nonexistent(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            str(tmp_path),
             "show",
             "trace",
             "samplestore",

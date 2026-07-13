@@ -4,9 +4,9 @@
 
 import pytest
 
-from orchestrator.core import DataContainerResource
-from orchestrator.core.datacontainer.resource import DataContainer, TabularData
-from orchestrator.utilities.location import SQLStoreConfiguration
+from ado.core import DataContainerResource
+from ado.core.datacontainer.resource import DataContainer, TabularData
+from ado.utilities.location import SQLStoreConfiguration
 
 
 @pytest.fixture

@@ -45,13 +45,13 @@ pip uninstall sfttrainer
 
 The recommended way of installing an actuator in a remote Ray cluster is to
 build a wheel. You would do this if you have local changes to one or more
-plugins you want to use for a run OR the version of the orchestrator in the
+plugins you want to use for a run OR the version of ado in the
 remote ray image is behind the latest.
 
 The simplest scenario is outlined below and it uses the actuator
-`fms_hf_tuning` as a concrete example. It assumes _you are in the directory of
+`sfttrainer` as a concrete example. It assumes _you are in the directory of
 the actuator you want to install_ : in this case
-`orchestrator_plugins/actuator/fms_hf_tuning`
+`plugins/actuators/sfttrainer`
 
 1. `rm -rf dist/ build/ *.egg-info`
 

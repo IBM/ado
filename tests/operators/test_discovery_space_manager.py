@@ -6,13 +6,13 @@ import uuid
 
 import ray
 
-from orchestrator.core.discoveryspace.config import DiscoverySpaceConfiguration
-from orchestrator.core.discoveryspace.space import DiscoverySpace
-from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
-from orchestrator.modules.operators.discovery_space_manager import DiscoverySpaceManager
+from ado.core.discoveryspace.config import DiscoverySpaceConfiguration
+from ado.core.discoveryspace.space import DiscoverySpace
+from ado.modules.actuators.measurement_queue import MeasurementQueue
+from ado.modules.operators.discovery_space_manager import DiscoverySpaceManager
 
 if typing.TYPE_CHECKING:
-    from orchestrator.schema.entity import Entity
+    from ado.schema.entity import Entity
 
 
 @ray.remote
@@ -166,9 +166,9 @@ def test_on_error_passes_plain_exception_to_subscriber(
             "onError was not called on the subscriber within 15 s after "
             "the queue actor was killed"
         )
-        assert (
-            type(captured_error) is Exception
-        ), f"Expected a plain Exception but received {type(captured_error)}"
+        assert type(captured_error) is Exception, (
+            f"Expected a plain Exception but received {type(captured_error)}"
+        )
     finally:
         ray.kill(state)
         ray.kill(subscriber)

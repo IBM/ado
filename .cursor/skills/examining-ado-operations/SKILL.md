@@ -36,8 +36,8 @@ on, and whether measurements and results look healthy.
 Operations are applied to discoveryspaces. There are different types of
 operation. The General Workflow can be applied to all types of operation.
 
-In addition, the Explore/Search Workflow operations can be applied to
-Explore/Search operations.
+In addition, the Explore Operation Workflow can be applied to
+Explore operations.
 
 - Read [operations](../../../website/docs/resources/operation.md) documentation
   for details
@@ -72,7 +72,7 @@ re-fetching.
 ### Large output files
 
 The output for a chosen `-o`/`--output` **format** can be very large (for
-example from `show measurements`, `show requests`, or `show results`). Use
+example from `show measurements` or `show trace`). Use
 `--output-file` with the destination path and, when inspecting these files:
 
 - Use wc to count the file size first before using head/tail/cat etc. on it.
@@ -115,9 +115,9 @@ However, it is possible it failed in a way that meant it could not record the
 failure. In this case:
 
 1. Determine how long it has been running.
-2. If it is many hours and the operationType is not search/explore flag that
+2. If it is many hours and the operationType is not explore flag that
    there may be a problem
-3. If it is many hours and the operationType is search/explore proceed use
+3. If it is many hours and the operationType is explore proceed use
    specific techniques in Explore Operation Workflow to determine if its still
    running
 
@@ -209,11 +209,11 @@ uv run ado get datacontainer $DATACONTAINER_IDENTIFIER -o yaml --output-file dat
 
 For each output resource summarize what it is/contains.
 
-## Explore/Search Operation Workflow
+## Explore Operation Workflow
 
 The following assumes the General Workflow has been applied.
 
-Explore/Search operations sample entities from a discovery space and make
+Explore operations sample entities from a discovery space and make
 measurements on them.
 
 Notes:
@@ -248,7 +248,7 @@ were completed there are no issues ->
 [examine entities](#step-3-get-entities-and-measurements)
 
 If the state is not finished ->
-[Use the diagnose if sampling operation running workflow](#diagnose-if-an-explore-or-search-operation-is-running-workflow).
+[Use the diagnose if sampling operation running workflow](#diagnose-if-an-explore-operation-is-running-workflow).
 For all other combinations ->
 [Diagnose sampling issues](#step-2-optional-diagnose-sampling-issues)
 
@@ -258,24 +258,29 @@ First run these two commands to get the metadata on what was requested and
 measured, noting the [guidelines on large files](#large-output-files):
 
 ```bash
-uv run ado show requests operation OPERATION_ID \
-  -o csv --output-file OPERATION_ID_requests.csv
-uv run ado show results operation OPERATION_ID \
-  -o csv --output-file OPERATION_ID_results.csv
+uv run ado show trace operation OPERATION_ID \
+  -o csv --output-file OPERATION_ID_trace.csv
 ```
 
-- **requests**: This is metadata on what the sampling operation asked an
+Use `--unroll-entities` to include per-entity result metadata (validity,
+reasons for invalidity, etc.) in the trace output:
+
+```bash
+uv run ado show trace operation OPERATION_ID --unroll-entities \
+  -o csv --output-file OPERATION_ID_trace_entities.csv
+```
+
+- **trace**: This is metadata on what the sampling operation asked an
   actuator to measure. It includes the timestamp of when the request was
-  created - at the moment the completion time is not available. The requests
-  contain the results of executing the request
-- **results**: This is metadata on an actual measurement triggered by a request
-  - ValidMeasurementResult: The experiment executed and return one or more
-    observed property values
+  created. Each row represents a measurement request.
+- **trace --unroll-entities**: Each row in the output represents an entity
+  result within a request, showing per-entity measurement metadata such as
+  validity and reasons for invalidity.
   - InvalidMeasurementResult: The experiment failed for some reason
 
-From the output of `show requests` and `show results` identify **failed** or
-**invalid** rows, **reasons** for invalidity, and anomalies in **timing** or
-**ordering** if those columns are present.
+From the trace output, identify **failed** or **invalid** rows, **reasons**
+for invalidity, and anomalies in **timing** or **ordering** if those columns
+are present.
 
 ### Step 3: Get entities and measurements
 
@@ -293,13 +298,12 @@ Perform an analysis of the measurements, checking e.g. distributions of metrics,
 metric outliers, correlations between metrics. Take into account the domain of
 the experiment and meaning of metrics when looking for patterns.
 
-## Diagnose if an Explore or Search Operation is Running Workflow
+## Diagnose if an Explore Operation is Running Workflow
 
 - Check if the operation is submitting experiments in batches
 - Confirm if the operation uses continuous batching (new experiment requested
   once one has finished) or static batch (full batch finishes then next starts)
-- Get the requests and results timeseries using `ado show requests` and
-  `ado show results`
+- Get the requests and results timeseries using `ado show trace`
 - For continuous batching
   - Use the request time-series to determine the typical inter-request start
     time after the first batch i.e. this tells you how often after the first

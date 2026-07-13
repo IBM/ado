@@ -7,7 +7,7 @@ from typing import NoReturn
 
 import pandas as pd
 
-from orchestrator.core.discoveryspace.space import DiscoverySpace
+from ado.core.discoveryspace.space import DiscoverySpace
 from trim.trim_pydantic import TrimParameters
 from trim.utils.exceptions import InsufficientDataError
 from trim.utils.rowsring import RowsRing
@@ -36,7 +36,7 @@ def log_after_split_common_and_diff(
             os.path.join(directory, f"Mismatch_iter{iter_index}_{iter_index}.csv")
         )
         previous_source_df.to_csv(
-            os.path.join(directory, f"Mismatch_iter{iter_index}_{iter_index-1}.csv")
+            os.path.join(directory, f"Mismatch_iter{iter_index}_{iter_index - 1}.csv")
         )
     else:
         logger.debug(
@@ -71,12 +71,13 @@ def log_after_first_holdout_creation(
         logger.error("Empty Holdout Dataset!")
     if len(current_holdout_df) != params.holdoutSize:
         logger.error(
-            f"The holdout df contains {len(current_holdout_df)} rows (expected { params.holdoutSize})"
+            f"The holdout df contains {len(current_holdout_df)} rows (expected {params.holdoutSize})"
         )
-    same = yielded_rows.df.columns.equals(
-        current_holdout_df.columns
-    ) and yielded_rows.df.value_counts(dropna=False).equals(
-        current_holdout_df.value_counts(dropna=False)
+    same = (
+        yielded_rows.df.columns.equals(current_holdout_df.columns)
+        and yielded_rows.df.value_counts(dropna=False).equals(
+            current_holdout_df.value_counts(dropna=False)
+        )
     )  # True if they contain exactly the same rows (multiset equality), regardless of order
     if not same:
         logger.error(

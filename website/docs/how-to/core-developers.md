@@ -34,8 +34,8 @@ Before you submit a pull request, ensure your changes adhere to this checklist:
 
 - **Code Style:** Follow **PEP8** naming, include all **type annotations**, and
   use **Google-style docstrings**.
-- **Formatting & Linting:** Code must be formatted with **black** and pass
-  **ruff**.
+- **Formatting & Linting:** Code must be formatted with **ruff format** and pass
+  **ruff check**.
 - **Testing:** All new features or fixes must include or update **tests**. We
   prefer an integration-first, TDD-style workflow.
 - **Commit Hooks:** All changes must pass our **pre-commit** hooks.

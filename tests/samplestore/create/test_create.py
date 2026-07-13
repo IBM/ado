@@ -5,13 +5,13 @@ from collections.abc import Callable
 
 import pytest
 
-from orchestrator.core import DiscoverySpaceResource, OperationResource
-from orchestrator.core.resources import ADOResource, CoreResourceKinds
-from orchestrator.core.samplestore.sql import SQLSampleStore
-from orchestrator.metastore.sqlstore import SQLStore
-from orchestrator.schema.entity import Entity
-from orchestrator.schema.experiment import Experiment
-from orchestrator.schema.request import MeasurementRequestStateEnum, ReplayedMeasurement
+from ado.core import DiscoverySpaceResource, OperationResource
+from ado.core.resources import ADOResource, CoreResourceKinds
+from ado.core.samplestore.sql import SQLSampleStore
+from ado.metastore.sqlstore import SQLStore
+from ado.schema.entity import Entity
+from ado.schema.experiment import Experiment
+from ado.schema.request import MeasurementRequestStateEnum, ReplayedMeasurement
 
 
 def test_resource_creation(

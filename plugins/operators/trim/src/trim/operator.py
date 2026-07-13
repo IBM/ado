@@ -3,12 +3,11 @@
 
 
 import logging
-from importlib.metadata import version
 
-from orchestrator.core.discoveryspace.space import DiscoverySpace
-from orchestrator.core.operation.config import FunctionOperationInfo
-from orchestrator.core.operation.operation import OperationOutput
-from orchestrator.modules.operators.collections import characterize_operation
+from ado.core.discoveryspace.space import DiscoverySpace
+from ado.core.operation.config import FunctionOperationInfo
+from ado.core.operation.operation import OperationOutput
+from ado.modules.operators.collections import characterize_operation
 from trim.samplers.no_priors_utils import get_source_and_target
 from trim.trim_pydantic import (
     TrimParameters,
@@ -31,7 +30,7 @@ logger_trim = logging.getLogger(__name__)
                 Retrieves all measured entities from the entity source and samples the others following a certain order.
                 If the number of measured entity is too small, Trim instantiates a no-priors characterization operation.
                 """,
-    version=version("ado-trim"),
+    version="2.0.3",
 )
 def trim(
     discoverySpace: DiscoverySpace = None,  # type: ignore[name-defined]
@@ -54,8 +53,8 @@ def trim(
         OperationOutput containing the operation resources and metadata
     """
     # Lazy import to avoid circular import issues during plugin loading
-    from orchestrator.modules.operators.collections import explore
-    from orchestrator.modules.operators.randomwalk import (
+    from ado.modules.operators.collections import explore
+    from ado.modules.operators.randomwalk import (
         CustomSamplerConfiguration,
         RandomWalkParameters,
         SamplerModuleConf,
@@ -79,7 +78,7 @@ def trim(
     op_output_characterization_no_prior = OperationOutput.model_validate(
         {
             "metadata": {
-                "skipping operation": f"Prior source space characterization: {len(source_df)} sample. Minimal sample size: {params.samplingBudget.minPoints }"
+                "skipping operation": f"Prior source space characterization: {len(source_df)} sample. Minimal sample size: {params.samplingBudget.minPoints}"
             }
         }
     )

@@ -38,7 +38,7 @@ entitySpace: #A list of constitutive properties
   - identifier: my_property1 # The id of the first dimension/constitutive property of the space
   - identifier: my_property2
 experiments: # A list of experiments. The measurementspace of this discovery space
-  - acuatatorIdentifier: someactuator # The id of the actuator that contains the experiment
+  - actuatorIdentifier: someactuator # The id of the actuator that contains the experiment
     experimentIdentifier: experiment_one # The id of the experiment to execute
 metadata:
   description: "This is an example discovery space"
@@ -164,8 +164,8 @@ Assuming you have your [context](metastore.md#contexts-and-projects) in a file
 
 ```python
 import yaml
-from orchestrator.metastore.project import ProjectContext
-from orchestrator.core.discoveryspace.space import DiscoverySpace
+from ado.metastore.project import ProjectContext
+from ado.core.discoveryspace.space import DiscoverySpace
 
 with open("my_context.yaml") as f:
     c = ProjectContext.model_validate(yaml.safe_load(f))
@@ -246,7 +246,7 @@ For example, to see the input requirements of the experiment
 `finetune_full_benchmark-v1.0.0` you can run:
 
 ```shell
-ado describe experiment finetune_full_benchmark-v1.0.0 --actuator-id SFTTrainer
+ado describe experiment finetune_full_benchmark-v1.0.0
 ```
 
 you will get output like

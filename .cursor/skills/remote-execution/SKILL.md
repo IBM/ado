@@ -175,13 +175,12 @@ the remote run. Symptoms include: a fixed import error still occurring, an
 added log line not appearing, or a new parameter not being present.
 
 The most likely cause is that the wheel built for the plugin has the same
-version as a wheel already cached by Ray. The default `setuptools_scm` local
-scheme appends only the date for dirty (uncommitted) changes, so multiple dirty
-builds on the same day share the same version string. Ray sees the version as
-already installed and skips reinstallation.
+version as a wheel already cached by Ray. Ray sees the version as already
+installed and skips reinstallation.
 
-The solution is to add `local_scheme = "node-and-timestamp"` to
-`[tool.setuptools_scm]` in the plugin's `pyproject.toml`. This appends the git
-node and a timestamp to the version, making each dirty build uniquely versioned.
-See [plugin development](../../rules/plugin-development.mdc) for details and
-examples.
+Plugins use `uv-dynamic-versioning` with a `format-jinja` template that appends
+the git node and a timestamp to every dirty or dev build (e.g.
+`X.Y.Z.devN+g<commit>.d<timestamp>`), so each build produces a unique version.
+If you are still seeing stale wheels, confirm the plugin's `pyproject.toml`
+has the `format-jinja` block from the
+[plugin development rules](../../rules/plugin-development.mdc).

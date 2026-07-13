@@ -4,26 +4,26 @@ import re
 
 import pytest
 
-from orchestrator.core.discoveryspace.samplers import sample_random_entity_from_space
-from orchestrator.modules.actuators.errors import (
+from ado.core.discoveryspace.samplers import sample_random_entity_from_space
+from ado.modules.actuators.errors import (
     UnknownActuatorError,
     UnknownExperimentError,
 )
-from orchestrator.modules.actuators.registry import (
+from ado.modules.actuators.registry import (
     ActuatorRegistry,
 )
-from orchestrator.schema.entityspace import EntitySpaceRepresentation
-from orchestrator.schema.experiment import Experiment, ParameterizedExperiment
-from orchestrator.schema.measurementspace import (
+from ado.schema.entityspace import EntitySpaceRepresentation
+from ado.schema.experiment import Experiment, ParameterizedExperiment
+from ado.schema.measurementspace import (
     MeasurementSpace,
     MeasurementSpaceConfiguration,
 )
-from orchestrator.schema.observed_property import ObservedPropertyValue
-from orchestrator.schema.property import ConstitutiveProperty
-from orchestrator.schema.reference import ExperimentReference
-from orchestrator.schema.request import MeasurementRequest
-from orchestrator.schema.result import ValidMeasurementResult
-from orchestrator.schema.virtual_property import (
+from ado.schema.observed_property import ObservedPropertyValue
+from ado.schema.property import ConstitutiveProperty
+from ado.schema.reference import ExperimentReference
+from ado.schema.request import MeasurementRequest
+from ado.schema.result import ValidMeasurementResult
+from ado.schema.virtual_property import (
     PropertyAggregationMethod,
     PropertyAggregationMethodEnum,
     VirtualObservedProperty,
@@ -394,9 +394,7 @@ def test_check_entity_space_compatibility_multiple(
 
     # In particular test with an experiment that has optional properties
 
-    es = (
-        measurement_space_from_multiple_parameterized_experiments.compatibleEntitySpace()
-    )
+    es = measurement_space_from_multiple_parameterized_experiments.compatibleEntitySpace()
     assert measurement_space_from_multiple_parameterized_experiments.checkEntitySpaceCompatible(
         es
     ), "Expect the EntitySpace return by compatibleEntitySpace to be compatible"
@@ -473,9 +471,7 @@ def test_check_entity_space_compatibility_optional_in_entity_space(
 ) -> None:
     """Test checkEntitySpaceCompatible works when some optional parameters have been moved to entityspace"""
 
-    es = (
-        measurement_space_from_multiple_parameterized_experiments.compatibleEntitySpace()
-    )
+    es = measurement_space_from_multiple_parameterized_experiments.compatibleEntitySpace()
 
     # Add an optional property of one of the experiments to the entity-space
     # None of the experiment in MS provide a value for the last optional property
@@ -484,7 +480,9 @@ def test_check_entity_space_compatibility_optional_in_entity_space(
     )
     assert measurement_space_from_multiple_parameterized_experiments.checkEntitySpaceCompatible(
         es_opt1
-    ), "Expect an EntitySpace containing an optional experimental property is compatible"
+    ), (
+        "Expect an EntitySpace containing an optional experimental property is compatible"
+    )
 
     # Add an optional property of one of the experiments to the entity-space that is already parameterized
     # by one or more experiments - this should fail
@@ -523,9 +521,11 @@ def test_check_entity_space_compatibility_optional_in_entity_space(
         ValueError,
         match="Identified an entity space dimension not compatible with the measurement space requirements",
     ) as expected_exception:
-        measurement_space_from_multiple_parameterized_experiments.checkEntitySpaceCompatible(
-            es_opt3
-        ),
+        (
+            measurement_space_from_multiple_parameterized_experiments.checkEntitySpaceCompatible(
+                es_opt3
+            ),
+        )
 
     assert expected_exception is not None, (
         "Expected an entity space containing an optional constitutive property of an experiment,"
@@ -598,9 +598,7 @@ def test_experiments_applied_to_entity_multiple(
     measurement_space_from_multiple_parameterized_experiments: MeasurementSpace,
 ) -> None:
 
-    es = (
-        measurement_space_from_multiple_parameterized_experiments.compatibleEntitySpace()
-    )
+    es = measurement_space_from_multiple_parameterized_experiments.compatibleEntitySpace()
     entity = sample_random_entity_from_space(es)
     assert (
         measurement_space_from_multiple_parameterized_experiments.numberExperimentsApplied(
@@ -626,11 +624,14 @@ def test_experiments_applied_to_entity_multiple(
         )
         entity.add_measurement_result(result)
 
-    assert measurement_space_from_multiple_parameterized_experiments.numberExperimentsApplied(
-        entity
-    ) == len(
-        measurement_space_from_multiple_parameterized_experiments.experiments
-    ), "Expected the test entity to have each of the experiments in the space applied to it"
+    assert (
+        measurement_space_from_multiple_parameterized_experiments.numberExperimentsApplied(
+            entity
+        )
+        == len(measurement_space_from_multiple_parameterized_experiments.experiments)
+    ), (
+        "Expected the test entity to have each of the experiments in the space applied to it"
+    )
 
     #
     # Create another measurement result for each experiment
@@ -647,11 +648,14 @@ def test_experiments_applied_to_entity_multiple(
         )
         entity.add_measurement_result(result)
 
-    assert measurement_space_from_multiple_parameterized_experiments.numberExperimentsApplied(
-        entity
-    ) == len(
-        measurement_space_from_multiple_parameterized_experiments.experiments
-    ), "Expected numberExperimentsApplied to count each experiment once, regardless how many times it was applied"
+    assert (
+        measurement_space_from_multiple_parameterized_experiments.numberExperimentsApplied(
+            entity
+        )
+        == len(measurement_space_from_multiple_parameterized_experiments.experiments)
+    ), (
+        "Expected numberExperimentsApplied to count each experiment once, regardless how many times it was applied"
+    )
 
 
 def test_dependent_experiments_single(
@@ -683,7 +687,9 @@ def test_dependent_experiments_single(
                 )
             )
             == 0
-        ), "Expected the test entity to have no values the properties required by the dependent experiment in the space, and hence that the dependent experiment in the space could not be applied to the Entity"
+        ), (
+            "Expected the test entity to have no values the properties required by the dependent experiment in the space, and hence that the dependent experiment in the space could not be applied to the Entity"
+        )
     else:
         assert measurement_space_from_single_parameterized_experiment.isConsistent
         assert (
@@ -693,7 +699,9 @@ def test_dependent_experiments_single(
                 )
             )
             == 0
-        ), "There are no dependent experiments in the space so expect that none can be applied to entity"
+        ), (
+            "There are no dependent experiments in the space so expect that none can be applied to entity"
+        )
 
     import numpy.random
 
@@ -739,7 +747,9 @@ def test_dependent_experiments_single(
                 request
             )
             == {}
-        ), "Expected that after adding the values required by MeasurementSpace the dependent experiment that can be applied is still 0 as there are none"
+        ), (
+            "Expected that after adding the values required by MeasurementSpace the dependent experiment that can be applied is still 0 as there are none"
+        )
 
     if measurement_space_from_single_parameterized_experiment.dependentExperiments:
         #
@@ -748,7 +758,9 @@ def test_dependent_experiments_single(
         # There should be no dependent experiments that can be applied, since we added the results for it
         assert not measurement_space_from_single_parameterized_experiment.dependentExperimentsThatCanBeAppliedToEntity(
             entity=entity
-        ), "Expected dependentExperimentsThatCanBeAppliedToEntity to return no experiment since the required property is still missing"
+        ), (
+            "Expected dependentExperimentsThatCanBeAppliedToEntity to return no experiment since the required property is still missing"
+        )
 
         assert (
             len(
@@ -765,9 +777,7 @@ def test_dependent_experiments_single(
         #
         # Test: dependentExperimentsThatCanBeAppliedToEntity, when results of dependent experiment are present AND required are present
         #
-        for (
-            exp
-        ) in (
+        for exp in (
             measurement_space_from_single_parameterized_experiment.dependentExperiments
         ):
             for prop in exp.requiredObservedProperties:
@@ -793,7 +803,9 @@ def test_dependent_experiments_single(
 
         assert not measurement_space_from_single_parameterized_experiment.dependentExperimentsThatCanBeAppliedToEntity(
             entity=entity
-        ), "Expected dependentExperimentsThatCanBeAppliedToEntity to return no experiment since excludeApplied=True"
+        ), (
+            "Expected dependentExperimentsThatCanBeAppliedToEntity to return no experiment since excludeApplied=True"
+        )
 
         assert (
             len(
@@ -802,7 +814,9 @@ def test_dependent_experiments_single(
                 )
             )
             == 1
-        ), "Expect dependentExperimentsThatCanBeAppliedToEntity to return an experiment since excludeApplied=False"
+        ), (
+            "Expect dependentExperimentsThatCanBeAppliedToEntity to return an experiment since excludeApplied=False"
+        )
 
 
 def test_dependent_experiments_multiple(
@@ -814,9 +828,7 @@ def test_dependent_experiments_multiple(
 
     assert measurement_space_from_multiple_parameterized_experiments.isConsistent
 
-    es = (
-        measurement_space_from_multiple_parameterized_experiments.compatibleEntitySpace()
-    )
+    es = measurement_space_from_multiple_parameterized_experiments.compatibleEntitySpace()
     entity = sample_random_entity_from_space(es)
 
     # Unlike the single case, this MeasurementSpace contains both
@@ -829,7 +841,9 @@ def test_dependent_experiments_multiple(
             )
         )
         == 0
-    ), "Expected the test entity to have no values the properties required by the dependent experiment in the space, and hence that the dependent experiment in the space could not be applied to the Entity"
+    ), (
+        "Expected the test entity to have no values the properties required by the dependent experiment in the space, and hence that the dependent experiment in the space could not be applied to the Entity"
+    )
 
     # Check that there is actually more than one experiment
     assert (
@@ -902,9 +916,9 @@ def test_dependent_experiments_multiple(
         request
     )
 
-    assert (
-        len(dependent_exps) == 1
-    ), "Expected that after measuring values required by the dependent Experiment, the dependent experiment becomes available to be applied"
+    assert len(dependent_exps) == 1, (
+        "Expected that after measuring values required by the dependent Experiment, the dependent experiment becomes available to be applied"
+    )
     assert isinstance(dependent_exps, dict)
 
     #
@@ -919,7 +933,9 @@ def test_dependent_experiments_multiple(
             )
         )
         == 1
-    ), "Expected that after adding values required by the dependent experiment it should be available to apply"
+    ), (
+        "Expected that after adding values required by the dependent experiment it should be available to apply"
+    )
 
     #
     # Test: dependentExperimentsThatCanBeAppliedToEntity, when the results of the dependent experiment are present
@@ -954,7 +970,9 @@ def test_dependent_experiments_multiple(
             )
         )
         == 0
-    ), "Expected that after applying dependent experiments to an Entity they are no longer returned by dependentExperimentsThatCanBeAppliedToEntity by default"
+    ), (
+        "Expected that after applying dependent experiments to an Entity they are no longer returned by dependentExperimentsThatCanBeAppliedToEntity by default"
+    )
 
     assert (
         len(
@@ -983,9 +1001,7 @@ def test_dependent_experiments_multiple(
     assert (
         measurement_space_from_multiple_parameterized_experiments.dependentExperimentsThatCanBeAppliedToEntity(
             entity=entity, excludeApplied=False
-        )[
-            0
-        ]
+        )[0]
         == dependent_exp
     ), (
         "Expected that after applying dependent experiments to an Entity, the correct dependent experiment "
@@ -1025,27 +1041,27 @@ def test_property_with_identifier_format_target(
     target_id = target_property.identifier
 
     # Test with valid target identifier
-    assert ms.propertyWithIdentifierInSpace(
-        target_id, format="target"
-    ), f"Expected target identifier '{target_id}' to be found with format='target'"
+    assert ms.propertyWithIdentifierInSpace(target_id, format="target"), (
+        f"Expected target identifier '{target_id}' to be found with format='target'"
+    )
 
     # Test with observed identifier in target format (should fail)
     observed_property = ms.observedProperties[0]
     observed_id = observed_property.identifier
-    assert not ms.propertyWithIdentifierInSpace(
-        observed_id, format="target"
-    ), f"Expected observed identifier '{observed_id}' to fail with format='target'"
+    assert not ms.propertyWithIdentifierInSpace(observed_id, format="target"), (
+        f"Expected observed identifier '{observed_id}' to fail with format='target'"
+    )
 
     # Test with invalid identifier
-    assert not ms.propertyWithIdentifierInSpace(
-        "invalid_metric", format="target"
-    ), "Expected invalid identifier to fail with format='target'"
+    assert not ms.propertyWithIdentifierInSpace("invalid_metric", format="target"), (
+        "Expected invalid identifier to fail with format='target'"
+    )
 
     # Test virtual target property identifier (target prop + aggregation, e.g. foo-mean)
     virtual_target_id = f"{target_id}-mean"
-    assert ms.propertyWithIdentifierInSpace(
-        virtual_target_id, format="target"
-    ), f"Expected virtual target identifier '{virtual_target_id}' to be found with format='target'"
+    assert ms.propertyWithIdentifierInSpace(virtual_target_id, format="target"), (
+        f"Expected virtual target identifier '{virtual_target_id}' to be found with format='target'"
+    )
 
 
 def test_property_with_identifier_format_observed(
@@ -1060,22 +1076,22 @@ def test_property_with_identifier_format_observed(
     observed_id = observed_property.identifier
 
     # Test with valid observed identifier
-    assert ms.propertyWithIdentifierInSpace(
-        observed_id, format="observed"
-    ), f"Expected observed identifier '{observed_id}' to be found with format='observed'"
+    assert ms.propertyWithIdentifierInSpace(observed_id, format="observed"), (
+        f"Expected observed identifier '{observed_id}' to be found with format='observed'"
+    )
 
     # Test with target identifier in observed format (should fail unless it matches an observed)
     target_property = ms.targetProperties[0]
     target_id = target_property.identifier
     # This should fail because target_id is not the full observed property identifier
-    assert not ms.propertyWithIdentifierInSpace(
-        target_id, format="observed"
-    ), f"Expected target identifier '{target_id}' to fail with format='observed'"
+    assert not ms.propertyWithIdentifierInSpace(target_id, format="observed"), (
+        f"Expected target identifier '{target_id}' to fail with format='observed'"
+    )
 
     # Test with invalid identifier
-    assert not ms.propertyWithIdentifierInSpace(
-        "invalid_metric", format="observed"
-    ), "Expected invalid identifier to fail with format='observed'"
+    assert not ms.propertyWithIdentifierInSpace("invalid_metric", format="observed"), (
+        "Expected invalid identifier to fail with format='observed'"
+    )
 
     # Test virtual property based on observed
     vp = VirtualObservedProperty(
@@ -1084,6 +1100,6 @@ def test_property_with_identifier_format_observed(
             identifier=PropertyAggregationMethodEnum.mean
         ),
     )
-    assert ms.propertyWithIdentifierInSpace(
-        vp.identifier, format="observed"
-    ), f"Expected virtual observed property '{vp.identifier}' to be found with format='observed'"
+    assert ms.propertyWithIdentifierInSpace(vp.identifier, format="observed"), (
+        f"Expected virtual observed property '{vp.identifier}' to be found with format='observed'"
+    )

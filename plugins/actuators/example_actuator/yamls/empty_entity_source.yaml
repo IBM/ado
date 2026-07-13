@@ -2,5 +2,5 @@
 # SPDX-License-Identifier: MIT
 specification:
   module:
-    moduleName: orchestrator.core.samplestore.sql
+    moduleName: ado.core.samplestore.sql
     moduleClass: SQLSampleStore

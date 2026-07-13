@@ -11,15 +11,15 @@ from typing import NamedTuple
 
 from autogluon.tabular import TabularPredictor
 
+from ado.modules.actuators.custom_experiments import custom_experiment
+from ado.schema.domain import PropertyDomain, VariableTypeEnum
+from ado.schema.property import ConstitutiveProperty
 from autoconf.utils.pydantic_models import JobConfig
 from autoconf.utils.recommender import (
     NoRecommendationError,
     get_model_prediction_and_metadata,
     recommend_min_gpu,
 )
-from orchestrator.modules.actuators.custom_experiments import custom_experiment
-from orchestrator.schema.domain import PropertyDomain, VariableTypeEnum
-from orchestrator.schema.property import ConstitutiveProperty
 
 moduleLog = logging.getLogger()
 

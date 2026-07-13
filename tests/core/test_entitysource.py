@@ -7,36 +7,36 @@ from typing import Any
 
 import pytest
 
-import orchestrator.core
-import orchestrator.utilities
-import orchestrator.utilities.location
-from orchestrator.core import SampleStoreResource
-from orchestrator.core.samplestore.base import SampleStore
-from orchestrator.core.samplestore.config import (
+import ado.core
+import ado.utilities
+import ado.utilities.location
+from ado.core import SampleStoreResource
+from ado.core.samplestore.base import SampleStore
+from ado.core.samplestore.config import (
     SampleStoreConfiguration,
     SampleStoreModuleConf,
     SampleStoreReference,
 )
-from orchestrator.core.samplestore.csv import (
+from ado.core.samplestore.csv import (
     CSVSampleStore,
     CSVSampleStoreDescription,
 )
-from orchestrator.core.samplestore.sql import SQLSampleStore
-from orchestrator.schema.observed_property import ObservedProperty
-from orchestrator.schema.property import (
+from ado.core.samplestore.sql import SQLSampleStore
+from ado.schema.observed_property import ObservedProperty
+from ado.schema.property import (
     AbstractPropertyDescriptor,
     ConstitutivePropertyDescriptor,
     Property,
 )
-from orchestrator.schema.property_value import (
+from ado.schema.property_value import (
     ConstitutivePropertyValue,
     ValueTypeEnum,
 )
-from orchestrator.schema.reference import ExperimentReference
-from orchestrator.utilities.location import FilePathLocation, SQLStoreConfiguration
+from ado.schema.reference import ExperimentReference
+from ado.utilities.location import FilePathLocation, SQLStoreConfiguration
 
 if typing.TYPE_CHECKING:
-    from orchestrator.schema.entity import Entity
+    from ado.schema.entity import Entity
 
 
 def test_state_identifier(
@@ -89,7 +89,7 @@ def test_csv_sample_store_config(
 
     assert (
         csv_sample_store.location
-        == orchestrator.utilities.location.FilePathLocation.model_validate(location)
+        == ado.utilities.location.FilePathLocation.model_validate(location)
     )
 
 
@@ -131,8 +131,7 @@ def test_sample_store_resource(sample_store_resource: SampleStoreResource) -> No
     assert sample_store_resource.identifier == "test_source"
 
     assert (
-        sample_store_resource.kind
-        == orchestrator.core.resources.CoreResourceKinds.SAMPLESTORE
+        sample_store_resource.kind == ado.core.resources.CoreResourceKinds.SAMPLESTORE
     )
 
     assert sample_store_resource.created < datetime.datetime.now(datetime.timezone.utc)
@@ -155,7 +154,7 @@ def test_sample_store_resource(sample_store_resource: SampleStoreResource) -> No
     else:
         # Test setting a storageLocation, dumping, and loading
         sample_store_resource.config.specification.storageLocation = (
-            orchestrator.utilities.location.SQLStoreConfiguration(
+            ado.utilities.location.SQLStoreConfiguration(
                 scheme="mysql+pymysql",
                 host="localhost",
                 port=3306,
@@ -172,7 +171,7 @@ def test_sample_store_resource(sample_store_resource: SampleStoreResource) -> No
 @pytest.fixture
 def csv_sample_store_from_reference(
     csv_sample_store_reference: SampleStoreReference,
-) -> orchestrator.core.samplestore.csv.CSVSampleStore:
+) -> ado.core.samplestore.csv.CSVSampleStore:
     return SampleStore.from_reference(reference=csv_sample_store_reference)
 
 
@@ -222,7 +221,7 @@ def test_sample_store_specification(
 
     module, location = sample_store_module_and_storage_location
 
-    sample_store = orchestrator.core.samplestore.config.SampleStoreSpecification(
+    sample_store = ado.core.samplestore.config.SampleStoreSpecification(
         module=module,
         storageLocation=location,
     )
@@ -239,31 +238,25 @@ def test_sample_store_specification(
     # is preserving fields of ResourceLocation subclasses
     if isinstance(
         sample_store.storageLocation,
-        orchestrator.utilities.location.SQLStoreConfiguration,
+        ado.utilities.location.SQLStoreConfiguration,
     ):
         assert sample_store.storageLocation.database is not None
         assert raw["storageLocation"].get("database") is not None
 
-    m = orchestrator.core.samplestore.config.SampleStoreSpecification.model_validate(
-        raw
-    )
+    m = ado.core.samplestore.config.SampleStoreSpecification.model_validate(raw)
     assert m.storageLocation is not None
 
     # Test storageLocation can be optional
     # First, without passing storageLocation
-    sample_store = orchestrator.core.samplestore.config.SampleStoreSpecification(
-        module=module
-    )
+    sample_store = ado.core.samplestore.config.SampleStoreSpecification(module=module)
     # Next, passing storageLocation = None - this triggers different pydantic path
-    sample_store = orchestrator.core.samplestore.config.SampleStoreSpecification(
+    sample_store = ado.core.samplestore.config.SampleStoreSpecification(
         module=module, storageLocation=None
     )
 
     raw = sample_store.model_dump()
     print(raw)
-    m = orchestrator.core.samplestore.config.SampleStoreSpecification.model_validate(
-        raw
-    )
+    m = ado.core.samplestore.config.SampleStoreSpecification.model_validate(raw)
 
     assert m.storageLocation is None
 
@@ -275,10 +268,8 @@ def test_sample_store_correct_class(
 ) -> None:
     config, expectedClass = sample_store_test_data
 
-    sample_store = (
-        orchestrator.core.samplestore.config.SampleStoreSpecification.model_validate(
-            config
-        )
+    sample_store = ado.core.samplestore.config.SampleStoreSpecification.model_validate(
+        config
     )
     assert isinstance(sample_store.storageLocation, expectedClass)
 
@@ -307,9 +298,9 @@ def test_csv_sample_store_type_parsing(
 ) -> None:
     entity: Entity = ml_multi_cloud_csv_sample_store.entities[0]
     for prop_id in ["cpu_family", "vcpu_size", "nodes", "provider"]:
-        assert entity.valueForConstitutivePropertyIdentifier(
-            prop_id
-        ), f"Expected the entity to have a constitutive property {prop_id}"
+        assert entity.valueForConstitutivePropertyIdentifier(prop_id), (
+            f"Expected the entity to have a constitutive property {prop_id}"
+        )
 
     for prop_id in ["wallClockRuntime", "status"]:
         op = ObservedProperty(
@@ -319,9 +310,9 @@ def test_csv_sample_store_type_parsing(
             ),
             targetProperty=AbstractPropertyDescriptor(identifier=prop_id),
         )
-        assert entity.valuesForObservedPropertyIdentifier(
-            op.identifier
-        ), f"Expected the entity to have an observed property called {op.identifier}"
+        assert entity.valuesForObservedPropertyIdentifier(op.identifier), (
+            f"Expected the entity to have an observed property called {op.identifier}"
+        )
 
     assert (
         entity.valueForConstitutivePropertyIdentifier("cpu_family").valueType

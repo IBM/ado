@@ -11,25 +11,25 @@ from typing import Any
 import pytest
 import yaml
 
-import orchestrator.core
-import orchestrator.core.samplestore.resource
-import orchestrator.modules
-import orchestrator.utilities
-import orchestrator.utilities.location
-from orchestrator.core import ADOResource, SampleStoreResource
-from orchestrator.core.samplestore.config import (
+import ado.core
+import ado.core.samplestore.resource
+import ado.modules
+import ado.utilities
+import ado.utilities.location
+from ado.core import ADOResource, SampleStoreResource
+from ado.core.samplestore.config import (
     SampleStoreConfiguration,
     SampleStoreModuleConf,
     SampleStoreReference,
 )
-from orchestrator.core.samplestore.csv import (
+from ado.core.samplestore.csv import (
     CSVSampleStore,
     CSVSampleStoreDescription,
 )
-from orchestrator.core.samplestore.sql import SQLSampleStore
-from orchestrator.metastore.project import ProjectContext
-from orchestrator.metastore.sqlstore import SQLStore
-from orchestrator.utilities.location import FilePathLocation, SQLStoreConfiguration
+from ado.core.samplestore.sql import SQLSampleStore
+from ado.metastore.project import ProjectContext
+from ado.metastore.sqlstore import SQLStore
+from ado.utilities.location import FilePathLocation, SQLStoreConfiguration
 
 
 @pytest.fixture
@@ -42,15 +42,13 @@ def random_sample_store_resource_from_file(
 
         # We must set the storageLocation field before validation, or it will fail
         file_content = json.loads(file.read_text())
-        file_content["config"]["specification"][
-            "storageLocation"
-        ] = valid_ado_project_context.metadataStore.model_dump()
+        file_content["config"]["specification"]["storageLocation"] = (
+            valid_ado_project_context.metadataStore.model_dump()
+        )
 
         # Get the model
-        sample_store = (
-            orchestrator.core.samplestore.resource.SampleStoreResource.model_validate(
-                file_content
-            )
+        sample_store = ado.core.samplestore.resource.SampleStoreResource.model_validate(
+            file_content
         )
 
         # Final touch-ups
@@ -149,7 +147,7 @@ def csv_sample_store_reference(
     return SampleStoreReference(
         module=SampleStoreModuleConf(
             moduleClass="CSVSampleStore",
-            moduleName="orchestrator.core.samplestore.csv",
+            moduleName="ado.core.samplestore.csv",
         ),
         storageLocation=location,
         parameters=parameters,
@@ -166,7 +164,7 @@ def csv_sample_store(
     location, parameters = csv_sample_store_parameters
 
     return CSVSampleStore(
-        storageLocation=orchestrator.utilities.location.FilePathLocation.model_validate(
+        storageLocation=ado.utilities.location.FilePathLocation.model_validate(
             location
         ),
         parameters=CSVSampleStoreDescription.model_validate(parameters),
@@ -179,7 +177,7 @@ def sample_store_configuration_smiles_yaml() -> dict[str, Any]:  # noqa: ANN401
     copyFrom:
     - module:
         moduleClass: CSVSampleStore
-        moduleName: orchestrator.core.samplestore.csv
+        moduleName: ado.core.samplestore.csv
       storageLocation:
         path: 'tests/test_generations.csv'
       parameters:
@@ -205,11 +203,9 @@ def sample_store_configuration_smiles_yaml() -> dict[str, Any]:  # noqa: ANN401
 @pytest.fixture
 def sample_store_configuration_smiles(
     sample_store_configuration_smiles_yaml: dict[str, Any],
-) -> orchestrator.core.samplestore.config.SampleStoreConfiguration:
-    source_conf = (
-        orchestrator.core.samplestore.config.SampleStoreConfiguration.model_validate(
-            sample_store_configuration_smiles_yaml
-        )
+) -> ado.core.samplestore.config.SampleStoreConfiguration:
+    source_conf = ado.core.samplestore.config.SampleStoreConfiguration.model_validate(
+        sample_store_configuration_smiles_yaml
     )
 
     assert source_conf.copyFrom[0].module.moduleClass == "CSVSampleStore"
@@ -247,12 +243,12 @@ def sample_store_test_data(
     if request.param == "sql":
         c = (
             yaml.safe_load(sqlConfig),
-            orchestrator.utilities.location.SQLStoreConfiguration,
+            ado.utilities.location.SQLStoreConfiguration,
         )
     elif request.param == "csv":
         c = (
             yaml.safe_load(csvConfig),
-            orchestrator.utilities.location.FilePathLocation,
+            ado.utilities.location.FilePathLocation,
         )
 
     return c
@@ -261,7 +257,7 @@ def sample_store_test_data(
 csvConfig = """
 module:
   moduleClass: CSVSampleStore
-  moduleName: orchestrator.core.samplestore.csv
+  moduleName: ado.core.samplestore.csv
 parameters:
   generatorIdentifier: 'gt4sd-pfas-molgx-model-one'
   identifierColumn: 'smiles'
@@ -279,7 +275,7 @@ storageLocation:
 """
 sqlConfig = """
 module:
-  moduleName: orchestrator.core.samplestore.sql
+  moduleName: ado.core.samplestore.sql
   moduleClass: SQLSampleStore
 storageLocation:
   scheme: mysql+pymysql
@@ -297,7 +293,7 @@ def sample_store_module_and_storage_location(
 ) -> tuple[SampleStoreModuleConf, SQLStoreConfiguration]:
     return SampleStoreModuleConf(
         moduleClass="SQLSampleStore",
-        moduleName="orchestrator.core.samplestore.sql",
+        moduleName="ado.core.samplestore.sql",
     ), SQLStoreConfiguration(
         scheme="mysql+pymysql",
         host="localhost",
@@ -310,14 +306,14 @@ def sample_store_module_and_storage_location(
 
 @pytest.fixture
 def ado_sql_sample_store_with_storagelocation() -> (
-    orchestrator.core.samplestore.config.SampleStoreConfiguration
+    ado.core.samplestore.config.SampleStoreConfiguration
 ):
     y = """
     copyFrom: []
     specification:
       module:
         moduleClass: SQLSampleStore
-        moduleName: orchestrator.core.samplestore.sql
+        moduleName: ado.core.samplestore.sql
         modulePath: .
         moduleType: sample_store
       parameters: {}
@@ -332,7 +328,7 @@ def ado_sql_sample_store_with_storagelocation() -> (
         user: some-user
     """
 
-    return orchestrator.core.samplestore.config.SampleStoreConfiguration.model_validate(
+    return ado.core.samplestore.config.SampleStoreConfiguration.model_validate(
         yaml.safe_load(y)
     )
 

@@ -8,9 +8,9 @@ from collections.abc import Callable
 from testcontainers.mysql import MySqlContainer
 from typer.testing import CliRunner
 
-from orchestrator.cli.core.cli import app as ado
-from orchestrator.core.discoveryspace.space import DiscoverySpace
-from orchestrator.metastore.project import ProjectContext
+from ado.cli.core.cli import app as ado
+from ado.core.discoveryspace.space import DiscoverySpace
+from ado.metastore.project import ProjectContext
 
 
 def test_describe_nonexistent_space(
@@ -29,7 +29,7 @@ def test_describe_nonexistent_space(
     nonexistent_space_id = "i-do-not-exist"
     result = runner.invoke(
         ado,
-        ["--override-ado-app-dir", tmp_path, "describe", "space", nonexistent_space_id],
+        ["describe", "space", nonexistent_space_id],
     )
     assert result.exit_code == 1
     # Travis CI cannot capture output reliably
@@ -54,9 +54,7 @@ def test_describe_valid_space(
         runner=runner, path=tmp_path, project_context=valid_ado_project_context
     )
 
-    result = runner.invoke(
-        ado, ["--override-ado-app-dir", tmp_path, "describe", "space", pfas_space.uri]
-    )
+    result = runner.invoke(ado, ["describe", "space", pfas_space.uri])
     assert result.exit_code == 0
     # AP: TODO: find something actually meaningful to test
 

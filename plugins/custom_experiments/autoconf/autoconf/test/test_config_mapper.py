@@ -66,9 +66,9 @@ def test_map_valid_model_name_granite_3_1_2b_variants() -> None:
         ("granite-3.3-2b-instruct", mapped_models["GRANITE_3_1_2B"]),
     ]
     for input_name, expected_output in test_cases:
-        assert (
-            map_valid_model_name(input_name) == expected_output
-        ), f"Failed for input: {input_name}"
+        assert map_valid_model_name(input_name) == expected_output, (
+            f"Failed for input: {input_name}"
+        )
 
 
 def test_map_valid_model_name_granite_3_1_8b_variants() -> None:
@@ -84,9 +84,9 @@ def test_map_valid_model_name_granite_3_1_8b_variants() -> None:
         ("granite-3.3-8b-instruct", mapped_models["GRANITE_3_1_8B"]),
     ]
     for input_name, expected_output in test_cases:
-        assert (
-            map_valid_model_name(input_name) == expected_output
-        ), f"Failed for input: {input_name}"
+        assert map_valid_model_name(input_name) == expected_output, (
+            f"Failed for input: {input_name}"
+        )
 
 
 def test_map_valid_model_name_llama_3_1_8b_variants() -> None:
@@ -98,9 +98,9 @@ def test_map_valid_model_name_llama_3_1_8b_variants() -> None:
         ("llama-3.1-8b-custom", mapped_models["LLAMA_3_1_8B"]),
     ]
     for input_name, expected_output in test_cases:
-        assert (
-            map_valid_model_name(input_name) == expected_output
-        ), f"Failed for input: {input_name}"
+        assert map_valid_model_name(input_name) == expected_output, (
+            f"Failed for input: {input_name}"
+        )
 
 
 def test_map_valid_model_name_granite_4_variants() -> None:
@@ -120,9 +120,9 @@ def test_map_valid_model_name_granite_4_variants() -> None:
         ("granite-4.0-h-micro-instruct", mapped_models["GRANITE_4_MICRO"]),
     ]
     for input_name, expected_output in test_cases:
-        assert (
-            map_valid_model_name(input_name) == expected_output
-        ), f"Failed for input: {input_name}"
+        assert map_valid_model_name(input_name) == expected_output, (
+            f"Failed for input: {input_name}"
+        )
 
 
 def test_map_valid_model_name_no_match_returns_original() -> None:
@@ -139,9 +139,9 @@ def test_map_valid_model_name_no_match_returns_original() -> None:
         "granite-4.0-large",  # size not in patterns
     ]
     for name in unmatched_names:
-        assert (
-            map_valid_model_name(name) == name
-        ), f"Expected unchanged output for: {name}"
+        assert map_valid_model_name(name) == name, (
+            f"Expected unchanged output for: {name}"
+        )
 
 
 def test_map_valid_model_name_empty_string() -> None:

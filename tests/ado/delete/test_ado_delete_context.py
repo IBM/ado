@@ -7,8 +7,8 @@ from collections.abc import Callable
 
 from typer.testing import CliRunner
 
-from orchestrator.cli.core.cli import app as ado
-from orchestrator.metastore.project import ProjectContext
+from ado.cli.core.cli import app as ado
+from ado.metastore.project import ProjectContext
 
 
 def test_delete_nonexistent_context(
@@ -24,9 +24,7 @@ def test_delete_nonexistent_context(
     )
 
     nonexistent_name = "i-do-not-exist"
-    result = runner.invoke(
-        ado, ["--override-ado-app-dir", tmp_path, "delete", "context", nonexistent_name]
-    )
+    result = runner.invoke(ado, ["delete", "context", nonexistent_name])
     assert result.exit_code == 1
     # Travis CI cannot capture output reliably
     if os.environ.get("CI", "false") != "true":

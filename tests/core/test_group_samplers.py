@@ -5,24 +5,24 @@ from typing import Any
 
 import pytest
 
-from orchestrator.core.discoveryspace.group_samplers import (
+from ado.core.discoveryspace.group_samplers import (
     ExplicitEntitySpaceGroupedGridSampleGenerator,
     RandomGroupSampleSelector,
     SequentialGroupSampleSelector,
     _build_groups_dict,
     _get_space_matching_points,
 )
-from orchestrator.core.discoveryspace.samplers import (
+from ado.core.discoveryspace.samplers import (
     GroupSampler,
     WalkModeEnum,
 )
-from orchestrator.core.discoveryspace.space import DiscoverySpace
-from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
-from orchestrator.modules.operators.discovery_space_manager import (
+from ado.core.discoveryspace.space import DiscoverySpace
+from ado.modules.actuators.measurement_queue import MeasurementQueue
+from ado.modules.operators.discovery_space_manager import (
     DiscoverySpaceManager,
 )
-from orchestrator.schema.entityspace import EntitySpaceRepresentation
-from orchestrator.schema.property import ConstitutiveProperty
+from ado.schema.entityspace import EntitySpaceRepresentation
+from ado.schema.property import ConstitutiveProperty
 
 
 @pytest.fixture(params=[WalkModeEnum.RANDOM, WalkModeEnum.SEQUENTIAL])
@@ -61,7 +61,6 @@ def check_group_order(
         if sampler.mode == WalkModeEnum.RANDOM:
             assert group_order != expected_group_order
         else:
-
             assert group_order == expected_group_order
     else:
         points = _get_space_matching_points(discovery_space=space)
@@ -114,9 +113,9 @@ def test_group_sampler_local(
 
     sampler = group_sampler_ml_multi_cloud_space
     space = ml_multi_cloud_space
-    assert (
-        space.sample_store.numberOfEntities == 42
-    ), "Expected 42 entities in ml cloud sample store"
+    assert space.sample_store.numberOfEntities == 42, (
+        "Expected 42 entities in ml cloud sample store"
+    )
 
     count = 0
     i = 0
@@ -136,12 +135,12 @@ def test_group_sampler_local(
             for e in group
         }
 
-        assert (
-            len(node_value) == 1
-        ), "Expected all entities in group to have same value for nodes property"
-        assert (
-            len(cpu_value) == 1
-        ), "Expected all entities in group to have same value for cpu_family property"
+        assert len(node_value) == 1, (
+            "Expected all entities in group to have same value for nodes property"
+        )
+        assert len(cpu_value) == 1, (
+            "Expected all entities in group to have same value for cpu_family property"
+        )
 
         group_order.append(
             frozenset([("nodes", node_value.pop()), ("cpu_family", cpu_value.pop())])
@@ -149,13 +148,13 @@ def test_group_sampler_local(
 
     # Generators versus Selectors: There will be a different number of entities iterated
     if isinstance(sampler, ExplicitEntitySpaceGroupedGridSampleGenerator):
-        assert (
-            count == space.entitySpace.size
-        ), "Expected for generators that the number of entities iterated is equal to size of entity space"
+        assert count == space.entitySpace.size, (
+            "Expected for generators that the number of entities iterated is equal to size of entity space"
+        )
     else:
-        assert count == len(
-            space.matchingEntities()
-        ), "Expected for selectors that the number of entities iterated is equal to number matching entities in source"
+        assert count == len(space.matchingEntities()), (
+            "Expected for selectors that the number of entities iterated is equal to number matching entities in source"
+        )
 
     check_group_order(
         sampler=sampler,
@@ -174,9 +173,9 @@ def test_group_sampler_sequential_local(
 ) -> None:
     sampler = group_sampler_ml_multi_cloud_space
     space = ml_multi_cloud_space
-    assert (
-        space.sample_store.numberOfEntities == 42
-    ), "Expected 42 entities in ml cloud sample store"
+    assert space.sample_store.numberOfEntities == 42, (
+        "Expected 42 entities in ml cloud sample store"
+    )
 
     count = 0
     entities = []
@@ -193,13 +192,13 @@ def test_group_sampler_sequential_local(
 
     # Generators versus Selectors: There will be a different number of entities iterated
     if isinstance(sampler, ExplicitEntitySpaceGroupedGridSampleGenerator):
-        assert (
-            count == space.entitySpace.size
-        ), "Expected for generators that the number of entities iterated is equal to size of entity space"
+        assert count == space.entitySpace.size, (
+            "Expected for generators that the number of entities iterated is equal to size of entity space"
+        )
     else:
-        assert count == len(
-            space.matchingEntities()
-        ), "Expected for selectors that the number of entities iterated is equal to number matching entities in source"
+        assert count == len(space.matchingEntities()), (
+            "Expected for selectors that the number of entities iterated is equal to number matching entities in source"
+        )
 
 
 @pytest.mark.asyncio
@@ -209,9 +208,9 @@ async def test_group_sampler_remote(
 ) -> None:
     sampler = group_sampler_ml_multi_cloud_space
     space = ml_multi_cloud_space
-    assert (
-        space.sample_store.numberOfEntities == 42
-    ), "Expected 42 entities in ml cloud sample store"
+    assert space.sample_store.numberOfEntities == 42, (
+        "Expected 42 entities in ml cloud sample store"
+    )
 
     # Test Remote Sequential Iterator
     queue = MeasurementQueue()
@@ -235,12 +234,12 @@ async def test_group_sampler_remote(
             for e in group
         }
 
-        assert (
-            len(node_value) == 1
-        ), "Expected all entities in group to have same value for nodes property"
-        assert (
-            len(cpu_value) == 1
-        ), "Expected all entities in group to have same value for cpu_family property"
+        assert len(node_value) == 1, (
+            "Expected all entities in group to have same value for nodes property"
+        )
+        assert len(cpu_value) == 1, (
+            "Expected all entities in group to have same value for cpu_family property"
+        )
 
         group_order.append(
             frozenset([("nodes", node_value.pop()), ("cpu_family", cpu_value.pop())])
@@ -248,13 +247,13 @@ async def test_group_sampler_remote(
 
     # Generators versus Selectors: There will be a different number of entities iterated
     if isinstance(sampler, ExplicitEntitySpaceGroupedGridSampleGenerator):
-        assert (
-            count == space.entitySpace.size
-        ), "Expected for generators that the number of entities iterated is equal to size of entity space"
+        assert count == space.entitySpace.size, (
+            "Expected for generators that the number of entities iterated is equal to size of entity space"
+        )
     else:
-        assert count == len(
-            space.matchingEntities()
-        ), "Expected for selectors that the number of entities iterated is equal to number matching entities in source"
+        assert count == len(space.matchingEntities()), (
+            "Expected for selectors that the number of entities iterated is equal to number matching entities in source"
+        )
 
     assert group_count == 8, "Expected 8 groups over nodes+cpu_family"
 
@@ -274,9 +273,9 @@ async def test_group_sampler_sequential_remote(
 
     sampler = group_sampler_ml_multi_cloud_space
     space = ml_multi_cloud_space
-    assert (
-        space.sample_store.numberOfEntities == 42
-    ), "Expected 42 entities in ml cloud sample store"
+    assert space.sample_store.numberOfEntities == 42, (
+        "Expected 42 entities in ml cloud sample store"
+    )
 
     # Test Remote Sequential Iterator
     queue = MeasurementQueue()
@@ -303,13 +302,13 @@ async def test_group_sampler_sequential_remote(
 
     # Generators versus Selectors: There will be a different number of entities iterated
     if isinstance(sampler, ExplicitEntitySpaceGroupedGridSampleGenerator):
-        assert (
-            count == space.entitySpace.size
-        ), "Expected for generators that the number of entities iterated is equal to size of entity space"
+        assert count == space.entitySpace.size, (
+            "Expected for generators that the number of entities iterated is equal to size of entity space"
+        )
     else:
-        assert count == len(
-            space.matchingEntities()
-        ), "Expected for selectors that the number of entities iterated is equal to number matching entities in source"
+        assert count == len(space.matchingEntities()), (
+            "Expected for selectors that the number of entities iterated is equal to number matching entities in source"
+        )
 
 
 @pytest.mark.asyncio

@@ -71,18 +71,16 @@ uv sync --active --group test --reinstall
 > [Automating checks with pre-commit](#automating-checks-with-pre-commit)
 > section to automate this.
 
-This repository follows the [`black`](https://black.readthedocs.io/en/stable/)
-style for formatting.
+This repository uses [`ruff format`](https://docs.astral.sh/ruff/formatter/) for
+formatting.
 
 You can format your code by:
 
-- Manually running `black tests/ orchestrator/ plugins/`
-- Setting up PyCharm to use the `black` integration:
-  <https://www.jetbrains.com/help/pycharm/reformat-and-rearrange-code.html#format-python-code-with-black>
+- Manually running `ruff format tests/ ado/ plugins/`
 - Using the
-  ["Black formatter" extension for VSCode](https://marketplace.visualstudio.com/items?itemName=ms-python.black-formatter)
+  [Ruff extension for VSCode](https://marketplace.visualstudio.com/items?itemName=charliermarsh.ruff)
   and setting it as the default formatter:
-  <https://code.visualstudio.com/docs/python/formatting#_set-a-default-formatter>
+  <https://docs.astral.sh/ruff/editors/settings/>
 
 ## Linting code with ruff
 
@@ -302,10 +300,10 @@ highlighting any issues and preventing the commit if problems are found.
 
 ### Handling pre-commit failures
 
-1. **Black code formatting failures**: try committing again, `black` might have
+1. **Ruff format failures**: try committing again, `ruff format` might have
    reformatted your code in-place.
-   - If black fails to format your code, your files have syntax errors.
-     [Try manually running black](#code-style).
+   - If ruff format fails to format your code, your files have syntax errors.
+     [Try manually running ruff format](#code-style).
 2. **Ruff linter failures**: run `ruff` as specified in
    [Linting code with ruff](#linting-code-with-ruff) and fix the code that is
    causing the failures.

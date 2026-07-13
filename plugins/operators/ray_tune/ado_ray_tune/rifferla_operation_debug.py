@@ -1,9 +1,9 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-import orchestrator.core.discoveryspace.space
-import orchestrator.metastore.project
-from orchestrator.modules.operators.collections import modify
+import ado.core.discoveryspace.space
+import ado.metastore.project
+from ado.modules.operators.collections import modify
 
 # datacol_lhs_v0
 # on spark DB (sadly)
@@ -24,15 +24,12 @@ project = "caikit-testharness"
 
 
 if __name__ == "__main__":
-
-    project_context = orchestrator.metastore.project.ProjectContext(
+    project_context = ado.metastore.project.ProjectContext(
         project=project
     )  # from environment as default
 
-    inputSpace = (
-        orchestrator.core.discoveryspace.space.DiscoverySpace.from_stored_configuration(
-            project_context=project_context, space_identifier=space_id
-        )
+    inputSpace = ado.core.discoveryspace.space.DiscoverySpace.from_stored_configuration(
+        project_context=project_context, space_identifier=space_id
     )
 
     metric = "latency95"

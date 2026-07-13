@@ -5,22 +5,22 @@ from collections.abc import Callable
 import numpy.random
 import pytest
 
-from orchestrator.schema.entity import Entity
-from orchestrator.schema.experiment import Experiment
-from orchestrator.schema.observed_property import (
+from ado.schema.entity import Entity
+from ado.schema.experiment import Experiment
+from ado.schema.observed_property import (
     ObservedProperty,
     ObservedPropertyValue,
 )
-from orchestrator.schema.property import AbstractPropertyDescriptor
-from orchestrator.schema.property_value import ConstitutivePropertyValue
-from orchestrator.schema.reference import ExperimentReference
-from orchestrator.schema.result import (
+from ado.schema.property import AbstractPropertyDescriptor
+from ado.schema.property_value import ConstitutivePropertyValue
+from ado.schema.reference import ExperimentReference
+from ado.schema.result import (
     InvalidMeasurementResult,
     MeasurementResult,
     MeasurementResultStateEnum,
     ValidMeasurementResult,
 )
-from orchestrator.schema.virtual_property import (
+from ado.schema.virtual_property import (
     PropertyAggregationMethod,
     VirtualObservedProperty,
 )
@@ -311,7 +311,7 @@ def test_compressed_serialization_format(
 
 def test_old_format_deserialization(entity: Entity) -> None:
     """Verify old format can still be deserialized"""
-    from orchestrator.schema.domain import PropertyDomain, VariableTypeEnum
+    from ado.schema.domain import PropertyDomain, VariableTypeEnum
 
     # Create old format JSON (with experimentReference in each measurement)
     old_format_json = {
@@ -353,7 +353,7 @@ def test_old_format_deserialization(entity: Entity) -> None:
 
 def test_new_format_deserialization(entity: Entity) -> None:
     """Verify new format deserializes correctly"""
-    from orchestrator.schema.domain import PropertyDomain, VariableTypeEnum
+    from ado.schema.domain import PropertyDomain, VariableTypeEnum
 
     # Create new format JSON (experimentReference at top level)
     new_format_json = {

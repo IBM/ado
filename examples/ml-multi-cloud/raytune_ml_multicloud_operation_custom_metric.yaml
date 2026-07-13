@@ -8,7 +8,7 @@ spaces:
 operation:
   module:
     operatorName: "ray_tune"
-    operationType: "search"
+    operationType: "explore"
   parameters:
     tuneConfig:
       search_alg:

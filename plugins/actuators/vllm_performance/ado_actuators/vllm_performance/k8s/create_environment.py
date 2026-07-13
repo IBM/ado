@@ -4,6 +4,7 @@
 import logging
 
 import pydantic
+from ado_actuators.vllm_performance.k8s import K8sDeploymentCreationTimeoutError
 from ado_actuators.vllm_performance.k8s.manage_components import (
     ComponentsManager,
 )
@@ -104,36 +105,55 @@ def create_test_environment(
     )
     logger.debug("component manager created")
 
-    # deployment
-    c_manager.create_deployment(
-        k8s_name=k8s_name,
-        model=model,
-        gpu_type=gpu_type,
-        node_selector=node_selector,
-        image=image,
-        image_pull_secret_name=image_pull_secret_name,
-        n_gpus=n_gpus,
-        n_cpus=n_cpus,
-        memory=memory,
-        template=deployment_template,
-        claim_name=pvc_name,
-        hf_token=hf_token,
-        enforce_eager=enforce_eager,
-        skip_tokenizer_init=skip_tokenizer_init,
-        io_processor_plugin=io_processor_plugin,
-        otlp_traces_endpoint=otlp_traces_endpoint,
-        renderer_num_workers=renderer_num_workers,
-    )
-    logger.debug("deployment created")
-    c_manager.wait_deployment_ready(
-        k8s_name=k8s_name,
-        check_interval=check_interval,
-        timeout=timeout,
-    )
-    logger.info("deployment ready")
-    # service
-    c_manager.create_service(k8s_name=k8s_name, template=service_template)
-    logger.info("service created")
+    try:
+        # deployment
+        c_manager.create_deployment(
+            k8s_name=k8s_name,
+            model=model,
+            gpu_type=gpu_type,
+            node_selector=node_selector,
+            image=image,
+            image_pull_secret_name=image_pull_secret_name,
+            n_gpus=n_gpus,
+            n_cpus=n_cpus,
+            memory=memory,
+            max_batch_tokens=max_batch_tokens,
+            gpu_memory_utilization=gpu_memory_utilization,
+            dtype=dtype,
+            cpu_offload=cpu_offload,
+            max_num_seq=max_num_seq,
+            template=deployment_template,
+            claim_name=pvc_name,
+            hf_token=hf_token,
+            enforce_eager=enforce_eager,
+            skip_tokenizer_init=skip_tokenizer_init,
+            io_processor_plugin=io_processor_plugin,
+            otlp_traces_endpoint=otlp_traces_endpoint,
+            renderer_num_workers=renderer_num_workers,
+        )
+        logger.debug(f"Deployment {k8s_name} created")
+
+        c_manager.wait_deployment_ready(
+            k8s_name=k8s_name,
+            check_interval=check_interval,
+            timeout=timeout,
+        )
+
+        logger.info(f"Deployment {k8s_name} ready")
+
+        # service
+        c_manager.create_service(k8s_name=k8s_name, template=service_template)
+        logger.info(f"Service {k8s_name} created")
+
+    except Exception as e:
+        # If the deployment/service creation fail we try to delete the existing
+        # resources if created, to make sure we don't re-create existing resources during
+        # a retry.
+        if isinstance(e, K8sDeploymentCreationTimeoutError):
+            logger.debug("Creating the {k8s_name} deployment has timed out")
+        c_manager.delete_deployment(k8s_name=k8s_name, suppress_not_found_error=True)
+        c_manager.delete_service(k8s_name=k8s_name, suppress_not_found_error=True)
+        raise (e)
 
 
 if __name__ == "__main__":

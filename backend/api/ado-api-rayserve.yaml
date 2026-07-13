@@ -7,8 +7,8 @@ metadata:
 spec:
   serveConfigV2: |
     applications:
-      - import_path: orchestrator.api.rest:ado_rest_api
-        name: orchestrator_api
+      - import_path: ado.api.rest:ado_rest_api
+        name: ado_api
         deployments:
         - name: AdoRESTApi
   rayClusterConfig:

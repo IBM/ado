@@ -5,28 +5,28 @@ import re
 import numpy as np
 import pytest
 
-from orchestrator.core.samplestore.csv import CSVSampleStore
-from orchestrator.modules.actuators.registry import ActuatorRegistry
-from orchestrator.schema.entity import (
+from ado.core.samplestore.csv import CSVSampleStore
+from ado.modules.actuators.registry import ActuatorRegistry
+from ado.schema.entity import (
     CheckRequiredConstitutivePropertyValuesPresent,
     Entity,
     entity_identifier_from_properties_and_values,
 )
-from orchestrator.schema.experiment import Experiment, ParameterizedExperiment
-from orchestrator.schema.observed_property import (
+from ado.schema.experiment import Experiment, ParameterizedExperiment
+from ado.schema.observed_property import (
     ObservedProperty,
     ObservedPropertyValue,
 )
-from orchestrator.schema.property import (
+from ado.schema.property import (
     AbstractPropertyDescriptor,
     ConcretePropertyDescriptor,
     ConstitutivePropertyDescriptor,
     MeasuredPropertyTypeEnum,
     NonMeasuredPropertyTypeEnum,
 )
-from orchestrator.schema.reference import ExperimentReference
-from orchestrator.schema.result import ValidMeasurementResult
-from orchestrator.schema.virtual_property import (
+from ado.schema.reference import ExperimentReference
+from ado.schema.result import ValidMeasurementResult
+from ado.schema.virtual_property import (
     PropertyAggregationMethod,
     PropertyAggregationMethodEnum,
     VirtualObservedProperty,
@@ -90,9 +90,9 @@ def test_number_and_type_of_property_method_return_values(entity: Entity) -> Non
     entity.add_measurement_result(result)
 
     assert len(entity.observedProperties) > 0, "Expected at least one observed property"
-    assert (
-        len(entity.constitutiveProperties) > 0
-    ), "Expected at least one constitutive property"
+    assert len(entity.constitutiveProperties) > 0, (
+        "Expected at least one constitutive property"
+    )
 
     assert len(entity.propertyValues) > 1, "Expected at least two property values"
 
@@ -121,17 +121,21 @@ def test_number_and_type_of_property_method_return_values(entity: Entity) -> Non
     # Properties is the sum of observed properties and constitutive properties
     assert len(entity.properties) == len(entity.observedProperties) + len(
         entity.constitutiveProperties
-    ), "The total number of properties should be the sum of the number of observed and constitutive properties"
+    ), (
+        "The total number of properties should be the sum of the number of observed and constitutive properties"
+    )
 
     # PropertyValues is the sum of observedPropertyValues and constitutivePropertyValues
     assert len(entity.properties) == len(entity.observedProperties) + len(
         entity.constitutiveProperties
-    ), "The total number of properties should be the sum of the number of observed and constitutive properties"
+    ), (
+        "The total number of properties should be the sum of the number of observed and constitutive properties"
+    )
 
     for p in entity.observedProperties:
-        assert (
-            p.propertyType == MeasuredPropertyTypeEnum.MEASURED_PROPERTY_TYPE
-        ), "All observed properties should be type ObservedProperty"
+        assert p.propertyType == MeasuredPropertyTypeEnum.MEASURED_PROPERTY_TYPE, (
+            "All observed properties should be type ObservedProperty"
+        )
 
     for p in entity.constitutiveProperties:
         assert (
@@ -306,16 +310,18 @@ def test_identifier_from_property_values(
 
     assert (
         ident := Entity.identifier_from_property_values(constitutive_property_values)
-    ), "Expected identifier_from_property_values to return an identifier given a set of constitutive property values"
+    ), (
+        "Expected identifier_from_property_values to return an identifier given a set of constitutive property values"
+    )
 
     # The identifier should be sorted alphabetically by property identifier
     sorted_parts = sorted(
         [f"{pv.property.identifier}.{pv.value}" for pv in constitutive_property_values],
         key=lambda x: x.split(".")[0],
     )
-    assert ident == "-".join(
-        sorted_parts
-    ), "Expected the ident to have a certain format: $PROP1_ID.$PROP1_VALUE-$PROP2_ID.$PROP2_VALUE ... (sorted alphabetically by property ID)"
+    assert ident == "-".join(sorted_parts), (
+        "Expected the ident to have a certain format: $PROP1_ID.$PROP1_VALUE-$PROP2_ID.$PROP2_VALUE ... (sorted alphabetically by property ID)"
+    )
 
     constitutive_property_values = [
         *list(constitutive_property_values),
@@ -334,9 +340,9 @@ def test_identifier_from_property_values(
     ) as expected_exception:
         Entity.identifier_from_property_values(constitutive_property_values)
 
-    assert (
-        expected_exception is not None
-    ), "Expected property with identifier to fail if a non constitutive property was passed"
+    assert expected_exception is not None, (
+        "Expected property with identifier to fail if a non constitutive property was passed"
+    )
 
 
 def test_value_error_duplicate_constitutive_properties(
@@ -347,15 +353,17 @@ def test_value_error_duplicate_constitutive_properties(
 
     assert (
         ident := Entity.identifier_from_property_values(constitutive_property_values)
-    ), "Expected identifier_from_property_values to return an identifier given a set of constitutive property values"
+    ), (
+        "Expected identifier_from_property_values to return an identifier given a set of constitutive property values"
+    )
     # The identifier should be sorted alphabetically by property identifier
     sorted_parts = sorted(
         [f"{pv.property.identifier}.{pv.value}" for pv in constitutive_property_values],
         key=lambda x: x.split(".")[0],
     )
-    assert ident == "-".join(
-        sorted_parts
-    ), "Expected the ident to have a certain format: $PROP1_ID.$PROP1_VALUE-$PROP2_ID.$PROP2_VALUE ... (sorted alphabetically by property ID)"
+    assert ident == "-".join(sorted_parts), (
+        "Expected the ident to have a certain format: $PROP1_ID.$PROP1_VALUE-$PROP2_ID.$PROP2_VALUE ... (sorted alphabetically by property ID)"
+    )
 
     with pytest.raises(ValueError, match="Constitutive properties must be unique"):
         Entity(
@@ -381,9 +389,9 @@ def test_value_error_duplicate_measurement_results(
     ) as expected_exception:
         test_entity.add_measurement_result(result)
 
-    assert (
-        expected_exception is not None
-    ), "Expected adding duplicate result would raise ValueError"
+    assert expected_exception is not None, (
+        "Expected adding duplicate result would raise ValueError"
+    )
 
     d = test_entity.model_dump()
     d.pop("measurement_results")
@@ -404,28 +412,30 @@ def test_observed_properties_from_experiment_reference(
     test_entity, result = valid_measurement_result_and_entity
 
     ref = result.experimentReference
-    assert not test_entity.observedPropertiesFromExperimentReference(
-        ref
-    ), "Expected the entity fixture to have no results added"
+    assert not test_entity.observedPropertiesFromExperimentReference(ref), (
+        "Expected the entity fixture to have no results added"
+    )
     test_entity.add_measurement_result(result)
     exp = global_registry.experimentForReference(ref)
 
-    assert (
-        ops := test_entity.observedPropertiesFromExperimentReference(ref)
-    ), "Expected the entity to return properties once results added"
+    assert (ops := test_entity.observedPropertiesFromExperimentReference(ref)), (
+        "Expected the entity to return properties once results added"
+    )
     assert set(ops) == set(
         ParameterizedExperiment(
             parameterization=ref.parameterization, **exp.model_dump()
         ).observedProperties
-    ), "Expected the observed properties to have the names of the properties of parameterized experiment the measurements came from"
+    ), (
+        "Expected the observed properties to have the names of the properties of parameterized experiment the measurements came from"
+    )
 
-    assert (
-        results := test_entity.measurement_results_for_experiment_reference(ref)
-    ), "Expected a result to be returned for the experiment added"
+    assert (results := test_entity.measurement_results_for_experiment_reference(ref)), (
+        "Expected a result to be returned for the experiment added"
+    )
     assert len(results) == 1, "Expected there to be only 1 result as only 1 was added"
-    assert (
-        results[0] == result
-    ), "Expected the returned result to be identical to the added result"
+    assert results[0] == result, (
+        "Expected the returned result to be identical to the added result"
+    )
 
 
 def test_series_representation_with_observed_property_values(
@@ -435,55 +445,55 @@ def test_series_representation_with_observed_property_values(
 
     test_entity, result = valid_measurement_result_and_entity
     ref = result.experimentReference
-    assert not test_entity.observedPropertiesFromExperimentReference(
-        ref
-    ), "Expected the entity fixture to have no results added"
+    assert not test_entity.observedPropertiesFromExperimentReference(ref), (
+        "Expected the entity fixture to have no results added"
+    )
 
     test_entity.add_measurement_result(result)
 
     # Test plain series_representation
-    assert (
-        ser := test_entity.seriesRepresentation()
-    ) is not None, "Expected a series representation to be returned"
+    assert (ser := test_entity.seriesRepresentation()) is not None, (
+        "Expected a series representation to be returned"
+    )
     for cp in test_entity.constitutive_property_values:
-        assert (
-            ser[cp.property.identifier] == cp.value
-        ), f"Expected the series representation to have a key:value for {cp}"
+        assert ser[cp.property.identifier] == cp.value, (
+            f"Expected the series representation to have a key:value for {cp}"
+        )
 
     for ov in test_entity.observedPropertyValues:
-        assert (
-            ser[ov.property.identifier] == ov.value
-        ), f"Expected the series representation to have a key:value for {ov}"
+        assert ser[ov.property.identifier] == ov.value, (
+            f"Expected the series representation to have a key:value for {ov}"
+        )
 
     # test constitutiveOnly
     assert (
         ser := test_entity.seriesRepresentation(constitutiveOnly=True)
     ) is not None, "Expected a series representation to be returned"
     for cp in test_entity.constitutive_property_values:
-        assert (
-            ser[cp.property.identifier] == cp.value
-        ), f"Expected the series representation to have a key:value for {cp}"
+        assert ser[cp.property.identifier] == cp.value, (
+            f"Expected the series representation to have a key:value for {cp}"
+        )
 
     for ov in test_entity.observedPropertyValues:
-        assert not ser.get(
-            ov.property.identifier
-        ), f"Expected the series representation to have a key:value for {ov}"
+        assert not ser.get(ov.property.identifier), (
+            f"Expected the series representation to have a key:value for {ov}"
+        )
 
     # Test series_representation with specific references
     assert (
         ser := test_entity.seriesRepresentation(experimentReferences=[ref])
     ) is not None, "Expected a series representation to be returned"
     for cp in test_entity.constitutive_property_values:
-        assert (
-            ser[cp.property.identifier] == cp.value
-        ), f"Expected the series representation to have a key:value for {cp}"
+        assert ser[cp.property.identifier] == cp.value, (
+            f"Expected the series representation to have a key:value for {cp}"
+        )
 
     ovs = test_entity.propertyValuesFromExperimentReference(ref)
     assert len(ovs) > 0
     for ov in ovs:
-        assert (
-            ser[ov.property.identifier] == ov.value
-        ), f"Expected the series representation to have a key:value for {ov}"
+        assert ser[ov.property.identifier] == ov.value, (
+            f"Expected the series representation to have a key:value for {ov}"
+        )
 
     # Test series_representation with virtual_properties
     vp = VirtualObservedProperty(
@@ -498,18 +508,18 @@ def test_series_representation_with_observed_property_values(
         )
     ) is not None, "Expected a series representation to be returned"
     for cp in test_entity.constitutive_property_values:
-        assert (
-            ser[cp.property.identifier] == cp.value
-        ), f"Expected the series representation to have a key:value for {cp}"
+        assert ser[cp.property.identifier] == cp.value, (
+            f"Expected the series representation to have a key:value for {cp}"
+        )
 
     for ov in test_entity.observedPropertyValues:
-        assert (
-            ser[ov.property.identifier] == ov.value
-        ), f"Expected the series representation to have a key:value for {ov}"
+        assert ser[ov.property.identifier] == ov.value, (
+            f"Expected the series representation to have a key:value for {ov}"
+        )
 
-    assert ser[
-        vp.identifier
-    ], f"Expected the series representation to have a key:value for {vp}"
+    assert ser[vp.identifier], (
+        f"Expected the series representation to have a key:value for {vp}"
+    )
 
 
 def test_series_representation_multiple_observed(
@@ -543,18 +553,18 @@ def test_series_representation_multiple_observed(
         )
     ) is not None, "Expected a series representation to be returned"
     for cp in test_entity.constitutive_property_values:
-        assert (
-            ser[cp.property.identifier] == cp.value
-        ), f"Expected the series representation to have a key:value for {cp}"
+        assert ser[cp.property.identifier] == cp.value, (
+            f"Expected the series representation to have a key:value for {cp}"
+        )
 
     ops = test_entity.observedPropertiesFromExperimentReference(
         result.experimentReference
     )
     assert len(ops) > 0
     for op in ops:
-        assert (
-            len(ser[op.identifier]) == 2
-        ), f"Expected the series representation to have two values for {op}"
+        assert len(ser[op.identifier]) == 2, (
+            f"Expected the series representation to have two values for {op}"
+        )
 
     # Test if we do aggregate we get a single virtual property
     assert (
@@ -564,27 +574,27 @@ def test_series_representation_multiple_observed(
         )
     ) is not None, "Expected a series representation to be returned"
     for cp in test_entity.constitutive_property_values:
-        assert (
-            ser[cp.property.identifier] == cp.value
-        ), f"Expected the series representation to have a key:value for {cp}"
+        assert ser[cp.property.identifier] == cp.value, (
+            f"Expected the series representation to have a key:value for {cp}"
+        )
 
     ops = test_entity.observedPropertiesFromExperimentReference(
         result.experimentReference
     )
     assert len(ops) > 0
     for op in ops:
-        assert not (
-            ser.get(op.identifier)
-        ), f"Expected the series representation with aggregation to have no values for {op}"
+        assert not (ser.get(op.identifier)), (
+            f"Expected the series representation with aggregation to have no values for {op}"
+        )
         vp = VirtualObservedProperty(
             baseObservedProperty=op,
             aggregationMethod=PropertyAggregationMethod(
                 identifier=PropertyAggregationMethodEnum.mean
             ),
         )
-        assert (
-            ser.get(vp.identifier) is not None
-        ), f"Expected the series representation with aggregation to have 1 value for {vp}"
+        assert ser.get(vp.identifier) is not None, (
+            f"Expected the series representation with aggregation to have 1 value for {vp}"
+        )
 
 
 def test_experiment_series(
@@ -593,9 +603,9 @@ def test_experiment_series(
 ) -> None:
     test_entity, result = valid_measurement_result_and_entity
     ref = result.experimentReference
-    assert not test_entity.observedPropertiesFromExperimentReference(
-        ref
-    ), f"Expected the entity fixture to have no results added for {ref}"
+    assert not test_entity.observedPropertiesFromExperimentReference(ref), (
+        f"Expected the entity fixture to have no results added for {ref}"
+    )
 
     test_entity.add_measurement_result(result)
 
@@ -603,21 +613,21 @@ def test_experiment_series(
     ser = test_entity.experimentSeries()
     assert ser, "Expected a list of experiment series' to be returned"
 
-    assert len(ser) == len(
-        test_entity.experimentReferences
-    ), "Expected 1 result for each experiment appleid to entity"
+    assert len(ser) == len(test_entity.experimentReferences), (
+        "Expected 1 result for each experiment appleid to entity"
+    )
     for s in ser:
         for cp in test_entity.constitutive_property_values:
-            assert (
-                s[cp.property.identifier] == cp.value
-            ), f"Expected the experiment series to contain a key:value for {cp}"
+            assert s[cp.property.identifier] == cp.value, (
+                f"Expected the experiment series to contain a key:value for {cp}"
+            )
 
         for ov in test_entity.propertyValuesFromExperimentReference(
             ExperimentReference.referenceFromString(s["experiment_id"])
         ):
-            assert (
-                s[ov.property.targetProperty.identifier] == ov.value
-            ), f"Expected the experiment series for {s['experiment_id']} to contain a key:value for {ov}"
+            assert s[ov.property.targetProperty.identifier] == ov.value, (
+                f"Expected the experiment series for {s['experiment_id']} to contain a key:value for {ov}"
+            )
 
     # Test  experiment_series if a reference does not exist
     ser = test_entity.experimentSeries(
@@ -625,9 +635,9 @@ def test_experiment_series(
             ExperimentReference(actuatorIdentifier="test", experimentIdentifier="mock")
         ]
     )
-    assert (
-        not ser
-    ), "Expected that if a series for an experiment which did not have values in the Entity was requested no series would be returned"
+    assert not ser, (
+        "Expected that if a series for an experiment which did not have values in the Entity was requested no series would be returned"
+    )
 
     # Test  experiment_series with specific references
     ser = test_entity.experimentSeries(experimentReferences=[ref])
@@ -635,18 +645,18 @@ def test_experiment_series(
     assert len(ser) == 1, f"Expected there to be only 1 measurement for {ref}"
     ser = ser[0]
     for cp in test_entity.constitutive_property_values:
-        assert (
-            ser[cp.property.identifier] == cp.value
-        ), f"Expected the experiment series to contain a key:value for {cp}"
+        assert ser[cp.property.identifier] == cp.value, (
+            f"Expected the experiment series to contain a key:value for {cp}"
+        )
 
     for ov in test_entity.propertyValuesFromExperimentReference(ref):
-        assert (
-            ser[ov.property.targetProperty.identifier] == ov.value
-        ), f"Expected the experiment series for {ref} to contain a key:value for {ov}"
+        assert ser[ov.property.targetProperty.identifier] == ov.value, (
+            f"Expected the experiment series for {ref} to contain a key:value for {ov}"
+        )
 
-    assert ser.get("experiment_id") == str(
-        ref
-    ), f"Expected the value of the 'experiment_id' key to be to {ref}"
+    assert ser.get("experiment_id") == str(ref), (
+        f"Expected the value of the 'experiment_id' key to be to {ref}"
+    )
 
     # Test  experiment_series with virtual_properties
     vp = VirtualObservedProperty(
@@ -663,24 +673,24 @@ def test_experiment_series(
 
     for s in ser:
         for cp in test_entity.constitutive_property_values:
-            assert (
-                s[cp.property.identifier] == cp.value
-            ), f"Expected the experiment series to contain a key:value for {cp}"
+            assert s[cp.property.identifier] == cp.value, (
+                f"Expected the experiment series to contain a key:value for {cp}"
+            )
 
         for ov in test_entity.propertyValuesFromExperimentReference(
             ExperimentReference.referenceFromString(s["experiment_id"])
         ):
-            assert (
-                s[ov.property.targetProperty.identifier] == ov.value
-            ), f"Expected the experiment series for {s['experiment_id']} to contain a key:value for {ov}"
+            assert s[ov.property.targetProperty.identifier] == ov.value, (
+                f"Expected the experiment series for {s['experiment_id']} to contain a key:value for {ov}"
+            )
 
         if (
             str(test_entity.observedProperties[0].experimentReference)
             == s["experiment_id"]
         ):
-            assert s[
-                vp.virtualTargetPropertyIdentifier
-            ], f"Expected the experiment series for {test_entity.observedProperties[0].experimentReference} to contain a key:value for {vp}"
+            assert s[vp.virtualTargetPropertyIdentifier], (
+                f"Expected the experiment series for {test_entity.observedProperties[0].experimentReference} to contain a key:value for {vp}"
+            )
 
 
 def test_experiment_series_multiple_observed(
@@ -712,23 +722,23 @@ def test_experiment_series_multiple_observed(
         experimentReferences=[result.experimentReference]
     )
     assert ser is not None, "Expected a experiment series to be returned"
-    assert (
-        len(ser) == 1
-    ), f"Expected there to be only 1 entry for {result.experimentReference}"
+    assert len(ser) == 1, (
+        f"Expected there to be only 1 entry for {result.experimentReference}"
+    )
     ser = ser[0]
     for cp in test_entity.constitutive_property_values:
-        assert (
-            ser[cp.property.identifier] == cp.value
-        ), f"Expected the series representation to have a key:value for {cp}"
+        assert ser[cp.property.identifier] == cp.value, (
+            f"Expected the series representation to have a key:value for {cp}"
+        )
 
     ops = test_entity.observedPropertiesFromExperimentReference(
         result.experimentReference
     )
     assert len(ops) > 0
     for op in ops:
-        assert (
-            len(ser[op.targetProperty.identifier]) == 2
-        ), f"Expected the series representation to have two values for {op}"
+        assert len(ser[op.targetProperty.identifier]) == 2, (
+            f"Expected the series representation to have two values for {op}"
+        )
 
     # Test if we do aggregate we get a single virtual property
     ser = test_entity.experimentSeries(
@@ -736,32 +746,32 @@ def test_experiment_series_multiple_observed(
         aggregationMethod=PropertyAggregationMethodEnum.mean,
     )
     assert ser is not None, "Expected a series representation to be returned"
-    assert (
-        len(ser) == 1
-    ), f"Expected there to be only 1 entry for {result.experimentReference}"
+    assert len(ser) == 1, (
+        f"Expected there to be only 1 entry for {result.experimentReference}"
+    )
     ser = ser[0]
     for cp in test_entity.constitutive_property_values:
-        assert (
-            ser[cp.property.identifier] == cp.value
-        ), f"Expected the series representation to have a key:value for {cp}"
+        assert ser[cp.property.identifier] == cp.value, (
+            f"Expected the series representation to have a key:value for {cp}"
+        )
 
     ops = test_entity.observedPropertiesFromExperimentReference(
         result.experimentReference
     )
     assert len(ops) > 0
     for op in ops:
-        assert not (
-            ser.get(op.targetProperty.identifier)
-        ), f"Expected the series representation with aggregation to have no values for {op}"
+        assert not (ser.get(op.targetProperty.identifier)), (
+            f"Expected the series representation with aggregation to have no values for {op}"
+        )
         vp = VirtualObservedProperty(
             baseObservedProperty=op,
             aggregationMethod=PropertyAggregationMethod(
                 identifier=PropertyAggregationMethodEnum.mean
             ),
         )
-        assert (
-            ser.get(vp.virtualTargetPropertyIdentifier) is not None
-        ), f"Expected the series representation with aggregation to have 1 value for key {vp.virtualTargetPropertyIdentifier}"
+        assert ser.get(vp.virtualTargetPropertyIdentifier) is not None, (
+            f"Expected the series representation with aggregation to have 1 value for key {vp.virtualTargetPropertyIdentifier}"
+        )
 
 
 def test_experiment_series_aggregate_single_list_valued_property(
@@ -818,7 +828,9 @@ def test_required_constitutive_properties_present(
 
     assert CheckRequiredConstitutivePropertyValuesPresent(
         entity=test_entity, experiment=test_experiment
-    ), "Expected the test entity fixture to have all properties required by the test experiment"
+    ), (
+        "Expected the test entity fixture to have all properties required by the test experiment"
+    )
 
     # Remove a constitutive property
     test_entity_broken = test_entity.model_copy(
@@ -847,9 +859,9 @@ def test_entity_identifier_from_properties_and_values_sorted() -> None:
     id2 = entity_identifier_from_properties_and_values(point2)
     id3 = entity_identifier_from_properties_and_values(point3)
 
-    assert (
-        id1 == id2 == id3
-    ), f"Expected all identifiers to be equal, but got: {id1}, {id2}, {id3}"
+    assert id1 == id2 == id3, (
+        f"Expected all identifiers to be equal, but got: {id1}, {id2}, {id3}"
+    )
 
     # Verify the identifier is sorted alphabetically by key
     expected = "prop_a.value1-prop_b.value2-prop_c.value3"
@@ -859,9 +871,9 @@ def test_entity_identifier_from_properties_and_values_sorted() -> None:
     point_numeric = {"z": 1, "a": 2, "m": 3}
     id_numeric = entity_identifier_from_properties_and_values(point_numeric)
     expected_numeric = "a.2-m.3-z.1"
-    assert (
-        id_numeric == expected_numeric
-    ), f"Expected identifier to be {expected_numeric}, but got {id_numeric}"
+    assert id_numeric == expected_numeric, (
+        f"Expected identifier to be {expected_numeric}, but got {id_numeric}"
+    )
 
 
 def test_entity_identifier_short_not_hashed() -> None:
@@ -879,14 +891,14 @@ def test_entity_identifier_long_hashed() -> None:
     identifier = entity_identifier_from_properties_and_values(point)
 
     # Verify it's a hash (starts with "hash-" prefix)
-    assert identifier.startswith(
-        "hash-"
-    ), "Long identifier should be hashed with 'hash-' prefix"
+    assert identifier.startswith("hash-"), (
+        "Long identifier should be hashed with 'hash-' prefix"
+    )
 
     # Verify the identifier is within database limits
-    assert (
-        len(identifier) < 768
-    ), f"Identifier length {len(identifier)} exceeds database limit"
+    assert len(identifier) < 768, (
+        f"Identifier length {len(identifier)} exceeds database limit"
+    )
 
     # Verify it's a valid SHA256 hash (64 hex chars + 5 char prefix = 69 total)
     assert len(identifier) == 69, f"Expected hash length 69, got {len(identifier)}"
@@ -905,9 +917,9 @@ def test_entity_identifier_different_points_different_identifiers() -> None:
     long_point2 = {f"property_{i}": f"different_{i}" * 10 for i in range(50)}
     long_id1 = entity_identifier_from_properties_and_values(long_point1)
     long_id2 = entity_identifier_from_properties_and_values(long_point2)
-    assert (
-        long_id1 != long_id2
-    ), "Different long points should produce different hashed identifiers"
+    assert long_id1 != long_id2, (
+        "Different long points should produce different hashed identifiers"
+    )
 
 
 def test_entity_identifier_threshold_boundary() -> None:
@@ -918,9 +930,9 @@ def test_entity_identifier_threshold_boundary() -> None:
     assert len(point_identifier) == 699, "Identifier should be 699 characters"
 
     point_id = entity_identifier_from_properties_and_values(point)
-    assert not point_id.startswith(
-        "hash-"
-    ), "Identifier under threshold should not be hashed"
+    assert not point_id.startswith("hash-"), (
+        "Identifier under threshold should not be hashed"
+    )
 
     # Add one entry and bring the point above the threshold
     point["p14"] = "v14" * 20

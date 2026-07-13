@@ -5,7 +5,7 @@ import math
 
 import pytest
 
-from orchestrator.schema.domain import (
+from ado.schema.domain import (
     ProbabilityFunction,
     ProbabilityFunctionsEnum,
     PropertyDomain,
@@ -15,9 +15,9 @@ from orchestrator.schema.domain import (
 
 def test_comparison_with_non_domain() -> None:
     discretePropertyDomain = PropertyDomain(interval=1, domainRange=[-10, 10])
-    assert (
-        discretePropertyDomain != "somestring"
-    ), "PropertyDomain evaluate equal to a string"
+    assert discretePropertyDomain != "somestring", (
+        "PropertyDomain evaluate equal to a string"
+    )
     assert discretePropertyDomain != ["a"], "PropertyDomain evaluate equal to a list"
     assert discretePropertyDomain != 3, "PropertyDomain evaluate equal to an int"
 
@@ -39,24 +39,24 @@ def test_probability_function_equivalanece() -> None:
     uniform2 = ProbabilityFunction(
         identifier=ProbabilityFunctionsEnum.UNIFORM, parameters={"a": "0", "b": 4}
     )
-    assert (
-        uniform2 != uniform
-    ), "ProbabilityFunctions with different parameter values evaluate as equal"
+    assert uniform2 != uniform, (
+        "ProbabilityFunctions with different parameter values evaluate as equal"
+    )
 
     uniform2 = ProbabilityFunction(
         identifier=ProbabilityFunctionsEnum.UNIFORM, parameters={"a": "0", "c": 4}
     )
-    assert (
-        uniform2 != uniform
-    ), "ProbabilityFunctions with different parameter names evaluate as equal"
+    assert uniform2 != uniform, (
+        "ProbabilityFunctions with different parameter names evaluate as equal"
+    )
 
     # Compare with different ids
     normal = ProbabilityFunction(
         identifier=ProbabilityFunctionsEnum.NORMAL, parameters={"mu": "0", "sigma": 8}
     )
-    assert (
-        normal != uniform
-    ), "Normal probability distribution evaluates equal to uniform"
+    assert normal != uniform, (
+        "Normal probability distribution evaluates equal to uniform"
+    )
 
     # Compare with same id different number of parameters
     uniform2 = ProbabilityFunction(
@@ -69,9 +69,9 @@ def test_probability_function_equivalanece() -> None:
     uniform2 = ProbabilityFunction(
         identifier=ProbabilityFunctionsEnum.UNIFORM, parameters={"a": "0", "b": 5}
     )
-    assert (
-        uniform != uniform2
-    ), "ProbabilityFunction without parameters evaluates equal to one with parameters"
+    assert uniform != uniform2, (
+        "ProbabilityFunction without parameters evaluates equal to one with parameters"
+    )
 
     # Compare against non probability
     assert uniform != ["a", "b"]
@@ -611,14 +611,14 @@ def test_domain_sizes() -> None:
 
 def test_range_in_rich_print() -> None:
 
-    from orchestrator.utilities.rich import render_to_string
+    from ado.utilities.rich import render_to_string
 
     # Continuous
     continuousPropertyDomain = PropertyDomain(domainRange=[-10, 10])
     output = render_to_string(continuousPropertyDomain)
-    assert (
-        "Range" in output
-    ), "Expected continuous domain with range to output Range in rich print"
+    assert "Range" in output, (
+        "Expected continuous domain with range to output Range in rich print"
+    )
 
     # Discrete
     discretePropertyDomain = PropertyDomain(
@@ -627,9 +627,9 @@ def test_range_in_rich_print() -> None:
         interval=2,
     )
     output = render_to_string(discretePropertyDomain)
-    assert (
-        "Range" in output
-    ), "Expected discrete domain with range to output Range in rich print"
+    assert "Range" in output, (
+        "Expected discrete domain with range to output Range in rich print"
+    )
 
     # Discrete
     discretePropertyDomain = PropertyDomain(
@@ -637,27 +637,27 @@ def test_range_in_rich_print() -> None:
         values=[1, 2, 4, 8, 16, 32],
     )
     output = render_to_string(discretePropertyDomain)
-    assert (
-        "Range" not in output
-    ), "Expected discrete domain with values NOT to output a Range in rich print"
+    assert "Range" not in output, (
+        "Expected discrete domain with values NOT to output a Range in rich print"
+    )
 
     # Binary
     binaryPropertyDomain = PropertyDomain(
         variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE,
     )
     output = render_to_string(binaryPropertyDomain)
-    assert (
-        "Range" not in output
-    ), "Expected binary domain NOT to output Range in rich print"
+    assert "Range" not in output, (
+        "Expected binary domain NOT to output Range in rich print"
+    )
 
     # Categorical
     categoricalPropertyDomain = PropertyDomain(
         variableType=VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE, values=[1, 2, 3, 4]
     )
     output = render_to_string(categoricalPropertyDomain)
-    assert (
-        "Range" not in output
-    ), "Expected categorical domain with numeric values NOT to output Range in rich print"
+    assert "Range" not in output, (
+        "Expected categorical domain with numeric values NOT to output Range in rich print"
+    )
 
     # Unknown
     unknownPropertyDomain = PropertyDomain(
@@ -666,7 +666,9 @@ def test_range_in_rich_print() -> None:
     output = render_to_string(categoricalPropertyDomain)
     assert (
         unknownPropertyDomain.variableType is VariableTypeEnum.DISCRETE_VARIABLE_TYPE
-    ), "Expected UNKNOWN variable type to be converted to DISCRETE as the input values match a discrete variable"
+    ), (
+        "Expected UNKNOWN variable type to be converted to DISCRETE as the input values match a discrete variable"
+    )
     assert "Range" not in output
 
 
@@ -721,7 +723,7 @@ def test_value_in_domain() -> None:
 def test_property_domain_minimization_is_correct(
     property_domain_all_types: PropertyDomain,
 ) -> None:
-    from orchestrator.cli.utils.pydantic.constants import minimize_output_context
+    from ado.cli.utils.pydantic.constants import minimize_output_context
 
     current_model = property_domain_all_types
     minimized_model = current_model.model_dump_json(context=minimize_output_context)
@@ -747,26 +749,26 @@ def test_float_behaviour_discrete_variable_sub_domain() -> None:
     # This tests that the range [0.1,0.4] with interval 0.1 translates to [0.1,0.2,0.3]
     # This tests that (a) float addition of 0.1 to the range is correctly rounded c.f. 0.2+0.1 is not 0.3 in python
     # This tests that the upper bound of the range is closed i.e. 0.4 is not included (would be with arange())
-    assert d1.isSubDomain(
-        d2
-    ), "Expected value set [0.1,0.2,0.3] to be a subdomain of range [0.1,0.4] with interval 0.1"
-    assert set(d1.values) == set(
-        d2.domain_values
-    ), "Expected domain with range [0.1,0.4] and interval 0.1 had values [0.1,0.2,0.3]"
+    assert d1.isSubDomain(d2), (
+        "Expected value set [0.1,0.2,0.3] to be a subdomain of range [0.1,0.4] with interval 0.1"
+    )
+    assert set(d1.values) == set(d2.domain_values), (
+        "Expected domain with range [0.1,0.4] and interval 0.1 had values [0.1,0.2,0.3]"
+    )
 
     # This tests that the d1 values is correctly identified as a subdomain of a continuous domain
     # This would fail if the range associated with d1 values was not correctly bounded
-    assert d1.isSubDomain(
-        d3
-    ), "Expected value set [0.1,0.2,0.3] to be a subdomain of continuous var with range [0.1,0.4]"
+    assert d1.isSubDomain(d3), (
+        "Expected value set [0.1,0.2,0.3] to be a subdomain of continuous var with range [0.1,0.4]"
+    )
 
     # Another test on the bounds
-    assert not d4.isSubDomain(
-        d1
-    ), "Expected value set [0.1,0.2,0.4] to not be a subdomain of range [0.1,0.4] with interval 0.1"
-    assert not d4.isSubDomain(
-        d3
-    ), "Expected value set [0.1,0.2,0.4] to not be a subdomain of continuous var with range [0.1,0.4]"
+    assert not d4.isSubDomain(d1), (
+        "Expected value set [0.1,0.2,0.4] to not be a subdomain of range [0.1,0.4] with interval 0.1"
+    )
+    assert not d4.isSubDomain(d3), (
+        "Expected value set [0.1,0.2,0.4] to not be a subdomain of continuous var with range [0.1,0.4]"
+    )
 
 
 def test_float_behaviour_discrete_variable_value_in_domain() -> None:
@@ -794,9 +796,9 @@ def test_domain_values() -> None:
     d1 = PropertyDomain(interval=4, domainRange=[1, 128])
     d2 = PropertyDomain(interval=4.0, domainRange=[1.0, 128.0])
 
-    assert (
-        d1.domain_values == d2.domain_values
-    ), "The same values passed as ints or floats to PropertyDomain should give same domain_values"
+    assert d1.domain_values == d2.domain_values, (
+        "The same values passed as ints or floats to PropertyDomain should give same domain_values"
+    )
     assert 128 not in d1.domain_values, "Expected the upper bound to not be included"
 
     d1 = PropertyDomain(values=[0.1, 0.3])
@@ -838,7 +840,7 @@ def test_open_categorical_variable_type_property_domain() -> None:
 
     import pydantic
 
-    from orchestrator.schema.domain import PropertyDomain, VariableTypeEnum
+    from ado.schema.domain import PropertyDomain, VariableTypeEnum
 
     d = PropertyDomain(variableType=VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE)
     # Type is set

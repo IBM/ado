@@ -362,8 +362,10 @@ class FineTuneArgs:
 
     dataset_image_field: str | None = dataclasses.field(
         default=None,
-        metadata={"help": "For running vision language model tuning pass \
-                the column name of the image data in the dataset."},
+        metadata={
+            "help": "For running vision language model tuning pass \
+                the column name of the image data in the dataset."
+        },
     )
 
     remove_unused_columns: bool | None = dataclasses.field(
@@ -622,9 +624,7 @@ def _finetune_launch_kernel(
             ):
                 accelerate_config["fsdp_config"][
                     "fsdp_transformer_layer_cls_to_wrap"
-                ] = (
-                    distributed_settings.accelerate_config_fsdp_transformer_layer_cls_to_wrap
-                )
+                ] = distributed_settings.accelerate_config_fsdp_transformer_layer_cls_to_wrap
 
         log.info(f"Using the accelerate config {json.dumps(accelerate_config)}")
 

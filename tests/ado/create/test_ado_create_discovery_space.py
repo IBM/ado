@@ -4,14 +4,16 @@
 import pathlib
 from collections.abc import Callable
 
+import pytest
 import yaml
 from typer.testing import CliRunner
 
-from orchestrator.cli.core.cli import app as ado
-from orchestrator.core.discoveryspace.config import DiscoverySpaceConfiguration
-from orchestrator.core.samplestore.sql import SQLSampleStore
-from orchestrator.metastore.project import ProjectContext
-from orchestrator.utilities.output import pydantic_model_as_yaml
+from ado.cli.core.cli import app as ado
+from ado.core.discoveryspace.config import DiscoverySpaceConfiguration
+from ado.core.samplestore.sql import SQLSampleStore
+from ado.metastore.project import ProjectContext
+from ado.modules.actuators.registry import ActuatorRegistry
+from ado.utilities.output import pydantic_model_as_yaml
 from tests.conftest import requires_sqlite_3_38
 
 
@@ -21,8 +23,6 @@ def test_create_discovery_space_dry_run_success(tmp_path: pathlib.Path) -> None:
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "create",
             "space",
             "-f",
@@ -51,8 +51,6 @@ def test_create_discovery_space_dry_run_failure(tmp_path: pathlib.Path) -> None:
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "create",
             "space",
             "-f",
@@ -75,8 +73,6 @@ def test_create_discovery_space_fail_no_sample_store(tmp_path: pathlib.Path) -> 
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "create",
             "space",
             "-f",
@@ -96,13 +92,14 @@ def test_create_discovery_space_fail_no_sample_store(tmp_path: pathlib.Path) -> 
     assert result.output == expected_output
 
 
-# 28/11/2025
-# AP: It's important to have this test early on before successful tests because
-# they will populate the global ActuatorRegistry with the replay.benchmark_performance
-# experiment, causing this test to be able to succeed.
 def test_create_discovery_space_fail_with_default_sample_store_with_replay_actuator(
     tmp_path: pathlib.Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    # Reset the global registry so no replay catalog extensions from other tests
+    # (running in the same worker process) are present. Without this, a prior test
+    # that loads the replay catalog would cause this test to succeed when it should fail.
+    monkeypatch.setattr(ActuatorRegistry, "gRegistry", None)
 
     space_configuration_file = pathlib.Path(
         "examples/ml-multi-cloud/ml_multicloud_space.yaml"
@@ -112,8 +109,6 @@ def test_create_discovery_space_fail_with_default_sample_store_with_replay_actua
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "create",
             "space",
             "-f",
@@ -154,8 +149,6 @@ def test_create_discovery_space_success(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "create",
             "space",
             "-f",
@@ -187,8 +180,6 @@ def test_create_discovery_space_success_new_sample_store(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "create",
             "space",
             "-f",
@@ -224,8 +215,6 @@ def test_create_discovery_space_success_with_latest_samplestore(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "create",
             "samplestore",
             "--new-sample-store",
@@ -236,8 +225,6 @@ def test_create_discovery_space_success_with_latest_samplestore(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "create",
             "space",
             "-f",
@@ -264,8 +251,6 @@ def test_create_discovery_space_fail_new_sample_store_with_replay(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "create",
             "space",
             "-f",
@@ -303,8 +288,6 @@ def test_create_discovery_space_success_set_sample_store(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "create",
             "space",
             "-f",
@@ -341,8 +324,6 @@ def test_create_discovery_space_success_with_sample_store_from_file_with_replay_
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "create",
             "space",
             "-f",

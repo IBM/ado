@@ -345,7 +345,7 @@ The complete syntax of the `ado describe` command is as follows:
 
 ```shell
 ado describe RESOURCE_TYPE [RESOURCE_ID] [--file | -f <file.yaml>] \
-             [--use-latest] [--actuator-id <actuator>]
+             [--use-latest]
 ```
 
 Where:
@@ -367,8 +367,10 @@ Where:
   allows getting a description of the space, given a space configuration file.
 - `--use-latest` flag is **currently only available for spaces** and allows
   describing the most recently created space from the current context.
-- `--actuator-id` (**optional**) can be used only when the resource type is
-  experiment and is used to indicate what actuator the experiment belongs to.
+- When describing an experiment, `RESOURCE_ID` may be a bare experiment
+  identifier, include an `@M.m.p` version suffix, a major version identifier
+  such as `@v1`, or use the form `actuator_id.experiment_id` when multiple
+  actuators implement the same experiment identifier.
 
 #### Examples
 
@@ -1287,7 +1289,7 @@ ado template RESOURCE_TYPE [--output-file <PATH>] \
                            [--operator-name <NAME>] \
                            [--operator-type <TYPE>] \
                            [--actuator-identifier <NAME>] \
-                           [--from-experiment | -e <experiment_id | actuator_id:experiment_id>] \
+                           [--from-experiment | -e <experiment_id>] \
                            [--local-context] \
                            [--no-parameters-only-schema]
 ```
@@ -1323,7 +1325,7 @@ Where:
     <!-- prettier-ignore-start -->
 
     - `characterize`
-    - `search`
+    - `explore`
     - `compare`
     - `modify`
     - `study`
@@ -1335,11 +1337,11 @@ Where:
 - `--actuator-configuration` (**exclusive for actuatorconfigurations**) is the
   identifier of the actuator to output. If unset, a generic actuator
   configuration will be output.
-- `--from-experiment` (**exclusive for spaces**) can either be the identifier of
-  the experiment you want to have in your space or, in case multiple actuators
-  implementing the same experiment identifier, the identifier of the actuator
-  and that of the experiment in the form `actuator_id:experiment_id`. If unset,
-  a generic space will be output.
+- `--from-experiment` (**exclusive for spaces**) is the identifier of the
+  experiment you want in your space. It may include an `@M.m.p` version suffix,
+  a major version identifier such as `@v1`, or use the form
+  `actuator_id.experiment_id` when multiple actuators implement the same
+  experiment identifier. If unset, a generic space will be output.
 - `--local-context` (**exclusive for contexts**) creates a template using SQLite
   instead of MySQL.
 - `--no-parameters-only-schema` (**exclusive for operations**) when used with
@@ -1367,7 +1369,7 @@ ado template space --from-experiment finetune-gptq-lora-dp-r-4-a-16-tm-default-v
 <!-- markdownlint-enable line-length -->
 
 ```shell
-ado template space --from-experiment SFTTrainer:finetune-gptq-lora-dp-r-4-a-16-tm-default-v1.1.0
+ado template space --from-experiment SFTTrainer.finetune-gptq-lora-dp-r-4-a-16-tm-default-v1.1.0
 ```
 
 ##### Creating a template for a Discovery Space with the schema

@@ -4,11 +4,11 @@
 
 import pytest
 
-import orchestrator.core.samplestore.csv
-from orchestrator.modules.actuators.catalog import ExperimentCatalog
-from orchestrator.modules.actuators.registry import ActuatorRegistry
-from orchestrator.schema.experiment import Experiment
-from orchestrator.schema.reference import ExperimentReference
+import ado.core.samplestore.csv
+from ado.modules.actuators.catalog import ExperimentCatalog
+from ado.modules.actuators.registry import ActuatorRegistry
+from ado.schema.experiment import Experiment
+from ado.schema.reference import ExperimentReference
 
 
 @pytest.fixture(scope="module")
@@ -64,9 +64,7 @@ def experiment_catalogs() -> list[ExperimentCatalog]:
     }
 
     sourceDescription = (
-        orchestrator.core.samplestore.csv.CSVSampleStoreDescription.model_validate(
-            parameters
-        )
+        ado.core.samplestore.csv.CSVSampleStoreDescription.model_validate(parameters)
     )
 
     assert (

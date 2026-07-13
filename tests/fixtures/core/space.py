@@ -9,12 +9,12 @@ from collections.abc import Callable
 import pytest
 import yaml
 
-from orchestrator.core import ADOResource
-from orchestrator.core.discoveryspace.config import (
+from ado.core import ADOResource
+from ado.core.discoveryspace.config import (
     DiscoverySpaceConfiguration,
 )
-from orchestrator.core.discoveryspace.resource import DiscoverySpaceResource
-from orchestrator.metastore.sqlstore import SQLStore
+from ado.core.discoveryspace.resource import DiscoverySpaceResource
+from ado.metastore.sqlstore import SQLStore
 
 
 @pytest.fixture

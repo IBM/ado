@@ -1,10 +1,11 @@
 [project]
-name = "profile_space"
+name = "ado-profile-space"
 requires-python = ">=3.10,<3.14"
 # fg-data-profiling's latest release (4.19.1)
 # requires numba<0.63 which is incompatible with
 # Python 3.14
 dependencies = [
+  "ado-core>=2.0.0",
   # AP 02/06/2026:
   # We help uv perform a forked resolution by adding
   # a version marker to this dependency. Since this
@@ -17,6 +18,31 @@ dynamic = ["version"]
 [project.entry-points."ado.operators"]
 profile_space = "profile_space.operator"
 
-[tool.setuptools_scm]
-root = "../../../"
-local_scheme = "node-and-timestamp"
+[build-system]
+requires = ["hatchling", "uv-dynamic-versioning>=0.7.0"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
+
+[tool.hatch.build.targets.wheel]
+packages = ["profile_space"]
+
+[tool.uv-dynamic-versioning]
+vcs = "git"
+style = "pep440"
+pattern = "default-unprefixed"
+pattern-prefix = "profile-space/"
+fallback-version = "0.0.0"
+format-jinja = """
+{%- set metadata = [
+    distance != 0 and "g" ~ commit,
+    distance != 0 and "d" ~ timestamp,
+    dirty and "dirty"
+] -%}
+{{ serialize_pep440(
+    distance == 0 and base or bump_version(base),
+    dev=distance or None,
+    metadata=metadata | select | list
+) }}
+"""

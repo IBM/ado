@@ -53,13 +53,13 @@ DONTs
 
 Each resource has a pydantic model. If working in code you can use these models
 
-- discoveryspace, orchestrator/core/discoveryspace/resource.py:
+- discoveryspace, ado/core/discoveryspace/resource.py:
   DiscoverySpaceResource
-- samplestore, orchestrator/core/samplestore/resource.py: SampleStoreResource
-- datacontainer, orchestrator/core/datacontainer/resource.py:
+- samplestore, ado/core/samplestore/resource.py: SampleStoreResource
+- datacontainer, ado/core/datacontainer/resource.py:
   DataContainerResource
-- operation, orchestrator/core/operation/resource.py: OperationResource
-- actuatorconfiguration, orchestrator/core/actuatorconfiguration/resource.py:
+- operation, ado/core/operation/resource.py: OperationResource
+- actuatorconfiguration, ado/core/actuatorconfiguration/resource.py:
   ActuatorConfigurationResource
 
 ## Querying Metadata
@@ -239,43 +239,44 @@ uv run ado show measurements operation randomwalk-0.5.0-123abc \
                   -o csv --output-file randomwalk-0.5.0-123abc.csv
 ```
 
-### Show Requests
+### Show Trace
 
-Get measurement requests sent during an operation:
+Get the trace of measurement requests made during an operation:
 
 ```bash
-uv run ado show requests operation [RESOURCE_ID] [--use-latest] \
-                            [--output | -o <csv | json | table>] \
-                            [--output-file <path>] \
-                            [--hide <field>]
+uv run ado show trace operation [RESOURCE_ID] [--use-latest] \
+                         [--unroll-entities] \
+                         [--output | -o <csv | json | table>] \
+                         [--output-file <path>] \
+                         [--filter <expr>] \
+                         [--hide <field>]
 ```
 
-**Example:**
+<!-- markdownlint-disable line-length -->
+
+| Flag                | Description                                                                 |
+| ------------------- | --------------------------------------------------------------------------- |
+| `--use-latest`      | Use the most recently created operation in the current context              |
+| `--unroll-entities` | Include per-entity result metadata (validity, invalidity reasons, etc.)     |
+| `-o` / `--output`   | Output format: `csv`, `json`, or `table`                                    |
+| `--output-file`     | Write output to a file instead of stdout                                    |
+| `--filter`          | Filter rows by expression                                                   |
+| `--hide`            | Hide a field from the output                                                |
+
+<!-- markdownlint-enable line-length -->
+
+**Example — request-level view:**
 
 ```bash
-uv run ado show requests operation randomwalk-0.5.0-123abc \
-  -o csv --output-file randomwalk-0.5.0-123abc-requests.csv
+uv run ado show trace operation randomwalk-0.5.0-123abc \
+  -o csv --output-file randomwalk-0.5.0-123abc-trace.csv
 ```
 
-### Show Results
-
-Get measurement results metadata (valid/invalid status, etc.):
+**Example — per-entity result metadata:**
 
 ```bash
-uv run ado show results operation [RESOURCE_ID] [--use-latest] \
-                           [--output | -o <csv | json | table>] \
-                           [--output-file <path>] \
-                           [--hide <field>]
-```
-
-**Note**: This shows metadata about results (validity, reasons for invalidity),
-not the actual measurement values.
-
-**Example:**
-
-```bash
-uv run ado show results operation randomwalk-0.5.0-123abc \
-  -o csv --output-file randomwalk-0.5.0-123abc-results.csv
+uv run ado show trace operation randomwalk-0.5.0-123abc --unroll-entities \
+  -o csv --output-file randomwalk-0.5.0-123abc-trace-entities.csv
 ```
 
 ## Getting Schemas
@@ -327,7 +328,7 @@ uv run ado show related space SPACE_ID
 ## Advanced Filtering
 
 The metastore class can provide more powerful querying via scripts. See
-orchestrator/metastore/sqlstore.py
+ado/metastore/sqlstore.py
 
 ## References
 

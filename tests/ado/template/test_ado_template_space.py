@@ -7,8 +7,8 @@ from collections.abc import Callable
 import yaml
 from typer.testing import CliRunner
 
-from orchestrator.cli.core.cli import app as ado
-from orchestrator.core.discoveryspace.config import DiscoverySpaceConfiguration
+from ado.cli.core.cli import app as ado
+from ado.core.discoveryspace.config import DiscoverySpaceConfiguration
 
 
 def test_template_space(
@@ -19,8 +19,6 @@ def test_template_space(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "template",
             "space",
             "--output-file",
@@ -39,8 +37,6 @@ def test_template_space_from_experiment(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            tmp_path,
             "template",
             "space",
             "--from-experiment",
@@ -61,3 +57,35 @@ def test_template_space_from_experiment(
     )
     assert space_configuration.experiments[0].actuatorIdentifier == "robotic_lab"
     assert len(space_configuration.entitySpace) == 3
+
+
+def test_template_space_from_experiment_with_actuator_prefix(
+    tmp_path: pathlib.Path, random_identifier: Callable[[], str]
+) -> None:
+    """Actuator prefix in --from-experiment disambiguates multi-actuator ids."""
+    runner = CliRunner()
+    file_name = tmp_path / random_identifier()
+    result = runner.invoke(
+        ado,
+        [
+            "--override-ado-app-dir",
+            tmp_path,
+            "template",
+            "space",
+            "--from-experiment",
+            "robotic_lab.peptide_mineralization",
+            "--output-file",
+            file_name,
+        ],
+    )
+    assert result.exit_code == 0
+    assert f"Success! File saved as {file_name}" in result.output
+
+    space_configuration = DiscoverySpaceConfiguration.model_validate(
+        yaml.safe_load(file_name.read_text())
+    )
+    assert (
+        space_configuration.experiments[0].experimentIdentifier
+        == "peptide_mineralization"
+    )
+    assert space_configuration.experiments[0].actuatorIdentifier == "robotic_lab"

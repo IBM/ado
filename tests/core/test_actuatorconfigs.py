@@ -7,19 +7,19 @@ import re
 import pytest
 import yaml
 
-from orchestrator.core import ActuatorConfigurationResource
-from orchestrator.core.actuatorconfiguration.config import ActuatorConfiguration
-from orchestrator.core.discoveryspace.space import DiscoverySpace
-from orchestrator.core.operation.config import (
+from ado.core import ActuatorConfigurationResource
+from ado.core.actuatorconfiguration.config import ActuatorConfiguration
+from ado.core.discoveryspace.space import DiscoverySpace
+from ado.core.operation.config import (
     DiscoveryOperationEnum,
     DiscoveryOperationResourceConfiguration,
     OperatorReference,
 )
-from orchestrator.core.operation.resource import OperationResource
-from orchestrator.core.resources import CoreResourceKinds
-from orchestrator.metastore.project import ProjectContext
-from orchestrator.metastore.sqlstore import SQLStore
-from orchestrator.utilities.pydantic import ignore_plugin_validation_context
+from ado.core.operation.resource import OperationResource
+from ado.core.resources import CoreResourceKinds
+from ado.metastore.project import ProjectContext
+from ado.metastore.sqlstore import SQLStore
+from ado.utilities.pydantic import ignore_plugin_validation_context
 
 
 def test_nonexistent_actuatorconfig_raises_error() -> None:
@@ -77,7 +77,7 @@ def test_operation_get_resource_without_plugin_validation(
     )
 
     resource = OperationResource(
-        operationType=DiscoveryOperationEnum.SEARCH,
+        operationType=DiscoveryOperationEnum.EXPLORE,
         operatorIdentifier="randomwalk-0.1.0",
         config=operation_configuration,
     )

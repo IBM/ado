@@ -21,14 +21,14 @@ import numpy as np
 import pandas as pd
 from scipy.stats.qmc import Sobol
 
-from orchestrator.core.discoveryspace.space import DiscoverySpace
-from orchestrator.schema.virtual_property import PropertyAggregationMethodEnum
+from ado.core.discoveryspace.space import DiscoverySpace
+from ado.schema.virtual_property import PropertyAggregationMethodEnum
 
 if TYPE_CHECKING:
     from collections.abc import Hashable
 
-    from orchestrator.metastore.project import ProjectContext
-    from orchestrator.schema.entity import Entity
+    from ado.metastore.project import ProjectContext
+    from ado.schema.entity import Entity
 
 logger = logging.getLogger(__name__)
 
@@ -442,7 +442,7 @@ def get_index_list_nn_high_dimensional(
     out_of_bounds_list = [i for i in indices if i > maximum_n]
     if out_of_bounds_list:
         logger.error(
-            f"The following indices are out of bound: {out_of_bounds_list}, maximum admissible value is {maximum_n-1}"
+            f"The following indices are out of bound: {out_of_bounds_list}, maximum admissible value is {maximum_n - 1}"
         )
 
     return indices
@@ -597,9 +597,9 @@ def order_df_for_sampling_with_no_priors(
 
 def get_project_context() -> ProjectContext:
     """Retrieve the current ADO project context from configuration."""
-    import orchestrator.cli.core.config
+    import ado.cli.core.config
 
-    ado_configuration = orchestrator.cli.core.config.AdoConfiguration.load()
+    ado_configuration = ado.cli.core.config.AdoConfiguration.load()
     return ado_configuration.project_context  # type: ignore[name-defined]
 
 
@@ -934,7 +934,7 @@ def get_list_of_entities_from_df_and_space(
     valid_points, __ = validate_points_in_space(points, space)
 
     list_of_entities = []
-    from orchestrator.schema.point import SpacePoint
+    from ado.schema.point import SpacePoint
 
     for p in valid_points:
         sp = SpacePoint(entity=p)

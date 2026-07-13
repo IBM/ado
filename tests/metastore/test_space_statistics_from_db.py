@@ -4,13 +4,13 @@
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
-from orchestrator.core import ADOResource, DiscoverySpaceResource, OperationResource
-from orchestrator.core.operation.config import DiscoveryOperationEnum
+from ado.core import ADOResource, DiscoverySpaceResource, OperationResource
+from ado.core.operation.config import DiscoveryOperationEnum
 from tests.conftest import requires_sqlite_3_38
 
 if TYPE_CHECKING:
-    from orchestrator.core.discoveryspace.stats import DiscoverySpaceStatistics
-    from orchestrator.metastore.sqlstore import SQLStore
+    from ado.core.discoveryspace.stats import DiscoverySpaceStatistics
+    from ado.metastore.sqlstore import SQLStore
 
 
 @requires_sqlite_3_38
@@ -31,13 +31,13 @@ def test_get_space_metastore_stats_single_no_operations(
 
 
 @requires_sqlite_3_38
-def test_get_space_metastore_stats_single_with_search_operation(
+def test_get_space_metastore_stats_single_with_explore_operation(
     random_space_resource_from_db: Callable[[str | None], DiscoverySpaceResource],
     ml_multi_cloud_operation_resource: Callable[[str | None], OperationResource],
     create_resource_with_related_identifiers: Callable[[ADOResource, list[str]], None],
     sql_store: "SQLStore",
 ) -> None:
-    """A space with one SEARCH operation has correct counts."""
+    """A space with one EXPLORE operation has correct counts."""
     space = random_space_resource_from_db()
     op = ml_multi_cloud_operation_resource(space_id=space.identifier)
     create_resource_with_related_identifiers(op, [space.identifier])
@@ -52,13 +52,13 @@ def test_get_space_metastore_stats_single_with_search_operation(
 
 
 @requires_sqlite_3_38
-def test_get_space_metastore_stats_single_with_non_search_operation(
+def test_get_space_metastore_stats_single_with_non_explore_operation(
     random_space_resource_from_db: Callable[[str | None], DiscoverySpaceResource],
     ml_multi_cloud_operation_resource: Callable[[str | None], OperationResource],
     create_resource_with_related_identifiers: Callable[[ADOResource, list[str]], None],
     sql_store: "SQLStore",
 ) -> None:
-    """A non-SEARCH operation is counted in total but not in explore."""
+    """A non-EXPLORE operation is counted in total but not in explore."""
     space = random_space_resource_from_db()
     op = ml_multi_cloud_operation_resource(space_id=space.identifier)
     op.operationType = DiscoveryOperationEnum.CHARACTERIZE
@@ -82,8 +82,8 @@ def test_get_space_metastore_stats_single_mixed_operations(
     """Mixed operation types: total and explore counts are both correct."""
     space = random_space_resource_from_db()
 
-    search_op = ml_multi_cloud_operation_resource(space_id=space.identifier)
-    create_resource_with_related_identifiers(search_op, [space.identifier])
+    explore_op = ml_multi_cloud_operation_resource(space_id=space.identifier)
+    create_resource_with_related_identifiers(explore_op, [space.identifier])
 
     characterize_op = ml_multi_cloud_operation_resource(space_id=space.identifier)
     characterize_op.operationType = DiscoveryOperationEnum.CHARACTERIZE

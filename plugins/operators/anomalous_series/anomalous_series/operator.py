@@ -10,13 +10,13 @@ import pandas as pd
 import pydantic
 from pydantic import ConfigDict
 
-from orchestrator.core import DataContainerResource
-from orchestrator.core.datacontainer.resource import DataContainer, TabularData
-from orchestrator.core.discoveryspace.config import EntityFilter
-from orchestrator.core.discoveryspace.space import DiscoverySpace
-from orchestrator.core.operation.config import FunctionOperationInfo
-from orchestrator.core.operation.operation import OperationOutput
-from orchestrator.modules.operators.collections import characterize_operation
+from ado.core import DataContainerResource
+from ado.core.datacontainer.resource import DataContainer, TabularData
+from ado.core.discoveryspace.config import EntityFilter
+from ado.core.discoveryspace.space import DiscoverySpace
+from ado.core.operation.config import FunctionOperationInfo
+from ado.core.operation.operation import OperationOutput
+from ado.modules.operators.collections import characterize_operation
 
 
 class SeriesBehaviourEnum(enum.Enum):
@@ -123,7 +123,7 @@ class DetectAnomalousSeries(pydantic.BaseModel):
     """,
     configuration_model=DetectAnomalousSeries,
     example_configuration=DetectAnomalousSeries.example_configuration(),
-    version="1.0",
+    version="1.0.4",
 )
 def detect_anomalous_series(
     discoverySpace: DiscoverySpace,
@@ -349,7 +349,7 @@ def detect_anomalous_series(
                     if len(test_group[test_prop.property].values.unique()) > 0:
                         s = test_group[test_prop.property]
                         print("\t\tTEST FAILED.\n\t\tThe series is:")
-                        print(f'\t\t{test_group[["identifier", test_prop.property]]}')
+                        print(f"\t\t{test_group[['identifier', test_prop.property]]}")
                         print("\n")
                         print(
                             f"\t\tThe series contains the following values for {test_prop.property}:\n\t\t{s.values.unique()}"

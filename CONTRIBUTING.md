@@ -139,6 +139,29 @@ Where `type` is one of the following:
 - **test**: Adding missing tests or correcting existing tests
 - **chore** (discouraged): Minor changes that don't fit in other categories
 
+And `scope` is one of the following:
+
+- **anomalous-series**: changes to ado-anomalous-series
+- **autoconf**: changes to ado-autoconf
+- **changelog**: changes to the changelog
+- **ci**: changes related to files used by CI
+- **cli**: changes regarding ado-core CLI
+- **container**: changes to the Dockerfiles
+- **contributing**: changes to contributing
+- **core**: anything that involves ado-core and does not fall into a more
+  specific category
+- **cplex-mip**: changes to ado-cplex-mip
+- **deps**: changes to dependencies
+- **example-actuator**: changes to the example actuator
+- **hooks**: changes to pre-commit hooks
+- **profile-space**: changes to ado-profile-space
+- **ray-tune**: changes to ado-ray-tune
+- **sfttrainer**: changes to ado-sfttrainer
+- **test**: changes to tests
+- **trim**: changes to ado-trim
+- **vllm-performance**: changes to ado-vllm-performance
+- **website**: changes to the website
+
 ## Coding style guidelines
 
 We require code and markup to adhere to certain rules. We enforce these rules
@@ -146,8 +169,8 @@ though the tools we mention in
 [our development guide](https://ibm.github.io/ado/getting-started/developing),
 namely:
 
-- [Black](https://ibm.github.io/ado/getting-started/developing#code-style)
-- [Ruff](https://ibm.github.io/ado/getting-started/developing#linting-code-with-ruff)
+- [Ruff format](https://ibm.github.io/ado/getting-started/developing#code-style)
+- [Ruff check](https://ibm.github.io/ado/getting-started/developing#linting-code-with-ruff)
 - [uv](https://ibm.github.io/ado/getting-started/developing#verifying-lockfile-integrity)
 - [Copywrite](https://ibm.github.io/ado/getting-started/developing#copyright-and-license-headers)
 - [Markdownlint-cli2](https://ibm.github.io/ado/getting-started/developing#linting-markdown-with-markdownlint-cli2)
@@ -158,7 +181,7 @@ checks pass. To verify that your code conforms to these rules you can run the
 following commands:
 
 ```commandline
-black --check . --extend-exclude website
+ruff format --check . --exclude website
 ruff check --exclude website
 uv lock --check
 copywrite headers --plan

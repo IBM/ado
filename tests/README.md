@@ -92,7 +92,7 @@ To run the tests for `ado-core`, run the following command:
 <!-- markdownlint-disable line-length -->
 
 ```commandline
-pytest -n auto --cov=orchestrator --cov=plugins/operators --dist worksteal -rx -vv --log-level=INFO --color=yes tests/
+pytest -n auto --cov=ado --cov=plugins/operators --dist worksteal -rx -vv --log-level=INFO --color=yes tests/
 ```
 
 <!-- markdownlint-enable line-length -->

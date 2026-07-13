@@ -7,8 +7,8 @@ import pydantic
 import pytest
 import yaml
 
-from orchestrator.core.document.config import DocumentConfiguration
-from orchestrator.utilities.output import pydantic_model_as_yaml
+from ado.core.document.config import DocumentConfiguration
+from ado.utilities.output import pydantic_model_as_yaml
 
 
 def test_document_configuration_defaults() -> None:

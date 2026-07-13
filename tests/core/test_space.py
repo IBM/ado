@@ -9,33 +9,33 @@ from collections.abc import Callable
 import pytest
 import yaml
 
-import orchestrator.core
-from orchestrator.core import DiscoverySpaceResource
-from orchestrator.core.discoveryspace.config import DiscoverySpaceConfiguration
-from orchestrator.core.discoveryspace.space import (
+import ado.core
+from ado.core import DiscoverySpaceResource
+from ado.core.discoveryspace.config import DiscoverySpaceConfiguration
+from ado.core.discoveryspace.space import (
     DiscoverySpace,
     SpaceInconsistencyError,
 )
-from orchestrator.core.operation.resource import (
+from ado.core.operation.resource import (
     OperationResource,
     OperationResourceEventEnum,
     OperationResourceStatus,
 )
-from orchestrator.core.resources import CoreResourceKinds
-from orchestrator.core.samplestore.base import ActiveSampleStore
-from orchestrator.core.samplestore.config import (
+from ado.core.resources import CoreResourceKinds
+from ado.core.samplestore.base import ActiveSampleStore
+from ado.core.samplestore.config import (
     SampleStoreConfiguration,
     SampleStoreModuleConf,
     SampleStoreSpecification,
 )
-from orchestrator.metastore.project import ProjectContext
-from orchestrator.modules.actuators.registry import ActuatorRegistry
-from orchestrator.schema.entityspace import EntitySpaceRepresentation
-from orchestrator.schema.measurementspace import (
+from ado.metastore.project import ProjectContext
+from ado.modules.actuators.registry import ActuatorRegistry
+from ado.schema.entityspace import EntitySpaceRepresentation
+from ado.schema.measurementspace import (
     MeasurementSpace,
     MeasurementSpaceConfiguration,
 )
-from orchestrator.schema.reference import (
+from ado.schema.reference import (
     ExperimentReference,
 )
 
@@ -72,7 +72,7 @@ def test_discovery_space_with_parameterized_experiments(
     create_sample_store: Callable[[SampleStoreConfiguration], ActiveSampleStore],
 ) -> None:
 
-    from orchestrator.core.samplestore.config import (
+    from ado.core.samplestore.config import (
         SampleStoreConfiguration,
     )
 
@@ -84,7 +84,7 @@ def test_discovery_space_with_parameterized_experiments(
             specification=SampleStoreSpecification(
                 module=SampleStoreModuleConf(
                     moduleClass="SQLSampleStore",
-                    moduleName="orchestrator.core.samplestore.sql",
+                    moduleName="ado.core.samplestore.sql",
                 ),
             )
         )
@@ -142,7 +142,7 @@ def test_discovery_space_with_parameterized_experiments(
 
 # TODO: This test require explicit entity-space and matching source
 # Currently we have an explicit space and a non-matching source of molecule data
-# def test_matching_source_entities(discovery_space: orchestrator.model.space.DiscoverySpace):
+# def test_matching_source_entities(discovery_space: ado.model.space.DiscoverySpace):
 #
 #     table = discovery_space.matchingEntitiesTable()
 #     assert len(discovery_space.matchingEntities()) == 101
@@ -185,7 +185,7 @@ def test_discovery_space_resource(
 
     assert (
         discovery_space_resource.kind
-        == orchestrator.core.resources.CoreResourceKinds.DISCOVERYSPACE
+        == ado.core.resources.CoreResourceKinds.DISCOVERYSPACE
     )
 
     assert discovery_space_resource.created < datetime.datetime.now(
@@ -204,7 +204,7 @@ def test_discovery_space_config_file_valid(
     import pathlib
 
     valid_discovery_space_config_file = pathlib.Path(valid_discovery_space_config_file)
-    orchestrator.core.discoveryspace.config.DiscoverySpaceConfiguration.model_validate(
+    ado.core.discoveryspace.config.DiscoverySpaceConfiguration.model_validate(
         yaml.safe_load(valid_discovery_space_config_file.read_text())
     )
 
@@ -214,22 +214,20 @@ def test_discovery_space_config_experiment_field_conversion_parameterized(
     global_registry: ActuatorRegistry,
 ) -> None:
 
-    es = (
-        measurement_space_from_multiple_parameterized_experiments.compatibleEntitySpace()
-    )
+    es = measurement_space_from_multiple_parameterized_experiments.compatibleEntitySpace()
     ds_config = DiscoverySpaceConfiguration(
         entitySpace=es.constitutiveProperties,
         experiments=measurement_space_from_multiple_parameterized_experiments.experimentReferences,
         sampleStoreIdentifier="does-not-matter",
     )
 
-    assert not isinstance(
-        ds_config.experiments, MeasurementSpaceConfiguration
-    ), "Expected the discovery space configuration fixtures experiment field to be a list of experiment references"
+    assert not isinstance(ds_config.experiments, MeasurementSpaceConfiguration), (
+        "Expected the discovery space configuration fixtures experiment field to be a list of experiment references"
+    )
     config_copy = ds_config.convert_experiments_to_measurement_space_config()
-    assert isinstance(
-        config_copy.experiments, MeasurementSpaceConfiguration
-    ), "Expected the experiment field of the copy of the discovery space configuration to be a MeasurementSpaceConfiguration"
+    assert isinstance(config_copy.experiments, MeasurementSpaceConfiguration), (
+        "Expected the experiment field of the copy of the discovery space configuration to be a MeasurementSpaceConfiguration"
+    )
 
     assert (
         config_copy == config_copy.convert_experiments_to_measurement_space_config()
@@ -259,13 +257,13 @@ def test_discovery_space_config_experiment_field_conversion(
         sampleStoreIdentifier="does-not-matter",
     )
 
-    assert not isinstance(
-        ds_config.experiments, MeasurementSpaceConfiguration
-    ), "Expected the discovery space configuration fixtures experiment field to be a list of experiment references"
+    assert not isinstance(ds_config.experiments, MeasurementSpaceConfiguration), (
+        "Expected the discovery space configuration fixtures experiment field to be a list of experiment references"
+    )
     config_copy = ds_config.convert_experiments_to_measurement_space_config()
-    assert isinstance(
-        config_copy.experiments, MeasurementSpaceConfiguration
-    ), "Expected the experiment field of the copy of the discovery space configuration to be a MeasurementSpaceConfiguration"
+    assert isinstance(config_copy.experiments, MeasurementSpaceConfiguration), (
+        "Expected the experiment field of the copy of the discovery space configuration to be a MeasurementSpaceConfiguration"
+    )
 
     assert (
         config_copy == config_copy.convert_experiments_to_measurement_space_config()
@@ -284,9 +282,9 @@ def test_discovery_space_config_experiment_field_conversion(
 
 def test_convert_experiments_to_reference_list_preserves_version() -> None:
     """Stored experiment version is included when exporting reference list."""
-    from orchestrator.schema.experiment import Experiment
-    from orchestrator.schema.measurementspace import MeasurementSpaceConfiguration
-    from orchestrator.schema.property import AbstractPropertyDescriptor
+    from ado.schema.experiment import Experiment
+    from ado.schema.measurementspace import MeasurementSpaceConfiguration
+    from ado.schema.property import AbstractPropertyDescriptor
 
     experiment = Experiment(
         actuatorIdentifier="mock",
@@ -310,10 +308,10 @@ def test_convert_experiments_to_measurement_space_config_version_mismatch(
     """convert_experiments_to_measurement_space_config fails on FQ version mismatch."""
     import warnings
 
-    from orchestrator.modules.actuators.errors import ExperimentVersionMismatchError
-    from orchestrator.schema.experiment import Experiment
-    from orchestrator.schema.property import AbstractPropertyDescriptor
-    from orchestrator.schema.reference import ExperimentReference
+    from ado.modules.actuators.errors import ExperimentVersionMismatchError
+    from ado.schema.experiment import Experiment
+    from ado.schema.property import AbstractPropertyDescriptor
+    from ado.schema.reference import ExperimentReference
 
     catalog = global_registry.catalogForActuatorIdentifier("mock")
     with warnings.catch_warnings():
@@ -405,7 +403,7 @@ def test_matching_entities_table_virtual_property_with_multiple_values(
     """Virtual property identifiers produce aggregated columns with scalar values for multi-valued properties."""
     import numpy as np
 
-    from orchestrator.schema.virtual_property import PropertyAggregationMethodEnum
+    from ado.schema.virtual_property import PropertyAggregationMethodEnum
 
     virtual_id = f"wallClockRuntime-{PropertyAggregationMethodEnum.mean.value}"
 
@@ -432,15 +430,15 @@ def _operation_lifecycle_statuses(
 
 def test_operation_context_success_lifecycle(pfas_space: DiscoverySpace) -> None:
     """operation_context registers the operation and records STARTED then FINISHED/SUCCESS."""
-    from orchestrator.core.discoveryspace.space import (
+    from ado.core.discoveryspace.space import (
         SCRIPT_OPERATION_EXECUTION_LABEL,
         SCRIPT_OPERATION_LABEL_KEY,
     )
-    from orchestrator.core.operation.config import (
+    from ado.core.operation.config import (
         DiscoveryOperationEnum,
         ScriptOperatorConf,
     )
-    from orchestrator.core.operation.resource import (
+    from ado.core.operation.resource import (
         OperationExitStateEnum,
         OperationResource,
         OperationResourceEventEnum,
@@ -462,9 +460,10 @@ def test_operation_context_success_lifecycle(pfas_space: DiscoverySpace) -> None
     assert operation_id in pfas_space.operations
     assert isinstance(operation.config.operation.module, ScriptOperatorConf)
     assert (
-        operation.config.operation.module.operationType == DiscoveryOperationEnum.SEARCH
+        operation.config.operation.module.operationType
+        == DiscoveryOperationEnum.EXPLORE
     )
-    assert operation.operationType == DiscoveryOperationEnum.SEARCH
+    assert operation.operationType == DiscoveryOperationEnum.EXPLORE
     assert operation.config.metadata.description == "Script operation for testing"
     assert operation.config.metadata.labels == {
         SCRIPT_OPERATION_LABEL_KEY: SCRIPT_OPERATION_EXECUTION_LABEL,
@@ -484,8 +483,8 @@ def test_operation_context_with_optional_provenance(pfas_space: DiscoverySpace) 
     """operation_context stores optional script package provenance under operators."""
     from importlib.metadata import version
 
-    from orchestrator.core.metadata import PackageProvenance
-    from orchestrator.core.operation.resource import OperationResource
+    from ado.core.metadata import PackageProvenance
+    from ado.core.operation.resource import OperationResource
 
     script_provenance = PackageProvenance(
         distributionName="ado-core",
@@ -519,7 +518,7 @@ def test_discovery_space_resource_has_ado_before_persist(
 
 def test_operation_context_failure_lifecycle(pfas_space: DiscoverySpace) -> None:
     """operation_context records FINISHED/FAIL when the wrapped block raises."""
-    from orchestrator.core.operation.resource import (
+    from ado.core.operation.resource import (
         OperationExitStateEnum,
         OperationResource,
         OperationResourceEventEnum,

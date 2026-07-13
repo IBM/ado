@@ -8,15 +8,15 @@ from collections.abc import Callable
 
 from typer.testing import CliRunner
 
-from orchestrator.cli.core.cli import app as ado
-from orchestrator.core import (
+from ado.cli.core.cli import app as ado
+from ado.core import (
     DiscoverySpaceResource,
     OperationResource,
     SampleStoreResource,
 )
-from orchestrator.metastore.project import ProjectContext
-from orchestrator.metastore.sql.statements import _MAX_HIERARCHY_HOPS
-from orchestrator.metastore.sqlstore import SQLStore
+from ado.metastore.project import ProjectContext
+from ado.metastore.sql.statements import _MAX_HIERARCHY_HOPS
+from ado.metastore.sqlstore import SQLStore
 from tests.conftest import requires_sqlite_3_38
 
 
@@ -41,8 +41,6 @@ def test_show_related_max_hops_default_traverses_full_hierarchy(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            str(tmp_path),
             "show",
             "related",
             "operation",
@@ -76,8 +74,6 @@ def test_show_related_max_hops_1_excludes_grandparent(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            str(tmp_path),
             "show",
             "related",
             "operation",
@@ -114,8 +110,6 @@ def test_show_related_max_hops_2_includes_grandparent(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            str(tmp_path),
             "show",
             "related",
             "operation",
@@ -149,8 +143,6 @@ def test_show_related_max_hops_zero_is_rejected(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            str(tmp_path),
             "show",
             "related",
             "operation",
@@ -182,8 +174,6 @@ def test_show_related_max_hops_above_maximum_is_rejected(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            str(tmp_path),
             "show",
             "related",
             "operation",

@@ -6,16 +6,16 @@ from collections.abc import Callable
 import pytest
 import yaml
 
-import orchestrator.core
-import orchestrator.core.operation.resource
-from orchestrator.core import ADOResource
-from orchestrator.core.operation.config import (
+import ado.core
+import ado.core.operation.resource
+from ado.core import ADOResource
+from ado.core.operation.config import (
     DiscoveryOperationConfiguration,
     DiscoveryOperationEnum,
     DiscoveryOperationResourceConfiguration,
 )
-from orchestrator.core.operation.resource import OperationResource
-from orchestrator.metastore.sqlstore import SQLStore
+from ado.core.operation.resource import OperationResource
+from ado.metastore.sqlstore import SQLStore
 
 
 @pytest.fixture
@@ -32,7 +32,7 @@ def ml_multi_cloud_operation_resource(
             ml_multi_cloud_operation_configuration.spaces = [space_id]
 
         return OperationResource(
-            operationType=DiscoveryOperationEnum.SEARCH,
+            operationType=DiscoveryOperationEnum.EXPLORE,
             operatorIdentifier=random_identifier(),
             config=ml_multi_cloud_operation_configuration,
         )
@@ -97,7 +97,7 @@ def operation_resource(
     # Create a random operation resource
     return OperationResource(
         config=operation_configuration,
-        operationType=orchestrator.core.operation.config.DiscoveryOperationEnum.SEARCH,
+        operationType=ado.core.operation.config.DiscoveryOperationEnum.EXPLORE,
         operatorIdentifier="randomwalk-0.3.1",
     )
 

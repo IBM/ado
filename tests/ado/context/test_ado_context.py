@@ -6,10 +6,10 @@ from pathlib import Path
 
 from typer.testing import CliRunner
 
-from orchestrator.cli.core.cli import app as ado
-from orchestrator.cli.core.config import AdoConfiguration
-from orchestrator.metastore.project import ProjectContext
-from orchestrator.utilities.output import pydantic_model_as_yaml
+from ado.cli.core.cli import app as ado
+from ado.cli.core.config import AdoConfiguration
+from ado.metastore.project import ProjectContext
+from ado.utilities.output import pydantic_model_as_yaml
 
 
 # ado context
@@ -21,8 +21,6 @@ def test_ado_context_print_active_context(tmp_path: Path) -> None:
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            str(tmp_path),
             "context",
         ],
     )
@@ -50,8 +48,6 @@ def test_ado_context_override_sets_active_context(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            str(tmp_path),
             "-c",
             str(context_location),
             "context",
@@ -89,7 +85,7 @@ def test_ado_context_cannot_set_nonexisting_context(
     # We try to activate a "third-context", which does not exist
     activate_nonexistent_context_result = runner.invoke(
         ado,
-        ["--override-ado-app-dir", str(tmp_path), "context", "third-context"],
+        ["context", "third-context"],
     )
     assert activate_nonexistent_context_result.exit_code == 1
     activate_nonexistent_context_expected_output = (
@@ -128,7 +124,7 @@ def test_ado_context_set_context(
     runner = CliRunner()
     activate_context_result = runner.invoke(
         ado,
-        ["--override-ado-app-dir", str(tmp_path), "context", "second-context"],
+        ["context", "second-context"],
     )
     assert activate_context_result.exit_code == 0
     activate_context_expected_output = "Success! Now using context second-context\n"
@@ -154,7 +150,7 @@ def test_ado_context_cannot_set_invalid_context(tmp_path: Path) -> None:
     # Try to activate the invalid context
     activate_invalid_context_result = runner.invoke(
         ado,
-        ["--override-ado-app-dir", str(tmp_path), "context", "invalid-context"],
+        ["context", "invalid-context"],
     )
     assert activate_invalid_context_result.exit_code == 1
     # Check that the error message indicates the context is not valid
@@ -191,7 +187,7 @@ def test_ado_switches_to_local_when_active_context_becomes_invalid(
     runner = CliRunner()
     activate_context_result = runner.invoke(
         ado,
-        ["--override-ado-app-dir", str(tmp_path), "context", "valid-context"],
+        ["context", "valid-context"],
     )
     assert activate_context_result.exit_code == 0
 
@@ -203,7 +199,7 @@ def test_ado_switches_to_local_when_active_context_becomes_invalid(
     # Try to run any ado command (e.g., ado get spaces)
     get_spaces_result = runner.invoke(
         ado,
-        ["--override-ado-app-dir", str(tmp_path), "get", "spaces"],
+        ["get", "spaces"],
     )
     assert get_spaces_result.exit_code == 1
     # Check that the error message indicates the context is not valid
@@ -217,7 +213,7 @@ def test_ado_switches_to_local_when_active_context_becomes_invalid(
     # Verify that the active context has been switched back to local
     check_context_result = runner.invoke(
         ado,
-        ["--override-ado-app-dir", str(tmp_path), "context"],
+        ["context"],
     )
     assert check_context_result.exit_code == 0
     assert check_context_result.output.strip() == "local"
@@ -247,8 +243,6 @@ def test_ado_contexts_list_contexts(tmp_path: Path) -> None:
     ado_contexts_default_output_result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            str(tmp_path),
             "contexts",
         ],
     )
@@ -270,7 +264,7 @@ def test_ado_contexts_list_contexts(tmp_path: Path) -> None:
     # Test with the name output format
     ado_contexts_name_output_result = runner.invoke(
         ado,
-        ["--override-ado-app-dir", str(tmp_path), "contexts", "-o", "name"],
+        ["contexts", "-o", "name"],
     )
     assert ado_contexts_name_output_result.exit_code == 0
     ado_contexts_name_output_expected_output = "first-context\nlocal\nsecond-context\n"
@@ -296,8 +290,6 @@ def test_ado_contexts_list_contexts_with_context_and_empty_dir_override(
     ado_contexts_result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            str(tmp_path),
             "-c",
             context_location,
             "contexts",
@@ -314,8 +306,6 @@ def test_ado_contexts_list_contexts_with_context_and_empty_dir_override(
     ado_contexts_name_output_result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            str(tmp_path),
             "-c",
             context_location,
             "contexts",
@@ -375,8 +365,6 @@ def test_ado_contexts_list_contexts_with_context_and_valid_dir_override(
     ado_contexts_default_output_result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            str(tmp_path),
             "-c",
             context_location,
             "contexts",
@@ -401,8 +389,6 @@ def test_ado_contexts_list_contexts_with_context_and_valid_dir_override(
     ado_contexts_name_output_result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            str(tmp_path),
             "-c",
             context_location,
             "contexts",

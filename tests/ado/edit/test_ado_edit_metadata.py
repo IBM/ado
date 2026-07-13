@@ -6,15 +6,15 @@ from collections.abc import Callable
 
 from typer.testing import CliRunner
 
-from orchestrator.cli.core.cli import app as ado
-from orchestrator.cli.utils.generic.wrappers import get_sql_store
-from orchestrator.cli.utils.resources.handlers import (
+from ado.cli.core.cli import app as ado
+from ado.cli.utils.generic.wrappers import get_sql_store
+from ado.cli.utils.resources.handlers import (
     strategic_merge_configuration_metadata,
 )
-from orchestrator.core import SampleStoreResource
-from orchestrator.core.metadata import ConfigurationMetadata
-from orchestrator.core.resources import CoreResourceKinds
-from orchestrator.metastore.project import ProjectContext
+from ado.core import SampleStoreResource
+from ado.core.metadata import ConfigurationMetadata
+from ado.core.resources import CoreResourceKinds
+from ado.metastore.project import ProjectContext
 
 
 def test_strategic_merge_preserves_name_merges_labels() -> None:
@@ -51,8 +51,6 @@ def test_ado_edit_mutex_patch_and_patch_file(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            str(tmp_path),
             "edit",
             "samplestore",
             "dummy",
@@ -94,8 +92,6 @@ def test_ado_edit_editor_ignored_with_patch_file(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            str(tmp_path),
             "edit",
             "samplestore",
             store.identifier,
@@ -141,8 +137,6 @@ def test_ado_edit_metadata_merges_into_store(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            str(tmp_path),
             "edit",
             "samplestore",
             store.identifier,
@@ -181,8 +175,6 @@ def test_ado_edit_inline_patch(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            str(tmp_path),
             "edit",
             "samplestore",
             store.identifier,
@@ -221,8 +213,6 @@ def test_ado_edit_metadata_rejects_non_mapping_yaml(
     result = runner.invoke(
         ado,
         [
-            "--override-ado-app-dir",
-            str(tmp_path),
             "edit",
             "samplestore",
             store.identifier,

@@ -4,8 +4,8 @@ import re
 
 import pytest
 
-from orchestrator.schema.experiment import Experiment
-from orchestrator.schema.virtual_property import (
+from ado.schema.experiment import Experiment
+from ado.schema.virtual_property import (
     PropertyAggregationMethod,
     PropertyAggregationMethodEnum,
     VirtualObservedProperty,

@@ -133,11 +133,11 @@ Calling decorated `min_gpu_recommender` custom experiment directly.
 <!-- markdownlint-disable line-length -->
 
 ```python
-from orchestrator.schema.reference import (
+from ado.schema.reference import (
     ExperimentReference,
 )
-from orchestrator.schema.point import SpacePoint
-from orchestrator.modules.actuators.registry import ActuatorRegistry
+from ado.schema.point import SpacePoint
+from ado.modules.actuators.registry import ActuatorRegistry
 from autoconf.min_gpu_recommender import (
     min_gpu_recommender,
 )
@@ -179,12 +179,12 @@ format (MeasurementRequest)
 <!-- markdownlint-disable line-length -->
 
 ```python
-from orchestrator.schema.reference import (
+from ado.schema.reference import (
     ExperimentReference,
 )
-from orchestrator.schema.point import SpacePoint
-from orchestrator.modules.actuators.registry import ActuatorRegistry
-from orchestrator.utilities.run_experiment import local_execution_closure
+from ado.schema.point import SpacePoint
+from ado.modules.actuators.registry import ActuatorRegistry
+from ado.utilities.run_experiment import local_execution_closure
 
 configuration = {
     "model_name": "llama-7b",

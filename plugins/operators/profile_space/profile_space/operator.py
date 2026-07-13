@@ -1,14 +1,13 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
-from importlib.metadata import version
 
 import pandas as pd
 import pydantic
 
-from orchestrator.core.discoveryspace.space import DiscoverySpace
-from orchestrator.core.operation.config import FunctionOperationInfo
-from orchestrator.core.operation.operation import OperationOutput
-from orchestrator.modules.operators.collections import characterize_operation
+from ado.core.discoveryspace.space import DiscoverySpace
+from ado.core.operation.config import FunctionOperationInfo
+from ado.core.operation.operation import OperationOutput
+from ado.modules.operators.collections import characterize_operation
 
 
 class ProfileParameters(pydantic.BaseModel):
@@ -19,7 +18,7 @@ class ProfileParameters(pydantic.BaseModel):
 # for documentation on the decorator and its parameters
 @characterize_operation(
     name="profile",
-    version=version("ado-core"),
+    version="2.0.3",
     configuration_model=ProfileParameters,
     example_configuration=ProfileParameters(),
     description="Returns a data_profiling ProfileReport for the space",

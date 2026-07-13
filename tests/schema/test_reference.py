@@ -5,19 +5,19 @@ import re
 import numpy.random
 import pytest
 
-from orchestrator.modules.actuators.registry import ActuatorRegistry
-from orchestrator.schema.experiment import Experiment
-from orchestrator.schema.measurementspace import MeasurementSpace
-from orchestrator.schema.observed_property import ObservedPropertyValue
-from orchestrator.schema.property import (
+from ado.modules.actuators.registry import ActuatorRegistry
+from ado.schema.experiment import Experiment
+from ado.schema.measurementspace import MeasurementSpace
+from ado.schema.observed_property import ObservedPropertyValue
+from ado.schema.property import (
     ConstitutivePropertyDescriptor,
 )
-from orchestrator.schema.property_value import ConstitutivePropertyValue
-from orchestrator.schema.reference import (
+from ado.schema.property_value import ConstitutivePropertyValue
+from ado.schema.reference import (
     ExperimentReference,
     _parse_experiment_part_from_string,
 )
-from orchestrator.schema.result import ValidMeasurementResult
+from ado.schema.result import ValidMeasurementResult
 
 
 def test_parameterized_reference_equality(
@@ -206,7 +206,7 @@ def test_entity_property_values_from_experiment_reference_parameterized(
 
     # Create an entity space compatible with the measurement space
     es = ms.compatibleEntitySpace()
-    from orchestrator.core.discoveryspace.samplers import (
+    from ado.core.discoveryspace.samplers import (
         ExplicitEntitySpaceGridSampleGenerator,
         WalkModeEnum,
     )
@@ -248,9 +248,9 @@ def test_entity_property_values_from_experiment_reference_parameterized(
         f"Testing we do not retrieve values for {base_ref} or {different_parameterized_ref}"
     )
 
-    assert (
-        len(entity.propertyValuesFromExperimentReference(parameterized_ref)) > 0
-    ), f"Expected entity to have values for observed properties of parameterized experiment {parameterized_ref} but it has None"
+    assert len(entity.propertyValuesFromExperimentReference(parameterized_ref)) > 0, (
+        f"Expected entity to have values for observed properties of parameterized experiment {parameterized_ref} but it has None"
+    )
 
     assert len(entity.propertyValuesFromExperimentReference(parameterized_ref)) == len(
         exp.observedProperties
@@ -259,14 +259,16 @@ def test_entity_property_values_from_experiment_reference_parameterized(
         f"experiment {parameterized_ref} but it has {len(entity.propertyValuesFromExperimentReference(parameterized_ref))}"
     )
 
-    assert (
-        len(entity.propertyValuesFromExperimentReference(base_ref)) == 0
-    ), f"Entity had values added for {parameterized_ref}. It should not return any values when given base experiment reference {base_ref}"
+    assert len(entity.propertyValuesFromExperimentReference(base_ref)) == 0, (
+        f"Entity had values added for {parameterized_ref}. It should not return any values when given base experiment reference {base_ref}"
+    )
 
     assert (
         len(entity.propertyValuesFromExperimentReference(different_parameterized_ref))
         == 0
-    ), f"Entity had values added for {parameterized_ref}. It should not return any values when given base experiment reference {different_parameterized_ref}"
+    ), (
+        f"Entity had values added for {parameterized_ref}. It should not return any values when given base experiment reference {different_parameterized_ref}"
+    )
 
 
 def test_experiment_reference_from_invalid_string() -> None:
@@ -361,6 +363,51 @@ def test_parse_experiment_part_rejects_parameterization_before_base() -> None:
         ValueError, match="Parameterization cannot appear before the base experiment"
     ):
         _parse_experiment_part_from_string("-timeout.120")
+
+
+def test_parse_experiment_part_without_parameterization_when_disabled() -> None:
+    """CLI parsing keeps dotted experiment identifiers intact."""
+    base, version, parameterization = _parse_experiment_part_from_string(
+        "my-experiment-timeout.120",
+        allow_parameterization=False,
+    )
+    assert base == "my-experiment-timeout.120"
+    assert version is None
+    assert parameterization is None
+
+
+def test_reference_from_string_without_parameterization_when_disabled() -> None:
+    """referenceFromString can skip parameterization parsing for CLI input."""
+    parsed = ExperimentReference.referenceFromString(
+        "act.my-experiment-timeout.120",
+        allow_parameterization=False,
+    )
+    assert parsed.actuatorIdentifier == "act"
+    assert parsed.experimentIdentifier == "my-experiment-timeout.120"
+    assert parsed.parameterization is None
+
+
+def test_parse_experiment_part_major_version_identifier_when_disabled() -> None:
+    """CLI parsing accepts major version identifiers such as @v1."""
+    base, version, parameterization = _parse_experiment_part_from_string(
+        "nevergrad_opt_3d_test_func@v1",
+        allow_parameterization=False,
+    )
+    assert base == "nevergrad_opt_3d_test_func"
+    assert version == "1.0.0"
+    assert parameterization is None
+
+
+def test_reference_from_string_major_version_identifier_when_disabled() -> None:
+    """CLI reference parsing accepts major version identifiers such as @v1."""
+    parsed = ExperimentReference.referenceFromString(
+        "custom_experiments.nevergrad_opt_3d_test_func@v1",
+        allow_parameterization=False,
+    )
+    assert parsed.actuatorIdentifier == "custom_experiments"
+    assert parsed.experimentIdentifier == "nevergrad_opt_3d_test_func"
+    assert parsed.experimentVersion == "1.0.0"
+    assert parsed.major_version_experiment_identifier == "nevergrad_opt_3d_test_func@v1"
 
 
 def test_experiment_reference_equality_non_reference() -> None:

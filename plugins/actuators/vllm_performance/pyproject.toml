@@ -15,7 +15,7 @@ classifiers = [
   "Topic :: Software Development :: Testing",
 ]
 dependencies = [
-  "ado-core",
+  "ado-core>=2.0.0",
   "datasets>=2.20.0",  # Required to avoid uv/pip to resolve to a version of datasets that is not compatible with vllm
   "kubernetes>=31.0.0,!=36.0.0",
 ]
@@ -35,31 +35,45 @@ vllm_performance = "ado_actuators.vllm_performance.actuator:VLLMPerformanceTest"
 guidellm = [
   "guidellm>=0.5.3",
 ]
+
 vllm = [
+  # AP 02/07/2026
+  # Scanners are flagging opencv-python-headless==5.0.0.93 as
+  # potentially malicious. While we think it's a false positive,
+  # we use the <5 qualifier to prevent the major OpenCV bump.
+  "opencv-python-headless<5",
   "vllm>=0.12.0,!=0.15.*;sys_platform!='darwin'",
 ]
 
 [build-system]
-requires = ["setuptools", "setuptools_scm"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling", "uv-dynamic-versioning>=0.7.0"]
+build-backend = "hatchling.build"
 
-[tool.setuptools]
-include-package-data = true  # This is on by default, including it for clarity
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
 
-[tool.setuptools.packages.find]
-where = ["."]
-exclude = ["build", "build.*", "yamls", "docker_image"]
-
-[tool.setuptools.package-data]
-# Note: This is optional. If you don't specify every non python file that's in SCM will be added
-vllm_performance = [
-  "experiments.yaml",  # Optional file that contains definitions for experiment catalog
-]
-
-[tool.setuptools_scm]
-root = "../../../"
-local_scheme = "node-and-timestamp"
+[tool.hatch.build.targets.wheel]
+packages = ["ado_actuators"]
 
 # Required when added as a workspace package
 [tool.uv.sources]
 ado-core = { workspace = true }
+
+[tool.uv-dynamic-versioning]
+vcs = "git"
+style = "pep440"
+pattern = "default-unprefixed"
+pattern-prefix = "vllm-performance/"
+fallback-version = "0.0.0"
+format-jinja = """
+{%- set metadata = [
+    distance != 0 and "g" ~ commit,
+    distance != 0 and "d" ~ timestamp,
+    dirty and "dirty"
+] -%}
+{{ serialize_pep440(
+    distance == 0 and base or bump_version(base),
+    dev=distance or None,
+    metadata=metadata | select | list
+) }}
+"""

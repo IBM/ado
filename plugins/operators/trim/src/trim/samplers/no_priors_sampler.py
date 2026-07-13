@@ -7,9 +7,9 @@ import typing
 
 from pydantic import BaseModel
 
-from orchestrator.core.discoveryspace.samplers import BaseSampler
-from orchestrator.core.discoveryspace.space import DiscoverySpace, Entity
-from orchestrator.modules.operators.discovery_space_manager import DiscoverySpaceManager
+from ado.core.discoveryspace.samplers import BaseSampler
+from ado.core.discoveryspace.space import DiscoverySpace, Entity
+from ado.modules.operators.discovery_space_manager import DiscoverySpaceManager
 from trim.samplers.no_priors_parameters import NoPriorsParameters
 from trim.samplers.no_priors_utils import (
     get_list_of_entities_from_df_and_space,
@@ -25,7 +25,8 @@ logger_no_priors = logging.getLogger(__name__)
 class NoPriorsSampleSelector(BaseSampler):
     @classmethod
     def samplerCompatibleWithDiscoverySpaceRemote(
-        cls, remoteDiscoverySpace: DiscoverySpaceManager  # type: ignore[name-defined]
+        cls,
+        remoteDiscoverySpace: DiscoverySpaceManager,  # type: ignore[name-defined]
     ) -> bool:
         return True
 

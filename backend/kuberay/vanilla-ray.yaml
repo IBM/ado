@@ -20,7 +20,7 @@ head:
         memory: "512Mi"
   containerEnv:
     - name: RAY_RUNTIME_ENV_PLUGINS
-      value: '[{"class":"orchestrator.utilities.ray_env.ordered_pip.OrderedPipPlugin"}]'
+      value: '[{"class":"ado.utilities.ray_env.ordered_pip.OrderedPipPlugin"}]'
   lifecycle: #https://docs.ray.io/en/latest/cluster/kubernetes/user-guides/config.html#pod-and-container-lifecyle-prestophook
     preStop:
       exec:
@@ -45,7 +45,7 @@ worker:
     block: "true"
   containerEnv:
     - name: RAY_RUNTIME_ENV_PLUGINS
-      value: '[{"class":"orchestrator.utilities.ray_env.ordered_pip.OrderedPipPlugin"}]'
+      value: '[{"class":"ado.utilities.ray_env.ordered_pip.OrderedPipPlugin"}]'
     - name: OMP_NUM_THREADS
       value: "1"
     - name: OPENBLAS_NUM_THREADS

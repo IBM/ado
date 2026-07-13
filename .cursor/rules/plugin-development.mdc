@@ -30,6 +30,7 @@ from `AGENTS.md` also apply.
 Each plugin package should contain:
 
 - `pyproject.toml` - Package configuration
+- `VERSION` - Plain-text file containing the current semver string (e.g. `2.0.0`)
 - `tests/` - Unit and integration tests (keep within the plugin package)
 - YAML examples - Example discoveryspace and operation files for the plugin
 - Plugin implementation code
@@ -38,32 +39,28 @@ Each plugin package should contain:
 
 ## Package Setup
 
-### Using setuptools_scm for Versioning
+### Plugin Versioning
 
-Configure `pyproject.toml` to use `setuptools_scm` for automatic versioning:
+Each plugin has a `VERSION` file at its root (e.g. `2.0.0`) and uses
+`hatchling` + `uv-dynamic-versioning` with a namespaced git tag (e.g.
+`trim/2.0.0`) as the version source. Tag prefixes use hyphens matching the
+plugin's directory name (e.g. `ray-tune/` for `plugins/operators/ray_tune`).
 
-```toml
-[build-system]
-requires = ["setuptools", "setuptools_scm"]
-build-backend = "setuptools.build_meta"
+**When making changes to a plugin, update `VERSION` if needed:**
 
-[tool.setuptools_scm]
-root = "../../../"  # Points to repo root
-local_scheme = "node-and-timestamp"
+- **Patch** (`x.y.Z`): bug fixes, no behaviour change
+- **Minor** (`x.Y.0`): new features, backwards compatible
+- **Major** (`X.0.0`): breaking changes to the operator interface or output
 
-[project]
-name = "your-plugin-name"
-dynamic = ["version"]  # Version set automatically by setuptools_scm
-```
+If the plugin has a `version=` argument in a `@characterize_operation`
+decorator (or equivalent), keep it in sync with `VERSION`.
 
-`local_scheme = "node-and-timestamp"` makes each dirty (uncommitted) build
-produce a unique version using the git node and a timestamp (e.g.
-`1.2.3.dev4+gabcdef.d20260420123456`). Without it the default `dirty` scheme
-only appends `.d<date>`, so multiple dirty builds on the same day share the same
-version string. This matters for remote execution: Ray caches installed wheels
-by version, so a stale cached wheel will be used instead of a freshly built one
-if the version has not changed. See
-[remote-execution](../skills/remote-execution/SKILL.md) for the full diagnosis.
+#### pyproject.toml configuration
+
+Use the trim plugin as a reference: [`plugins/operators/trim/pyproject.toml`](../../../plugins/operators/trim/pyproject.toml).
+
+Set `pattern-prefix` to the plugin's namespaced tag prefix, and
+`[tool.hatch.build.targets.wheel] packages` to the plugin's source directory.
 
 ### Dependencies
 
@@ -101,7 +98,7 @@ If you mistakenly add `ado-core = { workspace = true }` to a plugin's
 `[tool.uv.sources]` without adding it to the workspace, `uv pip install` will
 fail with:
 
-```
+```text
 Failed to parse entry: `ado-core`
 `ado-core` references a workspace ... but is not a workspace member
 ```
@@ -128,15 +125,13 @@ Actuators use the `ado.actuators` entry point in `pyproject.toml`:
 my-actuator = "my_plugin.actuators:MyActuator"
 ```
 
-Actuators may optionally include:
-
-- `experiments.yaml` file for experiment catalog definitions
+Actuators may optionally include an `experiments.yaml` file for experiment
+catalog definitions. Declare it as package data:
 
 ```toml
-[tool.setuptools.package-data]
-your_actuator = [
-    "experiments.yaml"  # Optional: experiment catalog definitions
-]
+[tool.hatch.build.targets.wheel]
+packages = ["src/my_actuator"]
+artifacts = ["src/my_actuator/experiments.yaml"]
 ```
 
 ### Operators and Custom Experiments: Entry Points
@@ -167,8 +162,8 @@ Custom experiments **must** use the `@custom_experiment` decorator correctly:
 
 ```python
 from typing import Any
-from orchestrator.modules.actuators.custom_experiments import custom_experiment
-from orchestrator.schema.property import ConstitutiveProperty
+from ado.modules.actuators.custom_experiments import custom_experiment
+from ado.schema.property import ConstitutiveProperty
 
 # Define your properties explicitly (or let ado infer from type annotations)
 MyProperty = ConstitutiveProperty(...)
@@ -226,13 +221,13 @@ Before considering a plugin complete, verify:
 
 Run
 
-```
+```bash
 uv run ado get actuators --details
 ```
 
 or
 
-```
+```bash
 uv run ado get operators
 ```
 
@@ -243,7 +238,7 @@ and confirm the plugin is installed
 
 For example:
 
-```
+```bash
 uv run run_experiment point.yaml
 ```
 
@@ -283,7 +278,7 @@ After making changes to plugin code, run linting at the plugin directory level:
 
 ```bash
 cd plugins/actuators/your_plugin/
-uv run black .
+uv run ruff format .
 uv run ruff check --fix .
 uv run tombi fmt .
 ```
@@ -293,6 +288,10 @@ Fix any issues that ruff cannot automatically resolve.
 ---
 
 ## Complete pyproject.toml Examples
+
+For the full versioning block, copy from
+[`plugins/operators/trim/pyproject.toml`](../../../plugins/operators/trim/pyproject.toml)
+and adjust `pattern-prefix` and `packages` for the new plugin.
 
 ### Actuator Example
 
@@ -308,33 +307,13 @@ dependencies = [
 [project.entry-points."ado.actuators"]
 my-actuator = "my_plugin.actuators:MyActuator"
 
-[build-system]
-requires = ["setuptools", "setuptools_scm"]
-build-backend = "setuptools.build_meta"
-
-[tool.setuptools_scm]
-root = "../../../"
-local_scheme = "node-and-timestamp"
-
-[tool.setuptools.packages.find]
-where = ["."]
-exclude = ["build", "build.*", "examples"]
-
-[tool.setuptools.package-data]
-my_actuator = ["experiments.yaml"]  # Optional
+# versioning block: copy from trim, set pattern-prefix = "my-actuator/"
+# and packages = ["src/my_actuator"]
 ```
 
 ### Operator Example
 
 ```toml
-[build-system]
-requires = ["setuptools", "setuptools_scm"]
-build-backend = "setuptools.build_meta"
-
-[tool.setuptools_scm]
-root = "../../../"
-local_scheme = "node-and-timestamp"
-
 [project]
 name = "my-operator"
 dynamic = ["version"]
@@ -344,6 +323,9 @@ dependencies = [
 
 [project.entry-points."ado.operators"]
 my-operator = "my_operator.operator_function"
+
+# versioning block: copy from trim, set pattern-prefix = "my-operator/"
+# and packages = ["src/my_operator"]
 ```
 
 ### Custom Experiment Example
@@ -360,11 +342,6 @@ dependencies = [
 [project.entry-points."ado.custom_experiments"]
 my_experiment = "my_package.my_experiment"
 
-[build-system]
-requires = ["setuptools", "setuptools_scm"]
-build-backend = "setuptools.build_meta"
-
-[tool.setuptools_scm]
-root = "../../../"
-local_scheme = "node-and-timestamp"
+# versioning block: copy from trim, set pattern-prefix = "my-custom-experiment/"
+# and packages = ["src/my_custom_experiment"]
 ```

@@ -1,11 +1,11 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-import orchestrator.core
-import orchestrator.utilities.location
-from orchestrator.core import DataContainerResource
-from orchestrator.core.datacontainer.resource import DataContainer, TabularData
-from orchestrator.utilities.location import SQLStoreConfiguration
+import ado.core
+import ado.utilities.location
+from ado.core import DataContainerResource
+from ado.core.datacontainer.resource import DataContainer, TabularData
+from ado.utilities.location import SQLStoreConfiguration
 
 
 def test_tabular_data(testTabularDataString: TabularData) -> None:
@@ -23,7 +23,7 @@ def test_data_container_resource(
 
     assert (
         data_container_resource.kind
-        == orchestrator.core.resources.CoreResourceKinds.DATACONTAINER
+        == ado.core.resources.CoreResourceKinds.DATACONTAINER
     )
     assert data_container_resource.identifier.split("-")[0] == "datacontainer"
 
@@ -43,7 +43,7 @@ def test_data_container_resource(
     )
     assert isinstance(
         data_container_resource.config.locationData["entity_location"],
-        orchestrator.utilities.location.SQLStoreConfiguration,
+        ado.utilities.location.SQLStoreConfiguration,
     )
 
     # Test ser/deser
@@ -53,7 +53,7 @@ def test_data_container_resource(
     assert isinstance(dc.config.tabularData["important_entities"], TabularData)
     assert isinstance(
         dc.config.locationData["entity_location"],
-        orchestrator.utilities.location.SQLStoreConfiguration,
+        ado.utilities.location.SQLStoreConfiguration,
     )
 
     assert (

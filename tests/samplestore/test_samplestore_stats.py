@@ -5,8 +5,8 @@
 
 from collections.abc import Callable
 
-from orchestrator.core.samplestore.sql import SQLSampleStore
-from orchestrator.schema.request import MeasurementRequest
+from ado.core.samplestore.sql import SQLSampleStore
+from ado.schema.request import MeasurementRequest
 
 # ---------------------------------------------------------------------------
 # SQLSampleStore.samplestore_statistics — integration

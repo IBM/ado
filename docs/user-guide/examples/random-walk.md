@@ -2,24 +2,25 @@
 
 # Beyond the basics: `ado` with real data
 
-!!! abstract "What you'll learn"
+!!! question "New to `ado`?"
 
-    You'll import a real benchmark dataset into `ado` and use it to explore a cloud
-    workload parameter space. Once imported, `ado`'s **replay** mechanism
-    transparently serves the pre-existing measurements as the operation runs —
-    no re-execution needed.
+    This walkthrough introduces the key concepts — **sample stores**,
+    **discovery spaces**, and **operations** — as we go. If you'd prefer a
+    full overview first, the [Concepts](../../concepts/index.md) page has you
+    covered.
 
-    We will:
+This walkthrough takes you end-to-end through a real-data `ado` workflow using
+an imported cloud benchmark dataset, so you can focus on how `ado` works with
+pre-existing measurements rather than synthetic examples.
 
-    1. Load pre-existing benchmark data into a **sample store**
-    2. Define a **discovery space** over the cloud hardware configurations
-    3. Run a **random walk** operation to sample the space
+Once imported, `ado`'s **replay** mechanism transparently serves the benchmark
+results as the operation runs — no re-execution needed.
 
-    !!! question "New to `ado`?"
+We will:
 
-        We introduce each concept as it appears. If you'd prefer a full overview
-        first, the [Concepts](https://ibm.github.io/ado/concepts/) page has you
-        covered.
+1. Load pre-existing benchmark data into a **sample store**
+2. Define a **discovery space** over the cloud hardware configurations
+3. Run a **random walk** operation to sample the space
 
 !!! warning "Prerequisites"
 
@@ -69,9 +70,11 @@ tells `ado` how to import the CSV:
 Create the sample store:
 
 <!-- markdownlint-disable MD013 -->
+
 ```bash
 ado create store -f examples/ml-multi-cloud/ml_multicloud_sample_store_from_root.yaml
 ```
+
 <!-- markdownlint-enable MD013 -->
 
 ```text
@@ -148,10 +151,10 @@ Measurement Space:
 
       base identifier              ┃ required major version ┃ parameterization
      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━━━╋━━━━━━━━━━━━━━━━━━
-      replay.benchmark_performance ┃ nan                    ┃ nan
+      replay.benchmark_performance ┃ None                   ┃ None
 ```
 
-!!! question
+!!! example "Have a look"
 
     The entity space has 48 entities — the Cartesian product of `provider`
     (3), `cpu_family` (2), `vcpu_size` (2), and `nodes` (4). Compare this to
@@ -178,11 +181,6 @@ configures the walk:
 
 <!-- markdownlint-enable MD013 -->
 
-!!! tip
-
-    The `spaces:` field contains a placeholder identifier. The `--use-latest space`
-    flag replaces it with the discovery space you just created.
-
 Run the operation:
 
 <!-- markdownlint-disable MD013 -->
@@ -193,7 +191,13 @@ ado create operation -f examples/ml-multi-cloud/randomwalk_ml_multicloud_operati
 
 <!-- markdownlint-enable MD013 -->
 
-`ado` prints a line for each entity as it is measured. When finished you will
+!!! tip
+
+    The `spaces:` field of the operation contains a placeholder identifier.
+    The `--use-latest space` flag replaces it with the discovery
+    space you just created.
+
+`ado` prints a line for each entity as it is measured. When finished, you will
 see a summary like:
 
 ```yaml

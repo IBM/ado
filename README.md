@@ -93,13 +93,13 @@ existing ones, and run the full exploration loop:
 Here are some examples of what the team has built with `ado`:
 
 - 🧠
-  [Fine-tuning performance benchmarking](https://ibm.github.io/ado/actuators/sft-trainer/)
+  [Fine-tuning performance benchmarking](https://ibm.github.io/ado/user-guide/examples/finetune-remotely/)
 - 📈
   [Inference performance benchmarking](https://ibm.github.io/ado/examples/vllm-performance-endpoint/)
   (using [vLLM bench](https://docs.vllm.ai/en/stable/cli/bench/serve/) or
   [guidellm](https://github.com/vllm-project/guidellm))
 - 🔮
-  [Predictive performance model creation](https://ibm.github.io/ado/operators/trim/)
+  [Predictive performance model creation](https://ibm.github.io/ado/user-guide/examples/trim/)
 
 ## Contributing
 

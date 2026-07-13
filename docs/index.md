@@ -91,12 +91,13 @@ See the [concepts](concepts/index.md) section and the ado
 
 Here are some examples of what the team has built with `ado`:
 
-- 🧠 [Fine-tuning performance benchmarking](user-guide/actuators/sft-trainer.md)
+- 🧠
+  [Fine-tuning performance benchmarking](user-guide/examples/finetune-remotely.md)
 - 📈
   [Inference performance benchmarking](user-guide/examples/vllm-performance-endpoint.md)
   (using [vLLM bench](https://docs.vllm.ai/en/stable/cli/bench/serve/) or
   [guidellm](https://github.com/vllm-project/guidellm))
-- 🔮 [Predictive performance model creation](user-guide/operators/trim.md)
+- 🔮 [Predictive performance model creation](user-guide/examples/trim.md)
 
 ## Acknowledgement
 

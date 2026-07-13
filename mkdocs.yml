@@ -141,7 +141,7 @@ nav:
       - Getting Started: user-guide/index.md
       - Migrating from 1.x: migration/1x-to-2x.md
       - Examples:
-          - Examples: user-guide/examples/index.md
+          - Choose an example: user-guide/examples/choose-an-example.md
           - "The basics: your first ado experiment": user-guide/examples/density-example.md
           - "Beyond the basics: ado with real data": user-guide/examples/random-walk.md
           - Search:
@@ -158,7 +158,7 @@ nav:
               - Exploring vLLM deployment configurations: user-guide/examples/vllm-performance-full.md
               - Benchmarking geospatial models with vLLM: user-guide/examples/vllm-performance-geospatial.md
       - Actuators:
-          - user-guide/actuators/index.md
+          - Working with actuators: user-guide/actuators/working-with-actuators.md
           - Guides:
               - Running experiments on single entities: user-guide/actuators/run-experiment.md
               - Using externally obtained data: user-guide/actuators/replay.md
@@ -166,15 +166,15 @@ nav:
               - vllm_performance actuator: user-guide/actuators/vllm-performance.md
               - SFTTrainer actuator: user-guide/actuators/sft-trainer.md
       - Operators:
-          - user-guide/operators/index.md
-          - Overview:
-              - Explore operators: user-guide/operators/explore-operators.md
+          - Working with operators: user-guide/operators/working-with-operators.md
+          - Explore operators: user-guide/operators/explore-operators.md
           - Operator guides:
               - The Random Walk Operator: user-guide/operators/random-walk.md
               - The Ray Tune Operator: user-guide/operators/ray-tune.md
               - The TRIM Operator: user-guide/operators/trim.md
-      - Remote Execution: user-guide/remote-execution.md
-      - Installing Backend Services: user-guide/backend-services.md
+      - Advanced:
+          - Remote Execution: user-guide/remote-execution.md
+          - Installing Backend Services: user-guide/backend-services.md
   - Developer Guide:
       - developer-guide/index.md
       - Plugin Development:

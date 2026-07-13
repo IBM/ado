@@ -15,7 +15,7 @@
     2. Define a **discovery space** over the cloud hardware configurations
     3. Run a **random walk** operation to sample the space
 
-    !!! abstract "New to `ado`?"
+    !!! question "New to `ado`?"
 
         We introduce each concept as it appears. If you'd prefer a full overview
         first, the [Concepts](https://ibm.github.io/ado/concepts/) page has you

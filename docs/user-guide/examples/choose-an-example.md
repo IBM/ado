@@ -1,9 +1,18 @@
 <!-- markdownlint-disable-next-line first-line-h1 -->
+!!! tip "New to ado?"
+
+    Before diving in, familiarise yourself with the
+    [key concepts](../concepts/index.md) so the YAML examples and CLI commands
+    throughout these examples make immediate sense.
+
 ## Introductory examples
 
-- **[Your first ado experiment](density-example.md)** — Write a Python
-  function as a custom experiment, define a discovery space, and run an
-  operation end-to-end. Start here if you are new to `ado`.
+Start here if you are new to `ado`. These examples walk you through the full
+research loop step by step, from defining a space to retrieving results.
+
+- **[Your first ado experiment](density-example.md)** — Write a Python function
+  as a custom experiment, define a discovery space, and run an operation
+  end-to-end.
 
 - **[Beyond the basics: `ado` with real data](random-walk.md)** — Walk through
   the core `ado` workflow — defining a `discoveryspace`, running an `operation`
@@ -12,9 +21,9 @@
 
 ## Search
 
-These examples show how to use `ado` to search a space for the best
-configuration. They build on the tutorial and introduce the `ray_tune` operator,
-which gives access to the RayTune optimisation framework.
+These are **intermediate examples** that build on both tutorials. They assume
+you are comfortable with the core `ado` workflow and introduce the `ray_tune`
+operator, which gives access to the RayTune optimisation framework.
 
 - **[Search a space with an optimizer](best-configuration-search.md)** — Use
   `ray_tune` with a pluggable optimiser to find the minimum of a test function.
@@ -25,8 +34,8 @@ which gives access to the RayTune optimisation framework.
 
 ## Analysis
 
-These examples show how to use `ado` to analyse and model a configuration space
-after, or instead of, exhaustive measurement.
+These are **advanced examples** that show how to use `ado` to analyse and model
+a configuration space after, or instead of, exhaustive measurement.
 
 - **[Identify the important dimensions of a space](lhu.md)** — Use the
   Latin-Hypercube sampler and the `InformationGain` stopper from `ray_tune` to

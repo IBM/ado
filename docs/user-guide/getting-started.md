@@ -1,30 +1,45 @@
 # Getting Started
 
-This guide is for **researchers and benchmarkers** who want to run experiments,
-explore parameter spaces, and analyse results without writing bespoke data
-management scripts from scratch. If you want to extend `ado` with new
-experiments or search strategies, the
-[Developer Guide](../developer-guide/index.md) is your starting
-point.
+This is the **User Guide** — for **researchers and benchmarkers** who want to
+run experiments, explore parameter spaces, and analyse results without writing
+bespoke data management scripts from scratch. If you want to extend `ado` with
+new experiments or search strategies, the
+[Developer Guide](../developer-guide/index.md) is your starting point.
 
 !!! tip "New to ado?"
-    Before diving in, familiarise yourself with the [key concepts](../concepts/index.md)
-    so the YAML examples and CLI commands throughout this guide make immediate sense.
 
-## Choose your workflow
+    Before diving in, familiarise yourself with the
+    [key concepts](../concepts/index.md) so the YAML examples and CLI commands
+    throughout these examples make immediate sense.
 
-`ado` works well on its own and even better alongside a coding agent. Pick the
-path that matches how you prefer to work.
+## The core research loop with ado
+
+`ado` organises research around a repeatable five-step process, regardless of
+how you interact with it:
+
+1. **Choose your experiments** — select what you want to run
+2. **Define your space** — describe the parameter space you want to explore
+3. **Configure your strategy** — choose how to search or sample that space
+4. **Execute** — run the operation locally or on a remote cluster
+5. **Analyse** — inspect results, then refine and continue
+
+## How do you want to use ado?
+
+The loop above applies to both paths. The difference is how you drive it: Path A
+is a lightweight PyPI install you control entirely through the CLI. Path B clones
+the repo and adds built-in agent skills so an AI coding assistant can handle the
+steps for you in plain language.
 
 <!-- markdownlint-disable line-length -->
 
 |                 | **Path A — Direct CLI**                                                              | **Path B — AI-assisted**                                                                                       |
 | :-------------- | :----------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------- |
 | **Best for**    | Quick starts, existing scripts, and experienced CLI users who prefer manual control. | Exploratory research, complex parameter spaces, and iterative analysis where an AI can handle the boilerplate. |
-| **Setup**       | `pip install ado-core`                                                               | `git clone` the repo and run `uv sync`                                                                         |
 | **Key benefit** | Lightweight — integrates into any standard Python workflow.                          | Unlocks built-in **agent skills** that automate complex research tasks.                                        |
 
 <!-- markdownlint-enable line-length -->
+
+## Installing
 
 === "Path A — Direct CLI"
 
@@ -75,29 +90,28 @@ path that matches how you prefer to work.
 
     <!-- markdownlint-enable line-length -->
 
-## How ado works — the core research loop
-
-Both paths follow the same five-step process:
-
-1. **Choose your tools** — select the `experiments` you want to run
-2. **Define your space** — describe what you want to explore in a
-   `discoveryspace` YAML file
-3. **Configure your strategy** — write an `operation` YAML that sets the search
-   or sampling strategy
-4. **Execute** — run the operation locally or on a
-   [remote cluster](remote-execution.md) with `ado create operation -f operation.yaml`
-5. **Analyse** — inspect results with `ado show measurements`, run analysis
-   `operators`, then refine and continue
-
-See [Concepts](../concepts/index.md) for a full explanation and
-[Examples](examples/index.md) for end-to-end walkthroughs.
-
 ---
 
-## Need something ado doesn't have out of the box?
+## Next steps
 
-If your research requires a custom benchmark or a novel search algorithm, you
-are ready to move from *researcher* to *plugin developer*. Head to the
-[Developer Guide](../developer-guide/index.md) to learn how to add
-new experiments (actuators, custom experiments) and search strategies
-(operators) via `ado`'s plugin model.
+<!-- markdownlint-disable no-inline-html -->
+<div class="grid cards" markdown>
+
+- :octicons-beaker-24:{ .lg .middle } **See ado in action**
+
+    ---
+
+    Walk through end-to-end examples that cover common research workflows.
+
+    [Choose an example :octicons-arrow-right-24:](examples/choose-an-example.md)
+
+- :octicons-code-24:{ .lg .middle } **Extend ado**
+
+    ---
+
+    Add custom experiments, benchmarks, or search strategies via the plugin model.
+
+    [Developer Guide :octicons-arrow-right-24:](../developer-guide/index.md)
+
+</div>
+<!-- markdownlint-enable no-inline-html -->

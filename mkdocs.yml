@@ -175,7 +175,7 @@ nav:
           - Remote Execution: user-guide/remote-execution.md
           - Installing Backend Services: user-guide/backend-services.md
   - Developer Guide:
-      - developer-guide/index.md
+      - Getting Started: developer-guide/getting-started.md
       - Plugin Development:
           - Adding custom experiments: developer-guide/creating-custom-experiments.md
           - Creating Actuator Classes: developer-guide/creating-actuator-classes.md

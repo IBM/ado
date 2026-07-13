@@ -4,7 +4,7 @@ This is the **User Guide** — for **researchers and benchmarkers** who want to
 run experiments, explore parameter spaces, and analyse results without writing
 bespoke data management scripts from scratch. If you want to extend `ado` with
 new experiments or search strategies, the
-[Developer Guide](../developer-guide/index.md) is your starting point.
+[Developer Guide](../developer-guide/getting-started.md) is your starting point.
 
 !!! tip "New to ado?"
 
@@ -111,7 +111,7 @@ steps for you in plain language.
 
     Add custom experiments, benchmarks, or search strategies via the plugin model.
 
-    [Developer Guide :octicons-arrow-right-24:](../developer-guide/index.md)
+    [Developer Guide :octicons-arrow-right-24:](../developer-guide/getting-started.md)
 
 </div>
 <!-- markdownlint-enable no-inline-html -->

@@ -1,9 +1,32 @@
 # Developer Guide
 
-This guide is for contributors who want to extend `ado` with new experiments or
-search strategies, or work on the core framework itself.
+This is the **Developer Guide** — for **contributors** who want to extend `ado`
+with new experiments or search strategies, or work on the core framework itself.
+If you want to run experiments and analyse results without writing new plugins,
+the [User Guide](../user-guide/getting-started.md) is your starting point.
 
-## Choose your path
+!!! tip "New to ado?"
+
+    Before diving in, familiarise yourself with the
+    [key concepts](../concepts/index.md) so the plugin model and extension
+    points make immediate sense.
+
+## The core development loop with ado
+
+All plugin and core development in `ado` follows the same workflow, regardless
+of what you are building:
+
+1. **Choose your extension point** — actuator, custom experiment, or operator
+2. **Set up your environment** — install dependencies and register your plugin
+3. **Implement and test** — write code, run the linter, iterate with TDD
+4. **Validate** — dry-run YAML files, confirm CLI registration
+5. **Contribute** — open a pull request against the main repo
+
+## How do you want to contribute?
+
+The loop above applies to both paths. The difference is scope: Path A adds
+new experiments or strategies as self-contained plugins. Path B changes the
+core framework itself.
 
 <!-- markdownlint-disable line-length -->
 
@@ -14,6 +37,8 @@ search strategies, or work on the core framework itself.
 | **Key benefit** | No core changes needed — plugins register themselves at install time and are immediately available to the CLI and tools. | Full access to the framework internals, test suite, and pre-commit hooks that enforce code style and conventional commit messages. |
 
 <!-- markdownlint-enable line-length -->
+
+## Setting up
 
 === "Path A — Plugin Development"
 
@@ -26,6 +51,22 @@ search strategies, or work on the core framework itself.
       that decides what to measure next or post-processes results (e.g., a
       search strategy, an optimiser).
 
+    Install `ado-core` from PyPI to develop an out-of-tree plugin:
+
+    ```shell
+    python -m venv ado-venv && source ado-venv/bin/activate
+    pip install ado-core
+    ```
+
+    For in-tree development, clone the repo instead:
+
+    ```shell
+    git clone https://github.com/IBM/ado.git
+    cd ado
+    uv sync --reinstall
+    source .venv/bin/activate
+    ```
+
     Use these guides as your primary technical reference:
 
     - [Creating Custom Experiments](./creating-custom-experiments.md)
@@ -36,7 +77,7 @@ search strategies, or work on the core framework itself.
 
 === "Path B — Core Development"
 
-    The quick start to get you running:
+    Clone the repository and set up the full environment:
 
     ```shell
     git clone https://github.com/IBM/ado.git
@@ -80,3 +121,31 @@ The agent will automatically find all necessary rules and skills in `.cursor/`.
 For core contributors, you can ask the agent to review your work before creating
 a pull request using the template in
 [`.cursor/commands/review.md`](https://github.com/IBM/ado/blob/main/.cursor/commands/review.md).
+
+---
+
+## Next steps
+
+<!-- markdownlint-disable no-inline-html -->
+<div class="grid cards" markdown>
+
+- :octicons-plug-24:{ .lg .middle } **Build a plugin**
+
+    ---
+
+    Add custom experiments, benchmarks, or search strategies via the plugin
+    model.
+
+    [Creating Custom Experiments :octicons-arrow-right-24:](creating-custom-experiments.md)
+
+- :octicons-tools-24:{ .lg .middle } **Contribute to core**
+
+    ---
+
+    Set up the full development environment and learn the contribution
+    workflow.
+
+    [Developing ado :octicons-arrow-right-24:](developing.md)
+
+</div>
+<!-- markdownlint-enable no-inline-html -->

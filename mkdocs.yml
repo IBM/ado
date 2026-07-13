@@ -135,7 +135,7 @@ plugins:
 nav:
   - Home:
       - Home: index.md
-      - Demo: demo.md
+      # - Demo: demo.md
       - Roadmap: developer-guide/roadmap.md
   - User Guide:
       - Getting Started: user-guide/getting-started.md

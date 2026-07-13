@@ -6,7 +6,7 @@ bespoke data management scripts from scratch. If you want to extend `ado` with
 new experiments or search strategies, the
 [Developer Guide](../developer-guide/getting-started.md) is your starting point.
 
-!!! tip "New to ado?"
+!!! question "New to ado?"
 
     Before diving in, familiarise yourself with the
     [key concepts](../concepts/index.md) so the YAML examples and CLI commands

@@ -1,5 +1,5 @@
 <!-- markdownlint-disable-next-line first-line-h1 -->
-!!! tip "New to ado?"
+!!! question "New to ado?"
 
     Before diving in, familiarise yourself with the
     [key concepts](../concepts/index.md) so the YAML examples and CLI commands

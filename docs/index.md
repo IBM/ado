@@ -116,7 +116,7 @@ Networks and Services Joint Undertaking (SNS JU) under grant agreement No.
 
     Jump into our tutorial
 
-    [Beyond the basics: `ado` with real data :octicons-arrow-right-24:](user-guide/examples/random-walk.md)
+    [The basics: your first `ado` experiment :octicons-arrow-right-24:](user-guide/examples/density-example.md)
 
 - :octicons-terminal-24:{ .lg .middle } **Check out the ADO cli**
 

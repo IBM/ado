@@ -8,11 +8,8 @@ experiments or search strategies, the
 point.
 
 !!! tip "New to ado?"
-    Before diving in, familiarise yourself with the key concepts —
-    [Properties and Domains](../concepts/properties-and-domains.md),
-    [Experiments and Actuators](../concepts/actuators.md), and
-    [Discovery Spaces](../concepts/discovery-spaces.md) — so the YAML examples
-    and CLI commands throughout this guide make immediate sense.
+    Before diving in, familiarise yourself with the [key concepts](../concepts/index.md)
+    so the YAML examples and CLI commands throughout this guide make immediate sense.
 
 ## Choose your workflow
 

@@ -139,24 +139,6 @@ nav:
       - Roadmap: developer-guide/roadmap.md
   - User Guide:
       - Getting Started: user-guide/getting-started.md
-      - Migrating from 1.x: migration/1x-to-2x.md
-      - Examples:
-          - Choose an example: user-guide/examples/choose-an-example.md
-          - "The basics: your first ado experiment": user-guide/examples/density-example.md
-          - "Beyond the basics: ado with real data": user-guide/examples/random-walk.md
-          - Search:
-              - Search a space with an optimizer: user-guide/examples/best-configuration-search.md
-              - Search based on a custom objective: user-guide/examples/search-custom-objective.md
-          - Analysis:
-              - Identify the important dimensions of a space: user-guide/examples/lhu.md
-              - Quickly building a predictive model: user-guide/examples/trim.md
-          - Fine-tuning:
-              - Measure fine-tuning throughput locally: user-guide/examples/finetune-locally.md
-              - Measure fine-tuning throughput on a RayCluster: user-guide/examples/finetune-remotely.md
-          - vLLM Performance:
-              - Testing the throughput of an inference endpoint: user-guide/examples/vllm-performance-endpoint.md
-              - Exploring vLLM deployment configurations: user-guide/examples/vllm-performance-full.md
-              - Benchmarking geospatial models with vLLM: user-guide/examples/vllm-performance-geospatial.md
       - Actuators:
           - Working with actuators: user-guide/actuators/working-with-actuators.md
           - Actuator Guides:
@@ -174,6 +156,7 @@ nav:
           - Running experiments on single entities: user-guide/actuators/run-experiment.md
           - Remote Execution: user-guide/remote-execution.md
           - Installing Backend Services: user-guide/backend-services.md
+          - Migrating from 1.x: migration/1x-to-2x.md
   - Developer Guide:
       - Getting Started: developer-guide/getting-started.md
       - Plugin Development:
@@ -183,7 +166,23 @@ nav:
       - Contributing:
           - Contributing: developer-guide/contributing.md
           - Developing ado: developer-guide/developing.md
-  - CLI Reference: cli-reference/index.md
+  - Examples:
+      - Choose an example: user-guide/examples/choose-an-example.md
+      - "The basics: your first ado experiment": user-guide/examples/density-example.md
+      - "Beyond the basics: ado with real data": user-guide/examples/random-walk.md
+      - Search:
+          - Search a space with an optimizer: user-guide/examples/best-configuration-search.md
+          - Search based on a custom objective: user-guide/examples/search-custom-objective.md
+      - Analysis:
+          - Identify the important dimensions of a space: user-guide/examples/lhu.md
+          - Quickly building a predictive model: user-guide/examples/trim.md
+      - Fine-tuning:
+          - Measure fine-tuning throughput locally: user-guide/examples/finetune-locally.md
+          - Measure fine-tuning throughput on a RayCluster: user-guide/examples/finetune-remotely.md
+      - vLLM Performance:
+          - Testing the throughput of an inference endpoint: user-guide/examples/vllm-performance-endpoint.md
+          - Exploring vLLM deployment configurations: user-guide/examples/vllm-performance-full.md
+          - Benchmarking geospatial models with vLLM: user-guide/examples/vllm-performance-geospatial.md
   - Concepts:
       - concepts/index.md
       - Properties and Domains: concepts/properties-and-domains.md
@@ -199,3 +198,4 @@ nav:
       - operation: resources/operation.md
       - actuatorconfiguration: resources/actuatorconfig.md
       - datacontainer: resources/datacontainer.md
+  - CLI Reference: cli-reference/index.md

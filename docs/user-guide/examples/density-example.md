@@ -290,7 +290,7 @@ ado show measurements space --use-latest
     Walk through a cloud workload parameter space using pre-existing benchmark
     data and `ado`'s replay mechanism.
 
-    [Taking a random walk :octicons-arrow-right-24:](random-walk.md)
+    [Beyond the basics: `ado` with real data :octicons-arrow-right-24:](random-walk.md)
 
 - :octicons-rocket-24:{ .lg .middle } **Search with an optimizer**
 

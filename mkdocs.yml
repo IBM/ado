@@ -143,7 +143,7 @@ nav:
       - Examples:
           - Examples: user-guide/examples/index.md
           - "The basics: your first ado experiment": user-guide/examples/density-example.md
-          - Taking a random walk: user-guide/examples/random-walk.md
+          - "Beyond the basics: ado with real data": user-guide/examples/random-walk.md
           - Search:
               - Search a space with an optimizer: user-guide/examples/best-configuration-search.md
               - Search based on a custom objective: user-guide/examples/search-custom-objective.md

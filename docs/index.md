@@ -121,7 +121,7 @@ Networks and Services Joint Undertaking (SNS JU) under grant agreement No.
 
     Jump into our tutorial
 
-    [Taking a random walk :octicons-arrow-right-24:](user-guide/examples/random-walk.md)
+    [Beyond the basics: `ado` with real data :octicons-arrow-right-24:](user-guide/examples/random-walk.md)
 
 - :octicons-terminal-24:{ .lg .middle } **Check out the ADO cli**
 

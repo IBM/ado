@@ -5,10 +5,10 @@
   function as a custom experiment, define a discovery space, and run an
   operation end-to-end. Start here if you are new to `ado`.
 
-- **[Taking a random walk](random-walk.md)** — Walk through the core `ado`
-  workflow — defining a `discoveryspace`, running an `operation` to sample and
-  measure points, and retrieving the results — using a real cloud workload
-  dataset.
+- **[Beyond the basics: `ado` with real data](random-walk.md)** — Walk through
+  the core `ado` workflow — defining a `discoveryspace`, running an `operation`
+  to sample and measure points, and retrieving the results — using a real cloud
+  workload dataset.
 
 ## Search
 

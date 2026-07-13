@@ -31,7 +31,7 @@ ado is built around four key concepts (explore them all in the
 ## Quick Start
 
 Install `ado-core` (a virtual environment is recommended). For complete
-instructions see [Getting Started](user-guide/index.md#choose-your-workflow):
+instructions see [Getting Started](user-guide/getting-started.md#choose-your-workflow):
 
 ```shell
 pip install ado-core

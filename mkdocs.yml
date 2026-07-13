@@ -138,7 +138,7 @@ nav:
       - Demo: demo.md
       - Roadmap: developer-guide/roadmap.md
   - User Guide:
-      - Getting Started: user-guide/index.md
+      - Getting Started: user-guide/getting-started.md
       - Migrating from 1.x: migration/1x-to-2x.md
       - Examples:
           - Choose an example: user-guide/examples/choose-an-example.md

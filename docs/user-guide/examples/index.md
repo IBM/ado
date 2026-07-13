@@ -1,11 +1,14 @@
 <!-- markdownlint-disable-next-line first-line-h1 -->
-## Tutorial
+## Introductory examples
 
-Our short tutorial, [Taking a random walk](random-walk.md), is the recommended
-place to start. It walks through the core `ado` workflow — defining a
-`discoveryspace`, running an `operation` to sample and measure points, and
-retrieving the results — using a real cloud workload dataset as the running
-example.
+- **[Your first ado experiment](density-example.md)** — Write a Python
+  function as a custom experiment, define a discovery space, and run an
+  operation end-to-end. Start here if you are new to `ado`.
+
+- **[Taking a random walk](random-walk.md)** — Walk through the core `ado`
+  workflow — defining a `discoveryspace`, running an `operation` to sample and
+  measure points, and retrieving the results — using a real cloud workload
+  dataset.
 
 ## Search
 

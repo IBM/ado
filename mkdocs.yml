@@ -142,7 +142,8 @@ nav:
       - Migrating from 1.x: migration/1x-to-2x.md
       - Examples:
           - Examples: user-guide/examples/index.md
-          - Tutorial — Taking a random walk: user-guide/examples/random-walk.md
+          - "The basics: your first ado experiment": user-guide/examples/density-example.md
+          - Taking a random walk: user-guide/examples/random-walk.md
           - Search:
               - Search a space with an optimizer: user-guide/examples/best-configuration-search.md
               - Search based on a custom objective: user-guide/examples/search-custom-objective.md

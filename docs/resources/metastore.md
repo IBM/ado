@@ -11,7 +11,7 @@ distributed users.
 !!! info end
 
     The `ado` CLI can create local metastore instances. Shared metastores require
-    [separately provisioning the database server](/ado/getting-started/installing-backend-services/#using-the-distributed-mysql-backend-for-ado).
+    [separately provisioning the database server](/ado/user-guide/advanced/backend-services/#using-the-distributed-mysql-backend-for-ado).
 
 ## Contexts and Projects
 

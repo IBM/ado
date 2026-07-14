@@ -37,6 +37,7 @@ from ado_actuators.vllm_performance.vllm_performance_test.benchmark_models impor
 )
 from ado_actuators.vllm_performance.vllm_performance_test.execute_benchmark import (
     VLLMBenchmarkError,
+    execute_bfcl_benchmark,
     execute_geospatial_benchmark,
     execute_random_benchmark,
 )
@@ -97,6 +98,13 @@ def _build_entity_env(values: dict[str, str]) -> str:
         * data type
         * cpu offload
         * renderer_num_workers
+        * reasoning_parser
+        * tool_call_parser
+        * language_model_only
+        * enable_auto_tool_choice
+        * max_model_len
+        * kv_cache_dtype
+        * enable_prefix_caching
     Build entity based environment parameters
     :param values: experiment values
     :return: definition
@@ -114,6 +122,13 @@ def _build_entity_env(values: dict[str, str]) -> str:
         "cpu_offload": values.get("cpu_offload"),
         "max_num_seq": values.get("max_num_seq"),
         "renderer_num_workers": values.get("renderer_num_workers"),
+        "reasoning_parser": values.get("reasoning_parser"),
+        "tool_call_parser": values.get("tool_call_parser"),
+        "language_model_only": values.get("language_model_only"),
+        "enable_auto_tool_choice": values.get("enable_auto_tool_choice"),
+        "max_model_len": values.get("max_model_len"),
+        "kv_cache_dtype": values.get("kv_cache_dtype"),
+        "enable_prefix_caching": values.get("enable_prefix_caching"),
     }
     return json.dumps(env_values)
 
@@ -297,6 +312,19 @@ def _create_environment(
                         renderer_num_workers=(
                             renderer_num_workers if renderer_num_workers > 0 else None
                         ),
+                        reasoning_parser=values.get("reasoning_parser"),
+                        tool_call_parser=values.get("tool_call_parser"),
+                        language_model_only=values.get("language_model_only", 0) == 1,
+                        enable_auto_tool_choice=values.get("enable_auto_tool_choice", 0)
+                        == 1,
+                        max_model_len=(
+                            int(values["max_model_len"])
+                            if values.get("max_model_len") is not None
+                            else None
+                        ),
+                        kv_cache_dtype=values.get("kv_cache_dtype"),
+                        enable_prefix_caching=values.get("enable_prefix_caching", 0)
+                        == 1,
                         check_interval=check_interval,
                         timeout=timeout,
                     )
@@ -553,6 +581,20 @@ def run_resource_and_workload_experiment(
                     dataset=benchmark_parameters.dataset,
                     burstiness=benchmark_parameters.burstiness,
                 )
+            elif benchmark_parameters.dataset == "bfcl":
+                logger.info("Using vLLM BFCL benchmark for deployment")
+                result = execute_bfcl_benchmark(
+                    base_url=benchmark_parameters.endpoint,
+                    model=benchmark_parameters.model,
+                    bfcl_categories=benchmark_parameters.bfcl_categories,
+                    num_prompts=benchmark_parameters.num_prompts,
+                    request_rate=benchmark_parameters.request_rate,
+                    max_concurrency=benchmark_parameters.max_concurrency,
+                    hf_token=actuator_parameters.hf_token,
+                    benchmark_retries=actuator_parameters.benchmark_retries,
+                    retries_timeout=actuator_parameters.retries_timeout,
+                    burstiness=benchmark_parameters.burstiness,
+                )
             else:
                 logger.info("Using vLLM random benchmark for deployment")
                 result = execute_random_benchmark(
@@ -719,6 +761,20 @@ def run_workload_experiment(
                     number_input_tokens=benchmark_parameters.number_input_tokens,
                     max_output_tokens=benchmark_parameters.max_output_tokens,
                     dataset=benchmark_parameters.dataset,
+                    burstiness=benchmark_parameters.burstiness,
+                )
+            elif benchmark_parameters.dataset == "bfcl":
+                logger.info("Using vLLM BFCL benchmark for endpoint")
+                result = execute_bfcl_benchmark(
+                    base_url=benchmark_parameters.endpoint,
+                    model=benchmark_parameters.model,
+                    bfcl_categories=benchmark_parameters.bfcl_categories,
+                    num_prompts=benchmark_parameters.num_prompts,
+                    request_rate=benchmark_parameters.request_rate,
+                    max_concurrency=benchmark_parameters.max_concurrency,
+                    hf_token=actuator_parameters.hf_token,
+                    benchmark_retries=actuator_parameters.benchmark_retries,
+                    retries_timeout=actuator_parameters.retries_timeout,
                     burstiness=benchmark_parameters.burstiness,
                 )
             else:

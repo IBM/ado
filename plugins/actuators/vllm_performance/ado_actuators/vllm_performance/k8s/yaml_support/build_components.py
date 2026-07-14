@@ -94,6 +94,13 @@ class ComponentsYaml:
         io_processor_plugin: str | None = None,
         otlp_traces_endpoint: pydantic.AnyUrl | None = None,
         renderer_num_workers: int | None = None,
+        reasoning_parser: str | None = None,
+        tool_call_parser: str | None = None,
+        language_model_only: bool = False,
+        enable_auto_tool_choice: bool = False,
+        max_model_len: int | None = None,
+        kv_cache_dtype: str | None = None,
+        enable_prefix_caching: bool = False,
     ) -> dict[str, Any]:
         """
         Generate deployment yaml
@@ -118,6 +125,13 @@ class ComponentsYaml:
         :param skip_tokenizer_init: flag to skip tokenizer initialization in vLLM
         :param io_processor_plugin: name of the IO processor plugin to be used by vLLM
         :param renderer_num_workers: number of renderer workers when threadpool is enabled
+        :param reasoning_parser: vLLM reasoning parser to use (e.g. qwen3, deepseek_r1)
+        :param tool_call_parser: vLLM tool call parser to use (e.g. qwen3_coder, hermes)
+        :param language_model_only: flag to run vLLM in language-model-only mode
+        :param enable_auto_tool_choice: flag to enable automatic tool choice in vLLM
+        :param max_model_len: maximum number of tokens the model can process and remember at once
+        :param kv_cache_dtype: KV cache data type (e.g. fp8, turboquant_k8v4); if None, vLLM default is used
+        :param enable_prefix_caching: flag to enable prefix caching in vLLM
         :return:
         """
         if node_selector is None:
@@ -210,6 +224,20 @@ class ComponentsYaml:
                     "0",
                 ]
             )
+        if reasoning_parser is not None:
+            vllm_serve_args.extend(["--reasoning-parser", reasoning_parser])
+        if tool_call_parser is not None:
+            vllm_serve_args.extend(["--tool-call-parser", tool_call_parser])
+        if language_model_only:
+            vllm_serve_args.append("--language-model-only")
+        if enable_auto_tool_choice:
+            vllm_serve_args.append("--enable-auto-tool-choice")
+        if max_model_len is not None:
+            vllm_serve_args.extend(["--max-model-len", str(max_model_len)])
+        if kv_cache_dtype is not None:
+            vllm_serve_args.extend(["--kv-cache-dtype", kv_cache_dtype])
+        if enable_prefix_caching:
+            vllm_serve_args.append("--enable-prefix-caching")
 
         # container
         container = spec["containers"][0]

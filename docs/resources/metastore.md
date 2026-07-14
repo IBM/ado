@@ -230,7 +230,7 @@ will retrieve all operations that have the label `labelone` with the value
 
 For more advanced searches, `ado` provides the `--filter` option to find
 resources based on the contents of their
-[stored representation](resources.md/#common-features-of-resources). This option
+[stored representation](index.md#common-features-of-resources). This option
 can be specified multiple times and in conjunction with the `-l` option to find
 resources that match all the specified filters.
 

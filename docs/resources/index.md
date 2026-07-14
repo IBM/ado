@@ -48,9 +48,9 @@ were resources. However, they are not true resources and are not stored in the
 metastore.
 
 - For more on `actuators` see
-  [working with actuators](../user-guide/actuators/index.md).
+  [working with actuators](../user-guide/actuators/working-with-actuators.md).
 - For more on `operators` see
-  [working with operators](../user-guide/operators/index.md).
+  [working with operators](../user-guide/operators/working-with-operators.md).
 - For more on `contexts` see the
   [metastore docs](metastore.md#contexts-and-projects)
 

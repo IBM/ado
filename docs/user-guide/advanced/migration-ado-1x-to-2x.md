@@ -175,7 +175,7 @@ ado show trace operation randomwalk-0.5.0-123abc --hide uid
 ```
 
 For the full `ado show trace` reference, see the
-[ado CLI documentation](../cli-reference/index.md#ado-show-trace).
+[ado CLI documentation](../../cli-reference/index.md#ado-show-trace).
 
 ### Removed: `ado get measurementrequest`
 

@@ -5,7 +5,7 @@ performance across a range of fine-tuning workload configurations.
 ## List actuators and experiments
 
 We begin by listing the experiments provided by the `SFTTrainer`
-[actuator](user-guide/actuators/index.md), which provides fine-tuning
+[actuator](user-guide/actuators/working-with-actuators.md), which provides fine-tuning
 benchmarking capabilities. We can use `ado` to get the details of one of the
 experiments `finetune_full_benchmark-v1.0.0` and see what it requires as input
 and what it measures.

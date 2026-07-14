@@ -39,14 +39,15 @@ To explore this space, you will:
 ## Prerequisites
 
 1. A remote shared context is available (see
-   [shared contexts](../../resources/metastore/) for more information). Here we
+   [shared contexts](../../resources/metastore.md) for more information). Here we
    call it `finetuning` but it can have any name.
 
-2. A [remote RayCluster](../kuberay/) with a GPU worker with
-   at least one `NVIDIA-A100-SXM4-80GB` GPU and NVIDIA development/runtime
-   packages. Follow our
-   [KubeRay deployment guide](../kuberay/) and see
-   [SFTTrainer requirements](../actuators/sft-trainer/#requirements) for
+2. A [remote RayCluster](../advanced/backend-services.md#deploying-kuberay-and-creating-a-raycluster)
+   with a GPU worker with at least one `NVIDIA-A100-SXM4-80GB` GPU and NVIDIA
+   development/runtime packages. Follow our
+   [KubeRay deployment guide](../advanced/backend-services.md#deploying-kuberay-and-creating-a-raycluster)
+   and see
+   [SFTTrainer requirements](../actuators/sft-trainer.md#requirements) for
    environment setup details.
 
 3. If you host your RayCluster on Kubernetes or OpenShift, make sure you're
@@ -152,7 +153,7 @@ RayCluster.
 > If you have deployed a custom RayCluster then make sure that the `hf_home` and
 > `data_directory` parameters point to paths that can be created by your remote
 > RayCluster workers. We recommend deploying a remote RayCluster following our
-> [instructions](../actuators/sft-trainer/#configure-your-raycluster).
+> [instructions](../actuators/sft-trainer.md#configure-your-raycluster).
 
 Next, create the `actuatorconfiguration` resource:
 
@@ -164,14 +165,14 @@ The command will print the ID of the resource. Make a note of it, you will need
 it in a later step.
 
 See the full list of the actuator parameters you can set in the
-[SFTTrainer reference docs](../actuators/sft-trainer#actuator-parameters).
+[SFTTrainer reference docs](../actuators/sft-trainer.md#actuator-parameters).
 
 ## Prepare the remote RayCluster
 
 > [!NOTE]
 >
 > This section assumes you have
-> [configured your RayCluster for use with SFTTrainer](../actuators/sft-trainer/#configure-your-raycluster)
+> [configured your RayCluster for use with SFTTrainer](../actuators/sft-trainer.md#configure-your-raycluster)
 > and that you have configured your SFTTrainer actuator with the values we
 > provided above for the `hf_home` and `data_directory` parameters.
 
@@ -290,7 +291,7 @@ In this section, we’ll focus on the second approach.
     $path_to_ado_root/plugins/actuators/sfttrainer/examples/build_wheels.sh
     ```
 
-    [Reference docs on using ado with remote RayClusters](../advanced/remote-execution/).
+    [Reference docs on using ado with remote RayClusters](../advanced/remote-execution.md).
 
 <!-- markdownlint-enable code-block-style -->
 
@@ -324,7 +325,7 @@ ray job submit --address http://localhost:8265 --runtime-env ray_runtime_env.yam
 
 <!-- markdownlint-enable line-length -->
 
-[Reference docs on creating the datasets](../actuators/sft-trainer/#creating-the-datasets)
+[Reference docs on creating the datasets](../actuators/sft-trainer.md#creating-the-datasets)
 
 ### Download model weights on the remote RayCluster
 
@@ -356,14 +357,14 @@ sfttrainer_download_hf_weights -i models.yaml -o /hf-models-pvc/huggingface_home
 
 <!-- markdownlint-enable line-length -->
 
-[Reference docs on pre-fetching weights](../actuators/sft-trainer/#model-weights)
+[Reference docs on pre-fetching weights](../actuators/sft-trainer.md#model-weights)
 
 ## Run the example
 
 ### Define the finetuning workload configurations to test and how to test them
 
 In this example, we create a `discoveryspace` that runs the
-[finetune_full_benchmark-v1.0.0](../actuators/sft-trainer/#finetune_full_benchmark-v100)
+[finetune_full_benchmark-v1.0.0](../actuators/sft-trainer.md#finetune_full_benchmark-v100)
 experiment to finetune the
 [`granite-3.1-2b`](https://huggingface.co/ibm-granite/granite-3.1-2b-base) using
 1 GPU.
@@ -379,7 +380,7 @@ contains 4 entities.
 
 You can find the complete list of the entity space properties in the
 documentation of the
-[finetune_full_benchmark-v1.0.0](../actuators/sft-trainer/#finetune_full_benchmark-v100)
+[finetune_full_benchmark-v1.0.0](../actuators/sft-trainer.md#finetune_full_benchmark-v100)
 experiment.
 
 1. Create the file `space.yaml` with the contents:
@@ -517,7 +518,7 @@ The operation will execute the measurements (i.e. apply the experiment
 > environment on participating GPU worker nodes, so expect the `operation` to
 > take around 10 minutes to complete.
 
-[Reference docs for submitting ado operations to remote RayClusters](../advanced/remote-execution).
+[Reference docs for submitting ado operations to remote RayClusters](../advanced/remote-execution.md).
 
 ### Examine the results of the exploration
 
@@ -566,9 +567,9 @@ In the above CSV file you will find 1 column per:
 
 For a complete list of the entity space properties check out the documentation
 for the
-[finetune_full_benchmark-v1.0.0](../actuators/sft-trainer/#finetune_full_benchmark-v100)
+[finetune_full_benchmark-v1.0.0](../actuators/sft-trainer.md#finetune_full_benchmark-v100)
 experiment in the SFTTrainer docs. The complete list of measured properties is
-[available there too](../actuators/sft-trainer/#measured-properties).
+[available there too](../actuators/sft-trainer.md#measured-properties).
 
 ## Next steps
 
@@ -583,7 +584,7 @@ experiment in the SFTTrainer docs. The complete list of measured properties is
 
     The actuator supports several experiments, each with a set of configurable parameters.
 
-    [Reference docs for the SFTTrainer actuator](../actuators/sft-trainer/)
+    [Reference docs for the SFTTrainer actuator](../actuators/sft-trainer.md)
 
 </div>
 <!-- markdownlint-enable line-length -->

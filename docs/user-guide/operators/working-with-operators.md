@@ -86,9 +86,9 @@ These steps are covered in detail in [operations](../../resources/operation.md).
 
     ---
 
-    Learn about extending ado with new [Actuators](../actuators/index.md).
+    Learn about extending ado with new [Actuators](../actuators/working-with-actuators.md).
 
-    [Creating new Actuators :octicons-arrow-right-24:](../actuators/index.md)
+    [Creating new Actuators :octicons-arrow-right-24:](../actuators/working-with-actuators.md)
 
 </div>
 <!-- markdownlint-enable line-length -->

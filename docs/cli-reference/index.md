@@ -13,7 +13,7 @@
 **ado** comes with a CLI utility that is designed to be familiar for users of
 `kubectl` and `oc`. It allows creating and retrieving
 [resources](../resources/index.md), managing multiple backends, executing
-[actuators](../user-guide/actuators/index.md), and more.
+[actuators](../user-guide/actuators/working-with-actuators.md), and more.
 
 This page provides documentation for every command that we support, presented in
 alphabetical order. Refer to the navigation pane on the left to go to the
@@ -1454,7 +1454,7 @@ ado version
 
       Learn what `ado`'s built-in operators can offer you
 
-      [Follow the guide :octicons-arrow-right-24:](../user-guide/operators/index.md)
+      [Follow the guide :octicons-arrow-right-24:](../user-guide/operators/working-with-operators.md)
 
 </div>
 <!-- markdownlint-enable line-length -->

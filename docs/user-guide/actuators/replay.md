@@ -105,7 +105,7 @@ present (because it was copied in) it is reused as normal by `ado`'s memoization
 mechanism. If there is no data, it cannot be measured as no real experiment
 exists, and the `replay` actuator handles this case correctly - it creates the
 `No value to replay` messages seen
-[here](../examples/random-walk.md#looking-at-the-operation-output).
+[here](../examples/random-walk.md#step-4-view-the-results).
 
 <!-- markdownlint-enable descriptive-link-text -->
 

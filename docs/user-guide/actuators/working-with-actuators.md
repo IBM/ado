@@ -170,9 +170,9 @@ Some additional notes about this process when you are developing an actuator:
 
     ---
 
-    Learn about extending ado with new [Operators](../operators/index.md).
+    Learn about extending ado with new [Operators](../operators/working-with-operators.md).
 
-    [Creating new Operators :octicons-arrow-right-24:](../operators/index.md)
+    [Creating new Operators :octicons-arrow-right-24:](../operators/working-with-operators.md)
 
 </div>
 <!-- markdownlint-enable line-length MD046 -->

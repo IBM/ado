@@ -126,7 +126,7 @@ ado create actuatorconfiguration -f actuator_configuration.yaml
 
 See the full list of parameters you can set in an `actuatorconfiguration`
 resource for the SFTTrainer actuator in its
-[reference docs](../actuators/sft-trainer#actuator-parameters).
+[reference docs](../actuators/sft-trainer.md#actuator-parameters).
 
 ## Environment setup
 
@@ -179,7 +179,7 @@ want to measure it (Measurement Space). It also links to the `samplestore` which
 is where Entities and their measured properties are stored in.
 
 In this example, we create a `discoveryspace` that runs the
-[finetune_full_benchmark-v1.0.0](../actuators/sft-trainer/#finetune_full_benchmark-v100)
+[finetune_full_benchmark-v1.0.0](../actuators/sft-trainer.md#finetune_full_benchmark-v100)
 experiment to finetune the
 [`smollm2-135m`](https://huggingface.co/HuggingFaceTB/SmolLM2-135M) model
 without using any GPUs.
@@ -195,7 +195,7 @@ contains 4 entities.
 
 You can find the complete list of the entity space properties in the
 documentation of the
-[finetune_full_benchmark-v1.0.0](../actuators/sft-trainer/#finetune_full_benchmark-v100)
+[finetune_full_benchmark-v1.0.0](../actuators/sft-trainer.md#finetune_full_benchmark-v100)
 experiment.
 
 To create the Discovery Space:
@@ -324,9 +324,9 @@ In the above CSV file you will find 1 column per:
 
 For a complete list of the entity space properties check out the documentation
 for the
-[finetune_full_benchmark-v1.0.0](../actuators/sft-trainer/#finetune_full_benchmark-v100)
+[finetune_full_benchmark-v1.0.0](../actuators/sft-trainer.md#finetune_full_benchmark-v100)
 experiment in the SFTTrainer docs. The complete list of measured properties is
-[available there too](../actuators/sft-trainer/#measured-properties).
+[available there too](../actuators/sft-trainer.md#measured-properties).
 
 ## Next steps
 
@@ -341,7 +341,7 @@ experiment in the SFTTrainer docs. The complete list of measured properties is
 
     The actuator supports several experiments, each with a set of configurable parameters.
 
-    [Reference docs for the SFTTrainer actuator](../actuators/sft-trainer/)
+    [Reference docs for the SFTTrainer actuator](../actuators/sft-trainer.md)
 
 - ⚙️ **Configure your RayCluster for SFTTrainer measurements**
 

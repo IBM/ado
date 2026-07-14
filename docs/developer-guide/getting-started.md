@@ -47,7 +47,7 @@ core framework itself.
     - An **experiment**: An [actuator](../concepts/actuators.md) or a
       [custom experiment](./creating-custom-experiments.md) that measures or
       evaluates a system (e.g., a benchmark, a simulation).
-    - An **analysis tool**: An [operator](../user-guide/operators/index.md)
+    - An **analysis tool**: An [operator](../user-guide/operators/working-with-operators.md)
       that decides what to measure next or post-processes results (e.g., a
       search strategy, an optimiser).
 

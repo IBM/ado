@@ -45,7 +45,7 @@ We will:
     ```
 
     A pre-populated sample store is also required. Follow the
-    [instructions in the random walk example](random-walk.md#using-pre-existing-data-with-ado)
+    [instructions in the random walk example](random-walk.md#step-1-load-the-benchmark-data)
     to load the `ml-multi-cloud` dataset, then export its identifier:
 
     ```bash
@@ -240,7 +240,7 @@ ado create operation -f examples/ml-multi-cloud/randomwalk_ml_multicloud_operati
 <!-- markdownlint-enable MD013 -->
 
 This behaves identically to the
-[random walk example](random-walk.md#exploring-the-discoveryspace), except
+[random walk example](random-walk.md#step-3-run-a-random-walk), except
 that `ado` now evaluates both experiments for each visited entity. The
 terminal output will show additional detail related to the dependent
 experiment.

@@ -264,7 +264,7 @@ for x in propertyN.values:
 ### Why Grouped Modes?
 
 The advantage of the group modes is that they can allow
-[actuators](../actuators/index.md) to reuse their test
+[actuators](../actuators/working-with-actuators.md) to reuse their test
 environments, providing faster measurements. For example, consider an actuator
 that needs to create different test environments for different groups of
 entities. This creation may incur a significant overhead or there may be a
@@ -557,9 +557,9 @@ request index 5 has been retried 2 times.
 
     ---
 
-    Learn about extending ado with new [Operators](./index.md).
+    Learn about extending ado with new [Operators](./working-with-operators.md).
 
-    [Creating new Operators :octicons-arrow-right-24:](../actuators/index.md)
+    [Creating new Operators :octicons-arrow-right-24:](../actuators/working-with-actuators.md)
 
 </div>
 <!-- markdownlint-enable line-length -->

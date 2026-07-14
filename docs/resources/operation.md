@@ -9,7 +9,8 @@ provides the capability to perform a random walk `operation` on a
 
 The `operator` defines the inputs arguments you can set for its `operations`.
 
-The [operators](../user-guide/operators/index.md) section contains more
+The [operators](../user-guide/operators/working-with-operators.md) section contains
+more
 details about the available `operators`, their functionality, and how to use
 them. In particular, [explore operators](../user-guide/operators/explore-operators.md)
 provides details on how you sample and measure entities from a `discoveryspace`.
@@ -32,7 +33,7 @@ its fields by executing
 ado template operation --operator-name $OPERATOR_NAME --include-schema
 ```
 
-In addition, check the [operator](../user-guide/operators/index.md)
+In addition, check the [operator](../user-guide/operators/working-with-operators.md)
 section for an entry for the particular $OPERATOR_NAME for more detail.
 
 !!! info end
@@ -62,7 +63,7 @@ set of parameter values, use one of the following methods
 
 - Follow the previous section and use `ado template operation`
 - Check if there is an entry for the `operator` in the
-  [operator](../user-guide/operators/index.md) section of the
+  [operator](../user-guide/operators/working-with-operators.md) section of the
   documentation website.
 - Check the [examples](../user-guide/examples/index.md) section to see if there
   is an example of using the given `operator`

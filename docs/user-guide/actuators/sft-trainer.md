@@ -45,7 +45,7 @@ build phase, so the correct `torch` version must be installed before them.
 > [`ordered_pip`](https://github.com/IBM/ado/blob/main/ado/utilities/ray_env/README.md)
 > RayRuntimeEnv plugin** when creating discoveryspaces for `ado-sfttrainer`,
 > regardless of `fms_hf_tuning_version`. See
-> [Enabling the OrderedPip Plugin](../getting-started/kuberay.md#using-the-orderedpip-ray-runtime-environment-plugin)
+> [Enabling the OrderedPip Plugin](../advanced/backend-services.md#using-the-orderedpip-ray-runtime-environment-plugin)
 > for full instructions.
 >
 > The plugin is bundled with `ado-core` and its images (e.g.,

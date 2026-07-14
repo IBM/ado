@@ -185,6 +185,6 @@ related Experiments for that domain.
 A primary way to extend `ado` is by developing new Actuators to support
 Experiments in a new domain.
 
-The [Actuator documentation](../user-guide/actuators/index.md)
+The [Actuator documentation](../user-guide/actuators/working-with-actuators.md)
 has more detail including how to see the Actuators and Experiments
 available in your deployment.

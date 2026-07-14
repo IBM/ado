@@ -2,7 +2,7 @@
 !!! question "New to ado?"
 
     Before diving in, familiarise yourself with the
-    [key concepts](../concepts/index.md) so the YAML examples and CLI commands
+    [key concepts](../../concepts/index.md) so the YAML examples and CLI commands
     throughout these examples make immediate sense.
 
 ## Introductory examples

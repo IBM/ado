@@ -18,8 +18,8 @@ experiments**.
 
 ## At its _core_
 
-ado is built around four key concepts (explore them all in the
-[concepts](concepts/index.md) section):
+ado is built around four key concepts that power these features (explore them
+all in the [concepts](concepts/index.md) section):
 
 | Concept             | Role                                                                                                                 |
 | ------------------- | -------------------------------------------------------------------------------------------------------------------- |

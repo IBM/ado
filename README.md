@@ -18,8 +18,8 @@ experiments**.
 
 ## At its _core_
 
-ado is built around four key concepts (explore them all at
-<https://ibm.github.io/ado/concepts/>):
+ado is built around four key concepts that power these features (explore them
+all at <https://ibm.github.io/ado/concepts/>):
 
 | Concept             | Role                                                                                                                 |
 | ------------------- | -------------------------------------------------------------------------------------------------------------------- |

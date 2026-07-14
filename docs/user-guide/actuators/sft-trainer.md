@@ -1725,7 +1725,7 @@ Running SFTTrainer experiments requires:
 - [The model weights](#model-weights)
 
 Use the information below to
-[deploy your RayCluster](../backend-services.md#deploying-kuberay-and-creating-a-raycluster).
+[deploy your RayCluster](../advanced/backend-services.md#deploying-kuberay-and-creating-a-raycluster).
 
 ### Annotating GPU workers with custom resources
 

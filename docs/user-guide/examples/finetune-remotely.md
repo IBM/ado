@@ -290,7 +290,7 @@ In this section, we’ll focus on the second approach.
     $path_to_ado_root/plugins/actuators/sfttrainer/examples/build_wheels.sh
     ```
 
-    [Reference docs on using ado with remote RayClusters](../remote-execution/).
+    [Reference docs on using ado with remote RayClusters](../advanced/remote-execution/).
 
 <!-- markdownlint-enable code-block-style -->
 
@@ -517,7 +517,7 @@ The operation will execute the measurements (i.e. apply the experiment
 > environment on participating GPU worker nodes, so expect the `operation` to
 > take around 10 minutes to complete.
 
-[Reference docs for submitting ado operations to remote RayClusters](../remote-execution).
+[Reference docs for submitting ado operations to remote RayClusters](../advanced/remote-execution).
 
 ### Examine the results of the exploration
 

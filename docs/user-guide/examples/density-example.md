@@ -104,7 +104,7 @@ Result:
 
     `run_experiment` is a lightweight testing tool — results are not tracked or
     stored anywhere. It is purely for quick feedback during development.
-    See [Running experiments on single entities](../actuators/run-experiment.md)
+    See [Running experiments on single entities](../advanced/run-experiment.md)
     for details.
 
 ## Step 3 — Define a discovery space

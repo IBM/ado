@@ -153,10 +153,10 @@ nav:
               - The Ray Tune Operator: user-guide/operators/ray-tune.md
               - The TRIM Operator: user-guide/operators/trim.md
       - Advanced:
-          - Running experiments on single entities: user-guide/actuators/run-experiment.md
-          - Remote Execution: user-guide/remote-execution.md
-          - Installing Backend Services: user-guide/backend-services.md
-          - Migrating from 1.x: migration/1x-to-2x.md
+          - Running experiments on single entities: user-guide/advanced/run-experiment.md
+          - Remote Execution: user-guide/advanced/remote-execution.md
+          - Installing Backend Services: user-guide/advanced/backend-services.md
+          - Migrating from 1.x: user-guide/advanced/migration-ado-1x-to-2x.md
   - Developer Guide:
       - Getting Started: developer-guide/getting-started.md
       - Plugin Development:

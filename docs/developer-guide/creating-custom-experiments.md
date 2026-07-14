@@ -128,7 +128,7 @@ called `custom_experiments`. Your experiment will be listed under the
 ### Testing your custom experiment
 
 You can test your custom experiment using the
-[`run_experiment`](../user-guide/actuators/run-experiment.md) command line
+[`run_experiment`](../user-guide/advanced/run-experiment.md) command line
 tool. Save the following YAML to a file `point.yaml`
 
 <!-- prettier-ignore-start -->

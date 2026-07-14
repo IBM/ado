@@ -131,8 +131,8 @@ The `vllm_performance` actuator implements twelve experiments:
 ## Running single experiments: Quick endpoint and deployment tests
 
 For rapid testing and debugging, you can use the
-[`run_experiment`](run-experiment.md) tool to execute individual experiments on
-a single point (entity). This is ideal when you want to:
+[`run_experiment`](../advanced/run-experiment.md) tool to execute individual
+experiments on a single point (entity). This is ideal when you want to:
 
 - Quickly check if your actuator installation and configuration works
 - Debug a deployment scenario or endpoint using the vllm_performance actuator
@@ -409,7 +409,7 @@ cluster that is in the same Kubernetes/OpenShift cluster** as your vLLM
 deployments. This configuration maximizes efficiency for large-scale,
 distributed benchmarking. For a detailed guide on running `ado` remotely on a
 Ray cluster, including environment and package setup, see
-[Running ado remotely](../remote-execution.md).
+[Running ado remotely](../advanced/remote-execution.md).
 
 > [!IMPORTANT] RayCluster permissions
 >
@@ -417,7 +417,7 @@ Ray cluster, including environment and package setup, see
 > that jobs launched by `ado` have permissions to create and manage Kubernetes
 > deployments, pods, and services. For configuring the necessary ServiceAccount,
 > roles, and permissions, see our
-> [documentation on deploying RayClusters for `ado`](../backend-services.md).
+> [documentation on deploying RayClusters for `ado`](../advanced/backend-services.md).
 
 <!-- markdownlint-disable-next-line MD028 -->
 
@@ -425,7 +425,7 @@ Ray cluster, including environment and package setup, see
 >
 > If the `ado-vllm-performance` actuator is not installed in the image used by
 > the RayCluster you can have
-> [ray install it following this guide](../remote-execution.md).
+> [ray install it following this guide](../advanced/remote-execution.md).
 >
 > In particular, if a compatible version of vLLM and GuideLLM is not installed
 > in the image this step will require installing vLLM (so `vllm bench serve` is
@@ -541,7 +541,7 @@ executed).
 > remote RayCluster. To handle this we recommend:
 >
 > - Add the paths to the templates to
->   [the `additionalFiles` of the execution context YAML](../remote-execution.md#sending-additional-files)
+>   [the `additionalFiles` of the execution context YAML](../advanced/remote-execution.md#sending-additional-files)
 > - Create an `actuatorconfiguration` with the relative paths to the templates
 >   from this working directory
 

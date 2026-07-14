@@ -136,7 +136,7 @@ nav:
   - Home:
       - Home: index.md
       # - Demo: demo.md
-      - Roadmap: developer-guide/roadmap.md
+      - Roadmap: roadmap.md
   - User Guide:
       - Getting Started: user-guide/getting-started.md
       - Actuators:

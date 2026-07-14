@@ -10,11 +10,6 @@
     `ado`, work through
     [Your first ado experiment](density-example.md) first.
 
-    Here we go further: instead of simply measuring points, we use the `trim`
-    operator to **intelligently sample just enough points to train an accurate
-    `AutoGluon` surrogate model**, stopping automatically once the model quality
-    plateaus.
-
 When evaluating points in a parameter space is expensive — a scientific
 simulation, a machine learning training run, or a physical experiment — you
 often cannot afford to measure every configuration. The `trim` operator
@@ -228,9 +223,11 @@ The file `examples/trim/example_yamls/op_pressure.yaml` configures a TRIM
 characterization run:
 
 <!-- markdownlint-disable MD013 -->
+
 ```bash
 ado create operation -f examples/trim/example_yamls/op_pressure.yaml --use-latest space
 ```
+
 <!-- markdownlint-enable MD013 -->
 
 TRIM logs its progress to the terminal as it runs. There are three distinct
@@ -243,22 +240,26 @@ logs this and begins an initial characterization phase using Concatenated Latin
 Hypercube Sampling (`clhs`) to collect a representative baseline:
 
 <!-- markdownlint-disable MD013 -->
+
 ```text
 2026-07-09 15:35:48,452 WARNING MainThread trim.samplers.no_priors_utils: No measured properties found in the discovery space
 2026-07-09 15:35:48,470 WARNING MainThread trim.operator: Only 0 points in the source space.
 Starting with no-prior characterization operation, it will sample 18 points.
 ```
+
 <!-- markdownlint-enable MD013 -->
 
 You will see output for each point being submitted and completed:
 
 <!-- markdownlint-disable MD013 -->
+
 ```text
 (RandomWalk pid=74822) Continuous batching: SUBMIT EXPERIMENT. Submitted experiment
 custom_experiments.calculate_pressure_ideal_gas for mol.0.7-temperature.272-volume.1.
 (RandomWalk pid=74822) Continuous Batching: EXPERIMENT COMPLETION. Received finished notification for
 experiment in measurement request in group 1: request-4f70cf-...
 ```
+
 <!-- markdownlint-enable MD013 -->
 
 ### Stage 2 — Iterative modeling
@@ -276,10 +277,12 @@ After every `iterationSize` iterations (5 in `op_pressure.yaml`), TRIM checks
 the stopping criterion:
 
 <!-- markdownlint-disable MD013 -->
+
 ```text
 (RandomWalk pid=10736) Testing stopping criterion after measuring 14 points, mean_ratio=... std_ratio=...
 (RandomWalk pid=10736) Stopping not triggered for i=14
 ```
+
 <!-- markdownlint-enable MD013 -->
 
 ### Stage 3 — Finalizing
@@ -288,19 +291,23 @@ When the stopping criterion is met, TRIM trains one high-quality model on all
 data collected and saves it to the `outputDirectory`:
 
 <!-- markdownlint-disable MD013 -->
+
 ```text
 (RandomWalk pid=10736) Stopping criteria hit after measuring 22 entities.
 (RandomWalk pid=10736) Finalizing the predictive model: Fitting AutoGluon TabularPredictor on full Source Space data of 42 rows. Model will be saved in: trim_models_finalized
 (RandomWalk pid=10736) Final model root_mean_squared_error=-48.72586662062896. Saving predicted model to: trim_models_finalized.
 ```
+
 <!-- markdownlint-enable MD013 -->
 
 The operation ends with a success message:
 
 <!-- markdownlint-disable MD013 -->
+
 ```text
 Success! Created operation with identifier operation-trim@2.0.3-cb3448b3 and it finished successfully.
 ```
+
 <!-- markdownlint-enable MD013 -->
 
 !!! note "Key TRIM parameters"
@@ -329,6 +336,7 @@ ado show measurements space --use-latest
 ```
 
 <!-- markdownlint-disable line-length -->
+
 ```text
 ┌───────┬────────────────┬────────────────┬────────────────┬─────────────┬────────┬─────┬───────────────┐
 │ INDEX │ identifier     │ generatorid    │ experiment_id  │ temperature │ volume │ mol │ pressure      │
@@ -340,6 +348,7 @@ ado show measurements space --use-latest
 │ 72    │ mol.0.9-tempe… │ no_priors_cha… │ custom_experi… │ 298         │ 9      │ 0.9 │ 247.77098601… │
 └───────┴────────────────┴────────────────┴────────────────┴─────────────┴────────┴─────┴───────────────┘
 ```
+
 <!-- markdownlint-enable line-length -->
 
 The `generatorid` column shows which sub-operation produced each measurement.
@@ -375,12 +384,12 @@ print(result)
 
 ## Summary
 
-| Step | What you did | `ado` concept |
-| :--- | :----------- | :------------ |
-| 1 | Installed `trim` and the custom experiment | Operator / custom experiment |
-| 2 | Defined a three-dimensional discrete discovery space | Discovery space |
-| 3 | Ran TRIM to characterize the space and train a surrogate model | Operation / `trim` operator |
-| 4 | Retrieved the sampled measurements and loaded the saved model | `ado show measurements` / `AutoGluon` |
+| Step | What you did                                                   | `ado` concept                         |
+| :--- | :------------------------------------------------------------- | :------------------------------------ |
+| 1    | Installed `trim` and the custom experiment                     | Operator / custom experiment          |
+| 2    | Defined a three-dimensional discrete discovery space           | Discovery space                       |
+| 3    | Ran TRIM to characterize the space and train a surrogate model | Operation / `trim` operator           |
+| 4    | Retrieved the sampled measurements and loaded the saved model  | `ado show measurements` / `AutoGluon` |
 
 ## Going further
 
@@ -393,8 +402,8 @@ Try extending this example:
   high-accuracy variant
 - **Budget the sampling** — add a `samplingBudget` block with `minPoints` and
   `maxPoints` to set hard limits on how many measurements TRIM can make
-- **Switch the initial sampler** — set `noPriorsParameters.sampling_strategy`
-  to `sobol` instead of `clhs` to use Sobol sequences for the baseline
+- **Switch the initial sampler** — set `noPriorsParameters.sampling_strategy` to
+  `sobol` instead of `clhs` to use Sobol sequences for the baseline
 - **Improve final-model quality** — configure `finalModelAutoGluonArgs`
   separately from `autoGluonArgs` to give the final fit more time and better
   presets than the intermediate models
@@ -438,6 +447,7 @@ configuration reference and debugging guidance.
 </div>
 
 <!-- prettier-ignore-end -->
+
 <!-- markdownlint-enable MD046 -->
 <!-- markdownlint-enable no-inline-html -->
 <!-- markdownlint-enable line-length -->

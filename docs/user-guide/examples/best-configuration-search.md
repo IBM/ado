@@ -9,10 +9,6 @@
     new to `ado`, work through
     [Your first ado experiment](density-example.md) first.
 
-    Here we go further: instead of sampling at random, we use `ray_tune` to
-    **drive an optimizer** over a continuous space and locate the best
-    configuration.
-
 Finding the best entity according to some metric is a common task — for
 example, finding the configuration of an LLM fine-tuning workload that
 maximises throughput. `ado`'s `ray_tune` operator wraps the

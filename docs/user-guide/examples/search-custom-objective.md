@@ -11,10 +11,6 @@
     [Search a space with an optimizer](best-configuration-search.md) to get
     familiar with `ray_tune`.
 
-    Here we go further: we define a **custom objective function** that consumes
-    the output of another experiment as its input — a common pattern for
-    derived metrics such as cost.
-
 Often, experiments do not directly produce the value you care about. For
 example, an experiment might measure the run time of an application, while
 **the meaningful metric is cost — which requires knowing the price per hour

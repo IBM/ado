@@ -9,10 +9,6 @@
     to `ado`, work through
     [Your first ado experiment](density-example.md) first.
 
-    Here we go further: instead of sampling at random, we use `ray_tune`'s
-    **Latin Hypercube Sampler** to efficiently probe a high-dimensional space
-    and stop automatically once we know which dimensions matter most.
-
 When working with a high-dimensional configuration space it is natural to ask
 **which dimensions have the greatest influence on a specific experimental
 outcome**. For instance, if a workload has 20 tunable parameters you might want

@@ -8,7 +8,7 @@ test-deployment-v1:
   requiredProperties: # Any entity passed to this experiment must have constitutive properties with these values
     - identifier: 'model'
       metadata:
-        description: 'model to use for testing. Must be available through the huggingface hub (public or private). Private models require a HF_TOKEN environment variable to be set in the actuator configuration.'
+        description: 'model to use for testing. Must be available through the huggingface hub (public or private). Private models require the hf_token field to be set in the actuator configuration.'
       propertyDomain:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
         values: ["meta-llama/Llama-3.1-8B-Instruct", "ibm-granite/granite-3.3-8b-instruct", "openai/gpt-oss-20b"]
@@ -360,7 +360,7 @@ test-deployment-guidellm-v1:
   requiredProperties:
     - identifier: 'model'
       metadata:
-        description: 'model to use for testing. Must be available through the huggingface hub (public or private). Private models require a HF_TOKEN environment variable to be set in the actuator configuration.'
+        description: 'model to use for testing. Must be available through the huggingface hub (public or private). Private models require the hf_token field to be set in the actuator configuration.'
       propertyDomain:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
         values: ["meta-llama/Llama-3.1-8B-Instruct", "ibm-granite/granite-3.3-8b-instruct", "openai/gpt-oss-20b"]
@@ -708,7 +708,7 @@ test-agentic-tool-calling:
   requiredProperties:
     - identifier: 'model'
       metadata:
-        description: 'model to use for testing. Must be available through the huggingface hub (public or private). Private models require a HF_TOKEN environment variable to be set in the actuator configuration.'
+        description: 'model to use for testing. Must be available through the huggingface hub (public or private). Private models require the hf_token field to be set in the actuator configuration.'
       propertyDomain:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
         values: ["Qwen/Qwen3-30B-A3B-FP8", "Qwen/Qwen3-235B-A22B-FP8"]

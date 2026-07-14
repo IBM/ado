@@ -134,7 +134,7 @@ plugins:
   - gh-admonitions:
 nav:
   - Home:
-      - Home: index.md
+      - Home: overview.md
       # - Demo: demo.md
       - Roadmap: developer-guide/roadmap.md
   - User Guide:

@@ -31,7 +31,8 @@ all in the [concepts](concepts/index.md) section):
 ## Quick Start
 
 The following example runs a small experiment campaign that samples combinations
-of `mass` and `volume`, computes `density` at each point, and stores the results.
+of `mass` and `volume`, computes `density` at each point, and stores the
+results.
 
 Install `ado-core` (a virtual environment is recommended). For complete
 instructions see [Getting Started](user-guide/getting-started.md#installing):
@@ -83,6 +84,7 @@ Networks and Services Joint Undertaking (SNS JU) under grant agreement No.
 
 ## What's next
 
+<!-- prettier-ignore-start -->
 <!-- markdownlint-disable line-length -->
 <!-- markdownlint-disable-next-line no-inline-html -->
 <div class="grid cards" markdown>
@@ -104,3 +106,5 @@ Networks and Services Joint Undertaking (SNS JU) under grant agreement No.
     [Dive into the CLI reference docs :octicons-arrow-right-24:](cli-reference/index.md)
 
 </div>
+
+<!-- prettier-ignore-end -->

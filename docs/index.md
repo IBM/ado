@@ -28,7 +28,7 @@ all in the [concepts](concepts/index.md) section):
 | **Operation**       | Defines _which_ operator to use (e.g. Ray Tune) and _how_ to parameterise it to explore or analyse the entity space. |
 | **Sample Store**    | Stores measurements and transparently reuses prior results across Discovery Spaces and team members.                 |
 
-## Quick Start
+## Try It Out
 
 The following example runs a small experiment campaign that samples combinations
 of `mass` and `volume`, computes `density` at each point, and stores the

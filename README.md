@@ -31,7 +31,8 @@ all at <https://ibm.github.io/ado/concepts/>):
 ## Try It Out
 
 The following example runs a small experiment campaign that samples combinations
-of `mass` and `volume`, computes `density` at each point, and stores the results.
+of `mass` and `volume`, computes `density` at each point, and stores the
+results.
 
 Install `ado-core` (a virtual environment is recommended). For complete
 instructions see the
@@ -72,8 +73,8 @@ problem, an agent can design the Discovery Space, write new experiments or reuse
 existing ones, and run the full exploration loop:
 
 - 🤖 _Bundled agent skills_: ready-made skills guide agents through
-  [end-to-end discovery workflows](https://ibm.github.io/ado/how-to/) — from
-  formulating a problem to analysing results
+  [end-to-end discovery workflows](https://ibm.github.io/ado/user-guide/getting-started/#__tabbed_1_2)
+  — from formulating a problem to analysing results
 - 🔍 _Self-describing resources_: experiments and operators declare their
   required properties, so an agent can discover what's available and what's
   needed without parsing code

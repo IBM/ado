@@ -28,6 +28,14 @@ all in the [concepts](concepts/index.md) section):
 | **Operation**       | Defines _which_ operator to use (e.g. Ray Tune) and _how_ to parameterise it to explore or analyse the entity space. |
 | **Sample Store**    | Stores measurements and transparently reuses prior results across Discovery Spaces and team members.                 |
 
+## ado ❤️ agents
+
+ado's typed resources, expressive CLI, and bundled agent skills make it a
+natural fit for agentic research workflows. Once prompted with a research
+problem, an agent can design the Discovery Space, write new experiments or reuse
+existing ones, and run the full exploration loop. See
+[Getting Started with an agent](user-guide/getting-started.md#how-do-you-want-to-use-ado).
+
 ## Try It Out
 
 The following example runs a small experiment campaign that samples combinations

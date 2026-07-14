@@ -75,7 +75,7 @@ theme:
     - navigation.tracking # URL updated with active anchor
     - search.share
     - search.suggest
-    - toc.integrate # Integrate page TOC in left sidebar - wider page
+    # - toc.integrate # Integrate page TOC in left sidebar - wider page
   icon:
     edit: 'material/pencil-outline'
 markdown_extensions:

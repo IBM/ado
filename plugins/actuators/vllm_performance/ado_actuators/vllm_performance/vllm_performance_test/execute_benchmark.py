@@ -291,9 +291,6 @@ def execute_geospatial_benchmark(
     )
 
 
-BFCL_DATASET = "gorilla-llm/Berkeley-Function-Calling-Leaderboard"
-
-
 def execute_bfcl_benchmark(
     base_url: str,
     model: str,
@@ -331,7 +328,7 @@ def execute_bfcl_benchmark(
         backend="openai-chat",
         model=model,
         dataset="hf",
-        dataset_path=BFCL_DATASET,
+        dataset_path="gorilla-llm/Berkeley-Function-Calling-Leaderboard",
         num_prompts=num_prompts,
         request_rate=request_rate,
         max_concurrency=max_concurrency,

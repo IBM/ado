@@ -30,6 +30,9 @@ all at <https://ibm.github.io/ado/concepts/>):
 
 ## Quick Start
 
+The following example runs a small experiment campaign that samples combinations
+of `mass` and `volume`, computes `density` at each point, and stores the results.
+
 Install `ado-core` (a virtual environment is recommended). For complete
 instructions see the
 [install guide](https://ibm.github.io/ado/user-guide/install/):
@@ -46,8 +49,7 @@ cd ado
 pip install -e examples/density_example/
 ```
 
-Run a small experiment campaign: sample combinations of `mass` and `volume`,
-compute `density` at each point, and store the results:
+Run the experiment campaign:
 
 ```shell
 ado create operation -f examples/density_example/operation.yaml --with space=examples/density_example/space.yaml

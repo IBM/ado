@@ -36,8 +36,6 @@ from ado.modules.actuators.errors import (
 if typing.TYPE_CHECKING:
     from ado.cli.core.config import AdoConfiguration
 
-SPACE_ONLY_OPTIONS = "Space-only options"
-
 
 def describe_resource(
     ctx: typer.Context,
@@ -62,9 +60,9 @@ def describe_resource(
         bool,
         typer.Option(
             "--use-latest",
-            help="Describe the space using the latest space identifier created. "
+            help="Describe the resource using the latest identifier created. "
+            "Not supported for experiments. "
             "Ignored if a resource identifier is also specified.",
-            rich_help_panel=SPACE_ONLY_OPTIONS,
             show_default=False,
         ),
     ] = False,
@@ -102,9 +100,9 @@ def describe_resource(
     ado_configuration: AdoConfiguration = ctx.obj
 
     if use_latest:
-        if resource_type != AdoDescribeSupportedResourceTypes.DISCOVERY_SPACE:
+        if resource_type == AdoDescribeSupportedResourceTypes.EXPERIMENT:
             console_print(
-                f"{ERROR}The {cyan('--use-latest')} flag is available only for spaces.",
+                f"{ERROR}The {cyan('--use-latest')} flag is not supported for experiments.",
                 stderr=True,
             )
             raise typer.Exit(1)

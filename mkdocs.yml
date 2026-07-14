@@ -166,7 +166,7 @@ nav:
       - Contributing:
           - Contributing: developer-guide/contributing.md
           - Developing ado: developer-guide/developing.md
-  - Tutorials:
+  - Examples:
       - user-guide/examples/index.md
       - "The basics: your first ado experiment": user-guide/examples/density-example.md
       - "Beyond the basics: ado with real data": user-guide/examples/random-walk.md

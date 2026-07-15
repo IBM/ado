@@ -44,33 +44,6 @@ rather than running it again. This transparent data sharing is a core feature of
 
     ---
 
-    Go to [resources](../resources/resources.md) to learn more about working
-    with these core concepts in `ado`.
-
-    [ado resources :octicons-arrow-right-24:](../resources/resources.md)
-
-- :octicons-workflow-24:{ .lg .middle } **Try our examples**
-
-    ---
-
-    Try some of our [examples](../examples/examples.md) if you want to dive
-    straight in.
-
-    [Our examples :octicons-arrow-right-24:](../examples/examples.md)
-
-</div>
-<!-- markdownlint-enable line-length -->
-
----
-
-<!-- markdownlint-disable line-length -->
-<!-- markdownlint-disable-next-line no-inline-html -->
-<div class="grid cards" markdown>
-
-- :octicons-rocket-24:{ .lg .middle } **Learn about resources**
-
-    ---
-
     Go to [resources](../resources/index.md) to learn more about working
     with these core concepts in `ado`.
 

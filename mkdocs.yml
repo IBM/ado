@@ -1,0 +1,203 @@
+# Project Information
+site_name: "ado Documentation"
+site_url: "https://ibm.github.io/ado"
+site_description: "Documentation website for https://github.com/ibm/ado"
+site_author: "The ado authors"
+# Repository Information
+repo_name: 'ibm/ado'
+repo_url: 'https://github.com/ibm/ado'
+edit_uri: 'edit/main/docs'
+docs_dir: 'docs'
+site_dir: 'site'
+remote_branch: 'gh-pages'
+remote_name: 'origin'
+# Server info
+dev_addr: '127.0.0.1:8000'
+# Copyright
+copyright: Copyright IBM Research.
+# Extra links as icons at the bottom of the page
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/ibm/ado
+    - icon: fontawesome/solid/globe
+      link: https://www.ibm.com/
+extra_css:
+  - https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,100..700;1,100..700&display=swap
+  - https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&family=IBM+Plex+Sans:ital,wght@0,100..700;1,100..700&display=swap
+theme:
+  name: material
+  language: en
+  include_search_page: true
+  search_index_only: true
+  custom_dir: docs/theme
+  favicon: 'favicon.ico'
+  logo: 'logo-ibm.png'
+  font: false
+  palette:
+    # Palette toggle for automatic mode
+    - media: "(prefers-color-scheme)"
+      primary: black
+      accent: blue
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: black
+      accent: blue
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      primary: black
+      accent: blue
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to system preference
+  features:
+    - content.action.edit
+    - content.action.feedback
+    #    # - content.action.view
+    - content.code.annotate # Attach arbitrary content to specific sections of code blocks by adding numeric markers
+    - content.code.copy # Button to allow the user to copy a code block's contents to the clipboard
+    - content.tabs.link
+    - navigation.footer # Links to previous and next page
+    - navigation.indexes # Attach documents to sections, useful for providing overview pages
+    - navigation.instant # Single page instant refresh
+    - navigation.sections # Top level tabs rendered in sidebar
+    - navigation.tabs # Navigation tabs across top. Comment this out to have navigation on the left
+    - navigation.tabs.sticky # Tab always displayed
+    - navigation.top # Back-to-top button. Rendered centered and just below the header
+    - navigation.tracking # URL updated with active anchor
+    - search.share
+    - search.suggest
+    # - toc.integrate # Integrate page TOC in left sidebar - wider page
+  icon:
+    edit: 'material/pencil-outline'
+markdown_extensions:
+  admonition: {}
+  #  def_list: {}
+  tables: {}
+  footnotes: {}
+  # attr_list and md_in_html are needed for the grid cards
+  attr_list: {}
+  md_in_html: {}
+  # Better emphasis handling: https://facelessuser.github.io/pymdown-extensions/extensions/betterem/
+  pymdownx.betterem: {}
+  # Sections that can be disclosed: https://facelessuser.github.io/pymdown-extensions/extensions/details/
+  pymdownx.details: {}
+  # Emojis via shortnames: https://facelessuser.github.io/pymdown-extensions/extensions/emoji/
+  pymdownx.emoji:
+    emoji_index: !!python/name:material.extensions.emoji.twemoji
+    emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  # Better list support: https://facelessuser.github.io/pymdown-extensions/extensions/fancylists/
+  pymdownx.fancylists: {}
+  # Code syntax highlighting: https://facelessuser.github.io/pymdown-extensions/extensions/highlight/
+  pymdownx.highlight: {}
+  # Inline code highlighting: https://facelessuser.github.io/pymdown-extensions/extensions/inlinehilite/
+  pymdownx.inlinehilite: {}
+  # Autolink: https://facelessuser.github.io/pymdown-extensions/extensions/magiclink/
+  pymdownx.magiclink: {}
+  # Highlighter: https://facelessuser.github.io/pymdown-extensions/extensions/mark/
+  pymdownx.mark: {}
+  # Symbols: https://facelessuser.github.io/pymdown-extensions/extensions/smartsymbols/
+  pymdownx.smartsymbols: {}
+  # Strip HTML: https://facelessuser.github.io/pymdown-extensions/extensions/striphtml/
+  pymdownx.striphtml: {}
+  # Better fencing: https://facelessuser.github.io/pymdown-extensions/extensions/superfences/
+  pymdownx.superfences:
+    preserve_tabs: true
+  # Tabs: https://facelessuser.github.io/pymdown-extensions/extensions/tabbed/
+  pymdownx.tabbed:
+    alternate_style: true
+  # Tasklists: https://facelessuser.github.io/pymdown-extensions/extensions/tasklist/
+  pymdownx.tasklist:
+    custom_checkbox: true
+  # Strikethrough: https://facelessuser.github.io/pymdown-extensions/extensions/tilde/
+  pymdownx.tilde: {}
+  pymdownx.progressbar: {}
+  pymdownx.arithmatex: {}
+  toc:
+    permalink: true
+    toc_depth: 4
+plugins:
+  - search:
+  - minify:
+      minify_html: true
+      minify_js: true
+      minify_css: true
+  - include-markdown:
+  - gh-admonitions:
+nav:
+  - Home:
+      - Home: index.md
+      # - Demo: demo.md
+      - Roadmap: roadmap.md
+  - User Guide:
+      - Getting Started: user-guide/getting-started.md
+      - ado and Agents: user-guide/ado-and-agents.md
+      - Actuators:
+          - Working with actuators: user-guide/actuators/working-with-actuators.md
+          - Actuator Guides:
+              - "The Replay Actuator: Using externally obtained data": user-guide/actuators/replay.md
+              - vllm_performance actuator: user-guide/actuators/vllm-performance.md
+              - SFTTrainer actuator: user-guide/actuators/sft-trainer.md
+      - Operators:
+          - Working with operators: user-guide/operators/working-with-operators.md
+          - Explore operators: user-guide/operators/explore-operators.md
+          - Operator guides:
+              - The Random Walk Operator: user-guide/operators/random-walk.md
+              - The Ray Tune Operator: user-guide/operators/ray-tune.md
+              - The TRIM Operator: user-guide/operators/trim.md
+      - Advanced:
+          - Running experiments on single entities: user-guide/advanced/run-experiment.md
+          - Running ado on remote Ray clusters: user-guide/advanced/remote-execution.md
+          - Installing Backend Services: user-guide/advanced/backend-services.md
+          - Migrating from 1.x: user-guide/advanced/migration-ado-1x-to-2x.md
+  - Developer Guide:
+      - Getting Started: developer-guide/getting-started.md
+      - Plugin Development:
+          - Adding custom experiments: developer-guide/creating-custom-experiments.md
+          - Creating Actuator Classes: developer-guide/creating-actuator-classes.md
+          - Creating Operators: developer-guide/creating-operators.md
+      - Contributing:
+          - Contributing: developer-guide/contributing.md
+          - Developing ado: developer-guide/developing.md
+  - Examples:
+      - user-guide/examples/index.md
+      - Tutorials:
+          - "The basics: your first ado experiment": user-guide/examples/tutorials/density-example.md
+          - "Beyond the basics: ado with real data": user-guide/examples/tutorials/random-walk.md
+      - Search:
+          - Search a space with an optimizer: user-guide/examples/best-configuration-search.md
+          - Search based on a custom objective: user-guide/examples/search-custom-objective.md
+      - Analysis:
+          - Identify the important dimensions of a space: user-guide/examples/lhu.md
+          - Quickly building a predictive model: user-guide/examples/trim.md
+      - Fine-tuning:
+          - Measure fine-tuning throughput locally: user-guide/examples/finetune-locally.md
+          - Measure fine-tuning throughput on a RayCluster: user-guide/examples/finetune-remotely.md
+      - vLLM Performance:
+          - Testing the throughput of an inference endpoint: user-guide/examples/vllm-performance-endpoint.md
+          - Exploring vLLM deployment configurations: user-guide/examples/vllm-performance-full.md
+          - Benchmarking geospatial models with vLLM: user-guide/examples/vllm-performance-geospatial.md
+  - Concepts:
+      - The core ado concepts: concepts/core-concepts.md
+      - Properties and Domains: concepts/properties-and-domains.md
+      - Experiments and Actuators: concepts/actuators.md
+      - Entities and Entity Spaces: concepts/entity-spaces.md
+      - Discovery Spaces: concepts/discovery-spaces.md
+      - Shared Sample Stores: concepts/data-sharing.md
+  - Resources:
+      - resources/index.md
+      - The metastore: resources/metastore.md
+      - samplestore: resources/sample-stores.md
+      - discoveryspace: resources/discovery-spaces.md
+      - operation: resources/operation.md
+      - actuatorconfiguration: resources/actuatorconfig.md
+      - datacontainer: resources/datacontainer.md
+  - CLI Reference: cli-reference/index.md

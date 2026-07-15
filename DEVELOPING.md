@@ -255,11 +255,10 @@ contains broken links. You can install it with your preferred method from the
 ones provided
 [in the official documentation](https://github.com/filiph/linkcheck?tab=readme-ov-file#installation).
 
-On one terminal, navigate to the website directory and start serving the website
-using mkdocs:
+On one terminal, start serving the website using mkdocs (from the repo root):
 
 ```commandline
-cd website && mkdocs serve --clean
+mkdocs serve --clean
 ```
 
 On a different terminal, run the linkchecker:

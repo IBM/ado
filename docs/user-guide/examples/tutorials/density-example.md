@@ -75,13 +75,16 @@ Available experiments:
 
 ## Step 2 — Test on a single point
 
-Before wiring the experiment into anything larger, it is useful to verify it
-works on a single point. The file `examples/density_example/point.yaml` defines
-one:
+Before running a full experiment campaign, it is useful to verify it works on a
+single point. The file `examples/density_example/point.yaml` defines one:
+
+<!-- prettier-ignore-start -->
 
 ```yaml
 {% include "../../../../examples/density_example/point.yaml" %}
 ```
+
+<!-- prettier-ignore-end -->
 
 Run it with:
 

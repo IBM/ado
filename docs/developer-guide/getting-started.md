@@ -5,7 +5,7 @@ with new experiments or search strategies, or work on the core framework itself.
 If you want to run experiments and analyse results without writing new plugins,
 the [User Guide](../user-guide/getting-started.md) is your starting point.
 
-!!! tip "New to ado?"
+!!! question "New to ado?"
 
     Before diving in, familiarise yourself with the
     [key concepts](../concepts/index.md) so the plugin model and extension

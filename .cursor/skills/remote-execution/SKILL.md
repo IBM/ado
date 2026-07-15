@@ -8,7 +8,7 @@ description:
   operation if execution context files are present in the workspace.
 ---
 
-# Remote Execution with ado
+# Running ado on remote Ray clusters
 
 ## Execution context files
 

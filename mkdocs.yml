@@ -155,7 +155,7 @@ nav:
               - The TRIM Operator: user-guide/operators/trim.md
       - Advanced:
           - Running experiments on single entities: user-guide/advanced/run-experiment.md
-          - Remote Execution: user-guide/advanced/remote-execution.md
+          - Running ado on remote Ray clusters: user-guide/advanced/remote-execution.md
           - Installing Backend Services: user-guide/advanced/backend-services.md
           - Migrating from 1.x: user-guide/advanced/migration-ado-1x-to-2x.md
   - Developer Guide:

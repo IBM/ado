@@ -5,12 +5,12 @@ import pandas as pd
 import pytest
 from trim.trim_sampler import _make_default_row
 
-from orchestrator.schema.entity import (
+from ado.schema.entity import (
     Entity,
     entity_identifier_from_properties_and_values,
 )
-from orchestrator.schema.property import ConstitutiveProperty
-from orchestrator.schema.property_value import ConstitutivePropertyValue
+from ado.schema.property import ConstitutiveProperty
+from ado.schema.property_value import ConstitutivePropertyValue
 
 
 @pytest.fixture

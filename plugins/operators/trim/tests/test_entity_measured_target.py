@@ -15,18 +15,18 @@ from types import SimpleNamespace
 
 from trim.samplers.missing_target_utils import entity_measured_target
 
-from orchestrator.schema.entity import Entity
-from orchestrator.schema.observed_property import (
+from ado.schema.entity import Entity
+from ado.schema.observed_property import (
     ObservedProperty,
     ObservedPropertyValue,
 )
-from orchestrator.schema.property import (
+from ado.schema.property import (
     AbstractPropertyDescriptor,
     ConstitutiveProperty,
 )
-from orchestrator.schema.property_value import ConstitutivePropertyValue
-from orchestrator.schema.reference import ExperimentReference
-from orchestrator.schema.result import ValidMeasurementResult
+from ado.schema.property_value import ConstitutivePropertyValue
+from ado.schema.reference import ExperimentReference
+from ado.schema.result import ValidMeasurementResult
 
 
 def _make_entity(pressure_value: float | None) -> Entity:

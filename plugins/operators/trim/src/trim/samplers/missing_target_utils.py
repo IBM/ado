@@ -5,7 +5,7 @@ import logging
 
 import pandas as pd
 
-from orchestrator.core.discoveryspace.space import DiscoverySpace, Entity
+from ado.core.discoveryspace.space import DiscoverySpace, Entity
 from trim.samplers.no_priors_parameters import (
     BaseTrimSamplerParameters,
     MissingTargetMode,

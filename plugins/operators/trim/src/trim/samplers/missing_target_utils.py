@@ -175,7 +175,11 @@ def record_missing_and_check_budget(
             additional_info=additional_info,
         )
 
-    # InjectDefaultValue or Skip — check budget
+    # InjectDefaultValue or Skip — log and check budget
+    logger.warning(
+        f"Entity '{entity_id}' produced no measurement for target variable "
+        f"(mode={mtv.mode.value}). {additional_info}"
+    )
     missing_count += 1
 
     budget = mtv.budget

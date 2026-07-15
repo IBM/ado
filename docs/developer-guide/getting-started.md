@@ -24,32 +24,23 @@ of what you are building:
 
 ## How do you want to contribute?
 
-The loop above applies to both paths. The difference is scope: Path A adds
-new experiments or strategies as self-contained plugins. Path B changes the
-core framework itself.
+The loop above applies to both paths. The difference is scope: Path A adds new
+experiments or strategies as self-contained plugins. Path B changes the core
+framework itself.
 
 <!-- markdownlint-disable line-length -->
 
-|                 | **Path A — Plugin Development**                                                                                          | **Path B — Core Development**                                                                                                      |
-| :-------------- | :----------------------------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------- |
-| **Best for**    | Adding new experiments (actuators, custom experiments) or search strategies (operators) without touching the core.       | Contributing to `ado`'s schema, CLI, metastore, execution engine, or test suite.                                                   |
-| **Setup**       | `pip install ado-core` for out-of-tree, or `uv sync` for in-tree development.                                            | Clone the repo and run `uv sync --group test --reinstall`.                                                                         |
-| **Key benefit** | No core changes needed — plugins register themselves at install time and are immediately available to the CLI and tools. | Full access to the framework internals, test suite, and pre-commit hooks that enforce code style and conventional commit messages. |
+|                 | **Path A — Plugin Development**                                                                                                                                                                                                           | **Path B — Core Development**                                                                                                      |
+| :-------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------- |
+| **Best for**    | Adding new experiments ([actuators](../concepts/actuators.md) or [custom experiments](./creating-custom-experiments.md)) or search strategies ([operators](../user-guide/operators/working-with-operators.md)) without touching the core. | Contributing to `ado`'s schema, CLI, metastore, execution engine, or test suite.                                                   |
+| **Setup**       | `pip install ado-core` for out-of-tree, or `uv sync` for in-tree development.                                                                                                                                                             | Clone the repo and run `uv sync --group test --reinstall`.                                                                         |
+| **Key benefit** | No core changes needed — plugins register themselves at install time and are immediately available to the CLI and tools.                                                                                                                  | Full access to the framework internals, test suite, and pre-commit hooks that enforce code style and conventional commit messages. |
 
 <!-- markdownlint-enable line-length -->
 
 ## Setting up
 
 === "Path A — Plugin Development"
-
-    A plugin adds one of two things:
-
-    - An **experiment**: An [actuator](../concepts/actuators.md) or a
-      [custom experiment](./creating-custom-experiments.md) that measures or
-      evaluates a system (e.g., a benchmark, a simulation).
-    - An **analysis tool**: An [operator](../user-guide/operators/working-with-operators.md)
-      that decides what to measure next or post-processes results (e.g., a
-      search strategy, an optimiser).
 
     Install `ado-core` from PyPI to develop an out-of-tree plugin:
 
@@ -63,17 +54,9 @@ core framework itself.
     ```shell
     git clone https://github.com/IBM/ado.git
     cd ado
-    uv sync --reinstall
+    uv sync --group test --reinstall
     source .venv/bin/activate
     ```
-
-    Use these guides as your primary technical reference:
-
-    - [Creating Custom Experiments](./creating-custom-experiments.md)
-    - [Creating Actuator Classes](./creating-actuator-classes.md)
-    - [Creating Operators](./creating-operators.md)
-
-    See [Developing ado](developing.md) for full environment setup instructions.
 
 === "Path B — Core Development"
 
@@ -93,19 +76,7 @@ core framework itself.
     ```
 
     This automates checks for formatting, secrets, headers, and conventional
-    commit messages.
-
-    Before submitting a pull request, ensure your changes meet this checklist:
-
-    - **Code Style:** Follow **PEP8** naming, include all **type annotations**,
-      and use **Google-style docstrings**.
-    - **Formatting & Linting:** Code must be formatted with **ruff format** and
-      pass **ruff check**.
-    - **Testing:** All new features or fixes must include or update **tests**.
-      We prefer an integration-first, TDD-style workflow.
-    - **Commit Hooks:** All changes must pass our **pre-commit** hooks.
-
-    See [Developing ado](./developing.md) and [Contributing](./contributing.md)
+    commit messages. See [Developing ado](./developing.md) and [Contributing](./contributing.md)
     for full details.
 
 ## Agent-assisted development
@@ -126,6 +97,7 @@ a pull request using the template in
 
 ## Next steps
 
+<!-- prettier-ignore-start -->
 <!-- markdownlint-disable no-inline-html -->
 <div class="grid cards" markdown>
 
@@ -149,3 +121,5 @@ a pull request using the template in
 
 </div>
 <!-- markdownlint-enable no-inline-html -->
+
+<!-- prettier-ignore-end -->

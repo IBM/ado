@@ -108,36 +108,38 @@ def test_round_trip_skip() -> None:
 
 
 def test_no_priors_parameters_round_trip() -> None:
-    """NoPriorsParameters round-trips correctly; missingTargetVariables is NOT in the dump."""
+    """NoPriorsParameters round-trips correctly; missingTargetVariables is in the dump."""
     original = NoPriorsParameters(targetOutput="latency")
     dumped = original.model_dump()
-    assert "missingTargetVariables" not in dumped
+    assert "missingTargetVariables" in dumped
     restored = NoPriorsParameters.model_validate(dumped)
     assert restored.targetOutput == "latency"
     # Default policy is RaiseError
     assert restored.missingTargetVariables.mode == MissingTargetMode.RaiseError
 
 
-def test_no_priors_parameters_missing_target_variables_not_a_kwarg() -> None:
-    """missingTargetVariables cannot be set via the NoPriorsParameters constructor."""
-    with pytest.raises((ValidationError, TypeError)):
-        NoPriorsParameters(
-            targetOutput="latency",
-            missingTargetVariables=MissingTargetMeasurements(
-                mode=MissingTargetMode.Skip
-            ),
-        )
+def test_no_priors_parameters_missing_target_variables_is_a_kwarg() -> None:
+    """missingTargetVariables can be set via the NoPriorsParameters constructor."""
+    params = NoPriorsParameters(
+        targetOutput="latency",
+        missingTargetVariables=MissingTargetMeasurements(mode=MissingTargetMode.Skip),
+    )
+    assert params.missingTargetVariables.mode == MissingTargetMode.Skip
 
 
-def test_no_priors_parameters_missing_target_variables_settable_at_runtime() -> None:
-    """missingTargetVariables can be set as a runtime attribute (used by TrimParameters)."""
+def test_no_priors_parameters_missing_target_variables_survives_round_trip() -> None:
+    """missingTargetVariables set at runtime survives model_dump / model_validate."""
     params = NoPriorsParameters(targetOutput="latency")
     policy = MissingTargetMeasurements(mode=MissingTargetMode.Skip, budget=2)
     params.missingTargetVariables = policy
     assert params.missingTargetVariables.mode == MissingTargetMode.Skip
     assert params.missingTargetVariables.budget == 2
-    # Setting it does NOT affect model_dump
-    assert "missingTargetVariables" not in params.model_dump()
+    # The value is now in the dump so it round-trips correctly.
+    dumped = params.model_dump()
+    assert dumped["missingTargetVariables"]["mode"] == MissingTargetMode.Skip
+    restored = NoPriorsParameters.model_validate(dumped)
+    assert restored.missingTargetVariables.mode == MissingTargetMode.Skip
+    assert restored.missingTargetVariables.budget == 2
 
 
 # ---------------------------------------------------------------------------

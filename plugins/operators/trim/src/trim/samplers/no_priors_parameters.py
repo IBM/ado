@@ -9,7 +9,6 @@ from pydantic import (
     BeforeValidator,
     ConfigDict,
     Field,
-    PrivateAttr,
     field_validator,
     model_validator,
 )
@@ -159,29 +158,27 @@ class NoPriorsParameters(BaseModel):
         - 'clhs': refer to concatenated_latin_hypercube_sampling
         - 'sobol': sobol sampling
 
-    ``missingTargetVariables`` is intentionally **not** a schema field.  It is
-    injected at runtime by the ``TrimParameters.propagate_missing_target_variables``
-    model validator so that the no-priors sampler shares the same policy as the
-    TRIM iterative sampler without exposing a redundant configuration knob.
+    ``missingTargetVariables`` is set by the
+    ``TrimParameters.propagate_missing_target_variables`` model validator so that
+    the no-priors sampler shares the same policy as the TRIM iterative sampler
+    without exposing a redundant user-facing configuration knob.  It is excluded
+    from ``model_dump()`` so it does not appear in the operation YAML, but it
+    **is** populated by ``model_validate`` so it survives the serialisation
+    round-trip that ``random_walk`` performs before constructing the sampler.
     """
 
     model_config = ConfigDict(extra="forbid")
-    # Runtime-only: set by TrimParameters.propagate_missing_target_variables.
-    # Excluded from the schema and from model_dump() so users cannot accidentally
-    # configure it here (the authoritative location is TrimParameters.missingTargetVariables).
-    _missingTargetVariables: MissingTargetMeasurements = PrivateAttr(
-        default_factory=MissingTargetMeasurements
-    )
 
-    @property
-    def missingTargetVariables(self) -> MissingTargetMeasurements:
-        """The active missing-target policy (injected by TrimParameters)."""
-        return self._missingTargetVariables
-
-    @missingTargetVariables.setter
-    def missingTargetVariables(self, value: MissingTargetMeasurements) -> None:
-        """Set the active missing-target policy."""
-        self._missingTargetVariables = value
+    missingTargetVariables: Annotated[
+        MissingTargetMeasurements,
+        Field(
+            default_factory=MissingTargetMeasurements,
+            description=(
+                "Missing-target policy propagated from TrimParameters. "
+                "Not user-configurable here; set via TrimParameters.missingTargetVariables."
+            ),
+        ),
+    ]
 
     targetOutput: Annotated[
         str,

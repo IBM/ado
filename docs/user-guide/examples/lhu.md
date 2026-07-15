@@ -7,7 +7,7 @@
     This walkthrough assumes you are already familiar with the core `ado`
     workflow — discovery spaces, operations, and sample stores. If you are new
     to `ado`, work through
-    [Your first ado experiment](density-example.md) first.
+    [Your first ado experiment](tutorials/density-example.md) first.
 
 When working with a high-dimensional configuration space it is natural to ask
 **which dimensions have the greatest influence on a specific experimental
@@ -25,7 +25,7 @@ influence `wallClockRuntime`**.
 We will:
 
 1. Install the `ray_tune` operator
-2. Reuse the discovery space from the [random walk example](random-walk.md)
+2. Reuse the discovery space from the [random walk example](tutorials/random-walk.md)
 3. Run a Latin Hypercube sampling operation with an `InformationGain` stopper
 4. Interpret the ranked dimension output
 
@@ -40,7 +40,7 @@ We will:
       ```
 
     - The discovery space and sample store from the
-      [random walk example](random-walk.md) already created.
+      [random walk example](tutorials/random-walk.md) already created.
 
     All commands in this walkthrough are run from the **repository root**
     (`ado/`).
@@ -85,7 +85,7 @@ Available operators by type:
 ## Step 2 — Reuse the discovery space
 
 This example uses the same discovery space created in the
-[random walk example](random-walk.md). Retrieve its identifier:
+[random walk example](tutorials/random-walk.md). Retrieve its identifier:
 
 ```bash
 ado get spaces

@@ -8,7 +8,7 @@
     workflow — custom experiments, discovery spaces, and operations — and that
     you have already run at least one operation end-to-end. If you are new to
     `ado`, work through
-    [Your first ado experiment](density-example.md) first.
+    [Your first ado experiment](tutorials/density-example.md) first.
 
 When evaluating points in a parameter space is expensive — a scientific
 simulation, a machine learning training run, or a physical experiment — you

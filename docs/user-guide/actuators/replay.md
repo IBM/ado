@@ -10,7 +10,7 @@ so. However, you still might want to define measurement spaces with them so
 entities that have the relevant data can be sampled and the data used, perhaps
 in a custom objective function.
 
-The [taking a random walk](../examples/random-walk.md) tutorial uses external
+The [taking a random walk](../examples/tutorials/random-walk.md) tutorial uses external
 data and the replay actuator.
 
 ### Importing data from a CSV
@@ -25,7 +25,7 @@ creation time. When copying this data into the `samplestore` the columns
 containing measured values (observed properties) and which columns containing
 constitutive properties are defined. With this information `ado` can create
 entities for each row. The following example is from
-[taking a random walk](../examples/random-walk.md):
+[taking a random walk](../examples/tutorials/random-walk.md):
 
 <!-- markdownlint-disable MD013 -->
 <!-- prettier-ignore-start -->
@@ -105,7 +105,7 @@ present (because it was copied in) it is reused as normal by `ado`'s memoization
 mechanism. If there is no data, it cannot be measured as no real experiment
 exists, and the `replay` actuator handles this case correctly - it creates the
 `No value to replay` messages seen
-[here](../examples/random-walk.md#step-4-view-the-results).
+[here](../examples/tutorials/random-walk.md#step-4-view-the-results).
 
 <!-- markdownlint-enable descriptive-link-text -->
 

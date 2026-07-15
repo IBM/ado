@@ -549,9 +549,9 @@ request index 5 has been retried 2 times.
 
       ---
 
-      Try using the `random_walk` operator with our [example](../examples/random-walk.md).
+      Try using the `random_walk` operator with our [example](../examples/tutorials/random-walk.md).
 
-      [Random Walk example :octicons-arrow-right-24:](../examples/random-walk.md)
+      [Random Walk example :octicons-arrow-right-24:](../examples/tutorials/random-walk.md)
 
 - :octicons-rocket-24:{ .lg .middle } **Create new Operators**
 

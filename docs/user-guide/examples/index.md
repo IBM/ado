@@ -5,19 +5,19 @@
     [key concepts](../../concepts/index.md) so the YAML examples and CLI commands
     throughout these examples make immediate sense.
 
-## Introductory examples
+## Tutorials
 
 Start here if you are new to `ado`. These examples walk you through the full
 research loop step by step, from defining a space to retrieving results.
 
-- **[Your first ado experiment](density-example.md)** — Write a Python function
-  as a custom experiment, define a discovery space, and run an operation
-  end-to-end.
+- **[Your first ado experiment](tutorials/density-example.md)** —
+  Write a Python function as a custom experiment, define a discovery space,
+  and run an operation end-to-end.
 
-- **[Beyond the basics: `ado` with real data](random-walk.md)** — Walk through
-  the core `ado` workflow — defining a `discoveryspace`, running an `operation`
-  to sample and measure points, and retrieving the results — using a real cloud
-  workload dataset.
+- **[Beyond the basics: `ado` with real data](tutorials/random-walk.md)** —
+  Walk through the core `ado` workflow — defining a `discoveryspace`, running
+  an `operation` to sample and measure points, and retrieving the results —
+  using a real cloud workload dataset.
 
 ## Search
 

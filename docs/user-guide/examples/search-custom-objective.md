@@ -5,9 +5,10 @@
 !!! abstract "Intermediate tutorial"
 
     This walkthrough assumes you are already familiar with the core `ado`
-    workflow — discovery spaces, operations, and replay. If you are new to `ado`,
-    work through [Beyond the basics: `ado` with real data](random-walk.md) first.
-    If you haven't already, also work through
+    workflow — discovery spaces, operations, and replay. If you are new to
+    `ado`, work through
+    [Beyond the basics: `ado` with real data](tutorials/random-walk.md)
+    first. If you haven't already, also work through
     [Search a space with an optimizer](best-configuration-search.md) to get
     familiar with `ray_tune`.
 
@@ -19,9 +20,9 @@ measurements into a single score.
 
 In this example we install a custom experiment that calculates a cost from
 the workload configurations used in the
-[Beyond the basics: `ado` with real data](random-walk.md) example. When the
-space is explored with a random walk, both `wallClockRuntime` and the derived
-`cost` are measured in one pass.
+[Beyond the basics: `ado` with real data](tutorials/random-walk.md) example.
+When the space is explored with a random walk, both `wallClockRuntime` and
+the derived `cost` are measured in one pass.
 
 We will:
 
@@ -45,7 +46,7 @@ We will:
     ```
 
     A pre-populated sample store is also required. Follow the
-    [instructions in the random walk example](random-walk.md#step-1-load-the-benchmark-data)
+    [instructions in the random walk example](tutorials/random-walk.md#step-1-load-the-benchmark-data)
     to load the `ml-multi-cloud` dataset, then export its identifier:
 
     ```bash
@@ -240,7 +241,7 @@ ado create operation -f examples/ml-multi-cloud/randomwalk_ml_multicloud_operati
 <!-- markdownlint-enable MD013 -->
 
 This behaves identically to the
-[random walk example](random-walk.md#step-3-run-a-random-walk), except
+[random walk example](tutorials/random-walk.md#step-3-run-a-random-walk), except
 that `ado` now evaluates both experiments for each visited entity. The
 terminal output will show additional detail related to the dependent
 experiment.

@@ -169,8 +169,9 @@ nav:
           - Developing ado: developer-guide/developing.md
   - Examples:
       - user-guide/examples/index.md
-      - "The basics: your first ado experiment": user-guide/examples/density-example.md
-      - "Beyond the basics: ado with real data": user-guide/examples/random-walk.md
+      - Tutorials:
+          - "The basics: your first ado experiment": user-guide/examples/tutorials/density-example.md
+          - "Beyond the basics: ado with real data": user-guide/examples/tutorials/random-walk.md
       - Search:
           - Search a space with an optimizer: user-guide/examples/best-configuration-search.md
           - Search based on a custom objective: user-guide/examples/search-custom-objective.md

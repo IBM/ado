@@ -70,7 +70,7 @@ ado show measurements operation --use-latest
 ```
 
 For a deeper walkthrough, see the
-[density example tutorial](user-guide/examples/density-example.md).
+[density example tutorial](user-guide/examples/tutorials/density-example.md).
 
 ## Use Cases
 
@@ -103,7 +103,7 @@ Networks and Services Joint Undertaking (SNS JU) under grant agreement No.
 
     Jump into our tutorial
 
-    [The basics: your first `ado` experiment :octicons-arrow-right-24:](user-guide/examples/density-example.md)
+    [The basics: your first `ado` experiment :octicons-arrow-right-24:](user-guide/examples/tutorials/density-example.md)
 
 - :octicons-terminal-24:{ .lg .middle } **Check out the ADO cli**
 

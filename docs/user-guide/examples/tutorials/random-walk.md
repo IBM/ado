@@ -6,7 +6,7 @@
 
     This walkthrough introduces the key concepts — **sample stores**,
     **discovery spaces**, and **operations** — as we go. If you'd prefer a
-    full overview first, the [Concepts](../../concepts/index.md) page has you
+    full overview first, the [Concepts](../../../concepts/index.md) page has you
     covered.
 
 This walkthrough takes you end-to-end through a real-data `ado` workflow using
@@ -61,7 +61,7 @@ tells `ado` how to import the CSV:
 
 ```yaml
 {%
-    include "../../../examples/ml-multi-cloud/ml_multicloud_sample_store_from_root.yaml"
+    include "../../../../examples/ml-multi-cloud/ml_multicloud_sample_store_from_root.yaml"
 %}
 ```
 
@@ -100,7 +100,7 @@ experiment:
 <!-- prettier-ignore-start -->
 
 ```yaml
-{% include "../../../examples/ml-multi-cloud/ml_multicloud_space.yaml" %}
+{% include "../../../../examples/ml-multi-cloud/ml_multicloud_space.yaml" %}
 ```
 
 <!-- prettier-ignore-end -->
@@ -173,7 +173,7 @@ configures the walk:
 
 ```yaml
 {%
-  include "../../../examples/ml-multi-cloud/randomwalk_ml_multicloud_operation.yaml"
+  include "../../../../examples/ml-multi-cloud/randomwalk_ml_multicloud_operation.yaml"
 %}
 ```
 
@@ -282,7 +282,7 @@ ado show measurements space --use-latest
     Use RayTune to find the best-performing cloud configuration — a natural
     next step once the space is defined.
 
-    [Search a space with an optimizer :octicons-arrow-right-24:](best-configuration-search.md)
+    [Search a space with an optimizer :octicons-arrow-right-24:](../best-configuration-search.md)
 
 - :octicons-workflow-24:{ .lg .middle } **Discover important dimensions**
 
@@ -291,7 +291,7 @@ ado show measurements space --use-latest
     Identify which hardware parameters most influence runtime using `ado`'s
     importance analysis.
 
-    [Identify the important dimensions of a space :octicons-arrow-right-24:](lhu.md)
+    [Identify the important dimensions of a space :octicons-arrow-right-24:](../lhu.md)
 
 </div>
 

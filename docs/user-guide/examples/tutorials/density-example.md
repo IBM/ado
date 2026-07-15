@@ -6,7 +6,7 @@
 
     This walkthrough introduces the key concepts — **custom experiments**,
     **discovery spaces**, and **operations** — as we go. If you'd prefer a
-    full overview first, the [Concepts](../../concepts/index.md) page has you
+    full overview first, the [Concepts](../../../concepts/index.md) page has you
     covered.
 
 This walkthrough takes you end-to-end through the full `ado` workflow using a
@@ -80,7 +80,7 @@ works on a single point. The file `examples/density_example/point.yaml` defines
 one:
 
 ```yaml
-{% include "../../../examples/density_example/point.yaml" %}
+{% include "../../../../examples/density_example/point.yaml" %}
 ```
 
 Run it with:
@@ -104,7 +104,7 @@ Result:
 
     `run_experiment` is a lightweight testing tool — results are not tracked or
     stored anywhere. It is purely for quick feedback during development.
-    See [Running experiments on single entities](../advanced/run-experiment.md)
+    See [Running experiments on single entities](../../advanced/run-experiment.md)
     for details.
 
 ## Step 3 — Define a discovery space
@@ -120,7 +120,7 @@ ten volumes:
 <!-- prettier-ignore-start -->
 
 ```yaml
-{% include "../../../examples/density_example/space.yaml" %}
+{% include "../../../../examples/density_example/space.yaml" %}
 ```
 
 <!-- prettier-ignore-end -->
@@ -181,7 +181,7 @@ visits 10 of the 100 entities:
 <!-- prettier-ignore-start -->
 
 ```yaml
-{% include "../../../examples/density_example/operation.yaml" %}
+{% include "../../../../examples/density_example/operation.yaml" %}
 ```
 
 <!-- prettier-ignore-end -->
@@ -274,7 +274,7 @@ ado show measurements space --use-latest
     Walk through a cloud workload parameter space using pre-existing benchmark
     data and `ado`'s replay mechanism.
 
-    [Beyond the basics: `ado` with real data :octicons-arrow-right-24:](random-walk.md)
+    [Beyond the basics: `ado` with real data :octicons-arrow-right-24:](../tutorials/random-walk.md)
 
 - :octicons-rocket-24:{ .lg .middle } **Search with an optimizer**
 
@@ -283,7 +283,7 @@ ado show measurements space --use-latest
     Use RayTune to find the best point in a space — a natural next step once
     you can define custom experiments.
 
-    [Search a space with an optimizer :octicons-arrow-right-24:](best-configuration-search.md)
+    [Search a space with an optimizer :octicons-arrow-right-24:](../best-configuration-search.md)
 
 </div>
 

@@ -7,7 +7,7 @@
     This walkthrough assumes you are already familiar with the core `ado`
     workflow — custom experiments, discovery spaces, and operations. If you are
     new to `ado`, work through
-    [Your first ado experiment](density-example.md) first.
+    [Your first ado experiment](tutorials/density-example.md) first.
 
 Finding the best entity according to some metric is a common task — for
 example, finding the configuration of an LLM fine-tuning workload that

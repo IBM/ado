@@ -11,7 +11,7 @@ distributed users.
 !!! info end
 
     The `ado` CLI can create local metastore instances. Shared metastores require
-    [separately provisioning the database server](/ado/user-guide/advanced/backend-services/#using-the-distributed-mysql-backend-for-ado).
+    [separately provisioning the database server](../user-guide/advanced/backend-services.md#using-the-distributed-mysql-backend-for-ado).
 
 ## Contexts and Projects
 
@@ -307,7 +307,7 @@ Examples for different value types are shown below.
 !!! warning inline end
 
     `ado` converts boolean
-    [property values](/ado/resources/discovery-spaces/#defining-the-domains-of-constitutive-properties-in-the-entityspace)
+    [property values](discovery-spaces.md#defining-the-domains-of-constitutive-properties-in-the-entityspace)
     to integers. For more details on how this works in practice, refer to the
     [additional examples](#additional-examples).
 
@@ -386,7 +386,7 @@ ado get operations --filter config.operation.module.moduleClass=RayTune
 To filter all spaces parameterized with the `bf16` property with the boolean
 value `true`, you will have to filter using the value `1` instead. This is
 because `ado` applies a type conversion to boolean values in
-[properties](/ado/resources/discovery-spaces/#defining-the-domains-of-constitutive-properties-in-the-entityspace):
+[properties](discovery-spaces.md#defining-the-domains-of-constitutive-properties-in-the-entityspace):
 
 <!-- markdownlint-disable line-length -->
 ```commandline

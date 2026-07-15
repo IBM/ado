@@ -474,7 +474,7 @@ Try extending this example:
   see how the optimizer adapts
 - **Tune optimizer options** — adjust `num_samples`, `max_concurrent_trials`,
   or `search_alg`; see
-  [the ray_tune operator documentation](/ado/user-guide/operators/ray-tune/)
+  [the ray_tune operator documentation](../operators/ray-tune.md)
   for the full configuration reference
   <!-- codespell:ignore discus -->
 - **Parameterize the experiment** — optimize the `discus` function by
@@ -490,7 +490,7 @@ Try extending this example:
 
 The experiment can be extended to cover additional functions or more
 dimensions. See the
-[custom experiments documentation](/ado/developer-guide/creating-custom-experiments/)
+[custom experiments documentation](../../developer-guide/creating-custom-experiments.md)
 for guidance.
 
 !!! warning

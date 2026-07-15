@@ -322,7 +322,7 @@ Success! Created operation with identifier operation-trim@2.0.3-cb3448b3 and it 
       thresholds that trigger early stopping
     - **`autoGluonArgs`** — passed directly to `AutoGluon`'s `TabularPredictor`
 
-    See the [TRIM operator reference](/ado/user-guide/operators/trim/) for the
+    See the [TRIM operator reference](../operators/trim.md) for the
     full parameter list.
 
 ## Step 4 — Inspect the results
@@ -414,7 +414,7 @@ Try extending this example:
   with an actuator-based experiment (e.g. SFT Trainer throughput) to build a
   surrogate model for a genuinely expensive system
 
-See the [TRIM operator reference](/ado/user-guide/operators/trim/) for the full
+See the [TRIM operator reference](../operators/trim.md) for the full
 configuration reference and debugging guidance.
 
 ## What's next

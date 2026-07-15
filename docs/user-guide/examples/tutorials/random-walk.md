@@ -52,7 +52,7 @@ running a workload on different cloud hardware configurations across three
 providers.
 
 In `ado`, configurations are called **entities** and are stored, together with
-measurement results, in a [**sample store**](/ado/resources/sample-stores).
+measurement results, in a [**sample store**](../../../resources/sample-stores.md).
 
 The file `examples/ml-multi-cloud/ml_multicloud_sample_store_from_root.yaml`
 tells `ado` how to import the CSV:

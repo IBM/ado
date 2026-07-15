@@ -23,9 +23,9 @@ all in the [concepts](concepts/core-concepts.md) section):
 
 | Concept             | Role                                                                                                                 |
 | ------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| **Discovery Space** | Defines _what_ to measure (Entity Space), _how_ to measure it (Experiments), and _where_ to store results.           |
-| **Operation**       | Defines _which_ operator to use (e.g. Ray Tune) and _how_ to parameterise it to explore or analyse the entity space. |
-| **Sample Store**    | Stores measurements and allows transparently reusing prior results across Discovery Spaces and team members.         |
+| **Discovery Space** | Defines _what_ to measure, _how_ to measure it (via Experiments, which are pluggable python functions), and _where_ to store results.           |
+| **Operation**       | You explore or analyse a Discovery Space using operations. You can select from different operators to do different types of operation.  Operators are also pluggable python functions. 
+| **Sample Store**    | Stores the results of measurements, and enables operations to transparently reuse existing results (memoization).         |
 
 ## ado ❤️ agents
 

@@ -2,9 +2,9 @@
 
 `ado` is a tool for systematically exploring, measuring, and analysing a space
 of entities - for example, configurations, systems and substances. It is built
-on three core concepts: Discovery Space, Operations and Sample Store. In brief,
-you define a Discovery Space, apply Operations to it, and store the results in a
-Sample Store.
+on three core concepts: **Discovery Space**, **Operation** and **Sample Store**.
+In brief, you define a Discovery Space, apply an Operation to it, and store the
+results in a Sample Store.
 
 ## Discovery Space
 
@@ -22,25 +22,26 @@ knows its own schema, knows how to fill in missing values, and shares data
 transparently with other DataFrames. See [Discovery Spaces](discovery-spaces.md)
 for more.
 
-## Operations
+## Operation
 
-To explore or analyse and Discovery Space you define an Operation. For example,
-you might define to randomly sample and measure 40 points in the DiscoverySpace.
+To explore or analyse a Discovery Space you define an Operation. For example,
+you might define an Operation to randomly sample and measure 40 points in the
+Discovery Space.
 
-Defining an operation involves specifying the `operator` to use (the python
-module the implements the operations) and the parameter values to set.
+Defining an Operation involves specifying the `operator` to use (the Python
+module that implements the operation) and the parameter values to set.
 
-There are two broad classes of Operations: explore operations sample and measure
+There are two broad classes of Operation: explore operations sample and measure
 points from a Discovery Space; analysis operations process the data currently
 collected in a Discovery Space to provide insights.
 
 You can run multiple explore operations on the same space. Each one can select
 and measure new points, increasing the total amount of information available on
 entities in the space. You can always view the entities sampled by each
-operation independently.
+Operation independently.
 
 The fact that the Discovery Space exists independently from any particular
-operations on it is a central innovation of `ado`.
+Operation is a central innovation of `ado`.
 
 ## Sample Store
 

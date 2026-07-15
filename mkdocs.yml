@@ -139,6 +139,7 @@ nav:
       - Roadmap: roadmap.md
   - User Guide:
       - Getting Started: user-guide/getting-started.md
+      - ado and Agents: user-guide/ado-and-agents.md
       - Actuators:
           - Working with actuators: user-guide/actuators/working-with-actuators.md
           - Actuator Guides:

@@ -23,7 +23,7 @@ regularly as the project evolves.
 
 ## 📆 Milestones
 
-### **July 2026**: Version 2.0.0
+### **July 2026**: Version 2.0.0 (Released) 
 
 In this release we are making a number of breaking changes in order to address
 known issues we've encountered since 1.0 and provide a stable platform
@@ -41,7 +41,7 @@ known issues we've encountered since 1.0 and provide a stable platform
     life-cycle and identify versioning related issues_
   - _Track plugin versions used in resources_
 
-### **August/September 2026**: Version 2.1.0
+### **August 2026**: Version 2.1.0
 
 As we use AI agents to drive research via ado more we've noticed we're creating
 far more spaces, operations etc., including many failed experiments and trials
@@ -55,10 +55,15 @@ In this release we were adding some features to address these issues:
     collaborators_
   - _Associate research plans and todos with projects/contexts_
 - **Expanded operator interface** allowing operations on any resource types, in
-  any number and combination - _Allow easily package analysis scripts for a
-  project as an operator bundle that can be distributed_ - _Leverage ado
+  any number and combination 
+     - _Allow easily package analysis scripts for a
+  project as an operator bundle that can be distributed_ 
+     - _Leverage ado
   provenance and storage for the data produced by these scripts_
-- **Agent skill for project maintenance**, coupled with enhanced delete
+- **Agent skills for project maintenance**
+     - Improve ability of Agents to correctly version plugins, manage their life-cycle
+    and identify versioning related issues
+     - Improve ability of Agents to recognise and delete superseded resources, failed and test operations, unused spaces etc. 
   functionality
 
 ---

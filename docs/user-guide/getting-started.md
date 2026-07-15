@@ -76,7 +76,7 @@ drive it for you using built-in agent skills.
     ```shell
     git clone https://github.com/IBM/ado.git
     cd ado
-    uv sync --group test
+    uv sync --no-default-groups
     source .venv/bin/activate
     ```
 

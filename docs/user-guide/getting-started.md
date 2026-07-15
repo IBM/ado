@@ -9,7 +9,7 @@ new experiments or search strategies, the
 !!! question "New to ado?"
 
     Before diving in, familiarise yourself with the
-    [key concepts](../concepts/index.md) so the YAML examples and CLI commands
+    [key concepts](../concepts/core-concepts.md) so the YAML examples and CLI commands
     throughout these examples make immediate sense.
 
 ## The research loop with ado
@@ -25,7 +25,7 @@ new experiments or search strategies, the
 ## Core concepts
 
 The loop is possible thanks to these four building blocks (explore them all in
-the [concepts](../concepts/index.md) section):
+the [concepts](../concepts/core-concepts.md) section):
 
 | Concept             | Role                                                                                                                 |
 | ------------------- | -------------------------------------------------------------------------------------------------------------------- |

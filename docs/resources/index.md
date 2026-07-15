@@ -30,7 +30,7 @@ The resources are:
 ## Naming Conventions: Concepts versus Resources
 
 `ado` resources are directly related to `ado`
-[concepts](../concepts/index.md) and usually have the same name. To
+[concepts](../concepts/core-concepts.md) and usually have the same name. To
 differentiate a concept and the associated resource in the documentation we
 adopt the following conventions.
 

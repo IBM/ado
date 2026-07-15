@@ -8,7 +8,7 @@ the [User Guide](../user-guide/getting-started.md) is your starting point.
 !!! question "New to ado?"
 
     Before diving in, familiarise yourself with the
-    [key concepts](../concepts/index.md) so the plugin model and extension
+    [key concepts](../concepts/core-concepts.md) so the plugin model and extension
     points make immediate sense.
 
 ## The core development loop with ado

@@ -19,7 +19,7 @@ experiments**.
 ## At its _core_
 
 ado is built around four key concepts that power these features (explore them
-all in the [concepts](concepts/index.md) section):
+all in the [concepts](concepts/core-concepts.md) section):
 
 | Concept             | Role                                                                                                                 |
 | ------------------- | -------------------------------------------------------------------------------------------------------------------- |

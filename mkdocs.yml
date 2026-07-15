@@ -186,7 +186,7 @@ nav:
           - Exploring vLLM deployment configurations: user-guide/examples/vllm-performance-full.md
           - Benchmarking geospatial models with vLLM: user-guide/examples/vllm-performance-geospatial.md
   - Concepts:
-      - concepts/index.md
+      - The core ado concepts: concepts/core-concepts.md
       - Properties and Domains: concepts/properties-and-domains.md
       - Experiments and Actuators: concepts/actuators.md
       - Entities and Entity Spaces: concepts/entity-spaces.md

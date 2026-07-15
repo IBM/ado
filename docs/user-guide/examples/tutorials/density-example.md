@@ -6,8 +6,8 @@
 
     This walkthrough introduces the key concepts — **custom experiments**,
     **discovery spaces**, and **operations** — as we go. If you'd prefer a
-    full overview first, the [Concepts](../../../concepts/index.md) page has you
-    covered.
+    full overview first, the [Concepts](../../../concepts/core-concepts.md)
+    page has you covered.
 
 This walkthrough takes you end-to-end through the full `ado` workflow using a
 deliberately simple example — computing density from mass and volume — so you

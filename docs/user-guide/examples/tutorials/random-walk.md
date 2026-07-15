@@ -6,8 +6,8 @@
 
     This walkthrough introduces the key concepts — **sample stores**,
     **discovery spaces**, and **operations** — as we go. If you'd prefer a
-    full overview first, the [Concepts](../../../concepts/index.md) page has you
-    covered.
+    full overview first, the [Concepts](../../../concepts/core-concepts.md)
+    page has you covered.
 
 This walkthrough takes you end-to-end through a real-data `ado` workflow using
 an imported cloud benchmark dataset, so you can focus on how `ado` works with

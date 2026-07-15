@@ -24,15 +24,14 @@ new experiments or search strategies, the
 
 ## Core concepts
 
-The loop is possible thanks to these four building blocks (explore them all in
+The loop is possible thanks to these three building blocks (explore them all in
 the [concepts](../concepts/core-concepts.md) section):
 
 | Concept             | Role                                                                                                                 |
 | ------------------- | -------------------------------------------------------------------------------------------------------------------- |
 | **Discovery Space** | Defines _what_ to measure (Entity Space), _how_ to measure it (Experiments), and _where_ to store results.           |
-| **Experiments**     | Pluggable measurement functions — take entity properties as input, produce new properties as output.                 |
 | **Operation**       | Defines _which_ operator to use (e.g. Ray Tune) and _how_ to parameterise it to explore or analyse the entity space. |
-| **Sample Store**    | Stores measurements and transparently reuses prior results across Discovery Spaces and team members.                 |
+| **Sample Store**    | Stores measurements and allows transparently reusing prior results across Discovery Spaces and team members.         |
 
 ## How do you want to use ado?
 
@@ -91,6 +90,7 @@ drive it for you using built-in agent skills.
 
 ## Next steps
 
+<!-- prettier-ignore-start -->
 <!-- markdownlint-disable no-inline-html -->
 <div class="grid cards" markdown>
 
@@ -112,3 +112,5 @@ drive it for you using built-in agent skills.
 
 </div>
 <!-- markdownlint-enable no-inline-html -->
+
+<!-- prettier-ignore-end -->

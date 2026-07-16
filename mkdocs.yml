@@ -170,7 +170,7 @@ nav:
   - Examples:
       - user-guide/examples/index.md
       - Tutorials:
-          - "The basics: your first ado experiment": user-guide/examples/tutorials/density-example.md
+          - "The basics: your first ado experiment campaign": user-guide/examples/tutorials/density-example.md
           - "Beyond the basics: ado with real data": user-guide/examples/tutorials/random-walk.md
       - Search:
           - Search a space with an optimizer: user-guide/examples/best-configuration-search.md

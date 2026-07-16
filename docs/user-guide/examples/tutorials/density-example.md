@@ -1,6 +1,6 @@
 <!-- markdownlint-disable code-block-style -->
 
-# Running your first ado experiment
+# Running your first ado experiment campaign
 
 !!! question "New to `ado`?"
 

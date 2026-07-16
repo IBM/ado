@@ -27,6 +27,7 @@ from ado.core.operation.config import (
 )
 from ado.core.operation.operation import OperationOutput
 from ado.core.operation.resource import OperationResource
+from ado.core.resources import ADOResourceReference
 from ado.metastore.sqlstore import SQLStore
 from ado.modules.actuators.measurement_queue import MeasurementQueue
 from ado.modules.operators.discovery_space_manager import (
@@ -426,7 +427,10 @@ def add_operation_and_output_to_metastore(
     with contextlib.suppress(ValueError):
         metastore.addResourceWithRelationships(
             resource=operation,
-            relatedIdentifiers=[operation_resource_configuration.spaces[0]],
+            relatedIdentifiers=[
+                ref.identifier
+                for ref in operation_resource_configuration.inputs.values()
+            ],
         )
 
     add_operation_output_to_metastore(operation, output, metastore)
@@ -435,36 +439,45 @@ def add_operation_and_output_to_metastore(
 
 
 def create_operation_and_add_to_metastore(
-    discovery_space: DiscoverySpace,
+    inputs: dict[str, ADOResourceReference],
     operator_module: OperatorModuleConf | OperatorReference,
     operation_parameters: dict,
     operation_info: FunctionOperationInfo,
     metastore: SQLStore,
     operation_identifier: str | None = None,
 ) -> OperationResource:
-    """Creates an operation resource and adds it to the metastore
+    """Creates an operation resource and adds it to the metastore.
 
     This function creates an OperationResource from the provided operator module,
     parameters, and operation info, then adds it to the metastore with relationships
-    to the discovery space and any actuator configurations.
+    to the associated ado resources and any actuator configurations.
 
-    Params:
-        discovery_space: The discovery space the operation will operate on
-        operator_module: Configuration for the operator (either module or function-based)
-        operation_parameters: Dictionary of parameters for the operation
+    Args:
+        inputs: A dictionary mapping the ado resources the operation worked on to
+            the operators input parameters.
+        operator_module: Configuration for the operator (module or function-based).
+        operation_parameters: Dictionary of parameters for the operation.
         operation_info: Information about the operation including metadata and actuator
-            configuration identifiers
-        metastore: The SQL store to add the operation resource to
+            configuration identifiers.
+        metastore: The SQL store to add the operation resource to.
+
         operation_identifier: Optional pre-existing identifier for the operation resource.
-            If not provided, a new identifier will be generated
+            If not provided, a new identifier will be generated.
 
     Returns:
-        OperationResource instance that was created and added to the metastore
+        OperationResource instance that was created and added to the metastore.
     """
-
     from ado.core.operation.config import DiscoveryOperationConfiguration
     from ado.core.operation.resource import OperationProvenanceInfo
+    from ado.core.resources import CoreResourceKinds
     from ado.modules.operators.collections import provenance_for_operator
+
+    # Derive space_ids for metastore relationship linking.
+    space_ids = [
+        e.identifier
+        for e in inputs.values()
+        if e.kind == CoreResourceKinds.DISCOVERYSPACE
+    ]
 
     operation_resource_configuration = DiscoveryOperationResourceConfiguration(
         operation=DiscoveryOperationConfiguration(
@@ -473,7 +486,7 @@ def create_operation_and_add_to_metastore(
         ),
         metadata=operation_info.metadata,
         actuatorConfigurationIdentifiers=operation_info.actuatorConfigurationIdentifiers,
-        spaces=[discovery_space.resource.identifier],
+        inputs=inputs,
     )
 
     op_module = operation_resource_configuration.operation.module
@@ -494,7 +507,7 @@ def create_operation_and_add_to_metastore(
     )
 
     related_identifiers = [
-        operation_resource_configuration.spaces[0],
+        *space_ids,
         *operation_resource_configuration.actuatorConfigurationIdentifiers,
     ]
 

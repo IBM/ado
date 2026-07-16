@@ -3,13 +3,12 @@
 `ado` is a tool for systematically exploring, measuring, and analysing a space
 of entities - for example, configurations, systems and substances. It is built
 on three core concepts: **Discovery Space**, **Operation** and **Sample Store**.
-In brief, you define a Discovery Space, apply an Operation to it, and store the
-results in a Sample Store.
+In brief, you define a Discovery Space, apply an Operation to it, and the results
+are automatically store in a Sample Store.
 
 ## Discovery Space
 
-A **Discovery Space** defines how to answer the following questions: three
-questions:
+A **Discovery Space** answers the following questions: 
 
 | Question                            | Concept                                             | Description                                                                                                                                |
 | ----------------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -31,8 +30,8 @@ Discovery Space.
 Defining an Operation involves specifying the `operator` to use (the Python
 module that implements the operation) and the parameter values to set.
 
-There are two broad classes of Operation: explore operations sample and measure
-points from a Discovery Space; analysis operations process the data currently
+There are two broad classes of Operation: **explore** **operations** sample and measure
+points from a Discovery Space; **analysis** **operations** process the data currently
 collected in a Discovery Space to provide insights.
 
 You can run multiple explore operations on the same space. Each one can select
@@ -40,8 +39,8 @@ and measure new points, increasing the total amount of information available on
 entities in the space. You can always view the entities sampled by each
 Operation independently.
 
-The fact that the Discovery Space exists independently from any particular
-Operation is a central innovation of `ado`.
+The fact that a Discovery Space exists independently of any particular
+Operation on it is a central innovation of `ado`.
 
 ## Sample Store
 

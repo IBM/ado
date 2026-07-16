@@ -15,13 +15,18 @@ from ado.core.discoveryspace.config import (
     DiscoverySpaceConfiguration,
 )
 from ado.core.metadata import ConfigurationMetadata, PackageProvenance
-from ado.core.resources import CoreResourceKinds
+from ado.core.resources import (
+    ADOResourcePropertyDescriptor,
+    ADOResourceReference,
+    CoreResourceKinds,
+)
 from ado.metastore.project import ProjectContext
 from ado.modules.module import (
     ModuleConf,
     ModuleTypeEnum,
     load_module_class_or_function,
 )
+from ado.modules.operators.collections import _DEFAULT_DISCOVERY_SPACE_INPUT
 from ado.schema.measurementspace import MeasurementSpaceConfiguration
 from ado.utilities.pydantic import StrictSemVerStr, ignore_plugin_validation
 
@@ -292,6 +297,25 @@ class OperatorMetadata(pydantic.BaseModel):
                 "Python distribution that provides this operator, resolved from the "
                 "installed environment at registration time. None when the operator "
                 "module is not installed as a distribution package."
+            ),
+        ),
+    ]
+    required_resource_inputs: Annotated[
+        tuple[ADOResourcePropertyDescriptor, ...],
+        pydantic.Field(
+            default_factory=tuple,
+            description=(
+                "Ordered list describing each operator parameter who type is an ADO resource."
+                "If empty assumes that the operator has a single parameter discoverySpace of type DiscoverySpace"
+            ),
+        ),
+    ]
+    required_properties: Annotated[
+        list[str] | None,
+        pydantic.Field(
+            default=None,
+            description=(
+                "Target property identifiers this operator reads from a discovery space if any. "
             ),
         ),
     ]
@@ -569,13 +593,13 @@ class DiscoveryOperationResourceConfiguration(pydantic.BaseModel):
     actuatorConfigurationIdentifiers: Annotated[
         list[str], pydantic.Field(default_factory=list)
     ]
-    spaces: Annotated[
-        list[str],
+    inputs: Annotated[
+        dict[str, ADOResourceReference],
         pydantic.Field(
-            description="List of ids of the spaces the operation will be applied to. "
-            "Currently, only one identifier is supported.",
-            min_length=1,
-            max_length=1,
+            default_factory=dict,
+            description=(
+                "Details the resources in the metastore that will be passed as values to the given operator parameters"
+            ),
         ),
     ]
     model_config = ConfigDict(
@@ -584,6 +608,173 @@ class DiscoveryOperationResourceConfiguration(pydantic.BaseModel):
             "version": importlib.metadata.version(distribution_name="ado-core")
         },
     )
+
+    @pydantic.computed_field  # type: ignore[prop-decorator]
+    @property
+    def spaces(self) -> list[str]:
+        """Derived list of discoveryspace identifiers from ``inputs``.
+
+        Returns all input identifiers whose ``kind`` is
+        :attr:`~ado.core.resources.CoreResourceKinds.DISCOVERYSPACE`.  When
+        ``kind`` is ``None`` (e.g. during dry-run with plugin validation
+        disabled), falls back to checking the identifier prefix ``"space-"``.
+
+        Returns:
+            List of discoveryspace resource identifiers in insertion order.
+        """
+        return [
+            e.identifier
+            for e in self.inputs.values()
+            if e.kind == CoreResourceKinds.DISCOVERYSPACE
+            or (e.kind is None and e.identifier.startswith("space-"))
+        ]
+
+    @pydantic.model_validator(mode="before")
+    @classmethod
+    def upgrade_legacy_spaces(cls, data: object) -> object:
+        """Upgrade legacy ``spaces:`` YAML to the new ``inputs:`` format.
+
+        Strips the ``spaces`` key from raw input data before pydantic
+        validates it (preventing ``extra="forbid"`` errors) and converts
+        the first space identifier to an ``inputs`` entry using the
+        conventional name ``"discoverySpace"``.
+
+        Rules applied:
+
+        1. ``spaces`` present, ``inputs`` absent → convert first space to
+           ``inputs: {discoverySpace: {identifier: <id>}}``.
+        2. ``spaces`` present, ``inputs`` also present → discard ``spaces``
+           (caller is already using the new format).
+        3. ``spaces`` absent → no-op.
+
+        Args:
+            data: Raw model input data.
+
+        Returns:
+            Possibly modified data dict.
+        """
+        if not isinstance(data, dict):
+            return data
+        if "spaces" not in data:
+            return data
+        data = dict(data)
+        # We need to remove spaces as pydantic does not handle
+        # the situation of computed fields with extra=forbid
+        spaces = data.pop("spaces")
+        if "inputs" not in data and spaces:
+            data["inputs"] = {"discoverySpace": {"identifier": spaces[0]}}
+        return data
+
+    @pydantic.model_validator(mode="after")
+    def validate_inputs(self, info: pydantic.ValidationInfo) -> Self:
+        """Validate and populate ``kind`` on all input entries.
+
+        For :class:`OperatorModuleConf` and :class:`OperatorReference`
+        operators, loads the operator's ``requiredResourceInputs`` and:
+
+        * fills ``kind=None`` entries from the descriptor map,
+        * checks every entry's (explicit or filled) kind matches the
+          descriptor's declared kind, and
+        * checks all required inputs are present.
+
+        For :class:`ScriptOperatorConf` operators, which are always
+        created via :meth:`~ado.core.discoveryspace.space.DiscoverySpace.operation_context`:
+
+        * exactly one input is expected,
+        * ``kind`` must be explicitly set (never ``None``), and
+        * ``kind`` must be :attr:`~ado.core.resources.CoreResourceKinds.DISCOVERYSPACE`.
+
+        Skipped when:
+
+        * ``inputs`` is empty, or
+        * plugin validation is disabled via
+          :func:`~ado.utilities.pydantic.ignore_plugin_validation`.
+
+        Args:
+            info: Pydantic validation info carrying optional context.
+
+        Returns:
+            self after validation and kind population.
+
+        Raises:
+            ValueError: If an input name is undeclared, a kind mismatches
+                its binding, a required input is missing, or a script input
+                has a missing or wrong kind.
+        """
+        if not self.inputs:
+            return self
+        if ignore_plugin_validation(info):
+            return self
+
+        module = self.operation.module
+
+        if isinstance(module, ScriptOperatorConf):
+            # Script operators are always created via DiscoverySpace.operation_context,
+            # which provides a fully-typed ADOResourceReference (kind=DISCOVERYSPACE).
+            if len(self.inputs) > 1:
+                raise ValueError(
+                    "ScriptOperatorConf operations support exactly one input "
+                    f"(the discovery space); found: {list(self.inputs)}."
+                )
+            for name, entry in self.inputs.items():
+                if entry.kind is None:
+                    raise ValueError(
+                        f"Input '{name}' has no kind. ScriptOperatorConf "
+                        "operations must be created via "
+                        "DiscoverySpace.operation_context(), which always "
+                        "provides an explicit kind."
+                    )
+                if entry.kind != CoreResourceKinds.DISCOVERYSPACE:
+                    raise ValueError(
+                        f"Input '{name}' has kind {entry.kind.value!r}; "
+                        "ScriptOperatorConf only supports discoveryspace inputs."
+                    )
+            return self
+
+        # Load operator requiredResourceInputs (mirrors validate_and_downcast_parameters).
+        if isinstance(module, OperatorModuleConf):
+            import importlib
+
+            operator_class = getattr(
+                importlib.import_module(module.moduleName), module.moduleClass
+            )
+            operator_metadata = operator_class.operator_metadata()
+        else:  # OperatorReference (already resolved by validate_and_downcast_parameters)
+            from ado.modules.operators.collections import (
+                operator_metadata_for_reference,
+            )
+
+            operator_metadata = operator_metadata_for_reference(module)
+
+        # Use the default single-space input when the operator declares none.
+        required_resource_inputs = operator_metadata.required_resource_inputs or (
+            _DEFAULT_DISCOVERY_SPACE_INPUT,
+        )
+        input_map = {d.identifier: d.kind for d in required_resource_inputs}
+
+        for name, entry in self.inputs.items():
+            expected_kind = input_map.get(name)
+            if expected_kind is None:
+                raise ValueError(
+                    f"Input '{name}' is not declared in the operator's "
+                    "requiredResourceInputs."
+                )
+            if entry.kind is None:
+                entry.kind = expected_kind
+            elif entry.kind != expected_kind:
+                raise ValueError(
+                    f"Input '{name}' declares kind {entry.kind.value!r} but "
+                    f"the operator input expects {expected_kind.value!r}."
+                )
+
+        for d in required_resource_inputs:
+            if d.identifier not in self.inputs:
+                raise ValueError(
+                    f"Required input '{d.identifier}' (kind={d.kind.value}) "
+                    "is missing from the operation's 'inputs' field."
+                )
+
+        return self
 
     def get_actuatorconfigurations(
         self, project_context: ProjectContext
@@ -614,9 +805,7 @@ class DiscoveryOperationResourceConfiguration(pydantic.BaseModel):
     def validate_actuatorconfigurations(
         self, project_context: ProjectContext
     ) -> list[ActuatorConfiguration]:
-        """Gets and valdidates the actuator configuration resources referenced by actuatorConfigurationIdentifiers from the metastore if any
-
-        This also requires getting the configuration of the discovery space
+        """Gets and validates the actuator configuration resources referenced by actuatorConfigurationIdentifiers from the metastore if any
 
         Params:
             project_context: Information for connection to the metastore
@@ -628,7 +817,6 @@ class DiscoveryOperationResourceConfiguration(pydantic.BaseModel):
 
         Raises: ValueError if more than one ActuatorConfigurationResource references the same actuator
         """
-
         return validate_actuator_configuration_ids_against_space_ids(
             actuator_configuration_identifiers=self.actuatorConfigurationIdentifiers,
             space_identifiers=self.spaces,

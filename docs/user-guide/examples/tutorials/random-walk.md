@@ -253,6 +253,63 @@ To see results aggregated across the full space (not just this operation):
 ado show measurements space --use-latest
 ```
 
+## Exploring Further
+
+Here are a variety of commands you can try after executing the example above:
+
+### Viewing entities
+
+There are multiple ways to view the entities related to a `discoveryspace`. Try:
+
+```commandline
+ado show measurements space --use-latest
+ado show measurements space --use-latest --aggregate mean
+ado show measurements space --use-latest --include unmeasured
+ado show measurements space --use-latest --property-format target
+```
+
+Also, the following command will give you summary statistics of what has been
+measured:
+
+```commandline
+ado show stats discoveryspace --use-latest
+```
+
+> [!NOTE]
+>
+> If you want to run these commands against the most recent space in the current
+> context, use the `--use-latest` flag as above.
+
+### Resource provenance
+
+The `related` sub-command shows resource provenance:
+
+```commandline
+ado show related operation --use-latest
+```
+
+### Operation timeseries
+
+The following commands give more details of the operation timeseries:
+
+```commandline
+ado show trace operation --use-latest --unroll-entities
+ado show trace operation --use-latest
+```
+
+### Resource templates
+
+Another helpful command is `template` which will output a default example of a
+resource YAML along with an (optional) description of its fields. Try:
+
+<!-- markdownlint-disable line-length -->
+
+```commandline
+ado template operation --include-schema --operator-name random_walk --output-file random_walk_template.yaml
+```
+
+<!-- markdownlint-enable line-length -->
+
 ## Summary
 
 | Step | What you did                                            | `ado` concept           |

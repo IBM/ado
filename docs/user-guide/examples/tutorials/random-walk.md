@@ -52,7 +52,8 @@ running a workload on different cloud hardware configurations across three
 providers.
 
 In `ado`, configurations are called **entities** and are stored, together with
-measurement results, in a [**sample store**](../../../resources/sample-stores.md).
+measurement results, in a
+[**sample store**](../../../resources/sample-stores.md).
 
 The file `examples/ml-multi-cloud/ml_multicloud_sample_store_from_root.yaml`
 tells `ado` how to import the CSV:
@@ -252,11 +253,62 @@ To see results aggregated across the full space (not just this operation):
 ado show measurements space --use-latest
 ```
 
-!!! example
+## Exploring Further
 
-    Run the operation a second time. Because `ado` **memoizes** results,
-    measurements already in the sample store are reused automatically — no
-    duplicate computation.
+Here are a variety of commands you can try after executing the example above:
+
+### Viewing entities
+
+There are multiple ways to view the entities related to a `discoveryspace`. Try:
+
+```commandline
+ado show measurements space --use-latest
+ado show measurements space --use-latest --aggregate mean
+ado show measurements space --use-latest --include unmeasured
+ado show measurements space --use-latest --property-format target
+```
+
+Also, the following command will give you summary statistics of what has been
+measured:
+
+```commandline
+ado show stats discoveryspace --use-latest
+```
+
+> [!NOTE]
+>
+> If you want to run these commands against the most recent space in the current
+> context, use the `--use-latest` flag as above.
+
+### Resource provenance
+
+The `related` sub-command shows resource provenance:
+
+```commandline
+ado show related operation --use-latest
+```
+
+### Operation timeseries
+
+The following commands give more details of the operation timeseries:
+
+```commandline
+ado show trace operation --use-latest --unroll-entities
+ado show trace operation --use-latest
+```
+
+### Resource templates
+
+Another helpful command is `template` which will output a default example of a
+resource YAML along with an (optional) description of its fields. Try:
+
+<!-- markdownlint-disable line-length -->
+
+```commandline
+ado template operation --include-schema --operator-name random_walk --output-file random_walk_template.yaml
+```
+
+<!-- markdownlint-enable line-length -->
 
 ## Summary
 
@@ -279,8 +331,7 @@ ado show measurements space --use-latest
 
     ---
 
-    Use RayTune to find the best-performing cloud configuration — a natural
-    next step once the space is defined.
+    Use RayTune to perform an optimization instead of a random walk.
 
     [Search a space with an optimizer :octicons-arrow-right-24:](../best-configuration-search.md)
 

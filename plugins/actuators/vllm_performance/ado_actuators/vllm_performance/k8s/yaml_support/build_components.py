@@ -238,6 +238,8 @@ class ComponentsYaml:
             vllm_serve_args.extend(["--kv-cache-dtype", kv_cache_dtype])
         if enable_prefix_caching:
             vllm_serve_args.append("--enable-prefix-caching")
+        else:
+            vllm_serve_args.append("--no-enable-prefix-caching")
 
         # container
         container = spec["containers"][0]

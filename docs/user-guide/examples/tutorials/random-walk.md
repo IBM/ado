@@ -282,7 +282,7 @@ ado show measurements space --use-latest
     Use RayTune to find the best-performing cloud configuration — a natural
     next step once the space is defined.
 
-    [Search a space with an optimizer :octicons-arrow-right-24:](../best-configuration-search.md)
+    [Search a space with an optimizer :octicons-arrow-right-24:](../search-custom-objective.md)
 
 - :octicons-workflow-24:{ .lg .middle } **Discover important dimensions**
 

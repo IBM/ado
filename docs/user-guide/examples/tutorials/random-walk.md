@@ -52,7 +52,8 @@ running a workload on different cloud hardware configurations across three
 providers.
 
 In `ado`, configurations are called **entities** and are stored, together with
-measurement results, in a [**sample store**](../../../resources/sample-stores.md).
+measurement results, in a
+[**sample store**](../../../resources/sample-stores.md).
 
 The file `examples/ml-multi-cloud/ml_multicloud_sample_store_from_root.yaml`
 tells `ado` how to import the CSV:
@@ -273,10 +274,9 @@ ado show measurements space --use-latest
 
     ---
 
-    Use RayTune to find the best-performing cloud configuration — a natural
-    next step once the space is defined.
+    Use RayTune to find the configuration of an LLM fine-tuning workload that maximises throughput.
 
-    [Search a space with an optimizer :octicons-arrow-right-24:](../search-custom-objective.md)
+    [Search a space with an optimizer :octicons-arrow-right-24:](../best-configuration-search.md)
 
 - :octicons-workflow-24:{ .lg .middle } **Discover important dimensions**
 

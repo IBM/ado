@@ -152,18 +152,25 @@ class TestNewServerParamsInVllmArgs:
             f"--kv-cache-dtype found unexpectedly in: {args}"
         )
 
-    def test_enable_prefix_caching_in_args(self) -> None:
+    def test_enable_prefix_caching_is_true(self) -> None:
         """When enable_prefix_caching=True, --enable-prefix-caching flag should be in args."""
         args = _get_vllm_args(enable_prefix_caching=True)
         assert "--enable-prefix-caching" in args, (
             f"--enable-prefix-caching not found in: {args}"
         )
+        assert "--no-enable-prefix-caching" not in args, (
+            f"--no-enable-prefix-caching found unexpectedly in: {args}"
+        )
 
-    def test_enable_prefix_caching_false_not_in_args(self) -> None:
+    def test_enable_prefix_caching_is_false(self) -> None:
         """When enable_prefix_caching=False, --enable-prefix-caching should NOT be in args."""
         args = _get_vllm_args(enable_prefix_caching=False)
         assert "--enable-prefix-caching" not in args, (
             f"--enable-prefix-caching found unexpectedly in: {args}"
+        )
+
+        assert "--no-enable-prefix-caching" in args, (
+            f"--no-enable-prefix-caching found unexpectedly in: {args}"
         )
 
 

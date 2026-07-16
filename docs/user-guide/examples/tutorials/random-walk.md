@@ -331,7 +331,7 @@ ado template operation --include-schema --operator-name random_walk --output-fil
 
     ---
 
-    Use RayTune to find the configuration of an LLM fine-tuning workload that maximises throughput.
+    Use RayTune to perform an optimization instead of a random walk.
 
     [Search a space with an optimizer :octicons-arrow-right-24:](../best-configuration-search.md)
 

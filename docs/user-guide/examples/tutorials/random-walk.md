@@ -252,12 +252,6 @@ To see results aggregated across the full space (not just this operation):
 ado show measurements space --use-latest
 ```
 
-!!! example
-
-    Run the operation a second time. Because `ado` **memoizes** results,
-    measurements already in the sample store are reused automatically — no
-    duplicate computation.
-
 ## Summary
 
 | Step | What you did                                            | `ado` concept           |

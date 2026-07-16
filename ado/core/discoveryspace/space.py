@@ -360,7 +360,7 @@ class DiscoverySpace:
         self,
         project_context: ProjectContext,
         identifier: str | None = None,
-        sample_store: (ado.core.samplestore.base.ActiveSampleStore | None) = None,
+        sample_store: ado.core.samplestore.base.ActiveSampleStore | None = None,
         entitySpace: EntitySpaceRepresentation | None = None,
         measurementSpace: MeasurementSpace | None = None,
         properties: (
@@ -991,6 +991,7 @@ class DiscoverySpace:
             OperationResourceEventEnum,
             OperationResourceStatus,
         )
+        from ado.core.resources import ADOResourceReference, CoreResourceKinds
 
         script_module = ScriptOperatorConf(name=name, operationType=operation_type)
         extra_metadata = dict(metadata or {})
@@ -1012,7 +1013,12 @@ class DiscoverySpace:
                 parameters={},
             ),
             metadata=config_metadata,
-            spaces=[self.uri],
+            inputs={
+                "discoverySpace": ADOResourceReference(
+                    identifier=self.uri,
+                    kind=CoreResourceKinds.DISCOVERYSPACE,
+                )
+            },
         )
 
         if provenance is None:

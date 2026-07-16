@@ -13,6 +13,7 @@ from typing import Annotated
 import pydantic
 
 from ado.core.metadata import ProvenanceInfo
+from ado.schema.property import PropertyDescriptor
 from ado.utilities.pydantic import Defaultable
 
 
@@ -23,6 +24,24 @@ class CoreResourceKinds(enum.Enum):
     ACTUATORCONFIGURATION = "actuatorconfiguration"
     SAMPLESTORE = "samplestore"
     DATACONTAINER = "datacontainer"
+
+
+class ADOResourceReference(pydantic.BaseModel):
+    """A reference to a resource stored in the metastore."""
+
+    model_config = pydantic.ConfigDict(extra="forbid")
+
+    identifier: Annotated[
+        str,
+        pydantic.Field(description="Resource identifier (e.g. 'space-abc123')."),
+    ]
+    kind: Annotated[
+        CoreResourceKinds | None,
+        pydantic.Field(
+            default=None,
+            description=("Resource kind",),
+        ),
+    ] = None
 
 
 def VersionIsGreaterThan(v1: str, v2: str) -> bool:
@@ -188,3 +207,15 @@ def warn_deprecated_resource_model_in_use(
         overflow="ignore",
         crop=False,
     )
+
+
+class ADOResourcePropertyDescriptor(PropertyDescriptor):
+    """PropertyDescriptor for ADOResources.
+
+    Model declaring that a property identifier (string) has given ADOResource kind.
+    """
+
+    kind: Annotated[
+        CoreResourceKinds,
+        pydantic.Field(description="ADO resource kind"),
+    ]

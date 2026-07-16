@@ -8,6 +8,7 @@ from ado.core.discoveryspace.space import DiscoverySpace
 from ado.core.operation.config import FunctionOperationInfo
 from ado.core.operation.operation import OperationOutput
 from ado.modules.operators.collections import characterize_operation
+from trim.samplers.no_priors_parameters import NoPriorsParametersExtended
 from trim.samplers.no_priors_utils import get_source_and_target
 from trim.trim_pydantic import (
     TrimParameters,
@@ -177,9 +178,15 @@ def trim(
             moduleClass="NoPriorsSampleSelector",
             moduleName="trim.samplers.no_priors_sampler",
         )
+        no_prior_params = NoPriorsParametersExtended.model_validate(
+            params.noPriorParameters.model_dump()
+        )
+        no_prior_params.missingTargetVariables = (
+            params.missingTargetVariables.model_copy(deep=True)
+        )
+
         no_priors_sampler_config = CustomSamplerConfiguration(
-            module=no_priors_module,
-            parameters=params.noPriorParameters,
+            module=no_priors_module, parameters=no_prior_params
         )
         # Pass the full unsampled pool to random_walk so it never cuts the
         # iterator short.  The NoPriorsSampleSelector's own quota_count guard

@@ -8,7 +8,7 @@ import pydantic
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from trim.samplers.no_priors_parameters import (
-    BaseTrimSamplerParameters,
+    MissingTargetMeasurements,
     NoPriorsParameters,
 )
 
@@ -69,8 +69,19 @@ class AutoGluonArgs(BaseModel):
     ]
 
 
-class TrimParameters(BaseTrimSamplerParameters):
+class TrimParameters(BaseModel):
     model_config = ConfigDict(extra="allow")  # Allows optional extra params
+
+    missingTargetVariables: Annotated[
+        MissingTargetMeasurements,
+        Field(
+            description=(
+                "Configures how the TRIM operator handles entities that do not "
+                "produce a measurement for the target variable."
+            ),
+            default_factory=MissingTargetMeasurements,
+        ),
+    ]
 
     autoGluonArgs: Annotated[
         AutoGluonArgs,
@@ -246,19 +257,6 @@ class TrimParameters(BaseTrimSamplerParameters):
                 f"  Setting noPriorParameters.targetOutput = '{self.targetOutput}'"
             )
             self.noPriorParameters.targetOutput = self.targetOutput
-        return self
-
-    @model_validator(mode="after")
-    def propagate_missing_target_variables(self) -> "TrimParameters":
-        """Propagate the top-level missingTargetVariables into noPriorParameters.
-
-        This ensures both samplers share a single policy object configured in
-        one place (at the TrimParameters level).
-
-        Returns:
-            The validated model instance.
-        """
-        self.noPriorParameters.missingTargetVariables = self.missingTargetVariables
         return self
 
 

@@ -14,7 +14,10 @@ from trim.samplers.missing_target_utils import (
     entity_measured_target,
     record_missing_and_check_budget,
 )
-from trim.samplers.no_priors_parameters import MissingTargetMode, NoPriorsParameters
+from trim.samplers.no_priors_parameters import (
+    MissingTargetMode,
+    NoPriorsParametersExtended,
+)
 from trim.samplers.no_priors_utils import (
     get_list_of_entities_from_df_and_space,
     get_source_and_target,
@@ -83,9 +86,10 @@ class NoPriorsSampleSelector(BaseSampler):
                 else:
                     mode = self.params.missingTargetVariables.mode
                     self._missing_count = record_missing_and_check_budget(
-                        params=self.params,
+                        mtv=self.params.missingTargetVariables,
                         entity_id=last_entity.identifier,  # type: ignore[arg-type]
                         missing_count=self._missing_count,
+                        target_output=self.params.targetOutput,
                         discoverySpace=discoverySpace,
                         additional_info=(
                             f"Detected during no-priors characterization "
@@ -109,12 +113,15 @@ class NoPriorsSampleSelector(BaseSampler):
             hit, _ = entity_measured_target(
                 last_entity, discoverySpace, self.params.targetOutput
             )
-            if not hit:
+            if hit:
+                quota_count += 1
+            else:
                 mode = self.params.missingTargetVariables.mode
                 self._missing_count = record_missing_and_check_budget(
-                    params=self.params,
+                    mtv=self.params.missingTargetVariables,
                     entity_id=last_entity.identifier,  # type: ignore[arg-type]
                     missing_count=self._missing_count,
+                    target_output=self.params.targetOutput,
                     discoverySpace=discoverySpace,
                     additional_info=(
                         f"Detected during no-priors characterization "
@@ -246,9 +253,9 @@ class NoPriorsSampleSelector(BaseSampler):
 
     @classmethod
     def parameters_model(cls) -> type[BaseModel] | None:
-        return NoPriorsParameters
+        return NoPriorsParametersExtended
 
-    def __init__(self, parameters: NoPriorsParameters) -> None:
+    def __init__(self, parameters: NoPriorsParametersExtended) -> None:
         # Sampler configuration parameters.
         self.params = parameters
         # Running count of entities that did not produce a target measurement.

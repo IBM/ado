@@ -7,7 +7,7 @@ import pandas as pd
 
 from ado.core.discoveryspace.space import DiscoverySpace, Entity
 from trim.samplers.no_priors_parameters import (
-    BaseTrimSamplerParameters,
+    MissingTargetMeasurements,
     MissingTargetMode,
 )
 from trim.utils.exceptions import InsufficientDataError
@@ -127,10 +127,11 @@ def entity_row_in_source(entity: Entity, source_df: pd.DataFrame) -> pd.DataFram
 
 
 def record_missing_and_check_budget(
-    params: BaseTrimSamplerParameters,
+    mtv: MissingTargetMeasurements,
     entity_id: str,
     missing_count: int,
     discoverySpace: DiscoverySpace,
+    target_output: str,
     additional_info: str = "",
 ) -> int:
     """Record a missing-target entity and enforce the budget / mode policy.
@@ -149,13 +150,11 @@ def record_missing_and_check_budget(
       exceeds ``budget`` (if set).
 
     Args:
-        params: The sampler parameters containing the ``missingTargetVariables``
-            policy.  Must expose a ``targetOutput`` attribute (present on both
-            :class:`~trim.samplers.no_priors_parameters.NoPriorsParameters` and
-            :class:`~trim.trim_pydantic.TrimParameters`).
+        mtv: The ``missingTargetVariables`` policy.
         entity_id: Identifier of the entity that did not produce a target
             measurement.
         missing_count: Current count of missing-target entities seen so far.
+        target_output: the target output
         discoverySpace: The active discovery space (used for the error message).
         additional_info: Extra context string appended to the error message.
 
@@ -166,12 +165,10 @@ def record_missing_and_check_budget(
         InsufficientDataError: When mode is ``RaiseError`` or the budget is
             exceeded.
     """
-    mtv = params.missingTargetVariables
-
     if mtv.mode == MissingTargetMode.RaiseError:
         log_unable_to_proceed_with_iterative_modeling_and_raise_error(
             discoverySpace=discoverySpace,
-            target_output=params.targetOutput,  # type: ignore[attr-defined]
+            target_output=target_output,  # type: ignore[attr-defined]
             additional_info=additional_info,
         )
 

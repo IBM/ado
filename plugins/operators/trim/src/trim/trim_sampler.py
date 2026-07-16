@@ -121,9 +121,10 @@ def handle_missing_target_output(
     entity_id = entity.identifier  # always set after check_identifier validator
 
     missing_count = record_missing_and_check_budget(
-        params=params,
+        mtv=params.missingTargetVariables,
         entity_id=entity_id,  # type: ignore[arg-type]
         missing_count=missing_count,
+        target_output=params.targetOutput,
         discoverySpace=discoverySpace,
         additional_info=additional_info,
     )
@@ -540,14 +541,25 @@ class TrimSampleSelector(BaseSampler):
         no_target_entities = get_unmeasured_entities_in_no_priors(
             discoverySpace, self.params
         )
-        skip_set = {e.identifier for e in no_target_entities}
+
+        # Build skip_set from constitutive property value tuples rather than
+        # identifier strings: after a DB round-trip pydantic coerces int values
+        # to float (e.g. "foo.-5" → "foo.-5.0"), so identifier-string comparison
+        # silently misses every entity.
+        def _cpv_key(entity: Entity) -> frozenset:
+            return frozenset(
+                (cpv.property.identifier, cpv.value)
+                for cpv in entity.constitutive_property_values
+            )
+
+        skip_set = {_cpv_key(e) for e in no_target_entities}
         if skip_set:
             logger_trim_sampler.warning(
                 f"TrimSampleSelector: removing {len(skip_set)} pre-skipped entities "
                 f"from list_of_entities before the main loop."
             )
             list_of_entities = [
-                e for e in list_of_entities if e.identifier not in skip_set
+                e for e in list_of_entities if _cpv_key(e) not in skip_set
             ]
 
         numberEntities = len(list_of_entities)
@@ -614,12 +626,14 @@ class TrimSampleSelector(BaseSampler):
 
         last_entity = None
         one_additional_row = None
+        _yielded_count = 0
 
         # Yield the first entity unconditionally; its measurement will be checked
         # at the top of the first loop iteration after async_wrapper has refreshed
         # the discoverySpace snapshot.
 
         last_entity = list_of_entities[0]
+        _yielded_count += 1
         logger_trim_sampler.info(f"Yielding {last_entity}")
         yield list_of_entities[0:1]
 
@@ -628,7 +642,7 @@ class TrimSampleSelector(BaseSampler):
                 entity_to_dataframe_row(
                     entity=last_entity,
                     discoverySpace=discoverySpace,
-                    additional_info=f"Detected during Iterative Modeling (first entity), when the source space size is {len(self.train_df)}.",
+                    additional_info=f"Detected during Iterative Modeling (entity {_yielded_count}/{numberEntities}), when the source space size is {len(self.train_df)}.",
                     params=self.params,
                     current_source_df=self.current_source_df,
                     missing_count=self._missing_count,
@@ -638,6 +652,7 @@ class TrimSampleSelector(BaseSampler):
             if skip:
                 # Couldn't measure the last entity, try measuring this one and handle it in the next iteration
                 last_entity = entity
+                _yielded_count += 1
                 yield [entity]
                 continue
 
@@ -651,6 +666,7 @@ class TrimSampleSelector(BaseSampler):
 
             # Haven't gathered enough points yet, yield the entity and handle it in the next iteration
             last_entity = entity
+            _yielded_count += 1
             yield [entity]
 
         # If we got here, this means that we yielded the very last Entity and need to handle it
@@ -871,16 +887,19 @@ class TrimSampleSelector(BaseSampler):
             discoverySpace, self.params.targetOutput
         )
 
-        # In InjectDefaultValue mode inject synthetic default rows for any entities
-        # from the no-priors phase that produced no target measurement.  This must
-        # happen before the minPoints check so those rows count towards the budget.
+        # Fetch entities that no-priors already determined cannot produce a target
+        # measurement.  How we handle them depends on the mode.
+        no_target_entities = get_unmeasured_entities_in_no_priors(
+            discoverySpace, self.params
+        )
+
         if (
             self.params.missingTargetVariables.mode
             == MissingTargetMode.InjectDefaultValue
         ):
-            no_target_entities = get_unmeasured_entities_in_no_priors(
-                discoverySpace, self.params
-            )
+            # InjectDefaultValue: add synthetic rows to source_df so they count
+            # towards the budget and influence the model.  This must happen before
+            # the minPoints check so those rows count towards the budget.
             if no_target_entities:
                 default_val = self.params.missingTargetVariables.defaultValue
                 default_rows = [
@@ -891,6 +910,38 @@ class TrimSampleSelector(BaseSampler):
                 logger_trim_sampler.info(
                     f"Injected {len(default_rows)} default rows into source_df "
                     f"(defaultValue={default_val})."
+                )
+        elif (
+            self.params.missingTargetVariables.mode == MissingTargetMode.Skip
+            and no_target_entities
+        ):
+            # Skip mode: remove the known-unmeasurable entities from target_df
+            # before the van der Corput ordering so they are never yielded by the
+            # iterative phase.  _core_iterator_logic also filters via skip_set,
+            # but doing it here means they don't influence the ordering or consume
+            # iteration budget at all.
+            #
+            # Cannot use identifier strings: after a DB round-trip pydantic
+            # coerces int values to float, turning "foo.-5" → "foo.-5.0" so
+            # isin() would silently match nothing.  Use entity_hit_in_source()
+            # which matches on constitutive property values instead.
+            before = len(target_df)
+            keep_mask = ~pd.Series(
+                [
+                    any(
+                        entity_hit_in_source(e, row.to_frame().T.reset_index(drop=True))
+                        for e in no_target_entities
+                    )
+                    for _, row in target_df.iterrows()
+                ],
+                index=target_df.index,
+            )
+            target_df = target_df[keep_mask]
+            removed = before - len(target_df)
+            if removed:
+                logger_trim_sampler.info(
+                    f"Removed {removed} no-priors-failed entities from target_df "
+                    f"before ordering (Skip mode)."
                 )
 
         if logger_trim_sampler.isEnabledFor(logging.DEBUG):

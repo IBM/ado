@@ -124,28 +124,6 @@ class MissingTargetMeasurements(BaseModel):
         return self
 
 
-class BaseTrimSamplerParameters(BaseModel):
-    """Base parameter class for the TRIM iterative sampler (TrimParameters only).
-
-    Contains ``missingTargetVariables`` as a proper schema field so it appears in
-    the TRIM operator's configuration schema and is round-tripped through
-    ``model_dump`` / ``model_validate``.
-    """
-
-    model_config = ConfigDict(extra="forbid")
-
-    missingTargetVariables: Annotated[
-        MissingTargetMeasurements,
-        Field(
-            description=(
-                "Configures how the TRIM operator handles entities that do not "
-                "produce a measurement for the target variable."
-            ),
-            default_factory=MissingTargetMeasurements,
-        ),
-    ]
-
-
 class NoPriorsParameters(BaseModel):
     """
     Parameters for sampling high-dimensional spaces without prior model structure.
@@ -157,28 +135,9 @@ class NoPriorsParameters(BaseModel):
         - 'random': selects random points from the beginning
         - 'clhs': refer to concatenated_latin_hypercube_sampling
         - 'sobol': sobol sampling
-
-    ``missingTargetVariables`` is set by the
-    ``TrimParameters.propagate_missing_target_variables`` model validator so that
-    the no-priors sampler shares the same policy as the TRIM iterative sampler
-    without exposing a redundant user-facing configuration knob.  It is excluded
-    from ``model_dump()`` so it does not appear in the operation YAML, but it
-    **is** populated by ``model_validate`` so it survives the serialisation
-    round-trip that ``random_walk`` performs before constructing the sampler.
     """
 
     model_config = ConfigDict(extra="forbid")
-
-    missingTargetVariables: Annotated[
-        MissingTargetMeasurements,
-        Field(
-            default_factory=MissingTargetMeasurements,
-            description=(
-                "Missing-target policy propagated from TrimParameters. "
-                "Not user-configurable here; set via TrimParameters.missingTargetVariables."
-            ),
-        ),
-    ]
 
     targetOutput: Annotated[
         str,
@@ -219,3 +178,16 @@ class NoPriorsParameters(BaseModel):
             ),
         ),
     ] = "clhs"
+
+
+class NoPriorsParametersExtended(NoPriorsParameters):
+    missingTargetVariables: Annotated[
+        MissingTargetMeasurements,
+        Field(
+            default_factory=MissingTargetMeasurements,
+            description=(
+                "Missing-target policy propagated from TrimParameters. "
+                "Not user-configurable here; set via TrimParameters.missingTargetVariables."
+            ),
+        ),
+    ]

@@ -773,6 +773,32 @@ def test_entities_by_identifiers_mixed_existing_nonexistent(
     assert {e.identifier for e in result} == existing_ids
 
 
+def test_entities_by_identifiers_partial_cache_reuse(
+    ml_multi_cloud_sample_store: SQLSampleStore,
+) -> None:
+    """Test entities_with_identifiers reuses cached entities and only queries the rest."""
+    all_entities = ml_multi_cloud_sample_store.entities
+    assert len(all_entities) >= 3
+
+    # Pre-warm the cache with only the first entity
+    first_id = all_entities[0].identifier
+    second_id = all_entities[1].identifier
+    # Access entities property to populate _entities cache
+    assert ml_multi_cloud_sample_store._entities is not None
+
+    # Remove all but the first entity from the cache to simulate partial warm cache
+    cached_only = {first_id: ml_multi_cloud_sample_store._entities[first_id]}
+    ml_multi_cloud_sample_store._entities = cached_only
+
+    # Now request both the cached entity and an uncached one
+    result = ml_multi_cloud_sample_store.entities_with_identifiers(
+        {first_id, second_id}
+    )
+
+    assert len(result) == 2
+    assert {e.identifier for e in result} == {first_id, second_id}
+
+
 def test_entities_by_identifiers_with_measurement_results(
     random_identifier: Callable[[], str],
     simulate_ml_multi_cloud_random_walk_operation: Callable[

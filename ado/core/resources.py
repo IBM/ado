@@ -130,6 +130,12 @@ class ADOResource(pydantic.BaseModel):
 
     model_config = pydantic.ConfigDict(extra="forbid")
 
+    @property
+    def reference(self) -> ADOResourceReference:
+        """Return a metastore reference for this resource."""
+
+        return ADOResourceReference(identifier=self.identifier, kind=self.kind)
+
     @pydantic.model_validator(mode="before")
     @classmethod
     def check_if_ado_provenance_should_be_populated(

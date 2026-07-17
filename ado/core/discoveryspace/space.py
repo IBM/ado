@@ -24,7 +24,7 @@ from ado.core.discoveryspace.config import (
 )
 from ado.core.operation.config import DiscoveryOperationEnum
 from ado.core.operation.resource import OperationResource
-from ado.core.resources import CoreResourceKinds
+from ado.core.resources import ADOResourceReference, CoreResourceKinds
 from ado.metastore.project import ProjectContext
 from ado.modules.actuators.catalog import ActuatorCatalogExtension
 from ado.modules.actuators.registry import ActuatorRegistry
@@ -487,6 +487,15 @@ class DiscoverySpace:
         """Return an identifier for the space"""
 
         return self._identifier
+
+    @property
+    def reference(self) -> ADOResourceReference:
+        """Return a metastore reference for this discovery space."""
+
+        return ADOResourceReference(
+            identifier=self.uri,
+            kind=CoreResourceKinds.DISCOVERYSPACE,
+        )
 
     @property
     def project_context(self) -> ProjectContext:
@@ -991,7 +1000,6 @@ class DiscoverySpace:
             OperationResourceEventEnum,
             OperationResourceStatus,
         )
-        from ado.core.resources import ADOResourceReference, CoreResourceKinds
 
         script_module = ScriptOperatorConf(name=name, operationType=operation_type)
         extra_metadata = dict(metadata or {})
@@ -1013,12 +1021,7 @@ class DiscoverySpace:
                 parameters={},
             ),
             metadata=config_metadata,
-            inputs={
-                "discoverySpace": ADOResourceReference(
-                    identifier=self.uri,
-                    kind=CoreResourceKinds.DISCOVERYSPACE,
-                )
-            },
+            inputs={"discoverySpace": self.reference},
         )
 
         if provenance is None:

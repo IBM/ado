@@ -3,6 +3,7 @@
 
 import abc
 import typing
+import warnings
 from abc import ABC
 from typing import Annotated, Literal
 
@@ -491,8 +492,25 @@ class ActiveSampleStore(SampleStore, ABC):
         """Commits all the changes to the source"""
 
     @abc.abstractmethod
-    def entities_in_operation(self, operation_id: str) -> list[Entity]:
-        """Returns list of entities in the given operation."""
+    def entities_in_operations(self, operation_ids: str | set[str]) -> list[Entity]:
+        """Returns list of entities in the given operation(s).
+
+        Args:
+            operation_ids: A single operation identifier or a set of operation
+                identifiers to fetch entities for.
+
+        Returns:
+            List of Entity objects that were sampled in the specified operation(s).
+        """
+
+    def entities_in_operation(self, operation_ids: str | set[str]) -> list[Entity]:
+        """Deprecated: use entities_in_operations instead."""
+        warnings.warn(
+            "entities_in_operation is deprecated, use entities_in_operations instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.entities_in_operations(operation_ids)
 
     @abc.abstractmethod
     def operation_entity_statistics(self, operation_id: str) -> dict[str, int]:

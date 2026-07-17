@@ -446,6 +446,9 @@ class DiscoverySpace:
         # Pre-populated by from_operation_id to avoid a redundant DB round-trip.
         self._verified_operation_ids: set[str] = set()
 
+        # Cache for matchingEntities(). None means the cache is cold.
+        self._matching_entities_cache: list[Entity] | None = None
+
     def __rich__(self) -> "RenderableType":
         """Rich console representation of the DiscoverySpace."""
         import rich.box
@@ -631,24 +634,43 @@ class DiscoverySpace:
         # However if an entity was incorrectly sampled during an operation, due to a bug say, this will correct for it
         return [e for e in sampled_entities if self.entitySpace.isEntityInSpace(e)]
 
-    def matchingEntities(self) -> list[Entity]:
+    def matchingEntities(self, refresh: bool = False) -> list[Entity]:
         """Returns all entities in the sample store that match the space
+
+        The result is cached on the instance after the first call. Subsequent
+        calls return the cached list directly, bypassing the sample-store
+        entity fetch and any entity-space filtering.
+
+        The cache is a best-effort snapshot: it is **not** automatically
+        invalidated when the underlying sample store changes. Pass
+        ``refresh=True`` to force a re-fetch and update the cache.
 
         Note: They do not have to have any measurements from the measurement space
 
         If
         - ExplicitEntitySpace defined -> filter on the space
         - No space defined -> implies the space entities == all entities in the source.
+
+        Args:
+            refresh: When ``True``, ignore any cached value and re-query the
+                database. The cache is updated with the fresh result.
+
+        Returns:
+            The list of entities in the sample store that match this space.
         """
+        if self._matching_entities_cache is not None and not refresh:
+            return self._matching_entities_cache
 
         # Get all entities in the store
         all_entities = self.sample_store.entities
         if self.entitySpace is not None:
-            entities = [e for e in all_entities if self.entitySpace.isEntityInSpace(e)]
+            self._matching_entities_cache = [
+                e for e in all_entities if self.entitySpace.isEntityInSpace(e)
+            ]
         else:
-            entities = all_entities
+            self._matching_entities_cache = all_entities
 
-        return entities
+        return self._matching_entities_cache
 
     def addMeasurement(self, request: MeasurementRequest) -> None:
         """Adds a measurement on an entity to the space

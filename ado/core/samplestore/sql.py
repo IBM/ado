@@ -6,6 +6,7 @@ import json
 import logging
 import typing
 import uuid
+import warnings
 from typing import TYPE_CHECKING, Annotated, Literal
 
 import pydantic
@@ -822,7 +823,7 @@ class SQLSampleStore(ActiveSampleStore):
 
         return list(entities_dict.values())
 
-    def entities_in_operation(self, operation_ids: str | set[str]) -> list[Entity]:
+    def entities_in_operations(self, operation_ids: str | set[str]) -> list[Entity]:
         """Get entities directly from one or more operations in one query.
 
         This method fetches entities from one or more operations in a single
@@ -908,6 +909,15 @@ class SQLSampleStore(ActiveSampleStore):
                 )
 
         return list(entities_dict.values())
+
+    def entities_in_operation(self, operation_ids: str | set[str]) -> list[Entity]:
+        """Deprecated: use entities_in_operations instead."""
+        warnings.warn(
+            "entities_in_operation is deprecated, use entities_in_operations instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.entities_in_operations(operation_ids)
 
     @property
     def numberOfEntities(self) -> int:
@@ -2128,7 +2138,7 @@ class SQLSampleStore(ActiveSampleStore):
             for e in cur
         ]
 
-    def entity_identifiers_in_operation(
+    def entity_identifiers_in_operations(
         self, operation_ids: str | set[str]
     ) -> set[str]:
         """Get the set of entity identifiers sampled in one or more operations.
@@ -2166,6 +2176,17 @@ class SQLSampleStore(ActiveSampleStore):
             raise SystemError(f"{msg}. Error: {error}") from error
 
         return {ident[0] for ident in cur}
+
+    def entity_identifiers_in_operation(
+        self, operation_ids: str | set[str]
+    ) -> set[str]:
+        """Deprecated: use entity_identifiers_in_operations instead."""
+        warnings.warn(
+            "entity_identifiers_in_operation is deprecated, use entity_identifiers_in_operations instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.entity_identifiers_in_operations(operation_ids)
 
     def complete_measurement_request_with_results_timeseries(
         self,

@@ -5,6 +5,7 @@ import contextlib
 import logging
 import os
 import typing
+import warnings
 from collections.abc import Callable, Iterator
 from functools import wraps
 from typing import Any
@@ -623,7 +624,7 @@ class DiscoverySpace:
         if not operation_ids:
             return []
 
-        sampled_entities = self.sample_store.entities_in_operation(operation_ids)
+        sampled_entities = self.sample_store.entities_in_operations(operation_ids)
 
         # TODO: Consider removing isEntitySpace check
         # The additional check of isEntityInSpace should not be required if things are working correctly
@@ -1051,12 +1052,25 @@ class DiscoverySpace:
         )
 
     @_perform_preflight_checks_for_sample_store_methods
+    def entity_identifiers_in_operations(
+        self, operation_ids: str | set[str]
+    ) -> set[str]:
+        """Return entity identifiers sampled in the given operation(s)."""
+        return self.sample_store.entity_identifiers_in_operations(
+            operation_ids=operation_ids
+        )
+
+    @_perform_preflight_checks_for_sample_store_methods
     def entity_identifiers_in_operation(
         self, operation_ids: str | set[str]
     ) -> set[str]:
-        return self.sample_store.entity_identifiers_in_operation(
-            operation_ids=operation_ids
+        """Deprecated: use entity_identifiers_in_operations instead."""
+        warnings.warn(
+            "entity_identifiers_in_operation is deprecated, use entity_identifiers_in_operations instead.",
+            DeprecationWarning,
+            stacklevel=2,
         )
+        return self.entity_identifiers_in_operations(operation_ids)
 
     @_perform_preflight_checks_for_sample_store_methods
     def experiments_in_operation(self, operation_id: str) -> list[Experiment]:

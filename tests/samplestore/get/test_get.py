@@ -555,7 +555,7 @@ def test_experiments_in_operation(
     )
 
 
-def test_entity_identifiers_in_operation(
+def test_entity_identifiers_in_operations(
     random_identifier: Callable[[], str],
     simulate_ml_multi_cloud_random_walk_operation: Callable[
         [int, int, int, str | None],
@@ -581,7 +581,7 @@ def test_entity_identifiers_in_operation(
     for r in requests:
         entity_ids = entity_ids.union({e.identifier for e in r.entities})
 
-    retrieved_entity_ids = sample_store.entity_identifiers_in_operation(
+    retrieved_entity_ids = sample_store.entity_identifiers_in_operations(
         operation_ids=operation_id
     )
     assert len(entity_ids) == len(retrieved_entity_ids)
@@ -812,13 +812,13 @@ def test_entities_by_identifiers_with_measurement_results(
         assert len(entity.measurement_results) > 0
 
 
-def test_entities_in_operation_empty_operation(
+def test_entities_in_operations_empty_operation(
     random_identifier: Callable[[], str],
     ml_multi_cloud_sample_store: SQLSampleStore,
     valid_ado_project_context: ProjectContext,
     ml_multi_cloud_operation_configuration: "DiscoveryOperationResourceConfiguration",
 ) -> None:
-    """Test entities_in_operation with operation that has no entities."""
+    """Test entities_in_operations with operation that has no entities."""
     from ado.core import OperationResource
     from ado.core.operation.config import DiscoveryOperationEnum
     from ado.metastore.sqlstore import SQLResourceStore
@@ -837,20 +837,20 @@ def test_entities_in_operation_empty_operation(
     )
 
     # Should return empty list, not raise an error
-    result = ml_multi_cloud_sample_store.entities_in_operation(
+    result = ml_multi_cloud_sample_store.entities_in_operations(
         operation_ids=operation_id
     )
     assert result == []
 
 
-def test_entities_in_operation_single_operation(
+def test_entities_in_operations_single_operation(
     random_identifier: Callable[[], str],
     simulate_ml_multi_cloud_random_walk_operation: Callable[
         [int, int, int, str | None],
         tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
     ],
 ) -> None:
-    """Test entities_in_operation returns correct entities for a single operation."""
+    """Test entities_in_operations returns correct entities for a single operation."""
     number_entities = 5
     number_requests = 3
     measurements_per_result = 2
@@ -870,8 +870,8 @@ def test_entities_in_operation_single_operation(
     for r in requests:
         expected_entity_ids.update({e.identifier for e in r.entities})
 
-    # Fetch entities using entities_in_operation
-    retrieved_entities = sample_store.entities_in_operation(operation_ids=operation_id)
+    # Fetch entities using entities_in_operations
+    retrieved_entities = sample_store.entities_in_operations(operation_ids=operation_id)
 
     # Should get all entities from the operation
     retrieved_entity_ids = {e.identifier for e in retrieved_entities}
@@ -879,14 +879,14 @@ def test_entities_in_operation_single_operation(
     assert retrieved_entity_ids == expected_entity_ids
 
 
-def test_entities_in_operation_with_measurement_results(
+def test_entities_in_operations_with_measurement_results(
     random_identifier: Callable[[], str],
     simulate_ml_multi_cloud_random_walk_operation: Callable[
         [int, int, int, str | None],
         tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
     ],
 ) -> None:
-    """Test entities_in_operation includes measurement results."""
+    """Test entities_in_operations includes measurement results."""
     number_entities = 3
     number_requests = 2
     measurements_per_result = 2
@@ -901,8 +901,8 @@ def test_entities_in_operation_with_measurement_results(
         )
     )
 
-    # Fetch entities using entities_in_operation
-    retrieved_entities = sample_store.entities_in_operation(operation_ids=operation_id)
+    # Fetch entities using entities_in_operations
+    retrieved_entities = sample_store.entities_in_operations(operation_ids=operation_id)
 
     # Verify entities have measurement results
     for entity in retrieved_entities:
@@ -913,14 +913,14 @@ def test_entities_in_operation_with_measurement_results(
             assert len(result.measurements) > 0
 
 
-def test_entities_in_operation_deduplication(
+def test_entities_in_operations_deduplication(
     random_identifier: Callable[[], str],
     simulate_ml_multi_cloud_random_walk_operation: Callable[
         [int, int, int, str | None],
         tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
     ],
 ) -> None:
-    """Test entities_in_operation deduplicates entities when same entity appears in multiple requests."""
+    """Test entities_in_operations deduplicates entities when same entity appears in multiple requests."""
     number_entities = 3
     number_requests = 5  # Multiple requests, some entities may repeat
     measurements_per_result = 2
@@ -940,8 +940,8 @@ def test_entities_in_operation_deduplication(
     for r in requests:
         all_entity_ids.update({e.identifier for e in r.entities})
 
-    # Fetch entities using entities_in_operation
-    retrieved_entities = sample_store.entities_in_operation(operation_ids=operation_id)
+    # Fetch entities using entities_in_operations
+    retrieved_entities = sample_store.entities_in_operations(operation_ids=operation_id)
 
     # Should get unique entities (no duplicates)
     retrieved_entity_ids = {e.identifier for e in retrieved_entities}
@@ -956,7 +956,7 @@ def test_entities_in_multiple_operations(
         tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
     ],
 ) -> None:
-    """Test entities_in_operation returns deduplicated entities from multiple operations."""
+    """Test entities_in_operations returns deduplicated entities from multiple operations."""
     number_entities = 3
     number_requests = 3
     measurements_per_result = 2
@@ -980,7 +980,7 @@ def test_entities_in_multiple_operations(
     for r in requests1 + requests2:
         expected_ids.update({e.identifier for e in r.entities})
 
-    retrieved_entities = sample_store.entities_in_operation(operation_ids={op1, op2})
+    retrieved_entities = sample_store.entities_in_operations(operation_ids={op1, op2})
     retrieved_ids = {e.identifier for e in retrieved_entities}
 
     # All expected entities returned, no duplicates

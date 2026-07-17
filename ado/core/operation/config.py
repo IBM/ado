@@ -26,12 +26,18 @@ from ado.modules.module import (
     ModuleTypeEnum,
     load_module_class_or_function,
 )
-from ado.modules.operators.collections import _DEFAULT_DISCOVERY_SPACE_INPUT
 from ado.schema.measurementspace import MeasurementSpaceConfiguration
 from ado.utilities.pydantic import StrictSemVerStr, ignore_plugin_validation
 
 if typing.TYPE_CHECKING:
     import ado.modules.operators.base
+
+#: Represents the default typed input parameter used for operators that work on a single discovery space.
+# i.e. a parameter `discoverySpace: DiscoverySpace`
+_DEFAULT_DISCOVERY_SPACE_INPUT_PROPERTY = ADOResourcePropertyDescriptor(
+    identifier="discoverySpace",
+    kind=CoreResourceKinds.DISCOVERYSPACE,
+)
 
 
 class DiscoveryOperationEnum(enum.Enum):
@@ -748,7 +754,7 @@ class DiscoveryOperationResourceConfiguration(pydantic.BaseModel):
 
         # Use the default single-space input when the operator declares none.
         required_resource_inputs = operator_metadata.required_resource_inputs or (
-            _DEFAULT_DISCOVERY_SPACE_INPUT,
+            _DEFAULT_DISCOVERY_SPACE_INPUT_PROPERTY,
         )
         input_map = {d.identifier: d.kind for d in required_resource_inputs}
 

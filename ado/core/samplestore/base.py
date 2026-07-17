@@ -491,8 +491,16 @@ class ActiveSampleStore(SampleStore, ABC):
         """Commits all the changes to the source"""
 
     @abc.abstractmethod
-    def entities_in_operation(self, operation_id: str) -> list[Entity]:
-        """Returns list of entities in the given operation."""
+    def entities_in_operation(self, operation_ids: str | set[str]) -> list[Entity]:
+        """Returns list of entities in the given operation(s).
+
+        Args:
+            operation_ids: A single operation identifier or a set of operation
+                identifiers to fetch entities for.
+
+        Returns:
+            List of Entity objects that were sampled in the specified operation(s).
+        """
 
     @abc.abstractmethod
     def operation_entity_statistics(self, operation_id: str) -> dict[str, int]:

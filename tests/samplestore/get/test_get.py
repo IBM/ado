@@ -582,7 +582,7 @@ def test_entity_identifiers_in_operation(
         entity_ids = entity_ids.union({e.identifier for e in r.entities})
 
     retrieved_entity_ids = sample_store.entity_identifiers_in_operation(
-        operation_id=operation_id
+        operation_ids=operation_id
     )
     assert len(entity_ids) == len(retrieved_entity_ids)
     assert len(entity_ids.intersection(retrieved_entity_ids)) == len(entity_ids)
@@ -838,7 +838,7 @@ def test_entities_in_operation_empty_operation(
 
     # Should return empty list, not raise an error
     result = ml_multi_cloud_sample_store.entities_in_operation(
-        operation_id=operation_id
+        operation_ids=operation_id
     )
     assert result == []
 
@@ -871,7 +871,7 @@ def test_entities_in_operation_single_operation(
         expected_entity_ids.update({e.identifier for e in r.entities})
 
     # Fetch entities using entities_in_operation
-    retrieved_entities = sample_store.entities_in_operation(operation_id=operation_id)
+    retrieved_entities = sample_store.entities_in_operation(operation_ids=operation_id)
 
     # Should get all entities from the operation
     retrieved_entity_ids = {e.identifier for e in retrieved_entities}
@@ -902,7 +902,7 @@ def test_entities_in_operation_with_measurement_results(
     )
 
     # Fetch entities using entities_in_operation
-    retrieved_entities = sample_store.entities_in_operation(operation_id=operation_id)
+    retrieved_entities = sample_store.entities_in_operation(operation_ids=operation_id)
 
     # Verify entities have measurement results
     for entity in retrieved_entities:
@@ -941,12 +941,51 @@ def test_entities_in_operation_deduplication(
         all_entity_ids.update({e.identifier for e in r.entities})
 
     # Fetch entities using entities_in_operation
-    retrieved_entities = sample_store.entities_in_operation(operation_id=operation_id)
+    retrieved_entities = sample_store.entities_in_operation(operation_ids=operation_id)
 
     # Should get unique entities (no duplicates)
     retrieved_entity_ids = {e.identifier for e in retrieved_entities}
     assert len(retrieved_entity_ids) == len(retrieved_entities)  # No duplicates
     assert retrieved_entity_ids == all_entity_ids
+
+
+def test_entities_in_multiple_operations(
+    random_identifier: Callable[[], str],
+    simulate_ml_multi_cloud_random_walk_operation: Callable[
+        [int, int, int, str | None],
+        tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
+    ],
+) -> None:
+    """Test entities_in_operation returns deduplicated entities from multiple operations."""
+    number_entities = 3
+    number_requests = 3
+    measurements_per_result = 2
+    op1 = random_identifier()
+    op2 = random_identifier()
+
+    sample_store, requests1, _ = simulate_ml_multi_cloud_random_walk_operation(
+        number_entities=number_entities,
+        number_requests=number_requests,
+        measurements_per_result=measurements_per_result,
+        operation_id=op1,
+    )
+    _, requests2, _ = simulate_ml_multi_cloud_random_walk_operation(
+        number_entities=number_entities,
+        number_requests=number_requests,
+        measurements_per_result=measurements_per_result,
+        operation_id=op2,
+    )
+
+    expected_ids = set()
+    for r in requests1 + requests2:
+        expected_ids.update({e.identifier for e in r.entities})
+
+    retrieved_entities = sample_store.entities_in_operation(operation_ids={op1, op2})
+    retrieved_ids = {e.identifier for e in retrieved_entities}
+
+    # All expected entities returned, no duplicates
+    assert retrieved_ids == expected_ids
+    assert len(retrieved_entities) == len(retrieved_ids)
 
 
 @requires_sqlite_3_38

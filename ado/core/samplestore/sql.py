@@ -822,19 +822,23 @@ class SQLSampleStore(ActiveSampleStore):
 
         return list(entities_dict.values())
 
-    def entities_in_operation(self, operation_id: str) -> list[Entity]:
-        """Get entities directly from a single operation in one query.
+    def entities_in_operation(self, operation_ids: str | set[str]) -> list[Entity]:
+        """Get entities directly from one or more operations in one query.
 
-        This method is optimized for the common case of fetching entities from
-        a single operation. It performs the entire operation in a single database
-        query, avoiding the need to first fetch entity IDs and then fetch entities.
+        This method fetches entities from one or more operations in a single
+        database query, avoiding the need to first fetch entity IDs and then
+        fetch entities.
 
         Args:
-            operation_id: The operation identifier to fetch entities for
+            operation_ids: A single operation identifier or a set of operation
+                identifiers to fetch entities for.
 
         Returns:
-            List of Entity objects that were sampled in the specified operation
+            List of Entity objects that were sampled in the specified operation(s)
         """
+        if isinstance(operation_ids, str):
+            operation_ids = {operation_ids}
+
         query = sqlalchemy.text(f"""
             SELECT
                 ent.identifier,
@@ -844,16 +848,18 @@ class SQLSampleStore(ActiveSampleStore):
             JOIN {self._tablename}_measurement_results res ON res.entity_id = ent.identifier
             JOIN {self._tablename}_measurement_requests_results reqres ON reqres.result_uid = res.uid
             JOIN {self._tablename}_measurement_requests req ON reqres.request_uid = req.uid
-            WHERE req.operation_id = :operation_id
+            WHERE req.operation_id IN :operation_ids
         """).bindparams(  # noqa: S608 - self._tablename is not untrusted
-            operation_id=operation_id
+            sqlalchemy.bindparam(
+                "operation_ids", value=list(operation_ids), expanding=True
+            )
         )
 
         try:
             with self.engine.begin() as connectable:
                 cur = connectable.execute(query)
         except SQLAlchemyError as error:
-            msg = f"Unable to fetch entities for operation {operation_id} from sample store {self._tablename}"
+            msg = f"Unable to fetch entities for operations {operation_ids} from sample store {self._tablename}"
             self.log.critical(f"{msg}. Error: {error}")
             raise SystemError(f"{msg}. Error: {error}") from error
 
@@ -2122,7 +2128,21 @@ class SQLSampleStore(ActiveSampleStore):
             for e in cur
         ]
 
-    def entity_identifiers_in_operation(self, operation_id: str) -> set[str]:
+    def entity_identifiers_in_operation(
+        self, operation_ids: str | set[str]
+    ) -> set[str]:
+        """Get the set of entity identifiers sampled in one or more operations.
+
+        Args:
+            operation_ids: A single operation identifier or a set of operation
+                identifiers to look up entity identifiers for.
+
+        Returns:
+            Set of entity identifier strings across all specified operations.
+        """
+        if isinstance(operation_ids, str):
+            operation_ids = {operation_ids}
+
         try:
             with self.engine.begin() as connectable:
                 query = sqlalchemy.text(f"""
@@ -2130,16 +2150,18 @@ class SQLSampleStore(ActiveSampleStore):
                     FROM (
                         SELECT *
                         FROM {self._tablename}_measurement_requests
-                        WHERE operation_id = :operation_id
+                        WHERE operation_id IN :operation_ids
                     ) req
                     JOIN {self._tablename}_measurement_requests_results reqres ON reqres.request_uid = req.uid
                     JOIN {self._tablename}_measurement_results res ON reqres.result_uid = res.uid
                     """).bindparams(  # noqa: S608 - self._tablename is not untrusted
-                    operation_id=operation_id
+                    sqlalchemy.bindparam(
+                        "operation_ids", value=list(operation_ids), expanding=True
+                    )
                 )
                 cur = connectable.execute(query)
         except SQLAlchemyError as error:
-            msg = f"Unable to get the entity ids for operation {operation_id}"
+            msg = f"Unable to get the entity ids for operations {operation_ids}"
             self.log.critical(f"{msg}. Error: {error}")
             raise SystemError(f"{msg}. Error: {error}") from error
 

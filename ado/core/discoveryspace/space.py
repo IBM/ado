@@ -446,6 +446,9 @@ class DiscoverySpace:
         # Pre-populated by from_operation_id to avoid a redundant DB round-trip.
         self._verified_operation_ids: set[str] = set()
 
+        # Cache for sampledEntities(). None means the cache is cold.
+        self._sampled_entities_cache: list[Entity] | None = None
+
     def __rich__(self) -> "RenderableType":
         """Rich console representation of the DiscoverySpace."""
         import rich.box
@@ -616,20 +619,38 @@ class DiscoverySpace:
                 f"Unable to store space {self._identifier} as no metadata storage provided"
             )
 
-    def sampledEntities(self) -> list[Entity]:
-        """Returns the entities sampled so far in the space"""
+    def sampledEntities(self, refresh: bool = False) -> list[Entity]:
+        """Returns the entities sampled so far in the space.
+
+        The result is cached on the instance after the first call. Subsequent
+        calls return the cached list directly, bypassing both the metastore
+        query for operation IDs and the sample-store entity fetch.
+
+        The cache is a best-effort snapshot: it is **not** automatically
+        invalidated when new operations are added to this space (including
+        writes from other processes). Pass ``refresh=True`` to force a
+        re-fetch and update the cache.
+
+        Args:
+            refresh: When ``True``, ignore any cached value and re-query the
+                database. The cache is updated with the fresh result.
+
+        Returns:
+            The list of entities sampled so far in this space.
+        """
+        if self._sampled_entities_cache is not None and not refresh:
+            return self._sampled_entities_cache
 
         operation_ids = self.operations
 
         if not operation_ids:
-            return []
+            self._sampled_entities_cache = []
+            return self._sampled_entities_cache
 
-        sampled_entities = self.sample_store.entities_in_operations(operation_ids)
-
-        # TODO: Consider removing isEntitySpace check
-        # The additional check of isEntityInSpace should not be required if things are working correctly
-        # However if an entity was incorrectly sampled during an operation, due to a bug say, this will correct for it
-        return [e for e in sampled_entities if self.entitySpace.isEntityInSpace(e)]
+        self._sampled_entities_cache = self.sample_store.entities_in_operations(
+            operation_ids
+        )
+        return self._sampled_entities_cache
 
     def matchingEntities(self) -> list[Entity]:
         """Returns all entities in the sample store that match the space

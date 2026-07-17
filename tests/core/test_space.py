@@ -374,7 +374,17 @@ def test_from_configuration_load_experiment_catalog_false_does_not_reregister(
 
 def test_sampled_entities(ml_multi_cloud_space: DiscoverySpace) -> None:
 
-    assert (len(ml_multi_cloud_space.sampledEntities())) == 0
+    result1 = ml_multi_cloud_space.sampledEntities()
+    assert len(result1) == 0
+
+    # Second call should return the same cached object (no DB round-trip).
+    result2 = ml_multi_cloud_space.sampledEntities()
+    assert result1 is result2
+
+    # refresh=True must re-fetch and return a new list object.
+    result3 = ml_multi_cloud_space.sampledEntities(refresh=True)
+    assert result3 is not result1
+    assert len(result3) == len(result1)
 
 
 def test_measured_entities_table(ml_multi_cloud_space: DiscoverySpace) -> None:

@@ -75,3 +75,31 @@ class ProjectContext(pydantic.BaseModel):
                 raise ValueError("Project and database names must match")
 
         return self
+
+
+#: Process-wide active project context (set by the CLI / job bootstrap).
+_active_project_context: ProjectContext | None = None
+
+
+def set_active_project_context(ctx: ProjectContext | None) -> None:
+    """Set the process-wide active project context.
+
+    The CLI calls this when an active project is known. Operator wrappers use
+    :func:`get_active_project_context` when
+    :attr:`~ado.core.operation.config.FunctionOperationInfo.projectContext` is
+    unset.
+
+    Args:
+        ctx: The active project context, or ``None`` to clear it.
+    """
+    global _active_project_context
+    _active_project_context = ctx
+
+
+def get_active_project_context() -> ProjectContext | None:
+    """Return the process-wide active project context, if any.
+
+    Returns:
+        The active :class:`ProjectContext`, or ``None`` if none has been set.
+    """
+    return _active_project_context

@@ -744,18 +744,20 @@ class SQLSampleStore(ActiveSampleStore):
             else entity_identifiers
         )
 
-        # Check cache first - if all requested entities are cached, return them
-        if self._entities:
-            cached_entities = [
-                self._entities[entity_id]
-                for entity_id in entity_ids_set
-                if entity_id in self._entities
-            ]
-            # If we got all requested entities from cache, return them
-            if len(cached_entities) == len(entity_ids_set):
-                return cached_entities
+        # Partition into cached and uncached IDs
+        cached_keys = (
+            entity_ids_set.intersection(self._entities.keys())
+            if self._entities
+            else set()
+        )
+        uncached_ids = entity_ids_set.difference(cached_keys)
+        cached_entities = [self._entities[k] for k in cached_keys]
 
-        # Query database for entities by identifiers
+        # All requested entities were already cached
+        if not uncached_ids:
+            return cached_entities
+
+        # Query database only for the uncached entities
         # Use SQLAlchemy's expanding bindparam for IN clause
         # This automatically handles the parameter expansion for the IN clause
         query = sqlalchemy.text(f"""
@@ -765,7 +767,7 @@ class SQLSampleStore(ActiveSampleStore):
             WHERE ent.identifier IN :entity_ids
         """).bindparams(  # noqa: S608 - self._tablename is not untrusted
             sqlalchemy.bindparam(
-                key="entity_ids", value=list(entity_ids_set), expanding=True
+                key="entity_ids", value=list(uncached_ids), expanding=True
             )
         )
 
@@ -821,7 +823,7 @@ class SQLSampleStore(ActiveSampleStore):
                 result=measurement_result
             )
 
-        return list(entities_dict.values())
+        return cached_entities + list(entities_dict.values())
 
     def entities_in_operations(self, operation_ids: str | set[str]) -> list[Entity]:
         """Get entities directly from one or more operations in one query.

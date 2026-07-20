@@ -12,7 +12,7 @@ from trim.samplers.no_priors_parameters import NoPriorsParametersExtended
 from trim.samplers.no_priors_utils import get_source_and_target
 from trim.trim_pydantic import (
     TrimParameters,
-)  # Importing this way works when the package is installed
+)
 from trim.utils.logging_utils import (
     log_and_save_characterization,
 )
@@ -47,9 +47,17 @@ def _resolve_target_output(
         identifier.
 
     Raises:
-        ValueError: When ``targetOutput`` is a bare target property identifier
-            that matches zero or more than one observed property in the space.
+        ValueError: When ``targetOutput`` does not match exactly 1 observed
+        property or when the discoverySpace does not contain exactly 1
+        experimentReference.
     """
+    num_exps = len(discoverySpace.measurementSpace.experimentReferences)
+    if num_exps != 1:
+        raise ValueError(
+            "The discoverySpace must contain exactly 1 experiment but it contains "
+            f"{num_exps} experiments instead."
+        )
+
     observed_properties = discoverySpace.measurementSpace.observedProperties
 
     # Already a fully-qualified observed property identifier — validate it exists.
@@ -84,8 +92,7 @@ def _resolve_target_output(
     # len(matches) > 1: ambiguous — multiple experiments produce the same target.
     candidates = sorted(op.identifier for op in matches)
     raise ValueError(
-        f"targetOutput '{params.targetOutput}' is ambiguous: multiple experiments "
-        f"in the measurement space produce this target property. "
+        f"targetOutput '{params.targetOutput}' is ambiguous. "
         f"Specify the fully-qualified observed property identifier instead. "
         f"Candidates: {candidates}"
     )

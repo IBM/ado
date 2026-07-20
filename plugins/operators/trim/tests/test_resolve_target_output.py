@@ -19,8 +19,18 @@ def _make_observed_property(experiment_id: str, target_id: str) -> SimpleNamespa
 
 
 def _make_space(*observed_properties: SimpleNamespace) -> SimpleNamespace:
+    # Derive one experiment reference stub per unique experiment id so that
+    # the experimentReferences list has the same cardinality the operator checks.
+    seen: dict[str, SimpleNamespace] = {}
+    for op in observed_properties:
+        exp_id = op.identifier.rsplit("-", 1)[0]
+        if exp_id not in seen:
+            seen[exp_id] = SimpleNamespace(experimentIdentifier=exp_id)
     return SimpleNamespace(
-        measurementSpace=SimpleNamespace(observedProperties=list(observed_properties))
+        measurementSpace=SimpleNamespace(
+            observedProperties=list(observed_properties),
+            experimentReferences=list(seen.values()),
+        )
     )
 
 
@@ -112,18 +122,9 @@ def test_ambiguous_bare_name_raises() -> None:
     space = _make_space(op1, op2)
     params = _make_params("pressure")
 
-    with pytest.raises(ValueError, match="ambiguous"):
-        _resolve_target_output(params, space)  # type: ignore[arg-type]
-
-
-def test_ambiguous_error_lists_candidates() -> None:
-    """The ambiguity ValueError lists both candidate identifiers."""
-    op1 = _make_observed_property("exp_a", "pressure")
-    op2 = _make_observed_property("exp_b", "pressure")
-    space = _make_space(op1, op2)
-    params = _make_params("pressure")
-
-    with pytest.raises(ValueError, match="exp_a-pressure"):
+    with pytest.raises(
+        ValueError, match="The discoverySpace must contain exactly 1 experiment"
+    ):
         _resolve_target_output(params, space)  # type: ignore[arg-type]
 
 

@@ -57,9 +57,18 @@ def _make_entity(identifier: str, measured: bool) -> Entity:
 
 
 def _fake_space(entities: list[Entity]) -> SimpleNamespace:
-    """Return a minimal space stub that resolves entities by identifier."""
-    by_id = {e.identifier: e for e in entities}
-    return SimpleNamespace(entity_for_point=lambda point: by_id[point])
+    """Return a minimal space stub that resolves entities by constitutive property dict."""
+
+    def _lookup(point: dict) -> Entity:
+        for e in entities:
+            if all(
+                cpv.value == point.get(cpv.property.identifier)
+                for cpv in e.constitutive_property_values
+            ):
+                return e
+        raise KeyError(f"No entity found for point {point}")
+
+    return SimpleNamespace(entity_for_point=_lookup)
 
 
 def _make_sampler(quota: int, mode: MissingTargetMode) -> NoPriorsSampleSelector:
@@ -78,7 +87,7 @@ def _run_iterator(
     """Drive _core_iterator_logic synchronously and return yielded identifiers."""
     space = _fake_space(entities)
     yielded = []
-    for batch in sampler._core_iterator_logic(space, entities):
+    for batch in sampler._core_iterator_logic(space, entities):  # type: ignore[arg-type]
         yielded.extend(e.identifier for e in batch)
     return yielded
 
@@ -130,12 +139,12 @@ def test_last_entity_hit_fills_quota_skip_mode() -> None:
 
 def test_quota_reached_mid_pool_stops_early() -> None:
     """When quota is reached before the pool is exhausted, iteration stops early."""
-    # 5 HITs in a row, quota=3 → stops after 4 yields (quota filled on check of 4th)
+    # 4 HITs in a row, quota=3 - stops after 3 yields (quota filled before check of 4th)
     entities = [_make_entity(str(i), measured=True) for i in range(10)]
     sampler = _make_sampler(quota=3, mode=MissingTargetMode.Skip)
     yielded = _run_iterator(sampler, entities)
 
-    assert len(yielded) == 4  # yields 0,1,2,3 — checks 3 at top of iter 4 → break
+    assert len(yielded) == 3
 
 
 def test_skip_mode_does_not_count_miss_toward_quota() -> None:

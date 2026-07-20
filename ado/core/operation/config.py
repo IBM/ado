@@ -73,8 +73,7 @@ class DiscoveryOperationEnum(enum.Enum):
 
 def get_actuator_configurations(
     actuator_configuration_identifiers: list[str],
-    metastore: "SQLStore | None" = None,
-    project_context: ProjectContext | None = None,
+    metastore: "SQLStore",
 ) -> list[ActuatorConfiguration]:
     """Retrieves and validates actuator configurations from the metastore for use.
 
@@ -87,7 +86,6 @@ def get_actuator_configurations(
         actuator_configuration_identifiers: List of identifiers for actuator
             configuration resources to retrieve
         metastore: Metastore to read from. When omitted, opened from *project_context*.
-        project_context: Project context used only when *metastore* is not provided.
 
     Returns:
         List of ActuatorConfiguration instances validated for use
@@ -98,14 +96,6 @@ def get_actuator_configurations(
             project_context is provided.
         ResourceDoesNotExistError: If any of the identifiers is not found in the project.
     """
-    import ado.metastore.sqlstore
-
-    if metastore is None:
-        if project_context is None:
-            raise ValueError(
-                "get_actuator_configurations requires metastore or project_context"
-            )
-        metastore = ado.metastore.sqlstore.SQLStore(project_context=project_context)
 
     actuator_configurations = [
         metastore.getResource(

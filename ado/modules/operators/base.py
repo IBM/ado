@@ -7,7 +7,8 @@ import abc
 import contextlib
 import logging
 import typing
-from typing import Protocol
+from collections.abc import Callable
+from typing import TypeAlias
 
 import ray
 import ray.exceptions
@@ -18,16 +19,17 @@ import ado.metastore.project
 import ado.modules
 import ado.modules.actuators.replay
 import ado.schema.reference
-from ado.core.discoveryspace.space import DiscoverySpace
 from ado.core.operation.config import (
+    DiscoveryOperationEnum,
     DiscoveryOperationResourceConfiguration,
     FunctionOperationInfo,
     OperatorModuleConf,
     OperatorReference,
 )
+from ado.core.operation.inputs import OPERATOR_INPUT_TYPE_FOR_KIND
 from ado.core.operation.operation import OperationOutput
 from ado.core.operation.resource import OperationResource
-from ado.core.resources import ADOResourceReference
+from ado.core.resources import ADOResourcePropertyDescriptor, ADOResourceReference
 from ado.metastore.sqlstore import SQLStore
 from ado.modules.actuators.measurement_queue import MeasurementQueue
 from ado.modules.operators.discovery_space_manager import (
@@ -46,35 +48,37 @@ if typing.TYPE_CHECKING:
 moduleLog = logging.getLogger("operation_base")
 
 
-class OperatorFunction(Protocol):
-    def __call__(
-        self,
-        discoverySpace: DiscoverySpace,
-        operationInfo: FunctionOperationInfo | None = None,
-        **kwargs: object,
-    ) -> OperationOutput: ...
+#: Callable that runs an operator after registration (nested calls / CLI).
+#:
+#: Structural convention::
+#:
+#:     (resource₁, …, resourceₙ, operationInfo=None, **parameters) -> OperationOutput
+#:
+#: Resource parameter names and types come from ``required_resource_inputs``;
+#: they are not expressible as a single Protocol for arbitrary N.
+OperatorCallable: TypeAlias = Callable[..., OperationOutput]
 
 
-def validate_operator_function_signature(fn: typing.Callable) -> None:
-    """Validate that *fn* conforms to the :class:`OperatorFunction` Protocol.
+def validate_operator_call_shape(
+    fn: typing.Callable,
+    required_resource_inputs: list[ADOResourcePropertyDescriptor],
+) -> None:
+    """Validate that *fn* matches the operator call-shape convention.
 
-    Validates the positional parameter count against the Protocol, then
-    checks that every positional parameter and the return value carry a type
-    annotation whose type matches the Protocol.  Type hints are mandatory:
-    an operator function without them cannot be verified to be correct, so
-    a ``ValueError`` is raised rather than silently skipping the check.
+    Leading positional-or-keyword parameters must be the resource input
+    identifiers (in declaration order), followed by ``operationInfo``, then
+    an optional ``**kwargs`` for operation parameters. The return type must
+    be :class:`~ado.core.operation.operation.OperationOutput`.
 
-    If ``inspect.signature`` cannot be obtained for *fn* a ``ValueError`` is
-    raised, because conformance cannot be confirmed.  A failure to inspect the
-    Protocol itself propagates as-is (it indicates a framework bug).
+    Resource *types* are checked separately by
+    :func:`validate_resource_input_types`.
 
     Args:
-        fn: The callable to validate.
+        fn: The callable to validate (user implementation or stored wrapper).
+        required_resource_inputs: Declared resource inputs for this operator.
 
     Raises:
-        ValueError: If *fn* does not conform to the Protocol, if its
-            signature cannot be inspected, or if any required type hints are
-            absent or unresolvable.
+        ValueError: If *fn* does not match the call-shape convention.
     """
     import inspect
 
@@ -82,8 +86,6 @@ def validate_operator_function_signature(fn: typing.Callable) -> None:
         "Operator functions must declare the correct types for all parameters "
         "and the return value to pass validation."
     )
-
-    proto_sig = inspect.signature(OperatorFunction.__call__)
 
     try:
         sig = inspect.signature(fn)
@@ -93,39 +95,42 @@ def validate_operator_function_signature(fn: typing.Callable) -> None:
             f"be inspected ({exc})."
         ) from exc
 
-    proto_positional = [
-        p
-        for p in proto_sig.parameters.values()
-        if p.name != "self"
-        and p.kind
-        in (
-            inspect.Parameter.POSITIONAL_OR_KEYWORD,
-            inspect.Parameter.POSITIONAL_ONLY,
+    params = list(sig.parameters.values())
+    var_keyword = next(
+        (p for p in params if p.kind == inspect.Parameter.VAR_KEYWORD),
+        None,
+    )
+    var_positional = next(
+        (p for p in params if p.kind == inspect.Parameter.VAR_POSITIONAL),
+        None,
+    )
+    if var_positional is not None:
+        raise ValueError(
+            "Operator function must not declare *args; resource inputs must be "
+            "explicit named parameters."
         )
-    ]
-    actual_positional = [
+
+    positional = [
         p
-        for p in sig.parameters.values()
+        for p in params
         if p.kind
         in (
             inspect.Parameter.POSITIONAL_OR_KEYWORD,
             inspect.Parameter.POSITIONAL_ONLY,
         )
     ]
-    if len(actual_positional) < len(proto_positional):
-        missing = [p.name for p in proto_positional[len(actual_positional) :]]
-        raise ValueError(
-            f"Operator function is missing required positional parameter(s): "
-            f"{missing!r}."
-        )
-    if len(actual_positional) > len(proto_positional):
-        extra = [p.name for p in actual_positional[len(proto_positional) :]]
-        raise ValueError(
-            f"Operator function has extra positional parameter(s) not in the "
-            f"Protocol: {extra!r}."
-        )
 
-    proto_hints = typing.get_type_hints(OperatorFunction.__call__)
+    expected_names = [d.identifier for d in required_resource_inputs] + [
+        "operationInfo"
+    ]
+    actual_names = [p.name for p in positional]
+
+    if actual_names != expected_names:
+        raise ValueError(
+            "Operator function positional parameters must be the declared "
+            f"resource inputs {[d.identifier for d in required_resource_inputs]!r} "
+            f"followed by 'operationInfo'; got {actual_names!r}."
+        )
 
     try:
         hints = typing.get_type_hints(fn)
@@ -136,7 +141,7 @@ def validate_operator_function_signature(fn: typing.Callable) -> None:
         ) from exc
 
     missing_hints: list[str] = [
-        f"parameter {p.name!r}" for p in actual_positional if p.name not in hints
+        f"parameter {name!r}" for name in expected_names if name not in hints
     ]
     if "return" not in hints:
         missing_hints.append("return type")
@@ -146,25 +151,113 @@ def validate_operator_function_signature(fn: typing.Callable) -> None:
             f"for {missing_hints}. {_HINTS_MISSING_HINT}"
         )
 
-    expected_return = proto_hints.get("return")
-    actual_return = hints["return"]
-    if expected_return is not None and actual_return != expected_return:
+    if hints["return"] != OperationOutput:
         raise ValueError(
-            f"Operator function return type must be {expected_return!r}, "
-            f"got {actual_return!r}."
+            f"Operator function return type must be {OperationOutput!r}, "
+            f"got {hints['return']!r}."
         )
 
-    for idx, (proto_param, actual_param) in enumerate(
-        zip(proto_positional, actual_positional, strict=True), start=1
-    ):
-        expected_type = proto_hints.get(proto_param.name)
-        actual_type = hints[actual_param.name]
-        if expected_type is not None and actual_type != expected_type:
+    operation_info_type = hints["operationInfo"]
+    expected_operation_info = FunctionOperationInfo | None
+    if operation_info_type != expected_operation_info:
+        raise ValueError(
+            f"Operator function parameter 'operationInfo' must be "
+            f"{expected_operation_info!r}, got {operation_info_type!r}."
+        )
+
+    if var_keyword is None:
+        # **kwargs is optional
+        pass
+
+
+def validate_resource_input_types(
+    fn: typing.Callable,
+    required_resource_inputs: list[ADOResourcePropertyDescriptor] | None,
+) -> None:
+    """Validate that *fn*'s parameter type hints match its declared resource inputs.
+
+    For each descriptor in *required_resource_inputs*, if *fn* declares an
+    explicit, resolvable type hint for a parameter named
+    ``descriptor.identifier``, that hint must equal the Python type ADO
+    resolves for ``descriptor.kind`` (see
+    :data:`ado.core.operation.inputs.OPERATOR_INPUT_TYPE_FOR_KIND`). A
+    descriptor whose identifier is not an explicit parameter of *fn* (e.g.
+    it is absorbed by a ``**kwargs`` catch-all) cannot be statically
+    checked and is skipped.
+
+    Args:
+        fn: The operator callable to validate.
+        required_resource_inputs: The resource inputs declared for *fn*.
+
+    Raises:
+        ValueError: If an explicitly-annotated parameter's type does not
+            match the type expected for its declared resource kind.
+    """
+    if not required_resource_inputs:
+        return
+
+    try:
+        hints = typing.get_type_hints(fn)
+    except Exception as exc:  # noqa: BLE001
+        raise ValueError(
+            f"Cannot validate resource input types for operator function {fn!r}: "
+            f"type hints are missing or unresolvable ({exc})."
+        ) from exc
+
+    for descriptor in required_resource_inputs:
+        if descriptor.identifier not in hints:
+            continue
+        expected_type = OPERATOR_INPUT_TYPE_FOR_KIND[descriptor.kind]
+        actual_type = hints[descriptor.identifier]
+        if actual_type != expected_type:
             raise ValueError(
-                f"Operator function parameter {actual_param.name!r} "
-                f"(position {idx}) must be {expected_type!r}, "
-                f"got {actual_type!r}."
+                f"Operator function parameter {descriptor.identifier!r} must be "
+                f"{expected_type!r} to match declared resource kind "
+                f"{descriptor.kind.value!r}, got {actual_type!r}."
             )
+
+
+def validate_operator_registration(
+    user_fn: typing.Callable,
+    required_resource_inputs: list[ADOResourcePropertyDescriptor],
+    operation_type: DiscoveryOperationEnum,
+    stored_fn: typing.Callable | None = None,
+) -> None:
+    """Run all registration-time checks for an operator callable.
+
+    Entry point used by operator decorators. Runs:
+
+    1. :func:`~ado.modules.operators.inputs.validate_resource_inputs_for_operation_type`
+       — declaration vs collection policy
+    2. :func:`validate_resource_input_types` — resource name ↔ rich type
+    3. :func:`validate_operator_call_shape` — resources then ``operationInfo``
+       then parameters
+
+    Args:
+        user_fn: The operator implementation (before or under ``functools.wraps``).
+        required_resource_inputs: Declared resource inputs.
+        operation_type: Collection the operator is registered into.
+        stored_fn: Optional stored callable (wrapper). When provided and distinct
+            from *user_fn* under unwrap, its call shape is also validated
+            (e.g. explore's generated function).
+
+    Raises:
+        ValueError: If any validation check fails.
+    """
+    import inspect
+
+    from ado.modules.operators.inputs import (
+        validate_resource_inputs_for_operation_type,
+    )
+
+    validate_resource_inputs_for_operation_type(
+        required_resource_inputs, operation_type
+    )
+    validate_resource_input_types(user_fn, required_resource_inputs)
+    validate_operator_call_shape(user_fn, required_resource_inputs)
+
+    if stored_fn is not None and inspect.unwrap(stored_fn) is not user_fn:
+        validate_operator_call_shape(stored_fn, required_resource_inputs)
 
 
 # Some operations are RayActors: These operations use Actuators and StateUpdateQueue and require Ray

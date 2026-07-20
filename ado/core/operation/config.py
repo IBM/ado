@@ -40,6 +40,16 @@ _DEFAULT_DISCOVERY_SPACE_INPUT_PROPERTY = ADOResourcePropertyDescriptor(
 )
 
 
+class GenericOperatorParameters(pydantic.BaseModel):
+    """Base class for operator parameter (configuration) models.
+
+    Operator-specific parameter classes should subclass this. Schemas are
+    closed: unknown fields are rejected (``extra="forbid"``).
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+
 class DiscoveryOperationEnum(enum.Enum):
     CHARACTERIZE = "characterize"
     EXPLORE = "explore"
@@ -267,13 +277,13 @@ class OperatorMetadata(pydantic.BaseModel):
         ),
     ] = None
     configuration_model: Annotated[
-        type[pydantic.BaseModel],
+        type[GenericOperatorParameters],
         pydantic.Field(
             description="Pydantic model class used to validate operation parameters.",
         ),
     ]
     example_configuration: Annotated[
-        pydantic.BaseModel,
+        GenericOperatorParameters,
         pydantic.Field(
             description="Default instance of the configuration model.",
         ),

@@ -2,15 +2,14 @@
 # SPDX-License-Identifier: MIT
 
 import pandas as pd
-import pydantic
 
 from ado.core.discoveryspace.space import DiscoverySpace
-from ado.core.operation.config import FunctionOperationInfo
+from ado.core.operation.config import FunctionOperationInfo, GenericOperatorParameters
 from ado.core.operation.operation import OperationOutput
 from ado.modules.operators.collections import characterize_operation
 
 
-class ProfileParameters(pydantic.BaseModel):
+class ProfileParameters(GenericOperatorParameters):
     """Parameters for the profile operator (no configurable options)."""
 
 

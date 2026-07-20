@@ -492,6 +492,7 @@ def format_ado_get_stats_for_spaces(
                         conf=space_resources[space_id].config,
                         project_context=project_context,  # type: ignore[arg-type]
                         identifier=space_id,
+                        metadata_store=sql_store,
                         sample_store=sample_store,
                         load_experiment_catalog=False,
                     )

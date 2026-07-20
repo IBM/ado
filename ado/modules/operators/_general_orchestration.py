@@ -8,28 +8,29 @@ import typing
 from ado.core.discoveryspace.space import DiscoverySpace
 from ado.core.operation.config import (
     FunctionOperationInfo,
+    GenericOperatorParameters,
     OperatorMetadata,
     get_actuator_configurations,
     validate_actuator_configurations_against_space_configuration,
 )
+from ado.core.operation.inputs import OperatorInputType
 from ado.core.operation.operation import OperationOutput
+from ado.metastore.sqlstore import SQLStore
 from ado.modules.operators._orchestrate_core import (
     _run_operation_harness,
     log_space_details,
 )
-from ado.modules.operators.base import OperatorFunction
 
 moduleLog = logging.getLogger("general_orchestration")
 
 
-def _operator_callable_for_harness(registered: OperatorFunction) -> OperatorFunction:
+def _operator_callable_for_harness(registered: typing.Callable) -> typing.Callable:
     """Resolve the callable to execute inside :func:`_run_operation_harness`.
 
-    Operators registered via ``characterize_operation`` / ``modify_operation`` /
-    ``export_operation`` store a *wrapper* in :class:`~ado.core.operation.config.OperatorMetadata`
-    that delegates to :func:`orchestrate_general_operation`. The harness must run the
-    underlying implementation (``functools.wraps`` sets ``__wrapped__``); otherwise
-    ``run_closure`` re-invokes the wrapper and recurses without bound.
+    Operators registered via collection decorators store a *wrapper* that
+    delegates to :func:`orchestrate_general_operation`. The harness must run the
+    underlying implementation (``functools.wraps`` sets ``__wrapped__``);
+    otherwise ``run_closure`` re-invokes the wrapper and recurses without bound.
 
     Args:
         registered: The callable stored on the operator metadata (wrapper or not).
@@ -37,72 +38,71 @@ def _operator_callable_for_harness(registered: OperatorFunction) -> OperatorFunc
     Returns:
         The innermost unwrapped callable, or *registered* if there is no wrapper chain.
     """
-    return typing.cast("OperatorFunction", inspect.unwrap(registered))
+    return inspect.unwrap(registered)
 
 
 def run_general_operation_core_closure(
-    operation_function: OperatorFunction,
-    discovery_space: DiscoverySpace,
+    operation_function: typing.Callable,
+    inputs: dict[str, OperatorInputType],
     operationInfo: FunctionOperationInfo,
-    operation_parameters: dict,
+    operation_parameters: GenericOperatorParameters,
 ) -> typing.Callable[[], OperationOutput | None]:
+    """Return a closure that calls the operator implementation with resource inputs.
+
+    Args:
+        operation_function: The callable from :class:`~ado.core.operation.config.OperatorMetadata`
+            (wrapper or raw function).
+        inputs: Mapping of parameter name → rich ado resource the operator works on,
+            passed to the operator function as keyword arguments.
+        operationInfo: Runtime operation context.
+        operation_parameters: Validated instance of the operator's configuration model.
+
+    Returns:
+        A zero-argument callable that, when called, invokes the operator
+        implementation and returns :class:`~ado.core.operation.operation.OperationOutput`.
+    """
 
     def _run_general_operation_core() -> OperationOutput | None:
         implementation = _operator_callable_for_harness(operation_function)
-        return implementation(discovery_space, operationInfo, **operation_parameters)
+        return implementation(
+            **inputs,
+            operationInfo=operationInfo,
+            parameters=operation_parameters,
+        )
 
     return _run_general_operation_core
 
 
 def orchestrate_general_operation(
     operator_metadata: OperatorMetadata,
-    operation_parameters: dict,
-    discovery_space: DiscoverySpace,
+    operation_parameters: GenericOperatorParameters,
+    inputs: dict[str, OperatorInputType],
     operation_info: FunctionOperationInfo,
+    metastore: SQLStore,
 ) -> OperationOutput:
-    """Orchestrates a general operation (non-explore)
+    """Orchestrates a general operation (non-explore).
 
-    This function handles the orchestration of non-explore operations (characterize, compare,
-    modify, fuse, learn, etc.). It performs the following:
-    - Validates operation parameters against the configuration model
-    - Checks measurement space consistency
-    - Validates actuator configurations against the space
-    - Inserts graceful shutdown handler for keyboard interrupts
+    Validates parameters, checks spaces / actuators, then runs the harness.
 
-    It calls run_operation_harness to create, store, and update the operation resource,
-    execute the operation, handle exceptions, and stores the operation results.
-
-    Params:
-        operator_metadata: Registered metadata for the operator, carrying the callable,
-            configuration model, operation type, and name.
-        operation_parameters: Dictionary of parameters to pass to the operator function
-        discovery_space: The discovery space to operate on
-        operation_info: Information about the operation including metadata, actuator
-            configuration identifiers, and namespace
+    Args:
+        operator_metadata: Registered metadata for the operator.
+        operation_parameters: Validated configuration model (or value coercible to it).
+        operation_info: Operation metadata including project context.
+        inputs: Mapping of parameter name → rich ado resource.
+        metastore: Metastore that must contain all *inputs* (already checked by wrapper).
 
     Returns:
-        OperationOutput containing the results and status of the operation
-
-    Raises:
-        ValueError: If the MeasurementSpace is not consistent with EntitySpace or if
-            actuator configurations are invalid
-        pydantic.ValidationError: If the operation parameters are not valid
-        OperationException: If there is an error during the operation
-        ResourceDoesNotExistError: If an actuator configuration cannot be retrieved from the database
-
+        OperationOutput containing the results and status of the operation.
     """
-
     import uuid
 
-    # Note on signals: Since there is no specific cleanup logic
-    # for general operations it makes no difference
-    # if a signal handler for SIGTERM is in place or not
+    spaces = [value for value in inputs.values() if isinstance(value, DiscoverySpace)]
 
     if operator_metadata.function is None:
         raise ValueError(
             f"Operator '{operator_metadata.name}' has no function registered"
         )
-    operator_function = typing.cast("OperatorFunction", operator_metadata.function)
+    operator_function = operator_metadata.function
 
     if not operation_info.ray_namespace:
         operation_info.ray_namespace = (
@@ -111,35 +111,35 @@ def orchestrate_general_operation(
 
     operator_metadata.configuration_model.model_validate(operation_parameters)
 
-    # Check the space
-    if not discovery_space.measurementSpace.isConsistent:
-        moduleLog.critical("Measurement space is inconsistent - aborting")
-        raise ValueError("Measurement space is inconsistent")
+    if spaces:
+        actuator_configurations = get_actuator_configurations(
+            actuator_configuration_identifiers=operation_info.actuatorConfigurationIdentifiers,
+            metastore=metastore,
+        )
+        for space in spaces:
+            if not space.measurementSpace.isConsistent:
+                moduleLog.critical("Measurement space is inconsistent - aborting")
+                raise ValueError("Measurement space is inconsistent")
 
-    log_space_details(discovery_space)
+            log_space_details(space)
 
-    # Validate the actuator configurations given
-    # before calling the operation
-    actuator_configurations = get_actuator_configurations(
-        actuator_configuration_identifiers=operation_info.actuatorConfigurationIdentifiers,
-        project_context=discovery_space.project_context,
-    )
-    validate_actuator_configurations_against_space_configuration(
-        actuator_configurations=actuator_configurations,
-        discovery_space_configuration=discovery_space.config,
-    )
+            validate_actuator_configurations_against_space_configuration(
+                actuator_configurations=actuator_configurations,
+                discovery_space_configuration=space,
+            )
 
     operation_run_closure = run_general_operation_core_closure(
         operator_function,
-        discovery_space=discovery_space,
+        inputs=inputs,
         operationInfo=operation_info,
         operation_parameters=operation_parameters,
     )
 
     return _run_operation_harness(
         run_closure=operation_run_closure,
-        discovery_space=discovery_space,
+        inputs=inputs,
         operator_metadata=operator_metadata,
         operation_parameters=operation_parameters,
         operation_info=operation_info,
+        metastore=metastore,
     )

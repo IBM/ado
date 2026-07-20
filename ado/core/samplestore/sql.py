@@ -392,9 +392,8 @@ class SQLSampleStore(ActiveSampleStore):
         self._engine = engine_for_sql_store(storageLocation)
 
         # Initialize entities cache as empty dict for lazy loading
-        # Empty dict is falsy, so lazy loading check `if not self._entities:` still works
-        # But it's also a valid dict that can be used for assignments
         self._entities = {}
+        self._all_entities_loaded = False
         self._last_insert_id = (
             0  # Track last processed insert_id for incremental refresh
         )
@@ -469,10 +468,9 @@ class SQLSampleStore(ActiveSampleStore):
 
     @property
     def entities(self) -> list[Entity]:
-        if not self._entities:
+        if not self._all_entities_loaded:
             # Initial load: delegate to refresh with force_fetch_all_entities=True
             self.log.debug(f"Initial load of entities for {self._tablename}")
-            self._entities = {}
             self.refresh(force_fetch_all_entities=True)
 
         return list(self._entities.values())
@@ -651,6 +649,7 @@ class SQLSampleStore(ActiveSampleStore):
             # Initial load: fetch all entities
             self._entities = self._fetch_entities(entity_ids=None)
             new_entities_count = len(self._entities)
+            self._all_entities_loaded = True
             self.log.debug(f"Fetched all {new_entities_count} entities")
 
         # Phase 2: Fetch new measurement results (already validated and grouped)

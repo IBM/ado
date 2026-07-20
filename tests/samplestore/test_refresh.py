@@ -362,3 +362,33 @@ def test_refresh_adds_measurements_to_existing_entities(
     # Verify measurements were added to existing entities
     refreshed_entities = store.entities
     assert all(len(e.measurement_results) == 1 for e in refreshed_entities)
+
+
+def test_entities_after_partial_cache_population(
+    random_sql_sample_store: Callable[[], SQLSampleStore],
+    random_ml_multi_cloud_benchmark_performance_entities: Callable[[int], list[Entity]],
+) -> None:
+    """Test that .entities returns all DB rows even when cache was partially populated.
+
+    Regression test for issue 733: if addEntities() had already populated
+    _entities with some rows, the old `if not self._entities:` guard would
+    skip the full DB load, returning only the cached subset.
+    """
+    store = random_sql_sample_store()
+
+    # Add both batches — addEntities writes to both the DB and _entities,
+    # but never sets _all_entities_loaded, so the flag stays False.
+    entities_batch1 = random_ml_multi_cloud_benchmark_performance_entities(3)
+    entities_batch2 = random_ml_multi_cloud_benchmark_performance_entities(2)
+    store.addEntities(entities=entities_batch1)
+    store.addEntities(entities=entities_batch2)
+
+    # Drop batch2 from the in-memory cache to simulate a partial-cache state
+    # (e.g. batch2 was added by another process that this instance never saw).
+    for entity in entities_batch2:
+        del store._entities[entity.identifier]
+
+    # .entities must trigger a full DB load and return all 5 rows
+    all_identifiers = {e.identifier for e in store.entities}
+    expected_identifiers = {e.identifier for e in entities_batch1 + entities_batch2}
+    assert all_identifiers == expected_identifiers

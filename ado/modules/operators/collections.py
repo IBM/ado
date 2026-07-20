@@ -21,9 +21,14 @@ from ado.core.operation.config import (
     OperatorMetadata,
     OperatorReference,
 )
+from ado.core.operation.context import (
+    assert_inputs_in_metastore,
+    resolve_operation_project_context,
+)
 from ado.core.resources import (
     ADOResourcePropertyDescriptor,
 )
+from ado.metastore.sqlstore import SQLStore
 from ado.modules.operators.base import (
     DiscoveryOperationBase,
     DiscoverySpaceSubscribingDiscoveryOperation,
@@ -44,6 +49,8 @@ moduleLog = logging.getLogger("operation_collections")
 
 P = ParamSpec("P")
 F = TypeVar("F", bound=Callable[..., OperationOutput])
+
+_EMPTY_OPERATOR_PARAMETERS = GenericOperatorParameters()
 
 
 def _warn_if_operator_name_reused(
@@ -135,13 +142,14 @@ def _make_general_orchestration_wrapper(
     name: str,
     user_fn: Callable[..., OperationOutput],
     required_resource_inputs: list[ADOResourcePropertyDescriptor],
+    configuration_model: type[GenericOperatorParameters],
 ) -> Callable[..., OperationOutput]:
     """Build a wrapper that starts ado orchestration then runs *user_fn*.
 
     The wrapper accepts the same call shape as *user_fn* (resource inputs,
-    then ``operationInfo``, then operation parameters). Callers — nested
-    operators and :func:`~ado.modules.operators.orchestrate.orchestrate` —
-    invoke it with ``fn(**inputs, operationInfo=..., **parameters)``.
+    then ``operationInfo``, then ``parameters``). Callers — nested operators
+    and :func:`~ado.modules.operators.orchestrate.orchestrate` — invoke it with
+    ``fn(**inputs, operationInfo=..., parameters=...)``.
     """
     input_ids = [d.identifier for d in required_resource_inputs]
     user_sig = inspect.signature(user_fn)
@@ -152,12 +160,6 @@ def _make_general_orchestration_wrapper(
         bound.apply_defaults()
         arguments = dict(bound.arguments)
 
-        parameters: dict[str, object] = {}
-        for pname, param in user_sig.parameters.items():
-            if param.kind == inspect.Parameter.VAR_KEYWORD:
-                parameters = dict(arguments.pop(pname, {}) or {})
-                break
-
         missing = [iid for iid in input_ids if iid not in arguments]
         if missing:
             raise ValueError(
@@ -165,17 +167,29 @@ def _make_general_orchestration_wrapper(
             )
 
         inputs = {iid: arguments.pop(iid) for iid in input_ids}
-        operation_info = arguments.pop("operationInfo", None)
+        operation_info = arguments.pop("operationInfo", None) or FunctionOperationInfo()
+        raw_parameters = arguments.pop("parameters", None)
         if arguments:
             raise ValueError(
                 f"Operator {name!r} received unexpected arguments: {list(arguments)!r}."
             )
 
+        parameters = configuration_model.model_validate(raw_parameters)
+
+        project_context = resolve_operation_project_context(operation_info)
+        if operation_info.projectContext is None:
+            operation_info = operation_info.model_copy(
+                update={"projectContext": project_context}
+            )
+        metastore = SQLStore(project_context=project_context)
+        assert_inputs_in_metastore(inputs, metastore)  # type: ignore[arg-type]
+
         return orchestrate_general_operation(
             operator_metadata=collection.operators[name],
             inputs=inputs,  # type: ignore[arg-type]
             operation_parameters=parameters,
-            operation_info=operation_info or FunctionOperationInfo(),
+            operation_info=operation_info,
+            metastore=metastore,
         )
 
     return wrapper
@@ -201,11 +215,13 @@ def _register_general_operator(
         name=name,
         user_fn=func,
         required_resource_inputs=required_resource_inputs,
+        configuration_model=configuration_model,
     )
     validate_operator_registration(
         user_fn=func,
         required_resource_inputs=required_resource_inputs,
         operation_type=operation_type,
+        configuration_model=configuration_model,
         stored_fn=wrapper,
     )
     _warn_if_operator_name_reused(collection_label, name, collection.operators)
@@ -352,13 +368,24 @@ def explore_operation(
     def _generated(
         discoverySpace: DiscoverySpace,
         operationInfo: FunctionOperationInfo | None = None,
-        **kwargs: object,
+        parameters: GenericOperatorParameters = _EMPTY_OPERATOR_PARAMETERS,
     ) -> OperationOutput:
+        op_meta = explore.operators[op_name]
+        params_model = op_meta.configuration_model.model_validate(parameters)
+        operation_info = operationInfo or FunctionOperationInfo()
+        project_context = resolve_operation_project_context(operation_info)
+        if operation_info.projectContext is None:
+            operation_info = operation_info.model_copy(
+                update={"projectContext": project_context}
+            )
+        metastore = SQLStore(project_context=project_context)
+        inputs = {"discoverySpace": discoverySpace}
+        assert_inputs_in_metastore(inputs, metastore)
         return orchestrate_explore_operation(
-            operator_metadata=explore.operators[op_name],
+            operator_metadata=op_meta,
             discovery_space=discoverySpace,
-            parameters=kwargs,
-            operation_info=operationInfo or FunctionOperationInfo(),
+            parameters=params_model,
+            operation_info=operation_info,
         )
 
     _generated.__name__ = op_name
@@ -374,6 +401,7 @@ def explore_operation(
         user_fn=_generated,
         required_resource_inputs=stored_inputs,
         operation_type=DiscoveryOperationEnum.EXPLORE,
+        configuration_model=None,
     )
 
     explore.operators[op_name] = metadata.model_copy(

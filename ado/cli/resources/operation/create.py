@@ -26,13 +26,12 @@ from ado.cli.utils.output.prints import (
 from ado.cli.utils.pydantic.updaters import override_values_in_pydantic_model
 from ado.cli.utils.resources.formatters import most_important_status_update
 from ado.core import CoreResourceKinds
-from ado.core.operation.config import (
-    DiscoveryOperationResourceConfiguration,
-)
+from ado.core.operation.config import DiscoveryOperationResourceConfiguration
 from ado.core.operation.operation import OperationException, OperationOutput
 from ado.core.operation.resource import (
     OperationExitStateEnum,
 )
+from ado.core.resources import ADOResourceReference
 from ado.modules.operators.errors import OperatorVersionMismatchError
 
 
@@ -96,38 +95,32 @@ def create_operation(parameters: AdoCreateCommandParameters) -> str | None:
             if isinstance(
                 parameters.with_resources[CoreResourceKinds.DISCOVERYSPACE], str
             ):
-                op_resource_configuration.spaces = [
-                    parameters.with_resources[CoreResourceKinds.DISCOVERYSPACE]
-                ]
+                space_id = parameters.with_resources[CoreResourceKinds.DISCOVERYSPACE]
             else:
-                op_resource_configuration.spaces = [
-                    create_discovery_space(
-                        AdoCreateCommandParameters(
-                            ado_configuration=parameters.ado_configuration,
-                            dry_run=False,
-                            new_sample_store=False,
-                            override_values=[],
-                            resource_configuration_file=parameters.with_resources[
-                                CoreResourceKinds.DISCOVERYSPACE
-                            ],
-                            resource_type=AdoCreateSupportedResourceTypes.DISCOVERY_SPACE,
-                            use_default_sample_store=False,
-                            with_resources={},
-                            use_latest=[],
-                        )
+                space_id = create_discovery_space(
+                    AdoCreateCommandParameters(
+                        ado_configuration=parameters.ado_configuration,
+                        dry_run=False,
+                        new_sample_store=False,
+                        override_values=[],
+                        resource_configuration_file=parameters.with_resources[
+                            CoreResourceKinds.DISCOVERYSPACE
+                        ],
+                        resource_type=AdoCreateSupportedResourceTypes.DISCOVERY_SPACE,
+                        use_default_sample_store=False,
+                        with_resources={},
+                        use_latest=[],
                     )
-                ]
+                )
+            op_resource_configuration.inputs["discoverySpace"] = ADOResourceReference(
+                identifier=space_id,
+                kind=CoreResourceKinds.DISCOVERYSPACE,
+            )
 
     elif parameters.use_latest:
         reuse_requested_latest_identifiers(
             resource_configuration=op_resource_configuration, parameters=parameters
         )
-
-    if len(op_resource_configuration.spaces) > 1:
-        console_print(
-            f"{ERROR}the spaces field only supports one value for now.", stderr=True
-        )
-        raise typer.Exit(1)
 
     if parameters.dry_run:
         console_print(f"{INFO}The operation YAML is syntactically valid.", stderr=True)
@@ -155,7 +148,6 @@ def create_operation(parameters: AdoCreateCommandParameters) -> str | None:
         operation_output = ado.modules.operators.orchestrate.orchestrate(
             operation_resource_configuration=op_resource_configuration,
             project_context=parameters.ado_configuration.project_context,
-            discovery_space_identifier=op_resource_configuration.spaces[0],
         )
     except ValueError as e:
         console_print(f"{ERROR}Failed to create operation:\n\t{e}", stderr=True)
@@ -205,17 +197,8 @@ def reuse_requested_latest_identifiers(
         kinds=parameters.use_latest
     )
 
-    # Map resource kinds to their configuration fields
-    resource_field_mapping = {
-        CoreResourceKinds.ACTUATORCONFIGURATION: "actuatorConfigurationIdentifiers",
-        CoreResourceKinds.DISCOVERYSPACE: "spaces",
-    }
-
     # Handle each requested resource kind
     for resource_kind in parameters.use_latest:
-        if resource_kind not in resource_field_mapping:
-            continue
-
         latest_id = latest_ids.get(resource_kind)
         if not latest_id:
             console_print(
@@ -224,9 +207,16 @@ def reuse_requested_latest_identifiers(
             )
             raise typer.Exit(1)
 
-        # Set the appropriate field on the configuration
-        field_name = resource_field_mapping[resource_kind]
-        setattr(resource_configuration, field_name, [latest_id])
+        if resource_kind == CoreResourceKinds.ACTUATORCONFIGURATION:
+            resource_configuration.actuatorConfigurationIdentifiers = [latest_id]
+        elif resource_kind == CoreResourceKinds.DISCOVERYSPACE:
+            resource_configuration.inputs["discoverySpace"] = ADOResourceReference(
+                identifier=latest_id,
+                kind=CoreResourceKinds.DISCOVERYSPACE,
+            )
+        else:
+            # Unknown kind — skip (no field mapping defined)
+            continue
 
         console_print(
             value_in_configuration_replaced_with_latest_identifier_for_resource(

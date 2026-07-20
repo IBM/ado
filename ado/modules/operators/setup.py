@@ -40,7 +40,7 @@ def setup_actuators(
     Params:
         discovery_space: The discovery space to create the actuators for
         actuator_configuration_identifiers: A set of (optional) identifiers of configurations for actuators in the discoveryspace
-        queue: the measurement queue
+        measurement_queue: the measurement queue
 
     Raises:
         ray.exceptions.ActorDiedError if any actuator

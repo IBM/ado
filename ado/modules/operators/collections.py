@@ -2,9 +2,11 @@
 # SPDX-License-Identifier: MIT
 
 import functools
+import inspect
 import logging
 import typing
-from typing import Annotated
+from collections.abc import Callable
+from typing import Annotated, ParamSpec, TypeVar
 
 import pydantic
 
@@ -12,25 +14,35 @@ import ado.core.operation.config
 from ado.core.discoveryspace.space import DiscoverySpace
 from ado.core.metadata import PackageProvenance
 from ado.core.operation.config import (
+    _DEFAULT_DISCOVERY_SPACE_INPUT_PROPERTY,
     DiscoveryOperationEnum,
     FunctionOperationInfo,
     OperatorMetadata,
     OperatorReference,
 )
+from ado.core.resources import (
+    ADOResourcePropertyDescriptor,
+)
 from ado.modules.operators.base import (
     DiscoveryOperationBase,
     DiscoverySpaceSubscribingDiscoveryOperation,
     OperationOutput,
-    OperatorFunction,
-    validate_operator_function_signature,
+    OperatorCallable,
+    validate_operator_registration,
 )
 from ado.modules.operators.errors import OperatorVersionMismatchError
+from ado.modules.operators.inputs import (
+    validate_resource_inputs_for_operation_type,
+)
 from ado.modules.operators.orchestrate import (
     orchestrate_explore_operation,
     orchestrate_general_operation,
 )
 
 moduleLog = logging.getLogger("operation_collections")
+
+P = ParamSpec("P")
+F = TypeVar("F", bound=Callable[..., OperationOutput])
 
 
 def _warn_if_operator_name_reused(
@@ -68,7 +80,7 @@ class OperatorCollection(pydantic.BaseModel):
         """Returns all registered operator names."""
         return list(self.operators.keys())
 
-    def __getattr__(self, item: str) -> OperatorFunction | None:
+    def __getattr__(self, item: str) -> OperatorCallable | None:
         """Returns the operator function for the given registered name.
 
         Args:
@@ -115,6 +127,102 @@ operationCollectionMap = {
     ado.core.operation.config.DiscoveryOperationEnum.FUSE: fuse,
 }
 
+
+def _make_general_orchestration_wrapper(
+    *,
+    collection: OperatorCollection,
+    name: str,
+    user_fn: Callable[..., OperationOutput],
+    required_resource_inputs: list[ADOResourcePropertyDescriptor],
+) -> Callable[..., OperationOutput]:
+    """Build a wrapper that starts ado orchestration then runs *user_fn*.
+
+    The wrapper accepts the same call shape as *user_fn* (resource inputs,
+    then ``operationInfo``, then operation parameters). Callers — nested
+    operators and :func:`~ado.modules.operators.orchestrate.orchestrate` —
+    invoke it with ``fn(**inputs, operationInfo=..., **parameters)``.
+    """
+    input_ids = [d.identifier for d in required_resource_inputs]
+    user_sig = inspect.signature(user_fn)
+
+    @functools.wraps(user_fn)
+    def wrapper(*args: object, **kwargs: object) -> OperationOutput:
+        bound = user_sig.bind(*args, **kwargs)
+        bound.apply_defaults()
+        arguments = dict(bound.arguments)
+
+        parameters: dict[str, object] = {}
+        for pname, param in user_sig.parameters.items():
+            if param.kind == inspect.Parameter.VAR_KEYWORD:
+                parameters = dict(arguments.pop(pname, {}) or {})
+                break
+
+        missing = [iid for iid in input_ids if iid not in arguments]
+        if missing:
+            raise ValueError(
+                f"Operator {name!r} missing required resource input(s): {missing!r}."
+            )
+
+        inputs = {iid: arguments.pop(iid) for iid in input_ids}
+        operation_info = arguments.pop("operationInfo", None)
+        if arguments:
+            raise ValueError(
+                f"Operator {name!r} received unexpected arguments: {list(arguments)!r}."
+            )
+
+        return orchestrate_general_operation(
+            operator_metadata=collection.operators[name],
+            inputs=inputs,  # type: ignore[arg-type]
+            operation_parameters=parameters,
+            operation_info=operation_info or FunctionOperationInfo(),
+        )
+
+    return wrapper
+
+
+def _register_general_operator(
+    *,
+    collection: OperatorCollection,
+    collection_label: str,
+    operation_type: DiscoveryOperationEnum,
+    name: str,
+    version: str,
+    configuration_model: type[pydantic.BaseModel],
+    example_configuration: pydantic.BaseModel,
+    description: str | None,
+    required_resource_inputs: list[ADOResourcePropertyDescriptor],
+    required_properties: list[str] | None,
+    func: Callable[P, OperationOutput],
+) -> Callable[P, OperationOutput]:
+    """Validate, wrap, and register a general (non-explore) operator."""
+    wrapper = _make_general_orchestration_wrapper(
+        collection=collection,
+        name=name,
+        user_fn=func,
+        required_resource_inputs=required_resource_inputs,
+    )
+    validate_operator_registration(
+        user_fn=func,
+        required_resource_inputs=required_resource_inputs,
+        operation_type=operation_type,
+        stored_fn=wrapper,
+    )
+    _warn_if_operator_name_reused(collection_label, name, collection.operators)
+    collection.operators[name] = OperatorMetadata(
+        name=name,
+        function=wrapper,
+        version=version,
+        description=description,
+        configuration_model=configuration_model,
+        example_configuration=example_configuration,
+        type=operation_type,
+        provenance=PackageProvenance.from_module_name(func.__module__),
+        required_resource_inputs=tuple(required_resource_inputs),
+        required_properties=required_properties,
+    )
+    return typing.cast("Callable[P, OperationOutput]", wrapper)
+
+
 #
 # Decorators for registering operator functions
 #
@@ -126,7 +234,9 @@ def characterize_operation(
     configuration_model: type[pydantic.BaseModel],
     example_configuration: pydantic.BaseModel,
     description: str | None = None,
-) -> typing.Callable[[OperatorFunction], OperatorFunction]:
+    required_resource_inputs: list[ADOResourcePropertyDescriptor] | None = None,
+    required_properties: list[str] | None = None,
+) -> Callable[[Callable[P, OperationOutput]], Callable[P, OperationOutput]]:
     """Decorator that registers a function as a characterize operation.
 
     Args:
@@ -135,39 +245,39 @@ def characterize_operation(
         configuration_model: Pydantic model used to validate operation parameters.
         example_configuration: Example parameter model instance for templating.
         description: Human-readable description shown in the registry.
+        required_resource_inputs: Named resource inputs for this operator.  When
+            omitted a single ``discoverySpace`` input of kind ``discoveryspace``
+            is used (legacy default).
+        required_properties: Target property identifiers this operator reads
+            from a discovery space.  Used for ``ado get operators --space``
+            filtering in Phase 2.
 
     Returns:
         A decorator that wraps and registers the decorated function under ``name``.
     """
+    effective_inputs = required_resource_inputs or [
+        _DEFAULT_DISCOVERY_SPACE_INPUT_PROPERTY
+    ]
+    validate_resource_inputs_for_operation_type(
+        effective_inputs, DiscoveryOperationEnum.CHARACTERIZE
+    )
 
-    def _register(func: OperatorFunction) -> OperatorFunction:
-        @functools.wraps(func)
-        def wrapper(
-            discoverySpace: DiscoverySpace,
-            operationInfo: FunctionOperationInfo | None = None,
-            **kwargs: object,
-        ) -> OperationOutput:
-            return orchestrate_general_operation(
-                operator_metadata=characterize.operators[name],
-                operation_parameters=kwargs,
-                discovery_space=discoverySpace,
-                operation_info=operationInfo or FunctionOperationInfo(),
-            )
-
-        validate_operator_function_signature(wrapper)
-        wrapper = typing.cast("OperatorFunction", wrapper)
-        _warn_if_operator_name_reused("characterize", name, characterize.operators)
-        characterize.operators[name] = OperatorMetadata(
+    def _register(
+        func: Callable[P, OperationOutput],
+    ) -> Callable[P, OperationOutput]:
+        return _register_general_operator(
+            collection=characterize,
+            collection_label="characterize",
+            operation_type=DiscoveryOperationEnum.CHARACTERIZE,
             name=name,
-            function=wrapper,
             version=version,
-            description=description,
             configuration_model=configuration_model,
             example_configuration=example_configuration,
-            type=DiscoveryOperationEnum.CHARACTERIZE,
-            provenance=PackageProvenance.from_module_name(func.__module__),
+            description=description,
+            required_resource_inputs=effective_inputs,
+            required_properties=required_properties,
+            func=func,
         )
-        return wrapper
 
     return _register
 
@@ -205,7 +315,7 @@ def explore_operation(
     """Decorator that registers an explore operator class.
 
     All metadata is sourced from the class's ``operator_metadata()``
-    classmethod.  The decorator generates an :class:`OperatorFunction`,
+    classmethod.  The decorator generates an :class:`OperatorCallable`,
     validates its signature, registers it in the explore collection, and
     returns the **original class unchanged**::
 
@@ -226,11 +336,6 @@ def explore_operation(
     The generated operator function is accessible via
     ``explore.operators[name].function``; the class name continues to refer
     to the class itself.
-
-    Args:
-        cls: The operator class to register.  Must be a subclass of
-            :class:`~ado.modules.operators.base.DiscoverySpaceSubscribingDiscoveryOperation`
-            and must implement ``operator_metadata()``.
 
     Returns:
         *cls* unchanged.
@@ -257,14 +362,25 @@ def explore_operation(
 
     _generated.__name__ = op_name
     _generated.__qualname__ = op_name
-    validate_operator_function_signature(_generated)
-    _generated = typing.cast("OperatorFunction", _generated)
     _warn_if_operator_name_reused("explore", op_name, explore.operators)
+
+    # Ensure the stored metadata always has the default resource input for
+    # explore. Explore operators require exactly one discoveryspace input.
+    stored_inputs = list(
+        metadata.required_resource_inputs or (_DEFAULT_DISCOVERY_SPACE_INPUT_PROPERTY,)
+    )
+    validate_operator_registration(
+        user_fn=_generated,
+        required_resource_inputs=stored_inputs,
+        operation_type=DiscoveryOperationEnum.EXPLORE,
+    )
+
     explore.operators[op_name] = metadata.model_copy(
         update={
             "function": _generated,
             "cls": cls,
             "provenance": PackageProvenance.from_module_name(cls.__module__),
+            "requiredResourceInputs": tuple(stored_inputs),
         }
     )
     return cls
@@ -276,7 +392,9 @@ def modify_operation(
     configuration_model: type[pydantic.BaseModel],
     example_configuration: pydantic.BaseModel,
     description: str | None = None,
-) -> typing.Callable[[OperatorFunction], OperatorFunction]:
+    required_resource_inputs: list[ADOResourcePropertyDescriptor] | None = None,
+    required_properties: list[str] | None = None,
+) -> Callable[[Callable[P, OperationOutput]], Callable[P, OperationOutput]]:
     """Decorator that registers a function as a modify operation.
 
     Args:
@@ -285,39 +403,37 @@ def modify_operation(
         configuration_model: Pydantic model used to validate operation parameters.
         example_configuration: Example parameter model instance for templating.
         description: Human-readable description shown in the registry.
+        required_resource_inputs: Named resource inputs (discoveryspace only).  When
+            omitted the legacy single ``discoverySpace`` input is used.
+        required_properties: Target property identifiers used for operator
+            discoverability filtering.
 
     Returns:
         A decorator that wraps and registers the decorated function under ``name``.
     """
+    effective_inputs = required_resource_inputs or [
+        _DEFAULT_DISCOVERY_SPACE_INPUT_PROPERTY
+    ]
+    validate_resource_inputs_for_operation_type(
+        effective_inputs, DiscoveryOperationEnum.MODIFY
+    )
 
-    def _register(func: OperatorFunction) -> OperatorFunction:
-        @functools.wraps(func)
-        def wrapper(
-            discoverySpace: DiscoverySpace,
-            operationInfo: FunctionOperationInfo | None = None,
-            **kwargs: object,
-        ) -> OperationOutput:
-            return orchestrate_general_operation(
-                operator_metadata=modify.operators[name],
-                operation_parameters=kwargs,
-                discovery_space=discoverySpace,
-                operation_info=operationInfo or FunctionOperationInfo(),
-            )
-
-        validate_operator_function_signature(wrapper)
-        wrapper = typing.cast("OperatorFunction", wrapper)
-        _warn_if_operator_name_reused("modify", name, modify.operators)
-        modify.operators[name] = OperatorMetadata(
+    def _register(
+        func: Callable[P, OperationOutput],
+    ) -> Callable[P, OperationOutput]:
+        return _register_general_operator(
+            collection=modify,
+            collection_label="modify",
+            operation_type=DiscoveryOperationEnum.MODIFY,
             name=name,
-            function=wrapper,
             version=version,
-            description=description,
             configuration_model=configuration_model,
             example_configuration=example_configuration,
-            type=DiscoveryOperationEnum.MODIFY,
-            provenance=PackageProvenance.from_module_name(func.__module__),
+            description=description,
+            required_resource_inputs=effective_inputs,
+            required_properties=required_properties,
+            func=func,
         )
-        return wrapper
 
     return _register
 
@@ -328,7 +444,9 @@ def export_operation(
     configuration_model: type[pydantic.BaseModel],
     example_configuration: pydantic.BaseModel,
     description: str | None = None,
-) -> typing.Callable[[OperatorFunction], OperatorFunction]:
+    required_resource_inputs: list[ADOResourcePropertyDescriptor] | None = None,
+    required_properties: list[str] | None = None,
+) -> Callable[[Callable[P, OperationOutput]], Callable[P, OperationOutput]]:
     """Decorator that registers a function as an export operation.
 
     Args:
@@ -337,39 +455,186 @@ def export_operation(
         configuration_model: Pydantic model used to validate operation parameters.
         example_configuration: Example parameter model instance for templating.
         description: Human-readable description shown in the registry.
+        required_resource_inputs: Named resource inputs (exactly one discoveryspace).
+            When omitted the legacy single ``discoverySpace`` input is used.
+        required_properties: Target property identifiers used for operator
+            discoverability filtering.
 
     Returns:
         A decorator that wraps and registers the decorated function under ``name``.
     """
+    effective_inputs = required_resource_inputs or [
+        _DEFAULT_DISCOVERY_SPACE_INPUT_PROPERTY
+    ]
+    validate_resource_inputs_for_operation_type(
+        effective_inputs, DiscoveryOperationEnum.EXPORT
+    )
 
-    def _register(func: OperatorFunction) -> OperatorFunction:
-        @functools.wraps(func)
-        def wrapper(
-            discoverySpace: DiscoverySpace,
-            operationInfo: FunctionOperationInfo | None = None,
-            **kwargs: object,
-        ) -> OperationOutput:
-            return orchestrate_general_operation(
-                operator_metadata=export.operators[name],
-                operation_parameters=kwargs,
-                discovery_space=discoverySpace,
-                operation_info=operationInfo or FunctionOperationInfo(),
-            )
-
-        validate_operator_function_signature(wrapper)
-        wrapper = typing.cast("OperatorFunction", wrapper)
-        _warn_if_operator_name_reused("export", name, export.operators)
-        export.operators[name] = OperatorMetadata(
+    def _register(
+        func: Callable[P, OperationOutput],
+    ) -> Callable[P, OperationOutput]:
+        return _register_general_operator(
+            collection=export,
+            collection_label="export",
+            operation_type=DiscoveryOperationEnum.EXPORT,
             name=name,
-            function=wrapper,
             version=version,
-            description=description,
             configuration_model=configuration_model,
             example_configuration=example_configuration,
-            type=DiscoveryOperationEnum.EXPORT,
-            provenance=PackageProvenance.from_module_name(func.__module__),
+            description=description,
+            required_resource_inputs=effective_inputs,
+            required_properties=required_properties,
+            func=func,
         )
-        return wrapper
+
+    return _register
+
+
+def compare_operation(
+    name: str,
+    version: str,
+    configuration_model: type[pydantic.BaseModel],
+    example_configuration: pydantic.BaseModel,
+    required_resource_inputs: list[ADOResourcePropertyDescriptor],
+    description: str | None = None,
+    required_properties: list[str] | None = None,
+) -> Callable[[Callable[P, OperationOutput]], Callable[P, OperationOutput]]:
+    """Decorator that registers a function as a compare operation.
+
+    Compare operators relate two or more artifacts.  They may accept any
+    mix of ``discoveryspace`` and ``datacontainer`` inputs,
+    but must declare **at least two** ``required_resource_inputs``.
+
+    The registered callable starts ado orchestration. Nested callers and
+    CLI ``orchestrate`` invoke it with named resource inputs, e.g.::
+
+        @compare_operation(
+            name="my_compare",
+            version="0.1.0",
+            ...,
+            required_resource_inputs=[
+                ADOResourcePropertyDescriptor(identifier="baseline", kind=CoreResourceKinds.DATACONTAINER),
+                ADOResourcePropertyDescriptor(identifier="candidate", kind=CoreResourceKinds.DATACONTAINER),
+            ],
+        )
+        def my_compare(
+            baseline: DataContainerResource,
+            candidate: DataContainerResource,
+            operationInfo: FunctionOperationInfo | None = None,
+            **kwargs: object,
+        ) -> OperationOutput: ...
+
+    Args:
+        name: Canonical operator name used in the registry.
+        version: Version string included in the operator identifier.
+        configuration_model: Pydantic model used to validate operation parameters.
+        example_configuration: Example parameter model instance for templating.
+        required_resource_inputs: Required named inputs (≥ 2, any allowed kind).
+        description: Human-readable description shown in the registry.
+        required_properties: Target property identifiers used for operator
+            discoverability filtering.
+
+    Returns:
+        A decorator that wraps and registers the decorated function under ``name``.
+
+    Raises:
+        ValueError: If *required_resource_inputs* violates compare category rules,
+            or if *func*'s parameter type hints don't match their declared kinds.
+    """
+    validate_resource_inputs_for_operation_type(
+        required_resource_inputs, DiscoveryOperationEnum.COMPARE
+    )
+
+    def _register(
+        func: Callable[P, OperationOutput],
+    ) -> Callable[P, OperationOutput]:
+        return _register_general_operator(
+            collection=compare,
+            collection_label="compare",
+            operation_type=DiscoveryOperationEnum.COMPARE,
+            name=name,
+            version=version,
+            configuration_model=configuration_model,
+            example_configuration=example_configuration,
+            description=description,
+            required_resource_inputs=required_resource_inputs,
+            required_properties=required_properties,
+            func=func,
+        )
+
+    return _register
+
+
+def fuse_operation(
+    name: str,
+    version: str,
+    configuration_model: type[pydantic.BaseModel],
+    example_configuration: pydantic.BaseModel,
+    required_resource_inputs: list[ADOResourcePropertyDescriptor],
+    description: str | None = None,
+    required_properties: list[str] | None = None,
+) -> Callable[[Callable[P, OperationOutput]], Callable[P, OperationOutput]]:
+    """Decorator that registers a function as a fuse operation.
+
+    Fuse operators merge **two or more discovery spaces** into one.
+    All ``required_resource_inputs`` must be of kind ``discoveryspace`` and at
+    least two inputs are required.
+
+    The registered callable starts ado orchestration::
+
+        @fuse_operation(
+            name="merge_spaces",
+            version="0.1.0",
+            ...,
+            required_resource_inputs=[
+                ADOResourcePropertyDescriptor(identifier="spaceA", kind=CoreResourceKinds.DISCOVERYSPACE),
+                ADOResourcePropertyDescriptor(identifier="spaceB", kind=CoreResourceKinds.DISCOVERYSPACE),
+            ],
+        )
+        def merge_spaces(
+            spaceA: DiscoverySpace,
+            spaceB: DiscoverySpace,
+            operationInfo: FunctionOperationInfo | None = None,
+            **kwargs: object,
+        ) -> OperationOutput: ...
+
+    Args:
+        name: Canonical operator name used in the registry.
+        version: Version string included in the operator identifier.
+        configuration_model: Pydantic model used to validate operation parameters.
+        example_configuration: Example parameter model instance for templating.
+        required_resource_inputs: Required named inputs (≥ 2, all ``discoveryspace``).
+        description: Human-readable description shown in the registry.
+        required_properties: Target property identifiers used for operator
+            discoverability filtering.
+
+    Returns:
+        A decorator that wraps and registers the decorated function under ``name``.
+
+    Raises:
+        ValueError: If *required_resource_inputs* violates fuse category rules,
+            or if *func*'s parameter type hints don't match their declared kinds.
+    """
+    validate_resource_inputs_for_operation_type(
+        required_resource_inputs, DiscoveryOperationEnum.FUSE
+    )
+
+    def _register(
+        func: Callable[P, OperationOutput],
+    ) -> Callable[P, OperationOutput]:
+        return _register_general_operator(
+            collection=fuse,
+            collection_label="fuse",
+            operation_type=DiscoveryOperationEnum.FUSE,
+            name=name,
+            version=version,
+            configuration_model=configuration_model,
+            example_configuration=example_configuration,
+            description=description,
+            required_resource_inputs=required_resource_inputs,
+            required_properties=required_properties,
+            func=func,
+        )
 
     return _register
 

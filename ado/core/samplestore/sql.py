@@ -6,6 +6,7 @@ import json
 import logging
 import typing
 import uuid
+import warnings
 from typing import TYPE_CHECKING, Annotated, Literal
 
 import pydantic
@@ -743,18 +744,20 @@ class SQLSampleStore(ActiveSampleStore):
             else entity_identifiers
         )
 
-        # Check cache first - if all requested entities are cached, return them
-        if self._entities:
-            cached_entities = [
-                self._entities[entity_id]
-                for entity_id in entity_ids_set
-                if entity_id in self._entities
-            ]
-            # If we got all requested entities from cache, return them
-            if len(cached_entities) == len(entity_ids_set):
-                return cached_entities
+        # Partition into cached and uncached IDs
+        cached_keys = (
+            entity_ids_set.intersection(self._entities.keys())
+            if self._entities
+            else set()
+        )
+        uncached_ids = entity_ids_set.difference(cached_keys)
+        cached_entities = [self._entities[k] for k in cached_keys]
 
-        # Query database for entities by identifiers
+        # All requested entities were already cached
+        if not uncached_ids:
+            return cached_entities
+
+        # Query database only for the uncached entities
         # Use SQLAlchemy's expanding bindparam for IN clause
         # This automatically handles the parameter expansion for the IN clause
         query = sqlalchemy.text(f"""
@@ -764,7 +767,7 @@ class SQLSampleStore(ActiveSampleStore):
             WHERE ent.identifier IN :entity_ids
         """).bindparams(  # noqa: S608 - self._tablename is not untrusted
             sqlalchemy.bindparam(
-                key="entity_ids", value=list(entity_ids_set), expanding=True
+                key="entity_ids", value=list(uncached_ids), expanding=True
             )
         )
 
@@ -820,21 +823,25 @@ class SQLSampleStore(ActiveSampleStore):
                 result=measurement_result
             )
 
-        return list(entities_dict.values())
+        return cached_entities + list(entities_dict.values())
 
-    def entities_in_operation(self, operation_id: str) -> list[Entity]:
-        """Get entities directly from a single operation in one query.
+    def entities_in_operations(self, operation_ids: str | set[str]) -> list[Entity]:
+        """Get entities directly from one or more operations in one query.
 
-        This method is optimized for the common case of fetching entities from
-        a single operation. It performs the entire operation in a single database
-        query, avoiding the need to first fetch entity IDs and then fetch entities.
+        This method fetches entities from one or more operations in a single
+        database query, avoiding the need to first fetch entity IDs and then
+        fetch entities.
 
         Args:
-            operation_id: The operation identifier to fetch entities for
+            operation_ids: A single operation identifier or a set of operation
+                identifiers to fetch entities for.
 
         Returns:
-            List of Entity objects that were sampled in the specified operation
+            List of Entity objects that were sampled in the specified operation(s)
         """
+        if isinstance(operation_ids, str):
+            operation_ids = {operation_ids}
+
         query = sqlalchemy.text(f"""
             SELECT
                 ent.identifier,
@@ -844,16 +851,18 @@ class SQLSampleStore(ActiveSampleStore):
             JOIN {self._tablename}_measurement_results res ON res.entity_id = ent.identifier
             JOIN {self._tablename}_measurement_requests_results reqres ON reqres.result_uid = res.uid
             JOIN {self._tablename}_measurement_requests req ON reqres.request_uid = req.uid
-            WHERE req.operation_id = :operation_id
+            WHERE req.operation_id IN :operation_ids
         """).bindparams(  # noqa: S608 - self._tablename is not untrusted
-            operation_id=operation_id
+            sqlalchemy.bindparam(
+                "operation_ids", value=list(operation_ids), expanding=True
+            )
         )
 
         try:
             with self.engine.begin() as connectable:
                 cur = connectable.execute(query)
         except SQLAlchemyError as error:
-            msg = f"Unable to fetch entities for operation {operation_id} from sample store {self._tablename}"
+            msg = f"Unable to fetch entities for operations {operation_ids} from sample store {self._tablename}"
             self.log.critical(f"{msg}. Error: {error}")
             raise SystemError(f"{msg}. Error: {error}") from error
 
@@ -902,6 +911,15 @@ class SQLSampleStore(ActiveSampleStore):
                 )
 
         return list(entities_dict.values())
+
+    def entities_in_operation(self, operation_ids: str | set[str]) -> list[Entity]:
+        """Deprecated: use entities_in_operations instead."""
+        warnings.warn(
+            "entities_in_operation is deprecated, use entities_in_operations instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.entities_in_operations(operation_ids)
 
     @property
     def numberOfEntities(self) -> int:
@@ -2122,7 +2140,21 @@ class SQLSampleStore(ActiveSampleStore):
             for e in cur
         ]
 
-    def entity_identifiers_in_operation(self, operation_id: str) -> set[str]:
+    def entity_identifiers_in_operations(
+        self, operation_ids: str | set[str]
+    ) -> set[str]:
+        """Get the set of entity identifiers sampled in one or more operations.
+
+        Args:
+            operation_ids: A single operation identifier or a set of operation
+                identifiers to look up entity identifiers for.
+
+        Returns:
+            Set of entity identifier strings across all specified operations.
+        """
+        if isinstance(operation_ids, str):
+            operation_ids = {operation_ids}
+
         try:
             with self.engine.begin() as connectable:
                 query = sqlalchemy.text(f"""
@@ -2130,20 +2162,33 @@ class SQLSampleStore(ActiveSampleStore):
                     FROM (
                         SELECT *
                         FROM {self._tablename}_measurement_requests
-                        WHERE operation_id = :operation_id
+                        WHERE operation_id IN :operation_ids
                     ) req
                     JOIN {self._tablename}_measurement_requests_results reqres ON reqres.request_uid = req.uid
                     JOIN {self._tablename}_measurement_results res ON reqres.result_uid = res.uid
                     """).bindparams(  # noqa: S608 - self._tablename is not untrusted
-                    operation_id=operation_id
+                    sqlalchemy.bindparam(
+                        "operation_ids", value=list(operation_ids), expanding=True
+                    )
                 )
                 cur = connectable.execute(query)
         except SQLAlchemyError as error:
-            msg = f"Unable to get the entity ids for operation {operation_id}"
+            msg = f"Unable to get the entity ids for operations {operation_ids}"
             self.log.critical(f"{msg}. Error: {error}")
             raise SystemError(f"{msg}. Error: {error}") from error
 
         return {ident[0] for ident in cur}
+
+    def entity_identifiers_in_operation(
+        self, operation_ids: str | set[str]
+    ) -> set[str]:
+        """Deprecated: use entity_identifiers_in_operations instead."""
+        warnings.warn(
+            "entity_identifiers_in_operation is deprecated, use entity_identifiers_in_operations instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.entity_identifiers_in_operations(operation_ids)
 
     def complete_measurement_request_with_results_timeseries(
         self,

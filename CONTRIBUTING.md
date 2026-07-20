@@ -37,7 +37,8 @@ The project maintainers use LGTM (Looks Good To Me) in comments on the code
 review to indicate acceptance. A change requires LGTMs from one of the
 maintainers.
 
-For a list of the maintainers, see the [MAINTAINERS.md](MAINTAINERS.md) page.
+For a list of the maintainers, see the
+[MAINTAINERS.md](https://github.com/ibm/ado/blob/main/MAINTAINERS.md) file.
 
 ## Legal
 

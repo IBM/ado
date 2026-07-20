@@ -143,7 +143,7 @@ uv run ado get operations --filter 'config.operation.parameters.batchSize=1' \
   --filter 'status=[{"event": "finished", "exit_state": "success"}]'
 ```
 
-For extensive examples, see `website/docs/resources/metastore.md`.
+For extensive examples, see `docs/resources/metastore.md`.
 
 ### Filtering by Labels
 

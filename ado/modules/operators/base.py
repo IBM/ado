@@ -10,6 +10,7 @@ import typing
 from collections.abc import Callable
 from typing import TypeAlias
 
+import pydantic
 import ray
 import ray.exceptions
 
@@ -23,6 +24,7 @@ from ado.core.operation.config import (
     DiscoveryOperationEnum,
     DiscoveryOperationResourceConfiguration,
     FunctionOperationInfo,
+    GenericOperatorParameters,
     OperatorModuleConf,
     OperatorReference,
 )
@@ -52,23 +54,25 @@ moduleLog = logging.getLogger("operation_base")
 #:
 #: Structural convention::
 #:
-#:     (resource₁, …, resourceₙ, operationInfo=None, **parameters) -> OperationOutput
+#:     (resource₁, …, resourceₙ, operationInfo=None, parameters: ConfigurationModel)
+#:         -> OperationOutput
 #:
 #: Resource parameter names and types come from ``required_resource_inputs``;
-#: they are not expressible as a single Protocol for arbitrary N.
+#: ``parameters`` is an instance of the operator's ``configuration_model``.
 OperatorCallable: TypeAlias = Callable[..., OperationOutput]
 
 
 def validate_operator_call_shape(
     fn: typing.Callable,
     required_resource_inputs: list[ADOResourcePropertyDescriptor],
+    configuration_model: type[pydantic.BaseModel] | None = None,
 ) -> None:
     """Validate that *fn* matches the operator call-shape convention.
 
     Leading positional-or-keyword parameters must be the resource input
     identifiers (in declaration order), followed by ``operationInfo``, then
-    an optional ``**kwargs`` for operation parameters. The return type must
-    be :class:`~ado.core.operation.operation.OperationOutput`.
+    ``parameters``. The return type must be
+    :class:`~ado.core.operation.operation.OperationOutput`.
 
     Resource *types* are checked separately by
     :func:`validate_resource_input_types`.
@@ -76,6 +80,8 @@ def validate_operator_call_shape(
     Args:
         fn: The callable to validate (user implementation or stored wrapper).
         required_resource_inputs: Declared resource inputs for this operator.
+        configuration_model: When provided, ``parameters`` must be annotated
+            with this type (the operator's configuration model).
 
     Raises:
         ValueError: If *fn* does not match the call-shape convention.
@@ -109,6 +115,11 @@ def validate_operator_call_shape(
             "Operator function must not declare *args; resource inputs must be "
             "explicit named parameters."
         )
+    if var_keyword is not None:
+        raise ValueError(
+            "Operator function must not declare **kwargs; operation parameters "
+            "must be a single 'parameters' argument typed as the configuration model."
+        )
 
     positional = [
         p
@@ -117,19 +128,21 @@ def validate_operator_call_shape(
         in (
             inspect.Parameter.POSITIONAL_OR_KEYWORD,
             inspect.Parameter.POSITIONAL_ONLY,
+            inspect.Parameter.KEYWORD_ONLY,
         )
     ]
 
     expected_names = [d.identifier for d in required_resource_inputs] + [
-        "operationInfo"
+        "operationInfo",
+        "parameters",
     ]
     actual_names = [p.name for p in positional]
 
     if actual_names != expected_names:
         raise ValueError(
-            "Operator function positional parameters must be the declared "
+            "Operator function parameters must be the declared "
             f"resource inputs {[d.identifier for d in required_resource_inputs]!r} "
-            f"followed by 'operationInfo'; got {actual_names!r}."
+            f"followed by 'operationInfo' and 'parameters'; got {actual_names!r}."
         )
 
     try:
@@ -165,9 +178,22 @@ def validate_operator_call_shape(
             f"{expected_operation_info!r}, got {operation_info_type!r}."
         )
 
-    if var_keyword is None:
-        # **kwargs is optional
-        pass
+    parameters_type = hints["parameters"]
+    if configuration_model is not None:
+        if parameters_type is not configuration_model:
+            raise ValueError(
+                f"Operator function parameter 'parameters' must be "
+                f"{configuration_model!r} (the configuration_model), "
+                f"got {parameters_type!r}."
+            )
+    elif not (
+        isinstance(parameters_type, type)
+        and issubclass(parameters_type, (GenericOperatorParameters, pydantic.BaseModel))
+    ):
+        raise ValueError(
+            f"Operator function parameter 'parameters' must be a pydantic "
+            f"configuration model type, got {parameters_type!r}."
+        )
 
 
 def validate_resource_input_types(
@@ -221,6 +247,7 @@ def validate_operator_registration(
     user_fn: typing.Callable,
     required_resource_inputs: list[ADOResourcePropertyDescriptor],
     operation_type: DiscoveryOperationEnum,
+    configuration_model: type | None = None,
     stored_fn: typing.Callable | None = None,
 ) -> None:
     """Run all registration-time checks for an operator callable.
@@ -231,12 +258,13 @@ def validate_operator_registration(
        — declaration vs collection policy
     2. :func:`validate_resource_input_types` — resource name ↔ rich type
     3. :func:`validate_operator_call_shape` — resources then ``operationInfo``
-       then parameters
+       then ``parameters``
 
     Args:
         user_fn: The operator implementation (before or under ``functools.wraps``).
         required_resource_inputs: Declared resource inputs.
         operation_type: Collection the operator is registered into.
+        configuration_model: The operator's parameter model class.
         stored_fn: Optional stored callable (wrapper). When provided and distinct
             from *user_fn* under unwrap, its call shape is also validated
             (e.g. explore's generated function).
@@ -254,10 +282,16 @@ def validate_operator_registration(
         required_resource_inputs, operation_type
     )
     validate_resource_input_types(user_fn, required_resource_inputs)
-    validate_operator_call_shape(user_fn, required_resource_inputs)
+    validate_operator_call_shape(
+        user_fn, required_resource_inputs, configuration_model=configuration_model
+    )
 
     if stored_fn is not None and inspect.unwrap(stored_fn) is not user_fn:
-        validate_operator_call_shape(stored_fn, required_resource_inputs)
+        validate_operator_call_shape(
+            stored_fn,
+            required_resource_inputs,
+            configuration_model=configuration_model,
+        )
 
 
 # Some operations are RayActors: These operations use Actuators and StateUpdateQueue and require Ray

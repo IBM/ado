@@ -3,7 +3,6 @@
 
 import enum
 import itertools
-import typing
 from typing import Annotated
 
 import pandas as pd
@@ -128,7 +127,8 @@ class DetectAnomalousSeries(GenericOperatorParameters):
 def detect_anomalous_series(
     discoverySpace: DiscoverySpace,
     operationInfo: FunctionOperationInfo | None = None,
-    **parameters: typing.Any,  # noqa: ANN401
+    *,
+    parameters: DetectAnomalousSeries,
 ) -> OperationOutput:
     """
     This function checks if the behaviour of an observed property versus
@@ -147,7 +147,7 @@ def detect_anomalous_series(
     def monotonically_decreasing(samples: pd.Series) -> bool:
         return all(x > y for x, y in itertools.pairwise(samples))
 
-    config = DetectAnomalousSeries.model_validate(parameters)
+    config = parameters
 
     if config.entity_filter == EntityFilter.SAMPLED:
         if config.test_property_type == PropertyTypeEnum.target:

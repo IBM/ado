@@ -99,14 +99,15 @@ class RifferlaParameters(GenericOperatorParameters):
 def rifferla(
     discoverySpace: DiscoverySpace,
     operationInfo: FunctionOperationInfo | None = None,
-    **parameters: object,
+    *,
+    parameters: RifferlaParameters,
 ) -> OperationOutput:
     """
     This function assumes the given space *was* already sampled using LHU_sampler. This operation then analyzes the result
     and returns the new space and also the values for the non-selected dimensions.
     """
 
-    config = RifferlaParameters.model_validate(parameters)
+    config = parameters
 
     import pandas as pd
 

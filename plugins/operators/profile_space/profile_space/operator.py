@@ -13,6 +13,9 @@ class ProfileParameters(GenericOperatorParameters):
     """Parameters for the profile operator (no configurable options)."""
 
 
+_EMPTY_PROFILE_PARAMETERS = ProfileParameters()
+
+
 # See https://ibm.github.io/ado/operators/creating-operators/#ado-operator-functions
 # for documentation on the decorator and its parameters
 @characterize_operation(
@@ -26,7 +29,8 @@ class ProfileParameters(GenericOperatorParameters):
 def profile(
     discoverySpace: DiscoverySpace,
     operationInfo: FunctionOperationInfo | None = None,
-    **kwargs: dict,
+    *,
+    parameters: ProfileParameters = _EMPTY_PROFILE_PARAMETERS,
 ) -> OperationOutput:
     import data_profiling
 

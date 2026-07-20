@@ -33,9 +33,10 @@ logger_trim = logging.getLogger(__name__)
     version="2.0.3",
 )
 def trim(
-    discoverySpace: DiscoverySpace = None,  # type: ignore[name-defined]
+    discoverySpace: DiscoverySpace = None,  # type: ignore[assignment, name-defined]
     operationInfo: FunctionOperationInfo | None = None,
-    **kwargs: object,
+    *,
+    parameters: TrimParameters,
 ) -> OperationOutput:
     """
     Execute the TRIM (Transfer Refined Iterative Modeling) operation on a discovery space.
@@ -47,7 +48,7 @@ def trim(
     Args:
         discoverySpace: The discovery space to characterize
         operationInfo: Optional operation metadata
-        **kwargs: Additional parameters validated against TrimParameters model
+        parameters: TrimParameters for this operation
 
     Returns:
         OperationOutput containing the operation resources and metadata
@@ -62,7 +63,7 @@ def trim(
 
     random_walk = explore.operators["random_walk"].function
 
-    params = TrimParameters.model_validate(kwargs)
+    params = parameters
     logger_trim.info(
         "Transfer Refined Iterative Modeling starts."
         f"Target variable = {params.targetOutput}"
@@ -110,22 +111,25 @@ def trim(
             singleMeasurement=True,
         )
 
+        nested_info = FunctionOperationInfo(
+            metadata={
+                "completed operation": "Characterization with no priors",
+                "summary of collected data": (
+                    f"No-priors characterization will sample "
+                    f"{params.samplingBudget.minPoints - len(source_df)} points with the "
+                    f"required property {params.targetOutput}. Minimal sample size: "
+                    f"{params.samplingBudget.minPoints}"
+                ),
+            },
+            actuatorConfigurationIdentifiers=(
+                operationInfo.actuatorConfigurationIdentifiers if operationInfo else []
+            ),
+            projectContext=operationInfo.projectContext if operationInfo else None,
+        )
         op_output_characterization_no_prior = random_walk(
             discoverySpace=discoverySpace,
-            operationInfo=FunctionOperationInfo.model_validate(
-                {
-                    "metadata": {
-                        "completed operation": "Characterization with no priors",
-                        "summary of collected data": f"No-priors characterization will sample {params.samplingBudget.minPoints - len(source_df)} points with the required property {params.targetOutput}. Minimal sample size: {params.samplingBudget.minPoints}",
-                    },
-                    "actuatorConfigurationIdentifiers": (
-                        operationInfo.actuatorConfigurationIdentifiers
-                        if operationInfo
-                        else []
-                    ),
-                }
-            ),
-            **no_priors_rwparams.model_dump(),
+            operationInfo=nested_info,
+            parameters=no_priors_rwparams,
         )
 
         source_df, target_df = get_source_and_target(
@@ -167,17 +171,14 @@ def trim(
 
     op_output_iterative_modeling = random_walk(
         discoverySpace=discoverySpace,
-        operationInfo=FunctionOperationInfo.model_validate(
-            {
-                "metadata": {"completed operation": "Iterative Modeling Operation"},
-                "actuatorConfigurationIdentifiers": (
-                    operationInfo.actuatorConfigurationIdentifiers
-                    if operationInfo
-                    else []
-                ),
-            }
+        operationInfo=FunctionOperationInfo(
+            metadata={"completed operation": "Iterative Modeling Operation"},
+            actuatorConfigurationIdentifiers=(
+                operationInfo.actuatorConfigurationIdentifiers if operationInfo else []
+            ),
+            projectContext=operationInfo.projectContext if operationInfo else None,
         ),
-        **trim_rwparams.model_dump(),
+        parameters=trim_rwparams,
     )
 
     logger_trim.info(

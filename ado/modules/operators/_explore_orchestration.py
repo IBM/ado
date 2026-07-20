@@ -12,6 +12,7 @@ from ado.core import OperationResource
 from ado.core.discoveryspace.space import DiscoverySpace
 from ado.core.operation.config import (
     FunctionOperationInfo,
+    GenericOperatorParameters,
     OperatorMetadata,
 )
 from ado.core.operation.operation import OperationOutput
@@ -163,7 +164,7 @@ def run_explore_operation_core_closure(
 def orchestrate_explore_operation(
     operator_metadata: OperatorMetadata,
     discovery_space: DiscoverySpace,
-    parameters: dict,
+    parameters: GenericOperatorParameters,
     operation_info: FunctionOperationInfo,
 ) -> OperationOutput:
     """Orchestrates an explore operation.
@@ -183,7 +184,7 @@ def orchestrate_explore_operation(
         operator_metadata: Registered metadata for the operator, carrying the class,
             configuration model, name, and type.
         discovery_space: The discovery space to operate on
-        parameters: Dictionary of parameters for the operation
+        parameters: Configuration model instance  for the operation
         operation_info: Information about the operation including metadata, actuator
             configuration identifiers, and namespace
 
@@ -323,13 +324,16 @@ def orchestrate_explore_operation(
 
         return finalize_callback
 
+    explore_inputs = {"discoverySpace": discovery_space}
+
     try:
         operation_output = _run_operation_harness(
             run_closure=explore_run_closure,
-            discovery_space=discovery_space,
+            inputs=explore_inputs,
             operator_metadata=operator_metadata,
             operation_parameters=parameters,
             operation_info=operation_info,
+            metastore=discovery_space.metadataStore,
             operation_identifier=identifier,
             finalize_callback=finalize_callback_closure(operator),
         )

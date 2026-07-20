@@ -53,8 +53,15 @@ def template_operation(parameters: AdoTemplateCommandParameters) -> None:
 
     # Exit early on generic template
     if not parameters.operator_name:
+        from ado.core.resources import ADOResourceReference, CoreResourceKinds
+
         model_instance = DiscoveryOperationResourceConfiguration(
-            spaces=["your-spaces"],
+            inputs={
+                "discoverySpace": ADOResourceReference(
+                    identifier="your-discoveryspace-id",
+                    kind=CoreResourceKinds.DISCOVERYSPACE,
+                )
+            },
             operation=DiscoveryOperationConfiguration(),
         )
 
@@ -128,8 +135,26 @@ def template_operation(parameters: AdoTemplateCommandParameters) -> None:
         parameters=default_operation_parameters,
     )
 
+    # Build inputs block from operator's requiredResourceInputs when available.
+    from ado.core.resources import ADOResourceReference, CoreResourceKinds
+
+    if operator is not None and operator.required_resource_inputs:
+        _inputs = {
+            d.identifier: ADOResourceReference(
+                identifier=f"your-{d.kind.value}-id",
+                kind=d.kind,
+            )
+            for d in operator.required_resource_inputs  # type: ignore[union-attr]
+        }
+    else:
+        _inputs = {
+            "discoverySpace": ADOResourceReference(
+                identifier="your-discoveryspace-id",
+                kind=CoreResourceKinds.DISCOVERYSPACE,
+            )
+        }
     model_instance = DiscoveryOperationResourceConfiguration(
-        spaces=["your-spaces"],
+        inputs=_inputs,
         operation=default_operation_configuration,
     )
 

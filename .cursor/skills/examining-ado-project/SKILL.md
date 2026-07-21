@@ -16,7 +16,7 @@ related metadata in the ado project associated to the active context.
 - Run all commands from the **repository root** with `uv run` (see
   [using-ado-cli](../using-ado-cli/SKILL.md)).
 - See
-  [projects and contexts](../../../website/docs/resources/metastore.md#contexts-and-projects)
+  [projects and contexts](../../../docs/resources/metastore.md#contexts-and-projects)
   for details on what projects and contexts are
 - Users may refer to an ado project using either the term "project" or "context"
 

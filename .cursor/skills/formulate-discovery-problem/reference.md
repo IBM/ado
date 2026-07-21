@@ -48,7 +48,7 @@ exclusive** — valid values satisfy `lower <= value < upper`. The upper endpoin
 itself is **not** in the domain.
 
 See
-[properties and domains](../../../website/docs/core-concepts/properties-and-domains.md)
+[properties and domains](../../../docs/concepts/properties-and-domains.md)
 for the full discussion.
 
 ### Variable Types

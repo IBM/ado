@@ -190,7 +190,7 @@ def test_create_discovery_space_success_new_sample_store(
     assert result.exit_code == 0
     expected_output = (
         "INFO:   A new sample store was requested.\n"
-        "        Sample store a267f0 referenced in the space definition will be ignored.\n"
+        "        Sample store default referenced in the space definition will be ignored.\n"
         "Success! Created space with identifier:"
     )
     assert result.output.startswith(expected_output)

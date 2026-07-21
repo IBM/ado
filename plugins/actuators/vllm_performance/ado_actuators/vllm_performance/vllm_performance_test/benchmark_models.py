@@ -38,6 +38,7 @@ class BenchmarkParameters(pydantic.BaseModel):
     max_output_tokens: Annotated[int | None, pydantic.Field()] = None
     burstiness: Annotated[float, pydantic.Field()] = 1.0
     dataset: Annotated[str | None, pydantic.Field()] = "random"
+    bfcl_categories: Annotated[str, pydantic.Field()] = "simple,live_simple,multiple"
 
 
 class BenchmarkResult(pydantic.BaseModel):

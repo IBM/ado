@@ -8,7 +8,7 @@ test-deployment-v1:
   requiredProperties: # Any entity passed to this experiment must have constitutive properties with these values
     - identifier: 'model'
       metadata:
-        description: 'model to use for testing. Must be available through the huggingface hub'
+        description: 'model to use for testing. Must be available through the huggingface hub (public or private). Private models require the hf_token field to be set in the actuator configuration.'
       propertyDomain:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
         values: ["meta-llama/Llama-3.1-8B-Instruct", "ibm-granite/granite-3.3-8b-instruct", "openai/gpt-oss-20b"]
@@ -125,6 +125,18 @@ test-deployment-v1:
       propertyDomain:
         variableType: 'CATEGORICAL_VARIABLE_TYPE'
         values: ['random']
+    - identifier: 'kv_cache_dtype'
+      metadata:
+        description: "(deployment) KV cache data type for vLLM (e.g. fp8, turboquant_k8v4). If not set, vLLM uses the default."
+      propertyDomain:
+        variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
+        values: ["fp8"]
+    - identifier: 'enable_prefix_caching'
+      metadata:
+        description: "(deployment) When 1, enables prefix caching in vLLM. If not set (0), prefix caching is not enabled."
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        values: [0, 1]
   defaultParameterization:
     - property:
         identifier: 'image'
@@ -174,6 +186,12 @@ test-deployment-v1:
     - property:
         identifier: 'gpu_type'
       value: 'NVIDIA-A100-80GB-PCIe'
+    - property:
+        identifier: 'kv_cache_dtype'
+      value: null
+    - property:
+        identifier: 'enable_prefix_caching'
+      value: 0
   # measurements
   targetProperties:
     - identifier: "duration"
@@ -342,7 +360,7 @@ test-deployment-guidellm-v1:
   requiredProperties:
     - identifier: 'model'
       metadata:
-        description: 'model to use for testing. Must be available through the huggingface hub'
+        description: 'model to use for testing. Must be available through the huggingface hub (public or private). Private models require the hf_token field to be set in the actuator configuration.'
       propertyDomain:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
         values: ["meta-llama/Llama-3.1-8B-Instruct", "ibm-granite/granite-3.3-8b-instruct", "openai/gpt-oss-20b"]
@@ -458,6 +476,18 @@ test-deployment-guidellm-v1:
       propertyDomain:
         variableType: 'CATEGORICAL_VARIABLE_TYPE'
         values: ['random']
+    - identifier: 'kv_cache_dtype'
+      metadata:
+        description: "(deployment) KV cache data type for vLLM (e.g. fp8, turboquant_k8v4). If not set, vLLM uses the default."
+      propertyDomain:
+        variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
+        values: ["fp8"]
+    - identifier: 'enable_prefix_caching'
+      metadata:
+        description: "(deployment) When 1, enables prefix caching in vLLM. If not set (0), prefix caching is not enabled."
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        values: [0, 1]
   defaultParameterization:
     - property:
         identifier: 'image'
@@ -507,6 +537,12 @@ test-deployment-guidellm-v1:
     - property:
         identifier: 'gpu_type'
       value: 'NVIDIA-A100-80GB-PCIe'
+    - property:
+        identifier: 'kv_cache_dtype'
+      value: null
+    - property:
+        identifier: 'enable_prefix_caching'
+      value: 0
   targetProperties:
     - identifier: "duration"
     - identifier: "completed"
@@ -666,3 +702,293 @@ test-endpoint-guidellm-v1:
     - identifier: "p99_e2el_ms"
   metadata:
     description: 'Test inference performance of a model served by vLLM endpoint using GuideLLM benchmark suite across inference workload configurations'
+test-agentic-tool-calling:
+  identifier: test-agentic-tool-calling
+  actuatorIdentifier: "vllm_performance"
+  requiredProperties:
+    - identifier: 'model'
+      metadata:
+        description: 'model to use for testing. Must be available through the huggingface hub (public or private). Private models require the hf_token field to be set in the actuator configuration.'
+      propertyDomain:
+        variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
+        values: ["Qwen/Qwen3-30B-A3B-FP8", "Qwen/Qwen3-235B-A22B-FP8"]
+    - identifier: 'request_rate'
+      metadata:
+        description: "(benchmark) The number of requests to send per second"
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [-1, 1000]
+        interval: 1 # -1 means send all requests at time 0
+  optionalProperties:
+    - identifier: 'num_prompts'
+      metadata:
+        description: "(benchmark) The number of prompts to send (total number of requests)"
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [1, 10001]
+        interval: 1
+    - identifier: 'max_concurrency'
+      metadata:
+        description: "(benchmark) The maximum number of concurrent requests to send"
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [-1, 500] # -1 means no concurrency control
+        interval: 1
+    - identifier: 'burstiness'
+      metadata:
+        description: "(benchmark) The burstiness of the requests - 1.0 is a Poisson distribution with rate = request_rate. Others are gamma distributions with lambda = request_rate and shape = burstiness."
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [0, 10]
+        interval: 1
+    - identifier: 'number_input_tokens'
+      metadata:
+        description: "(benchmark) The number of input tokens to send per request"
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [1, 128000]
+        interval: 1
+    - identifier: 'max_output_tokens'
+      metadata:
+        description: "(benchmark) The maximum number of output tokens to generate per request"
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [1, 10000]
+        interval: 1
+    - identifier: image
+      metadata:
+        description: "(deployment) Docker image to use to create vllm deployments"
+      propertyDomain:
+        variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
+        values: ["vllm/vllm-openai:v0.24.0"]
+    - identifier: n_cpus
+      metadata:
+        description: "(deployment) the number of CPUs to use"
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [1, 256]
+        interval: 1
+    - identifier: memory
+      metadata:
+        description: "(deployment) the amount of memory to allocate to vLLM pod"
+      propertyDomain:
+        variableType: "CATEGORICAL_VARIABLE_TYPE"
+        values: ["64Gi", "128Gi", "256Gi"]
+    - identifier: dtype
+      metadata:
+        description: "(deployment) data type for model weights and activations. \"auto\" will use FP16 precision for FP32 and FP16 models, and BF16 precision for BF16 models."
+      propertyDomain:
+        variableType: "CATEGORICAL_VARIABLE_TYPE"
+        values: ["auto", "half", "float16", "bfloat16", "float", "float32"]
+    - identifier: 'gpu_memory_utilization'
+      metadata:
+        description: "(deployment) The fraction of GPU memory to be used for the model executor,"
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        values: [.5, .75, .9]
+    - identifier: 'cpu_offload'
+      metadata:
+        description: "(deployment) The amount of model weights in GB to offload to the CPU per GPU. 0 means all weights are on GPU,"
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        values: [0, 8, 16, 24, 32]
+    - identifier: 'max_batch_tokens'
+      metadata:
+        description: "(deployment) maximum number of batched tokens per iteration"
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [512, 32769]
+        interval: 512
+    - identifier: 'max_num_seq'
+      metadata:
+        description: "(deployment) Maximum number of sequences per iteration"
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [32, 2049]
+        interval: 32
+    - identifier: 'n_gpus'
+      metadata:
+        description: "(deployment) Number of GPUs to use"
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [1, 9]
+        interval: 1
+    - identifier: 'gpu_type'
+      metadata:
+        description: "(deployment) The GPU type to use"
+      propertyDomain:
+        variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
+        values: ['NVIDIA-A100-80GB-PCIe', 'NVIDIA-A100-SXM4-80GB']
+    - identifier: 'dataset'
+      metadata:
+        description: "(benchmark) The dataset to use for the benchmark"
+      propertyDomain:
+        variableType: 'CATEGORICAL_VARIABLE_TYPE'
+        values: ['random', 'bfcl']
+    - identifier: 'bfcl_categories'
+      metadata:
+        description: "(benchmark) Comma-separated BFCL category names to use when dataset=bfcl"
+      propertyDomain:
+        variableType: 'CATEGORICAL_VARIABLE_TYPE'
+        values:
+          - 'simple'
+          - 'multiple'
+          - 'live_simple'
+          - 'simple,multiple'
+          - 'simple,live_simple,multiple'
+    - identifier: 'reasoning_parser'
+      metadata:
+        description: "(deployment) vLLM reasoning parser to use for agent-style models"
+      propertyDomain:
+        variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
+        values: ["qwen3"]
+    - identifier: 'tool_call_parser'
+      metadata:
+        description: "(deployment) vLLM tool call parser to use for agent-style models"
+      propertyDomain:
+        variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
+        values: ["qwen3_coder"]
+    - identifier: 'language_model_only'
+      metadata:
+        description: "(deployment) When 1, run vLLM in language-model-only mode (disables multimodal processing)"
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        values: [0, 1]
+    - identifier: 'enable_auto_tool_choice'
+      metadata:
+        description: "(deployment) When 1, enable automatic tool choice in vLLM"
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        values: [0, 1]
+    - identifier: 'max_model_len'
+      metadata:
+        description: "(deployment) The maximum amount of text, measured in tokens, the model can process and remember at once (context window size)"
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [1024, 1048577]
+        interval: 1024
+    - identifier: 'kv_cache_dtype'
+      metadata:
+        description: "(deployment) KV cache data type for vLLM (e.g. fp8, turboquant_k8v4). If not set, vLLM uses the default."
+      propertyDomain:
+        variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
+        values: ["fp8"]
+    - identifier: 'enable_prefix_caching'
+      metadata:
+        description: "(deployment) When 1, enables prefix caching in vLLM. If not set (0), prefix caching is not enabled."
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        values: [0, 1]
+  defaultParameterization:
+    - property:
+        identifier: 'image'
+      value: "vllm/vllm-openai:v0.24.0"
+    - property:
+        identifier: n_cpus
+      value: 8
+    - property:
+        identifier: memory
+      value: "128Gi"
+    - property:
+        identifier: dtype
+      value: "auto"
+    - property:
+        identifier: 'num_prompts'
+      value: 500
+    - property:
+        identifier: 'max_concurrency'
+      value: -1
+    - property:
+        identifier: 'burstiness'
+      value: 1.0
+    - property:
+        identifier: 'number_input_tokens'
+      value: 1024
+    - property:
+        identifier: 'max_output_tokens'
+      value: 128
+    - property:
+        identifier: 'dataset'
+      value: 'random'
+    - property:
+        identifier: 'gpu_memory_utilization'
+      value: .9
+    - property:
+        identifier: 'cpu_offload'
+      value: 0
+    - property:
+        identifier: 'max_batch_tokens'
+      value: 16384
+    - property:
+        identifier: 'max_num_seq'
+      value: 256
+    - property:
+        identifier: 'n_gpus'
+      value: 1
+    - property:
+        identifier: 'gpu_type'
+      value: 'NVIDIA-A100-80GB-PCIe'
+    - property:
+        identifier: 'reasoning_parser'
+      value: "qwen3"
+    - property:
+        identifier: 'tool_call_parser'
+      value: "qwen3_coder"
+    - property:
+        identifier: 'language_model_only'
+      value: 1
+    - property:
+        identifier: 'enable_auto_tool_choice'
+      value: 1
+    - property:
+        identifier: 'max_model_len'
+      value: 262144
+    - property:
+        identifier: 'bfcl_categories'
+      value: 'simple,live_simple,multiple'
+    - property:
+        identifier: 'kv_cache_dtype'
+      value: null
+    - property:
+        identifier: 'enable_prefix_caching'
+      value: 0
+  # measurements
+  targetProperties:
+    - identifier: "duration"
+    - identifier: "completed"
+    - identifier: "total_input_tokens"
+    - identifier: "total_output_tokens"
+    - identifier: "request_throughput"
+    - identifier: "output_throughput"
+    - identifier: "total_token_throughput"
+    - identifier: "mean_ttft_ms"
+    - identifier: "median_ttft_ms"
+    - identifier: "std_ttft_ms"
+    - identifier: "p25_ttft_ms"
+    - identifier: "p50_ttft_ms"
+    - identifier: "p75_ttft_ms"
+    - identifier: "p99_ttft_ms"
+    - identifier: "mean_tpot_ms"
+    - identifier: "median_tpot_ms"
+    - identifier: "std_tpot_ms"
+    - identifier: "p25_tpot_ms"
+    - identifier: "p50_tpot_ms"
+    - identifier: "p75_tpot_ms"
+    - identifier: "p99_tpot_ms"
+    - identifier: "mean_itl_ms"
+    - identifier: "median_itl_ms"
+    - identifier: "std_itl_ms"
+    - identifier: "p25_itl_ms"
+    - identifier: "p50_itl_ms"
+    - identifier: "p75_itl_ms"
+    - identifier: "p99_itl_ms"
+    - identifier: "mean_e2el_ms"
+    - identifier: "median_e2el_ms"
+    - identifier: "std_e2el_ms"
+    - identifier: "p25_e2el_ms"
+    - identifier: "p50_e2el_ms"
+    - identifier: "p75_e2el_ms"
+    - identifier: "p99_e2el_ms"
+  metadata:
+    description: 'Test inference performance of an agent-style model deployed by vLLM across compute resource and workload configurations'
+  version: 1.0.0

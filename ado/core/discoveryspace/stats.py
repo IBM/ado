@@ -322,36 +322,31 @@ def space_statistics_for_spaces(
         number_matching = len(matching_entities)
 
         measurement_exp_refs = set(space.measurementSpace.experimentReferences)
+        experiments_in_measurement_space = len(space.measurementSpace.experiments)
         number_matching_with_measurements = sum(
             1
             for e in matching_entities
             if len(e.observedPropertyValues) > 0
             and not measurement_exp_refs.isdisjoint(set(e.experimentReferences))
         )
-
-        measured_entities_table = space.measuredEntitiesTable(property_type="target")
-        experiments_in_measurement_space = len(space.measurementSpace.experiments)
-        entities_with_all_measurements = 0
-        if (
-            not measured_entities_table.empty
-            and "identifier" in measured_entities_table
-        ):
-            for _, group in measured_entities_table.groupby("identifier"):
-                if group.shape[0] == experiments_in_measurement_space:
-                    entities_with_all_measurements += 1
-        entities_with_partial_measurements = (
-            number_measured - entities_with_all_measurements
+        matching_entities_with_all_measurements = sum(
+            1
+            for e in matching_entities
+            if len(measurement_exp_refs.intersection(e.experimentReferences))
+            == experiments_in_measurement_space
         )
 
-        matching_entities_table = space.matchingEntitiesTable(property_type="target")
-        matching_entities_with_all_measurements = 0
-        if (
-            not matching_entities_table.empty
-            and "identifier" in matching_entities_table
-        ):
-            for _, group in matching_entities_table.groupby("identifier"):
-                if group.shape[0] == experiments_in_measurement_space:
-                    matching_entities_with_all_measurements += 1
+        sampled_entities = space.sampledEntities()
+        sampled_entities_with_all_measurements = sum(
+            1
+            for e in sampled_entities
+            if len(e.observedPropertyValues) > 0
+            and len(measurement_exp_refs.intersection(e.experimentReferences))
+            == experiments_in_measurement_space
+        )
+        entities_with_partial_measurements = (
+            number_measured - sampled_entities_with_all_measurements
+        )
 
         result[space.uri] = DiscoverySpaceStatistics(
             number_of_experiments=base.number_of_experiments,
@@ -362,7 +357,7 @@ def space_statistics_for_spaces(
             number_unmeasured_entities=number_unmeasured,
             number_matching_entities=number_matching,
             number_matching_entities_with_measurements=number_matching_with_measurements,
-            entities_with_all_measurements=entities_with_all_measurements,
+            entities_with_all_measurements=sampled_entities_with_all_measurements,
             entities_with_partial_measurements=entities_with_partial_measurements,
             matching_entities_with_all_measurements=matching_entities_with_all_measurements,
         )

@@ -197,7 +197,7 @@ When writing agent skills:
   existing relevant data
   - all skills under .cursor/skills/
   - the examples under examples/
-  - the documentation under website/docs/
+  - the documentation under docs/
 - After writing a new skill:
   - review if any information is more appropriate in an existing skill, rules or
     AGENTS.md, if so move it there

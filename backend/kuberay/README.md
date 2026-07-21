@@ -25,8 +25,9 @@ the
 > [RayCluster configuration](https://docs.ray.io/en/latest/cluster/kubernetes/user-guides/config.html)
 > page.
 
-We provide [an example set of values](vanilla-ray.yaml) for deploying a
-RayCluster via KubeRay. To deploy it run:
+We provide
+[an example set of values](https://github.com/IBM/ado/blob/main/backend/kuberay/vanilla-ray.yaml)
+for deploying a RayCluster via KubeRay. To deploy it run:
 
 ```commandline
 helm upgrade --install ado-ray kuberay/ray-cluster --version 1.1.0 --values backend/kuberay/vanilla-ray.yaml

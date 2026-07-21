@@ -12,12 +12,12 @@ from ado.cli.models.types import (
     AdoShowStatsSupportedOutputFormats,
     AdoShowStatsSupportedResourceTypes,
 )
-from ado.cli.resources.datacontainer.show_stats import show_datacontainer_stats
+from ado.cli.resources.data_container.show_stats import show_datacontainer_stats
 from ado.cli.resources.discovery_space.show_stats import (
     show_discovery_space_stats,
 )
 from ado.cli.resources.operation.show_stats import show_operation_stats
-from ado.cli.resources.samplestore.show_stats import show_samplestore_stats
+from ado.cli.resources.sample_store.show_stats import show_samplestore_stats
 from ado.cli.utils.input.parsers import (
     enum_choice_with_plural_parser,
     parse_key_value_pairs,

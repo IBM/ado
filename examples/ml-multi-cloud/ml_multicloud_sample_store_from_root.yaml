@@ -1,0 +1,29 @@
+# Copyright IBM Corporation 2025, 2026
+# SPDX-License-Identifier: MIT
+copyFrom:
+  - module:
+      moduleClass: CSVSampleStore
+      moduleName: ado.core.samplestore.csv
+    parameters:
+      experiments:
+        - actuatorIdentifier: replay
+          constitutivePropertyMap:
+            - cpu_family
+            - vcpu_size
+            - nodes
+            - provider
+          experimentIdentifier: benchmark_performance
+          observedPropertyMap:
+            - wallClockRuntime
+            - status
+      generatorIdentifier: multi-cloud-ml
+      identifierColumn: config
+    storageLocation:
+      path: examples/ml-multi-cloud/ml_export.csv
+metadata:
+  description: samplestore initialised with ml_multi_cloud data
+  name: ml_multi_cloud
+specification:
+  module:
+    moduleClass: SQLSampleStore
+    moduleName: ado.core.samplestore.sql

@@ -262,6 +262,194 @@ def is_subdomain_of_open_categorical_domain(
     return testDomain.size != math.inf
 
 
+def overlaps_with_continuous_domain(
+    continuousDomain: "PropertyDomain", testDomain: "PropertyDomain"
+) -> bool:
+    """Returns True if testDomain shares at least one point with continuousDomain.
+
+    Parameters:
+        continuousDomain: A PropertyDomain with variableType CONTINUOUS_VARIABLE_TYPE
+        testDomain: A PropertyDomain with any variableType
+    Returns:
+        True if the domains overlap
+    """
+    match testDomain.variableType:
+        case (
+            VariableTypeEnum.UNKNOWN_VARIABLE_TYPE
+            | VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE
+        ):
+            return True
+        case VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE:
+            return False
+        case VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE:
+            if continuousDomain.domainRange is None or testDomain.domainRange is None:
+                return True
+            # [a, b) ∩ [c, d) != empty  iff  a < d and c < b
+            return min(continuousDomain.domainRange) < max(
+                testDomain.domainRange
+            ) and min(testDomain.domainRange) < max(continuousDomain.domainRange)
+        case VariableTypeEnum.DISCRETE_VARIABLE_TYPE:
+            if continuousDomain.domainRange is None:
+                return True
+            if testDomain.size == math.inf:
+                # Unbounded discrete overlaps any continuous
+                return True
+            # Check if at least one discrete value falls in [a, b)
+            return any(
+                min(continuousDomain.domainRange)
+                <= v
+                < max(continuousDomain.domainRange)
+                for v in testDomain.domain_values
+            )
+        case _:
+            # BINARY: check if 0 or 1 is within the continuous range
+            if continuousDomain.domainRange is None:
+                return True
+            return any(
+                min(continuousDomain.domainRange)
+                <= v
+                < max(continuousDomain.domainRange)
+                for v in [0, 1]
+            )
+
+
+def overlaps_with_discrete_domain(
+    discreteDomain: "PropertyDomain", testDomain: "PropertyDomain"
+) -> bool:
+    """Returns True if testDomain shares at least one point with discreteDomain.
+
+    Parameters:
+        discreteDomain: A PropertyDomain with variableType DISCRETE_VARIABLE_TYPE
+        testDomain: A PropertyDomain with any variableType
+    Returns:
+        True if the domains overlap
+    """
+    match testDomain.variableType:
+        case (
+            VariableTypeEnum.UNKNOWN_VARIABLE_TYPE
+            | VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE
+        ):
+            return True
+        case VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE:
+            return overlaps_with_continuous_domain(
+                continuousDomain=testDomain, testDomain=discreteDomain
+            )
+        case VariableTypeEnum.DISCRETE_VARIABLE_TYPE:
+            if discreteDomain.size == math.inf or testDomain.size == math.inf:
+                # Unbounded discrete domains overlap
+                return True
+            return (
+                set(discreteDomain.domain_values).isdisjoint(testDomain.domain_values)
+                is False
+            )
+        case VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE:
+            if discreteDomain.size == math.inf:
+                return True
+            return (
+                set(discreteDomain.domain_values).isdisjoint(testDomain.domain_values)
+                is False
+            )
+        case _:
+            # BINARY: check if 0 or 1 is in the discrete domain
+            if discreteDomain.size == math.inf:
+                return True
+            return any(v in discreteDomain.domain_values for v in [0, 1])
+
+
+def overlaps_with_categorical_domain(
+    categoricalDomain: "PropertyDomain", testDomain: "PropertyDomain"
+) -> bool:
+    """Returns True if testDomain shares at least one point with categoricalDomain.
+
+    Parameters:
+        categoricalDomain: A PropertyDomain with variableType CATEGORICAL_VARIABLE_TYPE
+        testDomain: A PropertyDomain with any variableType
+    Returns:
+        True if the domains overlap
+    """
+    match testDomain.variableType:
+        case (
+            VariableTypeEnum.UNKNOWN_VARIABLE_TYPE
+            | VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE
+        ):
+            return True
+        case VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE:
+            return False
+        case VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE:
+            return set(categoricalDomain.values).isdisjoint(testDomain.values) is False
+        case VariableTypeEnum.DISCRETE_VARIABLE_TYPE:
+            if testDomain.size == math.inf:
+                return True
+            return (
+                set(categoricalDomain.domain_values).isdisjoint(
+                    testDomain.domain_values
+                )
+                is False
+            )
+        case _:
+            # BINARY: check if 0 or 1 appears in the categorical values
+            return any(v in categoricalDomain.domain_values for v in [0, 1])
+
+
+def overlaps_with_binary_domain(
+    binaryDomain: "PropertyDomain", testDomain: "PropertyDomain"
+) -> bool:
+    """Returns True if testDomain shares at least one point with binaryDomain.
+
+    Parameters:
+        binaryDomain: A PropertyDomain with variableType BINARY_VARIABLE_TYPE
+        testDomain: A PropertyDomain with any variableType
+    Returns:
+        True if the domains overlap
+    """
+    match testDomain.variableType:
+        case (
+            VariableTypeEnum.UNKNOWN_VARIABLE_TYPE
+            | VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE
+            | VariableTypeEnum.BINARY_VARIABLE_TYPE
+        ):
+            return True
+        case VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE:
+            return overlaps_with_continuous_domain(
+                continuousDomain=testDomain, testDomain=binaryDomain
+            )
+        case VariableTypeEnum.DISCRETE_VARIABLE_TYPE:
+            if testDomain.size == math.inf:
+                return True
+            return any(v in testDomain.domain_values for v in [0, 1])
+        case _:
+            # CATEGORICAL
+            return any(v in testDomain.domain_values for v in [0, 1])
+
+
+def overlaps_with_unknown_domain(
+    unknownDomain: "PropertyDomain", testDomain: "PropertyDomain"
+) -> bool:
+    """Returns True always — UNKNOWN domains overlap with any domain.
+
+    Parameters:
+        unknownDomain: A PropertyDomain with variableType UNKNOWN_VARIABLE_TYPE
+        testDomain: A PropertyDomain with any variableType
+    Returns:
+        True
+    """
+    return True
+
+
+def overlaps_with_open_categorical_domain(
+    openCategoricalDomain: "PropertyDomain", testDomain: "PropertyDomain"
+) -> bool:
+    """Returns True always — OPEN_CATEGORICAL domains overlap with any domain.
+
+    Parameters:
+        openCategoricalDomain: A PropertyDomain with variableType OPEN_CATEGORICAL_VARIABLE_TYPE
+        testDomain: A PropertyDomain with any variableType
+    Returns:
+        True
+    """
+    return True
+
+
 class ProbabilityFunction(pydantic.BaseModel):
     identifier: Annotated[ProbabilityFunctionsEnum, pydantic.Field()] = (
         ProbabilityFunctionsEnum.UNIFORM
@@ -706,6 +894,34 @@ class PropertyDomain(pydantic.BaseModel):
             )
         # fallback to previous logic if unknown type
         raise ValueError(f"Internal error: Unknown variable type {self.variableType}")
+
+    def overlaps(self, other: "PropertyDomain") -> bool:
+        """Returns True if self and other share at least one point.
+
+        Parameters:
+            other: A PropertyDomain to compare against
+        Returns:
+            True if the domains overlap (i.e. share at least one value)
+        """
+        if other.variableType == VariableTypeEnum.UNKNOWN_VARIABLE_TYPE:
+            return overlaps_with_unknown_domain(unknownDomain=other, testDomain=self)
+        if other.variableType == VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE:
+            return overlaps_with_continuous_domain(
+                continuousDomain=other, testDomain=self
+            )
+        if other.variableType == VariableTypeEnum.DISCRETE_VARIABLE_TYPE:
+            return overlaps_with_discrete_domain(discreteDomain=other, testDomain=self)
+        if other.variableType == VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE:
+            return overlaps_with_categorical_domain(
+                categoricalDomain=other, testDomain=self
+            )
+        if other.variableType == VariableTypeEnum.BINARY_VARIABLE_TYPE:
+            return overlaps_with_binary_domain(binaryDomain=other, testDomain=self)
+        if other.variableType == VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE:
+            return overlaps_with_open_categorical_domain(
+                openCategoricalDomain=other, testDomain=self
+            )
+        raise ValueError(f"Internal error: Unknown variable type {other.variableType}")
 
     @property
     def size(self) -> float | int:

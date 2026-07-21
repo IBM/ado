@@ -18,6 +18,8 @@ class SpaceHierarchy(enum.Enum):
     SUB_SPACE = "subspace"
     SUPER_SPACE = "superspace"
     EQUAL_SPACE = "equal"
+    OVERLAPPING = "overlapping"
+    DISJOINT = "disjoint"
     UNDEFINED = "undefined"
 
 
@@ -221,9 +223,48 @@ class DiscoverySpaceConfiguration(pydantic.BaseModel):
 
         return True
 
+    def overlaps(self, other: "DiscoverySpaceConfiguration") -> bool:
+        """Returns True if the two spaces share at least one point.
+
+        Two spaces overlap when, for every property identifier present in
+        **both** spaces, the corresponding domains overlap.  If no property
+        identifiers are shared the spaces are considered disjoint.
+
+        Parameters:
+            other: The other DiscoverySpaceConfiguration to compare against
+        Returns:
+            True if the spaces overlap
+        """
+        self_property_domain_by_id = {
+            cp.identifier: cp.propertyDomain for cp in (self.entitySpace or [])
+        }
+        other_property_domain_by_id = {
+            cp.identifier: cp.propertyDomain for cp in (other.entitySpace or [])
+        }
+
+        shared_property_ids = set(self_property_domain_by_id).intersection(
+            other_property_domain_by_id
+        )
+        if not shared_property_ids:
+            return False
+
+        return all(
+            self_property_domain_by_id[property_id].overlaps(
+                other_property_domain_by_id[property_id]
+            )
+            for property_id in shared_property_ids
+        )
+
     def compare_space_hierarchy(
         self, reference_space: "DiscoverySpaceConfiguration"
     ) -> SpaceHierarchy:
+        """Compares the space hierarchy between self and reference_space.
+
+        Parameters:
+            reference_space: The reference DiscoverySpaceConfiguration
+        Returns:
+            A SpaceHierarchy enum value describing the relationship
+        """
         try:
             is_sub_space = self.is_sub_space(reference_space)
             is_super_space = reference_space.is_sub_space(self)
@@ -236,7 +277,11 @@ class DiscoverySpaceConfiguration(pydantic.BaseModel):
             return SpaceHierarchy.SUB_SPACE
         if is_super_space:
             return SpaceHierarchy.SUPER_SPACE
-        return SpaceHierarchy.UNDEFINED
+
+        # Neither is a sub-space — check for overlap
+        if self.overlaps(reference_space):
+            return SpaceHierarchy.OVERLAPPING
+        return SpaceHierarchy.DISJOINT
 
     def validate_entity_space_against_measurement_space(self) -> None:
         """Validates the entity space against the measurement space.

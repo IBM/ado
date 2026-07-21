@@ -76,7 +76,7 @@ def show_sample_store_trace(parameters: AdoShowTraceCommandParameters) -> None:
         if not space_ids:
             status.stop()
             raise NoRelatedResourcesError(
-                resource_id=store_id, kind=CoreResourceKinds.SAMPLESTOREx
+                resource_id=store_id, kind=CoreResourceKinds.SAMPLESTORE
             )
 
         # Hop 2: each space → its operations, building operation_id → space_id map.

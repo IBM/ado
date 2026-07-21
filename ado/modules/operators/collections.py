@@ -176,7 +176,7 @@ def _make_general_orchestration_wrapper(
 
         parameters = configuration_model.model_validate(raw_parameters)
 
-        project_context = resolve_operation_project_context(operation_info)
+        project_context = resolve_operation_project_context(operation_info, inputs)  # type: ignore[arg-type]
         if operation_info.projectContext is None:
             operation_info = operation_info.model_copy(
                 update={"projectContext": project_context}
@@ -380,13 +380,13 @@ def explore_operation(
         op_meta = explore.operators[op_name]
         params_model = op_meta.configuration_model.model_validate(parameters)
         operation_info = operationInfo or FunctionOperationInfo()
-        project_context = resolve_operation_project_context(operation_info)
+        inputs = {"discoverySpace": discoverySpace}
+        project_context = resolve_operation_project_context(operation_info, inputs)
         if operation_info.projectContext is None:
             operation_info = operation_info.model_copy(
                 update={"projectContext": project_context}
             )
         metastore = SQLStore(project_context=project_context)
-        inputs = {"discoverySpace": discoverySpace}
         assert_inputs_in_metastore(inputs, metastore)
         return orchestrate_explore_operation(
             operator_metadata=op_meta,

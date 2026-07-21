@@ -9,8 +9,8 @@ from typing import TYPE_CHECKING
 
 from ado.core.datacontainer.resource import DataContainerResource
 from ado.core.discoveryspace.space import DiscoverySpace
+from ado.core.operation.inputs import project_contexts_from_inputs
 from ado.core.resources import CoreResourceKinds
-from ado.metastore.project import get_active_project_context
 
 if TYPE_CHECKING:
     from ado.core.operation.config import FunctionOperationInfo
@@ -21,32 +21,47 @@ if TYPE_CHECKING:
 
 def resolve_operation_project_context(
     operation_info: FunctionOperationInfo | None,
+    inputs: dict[str, OperatorInputType],
 ) -> ProjectContext:
     """Resolve the project context for an operation invocation.
 
     Prefers :attr:`~ado.core.operation.config.FunctionOperationInfo.projectContext`
-    when set; otherwise uses the process active project context. Missing both is
-    a programming error.
+    when set. Otherwise extracts project context from operator inputs that
+    carry one (see
+    :data:`~ado.core.operation.inputs.OPERATOR_INPUT_PROJECT_CONTEXT_GETTERS`).
+    When no input carries context (e.g. DataContainer-only), callers must set
+    ``projectContext`` explicitly.
 
     Args:
         operation_info: Optional operation info that may carry a project context.
+        inputs: Mapping of parameter name → rich operator input.
 
     Returns:
         The resolved :class:`~ado.metastore.project.ProjectContext`.
 
     Raises:
-        RuntimeError: If neither ``operation_info.projectContext`` nor an active
-            project context is available.
+        ValueError: If ``projectContext`` is unset and no input carries a
+            project context, or if context-carrying inputs disagree on the
+            project.
     """
     if operation_info is not None and operation_info.projectContext is not None:
         return operation_info.projectContext
-    active = get_active_project_context()
-    if active is None:
-        raise RuntimeError(
-            "No projectContext on FunctionOperationInfo and no active "
-            "project context — programming error."
+
+    carried = project_contexts_from_inputs(inputs)
+    if not carried:
+        raise ValueError(
+            "FunctionOperationInfo.projectContext is required when no operator "
+            "input carries a project context (e.g. DataContainer-only inputs)."
         )
-    return active
+
+    contexts = {ctx for _, ctx in carried}
+    if len(contexts) > 1:
+        details = ", ".join(
+            f"{name!r}→project={ctx.project!r}" for name, ctx in carried
+        )
+        raise ValueError(f"Operator inputs disagree on project context: {details}.")
+
+    return carried[0][1]
 
 
 def assert_inputs_in_metastore(

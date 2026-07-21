@@ -18,6 +18,7 @@ from ado.core.resources import ADOResourceReference, CoreResourceKinds
 if TYPE_CHECKING:
     from collections.abc import Callable
 
+    from ado.metastore.project import ProjectContext
     from ado.metastore.sqlstore import SQLStore
 
 #: The Python types an operator function may receive for a resolved resource input.
@@ -28,6 +29,44 @@ OPERATOR_INPUT_TYPE_FOR_KIND: dict[CoreResourceKinds, type] = {
     CoreResourceKinds.DISCOVERYSPACE: DiscoverySpace,
     CoreResourceKinds.DATACONTAINER: DataContainerResource,
 }
+
+#: Rich input types that embed a :class:`~ado.metastore.project.ProjectContext`.
+#:
+#: Register a getter here when adding a new :data:`OperatorInputType` that
+#: carries project context. Types absent from this map (e.g.
+#: :class:`~ado.core.datacontainer.resource.DataContainerResource`) do not
+#: provide a fallback context for operator wrappers.
+OPERATOR_INPUT_PROJECT_CONTEXT_GETTERS: dict[
+    type,
+    Callable[[OperatorInputType], ProjectContext],
+] = {
+    DiscoverySpace: lambda resource: resource.project_context,  # type: ignore[attr-defined,return-value]
+}
+
+
+def project_contexts_from_inputs(
+    inputs: dict[str, OperatorInputType],
+) -> list[tuple[str, ProjectContext]]:
+    """Return ``(input_name, project_context)`` for context-carrying inputs.
+
+    Walks *inputs* and, for each value whose type is registered in
+    :data:`OPERATOR_INPUT_PROJECT_CONTEXT_GETTERS`, extracts the embedded
+    project context.
+
+    Args:
+        inputs: Mapping of parameter name → rich operator input.
+
+    Returns:
+        A list of ``(name, ProjectContext)`` pairs in input iteration order.
+        Empty when no input carries a project context.
+    """
+    result: list[tuple[str, ProjectContext]] = []
+    for name, resource in inputs.items():
+        for input_type, getter in OPERATOR_INPUT_PROJECT_CONTEXT_GETTERS.items():
+            if isinstance(resource, input_type):
+                result.append((name, getter(resource)))
+                break
+    return result
 
 
 def _resolve_discoveryspace(

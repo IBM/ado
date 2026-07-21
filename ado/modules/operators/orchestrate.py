@@ -106,8 +106,6 @@ def orchestrate(
     from ado.core.operation.inputs import (
         resource_references_to_rich_types,
     )
-
-    # from ado.metastore.project import set_active_project_context
     from ado.metastore.sqlstore import SQLStore
 
     #
@@ -138,7 +136,6 @@ def orchestrate(
     # GET INPUTS
     #
 
-    # set_active_project_context(project_context)
     metastore = SQLStore(project_context=project_context)
 
     # Resolve all inputs to rich Python objects.

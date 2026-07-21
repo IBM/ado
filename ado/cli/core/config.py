@@ -117,9 +117,6 @@ class AdoConfiguration(pydantic.BaseModel):
             ado_config._project_context = project_context
             ado_config.active_context = project_context.project
             ado_config.store()
-            from ado.metastore.project import set_active_project_context
-
-            set_active_project_context(project_context)
             return ado_config
 
         # At this point we don't have a context_path to load from.
@@ -174,9 +171,6 @@ class AdoConfiguration(pydantic.BaseModel):
 
         # Store the configuration
         ado_config.store()
-        from ado.metastore.project import set_active_project_context
-
-        set_active_project_context(local_context)
         return ado_config
 
     def store(self) -> None:

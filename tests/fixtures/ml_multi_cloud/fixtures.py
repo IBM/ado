@@ -141,7 +141,12 @@ def ml_multi_cloud_operation_configuration(
             ).read_text()
         )
     )
-    operation_configuration.spaces = [ml_multi_cloud_space.uri]
+    from ado.core.resources import ADOResourceReference, CoreResourceKinds
+
+    operation_configuration.inputs["discoverySpace"] = ADOResourceReference(
+        identifier=ml_multi_cloud_space.uri,
+        kind=CoreResourceKinds.DISCOVERYSPACE,
+    )
     return operation_configuration
 
 

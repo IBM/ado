@@ -67,7 +67,12 @@ def sql_store_with_resources_preloaded(
 
     # The operation must belong to the space
     if not sql.containsResourceWithIdentifier(operation_resource.identifier):
-        operation_resource.config.spaces = [discovery_space_resource.identifier]
+        from ado.core.resources import ADOResourceReference, CoreResourceKinds
+
+        operation_resource.config.inputs["discoverySpace"] = ADOResourceReference(
+            identifier=discovery_space_resource.identifier,
+            kind=CoreResourceKinds.DISCOVERYSPACE,
+        )
         sql.addResourceWithRelationships(
             resource=operation_resource,
             relatedIdentifiers=operation_resource.config.spaces,

@@ -14,6 +14,7 @@ from testcontainers.mysql import MySqlContainer
 import ado.modules.operators.randomwalk  # noqa: F401
 from ado.core.discoveryspace.config import DiscoverySpaceConfiguration
 from ado.core.discoveryspace.space import DiscoverySpace
+from ado.core.operation.config import FunctionOperationInfo
 from ado.core.operation.resource import (
     OperationExitStateEnum,
     OperationResourceEventEnum,
@@ -117,7 +118,10 @@ def test_trim_example_operation_succeeds(
 
     output = trim_fn(
         trim_minimal_discovery_space,
-        **params.model_dump(),
+        operationInfo=FunctionOperationInfo(
+            projectContext=trim_minimal_discovery_space.project_context
+        ),
+        parameters=params,
     )
 
     assert output.operation is not None

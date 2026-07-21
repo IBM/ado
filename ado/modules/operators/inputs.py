@@ -5,17 +5,14 @@
 
 Enforces which resource kinds and how many inputs each
 :class:`~ado.core.operation.config.DiscoveryOperationEnum` collection allows
-in ``OperatorMetadata.requiredResourceInputs``.
+in ``OperatorMetadata.required_resource_inputs``.
 
 Resolution of references to rich objects lives in
 :mod:`ado.core.operation.inputs`.
 """
 
-from ado.core.operation.config import (
-    ADOResourcePropertyDescriptor,
-    DiscoveryOperationEnum,
-)
-from ado.core.resources import CoreResourceKinds
+from ado.core.operation.config import DiscoveryOperationEnum
+from ado.core.resources import ADOResourcePropertyDescriptor, CoreResourceKinds
 
 #: Allowed input kinds per operation type.
 _ALLOWED_KINDS: dict[DiscoveryOperationEnum, frozenset[CoreResourceKinds]] = {
@@ -75,10 +72,14 @@ def validate_resource_inputs_for_operation_type(
             value for the collection the operator is being registered into.
 
     Raises:
-        ValueError: If *required_resource_inputs* violate any rule for *operation_type*.
+        ValueError: If *required_resource_inputs* is empty or violates any rule
+            for *operation_type*.
     """
     if not required_resource_inputs:
-        return  # empty → uses legacy default; validated by decorators individually
+        raise ValueError(
+            f"Operator of type {operation_type.value!r} must declare at least "
+            "one resource input."
+        )
 
     allowed = _ALLOWED_KINDS.get(operation_type)
     if allowed is not None:

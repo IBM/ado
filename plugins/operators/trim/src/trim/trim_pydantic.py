@@ -5,7 +5,7 @@ import logging
 from typing import Annotated
 
 import pydantic
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, Field, model_validator
 
 from ado.core.operation.config import GenericOperatorParameters
 from trim.samplers.no_priors_parameters import NoPriorsParameters
@@ -68,8 +68,6 @@ class AutoGluonArgs(BaseModel):
 
 
 class TrimParameters(GenericOperatorParameters):
-    model_config = ConfigDict(extra="allow")  # Allows optional extra params
-
     autoGluonArgs: Annotated[
         AutoGluonArgs,
         Field(

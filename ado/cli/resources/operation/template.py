@@ -135,7 +135,7 @@ def template_operation(parameters: AdoTemplateCommandParameters) -> None:
         parameters=default_operation_parameters,
     )
 
-    # Build inputs block from operator's requiredResourceInputs when available.
+    # Build inputs block from operator's required_resource_inputs when available.
     from ado.core.resources import ADOResourceReference, CoreResourceKinds
 
     if operator is not None and operator.required_resource_inputs:

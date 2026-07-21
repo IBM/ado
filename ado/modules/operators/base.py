@@ -596,15 +596,7 @@ def create_operation_and_add_to_metastore(
     """
     from ado.core.operation.config import DiscoveryOperationConfiguration
     from ado.core.operation.resource import OperationProvenanceInfo
-    from ado.core.resources import CoreResourceKinds
     from ado.modules.operators.collections import provenance_for_operator
-
-    # Derive space_ids for metastore relationship linking.
-    space_ids = [
-        e.identifier
-        for e in inputs.values()
-        if e.kind == CoreResourceKinds.DISCOVERYSPACE
-    ]
 
     operation_resource_configuration = DiscoveryOperationResourceConfiguration(
         operation=DiscoveryOperationConfiguration(
@@ -633,8 +625,9 @@ def create_operation_and_add_to_metastore(
         provenance=OperationProvenanceInfo(operators=operators),
     )
 
+    # Link all resource inputs plus any actuator configurations.
     related_identifiers = [
-        *space_ids,
+        *[e.identifier for e in inputs.values()],
         *operation_resource_configuration.actuatorConfigurationIdentifiers,
     ]
 

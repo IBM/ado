@@ -37,7 +37,7 @@ def setup_actuators(
     """
     Creates all the actuators required by discovery_space
 
-    Params:
+    Args:
         discovery_space: The discovery space to create the actuators for
         actuator_configuration_identifiers: A set of (optional) identifiers of configurations for actuators in the discoveryspace
         measurement_queue: the measurement queue
@@ -69,9 +69,11 @@ def setup_actuators(
             "The measurement space is not supported by the known actuators"
         )
 
+    from ado.metastore.sqlstore import SQLStore
+
     actuator_configurations = get_actuator_configurations(
         actuator_configuration_identifiers=actuator_configuration_identifiers,
-        project_context=discovery_space.project_context,
+        metastore=SQLStore(project_context=discovery_space.project_context),
     )
 
     validate_actuator_configurations_against_space_configuration(
@@ -145,7 +147,7 @@ def setup_operator(
 
     Instantiates the operator class from ``operator_metadata`` as a Ray actor.
 
-    Params:
+    Args:
         operator_metadata: Registered metadata for the operator, carrying the class
             and canonical name.
         parameters: Dictionary of parameters to pass to the operator

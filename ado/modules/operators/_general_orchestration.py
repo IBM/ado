@@ -125,7 +125,7 @@ def orchestrate_general_operation(
 
             validate_actuator_configurations_against_space_configuration(
                 actuator_configurations=actuator_configurations,
-                discovery_space_configuration=space,
+                discovery_space_configuration=space.config,
             )
 
     operation_run_closure = run_general_operation_core_closure(

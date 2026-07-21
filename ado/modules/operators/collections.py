@@ -364,6 +364,13 @@ def explore_operation(
     metadata = cls.operator_metadata()
     _validate_explore_cls(cls, metadata)
     op_name = metadata.name
+    configuration_model = metadata.configuration_model
+
+    # Ensure the stored metadata always has the default resource input for
+    # explore. Explore operators require exactly one discoveryspace input.
+    stored_inputs = list(
+        metadata.required_resource_inputs or (_DEFAULT_DISCOVERY_SPACE_INPUT_PROPERTY,)
+    )
 
     def _generated(
         discoverySpace: DiscoverySpace,
@@ -388,20 +395,18 @@ def explore_operation(
             operation_info=operation_info,
         )
 
+    # Pin ``parameters`` to the operator's concrete configuration model so
+    # registration validation is as strict as for general operators.
+    _generated.__annotations__["parameters"] = configuration_model
     _generated.__name__ = op_name
     _generated.__qualname__ = op_name
     _warn_if_operator_name_reused("explore", op_name, explore.operators)
 
-    # Ensure the stored metadata always has the default resource input for
-    # explore. Explore operators require exactly one discoveryspace input.
-    stored_inputs = list(
-        metadata.required_resource_inputs or (_DEFAULT_DISCOVERY_SPACE_INPUT_PROPERTY,)
-    )
     validate_operator_registration(
         user_fn=_generated,
         required_resource_inputs=stored_inputs,
         operation_type=DiscoveryOperationEnum.EXPLORE,
-        configuration_model=None,
+        configuration_model=configuration_model,
     )
 
     explore.operators[op_name] = metadata.model_copy(
@@ -409,7 +414,7 @@ def explore_operation(
             "function": _generated,
             "cls": cls,
             "provenance": PackageProvenance.from_module_name(cls.__module__),
-            "requiredResourceInputs": tuple(stored_inputs),
+            "required_resource_inputs": tuple(stored_inputs),
         }
     )
     return cls

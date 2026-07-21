@@ -70,14 +70,17 @@ def assert_inputs_in_metastore(
     for name, resource in inputs.items():
         if isinstance(resource, DiscoverySpace):
             kind = CoreResourceKinds.DISCOVERYSPACE
-            identifier = resource.identifier
+            identifier = resource.uri
         elif isinstance(resource, DataContainerResource):
             kind = CoreResourceKinds.DATACONTAINER
             identifier = resource.identifier
+        else:
+            raise ValueError(
+                f"Input {name!r} has unsupported type {type(resource)!r}; "
+                "expected DiscoverySpace or DataContainerResource."
+            )
 
-        if not metastore.containsResourceWithIdentifier(
-            resource.identifier, kind=resource.kind
-        ):
+        if not metastore.containsResourceWithIdentifier(identifier, kind=kind):
             raise ValueError(
                 f"Input {name!r} ({kind.value} {identifier!r}) is not in the "
                 f"active metastore (project {metastore.project_context.project!r})."

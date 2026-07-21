@@ -82,19 +82,19 @@ def get_actuator_configurations(
     each actuator has at most one configuration. This is the use-path fetch;
     ``ado get`` and ``getResource`` do not call this function.
 
-    Params:
+    Args:
         actuator_configuration_identifiers: List of identifiers for actuator
-            configuration resources to retrieve
-        metastore: Metastore to read from. When omitted, opened from *project_context*.
+            configuration resources to retrieve.
+        metastore: Metastore to read from.
 
     Returns:
-        List of ActuatorConfiguration instances validated for use
+        List of ActuatorConfiguration instances validated for use.
 
     Raises:
-        ValueError: If more than one ActuatorConfiguration references the same actuator,
-            or if actuator plugin validation fails, or if neither metastore nor
-            project_context is provided.
-        ResourceDoesNotExistError: If any of the identifiers is not found in the project.
+        ValueError: If more than one ActuatorConfiguration references the same
+            actuator, or if actuator plugin validation fails.
+        ResourceDoesNotExistError: If any of the identifiers is not found in the
+            project.
     """
 
     actuator_configurations = [
@@ -118,19 +118,19 @@ def validate_actuator_configurations_against_space_configuration(
     actuator_configurations: list[ActuatorConfiguration],
     discovery_space_configuration: DiscoverySpaceConfiguration,
 ) -> None:
-    """Validates that actuator configurations are compatible with a discovery space
+    """Validates that actuator configurations are compatible with a discovery space.
 
     Checks that all actuators referenced in the actuator configurations are used
     in the experiments defined in the discovery space configuration.
 
-    Params:
-        actuator_configurations: List of actuator configurations to validate
-        discovery_space_configuration: The discovery space configuration to validate against
-
+    Args:
+        actuator_configurations: List of actuator configurations to validate.
+        discovery_space_configuration: The discovery space configuration to
+            validate against.
 
     Raises:
         ValueError: If any actuator identifier in actuator_configurations does not
-            appear in the experiments of the discovery space
+            appear in the experiments of the discovery space.
     """
     actuator_identifiers = {conf.actuatorIdentifier for conf in actuator_configurations}
 
@@ -160,27 +160,28 @@ def validate_actuator_configuration_ids_against_space_ids(
     space_identifiers: list[str],
     project_context: ProjectContext,
 ) -> list[ActuatorConfiguration]:
-    """Validates actuator configuration identifiers against space identifiers
+    """Validates actuator configuration identifiers against space identifiers.
 
     Retrieves actuator configurations and space configurations from the metastore,
     then validates that all actuator configurations are compatible with all specified
     discovery spaces.
 
-    Params:
+    Args:
         actuator_configuration_identifiers: List of actuator configuration resource
-            identifiers to validate
-        space_identifiers: List of discovery space resource identifiers to validate against
-        project_context: Project context for connecting to the metastore
+            identifiers to validate.
+        space_identifiers: List of discovery space resource identifiers to validate
+            against.
+        project_context: Project context for connecting to the metastore.
 
     Returns:
-        List of ActuatorConfiguration instances that were validated
+        List of ActuatorConfiguration instances that were validated.
 
     Raises:
         ValueError: If any actuator configuration is not compatible with any of the
             discovery spaces, or if more than one ActuatorConfiguration references
-            the same actuator
-        ResourceDoesNotExistError: If any of the identifiers is not found in the project.
-
+            the same actuator.
+        ResourceDoesNotExistError: If any of the identifiers is not found in the
+            project.
     """
     import ado.metastore.sqlstore
 
@@ -195,8 +196,8 @@ def validate_actuator_configuration_ids_against_space_ids(
     ]
 
     actuator_configurations = get_actuator_configurations(
-        project_context=project_context,
         actuator_configuration_identifiers=actuator_configuration_identifiers,
+        metastore=sql,
     )
 
     for config in space_configurations:
@@ -321,8 +322,10 @@ class OperatorMetadata(pydantic.BaseModel):
         pydantic.Field(
             default_factory=tuple,
             description=(
-                "Ordered list describing each operator parameter who type is an ADO resource."
-                "If empty assumes that the operator has a single parameter discoverySpace of type DiscoverySpace"
+                "Ordered list describing each operator parameter whose type is an "
+                "ADO resource. Operators must declare at least one resource input; "
+                "collection decorators supply a single discoverySpace input when "
+                "the argument is omitted."
             ),
         ),
     ]
@@ -399,7 +402,7 @@ class OperatorReference(pydantic.BaseModel):
 
     def operationFunction(
         self,
-    ) -> "typing.Callable[..., ado.modules.operators.base.OperationOutput]":
+    ) -> "typing.Callable[..., ado.modules.operators.base.OperationOutput] | None":
 
         import ado.modules.operators.collections
 
@@ -686,12 +689,13 @@ class DiscoveryOperationResourceConfiguration(pydantic.BaseModel):
         """Validate and populate ``kind`` on all input entries.
 
         For :class:`OperatorModuleConf` and :class:`OperatorReference`
-        operators, loads the operator's ``requiredResourceInputs`` and:
+        operators, loads the operator's ``required_resource_inputs`` and:
 
         * fills ``kind=None`` entries from the descriptor map,
         * checks every entry's (explicit or filled) kind matches the
           descriptor's declared kind, and
-        * checks all required inputs are present.
+        * checks all required inputs are present (``inputs`` must be
+          non-empty).
 
         For :class:`ScriptOperatorConf` operators, which are always
         created via :meth:`~ado.core.discoveryspace.space.DiscoverySpace.operation_context`:
@@ -700,11 +704,8 @@ class DiscoveryOperationResourceConfiguration(pydantic.BaseModel):
         * ``kind`` must be explicitly set (never ``None``), and
         * ``kind`` must be :attr:`~ado.core.resources.CoreResourceKinds.DISCOVERYSPACE`.
 
-        Skipped when:
-
-        * ``inputs`` is empty, or
-        * plugin validation is disabled via
-          :func:`~ado.utilities.pydantic.ignore_plugin_validation`.
+        Skipped when plugin validation is disabled via
+        :func:`~ado.utilities.pydantic.ignore_plugin_validation`.
 
         Args:
             info: Pydantic validation info carrying optional context.
@@ -713,12 +714,10 @@ class DiscoveryOperationResourceConfiguration(pydantic.BaseModel):
             self after validation and kind population.
 
         Raises:
-            ValueError: If an input name is undeclared, a kind mismatches
-                its binding, a required input is missing, or a script input
-                has a missing or wrong kind.
+            ValueError: If ``inputs`` is empty, an input name is undeclared, a
+                kind mismatches its binding, a required input is missing, or a
+                script input has a missing or wrong kind.
         """
-        if not self.inputs:
-            return self
         if ignore_plugin_validation(info):
             return self
 
@@ -727,6 +726,11 @@ class DiscoveryOperationResourceConfiguration(pydantic.BaseModel):
         if isinstance(module, ScriptOperatorConf):
             # Script operators are always created via DiscoverySpace.operation_context,
             # which provides a fully-typed ADOResourceReference (kind=DISCOVERYSPACE).
+            if not self.inputs:
+                raise ValueError(
+                    "ScriptOperatorConf operations require exactly one input "
+                    "(the discovery space); 'inputs' is empty."
+                )
             if len(self.inputs) > 1:
                 raise ValueError(
                     "ScriptOperatorConf operations support exactly one input "
@@ -747,7 +751,7 @@ class DiscoveryOperationResourceConfiguration(pydantic.BaseModel):
                     )
             return self
 
-        # Load operator requiredResourceInputs (mirrors validate_and_downcast_parameters).
+        # Load operator required_resource_inputs (mirrors validate_and_downcast_parameters).
         if isinstance(module, OperatorModuleConf):
             import importlib
 
@@ -762,18 +766,26 @@ class DiscoveryOperationResourceConfiguration(pydantic.BaseModel):
 
             operator_metadata = operator_metadata_for_reference(module)
 
-        # Use the default single-space input when the operator declares none.
+        # Use the default single-space input when the operator declares none
+        # (should not happen for correctly registered operators).
         required_resource_inputs = operator_metadata.required_resource_inputs or (
             _DEFAULT_DISCOVERY_SPACE_INPUT_PROPERTY,
         )
         input_map = {d.identifier: d.kind for d in required_resource_inputs}
+
+        if not self.inputs:
+            required_names = [d.identifier for d in required_resource_inputs]
+            raise ValueError(
+                "Operation 'inputs' must not be empty. Required input(s): "
+                f"{required_names}."
+            )
 
         for name, entry in self.inputs.items():
             expected_kind = input_map.get(name)
             if expected_kind is None:
                 raise ValueError(
                     f"Input '{name}' is not declared in the operator's "
-                    "requiredResourceInputs."
+                    "required_resource_inputs."
                 )
             if entry.kind is None:
                 entry.kind = expected_kind
@@ -795,43 +807,47 @@ class DiscoveryOperationResourceConfiguration(pydantic.BaseModel):
     def get_actuatorconfigurations(
         self, project_context: ProjectContext
     ) -> list[ActuatorConfiguration]:
-        """Gets the actuator configuration resources referenced by actuatorConfigurationIdentifiers from the metastore if any
+        """Gets the actuator configuration resources referenced by actuatorConfigurationIdentifiers from the metastore if any.
 
-        Params:
-            project_context: Information for connection to the metastore
+        Args:
+            project_context: Information for connection to the metastore.
 
         Returns:
-            A list of ActuatorConfigurationResource instance. The list will be empty if
+            A list of ActuatorConfiguration instances. The list will be empty if
             there are no actuatorConfigurationIdentifiers.
 
-
         Raises:
-            ValueError if there is more than one ActuatorConfigurationResource references the same actuator
-            ResourceDoesNotExistError if any actuator configuration identifier cannot be found in the project
+            ValueError: If more than one ActuatorConfigurationResource references
+                the same actuator.
+            ResourceDoesNotExistError: If any actuator configuration identifier
+                cannot be found in the project.
         """
+        import ado.metastore.sqlstore
 
         if not self.actuatorConfigurationIdentifiers:
             return []
 
         return get_actuator_configurations(
-            project_context=project_context,
             actuator_configuration_identifiers=self.actuatorConfigurationIdentifiers,
+            metastore=ado.metastore.sqlstore.SQLStore(project_context=project_context),
         )
 
     def validate_actuatorconfigurations(
         self, project_context: ProjectContext
     ) -> list[ActuatorConfiguration]:
-        """Gets and validates the actuator configuration resources referenced by actuatorConfigurationIdentifiers from the metastore if any
+        """Gets and validates the actuator configuration resources referenced by actuatorConfigurationIdentifiers from the metastore if any.
 
-        Params:
-            project_context: Information for connection to the metastore
+        Args:
+            project_context: Information for connection to the metastore.
 
         Returns:
-            A list of ActuatorConfigurationResource instance. The list will be empty if
+            A list of ActuatorConfiguration instances. The list will be empty if
             there are no actuatorConfigurationIdentifiers.
 
-
-        Raises: ValueError if more than one ActuatorConfigurationResource references the same actuator
+        Raises:
+            ValueError: If more than one ActuatorConfigurationResource references
+                the same actuator, or configurations are incompatible with the
+                operation's spaces.
         """
         return validate_actuator_configuration_ids_against_space_ids(
             actuator_configuration_identifiers=self.actuatorConfigurationIdentifiers,

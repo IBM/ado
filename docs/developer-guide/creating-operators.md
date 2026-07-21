@@ -56,7 +56,8 @@ from ado.modules.operators.collections import characterize_operation  # Import t
 def detect_anomalous_series(
         discoverySpace: DiscoverySpace,
         operationInfo: FunctionOperationInfo | None = None,
-        **parameters: typing.Any,
+        *,
+        parameters: MyOperatorOptions,
 ) -> OperationOutput:
     # Your operation logic - can also call other Python modules etc.
     ...
@@ -87,42 +88,49 @@ The decorator parameters are the same for all operator/operation types.
 
 ### Operator function parameters
 
-All operator functions take one or more `discoveryspaces` along with a
-dictionary containing the inputs for the operation.
+Operator functions take one or more resource inputs (typically `DiscoverySpace`
+and/or `DataContainerResource`), then an optional `operationInfo`, then a
+`parameters` argument typed as your operator's configuration model.
 
-If your operation type is `explore`, `characterize`, `learn` or `modify`, your
-function should have a parameter `discoverySpace` i.e.
+Resource parameter **names** and **types** must match the
+`required_resource_inputs` you declare on the decorator (in the same order).
+For the common single-space case:
 
 ```python
-import typing
-
-
 def detect_anomalous_series(
         discoverySpace: DiscoverySpace,
         operationInfo: FunctionOperationInfo | None = None,
-        **parameters: typing.Any,
+        *,
+        parameters: MyOperatorOptions,
 ) -> OperationOutput:
     ...
 ```
 
-If it is `fuse` or `compare` your function should have a parameter
-`discoverySpaces` which is a list of `discoveryspaces` i.e.
+Note, that the name of the parameter above (`discoverySpace`) can be anything.
+
+For multi-input operators), declare each resource as its own parameter.
 
 ```python
-import typing
+from ado.core.datacontainer.resource import DataContainerResource
 
 
-def detect_anomalous_series(
-        discoverySpaces: list[DiscoverySpace],
+def my_comparison(
+        baseline: DataContainerResource,
+        candidate: DataContainerResource,
         operationInfo: FunctionOperationInfo | None = None,
-        **parameters: typing.Any,
+        *,
+        parameters: MyCompareOptions,
 ) -> OperationOutput:
     ...
 ```
 
-Operator functions also take an optional third parameter, `operationInfo`, that
-holds information for `ado`. You do not have to interact with the parameter
-unless you are writing an [explore operator](#creating-explore-operators).
+Operator functions also take an optional `operationInfo` parameter that holds
+information for `ado`. You need it in these two situations:
+
+1. You are writing an [explore operator](#creating-explore-operators)
+2. You are nesting other operators.
+   - In this case ensure you pass a copy of the `operationInfo` parameter to nested operator.
+   You can change the `metadata` field in the copy, to reflect what the sub-operation does, but keep the others.
 
 ## Describing your operation input parameters
 
@@ -145,14 +153,11 @@ the previous section with the relevant fields called out:
 )
 ```
 
-Here `MyOperatorOptions` is a pydantic model that describes your operators input
-parameters. The `parameters` dictionary that is passed to your operation
-function will be a dump of this model. So the typical first step in the function
-is to create the model for your inputs
-
-```python
-inputs = MyOperatorOptions.model_validate(parameters)
-```
+Here `MyOperatorOptions` is a pydantic model (subclass of
+`GenericOperatorParameters`) that describes your operators input parameters.
+Orchestration validates YAML/dict parameters into an instance of this model and
+passes it as the `parameters` argument — you do not need to call
+`model_validate` again inside the function.
 
 ### Providing an example operation configuration
 
@@ -448,8 +453,26 @@ from ado.modules.operators.collections import explore
 def my_learning_operation(...):
     ...
     #Note: The name of the function called (here random_walk() ) is the operator name
-    random_walk_output = explore.random_walk(...Args...)
+    random_walk_output = explore.random_walk(
+        discoverySpace=discoverySpace,
+        operationInfo=operationInfo,  # forwards projectContext
+        parameters=RandomWalkParameters(...),
+    )
     ...
+```
+
+Multi-input operators (for example `compare` or `fuse`) are nested the same
+way — pass each declared resource input by name and a parameters model:
+
+```python
+from ado.modules.operators.collections import compare
+
+compare_output = compare.my_compare(
+    baseline=baseline_container,
+    candidate=candidate_container,
+    operationInfo=operationInfo,
+    parameters=MyCompareOptions(...),
+)
 ```
 
 > [!IMPORTANT]

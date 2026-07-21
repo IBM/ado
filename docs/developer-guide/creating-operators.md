@@ -75,16 +75,36 @@ You then import the decorator for this operator type from
 `ado.modules.operators.collections` and use it to decorate your
 operator function.
 
-For example, if your operator **compares** `discoveryspaces` you would do
+For example, if your operator **compares** resources you would do:
 
 ```python
+from ado.core.datacontainer.resource import DataContainerResource
+from ado.core.operation.config import FunctionOperationInfo
+from ado.core.operation.operation import OperationOutput
 from ado.modules.operators.collections import compare_operation
 
-@compare_operation(...)
-def my_comparison_operation():
+@compare_operation(
+    name="my_compare",
+    description="Compare two data containers",
+    configuration_model=MyCompareOptions,
+    example_configuration=MyCompareOptions(),
+    version="1.0.0",
+)
+def my_comparison(
+        baseline: DataContainerResource,
+        candidate: DataContainerResource,
+        operationInfo: FunctionOperationInfo | None = None,
+        *,
+        parameters: MyCompareOptions,
+) -> OperationOutput:
+    ...
 ```
 
-The decorator parameters are the same for all operator/operation types.
+Decorator metadata parameters (`name`, `version`, `configuration_model`,
+`example_configuration`, and optional `description` /
+`required_properties`) are the same for all non-explore operator types.
+Resource inputs are **not** decorator arguments — they are deduced from the
+function signature (see below).
 
 ### Operator function parameters
 
@@ -92,8 +112,13 @@ Operator functions take one or more resource inputs (typically `DiscoverySpace`
 and/or `DataContainerResource`), then an optional `operationInfo`, then a
 `parameters` argument typed as your operator's configuration model.
 
-Resource parameter **names** and **types** must match the
-`required_resource_inputs` you declare on the decorator (in the same order).
+Resource parameter **names** and **types** are deduced from the function
+signature at registration time: every parameter before `operationInfo` /
+`parameters` must be annotated with a supported rich input type
+(`DiscoverySpace` or `DataContainerResource`). Those annotations *are* the
+declaration of the operator's resource inputs; the parameter name becomes the
+YAML `inputs` key.
+
 For the common single-space case:
 
 ```python
@@ -106,9 +131,13 @@ def detect_anomalous_series(
     ...
 ```
 
-Note, that the name of the parameter above (`discoverySpace`) can be anything.
+Note that the name of the parameter above (`discoverySpace`) can be anything —
+whatever you choose is what callers and operation YAML must use under
+`inputs`.
 
-For multi-input operators), declare each resource as its own parameter.
+For multi-input operators (for example compare or fuse), declare each resource
+as its own typed parameter. Collection rules still apply (e.g. compare needs
+at least two inputs; fuse requires only `DiscoverySpace` inputs):
 
 ```python
 from ado.core.datacontainer.resource import DataContainerResource
@@ -452,17 +481,23 @@ from ado.modules.operators.collections import explore
 @learn_operation(...)
 def my_learning_operation(...):
     ...
-    #Note: The name of the function called (here random_walk() ) is the operator name
+    # Note: The name of the function called (here random_walk()) is the operator name
     random_walk_output = explore.random_walk(
         discoverySpace=discoverySpace,
-        operationInfo=operationInfo,  # forwards projectContext
+        operationInfo=operationInfo,  # forwards projectContext when set
         parameters=RandomWalkParameters(...),
     )
     ...
 ```
 
+When nesting, prefer passing the same `operationInfo` you received (or a copy
+that keeps `projectContext`). If `projectContext` is unset, ado can fall back
+to a `DiscoverySpace` input's embedded project context; DataContainer-only
+calls must set `projectContext` explicitly.
+
 Multi-input operators (for example `compare` or `fuse`) are nested the same
-way — pass each declared resource input by name and a parameters model:
+way — pass each resource input by the parameter name from that operator's
+signature, plus a parameters model:
 
 ```python
 from ado.modules.operators.collections import compare
@@ -540,6 +575,13 @@ Explore operators sample entities from a discovery space and submit them for
 measurement. Unlike other operator types, the logic runs inside a **Ray actor**
 and requires a class to be implemented.
 
+Registration still produces a callable with the standard shape: a single
+resource input named `discoverySpace: DiscoverySpace`, optional
+`operationInfo`, and keyword-only `parameters` typed as your
+`configuration_model` (a `GenericOperatorParameters` subclass). You do not
+declare that signature yourself — `@explore_operation` generates it from the
+class metadata.
+
 ### Implementation
 
 1. Create a class that subclasses `ado.modules.operators.base.Explore`
@@ -555,10 +597,13 @@ A simple example is show below:
 
 ```python
 import asyncio
-import pydantic
 from ado.core.datacontainer.resource import DataContainer
 from ado.core.datacontainer.resource import DataContainerResource
-from ado.core.operation.config import DiscoveryOperationEnum, OperatorMetadata
+from ado.core.operation.config import (
+    DiscoveryOperationEnum,
+    GenericOperatorParameters,
+    OperatorMetadata,
+)
 from ado.core.operation.operation import OperationOutput
 from ado.core.operation.resource import (
     OperationExitStateEnum,
@@ -569,7 +614,7 @@ from ado.modules.operators.base import Explore, measure_or_replay
 from ado.modules.operators.collections import explore_operation
 
 
-class MySearchParameters(pydantic.BaseModel):
+class MySearchParameters(GenericOperatorParameters):
     num_entities: int = 10
 
 

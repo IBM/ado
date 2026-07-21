@@ -235,7 +235,9 @@ def _find_spaces_matching_space(
         return result_df
 
     result_df = result_df[
-        result_df["RELATION_TO_INPUT_SPACE"] != SpaceHierarchy.UNDEFINED.value
+        ~result_df["RELATION_TO_INPUT_SPACE"].isin(
+            {SpaceHierarchy.UNDEFINED.value, SpaceHierarchy.DISJOINT.value}
+        )
     ]
     result_df = result_df.sort_values(by="AGE", ascending=False)
     result_df = result_df.reset_index(drop=True)

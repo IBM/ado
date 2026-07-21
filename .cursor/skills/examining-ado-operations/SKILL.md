@@ -17,8 +17,8 @@ on, and whether measurements and results look healthy.
 
 - Run all commands from the **repository root** with `uv run`.
 - The report produced by this skill is stored as the `content` of a
-  `document` resource in the active ado metastore context —
-  (see [Producing a report](#producing-a-report)).
+  `document` resource in the active ado metastore context (see
+  [Producing a report](#producing-a-report)).
 
 **Related skills**:
 
@@ -26,6 +26,8 @@ on, and whether measurements and results look healthy.
   [using-ado-cli](../using-ado-cli/SKILL.md).
 - For metastore filtering, schemas see
   [query-ado-data](../query-ado-data/SKILL.md).
+- For creating document resources that store reports, see
+  [resource-yaml-creation — Document](../resource-yaml-creation/SKILL.md#document).
 - For a project/context wide view (all spaces and operations), see
   [examining-ado-project](../examining-ado-project/SKILL.md).
 
@@ -126,7 +128,7 @@ If the operation is finished,
 - Query the metastore for an existing document linked to this operation:
 
   ```bash
-  uv run ado get document -q config.relatedResources[*]=OPERATION_ID
+  uv run ado get document -q 'config.relatedResources=OPERATION_ID'
   ```
 
   If a document is found, retrieve its metadata (name, created timestamp) and
@@ -134,7 +136,8 @@ If the operation is finished,
   if that report indicated the operation was finished.
   - If yes, ask the user whether to replace it with a new report. If they
     agree, delete the existing document (`uv run ado delete document
-    DOCUMENT_ID`) once the new report has been created.
+    DOCUMENT_ID`) once the new report has been created. See
+    [resource-yaml-creation — Document](../resource-yaml-creation/SKILL.md#document).
   - If no, continue with creating a new report.
 
 ### Step 3: Review the operator
@@ -327,24 +330,9 @@ Structure the report as:
    distributions
 5. **Next Steps**: A plan for the next research steps to take using ado.
 
-Store the report by creating a document resource, writing the markdown
-directly into the `content` field:
-
-```yaml
-# <OPERATION_ID>_<YYYY-MM-DD>_document.yaml  (temp file, not committed)
-metadata:
-  name: "<descriptive name>"
-  description: "<one-line summary>"
-content: |
-  <full markdown report text>
-relatedResources:
-  - <operation id>
-  - <input space ids from step 1>
-```
-
-```bash
-uv run ado create document -f <OPERATION_ID>_<YYYY-MM-DD>_document.yaml
-```
+Store the report as a document resource (see
+[resource-yaml-creation — Document](../resource-yaml-creation/SKILL.md#document)).
+Set `relatedResources` to the operation id and the input space ids from step 1.
 
 ## Troubleshooting
 

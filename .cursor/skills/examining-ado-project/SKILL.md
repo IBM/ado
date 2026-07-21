@@ -15,6 +15,9 @@ related metadata in the ado project associated to the active context.
 
 - Run all commands from the **repository root** with `uv run` (see
   [using-ado-cli](../using-ado-cli/SKILL.md)).
+- The report produced by this skill is stored as the `content` of a
+  `document` resource in the active ado metastore context (see
+  [Producing a report](#producing-a-report)).
 - See
   [projects and contexts](../../../docs/resources/metastore.md#contexts-and-projects)
   for details on what projects and contexts are
@@ -24,6 +27,8 @@ related metadata in the ado project associated to the active context.
 
 - Prefer metastore listing and YAML dumps before heavy `uv run ado show` data
   pulls; see [query-ado-data](../query-ado-data/SKILL.md).
+- For creating document resources that store reports, see
+  [resource-yaml-creation — Document](../resource-yaml-creation/SKILL.md#document).
 - For one space in depth:
   [examining-discovery-spaces](../examining-discovery-spaces/SKILL.md).
 - For one operation in depth:
@@ -209,33 +214,57 @@ Optionally complement with one-hop links:
 uv run ado show related space SPACE_ID
 ```
 
-## 4. Report template
+## 4. Check for existing report
 
-Write a concise markdown report. The report is stored directly as the
-`content` field of a `document` resource .
+The project report is stored as a `document` resource whose `metadata.name` is
+ `project_report`. There **may** be zero, one, or
+many documents with that name — each has a unique identifier. If several match,
+the **current** report is the most recently created one.
 
-- The document's `metadata.name` is `project_<YYYY-MM-DD>_report`, where the
-  date is today's date
-- Query the metastore for an existing project report document:
+Query the metastore:
 
-  ```bash
-  uv run ado get document -q metadata.name=project_<YYYY-MM-DD>_report
-  ```
+```bash
+uv run ado get document -q 'config.metadata.name=project_report' --details
+```
 
-  If a matching document is found, ask the user whether to replace it.
-- If a report already exists, check whether there has been meaningful activity
-  since it was written before replacing it:
-  1. Run `uv run ado get spaces --details` and
-     `uv run ado get operations --details` and note the age of the most recent
-     resource.
-  2. If the most recent resource is **younger** than the existing document's
-     `creationTimestamp`, there has been new activity — proceed to write a new
-     report.
-  3. If not, ask the user whether they want to replace it.
-  4. If finer-grained confirmation is needed, fetch the YAML of the most recent
-     space or operation (`uv run ado get space SPACE_ID -o yaml --output-file
-     SPACE_ID.yaml`, or the same pattern for `operation`) and read its
-     `creationTimestamp` field.
+If matches exist:
+
+1. Identify the **current** document (newest by creation timestamp from
+   `--details` or from document YAML `created` / status timestamps). Fetch its
+   `content` (`uv run ado get document DOCUMENT_ID -o yaml`).
+2. Check whether there has been meaningful activity since the current report
+   was written:
+   1. Run `uv run ado get spaces --details` and
+      `uv run ado get operations --details` and note the age of the most recent
+      resource.
+   2. If the most recent resource is **younger** than the current document's
+      creation timestamp, there has been new activity — proceed toward writing
+      a new report.
+   3. If not, ask the user whether they want to write a new report anyway. If
+      they decline, stop and use/refer to the current document id.
+   4. If finer-grained confirmation is needed, fetch the YAML of the most recent
+      space or operation (`uv run ado get space SPACE_ID -o yaml --output-file
+      SPACE_ID.yaml`, or the same pattern for `operation`) and read its
+      `creationTimestamp` field.
+3. Before creating a new report when a current one exists, **ask** whether to:
+   - **Keep history** — leave existing `project_report` document(s); create
+     another with the same name.
+   - **Replace** — delete the current document
+     (`uv run ado delete document DOCUMENT_ID`), then create the new one.
+     See
+     [resource-yaml-creation — Document](../resource-yaml-creation/SKILL.md#document).
+   Do not auto-delete; do not assume history must be kept.
+
+## Producing a report
+
+Write a concise markdown report. Store it as the `content` field of a
+`document` resource (see
+[resource-yaml-creation — Document](../resource-yaml-creation/SKILL.md#document)).
+
+- Set `metadata.name` to `project_report`.
+- Set `metadata.description` to include today's date, e.g.
+  `Project overview as of YYYY-MM-DD`.
+- Omit `relatedResources` (or leave empty).
 
 ### Project summary
 
@@ -263,30 +292,3 @@ Write a concise markdown report. The report is stored directly as the
   parameters).
 - Make a note of operations with failed measurements and highlight ones with
   abnormal failure rates (from the stats).
-
-Persist the report as a document resource. Since a project
-report spans many resources, set `relatedResources` to the identifiers of the
-most recently active spaces and operations (for example the five most recently
-created of each):
-
-```yaml
-# project_<YYYY-MM-DD>_document.yaml  (temp file, not committed)
-metadata:
-  name: "project_<YYYY-MM-DD>_report"
-  description: "<one-line summary>"
-content: |
-  <full markdown report text>
-relatedResources:
-  - <recent space ids>
-  - <recent operation ids>
-```
-
-```bash
-uv run ado create document -f project_<YYYY-MM-DD>_document.yaml
-```
-
-If an existing report document is being replaced (see above), delete it first:
-
-```bash
-uv run ado delete document EXISTING_DOCUMENT_ID
-```

@@ -20,6 +20,7 @@ These guidelines apply to all code development in the ado codebase.
     - samplestore
     - datacontainer
     - actuatorconfiguration
+    - document
   - **modules/actuators**: defines actuators, custom experiments, and their
     associated management code (plugins, registry)
   - **modules/operators**: defines operators and their associated management

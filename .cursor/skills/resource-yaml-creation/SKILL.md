@@ -2,10 +2,10 @@
 name: resource-yaml-creation
 description: |
   Guidance for creating ado resource YAML files (discoveryspace, operation,
-  actuatorconfiguration, samplestore). Covers metadata conventions, dynamic
-  reference resolution with --use-latest/--with/--set, space design principles,
-  avoiding duplicate resources, and validation. Use when creating or editing
-  any ado resource YAML file.
+  actuatorconfiguration, samplestore, document). Covers metadata conventions,
+  dynamic reference resolution with --use-latest/--with/--set, space design
+  principles, avoiding duplicate resources, document reports, and validation.
+  Use when creating or editing any ado resource YAML file.
 ---
 
 # Creating ado Resource YAML Files
@@ -33,7 +33,7 @@ metadata:
 - `name` and `description` are shown by `ado get --details`
 - `labels` support filtering: `uv run ado get spaces --label project=my_project`
 - `--filter` supports path-based filtering across any field:
-  `uv run ado get spaces --filter "metadata.name=my_space"`
+  `uv run ado get spaces --filter 'config.metadata.name=my_space'`
 
 ## Dynamic Reference Resolution
 
@@ -193,6 +193,48 @@ shared measurement history.
 ```bash
 uv run ado create samplestore -f samplestore.yaml
 ```
+
+### Document
+
+Use `document` resources to persist markdown reports (and similar text) in the
+metastore. Examining skills store their reports this way: put the markdown in
+`content`, and list related resource identifiers in `relatedResources`.
+
+```yaml
+# <descriptive>_document.yaml  (temp file, not committed)
+metadata:
+  name: "<descriptive name>"
+  description: "<one-line summary>"
+content: |
+  <full markdown report text>
+relatedResources:
+  - <related resource ids>
+```
+
+```bash
+uv run ado create document -f <descriptive>_document.yaml
+uv run ado delete document DOCUMENT_ID
+```
+
+Validate with `uv run ado create document -f FILE --dry-run` before creating.
+
+**Querying existing documents** (paths are under `config.`; string candidates
+must be single-quoted — see [query-ado-data](../query-ado-data/SKILL.md)):
+
+```bash
+# By related resource id (array containment — no [*] subscript)
+uv run ado get document -q 'config.relatedResources=RESOURCE_ID'
+
+# By metadata name
+uv run ado get document -q 'config.metadata.name=NAME'
+```
+
+Fetch a document's body with
+`uv run ado get document DOCUMENT_ID -o yaml`.
+
+When replacing a report, delete the existing document only after the user
+agrees and the new report has been created (or immediately before creating the
+replacement, if the skill's replace policy says so).
 
 ## Related Resources
 

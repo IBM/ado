@@ -28,7 +28,6 @@ from ado.core.operation.config import (
     OperatorModuleConf,
     OperatorReference,
 )
-from ado.core.operation.inputs import OPERATOR_INPUT_TYPE_FOR_KIND
 from ado.core.operation.operation import OperationOutput
 from ado.core.operation.resource import OperationResource
 from ado.core.resources import ADOResourcePropertyDescriptor, ADOResourceReference
@@ -57,7 +56,8 @@ moduleLog = logging.getLogger("operation_base")
 #:     (resource₁, …, resourceₙ, operationInfo=None, parameters: ConfigurationModel)
 #:         -> OperationOutput
 #:
-#: Resource parameter names and types come from ``required_resource_inputs``;
+#: Resource parameter names and types are deduced from the function signature
+#: (see :func:`~ado.core.operation.inputs.resource_inputs_from_operator_function`);
 #: ``parameters`` is an instance of the operator's ``configuration_model``.
 OperatorCallable: TypeAlias = Callable[..., OperationOutput]
 
@@ -74,12 +74,10 @@ def validate_operator_call_shape(
     ``parameters``. The return type must be
     :class:`~ado.core.operation.operation.OperationOutput`.
 
-    Resource *types* are checked separately by
-    :func:`validate_resource_input_types`.
-
     Args:
         fn: The callable to validate (user implementation or stored wrapper).
-        required_resource_inputs: Declared resource inputs for this operator.
+        required_resource_inputs: Resource inputs deduced from *fn* (or an
+            equivalent stored callable).
         configuration_model: When provided, ``parameters`` must be annotated
             with this type (the operator's configuration model).
 
@@ -196,53 +194,6 @@ def validate_operator_call_shape(
         )
 
 
-def validate_resource_input_types(
-    fn: typing.Callable,
-    required_resource_inputs: list[ADOResourcePropertyDescriptor] | None,
-) -> None:
-    """Validate that *fn*'s parameter type hints match its declared resource inputs.
-
-    For each descriptor in *required_resource_inputs*, if *fn* declares an
-    explicit, resolvable type hint for a parameter named
-    ``descriptor.identifier``, that hint must equal the Python type ADO
-    resolves for ``descriptor.kind`` (see
-    :data:`ado.core.operation.inputs.OPERATOR_INPUT_TYPE_FOR_KIND`). A
-    descriptor whose identifier is not an explicit parameter of *fn* (e.g.
-    it is absorbed by a ``**kwargs`` catch-all) cannot be statically
-    checked and is skipped.
-
-    Args:
-        fn: The operator callable to validate.
-        required_resource_inputs: The resource inputs declared for *fn*.
-
-    Raises:
-        ValueError: If an explicitly-annotated parameter's type does not
-            match the type expected for its declared resource kind.
-    """
-    if not required_resource_inputs:
-        return
-
-    try:
-        hints = typing.get_type_hints(fn)
-    except Exception as exc:  # noqa: BLE001
-        raise ValueError(
-            f"Cannot validate resource input types for operator function {fn!r}: "
-            f"type hints are missing or unresolvable ({exc})."
-        ) from exc
-
-    for descriptor in required_resource_inputs:
-        if descriptor.identifier not in hints:
-            continue
-        expected_type = OPERATOR_INPUT_TYPE_FOR_KIND[descriptor.kind]
-        actual_type = hints[descriptor.identifier]
-        if actual_type != expected_type:
-            raise ValueError(
-                f"Operator function parameter {descriptor.identifier!r} must be "
-                f"{expected_type!r} to match declared resource kind "
-                f"{descriptor.kind.value!r}, got {actual_type!r}."
-            )
-
-
 def validate_operator_registration(
     user_fn: typing.Callable,
     required_resource_inputs: list[ADOResourcePropertyDescriptor],
@@ -255,14 +206,13 @@ def validate_operator_registration(
     Entry point used by operator decorators. Runs:
 
     1. :func:`~ado.modules.operators.inputs.validate_resource_inputs_for_operation_type`
-       — declaration vs collection policy
-    2. :func:`validate_resource_input_types` — resource name ↔ rich type
-    3. :func:`validate_operator_call_shape` — resources then ``operationInfo``
+       — deduced inputs vs collection policy
+    2. :func:`validate_operator_call_shape` — resources then ``operationInfo``
        then ``parameters``
 
     Args:
         user_fn: The operator implementation (before or under ``functools.wraps``).
-        required_resource_inputs: Declared resource inputs.
+        required_resource_inputs: Resource inputs deduced from *user_fn*.
         operation_type: Collection the operator is registered into.
         configuration_model: The operator's parameter model class.
         stored_fn: Optional stored callable (wrapper). When provided and distinct
@@ -281,7 +231,6 @@ def validate_operator_registration(
     validate_resource_inputs_for_operation_type(
         required_resource_inputs, operation_type
     )
-    validate_resource_input_types(user_fn, required_resource_inputs)
     validate_operator_call_shape(
         user_fn, required_resource_inputs, configuration_model=configuration_model
     )

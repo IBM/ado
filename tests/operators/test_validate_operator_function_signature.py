@@ -1,6 +1,6 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
-"""Tests for validate_operator_call_shape and validate_resource_input_types."""
+"""Tests for validate_operator_call_shape and resource_inputs_from_operator_function."""
 
 import pytest
 
@@ -11,12 +11,10 @@ from ado.core.operation.config import (
     FunctionOperationInfo,
     GenericOperatorParameters,
 )
+from ado.core.operation.inputs import resource_inputs_from_operator_function
 from ado.core.operation.operation import OperationOutput
 from ado.core.resources import CoreResourceKinds
-from ado.modules.operators.base import (
-    validate_operator_call_shape,
-    validate_resource_input_types,
-)
+from ado.modules.operators.base import validate_operator_call_shape
 
 
 class _EmptyParams(GenericOperatorParameters):
@@ -225,39 +223,55 @@ class TestInvalidCallShapes:
             )
 
 
-class TestValidateResourceInputTypes:
-    def test_no_required_resource_inputs_is_a_noop(self) -> None:
-        def fn(**kwargs: object) -> None: ...
+class TestResourceInputsFromOperatorFunction:
+    def test_single_space(self) -> None:
+        descriptors = resource_inputs_from_operator_function(valid_op)
+        assert descriptors == [_space_input()]
 
-        validate_resource_input_types(fn, [])
-        validate_resource_input_types(fn, None)
+    def test_multi_datacontainer(self) -> None:
+        descriptors = resource_inputs_from_operator_function(valid_multi_input)
+        assert descriptors == [
+            _datacontainer_input("baseline"),
+            _datacontainer_input("candidate"),
+        ]
 
-    def test_matching_type_passes(self) -> None:
-        def fn(baseline: DataContainerResource, **kwargs: object) -> None: ...
+    def test_annotated_type_unwrapped(self) -> None:
+        from typing import Annotated
 
-        validate_resource_input_types(fn, [_datacontainer_input()])
-
-    def test_matching_discoveryspace_type_passes(self) -> None:
-        def fn(discoverySpace: DiscoverySpace, **kwargs: object) -> None: ...
-
-        validate_resource_input_types(fn, [_space_input()])
-
-    def test_mismatched_type_raises(self) -> None:
-        def fn(baseline: DiscoverySpace, **kwargs: object) -> None: ...
-
-        with pytest.raises(ValueError, match="baseline"):
-            validate_resource_input_types(fn, [_datacontainer_input()])
-
-    def test_identifier_absorbed_by_kwargs_is_skipped(self) -> None:
-        def fn(**kwargs: object) -> None: ...
-
-        validate_resource_input_types(fn, [_datacontainer_input()])
-
-    def test_unresolvable_type_hints_raises(self) -> None:
         def fn(
-            baseline: "UnresolvableType",  # noqa: F821
-            **kwargs: object,
-        ) -> None: ...
+            discoverySpace: Annotated[DiscoverySpace, "meta"],
+            operationInfo: FunctionOperationInfo | None = None,
+            *,
+            parameters: _EmptyParams,
+        ) -> OperationOutput: ...
 
-        with pytest.raises(ValueError, match="type hints are missing or unresolvable"):
-            validate_resource_input_types(fn, [_datacontainer_input()])
+        assert resource_inputs_from_operator_function(fn) == [_space_input()]
+
+    def test_unsupported_type_raises(self) -> None:
+        def fn(
+            x: object,
+            operationInfo: FunctionOperationInfo | None = None,
+            *,
+            parameters: _EmptyParams,
+        ) -> OperationOutput: ...
+
+        with pytest.raises(ValueError, match="must be annotated with one of"):
+            resource_inputs_from_operator_function(fn)
+
+    def test_no_resource_inputs_raises(self) -> None:
+        def fn(
+            operationInfo: FunctionOperationInfo | None = None,
+            *,
+            parameters: _EmptyParams,
+        ) -> OperationOutput: ...
+
+        with pytest.raises(ValueError, match="at least one resource input"):
+            resource_inputs_from_operator_function(fn)
+
+    def test_kwargs_rejected(self) -> None:
+        with pytest.raises(ValueError, match=r"\*\*kwargs"):
+            resource_inputs_from_operator_function(with_kwargs)
+
+    def test_missing_trailing_params_raises(self) -> None:
+        with pytest.raises(ValueError, match="operationInfo"):
+            resource_inputs_from_operator_function(missing_operation_info)

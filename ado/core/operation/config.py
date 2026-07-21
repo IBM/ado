@@ -323,9 +323,8 @@ class OperatorMetadata(pydantic.BaseModel):
             default_factory=tuple,
             description=(
                 "Ordered list describing each operator parameter whose type is an "
-                "ADO resource. Operators must declare at least one resource input; "
-                "collection decorators supply a single discoverySpace input when "
-                "the argument is omitted."
+                "ADO resource. Deduced from the operator function signature at "
+                "registration; operators must have at least one resource input."
             ),
         ),
     ]

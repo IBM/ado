@@ -921,13 +921,11 @@ def test_compare_operation_decorator_registers() -> None:
 
     from ado.core.datacontainer.resource import DataContainerResource
     from ado.core.operation.config import (
-        ADOResourcePropertyDescriptor,
         DiscoveryOperationEnum,
         FunctionOperationInfo,
         GenericOperatorParameters,
     )
     from ado.core.operation.operation import OperationOutput
-    from ado.core.resources import CoreResourceKinds
     from ado.modules.operators.collections import compare, compare_operation
 
     class _Cfg(GenericOperatorParameters):
@@ -946,14 +944,6 @@ def test_compare_operation_decorator_registers() -> None:
         version="0.1.0",
         configuration_model=_Cfg,
         example_configuration=_Cfg(),
-        required_resource_inputs=[
-            ADOResourcePropertyDescriptor(
-                identifier="baseline", kind=CoreResourceKinds.DATACONTAINER
-            ),
-            ADOResourcePropertyDescriptor(
-                identifier="candidate", kind=CoreResourceKinds.DATACONTAINER
-            ),
-        ],
         description="Test compare operator.",
     )(_my_compare)
 
@@ -975,12 +965,10 @@ def test_compare_operation_decorator_stores_orchestration_wrapper() -> None:
 
     from ado.core.discoveryspace.space import DiscoverySpace
     from ado.core.operation.config import (
-        ADOResourcePropertyDescriptor,
         FunctionOperationInfo,
         GenericOperatorParameters,
     )
     from ado.core.operation.operation import OperationOutput
-    from ado.core.resources import CoreResourceKinds
     from ado.modules.operators.collections import compare, compare_operation
 
     class _Cfg(GenericOperatorParameters):
@@ -999,14 +987,6 @@ def test_compare_operation_decorator_stores_orchestration_wrapper() -> None:
         version="0.1.0",
         configuration_model=_Cfg,
         example_configuration=_Cfg(),
-        required_resource_inputs=[
-            ADOResourcePropertyDescriptor(
-                identifier="a", kind=CoreResourceKinds.DISCOVERYSPACE
-            ),
-            ADOResourcePropertyDescriptor(
-                identifier="b", kind=CoreResourceKinds.DISCOVERYSPACE
-            ),
-        ],
     )(_direct_fn)
 
     stored = compare.operators["_test_compare_direct"].function
@@ -1016,38 +996,42 @@ def test_compare_operation_decorator_stores_orchestration_wrapper() -> None:
 
 
 def test_compare_operation_decorator_rejects_one_input() -> None:
-    """compare_operation requires at least two required_resource_inputs."""
-    from ado.core.operation.config import ADOResourcePropertyDescriptor
-    from ado.core.resources import CoreResourceKinds
+    """compare_operation requires at least two resource inputs in the signature."""
+    from ado.core.datacontainer.resource import DataContainerResource
+    from ado.core.operation.config import (
+        FunctionOperationInfo,
+        GenericOperatorParameters,
+    )
+    from ado.core.operation.operation import OperationOutput
     from ado.modules.operators.collections import compare_operation
 
     class _Cfg(GenericOperatorParameters):
         pass
 
     with pytest.raises(ValueError, match="at least"):
-        compare_operation(
+
+        @compare_operation(
             name="_bad_compare",
             version="0.1.0",
             configuration_model=_Cfg,
             example_configuration=_Cfg(),
-            required_resource_inputs=[
-                ADOResourcePropertyDescriptor(
-                    identifier="only_one", kind=CoreResourceKinds.DATACONTAINER
-                ),
-            ],
         )
+        def _bad_compare(
+            only_one: DataContainerResource,
+            operationInfo: FunctionOperationInfo | None = None,
+            *,
+            parameters: _Cfg,
+        ) -> OperationOutput: ...
 
 
 def test_compare_operation_required_properties_stored() -> None:
     """required_properties is stored on the OperatorMetadata."""
     from ado.core.datacontainer.resource import DataContainerResource
     from ado.core.operation.config import (
-        ADOResourcePropertyDescriptor,
         FunctionOperationInfo,
         GenericOperatorParameters,
     )
     from ado.core.operation.operation import OperationOutput
-    from ado.core.resources import CoreResourceKinds
     from ado.modules.operators.collections import compare, compare_operation
 
     class _Cfg(GenericOperatorParameters):
@@ -1058,14 +1042,6 @@ def test_compare_operation_required_properties_stored() -> None:
         version="0.1.0",
         configuration_model=_Cfg,
         example_configuration=_Cfg(),
-        required_resource_inputs=[
-            ADOResourcePropertyDescriptor(
-                identifier="x", kind=CoreResourceKinds.DATACONTAINER
-            ),
-            ADOResourcePropertyDescriptor(
-                identifier="y", kind=CoreResourceKinds.DATACONTAINER
-            ),
-        ],
         required_properties=["target_property"],
     )
     def _props_fn(
@@ -1081,47 +1057,6 @@ def test_compare_operation_required_properties_stored() -> None:
     ]
 
 
-def test_compare_operation_decorator_rejects_mismatched_parameter_type() -> None:
-    """compare_operation validates declared parameter types against the resource kind."""
-    from ado.core.datacontainer.resource import DataContainerResource
-    from ado.core.discoveryspace.space import DiscoverySpace
-    from ado.core.operation.config import (
-        ADOResourcePropertyDescriptor,
-        FunctionOperationInfo,
-        GenericOperatorParameters,
-    )
-    from ado.core.operation.operation import OperationOutput
-    from ado.core.resources import CoreResourceKinds
-    from ado.modules.operators.collections import compare_operation
-
-    class _Cfg(GenericOperatorParameters):
-        pass
-
-    with pytest.raises(ValueError, match="baseline"):
-
-        @compare_operation(
-            name="_bad_compare_type",
-            version="0.1.0",
-            configuration_model=_Cfg,
-            example_configuration=_Cfg(),
-            required_resource_inputs=[
-                ADOResourcePropertyDescriptor(
-                    identifier="baseline", kind=CoreResourceKinds.DATACONTAINER
-                ),
-                ADOResourcePropertyDescriptor(
-                    identifier="candidate", kind=CoreResourceKinds.DATACONTAINER
-                ),
-            ],
-        )
-        def _bad_compare_fn(
-            baseline: DiscoverySpace,  # wrong — declared kind is DATACONTAINER
-            candidate: DataContainerResource,
-            operationInfo: FunctionOperationInfo | None = None,
-            *,
-            parameters: _Cfg,
-        ) -> OperationOutput: ...
-
-
 # ---------------------------------------------------------------------------
 # fuse_operation decorator
 # ---------------------------------------------------------------------------
@@ -1133,13 +1068,11 @@ def test_fuse_operation_decorator_registers() -> None:
 
     from ado.core.discoveryspace.space import DiscoverySpace
     from ado.core.operation.config import (
-        ADOResourcePropertyDescriptor,
         DiscoveryOperationEnum,
         FunctionOperationInfo,
         GenericOperatorParameters,
     )
     from ado.core.operation.operation import OperationOutput
-    from ado.core.resources import CoreResourceKinds
     from ado.modules.operators.collections import fuse, fuse_operation
 
     class _Cfg(GenericOperatorParameters):
@@ -1158,14 +1091,6 @@ def test_fuse_operation_decorator_registers() -> None:
         version="0.1.0",
         configuration_model=_Cfg,
         example_configuration=_Cfg(),
-        required_resource_inputs=[
-            ADOResourcePropertyDescriptor(
-                identifier="spaceA", kind=CoreResourceKinds.DISCOVERYSPACE
-            ),
-            ADOResourcePropertyDescriptor(
-                identifier="spaceB", kind=CoreResourceKinds.DISCOVERYSPACE
-            ),
-        ],
         description="Test fuse operator.",
     )(_my_fuse)
 
@@ -1183,87 +1108,88 @@ def test_fuse_operation_decorator_registers() -> None:
 
 def test_fuse_operation_decorator_rejects_datacontainer_input() -> None:
     """fuse_operation only allows discoveryspace resource inputs."""
-    from ado.core.operation.config import ADOResourcePropertyDescriptor
-    from ado.core.resources import CoreResourceKinds
+    from ado.core.datacontainer.resource import DataContainerResource
+    from ado.core.discoveryspace.space import DiscoverySpace
+    from ado.core.operation.config import (
+        FunctionOperationInfo,
+        GenericOperatorParameters,
+    )
+    from ado.core.operation.operation import OperationOutput
     from ado.modules.operators.collections import fuse_operation
 
     class _Cfg(GenericOperatorParameters):
         pass
 
     with pytest.raises(ValueError, match="does not allow"):
-        fuse_operation(
+
+        @fuse_operation(
             name="_bad_fuse",
             version="0.1.0",
             configuration_model=_Cfg,
             example_configuration=_Cfg(),
-            required_resource_inputs=[
-                ADOResourcePropertyDescriptor(
-                    identifier="a", kind=CoreResourceKinds.DISCOVERYSPACE
-                ),
-                ADOResourcePropertyDescriptor(
-                    identifier="b", kind=CoreResourceKinds.DATACONTAINER
-                ),
-            ],
         )
+        def _bad_fuse(
+            a: DiscoverySpace,
+            b: DataContainerResource,
+            operationInfo: FunctionOperationInfo | None = None,
+            *,
+            parameters: _Cfg,
+        ) -> OperationOutput: ...
 
 
 def test_fuse_operation_decorator_rejects_one_space() -> None:
     """fuse_operation requires at least two space resource inputs."""
-    from ado.core.operation.config import ADOResourcePropertyDescriptor
-    from ado.core.resources import CoreResourceKinds
+    from ado.core.discoveryspace.space import DiscoverySpace
+    from ado.core.operation.config import (
+        FunctionOperationInfo,
+        GenericOperatorParameters,
+    )
+    from ado.core.operation.operation import OperationOutput
     from ado.modules.operators.collections import fuse_operation
 
     class _Cfg(GenericOperatorParameters):
         pass
 
     with pytest.raises(ValueError, match="at least"):
-        fuse_operation(
+
+        @fuse_operation(
             name="_bad_fuse_one",
             version="0.1.0",
             configuration_model=_Cfg,
             example_configuration=_Cfg(),
-            required_resource_inputs=[
-                ADOResourcePropertyDescriptor(
-                    identifier="only_one", kind=CoreResourceKinds.DISCOVERYSPACE
-                ),
-            ],
         )
+        def _bad_fuse_one(
+            only_one: DiscoverySpace,
+            operationInfo: FunctionOperationInfo | None = None,
+            *,
+            parameters: _Cfg,
+        ) -> OperationOutput: ...
 
 
-def test_fuse_operation_decorator_rejects_mismatched_parameter_type() -> None:
-    """fuse_operation validates declared parameter types against the resource kind."""
+def test_fuse_operation_decorator_rejects_unsupported_parameter_type() -> None:
+    """fuse_operation rejects signatures with unsupported resource annotations."""
     from ado.core.discoveryspace.space import DiscoverySpace
     from ado.core.operation.config import (
-        ADOResourcePropertyDescriptor,
         FunctionOperationInfo,
         GenericOperatorParameters,
     )
     from ado.core.operation.operation import OperationOutput
-    from ado.core.resources import CoreResourceKinds
     from ado.modules.operators.collections import fuse_operation
 
     class _Cfg(GenericOperatorParameters):
         pass
 
-    with pytest.raises(ValueError, match="spaceB"):
+    with pytest.raises(ValueError, match="must be annotated with one of"):
 
         @fuse_operation(
             name="_bad_fuse_type",
             version="0.1.0",
             configuration_model=_Cfg,
             example_configuration=_Cfg(),
-            required_resource_inputs=[
-                ADOResourcePropertyDescriptor(
-                    identifier="spaceA", kind=CoreResourceKinds.DISCOVERYSPACE
-                ),
-                ADOResourcePropertyDescriptor(
-                    identifier="spaceB", kind=CoreResourceKinds.DISCOVERYSPACE
-                ),
-            ],
         )
         def _bad_fuse_fn(
             spaceA: DiscoverySpace,
-            spaceB: object,  # wrong — declared kind is DISCOVERYSPACE
+            spaceB: object,
             operationInfo: FunctionOperationInfo | None = None,
             *,
             parameters: _Cfg,
@@ -1271,12 +1197,12 @@ def test_fuse_operation_decorator_rejects_mismatched_parameter_type() -> None:
 
 
 # ---------------------------------------------------------------------------
-# characterize_operation — requiredResourceInputs and required_properties stored
+# characterize_operation — deduced inputs and required_properties stored
 # ---------------------------------------------------------------------------
 
 
-def test_characterize_operation_default_input_when_none_given() -> None:
-    """characterize_operation with no required_resource_inputs uses the default space input."""
+def test_characterize_operation_deduces_default_space_input() -> None:
+    """characterize_operation deduces a single discoverySpace from the signature."""
     from ado.core.operation.config import (
         _DEFAULT_DISCOVERY_SPACE_INPUT_PROPERTY,
         FunctionOperationInfo,
@@ -1309,15 +1235,13 @@ def test_characterize_operation_default_input_when_none_given() -> None:
 
 
 def test_characterize_operation_multi_resource_inputs() -> None:
-    """characterize_operation accepts custom multi-resource required_resource_inputs."""
+    """characterize_operation deduces multi-resource inputs from the signature."""
     from ado.core.datacontainer.resource import DataContainerResource
     from ado.core.operation.config import (
-        ADOResourcePropertyDescriptor,
         FunctionOperationInfo,
         GenericOperatorParameters,
     )
     from ado.core.operation.operation import OperationOutput
-    from ado.core.resources import CoreResourceKinds
     from ado.modules.operators.collections import characterize, characterize_operation
 
     class _MultiCfg(GenericOperatorParameters):
@@ -1328,14 +1252,6 @@ def test_characterize_operation_multi_resource_inputs() -> None:
         version="0.1.0",
         configuration_model=_MultiCfg,
         example_configuration=_MultiCfg(),
-        required_resource_inputs=[
-            ADOResourcePropertyDescriptor(
-                identifier="discoverySpace", kind=CoreResourceKinds.DISCOVERYSPACE
-            ),
-            ADOResourcePropertyDescriptor(
-                identifier="baseline", kind=CoreResourceKinds.DATACONTAINER
-            ),
-        ],
         required_properties=["prop_a"],
     )
     def _multi_fn(

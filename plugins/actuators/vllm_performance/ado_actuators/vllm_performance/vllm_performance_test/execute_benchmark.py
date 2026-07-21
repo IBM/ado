@@ -205,12 +205,16 @@ def execute_random_benchmark(
     burstiness: float = 1,
     number_input_tokens: int | None = None,
     max_output_tokens: int | None = None,
+    prefix_repetition_prefix_len: int | None = None,
+    prefix_repetition_suffix_len: int | None = None,
+    prefix_repetition_num_prefixes: int | None = None,
+    prefix_repetition_output_len: int | None = None,
 ) -> BenchmarkResult:
     """
-    Execute benchmark with random dataset
+    Execute benchmark with random or prefix repetition dataset.
     :param base_url: url for vllm endpoint
     :param model: model
-    :param dataset: data set name ["random"]
+    :param dataset: data set name ["random", "prefix_repetition"]
     :param num_prompts: number of prompts
     :param request_rate: request rate
     :param max_concurrency: maximum number of concurrent requests
@@ -220,9 +224,26 @@ def execute_random_benchmark(
     :param burstiness: burstiness factor of the request generation, 0 < burstiness < 1
     :param number_input_tokens: maximum number of input tokens for each request,
     :param max_output_tokens: maximum number of output tokens for each request,
+    :param prefix_repetition_prefix_len: prefix tokens cached per request for prefix repetition dataset,
+    :param prefix_repetition_suffix_len: suffix tokens per request for prefix repetition dataset,
+    :param prefix_repetition_num_prefixes: distinct cached prefixes for prefix repetition dataset,
+    :param prefix_repetition_output_len: output tokens per request for prefix repetition dataset,
 
     :return: BenchmarkResult instance
     """
+    custom_args = {
+        "--random-input-len": number_input_tokens,
+        "--random-output-len": max_output_tokens,
+    }
+
+    if dataset == "prefix_repetition":
+        custom_args = {
+            "--prefix-repetition-prefix-len": prefix_repetition_prefix_len,
+            "--prefix-repetition-suffix-len": prefix_repetition_suffix_len,
+            "--prefix-repetition-num-prefixes": prefix_repetition_num_prefixes,
+            "--prefix-repetition-output-len": prefix_repetition_output_len,
+        }
+
     # Call execute_benchmark with the appropriate arguments
     return execute_benchmark(
         base_url=base_url,
@@ -235,10 +256,7 @@ def execute_random_benchmark(
         benchmark_retries=benchmark_retries,
         retries_timeout=retries_timeout,
         burstiness=burstiness,
-        custom_args={
-            "--random-input-len": number_input_tokens,
-            "--random-output-len": max_output_tokens,
-        },
+        custom_args=custom_args,
     )
 
 

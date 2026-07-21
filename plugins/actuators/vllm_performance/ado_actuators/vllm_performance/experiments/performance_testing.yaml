@@ -124,7 +124,35 @@ test-deployment-v1:
         description: "(benchmark) The dataset to use for the benchmark"
       propertyDomain:
         variableType: 'CATEGORICAL_VARIABLE_TYPE'
-        values: ['random']
+        values: ['random', 'prefix_repetition']
+    - identifier: 'prefix_repetition_prefix_len'
+      metadata:
+        description: "(benchmark) The number of prefix tokens that would be cached when dataset=prefix_repetition"
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [1, 128000]
+        interval: 1
+    - identifier: 'prefix_repetition_suffix_len'
+      metadata:
+        description: "(benchmark) The number of suffix tokens per request when dataset=prefix_repetition. Total input length is prefix_repetition_prefix_len + prefix_repetition_suffix_len"
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [1, 128000]
+        interval: 1
+    - identifier: 'prefix_repetition_num_prefixes'
+      metadata:
+        description: "(benchmark) The number of distinct prefixes cached when dataset=prefix_repetition"
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [1, 10001]
+        interval: 1
+    - identifier: 'prefix_repetition_output_len'
+      metadata:
+        description: "(benchmark) The number of output tokens per request when dataset=prefix_repetition"
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [1, 10000]
+        interval: 1
     - identifier: 'kv_cache_dtype'
       metadata:
         description: "(deployment) KV cache data type for vLLM (e.g. fp8, turboquant_k8v4). If not set, vLLM uses the default."
@@ -168,6 +196,18 @@ test-deployment-v1:
     - property:
         identifier: 'dataset'
       value: 'random'
+    - property:
+        identifier: 'prefix_repetition_prefix_len'
+      value: 2048
+    - property:
+        identifier: 'prefix_repetition_suffix_len'
+      value: 128
+    - property:
+        identifier: 'prefix_repetition_num_prefixes'
+      value: 10
+    - property:
+        identifier: 'prefix_repetition_output_len'
+      value: 128
     - property:
         identifier: 'gpu_memory_utilization'
       value: .9
@@ -295,7 +335,35 @@ test-endpoint-v1:
         description: "The dataset to use for the benchmark"
       propertyDomain:
         variableType: 'CATEGORICAL_VARIABLE_TYPE'
-        values: ['random']
+        values: ['random', 'prefix_repetition']
+    - identifier: 'prefix_repetition_prefix_len'
+      metadata:
+        description: "The number of prefix tokens that would be cached when dataset=prefix_repetition"
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [1, 128000]
+        interval: 1
+    - identifier: 'prefix_repetition_suffix_len'
+      metadata:
+        description: "The number of suffix tokens per request when dataset=prefix_repetition. Total input length is prefix_repetition_prefix_len + prefix_repetition_suffix_len"
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [1, 128000]
+        interval: 1
+    - identifier: 'prefix_repetition_num_prefixes'
+      metadata:
+        description: "The number of distinct prefixes cached when dataset=prefix_repetition"
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [1, 10001]
+        interval: 1
+    - identifier: 'prefix_repetition_output_len'
+      metadata:
+        description: "The number of output tokens per request when dataset=prefix_repetition"
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [1, 10000]
+        interval: 1
   defaultParameterization:
     - value: 1000
       property:
@@ -315,6 +383,18 @@ test-endpoint-v1:
     - value: 'random'
       property:
         identifier: "dataset"
+    - value: 2048
+      property:
+        identifier: 'prefix_repetition_prefix_len'
+    - value: 128
+      property:
+        identifier: 'prefix_repetition_suffix_len'
+    - value: 10
+      property:
+        identifier: 'prefix_repetition_num_prefixes'
+    - value: 128
+      property:
+        identifier: 'prefix_repetition_output_len'
   # measurements
   targetProperties:
     - identifier: "duration"
@@ -475,7 +555,35 @@ test-deployment-guidellm-v1:
         description: "(benchmark) The dataset to use for the benchmark"
       propertyDomain:
         variableType: 'CATEGORICAL_VARIABLE_TYPE'
-        values: ['random']
+        values: ['random', 'prefix_repetition']
+    - identifier: 'prefix_repetition_prefix_len'
+      metadata:
+        description: "(benchmark) The number of prefix tokens that would be cached when dataset=prefix_repetition"
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [1, 128000]
+        interval: 1
+    - identifier: 'prefix_repetition_suffix_len'
+      metadata:
+        description: "(benchmark) The number of suffix tokens per request when dataset=prefix_repetition. Total input length is prefix_repetition_prefix_len + prefix_repetition_suffix_len"
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [1, 128000]
+        interval: 1
+    - identifier: 'prefix_repetition_num_prefixes'
+      metadata:
+        description: "(benchmark) The number of distinct prefixes cached when dataset=prefix_repetition"
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [1, 10001]
+        interval: 1
+    - identifier: 'prefix_repetition_output_len'
+      metadata:
+        description: "(benchmark) The number of output tokens per request when dataset=prefix_repetition"
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [1, 10000]
+        interval: 1
     - identifier: 'kv_cache_dtype'
       metadata:
         description: "(deployment) KV cache data type for vLLM (e.g. fp8, turboquant_k8v4). If not set, vLLM uses the default."
@@ -519,6 +627,18 @@ test-deployment-guidellm-v1:
     - property:
         identifier: 'dataset'
       value: 'random'
+    - property:
+        identifier: 'prefix_repetition_prefix_len'
+      value: 2048
+    - property:
+        identifier: 'prefix_repetition_suffix_len'
+      value: 128
+    - property:
+        identifier: 'prefix_repetition_num_prefixes'
+      value: 10
+    - property:
+        identifier: 'prefix_repetition_output_len'
+      value: 128
     - property:
         identifier: 'gpu_memory_utilization'
       value: .9
@@ -644,7 +764,35 @@ test-endpoint-guidellm-v1:
         description: "(benchmark) The dataset to use for the benchmark"
       propertyDomain:
         variableType: 'CATEGORICAL_VARIABLE_TYPE'
-        values: ['random']
+        values: ['random', 'prefix_repetition']
+    - identifier: 'prefix_repetition_prefix_len'
+      metadata:
+        description: "(benchmark) The number of prefix tokens that would be cached when dataset=prefix_repetition"
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [1, 128000]
+        interval: 1
+    - identifier: 'prefix_repetition_suffix_len'
+      metadata:
+        description: "(benchmark) The number of suffix tokens per request when dataset=prefix_repetition. Total input length is prefix_repetition_prefix_len + prefix_repetition_suffix_len"
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [1, 128000]
+        interval: 1
+    - identifier: 'prefix_repetition_num_prefixes'
+      metadata:
+        description: "(benchmark) The number of distinct prefixes cached when dataset=prefix_repetition"
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [1, 10001]
+        interval: 1
+    - identifier: 'prefix_repetition_output_len'
+      metadata:
+        description: "(benchmark) The number of output tokens per request when dataset=prefix_repetition"
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [1, 10000]
+        interval: 1
   defaultParameterization:
     - value: 1000
       property:
@@ -664,6 +812,18 @@ test-endpoint-guidellm-v1:
     - value: 'random'
       property:
         identifier: 'dataset'
+    - value: 2048
+      property:
+        identifier: 'prefix_repetition_prefix_len'
+    - value: 128
+      property:
+        identifier: 'prefix_repetition_suffix_len'
+    - value: 10
+      property:
+        identifier: 'prefix_repetition_num_prefixes'
+    - value: 128
+      property:
+        identifier: 'prefix_repetition_output_len'
   targetProperties:
     - identifier: "duration"
     - identifier: "completed"
@@ -824,7 +984,35 @@ test-agentic-tool-calling:
         description: "(benchmark) The dataset to use for the benchmark"
       propertyDomain:
         variableType: 'CATEGORICAL_VARIABLE_TYPE'
-        values: ['random', 'bfcl']
+        values: ['random', 'prefix_repetition', 'bfcl']
+    - identifier: 'prefix_repetition_prefix_len'
+      metadata:
+        description: "(benchmark) The number of prefix tokens that would be cached when dataset=prefix_repetition"
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [1, 128000]
+        interval: 1
+    - identifier: 'prefix_repetition_suffix_len'
+      metadata:
+        description: "(benchmark) The number of suffix tokens per request when dataset=prefix_repetition. Total input length is prefix_repetition_prefix_len + prefix_repetition_suffix_len"
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [1, 128000]
+        interval: 1
+    - identifier: 'prefix_repetition_num_prefixes'
+      metadata:
+        description: "(benchmark) The number of distinct prefixes cached when dataset=prefix_repetition"
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [1, 10001]
+        interval: 1
+    - identifier: 'prefix_repetition_output_len'
+      metadata:
+        description: "(benchmark) The number of output tokens per request when dataset=prefix_repetition"
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [1, 10000]
+        interval: 1
     - identifier: 'bfcl_categories'
       metadata:
         description: "(benchmark) Comma-separated BFCL category names to use when dataset=bfcl"
@@ -910,6 +1098,18 @@ test-agentic-tool-calling:
     - property:
         identifier: 'dataset'
       value: 'random'
+    - property:
+        identifier: 'prefix_repetition_prefix_len'
+      value: 2048
+    - property:
+        identifier: 'prefix_repetition_suffix_len'
+      value: 128
+    - property:
+        identifier: 'prefix_repetition_num_prefixes'
+      value: 10
+    - property:
+        identifier: 'prefix_repetition_output_len'
+      value: 128
     - property:
         identifier: 'gpu_memory_utilization'
       value: .9

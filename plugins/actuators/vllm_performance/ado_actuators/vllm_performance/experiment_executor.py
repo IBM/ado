@@ -608,6 +608,10 @@ def run_resource_and_workload_experiment(
                     retries_timeout=actuator_parameters.retries_timeout,
                     number_input_tokens=benchmark_parameters.number_input_tokens,
                     max_output_tokens=benchmark_parameters.max_output_tokens,
+                    prefix_repetition_prefix_len=benchmark_parameters.prefix_repetition_prefix_len,
+                    prefix_repetition_suffix_len=benchmark_parameters.prefix_repetition_suffix_len,
+                    prefix_repetition_num_prefixes=benchmark_parameters.prefix_repetition_num_prefixes,
+                    prefix_repetition_output_len=benchmark_parameters.prefix_repetition_output_len,
                     burstiness=benchmark_parameters.burstiness,
                     dataset=benchmark_parameters.dataset,
                 )
@@ -790,6 +794,10 @@ def run_workload_experiment(
                     retries_timeout=actuator_parameters.retries_timeout,
                     number_input_tokens=benchmark_parameters.number_input_tokens,
                     max_output_tokens=benchmark_parameters.max_output_tokens,
+                    prefix_repetition_prefix_len=benchmark_parameters.prefix_repetition_prefix_len,
+                    prefix_repetition_suffix_len=benchmark_parameters.prefix_repetition_suffix_len,
+                    prefix_repetition_num_prefixes=benchmark_parameters.prefix_repetition_num_prefixes,
+                    prefix_repetition_output_len=benchmark_parameters.prefix_repetition_output_len,
                     burstiness=benchmark_parameters.burstiness,
                     dataset=benchmark_parameters.dataset,
                 )

@@ -20,7 +20,7 @@ _EMPTY_PROFILE_PARAMETERS = ProfileParameters()
 # for documentation on the decorator and its parameters
 @characterize_operation(
     name="profile",
-    version="2.0.3",
+    version="2.1.0",
     configuration_model=ProfileParameters,
     example_configuration=ProfileParameters(),
     description="Returns a data_profiling ProfileReport for the space",

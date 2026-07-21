@@ -122,7 +122,7 @@ class DetectAnomalousSeries(GenericOperatorParameters):
     """,
     configuration_model=DetectAnomalousSeries,
     example_configuration=DetectAnomalousSeries.example_configuration(),
-    version="1.0.4",
+    version="1.1.0",
 )
 def detect_anomalous_series(
     discoverySpace: DiscoverySpace,

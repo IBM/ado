@@ -1,7 +1,6 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-import contextlib
 import json
 import logging
 import typing
@@ -825,11 +824,7 @@ class SQLSampleStore(ActiveSampleStore):
         return cached_entities + list(entities_dict.values())
 
     def entities_in_operations(self, operation_ids: str | set[str]) -> list[Entity]:
-        """Get entities directly from one or more operations in one query.
-
-        This method fetches entities from one or more operations in a single
-        database query, avoiding the need to first fetch entity IDs and then
-        fetch entities.
+        """Get entities sampled in one or more operations.
 
         Args:
             operation_ids: A single operation identifier or a set of operation
@@ -838,78 +833,10 @@ class SQLSampleStore(ActiveSampleStore):
         Returns:
             List of Entity objects that were sampled in the specified operation(s)
         """
-        if isinstance(operation_ids, str):
-            operation_ids = {operation_ids}
-
-        query = sqlalchemy.text(f"""
-            SELECT
-                ent.identifier,
-                ent.representation,
-                res.data
-            FROM {self._tablename} ent
-            JOIN {self._tablename}_measurement_results res ON res.entity_id = ent.identifier
-            JOIN {self._tablename}_measurement_requests_results reqres ON reqres.result_uid = res.uid
-            JOIN {self._tablename}_measurement_requests req ON reqres.request_uid = req.uid
-            WHERE req.operation_id IN :operation_ids
-        """).bindparams(  # noqa: S608 - self._tablename is not untrusted
-            sqlalchemy.bindparam(
-                "operation_ids", value=list(operation_ids), expanding=True
-            )
-        )
-
-        try:
-            with self.engine.begin() as connectable:
-                cur = connectable.execute(query)
-        except SQLAlchemyError as error:
-            msg = f"Unable to fetch entities for operations {operation_ids} from sample store {self._tablename}"
-            self.log.critical(f"{msg}. Error: {error}")
-            raise SystemError(f"{msg}. Error: {error}") from error
-
-        entities_dict: dict[str, Entity] = {}
-        for entity_identifier, entity_representation, result_data in cur:
-            if entity_identifier in self._entities:
-                entities_dict[entity_identifier] = self._entities[entity_identifier]
-                continue
-
-            try:
-                entity = Entity.model_validate(json.loads(entity_representation))
-                self._entities[entity_identifier] = entity
-                entities_dict[entity_identifier] = entity
-            except Exception as error:
-                raise FailedToDecodeStoredEntityError(
-                    entity_identifier=entity_identifier,
-                    entity_representation=entity_representation,
-                    cause=error,
-                ) from error
-
-            if result_data is None:
-                self.log.debug(
-                    f"Entity {entity_identifier} had no measurements associated to it."
-                )
-                continue
-
-            try:
-                result_dict = json.loads(result_data)
-                if not result_dict.get("measurements", None):
-                    self.log.debug(
-                        f"Entity {entity_identifier} had no valid measurements associated to it."
-                    )
-                    continue
-
-                measurement_result = ValidMeasurementResult.model_validate(result_dict)
-            except Exception as error:
-                raise FailedToDecodeStoredMeasurementResultForEntityError(
-                    entity_identifier=entity_identifier,
-                    result_representation=result_data,
-                    cause=error,
-                ) from error
-
-            with contextlib.suppress(DuplicateMeasurementResultError):
-                entities_dict[entity_identifier].add_measurement_result(
-                    result=measurement_result
-                )
-
-        return list(entities_dict.values())
+        # Use entity_identifiers_in_operations + entities_with_identifiers so that
+        # the entity cache is used when fetching entities.
+        entity_ids = self.entity_identifiers_in_operations(operation_ids)
+        return self.entities_with_identifiers(entity_ids)
 
     def entities_in_operation(self, operation_ids: str | set[str]) -> list[Entity]:
         """Deprecated: use entities_in_operations instead."""

@@ -211,12 +211,11 @@ uv run ado show related space SPACE_ID
 
 ## 4. Report template
 
-Write a concise markdown report
+Write a concise markdown report. The report is stored directly as the
+`content` field of a `document` resource .
 
-- Write the report to `reports/<ado_context_name>/` (create the directory if
-  needed), where `ado_context_name` is the **active ado metastore context**
-  (`uv run ado context`).
-- Write the report as `project_<YYYY-MM-DD>_report.md`.
+- The document's `metadata.name` is `project_<YYYY-MM-DD>_report`, where the
+  date is today's date
 - Query the metastore for an existing project report document:
 
   ```bash
@@ -229,13 +228,14 @@ Write a concise markdown report
   1. Run `uv run ado get spaces --details` and
      `uv run ado get operations --details` and note the age of the most recent
      resource.
-  2. If the most recent resource is **younger** than the date of the existing
-     report, there has been new activity — proceed to write a new report.
+  2. If the most recent resource is **younger** than the existing document's
+     `creationTimestamp`, there has been new activity — proceed to write a new
+     report.
   3. If not, ask the user whether they want to replace it.
   4. If finer-grained confirmation is needed, fetch the YAML of the most recent
-     space or operation
-     (`uv run ado get space SPACE_ID -o yaml --output-file SPACE_ID.yaml`, or
-     the same pattern for `operation`) and read its `creationTimestamp` field.
+     space or operation (`uv run ado get space SPACE_ID -o yaml --output-file
+     SPACE_ID.yaml`, or the same pattern for `operation`) and read its
+     `creationTimestamp` field.
 
 ### Project summary
 
@@ -264,10 +264,10 @@ Write a concise markdown report
 - Make a note of operations with failed measurements and highlight ones with
   abnormal failure rates (from the stats).
 
-After writing the local report file, persist it as a document resource. Since a
-project report spans many resources, set `relatedResources` to the identifiers
-of the most recently active spaces and operations (for example the five most
-recently created of each):
+Persist the report as a document resource. Since a project
+report spans many resources, set `relatedResources` to the identifiers of the
+most recently active spaces and operations (for example the five most recently
+created of each):
 
 ```yaml
 # project_<YYYY-MM-DD>_document.yaml  (temp file, not committed)
@@ -281,10 +281,12 @@ relatedResources:
   - <recent operation ids>
 ```
 
-Any charts or images generated during analysis should be base64-encoded and
-included in the `attachments` section, with the markdown referencing them by
-filename.
-
 ```bash
 uv run ado create document -f project_<YYYY-MM-DD>_document.yaml
+```
+
+If an existing report document is being replaced (see above), delete it first:
+
+```bash
+uv run ado delete document EXISTING_DOCUMENT_ID
 ```

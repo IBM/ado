@@ -15,11 +15,8 @@ Structured workflow for understanding what a discoveryspace contains, how
 covered its entity space is, and what data has been collected.
 
 - Run all commands from the **repository root** with `uv run`.
-- Write the report to `reports/<ado_context_name>/` (create the directory if
-  needed)
-  - where `ado_context_name` is the **active ado metastore context**
-    (`uv run ado context`)
-- Write the report as `<SPACEID>_<YYYY-MM-DD>_report.md`
+- The report produced by this skill is stored as the `content` of a
+  `document` resource in the active ado metastore context  (see [Producing a Report](#producing-a-report)).
 
 **Related skills**:
 
@@ -157,14 +154,16 @@ uv run ado show related space SPACE_ID
   ```
 
   If a document is found, retrieve its metadata (name, created timestamp) and
-  ask the user whether to replace it with a new report.
-- Check if there is an existing report for this space in
-  `reports/<ado_context_name>/`
-- If yes, check if either of the following are true:
-  - New operations have been run on space since report
+  fetch its `content` (`uv run ado get document DOCUMENT_ID -o yaml`) to
+  compare against current state.
+- If a document is found, check if either of the following are true:
+  - New operations have been run on the space since the document was created
   - The number of measured entities has increased
-- If neither of above are true, ask the user if they want to write a new report
-  or use existing
+- If yes to either, ask the user whether to replace it with a new report. If
+  they agree, delete the existing document (`uv run ado delete document
+  DOCUMENT_ID`) once the new report has been created.
+- If neither of the above are true, ask the user if they want to write a new
+  report or use the existing one
   - As nothing has changed, the only purpose of creating a new report is if a
     different agent is being used
 
@@ -226,7 +225,7 @@ Structure the report as:
    outliers, correlations
 5. **Related operations** – which operations ran on this space and their status
 
-After writing the local report file, persist it as a document resource:
+Store the report by creating a document resource:
 
 ```yaml
 # <SPACE_ID>_<YYYY-MM-DD>_document.yaml  (temp file, not committed)
@@ -239,10 +238,6 @@ relatedResources:
   - <space id>
   - <related operation ids from step 2>
 ```
-
-Any charts or images generated during analysis should be base64-encoded and
-included in the `attachments` section, with the markdown referencing them by
-filename.
 
 ```bash
 uv run ado create document -f <SPACE_ID>_<YYYY-MM-DD>_document.yaml

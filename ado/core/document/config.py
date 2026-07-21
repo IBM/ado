@@ -25,16 +25,6 @@ class DocumentConfiguration(pydantic.BaseModel):
             description="Identifiers of related ado resources, if any",
         ),
     ]
-    attachments: Annotated[
-        dict[str, str],
-        pydantic.Field(
-            default_factory=dict,
-            description=(
-                "Mapping of filename to base64-encoded content referenced "
-                "from the markdown content"
-            ),
-        ),
-    ]
     metadata: Annotated[
         ConfigurationMetadata,
         pydantic.Field(

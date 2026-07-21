@@ -15,7 +15,6 @@ def test_document_configuration_defaults() -> None:
     """DocumentConfiguration defaults relatedResources and attachments."""
     config = DocumentConfiguration(content="Example report")
     assert config.relatedResources == []
-    assert config.attachments == {}
 
 
 def test_document_configuration_requires_content() -> None:
@@ -46,13 +45,3 @@ def test_document_configuration_from_fixture(
     )
     assert config.content.startswith("# Operation report")
     assert config.relatedResources == ["operation-test-12345678"]
-
-
-def test_document_configuration_with_attachment_fixture(
-    document_with_attachment_configuration_file: pathlib.Path,
-) -> None:
-    """Document with attachment fixture validates as DocumentConfiguration."""
-    config = DocumentConfiguration.model_validate(
-        yaml.safe_load(document_with_attachment_configuration_file.read_text())
-    )
-    assert config.attachments == {"perf_chart.png": "cGV4"}

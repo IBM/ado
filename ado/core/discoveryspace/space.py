@@ -643,10 +643,18 @@ class DiscoverySpace:
 
         # Get all entities in the store
         all_entities = self.sample_store.entities
-        if self.entitySpace is not None:
-            entities = [e for e in all_entities if self.entitySpace.isEntityInSpace(e)]
-        else:
-            entities = all_entities
+        if self.entitySpace is None:
+            return all_entities
+
+        if not self.entitySpace.isDiscreteSpace:
+            return [e for e in all_entities if self.entitySpace.isEntityInSpace(e)]
+
+        entities = []
+        for entity in all_entities:
+            if self.entitySpace.isEntityInSpace(entity):
+                entities.append(entity)
+                if len(entities) == self.entitySpace.size:
+                    break
 
         return entities
 

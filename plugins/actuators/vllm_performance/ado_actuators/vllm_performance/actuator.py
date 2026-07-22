@@ -82,7 +82,7 @@ def _build_ray_runtime_env_with_extra(benchmark_tool: str) -> dict[str, list[Any
 
     if "ray" in specs_from_job_env:
         ray_source = specs_from_job_env["ray"]["source"]
-        ray_version: str | None = specs_from_job_env["vllm"].get("version") or ""
+        ray_version: str | None = specs_from_job_env["ray"].get("version") or ""
         ray_dep = f"{ray_source}{ray_version}"
         worker_deps.append(ray_dep)
 

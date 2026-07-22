@@ -147,6 +147,11 @@ def mi_pareto_selection(
             "above_threshold",
         ],
     )
+    if len(l1) < 2:
+        if return_all_above_threshold:
+            return [], pareto_pd
+        return []
+
     rid = 0
     mi_threshold = np.sum(l1) * min_mi_threshold
     below_threshold_since = 0

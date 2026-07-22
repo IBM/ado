@@ -306,7 +306,8 @@ Write a concise markdown report. Store it as the `content` field of a
 For each study document (`metadata.name` matching `study-*`):
 
 - Name, description, and current `todo`
-- Study question and objective (from document `content`)
+- Motivation (if present), study question, and objective (from document `content`)
+- Materials summary when present (instances / formulation)
 - Study labels and counts of matching spaces/operations
 
 ### Spaces overview

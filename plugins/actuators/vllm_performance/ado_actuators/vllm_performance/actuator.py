@@ -43,7 +43,7 @@ def _build_ray_runtime_env_with_extra(benchmark_tool: str) -> dict[str, list[Any
     # Check if ado-vllm-performance is in the job venv.
     worker_deps = []
     specs_from_job_env = extract_package_specs_from_job_env(
-        ["ado-vllm-performance", "ado-core"]
+        ["ado-vllm-performance", "ado-core", "ray"]
     )
 
     if "ado-core" in specs_from_job_env:
@@ -79,6 +79,10 @@ def _build_ray_runtime_env_with_extra(benchmark_tool: str) -> dict[str, list[Any
 
     actuator_dep = f"{actuator_source}[{benchmark_tool}]{actuator_version}"
     worker_deps.append(actuator_dep)
+
+    ray_version = specs_from_job_env.get("ray", {}).get("version")
+    if ray_version:
+        worker_deps.append(f"ray{ray_version}")
 
     return {"uv": worker_deps}
 

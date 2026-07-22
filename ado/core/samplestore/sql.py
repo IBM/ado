@@ -72,6 +72,11 @@ if TYPE_CHECKING:
 _source_tables_verified: set[tuple[str, str]] = set()
 _reflected_metadata_cache: dict[tuple[str, str], sqlalchemy.MetaData] = {}
 
+# Sentinel for the instance-level experiment-catalog cache.
+# Using a distinct object lets us cache ``None`` (empty store) without
+# confusing it with "not yet computed".
+_UNSET = object()
+
 
 class SQLSampleStoreConfiguration(pydantic.BaseModel):
     identifier: Annotated[
@@ -145,133 +150,112 @@ class SQLSampleStore(ActiveSampleStore):
     def experimentCatalogFromReference(
         cls, reference: ado.core.samplestore.config.SampleStoreReference
     ) -> ExperimentCatalog:
-        import pandas as pd
+        """Return the experiment catalog for the store described by *reference*.
 
-        if reference.identifier is not None:
-            if reference.storageLocation is None:
-                raise ValueError(
-                    "SQLSampleStore.experimentCatalog requires valid location parameters. "
-                )
-
-            query = f"""SELECT * FROM sqlsource_{reference.identifier} LIMIT 1;"""  # noqa: S608 - reference.identifier is not untrusted
-            engine = engine_for_sql_store(configuration=reference.storageLocation)
-
-            with engine.connect() as connectable:
-                table = pd.read_sql(query, con=connectable)
-
-            j = table.representation[0]
-
-            d = json.loads(j)
-            entity = Entity.model_validate(d)
-            refs = [
-                e
-                for e in entity.experimentReferences
-                if e.actuatorIdentifier == "replay"
-            ]
-            experiments = {}
-            for r in refs:
-                props = [
-                    p for p in entity.observedProperties if p.experimentReference == r
-                ]
-                experiment = Experiment(
-                    identifier=r.experimentIdentifier,
-                    actuatorIdentifier=r.actuatorIdentifier,
-                    targetProperties=[p.targetProperty for p in props],
-                )
-                experiments[experiment.identifier] = experiment
-
-            catalog = ExperimentCatalog(
-                experiments=experiments, catalogIdentifier="sqlstore_catalog"
-            )
-        else:
+        Delegates to :meth:`experimentCatalog` on a live ``SQLSampleStore``
+        instance so that the fix, caching, and future improvements are
+        inherited automatically.
+        """
+        if reference.identifier is None:
             raise ValueError(
                 f"No identifier provided for SQLSampleStore - cannot read catalog. Data passed: {reference}"
             )
-
-        return catalog
+        if reference.storageLocation is None:
+            raise ValueError(
+                "SQLSampleStore.experimentCatalog requires valid location parameters."
+            )
+        store = cls(
+            identifier=reference.identifier,
+            storageLocation=reference.storageLocation,
+            parameters={},
+        )
+        return store.experimentCatalog()
 
     def experimentCatalog(
         self,
     ) -> ExperimentCatalog | None:
+        """Return the experiment catalog derived from replay measurement results.
 
-        # TODO: This is not the right way to do this.
-        # Here we're using the descriptors of the first entity to create the catalog
-        # if this entity has an experiment with "replay" actuators
-        # This works in the case every entity in sampletore was imported from an external source
-        # and all had the same external experiment.
-        # A better way would be to find all results from a replay experiment and then
-        # get the set of those
+        The catalog is built by querying the measurement-results table for rows
+        whose ``actuatorIdentifier`` is ``"replay"``.  One row per distinct
+        entity is loaded; the entity representation is decoded to recover the
+        ``constitutiveProperties`` and ``observedProperties`` needed to
+        reconstruct each :class:`~ado.schema.experiment.Experiment`.
 
-        # Optimized: Query just one entity directly instead of loading all entities
+        The result is cached in ``self._experiment_catalog`` so that repeated
+        calls do not hit the database.  The cache is invalidated by
+        :meth:`add_external_entities` and the ``ReplayedMeasurement`` branch of
+        :meth:`addMeasurement`.
+
+        Returns:
+            An :class:`~ado.modules.actuators.catalog.ExperimentCatalog` when
+            replay results are present, or ``None`` when the store is empty or
+            contains no replay results.
+        """
+        if self._experiment_catalog is not _UNSET:
+            return self._experiment_catalog  # type: ignore[return-value]
+
+        # Step 1: collect the distinct entity_ids that have at least one replay
+        # measurement result.  We use COALESCE over the two known serialisation
+        # formats (compressed: top-level experimentReference; legacy: nested
+        # inside measurements[0].property.experimentReference) so both are
+        # handled without fetching and deserialising every row in Python.
         query = sqlalchemy.text(f"""
-            SELECT ent.identifier, ent.representation, res.data
-            FROM {self._tablename} ent
-            LEFT OUTER JOIN {self._tablename}_measurement_results res ON res.entity_id = ent.identifier
-            LIMIT 1
-        """).bindparams()  # noqa: S608 - self._tablename is not untrusted
+            SELECT DISTINCT entity_id
+            FROM {self._tablename}_measurement_results
+            WHERE COALESCE(
+                JSON_EXTRACT(data, '$.experimentReference.actuatorIdentifier'),
+                JSON_EXTRACT(data, '$.measurements[0].property.experimentReference.actuatorIdentifier')
+            ) IN ('replay', '"replay"')
+        """)  # noqa: S608 - self._tablename is not untrusted
 
         try:
             with self.engine.begin() as connectable:
-                cur = connectable.execute(query)
-                row = cur.fetchone()
+                entity_ids = {row[0] for row in connectable.execute(query)}
         except SQLAlchemyError as error:
-            msg = f"Unable to fetch first entity for catalog from sample store {self._tablename}"
+            msg = f"Unable to query replay entity IDs for catalog from sample store {self._tablename}"
             self.log.critical(f"{msg}. Error: {error}")
             raise SystemError(f"{msg}. Error: {error}") from error
 
-        if row is None:
-            # There are no entities
+        if not entity_ids:
+            self._experiment_catalog = None
             return None
 
-        entity_identifier, entity_representation, result_data = row
+        # Step 2: load those entities (with their measurement results) via the
+        # existing method which handles caching, decoding, and result attachment.
+        entities = self.entities_with_identifiers(entity_ids)
 
-        try:
-            entity = Entity.model_validate(json.loads(entity_representation))
-        except Exception as error:
-            self.log.warning(
-                f"Unable to decode representation for entity {entity_identifier} when building catalog.\n"
-                f"Representation was: {entity_representation}.\n"
-                f"Error was {error}"
-            )
-            return None
-
-        # If there's a measurement result, add it to the entity
-        if result_data is not None:
-            try:
-                result_dict = json.loads(result_data)
-                if result_dict.get("measurements", None):
-                    measurement_result = ValidMeasurementResult.model_validate(
-                        result_dict
-                    )
-                    entity.add_measurement_result(result=measurement_result)
-            except Exception as error:
-                self.log.debug(
-                    f"Unable to decode measurement result for entity {entity_identifier} when building catalog: {error}"
-                )
-                # Continue without the measurement result - catalog doesn't strictly need it
-
-        refs = [
-            e for e in entity.experimentReferences if e.actuatorIdentifier == "replay"
-        ]
-        experiments = {}
-        for r in refs:
-            props = [p for p in entity.observedProperties if p.experimentReference == r]
-            experiment = Experiment(
-                identifier=r.experimentIdentifier,
-                actuatorIdentifier=r.actuatorIdentifier,
-                targetProperties=[p.targetProperty for p in props],
-                requiredProperties=tuple(
-                    [
+        # Step 3: build the catalog from the fully-loaded entities.
+        experiments: dict[str, Experiment] = {}
+        for entity in entities:
+            for r in entity.experimentReferences:
+                if (
+                    r.actuatorIdentifier != "replay"
+                    or r.experimentIdentifier in experiments
+                ):
+                    continue
+                props = [
+                    p for p in entity.observedProperties if p.experimentReference == r
+                ]
+                experiments[r.experimentIdentifier] = Experiment(
+                    identifier=r.experimentIdentifier,
+                    actuatorIdentifier=r.actuatorIdentifier,
+                    targetProperties=[p.targetProperty for p in props],
+                    requiredProperties=tuple(
                         ConstitutiveProperty.from_descriptor(p)
                         for p in entity.constitutiveProperties
-                    ]
-                ),
-            )
-            experiments[experiment.identifier] = experiment
+                    ),
+                )
 
-        return ExperimentCatalog(
-            experiments=experiments, catalogIdentifier="sqlstore_catalog"
+        catalog: ExperimentCatalog | None = (
+            ExperimentCatalog(
+                experiments=experiments, catalogIdentifier="sqlstore_catalog"
+            )
+            if experiments
+            else None
         )
+        self._experiment_catalog = catalog
+        return catalog
 
     def _create_source_table(self) -> sqlalchemy.MetaData:
 
@@ -396,6 +380,8 @@ class SQLSampleStore(ActiveSampleStore):
         self._last_insert_id = (
             0  # Track last processed insert_id for incremental refresh
         )
+        # Experiment-catalog cache.  _UNSET means "not yet computed".
+        self._experiment_catalog: object = _UNSET
 
         # Create the four backing tables only when they do not yet exist.
         # The module level _source_tables_verified cache enables skipping
@@ -926,6 +912,8 @@ class SQLSampleStore(ActiveSampleStore):
         for entity in missing_entities:
             missing_measurements.extend(entity.measurement_results)
 
+        # Importing replay results invalidates the experiment-catalog cache.
+        self._experiment_catalog = _UNSET
         self.addEntities(entities=missing_entities)
         self.add_measurement_results(
             results=missing_measurements, skip_relationship_to_request=True
@@ -948,6 +936,8 @@ class SQLSampleStore(ActiveSampleStore):
         request_db_id = self.add_measurement_request(request=measurementRequest)
 
         if isinstance(measurementRequest, ReplayedMeasurement):
+            # Replay results invalidate the experiment-catalog cache.
+            self._experiment_catalog = _UNSET
             try:
                 self.add_relationship_between_request_and_results(
                     request_db_id, measurementRequest.measurements

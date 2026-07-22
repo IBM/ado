@@ -107,6 +107,7 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 "plugins/actuators/sfttrainer/ado_actuators/sfttrainer/tests/*" = ["S101"]
 "plugins/custom_experiments/cplex_mip/tests/*" = ["S101"]
 "plugins/actuators/vllm_performance/tests/*" = ["S101"]
+"plugins/operators/ray_tune/tests/*" = ["S101"]
 # Here we are also testing type inference, annotations may be missing
 # on purpose.
 "tests/actuators/test_custom_experiments.py" = ["ANN"]

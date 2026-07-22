@@ -138,6 +138,21 @@ def mi_pareto_selection(
     mi_labeled = {k: v for k, v in mi_labeled_orig.items() if v > ignore_below}
     l1 = list(mi_labeled.values())
     col_1 = list(mi_labeled.keys())
+
+    # Need at least 2 dimensions to form combinations; return empty list otherwise.
+    if len(l1) < 2:
+        if return_all_above_threshold:
+            return [], pd.DataFrame(
+                [],
+                columns=[
+                    "num_dimensions",
+                    "combined_mi",
+                    "selected_criteria",
+                    "above_threshold",
+                ],
+            )
+        return []
+
     pareto_pd = pd.DataFrame(
         [],
         columns=[

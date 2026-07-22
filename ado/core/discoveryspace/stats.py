@@ -318,7 +318,17 @@ def space_statistics_for_spaces(
         else:
             number_unmeasured = size_of_entity_space - number_measured
 
-        matching_entities = space.matchingEntities()
+        sampled_entities = space.sampledEntities()
+
+        # If the space has been completely sampled, sampled entities == matching
+        # entities, so we can skip the more expensive matchingEntities() call.
+        if (
+            size_of_entity_space is not None
+            and len(sampled_entities) == size_of_entity_space
+        ):
+            matching_entities = sampled_entities
+        else:
+            matching_entities = space.matchingEntities()
         number_matching = len(matching_entities)
 
         measurement_exp_refs = set(space.measurementSpace.experimentReferences)
@@ -336,7 +346,6 @@ def space_statistics_for_spaces(
             == experiments_in_measurement_space
         )
 
-        sampled_entities = space.sampledEntities()
         sampled_entities_with_all_measurements = sum(
             1
             for e in sampled_entities

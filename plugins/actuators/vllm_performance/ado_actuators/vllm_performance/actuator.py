@@ -80,9 +80,11 @@ def _build_ray_runtime_env_with_extra(benchmark_tool: str) -> dict[str, list[Any
     actuator_dep = f"{actuator_source}[{benchmark_tool}]{actuator_version}"
     worker_deps.append(actuator_dep)
 
-    ray_version = specs_from_job_env.get("ray", {}).get("version")
-    if ray_version:
-        worker_deps.append(f"ray{ray_version}")
+    if "ray" in specs_from_job_env:
+        ray_source = specs_from_job_env["ray"]["source"]
+        ray_version: str | None = specs_from_job_env["vllm"].get("version") or ""
+        ray_dep = f"{ray_source}{ray_version}"
+        worker_deps.append(ray_dep)
 
     return {"uv": worker_deps}
 

@@ -344,9 +344,7 @@ def test_from_configuration_load_experiment_catalog_false_does_not_reregister(
 ) -> None:
     """Read-only reloads must resolve experiments without global re-registration.
 
-    ``SQLSampleStore.experimentCatalog()`` can return a different experiment
-    definition on subsequent calls (non-deterministic ``LIMIT 1``). Re-loading
-    a space for stats must not call ``updateCatalogs`` again.
+    Re-loading a space for stats must not call ``updateCatalogs`` again.
     """
     space_configuration = DiscoverySpaceConfiguration.model_validate(
         yaml.safe_load(

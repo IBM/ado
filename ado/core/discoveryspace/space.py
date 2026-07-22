@@ -1061,11 +1061,27 @@ class DiscoverySpace:
 
     @_perform_preflight_checks_for_sample_store_methods
     def entity_identifiers_in_operations(
-        self, operation_ids: str | set[str]
-    ) -> set[str]:
-        """Return entity identifiers sampled in the given operation(s)."""
+        self,
+        operation_ids: str | set[str],
+        group_by_operation: bool = False,
+    ) -> set[str] | dict[str, set[str]]:
+        """Return entity identifiers sampled in the given operation(s).
+
+        Args:
+            operation_ids: A single operation identifier or a set of operation
+                identifiers to look up entity identifiers for.
+            group_by_operation: When True, return a dict mapping each operation
+                ID to its set of entity identifiers. When False (default),
+                return a flat set of entity identifiers across all operations.
+
+        Returns:
+            A flat set of entity identifier strings when group_by_operation is
+            False, or a dict mapping operation ID to set of entity identifiers
+            when group_by_operation is True.
+        """
         return self.sample_store.entity_identifiers_in_operations(
-            operation_ids=operation_ids
+            operation_ids=operation_ids,
+            group_by_operation=group_by_operation,
         )
 
     @_perform_preflight_checks_for_sample_store_methods

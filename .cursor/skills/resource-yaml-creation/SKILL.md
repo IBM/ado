@@ -260,6 +260,11 @@ When replacing a report, delete the existing document only after the user
 agrees and the new report has been created (or immediately before creating the
 replacement, if the skill's replace policy says so).
 
+**Study documents** track an in-progress study (`metadata.name: study-$ID`,
+`todo` list, required body sections). Follow
+[create-study-document](../create-study-document/SKILL.md) — do not invent a
+separate convention here.
+
 ## Related Resources
 
 - [using-ado-cli](../using-ado-cli/SKILL.md) — CLI command syntax and shortcuts

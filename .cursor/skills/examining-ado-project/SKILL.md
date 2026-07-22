@@ -2,10 +2,10 @@
 name: examining-ado-project
 description: >-
   Builds a picture of work in an ado project: activity volume, spaces and
-  operations created over time, experiments and operation configs  used etc. Use
-  to create a project/context overview report, summarize what the team has been
-  doing in an ado project, report trends across spaces/operations, or to onboard
-  onto an ado project.
+  operations created over time, study documents, experiments and operation
+  configs used etc. Use to create a project/context overview report, summarize
+  what the team has been doing in an ado project, report trends across
+  spaces/operations/studies, or to onboard onto an ado project.
 ---
 
 # Examining an ado Project
@@ -29,6 +29,8 @@ related metadata in the ado project associated to the active context.
   pulls; see [query-ado-data](../query-ado-data/SKILL.md).
 - For creating document resources that store reports, see
   [resource-yaml-creation — Document](../resource-yaml-creation/SKILL.md#document).
+- For study documents (`study-$ID`), see
+  [create-study-document](../create-study-document/SKILL.md).
 - For one space in depth:
   [examining-discovery-spaces](../examining-discovery-spaces/SKILL.md).
 - For one operation in depth:
@@ -128,9 +130,32 @@ Goal: volume of work, recency, and which spaces attract the most operations.
 
    Adds `TABLES`, `LOCATIONS`, `KEY_VALUES`, and `DATA_BYTES` columns.
 
+7. **Study documents**
+
+   ```bash
+   uv run ado get document --details
+   ```
+
+   Select documents whose `metadata.name` matches `study-*` (see
+   [create-study-document](../create-study-document/SKILL.md)). For each study,
+   note `description` and `todo`. Fetch content when needed:
+
+   ```bash
+   uv run ado get document -q 'config.metadata.name=study-$ID' --details
+   uv run ado get document DOCUMENT_ID -o yaml
+   ```
+
+   Count related work with the study labels (typically `study=$ID`):
+
+   ```bash
+   uv run ado get spaces -l study=$ID --details
+   uv run ado get operations -l study=$ID --details
+   ```
+
 **Synthesis:** cluster mentally (or in notes) by **creation time** to see bursts
 of activity; count operations **per space** from the operations listing to see
-which spaces are busiest.
+which spaces are busiest; group activity under active **studies** when study
+documents exist.
 
 ## 2. Deeper pass: full YAML and experiments
 
@@ -275,6 +300,14 @@ Write a concise markdown report. Store it as the `content` field of a
 
 - Most recent spaces and operations (from `--details` listings).
 - What the latest work seems focused on (labels, names, target spaces).
+
+### Studies
+
+For each study document (`metadata.name` matching `study-*`):
+
+- Name, description, and current `todo`
+- Study question and objective (from document `content`)
+- Study labels and counts of matching spaces/operations
 
 ### Spaces overview
 

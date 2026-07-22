@@ -24,6 +24,10 @@ step 3 must follow.
   →  4. Execute  →  5. Analyse
 ```
 
+At the start of a named study (and when objectives or next steps change), create
+or refresh a study document and apply its study labels to spaces/operations —
+see [create-study-document](../create-study-document/SKILL.md).
+
 ---
 
 ## Step 1: Formulate the Discovery Problem

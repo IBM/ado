@@ -2067,43 +2067,66 @@ class SQLSampleStore(ActiveSampleStore):
         ]
 
     def entity_identifiers_in_operations(
-        self, operation_ids: str | set[str]
-    ) -> set[str]:
+        self,
+        operation_ids: str | set[str],
+        group_by_operation: bool = False,
+    ) -> set[str] | dict[str, set[str]]:
         """Get the set of entity identifiers sampled in one or more operations.
 
         Args:
             operation_ids: A single operation identifier or a set of operation
                 identifiers to look up entity identifiers for.
+            group_by_operation: When True, return a dict mapping each operation
+                ID to its set of entity identifiers. When False (default),
+                return a flat set of entity identifiers across all operations.
 
         Returns:
-            Set of entity identifier strings across all specified operations.
+            A flat set of entity identifier strings when group_by_operation is
+            False, or a dict mapping operation ID to set of entity identifiers
+            when group_by_operation is True.
         """
         if isinstance(operation_ids, str):
             operation_ids = {operation_ids}
 
         try:
-            with self.engine.begin() as connectable:
-                query = sqlalchemy.text(f"""
-                    SELECT DISTINCT(res.entity_id)
-                    FROM (
-                        SELECT *
-                        FROM {self._tablename}_measurement_requests
-                        WHERE operation_id IN :operation_ids
-                    ) req
-                    JOIN {self._tablename}_measurement_requests_results reqres ON reqres.request_uid = req.uid
-                    JOIN {self._tablename}_measurement_results res ON reqres.result_uid = res.uid
-                    """).bindparams(  # noqa: S608 - self._tablename is not untrusted
-                    sqlalchemy.bindparam(
-                        "operation_ids", value=list(operation_ids), expanding=True
-                    )
+            from sqlalchemy import select
+
+            req_table = self._request_table
+            reqres_table = self._request_result_table
+            res_table = self._result_table
+
+            stmt = (
+                select(
+                    req_table.c.operation_id,
+                    res_table.c.entity_id,
                 )
-                cur = connectable.execute(query)
+                .select_from(req_table)
+                .join(reqres_table, reqres_table.c.request_uid == req_table.c.uid)
+                .join(res_table, reqres_table.c.result_uid == res_table.c.uid)
+                .where(req_table.c.operation_id.in_(operation_ids))
+                .distinct()
+            )
+
+            with self.engine.begin() as connectable:
+                rows = connectable.execute(stmt).fetchall()
         except SQLAlchemyError as error:
             msg = f"Unable to get the entity ids for operations {operation_ids}"
             self.log.critical(f"{msg}. Error: {error}")
             raise SystemError(f"{msg}. Error: {error}") from error
 
-        return {ident[0] for ident in cur}
+        entity_ids_by_operation_id: dict[str, set[str]] = {}
+        for row in rows:
+            entity_ids_by_operation_id.setdefault(row.operation_id, set()).add(
+                row.entity_id
+            )
+
+        if group_by_operation:
+            return entity_ids_by_operation_id
+        return {
+            entity_id
+            for ids in entity_ids_by_operation_id.values()
+            for entity_id in ids
+        }
 
     def entity_identifiers_in_operation(
         self, operation_ids: str | set[str]

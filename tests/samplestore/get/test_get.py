@@ -588,6 +588,56 @@ def test_entity_identifiers_in_operations(
     assert len(entity_ids.intersection(retrieved_entity_ids)) == len(entity_ids)
 
 
+def test_entity_identifiers_in_operations_grouped(
+    random_identifier: Callable[[], str],
+    simulate_ml_multi_cloud_random_walk_operation: Callable[
+        [int, int, int, str | None],
+        tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
+    ],
+) -> None:
+    number_entities = 3
+    number_requests = 3
+    measurements_per_result = 2
+    operation_id_1 = random_identifier()
+    operation_id_2 = random_identifier()
+
+    sample_store, requests_1, _ = simulate_ml_multi_cloud_random_walk_operation(
+        number_entities=number_entities,
+        number_requests=number_requests,
+        measurements_per_result=measurements_per_result,
+        operation_id=operation_id_1,
+    )
+    _, requests_2, _ = simulate_ml_multi_cloud_random_walk_operation(
+        number_entities=number_entities,
+        number_requests=number_requests,
+        measurements_per_result=measurements_per_result,
+        operation_id=operation_id_2,
+    )
+
+    # Two-operation grouped result.
+    result = sample_store.entity_identifiers_in_operations(
+        operation_ids={operation_id_1, operation_id_2},
+        group_by_operation=True,
+    )
+
+    assert isinstance(result, dict)
+    assert set(result.keys()) == {operation_id_1, operation_id_2}
+
+    expected_ids_1 = {e.identifier for r in requests_1 for e in r.entities}
+    expected_ids_2 = {e.identifier for r in requests_2 for e in r.entities}
+    assert result[operation_id_1] == expected_ids_1
+    assert result[operation_id_2] == expected_ids_2
+
+    # Single-string operation ID with group_by_operation=True returns a single-key dict.
+    single_result = sample_store.entity_identifiers_in_operations(
+        operation_ids=operation_id_1,
+        group_by_operation=True,
+    )
+    assert isinstance(single_result, dict)
+    assert set(single_result.keys()) == {operation_id_1}
+    assert single_result[operation_id_1] == expected_ids_1
+
+
 def test_entity_identifiers_in_sample_store(
     ml_multi_cloud_sample_store: SQLSampleStore,
 ) -> None:

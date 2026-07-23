@@ -73,6 +73,30 @@ class SampleStore(abc.ABC):
         pass
 
     @abc.abstractmethod
+    def get_entities(
+        self,
+        identifiers: str | set[str] | None = None,
+        require_measurements: bool = False,
+        refresh: bool = False,
+    ) -> list[Entity]:  # pragma: nocover
+        """Retrieve entities from the store.
+
+        Args:
+            identifiers: Which entities to return.
+                - ``None`` (default): all entities.
+                - ``str``: a single entity identifier.
+                - ``set[str]``: an explicit subset of entity identifiers.
+            require_measurements: When ``True``, measurement results are
+                fetched and attached to every returned entity.
+                Defaults to ``False``.
+            refresh: When ``True``, cached data is evicted before fetching.
+                Defaults to ``False``.
+
+        Returns:
+            List of ``Entity`` objects.
+        """
+
+    @abc.abstractmethod
     def containsEntityWithIdentifier(self, entity_id: str) -> bool:  # pragma: nocover
         pass
 

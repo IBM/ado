@@ -19,7 +19,7 @@ from ado.schema.experiment import Experiment
 from ado.schema.property import (
     ConstitutivePropertyDescriptor,
 )
-from ado.schema.property_value import PropertyValue
+from ado.schema.property_value import ConstitutivePropertyValue
 from ado.schema.request import MeasurementRequest
 
 if typing.TYPE_CHECKING:
@@ -60,7 +60,12 @@ class SampleStore(abc.ABC):
     @property
     @abc.abstractmethod
     def entities(self) -> list[Entity]:  # pragma: nocover
-        pass
+        """Return all entities with their measurement results.
+
+        Deprecated:
+            This property emits a ``DeprecationWarning`` on all concrete
+            implementations. Prefer ``get_entities()`` for new code.
+        """
 
     @property
     @abc.abstractmethod
@@ -68,45 +73,90 @@ class SampleStore(abc.ABC):
         pass
 
     @abc.abstractmethod
+    def get_entities(
+        self,
+        identifiers: str | set[str] | None = None,
+        *,
+        require_measurements: bool,
+        refresh: bool = False,
+    ) -> list[Entity]:  # pragma: nocover
+        """Retrieve entities from the store.
+
+        Args:
+            identifiers: Which entities to return.
+                - ``None`` (default): all entities.
+                - ``str``: a single entity identifier.
+                - ``set[str]``: an explicit subset of entity identifiers.
+            require_measurements: When ``True``, measurement results are
+                fetched and attached to every returned entity.
+                Must be supplied explicitly by the caller.
+            refresh: When ``True``, cached data is evicted before fetching.
+                Defaults to ``False``.
+
+        Returns:
+            List of ``Entity`` objects.
+        """
+
+    @abc.abstractmethod
     def containsEntityWithIdentifier(self, entity_id: str) -> bool:  # pragma: nocover
         pass
 
     def entitiesWithConstitutivePropertyValues(
-        self, values: list[PropertyValue]
+        self, values: list[ConstitutivePropertyValue]
     ) -> list[Entity]:
-        """Returns entities with which have the given constitutive property values
+        """Return entities whose constitutive property values match all of the given values.
 
-        Note: This is a non-optimized base method provided for convenience
-        It will first get all entities then iterate over them.
+        Note: This is a non-optimized base method provided for convenience.
+        It fetches all entities then filters in Python.
 
-        Params:
-            values: A list of PropertyValue instances whose
-            properties are Constitutive Properties
+        Args:
+            values: A list of ``ConstitutivePropertyValue`` instances.  Every
+                item must have a ``ConstitutivePropertyDescriptor`` as its
+                ``property`` field; a ``ValueError`` is raised otherwise.
 
         Returns:
-            A list of Entities in the receiver which have constitutivePropertyValues.
-            If there are no matches the list will be empty.
-        """
+            A list of entities whose constitutive property values include every
+            value in *values*.  Returns an empty list when there are no matches.
 
-        def _same(entity: Entity, searchValues: list[PropertyValue]) -> bool:
-            # Does this entity have the same properties
-            unmatchedProperties = [
+        Raises:
+            ValueError: If any item in *values* is not a
+                ``ConstitutivePropertyValue`` (i.e. its ``property`` field is not
+                a ``ConstitutivePropertyDescriptor``).
+        """
+        from ado.schema.property import ConstitutivePropertyDescriptor
+
+        non_constitutive_values = [
+            val
+            for val in values
+            if not isinstance(val.property, ConstitutivePropertyDescriptor)
+        ]
+        if non_constitutive_values:
+            invalid_properties = ", ".join(
+                repr(v.property) for v in non_constitutive_values
+            )
+            raise ValueError(
+                f"entitiesWithConstitutivePropertyValues received non-constitutive "
+                f"property values: {invalid_properties}"
+            )
+
+        def _same(
+            entity: Entity, search_values: list[ConstitutivePropertyValue]
+        ) -> bool:
+            unmatched_props = [
                 val
-                for val in searchValues
+                for val in search_values
                 if entity.valueForProperty(val.property) is None
             ]
-            if len(unmatchedProperties) == 0:
-                unmatchedValues = [
-                    val
-                    for val in searchValues
-                    if entity.valueForProperty(val.property).value != val.value
-                ]
+            if unmatched_props:
+                return False
+            return all(
+                entity.valueForProperty(val.property).value == val.value
+                for val in search_values
+            )
 
-                return len(unmatchedValues) == 0
-            return False
-
-        all_entities = self.entities
-        return [e for e in all_entities if _same(e, values)]
+        return [
+            e for e in self.get_entities(require_measurements=True) if _same(e, values)
+        ]
 
     @property
     @abc.abstractmethod

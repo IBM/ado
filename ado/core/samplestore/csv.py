@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import logging
+import warnings
 from typing import TYPE_CHECKING, Annotated, Literal
 
 import pydantic
@@ -432,7 +433,45 @@ class CSVSampleStore(PassiveSampleStore):
 
     @property
     def entities(self) -> list[Entity]:
+        """Deprecated: use ``get_entities()`` instead.
+
+        Returns all entities with their measurement results attached.
+        This property is deprecated and will be removed in a future release.
+        """
+        warnings.warn(
+            "CSVSampleStore.entities is deprecated. Use get_entities() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self._entities
+
+    def get_entities(
+        self,
+        identifiers: str | set[str] | None = None,
+        *,
+        require_measurements: bool,
+        refresh: bool = False,
+    ) -> list[Entity]:
+        """Retrieve entities from the CSV store.
+
+        Args:
+            identifiers: Which entities to return.
+                - ``None`` (default): all entities.
+                - ``str``: a single entity identifier.
+                - ``set[str]``: an explicit subset of entity identifiers.
+            require_measurements: Ignored; CSV entities always carry their
+                measurements. Included for interface compatibility.
+            refresh: Ignored; CSV stores have no cache. Included for interface
+                compatibility.
+
+        Returns:
+            List of ``Entity`` objects.
+        """
+        if identifiers is None:
+            return list(self._entities)
+        if isinstance(identifiers, str):
+            identifiers = {identifiers}
+        return [e for e in self._entities if e.identifier in identifiers]
 
     @property
     def numberOfEntities(self) -> int:

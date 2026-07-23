@@ -295,6 +295,22 @@ def test_base_entity_with_constitutive_property_values(
     assert len(ents) == 5
 
 
+def test_entities_with_constitutive_property_values_rejects_non_constitutive(
+    ml_multi_cloud_csv_sample_store: CSVSampleStore,
+) -> None:
+    """Passing a PropertyValue whose property is not a ConstitutivePropertyDescriptor raises ValueError."""
+    from ado.schema.property_value import PropertyValue
+
+    non_constitutive_value = PropertyValue(
+        value=1.0,
+        property=AbstractPropertyDescriptor(identifier="wallClockRuntime"),
+    )
+    with pytest.raises(ValueError, match="non-constitutive"):
+        ml_multi_cloud_csv_sample_store.entitiesWithConstitutivePropertyValues(
+            [non_constitutive_value]  # type: ignore[list-item]
+        )
+
+
 def test_csv_sample_store_type_parsing(
     ml_multi_cloud_csv_sample_store: CSVSampleStore,
 ) -> None:

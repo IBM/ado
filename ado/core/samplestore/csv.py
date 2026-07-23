@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import logging
+import warnings
 from typing import TYPE_CHECKING, Annotated, Literal
 
 import pydantic
@@ -432,6 +433,16 @@ class CSVSampleStore(PassiveSampleStore):
 
     @property
     def entities(self) -> list[Entity]:
+        """Deprecated: use ``get_entities()`` instead.
+
+        Returns all entities with their measurement results attached.
+        This property is deprecated and will be removed in a future release.
+        """
+        warnings.warn(
+            "CSVSampleStore.entities is deprecated. Use get_entities() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self._entities
 
     def get_entities(

@@ -63,8 +63,8 @@ class SampleStore(abc.ABC):
         """Return all entities with their measurement results.
 
         Deprecated:
-            On ``SQLSampleStore``, this property emits a ``DeprecationWarning``.
-            Prefer ``get_entities(require_measurements=True)`` for new code.
+            This property emits a ``DeprecationWarning`` on all concrete
+            implementations. Prefer ``get_entities()`` for new code.
         """
 
     @property

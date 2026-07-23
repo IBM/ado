@@ -64,7 +64,7 @@ def test_internal_state_direct_init(
         )
         assert numberEntities == pfas_space.sample_store.numberOfEntities
         assert experiments == pfas_space.measurementSpace.experiments
-        all_entities = pfas_space.sample_store.get_entities()
+        all_entities = pfas_space.sample_store.get_entities(require_measurements=False)
         assert firstEntity == all_entities[0]
         assert lastEntity == all_entities[-1]
     finally:

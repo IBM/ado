@@ -448,7 +448,8 @@ class CSVSampleStore(PassiveSampleStore):
     def get_entities(
         self,
         identifiers: str | set[str] | None = None,
-        require_measurements: bool = False,
+        *,
+        require_measurements: bool,
         refresh: bool = False,
     ) -> list[Entity]:
         """Retrieve entities from the CSV store.

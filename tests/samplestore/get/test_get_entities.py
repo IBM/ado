@@ -37,10 +37,10 @@ def test_get_entities_returns_all_entities_without_measurements(
         )
         store.add_measurement_results([result], skip_relationship_to_request=True)
 
-    result_entities = store.get_entities()
+    result_entities = store.get_entities(require_measurements=False)
 
     assert len(result_entities) == 4
-    # No measurements should be attached (require_measurements defaults to False)
+    # No measurements should be attached
     assert all(len(e.measurement_results) == 0 for e in result_entities)
 
 
@@ -55,7 +55,7 @@ def test_get_entities_single_string_identifier(
     add_entities_to_sample_store(store, entities)
 
     target_id = entities[1].identifier
-    result = store.get_entities(target_id)
+    result = store.get_entities(target_id, require_measurements=False)
 
     assert len(result) == 1
     assert result[0].identifier == target_id
@@ -156,14 +156,14 @@ def test_get_entities_refresh_subset_evicts_and_refetches(
     add_entities_to_sample_store(store, entities)
 
     # Warm cache
-    _ = store.get_entities()
+    _ = store.get_entities(require_measurements=False)
     assert len(store._entities) == 3
 
     target_id = entities[0].identifier
     last_insert_id_before = store._last_insert_id
 
     # Refresh only the first entity
-    result = store.get_entities({target_id}, refresh=True)
+    result = store.get_entities({target_id}, refresh=True, require_measurements=False)
 
     assert len(result) == 1
     assert result[0].identifier == target_id
@@ -185,10 +185,10 @@ def test_get_entities_refresh_all_evicts_everything(
 
     # Warm cache and simulate a non-zero last_insert_id
     store._last_insert_id = 99
-    _ = store.get_entities()
+    _ = store.get_entities(require_measurements=False)
 
     # Full refresh
-    result = store.get_entities(refresh=True)
+    result = store.get_entities(refresh=True, require_measurements=False)
 
     assert len(result) == 3
     # _last_insert_id should have been reset to 0 then remain 0 (no measurements)

@@ -76,7 +76,8 @@ class SampleStore(abc.ABC):
     def get_entities(
         self,
         identifiers: str | set[str] | None = None,
-        require_measurements: bool = False,
+        *,
+        require_measurements: bool,
         refresh: bool = False,
     ) -> list[Entity]:  # pragma: nocover
         """Retrieve entities from the store.
@@ -88,7 +89,7 @@ class SampleStore(abc.ABC):
                 - ``set[str]``: an explicit subset of entity identifiers.
             require_measurements: When ``True``, measurement results are
                 fetched and attached to every returned entity.
-                Defaults to ``False``.
+                Must be supplied explicitly by the caller.
             refresh: When ``True``, cached data is evicted before fetching.
                 Defaults to ``False``.
 

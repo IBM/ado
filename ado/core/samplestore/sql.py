@@ -15,7 +15,6 @@ from sqlalchemy.exc import InvalidRequestError, SQLAlchemyError
 import ado.core.samplestore.config
 import ado.core.samplestore.csv
 import ado.metastore.sql.statements
-from ado.core.discoveryspace.stats import DiscoverySpaceStatistics
 from ado.core.samplestore.base import (
     ActiveSampleStore,
     FailedToDecodeStoredEntityError,
@@ -575,7 +574,6 @@ class SQLSampleStore(ActiveSampleStore):
             msg = f"Unable to fetch measurement results from sample store {self._tablename}"
             self.log.critical(f"{msg}. Error: {error}")
             raise SystemError(f"{msg}. Error: {error}") from error
-
         results_by_entity = defaultdict(list)
         max_insert_id = min_insert_id
 
@@ -1530,6 +1528,104 @@ class SQLSampleStore(ActiveSampleStore):
             self.log.critical(f"{msg}. Error: {error}")
             raise SystemError(f"{msg}. Error: {error}") from error
 
+    def entities_with_valid_measurements(
+        self, entity_identifiers: set[str]
+    ) -> set[str]:
+        """Return the subset of entity_identifiers that has at least one valid measurement.
+
+        Args:
+            entity_identifiers: Set of entity identifier strings to check.
+
+        Returns:
+            Subset of *entity_identifiers* for which at least one valid measurement
+            result exists.
+
+        Raises:
+            SystemError: If the underlying SQL query fails.
+        """
+        if not entity_identifiers:
+            return set()
+
+        try:
+            from sqlalchemy import select
+
+            res_table = self._result_table
+            # A measurement result is valid when the ``reason`` field is absent
+            # from its stored JSON blob.
+            stmt = (
+                select(res_table.c.entity_id)
+                .where(res_table.c.entity_id.in_(entity_identifiers))
+                .where(
+                    sqlalchemy.func.json_extract(res_table.c.data, "$.reason").is_(None)
+                )
+                .distinct()
+            )
+            with self.engine.begin() as connectable:
+                rows = connectable.execute(stmt).fetchall()
+            return {row.entity_id for row in rows}
+        except SQLAlchemyError as error:
+            msg = "Unable to get entities with valid measurement"
+            self.log.critical(f"{msg}. Error: {error}")
+            raise SystemError(f"{msg}. Error: {error}") from error
+
+    def entity_experiment_references(
+        self, entity_identifiers: set[str]
+    ) -> "dict[str, set[ExperimentReference]]":
+        """Return the experiment references covered by valid measurements per entity.
+
+        Args:
+            entity_identifiers: Set of entity identifier strings to query.
+
+        Returns:
+            ``dict`` mapping each entity identifier (only those with ≥1 valid result)
+            to the set of :class:`~ado.schema.reference.ExperimentReference` objects
+            for which they have a valid result.
+
+        Raises:
+            SystemError: If the underlying SQL query fails.
+        """
+        if not entity_identifiers:
+            return {}
+
+        # Uses COALESCE to handle both the current (compressed) and legacy
+        # serialization formats stored in the database:
+        # - Current format: ``experimentReference`` at top level of the ``data`` blob.
+        # - Legacy format: ``experimentReference`` inside the first measurement's property.
+        try:
+            from sqlalchemy import select
+
+            res_table = self._result_table
+            exp_ref_col = sqlalchemy.func.coalesce(
+                sqlalchemy.func.json_extract(res_table.c.data, "$.experimentReference"),
+                sqlalchemy.func.json_extract(
+                    res_table.c.data,
+                    "$.measurements[0].property.experimentReference",
+                ),
+            ).label("experiment_reference_json")
+            stmt = (
+                select(res_table.c.entity_id, exp_ref_col)
+                .where(res_table.c.entity_id.in_(entity_identifiers))
+                .where(
+                    sqlalchemy.func.json_extract(res_table.c.data, "$.reason").is_(None)
+                )
+                .distinct()
+            )
+
+            with self.engine.begin() as connectable:
+                rows = connectable.execute(stmt).fetchall()
+            result: dict[str, set[ExperimentReference]] = {}
+            for row in rows:
+                blob = row.experiment_reference_json
+                if blob is None:
+                    continue
+                exp_ref = ExperimentReference.model_validate_json(blob)
+                result.setdefault(row.entity_id, set()).add(exp_ref)
+            return result
+        except SQLAlchemyError as error:
+            msg = "Unable to get entity experiment references"
+            self.log.critical(f"{msg}. Error: {error}")
+            raise SystemError(f"{msg}. Error: {error}") from error
+
     def operation_measurement_statistics(
         self, operation_ids: set[str] | None = None
     ) -> "list[OperationMeasurementStatistics]":
@@ -1716,126 +1812,6 @@ class SQLSampleStore(ActiveSampleStore):
             msg = f"Unable to get statistics for sample store {self._tablename}"
             self.log.critical(f"{msg}. Error: {error}")
             raise SystemError(f"{msg}. Error: {error}") from error
-
-    def space_entity_statistics(
-        self,
-        space_ids_to_operation_ids: dict[str, set[str]],
-    ) -> "dict[str, DiscoverySpaceStatistics]":
-        """Compute entity-level statistics for one or more discovery spaces.
-
-        Issues a single SQL query that fetches all distinct
-        ``(operation_id, entity_id)`` pairs across every operation referenced
-        in *space_ids_to_operation_ids*, then groups the results by space ID
-        in Python.  This approach is portable across all supported backends
-        (SQLite, MySQL).
-
-        ``number_matching_entities`` and
-        ``number_matching_entities_with_measurements`` are not computed here
-        (they require Python-side ``isEntityInSpace`` evaluation) and are
-        always ``None`` in the returned models.
-
-        Args:
-            space_ids_to_operation_ids: Mapping of space ID to the set of
-                operation IDs that belong to that space.  Spaces with an empty
-                operation-ID set are returned with ``number_measured_entities``
-                equal to ``0``.  An empty mapping returns an empty dict.
-
-        Returns:
-            A ``dict`` keyed by space ID.  Each value is a
-            :class:`~ado.core.discoveryspace.stats.DiscoverySpaceStatistics`
-            with ``number_measured_entities`` populated and all other fields at
-            their defaults (``None``).
-
-        Raises:
-            SystemError: If the underlying SQL query fails.
-        """
-        if not space_ids_to_operation_ids:
-            return {}
-
-        # Separate spaces that have no operations (return 0 immediately) from
-        # those that need a DB query.
-        empty_space_ids = {
-            space_id
-            for space_id, operation_ids in space_ids_to_operation_ids.items()
-            if not operation_ids
-        }
-        spaces_to_query = {
-            space_id: operation_ids
-            for space_id, operation_ids in space_ids_to_operation_ids.items()
-            if operation_ids
-        }
-
-        result: dict[str, DiscoverySpaceStatistics] = {
-            space_id: DiscoverySpaceStatistics(
-                number_of_experiments=0,
-                number_of_operations=0,
-                number_of_explore_operations=0,
-                number_measured_entities=0,
-            )
-            for space_id in empty_space_ids
-        }
-
-        if not spaces_to_query:
-            return result
-
-        # Flat set of all operation IDs across all queried spaces.
-        operation_ids = {
-            operation_id
-            for operation_ids in spaces_to_query.values()
-            for operation_id in operation_ids
-        }
-        # Reverse map: operation_id → space_id (each operation belongs to one space).
-        operation_id_to_space_id: dict[str, str] = {
-            operation_id: space_id
-            for space_id, operation_ids in spaces_to_query.items()
-            for operation_id in operation_ids
-        }
-
-        try:
-            from sqlalchemy import select
-
-            req_table = self._request_table
-            reqres_table = self._request_result_table
-            res_table = self._result_table
-
-            # Fetch all distinct (operation_id, entity_id) pairs in one query.
-            stmt = (
-                select(
-                    req_table.c.operation_id,
-                    res_table.c.entity_id,
-                )
-                .select_from(req_table)
-                .join(reqres_table, reqres_table.c.request_uid == req_table.c.uid)
-                .join(res_table, reqres_table.c.result_uid == res_table.c.uid)
-                .where(req_table.c.operation_id.in_(operation_ids))
-                .distinct()
-            )
-
-            with self.engine.begin() as connectable:
-                rows = connectable.execute(stmt).fetchall()
-
-            # Group distinct entity IDs per space in Python.
-            entity_ids_by_space_id: dict[str, set[str]] = {
-                space_id: set() for space_id in spaces_to_query
-            }
-            for row in rows:
-                space_id = operation_id_to_space_id[row.operation_id]
-                entity_ids_by_space_id[space_id].add(row.entity_id)
-
-            for space_id, entity_ids in entity_ids_by_space_id.items():
-                result[space_id] = DiscoverySpaceStatistics(
-                    number_of_experiments=0,
-                    number_of_operations=0,
-                    number_of_explore_operations=0,
-                    number_measured_entities=len(entity_ids),
-                )
-
-        except SQLAlchemyError as error:
-            msg = f"Unable to get entity statistics for spaces {set(spaces_to_query)}"
-            self.log.critical(f"{msg}. Error: {error}")
-            raise SystemError(f"{msg}. Error: {error}") from error
-
-        return result
 
     def measurement_requests_for_operation(
         self,

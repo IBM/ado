@@ -4,7 +4,7 @@
 
 import logging
 import uuid
-from importlib.metadata import version
+from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from typing import Any
 
@@ -52,8 +52,14 @@ def _build_ray_runtime_env_with_extra(benchmark_tool: str) -> dict[str, list[Any
             source = specs[pkg]["source"]
             pkg_version = specs[pkg].get("version") or ""
         else:
+            try:
+                pkg_version = f"=={version(pkg)}"
+            except PackageNotFoundError:
+                logger.debug(
+                    f"Package {pkg!r} not in job env and not installed locally, skipping"
+                )
+                continue
             source = pkg
-            pkg_version = f"=={version(pkg)}"
 
         raw_extras = forced_extras.get(pkg) or (
             specs[pkg].get("extras") if pkg in specs else None

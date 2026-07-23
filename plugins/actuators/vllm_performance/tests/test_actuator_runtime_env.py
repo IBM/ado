@@ -99,3 +99,27 @@ class TestBuildRayRuntimeEnvWithExtra:
             result = _build_ray_runtime_env_with_extra("vllm")
 
         assert any("vllm" in d for d in result["uv"])
+
+    def test_package_skipped_when_not_in_job_env_and_not_installed(self) -> None:
+        """A package absent from both the job env and the local install is skipped silently."""
+        from importlib.metadata import PackageNotFoundError
+
+        job_packages = [
+            "ado-core==1.0",
+            "ado-vllm-performance==2.0",
+            "ray==2.9",
+            "vllm==0.12.0",
+        ]
+
+        def fake_version(n: str) -> str:
+            if n == "guidellm":
+                raise PackageNotFoundError(n)
+            return "0.0"
+
+        with (
+            patch(RAY_CTX, return_value=_mock_runtime_context(job_packages)),
+            patch(PKG_VER, side_effect=fake_version),
+        ):
+            result = _build_ray_runtime_env_with_extra("vllm")
+
+        assert not any(d.startswith("guidellm") for d in result["uv"])

@@ -11,12 +11,6 @@ from ado.core.document.config import DocumentConfiguration
 from ado.utilities.output import pydantic_model_as_yaml
 
 
-def test_document_configuration_defaults() -> None:
-    """DocumentConfiguration defaults relatedResources and attachments."""
-    config = DocumentConfiguration(content="Example report")
-    assert config.relatedResources == []
-
-
 def test_document_configuration_requires_content() -> None:
     """DocumentConfiguration requires content."""
     with pytest.raises(pydantic.ValidationError):
@@ -28,7 +22,6 @@ def test_document_configuration_round_trip_yaml() -> None:
     config = DocumentConfiguration(
         content="# Report\n\nBody text",
         relatedResources=["operation-abc-12345678"],
-        attachments={"chart.png": "cGV4"},
         metadata={"name": "Test report"},
     )
     yaml_text = pydantic_model_as_yaml(config)

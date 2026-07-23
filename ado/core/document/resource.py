@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import uuid
-from typing import Annotated, Any
+from typing import Annotated
 
 import pydantic
 
@@ -12,11 +12,7 @@ from ado.utilities.pydantic import Defaultable
 
 
 class DocumentResource(ADOResource):
-    """A resource that stores markdown documents and optional attachments."""
-
-    @staticmethod
-    def _identifier_from_data(data: dict[str, Any]) -> str:
-        return f"document-{str(uuid.uuid4())[:8]}"
+    """A resource that stores markdown documents."""
 
     version: Annotated[str, pydantic.Field()] = "v1"
     kind: Annotated[CoreResourceKinds, pydantic.Field()] = CoreResourceKinds.DOCUMENT
@@ -24,6 +20,6 @@ class DocumentResource(ADOResource):
     identifier: Annotated[
         Defaultable[str],
         pydantic.Field(
-            default_factory=_identifier_from_data,
+            default_factory=lambda: f"document-{str(uuid.uuid4())[:8]}",
         ),
     ]

@@ -60,7 +60,12 @@ class SampleStore(abc.ABC):
     @property
     @abc.abstractmethod
     def entities(self) -> list[Entity]:  # pragma: nocover
-        pass
+        """Return all entities with their measurement results.
+
+        Deprecated:
+            On ``SQLSampleStore``, this property emits a ``DeprecationWarning``.
+            Prefer ``get_entities(require_measurements=True)`` for new code.
+        """
 
     @property
     @abc.abstractmethod

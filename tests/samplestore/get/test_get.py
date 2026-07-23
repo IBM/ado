@@ -642,7 +642,9 @@ def test_entity_identifiers_in_sample_store(
     ml_multi_cloud_sample_store: SQLSampleStore,
 ) -> None:
 
-    expected_identifiers = [e.identifier for e in ml_multi_cloud_sample_store.entities]
+    expected_identifiers = [
+        e.identifier for e in ml_multi_cloud_sample_store.get_entities()
+    ]
     retrieved_identifiers = ml_multi_cloud_sample_store.entity_identifiers()
 
     assert len(expected_identifiers) == len(retrieved_identifiers)
@@ -735,7 +737,7 @@ def test_entities_by_identifiers_list_input(
 ) -> None:
     """Test entities_with_identifiers accepts list input."""
     # Get some entity identifiers from the store
-    all_entities = ml_multi_cloud_sample_store.entities
+    all_entities = ml_multi_cloud_sample_store.get_entities()
     assert len(all_entities) > 0
 
     # Test with list input
@@ -751,7 +753,7 @@ def test_entities_by_identifiers_set_input(
 ) -> None:
     """Test entities_with_identifiers accepts set input."""
     # Get some entity identifiers from the store
-    all_entities = ml_multi_cloud_sample_store.entities
+    all_entities = ml_multi_cloud_sample_store.get_entities()
     assert len(all_entities) > 0
 
     # Test with set input
@@ -767,7 +769,7 @@ def test_entities_by_identifiers_subset(
 ) -> None:
     """Test entities_with_identifiers returns only requested entities."""
     # Get all entities from the store
-    all_entities = ml_multi_cloud_sample_store.entities
+    all_entities = ml_multi_cloud_sample_store.get_entities()
     assert len(all_entities) >= 3
 
     # Request only a subset
@@ -804,7 +806,7 @@ def test_entities_by_identifiers_mixed_existing_nonexistent(
     ml_multi_cloud_sample_store: SQLSampleStore,
 ) -> None:
     """Test entities_with_identifiers with mix of existing and non-existent identifiers."""
-    all_entities = ml_multi_cloud_sample_store.entities
+    all_entities = ml_multi_cloud_sample_store.get_entities()
     assert len(all_entities) > 0
 
     # Mix of existing and non-existent
@@ -827,7 +829,7 @@ def test_entities_by_identifiers_partial_cache_reuse(
     ml_multi_cloud_sample_store: SQLSampleStore,
 ) -> None:
     """Test entities_with_identifiers reuses cached entities and only queries the rest."""
-    all_entities = ml_multi_cloud_sample_store.entities
+    all_entities = ml_multi_cloud_sample_store.get_entities()
     assert len(all_entities) >= 3
 
     # Pre-warm the cache with only the first entity

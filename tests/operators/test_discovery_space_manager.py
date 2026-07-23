@@ -64,8 +64,9 @@ def test_internal_state_direct_init(
         )
         assert numberEntities == pfas_space.sample_store.numberOfEntities
         assert experiments == pfas_space.measurementSpace.experiments
-        assert firstEntity == pfas_space.sample_store.entities[0]
-        assert lastEntity == pfas_space.sample_store.entities[-1]
+        all_entities = pfas_space.sample_store.get_entities()
+        assert firstEntity == all_entities[0]
+        assert lastEntity == all_entities[-1]
     finally:
         ray.kill(state)
 

@@ -68,13 +68,17 @@ def extract_package_specs_from_job_env(
             # Check if it's a wheel file path
             if pkg_spec.endswith(".whl") or "/" in pkg_spec:
                 # It's a wheel file path - can't use Requirement parser.
-                # Extract name by stripping extras/version from the path basename.
                 source = pkg_spec.split("[")[0] if "[" in pkg_spec else pkg_spec
-                parsed_name = source.rstrip("/").rsplit("/", 1)[-1]
                 extras = None
                 if "[" in pkg_spec:
                     extras = pkg_spec.split("[", 1)[1].split("]")[0]
                 version = None
+                # Wheel filename format: {name}-{version}-{python}-{abi}-{platform}.whl
+                # Extract just the distribution name (first segment, normalised).
+                basename = source.rstrip("/").rsplit("/", 1)[-1]
+                parsed_name = (
+                    basename.split("-")[0] if pkg_spec.endswith(".whl") else basename
+                )
             else:
                 # It's a PyPI package — use Requirement for an exact name match.
                 req = Requirement(pkg_spec)

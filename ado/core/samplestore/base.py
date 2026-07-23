@@ -155,7 +155,7 @@ class SampleStore(abc.ABC):
             )
 
         return [
-            e for e in self.get_entities(require_measurements=False) if _same(e, values)
+            e for e in self.get_entities(require_measurements=True) if _same(e, values)
         ]
 
     @property

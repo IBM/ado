@@ -6,7 +6,7 @@ import logging
 import subprocess
 import time
 import traceback
-from typing import Any
+from typing import Any, Literal
 
 import ray
 from ado_actuators.vllm_performance.actuator_parameters import (
@@ -39,7 +39,7 @@ from ado_actuators.vllm_performance.vllm_performance_test.execute_benchmark impo
     VLLMBenchmarkError,
     execute_bfcl_benchmark,
     execute_geospatial_benchmark,
-    execute_random_benchmark,
+    execute_vllm_benchmark,
 )
 from ado_actuators.vllm_performance.vllm_performance_test.execute_guidellm_benchmark import (
     execute_guidellm_benchmark,
@@ -596,8 +596,11 @@ def run_resource_and_workload_experiment(
                     burstiness=benchmark_parameters.burstiness,
                 )
             else:
-                logger.info("Using vLLM random benchmark for deployment")
-                result = execute_random_benchmark(
+                logger.info("Using vLLM benchmark for deployment")
+                dataset: Literal["random", "prefix_repetition"] = (
+                    benchmark_parameters.dataset or "random"
+                )
+                result = execute_vllm_benchmark(
                     base_url=benchmark_parameters.endpoint,
                     model=benchmark_parameters.model,
                     num_prompts=benchmark_parameters.num_prompts,
@@ -613,7 +616,7 @@ def run_resource_and_workload_experiment(
                     prefix_repetition_num_prefixes=benchmark_parameters.prefix_repetition_num_prefixes,
                     prefix_repetition_output_len=benchmark_parameters.prefix_repetition_output_len,
                     burstiness=benchmark_parameters.burstiness,
-                    dataset=benchmark_parameters.dataset,
+                    dataset=dataset,
                 )
 
         except (
@@ -782,8 +785,11 @@ def run_workload_experiment(
                     burstiness=benchmark_parameters.burstiness,
                 )
             else:
-                logger.info("Using vLLM random benchmark for endpoint")
-                result = execute_random_benchmark(
+                logger.info("Using vLLM benchmark for endpoint")
+                dataset: Literal["random", "prefix_repetition"] = (
+                    benchmark_parameters.dataset or "random"
+                )
+                result = execute_vllm_benchmark(
                     base_url=benchmark_parameters.endpoint,
                     model=benchmark_parameters.model,
                     num_prompts=benchmark_parameters.num_prompts,
@@ -799,7 +805,7 @@ def run_workload_experiment(
                     prefix_repetition_num_prefixes=benchmark_parameters.prefix_repetition_num_prefixes,
                     prefix_repetition_output_len=benchmark_parameters.prefix_repetition_output_len,
                     burstiness=benchmark_parameters.burstiness,
-                    dataset=benchmark_parameters.dataset,
+                    dataset=dataset,
                 )
         except VLLMBenchmarkError as e:
             error = f"Encountered benchmark error when testing entity {entity.identifier}: {e}"

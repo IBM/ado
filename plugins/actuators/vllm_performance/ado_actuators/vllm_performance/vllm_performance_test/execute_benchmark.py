@@ -7,7 +7,7 @@ import subprocess
 import time
 import uuid
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from ado_actuators.vllm_performance.vllm_performance_test.benchmark_models import (
     BenchmarkResult,
@@ -192,10 +192,10 @@ def execute_benchmark(
     return retval
 
 
-def execute_random_benchmark(
+def execute_vllm_benchmark(
     base_url: str,
     model: str,
-    dataset: str,
+    dataset: Literal["random", "prefix_repetition"],
     num_prompts: int = 500,
     request_rate: int | None = None,
     max_concurrency: int | None = None,
@@ -205,16 +205,16 @@ def execute_random_benchmark(
     burstiness: float = 1,
     number_input_tokens: int | None = None,
     max_output_tokens: int | None = None,
-    prefix_repetition_prefix_len: int | None = None,
-    prefix_repetition_suffix_len: int | None = None,
-    prefix_repetition_num_prefixes: int | None = None,
-    prefix_repetition_output_len: int | None = None,
+    prefix_repetition_prefix_len: int = 2048,
+    prefix_repetition_suffix_len: int = 128,
+    prefix_repetition_num_prefixes: int = 10,
+    prefix_repetition_output_len: int = 128,
 ) -> BenchmarkResult:
     """
-    Execute benchmark with random or prefix repetition dataset.
+    Execute vLLM benchmark with random or prefix repetition dataset.
     :param base_url: url for vllm endpoint
     :param model: model
-    :param dataset: data set name ["random", "prefix_repetition"]
+    :param dataset: dataset name, one of "random" or "prefix_repetition"
     :param num_prompts: number of prompts
     :param request_rate: request rate
     :param max_concurrency: maximum number of concurrent requests
@@ -224,10 +224,10 @@ def execute_random_benchmark(
     :param burstiness: burstiness factor of the request generation, 0 < burstiness < 1
     :param number_input_tokens: maximum number of input tokens for each request,
     :param max_output_tokens: maximum number of output tokens for each request,
-    :param prefix_repetition_prefix_len: prefix tokens cached per request for prefix repetition dataset,
-    :param prefix_repetition_suffix_len: suffix tokens per request for prefix repetition dataset,
-    :param prefix_repetition_num_prefixes: distinct cached prefixes for prefix repetition dataset,
-    :param prefix_repetition_output_len: output tokens per request for prefix repetition dataset,
+    :param prefix_repetition_prefix_len: prefix tokens cached per request for prefix repetition dataset (default 2048),
+    :param prefix_repetition_suffix_len: suffix tokens per request for prefix repetition dataset (default 128),
+    :param prefix_repetition_num_prefixes: distinct cached prefixes for prefix repetition dataset (default 10),
+    :param prefix_repetition_output_len: output tokens per request for prefix repetition dataset (default 128),
 
     :return: BenchmarkResult instance
     """

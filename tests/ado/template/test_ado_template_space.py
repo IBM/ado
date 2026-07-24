@@ -59,6 +59,32 @@ def test_template_space_from_experiment(
     assert len(space_configuration.entitySpace) == 3
 
 
+def test_template_space_from_vllm_experiment(
+    tmp_path: pathlib.Path, random_identifier: Callable[[], str]
+) -> None:
+    runner = CliRunner()
+    file_name = tmp_path / random_identifier()
+    result = runner.invoke(
+        ado,
+        [
+            "template",
+            "space",
+            "--from-experiment",
+            "test-deployment-v1",
+            "--output-file",
+            file_name,
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    space_configuration = DiscoverySpaceConfiguration.model_validate(
+        yaml.safe_load(file_name.read_text())
+    )
+    assert (
+        space_configuration.experiments[0].experimentIdentifier == "test-deployment-v1"
+    )
+    assert space_configuration.experiments[0].actuatorIdentifier == "vllm_performance"
+
+
 def test_template_space_from_experiment_with_actuator_prefix(
     tmp_path: pathlib.Path, random_identifier: Callable[[], str]
 ) -> None:

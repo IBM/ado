@@ -12,7 +12,7 @@ from ado.utilities.pydantic import Defaultable
 
 
 class DocumentResource(ADOResource):
-    """A resource that stores markdown documents."""
+    """A resource that stores markdown or HTML documents."""
 
     version: Annotated[str, pydantic.Field()] = "v1"
     kind: Annotated[CoreResourceKinds, pydantic.Field()] = CoreResourceKinds.DOCUMENT

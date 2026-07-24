@@ -196,17 +196,21 @@ uv run ado create samplestore -f samplestore.yaml
 
 ### Document
 
-Use `document` resources to persist markdown reports (and similar text) in the
-metastore. Examining skills store their reports this way: put the markdown in
-`content`, and list related resource identifiers in `relatedResources`.
+Use `document` resources to persist markdown or HTML reports in the metastore.
+Set `contentType` to `markdown` (default) or `html`. See the
+[document resource documentation](../../../docs/resources/document.md).
+Examining skills store their reports this way: put the body in `content`,
+optionally set `contentType`, and list related resource identifiers in
+`relatedResources`.
 
 ```yaml
 # <descriptive>_document.yaml  (temp file, not committed)
 metadata:
   name: "<descriptive name>"
   description: "<one-line summary>"
+contentType: markdown  # or html
 content: |
-  <full markdown report text>
+  <full report text>
 relatedResources:
   - <related resource ids>
 ```

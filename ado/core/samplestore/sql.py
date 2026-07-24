@@ -222,7 +222,7 @@ class SQLSampleStore(ActiveSampleStore):
 
         # Step 2: load those entities (with their measurement results) via the
         # existing method which handles caching, decoding, and result attachment.
-        entities = self.entities_with_identifiers(entity_ids)
+        entities = self.get_entities(identifiers=entity_ids, require_measurements=True)
 
         # Step 3: build the catalog from the fully-loaded entities.
         experiments: dict[str, Experiment] = {}
@@ -734,10 +734,7 @@ class SQLSampleStore(ActiveSampleStore):
     def entities_with_identifiers(
         self, entity_identifiers: set[str] | list[str]
     ) -> list[Entity]:
-        """Efficiently fetch entities by their identifiers without loading all entities.
-
-        This method queries only the specified entities from the database, making it
-        much more efficient than loading all entities and filtering in Python.
+        """Deprecated: use :meth:`get_entities` instead.
 
         Args:
             entity_identifiers: Set or list of entity identifiers to fetch
@@ -745,96 +742,14 @@ class SQLSampleStore(ActiveSampleStore):
         Returns:
             List of Entity objects matching the provided identifiers
         """
-        if not entity_identifiers:
-            return []
-
-        # Convert to set for deduplication and efficient lookup
-        entity_ids_set = (
-            set(entity_identifiers)
-            if isinstance(entity_identifiers, list)
-            else entity_identifiers
+        warnings.warn(
+            "entities_with_identifiers is deprecated, use get_entities instead.",
+            DeprecationWarning,
+            stacklevel=2,
         )
-
-        # Partition into cached and uncached IDs
-        cached_keys = (
-            entity_ids_set.intersection(self._entities.keys())
-            if self._entities
-            else set()
+        return self.get_entities(
+            identifiers=set(entity_identifiers), require_measurements=True
         )
-        uncached_ids = entity_ids_set.difference(cached_keys)
-        cached_entities = [self._entities[k] for k in cached_keys]
-
-        # All requested entities were already cached
-        if not uncached_ids:
-            return cached_entities
-
-        # Query database only for the uncached entities
-        # Use SQLAlchemy's expanding bindparam for IN clause
-        # This automatically handles the parameter expansion for the IN clause
-        query = sqlalchemy.text(f"""
-            SELECT ent.identifier, ent.representation, res.data
-            FROM {self._tablename} ent
-            LEFT OUTER JOIN {self._tablename}_measurement_results res ON res.entity_id = ent.identifier
-            WHERE ent.identifier IN :entity_ids
-        """).bindparams(  # noqa: S608 - self._tablename is not untrusted
-            sqlalchemy.bindparam(
-                key="entity_ids", value=list(uncached_ids), expanding=True
-            )
-        )
-
-        try:
-            with self.engine.begin() as connectable:
-                cur = connectable.execute(query)
-        except SQLAlchemyError as error:
-            msg = f"Unable to fetch entities by identifiers from sample store {self._tablename}"
-            self.log.critical(f"{msg}. Error: {error}")
-            raise SystemError(f"{msg}. Error: {error}") from error
-
-        # Build result dictionary to handle multiple measurement results per entity
-        entities_dict: dict[str, Entity] = {}
-        for entity_identifier, entity_representation, result_data in cur:
-            if entity_identifier not in entities_dict:
-                try:
-                    entities_dict[entity_identifier] = Entity.model_validate(
-                        json.loads(entity_representation)
-                    )
-                    # Update cache if it exists
-                    if self._entities is not None:
-                        self._entities[entity_identifier] = entities_dict[
-                            entity_identifier
-                        ]
-                except Exception as error:
-                    raise FailedToDecodeStoredEntityError(
-                        entity_identifier=entity_identifier,
-                        entity_representation=entity_representation,
-                        cause=error,
-                    ) from error
-
-            if result_data is None:
-                self.log.debug(
-                    f"Entity {entity_identifier} had no measurements associated to it."
-                )
-                continue
-
-            try:
-                result_dict = json.loads(result_data)
-                if not result_dict.get("measurements", None):
-                    continue
-
-                measurement_result = ValidMeasurementResult.model_validate(result_dict)
-            except Exception as error:
-                raise FailedToDecodeStoredMeasurementResultForEntityError(
-                    entity_identifier=entity_identifier,
-                    result_representation=result_data,
-                    cause=error,
-                ) from error
-
-            # Add measurement result to entity
-            entities_dict[entity_identifier].add_measurement_result(
-                result=measurement_result
-            )
-
-        return cached_entities + list(entities_dict.values())
 
     def get_entities(
         self,
@@ -932,10 +847,12 @@ class SQLSampleStore(ActiveSampleStore):
         Returns:
             List of Entity objects that were sampled in the specified operation(s)
         """
-        # Use entity_identifiers_in_operations + entities_with_identifiers so that
+        # Use entity_identifiers_in_operations + get_entities so that
         # the entity cache is used when fetching entities.
         entity_ids = self.entity_identifiers_in_operations(operation_ids)
-        return self.entities_with_identifiers(entity_ids)
+        return self.get_entities(
+            identifiers=set(entity_ids), require_measurements=False
+        )
 
     def entities_in_operation(self, operation_ids: str | set[str]) -> list[Entity]:
         """Deprecated: use entities_in_operations instead."""
@@ -1164,67 +1081,19 @@ class SQLSampleStore(ActiveSampleStore):
         pass
 
     def entityWithIdentifier(self, entityIdentifier: str) -> Entity | None:
-        """Returns entity if its in receiver otherwise returns None"""
+        """Deprecated: use :meth:`get_entities` instead.
 
-        query = sqlalchemy.text(f"""
-                SELECT ent.identifier, ent.representation, res.data
-                FROM (
-                    SELECT identifier, representation
-                    FROM {self._tablename} ent
-                    WHERE identifier = :identifier
-                ) ent
-                LEFT OUTER JOIN {self._tablename}_measurement_results res ON ent.identifier = res.entity_id
-            """).bindparams(  # noqa: S608 - self._tablename is not untrusted
-            identifier=entityIdentifier
+        Returns entity if it is in the store, otherwise returns ``None``.
+        """
+        warnings.warn(
+            "entityWithIdentifier is deprecated, use get_entities instead.",
+            DeprecationWarning,
+            stacklevel=2,
         )
-
-        try:
-            with self.engine.begin() as connectable:
-                cur = connectable.execute(query)
-        except SQLAlchemyError as error:
-            msg = f"Unable to fetch entity {entityIdentifier} and measurements from sample store {self._tablename}"
-            self.log.critical(f"{msg}. Error: {error}")
-            raise SystemError(f"{msg}. Error: {error}") from error
-
-        entity = None
-        failures = 0
-        for entity_identifier, entity_representation, result_data in cur:
-            if entity is None:
-                try:
-                    entity = Entity.model_validate(json.loads(entity_representation))
-                except Exception as error:
-                    self.log.warning(
-                        f"Unable to decode representation for entity {entity_identifier}.\n"
-                        f"Representation was: {entity_representation}.\n"
-                        f"Error was {error}"
-                    )
-                    return None
-
-            if result_data is None:
-                self.log.info(
-                    f"Entity {entity_identifier} had no measurements associated to it."
-                )
-                continue
-
-            try:
-                result_dict = json.loads(result_data)
-                if not result_dict.get("measurements", None):
-                    continue
-
-                measurement_result = ValidMeasurementResult.model_validate(result_dict)
-            except Exception as error:
-                self.log.warning(
-                    f"Unable to decode a measurement result for entity {entity_identifier}.\n"
-                    f"Data was: {result_data}.\n"
-                    f"Error was {error}"
-                )
-                failures += 1
-                continue
-
-            # We need to manually add valid measurements to the entity
-            entity.add_measurement_result(result=measurement_result)
-
-        return entity
+        results = self.get_entities(
+            identifiers=entityIdentifier, require_measurements=True
+        )
+        return results[0] if results else None
 
     @property
     def uri(self) -> str:
@@ -2076,7 +1945,10 @@ class SQLSampleStore(ActiveSampleStore):
 
             # We also need the entity referenced by the measurement
             if entity_id not in self._entities:
-                self._entities[entity_id] = self.entityWithIdentifier(entity_id)
+                results = self.get_entities(
+                    identifiers=entity_id, require_measurements=False
+                )
+                self._entities[entity_id] = results[0] if results else None
 
             entity = self._entities[entity_id]
 

@@ -517,13 +517,16 @@ class ActiveSampleStore(SampleStore, ABC):
     def entityWithIdentifier(
         self, entityIdentifier: str
     ) -> Entity | None:  # pragma: nocover
-        pass
+        """Deprecated: use :meth:`get_entities` instead.
+
+        Returns entity if it is in the store, otherwise returns ``None``.
+        """
 
     @abc.abstractmethod
     def entities_with_identifiers(
         self, entity_identifiers: set[str] | list[str]
     ) -> list[Entity]:
-        """Fetch the entities given by entity_identifiers.
+        """Deprecated: use :meth:`get_entities` instead.
 
         Args:
             entity_identifiers: Set or list of entity identifiers to fetch

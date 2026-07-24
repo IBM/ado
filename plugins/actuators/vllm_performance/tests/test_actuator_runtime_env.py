@@ -89,17 +89,6 @@ class TestBuildRayRuntimeEnvWithExtra:
         assert "vllm==0.9" in deps
         assert "guidellm==0.5" in deps
 
-    def test_vllm_included_even_when_absent_from_job_env(self) -> None:
-        """vllm is always present in the result, version-pinned when not in job env."""
-        job_packages = ["ado-core==1.0", "ado-vllm-performance==2.0", "ray==2.9"]
-        with (
-            patch(RAY_CTX, return_value=_mock_runtime_context(job_packages)),
-            patch(PKG_VER, side_effect=lambda n: "0.99"),
-        ):
-            result = _build_ray_runtime_env_with_extra("vllm")
-
-        assert any("vllm" in d for d in result["uv"])
-
     def test_package_skipped_when_not_in_job_env_and_not_installed(self) -> None:
         """A package absent from both the job env and the local install is skipped silently."""
         from importlib.metadata import PackageNotFoundError

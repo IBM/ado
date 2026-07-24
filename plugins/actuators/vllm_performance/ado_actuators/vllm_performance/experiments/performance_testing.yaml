@@ -46,14 +46,14 @@ test-deployment-v1:
         description: "(benchmark) The number of input tokens to send per request"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [1, 128000]
+        domainRange: [1, 128001]
         interval: 1
     - identifier: 'max_output_tokens'
       metadata:
         description: "(benchmark) The maximum number of output tokens to generate per request"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [1, 10000]
+        domainRange: [1, 10001]
         interval: 1
     - identifier: image
       metadata:
@@ -130,14 +130,14 @@ test-deployment-v1:
         description: "(benchmark) The number of prefix tokens that would be cached when dataset=prefix_repetition"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [1, 128000]
+        domainRange: [1, 128001]
         interval: 1
     - identifier: 'prefix_repetition_suffix_len'
       metadata:
         description: "(benchmark) The number of suffix tokens per request when dataset=prefix_repetition. Total input length is prefix_repetition_prefix_len + prefix_repetition_suffix_len"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [1, 128000]
+        domainRange: [1, 128001]
         interval: 1
     - identifier: 'prefix_repetition_num_prefixes'
       metadata:
@@ -151,7 +151,7 @@ test-deployment-v1:
         description: "(benchmark) The number of output tokens per request when dataset=prefix_repetition"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [1, 10000]
+        domainRange: [1, 10001]
         interval: 1
     - identifier: 'kv_cache_dtype'
       metadata:
@@ -307,14 +307,14 @@ test-endpoint-v1:
         description: "The number of input tokens to send per request"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [1, 128000]
+        domainRange: [1, 128001]
         interval: 1 # -1 means send all requests at time 0
     - identifier: 'max_output_tokens'
       metadata:
         description: "The maximum number of output tokens to generate per request"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [1, 10000]
+        domainRange: [1, 10001]
         interval: 1 # -1 means send all requests at time 0
     - identifier: 'burstiness'
       metadata:
@@ -341,14 +341,14 @@ test-endpoint-v1:
         description: "The number of prefix tokens that would be cached when dataset=prefix_repetition"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [1, 128000]
+        domainRange: [1, 128001]
         interval: 1
     - identifier: 'prefix_repetition_suffix_len'
       metadata:
         description: "The number of suffix tokens per request when dataset=prefix_repetition. Total input length is prefix_repetition_prefix_len + prefix_repetition_suffix_len"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [1, 128000]
+        domainRange: [1, 128001]
         interval: 1
     - identifier: 'prefix_repetition_num_prefixes'
       metadata:
@@ -362,7 +362,7 @@ test-endpoint-v1:
         description: "The number of output tokens per request when dataset=prefix_repetition"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [1, 10000]
+        domainRange: [1, 10001]
         interval: 1
   defaultParameterization:
     - value: 1000
@@ -471,14 +471,14 @@ test-deployment-guidellm-v1:
         description: "(benchmark) The number of input tokens to send per request"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [1, 128000]
+        domainRange: [1, 128001]
         interval: 1
     - identifier: 'max_output_tokens'
       metadata:
         description: "(benchmark) The maximum number of output tokens to generate per request"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [1, 10000]
+        domainRange: [1, 10001]
         interval: 1
     - identifier: 'burstiness'
       metadata:
@@ -561,14 +561,14 @@ test-deployment-guidellm-v1:
         description: "(benchmark) The number of prefix tokens that would be cached when dataset=prefix_repetition"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [1, 128000]
+        domainRange: [1, 128001]
         interval: 1
     - identifier: 'prefix_repetition_suffix_len'
       metadata:
         description: "(benchmark) The number of suffix tokens per request when dataset=prefix_repetition. Total input length is prefix_repetition_prefix_len + prefix_repetition_suffix_len"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [1, 128000]
+        domainRange: [1, 128001]
         interval: 1
     - identifier: 'prefix_repetition_num_prefixes'
       metadata:
@@ -582,7 +582,7 @@ test-deployment-guidellm-v1:
         description: "(benchmark) The number of output tokens per request when dataset=prefix_repetition"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [1, 10000]
+        domainRange: [1, 10001]
         interval: 1
     - identifier: 'kv_cache_dtype'
       metadata:
@@ -737,14 +737,14 @@ test-endpoint-guidellm-v1:
         description: "The number of input tokens to send per request"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [1, 128000]
+        domainRange: [1, 128001]
         interval: 1
     - identifier: 'max_output_tokens'
       metadata:
         description: "The maximum number of output tokens to generate per request"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [1, 10000]
+        domainRange: [1, 10001]
         interval: 1
     - identifier: 'burstiness'
       metadata:
@@ -770,14 +770,14 @@ test-endpoint-guidellm-v1:
         description: "(benchmark) The number of prefix tokens that would be cached when dataset=prefix_repetition"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [1, 128000]
+        domainRange: [1, 128001]
         interval: 1
     - identifier: 'prefix_repetition_suffix_len'
       metadata:
         description: "(benchmark) The number of suffix tokens per request when dataset=prefix_repetition. Total input length is prefix_repetition_prefix_len + prefix_repetition_suffix_len"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [1, 128000]
+        domainRange: [1, 128001]
         interval: 1
     - identifier: 'prefix_repetition_num_prefixes'
       metadata:
@@ -791,7 +791,7 @@ test-endpoint-guidellm-v1:
         description: "(benchmark) The number of output tokens per request when dataset=prefix_repetition"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [1, 10000]
+        domainRange: [1, 10001]
         interval: 1
   defaultParameterization:
     - value: 1000
@@ -906,14 +906,14 @@ test-agentic-tool-calling:
         description: "(benchmark) The number of input tokens to send per request"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [1, 128000]
+        domainRange: [1, 128001]
         interval: 1
     - identifier: 'max_output_tokens'
       metadata:
         description: "(benchmark) The maximum number of output tokens to generate per request"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [1, 10000]
+        domainRange: [1, 10001]
         interval: 1
     - identifier: image
       metadata:
@@ -990,14 +990,14 @@ test-agentic-tool-calling:
         description: "(benchmark) The number of prefix tokens that would be cached when dataset=prefix_repetition"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [1, 128000]
+        domainRange: [1, 128001]
         interval: 1
     - identifier: 'prefix_repetition_suffix_len'
       metadata:
         description: "(benchmark) The number of suffix tokens per request when dataset=prefix_repetition. Total input length is prefix_repetition_prefix_len + prefix_repetition_suffix_len"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [1, 128000]
+        domainRange: [1, 128001]
         interval: 1
     - identifier: 'prefix_repetition_num_prefixes'
       metadata:
@@ -1011,7 +1011,7 @@ test-agentic-tool-calling:
         description: "(benchmark) The number of output tokens per request when dataset=prefix_repetition"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [1, 10000]
+        domainRange: [1, 10001]
         interval: 1
     - identifier: 'bfcl_categories'
       metadata:

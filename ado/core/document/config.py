@@ -1,7 +1,7 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-from typing import Annotated
+from typing import Annotated, Literal
 
 import pydantic
 from pydantic import ConfigDict
@@ -16,8 +16,12 @@ class DocumentConfiguration(pydantic.BaseModel):
 
     content: Annotated[
         str,
-        pydantic.Field(description="Markdown body of the document"),
+        pydantic.Field(description="Body of the document (markdown or HTML)"),
     ]
+    contentType: Annotated[
+        Literal["markdown", "html"],
+        pydantic.Field(description="Format of the content field"),
+    ] = "markdown"
     relatedResources: Annotated[
         list[str],
         pydantic.Field(

@@ -73,6 +73,7 @@ dev = [
 ]
 docs = [
   "htmlmin>=0.1.12",
+  "mike>=2.1.2",
   "mkdocs>=1.6.1",
   "mkdocs-github-admonitions-plugin>=0.1.1",
   "mkdocs-include-markdown-plugin>=7.1.6",

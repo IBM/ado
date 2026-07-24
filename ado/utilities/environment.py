@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 import logging
 import os
+from pathlib import Path
 
 import ray
 from packaging.requirements import Requirement
@@ -68,16 +69,14 @@ def extract_package_specs_from_job_env(
             # Check if it's a wheel file path
             if pkg_spec.endswith(".whl") or "/" in pkg_spec:
                 # It's a wheel file path - can't use Requirement parser.
-                source = pkg_spec.split("[")[0] if "[" in pkg_spec else pkg_spec
-                extras = None
-                if "[" in pkg_spec:
-                    extras = pkg_spec.split("[", 1)[1].split("]")[0]
+                source, _, extras_str = pkg_spec.partition("[")
+                extras = extras_str.rstrip("]") or None
                 version = None
                 # Wheel filename format: {name}-{version}-{python}-{abi}-{platform}.whl
                 # Extract just the distribution name (first segment, normalised).
-                basename = source.rstrip("/").rsplit("/", 1)[-1]
+                path = Path(source)
                 parsed_name = (
-                    basename.split("-")[0] if pkg_spec.endswith(".whl") else basename
+                    path.stem.split("-")[0] if path.suffix == ".whl" else path.name
                 )
             else:
                 # It's a PyPI package — use Requirement for an exact name match.

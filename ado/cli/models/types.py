@@ -75,6 +75,7 @@ class AdoDeleteSupportedResourceTypes(Enum):
 class AdoDescribeSupportedResourceTypes(Enum):
     DATA_CONTAINER = _DATA_CONTAINER_SINGULAR
     DISCOVERY_SPACE = _DISCOVERY_SPACE_SINGULAR
+    DOCUMENT = _DOCUMENT_SINGULAR
     EXPERIMENT = _EXPERIMENT_SINGULAR
 
 

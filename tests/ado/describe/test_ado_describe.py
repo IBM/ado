@@ -4,7 +4,9 @@
 import os
 import pathlib
 from collections.abc import Callable
+from urllib.parse import unquote, urlparse
 
+import pytest
 from testcontainers.mysql import MySqlContainer
 from typer.testing import CliRunner
 
@@ -112,3 +114,216 @@ def test_describe_use_latest_rejected_for_experiment() -> None:
     runner = CliRunner()
     result = runner.invoke(ado, ["describe", "experiment", "--use-latest"])
     assert result.exit_code == 1
+
+
+def test_describe_document(
+    tmp_path: pathlib.Path,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+    sql_store: SQLStore,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Describe writes raw markdown when stdout is not a terminal."""
+    from ado.core.document.config import DocumentConfiguration
+    from ado.core.document.resource import DocumentResource
+
+    monkeypatch.setattr(
+        "ado.cli.resources.document.describe._stdout_is_terminal",
+        lambda: False,
+    )
+
+    content = "# Operation report\n\nExample body for describe."
+    config = DocumentConfiguration(
+        content=content,
+        relatedResources=["operation-test-12345678"],
+        metadata={"name": "Describe test report"},
+    )
+    resource = DocumentResource(config=config)
+    sql_store.addResource(resource)
+
+    runner = CliRunner()
+    create_active_ado_context(
+        runner=runner, path=tmp_path, project_context=valid_ado_project_context
+    )
+    result = runner.invoke(
+        ado,
+        [
+            "--override-ado-app-dir",
+            tmp_path,
+            "describe",
+            "document",
+            resource.identifier,
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert result.output == f"{content}\n"
+
+
+def test_describe_document_terminal_renders_markdown(
+    tmp_path: pathlib.Path,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+    sql_store: SQLStore,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Describe renders markdown with rich when stdout is a terminal."""
+    from ado.core.document.config import DocumentConfiguration
+    from ado.core.document.resource import DocumentResource
+
+    monkeypatch.setattr(
+        "ado.cli.resources.document.describe._stdout_is_terminal",
+        lambda: True,
+    )
+
+    config = DocumentConfiguration(
+        content="# Operation report\n\nExample body for describe.",
+        relatedResources=["operation-test-12345678"],
+        metadata={"name": "Describe test report"},
+    )
+    resource = DocumentResource(config=config)
+    sql_store.addResource(resource)
+
+    runner = CliRunner()
+    create_active_ado_context(
+        runner=runner, path=tmp_path, project_context=valid_ado_project_context
+    )
+    result = runner.invoke(
+        ado,
+        [
+            "--override-ado-app-dir",
+            tmp_path,
+            "describe",
+            "document",
+            resource.identifier,
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert resource.identifier in result.output
+    assert "markdown" in result.output
+    assert "Operation report" in result.output
+    assert "Example body for describe" in result.output
+
+
+def test_describe_document_html_redirect_prints_content(
+    tmp_path: pathlib.Path,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+    sql_store: SQLStore,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Describe writes raw HTML when stdout is not a terminal."""
+    from ado.core.document.config import DocumentConfiguration
+    from ado.core.document.resource import DocumentResource
+
+    monkeypatch.setattr(
+        "ado.cli.resources.document.describe._stdout_is_terminal",
+        lambda: False,
+    )
+
+    html_body = (
+        "<html><body><h1>HTML report</h1><p>Opened via describe.</p></body></html>"
+    )
+    config = DocumentConfiguration(
+        content=html_body,
+        contentType="html",
+        metadata={"name": "HTML describe test"},
+    )
+    resource = DocumentResource(config=config)
+    sql_store.addResource(resource)
+
+    opened_urls: list[str] = []
+
+    def _fake_open(url: str) -> bool:
+        opened_urls.append(url)
+        return True
+
+    monkeypatch.setattr(
+        "ado.cli.resources.document.describe.webbrowser.open", _fake_open
+    )
+
+    runner = CliRunner()
+    create_active_ado_context(
+        runner=runner, path=tmp_path, project_context=valid_ado_project_context
+    )
+    result = runner.invoke(
+        ado,
+        [
+            "--override-ado-app-dir",
+            tmp_path,
+            "describe",
+            "document",
+            resource.identifier,
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert result.output == f"{html_body}\n"
+    assert opened_urls == []
+
+
+def test_describe_document_html_opens_browser(
+    tmp_path: pathlib.Path,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+    sql_store: SQLStore,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Describe opens HTML document content in the default browser on a TTY."""
+    from ado.core.document.config import DocumentConfiguration
+    from ado.core.document.resource import DocumentResource
+
+    monkeypatch.setattr(
+        "ado.cli.resources.document.describe._stdout_is_terminal",
+        lambda: True,
+    )
+
+    html_body = (
+        "<html><body><h1>HTML report</h1><p>Opened via describe.</p></body></html>"
+    )
+    config = DocumentConfiguration(
+        content=html_body,
+        contentType="html",
+        metadata={"name": "HTML describe test"},
+    )
+    resource = DocumentResource(config=config)
+    sql_store.addResource(resource)
+
+    opened_urls: list[str] = []
+
+    def _fake_open(url: str) -> bool:
+        opened_urls.append(url)
+        return True
+
+    monkeypatch.setattr(
+        "ado.cli.resources.document.describe.webbrowser.open", _fake_open
+    )
+
+    runner = CliRunner()
+    create_active_ado_context(
+        runner=runner, path=tmp_path, project_context=valid_ado_project_context
+    )
+    result = runner.invoke(
+        ado,
+        [
+            "--override-ado-app-dir",
+            tmp_path,
+            "describe",
+            "document",
+            resource.identifier,
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert resource.identifier in result.output
+    assert "html" in result.output
+    assert "Opened HTML document content" in result.output
+    assert len(opened_urls) == 1
+    assert opened_urls[0].startswith("file://")
+    opened_path = pathlib.Path(unquote(urlparse(opened_urls[0]).path))
+    assert opened_path.read_text(encoding="utf-8") == html_body

@@ -16,6 +16,7 @@ from ado.cli.models.parameters import AdoDescribeCommandParameters
 from ado.cli.models.types import AdoDescribeSupportedResourceTypes
 from ado.cli.resources.data_container.describe import describe_data_container
 from ado.cli.resources.discovery_space.describe import describe_discovery_space
+from ado.cli.resources.document.describe import describe_document
 from ado.cli.resources.experiment.describe import describe_experiment
 from ado.cli.utils.generic.common import get_effective_resource_id
 from ado.cli.utils.input.parsers import enum_choice_with_plural_parser
@@ -96,6 +97,9 @@ def describe_resource(
 
     # Describe an experiment, optionally with actuator prefix
     ado describe experiment <actuator-id>.<experiment-id>
+
+    # Describe a document (markdown in-terminal; HTML opens in browser)
+    ado describe document <document-id>
     """
     ado_configuration: AdoConfiguration = ctx.obj
 
@@ -141,6 +145,7 @@ def describe_resource(
     method_mapping = {
         AdoDescribeSupportedResourceTypes.DATA_CONTAINER: describe_data_container,
         AdoDescribeSupportedResourceTypes.DISCOVERY_SPACE: describe_discovery_space,
+        AdoDescribeSupportedResourceTypes.DOCUMENT: describe_document,
         AdoDescribeSupportedResourceTypes.EXPERIMENT: describe_experiment,
     }
 

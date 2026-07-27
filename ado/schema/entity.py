@@ -217,6 +217,83 @@ class Entity(pydantic.BaseModel):
 
         return measurement_results
 
+    @pydantic.model_validator(mode="before")
+    @classmethod
+    def upgrade_from_legacy_format(
+        cls,
+        data: typing.Any,  # noqa: ANN401
+    ) -> typing.Any:  # noqa: ANN401
+        """Convert the legacy flat-list entity format to the current structured format.
+
+        The legacy format stored all property values in a single ``propertyValues``
+        list that mixed constitutive and observed entries, and stored all property
+        definitions in a parallel ``properties`` list.  The current format separates
+        them into ``constitutive_property_values`` and ``measurement_results``.
+
+        Detection: presence of the ``propertyValues`` key in the raw dict.
+        """
+        if not isinstance(data, dict) or "propertyValues" not in data:
+            return data
+
+        property_values: list[dict] = data.get("propertyValues", [])
+
+        # Separate constitutive from observed property values.
+        # Observed entries have a "targetProperty" key inside their "property" dict.
+        constitutive_property_values: list[ConstitutivePropertyValue] = []
+        # Group observed entries by experiment reference (keyed by actuator::experiment).
+        observed_by_ref: dict[str, list[ObservedPropertyValue]] = {}
+        ref_by_key: dict[str, ExperimentReference] = {}
+
+        for pv in property_values:
+            prop = pv.get("property", {})
+            if "targetProperty" in prop:
+                exp_ref = ExperimentReference.model_validate(
+                    prop["experimentReference"]
+                )
+                ref_key = (
+                    f"{exp_ref.actuatorIdentifier}::{exp_ref.experimentIdentifier}"
+                )
+                if ref_key not in observed_by_ref:
+                    observed_by_ref[ref_key] = []
+                    ref_by_key[ref_key] = exp_ref
+                observed_by_ref[ref_key].append(
+                    ObservedPropertyValue(
+                        value=pv["value"],
+                        property=ObservedProperty(
+                            targetProperty=prop["targetProperty"],
+                            experimentReference=exp_ref,
+                            metadata=None,
+                        ),
+                    )
+                )
+            else:
+                constitutive_property_values.append(
+                    ConstitutivePropertyValue.model_validate(pv)
+                )
+
+        # Build one ValidMeasurementResult per distinct experiment reference.
+        # identifier must be present in legacy data — it was always persisted.
+        entity_identifier = data.get("identifier")
+        if entity_identifier is None:
+            raise ValueError(
+                "Legacy entity format requires 'identifier' to be present "
+                "so that ValidMeasurementResult.entityIdentifier can be set correctly."
+            )
+        measurement_results: list[ValidMeasurementResult] = [
+            ValidMeasurementResult(
+                entityIdentifier=entity_identifier,
+                measurements=measurements,
+            )
+            for measurements in observed_by_ref.values()
+        ]
+
+        updated = dict(data)
+        updated.pop("propertyValues", None)
+        updated.pop("properties", None)
+        updated["constitutive_property_values"] = constitutive_property_values
+        updated["measurement_results"] = measurement_results
+        return updated
+
     @pydantic.model_validator(mode="after")
     def check_identifier(self) -> "Entity":
         """Checks if an external identifier was passed and if not generates one"""

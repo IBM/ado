@@ -938,3 +938,125 @@ def test_entity_identifier_threshold_boundary() -> None:
     point["p14"] = "v14" * 20
     point_id = entity_identifier_from_properties_and_values(point)
     assert point_id.startswith("hash-"), "Identifier over threshold should be hashed"
+
+
+def test_entity_model_validate_legacy_flat_format() -> None:
+    """Entity.model_validate() converts the legacy propertyValues/properties format.
+
+    The legacy format stored all property values in a flat ``propertyValues`` list
+    that mixed constitutive entries (identified by ``property.identifier``) with
+    observed entries (identified by ``property.targetProperty`` +
+    ``property.experimentReference``).  A parallel ``properties`` list held the
+    full property definitions.
+
+    After conversion the entity must have:
+    * the correct constitutive_property_values
+    * one ValidMeasurementResult per distinct experimentReference, each containing
+      only the observed property values for that reference
+    """
+    legacy_json = {
+        "identifier": "dataset_id.news-chars-512-entries-4096-model_name.granite-13b-v2",
+        "generatorid": "explicit_grid_sample_generator",
+        "propertyValues": [
+            {
+                "value": "news-chars-512-entries-4096",
+                "property": {
+                    "identifier": "dataset_id",
+                    "propertyDomain": {
+                        "values": ["news-chars-512-entries-4096"],
+                        "variableType": "CATEGORICAL_VARIABLE_TYPE",
+                    },
+                },
+            },
+            {
+                "value": "granite-13b-v2",
+                "property": {
+                    "identifier": "model_name",
+                    "propertyDomain": {
+                        "values": ["granite-13b-v2"],
+                        "variableType": "CATEGORICAL_VARIABLE_TYPE",
+                    },
+                },
+            },
+            {
+                "value": 0.0,
+                "property": {
+                    "targetProperty": {"identifier": "is_valid"},
+                    "experimentReference": {
+                        "experimentIdentifier": "finetune-full-fsdp-v1.0.0",
+                        "actuatorIdentifier": "SFTTrainer",
+                    },
+                },
+            },
+            {
+                "value": 42.0,
+                "property": {
+                    "targetProperty": {"identifier": "train_runtime"},
+                    "experimentReference": {
+                        "experimentIdentifier": "finetune-full-fsdp-v1.0.0",
+                        "actuatorIdentifier": "SFTTrainer",
+                    },
+                },
+            },
+        ],
+        "properties": [
+            {
+                "identifier": "dataset_id",
+                "propertyDomain": {
+                    "values": ["news-chars-512-entries-4096"],
+                    "variableType": "CATEGORICAL_VARIABLE_TYPE",
+                },
+            },
+            {
+                "identifier": "model_name",
+                "propertyDomain": {
+                    "values": ["granite-13b-v2"],
+                    "variableType": "CATEGORICAL_VARIABLE_TYPE",
+                },
+            },
+            {
+                "targetProperty": {"identifier": "is_valid"},
+                "experimentReference": {
+                    "experimentIdentifier": "finetune-full-fsdp-v1.0.0",
+                    "actuatorIdentifier": "SFTTrainer",
+                },
+            },
+            {
+                "targetProperty": {"identifier": "train_runtime"},
+                "experimentReference": {
+                    "experimentIdentifier": "finetune-full-fsdp-v1.0.0",
+                    "actuatorIdentifier": "SFTTrainer",
+                },
+            },
+        ],
+    }
+
+    entity = Entity.model_validate(legacy_json)
+
+    # Identifier is preserved
+    assert entity.identifier == legacy_json["identifier"]
+    assert entity.generatorid == "explicit_grid_sample_generator"
+
+    # Two constitutive property values
+    constitutive_ids = {
+        cpv.property.identifier for cpv in entity.constitutive_property_values
+    }
+    assert constitutive_ids == {"dataset_id", "model_name"}
+    dataset_cpv = next(
+        cpv
+        for cpv in entity.constitutive_property_values
+        if cpv.property.identifier == "dataset_id"
+    )
+    assert dataset_cpv.value == "news-chars-512-entries-4096"
+
+    # Two observed property values grouped into one MeasurementResult
+    assert len(entity.measurement_results) == 1
+    result = entity.measurement_results[0]
+    assert (
+        result.experimentReference.experimentIdentifier == "finetune-full-fsdp-v1.0.0"
+    )
+    assert result.experimentReference.actuatorIdentifier == "SFTTrainer"
+    measured_targets = {
+        m.property.targetProperty.identifier for m in result.measurements
+    }
+    assert measured_targets == {"is_valid", "train_runtime"}

@@ -1014,7 +1014,13 @@ class SQLSampleStore(ActiveSampleStore):
                 ) from error
 
     def upgrade_entities(self) -> int:
-        """Re-serialize all entity rows through the current Pydantic model in a single atomic UPDATE.
+        """Re-serialize all entity rows through the current Pydantic model.
+
+        For entities stored in the legacy ``propertyValues`` flat-list format,
+        measurement results that were embedded in the entity representation are
+        extracted and inserted into the result table so they are not lost.
+        Entities whose result rows already exist in the result table are skipped
+        to make the operation idempotent.
 
         Returns:
             Number of entity rows upgraded.
@@ -1026,6 +1032,8 @@ class SQLSampleStore(ActiveSampleStore):
         from sqlalchemy import select
 
         entity_table = self._metadata.tables[self._tablename]
+        res_table = self._result_table
+
         stmt = select(entity_table.c.identifier, entity_table.c.representation)
 
         with self.engine.begin() as conn:
@@ -1034,23 +1042,62 @@ class SQLSampleStore(ActiveSampleStore):
             if expected_count == 0:
                 return 0
 
-            values = []
+            # Collect entity identifiers that already have result rows so we do
+            # not insert duplicates when upgrade_entities() is run more than once.
+            entity_ids_with_results: set[str] = {
+                row[0] for row in conn.execute(select(res_table.c.entity_id).distinct())
+            }
+
+            entity_values = []
+            result_rows_to_insert: list[dict] = []
+
             for entity_identifier, entity_representation in rows:
+                raw = json.loads(entity_representation)
+                is_legacy = "propertyValues" in raw
+
                 try:
-                    entity = Entity.model_validate(json.loads(entity_representation))
+                    entity = Entity.model_validate(raw)
                 except Exception as error:
                     raise FailedToDecodeStoredEntityError(
                         entity_identifier=entity_identifier,
                         entity_representation=entity_representation,
                         cause=error,
                     ) from error
-                values.append(
+
+                entity_values.append(
                     {
                         "identifier": entity_identifier,
                         "representation": entity.model_dump_json(
                             exclude_defaults=True, exclude={"measurement_results"}
                         ),
                     }
+                )
+
+                # For legacy entities: migrate any embedded measurement results into
+                # the result table, but only if no results exist for this entity yet
+                # (guards against running upgrade_entities() a second time).
+                if (
+                    is_legacy
+                    and entity.measurement_results
+                    and entity_identifier not in entity_ids_with_results
+                ):
+                    result_rows_to_insert.extend(
+                        {
+                            "uid": mr.uid,
+                            "entity_id": entity_identifier,
+                            "data": json.loads(mr.model_dump_json()),
+                        }
+                        for mr in entity.measurement_results
+                    )
+
+            if result_rows_to_insert:
+                conn.execute(
+                    sqlalchemy.insert(res_table),
+                    result_rows_to_insert,
+                )
+                self.log.debug(
+                    f"upgrade_entities: inserted {len(result_rows_to_insert)} "
+                    "result rows extracted from legacy entity representations"
                 )
 
             # b_ prefix avoids a name collision: SQLAlchemy uses column names as
@@ -1067,7 +1114,7 @@ class SQLSampleStore(ActiveSampleStore):
                         "b_identifier": v["identifier"],
                         "b_representation": v["representation"],
                     }
-                    for v in values
+                    for v in entity_values
                 ],
             )
 

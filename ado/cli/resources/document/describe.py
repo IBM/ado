@@ -23,11 +23,6 @@ from ado.core.resources import CoreResourceKinds
 from ado.metastore.base import ResourceDoesNotExistError
 
 
-def _stdout_is_terminal() -> bool:
-    """Return True when stdout is an interactive terminal."""
-    return stdout_console.is_terminal
-
-
 def describe_document(parameters: AdoDescribeCommandParameters) -> None:
     """Print a human-friendly description of a document resource.
 
@@ -36,7 +31,7 @@ def describe_document(parameters: AdoDescribeCommandParameters) -> None:
     ``content`` body is written with no styling.
     """
     sql = get_sql_store(project_context=parameters.ado_configuration.project_context)
-    to_terminal = _stdout_is_terminal()
+    to_terminal = stdout_console.is_terminal
 
     if to_terminal:
         with Status(ADO_SPINNER_QUERYING_DB) as status:

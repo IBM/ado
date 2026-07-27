@@ -40,7 +40,7 @@ def profile(
     df = pd.DataFrame(
         data=[
             e.seriesRepresentation()
-            for e in discoverySpace.sample_store.entities
+            for e in discoverySpace.sample_store.get_entities(require_measurements=True)
             if len(e.observedPropertyValues) > 0
         ]
     )

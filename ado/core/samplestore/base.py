@@ -369,7 +369,9 @@ class SampleStore(abc.ABC):
                 f"Copying {sample_store_source.numberOfEntities} entities from "
                 f"{sample_store_source.identifier} to {sample_store.identifier}"
             )
-            sample_store.add_external_entities(sample_store_source.entities)
+            sample_store.add_external_entities(
+                sample_store_source.get_entities(require_measurements=True)
+            )
 
         return sample_store
 

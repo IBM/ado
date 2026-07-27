@@ -307,7 +307,9 @@ class CSVSampleStore(PassiveSampleStore):
                     for result in measurement_results:
                         entity.add_measurement_result(result)
 
-        self._entity_ids = [e.identifier for e in self.entities]
+        self._entity_ids = [
+            e.identifier for e in self.get_entities(require_measurements=False)
+        ]
 
     @property
     def config(self) -> CSVSampleStoreDescription:

@@ -125,7 +125,9 @@ class SQLSampleStore(ActiveSampleStore):
             storageLocation=storeConfiguration,
             parameters={},
         )
-        sql_sample_store.add_external_entities(csv_sample_store.entities)
+        sql_sample_store.add_external_entities(
+            csv_sample_store.get_entities(require_measurements=True)
+        )
 
         return sql_sample_store
 
@@ -518,7 +520,14 @@ class SQLSampleStore(ActiveSampleStore):
             f"Fetched {len(entities)} entities"
             + (f" (filtered from {len(entity_ids)} requested)" if entity_ids else "")
         )
-        # Always merge fetched entities into the cache.
+        # When merging, invalidate measurement-loaded status for any entity
+        # whose cached object is being replaced — the fresh DB representation
+        # does not carry measurement results, so they must be re-fetched.
+        overwritten_ids = set(entities).intersection(
+            self._entities_with_measurements_loaded
+        )
+        if overwritten_ids:
+            self._entities_with_measurements_loaded.difference_update(overwritten_ids)
         self._entities.update(entities)
         return entities
 

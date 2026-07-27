@@ -1013,6 +1013,73 @@ class SQLSampleStore(ActiveSampleStore):
                     f"Failed to insert entity batch starting from {index}. Error: {error}"
                 ) from error
 
+    def upgrade_entities(self) -> int:
+        """Re-serialize all entity rows through the current Pydantic model in a single atomic UPDATE.
+
+        Returns:
+            Number of entity rows upgraded.
+
+        Raises:
+            FailedToDecodeStoredEntityError: If any entity cannot be deserialized.
+            SystemError: If the SQL UPDATE does not match the expected row count.
+        """
+        from sqlalchemy import select
+
+        entity_table = self._metadata.tables[self._tablename]
+        stmt = select(entity_table.c.identifier, entity_table.c.representation)
+
+        with self.engine.begin() as conn:
+            rows = list(conn.execute(stmt))
+            expected_count = len(rows)
+            if expected_count == 0:
+                return 0
+
+            values = []
+            for entity_identifier, entity_representation in rows:
+                try:
+                    entity = Entity.model_validate(json.loads(entity_representation))
+                except Exception as error:
+                    raise FailedToDecodeStoredEntityError(
+                        entity_identifier=entity_identifier,
+                        entity_representation=entity_representation,
+                        cause=error,
+                    ) from error
+                values.append(
+                    {
+                        "identifier": entity_identifier,
+                        "representation": entity.model_dump_json(
+                            exclude_defaults=True, exclude={"measurement_results"}
+                        ),
+                    }
+                )
+
+            # b_ prefix avoids a name collision: SQLAlchemy uses column names as
+            # implicit bind parameters in the executemany VALUES clause, so the
+            # explicit WHERE-clause parameters need distinct names.
+            result = conn.execute(
+                entity_table.update()
+                .where(
+                    entity_table.c.identifier == sqlalchemy.bindparam("b_identifier")
+                )
+                .values(representation=sqlalchemy.bindparam("b_representation")),
+                [
+                    {
+                        "b_identifier": v["identifier"],
+                        "b_representation": v["representation"],
+                    }
+                    for v in values
+                ],
+            )
+
+        if result.rowcount != expected_count:
+            raise SystemError(
+                f"upgrade_entities: expected to update {expected_count} rows "
+                f"but updated {result.rowcount}"
+            )
+
+        self.log.debug(f"upgrade_entities: upgraded {expected_count} entity rows")
+        return expected_count
+
     def add_external_entities(self, entities: list[Entity]) -> None:
 
         existing_entity_ids = self.entity_identifiers()
@@ -1341,6 +1408,73 @@ class SQLSampleStore(ActiveSampleStore):
             return
 
         self.add_relationship_between_request_and_results(request_db_id, results)
+
+    def upgrade_measurement_results(self) -> int:
+        """Re-serialize all measurement result rows through the current Pydantic model in a single atomic UPDATE.
+
+        Returns:
+            Number of measurement result rows upgraded.
+
+        Raises:
+            FailedToDecodeStoredMeasurementResultForEntityError: If any result
+                cannot be deserialized.
+            SystemError: If the SQL UPDATE does not match the expected row count.
+        """
+        from sqlalchemy import select
+
+        res_table = self._result_table
+        stmt = select(res_table.c.uid, res_table.c.data)
+
+        with self.engine.begin() as conn:
+            rows = list(conn.execute(stmt))
+            expected_count = len(rows)
+            if expected_count == 0:
+                return 0
+
+            values = []
+            for uid, result_data in rows:
+                try:
+                    if "reason" in result_data:
+                        measurement_result = InvalidMeasurementResult.model_validate(
+                            result_data
+                        )
+                    else:
+                        measurement_result = ValidMeasurementResult.model_validate(
+                            result_data
+                        )
+                except Exception as error:
+                    raise FailedToDecodeStoredMeasurementResultForEntityError(
+                        entity_identifier=result_data.get("entityIdentifier", uid),
+                        result_representation=result_data,
+                        cause=error,
+                    ) from error
+                values.append(
+                    {
+                        "uid": uid,
+                        "data": json.loads(measurement_result.model_dump_json()),
+                    }
+                )
+
+            # b_ prefix avoids a name collision: SQLAlchemy uses column names as
+            # implicit bind parameters in the executemany VALUES clause, so the
+            # explicit WHERE-clause parameters need distinct names.
+            result = conn.execute(
+                res_table.update()
+                .where(res_table.c.uid == sqlalchemy.bindparam("b_uid"))
+                .values(data=sqlalchemy.bindparam("b_data")),
+                [{"b_uid": v["uid"], "b_data": v["data"]} for v in values],
+            )
+
+        if result.rowcount != expected_count:
+            raise SystemError(
+                f"upgrade_measurement_results: expected to update {expected_count} rows "
+                f"but updated {result.rowcount}"
+            )
+
+        self.log.debug(
+            f"upgrade_measurement_results: upgraded {expected_count} result rows"
+        )
+        return expected_count
 
     def add_relationship_between_request_and_results(
         self,

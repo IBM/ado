@@ -52,7 +52,7 @@ class VLLMPerformanceTestParameters(GenericActuatorParameters):
         str | None, pydantic.Field(description="name of pvc template")
     ] = None
     pvc_name: Annotated[
-        None | str, pydantic.Field(description="name of pvc to be created/attached")
+        str | None, pydantic.Field(description="name of pvc to be created/attached")
     ] = None
     benchmark_retries: Annotated[
         int, pydantic.Field(description="number of retries for running benchmark")

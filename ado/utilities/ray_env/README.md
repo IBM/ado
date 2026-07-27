@@ -71,6 +71,7 @@ Here's a complete example showing how to use `ordered_pip` in a Ray task:
 ```python
 import ray
 
+
 @ray.remote(
     runtime_env={
         "ordered_pip": {
@@ -84,7 +85,7 @@ import ray
                     # --no-build-isolation tells pip to build the wheel
                     # in the same venv where torch is already installed
                     "pip_install_options": ["--no-build-isolation"],
-                }
+                },
             ]
         }
     }
@@ -92,7 +93,9 @@ import ray
 def my_task():
     import torch
     import mamba_ssm
+
     return torch.__version__
+
 
 result = ray.get(my_task.remote())
 print(f"PyTorch version: {result}")

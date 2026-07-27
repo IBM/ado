@@ -218,12 +218,14 @@ def check_field_in_sqlite_json_document(
     last_dot_index = path.rfind(".")
     if isinstance(candidate, _ScalarType):
         return [
-            f"{preamble} "
-            f"(F.key LIKE '{path[2:]}%' AND F.value {_searchable_scalar_value_for_query_string(candidate)}) OR "
-            f"(F.path LIKE '{path}' AND F.value {_searchable_scalar_value_for_query_string(candidate)}) OR "
-            f"(F.path = '{path[:last_dot_index]}' AND "
-            f"F.key = '{path[last_dot_index + 1 :]}' AND "
-            f"F.value {_searchable_scalar_value_for_query_string(candidate)})"
+            (
+                f"{preamble} "
+                f"(F.key LIKE '{path[2:]}%' AND F.value {_searchable_scalar_value_for_query_string(candidate)}) OR "
+                f"(F.path LIKE '{path}' AND F.value {_searchable_scalar_value_for_query_string(candidate)}) OR "
+                f"(F.path = '{path[:last_dot_index]}' AND "
+                f"F.key = '{path[last_dot_index + 1 :]}' AND "
+                f"F.value {_searchable_scalar_value_for_query_string(candidate)})"
+            )
         ]
 
     # We have handled an immediate scalar case, so we need to now handle:

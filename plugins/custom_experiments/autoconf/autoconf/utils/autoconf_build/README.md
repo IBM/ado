@@ -27,9 +27,10 @@ macOS machines.
 * **Model Size:** ~5 MB
 
 ```python
-fit_params = {"presets":["medium_quality",
-"optimize_for_deployment"],
-"excluded_model_types": "GBM"}
+fit_params = {
+    "presets": ["medium_quality", "optimize_for_deployment"],
+    "excluded_model_types": "GBM",
+}
 ```
 
 ---
@@ -55,7 +56,7 @@ fit_params = {"presets": ["medium_quality"], "excluded_model_types": "GBM"}
 ```python
 fit_params = {
     "presets": ["good_quality", "optimize_for_deployment"],
-    "excluded_model_types": "GBM"
+    "excluded_model_types": "GBM",
 }
 ```
 

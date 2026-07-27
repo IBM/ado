@@ -793,7 +793,7 @@ class DiscoverySpace:
         self,
         values: list[ado.schema.property_value.PropertyValue],
         mode: typing.Literal["strict"] = "strict",
-    ) -> list[None | ado.schema.entity.Entity]:
+    ) -> list[ado.schema.entity.Entity | None]:
         """Returns entities in the discoveryspace that have the given values for their constitutive properties and that are stored in the sample-store
 
         All entities returned will be strict members of this receivers entity space i.e. they will not have constitutive

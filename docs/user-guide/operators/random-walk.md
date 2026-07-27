@@ -433,12 +433,11 @@ For example:
 
 ```python
 # Class for the custom samplers parameters
-class MySamplerParams(BaseModel):
-   ...
+class MySamplerParams(BaseModel): ...
+
 
 # Subclass of BaseSampler implementing the custom sampling logic
 class MySampler(BaseSampler):
-
     @classmethod
     def parameters_model(cls) -> Optional[Type[BaseModel]]:
 
@@ -446,8 +445,7 @@ class MySampler(BaseSampler):
         return MySamplerParams
 
     # Add an init arg to take the parameters model
-    def __init__(self, parameters: MySamplerParams):
-         ...
+    def __init__(self, parameters: MySamplerParams): ...
 ```
 
 ## Filtering Entities

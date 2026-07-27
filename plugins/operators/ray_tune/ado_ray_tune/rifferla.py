@@ -93,7 +93,7 @@ class RifferlaParameters(pydantic.BaseModel):
     "It does this by identifying which entity space dimensions should be fixed to set values, which explored, and setting range limits for those dimensions. "
     "The method leverages Mutual Information to identify dimensions correlated with the desired observed property.",
     example_configuration=RifferlaParameters.example_configuration(),
-    version="2.0.3",
+    version="2.0.6",
 )
 def rifferla(
     discoverySpace: DiscoverySpace,

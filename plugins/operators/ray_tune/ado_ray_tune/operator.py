@@ -980,7 +980,7 @@ class RayTune(Explore):
         """Returns operator metadata for the ray_tune explore operator."""
         return OperatorMetadata(
             name="ray_tune",
-            version="2.0.4",
+            version="2.0.5",
             description=cls.description(),
             configuration_model=RayTuneConfiguration,
             example_configuration=RayTuneConfiguration(

@@ -6,7 +6,7 @@ import typing
 from typing import Annotated
 
 import pydantic
-from pydantic import ConfigDict
+from pydantic import ConfigDict, ValidationError
 
 from ado.schema.domain import PropertyDomain
 
@@ -135,6 +135,32 @@ class Property(pydantic.BaseModel):
         ),
     ] = PropertyDomain()
     model_config = ConfigDict(frozen=True, extra="forbid")
+
+    @pydantic.model_validator(mode="wrap")
+    @classmethod
+    def annotate_domain_errors_with_identifier(
+        cls,
+        value: typing.Any,  # noqa: ANN401
+        handler: pydantic.ValidatorFunctionWrapHandler,
+    ) -> "Property":
+        """Wrap propertyDomain ValidationErrors to include the property identifier.
+
+        When the propertyDomain is malformed, pydantic raises a ValidationError
+        that contains no information about which property caused the problem.
+        This validator intercepts such errors and re-raises them with the
+        property identifier prepended to the message.
+        """
+        try:
+            return handler(value)
+        except ValidationError as exc:
+            identifier = (
+                value.get("identifier")
+                if isinstance(value, dict)
+                else getattr(value, "identifier", None)
+            )
+            if identifier:
+                raise ValueError(f"Property '{identifier}': {exc}") from exc
+            raise
 
     @classmethod
     def from_descriptor(cls, descriptor: PropertyDescriptor) -> "Property":

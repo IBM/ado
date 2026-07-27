@@ -64,7 +64,6 @@ def describe_document(parameters: AdoDescribeCommandParameters) -> None:
         Text.assemble(
             ("Identifier: ", "bold"), (document_resource.identifier, "bold green")
         ),
-        Text.assemble(("Content type: ", "bold"), (config.contentType,)),
         "",
     ]
     if config.metadata.name:

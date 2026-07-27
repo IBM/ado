@@ -20,7 +20,9 @@
 <span class=k>with</span> <span class=nb>open</span><span class=p>(</span><span class=s2>&quot;my_context.yaml&quot;</span><span class=p>)</span> <span class=k>as</span> <span class=n>f</span><span class=p>:</span>
     <span class=n>c</span> <span class=o>=</span> <span class=n>ProjectContext</span><span class=o>.</span><span class=n>model_validate</span><span class=p>(</span><span class=n>yaml</span><span class=o>.</span><span class=n>safe_load</span><span class=p>(</span><span class=n>f</span><span class=p>))</span>
 
-<span class=n>space</span> <span class=o>=</span> <span class=n>DiscoverySpace</span><span class=o>.</span><span class=n>from_stored_configuration</span><span class=p>(</span><span class=n>project_context</span><span class=o>=</span><span class=n>c</span><span class=p>,</span> <span class=n>space_identifier</span><span class=o>=</span><span class=s1>&#39;space_abc123&#39;</span><span class=p>)</span>
+<span class=n>space</span> <span class=o>=</span> <span class=n>DiscoverySpace</span><span class=o>.</span><span class=n>from_stored_configuration</span><span class=p>(</span>
+    <span class=n>project_context</span><span class=o>=</span><span class=n>c</span><span class=p>,</span> <span class=n>space_identifier</span><span class=o>=</span><span class=s2>&quot;space_abc123&quot;</span>
+<span class=p>)</span>
 <span class=c1># Get the sampled and measured entities. Returns a pandas DataFrame</span>
 <span class=n>table</span> <span class=o>=</span> <span class=n>space</span><span class=o>.</span><span class=n>measuredEntitiesTable</span><span class=p>()</span>
 <span class=c1># Get the matching. Returns a pandas DataFrame</span>

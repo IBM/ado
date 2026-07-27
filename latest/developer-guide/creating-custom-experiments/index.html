@@ -49,21 +49,20 @@
     <span class=n>identifier</span><span class=o>=</span><span class=s2>&quot;mass&quot;</span><span class=p>,</span>
     <span class=n>propertyDomain</span><span class=o>=</span><span class=n>PropertyDomain</span><span class=p>(</span>
         <span class=n>variableType</span><span class=o>=</span><span class=n>VariableTypeEnum</span><span class=o>.</span><span class=n>CONTINUOUS_VARIABLE_TYPE</span><span class=p>,</span>
-        <span class=n>domainRange</span><span class=o>=</span><span class=p>[</span><span class=mi>1</span><span class=p>,</span> <span class=mi>100</span><span class=p>]</span>
-    <span class=p>)</span>
+        <span class=n>domainRange</span><span class=o>=</span><span class=p>[</span><span class=mi>1</span><span class=p>,</span> <span class=mi>100</span><span class=p>],</span>
+    <span class=p>),</span>
 <span class=p>)</span>
 <span class=n>volume</span> <span class=o>=</span> <span class=n>ConstitutiveProperty</span><span class=p>(</span>
     <span class=n>identifier</span><span class=o>=</span><span class=s2>&quot;volume&quot;</span><span class=p>,</span>
     <span class=n>propertyDomain</span><span class=o>=</span><span class=n>PropertyDomain</span><span class=p>(</span>
         <span class=n>variableType</span><span class=o>=</span><span class=n>VariableTypeEnum</span><span class=o>.</span><span class=n>CONTINUOUS_VARIABLE_TYPE</span><span class=p>,</span>
-        <span class=n>domainRange</span><span class=o>=</span><span class=p>[</span><span class=mi>1</span><span class=p>,</span> <span class=mi>100</span><span class=p>]</span>
-    <span class=p>)</span>
+        <span class=n>domainRange</span><span class=o>=</span><span class=p>[</span><span class=mi>1</span><span class=p>,</span> <span class=mi>100</span><span class=p>],</span>
+    <span class=p>),</span>
 <span class=p>)</span>
 
 
 <span class=nd>@custom_experiment</span><span class=p>(</span>
-    <span class=n>required_properties</span><span class=o>=</span><span class=p>[</span><span class=n>mass</span><span class=p>,</span> <span class=n>volume</span><span class=p>],</span>
-    <span class=n>output_property_identifiers</span><span class=o>=</span><span class=p>[</span><span class=s2>&quot;density&quot;</span><span class=p>]</span>
+    <span class=n>required_properties</span><span class=o>=</span><span class=p>[</span><span class=n>mass</span><span class=p>,</span> <span class=n>volume</span><span class=p>],</span> <span class=n>output_property_identifiers</span><span class=o>=</span><span class=p>[</span><span class=s2>&quot;density&quot;</span><span class=p>]</span>
 <span class=p>)</span>
 <span class=k>def</span><span class=w> </span><span class=nf>calculate_density</span><span class=p>(</span><span class=n>mass</span><span class=p>,</span> <span class=n>volume</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>Dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=n>Any</span><span class=p>]:</span>
     <span class=n>density_value</span> <span class=o>=</span> <span class=n>mass</span> <span class=o>/</span> <span class=n>volume</span> <span class=k>if</span> <span class=n>volume</span> <span class=k>else</span> <span class=kc>None</span>
@@ -72,15 +71,16 @@
     <span class=n>identifier</span><span class=o>=</span><span class=s2>&quot;round_result&quot;</span><span class=p>,</span>
     <span class=n>propertyDomain</span><span class=o>=</span><span class=n>PropertyDomain</span><span class=p>(</span>
         <span class=n>variableType</span><span class=o>=</span><span class=n>VariableTypeEnum</span><span class=o>.</span><span class=n>BINARY_VARIABLE_TYPE</span><span class=p>,</span>
-    <span class=p>)</span>
+    <span class=p>),</span>
 <span class=p>)</span>
+
 
 <span class=nd>@custom_experiment</span><span class=p>(</span>
     <span class=n>required_properties</span><span class=o>=</span><span class=p>[</span><span class=n>mass</span><span class=p>,</span> <span class=n>volume</span><span class=p>],</span>
-    <span class=c1>#round_result will get its default value from the keyword arg</span>
+    <span class=c1># round_result will get its default value from the keyword arg</span>
     <span class=n>optional_properties</span><span class=o>=</span><span class=p>[</span><span class=n>round_result</span><span class=p>],</span>
     <span class=n>output_property_identifiers</span><span class=o>=</span><span class=p>[</span><span class=s2>&quot;density&quot;</span><span class=p>],</span>
-    <span class=n>metadata</span><span class=o>=</span><span class=p>{</span><span class=s2>&quot;description&quot;</span><span class=p>:</span> <span class=s2>&quot;Calculates density from mass and volume&quot;</span><span class=p>}</span>
+    <span class=n>metadata</span><span class=o>=</span><span class=p>{</span><span class=s2>&quot;description&quot;</span><span class=p>:</span> <span class=s2>&quot;Calculates density from mass and volume&quot;</span><span class=p>},</span>
 <span class=p>)</span>
 <span class=k>def</span><span class=w> </span><span class=nf>calculate_density</span><span class=p>(</span><span class=n>mass</span><span class=p>,</span> <span class=n>volume</span><span class=p>,</span> <span class=n>round_result</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>):</span>
     <span class=n>density_value</span> <span class=o>=</span> <span class=n>mass</span> <span class=o>/</span> <span class=n>volume</span> <span class=k>if</span> <span class=n>volume</span> <span class=k>else</span> <span class=kc>None</span>
@@ -96,10 +96,11 @@
 </code></pre></div> <p><strong>Version bump rules:</strong></p> <table> <thead> <tr> <th>Change type</th> <th>Rule</th> <th>Example</th> </tr> </thead> <tbody> <tr> <td>Bug fix, refactoring, logging</td> <td>No bump (PATCH is fine)</td> <td><code>1.0.0 → 1.0.1</code></td> </tr> <tr> <td>New output / input, same core behaviour</td> <td>Minor bump</td> <td><code>1.0.0 → 1.1.0</code></td> </tr> <tr> <td>Mathematical / algorithmic change</td> <td><strong>Major bump</strong></td> <td><code>1.0.0 → 2.0.0</code></td> </tr> </tbody> </table> <div class="admonition warning"> <p class=admonition-title>Important</p> <p>Only the MAJOR version is encoded into the memoisation key (e.g. <code>calculate_density@v1-mass.5.0-volume.2.0</code>). A major version bump means ado treats all previously cached results as belonging to a <strong>different</strong> experiment — they will not be reused. Minor and patch bumps are transparent to the cache: results from <code>1.0.0</code> and <code>1.2.0</code> share the same cache key.</p> </div> <div class="admonition note"> <p class=admonition-title>Note</p> <p>Experiments without a declared version emit a <code>DeprecationWarning</code> at registration time. Adding <code>version</code> is strongly recommended for any experiment whose results will be persisted in a samplestore.</p> </div> <h4 id=mixed-version-samplestores>Mixed-version sampleStores<a class=headerlink href=#mixed-version-samplestores title="Permanent link">&para;</a></h4> <p>When a sampleStore accumulates results from <strong>both</strong> <code>v1</code> and <code>v2</code> of the same experiment (e.g. after a major bump), the observed property identifiers differ:</p> <ul> <li><code>calculate_density@v1</code> results are stored under <code>calculate_density@v1-density</code></li> <li><code>calculate_density@v2</code> results are stored under <code>calculate_density@v2-density</code></li> </ul> <p>In CSV exports produced by <code>ado show samplestore</code>, these appear as <strong>separate columns</strong>. Entities measured under only one version will have <code>NaN</code> in the other version's column. This is intentional and correct — the two versions represent different scientific definitions and their results are not interchangeable.</p> <hr> <h3 id=supplying-metadata>Supplying metadata<a class=headerlink href=#supplying-metadata title="Permanent link">&para;</a></h3> <p>You can also supply a <code>metadata</code> dictionary to the "metadata" parameter of the decorator. Use this to record experiment-level documentation, categories, etc. This is illustrated in the above example.</p> <hr> <h3 id=configuring-execution>Configuring execution<a class=headerlink href=#configuring-execution title="Permanent link">&para;</a></h3> <p>The <code>custom_experiment</code> decorator exposes two parameters for controlling how a custom experiment is executed by <code>ado</code>:</p> <h4 id=use_ray><code>use_ray</code><a class=headerlink href=#use_ray title="Permanent link">&para;</a></h4> <p>If <code>True</code> (the default), the custom experiment will be run as a Ray remote function. This allows multiple instances to execute in parallel across a Ray cluster.</p> <p>If <code>False</code>, only one instance of the custom experiment can execute at a time. In addition, once an instance of the custom experiment is started no <em>other</em> custom experiments can run until it is finished</p> <h4 id=ray_options><code>ray_options</code><a class=headerlink href=#ray_options title="Permanent link">&para;</a></h4> <div class="admonition note"> <p class=admonition-title>Note</p> <p>If <code>use_ray</code> is False, the value of this parameter is ignored</p> </div> <div class="admonition warning"> <p class=admonition-title>Warning</p> <p>If the values given via <code>ray_options</code> don't match the expected types, or additional keys are specified, the decorator will raise an exception.</p> </div> <p>This optional parameter allows controlling how Ray schedules your custom experiment and its execution environment. Its value is a dict with one or more of the following keys:</p> <ul> <li><code>num_cpus</code> (float): Number of CPUs to allocate to this experiment.</li> <li><code>num_gpus</code> (float): Number of GPUs to allocate.</li> <li><code>resources</code> (dict): Custom Ray resource assignments.</li> <li><code>runtime_env</code> (dict): Ray runtime environment configuration.</li> </ul> <p>For example,</p> <div class=highlight><pre><span></span><code><span class=nd>@custom_experiment</span><span class=p>(</span>
     <span class=n>output_property_identifiers</span><span class=o>=</span><span class=p>[</span><span class=s2>&quot;loss&quot;</span><span class=p>],</span>
     <span class=n>use_ray</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
-    <span class=n>ray_options</span><span class=o>=</span><span class=p>{</span><span class=s2>&quot;num_cpus&quot;</span><span class=p>:</span> <span class=mi>2</span><span class=p>,</span>
-                 <span class=s2>&quot;num_gpus&quot;</span><span class=p>:</span> <span class=mf>0.5</span><span class=p>,</span>
-                 <span class=s2>&quot;runtime_env&quot;</span><span class=p>:</span>
-                     <span class=p>{</span><span class=s2>&quot;env_vars&quot;</span><span class=p>:</span> <span class=p>{</span><span class=s2>&quot;OMP_NUM_THREADS&quot;</span><span class=p>:</span> <span class=s2>&quot;2&quot;</span><span class=p>}}}</span>
+    <span class=n>ray_options</span><span class=o>=</span><span class=p>{</span>
+        <span class=s2>&quot;num_cpus&quot;</span><span class=p>:</span> <span class=mi>2</span><span class=p>,</span>
+        <span class=s2>&quot;num_gpus&quot;</span><span class=p>:</span> <span class=mf>0.5</span><span class=p>,</span>
+        <span class=s2>&quot;runtime_env&quot;</span><span class=p>:</span> <span class=p>{</span><span class=s2>&quot;env_vars&quot;</span><span class=p>:</span> <span class=p>{</span><span class=s2>&quot;OMP_NUM_THREADS&quot;</span><span class=p>:</span> <span class=s2>&quot;2&quot;</span><span class=p>}},</span>
+    <span class=p>},</span>
 <span class=p>)</span>
 <span class=k>def</span><span class=w> </span><span class=nf>my_heavy_exp</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>y</span><span class=p>):</span>
     <span class=c1># ...</span>

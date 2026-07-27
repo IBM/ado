@@ -93,23 +93,10 @@ class PropertyValue(pydantic.BaseModel):
         valueType = context.data.get("valueType")
         if valueType:
             if valueType == ValueTypeEnum.NUMERIC_VALUE_TYPE:
-                if isinstance(value, str):
-                    import logging
-
-                    logger = logging.getLogger()
-                    logger.warning(
-                        f"TEMP: Detected string value, {value}, assigned NUMERIC_TYPE assuming due to prior bug. Will upgrade"
+                if type(value) not in {float, int} and value is not None:
+                    raise ValueError(
+                        f"ValueType was numeric but value was of type {type(value)}"
                     )
-                elif isinstance(value, list):
-                    import logging
-
-                    logger = logging.getLogger()
-                    logger.warning(
-                        f"TEMP: Detected list value, {value}, assigned NUMERIC_TYPE assuming due to prior bug. Will upgrade"
-                    )
-                else:
-                    if type(value) not in {float, int} and value is not None:
-                        raise ValueError("Validation failed for NUMERIC_VALUE_TYPE")
             elif valueType == ValueTypeEnum.STRING_VALUE_TYPE:
                 if not isinstance(value, str):
                     raise ValueError(
@@ -155,17 +142,6 @@ class PropertyValue(pydantic.BaseModel):
                 self.valueType = ValueTypeEnum.BLOB_VALUE_TYPE
             elif isinstance(self.value, list):
                 self.valueType = ValueTypeEnum.VECTOR_VALUE_TYPE
-        elif self.valueType == ValueTypeEnum.NUMERIC_VALUE_TYPE and isinstance(
-            self.value, str
-        ):
-            # TEMPORARY
-            self.valueType = ValueTypeEnum.STRING_VALUE_TYPE
-        elif self.valueType == ValueTypeEnum.NUMERIC_VALUE_TYPE and isinstance(
-            self.value, list
-        ):
-            # TEMPORARY
-            self.valueType = ValueTypeEnum.VECTOR_VALUE_TYPE
-
         return self
 
     def __str__(self) -> str:

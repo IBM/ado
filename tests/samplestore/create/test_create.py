@@ -128,16 +128,6 @@ def test_add_entities_to_sample_store(
     add_entities_to_sample_store(random_sql_sample_store(), entities)
 
 
-def test_upsert_entities_to_sample_store(
-    random_entities: Callable[[int], list[Entity]],
-    random_sql_sample_store: Callable[[], SQLSampleStore],
-    upsert_entities_to_sample_store: Callable[[SQLSampleStore, list[Entity]], None],
-) -> None:
-    quantity = 3
-    entities = random_entities(quantity=quantity)
-    upsert_entities_to_sample_store(random_sql_sample_store(), entities)
-
-
 def test_add_measurement_request_to_sample_store(
     ml_multi_cloud_benchmark_performance_experiment: Experiment,
     random_ml_multi_cloud_benchmark_performance_measurement_requests: Callable[

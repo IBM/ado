@@ -144,17 +144,17 @@ members = [
 
 [tool.uv.sources]
 ado-autoconf = { path = "plugins/custom_experiments/autoconf", editable = true }
-ado-ray-tune = { workspace = true, editable = true }
+ado-ray-tune = { workspace = true }
 ado-sfttrainer = { path = "plugins/actuators/sfttrainer", editable = true }
 ado-trim = { path = "plugins/operators/trim", editable = true }
-ado-vllm-performance = { workspace = true, editable = true }
-ado-anomalous-series = { workspace = true, editable = true }
-density-test = { workspace = true, editable = true }
-optimization-test-functions = { workspace = true, editable = true }
-pfas-custom-functions = { workspace = true, editable = true }
+ado-vllm-performance = { workspace = true }
+ado-anomalous-series = { workspace = true }
+density-test = { workspace = true }
+optimization-test-functions = { workspace = true }
+pfas-custom-functions = { workspace = true }
 ado-profile-space = { path = "plugins/operators/profile_space", editable = true }
-robotic-lab = { workspace = true, editable = true }
-trim-custom-experiments = { workspace = true, editable = true }
+robotic-lab = { workspace = true }
+trim-custom-experiments = { workspace = true }
 detect-secrets = { git = "https://github.com/ibm/detect-secrets.git", rev = "master" }
 
 [tool.uv-dynamic-versioning]

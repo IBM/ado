@@ -70,7 +70,7 @@ def test_template_space_from_vllm_experiment(
             "template",
             "space",
             "--from-experiment",
-            "test-deployment-v1",
+            "vllm-bench-deployment",
             "--output-file",
             file_name,
         ],
@@ -80,7 +80,8 @@ def test_template_space_from_vllm_experiment(
         yaml.safe_load(file_name.read_text())
     )
     assert (
-        space_configuration.experiments[0].experimentIdentifier == "test-deployment-v1"
+        space_configuration.experiments[0].experimentIdentifier
+        == "vllm-bench-deployment"
     )
     assert space_configuration.experiments[0].actuatorIdentifier == "vllm_performance"
 

@@ -50,40 +50,71 @@ The `vllm_performance` actuator implements twelve experiments:
 
 **Standard LLM Benchmarking:**
 
-- `test-deployment-v1`: This experiment can test the full vLLM workload
+- `vllm-bench-deployment`: This experiment can test the full vLLM workload
   configuration, including resource requests and server deployment
   configuration. It deploys servers with given configuration on kubernetes and
   runs vLLM's built-in benchmarking tool (`vllm bench serve`) on them with the
   given parameters.
-- `test-endpoint-v1`: This experiment is equivalent to running
+- `vllm-bench-endpoint`: This experiment is equivalent to running
   `vllm bench serve` against an endpoint.
-- `test-deployment-guidellm-v1`: Similar to `test-deployment-v1`, but uses
+- `guidellm-bench-deployment`: Similar to `vllm-bench-deployment`, but uses
   GuideLLM (`guidellm benchmark run`) for benchmarking instead of vLLM's
   built-in benchmarking tool.
-- `test-endpoint-guidellm-v1`: Similar to `test-endpoint-v1`, but uses GuideLLM
+- `guidellm-bench-endpoint`: Similar to `vllm-bench-endpoint`, but uses GuideLLM
   (`guidellm benchmark run`) for benchmarking instead of vLLM's built-in
   benchmarking tool.
 
 **Geospatial Model Benchmarking:**
 
-- `test-geospatial-deployment-v1`: Deploy and benchmark geospatial models
+- `geospatial-vllm-bench-deployment`: Deploy and benchmark geospatial models
   (IBM-NASA Prithvi) using pre-packaged datasets for flood detection tasks with
   vLLM's built-in benchmarking tool.
-- `test-geospatial-endpoint-v1`: Benchmark existing geospatial model endpoints
+- `geospatial-vllm-bench-endpoint`: Benchmark existing geospatial model endpoints
   using pre-packaged datasets with vLLM's built-in benchmarking tool.
-- `test-geospatial-deployment-guidellm-v1`: Deploy and benchmark geospatial
+- `geospatial-guidellm-bench-deployment`: Deploy and benchmark geospatial
   models using pre-packaged datasets with GuideLLM.
-- `test-geospatial-endpoint-guidellm-v1`: Benchmark existing geospatial model
+- `geospatial-guidellm-bench-endpoint`: Benchmark existing geospatial model
   endpoints using pre-packaged datasets with GuideLLM.
-- `test-geospatial-deployment-custom-dataset-v1`: Deploy and benchmark
+- `geospatial-vllm-bench-deployment-custom-dataset`: Deploy and benchmark
   geospatial models with custom datasets using vLLM's built-in benchmarking
   tool.
-- `test-geospatial-endpoint-custom-dataset-v1`: Benchmark existing geospatial
+- `geospatial-vllm-bench-endpoint-custom-dataset`: Benchmark existing geospatial
   model endpoints with custom datasets using vLLM's built-in benchmarking tool.
-- `test-geospatial-deployment-guidellm-custom-dataset-v1`: Deploy and benchmark
+- `geospatial-guidellm-bench-deployment-custom-dataset`: Deploy and benchmark
   geospatial models with custom datasets using GuideLLM.
-- `test-geospatial-endpoint-guidellm-custom-dataset-v1`: Benchmark existing
+- `geospatial-guidellm-bench-endpoint-custom-dataset`: Benchmark existing
   geospatial model endpoints with custom datasets using GuideLLM.
+
+> [!NOTE] Deprecated experiment names
+>
+> Earlier versions of the actuator used different names for the same experiments.
+> The behaviour and output are identical — only the names changed. If you have
+> existing discoveryspace or operation YAML files that reference the old names,
+> update them to the current names shown above.
+>
+> **Standard LLM experiments:**
+>
+> | Deprecated name | Current name |
+> | --- | --- |
+> | `test-deployment-v1` | `vllm-bench-deployment` |
+> | `test-endpoint-v1` | `vllm-bench-endpoint` |
+> | `test-deployment-guidellm-v1` | `guidellm-bench-deployment` |
+> | `test-endpoint-guidellm-v1` | `guidellm-bench-endpoint` |
+>
+> **Geospatial experiments:**
+>
+> | Deprecated name | Current name |
+> | --- | --- |
+> | `test-geospatial-deployment-v1` | `geospatial-vllm-bench-deployment` |
+> | `test-geospatial-endpoint-v1` | `geospatial-vllm-bench-endpoint` |
+> | `test-geospatial-deployment-guidellm-v1` | `geospatial-guidellm-bench-deployment` |
+> | `test-geospatial-endpoint-guidellm-v1` | `geospatial-guidellm-bench-endpoint` |
+> | `test-geospatial-deployment-custom-dataset-v1` | `geospatial-vllm-bench-deployment-custom-dataset` |
+> | `test-geospatial-endpoint-custom-dataset-v1` | `geospatial-vllm-bench-endpoint-custom-dataset` |
+> | `test-geospatial-deployment-guidellm-custom-dataset-v1` | `geospatial-guidellm-bench-deployment-custom-dataset` |
+> | `test-geospatial-endpoint-guidellm-custom-dataset-v1` | `geospatial-guidellm-bench-endpoint-custom-dataset` |
+
+<!-- markdownlint-disable-next-line MD028 -->
 
 > [!NOTE] Threadpool Support for Geospatial Models
 >
@@ -149,7 +180,7 @@ entity:
   request_rate: 50
 experiments:
   - actuatorIdentifier: vllm_performance
-    experimentIdentifier: test-endpoint-v1
+    experimentIdentifier: vllm-bench-endpoint
 ```
 
 Then run:
@@ -195,7 +226,7 @@ entity:
   request_rate: 10
 experiments:
   - actuatorIdentifier: vllm_performance
-    experimentIdentifier: test-deployment-v1
+    experimentIdentifier: vllm-bench-deployment
 ```
 
 Then run:
@@ -281,8 +312,8 @@ ado create actuatorconfiguration -f vllm_config.yaml
 > [!WARNING] GPU type
 >
 > The GPU type to use in an experiment is set via the experiment itself
-> (test-deployment-v1). **Do not** set this via the `node_selector` parameter of
-> the configuration.
+> (`vllm-bench-deployment`). **Do not** set this via the `node_selector`
+> parameter of the configuration.
 
 <!-- markdownlint-disable-next-line MD028 -->
 
@@ -339,10 +370,10 @@ experiments can execute even if these packages are not pre-installed in your Ray
 cluster or local environment. The actuator intelligently selects which tool to
 install based on the experiment type:
 
-- For experiments using vLLM's built-in benchmarking (`test-deployment-v1`,
-  `test-endpoint-v1`), it installs `ado-vllm-performance[vllm]`
-- For experiments using GuideLLM (`test-deployment-guidellm-v1`,
-  `test-endpoint-guidellm-v1`), it installs `ado-vllm-performance[guidellm]`
+- For experiments using vLLM's built-in benchmarking (`vllm-bench-deployment`,
+  `vllm-bench-endpoint`), it installs `ado-vllm-performance[vllm]`
+- For experiments using GuideLLM (`guidellm-bench-deployment`,
+  `guidellm-bench-endpoint`), it installs `ado-vllm-performance[guidellm]`
 
 > [!NOTE] Deployment vs. Benchmark environment
 >
@@ -399,7 +430,7 @@ parameters:
 
 The `in_cluster` option in your `actuatorconfiguration` tells the
 `vllm_performance` actuator how to communicate with the target Kubernetes or
-OpenShift cluster when running `test-deployment-v1`.
+OpenShift cluster when running `vllm-bench-deployment`.
 
 If running `ado` from outside the Kubernetes/OpenShift cluster where the
 deployments will be created, leave `in_cluster: false` (the default).

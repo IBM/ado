@@ -19,7 +19,7 @@
 > In this example:
 >
 > - We will define a space of geospatial model deployment configurations to test
-> - Use the `test-geospatial-deployment-v1` experiment to create and benchmark
+> - Use the `geospatial-vllm-bench-deployment` experiment to create and benchmark
 >   vLLM deployments serving Prithvi models
 > - Explore how deployment parameters affect inference latency for flood
 >   detection tasks
@@ -65,9 +65,9 @@ experiments:
 ado get experiments --details
 ```
 
-You should see experiments including `test-geospatial-deployment-v1`,
-`test-geospatial-endpoint-v1`, `test-geospatial-deployment-custom-dataset-v1`,
-and `test-geospatial-endpoint-custom-dataset-v1`.
+You should see experiments including `geospatial-vllm-bench-deployment`,
+`geospatial-vllm-bench-endpoint`, `geospatial-vllm-bench-deployment-custom-dataset`,
+and `geospatial-vllm-bench-endpoint-custom-dataset`.
 
 ## Create an actuator configuration
 
@@ -212,7 +212,7 @@ Prithvi-EO-2.0 flood detection models.
 ## Using Custom Datasets
 
 To use your own geospatial datasets, use the
-`test-geospatial-deployment-custom-dataset-v1` experiment. Your dataset should
+`geospatial-vllm-bench-deployment-custom-dataset` experiment. Your dataset should
 be a JSONL (JSON Lines) file where each line is a JSON object with this
 structure:
 
@@ -251,7 +251,7 @@ Update your space definition to use the custom dataset experiment:
 ```yaml
 measurementSpace:
   - actuatorIdentifier: vllm_performance
-    experimentIdentifier: test-geospatial-deployment-custom-dataset-v1
+    experimentIdentifier: geospatial-vllm-bench-deployment-custom-dataset
 ```
 
 And add the dataset path to your entity space:
@@ -298,7 +298,7 @@ versions (0.20.0+) and fail early with a clear error if there's a mismatch.
 - Try the **600M parameter Prithvi model** by changing the model identifier to
   `ibm-nasa-geospatial/Prithvi-EO-2.0-600M-TL-Sen1Floods11`
 - Explore different **GPU types** if your cluster has multiple options
-- Test **endpoint benchmarking** with `test-geospatial-endpoint-v1` if you have
+- Test **endpoint benchmarking** with `geospatial-vllm-bench-endpoint` if you have
   an existing deployment
 - **Enable threadpool rendering** with vLLM 0.20.0+ to improve inference
   performance for geospatial models

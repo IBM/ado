@@ -659,9 +659,10 @@ def test_entity_results_keep_uids(
 ) -> None:
 
     ml_multi_cloud_sample_store.add_external_entities([entity])
-    retrieved_entity = ml_multi_cloud_sample_store.entityWithIdentifier(
-        entityIdentifier=entity.identifier
+    results = ml_multi_cloud_sample_store.get_entities(
+        identifiers=entity.identifier, require_measurements=True
     )
+    retrieved_entity = results[0]
 
     assert len(entity.measurement_results) == len(retrieved_entity.measurement_results)
     for i in range(len(retrieved_entity.measurement_results)):
@@ -726,10 +727,16 @@ def test_entities_by_identifiers_empty_input(
     ml_multi_cloud_sample_store: SQLSampleStore,
 ) -> None:
     """Test entities_with_identifiers with empty input returns empty list."""
-    result = ml_multi_cloud_sample_store.entities_with_identifiers([])
+    with pytest.warns(
+        DeprecationWarning, match="entities_with_identifiers is deprecated"
+    ):
+        result = ml_multi_cloud_sample_store.entities_with_identifiers([])
     assert result == []
 
-    result = ml_multi_cloud_sample_store.entities_with_identifiers(set())
+    with pytest.warns(
+        DeprecationWarning, match="entities_with_identifiers is deprecated"
+    ):
+        result = ml_multi_cloud_sample_store.entities_with_identifiers(set())
     assert result == []
 
 
@@ -737,13 +744,14 @@ def test_entities_by_identifiers_list_input(
     ml_multi_cloud_sample_store: SQLSampleStore,
 ) -> None:
     """Test entities_with_identifiers accepts list input."""
-    # Get some entity identifiers from the store
     all_entities = ml_multi_cloud_sample_store.get_entities(require_measurements=False)
     assert len(all_entities) > 0
 
-    # Test with list input
     entity_ids_list = [all_entities[0].identifier, all_entities[1].identifier]
-    result = ml_multi_cloud_sample_store.entities_with_identifiers(entity_ids_list)
+    with pytest.warns(
+        DeprecationWarning, match="entities_with_identifiers is deprecated"
+    ):
+        result = ml_multi_cloud_sample_store.entities_with_identifiers(entity_ids_list)
 
     assert len(result) == 2
     assert {e.identifier for e in result} == set(entity_ids_list)
@@ -753,13 +761,14 @@ def test_entities_by_identifiers_set_input(
     ml_multi_cloud_sample_store: SQLSampleStore,
 ) -> None:
     """Test entities_with_identifiers accepts set input."""
-    # Get some entity identifiers from the store
     all_entities = ml_multi_cloud_sample_store.get_entities(require_measurements=False)
     assert len(all_entities) > 0
 
-    # Test with set input
     entity_ids_set = {all_entities[0].identifier, all_entities[1].identifier}
-    result = ml_multi_cloud_sample_store.entities_with_identifiers(entity_ids_set)
+    with pytest.warns(
+        DeprecationWarning, match="entities_with_identifiers is deprecated"
+    ):
+        result = ml_multi_cloud_sample_store.entities_with_identifiers(entity_ids_set)
 
     assert len(result) == 2
     assert {e.identifier for e in result} == entity_ids_set
@@ -769,13 +778,14 @@ def test_entities_by_identifiers_subset(
     ml_multi_cloud_sample_store: SQLSampleStore,
 ) -> None:
     """Test entities_with_identifiers returns only requested entities."""
-    # Get all entities from the store
     all_entities = ml_multi_cloud_sample_store.get_entities(require_measurements=False)
     assert len(all_entities) >= 3
 
-    # Request only a subset
     requested_ids = {all_entities[0].identifier, all_entities[2].identifier}
-    result = ml_multi_cloud_sample_store.entities_with_identifiers(requested_ids)
+    with pytest.warns(
+        DeprecationWarning, match="entities_with_identifiers is deprecated"
+    ):
+        result = ml_multi_cloud_sample_store.entities_with_identifiers(requested_ids)
 
     assert len(result) == 2
     assert {e.identifier for e in result} == requested_ids
@@ -795,9 +805,11 @@ def test_entities_by_identifiers_nonexistent_entities(
     ml_multi_cloud_sample_store: SQLSampleStore,
 ) -> None:
     """Test entities_with_identifiers with non-existent entity identifiers."""
-    # Request entities that don't exist
     nonexistent_ids = {"nonexistent_id_1", "nonexistent_id_2"}
-    result = ml_multi_cloud_sample_store.entities_with_identifiers(nonexistent_ids)
+    with pytest.warns(
+        DeprecationWarning, match="entities_with_identifiers is deprecated"
+    ):
+        result = ml_multi_cloud_sample_store.entities_with_identifiers(nonexistent_ids)
 
     # Should return empty list, not raise an error
     assert result == []
@@ -810,13 +822,15 @@ def test_entities_by_identifiers_mixed_existing_nonexistent(
     all_entities = ml_multi_cloud_sample_store.get_entities(require_measurements=False)
     assert len(all_entities) > 0
 
-    # Mix of existing and non-existent
     mixed_ids = {
         all_entities[0].identifier,
         "nonexistent_id_1",
         all_entities[1].identifier if len(all_entities) > 1 else "nonexistent_id_2",
     }
-    result = ml_multi_cloud_sample_store.entities_with_identifiers(mixed_ids)
+    with pytest.warns(
+        DeprecationWarning, match="entities_with_identifiers is deprecated"
+    ):
+        result = ml_multi_cloud_sample_store.entities_with_identifiers(mixed_ids)
 
     # Should return only the existing entities
     existing_ids = {
@@ -844,9 +858,12 @@ def test_entities_by_identifiers_partial_cache_reuse(
     ml_multi_cloud_sample_store._entities = cached_only
 
     # Now request both the cached entity and an uncached one
-    result = ml_multi_cloud_sample_store.entities_with_identifiers(
-        {first_id, second_id}
-    )
+    with pytest.warns(
+        DeprecationWarning, match="entities_with_identifiers is deprecated"
+    ):
+        result = ml_multi_cloud_sample_store.entities_with_identifiers(
+            {first_id, second_id}
+        )
 
     assert len(result) == 2
     assert {e.identifier for e in result} == {first_id, second_id}
@@ -880,7 +897,10 @@ def test_entities_by_identifiers_with_measurement_results(
         entity_ids.update({e.identifier for e in r.entities})
 
     # Fetch entities by identifiers
-    retrieved_entities = sample_store.entities_with_identifiers(entity_ids)
+    with pytest.warns(
+        DeprecationWarning, match="entities_with_identifiers is deprecated"
+    ):
+        retrieved_entities = sample_store.entities_with_identifiers(entity_ids)
 
     assert len(retrieved_entities) == len(entity_ids)
 

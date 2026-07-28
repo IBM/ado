@@ -93,7 +93,7 @@ class RifferlaParameters(pydantic.BaseModel):
     "It does this by identifying which entity space dimensions should be fixed to set values, which explored, and setting range limits for those dimensions. "
     "The method leverages Mutual Information to identify dimensions correlated with the desired observed property.",
     example_configuration=RifferlaParameters.example_configuration(),
-    version="2.0.3",
+    version="2.0.6",
 )
 def rifferla(
     discoverySpace: DiscoverySpace,
@@ -175,7 +175,9 @@ def rifferla(
         all_entities = discoverySpace.matchingEntities()
     else:
         print("Getting all entities")
-        all_entities = discoverySpace.sample_store.entities
+        all_entities = discoverySpace.sample_store.get_entities(
+            require_measurements=True
+        )
 
     print(f"Number of entities: {len(all_entities)}")
 
@@ -344,7 +346,9 @@ def rifferla(
         print(
             "Rifferla space refinement] ...done. Copying entities (since it is a probabilistic space)..."
         )
-        copy_entities = list(discoverySpace.sample_store.entities)
+        copy_entities = discoverySpace.sample_store.get_entities(
+            require_measurements=True
+        )
         new_discovery_space.sample_store.add_external_entities(copy_entities)
 
     print(

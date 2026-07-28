@@ -67,19 +67,19 @@ pip install ado-vllm-performance
 This will automatically install both vLLM and GuideLLM benchmarking tools,
 enabling all experiments:
 
-- `test-deployment-v1` and `test-endpoint-v1` (vLLM benchmarks)
-- `test-deployment-guidellm-v1` and `test-endpoint-guidellm-v1` (GuideLLM
+- `test-deployment` and `test-endpoint` (vLLM benchmarks)
+- `test-deployment-guidellm` and `test-endpoint-guidellm` (GuideLLM
   benchmarks)
-- `test-geospatial-deployment-v1` and `test-geospatial-endpoint-v1` (Geospatial
+- `test-geospatial-deployment` and `test-geospatial-endpoint` (Geospatial
   model benchmarks with vLLM)
-- `test-geospatial-deployment-guidellm-v1` and
-  `test-geospatial-endpoint-guidellm-v1` (Geospatial model benchmarks with
+- `test-geospatial-deployment-guidellm` and
+  `test-geospatial-endpoint-guidellm` (Geospatial model benchmarks with
   GuideLLM)
-- `test-geospatial-deployment-custom-dataset-v1` and
-  `test-geospatial-endpoint-custom-dataset-v1` (Geospatial with custom datasets
+- `test-geospatial-deployment-custom-dataset` and
+  `test-geospatial-endpoint-custom-dataset` (Geospatial with custom datasets
   using vLLM)
-- `test-geospatial-deployment-guidellm-custom-dataset-v1` and
-  `test-geospatial-endpoint-guidellm-custom-dataset-v1` (Geospatial with custom
+- `test-geospatial-deployment-guidellm-custom-dataset` and
+  `test-geospatial-endpoint-guidellm-custom-dataset` (Geospatial with custom
   datasets using GuideLLM)
 
 **For development from source:**
@@ -110,14 +110,14 @@ You should see an output like below:
 ├──────────────────┼─────────────────────────────┼───────────────────────────────────────────────────────────────────┤
 │ mock             │ test-experiment             │                                                                   │
 │ mock             │ test-experiment-two         │                                                                   │
-│ vllm_performance │ test-deployment-guidellm-v1 │ VLLM performance testing using GuideLLM benchmark suite across    │
+│ vllm_performance │ test-deployment-guidellm    │ VLLM performance testing using GuideLLM benchmark suite across    │
 │                  │                             │ compute resource and workload configuration                       │
-│ vllm_performance │ test-deployment-v1          │ VLLM performance testing across compute resource and workload     │
+│ vllm_performance │ test-deployment             │ VLLM performance testing across compute resource and workload     │
 │                  │                             │ configuration                                                     │
-│ vllm_performance │ test-endpoint-guidellm-v1   │ Test inference performance of a model served by vLLM endpoint     │
+│ vllm_performance │ test-endpoint-guidellm      │ Test inference performance of a model served by vLLM endpoint     │
 │                  │                             │ using GuideLLM benchmark suite across inference workload          │
 │                  │                             │ configurations                                                    │
-│ vllm_performance │ test-endpoint-v1            │ Test inference performance of a model served by vLLM endpoint     │
+│ vllm_performance │ test-endpoint               │ Test inference performance of a model served by vLLM endpoint     │
 │                  │                             │ across inference workload configurations                          │
 └──────────────────┴─────────────────────────────┴───────────────────────────────────────────────────────────────────┘
 ```
@@ -132,7 +132,7 @@ and the
 measured by an experiment by running:
 
 ```commandline
-ado describe experiment test-deployment-v1
+ado describe experiment test-deployment
 ```
 
 The experiment protocol for the vLLM actuator is defined in

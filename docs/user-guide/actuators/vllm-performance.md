@@ -50,39 +50,39 @@ The `vllm_performance` actuator implements twelve experiments:
 
 **Standard LLM Benchmarking:**
 
-- `test-deployment-v1`: This experiment can test the full vLLM workload
+- `test-deployment`: This experiment can test the full vLLM workload
   configuration, including resource requests and server deployment
   configuration. It deploys servers with given configuration on kubernetes and
   runs vLLM's built-in benchmarking tool (`vllm bench serve`) on them with the
   given parameters.
-- `test-endpoint-v1`: This experiment is equivalent to running
+- `test-endpoint`: This experiment is equivalent to running
   `vllm bench serve` against an endpoint.
-- `test-deployment-guidellm-v1`: Similar to `test-deployment-v1`, but uses
+- `test-deployment-guidellm`: Similar to `test-deployment`, but uses
   GuideLLM (`guidellm benchmark run`) for benchmarking instead of vLLM's
   built-in benchmarking tool.
-- `test-endpoint-guidellm-v1`: Similar to `test-endpoint-v1`, but uses GuideLLM
+- `test-endpoint-guidellm`: Similar to `test-endpoint`, but uses GuideLLM
   (`guidellm benchmark run`) for benchmarking instead of vLLM's built-in
   benchmarking tool.
 
 **Geospatial Model Benchmarking:**
 
-- `test-geospatial-deployment-v1`: Deploy and benchmark geospatial models
+- `test-geospatial-deployment`: Deploy and benchmark geospatial models
   (IBM-NASA Prithvi) using pre-packaged datasets for flood detection tasks with
   vLLM's built-in benchmarking tool.
-- `test-geospatial-endpoint-v1`: Benchmark existing geospatial model endpoints
+- `test-geospatial-endpoint`: Benchmark existing geospatial model endpoints
   using pre-packaged datasets with vLLM's built-in benchmarking tool.
-- `test-geospatial-deployment-guidellm-v1`: Deploy and benchmark geospatial
+- `test-geospatial-deployment-guidellm`: Deploy and benchmark geospatial
   models using pre-packaged datasets with GuideLLM.
-- `test-geospatial-endpoint-guidellm-v1`: Benchmark existing geospatial model
+- `test-geospatial-endpoint-guidellm`: Benchmark existing geospatial model
   endpoints using pre-packaged datasets with GuideLLM.
-- `test-geospatial-deployment-custom-dataset-v1`: Deploy and benchmark
+- `test-geospatial-deployment-custom-dataset`: Deploy and benchmark
   geospatial models with custom datasets using vLLM's built-in benchmarking
   tool.
-- `test-geospatial-endpoint-custom-dataset-v1`: Benchmark existing geospatial
+- `test-geospatial-endpoint-custom-dataset`: Benchmark existing geospatial
   model endpoints with custom datasets using vLLM's built-in benchmarking tool.
-- `test-geospatial-deployment-guidellm-custom-dataset-v1`: Deploy and benchmark
+- `test-geospatial-deployment-guidellm-custom-dataset`: Deploy and benchmark
   geospatial models with custom datasets using GuideLLM.
-- `test-geospatial-endpoint-guidellm-custom-dataset-v1`: Benchmark existing
+- `test-geospatial-endpoint-guidellm-custom-dataset`: Benchmark existing
   geospatial model endpoints with custom datasets using GuideLLM.
 
 > [!NOTE] Threadpool Support for Geospatial Models

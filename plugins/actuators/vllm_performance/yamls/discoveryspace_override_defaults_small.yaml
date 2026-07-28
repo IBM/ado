@@ -48,6 +48,7 @@ entitySpace:
       values: ['NVIDIA-A100-80GB-PCIe']
 experiments:
   - actuatorIdentifier: vllm_performance
-    experimentIdentifier: test-deployment-v1
+    experimentIdentifier: test-deployment
+    experimentVersion: 1.0.0
 metadata:
   description: Parameters for VLLM performance testing

@@ -16,7 +16,7 @@ operation:
     samplerConfig:
       mode: 'sequentialgrouped'
       samplerType: 'generator'
-      grouping: #These are entity properties compatible with vllm_performance.test-deployment-v1 and vllm_performance.test-deployment-guidellm-v1
+      grouping: #These are entity properties compatible with vllm_performance.test-deployment and vllm_performance.test-deployment-guidellm
         - model
         - image
         - n_gpus

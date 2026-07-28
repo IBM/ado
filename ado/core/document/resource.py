@@ -1,7 +1,7 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 import uuid
-from typing import Annotated
+from typing import Annotated, Literal
 
 import pydantic
 
@@ -14,7 +14,9 @@ class DocumentResource(ADOResource):
     """A resource that stores markdown or HTML documents."""
 
     version: Annotated[str, pydantic.Field()] = "v1"
-    kind: Annotated[CoreResourceKinds, pydantic.Field()] = CoreResourceKinds.DOCUMENT
+    kind: Annotated[Literal[CoreResourceKinds.DOCUMENT], pydantic.Field()] = (
+        CoreResourceKinds.DOCUMENT
+    )
     config: DocumentConfiguration
     identifier: Annotated[
         Defaultable[str],

@@ -487,27 +487,6 @@ def insert_entities_ignore_on_duplicate(
     return query
 
 
-def upsert_entities(
-    sample_store_name: str, dialect: Literal["mysql", "sqlite"] = "mysql"
-) -> sqlalchemy.TextClause:
-    if dialect == "sqlite":
-        query = sqlalchemy.text(rf"""
-            INSERT INTO {sample_store_name}
-            (identifier, representation)
-            VALUES (:identifier, :representation)
-            ON CONFLICT(identifier) DO UPDATE SET representation = excluded.representation
-            """)  # noqa: S608 - sample_store_name is not untrusted
-    else:
-        query = sqlalchemy.text(rf"""
-            INSERT INTO {sample_store_name}
-            (identifier, representation)
-            VALUES (:identifier, :representation)
-            ON DUPLICATE KEY UPDATE representation=values(representation)
-            """)  # noqa: S608 - sample_store_name is not untrusted
-
-    return query
-
-
 def resource_select_latest_by_kinds(
     kinds: list[str],
     dialect: Literal["mysql", "sqlite"] = "mysql",

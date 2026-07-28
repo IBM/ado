@@ -17,7 +17,6 @@ from ado.cli.utils.output.prints import (
     ADO_SPINNER_QUERYING_DB,
     INFO,
     console_print,
-    stdout_console,
 )
 from ado.core.resources import CoreResourceKinds
 from ado.metastore.base import ResourceDoesNotExistError
@@ -31,7 +30,7 @@ def describe_document(parameters: AdoDescribeCommandParameters) -> None:
     ``content`` body is written with no styling.
     """
     sql = get_sql_store(project_context=parameters.ado_configuration.project_context)
-    to_terminal = stdout_console.is_terminal
+    to_terminal = sys.stdout.isatty()
 
     if to_terminal:
         with Status(ADO_SPINNER_QUERYING_DB) as status:

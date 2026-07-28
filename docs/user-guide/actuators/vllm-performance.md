@@ -85,6 +85,37 @@ The `vllm_performance` actuator implements twelve experiments:
 - `geospatial-guidellm-bench-endpoint-custom-dataset`: Benchmark existing
   geospatial model endpoints with custom datasets using GuideLLM.
 
+> [!NOTE] Deprecated experiment names
+>
+> Earlier versions of the actuator used different names for the same experiments.
+> The behaviour and output are identical — only the names changed. If you have
+> existing discoveryspace or operation YAML files that reference the old names,
+> update them to the current names shown above.
+>
+> **Standard LLM experiments:**
+>
+> | Deprecated name | Current name |
+> | --- | --- |
+> | `test-deployment-v1` | `vllm-bench-deployment` |
+> | `test-endpoint-v1` | `vllm-bench-endpoint` |
+> | `test-deployment-guidellm-v1` | `guidellm-bench-deployment` |
+> | `test-endpoint-guidellm-v1` | `guidellm-bench-endpoint` |
+>
+> **Geospatial experiments:**
+>
+> | Deprecated name | Current name |
+> | --- | --- |
+> | `test-geospatial-deployment-v1` | `geospatial-vllm-bench-deployment` |
+> | `test-geospatial-endpoint-v1` | `geospatial-vllm-bench-endpoint` |
+> | `test-geospatial-deployment-guidellm-v1` | `geospatial-guidellm-bench-deployment` |
+> | `test-geospatial-endpoint-guidellm-v1` | `geospatial-guidellm-bench-endpoint` |
+> | `test-geospatial-deployment-custom-dataset-v1` | `geospatial-vllm-bench-deployment-custom-dataset` |
+> | `test-geospatial-endpoint-custom-dataset-v1` | `geospatial-vllm-bench-endpoint-custom-dataset` |
+> | `test-geospatial-deployment-guidellm-custom-dataset-v1` | `geospatial-guidellm-bench-deployment-custom-dataset` |
+> | `test-geospatial-endpoint-guidellm-custom-dataset-v1` | `geospatial-guidellm-bench-endpoint-custom-dataset` |
+
+<!-- markdownlint-disable-next-line MD028 -->
+
 > [!NOTE] Threadpool Support for Geospatial Models
 >
 > Geospatial experiments support threadpool pre/post processing for improved

@@ -473,6 +473,12 @@ class InferenceActuatorParameters(GenericActuatorParameters):
         from ado.core.actuatorconfiguration.config import (
             warn_deprecated_actuator_parameters_model_in_use,
         )
+        from ado.utilities.dictionaries import (
+            get_nested_value,
+            has_nested_field,
+            remove_nested_field,
+            set_nested_value,
+        )
 
         old_key = "authToken"
         new_key = "authorization_token"
@@ -505,7 +511,7 @@ class InferenceActuatorParameters(GenericActuatorParameters):
 
         else:
             # The old key is not present - all good
-            if old_key not in values:
+            if not has_nested_field(values, old_key):
                 return values
 
             # Notify the user that the authToken
@@ -521,12 +527,13 @@ class InferenceActuatorParameters(GenericActuatorParameters):
             # The user has set both the old
             # and the new key - the new key
             # takes precedence.
-            if new_key in values:
-                values.pop(old_key)
+            if has_nested_field(values, new_key):
+                remove_nested_field(values, old_key)
             # Set the old value in the
             # new field
             else:
-                values[new_key] = values.pop(old_key)
+                set_nested_value(values, new_key, get_nested_value(values, old_key))
+                remove_nested_field(values, old_key)
 
         return values
 ```

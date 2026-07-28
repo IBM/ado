@@ -337,10 +337,16 @@ class MyOperatorOptions(pydantic.BaseModel):
         from ado.modules.operators.base import (
             warn_deprecated_operator_parameters_model_in_use,
         )
+        from ado.utilities.dictionaries import (
+            get_nested_value,
+            has_nested_field,
+            remove_nested_field,
+            set_nested_value,
+        )
 
         old_key = "my_parameter_name"
         new_key = "my_improved_parameter_name"
-        if old_key in values:
+        if has_nested_field(values, old_key):
             # Notify the user that the my_parameter_name
             # field is deprecated
             warn_deprecated_operator_parameters_model_in_use(
@@ -354,12 +360,13 @@ class MyOperatorOptions(pydantic.BaseModel):
             # The user has set both the old
             # and the new key - the new key
             # takes precedence.
-            if new_key in values:
-                values.pop(old_key)
+            if has_nested_field(values, new_key):
+                remove_nested_field(values, old_key)
             # Set the old value in the
             # new field
             else:
-                values[new_key] = values.pop(old_key)
+                set_nested_value(values, new_key, get_nested_value(values, old_key))
+                remove_nested_field(values, old_key)
 
         return values
 ```

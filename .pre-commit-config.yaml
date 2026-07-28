@@ -24,7 +24,7 @@ repos:
       - id: detect-secrets # pragma: whitelist secret
         args: [--baseline, .secrets.baseline, --use-all-plugins, --fail-on-unaudited]
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.22
+    rev: v0.16.0
     hooks:
       - id: ruff
         args:
@@ -40,7 +40,7 @@ repos:
           - --no-color
           - --verbose
           - --scopes
-          - anomalous-series,autoconf,changelog,ci,cli,container,contributing,core,cplex-mip,deps,docs,example-actuator,hooks,profile-space,ray-tune,sfttrainer,test,trim,vllm-performance,website
+          - anomalous-series,autoconf,changelog,ci,cli,container,contributing,core,cplex-mip,deps,docs,example-actuator,hooks,profile-space,ray-tune,sfttrainer,test,trim,vllm-performance,website,ordered-pip
   - repo: https://github.com/codespell-project/codespell
     rev: v2.4.3
     hooks:
@@ -48,7 +48,7 @@ repos:
         additional_dependencies: ['tomli']
         args: ['--toml', 'pyproject.toml']
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.11.29
+    rev: 0.11.32
     hooks:
       - id: uv-lock
       - id: uv-export
@@ -58,9 +58,9 @@ repos:
     hooks:
       - id: add-headers
   - repo: https://github.com/DavidAnson/markdownlint-cli2
-    rev: v0.23.1
+    rev: v0.23.2
     hooks:
-      - id: markdownlint-cli2
+      - id: markdownlint-cli2-docker
   - repo: https://github.com/google/yamlfmt
     rev: v0.21.0
     hooks:

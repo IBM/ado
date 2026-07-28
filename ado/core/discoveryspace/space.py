@@ -616,25 +616,41 @@ class DiscoverySpace:
                 f"Unable to store space {self._identifier} as no metadata storage provided"
             )
 
-    def sampledEntities(self) -> list[Entity]:
-        """Returns the entities sampled so far in the space"""
+    def sampledEntities(self, *, require_measurements: bool = True) -> list[Entity]:
+        """Returns the entities sampled so far in the space.
+
+        Args:
+            require_measurements: When ``True`` (default), measurement results
+                are guaranteed to be attached to each entity.  Pass ``False`` to
+                load only constitutive properties (measurement results may still
+                be present if already loaded).
+        """
 
         operation_ids = self.operations
 
         if not operation_ids:
             return []
 
-        sampled_entities = self.sample_store.entities_in_operations(operation_ids)
+        entity_ids = set(
+            self.sample_store.entity_identifiers_in_operations(operation_ids)
+        )
+        sampled_entities = self.sample_store.get_entities(
+            identifiers=entity_ids, require_measurements=require_measurements
+        )
 
         # TODO: Consider removing isEntitySpace check
         # The additional check of isEntityInSpace should not be required if things are working correctly
         # However if an entity was incorrectly sampled during an operation, due to a bug say, this will correct for it
         return [e for e in sampled_entities if self.entitySpace.isEntityInSpace(e)]
 
-    def matchingEntities(self) -> list[Entity]:
-        """Returns all entities in the sample store that match the space
+    def matchingEntities(self, *, require_measurements: bool = True) -> list[Entity]:
+        """Returns all entities in the sample store that match the space.
 
-        Note: They do not have to have any measurements from the measurement space
+        Args:
+            require_measurements: When ``True`` (default), measurement results
+                are guaranteed to be attached to each entity.  Pass ``False`` to
+                load only constitutive properties (measurement results may still
+                be present if already loaded).
 
         If
         - ExplicitEntitySpace defined -> filter on the space
@@ -642,7 +658,9 @@ class DiscoverySpace:
         """
 
         # Get all entities in the store
-        all_entities = self.sample_store.entities
+        all_entities = self.sample_store.get_entities(
+            require_measurements=require_measurements
+        )
         if self.entitySpace is None:
             return all_entities
 
@@ -775,7 +793,7 @@ class DiscoverySpace:
         self,
         values: list[ado.schema.property_value.PropertyValue],
         mode: typing.Literal["strict"] = "strict",
-    ) -> list[None | ado.schema.entity.Entity]:
+    ) -> list[ado.schema.entity.Entity | None]:
         """Returns entities in the discoveryspace that have the given values for their constitutive properties and that are stored in the sample-store
 
         All entities returned will be strict members of this receivers entity space i.e. they will not have constitutive
@@ -1061,11 +1079,27 @@ class DiscoverySpace:
 
     @_perform_preflight_checks_for_sample_store_methods
     def entity_identifiers_in_operations(
-        self, operation_ids: str | set[str]
-    ) -> set[str]:
-        """Return entity identifiers sampled in the given operation(s)."""
+        self,
+        operation_ids: str | set[str],
+        group_by_operation: bool = False,
+    ) -> set[str] | dict[str, set[str]]:
+        """Return entity identifiers sampled in the given operation(s).
+
+        Args:
+            operation_ids: A single operation identifier or a set of operation
+                identifiers to look up entity identifiers for.
+            group_by_operation: When True, return a dict mapping each operation
+                ID to its set of entity identifiers. When False (default),
+                return a flat set of entity identifiers across all operations.
+
+        Returns:
+            A flat set of entity identifier strings when group_by_operation is
+            False, or a dict mapping operation ID to set of entity identifiers
+            when group_by_operation is True.
+        """
         return self.sample_store.entity_identifiers_in_operations(
-            operation_ids=operation_ids
+            operation_ids=operation_ids,
+            group_by_operation=group_by_operation,
         )
 
     @_perform_preflight_checks_for_sample_store_methods

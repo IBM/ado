@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import logging
+import warnings
 from typing import TYPE_CHECKING, Annotated, Literal
 
 import pydantic
@@ -27,6 +28,7 @@ def warn_deprecated_csv_sample_store_model_in_use(
     removed_from_version: str = "1.6.0",
     deprecated_fields: str | list[str] | None = None,
     latest_format_documentation_url: str | None = None,
+    include_entities_and_results_hint: bool = False,
 ) -> None:
     """Warn that a deprecated CSV sample store model format is being auto-upgraded
 
@@ -65,8 +67,11 @@ def warn_deprecated_csv_sample_store_model_in_use(
         f"[b]This behavior will be removed with ADO "
         f"[b cyan]{removed_from_version}[/b cyan][/b]."
     )
+    entities_flag = (
+        " --upgrade-entities-and-results" if include_entities_and_results_hint else ""
+    )
     manual_upgrade_hint = (
-        f"Run [b cyan]ado upgrade {resource_name}s[/b cyan] to upgrade the stored {resource_name}s.\n\t"
+        f"Run [b cyan]ado upgrade {resource_name}s{entities_flag}[/b cyan] to upgrade the stored {resource_name}s.\n\t"
         f"Update your {resource_name} YAML files to use the latest format{doc_url}."
     )
 
@@ -306,7 +311,9 @@ class CSVSampleStore(PassiveSampleStore):
                     for result in measurement_results:
                         entity.add_measurement_result(result)
 
-        self._entity_ids = [e.identifier for e in self.entities]
+        self._entity_ids = [
+            e.identifier for e in self.get_entities(require_measurements=False)
+        ]
 
     @property
     def config(self) -> CSVSampleStoreDescription:
@@ -432,7 +439,45 @@ class CSVSampleStore(PassiveSampleStore):
 
     @property
     def entities(self) -> list[Entity]:
+        """Deprecated: use ``get_entities()`` instead.
+
+        Returns all entities with their measurement results attached.
+        This property is deprecated and will be removed in a future release.
+        """
+        warnings.warn(
+            "CSVSampleStore.entities is deprecated. Use get_entities() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self._entities
+
+    def get_entities(
+        self,
+        identifiers: str | set[str] | None = None,
+        *,
+        require_measurements: bool,
+        refresh: bool = False,
+    ) -> list[Entity]:
+        """Retrieve entities from the CSV store.
+
+        Args:
+            identifiers: Which entities to return.
+                - ``None`` (default): all entities.
+                - ``str``: a single entity identifier.
+                - ``set[str]``: an explicit subset of entity identifiers.
+            require_measurements: Ignored; CSV entities always carry their
+                measurements. Included for interface compatibility.
+            refresh: Ignored; CSV stores have no cache. Included for interface
+                compatibility.
+
+        Returns:
+            List of ``Entity`` objects.
+        """
+        if identifiers is None:
+            return list(self._entities)
+        if isinstance(identifiers, str):
+            identifiers = {identifiers}
+        return [e for e in self._entities if e.identifier in identifiers]
 
     @property
     def numberOfEntities(self) -> int:

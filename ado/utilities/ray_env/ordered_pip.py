@@ -344,13 +344,24 @@ class OrderedPipPlugin(RuntimeEnvPlugin):
             logger.warning(
                 f"The pip environment at {env_dir} has been garbage collected - recreating it"
             )
+
             import asyncio
 
-            asyncio.run(
+            from ray._common.utils import get_or_create_event_loop
+
+            # modify_context is synchronous but may be called from inside
+            # Ray's async runtime-env agent which already has a running event
+            # loop. asyncio.run() raises RuntimeError in that case, so
+            # schedule the coroutine on the existing (or newly created) loop
+            # and block the calling thread until it completes.
+            loop = get_or_create_event_loop()
+            future = asyncio.run_coroutine_threadsafe(
                 self.create(
                     uris[0], runtime_env=runtime_env, context=context, logger=logger
-                )
+                ),
+                loop,
             )
+            future.result()
 
         self._pip_plugin.modify_context(
             uris=uris,

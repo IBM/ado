@@ -167,7 +167,7 @@ import yaml
 from ado.core import kindmap
 
 with open("resource.yaml") as f:
-    resource = kindmap['discoveryspace'].model_validate(yaml.safe_load(f))
+    resource = kindmap["discoveryspace"].model_validate(yaml.safe_load(f))
 ```
 
 ## Where are the entities?

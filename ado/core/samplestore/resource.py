@@ -1,6 +1,6 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
-from typing import Annotated
+from typing import Annotated, Literal
 
 import pydantic
 
@@ -32,7 +32,9 @@ class SampleStoreResource(ADOResource):
         return identifier
 
     version: str = "v2"
-    kind: CoreResourceKinds = CoreResourceKinds.SAMPLESTORE
+    kind: Annotated[Literal[CoreResourceKinds.SAMPLESTORE], pydantic.Field()] = (
+        CoreResourceKinds.SAMPLESTORE
+    )
     config: SampleStoreConfiguration
     identifier: Annotated[
         Defaultable[str],

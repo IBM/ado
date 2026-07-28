@@ -518,7 +518,7 @@ You can load and use it for predictions:
 ```python
 from autogluon.tabular import TabularPredictor
 
-predictor = TabularPredictor.load('trim_models_finalized')
+predictor = TabularPredictor.load("trim_models_finalized")
 predictions = predictor.predict(new_data)
 ```
 

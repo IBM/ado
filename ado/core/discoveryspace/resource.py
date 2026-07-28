@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 import typing
 import uuid
-from typing import Annotated
+from typing import Annotated, Literal
 
 import pydantic
 import rich.box
@@ -44,7 +44,9 @@ class DiscoverySpaceProvenanceInfo(ProvenanceInfo):
 
 class DiscoverySpaceResource(ADOResource):
     version: str = "v2"
-    kind: CoreResourceKinds = CoreResourceKinds.DISCOVERYSPACE
+    kind: Annotated[Literal[CoreResourceKinds.DISCOVERYSPACE], pydantic.Field()] = (
+        CoreResourceKinds.DISCOVERYSPACE
+    )
     config: DiscoverySpaceConfiguration
 
     identifier: Annotated[

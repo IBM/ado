@@ -51,7 +51,9 @@ def simulate_json_contains_on_sqlite(
 
     In our simulated version, we prepare a subquery that can be used in a WHERE statement
     that filters rows making sure their ID is one that has all the fields
-    from the candidate document.
+    from the candidate document. ``null`` candidates need separate handling because
+    ``json_tree`` only emits rows for fields that exist in the document, so missing
+    fields would otherwise produce no row and never match.
 
     Args:
         path (str): The path to the JSON field to check.
@@ -70,12 +72,21 @@ def simulate_json_contains_on_sqlite(
     quoted_table_name = _quote_sql_identifier(table_name)
     quoted_json_column = _quote_sql_identifier(json_column)
     quoted_id_column = _quote_sql_identifier(id_column)
+    parsed_candidate = json.loads(candidate)
+
+    if parsed_candidate is None:
+        return f"""
+            {quoted_id_column} IN (
+                SELECT {quoted_id_column} FROM {quoted_table_name}
+                WHERE json_extract({quoted_json_column}, '{path}') IS NULL
+            )
+            """  # noqa: S608 - identifiers are quoted to prevent injection
 
     # The subqueries produced by check_field_in_sqlite_json_document need to be
     # INTERSECT-ed to make sure we only retrieve the identifiers that match all
     # the subqueries.
     subqueries = check_field_in_sqlite_json_document(
-        json.loads(candidate), path, id_column=quoted_id_column
+        parsed_candidate, path, id_column=quoted_id_column
     )
 
     return (
@@ -218,12 +229,14 @@ def check_field_in_sqlite_json_document(
     last_dot_index = path.rfind(".")
     if isinstance(candidate, _ScalarType):
         return [
-            f"{preamble} "
-            f"(F.key LIKE '{path[2:]}%' AND F.value {_searchable_scalar_value_for_query_string(candidate)}) OR "
-            f"(F.path LIKE '{path}' AND F.value {_searchable_scalar_value_for_query_string(candidate)}) OR "
-            f"(F.path = '{path[:last_dot_index]}' AND "
-            f"F.key = '{path[last_dot_index + 1 :]}' AND "
-            f"F.value {_searchable_scalar_value_for_query_string(candidate)})"
+            (
+                f"{preamble} "
+                f"(F.key LIKE '{path[2:]}%' AND F.value {_searchable_scalar_value_for_query_string(candidate)}) OR "
+                f"(F.path LIKE '{path}' AND F.value {_searchable_scalar_value_for_query_string(candidate)}) OR "
+                f"(F.path = '{path[:last_dot_index]}' AND "
+                f"F.key = '{path[last_dot_index + 1 :]}' AND "
+                f"F.value {_searchable_scalar_value_for_query_string(candidate)})"
+            )
         ]
 
     # We have handled an immediate scalar case, so we need to now handle:
@@ -336,7 +349,12 @@ def resource_filter_by_arbitrary_selection(
     return (
         f"{statement_preamble} {simulate_json_contains_on_sqlite(path, candidate)}"
         if dialect == "sqlite"
-        else f"{statement_preamble} JSON_CONTAINS(data, '{candidate}', '{path}')"
+        else (
+            f"{statement_preamble} "
+            f"(JSON_CONTAINS(data, '{candidate}', '{path}') "
+            f"OR ('{candidate}' = 'null' "
+            f"AND NOT JSON_CONTAINS_PATH(data, 'one', '{path}')))"
+        )
     )
 
 
@@ -480,27 +498,6 @@ def insert_entities_ignore_on_duplicate(
             INSERT IGNORE INTO {sample_store_name}
             (identifier, representation)
             VALUES (:identifier, :representation)
-            """)  # noqa: S608 - sample_store_name is not untrusted
-
-    return query
-
-
-def upsert_entities(
-    sample_store_name: str, dialect: Literal["mysql", "sqlite"] = "mysql"
-) -> sqlalchemy.TextClause:
-    if dialect == "sqlite":
-        query = sqlalchemy.text(rf"""
-            INSERT INTO {sample_store_name}
-            (identifier, representation)
-            VALUES (:identifier, :representation)
-            ON CONFLICT(identifier) DO UPDATE SET representation = excluded.representation
-            """)  # noqa: S608 - sample_store_name is not untrusted
-    else:
-        query = sqlalchemy.text(rf"""
-            INSERT INTO {sample_store_name}
-            (identifier, representation)
-            VALUES (:identifier, :representation)
-            ON DUPLICATE KEY UPDATE representation=values(representation)
             """)  # noqa: S608 - sample_store_name is not untrusted
 
     return query

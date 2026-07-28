@@ -10,12 +10,11 @@ The actuator implements a set of functionalities to deploy and run serving
 benchmarks for different LLMs for vLLM. This actuator deploys
 [vLLM](https://github.com/vllm-project/vllm) on to an
 [OpenShift](https://www.redhat.com/en/technologies/cloud-computing/openshift)
-cluster to serve
-[IBM Granite-3.3-8b](https://huggingface.co/ibm-granite/granite-3.3-8b-instruct)
-and runs an experiment that utilises the
-[vLLM serving benchmark](https://docs.vllm.ai/en/stable/api/vllm/benchmarks/serve.html).
-The the actuator is named `vllm_performance` and features two experiments:
-`performance-testing-full` and `performance-testing-endpoint`.
+cluster and runs benchmarks using either vLLM's built-in benchmarking tool
+([`vllm bench serve`](https://docs.vllm.ai/en/stable/api/vllm/benchmarks/serve.html))
+or [GuideLLM](https://github.com/vllm-project/guidellm). The actuator is named
+`vllm_performance` and provides thirteen experiments spanning standard LLM
+benchmarking, agentic tool-calling, and geospatial model benchmarking.
 
 # Getting Started
 
@@ -67,19 +66,19 @@ pip install ado-vllm-performance
 This will automatically install both vLLM and GuideLLM benchmarking tools,
 enabling all experiments:
 
-- `test-deployment-v1` and `test-endpoint-v1` (vLLM benchmarks)
-- `test-deployment-guidellm-v1` and `test-endpoint-guidellm-v1` (GuideLLM
+- `vllm-bench-deployment` and `vllm-bench-endpoint` (vLLM benchmarks)
+- `guidellm-bench-deployment` and `guidellm-bench-endpoint` (GuideLLM
   benchmarks)
-- `test-geospatial-deployment-v1` and `test-geospatial-endpoint-v1` (Geospatial
-  model benchmarks with vLLM)
-- `test-geospatial-deployment-guidellm-v1` and
-  `test-geospatial-endpoint-guidellm-v1` (Geospatial model benchmarks with
+- `geospatial-vllm-bench-deployment` and `geospatial-vllm-bench-endpoint`
+  (Geospatial model benchmarks with vLLM)
+- `geospatial-guidellm-bench-deployment` and
+  `geospatial-guidellm-bench-endpoint` (Geospatial model benchmarks with
   GuideLLM)
-- `test-geospatial-deployment-custom-dataset-v1` and
-  `test-geospatial-endpoint-custom-dataset-v1` (Geospatial with custom datasets
-  using vLLM)
-- `test-geospatial-deployment-guidellm-custom-dataset-v1` and
-  `test-geospatial-endpoint-guidellm-custom-dataset-v1` (Geospatial with custom
+- `geospatial-vllm-bench-deployment-custom-dataset` and
+  `geospatial-vllm-bench-endpoint-custom-dataset` (Geospatial with custom
+  datasets using vLLM)
+- `geospatial-guidellm-bench-deployment-custom-dataset` and
+  `geospatial-guidellm-bench-endpoint-custom-dataset` (Geospatial with custom
   datasets using GuideLLM)
 
 **For development from source:**
@@ -97,47 +96,47 @@ git clone https://github.com/IBM/ado.git
 Confirm that the actuator is installed:
 
 ```commandline
+ado get actuators --details
+```
+
+You should see `vllm_performance` in the list. To confirm all experiments are
+registered, run:
+
+```commandline
 ado get experiments --details
 ```
 
-You should see an output like below:
+The vllm_performance experiments you should see are:
 
-<!-- markdownlint-disable line-length -->
+- `vllm-bench-deployment`
+- `vllm-bench-endpoint`
+- `guidellm-bench-deployment`
+- `guidellm-bench-endpoint`
+- `test-agentic-tool-calling`
+- `geospatial-vllm-bench-deployment`
+- `geospatial-vllm-bench-endpoint`
+- `geospatial-guidellm-bench-deployment`
+- `geospatial-guidellm-bench-endpoint`
+- `geospatial-vllm-bench-deployment-custom-dataset`
+- `geospatial-vllm-bench-endpoint-custom-dataset`
+- `geospatial-guidellm-bench-deployment-custom-dataset`
+- `geospatial-guidellm-bench-endpoint-custom-dataset`
 
-```commandline
-┌──────────────────┬─────────────────────────────┬───────────────────────────────────────────────────────────────────┐
-│ ACTUATOR ID      │ EXPERIMENT ID               │ DESCRIPTION                                                       │
-├──────────────────┼─────────────────────────────┼───────────────────────────────────────────────────────────────────┤
-│ mock             │ test-experiment             │                                                                   │
-│ mock             │ test-experiment-two         │                                                                   │
-│ vllm_performance │ test-deployment-guidellm-v1 │ VLLM performance testing using GuideLLM benchmark suite across    │
-│                  │                             │ compute resource and workload configuration                       │
-│ vllm_performance │ test-deployment-v1          │ VLLM performance testing across compute resource and workload     │
-│                  │                             │ configuration                                                     │
-│ vllm_performance │ test-endpoint-guidellm-v1   │ Test inference performance of a model served by vLLM endpoint     │
-│                  │                             │ using GuideLLM benchmark suite across inference workload          │
-│                  │                             │ configurations                                                    │
-│ vllm_performance │ test-endpoint-v1            │ Test inference performance of a model served by vLLM endpoint     │
-│                  │                             │ across inference workload configurations                          │
-└──────────────────┴─────────────────────────────┴───────────────────────────────────────────────────────────────────┘
-```
-
-<!-- markdownlint-enable line-length -->
-
-On the last two lines you can see the new actuator and the experiments. You can
-understand the
+You can understand the
 [constitutive properties required for the experiment](https://ibm.github.io/ado/core-concepts/actuators/#experiments)
 and the
 [target and observed properties](https://ibm.github.io/ado/core-concepts/actuators/#target-and-observed-properties)
 measured by an experiment by running:
 
 ```commandline
-ado describe experiment test-deployment-v1
+ado describe experiment vllm-bench-deployment
 ```
 
-The experiment protocol for the vLLM actuator is defined in
-[this YAML file](https://github.com/IBM/ado/blob/main/plugins/actuators/vllm_performance/ado_actuators/vllm_performance/experiments.yaml).
-You will need to update this if you want to modify the values that can be
+The experiment protocols for the vLLM actuator are defined in
+[`ado_actuators/vllm_performance/experiments/performance_testing.yaml`](ado_actuators/vllm_performance/experiments/performance_testing.yaml)
+and
+[`ado_actuators/vllm_performance/experiments/performance_testing_geospatial.yaml`](ado_actuators/vllm_performance/experiments/performance_testing_geospatial.yaml).
+You will need to update these if you want to modify the values that can be
 accepted as valid for the input properties.
 
 ### Configuring the actuator
@@ -150,8 +149,7 @@ ado template actuatorconfiguration --actuator-identifier vllm_performance \
                                    -o actuatorconfiguration.yaml
 ```
 
-This will create the `vllm_performance_actuatorconfiguration.yaml` file, which
-will look like:
+This will create the `actuatorconfiguration.yaml` file, which will look like:
 
 ```yaml
 actuatorIdentifier: vllm_performance
@@ -162,12 +160,14 @@ metadata:
 parameters:
   benchmark_retries: 3
   deployment_template: null
-  hf_token: ""
-  image_pull_secret_name: ""
+  developer_mode: false
+  hf_token: ''
+  image_pull_secret_name: ''
   in_cluster: false
   max_environments: 1
   namespace: null
   node_selector: {}
+  otlp_traces_endpoint: null
   pvc_name: null
   pvc_template: null
   retries_timeout: 5
@@ -490,11 +490,11 @@ the set of values to expand the configuration space being studied.
 
 For example, you may want to benchmark a different LLM or you may want to change
 the GPU type to the one installed in your cluster. In the former case, you will
-add values to `model_name` and in the latter case, you will have to modify the
+add values to `model` and in the latter case, you will have to modify the
 domain of the `gpu_type` parameter to avoid validation errors.
 
 To do this, open the
-[experiment definition YAML file](ado_actuators/vllm_performance/experiments.yaml)
+[experiment definition YAML file](ado_actuators/vllm_performance/experiments/performance_testing.yaml)
 in a text editor, and add your GPU model to the list of values of `gpu_type`.
 
 Then, reinstall this actuator by running:
@@ -505,7 +505,7 @@ pip install .
 
 After that, you can use the new value of `gpu_type` in your experiments. For
 example, in
-[the sample space definition file](yamls/discoveryspace_override_defaults.yaml),
+[the sample space definition file](yamls/discoveryspace_override_defaults_small.yaml),
 the location to update will be:
 
 ```yaml

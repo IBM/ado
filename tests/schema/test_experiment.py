@@ -629,8 +629,8 @@ def test_experiment_property_values_from_entity(
         | list
         | str
         | CustomBytes
-        | None
         | list[int | float | list | str | CustomBytes | None]
+        | None
     ):
 
         return values[0].value if len(values) == 1 else [v.value for v in values]

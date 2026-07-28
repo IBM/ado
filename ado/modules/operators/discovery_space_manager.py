@@ -211,9 +211,10 @@ class DiscoverySpaceManager:
 
     def storedEntityWithIdentifier(self, entityIdentifier: str) -> "Entity | None":
 
-        return self._discoverySpace.sample_store.entityWithIdentifier(
-            entityIdentifier=entityIdentifier
+        results = self._discoverySpace.sample_store.get_entities(
+            identifiers=entityIdentifier, require_measurements=False
         )
+        return results[0] if results else None
 
     def storedEntitiesWithConstitutivePropertyValues(
         self, propVals: list[PropertyValue]

@@ -4,6 +4,7 @@
 import pathlib
 import re
 
+import pydantic
 import pytest
 import yaml
 
@@ -176,3 +177,13 @@ def test_ml_multi_cloud_operation_base_get(
     operation_configuration.get_actuatorconfigurations(
         project_context=valid_ado_project_context
     )
+
+
+def test_actuator_configuration_resource_wrong_kind_raises_validation_error(
+    ml_multi_cloud_correct_actuatorconfiguration: ActuatorConfigurationResource,
+) -> None:
+    """ActuatorConfigurationResource rejects a kind value other than ACTUATORCONFIGURATION."""
+    data = ml_multi_cloud_correct_actuatorconfiguration.model_dump()
+    data["kind"] = CoreResourceKinds.OPERATION
+    with pytest.raises(pydantic.ValidationError):
+        ActuatorConfigurationResource.model_validate(data)

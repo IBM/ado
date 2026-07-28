@@ -241,3 +241,13 @@ def test_script_operation_resource_identifier() -> None:
     assert operation.operationType == DiscoveryOperationEnum.CHARACTERIZE
     assert operation.operatorIdentifier == "script-inline-script-0.1.0"
     assert operation.identifier.startswith("operation-script-inline-script-0.1.0-")
+
+
+def test_operation_resource_wrong_kind_raises_validation_error(
+    operation_resource: OperationResource,
+) -> None:
+    """OperationResource rejects a kind value other than OPERATION."""
+    data = operation_resource.model_dump()
+    data["kind"] = CoreResourceKinds.DISCOVERYSPACE
+    with pytest.raises(pydantic.ValidationError):
+        OperationResource.model_validate(data)

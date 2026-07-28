@@ -16,10 +16,9 @@ from ado.core.metadata import ProvenanceInfo
 from ado.utilities.pydantic import Defaultable
 
 
-class CoreResourceKinds(enum.Enum):
+class CoreResourceKinds(str, enum.Enum):
     OPERATION = "operation"
     DISCOVERYSPACE = "discoveryspace"
-    # ACTUATOR = "actuator" AP - REMOVING IT AS REPLACED BY ACTUATORCONFIGURATION
     ACTUATORCONFIGURATION = "actuatorconfiguration"
     SAMPLESTORE = "samplestore"
     DATACONTAINER = "datacontainer"

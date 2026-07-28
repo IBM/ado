@@ -282,6 +282,9 @@ metadata:
 parameters:
   benchmark_retries: 3                  # Number of benchmark attempts (see Failure Handling)
   developer_mode: false                 # Set to true to skip automatic dependency installation (see Developer Mode)
+  free_environment_ttl: 300             # Seconds before idle Kubernetes deployments are garbage-collected (0 = delete immediately)
+  gc_force_delete: false                # Set to true to force-delete stuck environments after gc_force_delete_threshold GC cycles
+  gc_force_delete_threshold: 3          # GC cycles before force-delete is triggered (only used when gc_force_delete: true)
   hf_token: "<YOUR_HUGGINGFACE_TOKEN>"  # Required for pulling some models
   image_pull_secret_name: ""            # Optional image pull secret
   in_cluster: false                     # Set to true if running from within the cluster
@@ -323,6 +326,8 @@ ado create actuatorconfiguration -f vllm_config.yaml
 >
 > - [Maximum number of deployments](#maximum-number-of-deployments) (details on
 >   `max_environments`)
+> - [Kubernetes environment free pool and garbage collection](#environment-free-pool-and-garbage-collection)
+>   (details on `free_environment_ttl`)
 > - [Handling benchmark failures](#handling-benchmark-failures) and
 >   [Deployment Clean-Up](#deployment-clean-up)
 > - [Grouped sampling for efficient deployment usage](#grouped-sampling-for-efficient-deployment-usage)
@@ -478,14 +483,103 @@ Some notes:
 <!-- markdownlint-disable MD007 -->
 
 - `max_environments` deployments are always created before any are deleted
-  - This means idle environments will remain until there is a need to delete
-    them
-  - This is to increases chances they can be reused/minimise cost of redeploying
+  - Idle environments are returned to a free pool and reused for compatible
+    subsequent experiments, minimising the cost of redeploying
+  - Idle environments in the free pool are eventually garbage-collected (see
+    [Environment free pool and garbage collection](#environment-free-pool-and-garbage-collection))
 - Environment creation is serialized - If `max_environments` is reached and all
 are active, the first experiment that requires a new environment will block.
 Subsequent experiment requests will queue behind it in FIFO order until it can
 proceed (i.e. delete an existing environment and create the one it needs)
 <!-- markdownlint-enable MD007 -->
+
+### Environment free pool and garbage collection
+
+When a deployment finishes being used by an experiment it is not deleted
+immediately. Instead it is returned to a **free pool** so it can be
+reused by a later experiment that requires the same configuration, saving the
+cost of redeploying the same model.
+
+The `free_environment_ttl` parameter controls how long (in seconds) an idle
+deployment may stay in the free pool before it is garbage-collected:
+
+| `free_environment_ttl` value | Behaviour |
+| --- | --- |
+| `300` (default) | Idle deployments are kept for up to 5 minutes, then deleted automatically |
+| Any positive integer | Idle deployments are kept for that many seconds, then deleted |
+| `0` | No free pool — deployments are deleted immediately when they finish |
+
+**How garbage collection works (`free_environment_ttl > 0`):**
+
+A background task runs periodically (at most every 60 seconds, or every
+`free_environment_ttl` seconds if smaller) and deletes any free environment
+that has been idle for longer than `free_environment_ttl`. If a K8s API call
+fails for a given environment, it is kept in the pool and retried on the next
+GC cycle.
+
+After a normal delete is issued, the GC continues to check whether the
+Kubernetes Deployment object has disappeared. If it is still present on the
+next GC cycle a warning is logged and the check is repeated — indefinitely by
+default. This covers the common case where a stuck pod or finalizer delays
+termination but eventually resolves on its own.
+
+**Force-delete for stuck environments (`gc_force_delete: true`):**
+
+If an environment remains present in Kubernetes for longer than expected you
+can opt in to automatic force-deletion. When `gc_force_delete: true` is set,
+after `gc_force_delete_threshold` GC cycles (default `3`) the GC will:
+
+1. Delete the **Service**.
+2. Clear finalizers and delete each **Pod** with `grace_period_seconds=0`.
+3. Clear finalizers and delete the **Deployment** with `grace_period_seconds=0`.
+
+The environment is then removed from the watch list regardless of whether the
+force-delete succeeded.
+
+> [!WARNING] Force-delete is destructive
+>
+> Force-deleting a pod bypasses graceful shutdown. Use this option only when
+> environments are routinely getting stuck in Terminating and you are confident
+> the workload can tolerate abrupt termination.
+
+**Immediate deletion (`free_environment_ttl: 0`):**
+
+Setting `free_environment_ttl: 0` disables the free pool entirely. Every
+deployment is deleted as soon as the experiment using it completes. Use this
+when you want to release cluster resources as quickly as possible and
+deployment reuse is not a priority.
+
+**Example — disable the free pool:**
+
+```yaml
+actuatorIdentifier: vllm_performance
+metadata:
+  name: no-pool-config
+parameters:
+  namespace: "mynamespace"
+  max_environments: 2
+  free_environment_ttl: 0   # delete deployments immediately on completion
+```
+
+**Example — enable force-delete for stuck environments:**
+
+```yaml
+actuatorIdentifier: vllm_performance
+metadata:
+  name: force-delete-config
+parameters:
+  namespace: "mynamespace"
+  max_environments: 2
+  free_environment_ttl: 300
+  gc_force_delete: true       # force-delete stuck environments
+  gc_force_delete_threshold: 3  # after 3 GC cycles (~3 min with default TTL)
+```
+
+> [!NOTE] free pool and `max_environments`
+>
+> Free pool environments count toward the `max_environments` limit.
+> When the limit is reached and a new environment is needed, the actuator
+> evicts the oldest free environment to make room.
 
 ### Handling benchmark failures
 

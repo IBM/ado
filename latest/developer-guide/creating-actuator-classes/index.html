@@ -152,6 +152,12 @@
         <span class=kn>from</span><span class=w> </span><span class=nn>ado.core.actuatorconfiguration.config</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
             <span class=n>warn_deprecated_actuator_parameters_model_in_use</span><span class=p>,</span>
         <span class=p>)</span>
+        <span class=kn>from</span><span class=w> </span><span class=nn>ado.utilities.dictionaries</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+            <span class=n>get_nested_value</span><span class=p>,</span>
+            <span class=n>has_nested_field</span><span class=p>,</span>
+            <span class=n>remove_nested_field</span><span class=p>,</span>
+            <span class=n>set_nested_value</span><span class=p>,</span>
+        <span class=p>)</span>
 
         <span class=n>old_key</span> <span class=o>=</span> <span class=s2>&quot;authToken&quot;</span>
         <span class=n>new_key</span> <span class=o>=</span> <span class=s2>&quot;authorization_token&quot;</span>
@@ -184,7 +190,7 @@
 
         <span class=k>else</span><span class=p>:</span>
             <span class=c1># The old key is not present - all good</span>
-            <span class=k>if</span> <span class=n>old_key</span> <span class=ow>not</span> <span class=ow>in</span> <span class=n>values</span><span class=p>:</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=n>has_nested_field</span><span class=p>(</span><span class=n>values</span><span class=p>,</span> <span class=n>old_key</span><span class=p>):</span>
                 <span class=k>return</span> <span class=n>values</span>
 
             <span class=c1># Notify the user that the authToken</span>
@@ -200,12 +206,13 @@
             <span class=c1># The user has set both the old</span>
             <span class=c1># and the new key - the new key</span>
             <span class=c1># takes precedence.</span>
-            <span class=k>if</span> <span class=n>new_key</span> <span class=ow>in</span> <span class=n>values</span><span class=p>:</span>
-                <span class=n>values</span><span class=o>.</span><span class=n>pop</span><span class=p>(</span><span class=n>old_key</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>has_nested_field</span><span class=p>(</span><span class=n>values</span><span class=p>,</span> <span class=n>new_key</span><span class=p>):</span>
+                <span class=n>remove_nested_field</span><span class=p>(</span><span class=n>values</span><span class=p>,</span> <span class=n>old_key</span><span class=p>)</span>
             <span class=c1># Set the old value in the</span>
             <span class=c1># new field</span>
             <span class=k>else</span><span class=p>:</span>
-                <span class=n>values</span><span class=p>[</span><span class=n>new_key</span><span class=p>]</span> <span class=o>=</span> <span class=n>values</span><span class=o>.</span><span class=n>pop</span><span class=p>(</span><span class=n>old_key</span><span class=p>)</span>
+                <span class=n>set_nested_value</span><span class=p>(</span><span class=n>values</span><span class=p>,</span> <span class=n>new_key</span><span class=p>,</span> <span class=n>get_nested_value</span><span class=p>(</span><span class=n>values</span><span class=p>,</span> <span class=n>old_key</span><span class=p>))</span>
+                <span class=n>remove_nested_field</span><span class=p>(</span><span class=n>values</span><span class=p>,</span> <span class=n>old_key</span><span class=p>)</span>
 
         <span class=k>return</span> <span class=n>values</span>
 </code></pre></div> <p>When a model with the old field is loaded, the user will see the following warning:</p> <div class=highlight><pre><span></span><code>WARN:   The parameters for the my_actuator actuator have been updated as of my_actuator v2.

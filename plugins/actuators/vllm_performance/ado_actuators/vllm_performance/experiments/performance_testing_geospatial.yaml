@@ -1118,8 +1118,8 @@ performance_testing-geospatial-guidellm-endpoint-custom-dataset:
     - identifier: "p99_e2el_ms"
   metadata:
     description: 'Test inference performance of a geospatial model served by vLLM endpoint using GuideLLM benchmark suite with custom dataset'
-test-geospatial-endpoint:
-  identifier: test-geospatial-endpoint
+geospatial-vllm-bench-endpoint:
+  identifier: geospatial-vllm-bench-endpoint
   actuatorIdentifier: "vllm_performance"
   version: 1.0.0
   requiredProperties: # Any entity passed to this experiment must have constitutive properties with these values
@@ -1197,8 +1197,8 @@ test-geospatial-endpoint:
     - identifier: "p99_e2el_ms"
   metadata:
     description: 'Test inference performance of a geospatial model served by vLLM endpoint across inference workload configurations'
-test-geospatial-deployment:
-  identifier: test-geospatial-deployment
+geospatial-vllm-bench-deployment:
+  identifier: geospatial-vllm-bench-deployment
   actuatorIdentifier: "vllm_performance"
   version: 1.0.0
   requiredProperties: # Any entity passed to this experiment must have constitutive properties with these values
@@ -1401,8 +1401,8 @@ test-geospatial-deployment:
     - identifier: "p99_e2el_ms"
   metadata:
     description: 'VLLM performance testing across compute resource and workload configuration'
-test-geospatial-deployment-custom-dataset:
-  identifier: test-geospatial-deployment-custom-dataset
+geospatial-vllm-bench-deployment-custom-dataset:
+  identifier: geospatial-vllm-bench-deployment-custom-dataset
   actuatorIdentifier: "vllm_performance"
   version: 1.0.0
   requiredProperties: # Any entity passed to this experiment must have constitutive properties with these values
@@ -1604,8 +1604,8 @@ test-geospatial-deployment-custom-dataset:
     - identifier: "p99_e2el_ms"
   metadata:
     description: 'VLLM performance testing across compute resource and workload configuration'
-test-geospatial-endpoint-custom-dataset:
-  identifier: test-geospatial-endpoint-custom-dataset
+geospatial-vllm-bench-endpoint-custom-dataset:
+  identifier: geospatial-vllm-bench-endpoint-custom-dataset
   actuatorIdentifier: "vllm_performance"
   version: 1.0.0
   requiredProperties: # Any entity passed to this experiment must have constitutive properties with these values
@@ -1680,8 +1680,8 @@ test-geospatial-endpoint-custom-dataset:
     - identifier: "p99_e2el_ms"
   metadata:
     description: 'Test inference performance of a geospatial model served by vLLM endpoint across inference workload configurations'
-test-geospatial-endpoint-guidellm:
-  identifier: test-geospatial-endpoint-guidellm
+geospatial-guidellm-bench-endpoint:
+  identifier: geospatial-guidellm-bench-endpoint
   actuatorIdentifier: "vllm_performance"
   version: 1.0.0
   requiredProperties:
@@ -1757,8 +1757,8 @@ test-geospatial-endpoint-guidellm:
     - identifier: "p99_e2el_ms"
   metadata:
     description: 'Test inference performance of a geospatial model served by vLLM endpoint using GuideLLM benchmark suite across inference workload configurations'
-test-geospatial-deployment-guidellm:
-  identifier: test-geospatial-deployment-guidellm
+geospatial-guidellm-bench-deployment:
+  identifier: geospatial-guidellm-bench-deployment
   actuatorIdentifier: "vllm_performance"
   version: 1.0.0
   requiredProperties:
@@ -1959,8 +1959,8 @@ test-geospatial-deployment-guidellm:
     - identifier: "p99_e2el_ms"
   metadata:
     description: 'VLLM performance testing using GuideLLM benchmark suite across compute resource and workload configuration for geospatial models'
-test-geospatial-deployment-guidellm-custom-dataset:
-  identifier: test-geospatial-deployment-guidellm-custom-dataset
+geospatial-guidellm-bench-deployment-custom-dataset:
+  identifier: geospatial-guidellm-bench-deployment-custom-dataset
   actuatorIdentifier: "vllm_performance"
   version: 1.0.0
   requiredProperties:
@@ -2160,8 +2160,8 @@ test-geospatial-deployment-guidellm-custom-dataset:
     - identifier: "p99_e2el_ms"
   metadata:
     description: 'GuideLLM performance testing across compute resource and workload configuration for geospatial models with custom dataset'
-test-geospatial-endpoint-guidellm-custom-dataset:
-  identifier: test-geospatial-endpoint-guidellm-custom-dataset
+geospatial-guidellm-bench-endpoint-custom-dataset:
+  identifier: geospatial-guidellm-bench-endpoint-custom-dataset
   actuatorIdentifier: "vllm_performance"
   version: 1.0.0
   requiredProperties:

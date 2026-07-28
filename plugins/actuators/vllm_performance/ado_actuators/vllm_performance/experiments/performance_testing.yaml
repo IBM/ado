@@ -996,8 +996,8 @@ test-agentic-tool-calling:
   metadata:
     description: 'Test inference performance of an agent-style model deployed by vLLM across compute resource and workload configurations'
   version: 1.0.0
-test-deployment:
-  identifier: test-deployment
+vllm-bench-deployment:
+  identifier: vllm-bench-deployment
   actuatorIdentifier: "vllm_performance"
   version: 1.0.0
   requiredProperties: # Any entity passed to this experiment must have constitutive properties with these values
@@ -1226,8 +1226,8 @@ test-deployment:
     - identifier: "p99_e2el_ms"
   metadata:
     description: 'VLLM performance testing across compute resource and workload configuration'
-test-endpoint:
-  identifier: test-endpoint
+vllm-bench-endpoint:
+  identifier: vllm-bench-endpoint
   actuatorIdentifier: "vllm_performance"
   version: 1.0.0
   requiredProperties: # Any entity passed to this experiment must have constitutive properties with these values
@@ -1350,8 +1350,8 @@ test-endpoint:
     - identifier: "p99_e2el_ms"
   metadata:
     description: 'Test inference performance of a model served by vLLM endpoint across inference workload configurations'
-test-deployment-guidellm:
-  identifier: test-deployment-guidellm
+guidellm-bench-deployment:
+  identifier: guidellm-bench-deployment
   actuatorIdentifier: "vllm_performance"
   version: 1.0.0
   requiredProperties:
@@ -1578,8 +1578,8 @@ test-deployment-guidellm:
     - identifier: "p99_e2el_ms"
   metadata:
     description: 'VLLM performance testing using GuideLLM benchmark suite across compute resource and workload configuration'
-test-endpoint-guidellm:
-  identifier: test-endpoint-guidellm
+guidellm-bench-endpoint:
+  identifier: guidellm-bench-endpoint
   actuatorIdentifier: "vllm_performance"
   version: 1.0.0
   requiredProperties:

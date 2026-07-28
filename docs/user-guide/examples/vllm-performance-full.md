@@ -16,7 +16,7 @@
 > explore the deployment parameter space. In this example:
 >
 > - We will define a space of vLLM deployment configurations to test with the
->   `vllm_performance` actuator's `test-deployment` experiment
+>   `vllm_performance` actuator's `vllm-bench-deployment` experiment
 >   - This experiment can create and characterize a vLLM deployment on
 >     Kubernetes
 > - Use the [`random_walk` operator](../operators/random-walk.md) to explore the
@@ -205,7 +205,7 @@ ado show measurements space --output csv --use-latest > entities.csv
 - Try running the same operation with the
   [GuideLLM](https://github.com/vllm-project/guidellm) benchmarking tool by
   setting the `experimentIdentifier` field in the entity space definition to
-  `test-deployment-guidellm`.
+  `guidellm-bench-deployment`.
 - Try varying **`max_batch_tokens`** or **`gpu_memory_utilization`** to explore
   the impact on throughput.
 - Try creating a different `actuatorconfiguration` with more `max_environments`

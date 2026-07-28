@@ -15,7 +15,7 @@ entitySpace:
       interval: 1
 experiments:
   - actuatorIdentifier: vllm_performance
-    experimentIdentifier: test-endpoint
+    experimentIdentifier: vllm-bench-endpoint
     experimentVersion: 1.0.0
 metadata:
   description: "Test space for request throughput of a vllm endpoint"

@@ -76,8 +76,8 @@ class VLLMPerformanceTestParameters(GenericActuatorParameters):
             ge=0,
             description=(
                 "Time-to-live in seconds for free Kubernetes environments. After this time idle "
-                "environments are garbage collected. 0 means kill immediately (no warm "
-                "pool). Default is 300 (5 minutes)."
+                "environments are garbage collected. 0 means delete immediately."
+                "Default is 300 (5 minutes)."
             ),
         ),
     ] = 300

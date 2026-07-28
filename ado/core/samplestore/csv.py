@@ -28,6 +28,7 @@ def warn_deprecated_csv_sample_store_model_in_use(
     removed_from_version: str = "1.6.0",
     deprecated_fields: str | list[str] | None = None,
     latest_format_documentation_url: str | None = None,
+    include_entities_and_results_hint: bool = False,
 ) -> None:
     """Warn that a deprecated CSV sample store model format is being auto-upgraded
 
@@ -66,8 +67,11 @@ def warn_deprecated_csv_sample_store_model_in_use(
         f"[b]This behavior will be removed with ADO "
         f"[b cyan]{removed_from_version}[/b cyan][/b]."
     )
+    entities_flag = (
+        " --upgrade-entities-and-results" if include_entities_and_results_hint else ""
+    )
     manual_upgrade_hint = (
-        f"Run [b cyan]ado upgrade {resource_name}s[/b cyan] to upgrade the stored {resource_name}s.\n\t"
+        f"Run [b cyan]ado upgrade {resource_name}s{entities_flag}[/b cyan] to upgrade the stored {resource_name}s.\n\t"
         f"Update your {resource_name} YAML files to use the latest format{doc_url}."
     )
 

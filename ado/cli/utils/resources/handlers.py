@@ -58,6 +58,41 @@ if typing.TYPE_CHECKING:
     from ado.metastore.sqlstore import SQLStore
 
 
+def resolve_related_to_identifiers(
+    anchor_kind: "CoreResourceKinds",
+    anchor_id: str,
+    requested_kind: "CoreResourceKinds",
+    sql_store: "SQLStore",
+) -> set[str]:
+    """Return the set of *requested_kind* resource identifiers reachable from *anchor_id*.
+
+    Args:
+        anchor_kind: The kind of the anchor resource.
+        anchor_id: The identifier of the anchor resource.
+        requested_kind: The kind of resources to return.
+        sql_store: The SQL store to query.
+
+    Returns:
+        A (possibly empty) set of identifiers of *requested_kind* resources
+        reachable from *anchor_id*.
+
+    Raises:
+        ResourceDoesNotExistError: When the anchor resource does not exist.
+    """
+    if not sql_store.containsResourceWithIdentifier(
+        identifier=anchor_id, kind=anchor_kind
+    ):
+        raise ResourceDoesNotExistError(resource_id=anchor_id, kind=anchor_kind)
+
+    related = sql_store.get_resources_by_relationship(
+        kind=anchor_kind,
+        identifier=anchor_id,
+        hierarchy_direction="both",
+        identifiers_only=True,
+    )
+    return related.get(requested_kind, set())
+
+
 def _render_dataframe_table_output(
     df: "pd.DataFrame", parameters: "AdoGetCommandParameters"
 ) -> None:
@@ -132,6 +167,18 @@ def _build_table_output_dataframe(
                 field_selectors=parameters.field_selectors,
                 details=parameters.show_details,
             )
+
+            if parameters.related_to is not None:
+                anchor_kind, anchor_id = parameters.related_to
+                related_ids = resolve_related_to_identifiers(
+                    anchor_kind=anchor_kind,
+                    anchor_id=anchor_id,
+                    requested_kind=resource_type,
+                    sql_store=sql_store,
+                )
+                resources_df = resources_df[
+                    resources_df["IDENTIFIER"].isin(related_ids)
+                ].reset_index(drop=True)
 
             status.update(ADO_SPINNER_GETTING_OUTPUT_READY)
             return format_default_ado_get_multiple_resources(
@@ -273,6 +320,19 @@ def _handle_name_format(
                 field_selectors=parameters.field_selectors,
                 details=False,
             )
+
+            if parameters.related_to is not None:
+                anchor_kind, anchor_id = parameters.related_to
+                related_ids = resolve_related_to_identifiers(
+                    anchor_kind=anchor_kind,
+                    anchor_id=anchor_id,
+                    requested_kind=resource_type,
+                    sql_store=sql_store,
+                )
+                identifiers_df = identifiers_df[
+                    identifiers_df["IDENTIFIER"].isin(related_ids)
+                ].reset_index(drop=True)
+
             status.stop()
             if identifiers_df.empty:
                 console_print(ADO_INFO_EMPTY_DATAFRAME, stderr=True)
@@ -456,12 +516,23 @@ def _handle_structured_formats(
                     resource_id=parameters.resource_id, kind=resource_type
                 )
         else:
-            fetched_resources = list(
-                sql_store.getResourcesOfKind(
-                    kind=resource_type.value,
-                    field_selectors=parameters.field_selectors,
-                ).values()
+            all_resources = sql_store.getResourcesOfKind(
+                kind=resource_type.value,
+                field_selectors=parameters.field_selectors,
             )
+            if parameters.related_to is not None:
+                anchor_kind, anchor_id = parameters.related_to
+                related_ids = resolve_related_to_identifiers(
+                    anchor_kind=anchor_kind,
+                    anchor_id=anchor_id,
+                    requested_kind=resource_type,
+                    sql_store=sql_store,
+                )
+                fetched_resources = [
+                    r for rid, r in all_resources.items() if rid in related_ids
+                ]
+            else:
+                fetched_resources = list(all_resources.values())
 
     output_content = format_resource_for_ado_get_custom_format(
         to_print=fetched_resources, parameters=parameters

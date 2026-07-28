@@ -498,8 +498,9 @@ ado get RESOURCE_TYPE [RESOURCE_ID] [--output | -o <default | yaml | json | conf
                                     [--label | -l <key=value>] \
                                     [--details] [--show-deprecated] \
                                     [--matching-point <point.yaml>] \
-                                    [--matching-space <space.yaml] \
+                                    [--matching-space <space.yaml>] \
                                     [--matching-space-id <space-id>] \
+                                    [--related-to <kind=id>]
 ```
 
 <!-- markdownlint-enable line-length -->
@@ -583,6 +584,16 @@ Where:
 - The `--show-deprecated` flag is available **only for `ado get experiments`**
   and allows displaying experiments that have been deprecated. They are
   otherwise hidden by default.
+- `--related-to` filters results to resources reachable from a given anchor
+  resource. The value must be in the form `kind=id`
+  (e.g. `samplestore=store-abc123`). Using shorthand aliases is supported
+  (e.g. `store=store-abc123`). This flag:
+    - is **not** supported for `actuator`, `experiment`, `operator`, or `context`
+      resource types.
+    - cannot be combined with a direct `RESOURCE_ID` argument.
+    - cannot be combined with `--matching-point`, `--matching-space`, or
+      `--matching-space-id`.
+    - can be combined with `--filter` and `--label` to further narrow results.
 
 ### Searching and Filtering
 
@@ -789,6 +800,31 @@ ado get datacontainers -o stats
 
 ```shell
 ado get datacontainer --use-latest -o stats
+```
+
+#### Getting all operations linked to a sample store
+
+```shell
+ado get operations --related-to samplestore=store-abc123-456def
+```
+
+#### Getting all discovery spaces linked to a sample store
+
+```shell
+ado get spaces --related-to samplestore=store-abc123-456def -o name
+```
+
+#### Getting operations linked to a space, filtered by name
+
+```shell
+ado get operations --related-to discoveryspace=space-abc123-456def \
+  --filter config.metadata.name=my-operation-name
+```
+
+#### Getting operations linked to a sample store using the shorthand alias
+
+```shell
+ado get operations --related-to store=store-abc123-456def
 ```
 
 ## ado show

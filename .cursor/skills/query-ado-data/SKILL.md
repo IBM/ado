@@ -179,7 +179,10 @@ exclusive to spaces and override `--filter` and `--label`.
 
 ### Related Resources
 
-Get IDs of resources related to another resource (parent or child):
+#### ado show related
+
+Get IDs of all resources related to another resource (parent or child),
+traversing the full hierarchy:
 
 ```bash
 uv run ado show related $RESOURCETYPE [RESOURCE_ID] [--use-latest]
@@ -192,6 +195,34 @@ uv run ado show related $RESOURCETYPE [RESOURCE_ID] [--use-latest]
 
 ```bash
 uv run ado show related space space-abc123-456def
+```
+
+#### ado get --related-to
+
+Filter `ado get` results to resources reachable from a specific anchor resource.
+Specify the anchor as `kind=id` (shorthand aliases supported):
+
+```bash
+uv run ado get $RESOURCETYPE --related-to kind=ANCHOR_ID
+```
+
+Not supported for `actuator`, `experiment`, `operator`, or `context`. Cannot be
+combined with a direct resource ID or with `--matching-point` /
+`--matching-space` / `--matching-space-id`. Can be combined with `--filter` and
+`--label`.
+
+**Examples:**
+
+```bash
+# All operations linked to a sample store
+uv run ado get operations --related-to samplestore=STORE_ID
+
+# All spaces linked to a sample store (name only)
+uv run ado get spaces --related-to store=STORE_ID -o name
+
+# Operations linked to a space, narrowed by a metadata filter
+uv run ado get operations --related-to discoveryspace=SPACE_ID \
+  --filter config.metadata.name=my-op
 ```
 
 ## Querying Data

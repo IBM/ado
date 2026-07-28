@@ -63,6 +63,7 @@ dev = [
   "pytest-cov>=7.0.0",
   "pytest-env>=1.1.0",
   "pytest-recording>=0.13.4",
+  "pytest-rerunfailures>=16.4",
   "pytest-timeout>=2.4.0",
   "pytest-xdist>=3.6.1",
   "ruff>=0.12.1",

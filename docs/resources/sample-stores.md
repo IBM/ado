@@ -275,7 +275,7 @@ copyFrom:
       generatorIdentifier: "vllm-benchmark-run"
       identifierColumn: "config"
       experiments:
-        - experimentIdentifier: "test-deployment-v1"
+        - experimentIdentifier: "test-deployment"
           actuatorIdentifier: "vllm_performance" # Specify the actual actuator
           propertyFormat: "target" # if the columns for observed properties use target property names or observed property names
 ```

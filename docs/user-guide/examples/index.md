@@ -73,8 +73,8 @@ to full Kubernetes/OpenShift deployments and specialised geospatial models.
 - **[Exploring vLLM deployment configurations](vllm-performance-full.md)** —
   Evaluate different vLLM server deployment configurations (GPU type, batch
   size, memory limits) on Kubernetes/OpenShift by combining the
-  `test-deployment-v1` experiment with the `random_walk` operator.
+  `test-deployment` experiment with the `random_walk` operator.
 - **[Benchmarking geospatial models with vLLM](vllm-performance-geospatial.md)**
   — Benchmark IBM-NASA Prithvi geospatial models for Earth observation tasks
   (flood detection, land-use classification) using the
-  `test-geospatial-deployment-v1` experiment.
+  `test-geospatial-deployment` experiment.

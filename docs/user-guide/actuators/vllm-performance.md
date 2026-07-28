@@ -149,7 +149,7 @@ entity:
   request_rate: 50
 experiments:
   - actuatorIdentifier: vllm_performance
-    experimentIdentifier: test-endpoint-v1
+    experimentIdentifier: test-endpoint
 ```
 
 Then run:
@@ -195,7 +195,7 @@ entity:
   request_rate: 10
 experiments:
   - actuatorIdentifier: vllm_performance
-    experimentIdentifier: test-deployment-v1
+    experimentIdentifier: test-deployment
 ```
 
 Then run:
@@ -281,7 +281,7 @@ ado create actuatorconfiguration -f vllm_config.yaml
 > [!WARNING] GPU type
 >
 > The GPU type to use in an experiment is set via the experiment itself
-> (test-deployment-v1). **Do not** set this via the `node_selector` parameter of
+> (test-deployment). **Do not** set this via the `node_selector` parameter of
 > the configuration.
 
 <!-- markdownlint-disable-next-line MD028 -->
@@ -339,10 +339,10 @@ experiments can execute even if these packages are not pre-installed in your Ray
 cluster or local environment. The actuator intelligently selects which tool to
 install based on the experiment type:
 
-- For experiments using vLLM's built-in benchmarking (`test-deployment-v1`,
-  `test-endpoint-v1`), it installs `ado-vllm-performance[vllm]`
-- For experiments using GuideLLM (`test-deployment-guidellm-v1`,
-  `test-endpoint-guidellm-v1`), it installs `ado-vllm-performance[guidellm]`
+- For experiments using vLLM's built-in benchmarking (`test-deployment`,
+  `test-endpoint`), it installs `ado-vllm-performance[vllm]`
+- For experiments using GuideLLM (`test-deployment-guidellm`,
+  `test-endpoint-guidellm`), it installs `ado-vllm-performance[guidellm]`
 
 > [!NOTE] Deployment vs. Benchmark environment
 >
@@ -399,7 +399,7 @@ parameters:
 
 The `in_cluster` option in your `actuatorconfiguration` tells the
 `vllm_performance` actuator how to communicate with the target Kubernetes or
-OpenShift cluster when running `test-deployment-v1`.
+OpenShift cluster when running `test-deployment`.
 
 If running `ado` from outside the Kubernetes/OpenShift cluster where the
 deployments will be created, leave `in_cluster: false` (the default).

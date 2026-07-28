@@ -536,7 +536,7 @@ after `gc_force_delete_threshold` GC cycles (default `3`) the GC will:
 The environment is then removed from the watch list regardless of whether the
 force-delete succeeded.
 
-> [!WARNING] Force-delete is destructive
+> [!CAUTION] Force-delete is destructive
 >
 > Force-deleting a pod bypasses graceful shutdown. Use this option only when
 > environments are routinely getting stuck in Terminating and you are confident

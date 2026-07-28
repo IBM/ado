@@ -180,7 +180,7 @@ class EnvironmentManager:
         # (force-delete) work regardless of TTL setting.
         # When TTL is 0 the free pool is disabled and _gc_free_environments is
         # a no-op, but _gc_confirm_deletions still tracks stuck environments.
-        asyncio.get_event_loop().create_task(self._gc_loop())
+        self._gc_task = asyncio.get_event_loop().create_task(self._gc_loop())
 
     def _delete_environment_k8s_resources(self, k8s_name: str) -> None:
         """
@@ -241,7 +241,7 @@ class EnvironmentManager:
                         # in the case the failing ones are still running.
                         # Since the current eviction candidate environment will stay in the free ones, some other measurement might
                         # try to evict again and perhaps succeed (e.g., connection restored to the cluster).
-                        logger.critical(
+                        logger.warning(
                             f"Error deleting deployment or service {environment_to_evict.k8s_name}: {e}"
                         )
                         eviction_index += 1
@@ -376,8 +376,7 @@ class EnvironmentManager:
         Delete and remove free environments that have been idle longer than
         ``free_environment_ttl`` seconds.
 
-        Only called from ``_gc_loop``, which is only started when
-        ``free_environment_ttl > 0``.
+        Only called from ``_gc_loop`` when ``free_environment_ttl > 0``.
         """
         now = time.monotonic()
         stale = [
@@ -438,7 +437,7 @@ class EnvironmentManager:
                 self.gc_force_delete
                 and env.delete_attempts >= self.gc_force_delete_threshold
             ):
-                logger.critical(
+                logger.warning(
                     f"GC: deployment {env.k8s_name} still present after "
                     f"{env.delete_attempts} recheck(s). Issuing force-delete."
                 )
@@ -446,7 +445,9 @@ class EnvironmentManager:
                     self.manager.force_delete_environment(k8s_name=env.k8s_name)
                 except ApiException as e:
                     logger.error(f"GC: force-delete failed for {env.k8s_name}: {e}")
-                # Stop watching regardless of whether force-delete succeeded.
+                    # Deletion failed so we keep it in the list for the CG to check again at the next round.
+                    still_deleting.append(env)
+
                 continue
 
             logger.warning(
@@ -478,6 +479,8 @@ class EnvironmentManager:
         :return: None
         """
         self._stop_gc = True
+        # ensuring the GC task is cleanly stopped
+        self._gc_task.cancel()
         logger.info("Cleaning environments")
         all_envs = list(self.in_use_environments.values()) + self.free_environments
         for env in all_envs:

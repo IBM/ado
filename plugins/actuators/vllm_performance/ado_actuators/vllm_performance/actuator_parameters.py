@@ -10,13 +10,6 @@ from ado.core.actuatorconfiguration.config import GenericActuatorParameters
 from ado.utilities.pydantic import validate_rfc_1123
 
 
-def _validate_non_negative(v: int, field: str) -> int:
-    """Validate that *v* is >= 0, raising ValueError otherwise."""
-    if v < 0:
-        raise ValueError(f"{field} must be >= 0, got {v}")
-    return v
-
-
 # In case we need parameters for our actuator, we create a class
 # that inherits from GenericActuatorParameters and reference it
 # in the parameters_class class variable of our actuator.
@@ -80,13 +73,13 @@ class VLLMPerformanceTestParameters(GenericActuatorParameters):
     free_environment_ttl: Annotated[
         int,
         pydantic.Field(
+            ge=0,
             description=(
                 "Time-to-live in seconds for free Kubernetes environments. After this time idle "
                 "environments are garbage collected. 0 means kill immediately (no warm "
                 "pool). Default is 300 (5 minutes)."
-            )
+            ),
         ),
-        AfterValidator(lambda v: _validate_non_negative(v, "free_environment_ttl")),
     ] = 300
     gc_force_delete: Annotated[
         bool,
@@ -102,14 +95,12 @@ class VLLMPerformanceTestParameters(GenericActuatorParameters):
     gc_force_delete_threshold: Annotated[
         int,
         pydantic.Field(
+            ge=1,
             description=(
                 "Number of GC cycles a stuck environment may remain present in K8s "
                 "after deletion before a force-delete is issued. "
                 "Only used when gc_force_delete is True."
-            )
-        ),
-        AfterValidator(
-            lambda v: _validate_non_negative(v, "gc_force_delete_threshold")
+            ),
         ),
     ] = 3
     developer_mode: Annotated[

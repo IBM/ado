@@ -355,7 +355,7 @@ class EnvironmentManager:
         env = self.in_use_environments.pop(identifier)
         if return_to_pool:
             if self.free_environment_ttl == 0:
-                # TTL=0 means kill immediately — no warm pool.
+                # TTL=0 means delete immediately.
                 # Still track it in deleting_environments so the GC can
                 # monitor and escalate if the K8s resources get stuck.
                 logger.info(
@@ -471,7 +471,8 @@ class EnvironmentManager:
         while not self._stop_gc:
             await asyncio.sleep(poll_interval)
             self._gc_confirm_deletions()
-            self._gc_free_environments()
+            if self.free_environment_ttl > 0:
+                self._gc_free_environments()
 
     def cleanup(self) -> None:
         """

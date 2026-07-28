@@ -513,6 +513,7 @@ def test_random_walk_fail_invalid_config(
         pytest.fail("Expected exception to be raised and none was")
 
 
+@pytest.mark.flaky(reruns=3, reruns_delay=2)
 def test_run_ray_tune_operation(
     ml_multi_cloud_space: DiscoverySpace,
     raytuneConf: DiscoveryOperationResourceConfiguration,

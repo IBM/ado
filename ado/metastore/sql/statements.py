@@ -51,7 +51,9 @@ def simulate_json_contains_on_sqlite(
 
     In our simulated version, we prepare a subquery that can be used in a WHERE statement
     that filters rows making sure their ID is one that has all the fields
-    from the candidate document.
+    from the candidate document. ``null`` candidates need separate handling because
+    ``json_tree`` only emits rows for fields that exist in the document, so missing
+    fields would otherwise produce no row and never match.
 
     Args:
         path (str): The path to the JSON field to check.
@@ -70,12 +72,21 @@ def simulate_json_contains_on_sqlite(
     quoted_table_name = _quote_sql_identifier(table_name)
     quoted_json_column = _quote_sql_identifier(json_column)
     quoted_id_column = _quote_sql_identifier(id_column)
+    parsed_candidate = json.loads(candidate)
+
+    if parsed_candidate is None:
+        return f"""
+            {quoted_id_column} IN (
+                SELECT {quoted_id_column} FROM {quoted_table_name}
+                WHERE json_extract({quoted_json_column}, '{path}') IS NULL
+            )
+            """  # noqa: S608 - identifiers are quoted to prevent injection
 
     # The subqueries produced by check_field_in_sqlite_json_document need to be
     # INTERSECT-ed to make sure we only retrieve the identifiers that match all
     # the subqueries.
     subqueries = check_field_in_sqlite_json_document(
-        json.loads(candidate), path, id_column=quoted_id_column
+        parsed_candidate, path, id_column=quoted_id_column
     )
 
     return (

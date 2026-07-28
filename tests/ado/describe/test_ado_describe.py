@@ -123,16 +123,10 @@ def test_describe_document(
         [CliRunner, pathlib.Path, ProjectContext], None
     ],
     sql_store: SQLStore,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Describe writes raw markdown when stdout is not a terminal."""
     from ado.core.document.config import DocumentConfiguration
     from ado.core.document.resource import DocumentResource
-
-    monkeypatch.setattr(
-        "ado.cli.resources.document.describe._stdout_is_terminal",
-        lambda: False,
-    )
 
     content = "# Operation report\n\nExample body for describe."
     config = DocumentConfiguration(
@@ -171,13 +165,13 @@ def test_describe_document_terminal_renders_markdown(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Describe renders markdown with rich when stdout is a terminal."""
+    from typer.testing import _NamedTextIOWrapper
+
     from ado.core.document.config import DocumentConfiguration
     from ado.core.document.resource import DocumentResource
 
-    monkeypatch.setattr(
-        "ado.cli.resources.document.describe._stdout_is_terminal",
-        lambda: True,
-    )
+    # CliRunner replaces sys.stdout; patch the wrapper class it installs.
+    monkeypatch.setattr(_NamedTextIOWrapper, "isatty", lambda self: True)
 
     config = DocumentConfiguration(
         content="# Operation report\n\nExample body for describe.",
@@ -203,8 +197,8 @@ def test_describe_document_terminal_renders_markdown(
     )
     assert result.exit_code == 0, result.output
     assert resource.identifier in result.output
-    assert "markdown" in result.output
     assert "Operation report" in result.output
+    assert "# Operation report" not in result.output
     assert "Example body for describe" in result.output
 
 
@@ -220,11 +214,6 @@ def test_describe_document_html_redirect_prints_content(
     """Describe writes raw HTML when stdout is not a terminal."""
     from ado.core.document.config import DocumentConfiguration
     from ado.core.document.resource import DocumentResource
-
-    monkeypatch.setattr(
-        "ado.cli.resources.document.describe._stdout_is_terminal",
-        lambda: False,
-    )
 
     html_body = (
         "<html><body><h1>HTML report</h1><p>Opened via describe.</p></body></html>"
@@ -276,13 +265,13 @@ def test_describe_document_html_opens_browser(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Describe opens HTML document content in the default browser on a TTY."""
+    from typer.testing import _NamedTextIOWrapper
+
     from ado.core.document.config import DocumentConfiguration
     from ado.core.document.resource import DocumentResource
 
-    monkeypatch.setattr(
-        "ado.cli.resources.document.describe._stdout_is_terminal",
-        lambda: True,
-    )
+    # CliRunner replaces sys.stdout; patch the wrapper class it installs.
+    monkeypatch.setattr(_NamedTextIOWrapper, "isatty", lambda self: True)
 
     html_body = (
         "<html><body><h1>HTML report</h1><p>Opened via describe.</p></body></html>"

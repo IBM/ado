@@ -1,10 +1,14 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
+import pydantic
+import pytest
+
 import ado.core
 import ado.utilities.location
 from ado.core import DataContainerResource
 from ado.core.datacontainer.resource import DataContainer, TabularData
+from ado.core.resources import CoreResourceKinds
 from ado.utilities.location import SQLStoreConfiguration
 
 
@@ -73,3 +77,13 @@ def test_datacontainer_rich_print(
 
     assert hasattr(data_container_resource, "__rich__")
     Console().print(data_container_resource)
+
+
+def test_datacontainer_resource_wrong_kind_raises_validation_error(
+    data_container_resource: DataContainerResource,
+) -> None:
+    """DataContainerResource rejects a kind value other than DATACONTAINER."""
+    data = data_container_resource.model_dump()
+    data["kind"] = CoreResourceKinds.OPERATION
+    with pytest.raises(pydantic.ValidationError):
+        DataContainerResource.model_validate(data)

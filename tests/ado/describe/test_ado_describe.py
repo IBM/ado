@@ -72,6 +72,20 @@ def test_describe_peptide_mineralization_experiment() -> None:
     assert "Measures adsorption of peptide lanthanide combinations" in result.output
 
 
+def test_describe_calculate_density_experiment() -> None:
+    runner = CliRunner()
+    result = runner.invoke(ado, ["describe", "experiment", "calculate_density"])
+    assert result.exit_code == 0
+    assert "calculate_density" in result.output
+
+
+def test_describe_vllm_bench_deployment_experiment() -> None:
+    runner = CliRunner()
+    result = runner.invoke(ado, ["describe", "experiment", "vllm-bench-deployment"])
+    assert result.exit_code == 0
+    assert "vllm-bench-deployment" in result.output
+
+
 @requires_sqlite_3_38
 def test_describe_datacontainer_with_use_latest(
     tmp_path: pathlib.Path,

@@ -659,9 +659,10 @@ def test_entity_results_keep_uids(
 ) -> None:
 
     ml_multi_cloud_sample_store.add_external_entities([entity])
-    retrieved_entity = ml_multi_cloud_sample_store.entityWithIdentifier(
-        entityIdentifier=entity.identifier
+    results = ml_multi_cloud_sample_store.get_entities(
+        identifiers=entity.identifier, require_measurements=True
     )
+    retrieved_entity = results[0]
 
     assert len(entity.measurement_results) == len(retrieved_entity.measurement_results)
     for i in range(len(retrieved_entity.measurement_results)):
@@ -726,10 +727,16 @@ def test_entities_by_identifiers_empty_input(
     ml_multi_cloud_sample_store: SQLSampleStore,
 ) -> None:
     """Test entities_with_identifiers with empty input returns empty list."""
-    result = ml_multi_cloud_sample_store.entities_with_identifiers([])
+    with pytest.warns(
+        DeprecationWarning, match="entities_with_identifiers is deprecated"
+    ):
+        result = ml_multi_cloud_sample_store.entities_with_identifiers([])
     assert result == []
 
-    result = ml_multi_cloud_sample_store.entities_with_identifiers(set())
+    with pytest.warns(
+        DeprecationWarning, match="entities_with_identifiers is deprecated"
+    ):
+        result = ml_multi_cloud_sample_store.entities_with_identifiers(set())
     assert result == []
 
 
@@ -737,13 +744,14 @@ def test_entities_by_identifiers_list_input(
     ml_multi_cloud_sample_store: SQLSampleStore,
 ) -> None:
     """Test entities_with_identifiers accepts list input."""
-    # Get some entity identifiers from the store
     all_entities = ml_multi_cloud_sample_store.get_entities(require_measurements=False)
     assert len(all_entities) > 0
 
-    # Test with list input
     entity_ids_list = [all_entities[0].identifier, all_entities[1].identifier]
-    result = ml_multi_cloud_sample_store.entities_with_identifiers(entity_ids_list)
+    with pytest.warns(
+        DeprecationWarning, match="entities_with_identifiers is deprecated"
+    ):
+        result = ml_multi_cloud_sample_store.entities_with_identifiers(entity_ids_list)
 
     assert len(result) == 2
     assert {e.identifier for e in result} == set(entity_ids_list)
@@ -753,13 +761,14 @@ def test_entities_by_identifiers_set_input(
     ml_multi_cloud_sample_store: SQLSampleStore,
 ) -> None:
     """Test entities_with_identifiers accepts set input."""
-    # Get some entity identifiers from the store
     all_entities = ml_multi_cloud_sample_store.get_entities(require_measurements=False)
     assert len(all_entities) > 0
 
-    # Test with set input
     entity_ids_set = {all_entities[0].identifier, all_entities[1].identifier}
-    result = ml_multi_cloud_sample_store.entities_with_identifiers(entity_ids_set)
+    with pytest.warns(
+        DeprecationWarning, match="entities_with_identifiers is deprecated"
+    ):
+        result = ml_multi_cloud_sample_store.entities_with_identifiers(entity_ids_set)
 
     assert len(result) == 2
     assert {e.identifier for e in result} == entity_ids_set
@@ -769,13 +778,14 @@ def test_entities_by_identifiers_subset(
     ml_multi_cloud_sample_store: SQLSampleStore,
 ) -> None:
     """Test entities_with_identifiers returns only requested entities."""
-    # Get all entities from the store
     all_entities = ml_multi_cloud_sample_store.get_entities(require_measurements=False)
     assert len(all_entities) >= 3
 
-    # Request only a subset
     requested_ids = {all_entities[0].identifier, all_entities[2].identifier}
-    result = ml_multi_cloud_sample_store.entities_with_identifiers(requested_ids)
+    with pytest.warns(
+        DeprecationWarning, match="entities_with_identifiers is deprecated"
+    ):
+        result = ml_multi_cloud_sample_store.entities_with_identifiers(requested_ids)
 
     assert len(result) == 2
     assert {e.identifier for e in result} == requested_ids
@@ -795,9 +805,11 @@ def test_entities_by_identifiers_nonexistent_entities(
     ml_multi_cloud_sample_store: SQLSampleStore,
 ) -> None:
     """Test entities_with_identifiers with non-existent entity identifiers."""
-    # Request entities that don't exist
     nonexistent_ids = {"nonexistent_id_1", "nonexistent_id_2"}
-    result = ml_multi_cloud_sample_store.entities_with_identifiers(nonexistent_ids)
+    with pytest.warns(
+        DeprecationWarning, match="entities_with_identifiers is deprecated"
+    ):
+        result = ml_multi_cloud_sample_store.entities_with_identifiers(nonexistent_ids)
 
     # Should return empty list, not raise an error
     assert result == []
@@ -810,13 +822,15 @@ def test_entities_by_identifiers_mixed_existing_nonexistent(
     all_entities = ml_multi_cloud_sample_store.get_entities(require_measurements=False)
     assert len(all_entities) > 0
 
-    # Mix of existing and non-existent
     mixed_ids = {
         all_entities[0].identifier,
         "nonexistent_id_1",
         all_entities[1].identifier if len(all_entities) > 1 else "nonexistent_id_2",
     }
-    result = ml_multi_cloud_sample_store.entities_with_identifiers(mixed_ids)
+    with pytest.warns(
+        DeprecationWarning, match="entities_with_identifiers is deprecated"
+    ):
+        result = ml_multi_cloud_sample_store.entities_with_identifiers(mixed_ids)
 
     # Should return only the existing entities
     existing_ids = {
@@ -844,9 +858,12 @@ def test_entities_by_identifiers_partial_cache_reuse(
     ml_multi_cloud_sample_store._entities = cached_only
 
     # Now request both the cached entity and an uncached one
-    result = ml_multi_cloud_sample_store.entities_with_identifiers(
-        {first_id, second_id}
-    )
+    with pytest.warns(
+        DeprecationWarning, match="entities_with_identifiers is deprecated"
+    ):
+        result = ml_multi_cloud_sample_store.entities_with_identifiers(
+            {first_id, second_id}
+        )
 
     assert len(result) == 2
     assert {e.identifier for e in result} == {first_id, second_id}
@@ -880,7 +897,10 @@ def test_entities_by_identifiers_with_measurement_results(
         entity_ids.update({e.identifier for e in r.entities})
 
     # Fetch entities by identifiers
-    retrieved_entities = sample_store.entities_with_identifiers(entity_ids)
+    with pytest.warns(
+        DeprecationWarning, match="entities_with_identifiers is deprecated"
+    ):
+        retrieved_entities = sample_store.entities_with_identifiers(entity_ids)
 
     assert len(retrieved_entities) == len(entity_ids)
 
@@ -1390,146 +1410,259 @@ def test_operation_measurement_statistics_empty_set(
         sample_store.operation_measurement_statistics(operation_ids=set())
 
 
-def test_space_entity_statistics_empty_mapping(
+# ---------------------------------------------------------------------------
+# entities_with_valid_measurements
+# ---------------------------------------------------------------------------
+
+
+def test_entities_with_valid_measurements_empty_input(
     simulate_ml_multi_cloud_random_walk_operation: Callable[
         [int, int, int, str | None],
         tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
     ],
 ) -> None:
-    """An empty mapping returns an empty dict."""
+    """Empty input returns an empty set without a DB round-trip."""
     sample_store, _requests, _ids = simulate_ml_multi_cloud_random_walk_operation()
 
-    result = sample_store.space_entity_statistics(space_ids_to_operation_ids={})
+    result = sample_store.entities_with_valid_measurements(set())
+
+    assert result == set()
+
+
+def test_entities_with_valid_measurements_all_valid(
+    random_identifier: Callable[[], str],
+    simulate_ml_multi_cloud_random_walk_operation: Callable[
+        [int, int, int, str | None],
+        tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
+    ],
+) -> None:
+    """All entities with valid results → full input set returned."""
+    operation_id = random_identifier()
+    number_entities = 3
+
+    sample_store, requests, _ = simulate_ml_multi_cloud_random_walk_operation(
+        number_entities=number_entities,
+        number_requests=1,
+        operation_id=operation_id,
+    )
+
+    entity_ids = {r.entityIdentifier for req in requests for r in req.measurements}
+
+    result = sample_store.entities_with_valid_measurements(entity_ids)
+
+    assert result == entity_ids
+
+
+def test_entities_with_valid_measurements_none_valid(
+    random_identifier: Callable[[], str],
+    random_sql_sample_store: Callable[[], SQLSampleStore],
+    random_ml_multi_cloud_benchmark_performance_entities: Callable[[int], list[Entity]],
+    random_ml_multi_cloud_benchmark_performance_measurement_results: Callable[
+        [Entity, int, MeasurementResultStateEnum | None], MeasurementResult
+    ],
+    add_entities_to_sample_store: Callable[[SQLSampleStore, list[Entity]], None],
+) -> None:
+    """No valid results → empty set returned (uses a fresh isolated store)."""
+    from ado.schema.reference import ExperimentReference
+
+    sample_store = random_sql_sample_store()
+    entities = random_ml_multi_cloud_benchmark_performance_entities(2)
+    for e in entities:
+        e.measurement_results = []
+    add_entities_to_sample_store(sample_store, entities)
+
+    results = [
+        random_ml_multi_cloud_benchmark_performance_measurement_results(
+            entity=e,
+            measurements_per_result=1,
+            status=MeasurementResultStateEnum.INVALID,
+        )
+        for e in entities
+    ]
+    request = ReplayedMeasurement(
+        operation_id=random_identifier(),
+        requestIndex=0,
+        experimentReference=ExperimentReference(
+            experimentIdentifier="benchmark_performance",
+            actuatorIdentifier="replay",
+        ),
+        entities=entities,
+        requestid=random_identifier(),
+        status=MeasurementRequestStateEnum.SUCCESS,
+        measurements=tuple(results),
+    )
+    req_id = sample_store.add_measurement_request(request=request)
+    sample_store.add_measurement_results(
+        results=results,
+        skip_relationship_to_request=False,
+        request_db_id=req_id,
+    )
+
+    entity_ids = {e.identifier for e in entities}
+    result = sample_store.entities_with_valid_measurements(entity_ids)
+
+    assert result == set()
+
+
+def test_entities_with_valid_measurements_mixed(
+    random_identifier: Callable[[], str],
+    random_sql_sample_store: Callable[[], SQLSampleStore],
+    random_ml_multi_cloud_benchmark_performance_entities: Callable[[int], list[Entity]],
+    random_ml_multi_cloud_benchmark_performance_measurement_results: Callable[
+        [Entity, int, MeasurementResultStateEnum | None], MeasurementResult
+    ],
+    add_entities_to_sample_store: Callable[[SQLSampleStore, list[Entity]], None],
+) -> None:
+    """Mixed valid/invalid results → only entities with a valid result returned (fresh store)."""
+    from ado.schema.reference import ExperimentReference
+
+    sample_store = random_sql_sample_store()
+    entities = random_ml_multi_cloud_benchmark_performance_entities(3)
+    for e in entities:
+        e.measurement_results = []
+    add_entities_to_sample_store(sample_store, entities)
+
+    # entity 0 → valid, entity 1 → invalid, entity 2 → valid
+    results = [
+        random_ml_multi_cloud_benchmark_performance_measurement_results(
+            entity=entities[0],
+            measurements_per_result=1,
+            status=MeasurementResultStateEnum.VALID,
+        ),
+        random_ml_multi_cloud_benchmark_performance_measurement_results(
+            entity=entities[1],
+            measurements_per_result=1,
+            status=MeasurementResultStateEnum.INVALID,
+        ),
+        random_ml_multi_cloud_benchmark_performance_measurement_results(
+            entity=entities[2],
+            measurements_per_result=1,
+            status=MeasurementResultStateEnum.VALID,
+        ),
+    ]
+    request = ReplayedMeasurement(
+        operation_id=random_identifier(),
+        requestIndex=0,
+        experimentReference=ExperimentReference(
+            experimentIdentifier="benchmark_performance",
+            actuatorIdentifier="replay",
+        ),
+        entities=entities,
+        requestid=random_identifier(),
+        status=MeasurementRequestStateEnum.SUCCESS,
+        measurements=tuple(results),
+    )
+    req_id = sample_store.add_measurement_request(request=request)
+    sample_store.add_measurement_results(
+        results=results,
+        skip_relationship_to_request=False,
+        request_db_id=req_id,
+    )
+
+    entity_ids = {e.identifier for e in entities}
+    result = sample_store.entities_with_valid_measurements(entity_ids)
+
+    expected = {entities[0].identifier, entities[2].identifier}
+    assert result == expected
+
+
+# ---------------------------------------------------------------------------
+# entity_experiment_references
+# ---------------------------------------------------------------------------
+
+
+def test_entity_experiment_references_empty_input(
+    simulate_ml_multi_cloud_random_walk_operation: Callable[
+        [int, int, int, str | None],
+        tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
+    ],
+) -> None:
+    """Empty input returns an empty dict without a DB round-trip."""
+    sample_store, _requests, _ids = simulate_ml_multi_cloud_random_walk_operation()
+
+    result = sample_store.entity_experiment_references(set())
 
     assert result == {}
 
 
-def test_space_entity_statistics_empty_operations_for_space(
+def test_entity_experiment_references_all_valid(
     random_identifier: Callable[[], str],
     simulate_ml_multi_cloud_random_walk_operation: Callable[
         [int, int, int, str | None],
         tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
     ],
 ) -> None:
-    """A space mapped to an empty operation set returns 0 measured entities."""
-    space_id = random_identifier()
-    sample_store, _requests, _ids = simulate_ml_multi_cloud_random_walk_operation()
+    """All entities with valid results → every entity mapped to its experiment reference."""
+    from ado.schema.reference import ExperimentReference
 
-    result = sample_store.space_entity_statistics(
-        space_ids_to_operation_ids={space_id: set()},
-    )
-
-    assert result[space_id].number_measured_entities == 0
-    assert result[space_id].number_matching_entities is None
-    assert result[space_id].number_matching_entities_with_measurements is None
-
-
-def test_space_entity_statistics_single_operation(
-    random_identifier: Callable[[], str],
-    simulate_ml_multi_cloud_random_walk_operation: Callable[
-        [int, int, int, str | None],
-        tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
-    ],
-) -> None:
-    """A single space/operation returns the correct distinct entity count."""
-    space_id = random_identifier()
     operation_id = random_identifier()
     number_entities = 3
-    number_requests = 2
 
     sample_store, requests, _ = simulate_ml_multi_cloud_random_walk_operation(
         number_entities=number_entities,
-        number_requests=number_requests,
+        number_requests=1,
         operation_id=operation_id,
     )
 
-    expected_entities = {
-        result.entityIdentifier
-        for request in requests
-        for result in request.measurements
-    }
-
-    result = sample_store.space_entity_statistics(
-        space_ids_to_operation_ids={space_id: {operation_id}},
+    entity_ids = {r.entityIdentifier for req in requests for r in req.measurements}
+    expected_exp_ref = ExperimentReference(
+        experimentIdentifier="benchmark_performance",
+        actuatorIdentifier="replay",
     )
 
-    assert result[space_id].number_measured_entities == len(expected_entities)
-    assert result[space_id].number_matching_entities is None
-    assert result[space_id].number_matching_entities_with_measurements is None
+    result = sample_store.entity_experiment_references(entity_ids)
+
+    assert set(result.keys()) == entity_ids
+    for exp_refs in result.values():
+        assert expected_exp_ref in exp_refs
 
 
-def test_space_entity_statistics_multiple_operations(
+def test_entity_experiment_references_only_invalid_results(
     random_identifier: Callable[[], str],
-    simulate_ml_multi_cloud_random_walk_operation: Callable[
-        [int, int, int, str | None],
-        tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
+    random_sql_sample_store: Callable[[], SQLSampleStore],
+    random_ml_multi_cloud_benchmark_performance_entities: Callable[[int], list[Entity]],
+    random_ml_multi_cloud_benchmark_performance_measurement_results: Callable[
+        [Entity, int, MeasurementResultStateEnum | None], MeasurementResult
     ],
+    add_entities_to_sample_store: Callable[[SQLSampleStore, list[Entity]], None],
 ) -> None:
-    """Multiple operations in one space: entities counted distinctly across all ops."""
-    space_id = random_identifier()
-    op_id_a = random_identifier()
-    op_id_b = random_identifier()
+    """Entity with only invalid results → not included in output dict (fresh store)."""
+    from ado.schema.reference import ExperimentReference
 
-    sample_store, requests_a, _ = simulate_ml_multi_cloud_random_walk_operation(
-        number_entities=2,
-        number_requests=1,
-        operation_id=op_id_a,
+    sample_store = random_sql_sample_store()
+    entities = random_ml_multi_cloud_benchmark_performance_entities(2)
+    for e in entities:
+        e.measurement_results = []
+    add_entities_to_sample_store(sample_store, entities)
+
+    results = [
+        random_ml_multi_cloud_benchmark_performance_measurement_results(
+            entity=e,
+            measurements_per_result=1,
+            status=MeasurementResultStateEnum.INVALID,
+        )
+        for e in entities
+    ]
+    request = ReplayedMeasurement(
+        operation_id=random_identifier(),
+        requestIndex=0,
+        experimentReference=ExperimentReference(
+            experimentIdentifier="benchmark_performance",
+            actuatorIdentifier="replay",
+        ),
+        entities=entities,
+        requestid=random_identifier(),
+        status=MeasurementRequestStateEnum.SUCCESS,
+        measurements=tuple(results),
     )
-    _, requests_b, _ = simulate_ml_multi_cloud_random_walk_operation(
-        number_entities=2,
-        number_requests=1,
-        operation_id=op_id_b,
-    )
-
-    all_entity_ids = {
-        result.entityIdentifier
-        for requests in (requests_a, requests_b)
-        for request in requests
-        for result in request.measurements
-    }
-
-    result = sample_store.space_entity_statistics(
-        space_ids_to_operation_ids={space_id: {op_id_a, op_id_b}},
-    )
-
-    assert result[space_id].number_measured_entities == len(all_entity_ids)
-    assert result[space_id].number_matching_entities is None
-    assert result[space_id].number_matching_entities_with_measurements is None
-
-
-def test_space_entity_statistics_multiple_spaces(
-    random_identifier: Callable[[], str],
-    simulate_ml_multi_cloud_random_walk_operation: Callable[
-        [int, int, int, str | None],
-        tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
-    ],
-) -> None:
-    """Multiple spaces in one call each get correct independent entity counts."""
-    space_id_a = random_identifier()
-    space_id_b = random_identifier()
-    op_id_a = random_identifier()
-    op_id_b = random_identifier()
-
-    sample_store, requests_a, _ = simulate_ml_multi_cloud_random_walk_operation(
-        number_entities=3,
-        number_requests=1,
-        operation_id=op_id_a,
-    )
-    _, requests_b, _ = simulate_ml_multi_cloud_random_walk_operation(
-        number_entities=2,
-        number_requests=1,
-        operation_id=op_id_b,
+    req_id = sample_store.add_measurement_request(request=request)
+    sample_store.add_measurement_results(
+        results=results,
+        skip_relationship_to_request=False,
+        request_db_id=req_id,
     )
 
-    expected_a = {r.entityIdentifier for req in requests_a for r in req.measurements}
-    expected_b = {r.entityIdentifier for req in requests_b for r in req.measurements}
+    entity_ids = {e.identifier for e in entities}
+    result = sample_store.entity_experiment_references(entity_ids)
 
-    result = sample_store.space_entity_statistics(
-        space_ids_to_operation_ids={
-            space_id_a: {op_id_a},
-            space_id_b: {op_id_b},
-        },
-    )
-
-    assert result[space_id_a].number_measured_entities == len(expected_a)
-    assert result[space_id_b].number_measured_entities == len(expected_b)
+    assert result == {}

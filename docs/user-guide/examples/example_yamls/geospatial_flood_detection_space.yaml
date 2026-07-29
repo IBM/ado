@@ -45,4 +45,4 @@ entitySpace:
         #     values: [32, 64]
 measurementSpace:
   - actuatorIdentifier: vllm_performance
-    experimentIdentifier: test-geospatial-deployment-v1
+    experimentIdentifier: geospatial-vllm-bench-deployment

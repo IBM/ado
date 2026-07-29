@@ -225,7 +225,7 @@ def check_parameters_and_infer(
     _parameterization: dict | None = None,
 ) -> tuple[
     list[ConstitutiveProperty] | list[Any],
-    dict | None | dict[str, Any],
+    dict | dict[str, Any] | None,
     list[ConstitutiveProperty],
 ]:
     logger = logging.getLogger("custom_experiment_decorator")

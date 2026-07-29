@@ -3,7 +3,7 @@
 
 import typing
 import uuid
-from typing import Annotated
+from typing import Annotated, Literal
 
 import pydantic
 
@@ -188,7 +188,7 @@ class DataContainerResource(ADOResource):
         return f"{data['kind'].value}-{str(uuid.uuid4())[:8]}"
 
     version: Annotated[str, pydantic.Field()] = "v1"
-    kind: Annotated[CoreResourceKinds, pydantic.Field()] = (
+    kind: Annotated[Literal[CoreResourceKinds.DATACONTAINER], pydantic.Field()] = (
         CoreResourceKinds.DATACONTAINER
     )
     config: Annotated[DataContainer, pydantic.Field(description="A collection of data")]

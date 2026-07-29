@@ -137,3 +137,4 @@ class AdoTemplateCommandParameters(pydantic.BaseModel):
 
 class AdoUpgradeCommandParameters(pydantic.BaseModel):
     ado_configuration: AdoConfiguration
+    upgrade_entities_and_results: bool

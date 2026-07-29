@@ -36,12 +36,15 @@ from ado.metastore.project import ProjectContext
 with open("my_context.yaml") as f:
     c = ProjectContext.model_validate(yaml.safe_load(f))
 
-space = DiscoverySpace.from_stored_configuration(project_context=c, space_identifier='space_abc123')
+space = DiscoverySpace.from_stored_configuration(
+    project_context=c, space_identifier="space_abc123"
+)
 # Get the timeseries of a property `someproperty` measured by `someexperiment from the space
 # for operation "operation_abc123". You can also omit the limit_to_properties parameter to retrieve
 # all the properties
-space.complete_measurement_request_with_results_timeseries(operation_id="operation_abc123",
-                                                           limit_to_properties=["someexperiment.someproperty"])
+space.complete_measurement_request_with_results_timeseries(
+    operation_id="operation_abc123", limit_to_properties=["someexperiment.someproperty"]
+)
 ```
 
 <!-- markdownlint-enable line-length -->

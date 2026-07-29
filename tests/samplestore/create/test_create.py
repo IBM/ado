@@ -128,16 +128,6 @@ def test_add_entities_to_sample_store(
     add_entities_to_sample_store(random_sql_sample_store(), entities)
 
 
-def test_upsert_entities_to_sample_store(
-    random_entities: Callable[[int], list[Entity]],
-    random_sql_sample_store: Callable[[], SQLSampleStore],
-    upsert_entities_to_sample_store: Callable[[SQLSampleStore, list[Entity]], None],
-) -> None:
-    quantity = 3
-    entities = random_entities(quantity=quantity)
-    upsert_entities_to_sample_store(random_sql_sample_store(), entities)
-
-
 def test_add_measurement_request_to_sample_store(
     ml_multi_cloud_benchmark_performance_experiment: Experiment,
     random_ml_multi_cloud_benchmark_performance_measurement_requests: Callable[
@@ -177,7 +167,10 @@ def test_add_external_entities(
     assert len(sample_store.entity_identifiers().intersection({entity.identifier})) == 1
 
     #
-    retrieved_entity = sample_store.entityWithIdentifier(entity.identifier)
+    results = sample_store.get_entities(
+        identifiers=entity.identifier, require_measurements=False
+    )
+    retrieved_entity = results[0] if results else None
     assert retrieved_entity is not None
     assert len(retrieved_entity.propertyValues) == len(entity.propertyValues)
     for i, property_value in enumerate(entity.propertyValues):

@@ -70,6 +70,39 @@ class VLLMPerformanceTestParameters(GenericActuatorParameters):
     max_environments: Annotated[
         int, pydantic.Field(description="Maximum amount of concurrent environments")
     ] = 1
+    free_environment_ttl: Annotated[
+        int,
+        pydantic.Field(
+            ge=0,
+            description=(
+                "Time-to-live in seconds for free Kubernetes environments. After this time idle "
+                "environments are garbage collected. 0 means delete immediately."
+                "Default is 300 (5 minutes)."
+            ),
+        ),
+    ] = 300
+    gc_force_delete: Annotated[
+        bool,
+        pydantic.Field(
+            description=(
+                "If True, issue a force-delete (service, pods, and deployment with "
+                "grace_period=0) when a stuck environment has been present for "
+                "gc_force_delete_threshold GC cycles after deletion. "
+                "Disabled by default."
+            )
+        ),
+    ] = False
+    gc_force_delete_threshold: Annotated[
+        int,
+        pydantic.Field(
+            ge=1,
+            description=(
+                "Number of GC cycles a stuck environment may remain present in K8s "
+                "after deletion before a force-delete is issued. "
+                "Only used when gc_force_delete is True."
+            ),
+        ),
+    ] = 3
     developer_mode: Annotated[
         bool,
         pydantic.Field(
@@ -86,7 +119,6 @@ class VLLMPerformanceTestParameters(GenericActuatorParameters):
     @pydantic.model_validator(mode="before")
     @classmethod
     def delete_interpreter(cls, values: Any) -> Any:  # noqa: ANN401
-
         # We expect either a GenericActuatorParameters or a dict instance
         if not isinstance(values, GenericActuatorParameters) and not isinstance(
             values, dict

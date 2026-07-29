@@ -141,6 +141,9 @@ class VLLMPerformanceTest(ActuatorBase):
                     pvc_name=params.pvc_name,
                     pvc_template=params.pvc_template,
                     otlp_traces_endpoint=params.otlp_traces_endpoint,
+                    free_environment_ttl=params.free_environment_ttl,
+                    gc_force_delete=params.gc_force_delete,
+                    gc_force_delete_threshold=params.gc_force_delete_threshold,
                 )
             except Exception as error:
                 self.log.warning(

@@ -252,6 +252,102 @@ class ComponentsManager:
             if e.reason != "Not Found" or not suppress_not_found_error:
                 raise e
 
+    def force_delete_environment(self, k8s_name: str) -> None:
+        """
+        Force-delete a deployment and its associated service and pods.
+
+        Deletion order: service first, then pods, then the deployment.
+        For the deployment: clears the ``foregroundDeletion`` finalizer via a
+        patch and re-issues the delete with ``grace_period_seconds=0``.
+        For the service: issues a normal delete, suppressing Not Found errors.
+        For pods owned by the deployment: clears finalizers and deletes each
+        with ``grace_period_seconds=0``.
+
+        :param k8s_name: kubernetes name of the deployment
+        """
+        # --- Service ---
+        try:
+            self.kube_client_V1.delete_namespaced_service(
+                namespace=self.namespace,
+                name=k8s_name,
+            )
+        except ApiException as e:
+            if e.reason != "Not Found":
+                logger.warning(
+                    f"force_delete_environment: could not delete service for "
+                    f"{k8s_name}: {e}"
+                )
+
+        # --- Pods ---
+        label_selector = f"app.kubernetes.io/instance={k8s_name}"
+        try:
+            pods = self.kube_client_V1.list_namespaced_pod(
+                namespace=self.namespace,
+                label_selector=label_selector,
+            )
+        except ApiException as e:
+            logger.warning(
+                f"force_delete_environment: could not list pods for {k8s_name}: {e}"
+            )
+            pods = None
+
+        if pods:
+            for pod in pods.items:
+                pod_name = pod.metadata.name
+                try:
+                    self.kube_client_V1.patch_namespaced_pod(
+                        namespace=self.namespace,
+                        name=pod_name,
+                        body={"metadata": {"finalizers": []}},
+                    )
+                except ApiException as e:
+                    if e.reason != "Not Found":
+                        logger.warning(
+                            f"force_delete_environment: could not clear finalizers "
+                            f"for pod {pod_name}: {e}"
+                        )
+                try:
+                    self.kube_client_V1.delete_namespaced_pod(
+                        namespace=self.namespace,
+                        name=pod_name,
+                        body=client.V1DeleteOptions(grace_period_seconds=0),
+                    )
+                    logger.debug(
+                        f"force_delete_environment: force-deleted pod {pod_name}"
+                    )
+                except ApiException as e:
+                    if e.reason != "Not Found":
+                        logger.warning(
+                            f"force_delete_environment: could not delete pod "
+                            f"{pod_name}: {e}"
+                        )
+
+        # --- Deployment ---
+        try:
+            self.kube_client.patch_namespaced_deployment(
+                namespace=self.namespace,
+                name=k8s_name,
+                body={"metadata": {"finalizers": []}},
+            )
+        except ApiException as e:
+            if e.reason != "Not Found":
+                logger.warning(
+                    f"force_delete_environment: could not clear finalizers for "
+                    f"{k8s_name}: {e}"
+                )
+
+        try:
+            self.kube_client.delete_namespaced_deployment(
+                namespace=self.namespace,
+                name=k8s_name,
+                body=client.V1DeleteOptions(
+                    propagation_policy="Background", grace_period_seconds=0
+                ),
+            )
+        except ApiException as e:
+            if e.reason != "Not Found":
+                raise
+
     def create_deployment(
         self,
         k8s_name: str,

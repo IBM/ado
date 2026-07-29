@@ -6,6 +6,7 @@ import pathlib
 import re
 from collections.abc import Callable
 
+import pydantic
 import pytest
 import yaml
 
@@ -540,3 +541,13 @@ def test_operation_context_failure_lifecycle(pfas_space: DiscoverySpace) -> None
     assert lifecycle_statuses[0].event == OperationResourceEventEnum.STARTED
     assert lifecycle_statuses[-1].event == OperationResourceEventEnum.FINISHED
     assert lifecycle_statuses[-1].exit_state == OperationExitStateEnum.FAIL
+
+
+def test_discovery_space_resource_wrong_kind_raises_validation_error(
+    discovery_space_resource: DiscoverySpaceResource,
+) -> None:
+    """DiscoverySpaceResource rejects a kind value other than DISCOVERYSPACE."""
+    data = discovery_space_resource.model_dump()
+    data["kind"] = CoreResourceKinds.OPERATION
+    with pytest.raises(pydantic.ValidationError):
+        DiscoverySpaceResource.model_validate(data)

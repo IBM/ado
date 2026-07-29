@@ -1397,7 +1397,7 @@ When required, you can run this command to update all resources of a given kind
 in the database.
 
 ```shell
-ado upgrade RESOURCE_TYPE
+ado upgrade RESOURCE_TYPE [--upgrade-entities-and-results]
 ```
 
 Where:
@@ -1416,12 +1416,30 @@ Where:
 
     <!-- prettier-ignore-end -->
 
+- `--upgrade-entities-and-results` is an **optional** flag, only applicable to
+  `samplestore`. When passed, also upgrades stored entities and measurement
+  results in each sample store. Omit this flag for a fast metadata-only upgrade;
+  pass it only when entity or measurement result schemas have changed, as it can
+  take a long time for large stores.
+
 ### Examples
 
 #### Upgrade all operation resources
 
 ```shell
 ado upgrade operations
+```
+
+#### Upgrade all sample store resources (metadata only)
+
+```shell
+ado upgrade samplestores
+```
+
+#### Upgrade all sample store resources including entities and measurement results
+
+```shell
+ado upgrade samplestores --upgrade-entities-and-results
 ```
 
 ## ado version

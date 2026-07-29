@@ -92,7 +92,7 @@ entitySpace:
       interval: 1
 experiments:
   - actuatorIdentifier: vllm_performance
-    experimentIdentifier: test-endpoint-v1
+    experimentIdentifier: vllm-bench-endpoint
 ```
 
 Create the space with:
@@ -227,7 +227,7 @@ and the best region is unlikely to be visited.
 - Try running the same operation with the
   [GuideLLM](https://github.com/vllm-project/guidellm) benchmarking tool by
   setting the `experimentIdentifier` field in the entity space definition to
-  `test-endpoint-guidellm-v1`.
+  `guidellm-bench-endpoint`.
 - Use `ado describe experiment vllm_performance_endpoint` to see what other
   parameters can be explored
 - Try varying **`burstiness`** or **`number_input_tokens`**, or adding them as

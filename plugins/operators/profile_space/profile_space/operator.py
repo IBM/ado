@@ -18,7 +18,7 @@ class ProfileParameters(pydantic.BaseModel):
 # for documentation on the decorator and its parameters
 @characterize_operation(
     name="profile",
-    version="2.0.3",
+    version="2.0.4",
     configuration_model=ProfileParameters,
     example_configuration=ProfileParameters(),
     description="Returns a data_profiling ProfileReport for the space",
@@ -40,7 +40,7 @@ def profile(
     df = pd.DataFrame(
         data=[
             e.seriesRepresentation()
-            for e in discoverySpace.sample_store.entities
+            for e in discoverySpace.sample_store.get_entities(require_measurements=True)
             if len(e.observedPropertyValues) > 0
         ]
     )

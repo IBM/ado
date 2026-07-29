@@ -1,8 +1,6 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
-
 import logging
-import sys
 from typing import Any
 
 import numpy as np
@@ -443,14 +441,13 @@ class InformationGainStopper(ray.tune.Stopper):
             df = df.sort_values("rank", ascending=True)
 
             self.should_stop = True
-            print(
+            self.log.info(
                 f"Stopping criteria reached after {self.trials_num} samples.\n"
                 f"Total search space size is {self.total_size}, search coverage is {self.cur_coverage}.\n"
                 f"Entropy of target variable clusters: {mi_output.entropy} nats.\n"
                 f"Result:\n{df}\n"
             )
-            print(f"Pareto selection:{new_pareto[-1]}\n")
-            sys.stdout.flush()
+            self.log.info(f"Pareto selection:{new_pareto[-1]}\n")
             return True
         return False
 
@@ -696,7 +693,7 @@ class BayesianMetricDifferenceStopper(ray.tune.Stopper):
             self.stop_reason = "exceeds_threshold"
             self.stop_probability = prob_abs_greater
 
-            print(
+            self.log.info(
                 f"  Stopping after {self.trials_num} trials  - usable differences collected {len(self.differences)} \n"
                 f"  {prob_abs_greater * 100:.1f}% confident mean difference is ABOVE threshold\n"
                 f"  Mean difference: {mean_diff:.4f}\n"
@@ -712,7 +709,7 @@ class BayesianMetricDifferenceStopper(ray.tune.Stopper):
             self.stop_reason = "within_threshold"
             self.stop_probability = prob_abs_less
 
-            print(
+            self.log.info(
                 f"  Stopping after {self.trials_num} trials\n"
                 f"  {prob_abs_less * 100:.1f}% confident mean difference is BELOW threshold\n"
                 f"  Mean difference: {mean_diff:.4f}\n"

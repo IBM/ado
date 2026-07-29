@@ -239,11 +239,17 @@ class VLLMPerformanceTest(ActuatorBase):
 
         if experiment.identifier in [
             "test-deployment-v1",
+            "vllm-bench-deployment",
             "test-deployment-guidellm-v1",
+            "guidellm-bench-deployment",
             "test-geospatial-deployment-v1",
+            "geospatial-vllm-bench-deployment",
             "test-geospatial-deployment-custom-dataset-v1",
+            "geospatial-vllm-bench-deployment-custom-dataset",
             "test-geospatial-deployment-guidellm-v1",
+            "geospatial-guidellm-bench-deployment",
             "test-geospatial-deployment-guidellm-custom-dataset-v1",
+            "geospatial-guidellm-bench-deployment-custom-dataset",
             "test-agentic-tool-calling",
         ]:
             if not self.env_manager:

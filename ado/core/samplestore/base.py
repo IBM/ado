@@ -369,7 +369,9 @@ class SampleStore(abc.ABC):
                 f"Copying {sample_store_source.numberOfEntities} entities from "
                 f"{sample_store_source.identifier} to {sample_store.identifier}"
             )
-            sample_store.add_external_entities(sample_store_source.entities)
+            sample_store.add_external_entities(
+                sample_store_source.get_entities(require_measurements=True)
+            )
 
         return sample_store
 
@@ -517,13 +519,16 @@ class ActiveSampleStore(SampleStore, ABC):
     def entityWithIdentifier(
         self, entityIdentifier: str
     ) -> Entity | None:  # pragma: nocover
-        pass
+        """Deprecated: use :meth:`get_entities` instead.
+
+        Returns entity if it is in the store, otherwise returns ``None``.
+        """
 
     @abc.abstractmethod
     def entities_with_identifiers(
         self, entity_identifiers: set[str] | list[str]
     ) -> list[Entity]:
-        """Fetch the entities given by entity_identifiers.
+        """Deprecated: use :meth:`get_entities` instead.
 
         Args:
             entity_identifiers: Set or list of entity identifiers to fetch

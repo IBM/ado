@@ -16,10 +16,9 @@ from ado.core.metadata import ProvenanceInfo
 from ado.utilities.pydantic import Defaultable
 
 
-class CoreResourceKinds(enum.Enum):
+class CoreResourceKinds(str, enum.Enum):
     OPERATION = "operation"
     DISCOVERYSPACE = "discoveryspace"
-    # ACTUATOR = "actuator" AP - REMOVING IT AS REPLACED BY ACTUATORCONFIGURATION
     ACTUATORCONFIGURATION = "actuatorconfiguration"
     SAMPLESTORE = "samplestore"
     DATACONTAINER = "datacontainer"
@@ -134,6 +133,7 @@ def warn_deprecated_resource_model_in_use(
     removed_from_ado_version: str,
     deprecated_fields: str | list[str] | None = None,
     latest_format_documentation_url: str | None = None,
+    include_entities_and_results_hint: bool = False,
 ) -> None:
     from rich.console import Console
 
@@ -176,8 +176,14 @@ def warn_deprecated_resource_model_in_use(
         f"[b]This fallback will be removed with ado "
         f"[b cyan]{removed_from_ado_version}[/b cyan][/b]."
     )
+    entities_flag = (
+        " --upgrade-entities-and-results"
+        if include_entities_and_results_hint
+        and affected_resource == CoreResourceKinds.SAMPLESTORE
+        else ""
+    )
     manual_upgrade_hint = (
-        f"Run [b cyan]ado upgrade {resource_name}s[/b cyan] to upgrade the stored {resource_name}s. "
+        f"Run [b cyan]ado upgrade {resource_name}s{entities_flag}[/b cyan] to upgrade the stored {resource_name}s. "
         f"Update your {resource_name} YAML files to use the latest format{doc_url}."
     )
 

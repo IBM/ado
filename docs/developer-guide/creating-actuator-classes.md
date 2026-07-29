@@ -76,7 +76,7 @@ experiment identifier to the corresponding function e.g.
 ```python
 def _experiment_implementations(self) -> dict[str, Callable[..., dict[str, Any]]]:
 
-    return {'myexperiment': my_experiment_fn()}
+    return {"myexperiment": my_experiment_fn()}
 ```
 
 The parameter names of the function must be the same as the input property
@@ -110,8 +110,7 @@ The function would look like
 def peptide_mineralization_fn(peptide_identifier, peptide_concentration):
 
     ...
-    return {'adsoprtion_timeseries':timeseries,
-            'adsorption_plateau_value':plateau}
+    return {"adsoprtion_timeseries": timeseries, "adsorption_plateau_value": plateau}
 ```
 
 ### Complex case: Experiments with shared state
@@ -266,6 +265,7 @@ class InferenceActuatorParameters(GenericActuatorParameters):
             validate_default=True,
         ),
     ] = None
+
 
 class Actuator(ActuatorBase):
     identifier = "my_actuator"
@@ -441,6 +441,7 @@ import pydantic
 
 from ado.core.actuatorconfiguration.config import GenericActuatorParameters
 
+
 class InferenceActuatorParameters(GenericActuatorParameters):
     model_config = pydantic.ConfigDict(extra="forbid")
 
@@ -461,7 +462,7 @@ class InferenceActuatorParameters(GenericActuatorParameters):
 
     @pydantic.model_validator(mode="before")
     @classmethod
-    def rename_authToken(cls, values: Any) -> Any: # noqa: ANN401
+    def rename_authToken(cls, values: Any) -> Any:  # noqa: ANN401
 
         # We expect either a GenericActuatorParameters or a dict instance
         if not isinstance(values, GenericActuatorParameters) and not isinstance(
@@ -472,12 +473,17 @@ class InferenceActuatorParameters(GenericActuatorParameters):
         from ado.core.actuatorconfiguration.config import (
             warn_deprecated_actuator_parameters_model_in_use,
         )
+        from ado.utilities.dictionaries import (
+            get_nested_value,
+            has_nested_field,
+            remove_nested_field,
+            set_nested_value,
+        )
 
         old_key = "authToken"
         new_key = "authorization_token"
 
         if isinstance(values, GenericActuatorParameters):
-
             # The old key is not present - all good
             if not hasattr(values, old_key):
                 return values
@@ -504,9 +510,8 @@ class InferenceActuatorParameters(GenericActuatorParameters):
                 delattr(values, old_key)
 
         else:
-
             # The old key is not present - all good
-            if old_key not in values:
+            if not has_nested_field(values, old_key):
                 return values
 
             # Notify the user that the authToken
@@ -522,12 +527,13 @@ class InferenceActuatorParameters(GenericActuatorParameters):
             # The user has set both the old
             # and the new key - the new key
             # takes precedence.
-            if new_key in values:
-                values.pop(old_key)
+            if has_nested_field(values, new_key):
+                remove_nested_field(values, old_key)
             # Set the old value in the
             # new field
             else:
-                values[new_key] = values.pop(old_key)
+                set_nested_value(values, new_key, get_nested_value(values, old_key))
+                remove_nested_field(values, old_key)
 
         return values
 ```
@@ -562,6 +568,7 @@ Let's imagine we want to change the type of the `endpoint` field to be
 from ado.core.actuatorconfiguration.config import GenericActuatorParameters
 from typing import Annotated
 import pydantic
+
 
 class InferenceActuatorParameters(GenericActuatorParameters):
     model_config = pydantic.ConfigDict(extra="forbid")
@@ -603,6 +610,7 @@ applied. To ensure the users are aware of the change, we will also use the
 from ado.core.actuatorconfiguration.config import GenericActuatorParameters
 from typing import Annotated
 import pydantic
+
 
 class InferenceActuatorParameters(GenericActuatorParameters):
     model_config = pydantic.ConfigDict(extra="forbid")
@@ -697,12 +705,15 @@ Below is an example of registering a custom class for cleanup:
 ```python
 from ado.modules.operators.orchestrate import CLEANER_ACTOR, ResourceCleaner
 import ray
+
 ...
 try:
     cleaner_handle = ray.get_actor(name=CLEANER_ACTOR)
-    cleaner_handle.add_to_cleanup.remote(handle='your actor handle')
+    cleaner_handle.add_to_cleanup.remote(handle="your actor handle")
 except Exception as e:
-    print(f"Failed to register custom actors for clean up {e}. Make sure you clean it up")
+    print(
+        f"Failed to register custom actors for clean up {e}. Make sure you clean it up"
+    )
 ```
 
 <!-- markdownlint-enable code-block-style -->
@@ -747,36 +758,48 @@ stop them when state changes.
 <!-- markdownlint-disable code-block-style -->
 
 ```python
-from ado.modules.operators.console_output import RichConsoleSpinnerMessage, RichConsoleProgressMessage
+from ado.modules.operators.console_output import (
+    RichConsoleSpinnerMessage,
+    RichConsoleProgressMessage,
+)
+
 # Get the console queue where you post progress messages to show
 console = ray.get_actor(name="RichConsoleQueue")
 request_id = request.requestid  # or similar
 
 # Start a spinner
-console.put.remote(message=RichConsoleSpinnerMessage(
-    id=request_id,
-    label=f"({request_id}) Waiting for environment...",
-    state="start",
-))
+console.put.remote(
+    message=RichConsoleSpinnerMessage(
+        id=request_id,
+        label=f"({request_id}) Waiting for environment...",
+        state="start",
+    )
+)
 # ... do work ...
 # Stop the spinner (replace with progress or mark complete)
-console.put.remote(message=RichConsoleSpinnerMessage(
-    id=request_id,
-    label=f"({request_id}) Environment ready.",
-    state="stop",
-))
+console.put.remote(
+    message=RichConsoleSpinnerMessage(
+        id=request_id,
+        label=f"({request_id}) Environment ready.",
+        state="stop",
+    )
+)
 # Start a bar showing progress
-console.put.remote(message=RichConsoleProgressMessage(
-    id=request_id,
-    label=f"({request_id}) Uploading data...",
-    progress=0,  # percent
-))
+console.put.remote(
+    message=RichConsoleProgressMessage(
+        id=request_id,
+        label=f"({request_id}) Uploading data...",
+        progress=0,  # percent
+    )
+)
 # ... sleep then calculate how much upload is complete ...
-console.put.remote(message=RichConsoleProgressMessage(
-    id=request_id,
-    label=f"({request_id}) Uploading data...",
-    progress=35,  # percent
-))
+console.put.remote(
+    message=RichConsoleProgressMessage(
+        id=request_id,
+        label=f"({request_id}) Uploading data...",
+        progress=35,  # percent
+    )
+)
 ```
 
 <!-- markdownlint-enable code-block-style -->

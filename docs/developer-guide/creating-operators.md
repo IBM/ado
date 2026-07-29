@@ -42,7 +42,9 @@ operation function itself.
 
 ```python
 import typing
-from ado.modules.operators.collections import characterize_operation  # Import the decorator from this module depending on the type of operation your operator performs
+from ado.modules.operators.collections import (
+    characterize_operation,
+)  # Import the decorator from this module depending on the type of operation your operator performs
 
 
 @characterize_operation(
@@ -51,12 +53,11 @@ from ado.modules.operators.collections import characterize_operation  # Import t
     configuration_model=MyOperatorOptions,  # A pydantic model that describes your operators input parameters
     example_configuration=MyOperatorOptions.example_configuration(),  # An example of your operators input parameters
     version="1.0",  # Version of the operator
-
 )
 def detect_anomalous_series(
-        discoverySpace: DiscoverySpace,
-        operationInfo: FunctionOperationInfo | None = None,
-        **parameters: typing.Any,
+    discoverySpace: DiscoverySpace,
+    operationInfo: FunctionOperationInfo | None = None,
+    **parameters: typing.Any,
 ) -> OperationOutput:
     # Your operation logic - can also call other Python modules etc.
     ...
@@ -98,11 +99,10 @@ import typing
 
 
 def detect_anomalous_series(
-        discoverySpace: DiscoverySpace,
-        operationInfo: FunctionOperationInfo | None = None,
-        **parameters: typing.Any,
-) -> OperationOutput:
-    ...
+    discoverySpace: DiscoverySpace,
+    operationInfo: FunctionOperationInfo | None = None,
+    **parameters: typing.Any,
+) -> OperationOutput: ...
 ```
 
 If it is `fuse` or `compare` your function should have a parameter
@@ -113,11 +113,10 @@ import typing
 
 
 def detect_anomalous_series(
-        discoverySpaces: list[DiscoverySpace],
-        operationInfo: FunctionOperationInfo | None = None,
-        **parameters: typing.Any,
-) -> OperationOutput:
-    ...
+    discoverySpaces: list[DiscoverySpace],
+    operationInfo: FunctionOperationInfo | None = None,
+    **parameters: typing.Any,
+) -> OperationOutput: ...
 ```
 
 Operator functions also take an optional third parameter, `operationInfo`, that
@@ -162,7 +161,9 @@ fields then the simplest approach is to use those as the value of
 `example_configuration`:
 
 ```python
-    example_configuration=MyOperatorOptions(), # <- This will use the defaults specified for all fields of your operators parameters
+example_configuration = (
+    MyOperatorOptions(),
+)  # <- This will use the defaults specified for all fields of your operators parameters
 ```
 
 ### How your Operators input parameters model is stored and output
@@ -240,9 +241,11 @@ key:value pairs, and an URL:
 ```python
 tabular_data = TabularData.from_dataframe(df)
 location = ResourceLocation.locationFromURL(someURL)
-data_container = DataContainer(tabularData={"main_dataframe":tabular_data},
-                               data={"important_dict":results_dict},
-                               locationData={"important_location": location})
+data_container = DataContainer(
+    tabularData={"main_dataframe": tabular_data},
+    data={"important_dict": results_dict},
+    locationData={"important_location": location},
+)
 
 return OperationOutput(resources=[DataContainerResource(config=data_container)])
 ```
@@ -290,6 +293,7 @@ in `my_operator` v1:
 ```python
 import pydantic
 
+
 class MyOperatorOptions(pydantic.BaseModel):
     my_parameter_name: int
 ```
@@ -307,6 +311,7 @@ Let's imagine we want to change the name of the `my_parameter_name` field to be
 ```python
 import pydantic
 
+
 class MyOperatorOptions(pydantic.BaseModel):
     my_improved_parameter_name: int
 ```
@@ -322,6 +327,7 @@ the validator:
 ```python
 import pydantic
 
+
 class MyOperatorOptions(pydantic.BaseModel):
     my_improved_parameter_name: int
 
@@ -331,11 +337,16 @@ class MyOperatorOptions(pydantic.BaseModel):
         from ado.modules.operators.base import (
             warn_deprecated_operator_parameters_model_in_use,
         )
+        from ado.utilities.dictionaries import (
+            get_nested_value,
+            has_nested_field,
+            remove_nested_field,
+            set_nested_value,
+        )
 
         old_key = "my_parameter_name"
         new_key = "my_improved_parameter_name"
-        if old_key in values:
-
+        if has_nested_field(values, old_key):
             # Notify the user that the my_parameter_name
             # field is deprecated
             warn_deprecated_operator_parameters_model_in_use(
@@ -349,12 +360,13 @@ class MyOperatorOptions(pydantic.BaseModel):
             # The user has set both the old
             # and the new key - the new key
             # takes precedence.
-            if new_key in values:
-                values.pop(old_key)
+            if has_nested_field(values, new_key):
+                remove_nested_field(values, old_key)
             # Set the old value in the
             # new field
             else:
-                values[new_key] = values.pop(old_key)
+                set_nested_value(values, new_key, get_nested_value(values, old_key))
+                remove_nested_field(values, old_key)
 
         return values
 ```
@@ -378,6 +390,7 @@ Let's imagine we want to change the type of the `my_parameter_name` field to be
 ```python
 import pydantic
 
+
 class MyOperatorOptions(pydantic.BaseModel):
     my_parameter_name: str
 ```
@@ -397,6 +410,7 @@ applied. To ensure the users are aware of the change, we will also use the
 
 ```python
 import pydantic
+
 
 class MyOperatorOptions(pydantic.BaseModel):
     my_parameter_name: str
@@ -552,8 +566,14 @@ class MySearchParameters(pydantic.BaseModel):
 
 @explore_operation
 class MySearchOperator(Explore):
-
-    def __init__(self, operationActorName, namespace, discovery_space_manager, actuators, params=None):
+    def __init__(
+        self,
+        operationActorName,
+        namespace,
+        discovery_space_manager,
+        actuators,
+        params=None,
+    ):
         self.params = MySearchParameters(**(params or {}))
         # Queue for completed-measurement notifications received via onUpdate
         self.completed_measurements_queue = asyncio.Queue()

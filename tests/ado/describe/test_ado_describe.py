@@ -79,11 +79,11 @@ def test_describe_calculate_density_experiment() -> None:
     assert "calculate_density" in result.output
 
 
-def test_describe_vllm_test_deployment_experiment() -> None:
+def test_describe_vllm_bench_deployment_experiment() -> None:
     runner = CliRunner()
-    result = runner.invoke(ado, ["describe", "experiment", "test-deployment-v1"])
+    result = runner.invoke(ado, ["describe", "experiment", "vllm-bench-deployment"])
     assert result.exit_code == 0
-    assert "test-deployment-v1" in result.output
+    assert "vllm-bench-deployment" in result.output
 
 
 @requires_sqlite_3_38

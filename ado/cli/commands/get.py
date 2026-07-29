@@ -268,8 +268,7 @@ def get_resource(
             help="""
             Filter results to resources reachable from the given anchor resource.
             Specify as kind=id (e.g. samplestore=store-123).
-            Incompatible with specifying a direct resource_id argument or with
-            --matching-point / --matching-space / --matching-space-id.
+            Incompatible with specifying a direct resource_id argument or --use-latest.
             """,
             show_default=False,
         ),
@@ -338,10 +337,9 @@ def get_resource(
             )
             raise typer.Exit(1)
 
-        if matching_point or matching_space or matching_space_id:
+        if use_latest:
             console_print(
-                f"{ERROR}--related-to cannot be used together with "
-                "--matching-point, --matching-space, or --matching-space-id",
+                f"{ERROR}--related-to cannot be used together with --use-latest",
                 stderr=True,
             )
             raise typer.Exit(1)

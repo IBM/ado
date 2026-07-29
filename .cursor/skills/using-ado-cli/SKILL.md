@@ -144,8 +144,8 @@ uv run ado get operations --related-to discoveryspace=SPACE_ID --filter config.m
 `--related-to` filters results to resources reachable from the given anchor
 (`kind=id`). Shorthand aliases work (e.g. `store=STORE_ID`). Not supported for
 `actuator`, `experiment`, `operator`, or `context`. Cannot be combined with a
-direct resource ID or with `--matching-point` / `--matching-space` /
-`--matching-space-id`. Can be combined with `--filter` and `--label`.
+direct resource ID or `--use-latest`. Can be combined with `--filter`,
+`--label`, `--matching-point`, `--matching-space`, and `--matching-space-id`.
 
 `-o stats` extends the table with statistics columns:
 

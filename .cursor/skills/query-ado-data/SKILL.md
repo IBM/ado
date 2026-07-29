@@ -207,9 +207,9 @@ uv run ado get $RESOURCETYPE --related-to kind=ANCHOR_ID
 ```
 
 Not supported for `actuator`, `experiment`, `operator`, or `context`. Cannot be
-combined with a direct resource ID or with `--matching-point` /
-`--matching-space` / `--matching-space-id`. Can be combined with `--filter` and
-`--label`.
+combined with a direct resource ID or `--use-latest`. Can be combined with
+`--filter`, `--label`, `--matching-point`, `--matching-space`, and
+`--matching-space-id`.
 
 **Examples:**
 

@@ -590,10 +590,9 @@ Where:
   (e.g. `store=store-abc123`). This flag:
     - is **not** supported for `actuator`, `experiment`, `operator`, or `context`
       resource types.
-    - cannot be combined with a direct `RESOURCE_ID` argument.
-    - cannot be combined with `--matching-point`, `--matching-space`, or
-      `--matching-space-id`.
-    - can be combined with `--filter` and `--label` to further narrow results.
+    - cannot be combined with a direct `RESOURCE_ID` argument or `--use-latest`.
+    - can be combined with `--filter`, `--label`, `--matching-point`,
+      `--matching-space`, and `--matching-space-id` to further narrow results.
 
 ### Searching and Filtering
 

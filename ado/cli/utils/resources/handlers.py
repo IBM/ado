@@ -59,34 +59,37 @@ if typing.TYPE_CHECKING:
 
 
 def resolve_related_to_identifiers(
-    anchor_kind: "CoreResourceKinds",
-    anchor_id: str,
+    source_kind: "CoreResourceKinds",
+    source_id: str,
     requested_kind: "CoreResourceKinds",
     sql_store: "SQLStore",
 ) -> set[str]:
-    """Return the set of *requested_kind* resource identifiers reachable from *anchor_id*.
+    """Return the set of *requested_kind* resource identifiers related to *source_id*.
+
+    Traverses the full resource hierarchy in both directions, so multi-hop
+    relationships (e.g. operations related to a store via a space) are included.
 
     Args:
-        anchor_kind: The kind of the anchor resource.
-        anchor_id: The identifier of the anchor resource.
+        source_kind: The kind of the source resource.
+        source_id: The identifier of the source resource.
         requested_kind: The kind of resources to return.
         sql_store: The SQL store to query.
 
     Returns:
         A (possibly empty) set of identifiers of *requested_kind* resources
-        reachable from *anchor_id*.
+        related to *source_id*.
 
     Raises:
-        ResourceDoesNotExistError: When the anchor resource does not exist.
+        ResourceDoesNotExistError: When the source resource does not exist.
     """
     if not sql_store.containsResourceWithIdentifier(
-        identifier=anchor_id, kind=anchor_kind
+        identifier=source_id, kind=source_kind
     ):
-        raise ResourceDoesNotExistError(resource_id=anchor_id, kind=anchor_kind)
+        raise ResourceDoesNotExistError(resource_id=source_id, kind=source_kind)
 
     related = sql_store.get_resources_by_relationship(
-        kind=anchor_kind,
-        identifier=anchor_id,
+        kind=source_kind,
+        identifier=source_id,
         hierarchy_direction="both",
         identifiers_only=True,
     )
@@ -169,10 +172,10 @@ def _build_table_output_dataframe(
             )
 
             if parameters.related_to is not None:
-                anchor_kind, anchor_id = parameters.related_to
+                source_kind, source_id = parameters.related_to
                 related_ids = resolve_related_to_identifiers(
-                    anchor_kind=anchor_kind,
-                    anchor_id=anchor_id,
+                    source_kind=source_kind,
+                    source_id=source_id,
                     requested_kind=resource_type,
                     sql_store=sql_store,
                 )
@@ -322,10 +325,10 @@ def _handle_name_format(
             )
 
             if parameters.related_to is not None:
-                anchor_kind, anchor_id = parameters.related_to
+                source_kind, source_id = parameters.related_to
                 related_ids = resolve_related_to_identifiers(
-                    anchor_kind=anchor_kind,
-                    anchor_id=anchor_id,
+                    source_kind=source_kind,
+                    source_id=source_id,
                     requested_kind=resource_type,
                     sql_store=sql_store,
                 )
@@ -521,10 +524,10 @@ def _handle_structured_formats(
                 field_selectors=parameters.field_selectors,
             )
             if parameters.related_to is not None:
-                anchor_kind, anchor_id = parameters.related_to
+                source_kind, source_id = parameters.related_to
                 related_ids = resolve_related_to_identifiers(
-                    anchor_kind=anchor_kind,
-                    anchor_id=anchor_id,
+                    source_kind=source_kind,
+                    source_id=source_id,
                     requested_kind=resource_type,
                     sql_store=sql_store,
                 )

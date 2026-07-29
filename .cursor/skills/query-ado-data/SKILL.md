@@ -199,11 +199,12 @@ uv run ado show related space space-abc123-456def
 
 #### ado get --related-to
 
-Filter `ado get` results to resources reachable from a specific anchor resource.
-Specify the anchor as `kind=id` (shorthand aliases supported):
+Filter `ado get` results to resources related to a specific source resource,
+including multi-hop relationships (e.g. operations linked to a space that is
+linked to a store). Specify the source as `kind=id` (shorthand aliases supported):
 
 ```bash
-uv run ado get $RESOURCETYPE --related-to kind=ANCHOR_ID
+uv run ado get $RESOURCETYPE --related-to kind=SOURCE_ID
 ```
 
 Not supported for `actuator`, `experiment`, `operator`, or `context`. Cannot be
@@ -214,13 +215,13 @@ combined with a direct resource ID or `--use-latest`. Can be combined with
 **Examples:**
 
 ```bash
-# All operations linked to a sample store
+# All operations related to a sample store
 uv run ado get operations --related-to samplestore=STORE_ID
 
-# All spaces linked to a sample store (name only)
+# All spaces related to a sample store (name only)
 uv run ado get spaces --related-to store=STORE_ID -o name
 
-# Operations linked to a space, narrowed by a metadata filter
+# Operations related to a space, narrowed by a metadata filter
 uv run ado get operations --related-to discoveryspace=SPACE_ID \
   --filter config.metadata.name=my-op
 ```

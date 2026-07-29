@@ -266,7 +266,8 @@ def get_resource(
         typer.Option(
             "--related-to",
             help="""
-            Filter results to resources reachable from the given anchor resource.
+            Filter results to resources related to the given source resource,
+            including through multi-hop relationships.
             Specify as kind=id (e.g. samplestore=store-123).
             Incompatible with specifying a direct resource_id argument or --use-latest.
             """,
@@ -303,13 +304,13 @@ def get_resource(
     # List experiments with details
     ado get experiments --details
 
-    # Get all operations linked to a sample store
+    # Get all operations related to a sample store
     ado get operations --related-to samplestore=<store-id>
 
-    # Get all discovery spaces linked to a sample store (name output only)
+    # Get all discovery spaces related to a sample store (name output only)
     ado get spaces --related-to samplestore=<store-id> -o name
 
-    # Get all operations linked to a space, filtered by name
+    # Get all operations related to a space, filtered by name
     ado get operations --related-to discoveryspace=<space-id> --filter config.metadata.name=<op-name>
     """
     ado_configuration: AdoConfiguration = ctx.obj
@@ -353,10 +354,10 @@ def get_resource(
             )
             raise typer.Exit(1) from None
 
-        raw_kind, anchor_id = next(iter(parsed_pairs[0].items()))
+        raw_kind, source_id = next(iter(parsed_pairs[0].items()))
         resolved_kind = resource_shorthands_to_full_names(raw_kind)
         try:
-            anchor_kind = CoreResourceKinds(resolved_kind)
+            source_kind = CoreResourceKinds(resolved_kind)
         except ValueError:
             console_print(
                 f"{ERROR}Unknown resource kind {raw_kind!r} in --related-to. "
@@ -365,15 +366,15 @@ def get_resource(
             )
             raise typer.Exit(1) from None
 
-        if anchor_kind.value == resource_type.value:
+        if source_kind.value == resource_type.value:
             console_print(
-                f"{ERROR}--related-to anchor kind must differ from the requested resource kind "
+                f"{ERROR}--related-to source kind must differ from the requested resource kind "
                 f"({resource_type.value})",
                 stderr=True,
             )
             raise typer.Exit(1)
 
-        parsed_related_to = (anchor_kind, anchor_id)
+        parsed_related_to = (source_kind, source_id)
 
     # Resolve --use-latest to actual resource_id
     if use_latest:

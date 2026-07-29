@@ -584,8 +584,9 @@ Where:
 - The `--show-deprecated` flag is available **only for `ado get experiments`**
   and allows displaying experiments that have been deprecated. They are
   otherwise hidden by default.
-- `--related-to` filters results to resources reachable from a given anchor
-  resource. The value must be in the form `kind=id`
+- `--related-to` filters results to resources related to a given source
+  resource, including through multi-hop relationships (e.g. operations linked
+  to a space that is linked to a store). The value must be in the form `kind=id`
   (e.g. `samplestore=store-abc123`). Using shorthand aliases is supported
   (e.g. `store=store-abc123`). This flag:
     - is **not** supported for `actuator`, `experiment`, `operator`, or `context`
@@ -801,26 +802,26 @@ ado get datacontainers -o stats
 ado get datacontainer --use-latest -o stats
 ```
 
-#### Getting all operations linked to a sample store
+#### Getting all operations related to a sample store
 
 ```shell
 ado get operations --related-to samplestore=store-abc123-456def
 ```
 
-#### Getting all discovery spaces linked to a sample store
+#### Getting all discovery spaces related to a sample store
 
 ```shell
 ado get spaces --related-to samplestore=store-abc123-456def -o name
 ```
 
-#### Getting operations linked to a space, filtered by name
+#### Getting operations related to a space, filtered by name
 
 ```shell
 ado get operations --related-to discoveryspace=space-abc123-456def \
   --filter config.metadata.name=my-operation-name
 ```
 
-#### Getting operations linked to a sample store using the shorthand alias
+#### Getting operations related to a sample store using the shorthand alias
 
 ```shell
 ado get operations --related-to store=store-abc123-456def

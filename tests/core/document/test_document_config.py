@@ -7,7 +7,7 @@ import pydantic
 import pytest
 import yaml
 
-from ado.core.document.config import DocumentConfiguration
+from ado.core.document.config import DocumentConfiguration, RelatedResource
 from ado.utilities.output import pydantic_model_as_yaml
 
 
@@ -28,7 +28,9 @@ def test_document_configuration_round_trip_yaml() -> None:
     config = DocumentConfiguration(
         content="# Report\n\nBody text",
         contentType="markdown",
-        relatedResources=["operation-abc-12345678"],
+        relatedResources=[
+            RelatedResource(id="operation-abc-12345678", role="parent"),
+        ],
         metadata={"name": "Test report"},
     )
     yaml_text = pydantic_model_as_yaml(config)
@@ -41,7 +43,9 @@ def test_document_configuration_html_round_trip_yaml() -> None:
     config = DocumentConfiguration(
         content="<html><body><h1>Report</h1></body></html>",
         contentType="html",
-        relatedResources=["operation-abc-12345678"],
+        relatedResources=[
+            RelatedResource(id="operation-abc-12345678", role="parent"),
+        ],
         metadata={"name": "HTML report"},
     )
     yaml_text = pydantic_model_as_yaml(config)
@@ -58,7 +62,9 @@ def test_document_configuration_from_fixture(
         yaml.safe_load(document_configuration_file.read_text())
     )
     assert config.content.startswith("# Operation report")
-    assert config.relatedResources == ["operation-test-12345678"]
+    assert config.relatedResources == [
+        RelatedResource(id="operation-test-12345678", role="parent"),
+    ]
     assert config.contentType == "markdown"
 
 

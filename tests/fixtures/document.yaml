@@ -8,4 +8,5 @@ content: |
 
   This is an example document resource.
 relatedResources:
-  - operation-test-12345678
+  - id: operation-test-12345678
+    role: parent

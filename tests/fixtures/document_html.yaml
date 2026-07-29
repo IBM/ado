@@ -7,4 +7,5 @@ contentType: html
 content: |
   <html><body><h1>Operation report</h1><p>Example HTML body.</p></body></html>
 relatedResources:
-  - operation-test-12345678
+  - id: operation-test-12345678
+    role: parent

@@ -98,7 +98,7 @@ def describe_resource(
     # Describe an experiment, optionally with actuator prefix
     ado describe experiment <actuator-id>.<experiment-id>
 
-    # Describe a document (markdown in-terminal; HTML opens in browser)
+    # Describe a document (markdown via rich; HTML printed as source)
     ado describe document <document-id>
     """
     ado_configuration: AdoConfiguration = ctx.obj

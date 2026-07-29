@@ -36,13 +36,13 @@ class BenchmarkParameters(pydantic.BaseModel):
     num_prompts: Annotated[int, pydantic.Field(gt=0)] = 500
     number_input_tokens: Annotated[int | None, pydantic.Field()] = None
     max_output_tokens: Annotated[int | None, pydantic.Field()] = None
-    prefix_repetition_prefix_len: Annotated[int | None, pydantic.Field()] = None
-    prefix_repetition_suffix_len: Annotated[int | None, pydantic.Field()] = None
-    prefix_repetition_num_prefixes: Annotated[int | None, pydantic.Field()] = None
-    prefix_repetition_output_len: Annotated[int | None, pydantic.Field()] = None
+    prefix_repetition_prefix_len: Annotated[int, pydantic.Field(gt=0)] = 2048
+    prefix_repetition_suffix_len: Annotated[int, pydantic.Field(gt=0)] = 128
+    prefix_repetition_num_prefixes: Annotated[int, pydantic.Field(gt=0)] = 10
+    prefix_repetition_output_len: Annotated[int, pydantic.Field(gt=0)] = 128
     burstiness: Annotated[float, pydantic.Field()] = 1.0
     dataset: Annotated[
-        Literal["random", "prefix_repetition"] | None, pydantic.Field()
+        Literal["random", "prefix_repetition", "bfcl"] | None, pydantic.Field()
     ] = "random"
     bfcl_categories: Annotated[str, pydantic.Field()] = "simple,live_simple,multiple"
 

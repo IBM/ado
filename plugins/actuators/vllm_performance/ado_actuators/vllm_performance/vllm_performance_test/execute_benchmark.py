@@ -231,18 +231,25 @@ def execute_vllm_benchmark(
 
     :return: BenchmarkResult instance
     """
-    custom_args = {
-        "--random-input-len": number_input_tokens,
-        "--random-output-len": max_output_tokens,
-    }
 
-    if dataset == "prefix_repetition":
+    if dataset == "random":
+        custom_args = {
+            "--random-input-len": number_input_tokens,
+            "--random-output-len": max_output_tokens,
+        }
+    elif dataset == "prefix_repetition":
         custom_args = {
             "--prefix-repetition-prefix-len": prefix_repetition_prefix_len,
             "--prefix-repetition-suffix-len": prefix_repetition_suffix_len,
             "--prefix-repetition-num-prefixes": prefix_repetition_num_prefixes,
             "--prefix-repetition-output-len": prefix_repetition_output_len,
         }
+    else:
+        # We should never get here but we keep this just in case because the dataset field
+        # could have another value as well that should not be used with this function.
+        raise ValueError(
+            f"execute_vllm_benchmark only support dataset 'random' or 'prefix_repetition', got {dataset!r}"
+        )
 
     # Call execute_benchmark with the appropriate arguments
     return execute_benchmark(

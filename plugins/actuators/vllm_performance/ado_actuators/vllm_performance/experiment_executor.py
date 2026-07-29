@@ -6,7 +6,7 @@ import logging
 import subprocess
 import time
 import traceback
-from typing import Any, Literal
+from typing import Any
 
 import ray
 from ado_actuators.vllm_performance.actuator_parameters import (
@@ -597,9 +597,6 @@ def run_resource_and_workload_experiment(
                 )
             else:
                 logger.info("Using vLLM benchmark for deployment")
-                dataset: Literal["random", "prefix_repetition"] = (
-                    benchmark_parameters.dataset or "random"
-                )
                 result = execute_vllm_benchmark(
                     base_url=benchmark_parameters.endpoint,
                     model=benchmark_parameters.model,
@@ -616,7 +613,7 @@ def run_resource_and_workload_experiment(
                     prefix_repetition_num_prefixes=benchmark_parameters.prefix_repetition_num_prefixes,
                     prefix_repetition_output_len=benchmark_parameters.prefix_repetition_output_len,
                     burstiness=benchmark_parameters.burstiness,
-                    dataset=dataset,
+                    dataset=benchmark_parameters.dataset,
                 )
 
         except (
@@ -786,9 +783,6 @@ def run_workload_experiment(
                 )
             else:
                 logger.info("Using vLLM benchmark for endpoint")
-                dataset: Literal["random", "prefix_repetition"] = (
-                    benchmark_parameters.dataset or "random"
-                )
                 result = execute_vllm_benchmark(
                     base_url=benchmark_parameters.endpoint,
                     model=benchmark_parameters.model,
@@ -805,7 +799,7 @@ def run_workload_experiment(
                     prefix_repetition_num_prefixes=benchmark_parameters.prefix_repetition_num_prefixes,
                     prefix_repetition_output_len=benchmark_parameters.prefix_repetition_output_len,
                     burstiness=benchmark_parameters.burstiness,
-                    dataset=dataset,
+                    dataset=benchmark_parameters.dataset,
                 )
         except VLLMBenchmarkError as e:
             error = f"Encountered benchmark error when testing entity {entity.identifier}: {e}"

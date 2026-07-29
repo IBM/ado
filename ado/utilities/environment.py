@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 import logging
 import os
+from pathlib import Path
 
 import ray
 from packaging.requirements import Requirement
@@ -54,32 +55,42 @@ def extract_package_specs_from_job_env(
     for requested_name in package_names:
         # Search for this package in the job uv packages
         for pkg_spec in job_uv_packages:
-            # Quick check: does the requested package name appear in this spec?
-            # Check the name as-is and with all dashes replaced by underscores
+            # Quick substring pre-filter: skip specs that clearly don't contain the name.
+            # Check the name as-is and with all dashes replaced by underscores.
             pkg_spec_lower = pkg_spec.lower()
+            name_lower = requested_name.lower()
             name_with_underscores = requested_name.replace("-", "_").lower()
             if (
-                requested_name.lower() not in pkg_spec_lower
+                name_lower not in pkg_spec_lower
                 and name_with_underscores not in pkg_spec_lower
             ):
                 continue  # Not a match, skip to next package
 
-            # Found a match - now parse using packaging.requirements.Requirement
-            # Check if it's a wheel file path
-            if pkg_spec.endswith(".whl") or "/" in pkg_spec:
-                # It's a wheel file path - can't use Requirement parser
-                source = pkg_spec.split("[")[0] if "[" in pkg_spec else pkg_spec
-                extras = None
-                if "[" in pkg_spec:
-                    extras = pkg_spec.split("[", 1)[1].split("]")[0]
+            # Check if it's a path-like entry (wheel file or other archive).
+            if "/" in pkg_spec:
+                # Only .whl files have a parseable distribution name.
+                if not pkg_spec.endswith(".whl"):
+                    continue
+                source, _, extras_str = pkg_spec.partition("[")
+                extras = extras_str.rstrip("]") or None
                 version = None
+                # Wheel filename format: {name}-{version}-{python}-{abi}-{platform}.whl
+                # Extract just the distribution name (first segment, normalised).
+                parsed_name = Path(source).stem.split("-")[0]
             else:
-                # It's a PyPI package - use Requirement parser
+                # It's a PyPI package — use Requirement for an exact name match.
                 req = Requirement(pkg_spec)
+                parsed_name = req.name
                 source = req.name
                 extras = ",".join(req.extras) if req.extras else None
                 # Convert specifier to string (e.g., "==1.2.3")
                 version = str(req.specifier) if req.specifier else None
+
+            # Exact name check (normalise dashes/underscores per PEP 503).
+            normalised_parsed = parsed_name.lower().replace("-", "_")
+            normalised_requested = name_lower.replace("-", "_")
+            if normalised_parsed != normalised_requested:
+                continue  # Substring matched but names differ (e.g. "vllm" vs "ado-vllm-performance")
 
             result[requested_name] = {
                 "source": source,

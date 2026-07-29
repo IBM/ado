@@ -142,30 +142,16 @@ def test_property_value_checks_value_type(
     # Values with the same type are fine, values of different types should fail
     test_type, test_value = test_value_example
     if test_type is not example_type:
-        # Due to a bug, as a temp measure special behaviour has been enabled
-        # Because it is temporary, we xfail it.
-        # This indicates it should fail but currently is being allows
-        #
-        # Passing str value with NUMERIC_VALUE_TYPE will change it to STRING_VALUE_TYPE
-        if type(test_value) is str and example_type is ValueTypeEnum.NUMERIC_VALUE_TYPE:
-            ConstitutivePropertyValue(
-                value=test_value, property=prop.descriptor(), valueType=example_type
-            )
-            pytest.xfail(
-                "Automatically changing value type from NUMERIC_VALUE_TYPE to STRING_VALUE_TYPE to match string value."
-                " This is being allowed temporarily but should fail"
-            )
-        elif (
+        if (
+            type(test_value) is str and example_type is ValueTypeEnum.NUMERIC_VALUE_TYPE
+        ) or (
             type(test_value) is list
             and example_type is ValueTypeEnum.NUMERIC_VALUE_TYPE
         ):
-            ConstitutivePropertyValue(
-                value=test_value, property=prop.descriptor(), valueType=example_type
-            )
-            pytest.xfail(
-                "Automatically changing value type from NUMERIC_VALUE_TYPE to VECTOR_VALUE_TYPE to match list value."
-                " This is being allowed temporarily but should fail"
-            )
+            with pytest.raises(pydantic.ValidationError):
+                ConstitutivePropertyValue(
+                    value=test_value, property=prop.descriptor(), valueType=example_type
+                )
         elif type(test_value) is str and example_type is ValueTypeEnum.BLOB_VALUE_TYPE:
             # strings with BLOB_VALUE_TYPE are ALLOWED to be converted to bytes
             # i.e. this is not the same case as previous two

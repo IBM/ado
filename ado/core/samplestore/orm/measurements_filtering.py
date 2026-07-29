@@ -24,7 +24,6 @@ MEASUREMENT_REQUEST_COLUMN_MAPPINGS = {
     "status": "status",
     "timestamp": "timestamp",
     "type": "type",
-    "experimentReference": "experiment_reference",
 }
 
 # Direct column mappings for measurement results

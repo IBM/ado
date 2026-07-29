@@ -281,7 +281,9 @@ class SQLSampleStore(ActiveSampleStore):
                 "insert_id", Integer, primary_key=True, autoincrement=True
             ),
             sqlalchemy.Column("uid", CHAR(36), nullable=False, unique=True, index=True),
-            sqlalchemy.Column("experiment_reference", Text(3145728), nullable=False),
+            sqlalchemy.Column(
+                "experiment_reference", Text(length=3145728), nullable=False
+            ),
             sqlalchemy.Column("operation_id", String(256), nullable=False),
             sqlalchemy.Column("request_index", Integer, nullable=False),
             sqlalchemy.Column("request_id", String(256), nullable=False),
@@ -1310,7 +1312,6 @@ class SQLSampleStore(ActiveSampleStore):
     def measurement_requests_count_for_operation(
         self,
         operation_id: str,
-        experiment_filter: str | None = None,
         status_filter: MeasurementRequestStateEnum | None = None,
     ) -> int:
 
@@ -1325,10 +1326,6 @@ class SQLSampleStore(ActiveSampleStore):
             query_text += "AND status = :status_filter "
             query_parameters["status_filter"] = status_filter.value
 
-        if experiment_filter:
-            query_text += "AND experiment_reference = :experiment_filter "
-            query_parameters["experiment_filter"] = experiment_filter
-
         try:
             with self.engine.begin() as connectable:
                 query = sqlalchemy.text(query_text).bindparams(**query_parameters)
@@ -1341,7 +1338,6 @@ class SQLSampleStore(ActiveSampleStore):
     def measurement_results_count_for_operation(
         self,
         operation_id: str,
-        experiment_filter: str | None = None,
         status_filter: MeasurementResultStateEnum | None = None,
     ) -> int:
         result_state_map = {
@@ -1355,10 +1351,6 @@ class SQLSampleStore(ActiveSampleStore):
                         FROM {self._tablename}_measurement_requests
                         WHERE operation_id = :operation_id
                         """  # noqa: S608 - self._tablename is not untrusted
-
-        if experiment_filter:
-            inner_query += "AND experiment_reference = :experiment_filter"
-            query_parameters["experiment_filter"] = experiment_filter
 
         query_text = f"""
                         SELECT COUNT(uid)
@@ -1688,9 +1680,11 @@ class SQLSampleStore(ActiveSampleStore):
     def samplestore_statistics(self) -> "SampleStoreStatistics":
         """Compute aggregate statistics for this sample store in a single query.
 
-        Issues exactly one query that returns three scalar counts via subqueries:
-        total entities, total measurement results, and distinct experiment
-        references.
+        Issues two queries: the first returns entity and result counts; the
+        second fetches DISTINCT experiment-reference JSON blobs from the results
+        table. Python then deduplicates them via ``ExperimentReference.__eq__``
+        / ``__hash__`` because doing so purely in SQL would be fragile and
+        dialect-specific.
 
         Returns:
             A :class:`~ado.core.samplestore.stats.SampleStoreStatistics`
@@ -1704,7 +1698,6 @@ class SQLSampleStore(ActiveSampleStore):
         from ado.core.samplestore.stats import SampleStoreStatistics
 
         entity_table = self._metadata.tables[self._tablename]
-        req_table = self._request_table
         res_table = self._result_table
 
         # Equivalent SQL:
@@ -1713,9 +1706,7 @@ class SQLSampleStore(ActiveSampleStore):
         #     (SELECT COUNT(identifier)
         #        FROM sqlsource_{id})                              AS number_of_entities,
         #     (SELECT COUNT(uid)
-        #        FROM sqlsource_{id}_measurement_results)          AS number_of_results,
-        #     (SELECT COUNT(DISTINCT experiment_reference)
-        #        FROM sqlsource_{id}_measurement_requests)         AS number_of_experiments
+        #        FROM sqlsource_{id}_measurement_results)          AS number_of_results
 
         stmt = select(
             select(func.count(entity_table.c.identifier))
@@ -1724,19 +1715,38 @@ class SQLSampleStore(ActiveSampleStore):
             select(func.count(res_table.c.uid))
             .scalar_subquery()
             .label("number_of_results"),
-            select(func.count(func.distinct(req_table.c.experiment_reference)))
-            .scalar_subquery()
-            .label("number_of_experiments"),
         )
+
+        # Fetch DISTINCT experiment-reference JSON blobs from results.
+        # DB-level DISTINCT collapses exact-version duplicates cheaply; Python
+        # then deduplicates by major-version hash via ExperimentReference.__hash__.
+        exp_ref_json = func.coalesce(
+            func.json_extract(res_table.c.data, "$.experimentReference"),
+            func.json_extract(
+                res_table.c.data,
+                "$.measurements[0].property.experimentReference",
+            ),
+        )
+        distinct_exp_ref_stmt = select(exp_ref_json).select_from(res_table).distinct()
 
         try:
             with self.engine.begin() as connectable:
-                row = connectable.execute(stmt).one()
-                return SampleStoreStatistics(
-                    number_of_entities=row.number_of_entities or 0,
-                    number_of_results=row.number_of_results or 0,
-                    number_of_experiments=row.number_of_experiments or 0,
-                )
+                counts_row = connectable.execute(stmt).one()
+                distinct_exp_ref_rows = connectable.execute(
+                    distinct_exp_ref_stmt
+                ).fetchall()
+
+            distinct_exp_refs = {
+                ExperimentReference.model_validate_json(exp_ref_json_blob)
+                for (exp_ref_json_blob,) in distinct_exp_ref_rows
+                if exp_ref_json_blob is not None
+            }
+
+            return SampleStoreStatistics(
+                number_of_entities=counts_row.number_of_entities or 0,
+                number_of_results=counts_row.number_of_results or 0,
+                number_of_experiments=len(distinct_exp_refs),
+            )
         except SQLAlchemyError as error:
             msg = f"Unable to get statistics for sample store {self._tablename}"
             self.log.critical(f"{msg}. Error: {error}")
@@ -1772,10 +1782,18 @@ class SQLSampleStore(ActiveSampleStore):
             reqres_table = self._request_result_table
             res_table = self._result_table
 
+            from sqlalchemy import func
+
             stmt = (
                 select(
                     req_table.c.uid,
-                    req_table.c.experiment_reference,
+                    func.coalesce(
+                        func.json_extract(res_table.c.data, "$.experimentReference"),
+                        func.json_extract(
+                            res_table.c.data,
+                            "$.measurements[0].property.experimentReference",
+                        ),
+                    ).label("experiment_reference"),
                     req_table.c.operation_id,
                     req_table.c.request_index,
                     req_table.c.request_id,
@@ -1841,25 +1859,47 @@ class SQLSampleStore(ActiveSampleStore):
     def measurement_request_by_id(
         self, measurement_request_id: str
     ) -> MeasurementRequest:
+        from sqlalchemy import func, select
+
+        req_table = self._request_table
+        reqres_table = self._request_result_table
+        res_table = self._result_table
+
+        stmt = (
+            select(
+                req_table.c.uid,
+                func.coalesce(
+                    func.json_extract(res_table.c.data, "$.experimentReference"),
+                    func.json_extract(
+                        res_table.c.data,
+                        "$.measurements[0].property.experimentReference",
+                    ),
+                ).label("experiment_reference"),
+                req_table.c.operation_id,
+                req_table.c.request_index,
+                req_table.c.request_id,
+                req_table.c.type,
+                req_table.c.status,
+                req_table.c.metadata,
+                req_table.c.timestamp,
+                res_table.c.entity_id,
+                res_table.c.data,
+            )
+            .select_from(req_table)
+            .join(reqres_table, reqres_table.c.request_uid == req_table.c.uid)
+            .join(res_table, reqres_table.c.result_uid == res_table.c.uid)
+            .where(req_table.c.request_id == measurement_request_id)
+            .order_by(
+                req_table.c.request_index,
+                req_table.c.insert_id,
+                reqres_table.c.entity_index,
+                reqres_table.c.insert_id,
+            )
+        )
 
         try:
             with self.engine.begin() as connectable:
-                query = sqlalchemy.text(f"""
-                    SELECT req.uid, req.experiment_reference, req.operation_id,
-                           req.request_index, req.request_id, req.type, req.status,
-                           req.metadata, req.timestamp, res.entity_id, res.data
-                    FROM (
-                        SELECT *
-                        FROM {self._tablename}_measurement_requests
-                        WHERE request_id = :measurement_request_id
-                    ) req
-                    JOIN {self._tablename}_measurement_requests_results reqres ON reqres.request_uid = req.uid
-                    JOIN {self._tablename}_measurement_results res ON reqres.result_uid = res.uid
-                    ORDER BY req.request_index, req.insert_id , reqres.entity_index , reqres.insert_id
-                    """).bindparams(  # noqa: S608 - self._tablename is not untrusted
-                    measurement_request_id=measurement_request_id
-                )
-                cur = connectable.execute(query)
+                cur = connectable.execute(stmt)
         except SQLAlchemyError as error:
             msg = f"Unable to get the measurement request for measurement request id {measurement_request_id}"
             self.log.critical(f"{msg}. Error: {error}")
@@ -2021,9 +2061,13 @@ class SQLSampleStore(ActiveSampleStore):
                 continue
 
             #
+            if experiment_reference is None:
+                raise ValueError(
+                    f"Missing experiment reference JSON for measurement request uid={uid}"
+                )
             if request_type == ReplayedMeasurement.__name__:
                 request = ReplayedMeasurement(
-                    experimentReference=ExperimentReference.referenceFromString(
+                    experimentReference=ExperimentReference.model_validate_json(
                         experiment_reference
                     ),
                     entities=[entity],
@@ -2036,7 +2080,7 @@ class SQLSampleStore(ActiveSampleStore):
                 )
             else:
                 request = MeasurementRequest(
-                    experimentReference=ExperimentReference.referenceFromString(
+                    experimentReference=ExperimentReference.model_validate_json(
                         experiment_reference
                     ),
                     entities=[entity],
@@ -2057,26 +2101,48 @@ class SQLSampleStore(ActiveSampleStore):
         return list(entries.values())
 
     def experiments_in_operation(self, operation_id: str) -> list[Experiment]:
+        from sqlalchemy import func, select
+
+        req_table = self._request_table
+        reqres_table = self._request_result_table
+        res_table = self._result_table
+
+        exp_ref_json = func.coalesce(
+            func.json_extract(res_table.c.data, "$.experimentReference"),
+            func.json_extract(
+                res_table.c.data,
+                "$.measurements[0].property.experimentReference",
+            ),
+        ).label("experiment_reference_json")
+
+        distinct_exp_ref_stmt = (
+            select(exp_ref_json)
+            .select_from(req_table)
+            .join(reqres_table, reqres_table.c.request_uid == req_table.c.uid)
+            .join(res_table, reqres_table.c.result_uid == res_table.c.uid)
+            .where(req_table.c.operation_id == operation_id)
+            .distinct()
+        )
+
         try:
             with self.engine.begin() as connectable:
-                query = sqlalchemy.text(f"""
-                    SELECT DISTINCT(experiment_reference)
-                    FROM {self._tablename}_measurement_requests
-                    WHERE operation_id = :operation_id
-                    """).bindparams(  # noqa: S608 - self._tablename is not untrusted
-                    operation_id=operation_id
-                )
-                cur = connectable.execute(query)
+                distinct_exp_ref_rows = connectable.execute(
+                    distinct_exp_ref_stmt
+                ).fetchall()
         except SQLAlchemyError as error:
             msg = f"Unable to get the experiments for operation {operation_id}"
             self.log.critical(f"{msg}. Error: {error}")
             raise SystemError(f"{msg}. Error: {error}") from error
 
+        distinct_exp_refs = {
+            ExperimentReference.model_validate_json(row.experiment_reference_json)
+            for row in distinct_exp_ref_rows
+            if row.experiment_reference_json is not None
+        }
+
         return [
-            self.experimentCatalog().experimentForReference(
-                ExperimentReference.referenceFromString(e[0])
-            )
-            for e in cur
+            self.experimentCatalog().experimentForReference(ref)
+            for ref in distinct_exp_refs
         ]
 
     def entity_identifiers_in_operations(

@@ -161,6 +161,9 @@ parameters:
   benchmark_retries: 3
   deployment_template: null
   developer_mode: false
+  free_environment_ttl: 300
+  gc_force_delete: false
+  gc_force_delete_threshold: 3
   hf_token: ''
   image_pull_secret_name: ''
   in_cluster: false
@@ -480,6 +483,30 @@ If you create a custom Docker image and upload it to a repository, please do not
 forget to create a corresponding Image pull secret in your assigned namespace.
 You must also update the value of the `image_pull_secret_name` parameter of the
 actuator configuration.
+
+#### Environment lifecycle and garbage collection parameters
+
+By default, vLLM deployments that finish an experiment are kept in a free pool
+for up to 5 minutes so that subsequent experiments sharing the same deployment
+configuration can reuse them rather than paying the full start-up cost.
+
+Three parameters control this behaviour:
+
+- `free_environment_ttl` (default: `300`): Time-to-live in seconds for idle
+  (free) Kubernetes environments. When an environment has been idle for at
+  least this many seconds the garbage-collector deletes it. Set to `0` to
+  delete every environment immediately upon release (disables the free pool).
+
+- `gc_force_delete` (default: `false`): When `true`, the garbage-collector
+  issues a force-delete (clears Kubernetes finalizers and uses
+  `grace_period_seconds=0`) for any deployment that is still present in
+  Kubernetes after `gc_force_delete_threshold` GC cycles following a normal
+  delete. When `false` (the default) the GC logs a warning each cycle and
+  keeps waiting for the deployment to disappear naturally.
+
+- `gc_force_delete_threshold` (default: `3`): Number of GC cycles a deployment
+  may remain present in Kubernetes after a delete has been issued before a
+  force-delete is triggered. Only used when `gc_force_delete` is `true`.
 
 ### Customising Experiment Protocol
 

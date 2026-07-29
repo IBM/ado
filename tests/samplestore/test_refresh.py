@@ -116,7 +116,9 @@ def test_fetch_measurement_results_all(
     )
 
     # Fetch all measurement results
-    results_by_entity, max_insert_id = store._fetch_measurement_results(min_insert_id=0)
+    results_by_entity, max_insert_id, _ = store._fetch_measurement_results(
+        min_insert_id=0
+    )
 
     assert len(results_by_entity) == 3
     assert max_insert_id > 0
@@ -152,7 +154,7 @@ def test_fetch_measurement_results_incremental(
     )
 
     # Get max insert_id from first batch
-    _, max_insert_id_batch1 = store._fetch_measurement_results(min_insert_id=0)
+    _, max_insert_id_batch1, _ = store._fetch_measurement_results(min_insert_id=0)
 
     # Add second batch of entities with measurements
     entities_batch2 = random_ml_multi_cloud_benchmark_performance_entities(2)
@@ -170,7 +172,7 @@ def test_fetch_measurement_results_incremental(
     )
 
     # Fetch only new results
-    results_by_entity, max_insert_id_batch2 = store._fetch_measurement_results(
+    results_by_entity, max_insert_id_batch2, _ = store._fetch_measurement_results(
         min_insert_id=max_insert_id_batch1
     )
 
@@ -313,7 +315,7 @@ def test_refresh_no_new_data(
     add_entities_to_sample_store(store, entities)
 
     # Trigger initial load
-    _ = store.entities
+    _ = store.get_entities(require_measurements=True)
 
     # Refresh without adding new data
     new_entities_count, new_measurements_count = store.refresh()
@@ -343,7 +345,7 @@ def test_refresh_adds_measurements_to_existing_entities(
     add_entities_to_sample_store(store, entities)
 
     # Trigger initial load
-    initial_entities = store.entities
+    initial_entities = store.get_entities(require_measurements=True)
     assert all(len(e.measurement_results) == 0 for e in initial_entities)
 
     # Add measurements to existing entities directly in DB
@@ -360,5 +362,39 @@ def test_refresh_adds_measurements_to_existing_entities(
     assert new_measurements_count == 2  # New measurements added
 
     # Verify measurements were added to existing entities
-    refreshed_entities = store.entities
+    refreshed_entities = store.get_entities(require_measurements=True)
     assert all(len(e.measurement_results) == 1 for e in refreshed_entities)
+
+
+def test_entities_after_partial_cache_population(
+    random_sql_sample_store: Callable[[], SQLSampleStore],
+    random_ml_multi_cloud_benchmark_performance_entities: Callable[[int], list[Entity]],
+) -> None:
+    """Test that .entities returns all DB rows even when cache was partially populated.
+
+    Regression test for issue 733: if addEntities() had already populated
+    _entities with some rows, the old `if not self._entities:` guard would
+    skip the full DB load, returning only the cached subset.
+    """
+    store = random_sql_sample_store()
+
+    # Add both batches — addEntities writes to both the DB and _entities,
+    # but never sets _all_entities_loaded, so the flag stays False.
+    entities_batch1 = random_ml_multi_cloud_benchmark_performance_entities(3)
+    entities_batch2 = random_ml_multi_cloud_benchmark_performance_entities(2)
+    store.addEntities(entities=entities_batch1)
+    store.addEntities(entities=entities_batch2)
+
+    # Drop batch2 from the in-memory cache to simulate a partial-cache state
+    # (e.g. batch2 was added by another process that this instance never saw).
+    for entity in entities_batch2:
+        del store._entities[entity.identifier]
+
+    # .entities must trigger a full DB load and return all 5 rows
+    import warnings
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", DeprecationWarning)
+        all_identifiers = {e.identifier for e in store.entities}
+    expected_identifiers = {e.identifier for e in entities_batch1 + entities_batch2}
+    assert all_identifiers == expected_identifiers

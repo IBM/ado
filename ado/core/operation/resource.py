@@ -4,7 +4,7 @@
 import enum
 import typing
 import uuid
-from typing import Annotated
+from typing import Annotated, Literal
 
 import pydantic
 
@@ -81,7 +81,9 @@ class OperationProvenanceInfo(ProvenanceInfo):
 
 class OperationResource(ADOResource):
     version: Annotated[str, pydantic.Field()] = "v1"
-    kind: Annotated[CoreResourceKinds, pydantic.Field()] = CoreResourceKinds.OPERATION
+    kind: Annotated[Literal[CoreResourceKinds.OPERATION], pydantic.Field()] = (
+        CoreResourceKinds.OPERATION
+    )
     operationType: Annotated[
         DiscoveryOperationEnum, pydantic.Field(description="The type of this operation")
     ]

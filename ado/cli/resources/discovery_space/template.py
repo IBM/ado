@@ -53,6 +53,8 @@ def template_discovery_space(parameters: AdoTemplateCommandParameters) -> None:
     serialise_pydantic_model(
         model=model_instance,
         output_path=parameters.output_file,
+        exclude_none=True,
+        context={"minimize_output": True},
     )
 
     if parameters.include_schema:

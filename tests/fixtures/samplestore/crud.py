@@ -57,16 +57,6 @@ def add_entities_to_sample_store() -> Callable[[SQLSampleStore, list[Entity]], N
     return _add_entities_to_sample_store
 
 
-@pytest.fixture
-def upsert_entities_to_sample_store() -> Callable[[SQLSampleStore, list[Entity]], None]:
-    def _upsert_entities_to_sample_store(
-        sql_sample_store: SQLSampleStore, entities: list[Entity]
-    ) -> None:
-        sql_sample_store.upsertEntities(entities)
-
-    return _upsert_entities_to_sample_store
-
-
 ##################################################################
 #
 #                         READ

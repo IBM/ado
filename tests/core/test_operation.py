@@ -427,3 +427,13 @@ def test_script_operator_wrong_kind_raises() -> None:
                 )
             },
         )
+        
+        
+def test_operation_resource_wrong_kind_raises_validation_error(
+    operation_resource: OperationResource,
+) -> None:
+    """OperationResource rejects a kind value other than OPERATION."""
+    data = operation_resource.model_dump()
+    data["kind"] = CoreResourceKinds.DISCOVERYSPACE
+    with pytest.raises(pydantic.ValidationError):
+        OperationResource.model_validate(data)

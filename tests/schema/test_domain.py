@@ -1087,3 +1087,188 @@ def test_binary_variable_type_error_message_suggests_discrete() -> None:
         PropertyDomain(
             variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE, values=[True]
         )
+
+
+# ---------------------------------------------------------------------------
+# Tests for PropertyDomain.overlaps()
+# ---------------------------------------------------------------------------
+
+
+def test_overlaps_continuous_with_continuous() -> None:
+    """overlaps() between two continuous domains"""
+    d1 = PropertyDomain(domainRange=[0, 10])
+    d2 = PropertyDomain(domainRange=[5, 15])
+    d3 = PropertyDomain(domainRange=[10, 20])  # shares no point with d1 ([0,10))
+    unbounded = PropertyDomain(variableType=VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE)
+
+    assert d1.overlaps(d2), "overlapping ranges should overlap (d1→d2)"
+    assert d2.overlaps(d1), "overlapping ranges should overlap (d2→d1)"
+    assert not d1.overlaps(d3), "[0,10) ∩ [10,20) should be empty"
+    assert not d3.overlaps(d1), "[10,20) ∩ [0,10) should be empty"
+    assert d1.overlaps(unbounded), "bounded overlaps unbounded"
+    assert unbounded.overlaps(d1), "unbounded overlaps bounded"
+
+
+def test_overlaps_continuous_with_discrete() -> None:
+    """overlaps() between continuous and discrete domains"""
+    cont = PropertyDomain(domainRange=[0, 10])
+    disc_inside = PropertyDomain(values=[2, 4, 6])
+    disc_outside = PropertyDomain(values=[10, 12])  # 10 is excluded from [0,10)
+    disc_unbounded = PropertyDomain(
+        variableType=VariableTypeEnum.DISCRETE_VARIABLE_TYPE, interval=1
+    )
+
+    assert cont.overlaps(disc_inside)
+    assert disc_inside.overlaps(cont)
+    assert not cont.overlaps(disc_outside)
+    assert not disc_outside.overlaps(cont)
+    assert cont.overlaps(disc_unbounded)
+    assert disc_unbounded.overlaps(cont)
+
+
+def test_overlaps_continuous_with_binary() -> None:
+    """overlaps() between continuous and binary domains"""
+    binary = PropertyDomain(variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE)
+    cont_contains_binary = PropertyDomain(domainRange=[-1, 2])  # contains 0 and 1
+    cont_missing_one = PropertyDomain(domainRange=[0, 1])  # 0 in, 1 excluded
+    cont_no_binary = PropertyDomain(domainRange=[-5, -1])
+
+    assert cont_contains_binary.overlaps(binary)
+    assert binary.overlaps(cont_contains_binary)
+    assert cont_missing_one.overlaps(binary), "0 is in [0,1)"
+    assert not cont_no_binary.overlaps(binary)
+
+
+def test_overlaps_continuous_with_categorical() -> None:
+    """Continuous and categorical domains never overlap"""
+    cont = PropertyDomain(domainRange=[0, 10])
+    cat = PropertyDomain(values=["A", "B"])
+    assert not cont.overlaps(cat)
+    assert not cat.overlaps(cont)
+
+
+def test_overlaps_continuous_with_unknown_and_open_cat() -> None:
+    """UNKNOWN and OPEN_CATEGORICAL always overlap continuous"""
+    cont = PropertyDomain(domainRange=[0, 10])
+    unknown = PropertyDomain(variableType=VariableTypeEnum.UNKNOWN_VARIABLE_TYPE)
+    open_cat = PropertyDomain(
+        variableType=VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE
+    )
+
+    assert cont.overlaps(unknown)
+    assert unknown.overlaps(cont)
+    assert cont.overlaps(open_cat)
+    assert open_cat.overlaps(cont)
+
+
+def test_overlaps_discrete_with_discrete() -> None:
+    """overlaps() between two discrete domains"""
+    d1 = PropertyDomain(values=[1, 2, 3])
+    d2 = PropertyDomain(values=[3, 4, 5])  # shares 3
+    d3 = PropertyDomain(values=[4, 5, 6])  # no intersection with d1
+    unbounded1 = PropertyDomain(
+        variableType=VariableTypeEnum.DISCRETE_VARIABLE_TYPE, interval=1
+    )
+    unbounded2 = PropertyDomain(
+        variableType=VariableTypeEnum.DISCRETE_VARIABLE_TYPE, interval=2
+    )
+
+    assert d1.overlaps(d2), "shared value 3 → overlap (d1→d2)"
+    assert d2.overlaps(d1), "shared value 3 → overlap (d2→d1)"
+    assert not d1.overlaps(d3)
+    assert not d3.overlaps(d1)
+    assert unbounded1.overlaps(unbounded2), "unbounded discrete domains overlap"
+    assert unbounded1.overlaps(d1), "unbounded discrete overlaps bounded"
+
+
+def test_overlaps_discrete_with_categorical() -> None:
+    """overlaps() between discrete and categorical domains"""
+    disc = PropertyDomain(values=[1, 2, 3])
+    cat_shared = PropertyDomain(values=[3, "X"])  # 3 is shared
+    cat_no_shared = PropertyDomain(values=["X", "Y"])
+
+    assert disc.overlaps(cat_shared)
+    assert cat_shared.overlaps(disc)
+    assert not disc.overlaps(cat_no_shared)
+    assert not cat_no_shared.overlaps(disc)
+
+
+def test_overlaps_discrete_with_binary() -> None:
+    """overlaps() between discrete and binary domains"""
+    binary = PropertyDomain(variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE)
+    disc_with_zero = PropertyDomain(values=[0, 5])
+    disc_with_one = PropertyDomain(values=[1, 5])
+    disc_no_binary = PropertyDomain(values=[2, 3])
+
+    assert disc_with_zero.overlaps(binary)
+    assert binary.overlaps(disc_with_zero)
+    assert disc_with_one.overlaps(binary)
+    assert binary.overlaps(disc_with_one)
+    assert not disc_no_binary.overlaps(binary)
+    assert not binary.overlaps(disc_no_binary)
+
+
+def test_overlaps_categorical_with_categorical() -> None:
+    """overlaps() between two categorical domains"""
+    c1 = PropertyDomain(values=["A", "B", "C"])
+    c2 = PropertyDomain(values=["C", "D"])  # shares C
+    c3 = PropertyDomain(values=["D", "E"])  # no intersection
+
+    assert c1.overlaps(c2)
+    assert c2.overlaps(c1)
+    assert not c1.overlaps(c3)
+    assert not c3.overlaps(c1)
+
+
+def test_overlaps_categorical_with_binary() -> None:
+    """overlaps() between categorical and binary domains"""
+    binary = PropertyDomain(variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE)
+    cat_has_zero = PropertyDomain(values=[0, "X"])
+    cat_no_binary = PropertyDomain(values=["X", "Y"])
+
+    assert cat_has_zero.overlaps(binary)
+    assert binary.overlaps(cat_has_zero)
+    assert not cat_no_binary.overlaps(binary)
+    assert not binary.overlaps(cat_no_binary)
+
+
+def test_overlaps_binary_with_binary() -> None:
+    """Two binary domains always overlap (both are {0,1})"""
+    b1 = PropertyDomain(variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE)
+    b2 = PropertyDomain(variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE)
+    assert b1.overlaps(b2)
+    assert b2.overlaps(b1)
+
+
+def test_overlaps_unknown_always_true() -> None:
+    """UNKNOWN domains overlap with everything"""
+    unknown = PropertyDomain(variableType=VariableTypeEnum.UNKNOWN_VARIABLE_TYPE)
+    others = [
+        PropertyDomain(domainRange=[0, 10]),
+        PropertyDomain(values=[1, 2, 3]),
+        PropertyDomain(values=["A", "B"]),
+        PropertyDomain(variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE),
+        PropertyDomain(variableType=VariableTypeEnum.UNKNOWN_VARIABLE_TYPE),
+        PropertyDomain(variableType=VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE),
+    ]
+    for other in others:
+        assert unknown.overlaps(other), f"UNKNOWN should overlap {other.variableType}"
+        assert other.overlaps(unknown), f"{other.variableType} should overlap UNKNOWN"
+
+
+def test_overlaps_open_categorical_always_true() -> None:
+    """OPEN_CATEGORICAL domains overlap with everything"""
+    open_cat = PropertyDomain(
+        variableType=VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE
+    )
+    others = [
+        PropertyDomain(domainRange=[0, 10]),
+        PropertyDomain(values=[1, 2, 3]),
+        PropertyDomain(values=["A", "B"]),
+        PropertyDomain(variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE),
+        PropertyDomain(variableType=VariableTypeEnum.UNKNOWN_VARIABLE_TYPE),
+        PropertyDomain(variableType=VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE),
+    ]
+    for other in others:
+        assert open_cat.overlaps(other), f"OPEN_CAT should overlap {other.variableType}"
+        assert other.overlaps(open_cat), f"{other.variableType} should overlap OPEN_CAT"

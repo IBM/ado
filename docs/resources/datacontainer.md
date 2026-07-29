@@ -143,11 +143,10 @@ If you do `ado get datacontainer $RESOURCEID -o yaml > data.yaml`. Then the
 following snippet shows how to access the data in python
 
 ```python
-
 from ado.core.datacontainer.resource import DataContainer
 import yaml
 
-with open('data.yaml') as f:
+with open("data.yaml") as f:
     d = DataContainer.model_validate(yaml.safe_load(f))
 
 # for tabular data

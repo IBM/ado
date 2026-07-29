@@ -40,8 +40,8 @@ class ComponentsManager:
         in_cluster: bool = True,
         verify_ssl: bool = True,
         init_pvc: bool = False,
-        pvc_name: None | str = None,
-        pvc_template: None | str = None,
+        pvc_name: str | None = None,
+        pvc_template: str | None = None,
     ) -> None:
         """
         set up for configuration usage
@@ -150,7 +150,7 @@ class ComponentsManager:
 
         logger.debug(f"Deleted pvc {self.pvc_name} from namespace {self.namespace}")
 
-    def create_pvc(self, pvc_name: str, template: None | str = None) -> None:
+    def create_pvc(self, pvc_name: str, template: str | None = None) -> None:
         """
         create service for model
         :param pvc_name: pvc name

@@ -5,6 +5,7 @@
 import json
 import pathlib
 from collections.abc import Callable
+from typing import Any
 
 import pytest
 import yaml
@@ -15,6 +16,8 @@ from ado.core.discoveryspace.config import (
 )
 from ado.core.discoveryspace.resource import DiscoverySpaceResource
 from ado.metastore.sqlstore import SQLStore
+from ado.schema.domain import PropertyDomain
+from ado.schema.property import ConstitutiveProperty
 
 
 @pytest.fixture
@@ -148,3 +151,94 @@ def discovery_space_resource_from_file() -> DiscoverySpaceResource:
         conf = DiscoverySpaceConfiguration(**yaml.safe_load(f))
 
     return DiscoverySpaceResource(config=conf)
+
+
+@pytest.fixture
+def make_continuous_space_configuration() -> Callable[
+    [list[float], str], DiscoverySpaceConfiguration
+]:
+    """Factory: build a DiscoverySpaceConfiguration with a single continuous property over a given domainRange.
+
+    Usage::
+
+        def test_foo(make_continuous_space_configuration):
+            config = make_continuous_space_configuration([0, 10])
+    """
+
+    def _make(
+        domain_range: list[float],
+        identifier: str = "x",
+    ) -> DiscoverySpaceConfiguration:
+        return DiscoverySpaceConfiguration(
+            entitySpace=[
+                ConstitutiveProperty(
+                    identifier=identifier,
+                    propertyDomain=PropertyDomain(domainRange=domain_range),
+                )
+            ]
+        )
+
+    return _make
+
+
+@pytest.fixture
+def make_discrete_space_configuration() -> Callable[
+    [list[Any], str], DiscoverySpaceConfiguration
+]:
+    """Factory: build a DiscoverySpaceConfiguration with a single discrete property over a given set of values.
+
+    Usage::
+
+        def test_foo(make_discrete_space_configuration):
+            config = make_discrete_space_configuration([1, 2, 3])
+    """
+
+    def _make(
+        values: list[Any],
+        identifier: str = "n",
+    ) -> DiscoverySpaceConfiguration:
+        return DiscoverySpaceConfiguration(
+            entitySpace=[
+                ConstitutiveProperty(
+                    identifier=identifier,
+                    propertyDomain=PropertyDomain(values=values),
+                )
+            ]
+        )
+
+    return _make
+
+
+@pytest.fixture
+def make_multi_prop_space_configuration() -> Callable[
+    [list[tuple[str, PropertyDomain]]],
+    DiscoverySpaceConfiguration,
+]:
+    """Factory: build a DiscoverySpaceConfiguration from an explicit list of (identifier, PropertyDomain) pairs.
+
+    Usage::
+
+        def test_foo(make_multi_prop_space_configuration):
+            config = make_multi_prop_space_configuration([
+                ("x", PropertyDomain(domainRange=[0, 10])),
+                ("y", PropertyDomain(values=["A", "B"])),
+            ])
+    """
+
+    def _make(
+        properties: list[tuple[str, PropertyDomain]],
+    ) -> DiscoverySpaceConfiguration:
+        return DiscoverySpaceConfiguration(
+            entitySpace=[
+                ConstitutiveProperty(identifier=ident, propertyDomain=domain)
+                for ident, domain in properties
+            ]
+        )
+
+    return _make
+
+
+@pytest.fixture
+def space_configuration_none_entity_space() -> DiscoverySpaceConfiguration:
+    """DiscoverySpaceConfiguration with no entity space defined."""
+    return DiscoverySpaceConfiguration(entitySpace=None)

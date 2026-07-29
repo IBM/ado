@@ -13,10 +13,20 @@ def serialise_pydantic_model(
     model: pydantic.BaseModel,
     output_path: Path | None,
     suppress_success_message: bool = False,
+    context: dict | None = None,
+    exclude_none: bool = False,
+    exclude_unset: bool = False,
+    exclude_defaults: bool = False,
 ) -> None:
     from ado.utilities.output import pydantic_model_as_yaml
 
-    yaml_content = pydantic_model_as_yaml(model)
+    yaml_content = pydantic_model_as_yaml(
+        model,
+        exclude_none=exclude_none,
+        exclude_unset=exclude_unset,
+        exclude_defaults=exclude_defaults,
+        context=context,
+    )
 
     if output_path is None:
         # Write to stdout

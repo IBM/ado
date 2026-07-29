@@ -170,7 +170,9 @@ from ado.core.discoveryspace.space import DiscoverySpace
 with open("my_context.yaml") as f:
     c = ProjectContext.model_validate(yaml.safe_load(f))
 
-space = DiscoverySpace.from_stored_configuration(project_context=c, space_identifier='space_abc123')
+space = DiscoverySpace.from_stored_configuration(
+    project_context=c, space_identifier="space_abc123"
+)
 # Get the sampled and measured entities. Returns a pandas DataFrame
 table = space.measuredEntitiesTable()
 # Get the matching. Returns a pandas DataFrame

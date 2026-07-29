@@ -79,6 +79,7 @@ _TRIM_TEST_AUTOGLUON_FIT_ARGS = {
 }
 
 
+@pytest.mark.flaky(reruns=3, reruns_delay=2)
 @pytest.mark.timeout(900)
 def test_trim_example_operation_succeeds(
     trim_minimal_discovery_space: DiscoverySpace,

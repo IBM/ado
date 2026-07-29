@@ -269,6 +269,7 @@ def get_resource(
             Filter results to resources related to the given source resource,
             including through multi-hop relationships.
             Specify as kind=id (e.g. samplestore=store-123).
+            The source kind must differ from the requested resource kind.
             Incompatible with specifying a direct resource_id argument or --use-latest.
             """,
             show_default=False,

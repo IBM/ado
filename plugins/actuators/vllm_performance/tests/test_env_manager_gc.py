@@ -349,8 +349,8 @@ class TestGcConfirmDeletions:
         )
         assert env not in manager.deleting_environments
 
-    def test_force_delete_api_error_env_still_dropped(self) -> None:
-        """An ApiException during force-delete is logged; env is still dropped from watch."""
+    def test_force_delete_api_error_env_retained(self) -> None:
+        """An ApiException during force-delete is logged; env is retained in watch list."""
         from kubernetes.client import ApiException
 
         threshold = 3
@@ -364,7 +364,7 @@ class TestGcConfirmDeletions:
 
         manager._gc_confirm_deletions()
 
-        assert env not in manager.deleting_environments
+        assert env in manager.deleting_environments
 
 
 # ---------------------------------------------------------------------------

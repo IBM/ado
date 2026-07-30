@@ -1488,6 +1488,12 @@ class SQLResourceStore(ResourceStore):
 
                     session.execute(
                         sqlalchemy.text(
+                            r"DELETE FROM resource_relationships WHERE subject_identifier=:identifier"
+                        ).bindparams(identifier=identifier)
+                    )
+
+                    session.execute(
+                        sqlalchemy.text(
                             r"DELETE FROM resources "
                             r"WHERE identifier=:identifier AND kind=:kind"
                         ).bindparams(

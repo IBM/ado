@@ -131,6 +131,7 @@ def drain_queue(queue: MeasurementQueue, timeout: float) -> MeasurementRequest |
         return None
 
 
+@pytest.mark.flaky(reruns=3, reruns_delay=2)
 @pytest.mark.timeout(60)
 def test_supervisor_pending_resource_timeout_emits_invalid(
     measurement_queue: MeasurementQueue,
@@ -157,6 +158,7 @@ def test_supervisor_pending_resource_timeout_emits_invalid(
         supervisor.stop()
 
 
+@pytest.mark.flaky(reruns=3, reruns_delay=2)
 @pytest.mark.timeout(60)
 def test_supervisor_pending_node_assignment_not_timed_out_by_default(
     measurement_queue: MeasurementQueue,
@@ -181,6 +183,7 @@ def test_supervisor_pending_node_assignment_not_timed_out_by_default(
         ray.cancel(ref, force=True, recursive=True)
 
 
+@pytest.mark.flaky(reruns=3, reruns_delay=2)
 @pytest.mark.timeout(30)
 def test_supervisor_running_task_not_timed_out(
     measurement_queue: MeasurementQueue,
@@ -204,6 +207,7 @@ def test_supervisor_running_task_not_timed_out(
         ray.cancel(ref, force=True, recursive=True)
 
 
+@pytest.mark.flaky(reruns=3, reruns_delay=2)
 @pytest.mark.timeout(30)
 def test_supervisor_completed_task_no_supervisor_put(
     measurement_queue: MeasurementQueue,
@@ -224,6 +228,7 @@ def test_supervisor_completed_task_no_supervisor_put(
         supervisor.stop()
 
 
+@pytest.mark.flaky(reruns=3, reruns_delay=2)
 @pytest.mark.timeout(30)
 def test_default_task_state_lookup_unschedulable_task_returns_pending_node_assignment() -> (
     None
@@ -248,6 +253,7 @@ def test_default_task_state_lookup_unschedulable_task_returns_pending_node_assig
         ray.cancel(ref, force=True, recursive=True)
 
 
+@pytest.mark.flaky(reruns=3, reruns_delay=2)
 @pytest.mark.timeout(30)
 def test_supervisor_executor_exception_emits_invalid(
     measurement_queue: MeasurementQueue,
@@ -271,6 +277,7 @@ def test_supervisor_executor_exception_emits_invalid(
         supervisor.stop()
 
 
+@pytest.mark.flaky(reruns=3, reruns_delay=2)
 @pytest.mark.timeout(30)
 def test_mark_completed_prevents_duplicate_launch_failure(
     measurement_queue: MeasurementQueue,

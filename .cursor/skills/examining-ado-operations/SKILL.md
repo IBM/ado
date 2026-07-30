@@ -128,7 +128,7 @@ If the operation is finished,
 - Query the metastore for an existing document linked to this operation:
 
   ```bash
-  uv run ado get document -q 'config.relatedResources=OPERATION_ID'
+  uv run ado get document -q 'config.relatedResources.id=OPERATION_ID'
   ```
 
   If a document is found, retrieve its metadata (name, created timestamp) and
@@ -136,8 +136,7 @@ If the operation is finished,
   if that report indicated the operation was finished.
   - If yes, ask the user whether to replace it with a new report. If they
     agree, delete the existing document (`uv run ado delete document
-    DOCUMENT_ID`) once the new report has been created. See
-    [resource-yaml-creation — Document](../resource-yaml-creation/SKILL.md#document).
+    DOCUMENT_ID`) once the new report has been created.
   - If no, continue with creating a new report.
 
 ### Step 3: Review the operator

@@ -16,6 +16,7 @@ def template_document(parameters: AdoTemplateCommandParameters) -> None:
 
     model_instance = DocumentConfiguration(
         content="# Report title\n\nReport body.",
+        contentType="markdown",
         relatedResources=[],
     )
     serialise_pydantic_model(

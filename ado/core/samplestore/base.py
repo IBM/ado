@@ -19,11 +19,10 @@ from ado.schema.experiment import Experiment
 from ado.schema.property import (
     ConstitutivePropertyDescriptor,
 )
-from ado.schema.property_value import PropertyValue
+from ado.schema.property_value import ConstitutivePropertyValue
 from ado.schema.request import MeasurementRequest
 
 if typing.TYPE_CHECKING:
-    from ado.core.discoveryspace.stats import DiscoverySpaceStatistics
     from ado.core.operation.stats import OperationMeasurementStatistics
     from ado.core.samplestore.config import (
         SampleStoreConfiguration,
@@ -32,6 +31,7 @@ if typing.TYPE_CHECKING:
     )
     from ado.core.samplestore.resource import SampleStoreResource
     from ado.schema.observed_property import ObservedProperty
+    from ado.schema.reference import ExperimentReference
 
 
 class SampleStore(abc.ABC):
@@ -60,7 +60,12 @@ class SampleStore(abc.ABC):
     @property
     @abc.abstractmethod
     def entities(self) -> list[Entity]:  # pragma: nocover
-        pass
+        """Return all entities with their measurement results.
+
+        Deprecated:
+            This property emits a ``DeprecationWarning`` on all concrete
+            implementations. Prefer ``get_entities()`` for new code.
+        """
 
     @property
     @abc.abstractmethod
@@ -68,45 +73,90 @@ class SampleStore(abc.ABC):
         pass
 
     @abc.abstractmethod
+    def get_entities(
+        self,
+        identifiers: str | set[str] | None = None,
+        *,
+        require_measurements: bool,
+        refresh: bool = False,
+    ) -> list[Entity]:  # pragma: nocover
+        """Retrieve entities from the store.
+
+        Args:
+            identifiers: Which entities to return.
+                - ``None`` (default): all entities.
+                - ``str``: a single entity identifier.
+                - ``set[str]``: an explicit subset of entity identifiers.
+            require_measurements: When ``True``, measurement results are
+                fetched and attached to every returned entity.
+                Must be supplied explicitly by the caller.
+            refresh: When ``True``, cached data is evicted before fetching.
+                Defaults to ``False``.
+
+        Returns:
+            List of ``Entity`` objects.
+        """
+
+    @abc.abstractmethod
     def containsEntityWithIdentifier(self, entity_id: str) -> bool:  # pragma: nocover
         pass
 
     def entitiesWithConstitutivePropertyValues(
-        self, values: list[PropertyValue]
+        self, values: list[ConstitutivePropertyValue]
     ) -> list[Entity]:
-        """Returns entities with which have the given constitutive property values
+        """Return entities whose constitutive property values match all of the given values.
 
-        Note: This is a non-optimized base method provided for convenience
-        It will first get all entities then iterate over them.
+        Note: This is a non-optimized base method provided for convenience.
+        It fetches all entities then filters in Python.
 
-        Params:
-            values: A list of PropertyValue instances whose
-            properties are Constitutive Properties
+        Args:
+            values: A list of ``ConstitutivePropertyValue`` instances.  Every
+                item must have a ``ConstitutivePropertyDescriptor`` as its
+                ``property`` field; a ``ValueError`` is raised otherwise.
 
         Returns:
-            A list of Entities in the receiver which have constitutivePropertyValues.
-            If there are no matches the list will be empty.
-        """
+            A list of entities whose constitutive property values include every
+            value in *values*.  Returns an empty list when there are no matches.
 
-        def _same(entity: Entity, searchValues: list[PropertyValue]) -> bool:
-            # Does this entity have the same properties
-            unmatchedProperties = [
+        Raises:
+            ValueError: If any item in *values* is not a
+                ``ConstitutivePropertyValue`` (i.e. its ``property`` field is not
+                a ``ConstitutivePropertyDescriptor``).
+        """
+        from ado.schema.property import ConstitutivePropertyDescriptor
+
+        non_constitutive_values = [
+            val
+            for val in values
+            if not isinstance(val.property, ConstitutivePropertyDescriptor)
+        ]
+        if non_constitutive_values:
+            invalid_properties = ", ".join(
+                repr(v.property) for v in non_constitutive_values
+            )
+            raise ValueError(
+                f"entitiesWithConstitutivePropertyValues received non-constitutive "
+                f"property values: {invalid_properties}"
+            )
+
+        def _same(
+            entity: Entity, search_values: list[ConstitutivePropertyValue]
+        ) -> bool:
+            unmatched_props = [
                 val
-                for val in searchValues
+                for val in search_values
                 if entity.valueForProperty(val.property) is None
             ]
-            if len(unmatchedProperties) == 0:
-                unmatchedValues = [
-                    val
-                    for val in searchValues
-                    if entity.valueForProperty(val.property).value != val.value
-                ]
+            if unmatched_props:
+                return False
+            return all(
+                entity.valueForProperty(val.property).value == val.value
+                for val in search_values
+            )
 
-                return len(unmatchedValues) == 0
-            return False
-
-        all_entities = self.entities
-        return [e for e in all_entities if _same(e, values)]
+        return [
+            e for e in self.get_entities(require_measurements=True) if _same(e, values)
+        ]
 
     @property
     @abc.abstractmethod
@@ -319,7 +369,9 @@ class SampleStore(abc.ABC):
                 f"Copying {sample_store_source.numberOfEntities} entities from "
                 f"{sample_store_source.identifier} to {sample_store.identifier}"
             )
-            sample_store.add_external_entities(sample_store_source.entities)
+            sample_store.add_external_entities(
+                sample_store_source.get_entities(require_measurements=True)
+            )
 
         return sample_store
 
@@ -467,13 +519,16 @@ class ActiveSampleStore(SampleStore, ABC):
     def entityWithIdentifier(
         self, entityIdentifier: str
     ) -> Entity | None:  # pragma: nocover
-        pass
+        """Deprecated: use :meth:`get_entities` instead.
+
+        Returns entity if it is in the store, otherwise returns ``None``.
+        """
 
     @abc.abstractmethod
     def entities_with_identifiers(
         self, entity_identifiers: set[str] | list[str]
     ) -> list[Entity]:
-        """Fetch the entities given by entity_identifiers.
+        """Deprecated: use :meth:`get_entities` instead.
 
         Args:
             entity_identifiers: Set or list of entity identifiers to fetch
@@ -501,6 +556,27 @@ class ActiveSampleStore(SampleStore, ABC):
 
         Returns:
             List of Entity objects that were sampled in the specified operation(s).
+        """
+
+    @abc.abstractmethod
+    def entity_identifiers_in_operations(
+        self,
+        operation_ids: str | set[str],
+        group_by_operation: bool = False,
+    ) -> "set[str] | dict[str, set[str]]":
+        """Get the set of entity identifiers sampled in one or more operations.
+
+        Args:
+            operation_ids: A single operation identifier or a set of operation
+                identifiers to look up entity identifiers for.
+            group_by_operation: When True, return a dict mapping each operation
+                ID to its set of entity identifiers. When False (default),
+                return a flat set of entity identifiers across all operations.
+
+        Returns:
+            A flat set of entity identifier strings when group_by_operation is
+            False, or a dict mapping operation ID to set of entity identifiers
+            when group_by_operation is True.
         """
 
     def entities_in_operation(self, operation_ids: str | set[str]) -> list[Entity]:
@@ -537,34 +613,35 @@ class ActiveSampleStore(SampleStore, ABC):
         """
 
     @abc.abstractmethod
-    def space_entity_statistics(
-        self,
-        space_ids_to_operation_ids: dict[str, set[str]],
-    ) -> "dict[str, DiscoverySpaceStatistics]":
-        """Compute entity-level statistics for one or more discovery spaces.
-
-        Issues a single SQL query for all spaces at once, then groups results
-        by space ID in Python.
-
-        The ``number_matching_entities`` and
-        ``number_matching_entities_with_measurements`` fields require
-        Python-side ``isEntityInSpace`` evaluation and are not computed here;
-        they are always returned as ``None``.
+    def entities_with_valid_measurements(
+        self, entity_identifiers: set[str]
+    ) -> set[str]:
+        """Return the subset of entity_identifiers that has at least one valid measurement.
 
         Args:
-            space_ids_to_operation_ids: Mapping of space ID to the set of
-                operation IDs that belong to that space.  Spaces with an empty
-                operation-ID set are returned with ``number_measured_entities``
-                equal to ``0``.  An empty mapping returns an empty dict.
+            entity_identifiers: Set of entity identifier strings to check.  An empty
+                set returns an empty set without issuing any query.
 
         Returns:
-            A ``dict`` keyed by space ID.  Each value is a
-            :class:`~ado.core.discoveryspace.stats.DiscoverySpaceStatistics`
-            with ``number_measured_entities`` populated and all other fields at
-            their defaults (``None``).
+            Subset of *entity_identifiers* (possibly equal) for which at least one
+            valid measurement result exists.  Always a subset of the input.
+        """
 
-        Raises:
-            SystemError: If the underlying SQL query fails.
+    @abc.abstractmethod
+    def entity_experiment_references(
+        self, entity_identifiers: set[str]
+    ) -> "dict[str, set[ExperimentReference]]":
+        """Return the experiment references covered by valid measurements per entity.
+
+        Args:
+            entity_identifiers: Set of entity identifier strings to query.  An empty
+                set returns an empty dict without issuing any query.
+
+        Returns:
+            ``dict`` mapping each entity identifier to the set of
+            :class:`~ado.schema.reference.ExperimentReference` objects for which it
+            has at least one valid measurement result.  Entity identifiers with no
+            valid results are omitted from the returned dict.
         """
 
 

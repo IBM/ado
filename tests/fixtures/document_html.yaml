@@ -1,0 +1,11 @@
+# Copyright IBM Corporation 2025, 2026
+# SPDX-License-Identifier: MIT
+metadata:
+  name: Example HTML report
+  description: Summary report stored as HTML
+contentType: html
+content: |
+  <html><body><h1>Operation report</h1><p>Example HTML body.</p></body></html>
+relatedResources:
+  - id: operation-test-12345678
+    role: parent

@@ -153,7 +153,7 @@ uv run ado show related space SPACE_ID
 - Query the metastore for an existing document linked to this space:
 
   ```bash
-  uv run ado get document -q 'config.relatedResources=SPACE_ID'
+  uv run ado get document -q 'config.relatedResources.id=SPACE_ID'
   ```
 
   If a document is found, retrieve its metadata (name, created timestamp) and
@@ -164,8 +164,7 @@ uv run ado show related space SPACE_ID
   - The number of measured entities has increased
 - If yes to either, ask the user whether to replace it with a new report. If
   they agree, delete the existing document (`uv run ado delete document
-  DOCUMENT_ID`) once the new report has been created. See
-  [resource-yaml-creation — Document](../resource-yaml-creation/SKILL.md#document).
+  DOCUMENT_ID`) once the new report has been created.
 - If neither of the above are true, ask the user if they want to write a new
   report or use the existing one
   - As nothing has changed, the only purpose of creating a new report is if a
@@ -229,7 +228,19 @@ Structure the report as:
    outliers, correlations
 5. **Related operations** – which operations ran on this space and their status
 
-Store the report as a document resource (see
-[resource-yaml-creation — Document](../resource-yaml-creation/SKILL.md#document)).
-Set `relatedResources` to the space id and the related operation ids from
-step 2.
+Store the report by creating a document resource:
+
+```yaml
+metadata:
+  name: "<descriptive name>"
+  description: "<one-line summary>"
+content: |
+  <full markdown report text>
+relatedResources:
+  - id: <space id>
+    role: parent
+```
+
+```bash
+uv run ado create document -f <SPACE_ID>_<YYYY-MM-DD>_document.yaml
+```

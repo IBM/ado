@@ -3,6 +3,7 @@
 
 import datetime
 import typing
+from collections.abc import Callable
 from typing import Any
 
 import pytest
@@ -34,6 +35,7 @@ from ado.schema.property_value import (
 )
 from ado.schema.reference import ExperimentReference
 from ado.utilities.location import FilePathLocation, SQLStoreConfiguration
+from tests.conftest import requires_sqlite_3_38
 
 if typing.TYPE_CHECKING:
     from ado.schema.entity import Entity
@@ -293,6 +295,22 @@ def test_base_entity_with_constitutive_property_values(
     assert len(ents) == 5
 
 
+def test_entities_with_constitutive_property_values_rejects_non_constitutive(
+    ml_multi_cloud_csv_sample_store: CSVSampleStore,
+) -> None:
+    """Passing a PropertyValue whose property is not a ConstitutivePropertyDescriptor raises ValueError."""
+    from ado.schema.property_value import PropertyValue
+
+    non_constitutive_value = PropertyValue(
+        value=1.0,
+        property=AbstractPropertyDescriptor(identifier="wallClockRuntime"),
+    )
+    with pytest.raises(ValueError, match="non-constitutive"):
+        ml_multi_cloud_csv_sample_store.entitiesWithConstitutivePropertyValues(
+            [non_constitutive_value]  # type: ignore[list-item]
+        )
+
+
 def test_csv_sample_store_type_parsing(
     ml_multi_cloud_csv_sample_store: CSVSampleStore,
 ) -> None:
@@ -498,3 +516,83 @@ def test_csv_old_format_migration() -> None:
 
     # Verify constitutivePropertyColumns was removed from top level
     assert "constitutivePropertyColumns" not in desc.model_dump()
+
+
+@requires_sqlite_3_38
+def test_experiment_catalog_skips_entity_without_replay_and_caches(
+    random_sql_sample_store: Callable[[], SQLSampleStore],
+) -> None:
+    """experimentCatalog() is deterministic and cached.
+
+    A store where the *first* entity has no replay measurement result must
+    still find the replay experiment via the second entity.  Calling the
+    method twice must return the exact same object (cache hit).
+    """
+    from ado.schema.entity import Entity
+    from ado.schema.observed_property import ObservedProperty, ObservedPropertyValue
+    from ado.schema.property import AbstractPropertyDescriptor, ConstitutiveProperty
+    from ado.schema.property_value import ConstitutivePropertyValue
+    from ado.schema.reference import ExperimentReference
+    from ado.schema.result import ValidMeasurementResult
+
+    store: SQLSampleStore = random_sql_sample_store()
+
+    replay_ref = ExperimentReference(
+        experimentIdentifier="test-replay-exp",
+        actuatorIdentifier="replay",
+    )
+    observed_prop = ObservedProperty(
+        targetProperty=AbstractPropertyDescriptor(identifier="score"),
+        experimentReference=replay_ref,
+    )
+    constitutive_prop = ConstitutiveProperty(identifier="param")
+
+    # Entity 1 — no replay measurement result
+    entity_no_result = Entity(
+        identifier="entity-without-replay",
+        generatorid="testgen",
+        constitutive_property_values=(
+            ConstitutivePropertyValue(
+                value=1.0,
+                property=constitutive_prop,
+            ),
+        ),
+    )
+
+    # Entity 2 — has a replay measurement result
+    entity_with_result = Entity(
+        identifier="entity-with-replay",
+        generatorid="testgen",
+        constitutive_property_values=(
+            ConstitutivePropertyValue(
+                value=2.0,
+                property=constitutive_prop,
+            ),
+        ),
+        measurement_results=[
+            ValidMeasurementResult(
+                entityIdentifier="entity-with-replay",
+                measurements=[
+                    ObservedPropertyValue(
+                        value=0.42,
+                        property=observed_prop,
+                    )
+                ],
+            )
+        ],
+    )
+
+    # Add entities in order: no-result first, then the one with replay results
+    store.add_external_entities([entity_no_result, entity_with_result])
+
+    # The catalog must find the replay experiment even though the first entity
+    # has no replay measurement result.
+    catalog = store.experimentCatalog()
+    assert catalog is not None, "expected a catalog with replay experiment"
+    assert len(catalog.experiments) == 1
+    assert catalog.experiments[0].identifier == "test-replay-exp"
+    assert catalog.experiments[0].actuatorIdentifier == "replay"
+
+    # A second call must return the same object (cache hit — no recomputation).
+    catalog2 = store.experimentCatalog()
+    assert catalog2 is catalog, "expected the cached catalog object on the second call"

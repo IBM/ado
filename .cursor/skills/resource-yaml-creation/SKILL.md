@@ -220,19 +220,25 @@ uv run ado create samplestore -f samplestore.yaml
 
 ### Document
 
-Use `document` resources to persist markdown reports (and similar text) in the
-metastore. Examining skills store their reports this way: put the markdown in
-`content`, and list related resource identifiers in `relatedResources`.
+Use `document` resources to persist markdown or HTML reports in the metastore.
+Set `contentType` to `markdown` (default) or `html`. See the
+[document resource documentation](../../../docs/resources/document.md).
+Examining skills store their reports this way: put the body in `content`,
+optionally set `contentType`, and list related resources in
+`relatedResources` with `id` and `role` (`parent` = report is about that
+resource; `child` = resource created in response to the document).
 
 ```yaml
 # <descriptive>_document.yaml  (temp file, not committed)
 metadata:
   name: "<descriptive name>"
   description: "<one-line summary>"
+contentType: markdown  # or html
 content: |
-  <full markdown report text>
+  <full report text>
 relatedResources:
-  - <related resource ids>
+  - id: <related resource id>
+    role: parent
 ```
 
 ```bash
@@ -246,8 +252,8 @@ Validate with `uv run ado create document -f FILE --dry-run` before creating.
 must be single-quoted — see [query-ado-data](../query-ado-data/SKILL.md)):
 
 ```bash
-# By related resource id (array containment — no [*] subscript)
-uv run ado get document -q 'config.relatedResources=RESOURCE_ID'
+# By related resource id
+uv run ado get document -q 'config.relatedResources.id=RESOURCE_ID'
 
 # By metadata name
 uv run ado get document -q 'config.metadata.name=NAME'

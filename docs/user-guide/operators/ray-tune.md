@@ -314,6 +314,7 @@ check the keys of the nevergrad registry, with:
 
 ```python
 import nevergrad
+
 print(list(nevergrad.optimizers.registry.keys()))
 ```
 

@@ -151,7 +151,7 @@ configuration = {
     "model_version": "3.1.0",
 }
 
-measured_properties=min_gpu_recommender(**configuration)
+measured_properties = min_gpu_recommender(**configuration)
 print(measured_properties)
 ```
 
@@ -195,7 +195,7 @@ configuration = {
     "model_version": "3.1.0",
 }
 
-entity = SpacePoint.model_validate({"entity":configuration}).to_entity()
+entity = SpacePoint.model_validate({"entity": configuration}).to_entity()
 experiment = ActuatorRegistry().experimentForReference(
     ExperimentReference(
         actuatorIdentifier="custom_experiments",
@@ -203,7 +203,9 @@ experiment = ActuatorRegistry().experimentForReference(
     )
 )
 
-request=local_execution_closure(registry=ActuatorRegistry())(reference=experiment.reference, entity=entity)
+request = local_execution_closure(registry=ActuatorRegistry())(
+    reference=experiment.reference, entity=entity
+)
 print(request.measurements[0].series_representation(output_format="target"))
 ```
 

@@ -13,6 +13,6 @@ def document_configuration_file() -> pathlib.Path:
 
 
 @pytest.fixture
-def document_with_attachment_configuration_file() -> pathlib.Path:
-    """Return path to a document configuration fixture with attachments."""
-    return pathlib.Path("tests/fixtures/document_with_attachment.yaml")
+def document_html_configuration_file() -> pathlib.Path:
+    """Return path to a valid HTML document configuration fixture."""
+    return pathlib.Path("tests/fixtures/document_html.yaml")

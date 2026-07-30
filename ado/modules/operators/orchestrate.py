@@ -118,22 +118,19 @@ def orchestrate(
         )
         ray.init(ignore_reinit_error=True)
     else:
-        # In local mode we can read a set of envvars a then export them into the ray environment
-        # Currently we don't use it but keeping the code to recall how to do so if necessary
-        # ray_env_vars = {}
-        # moduleLog.debug(
-        #     f"Setting runtime environment variables based on local environment - {ray_env_vars}"
-        # )
-        # moduleLog.debug("Ensuring envvars are set the main process environment")
-        # for key, value in ray_env_vars.items():
-        #     os.environ[key] = value
+        # In local mode, propagate the current log level to Ray workers so that
+        # remote functions and actors inherit the same log level as the CLI process.
         #
-        # ray.init(
-        #     runtime_env=RuntimeEnv(env_vars=ray_env_vars),
-        #     ignore_reinit_error=True,
-        # )
-
+        # NOTE: runtime_env must be passed as a plain dict, not a RuntimeEnv instance.
+        # RuntimeEnv(working_dir=None) does not behave the same as {"working_dir": None}
+        # and causes incorrect working-directory handling. This was established in
+        # commit a9a14708 (https://github.com/IBM/ado/pull/546).
+        ray_env_vars = {"LOGLEVEL": logging.getLevelName(logging.getLogger().level)}
+        moduleLog.debug(
+            f"Setting runtime environment variables based on local environment - {ray_env_vars}"
+        )
         ray.init(
+            runtime_env={"env_vars": ray_env_vars},
             ignore_reinit_error=True,
         )
 

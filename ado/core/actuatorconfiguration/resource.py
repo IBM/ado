@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import uuid
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 import pydantic
 
@@ -33,7 +33,9 @@ class ActuatorConfigurationResource(ADOResource):
         return f"{data['kind'].value}-{data['config'].actuatorIdentifier}-{str(uuid.uuid4())[:8]}"
 
     version: str = "v1"
-    kind: CoreResourceKinds = CoreResourceKinds.ACTUATORCONFIGURATION
+    kind: Annotated[
+        Literal[CoreResourceKinds.ACTUATORCONFIGURATION], pydantic.Field()
+    ] = CoreResourceKinds.ACTUATORCONFIGURATION
     config: ActuatorConfiguration
     identifier: Annotated[
         Defaultable[str],

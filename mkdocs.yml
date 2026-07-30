@@ -17,6 +17,8 @@ dev_addr: '127.0.0.1:8000'
 copyright: Copyright IBM Research.
 # Extra links as icons at the bottom of the page
 extra:
+  version:
+    provider: mike
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/ibm/ado
@@ -126,6 +128,7 @@ markdown_extensions:
     toc_depth: 4
 plugins:
   - search:
+  - mike:
   - minify:
       minify_html: true
       minify_js: true
@@ -200,4 +203,5 @@ nav:
       - operation: resources/operation.md
       - actuatorconfiguration: resources/actuatorconfig.md
       - datacontainer: resources/datacontainer.md
+      - document: resources/document.md
   - CLI Reference: cli-reference/index.md

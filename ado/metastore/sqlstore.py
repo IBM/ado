@@ -1197,12 +1197,8 @@ class SQLResourceStore(ResourceStore):
             try:
                 with session.begin():
                     session.execute(
-                        sqlalchemy.text(f"DROP TABLE sqlsource_{identifier}")
-                    )
-
-                    session.execute(
                         sqlalchemy.text(
-                            f"DROP TABLE sqlsource_{identifier}_measurement_requests"
+                            f"DROP TABLE sqlsource_{identifier}_measurement_requests_results"
                         )
                     )
 
@@ -1214,8 +1210,12 @@ class SQLResourceStore(ResourceStore):
 
                     session.execute(
                         sqlalchemy.text(
-                            f"DROP TABLE sqlsource_{identifier}_measurement_requests_results"
+                            f"DROP TABLE sqlsource_{identifier}_measurement_requests"
                         )
+                    )
+
+                    session.execute(
+                        sqlalchemy.text(f"DROP TABLE sqlsource_{identifier}")
                     )
             except Exception as e:
                 session.rollback()
@@ -1483,6 +1483,12 @@ class SQLResourceStore(ResourceStore):
                     session.execute(
                         sqlalchemy.text(
                             r"DELETE FROM resource_relationships WHERE object_identifier=:identifier"
+                        ).bindparams(identifier=identifier)
+                    )
+
+                    session.execute(
+                        sqlalchemy.text(
+                            r"DELETE FROM resource_relationships WHERE subject_identifier=:identifier"
                         ).bindparams(identifier=identifier)
                     )
 

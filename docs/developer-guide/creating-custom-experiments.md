@@ -211,21 +211,20 @@ mass = ConstitutiveProperty(
     identifier="mass",
     propertyDomain=PropertyDomain(
         variableType=VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE,
-        domainRange=[1, 100]
-    )
+        domainRange=[1, 100],
+    ),
 )
 volume = ConstitutiveProperty(
     identifier="volume",
     propertyDomain=PropertyDomain(
         variableType=VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE,
-        domainRange=[1, 100]
-    )
+        domainRange=[1, 100],
+    ),
 )
 
 
 @custom_experiment(
-    required_properties=[mass, volume],
-    output_property_identifiers=["density"]
+    required_properties=[mass, volume], output_property_identifiers=["density"]
 )
 def calculate_density(mass, volume) -> Dict[str, Any]:
     density_value = mass / volume if volume else None
@@ -254,20 +253,20 @@ to the decorator.
 > property explicitly you must define the all explicitly.
 
 ```python
-
 round_result = ConstitutiveProperty(
     identifier="round_result",
     propertyDomain=PropertyDomain(
         variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE,
-    )
+    ),
 )
+
 
 @custom_experiment(
     required_properties=[mass, volume],
-    #round_result will get its default value from the keyword arg
+    # round_result will get its default value from the keyword arg
     optional_properties=[round_result],
     output_property_identifiers=["density"],
-    metadata={"description": "Calculates density from mass and volume"}
+    metadata={"description": "Calculates density from mass and volume"},
 )
 def calculate_density(mass, volume, round_result: bool = False):
     density_value = mass / volume if volume else None
@@ -384,10 +383,11 @@ For example,
 @custom_experiment(
     output_property_identifiers=["loss"],
     use_ray=True,
-    ray_options={"num_cpus": 2,
-                 "num_gpus": 0.5,
-                 "runtime_env":
-                     {"env_vars": {"OMP_NUM_THREADS": "2"}}}
+    ray_options={
+        "num_cpus": 2,
+        "num_gpus": 0.5,
+        "runtime_env": {"env_vars": {"OMP_NUM_THREADS": "2"}},
+    },
 )
 def my_heavy_exp(x, y):
     # ...

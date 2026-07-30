@@ -59,6 +59,8 @@ spec:
               memory: 128Gi
               nvidia.com/gpu: "1"
           env:
+            - name: USER
+              value: "vllm"
           volumeMounts:
             - mountPath: /dev/shm
               name: dshm

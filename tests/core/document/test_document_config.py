@@ -7,14 +7,8 @@ import pydantic
 import pytest
 import yaml
 
-from ado.core.document.config import DocumentConfiguration
+from ado.core.document.config import DocumentConfiguration, RelatedResource
 from ado.utilities.output import pydantic_model_as_yaml
-
-
-def test_document_configuration_defaults() -> None:
-    """DocumentConfiguration defaults relatedResources and attachments."""
-    config = DocumentConfiguration(content="Example report")
-    assert config.relatedResources == []
 
 
 def test_document_configuration_requires_content() -> None:
@@ -23,17 +17,41 @@ def test_document_configuration_requires_content() -> None:
         DocumentConfiguration.model_validate({})
 
 
+def test_document_configuration_default_content_type() -> None:
+    """DocumentConfiguration defaults contentType to markdown."""
+    config = DocumentConfiguration(content="Example report")
+    assert config.contentType == "markdown"
+
+
 def test_document_configuration_round_trip_yaml() -> None:
     """DocumentConfiguration round-trips through YAML."""
     config = DocumentConfiguration(
         content="# Report\n\nBody text",
-        relatedResources=["operation-abc-12345678"],
-        attachments={"chart.png": "cGV4"},
+        contentType="markdown",
+        relatedResources=[
+            RelatedResource(id="operation-abc-12345678", role="parent"),
+        ],
         metadata={"name": "Test report"},
     )
     yaml_text = pydantic_model_as_yaml(config)
     restored = DocumentConfiguration.model_validate(yaml.safe_load(yaml_text))
     assert restored == config
+
+
+def test_document_configuration_html_round_trip_yaml() -> None:
+    """DocumentConfiguration with HTML contentType round-trips through YAML."""
+    config = DocumentConfiguration(
+        content="<html><body><h1>Report</h1></body></html>",
+        contentType="html",
+        relatedResources=[
+            RelatedResource(id="operation-abc-12345678", role="parent"),
+        ],
+        metadata={"name": "HTML report"},
+    )
+    yaml_text = pydantic_model_as_yaml(config)
+    restored = DocumentConfiguration.model_validate(yaml.safe_load(yaml_text))
+    assert restored == config
+    assert restored.contentType == "html"
 
 
 def test_document_configuration_from_fixture(
@@ -44,4 +62,59 @@ def test_document_configuration_from_fixture(
         yaml.safe_load(document_configuration_file.read_text())
     )
     assert config.content.startswith("# Operation report")
-    assert config.relatedResources == ["operation-test-12345678"]
+    assert config.relatedResources == [
+        RelatedResource(id="operation-test-12345678", role="parent"),
+    ]
+    assert config.contentType == "markdown"
+
+
+def test_document_configuration_from_html_fixture(
+    document_html_configuration_file: pathlib.Path,
+) -> None:
+    """HTML document fixture validates as DocumentConfiguration."""
+    config = DocumentConfiguration.model_validate(
+        yaml.safe_load(document_html_configuration_file.read_text())
+    )
+    assert config.contentType == "html"
+    assert "<h1>Operation report</h1>" in config.content
+
+
+def test_document_configuration_rich_markdown() -> None:
+    """__rich__ includes metadata and renders markdown content."""
+    from rich.console import Console
+
+    config = DocumentConfiguration(
+        content="# Report\n\nBody",
+        relatedResources=[
+            RelatedResource(id="operation-abc-12345678", role="parent"),
+        ],
+        metadata={"name": "Test report", "description": "A description"},
+    )
+    console = Console()
+    with console.capture() as capture:
+        console.print(config)
+    output = capture.get()
+    assert "Test report" in output
+    assert "A description" in output
+    assert "operation-abc-12345678 (parent)" in output
+    assert "Report" in output
+    assert "# Report" not in output
+    assert "Body" in output
+
+
+def test_document_configuration_rich_html() -> None:
+    """__rich__ includes metadata and prints HTML source for html content."""
+    from rich.console import Console
+
+    html_body = "<html><body><h1>Report</h1></body></html>"
+    config = DocumentConfiguration(
+        content=html_body,
+        contentType="html",
+        metadata={"name": "HTML report"},
+    )
+    console = Console()
+    with console.capture() as capture:
+        console.print(config)
+    output = capture.get()
+    assert "HTML report" in output
+    assert html_body in output

@@ -413,52 +413,44 @@ def format_ado_get_stats_for_spaces(
 
     space_ids: set[str] = set(df["IDENTIFIER"])
 
-    # Query 1: for each space, get its child operations.
-    # Returns {space_id: {CoreResourceKinds.OPERATION: set[operation_id]}}
-    space_child_relationships: dict[str, dict[CoreResourceKinds, set[str]]] = (
+    # Single traversal in both directions (identifiers only) to get child
+    # operation IDs (down) and parent samplestore IDs (up) in one SQL query.
+    # Returns {space_id: {CoreResourceKinds.OPERATION: set[str],
+    #                      CoreResourceKinds.SAMPLESTORE: set[str]}}
+    space_relationships: dict[str, dict[CoreResourceKinds, set[str]]] = typing.cast(
+        "dict[str, dict[CoreResourceKinds, set[str]]]",
         sql_store.get_resources_by_relationship(
             kind=CoreResourceKinds.DISCOVERYSPACE,
             identifier=space_ids,
-            hierarchy_direction="down",
+            hierarchy_direction="both",
             max_hops=1,
             identifiers_only=True,
-        )
+        ),
     )
 
-    # Build space_id_to_operation_ids: {space_id: set[operation_id]}
-    space_id_to_operation_ids: dict[str, set[str]] = {}
-    for space_id in space_ids:
-        space_children_by_kind = space_child_relationships.get(space_id, {})
-        space_id_to_operation_ids[space_id] = space_children_by_kind.get(
-            CoreResourceKinds.OPERATION, set()
+    # Collect deduplicated samplestore IDs across all spaces, then hydrate once.
+    all_samplestore_ids: set[str] = {
+        samplestore_id
+        for space_id in space_ids
+        for samplestore_id in space_relationships.get(space_id, {}).get(
+            CoreResourceKinds.SAMPLESTORE, set()
         )
-
-    # Query 2: for each space, get its parent sample store(s),
-    # returning hydrated SampleStoreResource objects.
-    # Returns {space_id: {CoreResourceKinds.SAMPLESTORE: {samplestore_id: SampleStoreResource}}}
-    space_parent_relationships: dict[
-        str, dict[CoreResourceKinds, dict[str, ADOResource]]
-    ] = sql_store.get_resources_by_relationship(
-        kind=CoreResourceKinds.DISCOVERYSPACE,
-        identifier=space_ids,
-        hierarchy_direction="up",
-        max_hops=1,
-        identifiers_only=False,
+    }
+    samplestore_id_to_resource: dict[str, ADOResource] = sql_store.getResources(
+        list(all_samplestore_ids)
     )
 
-    # Invert to {samplestore_id: set[space_id]}, keeping the hydrated resource.
-    samplestore_id_to_resource: dict[str, ADOResource] = {}
+    # Build {samplestore_id: set[space_id]} from the traversal result.
     samplestore_id_to_space_ids: dict[str, set[str]] = {}
-    for space_id, space_parents_by_kind in space_parent_relationships.items():
-        samplestore_resources = space_parents_by_kind.get(
-            CoreResourceKinds.SAMPLESTORE, {}
-        )
-        for samplestore_id, samplestore_resource in samplestore_resources.items():
-            samplestore_id_to_resource[samplestore_id] = samplestore_resource
+    for space_id in space_ids:
+        for samplestore_id in space_relationships.get(space_id, {}).get(
+            CoreResourceKinds.SAMPLESTORE, set()
+        ):
             samplestore_id_to_space_ids.setdefault(samplestore_id, set()).add(space_id)
 
     from ado.core.discoveryspace.stats import (
         DiscoverySpaceStatistics,
+        lightweight_space_statistics,
         space_statistics_for_spaces,
     )
 
@@ -505,10 +497,12 @@ def format_ado_get_stats_for_spaces(
             )
         )
     else:
-        # Lightweight path: issue a metastore stats query and one
-        # space_entity_statistics query per distinct sample store.
-        metastore_stats = sql_store.get_space_metastore_stats(space_ids)
-
+        # Lightweight path: one entity_identifiers_in_operations query per
+        # distinct sample store, then a single lightweight_space_statistics
+        # call that issues the metastore stats query for all spaces at once.
+        entity_ids_by_space_id: dict[str, set[str]] = {
+            space_id: set() for space_id in space_ids
+        }
         for index, (samplestore_id, samplestore_space_ids) in enumerate(
             samplestore_id_to_space_ids.items(), start=1
         ):
@@ -519,24 +513,31 @@ def format_ado_get_stats_for_spaces(
             sample_store = SampleStore.from_resource(
                 samplestore_id_to_resource[samplestore_id]
             )
-            operation_ids_per_space = {
-                space_id: space_id_to_operation_ids[space_id]
+            operation_id_to_space_id = {
+                op_id: space_id
                 for space_id in samplestore_space_ids
-            }
-            entity_stats_per_space = sample_store.space_entity_statistics(
-                space_ids_to_operation_ids=operation_ids_per_space
-            )
-            for space_id, entity_stats in entity_stats_per_space.items():
-                all_stats[space_id] = DiscoverySpaceStatistics(
-                    number_of_experiments=metastore_stats[
-                        space_id
-                    ].number_of_experiments,
-                    number_of_operations=metastore_stats[space_id].number_of_operations,
-                    number_of_explore_operations=metastore_stats[
-                        space_id
-                    ].number_of_explore_operations,
-                    number_measured_entities=entity_stats.number_measured_entities or 0,
+                for op_id in space_relationships.get(space_id, {}).get(
+                    CoreResourceKinds.OPERATION, set()
                 )
+            }
+            if operation_id_to_space_id:
+                entity_ids_by_operation_id = (
+                    sample_store.entity_identifiers_in_operations(
+                        set(operation_id_to_space_id.keys()), group_by_operation=True
+                    )
+                )
+                for op_id, entity_ids in entity_ids_by_operation_id.items():
+                    entity_ids_by_space_id[operation_id_to_space_id[op_id]].update(
+                        entity_ids
+                    )
+
+        all_stats.update(
+            lightweight_space_statistics(
+                space_ids=space_ids,
+                entity_ids_by_space_id=entity_ids_by_space_id,
+                metastore=sql_store,
+            )
+        )
 
     # Attach lightweight columns; spaces with no data show 0.
     df["EXPERIMENTS"] = df["IDENTIFIER"].apply(

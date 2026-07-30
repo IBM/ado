@@ -52,6 +52,7 @@ either the full name or the shorthand interchangeably in any command.
 | context               | ctx       | `ado delete ctx my-context`         |
 | datacontainer         | dcr       | `ado describe dcr container-123`    |
 | discoveryspace        | space     | `ado create space -f space.yaml`    |
+| document              | doc       | `ado describe doc document-abc123`  |
 | experiment            | exp       | `ado get exp`                       |
 | operation             | op        | `ado get op operation-456`          |
 | samplestore           | store     | `ado get store`                     |
@@ -153,6 +154,7 @@ Where:
     - _actuator_
     - _actuatorconfiguration_ (_ac_)
     - _context_ (_ctx_)
+    - _document_ (_doc_)
     - _operation_ (_op_)
     - _samplestore_ (_store_)
     - _discoveryspace_ (_space_)
@@ -274,6 +276,7 @@ Where:
     - _actuatorconfiguration_ (_ac_)
     - _context_ (_ctx_)
     - _datacontainer_ (_dcr_)
+    - _document_ (_doc_)
     - _operation_ (_op_)
     - _samplestore_ (_store_)
     - _discoveryspace_ (_space_)
@@ -358,6 +361,7 @@ Where:
     - _experiment_
     - _datacontainer_ (_dcr_)
     - _discoveryspace_ (_space_)
+    - _document_ (_doc_)
 
     <!-- prettier-ignore-end -->
 
@@ -377,6 +381,12 @@ Where:
 
 ```shell
 ado describe space space-abc123-456def
+```
+
+#### Describing a document
+
+```shell
+ado describe document document-abc12345
 ```
 
 ## ado edit
@@ -402,6 +412,7 @@ Where:
 
     - _actuatorconfiguration_ (_ac_)
     - _datacontainer_ (_dcr_)
+    - _document_ (_doc_)
     - _operation_ (_op_)
     - _samplestore_ (_store_)
     - _discoveryspace_ (_space_)
@@ -505,6 +516,7 @@ Where:
     - _actuator_
     - _context_ (_ctx_)
     - _datacontainer_ (_dcr_)
+    - _document_ (_doc_)
     - _experiment_ (_exp_)
     - _operation_ (_op_)
     - _operator_
@@ -1306,6 +1318,7 @@ Where:
     - _actuatorconfiguration_ (_ac_)
     - _context_ (_ctx_)
     - _discoveryspace_ (_space_)
+    - _document_ (_doc_)
     - _operation_ (_op_)
     - _samplestore_ (_store_)
 
@@ -1397,7 +1410,7 @@ When required, you can run this command to update all resources of a given kind
 in the database.
 
 ```shell
-ado upgrade RESOURCE_TYPE
+ado upgrade RESOURCE_TYPE [--upgrade-entities-and-results]
 ```
 
 Where:
@@ -1416,12 +1429,30 @@ Where:
 
     <!-- prettier-ignore-end -->
 
+- `--upgrade-entities-and-results` is an **optional** flag, only applicable to
+  `samplestore`. When passed, also upgrades stored entities and measurement
+  results in each sample store. Omit this flag for a fast metadata-only upgrade;
+  pass it only when entity or measurement result schemas have changed, as it can
+  take a long time for large stores.
+
 ### Examples
 
 #### Upgrade all operation resources
 
 ```shell
 ado upgrade operations
+```
+
+#### Upgrade all sample store resources (metadata only)
+
+```shell
+ado upgrade samplestores
+```
+
+#### Upgrade all sample store resources including entities and measurement results
+
+```shell
+ado upgrade samplestores --upgrade-entities-and-results
 ```
 
 ## ado version

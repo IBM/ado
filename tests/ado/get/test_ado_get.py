@@ -79,6 +79,13 @@ def test_get_robotic_lab_actuator() -> None:
         assert rendered_output in result.output
 
 
+def test_get_vllm_performance_actuator_details() -> None:
+    runner = CliRunner()
+    result = runner.invoke(ado, ["get", "actuators", "vllm_performance", "--details"])
+    assert result.exit_code == 0
+    assert "vllm_performance" in result.output
+
+
 @requires_sqlite_3_38
 def test_field_filtering(
     tmp_path: pathlib.Path,

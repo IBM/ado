@@ -37,6 +37,17 @@ def upgrade_resource(
             metavar=f"[{'|'.join(m.value for m in AdoUpgradeSupportedResourceTypes)}]",
         ),
     ],
+    upgrade_entities_and_results: Annotated[
+        bool,
+        typer.Option(
+            "--upgrade-entities-and-results",
+            help=(
+                "Also upgrade stored entities and measurement results in each sample store. "
+                "Only applies to the samplestore resource type. "
+                "This can take a long time for large stores."
+            ),
+        ),
+    ] = False,
 ) -> None:
     """
     Upgrade resources and contexts.
@@ -55,6 +66,7 @@ def upgrade_resource(
 
     parameters = AdoUpgradeCommandParameters(
         ado_configuration=ado_configuration,
+        upgrade_entities_and_results=upgrade_entities_and_results,
     )
 
     method_mapping = {

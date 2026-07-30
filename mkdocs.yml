@@ -203,4 +203,5 @@ nav:
       - operation: resources/operation.md
       - actuatorconfiguration: resources/actuatorconfig.md
       - datacontainer: resources/datacontainer.md
+      - document: resources/document.md
   - CLI Reference: cli-reference/index.md

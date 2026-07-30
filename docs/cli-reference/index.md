@@ -52,6 +52,7 @@ either the full name or the shorthand interchangeably in any command.
 | context               | ctx       | `ado delete ctx my-context`         |
 | datacontainer         | dcr       | `ado describe dcr container-123`    |
 | discoveryspace        | space     | `ado create space -f space.yaml`    |
+| document              | doc       | `ado describe doc document-abc123`  |
 | experiment            | exp       | `ado get exp`                       |
 | operation             | op        | `ado get op operation-456`          |
 | samplestore           | store     | `ado get store`                     |
@@ -153,6 +154,7 @@ Where:
     - _actuator_
     - _actuatorconfiguration_ (_ac_)
     - _context_ (_ctx_)
+    - _document_ (_doc_)
     - _operation_ (_op_)
     - _samplestore_ (_store_)
     - _discoveryspace_ (_space_)
@@ -274,6 +276,7 @@ Where:
     - _actuatorconfiguration_ (_ac_)
     - _context_ (_ctx_)
     - _datacontainer_ (_dcr_)
+    - _document_ (_doc_)
     - _operation_ (_op_)
     - _samplestore_ (_store_)
     - _discoveryspace_ (_space_)
@@ -358,6 +361,7 @@ Where:
     - _experiment_
     - _datacontainer_ (_dcr_)
     - _discoveryspace_ (_space_)
+    - _document_ (_doc_)
 
     <!-- prettier-ignore-end -->
 
@@ -377,6 +381,12 @@ Where:
 
 ```shell
 ado describe space space-abc123-456def
+```
+
+#### Describing a document
+
+```shell
+ado describe document document-abc12345
 ```
 
 ## ado edit
@@ -402,6 +412,7 @@ Where:
 
     - _actuatorconfiguration_ (_ac_)
     - _datacontainer_ (_dcr_)
+    - _document_ (_doc_)
     - _operation_ (_op_)
     - _samplestore_ (_store_)
     - _discoveryspace_ (_space_)
@@ -505,6 +516,7 @@ Where:
     - _actuator_
     - _context_ (_ctx_)
     - _datacontainer_ (_dcr_)
+    - _document_ (_doc_)
     - _experiment_ (_exp_)
     - _operation_ (_op_)
     - _operator_
@@ -1306,6 +1318,7 @@ Where:
     - _actuatorconfiguration_ (_ac_)
     - _context_ (_ctx_)
     - _discoveryspace_ (_space_)
+    - _document_ (_doc_)
     - _operation_ (_op_)
     - _samplestore_ (_store_)
 

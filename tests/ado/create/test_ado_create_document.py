@@ -70,14 +70,12 @@ def test_create_document(
     ],
 ) -> None:
     """Create persists a document resource with no related resources."""
-    document_file = tmp_path / "document.yaml"
+    document_file = tmp_path / "document.json"
     document_file.write_text(
-        yaml.safe_dump(
-            {
-                "metadata": {"name": "Create test report"},
-                "content": "# Report\n\nBody.\n",
-            }
-        )
+        DocumentConfiguration(
+            content="# Report\n\nBody.\n",
+            metadata={"name": "Create test report"},
+        ).model_dump_json()
     )
     runner = CliRunner()
     create_active_ado_context(
@@ -112,17 +110,15 @@ def test_create_document_with_parent_relationship(
     parent.identifier = "dc-document-parent"
     sql_store.addResource(parent)
 
-    document_file = tmp_path / "document_parent.yaml"
+    document_file = tmp_path / "document_parent.json"
     document_file.write_text(
-        yaml.safe_dump(
-            {
-                "metadata": {"name": "Parent link report"},
-                "content": "# Report\n",
-                "relatedResources": [
-                    {"id": parent.identifier, "role": "parent"},
-                ],
-            }
-        )
+        DocumentConfiguration(
+            content="# Report\n",
+            metadata={"name": "Parent link report"},
+            relatedResources=[
+                RelatedResource(id=parent.identifier, role="parent"),
+            ],
+        ).model_dump_json()
     )
 
     runner = CliRunner()
@@ -160,17 +156,15 @@ def test_create_document_with_child_relationship(
     child.identifier = "dc-document-child"
     sql_store.addResource(child)
 
-    document_file = tmp_path / "document_child.yaml"
+    document_file = tmp_path / "document_child.json"
     document_file.write_text(
-        yaml.safe_dump(
-            {
-                "metadata": {"name": "Child link report"},
-                "content": "# Report\n",
-                "relatedResources": [
-                    {"id": child.identifier, "role": "child"},
-                ],
-            }
-        )
+        DocumentConfiguration(
+            content="# Report\n",
+            metadata={"name": "Child link report"},
+            relatedResources=[
+                RelatedResource(id=child.identifier, role="child"),
+            ],
+        ).model_dump_json()
     )
 
     runner = CliRunner()
@@ -204,17 +198,15 @@ def test_create_document_unknown_related_resource(
     sql_store: SQLStore,
 ) -> None:
     """Create fails when a related resource id does not exist."""
-    document_file = tmp_path / "document_missing.yaml"
+    document_file = tmp_path / "document_missing.json"
     document_file.write_text(
-        yaml.safe_dump(
-            {
-                "metadata": {"name": "Missing related"},
-                "content": "# Report\n",
-                "relatedResources": [
-                    {"id": "i-do-not-exist", "role": "parent"},
-                ],
-            }
-        )
+        DocumentConfiguration(
+            content="# Report\n",
+            metadata={"name": "Missing related"},
+            relatedResources=[
+                RelatedResource(id="i-do-not-exist", role="parent"),
+            ],
+        ).model_dump_json()
     )
 
     runner = CliRunner()

@@ -18,3 +18,23 @@ def test_document_resource_lifecycle() -> None:
     dumped = resource.model_dump()
     restored = DocumentResource.model_validate(dumped)
     assert restored == resource
+
+
+def test_document_resource_rich_print() -> None:
+    """DocumentResource __rich__ includes identifier and config fields."""
+    from rich.console import Console
+
+    resource = DocumentResource(
+        config=DocumentConfiguration(
+            content="# Report\n\nBody",
+            metadata={"name": "Rich print report"},
+        )
+    )
+    assert hasattr(resource, "__rich__")
+    console = Console()
+    with console.capture() as capture:
+        console.print(resource)
+    output = capture.get()
+    assert resource.identifier in output
+    assert "Rich print report" in output
+    assert "Report" in output

@@ -17,28 +17,8 @@ from ado.cli.utils.output.prints import (
     magenta,
 )
 from ado.cli.utils.pydantic.updaters import override_values_in_pydantic_model
-from ado.core.document.config import DocumentConfiguration, RelatedResource
+from ado.core.document.config import DocumentConfiguration
 from ado.core.document.resource import DocumentResource
-from ado.metastore.sqlstore import SQLStore
-
-
-def _add_document_relationships(
-    sql: SQLStore,
-    document_identifier: str,
-    related_resources: list[RelatedResource],
-) -> None:
-    """Write parent/child edges for a document (subject=parent, object=child)."""
-    for related in related_resources:
-        if related.role == "parent":
-            sql.addRelationship(
-                subjectIdentifier=related.id,
-                objectIdentifier=document_identifier,
-            )
-        else:
-            sql.addRelationship(
-                subjectIdentifier=document_identifier,
-                objectIdentifier=related.id,
-            )
 
 
 def create_document(parameters: AdoCreateCommandParameters) -> str | None:
@@ -84,11 +64,18 @@ def create_document(parameters: AdoCreateCommandParameters) -> str | None:
 
     with Status(ADO_SPINNER_SAVING_TO_DB):
         sql.addResource(resource_to_be_created)
-        _add_document_relationships(
-            sql=sql,
-            document_identifier=resource_to_be_created.identifier,
-            related_resources=document_configuration.relatedResources,
-        )
+        # add relationships to db
+        for related in document_configuration.relatedResources:
+            if related.role == "parent":
+                sql.addRelationship(
+                    subjectIdentifier=related.id,
+                    objectIdentifier=resource_to_be_created.identifier,
+                )
+            else:
+                sql.addRelationship(
+                    subjectIdentifier=resource_to_be_created.identifier,
+                    objectIdentifier=related.id,
+                )
 
     console_print(
         f"{SUCCESS}Created document with identifier "

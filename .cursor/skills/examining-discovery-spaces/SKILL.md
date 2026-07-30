@@ -15,11 +15,9 @@ Structured workflow for understanding what a discoveryspace contains, how
 covered its entity space is, and what data has been collected.
 
 - Run all commands from the **repository root** with `uv run`.
-- Write the report to `reports/<ado_context_name>/` (create the directory if
-  needed)
-  - where `ado_context_name` is the **active ado metastore context**
-    (`uv run ado context`)
-- Write the report as `<SPACEID>_<YYYY-MM-DD>_report.md`
+- The report produced by this skill is stored as the `content` of a
+  `document` resource in the active ado metastore context (see
+  [Producing a report](#producing-a-report)).
 
 **Related skills**:
 
@@ -27,6 +25,8 @@ covered its entity space is, and what data has been collected.
   [using-ado-cli](../using-ado-cli/SKILL.md).
 - For metastore filtering and schemas, see
   [query-ado-data](../query-ado-data/SKILL.md).
+- For creating document resources that store reports, see
+  [resource-yaml-creation — Document](../resource-yaml-creation/SKILL.md#document).
 - For examining operations run on a space, see
   [examining-ado-operations](../examining-ado-operations/SKILL.md).
 - For a project/context wide view (all spaces and operations), see
@@ -150,13 +150,23 @@ uv run ado show related space SPACE_ID
 
 ### Step 3: Check for existing report
 
-- Check if there is an existing report for this space in
-  `reports/<ado_context_name>/`
-- If yes, check if either of the following are true:
-  - New operations have been run on space since report
+- Query the metastore for an existing document linked to this space:
+
+  ```bash
+  uv run ado get document -q 'config.relatedResources.id=SPACE_ID'
+  ```
+
+  If a document is found, retrieve its metadata (name, created timestamp) and
+  fetch its `content` (`uv run ado get document DOCUMENT_ID -o yaml`) to
+  compare against current state.
+- If a document is found, check if either of the following are true:
+  - New operations have been run on the space since the document was created
   - The number of measured entities has increased
-- If neither of above are true, ask the user if they want to write a new report
-  or use existing
+- If yes to either, ask the user whether to replace it with a new report. If
+  they agree, delete the existing document (`uv run ado delete document
+  DOCUMENT_ID`) once the new report has been created.
+- If neither of the above are true, ask the user if they want to write a new
+  report or use the existing one
   - As nothing has changed, the only purpose of creating a new report is if a
     different agent is being used
 
@@ -201,7 +211,7 @@ understand what each operation did and what it produced.
 Note: Do not analyze the data in the operations, or do detailed diagnoses. Just
 enough for summary.
 
-## Producing a Report
+## Producing a report
 
 Structure the report as:
 
@@ -217,3 +227,20 @@ Structure the report as:
 4. **Data summary** – distributions of measured properties, notable performers,
    outliers, correlations
 5. **Related operations** – which operations ran on this space and their status
+
+Store the report by creating a document resource:
+
+```yaml
+metadata:
+  name: "<descriptive name>"
+  description: "<one-line summary>"
+content: |
+  <full markdown report text>
+relatedResources:
+  - id: <space id>
+    role: parent
+```
+
+```bash
+uv run ado create document -f <SPACE_ID>_<YYYY-MM-DD>_document.yaml
+```

@@ -126,3 +126,91 @@ def test_describe_use_latest_rejected_for_experiment() -> None:
     runner = CliRunner()
     result = runner.invoke(ado, ["describe", "experiment", "--use-latest"])
     assert result.exit_code == 1
+
+
+def test_describe_document(
+    tmp_path: pathlib.Path,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+    sql_store: SQLStore,
+) -> None:
+    """Describe renders markdown with rich and includes resource metadata."""
+    from ado.core.document.config import DocumentConfiguration, RelatedResource
+    from ado.core.document.resource import DocumentResource
+
+    config = DocumentConfiguration(
+        content="# Operation report\n\nExample body for describe.",
+        relatedResources=[
+            RelatedResource(id="operation-test-12345678", role="parent"),
+        ],
+        metadata={"name": "Describe test report"},
+    )
+    resource = DocumentResource(config=config)
+    sql_store.addResource(resource)
+
+    runner = CliRunner()
+    create_active_ado_context(
+        runner=runner, path=tmp_path, project_context=valid_ado_project_context
+    )
+    result = runner.invoke(
+        ado,
+        [
+            "--override-ado-app-dir",
+            tmp_path,
+            "describe",
+            "document",
+            resource.identifier,
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert resource.identifier in result.output
+    assert "Describe test report" in result.output
+    assert "operation-test-12345678 (parent)" in result.output
+    assert "Operation report" in result.output
+    assert "# Operation report" not in result.output
+    assert "Example body for describe" in result.output
+
+
+def test_describe_document_html(
+    tmp_path: pathlib.Path,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+    sql_store: SQLStore,
+) -> None:
+    """Describe prints HTML document content without opening a browser."""
+    from ado.core.document.config import DocumentConfiguration
+    from ado.core.document.resource import DocumentResource
+
+    html_body = (
+        "<html><body><h1>HTML report</h1><p>Opened via describe.</p></body></html>"
+    )
+    config = DocumentConfiguration(
+        content=html_body,
+        contentType="html",
+        metadata={"name": "HTML describe test"},
+    )
+    resource = DocumentResource(config=config)
+    sql_store.addResource(resource)
+
+    runner = CliRunner()
+    create_active_ado_context(
+        runner=runner, path=tmp_path, project_context=valid_ado_project_context
+    )
+    result = runner.invoke(
+        ado,
+        [
+            "--override-ado-app-dir",
+            tmp_path,
+            "describe",
+            "document",
+            resource.identifier,
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert resource.identifier in result.output
+    assert "HTML describe test" in result.output
+    assert html_body in result.output

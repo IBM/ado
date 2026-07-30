@@ -21,6 +21,8 @@ The resources are:
   location data. Used to store arbitrary output from `operation`s.
 - **[actuatorconfigurations](actuatorconfig.md)**: A configuration for an
   actuator.
+- **[document](document.md)**: A markdown or HTML report or note stored in the
+  metastore, optionally linked to related resources.
 
 > [!NOTE]
 >

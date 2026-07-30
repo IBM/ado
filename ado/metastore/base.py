@@ -311,6 +311,10 @@ class ResourceStore(abc.ABC):
         pass
 
     @abc.abstractmethod
+    def delete_document(self, identifier: str) -> None:
+        pass
+
+    @abc.abstractmethod
     def get_resources_by_relationship(
         self,
         kind: CoreResourceKinds,

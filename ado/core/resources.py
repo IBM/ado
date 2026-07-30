@@ -22,6 +22,7 @@ class CoreResourceKinds(str, enum.Enum):
     ACTUATORCONFIGURATION = "actuatorconfiguration"
     SAMPLESTORE = "samplestore"
     DATACONTAINER = "datacontainer"
+    DOCUMENT = "document"
 
 
 def VersionIsGreaterThan(v1: str, v2: str) -> bool:

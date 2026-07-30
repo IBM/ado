@@ -16,11 +16,9 @@ Structured workflow for understanding what an operation did, which space it ran
 on, and whether measurements and results look healthy.
 
 - Run all commands from the **repository root** with `uv run`.
-- Write the report to `reports/<ado_context_name>/` (create the directory if
-  needed)
-  - where `ado_context_name` is the **active ado metastore context**
-    (`uv run ado context`)
-- Write the report as `<OPERATIONID>_<YYYY-MM-DD>_report.md`
+- The report produced by this skill is stored as the `content` of a
+  `document` resource in the active ado metastore context (see
+  [Producing a report](#producing-a-report)).
 
 **Related skills**:
 
@@ -28,6 +26,8 @@ on, and whether measurements and results look healthy.
   [using-ado-cli](../using-ado-cli/SKILL.md).
 - For metastore filtering, schemas see
   [query-ado-data](../query-ado-data/SKILL.md).
+- For creating document resources that store reports, see
+  [resource-yaml-creation — Document](../resource-yaml-creation/SKILL.md#document).
 - For a project/context wide view (all spaces and operations), see
   [examining-ado-project](../examining-ado-project/SKILL.md).
 
@@ -125,11 +125,19 @@ failure. In this case:
 
 If the operation is finished,
 
-- Check if there is an existing report for this operation in
-  `reports/<ado_context_name>/`
-- If yes, check if that report indicated the operation was finished
-  - If yes, ask the user if they want to replace it with a new report
-  - If no, continue with creating new report
+- Query the metastore for an existing document linked to this operation:
+
+  ```bash
+  uv run ado get document -q 'config.relatedResources.id=OPERATION_ID'
+  ```
+
+  If a document is found, retrieve its metadata (name, created timestamp) and
+  fetch its `content` (`uv run ado get document DOCUMENT_ID -o yaml`) to check
+  if that report indicated the operation was finished.
+  - If yes, ask the user whether to replace it with a new report. If they
+    agree, delete the existing document (`uv run ado delete document
+    DOCUMENT_ID`) once the new report has been created.
+  - If no, continue with creating a new report.
 
 ### Step 3: Review the operator
 
@@ -320,6 +328,10 @@ Structure the report as:
 4. **Unusual behaviour** – failures, timeouts, invalid results, unexpected
    distributions
 5. **Next Steps**: A plan for the next research steps to take using ado.
+
+Store the report as a document resource (see
+[resource-yaml-creation — Document](../resource-yaml-creation/SKILL.md#document)).
+Set `relatedResources` to the operation id and the input space ids from step 1.
 
 ## Troubleshooting
 

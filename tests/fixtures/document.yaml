@@ -1,0 +1,12 @@
+# Copyright IBM Corporation 2025, 2026
+# SPDX-License-Identifier: MIT
+metadata:
+  name: Example operation report
+  description: Summary report for an operation
+content: |
+  # Operation report
+
+  This is an example document resource.
+relatedResources:
+  - id: operation-test-12345678
+    role: parent

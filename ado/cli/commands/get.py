@@ -23,6 +23,7 @@ from ado.cli.resources.actuator_configuration.get import (
 from ado.cli.resources.context.get import get_context
 from ado.cli.resources.data_container.get import get_data_container
 from ado.cli.resources.discovery_space.get import get_discovery_space
+from ado.cli.resources.document.get import get_document
 from ado.cli.resources.experiment.get import get_experiment
 from ado.cli.resources.operation.get import get_operation
 from ado.cli.resources.operator.get import get_operator
@@ -383,6 +384,7 @@ def get_resource(
         AdoGetSupportedResourceTypes.CONTEXT: get_context,
         AdoGetSupportedResourceTypes.DATA_CONTAINER: get_data_container,
         AdoGetSupportedResourceTypes.DISCOVERY_SPACE: get_discovery_space,
+        AdoGetSupportedResourceTypes.DOCUMENT: get_document,
         AdoGetSupportedResourceTypes.EXPERIMENT: get_experiment,
         AdoGetSupportedResourceTypes.SAMPLE_STORE: get_sample_store,
         AdoGetSupportedResourceTypes.OPERATION: get_operation,

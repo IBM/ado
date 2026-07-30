@@ -22,6 +22,7 @@ from ado.cli.resources.actuator_configuration.create import (
 )
 from ado.cli.resources.context.create import create_context
 from ado.cli.resources.discovery_space.create import create_discovery_space
+from ado.cli.resources.document.create import create_document
 from ado.cli.resources.operation.create import create_operation
 from ado.cli.resources.sample_store.create import create_sample_store
 from ado.cli.utils.input.parsers import (
@@ -239,6 +240,7 @@ def create_resource(
         AdoCreateSupportedResourceTypes.ACTUATOR_CONFIGURATION: create_actuator_configuration,
         AdoCreateSupportedResourceTypes.CONTEXT: create_context,
         AdoCreateSupportedResourceTypes.DISCOVERY_SPACE: create_discovery_space,
+        AdoCreateSupportedResourceTypes.DOCUMENT: create_document,
         AdoCreateSupportedResourceTypes.SAMPLE_STORE: create_sample_store,
         AdoCreateSupportedResourceTypes.OPERATION: create_operation,
     }

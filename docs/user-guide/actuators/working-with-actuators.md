@@ -21,87 +21,70 @@ using the special actuator
 
 ## Listing available Actuators
 
-To see a list of available actuators execute
+To see a list of available actuators, including their description,
+number of experiments, and version, execute
 
 <!-- markdownlint-disable-next-line code-block-style -->
 ```commandline
-ado get actuators
+ado get actuators --details
 ```
 
-You can also use `ado get actuators --details` which in addition
-outputs the description of the actuators, the number of
-experiments they provide and their version. Below is an example
-of the output:
+Below is an example of the output:
 
 <!-- markdownlint-disable line-length -->
 
 ```commandline
-┌────────────────────┬─────────────┬─────────────────────────────────────────────────────┬───────────────────────────┐
-│ ACTUATOR ID        │ EXPERIMENTS │ DESCRIPTION                                         │ VERSION                   │
-├────────────────────┼─────────────┼─────────────────────────────────────────────────────┼───────────────────────────┤
-│ SFTTrainer         │ 5           │ An actuator for benchmarking fine-tuning of         │ 1.5.1.dev13+ga1833142b    │
-│                    │             │ foundation models                                   │                           │
-│ custom_experiments │ 6           │ Actuator for applying user supplied custom          │ 1.5.1.dev8+531c6444.dirty │
-│                    │             │ experiments                                         │                           │
-│ mock               │ 2           │ A actuator class for testing                        │ 1.5.1.dev8+531c6444.dirty │
-│ replay             │ 0           │ Special actuator for handling externally defined    │ 1.5.1.dev8+531c6444.dirty │
-│                    │             │ experiments (experiments we don't have code for)    │                           │
-│ robotic_lab        │ 1           │ A template for creating an actuator                 │ 1.5.1.dev13+ga1833142b    │
-└────────────────────┴─────────────┴─────────────────────────────────────────────────────┴───────────────────────────┘
+┌───────┬────────────────────┬─────────────┬────────────────────────────────────────────────────┬─────────┐
+│ INDEX │ ACTUATOR ID        │ EXPERIMENTS │ DESCRIPTION                                        │ VERSION │
+├───────┼────────────────────┼─────────────┼────────────────────────────────────────────────────┼─────────┤
+│ 0     │ custom_experiments │ 2           │ Actuator for applying user supplied custom         │ 2.0.0   │
+│       │                    │             │ experiments                                        │         │
+│ 1     │ mock               │ 2           │ A actuator class for testing                       │ 2.0.0   │
+│ 2     │ replay             │ 0           │ Special actuator for handling externally defined   │ 2.0.0   │
+│       │                    │             │ experiments (experiments we don't have code for)   │         │
+│ 3     │ vllm_performance   │ 25          │ VLLM performance testing actuator for ado          │ 1.13.1  │
+└───────┴────────────────────┴─────────────┴────────────────────────────────────────────────────┴─────────┘
 ```
 
 <!-- markdownlint-enable line-length -->
 
 ## Listing available Experiments
 
-To see the experiments each actuator provides
+To see the experiments each actuator provides, including their description,
+execute
 
 <!-- markdownlint-disable-next-line code-block-style -->
 ```commandline
-ado get experiments
+ado get experiments --details
 ```
 
-You can also get see the description of each experiment (if provided)
-with `ado get experiments --details`.
 The output will be similar to:
 
 <!-- markdownlint-disable line-length -->
 ```terminaloutput
-┌────────────────────┬─────────────────────────────────────┬─────────────────────────────────────────────────────────┐
-│ ACTUATOR ID        │ EXPERIMENT ID                       │ DESCRIPTION                                             │
-├────────────────────┼─────────────────────────────────────┼─────────────────────────────────────────────────────────┤
-│ SFTTrainer         │ finetune_full_benchmark-v1.0.0      │ Measures the performance of full-finetuning a model for │
-│                    │                                     │ a given (GPU model, number GPUS, batch_size,            │
-│                    │                                     │ model_max_length, number nodes) combination.            │
-│ SFTTrainer         │ finetune_full_stability-v1.0.0      │ Performs 5 full finetune runs of 5 steps each on a      │
-│                    │                                     │ model and reports the fraction of those that resulted   │
-│                    │                                     │ in GPU OOM, Other error, or No Error for a given (GPU   │
-│                    │                                     │ model, number GPUS, batch_size, model_max_length)       │
-│                    │                                     │ combination.                                            │
-│ SFTTrainer         │ finetune_gptq-lora_benchmark-v1.0.0 │ Measures the performance of GPTQ-LORA tuning a model    │
-│                    │                                     │ for a given (GPU model, number GPUS, batch_size,        │
-│                    │                                     │ model_max_length, number nodes) combination.            │
-│ SFTTrainer         │ finetune_lora_benchmark-v1.0.0      │ Measures the performance of LORA tuning a model for a   │
-│                    │                                     │ given (GPU model, number GPUS, batch_size,              │
-│                    │                                     │ model_max_length, number nodes) combination.            │
-│ SFTTrainer         │ finetune_pt_benchmark-v1.0.0        │ Measures the performance of prompt-tuning a model for a │
-│                    │                                     │ given (GPU model, number GPUS, batch_size,              │
-│                    │                                     │ model_max_length, number nodes) combination.            │
-│ custom_experiments │ acid_test                           │                                                         │
-│ custom_experiments │ avoid_oom_recommender               │ An AutoConf recommender that suggests the minimum       │
-│                    │                                     │ number of gpus per worker and number of workers         │
-│                    │                                     │ necessary to execute a Tuning job whilekeeping the per  │
-│                    │                                     │ GPU batch size constant                                 │
-│ custom_experiments │ calculate_density                   │                                                         │
-│ custom_experiments │ min_gpu_recommender                 │ An AutoConf plugin that suggests the minimum number of  │
-│                    │                                     │ gpus per worker and number of workers necessary to      │
-│                    │                                     │ execute a Tuning job                                    │
-│ custom_experiments │ ml-multicloud-cost-v1.0             │                                                         │
-│ custom_experiments │ nevergrad_opt_3d_test_func          │                                                         │
-│ mock               │ test-experiment                     │                                                         │
-│ mock               │ test-experiment-two                 │                                                         │
-│ robotic_lab        │ peptide_mineralization              │ Measures adsorption of peptide lanthanide combinations  │
-└────────────────────┴─────────────────────────────────────┴─────────────────────────────────────────────────────────┘
+┌───────┬────────────────────┬──────────────────────────────────────┬─────────┬──────────────────────────────────────────┐
+│ INDEX │ ACTUATOR ID        │ EXPERIMENT ID                        │ VERSION │ DESCRIPTION                              │
+├───────┼────────────────────┼──────────────────────────────────────┼─────────┼──────────────────────────────────────────┤
+│ 0     │ custom_experiments │ avoid_oom_recommender                │ None    │ An AutoConf recommender that preserves   │
+│       │                    │                                      │         │ the requested number of GPUs if it won't │
+│       │                    │                                      │         │ cause GPU OOM, otherwise recommends the  │
+│       │                    │                                      │         │ minimum number of GPUs needed. Keeps the │
+│       │                    │                                      │         │ per-device batch size constant.          │
+│ 1     │ custom_experiments │ min_gpu_recommender                  │ None    │ An AutoConf plugin that suggests the     │
+│       │                    │                                      │         │ minimum number of gpus per worker and    │
+│       │                    │                                      │         │ number of workers necessary to execute a │
+│       │                    │                                      │         │ Tuning job                               │
+│ 2     │ vllm_performance   │ vllm-bench-deployment                │ 1.0.0   │ VLLM performance testing across compute  │
+│       │                    │                                      │         │ resource and workload configuration      │
+│ 3     │ vllm_performance   │ geospatial-vllm-bench-deployment     │ 1.0.0   │ VLLM performance testing across compute  │
+│       │                    │                                      │         │ resource and workload configuration for  │
+│       │                    │                                      │         │ geospatial models                        │
+│ 4     │ vllm_performance   │ test-agentic-tool-calling            │ 1.0.0   │ Test inference performance of an         │
+│       │                    │                                      │         │ agent-style model deployed by vLLM       │
+│       │                    │                                      │         │ across compute resource and workload     │
+│       │                    │                                      │         │ configurations                           │
+│ ...   │ ...                │ ...                                  │ ...     │ ...                                      │
+└───────┴────────────────────┴──────────────────────────────────────┴─────────┴──────────────────────────────────────────┘
 ```
 <!-- markdownlint-enable line-length -->
 

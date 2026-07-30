@@ -85,23 +85,16 @@ ado get contexts
 This will output something like
 
 ```terminaloutput
-┌───────┬────────────────────────┬─────────┐
-│ INDEX │ CONTEXT                │ DEFAULT │
-├───────┼────────────────────────┼─────────┤
-│ 0     │ ap-test                │         │
-│ 1     │ ap-testing             │         │
-│ 2     │ caikit-testharness     │         │
-│ 3     │ developer-testing      │         │
-│ 4     │ finetuning             │         │
-│ 5     │ ft-prod                │         │
-│ 6     │ ft-vela                │         │
-│ 7     │ llm-d                  │         │
-│ 8     │ local                  │ ✅      │
-│ 9     │ local-test             │         │
-│ 10    │ mascots2024            │         │
-│ 11    │ playground             │         │
-│ 12    │ resource-store-testing │         │
-└───────┴────────────────────────┴─────────┘
+┌───────┬─────────────────────────┬────────┐
+│ INDEX │ CONTEXT                 │ ACTIVE │
+├───────┼─────────────────────────┼────────┤
+│ 0     │ algorithm-nexus         │        │
+│ 1     │ cplex_mip               │        │
+│ 2     │ geospatial-benchmarking │        │
+│ 3     │ llm-d                   │        │
+│ 4     │ local                   │ ✅     │
+│ 5     │ playground              │        │
+└───────┴─────────────────────────┴────────┘
 ```
 
 Note, the name of the context is the name of the associated project.

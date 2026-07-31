@@ -73,7 +73,6 @@ def trim(
     source_df, target_df = get_source_and_target(
         discoverySpace, params.targetOutput, log_string="First query"
     )
-    initial_source_space_size = len(source_df)
 
     op_output_characterization_no_prior = OperationOutput.model_validate(
         {
@@ -154,7 +153,7 @@ def trim(
         module=trim_module, parameters=params
     )
     numberEntities_iterative_modeling = (
-        len(source_df) - initial_source_space_size
+        params.samplingBudget.maxPoints - len(source_df)
         if op_output_characterization_no_prior.operation
         else params.samplingBudget.maxPoints
     )

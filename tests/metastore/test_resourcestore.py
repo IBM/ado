@@ -150,7 +150,7 @@ def test_get_resources_by_relationship(
         result = sql_store_with_resources_preloaded.get_resources_by_relationship(
             kind=resource_type,
             identifier=identifier,
-            relationship_direction="both",
+            relationship="both",
             max_hops=None,
             identifiers_only=True,
         )
@@ -228,7 +228,7 @@ def test_add_and_delete_discovery_space(
     assert not sql_store.get_resources_by_relationship(
         kind=CoreResourceKinds.DISCOVERYSPACE,
         identifier=space_resource.identifier,
-        relationship_direction="both",
+        relationship="both",
         max_hops=None,
         identifiers_only=True,
     )
@@ -266,7 +266,7 @@ def test_add_update_and_delete_operation_related_to_discovery_space(
     assert space_identifier in sql_store.get_resources_by_relationship(
         kind=CoreResourceKinds.OPERATION,
         identifier=operation_resource.identifier,
-        relationship_direction="incoming",
+        relationship="parent",
         max_hops=1,
         identifiers_only=True,
     ).get(CoreResourceKinds.DISCOVERYSPACE, set())
@@ -275,7 +275,7 @@ def test_add_update_and_delete_operation_related_to_discovery_space(
     assert operation_resource.identifier in sql_store.get_resources_by_relationship(
         kind=CoreResourceKinds.DISCOVERYSPACE,
         identifier=space_identifier,
-        relationship_direction="outgoing",
+        relationship="child",
         max_hops=1,
         identifiers_only=True,
     ).get(CoreResourceKinds.OPERATION, set())
@@ -321,7 +321,7 @@ def test_add_update_and_delete_operation_related_to_discovery_space(
     assert operation_resource.identifier not in sql_store.get_resources_by_relationship(
         kind=CoreResourceKinds.DISCOVERYSPACE,
         identifier=space_identifier,
-        relationship_direction="outgoing",
+        relationship="child",
         max_hops=1,
         identifiers_only=True,
     ).get(CoreResourceKinds.OPERATION, set())
@@ -329,7 +329,7 @@ def test_add_update_and_delete_operation_related_to_discovery_space(
     assert not sql_store.get_resources_by_relationship(
         kind=CoreResourceKinds.OPERATION,
         identifier=operation_resource.identifier,
-        relationship_direction="both",
+        relationship="both",
         max_hops=None,
         identifiers_only=True,
     )
@@ -359,7 +359,7 @@ def test_add_operation_and_output(
     dcs = sql_store.get_resources_by_relationship(
         kind=CoreResourceKinds.OPERATION,
         identifier=op_resource.identifier,
-        relationship_direction="outgoing",
+        relationship="child",
         max_hops=1,
         identifiers_only=True,
     ).get(CoreResourceKinds.DATACONTAINER, set())
@@ -405,7 +405,7 @@ def test_add_operation_and_output(
     assert res.identifier not in sql_store.get_resources_by_relationship(
         kind=CoreResourceKinds.OPERATION,
         identifier=op_resource.identifier,
-        relationship_direction="outgoing",
+        relationship="child",
         max_hops=1,
         identifiers_only=True,
     ).get(CoreResourceKinds.DATACONTAINER, set())
@@ -738,7 +738,7 @@ def test_up_from_operation_max_hops_1(
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.OPERATION,
         identifier=op_id,
-        relationship_direction="incoming",
+        relationship="parent",
         max_hops=1,
         identifiers_only=True,
     )
@@ -761,7 +761,7 @@ def test_up_from_operation_uncapped_returns_discoveryspace_and_samplestore(
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.OPERATION,
         identifier=op_id,
-        relationship_direction="incoming",
+        relationship="parent",
         identifiers_only=True,
     )
 
@@ -788,7 +788,7 @@ def test_up_from_discoveryspace_returns_samplestore_only(
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.DISCOVERYSPACE,
         identifier=ds_id,
-        relationship_direction="incoming",
+        relationship="parent",
         identifiers_only=True,
     )
 
@@ -813,7 +813,7 @@ def test_down_from_samplestore_max_hops_1(
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.SAMPLESTORE,
         identifier=ss_id,
-        relationship_direction="outgoing",
+        relationship="child",
         max_hops=1,
         identifiers_only=True,
     )
@@ -837,7 +837,7 @@ def test_down_from_samplestore_max_hops_2(
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.SAMPLESTORE,
         identifier=ss_id,
-        relationship_direction="outgoing",
+        relationship="child",
         max_hops=2,
         identifiers_only=True,
     )
@@ -861,7 +861,7 @@ def test_outgoing_from_samplestore_uncapped_returns_discoveryspace_operation_and
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.SAMPLESTORE,
         identifier=ss_id,
-        relationship_direction="outgoing",
+        relationship="child",
         identifiers_only=True,
     )
 
@@ -889,7 +889,7 @@ def test_outgoing_from_discoveryspace_max_hops_1(
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.DISCOVERYSPACE,
         identifier=ds_id,
-        relationship_direction="outgoing",
+        relationship="child",
         max_hops=1,
         identifiers_only=True,
     )
@@ -912,7 +912,7 @@ def test_outgoing_from_discoveryspace_uncapped_returns_operation_and_datacontain
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.DISCOVERYSPACE,
         identifier=ds_id,
-        relationship_direction="outgoing",
+        relationship="child",
         identifiers_only=True,
     )
 
@@ -939,7 +939,7 @@ def test_outgoing_from_operation_returns_datacontainer_only(
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.OPERATION,
         identifier=op_id,
-        relationship_direction="outgoing",
+        relationship="child",
         identifiers_only=True,
     )
 
@@ -986,7 +986,7 @@ def test_incoming_from_datacontainer_returns_operation_discoveryspace_and_sample
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.DATACONTAINER,
         identifier=dc_id,
-        relationship_direction="incoming",
+        relationship="parent",
         identifiers_only=True,
     )
 
@@ -1037,7 +1037,7 @@ def test_incoming_from_actuatorconfiguration_returns_no_results(
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.ACTUATORCONFIGURATION,
         identifier=ac_id,
-        relationship_direction="incoming",
+        relationship="parent",
         identifiers_only=True,
     )
 
@@ -1205,7 +1205,7 @@ def test_multi_start_returns_per_origin_grouping(
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.OPERATION,
         identifier={op1_id, op2_id},
-        relationship_direction="outgoing",
+        relationship="child",
         identifiers_only=True,
     )
 
@@ -1235,7 +1235,7 @@ def test_multi_start_shared_resource_appears_under_each_origin(
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.OPERATION,
         identifier={op1_id, op2_id},
-        relationship_direction="incoming",
+        relationship="parent",
         identifiers_only=True,
     )
 
@@ -1261,7 +1261,7 @@ def test_identifier_none_seeds_from_all_resources_of_kind(
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.OPERATION,
         identifier=None,
-        relationship_direction="incoming",
+        relationship="parent",
         identifiers_only=True,
     )
 
@@ -1291,7 +1291,7 @@ def test_hydrated_single_start_returns_resources(
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.OPERATION,
         identifier=op_id,
-        relationship_direction="outgoing",
+        relationship="child",
         identifiers_only=False,
     )
 
@@ -1317,13 +1317,13 @@ def test_hydrated_multi_start_grouping_matches_identifier_mode(
     result_ids = store.get_resources_by_relationship(
         kind=CoreResourceKinds.OPERATION,
         identifier={op1_id, op2_id},
-        relationship_direction="outgoing",
+        relationship="child",
         identifiers_only=True,
     )
     result_hydrated = store.get_resources_by_relationship(
         kind=CoreResourceKinds.OPERATION,
         identifier={op1_id, op2_id},
-        relationship_direction="outgoing",
+        relationship="child",
         identifiers_only=False,
     )
 
@@ -1355,7 +1355,7 @@ def test_hydrated_start_identifier_excluded(
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.OPERATION,
         identifier=op_id,
-        relationship_direction="outgoing",
+        relationship="child",
         identifiers_only=False,
     )
 
@@ -1373,17 +1373,17 @@ def test_hydrated_start_identifier_excluded(
 def test_invalid_direction_raises_value_error(
     resource_hierarchy: dict,
 ) -> None:
-    """Unsupported relationship_direction raises ValueError."""
+    """Unsupported relationship raises ValueError."""
     store: SQLStore = resource_hierarchy["store"]
     op_id = resource_hierarchy["operation_id"]
     with pytest.raises(
         ValueError,
-        match="relationship_direction must be 'outgoing', 'incoming' or 'both'",
+        match="relationship must be 'child', 'parent' or 'both'",
     ):
         store.get_resources_by_relationship(
             kind=CoreResourceKinds.OPERATION,
             identifier=op_id,
-            relationship_direction="sideways",  # type: ignore[arg-type]
+            relationship="sideways",  # type: ignore[arg-type]
         )
 
 
@@ -1397,7 +1397,7 @@ def test_invalid_max_hops_zero_raises_value_error(
         store.get_resources_by_relationship(
             kind=CoreResourceKinds.OPERATION,
             identifier=op_id,
-            relationship_direction="incoming",
+            relationship="parent",
             max_hops=0,
             identifiers_only=True,
         )
@@ -1413,7 +1413,7 @@ def test_invalid_max_hops_negative_raises_value_error(
         store.get_resources_by_relationship(
             kind=CoreResourceKinds.OPERATION,
             identifier=op_id,
-            relationship_direction="outgoing",
+            relationship="child",
             max_hops=-1,
             identifiers_only=True,
         )
@@ -1429,7 +1429,7 @@ def test_valid_kind_direction_combo_with_no_reachable_resources_returns_empty(
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.SAMPLESTORE,
         identifier=resource_hierarchy["samplestore_id"],
-        relationship_direction="incoming",
+        relationship="parent",
         identifiers_only=True,
     )
 
@@ -1474,7 +1474,7 @@ def test_empty_identifier_set_returns_empty(
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.OPERATION,
         identifier=set(),
-        relationship_direction="outgoing",
+        relationship="child",
         identifiers_only=True,
     )
 
@@ -1515,7 +1515,7 @@ def test_valid_traversal_with_no_related_resources(
     result = sql_store.get_resources_by_relationship(
         kind=CoreResourceKinds.SAMPLESTORE,
         identifier=ss.identifier,
-        relationship_direction="outgoing",
+        relationship="child",
         identifiers_only=True,
     )
 
@@ -1540,7 +1540,7 @@ def test_include_start_resources_single_identifier(
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.OPERATION,
         identifier=op_id,
-        relationship_direction="outgoing",
+        relationship="child",
         identifiers_only=False,
         include_start_resources=True,
     )
@@ -1564,7 +1564,7 @@ def test_include_start_resources_multi_identifier(
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.OPERATION,
         identifier={op1_id, op2_id},
-        relationship_direction="outgoing",
+        relationship="child",
         identifiers_only=False,
         include_start_resources=True,
     )
@@ -1591,7 +1591,7 @@ def test_include_start_resources_no_related_resources(
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.SAMPLESTORE,
         identifier=ss_id,
-        relationship_direction="incoming",
+        relationship="parent",
         identifiers_only=False,
         include_start_resources=True,
     )
@@ -1615,7 +1615,7 @@ def test_include_start_resources_with_identifiers_only_raises(
         store.get_resources_by_relationship(
             kind=CoreResourceKinds.OPERATION,
             identifier=op_id,
-            relationship_direction="outgoing",
+            relationship="child",
             identifiers_only=True,
             include_start_resources=True,
         )
@@ -1634,7 +1634,7 @@ def test_include_start_resources_with_identifier_none_raises(
         store.get_resources_by_relationship(
             kind=CoreResourceKinds.OPERATION,
             identifier=None,
-            relationship_direction="outgoing",
+            relationship="child",
             identifiers_only=False,
             include_start_resources=True,
         )
@@ -1737,7 +1737,7 @@ def test_outgoing_from_parent_op_returns_child_op(
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.OPERATION,
         identifier=h["parent_op_id"],
-        relationship_direction="outgoing",
+        relationship="child",
         result_kinds={CoreResourceKinds.OPERATION},
         max_hops=1,
         identifiers_only=True,
@@ -1759,7 +1759,7 @@ def test_incoming_from_child_op_returns_parent_op(
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.OPERATION,
         identifier=h["child_op_id"],
-        relationship_direction="incoming",
+        relationship="parent",
         result_kinds={CoreResourceKinds.OPERATION},
         max_hops=1,
         identifiers_only=True,
@@ -1802,7 +1802,7 @@ def test_space_op_space_op_multi_hop(
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.DISCOVERYSPACE,
         identifier=h["space1_id"],
-        relationship_direction="outgoing",
+        relationship="child",
         result_kinds={CoreResourceKinds.OPERATION},
         max_hops=4,
         identifiers_only=True,
@@ -1913,7 +1913,7 @@ def test_outgoing_from_operation_returns_document(
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.OPERATION,
         identifier=h["op_a_id"],
-        relationship_direction="outgoing",
+        relationship="child",
         result_kinds={CoreResourceKinds.DOCUMENT},
         max_hops=1,
         identifiers_only=True,
@@ -1934,7 +1934,7 @@ def test_incoming_from_document_returns_parent_operation(
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.DOCUMENT,
         identifier=h["doc_id"],
-        relationship_direction="incoming",
+        relationship="parent",
         result_kinds={CoreResourceKinds.OPERATION},
         max_hops=1,
         identifiers_only=True,
@@ -1956,7 +1956,7 @@ def test_outgoing_from_document_returns_child_operation(
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.DOCUMENT,
         identifier=h["doc_id"],
-        relationship_direction="outgoing",
+        relationship="child",
         result_kinds={CoreResourceKinds.OPERATION},
         max_hops=1,
         identifiers_only=True,

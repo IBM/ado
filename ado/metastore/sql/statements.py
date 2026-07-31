@@ -550,7 +550,7 @@ def resource_select_latest_by_kinds(
 
 def graph_traversal_query(
     kind: "CoreResourceKinds",
-    relationship_direction: Literal["outgoing", "incoming", "both"],
+    relationship: Literal["child", "parent", "both"],
     origin_identifiers: set[str],
     max_hops: int | None = None,
     dialect: Literal["sqlite", "mysql"] = "sqlite",
@@ -561,14 +561,14 @@ def graph_traversal_query(
 
     Traversal starts from every identifier in ``origin_identifiers`` whose
     resource kind matches ``kind`` and follows edges according to
-    ``relationship_direction``, with a ``visited_path`` cycle guard.
+    ``relationship``, with a ``visited_path`` cycle guard.
 
     Args:
         kind: Starting resource kind.
-        relationship_direction: ``'outgoing'`` (follow edges where the current
-            node is the ``from`` end), ``'incoming'`` (follow edges where the
-            current node is the ``to`` end), or ``'both'`` (follow edges in
-            either direction).
+        relationship: ``'child'`` (follow edges where the current node is the
+            ``from`` end), ``'parent'`` (follow edges where the current node
+            is the ``to`` end), or ``'both'`` (follow edges in either
+            direction).
         origin_identifiers: Set of start resource identifiers to bind.
         max_hops: Maximum number of hops to follow from the start resource.
             When ``None`` the traversal runs to the full depth cap
@@ -581,12 +581,11 @@ def graph_traversal_query(
         A bound :class:`sqlalchemy.TextClause` ready to execute.
 
     Raises:
-        ValueError: If ``relationship_direction`` is invalid.
+        ValueError: If ``relationship`` is invalid.
     """
-    if relationship_direction not in {"outgoing", "incoming", "both"}:
+    if relationship not in {"child", "parent", "both"}:
         raise ValueError(
-            "relationship_direction must be 'outgoing', 'incoming' or 'both', "
-            f"got {relationship_direction!r}"
+            f"relationship must be 'child', 'parent' or 'both', got {relationship!r}"
         )
 
     if max_hops is not None and max_hops < 1:
@@ -615,7 +614,7 @@ def graph_traversal_query(
         )
     """
 
-    # Build the traversal CTE body depending on relationship_direction.
+    # Build the traversal CTE body depending on relationship.
     # All variants use a visited_path cycle guard seeded as ',id,' so that
     # membership checks are unambiguous prefix/suffix matches.
     #
@@ -625,11 +624,11 @@ def graph_traversal_query(
             return " || ".join(parts)
         return f"CONCAT({', '.join(parts)})"
 
-    if relationship_direction == "outgoing":
+    if relationship == "child":
         step_join = "logical_edges.from_identifier = traversal.current_identifier"
         next_id = "logical_edges.to_identifier"
         next_kind = "logical_edges.to_kind"
-    elif relationship_direction == "incoming":
+    elif relationship == "parent":
         step_join = "logical_edges.to_identifier = traversal.current_identifier"
         next_id = "logical_edges.from_identifier"
         next_kind = "logical_edges.from_kind"

@@ -67,7 +67,7 @@ def show_sample_store_trace(parameters: AdoShowTraceCommandParameters) -> None:
         related = sql_store.get_resources_by_relationship(
             kind=CoreResourceKinds.SAMPLESTORE,
             identifier=store_id,
-            relationship_direction="outgoing",
+            relationship="child",
             result_kinds={CoreResourceKinds.DISCOVERYSPACE},
             max_hops=1,
             identifiers_only=True,
@@ -86,7 +86,7 @@ def show_sample_store_trace(parameters: AdoShowTraceCommandParameters) -> None:
         related_spaces: dict = sql_store.get_resources_by_relationship(  # type: ignore[assignment]
             kind=CoreResourceKinds.DISCOVERYSPACE,
             identifier=space_ids,
-            relationship_direction="outgoing",
+            relationship="child",
             result_kinds={CoreResourceKinds.OPERATION},
             max_hops=1,
             identifiers_only=True,

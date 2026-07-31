@@ -291,7 +291,7 @@ def format_ado_get_stats_for_operations(
         sql_store.get_resources_by_relationship(
             kind=CoreResourceKinds.OPERATION,
             identifier=operation_ids,
-            relationship_direction="incoming",
+            relationship="parent",
             result_kinds={CoreResourceKinds.SAMPLESTORE},
             max_hops=2,
             identifiers_only=True,

@@ -913,7 +913,7 @@ class DiscoverySpace:
         return self._metadataStore.get_resources_by_relationship(
             kind=ado.core.resources.CoreResourceKinds.DISCOVERYSPACE,
             identifier=self.uri,
-            relationship_direction="outgoing",
+            relationship="child",
             result_kinds={ado.core.resources.CoreResourceKinds.OPERATION},
             max_hops=1,
             identifiers_only=True,

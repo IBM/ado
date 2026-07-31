@@ -319,7 +319,7 @@ class ResourceStore(abc.ABC):
         self,
         kind: CoreResourceKinds,
         identifier: str | set[str] | None,
-        relationship_direction: Literal["outgoing", "incoming", "both"] = "both",
+        relationship: Literal["child", "parent", "both"] = "both",
         result_kinds: "set[CoreResourceKinds] | None" = None,
         max_hops: int | None = None,
         identifiers_only: bool = False,
@@ -338,9 +338,9 @@ class ResourceStore(abc.ABC):
             identifier: Controls which resources are used as traversal origins.
                 ``str`` for a single start resource, ``set[str]`` for multiple,
                 or ``None`` to seed from all resources of ``kind``.
-            relationship_direction: ``'outgoing'`` (follow edges where the
-                current node is the source), ``'incoming'`` (follow edges where
-                the current node is the target), or ``'both'`` (default).
+            relationship: ``'child'`` (follow edges where the current node is
+                the source), ``'parent'`` (follow edges where the current node
+                is the target), or ``'both'`` (default).
             result_kinds: When not ``None``, only resources whose kind is in
                 this set are included in the returned result. ``None`` returns
                 every reachable kind.

@@ -1518,7 +1518,7 @@ class SQLResourceStore(ResourceStore):
         self,
         kind: CoreResourceKinds,
         identifier: str | set[str] | None,
-        relationship_direction: Literal["outgoing", "incoming", "both"] = "both",
+        relationship: Literal["child", "parent", "both"] = "both",
         result_kinds: "set[CoreResourceKinds] | None" = None,
         max_hops: int | None = None,
         identifiers_only: bool = False,
@@ -1558,9 +1558,9 @@ class SQLResourceStore(ResourceStore):
                   resources (seeded via :meth:`getResourceIdentifiersOfKind`).
                 * An **empty set** returns an empty result immediately.
 
-            relationship_direction: ``'outgoing'`` (follow edges where the
-                current node is the source), ``'incoming'`` (follow edges where
-                the current node is the target), or ``'both'`` (default).
+            relationship: ``'child'`` (follow edges where the current node is
+                the source), ``'parent'`` (follow edges where the current node
+                is the target), or ``'both'`` (default).
             result_kinds: When not ``None``, only resources whose kind is in
                 this set are included in the returned result. ``None`` returns
                 every reachable kind.
@@ -1593,8 +1593,8 @@ class SQLResourceStore(ResourceStore):
             results. Pass ``include_start_resources=True`` to include them.
 
         Raises:
-            ValueError: If ``relationship_direction`` is not ``'outgoing'``,
-                ``'incoming'`` or ``'both'``.
+            ValueError: If ``relationship`` is not ``'child'``, ``'parent'``
+                or ``'both'``.
             ValueError: If ``include_start_resources=True`` is used together
                 with ``identifiers_only=True``.
             ValueError: If ``include_start_resources=True`` is used with
@@ -1603,9 +1603,9 @@ class SQLResourceStore(ResourceStore):
         # ------------------------------------------------------------------
         # 0. Validate parameters eagerly
         # ------------------------------------------------------------------
-        if relationship_direction not in {"outgoing", "incoming", "both"}:
+        if relationship not in {"child", "parent", "both"}:
             raise ValueError(
-                f"relationship_direction must be 'outgoing', 'incoming' or 'both', got {relationship_direction!r}"
+                f"relationship must be 'child', 'parent' or 'both', got {relationship!r}"
             )
 
         if max_hops is not None and max_hops < 1:
@@ -1651,7 +1651,7 @@ class SQLResourceStore(ResourceStore):
         # graph_traversal_query; passing max_hops=None lets it use the full cap.
         query = ado.metastore.sql.statements.graph_traversal_query(
             kind=kind,
-            relationship_direction=relationship_direction,
+            relationship=relationship,
             origin_identifiers=_identifiers_requested,
             max_hops=max_hops,
             dialect=self.engine.dialect.name,

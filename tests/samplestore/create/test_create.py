@@ -91,7 +91,7 @@ def test_create_operation_with_related_space(
     related_resource_identifiers = get_related_resource_identifiers_by_identifier(
         operation.identifier,
         CoreResourceKinds.OPERATION,
-        "incoming",
+        "parent",
     ).get(CoreResourceKinds.DISCOVERYSPACE, set())
     for space_id in space_ids:
         assert space_id in related_resource_identifiers

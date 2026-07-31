@@ -1,8 +1,8 @@
 ---
 name: create-study-document
 description: >
-  Create and update ado study documents (document resources) that track an
-  in-progress study: motivation, question, objectives, materials, study labels,
+  Describes how to create documents (document resources) that track an
+  in-progress research study: motivation, question, objectives, materials, study labels,
   and a todo list of next steps. Use when starting a study, creating a study
   document, updating study todos/objectives, or when the user mentions
   study-$ID or study tracking.
@@ -10,8 +10,8 @@ description: >
 
 # Creating a Study Document
 
-A **study document** describes a study to perform, or already underway, with
-ado. It is stored as a `document` resource in the metastore.
+A **study document** describes a research study to perform, or that is
+already underway. It is stored as a `document` resource in the metastore.
 
 For generic document create/query, see
 [resource-yaml-creation — Document](../resource-yaml-creation/SKILL.md#document).
@@ -98,7 +98,7 @@ uv run ado create document -f study-cplex-mip_document.yaml
 Apply the study labels to every space and operation created for the study
 (see [resource-yaml-creation](../resource-yaml-creation/SKILL.md) metadata).
 
-## Query and update
+## Query
 
 ```bash
 # Find a study document by name
@@ -112,22 +112,9 @@ uv run ado get spaces -l study=$ID --details
 uv run ado get operations -l study=$ID --details
 ```
 
-Fetch the body with `uv run ado get document DOCUMENT_ID -o yaml`.
+Fetch the study body with `uv run ado describe document DOCUMENT_ID`.
 
-**Updates:**
+## Update
 
-- Prefer `ado edit document DOCUMENT_ID` for `todo` and `description`.
-- Full body refresh: create a replacement only after the user agrees; same
-  keep-history vs replace policy as project reports in
-  [examining-ado-project](../examining-ado-project/SKILL.md).
-
-## Related
-
-- [conduct-empirical-study](../conduct-empirical-study/SKILL.md) — create or
-  refresh a study document when running a study
-- [examining-ado-project](../examining-ado-project/SKILL.md) — surfaces study
-  documents in project overviews
-- **Future-friendly** (not yet updated): `ado-project-maintenance` should treat
-  `study-*` docs separately from duplicate per-resource reports;
-  examining-ops/spaces should ignore `study-*` when matching reports via
-  `relatedResources`
+- Use `ado edit document DOCUMENT_ID` to update `todo` and `description`.
+- Full body refresh: create a replacement document resource

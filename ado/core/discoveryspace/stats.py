@@ -287,7 +287,8 @@ def space_statistics_for_spaces(
             metastore.get_resources_by_relationship(  # type: ignore[assignment]
                 kind=CoreResourceKinds.DISCOVERYSPACE,
                 identifier=group_space_ids,
-                hierarchy_direction="down",
+                relationship_direction="outgoing",
+                result_kinds={CoreResourceKinds.OPERATION},
                 max_hops=1,
                 identifiers_only=True,
             )

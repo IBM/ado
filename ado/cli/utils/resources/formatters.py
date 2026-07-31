@@ -291,7 +291,8 @@ def format_ado_get_stats_for_operations(
         sql_store.get_resources_by_relationship(
             kind=CoreResourceKinds.OPERATION,
             identifier=operation_ids,
-            hierarchy_direction="up",
+            relationship_direction="incoming",
+            result_kinds={CoreResourceKinds.SAMPLESTORE},
             max_hops=2,
             identifiers_only=True,
         )
@@ -422,7 +423,7 @@ def format_ado_get_stats_for_spaces(
         sql_store.get_resources_by_relationship(
             kind=CoreResourceKinds.DISCOVERYSPACE,
             identifier=space_ids,
-            hierarchy_direction="both",
+            result_kinds={CoreResourceKinds.OPERATION, CoreResourceKinds.SAMPLESTORE},
             max_hops=1,
             identifiers_only=True,
         ),

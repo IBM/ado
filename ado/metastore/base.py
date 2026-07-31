@@ -319,7 +319,8 @@ class ResourceStore(abc.ABC):
         self,
         kind: CoreResourceKinds,
         identifier: str | set[str] | None,
-        hierarchy_direction: Literal["up", "down", "both"],
+        relationship_direction: Literal["outgoing", "incoming", "both"] = "both",
+        result_kinds: "set[CoreResourceKinds] | None" = None,
         max_hops: int | None = None,
         identifiers_only: bool = False,
         include_start_resources: bool = False,
@@ -329,7 +330,7 @@ class ResourceStore(abc.ABC):
         | dict[CoreResourceKinds, dict[str, ADOResource]]
         | dict[str, dict[CoreResourceKinds, dict[str, ADOResource]]]
     ):
-        """Walk the resource hierarchy and return related resources.
+        """Walk the resource graph and return related resources.
 
         Args:
             kind: The :class:`~ado.core.resources.CoreResourceKinds` of
@@ -337,10 +338,14 @@ class ResourceStore(abc.ABC):
             identifier: Controls which resources are used as traversal origins.
                 ``str`` for a single start resource, ``set[str]`` for multiple,
                 or ``None`` to seed from all resources of ``kind``.
-            hierarchy_direction: ``'up'`` (child → parent), ``'down'``
-                (parent → child), or ``'both'``.
+            relationship_direction: ``'outgoing'`` (follow edges where the
+                current node is the source), ``'incoming'`` (follow edges where
+                the current node is the target), or ``'both'`` (default).
+            result_kinds: When not ``None``, only resources whose kind is in
+                this set are included in the returned result. ``None`` returns
+                every reachable kind.
             max_hops: Maximum number of relationship hops to follow. ``None``
-                traverses to the full depth of the hierarchy.
+                traverses to the full depth cap.
             identifiers_only: When ``True`` return only discovered identifiers;
                 when ``False`` (default) return hydrated
                 :class:`~ado.core.resources.ADOResource` objects.

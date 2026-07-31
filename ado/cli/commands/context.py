@@ -107,6 +107,7 @@ def list_contexts(
         no_trunc=False,
         output_file=None,
         output_format=output_format,
+        related_to=None,
         resource_id=None,
         resource_type=AdoGetSupportedResourceTypes.CONTEXT,
         show_deprecated=False,

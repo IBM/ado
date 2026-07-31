@@ -659,8 +659,12 @@ class PropertyDomain(pydantic.BaseModel):
             valuesCheck = values.data.get("values") is not None
             intervalCheck = values.data.get("interval") is not None
             if not (valuesCheck or intervalCheck):
+                domain_range = values.data.get("domainRange")
                 raise ValueError(
-                    "A DISCRETE_VARIABLE_TYPE had neither values nor interval specified"
+                    f"A DISCRETE_VARIABLE_TYPE had neither values nor interval specified. "
+                    f"Provided: values={values.data.get('values')}, "
+                    f"interval={values.data.get('interval')}, "
+                    f"domainRange={domain_range}"
                 )
 
         elif value == VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE:
@@ -677,12 +681,14 @@ class PropertyDomain(pydantic.BaseModel):
         elif value == VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE:
             if values.data.get("interval") is not None:
                 raise ValueError(
-                    "The interval field of an OPEN_CATEGORICAL_VARIABLE_TYPE was not None"
+                    f"An OPEN_CATEGORICAL_VARIABLE_TYPE must not have interval specified. "
+                    f"Provided: interval={values.data.get('interval')}"
                 )
 
             if values.data.get("domainRange") is not None:
                 raise ValueError(
-                    "The domainRange field of an OPEN_CATEGORICAL_VARIABLE_TYPE was not None"
+                    f"An OPEN_CATEGORICAL_VARIABLE_TYPE must not have domainRange specified. "
+                    f"Provided: domainRange={values.data.get('domainRange')}"
                 )
 
         elif value == VariableTypeEnum.BINARY_VARIABLE_TYPE:
@@ -700,12 +706,14 @@ class PropertyDomain(pydantic.BaseModel):
 
             if values.data.get("interval") is not None:
                 raise ValueError(
-                    "The interval field for a BINARY_VARIABLE_TYPE must be None"
+                    f"A BINARY_VARIABLE_TYPE must not have interval specified. "
+                    f"Provided: interval={values.data.get('interval')}"
                 )
 
             if values.data.get("domainRange") is not None:
                 raise ValueError(
-                    "The domainRange field for a BINARY_VARIABLE_TYPE must be None"
+                    f"A BINARY_VARIABLE_TYPE must not have domainRange specified. "
+                    f"Provided: domainRange={values.data.get('domainRange')}"
                 )
 
         return value

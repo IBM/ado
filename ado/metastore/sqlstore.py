@@ -1518,7 +1518,8 @@ class SQLResourceStore(ResourceStore):
         self,
         kind: CoreResourceKinds,
         identifier: str | set[str] | None,
-        hierarchy_direction: Literal["up", "down", "both"],
+        relationship: Literal["child", "parent", "both"] = "both",
+        result_kinds: "set[CoreResourceKinds] | None" = None,
         max_hops: int | None = None,
         identifiers_only: bool = False,
         include_start_resources: bool = False,
@@ -1534,7 +1535,7 @@ class SQLResourceStore(ResourceStore):
             ],
         ]
     ):
-        """Walk the resource hierarchy stored in ``resource_relationships``.
+        """Walk the resource graph stored in ``resource_relationships``.
 
         Issues at most three SQL queries: when ``identifier=None`` a seed query
         fetches all identifiers of ``kind`` via
@@ -1555,18 +1556,17 @@ class SQLResourceStore(ResourceStore):
                 * ``set[str]`` — multiple explicit start resource identifiers.
                 * ``None`` — all resources of ``kind`` are used as start
                   resources (seeded via :meth:`getResourceIdentifiersOfKind`).
-                  Not supported when ``hierarchy_direction='both'``.
                 * An **empty set** returns an empty result immediately.
 
-            hierarchy_direction: ``'up'`` (child → parent), ``'down'``
-                (parent → child), or ``'both'``.
+            relationship: ``'child'`` (follow edges where the current node is
+                the source), ``'parent'`` (follow edges where the current node
+                is the target), or ``'both'`` (default).
+            result_kinds: When not ``None``, only resources whose kind is in
+                this set are included in the returned result. ``None`` returns
+                every reachable kind.
             max_hops: Maximum number of relationship hops to follow from each
                 start resource. When ``None`` the traversal runs to the full
-                depth of the hierarchy. For ``hierarchy_direction='both'`` the
-                limit is applied independently to each direction (e.g.
-                ``max_hops=1`` yields one hop up *and* one hop down). Values
-                exceeding the hierarchy maximum (currently 3, matching the 4
-                resource levels) are silently capped at that maximum.
+                depth cap. Values exceeding the cap are silently capped.
             identifiers_only: When ``False`` (default) discovered identifiers
                 are hydrated into full
                 :class:`~ado.core.resources.ADOResource` objects via
@@ -1593,10 +1593,8 @@ class SQLResourceStore(ResourceStore):
             results. Pass ``include_start_resources=True`` to include them.
 
         Raises:
-            ValueError: If ``hierarchy_direction`` is not ``'up'``, ``'down'``
+            ValueError: If ``relationship`` is not ``'child'``, ``'parent'``
                 or ``'both'``.
-            ValueError: If ``identifier=None`` is used with
-                ``hierarchy_direction='both'``.
             ValueError: If ``include_start_resources=True`` is used together
                 with ``identifiers_only=True``.
             ValueError: If ``include_start_resources=True`` is used with
@@ -1605,9 +1603,9 @@ class SQLResourceStore(ResourceStore):
         # ------------------------------------------------------------------
         # 0. Validate parameters eagerly
         # ------------------------------------------------------------------
-        if hierarchy_direction not in {"up", "down", "both"}:
+        if relationship not in {"child", "parent", "both"}:
             raise ValueError(
-                f"hierarchy_direction must be 'up', 'down' or 'both', got {hierarchy_direction!r}"
+                f"relationship must be 'child', 'parent' or 'both', got {relationship!r}"
             )
 
         if max_hops is not None and max_hops < 1:
@@ -1621,11 +1619,6 @@ class SQLResourceStore(ResourceStore):
         if include_start_resources and identifier is None:
             raise ValueError(
                 "include_start_resources=True requires identifier to be a str or set[str], not None"
-            )
-
-        if identifier is None and hierarchy_direction == "both":
-            raise ValueError(
-                "identifier=None is not supported for hierarchy_direction='both'"
             )
 
         # ------------------------------------------------------------------
@@ -1658,9 +1651,10 @@ class SQLResourceStore(ResourceStore):
         # graph_traversal_query; passing max_hops=None lets it use the full cap.
         query = ado.metastore.sql.statements.graph_traversal_query(
             kind=kind,
-            hierarchy_direction=hierarchy_direction,
+            relationship=relationship,
             origin_identifiers=_identifiers_requested,
             max_hops=max_hops,
+            dialect=self.engine.dialect.name,
         )
 
         with self.engine.connect() as connectable:
@@ -1683,8 +1677,13 @@ class SQLResourceStore(ResourceStore):
             if identifier_to in _identifiers_requested:
                 continue
 
-            identifiers_to_fetch.add(identifier_to)
             resource_kind = CoreResourceKinds(identifier_to_kind)
+
+            # Apply result_kinds filter if specified
+            if result_kinds is not None and resource_kind not in result_kinds:
+                continue
+
+            identifiers_to_fetch.add(identifier_to)
             related_by_origin.setdefault(origin_identifier, {}).setdefault(
                 resource_kind, set()
             ).add(identifier_to)

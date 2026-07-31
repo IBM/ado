@@ -134,7 +134,19 @@ uv run ado get samplestore SAMPLESTORE_ID -o stats --no-trunc
 # Get statistics for all data containers
 uv run ado get datacontainers -o stats --output-file datacontainers-stats.txt
 uv run ado get datacontainer DATACONTAINER_ID -o stats --no-trunc
+
+# Get all resources of a type related to a source resource (--related-to)
+uv run ado get operations --related-to samplestore=STORE_ID
+uv run ado get spaces --related-to samplestore=STORE_ID -o name
+uv run ado get operations --related-to discoveryspace=SPACE_ID --filter config.metadata.name=OP_NAME
 ```
+
+`--related-to` filters results to resources related to the given source resource
+(`kind=id`), including through multi-hop relationships. Shorthand aliases work
+(e.g. `store=STORE_ID`). Not supported for `actuator`, `experiment`, `operator`,
+or `context`. Cannot be combined with a direct resource ID or `--use-latest`.
+Can be combined with `--filter`, `--label`, `--matching-point`,
+`--matching-space`, and `--matching-space-id`.
 
 `-o stats` extends the table with statistics columns:
 

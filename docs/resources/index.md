@@ -119,9 +119,10 @@ config: ... # The configuration of the resource - different for each different t
 created: "2024-10-03T12:42:35.786484Z" # Creation date
 identifier: space-8f1cfb-91ecfb # Resource identifier
 kind: discoveryspace # Resource kind
-metadata: {} # A field for system metadata. User metadata will be in config.metadata
-status: [] # A status field
-version: v2 # The version of this resource
+metadata: {} # Metadata dictionary
+provenance: ... # Package provenance frozen at resource creation time
+status: [] # A list of status objects describing notable events on the resource
+version: v1 # The version of this resource
 ```
 
 ### Resource status
@@ -142,16 +143,23 @@ All resources have status updates recorded for the following events:
 Here is an example:
 
 ```yaml
-created: "2024-12-19T10:47:03.931824Z"
-identifier: 04535d
+config: ...
+created: "2026-07-09T14:35:23.264745Z"
+identifier: 88341a
 kind: samplestore
 metadata: {}
+provenance:
+  ado:
+    distributionName: ado-core
+    distributionVersion: 2.0.0
 status:
   - event: created
-    recorded_at: "2024-12-19T10:47:03.931840Z"
+    recorded_at: "2026-07-09T14:35:23.264754Z"
   - event: added
-    recorded_at: "2024-12-19T10:47:05.720459Z"
-version: v2
+    recorded_at: "2026-07-09T14:35:23.265368Z"
+  - event: updated
+    recorded_at: "2026-07-24T13:56:36.053942Z"
+version: v1
 ```
 
 ### Programmatic view of resources

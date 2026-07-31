@@ -31,8 +31,7 @@ Query every deletable type for existing marks:
 
 If nothing is marked, move on to Step 2.
 
-Delete children before parents. Deleting a resource with children raises
-`ResourceHasChildrenError`.
+Delete children before parents. You cannot delete resources that have children. 
 
 Order:
    `datacontainer` → `operation` → `discoveryspace`  → `samplestore`
@@ -48,7 +47,7 @@ Note: `document` has no
    uv run ado delete samplestore ID [ID...]
    ```
 
-## Step 2: Identify candidates for deletion
+### Step 2: Identify candidates for deletion
 
 Check all the [conditions](#conditions-that-qualify-a-resource-for-deletion)
 For each match add `for_deletion: "true"` and the matching `deletion_reason` labels.
@@ -57,7 +56,7 @@ For each match add `for_deletion: "true"` and the matching `deletion_reason` lab
 uv run ado edit TYPE ID -p "labels: {for_deletion: 'true', deletion_reason: <code>}"
 ```
 
-## Step 3: Review metadata
+### Step 3: Review metadata
 
 Here we include user metadata (metadata field in a resource) and
 ado resource metadata e.g. status fields
@@ -83,7 +82,7 @@ may be incorrect. This is operations which meet the following criteria
 These operations may have crashed in a way that meant the status
 could not be set.
 
-## Step 4: Report
+### Step 4: Report
 
 The report should have three sections
 
@@ -142,11 +141,11 @@ Three labels make up the maintenance scheme.
    Deletion Reason: `failed-no-entities`.
 
 3. **Error-state operations**: any operation that finished with
-   `exit_state: error` and made zero measurement requests.
+   `exit_state: error` and made zero measurements.
 
    ```bash
    uv run ado get operations \
-     --filter 'status=[{"event":"finished","exit_state":"error"}]' --details
+     --filter 'status=[{"event":"finished","exit_state":"error"}]' -o stats
    ```
 
    Deletion Reason: `error-no-entities`.
@@ -229,15 +228,7 @@ Three labels make up the maintenance scheme.
     have not measured any entities, likely crashed in a way
     that failed to update the status field
 
-   ```bash
-   uv run ado get ops -o stats | grep started
-   ```
-
-   Filter rows where `TOTAL_REQUESTS == 0`.
-
-   Check those operations for ones which are over a week old.
-
-   Deletion Reason: `started-and-crashed-no-entities`.
+    
 
 ## Related Skills
 

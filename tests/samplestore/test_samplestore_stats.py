@@ -34,11 +34,14 @@ def test_samplestore_statistics_reflect_simulation(
     """After a simulation the result count increases by number_entities * number_requests.
 
     The ml_multi_cloud store is pre-seeded from the CSV fixture (entities and
-    results are already present, but no experiment references).  We snapshot
-    the store before the simulation to capture that baseline, then assert:
+    results are already present).  The simulation uses the same experiment
+    (benchmark_performance@replay) that is already present in the pre-seeded
+    results, so the number_of_experiments count is unchanged after the
+    simulation.  We snapshot the store before the simulation to capture that
+    baseline, then assert:
     - the result delta equals number_entities * number_requests
-    - number_of_experiments grows by exactly 1, because all requests share
-      the same experiment_reference (deduplication).
+    - number_of_experiments is unchanged, because the simulation's experiment
+      was already counted in the pre-seeded store (major-version deduplication).
     """
     number_entities = 3
     number_requests = 4
@@ -58,8 +61,8 @@ def test_samplestore_statistics_reflect_simulation(
         == number_entities * number_requests
     )
 
-    # All requests share the same experiment_reference, so number_of_experiments
-    # grows by exactly 1 regardless of how many requests were made
+    # The simulation uses benchmark_performance@replay, which is already in the
+    # pre-seeded CSV results, so number_of_experiments stays the same.
     experiment_refs = {str(r.experimentReference) for r in requests}
     assert len(experiment_refs) == 1
-    assert after.number_of_experiments == before.number_of_experiments + 1
+    assert after.number_of_experiments == before.number_of_experiments

@@ -4,7 +4,7 @@
 
 import logging
 import uuid
-from importlib.metadata import version
+from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from typing import Any
 
@@ -39,46 +39,34 @@ logger = logging.getLogger(__name__)
 
 
 def _build_ray_runtime_env_with_extra(benchmark_tool: str) -> dict[str, list[Any]]:
+    packages = ["ado-core", "ado-vllm-performance", "ray", "vllm", "guidellm"]
+    specs = extract_package_specs_from_job_env(packages)
 
-    # Check if ado-vllm-performance is in the job venv.
+    # Packages in this dict always use the given extras string, overriding the spec.
+    # Packages absent from the dict use the extras found in the spec (or none).
+    forced_extras: dict[str, str] = {"ado-vllm-performance": benchmark_tool}
+
     worker_deps = []
-    specs_from_job_env = extract_package_specs_from_job_env(
-        ["ado-vllm-performance", "ado-core"]
-    )
+    for pkg in packages:
+        if pkg in specs:
+            source = specs[pkg]["source"]
+            pkg_version = specs[pkg].get("version") or ""
+        else:
+            try:
+                pkg_version = f"=={version(pkg)}"
+            except PackageNotFoundError:
+                logger.debug(
+                    f"Package {pkg!r} not in job env and not installed locally, skipping"
+                )
+                continue
+            source = pkg
 
-    if "ado-core" in specs_from_job_env:
-        ado_source = specs_from_job_env["ado-core"]["source"]
-        ado_version: str | None = specs_from_job_env["ado-core"].get("version") or ""
-        extras = specs_from_job_env["ado-core"].get("extras")
-        ado_extras = f"[{extras}]" if extras else ""
-    else:
-        # If ado-core is not in the job env it means that it comes with the base and we assume
-        # it got installed with pypi.
-        # Just to be sure, we extract the version and make sure we get the same installed
-        # in the Ray task environment.
-        # Say the base image runs on an older version of ado-core, we want to avoid it to
-        # be upgraded to a newer version when starting the Ray task.
-        ado_source = "ado-core"
-        ado_version = f"=={version('ado-core')}"
-        ado_extras = ""
-
-    ado_dep = f"{ado_source}{ado_extras}{ado_version}"
-    worker_deps.append(ado_dep)
-
-    # Here we assume the actuator only has 'vllm' or 'guildellm' as extraw dependencies.
-    if "ado-vllm-performance" in specs_from_job_env:
-        actuator_source = specs_from_job_env["ado-vllm-performance"]["source"]
-        actuator_version: str | None = (
-            specs_from_job_env["ado-vllm-performance"].get("version") or ""
+        raw_extras = forced_extras.get(pkg) or (
+            specs[pkg].get("extras") if pkg in specs else None
         )
-    else:
-        # Similarly to what we did with ado-core, we also extract the version of the
-        # actuator package.
-        actuator_source = "ado-vllm-performance"
-        actuator_version = f"=={version('ado-vllm-performance')}"
+        extras = f"[{raw_extras}]" if raw_extras else ""
 
-    actuator_dep = f"{actuator_source}[{benchmark_tool}]{actuator_version}"
-    worker_deps.append(actuator_dep)
+        worker_deps.append(f"{source}{extras}{pkg_version}")
 
     return {"uv": worker_deps}
 
@@ -153,6 +141,9 @@ class VLLMPerformanceTest(ActuatorBase):
                     pvc_name=params.pvc_name,
                     pvc_template=params.pvc_template,
                     otlp_traces_endpoint=params.otlp_traces_endpoint,
+                    free_environment_ttl=params.free_environment_ttl,
+                    gc_force_delete=params.gc_force_delete,
+                    gc_force_delete_threshold=params.gc_force_delete_threshold,
                 )
             except Exception as error:
                 self.log.warning(

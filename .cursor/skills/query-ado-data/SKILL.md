@@ -219,7 +219,7 @@ direct resource ID or `--use-latest`. Can be combined with `--filter`,
 uv run ado get operations --related-to samplestore=STORE_ID
 
 # All spaces related to a sample store (name only)
-uv run ado get spaces --related-to store=STORE_ID -o name
+uv run ado get spaces --related-to samplestore=STORE_ID -o name
 
 # Operations related to a space, narrowed by a metadata filter
 uv run ado get operations --related-to discoveryspace=SPACE_ID \

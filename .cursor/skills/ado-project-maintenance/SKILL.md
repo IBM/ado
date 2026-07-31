@@ -10,12 +10,6 @@ description: >-
 
 # ado Project Maintenance
 
-The skill explains how to maintain an ado project including
-
-- how to identify and label stale resources
-- when stale resources can be deleted
-- how to ensure up-to-date metadata
-
 ## Workflow
 
 1. [Delete marked resources](#step-1-delete-marked-resources)
@@ -59,23 +53,15 @@ uv run ado edit TYPE ID -p "labels: {for_deletion: 'true', deletion_reason: <cod
 
 ## Step 3: Review metadata
 
-This is this skill's label-curation responsibility; *setting* labels
-correctly at creation time is covered by resource-yaml-creation, not here.
+Check resource labels/descriptions are still accurate. Things to
+look for
 
-- Using the `--details` listings already fetched in Steps 1-2, check
-  labels/descriptions are still accurate: a stale `provisional` label on a
-  resource that turned out to be long-lived (recommend removing it), missing
-  `project`/`team` labels worth adding, descriptions that no longer match
-  the resource's actual use.
-- Informational note, not an action this skill takes: a pre-release/dev
-  operator *package* version is already caught automatically by condition
-  9, so plugin developers should bump to a final release semver once
-  validated to avoid unnecessary future cleanup churn.
-- Add/overwrite labels: `uv run ado edit TYPE ID -p "labels: {...}"`. Remove
-  a single label key: `uv run ado edit TYPE ID --editor` (interactive).
-- Present findings as suggestions the user can act on — do not edit labels
-  in this step without the user's confirmation (unlike Step 2, which acts
-  autonomously on the fixed, unambiguous conditions).
+- missing study labels
+- descriptions that are too narrow
+  (e.g. a space described as being for a particular optimization operation,
+   but then many different exploration operations have been run on it)
+- labels that have been superseded by others
+- resources missing descriptions
 
 ## Step 4: Report
 
@@ -84,11 +70,7 @@ The report should have three sections
 - Deleted: lists the resources deleted in Step 1
 - Marked: lists the resources identified in Step 2 and why (table)
    - Include in this section how to unmark candidates
-- Metadata: Lists any stale or missing metadata with potential fixes
-   - Stale labels that are being used by resources
-   - Resources that are missing labels
-   - Descriptions that are stale and should be updated
-   - Resources missing descriptions
+- Metadata: Lists metadata issues from Step 3 with suggested fixes
 
 ## Label & condition definitions
 

@@ -52,13 +52,6 @@ Canonical values:
 - `debug` — created to debug a problem.
 - `temporary` — generic indicator that it's not meant to be kept.
 
-Setting this label is what lets project cleanup find and flag the resource
-automatically later — see
-[ado-project-maintenance](../ado-project-maintenance/SKILL.md) for how it's
-consumed. If a `provisional` resource turns out to be worth keeping, remove
-the label (interactive `ado edit TYPE ID --editor`, since label patches only
-add/overwrite keys, not remove them).
-
 ## Dynamic Reference Resolution
 
 Resource YAMLs often reference other resources by ID. Leave these as

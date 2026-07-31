@@ -1,11 +1,11 @@
 <!-- markdownlint-disable first-line-h1 -->
 
->[!INFO]
->
-> A [complete template actuator](https://github.com/IBM/ado/tree/main/plugins/actuators/example_actuator)
-> is available.
-> This example actuator is functional out-of-the-box
-> and can be used as the basis to create new actuators.
+!!! tip
+
+    A [complete template actuator](https://github.com/IBM/ado/tree/main/plugins/actuators/example_actuator)
+    is available.
+    This example actuator is functional out-of-the-box
+    and can be used as the basis to create new actuators.
 
 [Custom experiments](creating-custom-experiments.md) cover many use cases for
 extending `ado` with new experiments. However, sometimes you need more control
@@ -16,9 +16,8 @@ For such situations developers can write their own
 [actuators](../concepts/actuators.md). Actuators allow you to control and
 customize the entire experiment submission process giving great flexibility and
 power. You can also expose customization options to users via
-[`actuatorconfigurations`](#enabling-custom-configuration-of-an-actuator).
-Like custom experiments actuator are supplied as plugin **python
-packages**.
+[`actuatorconfigurations`](#enabling-custom-configuration-of-an-actuator). Like
+custom experiments actuator are supplied as plugin **python packages**.
 
 This page gives an overview of how to get started creating your own actuator.
 It's not intended to be comprehensive. After reading this page the best resource
@@ -42,8 +41,8 @@ class that implements a specific interface.
   actuator
 - implements the `catalog()` method
 - _either_
-  - simple case: override `_experiment_implementations()`
-  - complex case: overrides `_get_request_executor`
+    - simple case: override `_experiment_implementations()`
+    - complex case: overrides `_get_request_executor`
 
 The simple case is for when your actuators experiments are independent of each
 other i.e. executing one experiment does not care about other experiments. The
@@ -73,17 +72,23 @@ function for each `Experiment` entry your `ExperimentCatalog`. The
 `_experiment_implementations()` method then returns a dict that maps each
 experiment identifier to the corresponding function e.g.
 
+<!-- markdownlint-disable code-block-style -->
+
 ```python
 def _experiment_implementations(self) -> dict[str, Callable[..., dict[str, Any]]]:
 
     return {"myexperiment": my_experiment_fn()}
 ```
 
+<!-- markdownlint-enable code-block-style -->
+
 The parameter names of the function must be the same as the input property
 identifiers of the `Experiment`. The output of the function must be a dict that
 maps the target property identifiers of the Experiment to their measured values.
 
 For example, for an Experiment instance like
+
+<!-- markdownlint-disable code-block-style -->
 
 ```yaml
 # it's properties which  match what is defined here
@@ -104,7 +109,11 @@ peptide_mineralization:
     - identifier: adsorption_plateau_value
 ```
 
+<!-- markdownlint-enable code-block-style -->
+
 The function would look like
+
+<!-- markdownlint-disable code-block-style -->
 
 ```python
 def peptide_mineralization_fn(peptide_identifier, peptide_concentration):
@@ -112,6 +121,8 @@ def peptide_mineralization_fn(peptide_identifier, peptide_concentration):
     ...
     return {"adsoprtion_timeseries": timeseries, "adsorption_plateau_value": plateau}
 ```
+
+<!-- markdownlint-enable code-block-style -->
 
 ### Complex case: Experiments with shared state
 
@@ -123,6 +134,8 @@ This method that takes a `MeasurementRequest` instance that describes the
 experiment to run. Note, the `use_ray` parameter is used by default
 implementation and can be safely ignored when overridden.
 
+<!-- markdownlint-disable code-block-style -->
+
 ```python
     def _get_request_executor(
         self,
@@ -130,6 +143,8 @@ implementation and can be safely ignored when overridden.
         use_ray: bool = False,
     ) -> Callable[[], MeasurementRequest]:
 ```
+
+<!-- markdownlint-enable code-block-style -->
 
 The `get_request_executor` method must return a zero-argument `Callable` that
 executes the requested experiment and returns a completed `MeasurementRequest`
@@ -152,12 +167,16 @@ method
 
 e.g.
 
+<!-- markdownlint-disable code-block-style -->
+
 ```python
 result = actuator.execute(entities,
                         experiment_reference,
                         requesterid: "script",
                         requestIndex: 0,)
 ```
+
+<!-- markdownlint-enable code-block-style -->
 
 where `entities` is a list of one or more `Entity` instances representing the
 points you want to measure, and `experiment_reference`, is an
@@ -176,26 +195,7 @@ to the following:
 <!-- markdownlint-disable code-block-style -->
 
 ```toml
-[project]
-name = "robotic_lab"  # Change to your preferred name, along with the actual package
-description = "A template for creating an actuator"  # Change to describing your actuator
-dependencies = [
-    "ado-core"
-]
-dynamic = ["version"]
-
-[project.entry-points."ado.actuators"]
-robotic_lab = "robotic_lab_actuator.actuator:RoboticLab"
-
-[build-system]
-requires = ["hatchling", "uv-dynamic-versioning>=0.7.0"]
-build-backend = "hatchling.build"
-
-[tool.hatch.version]
-source = "uv-dynamic-versioning"
-
-[tool.hatch.build.targets.wheel]
-packages = ["src/robotic_lab_actuator"]
+{% include "../../plugins/actuators/example_actuator/pyproject.toml" %}
 ```
 
 <!-- markdownlint-enable code-block-style -->
@@ -726,10 +726,9 @@ at the end of execution
 
 Actuator developers can provide rich, real-time progress output to users running
 experiments, using utilities available in
-`ado.modules.operators.console_output.py`. This is critical for
-long-running operations (such as deployment, environment setup, or
-benchmarking), and helps users visually associate progress with specific
-requests.
+`ado.modules.operators.console_output.py`. This is critical for long-running
+operations (such as deployment, environment setup, or benchmarking), and helps
+users visually associate progress with specific requests.
 
 ### How progress signaling works
 
@@ -745,12 +744,11 @@ using provided Rich message helpers:
 You should send these messages to the `RichConsoleQueue` actor and update or
 stop them when state changes.
 
-> [!INFO]
-> Use the `request id` of the MeasurementRequest you're operating on
-> as the message `id` (and include it in the message `label`).
-> This allows your actuator to support progress for multiple experiments
-> running concurrently, and the UI will clearly indicate which progress
-> output is tied to which experiment request.
+> [!INFO] Use the `request id` of the MeasurementRequest you're operating on as
+> the message `id` (and include it in the message `label`). This allows your
+> actuator to support progress for multiple experiments running concurrently,
+> and the UI will clearly indicate which progress output is tied to which
+> experiment request.
 
 ### Example usage
 
@@ -847,12 +845,10 @@ functions and methods:
 
 - `Experiment.propertyValuesFromEntity` - Get the input values for the
   experiment based on the entity and the experiment definition
-- `ado.utilities.support.observed_property_values_from_dict` - Extract
-  the values related to an experiment from a dictionary of measurements and
-  convert to PropertyValues
-- `ado.utilities.support.create_measurement_result` - Create
-  measurement result
-- `ado.utilities.support.compute_measurement_status` - Compute
-  execution status
-- `ado.utilities.async_task_runner.AsyncTaskRunner` - wait for the
-  completion of an async function and get execution result
+- `ado.utilities.support.observed_property_values_from_dict` - Extract the
+  values related to an experiment from a dictionary of measurements and convert
+  to PropertyValues
+- `ado.utilities.support.create_measurement_result` - Create measurement result
+- `ado.utilities.support.compute_measurement_status` - Compute execution status
+- `ado.utilities.async_task_runner.AsyncTaskRunner` - wait for the completion of
+  an async function and get execution result

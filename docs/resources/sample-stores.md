@@ -127,26 +127,11 @@ The [Sample Store types](#sample-store-types) section details how to fill the
 above fields for the different available Sample Store. Here is an example of
 copying data from a CSV file using `CSVSampleStore`:
 
+<!-- markdownlint-disable line-length -->
 ```yaml
-specification:
-  module:
-    moduleName: ado.core.samplestore.sql
-    moduleClass: SQLSampleStore
-copyFrom:
-  - module:
-      moduleClass: CSVSampleStore
-    storageLocation:
-      path: "examples/ml-multi-cloud/ml_export.csv"
-    parameters:
-      generatorIdentifier: "multi-cloud-ml"
-      identifierColumn: "config"
-      experiments:
-        - experimentIdentifier: "benchmark_performance"
-          constitutivePropertyMap:
-            - cpu_type
-          observedPropertyMap:
-            - wallClockRuntime
+{% include-markdown "../../examples/ml-multi-cloud/ml_multicloud_sample_store.yaml" %}
 ```
+<!-- markdownlint-enable line-length -->
 
 ## Accessing the entities in a sample store
 

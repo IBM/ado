@@ -59,7 +59,10 @@ uv run ado edit TYPE ID -p "labels: {for_deletion: 'true', deletion_reason: <cod
 
 ## Step 3: Review metadata
 
-Check resource labels/descriptions are still accurate. Things to
+Here we include user metadata (metadata field in a resource) and
+ado resource metadata e.g. status fields
+
+First check resource labels/descriptions are still accurate. Things to
 look for
 
 - missing study labels
@@ -68,6 +71,17 @@ look for
    but then many different exploration operations have been run on it)
 - labels that have been superseded by others
 - resources missing descriptions
+
+Next check for operation resource whose status metadata
+may be incorrect. This is operations which meet the following criteria
+
+- their status is started
+- they are over a week old
+- they have sampled entities successfully
+- their last recorded request (ado show trace) is more than a day ago
+
+These operations may have crashed in a way that meant the status
+could not be set.
 
 ## Step 4: Report
 
@@ -93,7 +107,7 @@ Three labels make up the maintenance scheme.
   `error-no-entities`, `superseded-operator-minor-version`,
   `orphaned-datacontainer`, `superseded-report`, `superseded-project-report`,
   `provisional`,
-  `prerelease-operator-version`.
+  `prerelease-operator-version`, `started-and-crashed-no-entities`
 
 ### Conditions that qualify a resource for-deletion
 
@@ -208,6 +222,22 @@ Three labels make up the maintenance scheme.
    ```
 
    Deletion Reason: `prerelease-operator-version`.
+
+10. **Old operations with status started and no-entities**
+
+    Operations over a week old with status started, but which
+    have not measured any entities, likely crashed in a way
+    that failed to update the status field
+
+   ```bash
+   uv run ado get ops -o stats | grep started
+   ```
+
+   Filter rows where `TOTAL_REQUESTS == 0`.
+
+   Check those operations for ones which are over a week old.
+
+   Deletion Reason: `started-and-crashed-no-entities`.
 
 ## Related Skills
 

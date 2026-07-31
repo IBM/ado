@@ -30,7 +30,7 @@ related metadata in the ado project associated to the active context.
 - For creating document resources that store reports, see
   [resource-yaml-creation — Document](../resource-yaml-creation/SKILL.md#document).
 - For study documents (`study-$ID`), see
-  [create-study-document](../create-research-study-document/SKILL.md).
+  [create-research-study-document](../create-research-study-document/SKILL.md).
 - For one space in depth:
   [examining-discovery-spaces](../examining-discovery-spaces/SKILL.md).
 - For one operation in depth:

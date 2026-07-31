@@ -5,7 +5,7 @@ description: >
   in-progress research study: motivation, question, objectives, materials, study labels,
   and a todo list of next steps. Use when starting a study, creating a study
   document, updating study todos/objectives, or when the user mentions
-  study-$ID or study tracking.
+  a study document by name (e.g. study-$ID) or asks about study tracking.
 ---
 
 # Creating a Research Study Document

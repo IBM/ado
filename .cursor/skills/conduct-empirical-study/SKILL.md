@@ -26,7 +26,7 @@ step 3 must follow.
 
 At the start of a named study (and when objectives or next steps change), create
 or refresh a study document and apply its study labels to spaces/operations —
-see [create-study-document](../create-research-study-document/SKILL.md).
+see [create-research-study-document](../create-research-study-document/SKILL.md).
 
 ---
 

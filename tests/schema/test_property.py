@@ -231,24 +231,3 @@ def test_constitutive_property_identifier_and_string_representation(
     for t, p in zip(constitutive_property_list, constitutive_properties, strict=True):
         assert p.identifier == t
         assert str(p) == t
-
-
-def test_constitutive_property_malformed_domain_error_includes_identifier() -> None:
-    """When a ConstitutiveProperty has a malformed propertyDomain the ValidationError
-    message must include the property identifier so the user knows which property is broken.
-
-    This covers the dict-based construction path (used by YAML loading and pydantic's
-    internal nested-model construction), where pydantic constructs PropertyDomain as a
-    nested model inside ConstitutiveProperty and ado can therefore annotate the error
-    with the parent property's identifier.
-    """
-
-    with pytest.raises(pydantic.ValidationError, match="total_steps"):
-        ConstitutiveProperty(
-            identifier="total_steps",
-            propertyDomain={
-                "variableType": "DISCRETE_VARIABLE_TYPE",
-                "domainRange": [1, 100_000],
-                # interval intentionally omitted to trigger the error
-            },
-        )

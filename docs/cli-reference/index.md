@@ -1121,6 +1121,7 @@ ado show related RESOURCE_TYPE [RESOURCE_ID] [--use-latest] [--max-hops N]
     - _actuatorconfiguration_ (_ac_)
     - _datacontainer_ (_dcr_)
     - _discoveryspace_ (_space_)
+    - _document_ (_doc_)
     - _operation_ (_op_)
     - _samplestore_ (_store_)
 

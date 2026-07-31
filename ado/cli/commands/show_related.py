@@ -21,6 +21,9 @@ from ado.cli.resources.data_container.show_related import (
 from ado.cli.resources.discovery_space.show_related import (
     show_resources_related_to_discovery_space,
 )
+from ado.cli.resources.document.show_related import (
+    show_resources_related_to_document,
+)
 from ado.cli.resources.operation.show_related import (
     show_resources_related_to_operation,
 )
@@ -124,6 +127,7 @@ def show_related_for_resources(
         AdoShowRelatedSupportedResourceTypes.ACTUATOR_CONFIGURATION: show_resources_related_to_actuator_configuration,
         AdoShowRelatedSupportedResourceTypes.DATA_CONTAINER: show_resources_related_to_data_container,
         AdoShowRelatedSupportedResourceTypes.DISCOVERY_SPACE: show_resources_related_to_discovery_space,
+        AdoShowRelatedSupportedResourceTypes.DOCUMENT: show_resources_related_to_document,
         AdoShowRelatedSupportedResourceTypes.SAMPLE_STORE: show_resources_related_to_sample_store,
         AdoShowRelatedSupportedResourceTypes.OPERATION: show_resources_related_to_operation,
     }

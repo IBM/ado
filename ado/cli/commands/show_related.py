@@ -21,6 +21,9 @@ from ado.cli.resources.data_container.show_related import (
 from ado.cli.resources.discovery_space.show_related import (
     show_resources_related_to_discovery_space,
 )
+from ado.cli.resources.document.show_related import (
+    show_resources_related_to_document,
+)
 from ado.cli.resources.operation.show_related import (
     show_resources_related_to_operation,
 )
@@ -73,7 +76,7 @@ def show_related_for_resources(
         typer.Option(
             "--max-hops",
             help=f"Maximum number of relationship hops to follow from the start resource "
-            f"(1-{_MAX_HIERARCHY_HOPS}). Defaults to the full hierarchy depth.",
+            f"(1-{_MAX_HIERARCHY_HOPS}). Defaults to the full graph depth.",
             show_default=False,
             min=1,
             max=_MAX_HIERARCHY_HOPS,
@@ -83,7 +86,7 @@ def show_related_for_resources(
     """
     Show resources related to the requested resource, grouped by type.
 
-    By default the full resource hierarchy is traversed in both directions.
+    By default the full resource graph is traversed in both directions.
     Use --max-hops to limit the traversal depth.
 
     See https://ibm.github.io/ado/getting-started/ado/#ado-show-related
@@ -124,6 +127,7 @@ def show_related_for_resources(
         AdoShowRelatedSupportedResourceTypes.ACTUATOR_CONFIGURATION: show_resources_related_to_actuator_configuration,
         AdoShowRelatedSupportedResourceTypes.DATA_CONTAINER: show_resources_related_to_data_container,
         AdoShowRelatedSupportedResourceTypes.DISCOVERY_SPACE: show_resources_related_to_discovery_space,
+        AdoShowRelatedSupportedResourceTypes.DOCUMENT: show_resources_related_to_document,
         AdoShowRelatedSupportedResourceTypes.SAMPLE_STORE: show_resources_related_to_sample_store,
         AdoShowRelatedSupportedResourceTypes.OPERATION: show_resources_related_to_operation,
     }

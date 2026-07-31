@@ -498,8 +498,9 @@ ado get RESOURCE_TYPE [RESOURCE_ID] [--output | -o <default | yaml | json | conf
                                     [--label | -l <key=value>] \
                                     [--details] [--show-deprecated] \
                                     [--matching-point <point.yaml>] \
-                                    [--matching-space <space.yaml] \
+                                    [--matching-space <space.yaml>] \
                                     [--matching-space-id <space-id>] \
+                                    [--related-to <kind=id>]
 ```
 
 <!-- markdownlint-enable line-length -->
@@ -583,6 +584,16 @@ Where:
 - The `--show-deprecated` flag is available **only for `ado get experiments`**
   and allows displaying experiments that have been deprecated. They are
   otherwise hidden by default.
+- `--related-to` filters results to resources related to a given source
+  resource, including through multi-hop relationships (e.g. operations linked
+  to a space that is linked to a store). The value must be in the form `kind=id`
+  (e.g. `samplestore=store-abc123`). Using shorthand aliases is supported
+  (e.g. `store=store-abc123`). This flag:
+    - is **not** supported for `actuator`, `experiment`, `operator`, or `context`
+      resource types.
+    - cannot be combined with a direct `RESOURCE_ID` argument or `--use-latest`.
+    - can be combined with `--filter`, `--label`, `--matching-point`,
+      `--matching-space`, and `--matching-space-id` to further narrow results.
 
 ### Searching and Filtering
 
@@ -789,6 +800,31 @@ ado get datacontainers -o stats
 
 ```shell
 ado get datacontainer --use-latest -o stats
+```
+
+#### Getting all operations related to a sample store
+
+```shell
+ado get operations --related-to samplestore=store-abc123-456def
+```
+
+#### Getting all discovery spaces related to a sample store
+
+```shell
+ado get spaces --related-to samplestore=store-abc123-456def -o name
+```
+
+#### Getting operations related to a space, filtered by name
+
+```shell
+ado get operations --related-to discoveryspace=space-abc123-456def \
+  --filter config.metadata.name=my-operation-name
+```
+
+#### Getting operations related to a sample store using the shorthand alias
+
+```shell
+ado get operations --related-to store=store-abc123-456def
 ```
 
 ## ado show
@@ -1104,7 +1140,7 @@ ado show trace discoveryspace my-space-123abc -o csv --output-file trace.csv
 
 _show related_ supports displaying resources that are related to the one whose
 id is provided (e.g., operations run on a space). By default the full resource
-hierarchy is traversed in both directions.
+graph is traversed in both directions.
 
 The complete syntax of the `ado show related` command is as follows:
 
@@ -1121,6 +1157,7 @@ ado show related RESOURCE_TYPE [RESOURCE_ID] [--use-latest] [--max-hops N]
     - _actuatorconfiguration_ (_ac_)
     - _datacontainer_ (_dcr_)
     - _discoveryspace_ (_space_)
+    - _document_ (_doc_)
     - _operation_ (_op_)
     - _samplestore_ (_store_)
 
@@ -1132,7 +1169,7 @@ ado show related RESOURCE_TYPE [RESOURCE_ID] [--use-latest] [--max-hops N]
   resource of RESOURCE_TYPE from the current context. It is ignored if a
   RESOURCE_ID is provided.
 - `--max-hops N` limits the traversal to at most `N` relationship hops in each
-  direction (1-3). When omitted, the full hierarchy depth is used.
+  direction (1-3). When omitted, the full relationship graph depth is used.
 
 #### Examples
 

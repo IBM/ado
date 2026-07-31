@@ -37,6 +37,7 @@ class AdoGetCommandParameters(pydantic.BaseModel):
     no_trunc: bool | list[str]
     output_file: pathlib.Path | None
     output_format: AdoGetSupportedOutputFormats
+    related_to: tuple[CoreResourceKinds, str] | None = None
     resource_id: str | None
     resource_type: AdoGetSupportedResourceTypes
     show_deprecated: bool

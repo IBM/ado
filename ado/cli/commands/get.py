@@ -31,6 +31,7 @@ from ado.cli.resources.sample_store.get import get_sample_store
 from ado.cli.utils.input.parsers import (
     enum_choice_with_plural_parser,
     parse_key_value_pairs,
+    resource_shorthands_to_full_names,
 )
 from ado.cli.utils.output.prints import (
     ERROR,
@@ -41,6 +42,7 @@ from ado.cli.utils.output.prints import (
 from ado.cli.utils.queries.parser import (
     prepare_query_filters_for_db,
 )
+from ado.core.resources import CoreResourceKinds
 from ado.metastore.base import (
     NoRelatedResourcesError,
     ResourceDoesNotExistError,
@@ -259,6 +261,19 @@ def get_resource(
             rich_help_panel=DISCOVERY_SPACE_ONLY_OPTIONS,
         ),
     ] = None,
+    related_to: Annotated[
+        str | None,
+        typer.Option(
+            "--related-to",
+            help="""
+            Filter results to resources related to the given source resource,
+            including through multi-hop relationships.
+            Specify as kind=id (e.g. samplestore=store-123).
+            Incompatible with specifying a direct resource_id argument or --use-latest.
+            """,
+            show_default=False,
+        ),
+    ] = None,
 ) -> None:
     """
     List, search, and retrieve representation of resources, contexts, actuators, and operators.
@@ -288,8 +303,70 @@ def get_resource(
 
     # List experiments with details
     ado get experiments --details
+
+    # Get all operations related to a sample store
+    ado get operations --related-to samplestore=<store-id>
+
+    # Get all discovery spaces related to a sample store (name output only)
+    ado get spaces --related-to samplestore=<store-id> -o name
+
+    # Get all operations related to a space, filtered by name
+    ado get operations --related-to discoveryspace=<space-id> --filter config.metadata.name=<op-name>
     """
     ado_configuration: AdoConfiguration = ctx.obj
+
+    # Parse --related-to
+    parsed_related_to: tuple[CoreResourceKinds, str] | None = None
+    if related_to is not None:
+        _NON_METASTORE_KINDS = {
+            AdoGetSupportedResourceTypes.ACTUATOR,
+            AdoGetSupportedResourceTypes.EXPERIMENT,
+            AdoGetSupportedResourceTypes.OPERATOR,
+            AdoGetSupportedResourceTypes.CONTEXT,
+        }
+        if resource_type in _NON_METASTORE_KINDS:
+            console_print(
+                f"{ERROR}--related-to is not supported for {resource_type.value}",
+                stderr=True,
+            )
+            raise typer.Exit(1)
+
+        if resource_id is not None:
+            console_print(
+                f"{ERROR}--related-to cannot be used together with a resource_id argument",
+                stderr=True,
+            )
+            raise typer.Exit(1)
+
+        if use_latest:
+            console_print(
+                f"{ERROR}--related-to cannot be used together with --use-latest",
+                stderr=True,
+            )
+            raise typer.Exit(1)
+
+        try:
+            parsed_pairs = parse_key_value_pairs([related_to])
+        except ValueError:
+            console_print(
+                f"{ERROR}--related-to value must be in the form kind=id, got: {related_to!r}",
+                stderr=True,
+            )
+            raise typer.Exit(1) from None
+
+        raw_kind, source_id = next(iter(parsed_pairs[0].items()))
+        resolved_kind = resource_shorthands_to_full_names(raw_kind)
+        try:
+            source_kind = CoreResourceKinds(resolved_kind)
+        except ValueError:
+            console_print(
+                f"{ERROR}Unknown resource kind {raw_kind!r} in --related-to. "
+                f"Valid kinds: {', '.join(k.value for k in CoreResourceKinds)}",
+                stderr=True,
+            )
+            raise typer.Exit(1) from None
+
+        parsed_related_to = (source_kind, source_id)
 
     # Resolve --use-latest to actual resource_id
     if use_latest:
@@ -371,6 +448,7 @@ def get_resource(
         no_trunc=no_trunc,
         output_file=output_file,
         output_format=output_format,
+        related_to=parsed_related_to,
         resource_id=resource_id,
         resource_type=resource_type,
         show_deprecated=show_deprecated,

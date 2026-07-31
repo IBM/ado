@@ -12,10 +12,9 @@ from ado.core.resources import ADOResource
 if TYPE_CHECKING:
     from ado.core.resources import CoreResourceKinds
 
-# The resource hierarchy has 4 levels (samplestore → discoveryspace →
-# operation → {datacontainer, actuatorconfiguration}), so the maximum
-# meaningful hop count between any two levels is 3.
-_MAX_HIERARCHY_HOPS = 3
+# The resource graph can include operation→operation nesting and document
+# edges, so a larger cap is needed; 10 is sufficient for any realistic chain.
+_MAX_HIERARCHY_HOPS = 10
 
 
 def _quote_sql_identifier(identifier: str) -> str:
@@ -551,44 +550,42 @@ def resource_select_latest_by_kinds(
 
 def graph_traversal_query(
     kind: "CoreResourceKinds",
-    hierarchy_direction: Literal["up", "down", "both"],
+    relationship: Literal["child", "parent", "both"],
     origin_identifiers: set[str],
     max_hops: int | None = None,
+    dialect: Literal["sqlite", "mysql"] = "sqlite",
 ) -> sqlalchemy.TextClause:
-    """Build and return a recursive CTE traversal SQL for the resource hierarchy.
+    """Build and return a recursive CTE traversal SQL for the resource graph.
 
-    The query normalizes the stored relationships into logical directed edges:
-
-    * samplestore → discoveryspace
-    * discoveryspace → operation
-    * operation → datacontainer
-    * operation → actuatorconfiguration
+    The query uses the raw ``resource_relationships`` table as logical edges.
 
     Traversal starts from every identifier in ``origin_identifiers`` whose
-    resource kind matches ``kind`` and recursively follows those logical edges
-    upward, downward, or in both directions.
+    resource kind matches ``kind`` and follows edges according to
+    ``relationship``, with a ``visited_path`` cycle guard.
 
     Args:
         kind: Starting resource kind.
-        hierarchy_direction: ``'up'``, ``'down'`` or ``'both'``.
+        relationship: ``'child'`` (follow edges where the current node is the
+            ``from`` end), ``'parent'`` (follow edges where the current node
+            is the ``to`` end), or ``'both'`` (follow edges in either
+            direction).
         origin_identifiers: Set of start resource identifiers to bind.
         max_hops: Maximum number of hops to follow from the start resource.
-            When ``None`` the traversal runs to the full depth of the
-            hierarchy. For ``hierarchy_direction='both'`` the limit is applied
-            independently to each direction (up and down). Must be a positive
-            integer; values exceeding the hierarchy maximum are silently capped
-            at that maximum.
+            When ``None`` the traversal runs to the full depth cap
+            (``_MAX_HIERARCHY_HOPS``). Must be a positive integer; values
+            exceeding the cap are silently capped.
+        dialect: SQL dialect — ``'sqlite'`` (default) or ``'mysql'``. Controls
+            string-concatenation syntax (``||`` vs ``CONCAT()``).
 
     Returns:
         A bound :class:`sqlalchemy.TextClause` ready to execute.
 
     Raises:
-        ValueError: If ``hierarchy_direction`` is invalid.
+        ValueError: If ``relationship`` is invalid.
     """
-    if hierarchy_direction not in {"up", "down", "both"}:
+    if relationship not in {"child", "parent", "both"}:
         raise ValueError(
-            "hierarchy_direction must be 'up', 'down' or 'both', "
-            f"got {hierarchy_direction!r}"
+            f"relationship must be 'child', 'parent' or 'both', got {relationship!r}"
         )
 
     if max_hops is not None and max_hops < 1:
@@ -598,49 +595,11 @@ def graph_traversal_query(
         _MAX_HIERARCHY_HOPS if max_hops is None else min(max_hops, _MAX_HIERARCHY_HOPS)
     )
 
-    # Builds the recursive CTE for one direction. Going "up" follows edges
-    # backward (to→from); going "down" follows them forward (from→to).
-    def _traversal_cte(direction: Literal["up", "down"], n: int) -> str:
-        cte_name = f"{direction}_traversal"
-        next_kind = "from_kind" if direction == "up" else "to_kind"
-        next_id = "from_identifier" if direction == "up" else "to_identifier"
-        join_col = (
-            "to_identifier" if direction == "up" else "from_identifier"
-        )  # anchor: opposite end of next_id
-        return f""",
-        {cte_name} AS (
-            SELECT origin.identifier AS origin_identifier,
-                   origin.kind       AS current_kind,
-                   origin.identifier AS current_identifier,
-                   0                 AS depth
-            FROM   resources origin
-            WHERE  origin.kind = :start_kind
-              AND  origin.identifier IN :origins
-
-            UNION ALL
-
-            SELECT {cte_name}.origin_identifier AS origin_identifier,
-                   logical_edges.{next_kind}    AS current_kind,
-                   logical_edges.{next_id}      AS current_identifier,
-                   {cte_name}.depth + 1         AS depth
-            FROM   {cte_name}
-            JOIN   logical_edges
-              ON   logical_edges.{join_col} = {cte_name}.current_identifier
-            WHERE  {cte_name}.depth < {n}
-        )"""  # noqa: S608
-
-    # Produces the final SELECT from a single traversal CTE, excluding the seed row (depth > 0).
-    def _single_select(d: Literal["up", "down"]) -> str:
-        cte_name = f"{d}_traversal"
-        return f"""
-        SELECT {cte_name}.origin_identifier AS origin_identifier,
-               {cte_name}.current_identifier AS identifier,
-               {cte_name}.current_kind AS kind
-        FROM   {cte_name}
-        WHERE  {cte_name}.depth > 0"""  # noqa: S608
-
     # logical_edges is a non-recursive CTE; WITH RECURSIVE is required at the
-    # clause level by SQLite because the subsequent traversal CTEs are recursive.
+    # clause level by SQLite because the subsequent traversal CTE is recursive.
+    #
+    # The traversal works directly from stored relationships in
+    # ``resource_relationships`` using subject→object as the logical direction.
     logical_edges_sql = """
         WITH RECURSIVE logical_edges AS (
             SELECT parent.identifier AS from_identifier,
@@ -652,75 +611,82 @@ def graph_traversal_query(
               ON   parent.identifier = rr.subject_identifier
             JOIN   resources child
               ON   child.identifier = rr.object_identifier
-            WHERE  (parent.kind = :samplestore_kind AND child.kind = :discoveryspace_kind)
-                OR (parent.kind = :discoveryspace_kind AND child.kind = :operation_kind)
-                OR (parent.kind = :operation_kind AND child.kind = :datacontainer_kind)
-
-            UNION ALL
-
-            -- actuatorconfiguration is stored as subject with operation as object,
-            -- so the logical parent→child direction is reversed compared to the
-            -- other relationships above.
-            SELECT parent.identifier AS from_identifier,
-                   parent.kind       AS from_kind,
-                   child.identifier  AS to_identifier,
-                   child.kind        AS to_kind
-            FROM   resource_relationships rr
-            JOIN   resources child
-              ON   child.identifier = rr.subject_identifier
-             AND   child.kind = :actuatorconfiguration_kind
-            JOIN   resources parent
-              ON   parent.identifier = rr.object_identifier
-             AND   parent.kind = :operation_kind
         )
     """
 
-    if hierarchy_direction == "up":
-        traversal_sql = _traversal_cte("up", effective_max_hops) + _single_select("up")
-    elif hierarchy_direction == "down":
-        traversal_sql = _traversal_cte("down", effective_max_hops) + _single_select(
-            "down"
+    # Build the traversal CTE body depending on relationship.
+    # All variants use a visited_path cycle guard seeded as ',id,' so that
+    # membership checks are unambiguous prefix/suffix matches.
+    #
+    # SQLite uses || for string concatenation; MySQL uses CONCAT().
+    def _concat(*parts: str) -> str:
+        if dialect == "sqlite":
+            return " || ".join(parts)
+        return f"CONCAT({', '.join(parts)})"
+
+    if relationship == "child":
+        step_join = "logical_edges.from_identifier = traversal.current_identifier"
+        next_id = "logical_edges.to_identifier"
+        next_kind = "logical_edges.to_kind"
+    elif relationship == "parent":
+        step_join = "logical_edges.to_identifier = traversal.current_identifier"
+        next_id = "logical_edges.from_identifier"
+        next_kind = "logical_edges.from_kind"
+    else:  # "both"
+        step_join = (
+            "logical_edges.from_identifier = traversal.current_identifier"
+            " OR logical_edges.to_identifier = traversal.current_identifier"
         )
-    else:
-        # Both directions: up_traversal and down_traversal run independently,
-        # each bounded by effective_max_hops, then UNIONed.
-        traversal_sql = f"""
-        {_traversal_cte("up", effective_max_hops).strip()}
-        {_traversal_cte("down", effective_max_hops).strip()}
-        SELECT related.origin_identifier AS origin_identifier,
-               related.identifier AS identifier,
-               related.kind AS kind
-        FROM   (
-            {_single_select("up").strip()}
+        next_id = (
+            "CASE WHEN logical_edges.from_identifier = traversal.current_identifier"
+            " THEN logical_edges.to_identifier"
+            " ELSE logical_edges.from_identifier END"
+        )
+        next_kind = (
+            "CASE WHEN logical_edges.from_identifier = traversal.current_identifier"
+            " THEN logical_edges.to_kind"
+            " ELSE logical_edges.from_kind END"
+        )
+
+    seed_path = _concat("','", "origin.identifier", "','")
+    step_path = _concat("traversal.visited_path", next_id, "','")
+    guard_like = _concat("'%,'", next_id, "',%'")
+
+    traversal_sql = f"""
+        , traversal AS (
+            SELECT origin.identifier  AS origin_identifier,
+                   origin.kind        AS current_kind,
+                   origin.identifier  AS current_identifier,
+                   0                  AS depth,
+                   {seed_path}        AS visited_path
+            FROM   resources origin
+            WHERE  origin.kind = :start_kind
+              AND  origin.identifier IN :origins
 
             UNION ALL
 
-            {_single_select("down").strip()}
-        ) related
-        """  # noqa: S608
-
-    from ado.core.resources import CoreResourceKinds
+            SELECT traversal.origin_identifier  AS origin_identifier,
+                   {next_kind}                  AS current_kind,
+                   {next_id}                    AS current_identifier,
+                   traversal.depth + 1          AS depth,
+                   {step_path}                  AS visited_path
+            FROM   traversal
+            JOIN   logical_edges
+              ON   {step_join}
+            WHERE  traversal.depth < {effective_max_hops}
+              AND  traversal.visited_path NOT LIKE {guard_like}
+        )
+        SELECT traversal.origin_identifier AS origin_identifier,
+               traversal.current_identifier AS identifier,
+               traversal.current_kind AS kind
+        FROM   traversal
+        WHERE  traversal.depth > 0
+    """  # noqa: S608
 
     binds = [
         sqlalchemy.bindparam(key="start_kind", value=kind.value),
         sqlalchemy.bindparam(
             key="origins", value=list(origin_identifiers), expanding=True
-        ),
-        sqlalchemy.bindparam(
-            key="samplestore_kind", value=CoreResourceKinds.SAMPLESTORE.value
-        ),
-        sqlalchemy.bindparam(
-            key="discoveryspace_kind", value=CoreResourceKinds.DISCOVERYSPACE.value
-        ),
-        sqlalchemy.bindparam(
-            key="operation_kind", value=CoreResourceKinds.OPERATION.value
-        ),
-        sqlalchemy.bindparam(
-            key="datacontainer_kind", value=CoreResourceKinds.DATACONTAINER.value
-        ),
-        sqlalchemy.bindparam(
-            key="actuatorconfiguration_kind",
-            value=CoreResourceKinds.ACTUATORCONFIGURATION.value,
         ),
     ]
 

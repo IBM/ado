@@ -73,7 +73,7 @@ def show_related_for_resources(
         typer.Option(
             "--max-hops",
             help=f"Maximum number of relationship hops to follow from the start resource "
-            f"(1-{_MAX_HIERARCHY_HOPS}). Defaults to the full hierarchy depth.",
+            f"(1-{_MAX_HIERARCHY_HOPS}). Defaults to the full graph depth.",
             show_default=False,
             min=1,
             max=_MAX_HIERARCHY_HOPS,
@@ -83,7 +83,7 @@ def show_related_for_resources(
     """
     Show resources related to the requested resource, grouped by type.
 
-    By default the full resource hierarchy is traversed in both directions.
+    By default the full resource graph is traversed in both directions.
     Use --max-hops to limit the traversal depth.
 
     See https://ibm.github.io/ado/getting-started/ado/#ado-show-related

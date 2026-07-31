@@ -66,7 +66,7 @@ def resolve_related_to_identifiers(
 ) -> set[str]:
     """Return the set of *requested_kind* resource identifiers related to *source_id*.
 
-    Traverses the full resource hierarchy in both directions, so multi-hop
+    Traverses the full resource relationship graph in both directions, so multi-hop
     relationships (e.g. operations related to a store via a space) are included.
 
     Args:

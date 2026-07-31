@@ -1170,7 +1170,7 @@ ado show related RESOURCE_TYPE [RESOURCE_ID] [--use-latest] [--max-hops N]
   resource of RESOURCE_TYPE from the current context. It is ignored if a
   RESOURCE_ID is provided.
 - `--max-hops N` limits the traversal to at most `N` relationship hops in each
-  direction (1-10). When omitted, the full graph depth is used.
+  direction (1-3). When omitted, the full relationship graph depth is used.
 
 #### Examples
 

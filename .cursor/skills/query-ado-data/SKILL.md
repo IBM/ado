@@ -182,7 +182,7 @@ exclusive to spaces and override `--filter` and `--label`.
 #### ado show related
 
 Get IDs of all resources related to another resource (parent or child),
-traversing the full hierarchy:
+traversing the full relationship graph:
 
 ```bash
 uv run ado show related $RESOURCETYPE [RESOURCE_ID] [--use-latest]

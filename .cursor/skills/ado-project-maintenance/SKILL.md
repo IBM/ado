@@ -102,8 +102,8 @@ Three labels make up the maintenance scheme.
 - **`deletion_reason: <short-code>`**
   — Records why a resource is a candidate for deletion: one of
   `empty-space-stale`, `failed-no-entities`,
-  `error-no-entities`, `superseeded-operator-minor-version`,
-  `orphaned-datacontainer`, `superseeded-report`, `superseeded-project-report`,
+  `error-no-entities`, `superseded-operator-minor-version`,
+  `orphaned-datacontainer`, `superseded-report`, `superseded-project-report`,
   `provisional`,
   `prerelease-operator-version`.
 
@@ -166,7 +166,7 @@ Three labels make up the maintenance scheme.
    no single CLI filter that performs this grouping — do it as a
    script/manual pass over the YAML dump.
 
-   Deletion Reason: `superseeded-operator-minor-version`.
+   Deletion Reason: `superseded-operator-minor-version`.
 
 5. **Orphaned datacontainers**: datacontainers belonging to an operation
    that qualifies under conditions 2-4.
@@ -191,7 +191,7 @@ Three labels make up the maintenance scheme.
    [examining-ado-operations](../examining-ado-operations/SKILL.md) and
    [examining-discovery-spaces](../examining-discovery-spaces/SKILL.md)).
 
-   Deletion Reason: `superseeded-report`.
+   Deletion Reason: `superseded-report`.
 
 7. **Duplicate project reports**: more than one `document` with
    `metadata.name: project_report`.
@@ -202,7 +202,7 @@ Three labels make up the maintenance scheme.
 
    Keep the newest, mark the rest
 
-   Deletion Reason: `superseeded-project-report`.
+   Deletion Reason: `superseded-project-report`.
 
 8. **Labeled `provisional`**: any resource carrying the `provisional` label
 

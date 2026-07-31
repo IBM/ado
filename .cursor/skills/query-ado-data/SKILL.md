@@ -207,10 +207,10 @@ linked to a store). Specify the source as `kind=id` (shorthand aliases supported
 uv run ado get $RESOURCETYPE --related-to kind=SOURCE_ID
 ```
 
-Not supported for `actuator`, `experiment`, `operator`, or `context`. The source
-kind must differ from the requested resource kind. Cannot be combined with a
-direct resource ID or `--use-latest`. Can be combined with `--filter`,
-`--label`, `--matching-point`, `--matching-space`, and `--matching-space-id`.
+Not supported for `actuator`, `experiment`, `operator`, or `context`. Cannot be
+combined with a direct resource ID or `--use-latest`. Can be combined with
+`--filter`, `--label`, `--matching-point`, `--matching-space`, and
+`--matching-space-id`.
 
 **Examples:**
 

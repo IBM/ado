@@ -90,7 +90,7 @@ def resolve_related_to_identifiers(
     related = sql_store.get_resources_by_relationship(
         kind=source_kind,
         identifier=source_id,
-        hierarchy_direction="both",
+        relationship="both",
         identifiers_only=True,
     )
     return related.get(requested_kind, set())

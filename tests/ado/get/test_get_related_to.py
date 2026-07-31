@@ -263,25 +263,50 @@ def test_get_operation_related_to_with_explicit_resource_id(
     assert result.exit_code == 1
 
 
+@requires_sqlite_3_38
 def test_get_operation_related_to_same_kind(
     tmp_path: pathlib.Path,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
     ],
+    ml_multi_cloud_benchmark_performance_experiment: Experiment,
+    simulate_ml_multi_cloud_random_walk_operation: Callable[
+        [int, int, int, str | None],
+        tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
+    ],
 ) -> None:
-    """--related-to anchor kind same as requested kind: exits with code 1."""
+    """ado get operation --related-to operation=<id> returns related operations.
+
+    Two operations linked to the same space are transitively related; using one
+    as the --related-to anchor should return the other.
+    """
+    assert ml_multi_cloud_benchmark_performance_experiment is not None
     runner = CliRunner()
     create_active_ado_context(
         runner=runner, path=tmp_path, project_context=valid_ado_project_context
     )
 
-    result = runner.invoke(
-        ado,
-        ["get", "operation", "--related-to", "operation=some-op-id"],
+    _store, _requests, _ids = simulate_ml_multi_cloud_random_walk_operation(
+        number_entities=2,
+        number_requests=1,
+        measurements_per_result=1,
+        operation_id="op-anchor",
+    )
+    simulate_ml_multi_cloud_random_walk_operation(
+        number_entities=2,
+        number_requests=1,
+        measurements_per_result=1,
+        operation_id="op-target",
     )
 
-    assert result.exit_code == 1
+    result = runner.invoke(
+        ado,
+        ["get", "operation", "--related-to", "operation=op-anchor", "-o", "name"],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert "op-target" in result.output
 
 
 @requires_sqlite_3_38

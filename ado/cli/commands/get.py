@@ -367,14 +367,6 @@ def get_resource(
             )
             raise typer.Exit(1) from None
 
-        if source_kind.value == resource_type.value:
-            console_print(
-                f"{ERROR}--related-to source kind must differ from the requested resource kind "
-                f"({resource_type.value})",
-                stderr=True,
-            )
-            raise typer.Exit(1)
-
         parsed_related_to = (source_kind, source_id)
 
     # Resolve --use-latest to actual resource_id

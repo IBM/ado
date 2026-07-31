@@ -32,7 +32,7 @@ for the full workflow.
   [resource-yaml-creation](../resource-yaml-creation/SKILL.md)
 - If this work belongs to a named study, apply the study labels to new spaces
   and operations and ensure a study document exists — see
-  [create-study-document](../create-study-document/SKILL.md)
+  [create-study-document](../create-research-study-document/SKILL.md)
 
 ## Workflow Overview
 

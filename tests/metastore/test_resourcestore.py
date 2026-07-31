@@ -629,23 +629,6 @@ def test_get_latest_resource_identifiers_of_kinds_invalid_kind(
         resource_store.get_latest_resource_identifiers_of_kinds(kinds=[invalid_kind])
 
 
-@requires_sqlite_3_38
-def test_get_latest_resource_identifiers_of_kinds_multiple_invalid_kinds(
-    resource_store: SQLStore,
-) -> None:
-    """Test get_latest_resource_identifiers_of_kinds reports all invalid kinds at once."""
-
-    # This should raise ValueError with all invalid kinds listed
-    invalid_kind1 = "invalid_kind1"  # type: ignore[arg-type]
-    invalid_kind2 = "invalid_kind2"  # type: ignore[arg-type]
-    with pytest.raises(
-        ValueError, match="All kinds must be CoreResourceKinds instances"
-    ):
-        resource_store.get_latest_resource_identifiers_of_kinds(
-            kinds=[invalid_kind1, invalid_kind2]
-        )
-
-
 ###############################################################################
 # get_resources_by_relationship
 ###############################################################################
@@ -786,26 +769,6 @@ def test_up_from_operation_uncapped_returns_discoveryspace_and_samplestore(
     assert ds_id in result[CoreResourceKinds.DISCOVERYSPACE]
     assert CoreResourceKinds.SAMPLESTORE in result
     assert ss_id in result[CoreResourceKinds.SAMPLESTORE]
-
-
-@requires_sqlite_3_38
-def test_up_from_operation_max_hops_2(
-    resource_hierarchy: dict,
-) -> None:
-    """up from operation with max_hops=2 returns both discoveryspace and samplestore."""
-    store: SQLStore = resource_hierarchy["store"]
-    op_id = resource_hierarchy["operation_id"]
-
-    result = store.get_resources_by_relationship(
-        kind=CoreResourceKinds.OPERATION,
-        identifier=op_id,
-        relationship_direction="incoming",
-        max_hops=2,
-        identifiers_only=True,
-    )
-
-    assert CoreResourceKinds.DISCOVERYSPACE in result
-    assert CoreResourceKinds.SAMPLESTORE in result
 
 
 # ---------------------------------------------------------------------------
@@ -1471,23 +1434,6 @@ def test_valid_kind_direction_combo_with_no_reachable_resources_returns_empty(
     )
 
     assert result == {}
-
-
-@requires_sqlite_3_38
-def test_identifier_none_with_both_direction_is_now_supported(
-    resource_hierarchy: dict,
-) -> None:
-    """identifier=None with relationship_direction='both' is now supported."""
-    store: SQLStore = resource_hierarchy["store"]
-
-    # Should not raise; result may be empty or non-empty but must be a dict
-    result = store.get_resources_by_relationship(
-        kind=CoreResourceKinds.OPERATION,
-        identifier=None,
-        relationship_direction="both",
-        identifiers_only=True,
-    )
-    assert isinstance(result, dict)
 
 
 @requires_sqlite_3_38

@@ -15,9 +15,9 @@ related metadata in the ado project associated to the active context.
 
 - Run all commands from the **repository root** with `uv run` (see
   [using-ado-cli](../using-ado-cli/SKILL.md)).
-- The report produced by this skill is stored as the `content` of a
+- The report produced by this skill is stored as a
   `document` resource in the active ado metastore context (see
-  [Producing a report](#producing-a-report)).
+  [Producing a report](#step-7-write-the-report)).
 - See
   [projects and contexts](../../../docs/resources/metastore.md#contexts-and-projects)
   for details on what projects and contexts are
@@ -36,7 +36,9 @@ related metadata in the ado project associated to the active context.
 - For one operation in depth:
   [examining-ado-operations](../examining-ado-operations/SKILL.md).
 
-## Pre-requisites - Check active context is associated with expected project
+## Pre-requisites
+
+### Check active context is associated with expected project
 
 Context names and project names are identical by construction.
 
@@ -44,13 +46,65 @@ If asked to examine a specific named project:
 
 1. Check the active context name: `uv run ado context`
    - If it has the correct name, continue to
-     [next step](#1-overview)
+     [step one](#step-1-check-for-existing-report)
    - If not, run `uv run ado get contexts` to list all available contexts
      - If one matches, switch to it: `uv run ado context $NAME`
      - If none match, inform the user that a context for the specified project
        cannot be found
 
-## 1. Overview
+## Workflow
+
+### Step 1. Check for existing report
+
+The project report is stored as a `document` resource whose `metadata.name` is
+ `project_report`.
+
+Query the metastore:
+
+```bash
+uv run ado get document -q 'config.metadata.name=project_report' --details
+```
+
+There **may** be zero, one, or
+many documents with that name — each has a unique identifier. If several match,
+the **current** report is the most recently created one.
+
+If matches exist
+
+- identify the **current** document (newest by creation timestamp from
+   `--details` or from document YAML `created` / status timestamps).
+- Fetch its
+   `content` (`uv run ado get document DOCUMENT_ID -o yaml`).
+- Proceed to step 2
+
+If no matches exist:
+
+- Proceed to Step 3
+
+### Step 2: Determine if there has been recent activity
+
+Here we check whether there has been meaningful activity since the current report
+was written:
+
+1. Contextualizing Activity
+   1. Run `uv run ado get docs --details`
+   2. Find any study docs that were created after the last project report was written
+   3. If there are, there has been recent activity in describing the motivations
+   and scope of project
+2. Operation Activity
+   1. Run `uv run ado get operations --details -o stats`
+   2. Find all the operations that were created after the last reported was written
+   3. Filter these for ones that are finished AND, if explore operations, that
+      measured entities
+   4. If there are, there has been recent experiment and analysis activity
+
+If there has been no recent activity,
+summarize the existing report for the user and point them to it. Do not continue.
+
+If there has been recent activity, continue to next steps but focus on examining
+the new activity in order to create an updated report based on the existing one.
+
+### Step 3: Get overview of research
 
 First check if there are study documents outlining
 the research underway in the project
@@ -69,10 +123,8 @@ to understand the study purpose and to find the labels
 used to identify resources associated with the stidy
 
 If there are study documents perform the next steps per study.
-If there are no study documents infer what research underway
-from resource descriptions and labels
 
-## 2. Activity
+## Step 4: Examine research activities
 
 Goal: volume of work, recency, and which spaces attract the most operations.
 
@@ -157,7 +209,7 @@ of activity; count operations **per space** from the operations listing to see
 which spaces are busiest; group activity under active **studies** when study
 documents exist.
 
-## 2. Deeper pass: full YAML and experiments
+### Step 5: Deeper pass: full YAML and experiments
 
 Goal: experiments/actuators in use, operation parameters, and how much was
 **submitted** for measurement (entities selected by explore-style operators—may
@@ -210,7 +262,7 @@ explore operations.
 - Whether **experiment definitions or parameters** shift over time (versions,
   configs).
 
-## 3. Space relationships and entity-space shape
+### Step 6: Space relationships and entity-space shape
 
 From step 2, pick a handful of **commonly operated on or recent** spaces. For
 each, inspect its fragment in `spaces.yaml`, focusing on **entity space**
@@ -239,42 +291,7 @@ Optionally complement with one-hop links:
 uv run ado show related space SPACE_ID
 ```
 
-## 4. Check for existing report
-
-The project report is stored as a `document` resource whose `metadata.name` is
- `project_report`. There **may** be zero, one, or
-many documents with that name — each has a unique identifier. If several match,
-the **current** report is the most recently created one.
-
-Query the metastore:
-
-```bash
-uv run ado get document -q 'config.metadata.name=project_report' --details
-```
-
-If matches exist:
-
-1. Identify the **current** document (newest by creation timestamp from
-   `--details` or from document YAML `created` / status timestamps). Fetch its
-   `content` (`uv run ado get document DOCUMENT_ID -o yaml`).
-2. Check whether there has been meaningful activity since the current report
-   was written:
-   1. Run `uv run ado get spaces --details` and
-      `uv run ado get operations --details` and note the age of the most recent
-      resource.
-   2. If the most recent resource is **younger** than the current document's
-      creation timestamp, there has been new activity — proceed toward writing
-      a new report.
-   3. If not, ask the user whether they want to write a new report anyway. If
-      they decline, stop and use/refer to the current document id.
-   4. If finer-grained confirmation is needed, fetch the YAML of the most recent
-      space or operation (`uv run ado get space SPACE_ID -o yaml --output-file
-      SPACE_ID.yaml`, or the same pattern for `operation`) and read its
-      `creationTimestamp` field.
-3. If new meaningful activity
-   - Create a new project report
-
-## Producing a report
+### Step 7: Write the report
 
 Write a concise markdown report. Store it as the `content` field of a
 `document` resource (see

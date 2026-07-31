@@ -26,13 +26,18 @@ Query every deletable type for existing marks:
    uv run ado get discoveryspace -l for_deletion=true --details
    uv run ado get datacontainer -l for_deletion=true --details
    uv run ado get document -l for_deletion=true --details
+   uv run ado get samplestore -l for_deletion=true --details
    ```
 
 If nothing is marked, move on to Step 2.
 
 Delete children before parents. Deleting a resource with children raises
-`ResourceHasChildrenError` Order:
-   `datacontainer` → `operation` → `discoveryspace`; `document` has no
+`ResourceHasChildrenError`.
+
+Order:
+   `datacontainer` → `operation` → `discoveryspace`  → `samplestore`
+
+Note: `document` has no
    ordering constraint and can be deleted at any point.
 
    ```bash
@@ -40,6 +45,7 @@ Delete children before parents. Deleting a resource with children raises
    uv run ado delete operation ID [ID...]
    uv run ado delete document ID [ID...]
    uv run ado delete discoveryspace ID [ID...]
+   uv run ado delete samplestore ID [ID...]
    ```
 
 ## Step 2: Identify candidates for deletion

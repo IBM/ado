@@ -44,13 +44,35 @@ If asked to examine a specific named project:
 
 1. Check the active context name: `uv run ado context`
    - If it has the correct name, continue to
-     [next step](#1-overview-activity-and-types)
+     [next step](#1-overview)
    - If not, run `uv run ado get contexts` to list all available contexts
      - If one matches, switch to it: `uv run ado context $NAME`
      - If none match, inform the user that a context for the specified project
        cannot be found
 
-## 1. Overview: activity and types
+## 1. Overview
+
+First check if there are study documents outlining
+the research underway in the project
+
+```bash
+uv run ado get document --details | grep `study-*`
+```
+
+For each study found, run
+
+```bash
+uv run ado get document DOCUMENT_ID -o yaml
+```
+
+to understand the study purpose and to find the labels
+used to identify resources associated with the stidy
+
+If there are study documents perform the next steps per study.
+If there are no study documents infer what research underway
+from resource descriptions and labels
+
+## 2. Activity
 
 Goal: volume of work, recency, and which spaces attract the most operations.
 
@@ -129,28 +151,6 @@ Goal: volume of work, recency, and which spaces attract the most operations.
    ```
 
    Adds `TABLES`, `LOCATIONS`, `KEY_VALUES`, and `DATA_BYTES` columns.
-
-7. **Study documents**
-
-   ```bash
-   uv run ado get document --details
-   ```
-
-   Select documents whose `metadata.name` matches `study-*` (see
-   [create-study-document](../create-study-document/SKILL.md)). For each study,
-   note `description` and `todo`. Fetch content when needed:
-
-   ```bash
-   uv run ado get document -q 'config.metadata.name=study-$ID' --details
-   uv run ado get document DOCUMENT_ID -o yaml
-   ```
-
-   Count related work with the study labels (typically `study=$ID`):
-
-   ```bash
-   uv run ado get spaces -l study=$ID --details
-   uv run ado get operations -l study=$ID --details
-   ```
 
 **Synthesis:** cluster mentally (or in notes) by **creation time** to see bursts
 of activity; count operations **per space** from the operations listing to see
@@ -271,14 +271,8 @@ If matches exist:
       space or operation (`uv run ado get space SPACE_ID -o yaml --output-file
       SPACE_ID.yaml`, or the same pattern for `operation`) and read its
       `creationTimestamp` field.
-3. Before creating a new report when a current one exists, **ask** whether to:
-   - **Keep history** — leave existing `project_report` document(s); create
-     another with the same name.
-   - **Replace** — delete the current document
-     (`uv run ado delete document DOCUMENT_ID`), then create the new one.
-     See
-     [resource-yaml-creation — Document](../resource-yaml-creation/SKILL.md#document).
-   Do not auto-delete; do not assume history must be kept.
+3. If new meaningful activity
+   - Create a new project report
 
 ## Producing a report
 
@@ -293,30 +287,30 @@ Write a concise markdown report. Store it as the `content` field of a
 
 ### Project summary
 
-- Domains or problems implied by experiments, actuators, and space descriptions.
+- If study documents available:
+  - Summary of the particular study or studies underway
+- If no study documents available or many resource without associated study
+  - Domains or problems implied by experiments, actuators, and space descriptions.
 - Dominant **operation** and **experiment** patterns.
 
 ### Latest activity
 
+Per-study when possible
+
 - Most recent spaces and operations (from `--details` listings).
 - What the latest work seems focused on (labels, names, target spaces).
 
-### Studies
-
-For each study document (`metadata.name` matching `study-*`):
-
-- Name, description, and current `todo`
-- Motivation (if present), study question, and objective (from document `content`)
-- Materials summary when present (instances / formulation)
-- Study labels and counts of matching spaces/operations
-
 ### Spaces overview
+
+Per-study when possible
 
 - Which spaces are most used and most analyzed.
 - How **entity spaces** and **matching-space** relationships evolve: expanding,
   narrowing, or shifting configuration.
 
 ### Operations overview
+
+Per-study when possible
 
 - Operator mix and whether **parameters** or **operator choice** evolve over
   time.

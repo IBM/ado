@@ -11,23 +11,16 @@
 <span class=w>  </span><span class=nt>sslVerify</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
 </code></pre></div> <h2 id=working-with-contexts>Working with Contexts<a class=headerlink href=#working-with-contexts title="Permanent link">&para;</a></h2> <h3 id=creating-a-context>Creating a context<a class=headerlink href=#creating-a-context title="Permanent link">&para;</a></h3> <p>To create a local or remote context in <code>ado</code>, create a file with the corresponding YAML definition (see above) and run:</p> <div class=highlight><pre><span></span><code>ado create context -f $YAML_FILE
 </code></pre></div> <p>If the context refers to a local project (a local context), a SQLite database is created for the project if it doesn't exist. If the context refers to a remote project (a remote context), the MySQL database for the project must have been created separately.</p> <h3 id=listing-available-contexts>Listing available contexts<a class=headerlink href=#listing-available-contexts title="Permanent link">&para;</a></h3> <p>To see a list of contexts do</p> <div class=highlight><pre><span></span><code>ado get contexts
-</code></pre></div> <p>This will output something like</p> <div class=highlight><pre><span></span><code>┌───────┬────────────────────────┬─────────┐
-│ INDEX │ CONTEXT                │ DEFAULT │
-├───────┼────────────────────────┼─────────┤
-│ 0     │ ap-test                │         │
-│ 1     │ ap-testing             │         │
-│ 2     │ caikit-testharness     │         │
-│ 3     │ developer-testing      │         │
-│ 4     │ finetuning             │         │
-│ 5     │ ft-prod                │         │
-│ 6     │ ft-vela                │         │
-│ 7     │ llm-d                  │         │
-│ 8     │ local                  │ ✅      │
-│ 9     │ local-test             │         │
-│ 10    │ mascots2024            │         │
-│ 11    │ playground             │         │
-│ 12    │ resource-store-testing │         │
-└───────┴────────────────────────┴─────────┘
+</code></pre></div> <p>This will output something like</p> <div class=highlight><pre><span></span><code>┌───────┬─────────────────────────┬────────┐
+│ INDEX │ CONTEXT                 │ ACTIVE │
+├───────┼─────────────────────────┼────────┤
+│ 0     │ algorithm-nexus         │        │
+│ 1     │ cplex_mip               │        │
+│ 2     │ geospatial-benchmarking │        │
+│ 3     │ llm-d                   │        │
+│ 4     │ local                   │ ✅     │
+│ 5     │ playground              │        │
+└───────┴─────────────────────────┴────────┘
 </code></pre></div> <p>Note, the name of the context is the name of the associated project.</p> <h3 id=the-active-context>The active context<a class=headerlink href=#the-active-context title="Permanent link">&para;</a></h3> <p>To use a context you activate it with:</p> <div class=highlight><pre><span></span><code>ado context $CONTEXTNAME
 </code></pre></div> <p>and it becomes the "Active Context". All <code>ado</code> commands that interact with the metastore, like <code>get</code>, <code>show</code>, will be directed to the project associated with the active context.</p> <p>Example:</p> <div class=highlight><pre><span></span><code>$ ado context materials-evaluation
 Success! Now using context materials-evaluation

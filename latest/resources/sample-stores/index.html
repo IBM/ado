@@ -13,24 +13,35 @@
 <span class=w>      </span><span class=nt>moduleName</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">...</span><span class=w> </span><span class=c1># The name of the module containing the class</span>
 <span class=w>    </span><span class=nt>parameters</span><span class=p>:</span><span class=w> </span><span class=c1># Sample Store parameters</span>
 <span class=w>    </span><span class=nt>storageLocation</span><span class=p>:</span><span class=w> </span><span class=c1># The location of this Sample Store</span>
-</code></pre></div> <p>The <a href=#sample-store-types>Sample Store types</a> section details how to fill the above fields for the different available Sample Store. Here is an example of copying data from a CSV file using <code>CSVSampleStore</code>:</p> <div class=highlight><pre><span></span><code><span class=nt>specification</span><span class=p>:</span>
-<span class=w>  </span><span class=nt>module</span><span class=p>:</span>
-<span class=w>    </span><span class=nt>moduleName</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">ado.core.samplestore.sql</span>
-<span class=w>    </span><span class=nt>moduleClass</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">SQLSampleStore</span>
+</code></pre></div> <p>The <a href=#sample-store-types>Sample Store types</a> section details how to fill the above fields for the different available Sample Store. Here is an example of copying data from a CSV file using <code>CSVSampleStore</code>:</p> <div class=highlight><pre><span></span><code><span class=c1># Copyright IBM Corporation 2025, 2026</span>
+<span class=c1># SPDX-License-Identifier: MIT</span>
 <span class=nt>copyFrom</span><span class=p>:</span>
 <span class=w>  </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>module</span><span class=p>:</span>
 <span class=w>      </span><span class=nt>moduleClass</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">CSVSampleStore</span>
-<span class=w>    </span><span class=nt>storageLocation</span><span class=p>:</span>
-<span class=w>      </span><span class=nt>path</span><span class=p>:</span><span class=w> </span><span class=s>&quot;examples/ml-multi-cloud/ml_export.csv&quot;</span>
+<span class=w>      </span><span class=nt>moduleName</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">ado.core.samplestore.csv</span>
 <span class=w>    </span><span class=nt>parameters</span><span class=p>:</span>
-<span class=w>      </span><span class=nt>generatorIdentifier</span><span class=p>:</span><span class=w> </span><span class=s>&quot;multi-cloud-ml&quot;</span>
-<span class=w>      </span><span class=nt>identifierColumn</span><span class=p>:</span><span class=w> </span><span class=s>&quot;config&quot;</span>
 <span class=w>      </span><span class=nt>experiments</span><span class=p>:</span>
-<span class=w>        </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>experimentIdentifier</span><span class=p>:</span><span class=w> </span><span class=s>&quot;benchmark_performance&quot;</span>
+<span class=w>        </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>actuatorIdentifier</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">replay</span>
 <span class=w>          </span><span class=nt>constitutivePropertyMap</span><span class=p>:</span>
-<span class=w>            </span><span class="p p-Indicator">-</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">cpu_type</span>
+<span class=w>            </span><span class="p p-Indicator">-</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">cpu_family</span>
+<span class=w>            </span><span class="p p-Indicator">-</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">vcpu_size</span>
+<span class=w>            </span><span class="p p-Indicator">-</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">nodes</span>
+<span class=w>            </span><span class="p p-Indicator">-</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">provider</span>
+<span class=w>          </span><span class=nt>experimentIdentifier</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">benchmark_performance</span>
 <span class=w>          </span><span class=nt>observedPropertyMap</span><span class=p>:</span>
 <span class=w>            </span><span class="p p-Indicator">-</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">wallClockRuntime</span>
+<span class=w>            </span><span class="p p-Indicator">-</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">status</span>
+<span class=w>      </span><span class=nt>generatorIdentifier</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">multi-cloud-ml</span>
+<span class=w>      </span><span class=nt>identifierColumn</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">config</span>
+<span class=w>    </span><span class=nt>storageLocation</span><span class=p>:</span>
+<span class=w>      </span><span class=nt>path</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">ml_export.csv</span>
+<span class=nt>metadata</span><span class=p>:</span>
+<span class=w>  </span><span class=nt>description</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">samplestore initialised with ml_multi_cloud data</span>
+<span class=w>  </span><span class=nt>name</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">ml_multi_cloud</span>
+<span class=nt>specification</span><span class=p>:</span>
+<span class=w>  </span><span class=nt>module</span><span class=p>:</span>
+<span class=w>    </span><span class=nt>moduleClass</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">SQLSampleStore</span>
+<span class=w>    </span><span class=nt>moduleName</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">ado.core.samplestore.sql</span>
 </code></pre></div> <h2 id=accessing-the-entities-in-a-sample-store>Accessing the entities in a sample store<a class=headerlink href=#accessing-the-entities-in-a-sample-store title="Permanent link">&para;</a></h2> <p>You access the entities in a <code>samplestore</code> via a discovery space attached to it.</p> <p>For an existing <code>discoveryspace</code> to retrieve all entities that match it run</p> <div class=highlight><pre><span></span><code>ado show measurements space $SPACEID --include matching
 </code></pre></div> <p>You can also define a <code>discoveryspace</code> in a YAML and run:</p> <div class=highlight><pre><span></span><code>ado show measurements space --file $FILE
 </code></pre></div> <p>This allows you to see what entities match a space without having to create it.</p> <h2 id=sample-store-types>Sample Store types<a class=headerlink href=#sample-store-types title="Permanent link">&para;</a></h2> <h3 id=sqlsamplestore>SQLSampleStore<a class=headerlink href=#sqlsamplestore title="Permanent link">&para;</a></h3> <p>This is an active Sample Store that stores entity data in SQL tables. In <code>ado</code> a SQLSampleStore is always associated with a particular project.</p> <p>When you want to copy from another SQLSampleStore you need the identifier and the metastore URL to the project it is in</p> <div class=highlight><pre><span></span><code><span class=nt>copyFrom</span><span class=p>:</span>

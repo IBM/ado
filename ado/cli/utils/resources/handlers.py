@@ -507,7 +507,6 @@ def print_related_resources(
         related_resources = sql.get_resources_by_relationship(
             kind=resource_type,
             identifier=resource_id,
-            hierarchy_direction="both",
             max_hops=max_hops,
             identifiers_only=True,
         )

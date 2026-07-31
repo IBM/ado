@@ -1104,7 +1104,7 @@ ado show trace discoveryspace my-space-123abc -o csv --output-file trace.csv
 
 _show related_ supports displaying resources that are related to the one whose
 id is provided (e.g., operations run on a space). By default the full resource
-hierarchy is traversed in both directions.
+graph is traversed in both directions.
 
 The complete syntax of the `ado show related` command is as follows:
 
@@ -1132,7 +1132,7 @@ ado show related RESOURCE_TYPE [RESOURCE_ID] [--use-latest] [--max-hops N]
   resource of RESOURCE_TYPE from the current context. It is ignored if a
   RESOURCE_ID is provided.
 - `--max-hops N` limits the traversal to at most `N` relationship hops in each
-  direction (1-3). When omitted, the full hierarchy depth is used.
+  direction (1-10). When omitted, the full graph depth is used.
 
 #### Examples
 

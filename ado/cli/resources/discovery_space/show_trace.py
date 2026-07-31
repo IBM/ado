@@ -68,7 +68,7 @@ def show_discovery_space_trace(parameters: AdoShowTraceCommandParameters) -> Non
         related = sql_store.get_resources_by_relationship(
             kind=CoreResourceKinds.DISCOVERYSPACE,
             identifier=space_id,
-            hierarchy_direction="both",
+            result_kinds={CoreResourceKinds.SAMPLESTORE, CoreResourceKinds.OPERATION},
             max_hops=1,
             identifiers_only=True,
         )

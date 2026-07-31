@@ -90,10 +90,10 @@ was written:
    1. Run `uv run ado get docs --details`
    2. Find any study docs that were created after the last project report was written
    3. If there are, there has been recent activity in describing the motivations
-   and scope of project
+      and scope of project
 2. Operation Activity
    1. Run `uv run ado get operations --details -o stats`
-   2. Find all the operations that were created after the last reported was written
+   2. Find all the operations that were created after the last report was written
    3. Filter these for ones that are finished AND, if explore operations, that
       measured entities
    4. If there are, there has been recent experiment and analysis activity
@@ -110,7 +110,7 @@ First check if there are study documents outlining
 the research underway in the project
 
 ```bash
-uv run ado get document --details | grep `study-*`
+uv run ado get document --details | grep "study-"
 ```
 
 For each study found, run
@@ -120,7 +120,7 @@ uv run ado get document DOCUMENT_ID -o yaml
 ```
 
 to understand the study purpose and to find the labels
-used to identify resources associated with the stidy
+used to identify resources associated with the study
 
 If there are study documents perform the next steps per study.
 

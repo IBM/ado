@@ -32,7 +32,7 @@ results.
 
 Install `ado-core` (a virtual environment is recommended). For complete
 instructions see the
-[install guide](https://ibm.github.io/ado/user-guide/install/):
+[install guide](https://ibm.github.io/ado/latest/user-guide/getting-started/#installing):
 
 ```shell
 pip install ado-core

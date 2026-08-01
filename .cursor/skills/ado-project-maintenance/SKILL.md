@@ -31,7 +31,7 @@ Query every deletable type for existing marks:
 
 If nothing is marked, move on to Step 2.
 
-Delete children before parents. You cannot delete resources that have children. 
+Delete children before parents. You cannot delete resources that have children.
 
 Order:
    `datacontainer` → `operation` → `discoveryspace`  → `samplestore`
@@ -227,8 +227,6 @@ Three labels make up the maintenance scheme.
     Operations over a week old with status started, but which
     have not measured any entities, likely crashed in a way
     that failed to update the status field
-
-    
 
 ## Related Skills
 

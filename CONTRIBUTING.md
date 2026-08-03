@@ -87,8 +87,8 @@ You can get in touch with us by starting a
 ## Setup
 
 To set up your development environment, follow the instructions in our
-[development guide](<https://ibm.github.io/ado/latest/developer-guide/getting-started/>
-developing) file.
+[development guide](https://ibm.github.io/ado/latest/developer-guide/getting-started/)
+file.
 
 ## Testing
 
@@ -168,7 +168,7 @@ And `scope` is one of the following:
 
 We require code and markup to adhere to certain rules. We enforce these rules
 though the tools we mention in
-[our development guide](https://ibm.github.io/ado/developer-guide/developing/),
+[our development guide](https://ibm.github.io/ado/latest/developer-guide/developing/),
 namely:
 
 - [Ruff format](https://ibm.github.io/ado/latest/developer-guide/developing/#code-style)

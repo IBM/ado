@@ -11,7 +11,7 @@ machine** and on a **Kuberay** cluster.
 
 Ensure you have created a virtual environment for ADO by following the
 instructions in
-[our development documentation](https://ibm.github.io/ado/user-guide/getting-started/#installing)
+[our development documentation](https://ibm.github.io/ado/latest/user-guide/getting-started/#installing)
 
 ### Kuberay deployment
 

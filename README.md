@@ -94,7 +94,7 @@ Here are some examples of what the team has built with `ado`:
 - 🧠
   [Fine-tuning performance benchmarking](https://ibm.github.io/ado/latest/user-guide/examples/finetune-remotely/)
 - 📈
-  [Inference performance benchmarking](https://ibm.github.io/ado/user-guide/examples/vllm-performance-endpoint/)
+  [Inference performance benchmarking](https://ibm.github.io/ado/latest/user-guide/examples/vllm-performance-endpoint/)
   (using [vLLM bench](https://docs.vllm.ai/en/stable/cli/bench/serve/) or
   [guidellm](https://github.com/vllm-project/guidellm))
 - 🔮

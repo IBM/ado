@@ -14,7 +14,7 @@ class ProfileParameters(pydantic.BaseModel):
     """Parameters for the profile operator (no configurable options)."""
 
 
-# See https://ibm.github.io/ado/developer-guide/creating-operators/#ado-operator-functions
+# See https://ibm.github.io/ado/latest/developer-guide/creating-operators/#ado-operator-functions
 # for documentation on the decorator and its parameters
 @characterize_operation(
     name="profile",
@@ -23,7 +23,7 @@ class ProfileParameters(pydantic.BaseModel):
     example_configuration=ProfileParameters(),
     description="Returns a data_profiling ProfileReport for the space",
 )
-# operator function can have any name but have similar parameters - see https://ibm.github.io/ado/developer-guide/creating-operators/#operator-function-parameters
+# operator function can have any name but have similar parameters - see https://ibm.github.io/ado/latest/developer-guide/creating-operators/#operator-function-parameters
 def profile(
     discoverySpace: DiscoverySpace,
     operationInfo: FunctionOperationInfo | None = None,
@@ -45,6 +45,6 @@ def profile(
         ]
     )
 
-    # See https://ibm.github.io/ado/developer-guide/creating-operators/#returning-data-from-your-operation-operation-outputs
+    # See https://ibm.github.io/ado/latest/developer-guide/creating-operators/#returning-data-from-your-operation-operation-outputs
     # for documentation on the return value of an operator function
     return OperationOutput(other=[data_profiling.ProfileReport(df)])

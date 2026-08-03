@@ -4,8 +4,8 @@ description:
   Query ado metadata and measurement data using CLI commands. Use when the user
   needs to find resources, filter by metadata, retrieve entities and
   measurements, or get resource schemas. Covers metastore queries (operations,
-  discoveryspaces, samplestores, datacontainers, actuatorconfigurations) and
-  samplestore queries (entities and measurements).
+  discoveryspaces, samplestores, datacontainers, actuatorconfigurations,
+  documents) and samplestore queries (entities and measurements).
 ---
 
 # Query ado Data
@@ -13,7 +13,7 @@ description:
 ado stores data in two places:
 
 1. **Metastore**: Metadata about all resources (operations, discoveryspaces,
-   samplestores, datacontainers, actuatorconfigurations)
+   samplestores, datacontainers, actuatorconfigurations, documents)
 2. **Samplestores**: Entities and measurements made on them
 
 ## Guidelines
@@ -61,6 +61,7 @@ Each resource has a pydantic model. If working in code you can use these models
 - operation, ado/core/operation/resource.py: OperationResource
 - actuatorconfiguration, ado/core/actuatorconfiguration/resource.py:
   ActuatorConfigurationResource
+- document, ado/core/document/resource.py: DocumentResource
 
 ## Querying Metadata
 
@@ -77,7 +78,7 @@ type.
 
 **Resource types**: `operations` (`op`), `discoveryspaces` (`space`),
 `samplestores` (`store`), `datacontainers` (`dcr`), `actuatorconfigurations`
-(`ac`)
+(`ac`), `documents` (`doc`)
 
 ### Resource Statistics
 
@@ -141,6 +142,12 @@ uv run ado get spaces --filter 'config.experiments={"experiments":{"identifier":
 # Combine multiple filters
 uv run ado get operations --filter 'config.operation.parameters.batchSize=1' \
   --filter 'status=[{"event": "finished", "exit_state": "success"}]'
+
+# Project overview report
+uv run ado get document -q 'config.metadata.name=project_report' --details
+
+# Study document (see create-study-document)
+uv run ado get document -q 'config.metadata.name=study-$ID' --details
 ```
 
 For extensive examples, see `docs/resources/metastore.md`.

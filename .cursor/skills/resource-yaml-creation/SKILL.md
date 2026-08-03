@@ -35,6 +35,23 @@ metadata:
 - `--filter` supports path-based filtering across any field:
   `uv run ado get spaces --filter 'config.metadata.name=my_space'`
 
+### The `provisional` label
+
+Set `provisional` at creation time when a space or operation is known **not**
+to be meant for keeping long-term:
+
+```yaml
+metadata:
+  labels:
+    provisional: testing # or: debug, temporary
+```
+
+Canonical values:
+
+- `testing` — created to test some new functionality.
+- `debug` — created to debug a problem.
+- `temporary` — generic indicator that it's not meant to be kept.
+
 ## Dynamic Reference Resolution
 
 Resource YAMLs often reference other resources by ID. Leave these as

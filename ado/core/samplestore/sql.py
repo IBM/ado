@@ -1144,7 +1144,7 @@ class SQLSampleStore(ActiveSampleStore):
                     request_id=request.requestid,
                     type=request.__class__.__name__,
                     status=request.status.value,
-                    metadata=json.dumps(request.metadata),
+                    metadata=request.metadata,
                     timestamp=request.timestamp,
                 )
                 connectable.execute(stmt)
@@ -1191,7 +1191,7 @@ class SQLSampleStore(ActiveSampleStore):
             {
                 "uid": r.uid,
                 "entity_id": r.entityIdentifier,
-                "data": json.loads(r.model_dump_json()),
+                "data": r,
             }
             for r in results
         ]
@@ -1253,7 +1253,7 @@ class SQLSampleStore(ActiveSampleStore):
                 values.append(
                     {
                         "uid": uid,
-                        "data": json.loads(measurement_result.model_dump_json()),
+                        "data": measurement_result,
                     }
                 )
 
@@ -1337,11 +1337,6 @@ class SQLSampleStore(ActiveSampleStore):
         operation_id: str,
         status_filter: MeasurementResultStateEnum | None = None,
     ) -> int:
-        result_state_map = {
-            MeasurementResultStateEnum.VALID: "measurements",
-            MeasurementResultStateEnum.INVALID: "reason",
-        }
-
         from sqlalchemy import func, select
 
         req_table = self._request_table
@@ -1352,18 +1347,23 @@ class SQLSampleStore(ActiveSampleStore):
             req_table.c.operation_id == operation_id
         )
 
-        stmt = select(func.count(reqres_table.c.uid)).where(
-            reqres_table.c.request_uid.in_(request_uids_subq)
-        )
-
-        if status_filter:
-            # MEMBER OF(JSON_KEYS(data)) is MySQL 8.0+ only — no SQLAlchemy Core
-            # equivalent exists; guard with a raw text fragment.
-            key = result_state_map[status_filter]
-            stmt = stmt.where(
-                sqlalchemy.text(":status_filter MEMBER OF(JSON_KEYS(data))").bindparams(
-                    status_filter=key
-                )
+        if status_filter is None:
+            # No join needed — count directly from the request-result join table
+            stmt = select(func.count(reqres_table.c.uid)).where(
+                reqres_table.c.request_uid.in_(request_uids_subq)
+            )
+        else:
+            # Join results to filter by validity via json_extract on the data column.
+            # Valid results have no "reason" field; invalid results always have one.
+            res_table = self._result_table
+            reason_expr = func.json_extract(res_table.c.data, "$.reason")
+            is_valid = status_filter == MeasurementResultStateEnum.VALID
+            stmt = (
+                select(func.count(reqres_table.c.uid))
+                .select_from(reqres_table)
+                .join(res_table, res_table.c.uid == reqres_table.c.result_uid)
+                .where(reqres_table.c.request_uid.in_(request_uids_subq))
+                .where(reason_expr.is_(None) if is_valid else reason_expr.is_not(None))
             )
 
         try:

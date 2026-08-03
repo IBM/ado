@@ -1,16 +1,17 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
+import json
 import re
 from collections.abc import Callable
 
 import pytest
+import sqlalchemy
 
 from ado.core import DiscoverySpaceResource, OperationResource
 from ado.core.resources import ADOResource, CoreResourceKinds
 from ado.core.samplestore.sql import SQLSampleStore
 from ado.metastore.sqlstore import SQLStore
 from ado.schema.entity import Entity
-from ado.schema.experiment import Experiment
 from ado.schema.request import MeasurementRequestStateEnum, ReplayedMeasurement
 
 
@@ -55,7 +56,7 @@ def test_resource_cannot_be_created_twice(
         match=f"Resource with id {re.escape(resource.identifier)} already present. "
         "Use updateResource if you want to overwrite it",
     ):
-        create_resources([resource])
+        create_resources([resource], db=sql_store)
 
 
 def test_create_operation_with_related_space(
@@ -125,31 +126,38 @@ def test_add_entities_to_sample_store(
 ) -> None:
     quantity = 3
     entities = random_entities(quantity=quantity)
-    add_entities_to_sample_store(random_sql_sample_store(), entities)
+    sample_store = random_sql_sample_store()
+    add_entities_to_sample_store(sample_store, entities)
+    entity_ids = {e.identifier for e in entities}
+    assert entity_ids.issubset(sample_store.entity_identifiers())
 
 
 def test_add_measurement_request_to_sample_store(
-    ml_multi_cloud_benchmark_performance_experiment: Experiment,
     random_ml_multi_cloud_benchmark_performance_measurement_requests: Callable[
         [int, int, MeasurementRequestStateEnum | None, str | None],
         ReplayedMeasurement,
     ],
     random_sql_sample_store: Callable[[], SQLSampleStore],
 ) -> None:
-    assert ml_multi_cloud_benchmark_performance_experiment is not None
-
     number_entities = 3
     measurements_per_result = 1
-    requests = random_ml_multi_cloud_benchmark_performance_measurement_requests(
+    request = random_ml_multi_cloud_benchmark_performance_measurement_requests(
         number_entities=number_entities, measurements_per_result=measurements_per_result
     )
     sample_store = random_sql_sample_store()
-    request_db_id = sample_store.add_measurement_request(request=requests)
+    request_db_id = sample_store.add_measurement_request(request=request)
     assert request_db_id is not None
     sample_store.add_measurement_results(
-        results=requests.measurements,
+        results=request.measurements,
         skip_relationship_to_request=False,
         request_db_id=request_db_id,
+    )
+    # Verify results were persisted
+    assert (
+        sample_store.measurement_results_count_for_operation(
+            operation_id=request.operation_id
+        )
+        == number_entities
     )
 
 
@@ -177,3 +185,74 @@ def test_add_external_entities(
         assert (
             abs(property_value.value - retrieved_entity.propertyValues[i].value) < 1e-15
         )
+
+
+def test_add_measurement_request_metadata_round_trip(
+    random_ml_multi_cloud_benchmark_performance_measurement_requests: Callable[
+        [int, int, MeasurementRequestStateEnum | None, str | None],
+        ReplayedMeasurement,
+    ],
+    random_sql_sample_store: Callable[[], SQLSampleStore],
+) -> None:
+    """Metadata dict must survive a round-trip through add_measurement_request.
+
+    Regression test for the Core-insert double-encoding bug: passing
+    json.dumps(dict) into a JSON column causes the value to be stored as a
+    JSON string rather than a JSON object, breaking metadata.* DB filters and
+    making the stored value differ from what was written.
+    """
+    expected_metadata = {"k": "v", "nested": {"x": 1}}
+
+    request = random_ml_multi_cloud_benchmark_performance_measurement_requests(
+        number_entities=1, measurements_per_result=1
+    )
+    request.metadata = expected_metadata
+
+    sample_store = random_sql_sample_store()
+    request_db_id = sample_store.add_measurement_request(request=request)
+    assert request_db_id is not None
+
+    # Read the raw stored value directly from the DB to verify the JSON column
+    # is stored as an object (not a double-encoded string).
+    req_table = sample_store._request_table
+    with sample_store.engine.connect() as conn:
+        row = conn.execute(
+            sqlalchemy.select(req_table.c.metadata).where(
+                req_table.c.uid == str(request_db_id)
+            )
+        ).fetchone()
+
+    assert row is not None
+    raw = row[0]
+    # SQLAlchemy's JSON column returns a dict on SQLite and MySQL; if it ever
+    # returns a string the column was double-encoded.
+    if isinstance(raw, str):
+        raw = json.loads(raw)
+    assert isinstance(raw, dict), (
+        f"metadata stored as {type(raw).__name__}, expected dict"
+    )
+    assert raw == expected_metadata
+
+
+def test_contains_entity_with_identifier_true_and_false(
+    random_ml_multi_cloud_benchmark_performance_measurement_requests: Callable[
+        [int, int, MeasurementRequestStateEnum | None, str | None],
+        ReplayedMeasurement,
+    ],
+    random_sql_sample_store: Callable[[], SQLSampleStore],
+) -> None:
+    """containsEntityWithIdentifier must return True for known entities and False for unknown ones."""
+    request = random_ml_multi_cloud_benchmark_performance_measurement_requests(
+        number_entities=2, measurements_per_result=1
+    )
+    sample_store = random_sql_sample_store()
+    # ReplayedMeasurement skips addEntities inside add_measurement_request, so
+    # register entities explicitly — as the operator does in practice.
+    sample_store.addEntities(list(request.entities))
+
+    for entity in request.entities:
+        assert sample_store.containsEntityWithIdentifier(entity.identifier) is True
+
+    assert (
+        sample_store.containsEntityWithIdentifier("entity-that-does-not-exist") is False
+    )

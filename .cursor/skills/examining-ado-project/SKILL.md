@@ -18,9 +18,13 @@ related metadata in the ado project associated to the active context.
 - The report produced by this skill is stored as a
   `document` resource in the active ado metastore context (see
   [Producing a report](#step-7-write-the-report)).
-- See
-  [projects and contexts](../../../docs/resources/metastore.md#contexts-and-projects)
-  for details on what projects and contexts are
+- A **project** is the namespace for all ado resources (spaces, operations,
+  stores). A **context** is the local config pointing to a project's metastore
+  (SQLite for local projects, MySQL for remote). Context name equals project
+  name by construction. This definition is sufficient for applying this skill.
+  Only consult the source if you need full schema details: read
+  `docs/resources/metastore.md` if the source repo is available, otherwise see
+  <https://ibm.github.io/ado/latest/resources/metastore/#contexts-and-projects>.
 - Users may refer to an ado project using either the term "project" or "context"
 
 ## Tips

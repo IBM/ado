@@ -47,35 +47,106 @@ See
 exclusive** — valid values satisfy `lower <= value < upper`. The upper endpoint
 itself is **not** in the domain.
 
-See
-[properties and domains](../../../docs/concepts/properties-and-domains.md)
-for the full discussion.
+> **The content below is sufficient for writing and validating YAML.**
+> Only go deeper if you encounter an edge case not covered here:
+> read `docs/concepts/properties-and-domains.md` if the source repo is available,
+> otherwise see <https://ibm.github.io/ado/latest/concepts/properties-and-domains/>.
 
 ### Variable Types
 
-**DISCRETE_VARIABLE_TYPE:**
+**DISCRETE_VARIABLE_TYPE** — a finite set of numeric values.
 
-- Numeric values from a finite set
-- Use `values` for explicit list: `[1, 2, 4, 8]`
-- Use `domainRange` + `interval` for ranges: `domainRange: [1, 10], interval: 1`
-  (upper bound exclusive — see [above](#domain-range-bounds-numeric))
+```yaml
+# explicit list
+domain:
+  values: [1, 2, 4, 8, 16, 32, 64, 128]
 
-**CONTINUOUS_VARIABLE_TYPE:**
+# range with interval (lower inclusive, upper exclusive)
+domain:
+  domainRange: [1, 129]
+  interval: 1
+```
 
-- Real-valued range
-- Requires `domainRange: [min, max]` (upper bound exclusive — see
-  [above](#domain-range-bounds-numeric))
-- Cannot enumerate all values
+**CONTINUOUS_VARIABLE_TYPE** — a continuous real-valued range.
 
-**CATEGORICAL_VARIABLE_TYPE:**
+```yaml
+# bounded range (upper bound exclusive)
+domain:
+  domainRange: [0.0, 1.0]
 
-- String or other categorical values
-- Requires `values: ["option1", "option2", ...]`
+# unbounded (any real number)
+domain:
+  variableType: CONTINUOUS_VARIABLE_TYPE
+```
 
-**BINARY_VARIABLE_TYPE:**
+**CATEGORICAL_VARIABLE_TYPE** — a finite, named set of values (strings or
+numbers).
 
-- Boolean or two-value categorical
-- No domain specification needed
+```yaml
+domain:
+  values: [granite-3-8b, llama3-8b, mistral-7b-v0.1]
+```
+
+**BINARY_VARIABLE_TYPE** — exactly two values: `true` and `false`. No
+`values` or `domainRange` needed.
+
+```yaml
+domain:
+  variableType: BINARY_VARIABLE_TYPE
+```
+
+**OPEN_CATEGORICAL_VARIABLE_TYPE** — categorical values where the complete
+set is not known in advance (e.g. molecule identifiers, AI model names). Must
+be declared explicitly; an optional `values` field can seed known categories.
+
+```yaml
+domain:
+  variableType: OPEN_CATEGORICAL_VARIABLE_TYPE
+
+# with seed values
+domain:
+  variableType: OPEN_CATEGORICAL_VARIABLE_TYPE
+  values: [pigeon-10.mps.gz]
+```
+
+### Auto-inference of variable type
+
+When `variableType` is omitted, ado infers the type from other fields:
+
+| Fields present | Inferred type |
+| --- | --- |
+| `values` with all numeric entries | `DISCRETE_VARIABLE_TYPE` |
+| `values` with any non-numeric entry | `CATEGORICAL_VARIABLE_TYPE` |
+| `domainRange` only (no `interval`) | `CONTINUOUS_VARIABLE_TYPE` |
+| `domainRange` + `interval` | `DISCRETE_VARIABLE_TYPE` |
+| `interval` only (no `domainRange`) | `DISCRETE_VARIABLE_TYPE` |
+
+`BINARY_VARIABLE_TYPE` and `OPEN_CATEGORICAL_VARIABLE_TYPE` cannot be
+inferred and must always be declared explicitly.
+
+### probabilityFunction field
+
+Each domain can optionally specify how values are sampled. Default is
+**uniform** — every value equally likely.
+
+```yaml
+domain:
+  values: [1, 2, 4, 8, 16]
+  probabilityFunction:
+    identifier: uniform
+```
+
+A **normal** distribution is available for continuous and discrete domains:
+
+```yaml
+domain:
+  domainRange: [0.0, 1.0]
+  probabilityFunction:
+    identifier: normal
+    parameters:
+      mean: 0.5
+      std: 0.1
+```
 
 ## Operation Configuration Schema
 
@@ -130,6 +201,46 @@ property domain:
 - For discrete: All entity space values must be in experiment's domain values
 - For continuous: Entity space range must be within experiment's range
 - For categorical: Entity space values must be subset of experiment's values
+
+### Compatible Subdomain Types
+
+Not every combination of domain types is valid — the subdomain type must be
+compatible with the parent type:
+
+| Parent domain | Compatible sub-domain types |
+| --- | --- |
+| `CONTINUOUS` | `CONTINUOUS`, `DISCRETE` (finite), `BINARY` |
+| `DISCRETE` | `DISCRETE`, `BINARY` |
+| `CATEGORICAL` | `CATEGORICAL`, `DISCRETE` (finite), `BINARY` |
+| `BINARY` | `BINARY`, `DISCRETE` (≤2 values) |
+| `OPEN_CATEGORICAL` | `OPEN_CATEGORICAL`, `CATEGORICAL`, `DISCRETE` (finite), `BINARY` |
+
+**Example** — narrowing an experiment's domains to a focused entity space:
+
+```yaml
+# Experiment input domains (maximum possible extent)
+- identifier: model_name
+  propertyDomain:
+    values: [granite-3-8b, llama3-8b, mistral-7b-v0.1, granite-34b-code-base]
+- identifier: batch_size
+  propertyDomain:
+    domainRange: [1, 4097]
+    interval: 1
+- identifier: temperature
+  propertyDomain:
+    domainRange: [0.0, 100.0]
+
+# Valid entity space subdomains
+- identifier: model_name
+  propertyDomain:
+    values: [granite-3-8b, llama3-8b]   # CATEGORICAL ⊆ CATEGORICAL ✓
+- identifier: batch_size
+  propertyDomain:
+    values: [1, 2, 4, 8, 16]            # DISCRETE ⊆ DISCRETE ✓
+- identifier: temperature
+  propertyDomain:
+    domainRange: [20.0, 40.0]           # CONTINUOUS ⊆ CONTINUOUS ✓
+```
 
 ### Validation
 

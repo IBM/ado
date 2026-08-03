@@ -54,17 +54,29 @@ create YAML for task → validate YAML → iterate.
 uv run ado get experiments --details
 ```
 
-**Describe a specific experiment:**
+**Get structured experiment properties** (required, optional, target) as a
+YAML template — this is more reliable for agents than the human-readable
+`describe` output:
 
 ```bash
-uv run ado describe experiment $EXPERIMENT_ID
+uv run ado template space --from-experiment $EXPERIMENT_ID --output-file space.yaml
 ```
 
-**Key information to gather:**
+The generated YAML has all required constitutive properties pre-filled in
+`entitySpace` and all optional properties commented out with their defaults.
+Read the template to extract:
 
-- Required constitutive properties (must be in entity space)
-- Optional properties (can use defaults or add to entity space)
-- Target properties (what the experiment measures)
+| Property category | Where in template | What it means |
+| --- | --- | --- |
+| Required constitutive | `entitySpace` entries | Must be present in entity space |
+| Optional | commented-out `entitySpace` entries | Can keep default or add to space |
+| Target (measured outputs) | `experiments[].targetProperties` | What the experiment produces |
+
+If you need the human-readable description for context (not for parsing):
+
+```bash
+uv run ado describe experiment $ACTUATOR_ID.$EXPERIMENT_ID
+```
 
 #### What to do if no experiment matching task available
 
@@ -84,7 +96,20 @@ uv run ado template space --from-experiment $EXPERIMENT_ID --output-file space.y
 
 **Manual structure:**
 
-See [skill-manual-structure.yaml](yaml-examples/skill-manual-structure.yaml).
+```yaml
+sampleStoreIdentifier: default # or existing store ID
+entitySpace:
+  - identifier: property_name
+    propertyDomain:
+      variableType: DISCRETE_VARIABLE_TYPE
+      values: [value1, value2, value3]
+experiments:
+  - actuatorIdentifier: actuator_name
+    experimentIdentifier: experiment_name
+metadata:
+  name: space_name
+  description: Description of the discovery space
+```
 
 ### Step 1c: Validate DiscoverySpace YAML
 
@@ -118,15 +143,32 @@ Review the template and configure parameters based on:
 
 - User's query/goals
 - Operator documentation
-- Example operations in `examples/`
+- If the source repo is available, check `examples/` for real-world YAML files.
+  Otherwise use `uv run ado template operation --operator-name $OP` as the
+  starting point.
 
 ### Step 2c: Create Operation YAML
 
 **Structure:**
 
-See
-[skill-operation-structure.yaml](yaml-examples/skill-operation-structure.yaml)
-for an example structure.
+```yaml
+spaces:
+  - space_identifier # From Phase 1
+operation:
+  module:
+    operatorName: random_walk # could be any operator_name
+    operationType: explore # or modify, characterize, etc.
+  parameters:
+    # These must include the appropriate parameters for the operator
+    # that is defined by operatorName. In this case we override
+    # defaults from RandomWalkParameters
+    numberEntities: 100
+    batchSize: 10
+actuatorConfigurationIdentifiers: [actuator_config_id] # Optional
+metadata:
+  name: operation_name
+  description: Description of the operation
+```
 
 ### Step 2d: Validate Operation YAML
 
@@ -164,18 +206,28 @@ Fix validation errors and repeat validation until successful.
 
 **Discrete (categorical):**
 
-See
-[skill-property-domain-discrete-categorical.yaml](yaml-examples/skill-property-domain-discrete-categorical.yaml).
+```yaml
+propertyDomain:
+  variableType: DISCRETE_VARIABLE_TYPE
+  values: [option1, option2, option3]
+```
 
 **Discrete (numeric):**
 
-See
-[skill-property-domain-discrete-numeric.yaml](yaml-examples/skill-property-domain-discrete-numeric.yaml).
+```yaml
+propertyDomain:
+  variableType: DISCRETE_VARIABLE_TYPE
+  domainRange: [min, max]
+  values: [1, 2, 4, 8, 16]
+```
 
 **Continuous:**
 
-See
-[skill-property-domain-continuous.yaml](yaml-examples/skill-property-domain-continuous.yaml).
+```yaml
+propertyDomain:
+  variableType: CONTINUOUS_VARIABLE_TYPE
+  domainRange: [min, max]
+```
 
 ## Validation Checklist
 
@@ -216,13 +268,9 @@ Before finalizing, verify:
 ## Additional Resources
 
 - For detailed schema information, see [reference.md](reference.md)
-- For example workflows, see [examples.md](examples.md)
-- For Pydantic model details, examine:
-  - `ado/schema/experiment.py`
-  - `ado/schema/measurementspace.py`
-  - `ado/schema/entityspace.py`
-  - `ado/core/discoveryspace/config.py`
-  - `ado/core/operation/operation.py`
+- For Pydantic model details when writing code, see the resource model table
+  and schema-inspection snippet in
+  [query-ado-data — Using Resource models](../query-ado-data/SKILL.md#using-resource-models)
 
 ## References
 

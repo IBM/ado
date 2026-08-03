@@ -25,7 +25,12 @@ morrigan_vllm_dev_execution.yaml # Morrigan + vllm_performance from source
 The file names are user-defined conventions. Check the repo root for any
 `*_execution.yaml` files to discover what contexts are available.
 
-See `docs/user-guide/remote-execution.md` for full schema reference.
+*If the source repo is available, read
+`docs/user-guide/advanced/remote-execution.md` directly. Otherwise see
+<https://ibm.github.io/ado/latest/user-guide/advanced/remote-execution/>*
+
+See [Execution Context YAML Reference](#execution-context-yaml-reference) below
+for the essential fields inlined.
 
 ---
 
@@ -184,3 +189,89 @@ the git node and a timestamp to every dirty or dev build (e.g.
 If you are still seeing stale wheels, confirm the plugin's `pyproject.toml`
 has the `format-jinja` block from the
 [plugin development rules](../../rules/plugin-development.mdc).
+
+---
+
+## Execution Context YAML Reference
+
+This section is self-contained — use it without reading any external file.
+Only go to the source for topics not covered here: read
+`docs/user-guide/advanced/remote-execution.md` if the source repo is available,
+otherwise see <https://ibm.github.io/ado/latest/user-guide/advanced/remote-execution/>.
+
+### Minimal — direct cluster URL
+
+```yaml
+executionType:
+  type: cluster
+  clusterUrl: "http://ray-cluster.my-namespace.svc.cluster.local:8265"
+packages:
+  fromPyPI:
+    - ado-core
+    - ado-ray-tune  # add any other plugins required
+envVars:
+  PYTHONUNBUFFERED: "x"
+  OMP_NUM_THREADS: "1"
+wait: false  # true = stay attached until the job finishes
+```
+
+### Port-forward cluster (OpenShift / Kubernetes)
+
+```yaml
+executionType:
+  type: cluster
+  clusterUrl: "http://localhost:8265"  # must match localPort below
+  portForward:
+    namespace: my-namespace
+    serviceName: my-ray-cluster-head-svc
+    localPort: 8265
+packages:
+  fromPyPI:
+    - ado-core
+    - ado-ray-tune
+envVars:
+  PYTHONUNBUFFERED: "x"
+wait: false
+```
+
+### `packages` block
+
+```yaml
+packages:
+  fromPyPI:
+    - ado-core
+    - ado-ray-tune
+    - ray==2.52.1     # pin to match cluster version if needed
+  fromSource:
+    - plugins/actuators/my_plugin  # relative to where ado --remote is run
+```
+
+### `additionalFiles` — ship local files to the cluster
+
+```yaml
+additionalFiles:
+  - /absolute/local/path/to/data_file.csv
+  - path/to/my_data_dir/   # directories also supported
+```
+
+Use bare filenames (no path) in space/operation YAML; ado symlinks
+`additionalFiles` entries into the Ray working directory.
+
+### `runtimeEnv` block
+
+```yaml
+runtimeEnv:
+  setupTimeoutSeconds: 1200  # default 600; -1 to disable
+  eagerInstall: false        # default true
+```
+
+### `envVars` block
+
+```yaml
+envVars:
+  PYTHONUNBUFFERED: "x"
+  OMP_NUM_THREADS: "1"
+  OPENBLAS_NUM_THREADS: "1"
+  RAY_AIR_NEW_PERSISTENCE_MODE: "0"
+  MY_SECRET: "value"
+```

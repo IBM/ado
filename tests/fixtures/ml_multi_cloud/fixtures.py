@@ -214,7 +214,10 @@ def random_ml_multi_cloud_benchmark_performance_entities(
         quantity: int,
     ) -> list[Entity]:
         return random.sample(
-            population=ml_multi_cloud_csv_sample_store.entities, k=quantity
+            population=ml_multi_cloud_csv_sample_store.get_entities(
+                require_measurements=True
+            ),
+            k=quantity,
         )
 
     return _random_ml_multi_cloud_benchmark_performance_entities

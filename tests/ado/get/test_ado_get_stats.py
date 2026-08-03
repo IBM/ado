@@ -9,7 +9,7 @@ from collections.abc import Callable
 import pandas as pd
 import pytest
 import rich.box
-from testcontainers.mysql import MySqlContainer
+from testcontainers.community.mysql import MySqlContainer
 from typer.testing import CliRunner
 
 from ado.cli.core.cli import app as ado

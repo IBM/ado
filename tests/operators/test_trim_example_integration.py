@@ -9,7 +9,7 @@ from collections.abc import Callable
 import pytest
 import trim_custom_experiments.experiments  # noqa: F401 — registers ideal-gas experiment
 import yaml
-from testcontainers.mysql import MySqlContainer
+from testcontainers.community.mysql import MySqlContainer
 
 import ado.modules.operators.randomwalk  # noqa: F401
 from ado.core.discoveryspace.config import DiscoverySpaceConfiguration

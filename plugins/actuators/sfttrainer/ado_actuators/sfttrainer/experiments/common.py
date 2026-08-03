@@ -168,9 +168,11 @@ class ExperimentPurpose(str, enum.Enum):
 
 @functools.cache
 def load_model_map() -> dict[str, dict[WeightsFormat, str]]:
-    from importlib.resources import read_text
+    from importlib.resources import files
 
-    return yaml.safe_load(read_text("ado_actuators.sfttrainer.config", "models.yaml"))
+    return yaml.safe_load(
+        files("ado_actuators.sfttrainer.config").joinpath("models.yaml").read_text()
+    )
 
 
 def get_default_measured_properties() -> list[str]:

@@ -134,7 +134,7 @@ def show_trace_for_resources(
 
     This command provides a unified view of measurement requests and results.
 
-    See https://ibm.github.io/ado/getting-started/ado/#ado-show-trace
+    See https://ibm.github.io/ado/latest/cli-reference/#ado-show-trace
     for detailed documentation and examples.
 
     Examples:

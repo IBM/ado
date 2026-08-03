@@ -156,7 +156,7 @@ def show_measurements_for_resources(
     """
     Show measurements related to a space or an operation.
 
-    See https://ibm.github.io/ado/getting-started/ado/#ado-show-measurements
+    See https://ibm.github.io/ado/latest/cli-reference/#ado-show-measurements
     for detailed documentation and examples.
 
     Examples:

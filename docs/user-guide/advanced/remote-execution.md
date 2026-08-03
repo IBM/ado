@@ -17,7 +17,7 @@ generating the Ray runtime environment, and running `ray job submit` for you.
 > [!IMPORTANT] Only remote project contexts are supported
 >
 > The project context used must be
-> [remote](https://ibm.github.io/ado/resources/metastore/#contexts-for-remote-projects),
+> [remote](../../resources/metastore.md#contexts-for-remote-projects),
 > as it must be accessible when ado executes on the remote ray cluster. `ado`
 > will fail with a clear error if a SQLite context is detected.
 

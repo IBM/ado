@@ -1,7 +1,7 @@
 <!-- markdownlint-disable code-block-style -->
 <!-- markdownlint-disable-next-line first-line-h1 -->
 `ado` uses a SQL database to store
-[resource definitions](https://ibm.github.io/ado/resources/resources/#common-features-of-resources)
+[resource definitions](index.md#common-features-of-resources)
 and [SQLSampleStores](sample-stores.md#sqlsamplestore). When you execute `ado`
 commands like `get` or `describe` they are interacting with this metastore.
 
@@ -157,7 +157,7 @@ existing database.
 
 The [`ado get`](../cli-reference/index.md#ado-get) CLI command lets you easily
 retrieve and search
-[resource definitions](https://ibm.github.io/ado/resources/resources/#common-features-of-resources)
+[resource definitions](index.md#common-features-of-resources)
 in the metastore in a variety of ways.
 
 ### Searching for similar spaces

@@ -84,7 +84,7 @@ def describe_resource(
     """
     Print a human-friendly description of a resource or an experiment.
 
-    See https://ibm.github.io/ado/getting-started/ado/#ado-describe
+    See https://ibm.github.io/ado/latest/cli-reference/#ado-describe
     for detailed documentation and examples.
 
     Examples:

@@ -98,7 +98,7 @@ def edit_resource(
     """
     Edit resources' metadata.
 
-    See https://ibm.github.io/ado/getting-started/ado/#ado-edit
+    See https://ibm.github.io/ado/latest/cli-reference/#ado-edit
     for detailed documentation and examples.
 
     Examples:

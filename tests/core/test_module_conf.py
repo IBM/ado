@@ -24,7 +24,7 @@ def test_legacy_orchestrator_prefix_is_rewritten(
     assert conf.moduleName == "ado.core.samplestore.sql"
     assert "orchestrator.core.samplestore.sql" in caplog.text
     assert "ado.core.samplestore.sql" in caplog.text
-    assert "ibm.github.io/ado/migration" in caplog.text
+    assert "ibm.github.io/ado/latest/migration" in caplog.text
 
 
 def test_orchestrator_not_at_prefix_is_unchanged() -> None:
@@ -58,4 +58,4 @@ def test_samplestore_subclass_emits_rich_warning(
     assert "WARN" in stderr
     assert "moduleName" in stderr
     assert "ado upgrade samplestores" in stderr
-    assert "ibm.github.io/ado/migration" in stderr
+    assert "ibm.github.io/ado/latest/migration" in stderr

@@ -3,7 +3,7 @@
 > [!TIP]
 >
 > For a quick introduction to TRIM, see this
-> [example](https://ibm.github.io/ado/examples/trim/). This guide is for users
+> [example](../examples/trim.md). This guide is for users
 > who want to adapt TRIM's behavior for their specific use case.
 >
 > If you want to skip to the configuration options go to the
@@ -639,7 +639,7 @@ parameters:
     Get started quickly with a hands-on tutorial using the ideal gas
     law example.
 
-    [TRIM Quickstart :octicons-arrow-right-24:](https://ibm.github.io/ado/examples/trim/)
+    [TRIM Quickstart :octicons-arrow-right-24:](../examples/trim.md)
 
 - :octicons-workflow-24:{ .lg .middle } **Explore Other Operators**
 
@@ -648,7 +648,7 @@ parameters:
     Learn about other exploration operators like RandomWalk and
     ray_tune.
 
-    [Explore Operators :octicons-arrow-right-24:](https://ibm.github.io/ado/operators/explore_operators/)
+    [Explore Operators :octicons-arrow-right-24:](explore-operators.md)
 
 - :octicons-beaker-24:{ .lg .middle } **Create Custom Experiments**
 
@@ -656,7 +656,7 @@ parameters:
 
     Define your own experiments to use with TRIM.
 
-    [Custom Experiments Guide :octicons-arrow-right-24:](https://ibm.github.io/ado/actuators/creating-custom-experiments/)
+    [Custom Experiments Guide :octicons-arrow-right-24:](../../developer-guide/creating-custom-experiments.md)
 
 - :octicons-search-24:{ .lg .middle } **Optimize with Ray Tune**
 
@@ -665,7 +665,7 @@ parameters:
     Use ray_tune for optimization tasks instead of
     characterization.
 
-    [Ray Tune Documentation :octicons-arrow-right-24:](https://ibm.github.io/ado/operators/optimisation-with-ray-tune/)
+    [Ray Tune Documentation :octicons-arrow-right-24:](ray-tune.md)
 
 </div>
 

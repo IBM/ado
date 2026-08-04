@@ -241,7 +241,8 @@ packages:
   fromPyPI:
     - ado-core
     - ado-ray-tune
-    - ray==2.52.1     # pin to match cluster version if needed
+    - ray==2.52.1                         # pin to match cluster version if needed
+    - /remote/path/to/package.whl         # path to a wheel already on the cluster
   fromSource:
     - plugins/actuators/my_plugin  # relative to where ado --remote is run
 ```

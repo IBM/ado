@@ -30,7 +30,7 @@ logger_trim = logging.getLogger(__name__)
                 Retrieves all measured entities from the entity source and samples the others following a certain order.
                 If the number of measured entity is too small, Trim instantiates a no-priors characterization operation.
                 """,
-    version="2.0.3",
+    version="2.0.4",
 )
 def trim(
     discoverySpace: DiscoverySpace = None,  # type: ignore[name-defined]
@@ -73,6 +73,7 @@ def trim(
     source_df, target_df = get_source_and_target(
         discoverySpace, params.targetOutput, log_string="First query"
     )
+    initial_source_space_size = len(source_df)
 
     op_output_characterization_no_prior = OperationOutput.model_validate(
         {
@@ -152,10 +153,9 @@ def trim(
     trim_sampler_config = CustomSamplerConfiguration(
         module=trim_module, parameters=params
     )
-    numberEntities_iterative_modeling = (
-        params.samplingBudget.maxPoints - len(source_df)
-        if op_output_characterization_no_prior.operation
-        else params.samplingBudget.maxPoints
+    # maxPoints is a shared new-sample budget across no-priors and iterative phases
+    numberEntities_iterative_modeling = params.samplingBudget.maxPoints - (
+        len(source_df) - initial_source_space_size
     )
     trim_rwparams = RandomWalkParameters(
         samplerConfig=trim_sampler_config,

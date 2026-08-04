@@ -96,20 +96,7 @@ uv run ado template space --from-experiment $EXPERIMENT_ID --output-file space.y
 
 **Manual structure:**
 
-```yaml
-sampleStoreIdentifier: default # or existing store ID
-entitySpace:
-  - identifier: property_name
-    propertyDomain:
-      variableType: DISCRETE_VARIABLE_TYPE
-      values: [value1, value2, value3]
-experiments:
-  - actuatorIdentifier: actuator_name
-    experimentIdentifier: experiment_name
-metadata:
-  name: space_name
-  description: Description of the discovery space
-```
+See [skill-manual-structure.yaml](yaml-examples/skill-manual-structure.yaml).
 
 ### Step 1c: Validate DiscoverySpace YAML
 
@@ -151,24 +138,9 @@ Review the template and configure parameters based on:
 
 **Structure:**
 
-```yaml
-spaces:
-  - space_identifier # From Phase 1
-operation:
-  module:
-    operatorName: random_walk # could be any operator_name
-    operationType: explore # or modify, characterize, etc.
-  parameters:
-    # These must include the appropriate parameters for the operator
-    # that is defined by operatorName. In this case we override
-    # defaults from RandomWalkParameters
-    numberEntities: 100
-    batchSize: 10
-actuatorConfigurationIdentifiers: [actuator_config_id] # Optional
-metadata:
-  name: operation_name
-  description: Description of the operation
-```
+See
+[skill-operation-structure.yaml](yaml-examples/skill-operation-structure.yaml)
+for an example structure.
 
 ### Step 2d: Validate Operation YAML
 
@@ -206,28 +178,18 @@ Fix validation errors and repeat validation until successful.
 
 **Discrete (categorical):**
 
-```yaml
-propertyDomain:
-  variableType: DISCRETE_VARIABLE_TYPE
-  values: [option1, option2, option3]
-```
+See
+[skill-property-domain-discrete-categorical.yaml](yaml-examples/skill-property-domain-discrete-categorical.yaml).
 
 **Discrete (numeric):**
 
-```yaml
-propertyDomain:
-  variableType: DISCRETE_VARIABLE_TYPE
-  domainRange: [min, max]
-  values: [1, 2, 4, 8, 16]
-```
+See
+[skill-property-domain-discrete-numeric.yaml](yaml-examples/skill-property-domain-discrete-numeric.yaml).
 
 **Continuous:**
 
-```yaml
-propertyDomain:
-  variableType: CONTINUOUS_VARIABLE_TYPE
-  domainRange: [min, max]
-```
+See
+[skill-property-domain-continuous.yaml](yaml-examples/skill-property-domain-continuous.yaml).
 
 ## Validation Checklist
 
@@ -268,6 +230,7 @@ Before finalizing, verify:
 ## Additional Resources
 
 - For detailed schema information, see [reference.md](reference.md)
+- For example workflows, see [examples.md](examples.md)
 - For Pydantic model details when writing code, see the resource model table
   and schema-inspection snippet in
   [query-ado-data — Using Resource models](../query-ado-data/SKILL.md#using-resource-models)

@@ -68,7 +68,7 @@ To inspect a model's JSON schema without reading the source:
 ```python
 uv run python -c \
   "from ado.core.discoveryspace.resource import DiscoverySpaceResource; \
-import json; print(json.dumps(DiscoverySpaceResource.model_json_schema(), indent=2))"
+import json; print(json.dumps(DiscoverySpaceResource.model_json_schema()))"
 ```
 
 Replace `DiscoverySpaceResource` with any class from the table above.

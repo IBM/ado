@@ -72,8 +72,14 @@ def test_csv_sample_store_entities(
 ) -> None:
     """Tests if the first and last entities are what is expected"""
 
-    assert csv_sample_store.entities[0].identifier == "[O-]SC1=C([O-])OCCC1"
-    assert csv_sample_store.entities[-1].identifier == "O=S(=O)([O-])c1ccc([O-])c(O)c1"
+    assert (
+        csv_sample_store.get_entities(require_measurements=True)[0].identifier
+        == "[O-]SC1=C([O-])OCCC1"
+    )
+    assert (
+        csv_sample_store.get_entities(require_measurements=True)[-1].identifier
+        == "O=S(=O)([O-])c1ccc([O-])c(O)c1"
+    )
 
 
 def test_csv_sample_store_config(
@@ -314,7 +320,9 @@ def test_entities_with_constitutive_property_values_rejects_non_constitutive(
 def test_csv_sample_store_type_parsing(
     ml_multi_cloud_csv_sample_store: CSVSampleStore,
 ) -> None:
-    entity: Entity = ml_multi_cloud_csv_sample_store.entities[0]
+    entity: Entity = ml_multi_cloud_csv_sample_store.get_entities(
+        require_measurements=True
+    )[0]
     for prop_id in ["cpu_family", "vcpu_size", "nodes", "provider"]:
         assert entity.valueForConstitutivePropertyIdentifier(prop_id), (
             f"Expected the entity to have a constitutive property {prop_id}"
@@ -407,7 +415,7 @@ def test_csv_from_csv_method_backward_compatibility() -> None:
             constitutivePropertyColumns=["param1"],
         )
         assert store1 is not None
-        assert len(store1.entities) == 2
+        assert len(store1.get_entities(require_measurements=True)) == 2
 
         # Verify the actuator was set to replay by default
         catalog = store1.experimentCatalog()

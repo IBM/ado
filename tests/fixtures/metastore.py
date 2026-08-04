@@ -8,7 +8,7 @@ from collections.abc import Callable, Generator
 
 import pytest
 import sqlalchemy
-import testcontainers.mysql
+import testcontainers.community.mysql as testcontainers_mysql
 import yaml
 from sqlalchemy.pool import NullPool
 from typer.testing import CliRunner
@@ -51,7 +51,7 @@ def mysql_test_port() -> int:
 def mysql_test_instance(
     mysql_test_password: str,
     mysql_test_port: int,
-) -> testcontainers.mysql.MySqlContainer:
+) -> testcontainers_mysql.MySqlContainer:
 
     # AP 20/03/2024: Ryuk is not connecting locally and we
     # don't really need it since we're using the context manager
@@ -59,7 +59,7 @@ def mysql_test_instance(
     os.environ["TESTCONTAINERS_RYUK_DISABLED"] = "true"
 
     # We need to use root as we need to create databases on-the-fly
-    with testcontainers.mysql.MySqlContainer(
+    with testcontainers_mysql.MySqlContainer(
         image="mirror.gcr.io/mysql:8",
         username="root",
         root_password=mysql_test_password,
@@ -75,7 +75,7 @@ def valid_ado_mysql_context_yaml(
     random_identifier: Callable[[], str],
     mysql_test_password: str,
     mysql_test_port: int,
-    mysql_test_instance: testcontainers.mysql.MySqlContainer,
+    mysql_test_instance: testcontainers_mysql.MySqlContainer,
 ) -> str:
     random_id = random_identifier()
     db_name = f"pytest_{random_id}"

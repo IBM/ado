@@ -166,8 +166,6 @@ A common use case is searching for spaces that are "similar" to a reference
 space. A space is considered similar only if **both** of the following hold:
 
 - They include **exactly the same base experiments** as the reference space
-  (spaces with different experiments are excluded entirely and do not appear in
-  the results)
 - Their **entity space** is in a **hierarchical relationship** with the
   reference space's entity space: subspace, equal or superspace
 
@@ -180,9 +178,9 @@ This search can be performed in two ways:
   to the flag `--matching-space`. This is useful to find similar spaces without
   actually creating one first.
 
-The output includes a `RELATION_TO_INPUT_SPACE` column indicating whether each
-matching space's entity space is a subspace, superspace, or exact match of the
-reference space.
+The output includes a `RELATION_TO_INPUT_ENTITY_SPACE` column indicating
+whether each matching space's entity space is a subspace, superspace, or exact
+match of the reference space.
 
 ### Searching for spaces containing a point
 

@@ -167,7 +167,7 @@ space. A space is considered similar only if **both** of the following hold:
 
 - They include **exactly the same base experiments** as the reference space
 - Their **entity space** is in a **hierarchical relationship** with the
-  reference space: subspace, equal or superspace
+  reference space's entity space: subspace, equal or superspace
 
 This search can be performed in two ways:
 
@@ -178,9 +178,9 @@ This search can be performed in two ways:
   to the flag `--matching-space`. This is useful to find similar spaces without
   actually creating one first.
 
-The output of this command will include the hierarchical relationship between
-the spaces, meaning that a column will say whether the matching space is a
-subspace, a superspace, or an exact match.
+The output includes a `RELATION_TO_INPUT_ENTITY_SPACE` column indicating
+whether each matching space's entity space is a subspace, superspace, or exact
+match of the reference space.
 
 ### Searching for spaces containing a point
 

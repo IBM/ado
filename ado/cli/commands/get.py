@@ -237,7 +237,11 @@ def get_resource(
         pathlib.Path | None,
         typer.Option(
             help="""
-            Provide a space configuration to match other spaces. Only for spaces.
+            Provide a space YAML file as a reference to find matching spaces. Only for spaces.
+
+            A space matches if it has exactly the same base experiments as the reference
+            and its entity space is in a hierarchical relationship with the reference
+            (subspace, equal, or superspace).
 
             If set, disregards --filter and --label, and uses the table output format.
             """,
@@ -252,8 +256,12 @@ def get_resource(
         str | None,
         typer.Option(
             help="""
-            Provide a space id to match other spaces. Only for spaces.
+            Provide an existing space ID as a reference to find matching spaces. Only for spaces.
             Takes precedence over --matching-space.
+
+            A space matches if it has exactly the same base experiments as the reference
+            and its entity space is in a hierarchical relationship with the reference
+            (subspace, equal, or superspace).
 
             If set, disregards --filter and --label, and uses the table output format.
             """,

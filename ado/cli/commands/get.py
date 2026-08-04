@@ -133,7 +133,7 @@ def get_resource(
             "--output",
             "-o",
             rich_help_panel=OUTPUT_CONFIGURATION_OPTIONS,
-            help="Output information in a different format. The 'json', 'raw', and 'yaml' formats will output the entire resource. The 'name' format outputs only resource identifiers (similar to kubectl get -o name). The 'stats' format augments the default table with statistics columns: for operations (TOTAL_RESULTS, SUCCESSFUL_RESULTS, FAILED_RESULTS, MEASURED_ENTITIES), for discovery spaces (EXPERIMENTS, OPERATIONS, EXPLORE_OPERATIONS, MEASURED_ENTITIES), for sample stores (ENTITIES, RESULTS, EXPERIMENTS), and for data containers (TABLES, LOCATIONS, KEY_VALUES, DATA_BYTES). Not all formats may be supported by all resources.",
+            help="Output information in a different format. The 'json', 'raw', and 'yaml' formats will output the entire resource. The 'name' format outputs only resource identifiers (similar to kubectl get -o name). The 'stats' format augments the default table with statistics columns: for operations (TOTAL_RESULTS, SUCCESSFUL_RESULTS, FAILED_RESULTS, MEASURED_ENTITIES), for discovery spaces (EXPERIMENTS, OPERATIONS, EXPLORE_OPERATIONS, MEASURED_ENTITIES), for sample stores (ENTITIES, RESULTS, EXPERIMENTS), and for data containers (TABLES, LOCATIONS, KEY_VALUES, DATA_BYTES). MEASURED_ENTITIES counts entities with at least one measurement, whether successful, failed, or both. Not all formats may be supported by all resources.",
         ),
     ] = AdoGetSupportedOutputFormats.TABLE.value,
     exclude_default: Annotated[

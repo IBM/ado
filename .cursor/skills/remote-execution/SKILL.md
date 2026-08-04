@@ -254,7 +254,7 @@ additionalFiles:
   - path/to/my_data_dir/   # directories also supported
 ```
 
-Use bare filenames (no path) in space/operation YAML; ado symlinks
+Use bare filenames (no path) in space/operation YAML; ray copies
 `additionalFiles` entries into the Ray working directory.
 
 ### `runtimeEnv` block

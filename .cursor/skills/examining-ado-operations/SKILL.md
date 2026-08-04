@@ -77,8 +77,7 @@ Operations are applied to discoveryspaces. There are different types of
 operation. The General Workflow can be applied to all types of operation.
 
 In addition, the Explore Operation Workflow can be applied to Explore
-operations. See the [Key Concepts](#key-concepts) section above for operation
-types and key terminology.
+operations.
 
 For full details on operators: read `docs/user-guide/operators/working-with-operators.md`
 if the source repo is available, otherwise see
@@ -242,8 +241,7 @@ output identifiers.
 
 An operation can create the following resources
 
-- discovery spaces: a space produced by the operation — examine it using the
-  [examining-discovery-spaces](../examining-discovery-spaces/SKILL.md) skill
+- discovery spaces: a space produced by the operation
 - operations: child operations spawned by the operation — recursively examine
   them using this skill
 - datacontainers: non-ado outputs (e.g. CSV data) produced by the operation
@@ -261,15 +259,12 @@ For each output resource summarize what it is/contains.
 
 The following assumes the General Workflow has been applied.
 
-An explore operation works by sampling entities from its input space and
-measuring them. Key things to check:
+An explore operation samples entities from a discovery space and
+measures them. Key things to check:
 
 - The operation parameters specify how many entities to sample and with what
-  strategy (see the operator schema from step 3)
-- Memoization may mean some sampled entities were not re-measured — their
-  results were replayed from the sample store (see [Memoization](#memoization)
-  in Key Concepts above)
-
+  strategy 
+- Memoization may mean the measurements for some sampled entities were were replayed from the sample store.
 Relevant Documentation
 
 - Sample process: <https://ibm.github.io/ado/latest/concepts/discovery-spaces/#sampling-and-measurement>

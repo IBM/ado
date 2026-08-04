@@ -68,7 +68,7 @@ Why is it useful to work with matching data?
 2. Memoization: You can understand if there are memoization opportunities that
    would speed up an operation on the space. When `MATCHING_ENTITIES` is
    significantly larger than `MEASURED_ENTITIES`, data from other operations
-   sharing the same sample store could be replayed — no re-measurement needed.
+   sharing the same sample store could be replayed.
 
    > The explanation above is sufficient for assessing memoization opportunities.
    > Only consult the source if you need more detail: read

@@ -19,8 +19,9 @@ related metadata in the ado project associated to the active context.
   `document` resource in the active ado metastore context (see
   [Producing a report](#step-7-write-the-report)).
 - A **project** is a namespace for a set of ado resources (spaces, operations,
-  stores). A **context** is the local config pointing to a project's metastore. 
-  Context name equals project name by construction. This definition is sufficient for applying this skill.
+  stores). A **context** is the local config pointing to a project's metastore.
+  Context name equals project name by construction. This definition is
+  sufficient for applying this skill.
   Only consult the source if you need full schema details: read
   `docs/resources/metastore.md` if the source repo is available, otherwise see
   <https://ibm.github.io/ado/latest/resources/metastore/#contexts-and-projects>.

@@ -263,8 +263,9 @@ An explore operation samples entities from a discovery space and
 measures them. Key things to check:
 
 - The operation parameters specify how many entities to sample and with what
-  strategy 
-- Memoization may mean the measurements for some sampled entities were were replayed from the sample store.
+  strategy
+- Memoization may mean the measurements for some sampled entities were replayed
+  from the sample store.
 Relevant Documentation
 
 - Sample process: <https://ibm.github.io/ado/latest/concepts/discovery-spaces/#sampling-and-measurement>

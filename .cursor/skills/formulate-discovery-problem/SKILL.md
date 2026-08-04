@@ -54,29 +54,17 @@ create YAML for task → validate YAML → iterate.
 uv run ado get experiments --details
 ```
 
-**Get structured experiment properties** (required, optional, target) as a
-YAML template — this is more reliable for agents than the human-readable
-`describe` output:
+**Describe a specific experiment:**
 
 ```bash
-uv run ado template space --from-experiment $EXPERIMENT_ID --output-file space.yaml
+uv run ado describe experiment $EXPERIMENT_ID
 ```
 
-The generated YAML has all required constitutive properties pre-filled in
-`entitySpace` and all optional properties commented out with their defaults.
-Read the template to extract:
+**Key information to gather:**
 
-| Property category | Where in template | What it means |
-| --- | --- | --- |
-| Required constitutive | `entitySpace` entries | Must be present in entity space |
-| Optional | commented-out `entitySpace` entries | Can keep default or add to space |
-| Target (measured outputs) | `experiments[].targetProperties` | What the experiment produces |
-
-If you need the human-readable description for context (not for parsing):
-
-```bash
-uv run ado describe experiment $ACTUATOR_ID.$EXPERIMENT_ID
-```
+- Required constitutive properties (must be in entity space)
+- Optional properties (can use defaults or add to entity space)
+- Target properties (what the experiment measures)
 
 #### What to do if no experiment matching task available
 

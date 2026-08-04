@@ -51,17 +51,27 @@ DONTs
 
 ### Using Resource models
 
-Each resource has a pydantic model. If working in code you can use these models
+Each resource type has a Pydantic model. If working in code you can import these
+models directly (source repo required) or inspect their JSON schema via Python.
 
-- discoveryspace, ado/core/discoveryspace/resource.py:
-  DiscoverySpaceResource
-- samplestore, ado/core/samplestore/resource.py: SampleStoreResource
-- datacontainer, ado/core/datacontainer/resource.py:
-  DataContainerResource
-- operation, ado/core/operation/resource.py: OperationResource
-- actuatorconfiguration, ado/core/actuatorconfiguration/resource.py:
-  ActuatorConfigurationResource
-- document, ado/core/document/resource.py: DocumentResource
+| Resource type | Class | Import path |
+| --- | --- | --- |
+| `discoveryspace` | `DiscoverySpaceResource` | `ado.core.discoveryspace.resource` |
+| `samplestore` | `SampleStoreResource` | `ado.core.samplestore.resource` |
+| `datacontainer` | `DataContainerResource` | `ado.core.datacontainer.resource` |
+| `operation` | `OperationResource` | `ado.core.operation.resource` |
+| `actuatorconfiguration` | `ActuatorConfigurationResource` | `ado.core.actuatorconfiguration.resource` |
+| `document` | `DocumentResource` | `ado.core.document.resource` |
+
+To inspect a model's JSON schema without reading the source:
+
+```python
+uv run python -c \
+  "from ado.core.discoveryspace.resource import DiscoverySpaceResource; \
+import json; print(json.dumps(DiscoverySpaceResource.model_json_schema()))"
+```
+
+Replace `DiscoverySpaceResource` with any class from the table above.
 
 ## Querying Metadata
 
@@ -150,7 +160,8 @@ uv run ado get document -q 'config.metadata.name=project_report' --details
 uv run ado get document -q 'config.metadata.name=study-$ID' --details
 ```
 
-For extensive examples, see `docs/resources/metastore.md`.
+For extensive examples, see
+<https://ibm.github.io/ado/latest/resources/metastore/>
 
 ### Filtering by Labels
 
@@ -366,8 +377,15 @@ uv run ado show related space SPACE_ID
 
 ## Advanced Filtering
 
-The metastore class can provide more powerful querying via scripts. See
-ado/metastore/sqlstore.py
+The metastore class can provide more powerful querying via scripts. Inspect
+the available API with:
+
+```python
+uv run python -c "from ado.metastore.sqlstore import SQLResourceStore; help(SQLResourceStore)"
+```
+
+If the source repo is available, `ado/metastore/sqlstore.py` contains the full
+implementation.
 
 ## References
 

@@ -118,7 +118,9 @@ Review the template and configure parameters based on:
 
 - User's query/goals
 - Operator documentation
-- Example operations in `examples/`
+- If the source repo is available, check `examples/` for real-world YAML files.
+  Otherwise use `uv run ado template operation --operator-name $OP` as the
+  starting point.
 
 ### Step 2c: Create Operation YAML
 
@@ -217,12 +219,9 @@ Before finalizing, verify:
 
 - For detailed schema information, see [reference.md](reference.md)
 - For example workflows, see [examples.md](examples.md)
-- For Pydantic model details, examine:
-  - `ado/schema/experiment.py`
-  - `ado/schema/measurementspace.py`
-  - `ado/schema/entityspace.py`
-  - `ado/core/discoveryspace/config.py`
-  - `ado/core/operation/operation.py`
+- For Pydantic model details when writing code, see the resource model table
+  and schema-inspection snippet in
+  [query-ado-data — Using Resource models](../query-ado-data/SKILL.md#using-resource-models)
 
 ## References
 

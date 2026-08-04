@@ -65,9 +65,15 @@ Why is it useful to work with matching data?
    - Concrete example: You create a discoveryspace that is a subspace of another
      sampled spaced to analyze it. You can perform analysis on existing data
      even though no operation has been run on the new discoveryspace.
-2. Memoization: You can understand if there are
-   [memoization opportunities](docs/concepts/data-sharing.md) that
-   would speed up a operation on the space.
+2. Memoization: You can understand if there are memoization opportunities that
+   would speed up an operation on the space. When `MATCHING_ENTITIES` is
+   significantly larger than `MEASURED_ENTITIES`, data from other operations
+   sharing the same sample store could be replayed.
+
+   > The explanation above is sufficient for assessing memoization opportunities.
+   > Only consult the source if you need more detail: read
+   > `docs/concepts/data-sharing.md` if the source repo is available, otherwise
+   > see <https://ibm.github.io/ado/latest/concepts/data-sharing/>.
 
 ## Pre-requisites: The Space Identifier
 

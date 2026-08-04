@@ -215,7 +215,12 @@ uv run ado create samplestore -f samplestore.yaml
 
 Use `document` resources to persist markdown or HTML reports in the metastore.
 Set `contentType` to `markdown` (default) or `html`. See the
-[document resource documentation](../../../docs/resources/document.md).
+[document resource documentation](https://ibm.github.io/ado/latest/resources/document/).
+
+> The description above is sufficient for creating document resources.
+> Only consult the source for advanced options not covered here: read
+> `docs/resources/document.md` if the source repo is available, otherwise see
+> <https://ibm.github.io/ado/latest/resources/document/>.
 Examining skills store their reports this way: put the body in `content`,
 optionally set `contentType`, and list related resources in
 `relatedResources` with `id` and `role` (`parent` = report is about that

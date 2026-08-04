@@ -31,16 +31,62 @@ on, and whether measurements and results look healthy.
 - For a project/context wide view (all spaces and operations), see
   [examining-ado-project](../examining-ado-project/SKILL.md).
 
+## Key Concepts
+
+> **The definitions below are sufficient for applying this skill.**
+> Only consult the source docs if you need detail beyond what is inlined here:
+> read `docs/resources/operation.md`, `docs/concepts/data-sharing.md`, or
+> `docs/concepts/discovery-spaces.md` if the source repo is available,
+> otherwise see <https://ibm.github.io/ado/latest/resources/operation/>,
+> <https://ibm.github.io/ado/latest/concepts/data-sharing/>, or
+> <https://ibm.github.io/ado/latest/concepts/discovery-spaces/>.
+
+### Operation types
+
+- **explore** — samples entities from a space and measures them
+  (e.g. random_walk, ray_tune)
+- **modify** — modifies a space (e.g. adds or removes dimensions)
+- **characterize** — analyses existing measurements in a space
+- **compare** — compares two or more spaces or operations
+- **fuse** — fuses multiple spaces into one
+- **learn** — trains a model or learns from measurements
+
+### Measured vs Matching
+
+- **measured**: entities and results recorded by this operation (and other
+  operations run directly on the same space)
+- **matching**: all entities and measurements in the sample store that are
+  compatible with the space this operation ran on — includes measured entities
+  plus any compatible data from operations on other spaces sharing the same
+  sample store
+
+### Memoization
+
+When an explore operation samples an entity, ado checks whether results for
+the required experiments already exist in the sample store (matched on
+constitutive property values). If memoization is enabled and matching results
+are found, those results are **replayed** rather than re-running the
+experiment. These requests appear as "replayed measurements" in the trace.
+If the same entity is sampled twice within one operation before the first
+result is stored, memoization cannot intercept the second request and the
+entity is measured twice.
+
 ## Context
 
 Operations are applied to discoveryspaces. There are different types of
 operation. The General Workflow can be applied to all types of operation.
 
-In addition, the Explore Operation Workflow can be applied to
-Explore operations.
+In addition, the Explore Operation Workflow can be applied to Explore
+operations.
 
-- Read [operations](../../../docs/resources/operation.md) documentation
-  for details
+For full details on operators: read `docs/user-guide/operators/working-with-operators.md`
+if the source repo is available, otherwise see
+<https://ibm.github.io/ado/latest/user-guide/operators/working-with-operators/>.
+To inspect any operator's parameters directly, run:
+
+```bash
+uv run ado template operation --operator-name $OPERATOR_IDENTIFIER --include-schema
+```
 
 ## Pre-requisites: The Operation Identifier
 
@@ -163,7 +209,7 @@ uv run ado template operation --operator-name $OPERATOR_IDENTIFIER --include-sch
 This will create a file called `operation_template_$UID_schema.yaml` containing
 the schema.
 
-### Step 4: Describe the space
+### Step 4: Describe the space the operation ran on
 
 Using the space id from step 1
 
@@ -172,11 +218,10 @@ uv run ado get space SPACE_ID -o yaml --output-file SPACE_ID.yaml
 uv run ado describe space SPACE_ID
 ```
 
-Summarise the: **dimensions** (parameters), **experiments** (actuators,
-experiment types), **entity space** structure, and notable **constraints** or
-metadata. For deeper context, read operator and experiment documentation under
-`docs/user-guide/operators/` and actuator/experiment docs as needed (match
-**operatorIdentifier** and experiment types from the space).
+Summarise what the operation was working on: the **dimensions** (parameters)
+of the entity space, the **experiments** (actuators, experiment types) that
+define what can be measured, and any notable **constraints** or metadata.
+This gives context for interpreting the operation's results.
 
 ### Step 5: Get the output resources of the operation
 
@@ -196,9 +241,10 @@ output identifiers.
 
 An operation can create the following resources
 
-- discovery spaces: In this case examine the space as in step 3
-- operations: In this case recursively examine the operations using this skill
-- datacontainers: This contains non-ado resource outputs e.g. CSV data.
+- discovery spaces: a space produced by the operation
+- operations: child operations spawned by the operation — recursively examine
+  them using this skill
+- datacontainers: non-ado outputs (e.g. CSV data) produced by the operation
 
 To retrieve contents of data container. Use `--output-file` to ensure proper
 file handling:
@@ -213,20 +259,18 @@ For each output resource summarize what it is/contains.
 
 The following assumes the General Workflow has been applied.
 
-Explore operations sample entities from a discovery space and make
-measurements on them.
+An explore operation samples entities from a discovery space and
+measures them. Key things to check:
 
-Notes:
-
-- If the data for the measurements exists it can be memoized (depends on
-  operation parameters)
-- The operation parameters will specify the number of entities to sample in some
-  way.
-
+- The operation parameters specify how many entities to sample and with what
+  strategy
+- Memoization may mean the measurements for some sampled entities were replayed
+  from the sample store.
 Relevant Documentation
 
-- [sample process](../../../docs/concepts/discovery-spaces.md#sampling-and-measurement)
-- [memoization](../../../docs/concepts/data-sharing.md#memoization)
+- Sample process: <https://ibm.github.io/ado/latest/concepts/discovery-spaces/#sampling-and-measurement>
+- Memoization: <https://ibm.github.io/ado/latest/concepts/data-sharing/#memoization>
+- See also the [Key Concepts](#key-concepts) section above for inlined definitions.
 
 ### Step 1: Get Details on what was Sampled and Measured
 
@@ -319,10 +363,11 @@ the experiment and meaning of metrics when looking for patterns.
 
 Structure the report as:
 
-1. **Overview**: What the operation purpose was. Can be inferred from space and
-   operation chosen. Short and narrative.
+1. **Overview**: What the operation did and why. Can be inferred from the
+   operation config and the space it ran on. Short and narrative.
    - **Operation summary** – ID, operator, parameters, status
-   - **Space summary** – dimensions, experiments, entity count
+   - **Input space summary** – dimensions, experiments, entity count of the
+     space the operation ran on
 2. **Measurement overview** – sampled vs requested, success vs failure counts
 3. **Findings** – notable patterns, best/worst performers, anomalies
 4. **Unusual behaviour** – failures, timeouts, invalid results, unexpected

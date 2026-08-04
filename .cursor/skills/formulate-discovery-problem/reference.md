@@ -124,30 +124,6 @@ When `variableType` is omitted, ado infers the type from other fields:
 `BINARY_VARIABLE_TYPE` and `OPEN_CATEGORICAL_VARIABLE_TYPE` cannot be
 inferred and must always be declared explicitly.
 
-### probabilityFunction field
-
-Each domain can optionally specify how values are sampled. Default is
-**uniform** — every value equally likely.
-
-```yaml
-domain:
-  values: [1, 2, 4, 8, 16]
-  probabilityFunction:
-    identifier: uniform
-```
-
-A **normal** distribution is available for continuous and discrete domains:
-
-```yaml
-domain:
-  domainRange: [0.0, 1.0]
-  probabilityFunction:
-    identifier: normal
-    parameters:
-      mean: 0.5
-      std: 0.1
-```
-
 ## Operation Configuration Schema
 
 ### Core Structure

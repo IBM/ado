@@ -75,7 +75,7 @@ class ModuleConf(pydantic.BaseModel):
         moduleLog.warning(
             "Legacy moduleName %r has been auto-rewritten to %r. "
             "Update your resource to use the new name. "
-            "See https://ibm.github.io/ado/migration/1x-to-2x/"
+            "See https://ibm.github.io/ado/latest/user-guide/advanced/migration-ado-1x-to-2x/"
             "#renamed-python-import-package-orchestrator-ado",
             old_name,
             new_name,

@@ -76,7 +76,7 @@ def show_stats_for_resources(
             and value is a JSON document.
 
             Please refer to the documentation provided for more information and examples:
-            https://ibm.github.io/ado/getting-started/ado/#searching-and-filtering
+            https://ibm.github.io/ado/latest/cli-reference/#searching-and-filtering
             """,
             show_default=False,
         ),

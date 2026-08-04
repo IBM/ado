@@ -32,7 +32,7 @@ results.
 
 Install `ado-core` (a virtual environment is recommended). For complete
 instructions see the
-[install guide](https://ibm.github.io/ado/user-guide/install/):
+[install guide](https://ibm.github.io/ado/latest/user-guide/getting-started/#installing):
 
 ```shell
 pip install ado-core
@@ -59,7 +59,7 @@ ado show measurements operation --use-latest
 ```
 
 For a deeper walkthrough, see the
-[density example tutorial](https://ibm.github.io/ado/user-guide/examples/density-example/).
+[density example tutorial](https://ibm.github.io/ado/user-guide/examples/tutorials/density-example/).
 
 ## ado ❤️ agents
 
@@ -69,7 +69,7 @@ problem, an agent can design the Discovery Space, write new experiments or reuse
 existing ones, and run the full exploration loop:
 
 - 🤖 _Bundled agent skills_: ready-made skills guide agents through
-  [end-to-end discovery workflows](https://ibm.github.io/ado/user-guide/getting-started/#__tabbed_1_2)
+  [end-to-end discovery workflows](https://ibm.github.io/ado/latest/user-guide/ado-and-agents/#what-you-can-ask-your-agent-to-do)
   — from formulating a problem to analysing results
 - 🔍 _Self-describing resources_: experiments and operators declare their
   required properties, so an agent can discover what's available and what's
@@ -92,13 +92,13 @@ existing ones, and run the full exploration loop:
 Here are some examples of what the team has built with `ado`:
 
 - 🧠
-  [Fine-tuning performance benchmarking](https://ibm.github.io/ado/user-guide/examples/finetune-remotely/)
+  [Fine-tuning performance benchmarking](https://ibm.github.io/ado/latest/user-guide/examples/finetune-remotely/)
 - 📈
-  [Inference performance benchmarking](https://ibm.github.io/ado/examples/vllm-performance-endpoint/)
+  [Inference performance benchmarking](https://ibm.github.io/ado/latest/user-guide/examples/vllm-performance-endpoint/)
   (using [vLLM bench](https://docs.vllm.ai/en/stable/cli/bench/serve/) or
   [guidellm](https://github.com/vllm-project/guidellm))
 - 🔮
-  [Predictive performance model creation](https://ibm.github.io/ado/user-guide/examples/trim/)
+  [Predictive performance model creation](https://ibm.github.io/ado/latest/user-guide/examples/trim/)
 
 ## Contributing
 

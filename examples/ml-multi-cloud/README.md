@@ -2,9 +2,9 @@
 
 Full documentation for these examples is on the ado website:
 
-- [Taking a random walk](https://ibm.github.io/ado/user-guide/examples/random-walk/)
-- [Search based on a custom objective function](https://ibm.github.io/ado/user-guide/examples/search-custom-objective/)
-- [Identify the important dimensions of a space](https://ibm.github.io/ado/user-guide/examples/lhu/)
+- [Taking a random walk](https://ibm.github.io/ado/latest/user-guide/examples/tutorials/random-walk/)
+- [Search based on a custom objective function](https://ibm.github.io/ado/latest/user-guide/examples/search-custom-objective/)
+- [Identify the important dimensions of a space](https://ibm.github.io/ado/latest/user-guide/examples/lhu/)
 
 ## YAML files in this directory
 

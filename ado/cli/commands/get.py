@@ -100,7 +100,7 @@ def get_resource(
             and value is a JSON document.
 
             Please refer to the documentation provided for more information and examples:
-            https://ibm.github.io/ado/getting-started/ado/#searching-and-filtering
+            https://ibm.github.io/ado/latest/cli-reference/#searching-and-filtering
             """,
             show_default=False,
         ),
@@ -286,7 +286,7 @@ def get_resource(
     """
     List, search, and retrieve representation of resources, contexts, actuators, and operators.
 
-    See https://ibm.github.io/ado/getting-started/ado/#ado-get
+    See https://ibm.github.io/ado/latest/cli-reference/#ado-get
     for detailed documentation and examples.
 
     Examples:

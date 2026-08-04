@@ -4,7 +4,7 @@ This repository contains an example for creating an actuator for `ado`.
 
 For more about actuators - what they represent, how to create them, etc. - see
 the
-[`ado` documentation](https://ibm.github.io/ado/actuators/working-with-actuators/).
+[`ado` documentation](https://ibm.github.io/ado/user-guide/actuators/working-with-actuators/).
 
 This example defines an actuator called `robotic_lab` with one experiment called
 `peptide_mineralization`. The example is fully installable and works as-is,
@@ -55,7 +55,7 @@ A `samplestore` is a database for storing entities and measurement results. It
 can be reused with multiple `discoveryspaces`.
 
 1. Create a
-   [discoveryspace](https://ibm.github.io/ado/resources/discovery-spaces/):
+   [discoveryspace](https://ibm.github.io/ado/latest/resources/discovery-spaces/):
 
    ```bash
    ado create space -f yamls/discoveryspace.yaml --use-latest samplestore
@@ -65,7 +65,7 @@ can be reused with multiple `discoveryspaces`.
    identifier output by the command above.
 
 2. Create a random walk
-   [operation](https://ibm.github.io/ado/resources/operation/):
+   [operation](https://ibm.github.io/ado/latest/resources/operation/):
 
    ```bash
    ado create operation -f yamls/random_walk_operation.yaml --use-latest space

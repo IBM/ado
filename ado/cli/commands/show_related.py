@@ -89,7 +89,7 @@ def show_related_for_resources(
     By default the full resource graph is traversed in both directions.
     Use --max-hops to limit the traversal depth.
 
-    See https://ibm.github.io/ado/getting-started/ado/#ado-show-related
+    See https://ibm.github.io/ado/latest/cli-reference/#ado-show-related
     for detailed documentation and examples.
 
     Examples:

@@ -528,6 +528,32 @@ class ComponentsManager:
             "Timed out waiting for deployment to get ready"
         )
 
+    def wait_deployment_deleted(
+        self, k8s_name: str, check_interval: int = 5, timeout: int = 300
+    ) -> None:
+        """
+        Wait for a deployment to be fully removed from the Kubernetes API.
+
+        Polls ``check_deployment_exist`` until the object is gone or the
+        timeout is reached.
+
+        :param k8s_name: kubernetes name of the deployment
+        :param check_interval: seconds between each poll
+        :param timeout: maximum seconds to wait before raising
+        :raises K8sDeploymentCreationTimeoutError: if the deployment is still
+            present after ``timeout`` seconds
+        """
+        n_checks = math.ceil(timeout / check_interval)
+        for _ in range(n_checks):
+            time.sleep(check_interval)
+            if not self.check_deployment_exist(k8s_name=k8s_name):
+                logger.debug(f"Deployment {k8s_name} confirmed deleted.")
+                return
+        logger.error(f"Timed out waiting for deployment {k8s_name} to be deleted")
+        raise K8sDeploymentCreationTimeoutError(
+            f"Timed out waiting for deployment {k8s_name} to be deleted"
+        )
+
 
 if __name__ == "__main__":
     # model

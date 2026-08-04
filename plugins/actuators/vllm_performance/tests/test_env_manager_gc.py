@@ -4,7 +4,7 @@
 """Tests for EnvironmentManager garbage-collection of stale free environments."""
 
 import asyncio
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from ado_actuators.vllm_performance.env_manager import (
@@ -163,7 +163,8 @@ class TestDoneUsingGC:
 
 
 class TestCleanupFailedDeployment:
-    def test_tracks_env_in_deleting_environments(self) -> None:
+    @pytest.mark.asyncio
+    async def test_tracks_env_in_deleting_environments(self) -> None:
         """cleanup_failed_deployment adds the env to deleting_environments for GC monitoring."""
         manager = _make_manager(ttl=300)
         env = Environment(
@@ -172,8 +173,10 @@ class TestCleanupFailedDeployment:
             state=EnvironmentState.READY,
         )
         manager.in_use_environments[env.k8s_name] = env
+        manager.manager.check_deployment_exist.return_value = False
 
-        manager.cleanup_failed_deployment(identifier=env.k8s_name)
+        with patch("asyncio.sleep", new_callable=AsyncMock):
+            await manager.cleanup_failed_deployment(identifier=env.k8s_name)
 
         manager.manager.delete_service.assert_called_once()
         manager.manager.delete_deployment.assert_called_once()
@@ -381,3 +384,118 @@ class TestGcLoop:
         manager._stop_gc = True
         # Should complete without hanging (poll_interval = min(1, 60) = 1s).
         await asyncio.wait_for(manager._gc_loop(), timeout=3.0)
+
+
+# ---------------------------------------------------------------------------
+# cleanup_failed_deployment async poll tests
+# ---------------------------------------------------------------------------
+
+
+class TestCleanupFailedDeploymentWaits:
+    @pytest.mark.asyncio
+    async def test_polls_until_deployment_gone(self) -> None:
+        """cleanup_failed_deployment polls check_deployment_exist until it returns False."""
+        manager = _make_manager(ttl=300)
+        env = Environment(
+            model=DUMMY_MODEL,
+            configuration=DUMMY_CONFIGURATION,
+            state=EnvironmentState.READY,
+        )
+        manager.in_use_environments[env.k8s_name] = env
+        # Present on first poll, gone on second.
+        manager.manager.check_deployment_exist.side_effect = [True, False]
+
+        with patch("asyncio.sleep", new_callable=AsyncMock):
+            await manager.cleanup_failed_deployment(
+                identifier=env.k8s_name,
+                deletion_check_interval=1,
+                deletion_timeout=10,
+            )
+
+        assert manager.manager.check_deployment_exist.call_count == 2
+        assert env.k8s_name not in manager.in_use_environments
+
+    @pytest.mark.asyncio
+    async def test_slot_released_after_deletion_timeout(self) -> None:
+        """Even when the poll exhausts its timeout the slot is always released (C-2 guard)."""
+        manager = _make_manager(ttl=300)
+        env = Environment(
+            model=DUMMY_MODEL,
+            configuration=DUMMY_CONFIGURATION,
+            state=EnvironmentState.READY,
+        )
+        manager.in_use_environments[env.k8s_name] = env
+        # Deployment never disappears.
+        manager.manager.check_deployment_exist.return_value = True
+
+        with patch("asyncio.sleep", new_callable=AsyncMock):
+            await manager.cleanup_failed_deployment(
+                identifier=env.k8s_name,
+                deletion_check_interval=1,
+                deletion_timeout=2,
+            )
+
+        assert env.k8s_name not in manager.in_use_environments
+        assert env not in manager.free_environments
+
+    @pytest.mark.asyncio
+    async def test_slot_released_on_unexpected_exception(self) -> None:
+        """If check_deployment_exist raises unexpectedly the slot is still released."""
+        manager = _make_manager(ttl=300)
+        env = Environment(
+            model=DUMMY_MODEL,
+            configuration=DUMMY_CONFIGURATION,
+            state=EnvironmentState.READY,
+        )
+        manager.in_use_environments[env.k8s_name] = env
+        manager.manager.check_deployment_exist.side_effect = RuntimeError("api gone")
+
+        with (
+            patch("asyncio.sleep", new_callable=AsyncMock),
+            pytest.raises(RuntimeError, match="api gone"),
+        ):
+            await manager.cleanup_failed_deployment(
+                identifier=env.k8s_name,
+                deletion_check_interval=1,
+                deletion_timeout=10,
+            )
+
+        assert env.k8s_name not in manager.in_use_environments
+        assert env not in manager.free_environments
+
+    @pytest.mark.asyncio
+    async def test_done_using_called_after_poll(self) -> None:
+        """done_using is called after the poll loop, not before."""
+        manager = _make_manager(ttl=300)
+        env = Environment(
+            model=DUMMY_MODEL,
+            configuration=DUMMY_CONFIGURATION,
+            state=EnvironmentState.READY,
+        )
+        manager.in_use_environments[env.k8s_name] = env
+        manager.manager.check_deployment_exist.return_value = False
+
+        call_order: list[str] = []
+        orig_sleep = asyncio.sleep
+        orig_done = manager.done_using
+
+        async def _sleep(seconds: float) -> None:
+            call_order.append("sleep")
+            await orig_sleep(0)
+
+        def _done(*args: object, **kwargs: object) -> None:
+            call_order.append("done_using")
+            orig_done(*args, **kwargs)
+
+        manager.done_using = _done  # type: ignore[method-assign]
+
+        with patch("asyncio.sleep", side_effect=_sleep):
+            await manager.cleanup_failed_deployment(
+                identifier=env.k8s_name,
+                deletion_check_interval=1,
+                deletion_timeout=10,
+            )
+
+        assert call_order.index("sleep") < call_order.index("done_using"), (
+            "poll must run before slot is released"
+        )

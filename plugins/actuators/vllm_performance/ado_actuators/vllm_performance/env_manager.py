@@ -3,6 +3,7 @@
 
 import asyncio
 import logging
+import math
 import time
 from enum import Enum
 from typing import Annotated
@@ -306,14 +307,45 @@ class EnvironmentManager:
 
         self.deployment_conflict_manager.signal(k8s_name=identifier, model=model)
 
-    def cleanup_failed_deployment(self, identifier: str) -> None:
+    async def cleanup_failed_deployment(
+        self,
+        identifier: str,
+        deletion_check_interval: int = 5,
+        deletion_timeout: int = 300,
+    ) -> None:
+        """
+        Clean up a failed deployment and release its environment slot.
+
+        Deletes K8s resources, then polls until the deployment
+        object disappears from the K8s API before signalling that the slot is
+        free.
+
+        :param identifier: k8s_name of the failed environment
+        :param deletion_check_interval: seconds between existence polls
+        :param deletion_timeout: maximum seconds to wait for the deployment to
+            disappear; on expiry an error is logged and the slot is released
+        """
         env = self.in_use_environments[identifier]
         self._delete_environment_k8s_resources(k8s_name=identifier)
         self.deleting_environments.append(env)
-        self.done_using(identifier=identifier, return_to_pool=False)
-        self.deployment_conflict_manager.signal(
-            k8s_name=identifier, model=env.model, error=True
-        )
+        try:
+            n_checks = math.ceil(deletion_timeout / deletion_check_interval)
+            for _ in range(n_checks):
+                await asyncio.sleep(deletion_check_interval)
+                if not self.manager.check_deployment_exist(k8s_name=identifier):
+                    logger.debug(f"Deployment {identifier} confirmed deleted.")
+                    break
+            else:
+                logger.error(
+                    f"Timed out waiting for deleted deployment {identifier} to disappear."
+                )
+        finally:
+            # Always release the slot and unblock conflicting deployments,
+            # even if the poll raises an unexpected exception.
+            self.done_using(identifier=identifier, return_to_pool=False)
+            self.deployment_conflict_manager.signal(
+                k8s_name=identifier, model=env.model, error=True
+            )
 
     def get_matching_free_environment(self, configuration: str) -> Environment | None:
         """

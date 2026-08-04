@@ -373,7 +373,7 @@ def _handle_stats_format(
 
     Supported for:
     - operations (columns: TOTAL_RESULTS, SUCCESSFUL_RESULTS, FAILED_RESULTS,
-      MEASURED_ENTITIES)
+      MEASURED_ENTITIES — includes failed measurements)
     - discovery spaces (columns: EXPERIMENTS, OPERATIONS, EXPLORE_OPERATIONS,
       MEASURED_ENTITIES)
     - sample stores (columns: ENTITIES, RESULTS, EXPERIMENTS)

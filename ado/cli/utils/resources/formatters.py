@@ -261,7 +261,7 @@ def format_ado_get_stats_for_operations(
     Returns:
         The same DataFrame with extra columns appended.
         Always appended: ``TOTAL_RESULTS``, ``SUCCESSFUL_RESULTS``,
-        ``FAILED_RESULTS``, ``MEASURED_ENTITIES``.
+        ``FAILED_RESULTS``, ``MEASURED_ENTITIES`` (includes failed measurements).
         Appended when *include_request_columns* is ``True``:
         ``TOTAL_REQUESTS``, ``FAILED_REQUESTS``, ``SUCCESSFUL_REQUESTS``.
         Operations with no recorded measurements show ``0`` in all stats
@@ -398,7 +398,7 @@ def format_ado_get_stats_for_spaces(
     Returns:
         The same DataFrame with extra columns appended.
         Lightweight columns: ``EXPERIMENTS``, ``OPERATIONS``,
-        ``EXPLORE_OPERATIONS``, ``MEASURED_ENTITIES``.
+        ``EXPLORE_OPERATIONS``, ``MEASURED_ENTITIES`` (includes failed measurements).
         Heavy columns (only when ``include_heavy=True``):
         ``SIZE_OF_ENTITY_SPACE``, ``UNMEASURED_ENTITIES``,
         ``MATCHING_ENTITIES``, ``MATCHING_WITH_MEASUREMENTS``,

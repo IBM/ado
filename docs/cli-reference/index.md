@@ -548,9 +548,9 @@ Where:
     - The `stats` format augments the default `table` output with additional
       statistics columns. Supported resource types and their columns are:
         - **Operations**: `TOTAL_RESULTS`, `SUCCESSFUL_RESULTS`,
-          `FAILED_RESULTS`, `MEASURED_ENTITIES`.
+          `FAILED_RESULTS`, `MEASURED_ENTITIES` (includes failed measurements).
         - **Discovery Spaces**: `EXPERIMENTS`, `OPERATIONS`,
-          `EXPLORE_OPERATIONS`, `MEASURED_ENTITIES`.
+          `EXPLORE_OPERATIONS`, `MEASURED_ENTITIES` (includes failed measurements).
         - **Sample Stores**: `ENTITIES`, `RESULTS`, `EXPERIMENTS`.
         - **Data Containers**: `TABLES`, `LOCATIONS`, `KEY_VALUES`,
           `DATA_BYTES`.
@@ -1256,10 +1256,11 @@ The statistics columns produced per resource type are:
 <!-- prettier-ignore-start -->
 
 - **Operations**: `TOTAL_RESULTS`, `SUCCESSFUL_RESULTS`, `FAILED_RESULTS`,
-  `MEASURED_ENTITIES`, `TOTAL_REQUESTS`, `FAILED_REQUESTS`,
-  `SUCCESSFUL_REQUESTS`.
+  `MEASURED_ENTITIES` (includes failed measurements), `TOTAL_REQUESTS`,
+  `FAILED_REQUESTS`, `SUCCESSFUL_REQUESTS`.
 - **Discovery Spaces**: `EXPERIMENTS`, `OPERATIONS`, `EXPLORE_OPERATIONS`,
-  `MEASURED_ENTITIES`, `SIZE_OF_ENTITY_SPACE`, `UNMEASURED_ENTITIES`,
+  `MEASURED_ENTITIES` (includes failed measurements), `SIZE_OF_ENTITY_SPACE`,
+  `UNMEASURED_ENTITIES`,
   `MATCHING_ENTITIES`, `MATCHING_WITH_MEASUREMENTS`,
   `ENTITIES_WITH_ALL_MEASUREMENTS`, `ENTITIES_WITH_PARTIAL_MEASUREMENTS`,
   `MATCHING_ENTITIES_WITH_ALL_MEASUREMENTS`.

@@ -27,7 +27,8 @@ def show_operation_stats(parameters: AdoShowStatsCommandParameters) -> None:
 
     Outputs all standard ``ado get`` table columns (IDENTIFIER, NAME, AGE,
     SPACE, STATUS, EXIT_STATE) plus result-level stats columns
-    (TOTAL_RESULTS, SUCCESSFUL_RESULTS, FAILED_RESULTS, MEASURED_ENTITIES)
+    (TOTAL_RESULTS, SUCCESSFUL_RESULTS, FAILED_RESULTS, MEASURED_ENTITIES
+    — includes failed measurements)
     and request-level stats columns (TOTAL_REQUESTS, FAILED_REQUESTS,
     SUCCESSFUL_REQUESTS).
 

@@ -1,0 +1,48 @@
+# Copyright IBM Corporation 2025, 2026
+# SPDX-License-Identifier: MIT
+metadata:
+  name: geospatial-flood-detection-space
+  description: "Explore Prithvi geospatial model deployment configurations for flood detection"
+entitySpace:
+  - identifier: model
+    propertyDomain:
+      values:
+        - "ibm-nasa-geospatial/Prithvi-EO-2.0-300M-TL-Sen1Floods11"
+  - identifier: n_gpus
+    propertyDomain:
+      values: [1]
+  - identifier: gpu_type
+    propertyDomain:
+      values:
+        - "NVIDIA-A100-80GB-PCIe"
+  - identifier: memory
+    propertyDomain:
+      values:
+        - "64Gi"
+        - "128Gi"
+  - identifier: max_num_seq
+    propertyDomain:
+      values: [32, 64, 128]
+  - identifier: request_rate
+    propertyDomain:
+      values: [10, 50, 100]
+  - identifier: dataset
+    propertyDomain:
+      values:
+        - "india_url_in_b64_out"
+        - "valencia_url_in_b64_out"
+        # Optional: Enable threadpool rendering for vLLM 0.20.0+
+        # - identifier: image
+        #   metadata:
+        #     description: Docker image with vLLM + terratorch. Specify as [image, version] for threadpool validation
+        #   propertyDomain:
+        #     values:
+        #       - ["your-registry/vllm:v0.20.1-terratorch", "0.20.1"]
+        # - identifier: renderer_num_workers
+        #   metadata:
+        #     description: "Number of renderer workers when threadpool is enabled"
+        #   propertyDomain:
+        #     values: [32, 64]
+measurementSpace:
+  - actuatorIdentifier: vllm_performance
+    experimentIdentifier: geospatial-vllm-bench-deployment

@@ -11,6 +11,7 @@ import pydantic
 from ado_actuators.vllm_performance.k8s import (
     K8sConnectionError,
     K8sDeploymentCreationTimeoutError,
+    K8sDeploymentDeletionTimeoutError,
 )
 from ado_actuators.vllm_performance.k8s.yaml_support.build_components import (
     ComponentsYaml,
@@ -540,7 +541,7 @@ class ComponentsManager:
         :param k8s_name: kubernetes name of the deployment
         :param check_interval: seconds between each poll
         :param timeout: maximum seconds to wait before raising
-        :raises K8sDeploymentCreationTimeoutError: if the deployment is still
+        :raises K8sDeploymentDeletionTimeoutError: if the deployment is still
             present after ``timeout`` seconds
         """
         deadline = time.monotonic() + timeout
@@ -552,7 +553,7 @@ class ComponentsManager:
                 break
             time.sleep(check_interval)
         logger.error(f"Timed out waiting for deployment {k8s_name} to be deleted")
-        raise K8sDeploymentCreationTimeoutError(
+        raise K8sDeploymentDeletionTimeoutError(
             f"Timed out waiting for deployment {k8s_name} to be deleted"
         )
 

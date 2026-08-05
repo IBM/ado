@@ -4,7 +4,10 @@
 import logging
 
 import pydantic
-from ado_actuators.vllm_performance.k8s import K8sDeploymentCreationTimeoutError
+from ado_actuators.vllm_performance.k8s import (
+    K8sDeploymentCreationTimeoutError,
+    K8sDeploymentDeletionTimeoutError,
+)
 from ado_actuators.vllm_performance.k8s.manage_components import (
     ComponentsManager,
 )
@@ -187,7 +190,7 @@ def create_test_environment(
                 check_interval=check_interval,
                 timeout=deletion_timeout,
             )
-        except K8sDeploymentCreationTimeoutError:
+        except K8sDeploymentDeletionTimeoutError:
             logger.error(
                 f"Timed out waiting for deleted deployment {k8s_name} to disappear."
             )

@@ -266,11 +266,11 @@ parameters:
     maxPoints: 100
 ```
 
-#### `noPriorsParameters`
+#### `noPriorParameters`
 
 Configures the initial characterization phase (if triggered).
 
-##### `noPriorsParameters.samples`
+##### `noPriorParameters.samples`
 
 **Type:** `int`
 
@@ -280,11 +280,11 @@ characterization phase.
 > [!NOTE]
 >
 > If `samplingBudget.minPoints` is specified and differs from
-> `noPriorsParameters.samples`, the value from `samplingBudget.minPoints` will
+> `noPriorParameters.samples`, the value from `samplingBudget.minPoints` will
 > take precedence. This ensures consistency between the sampling budget and the
 > no-priors characterization phase.
 
-##### `noPriorsParameters.sampling_strategy`
+##### `noPriorParameters.sampling_strategy`
 
 **Type:** `str`
 
@@ -307,7 +307,7 @@ characterization phase.
 
 ```yaml
 parameters:
-  noPriorsParameters:
+  noPriorParameters:
     sampling_strategy: "sobol"
 ```
 

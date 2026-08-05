@@ -19,6 +19,7 @@ copyright: Copyright IBM Research.
 extra:
   version:
     provider: mike
+    default: latest
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/ibm/ado

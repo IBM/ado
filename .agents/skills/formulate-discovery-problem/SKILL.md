@@ -1,11 +1,12 @@
 ---
 name: formulate-discovery-problem
-description: |
-  Formulates problems for execution with ado by creating discoveryspace and
-  operation YAML files. Guides through experiment selection, space creation,
-  validation, operation configuration, and parameterization. Use when the user
-  wants to create discoveryspace or operation YAML files, configure experiments,
-  set up entity spaces, or formulate research, benchmarking or search problems.
+description: >-
+  Creates experiment campaigns for addressing discovery problems (research questions)
+  by creating ado discoveryspace and operation YAML.
+  Guides experiment selection and parameterization for a new space, entity-space design,
+  validation, and operator selection. Use when the user wants to create or
+  configure discoveryspace/operation YAML, choose experiments for a new space,
+  or formulate a research, benchmarking, or search problem
 ---
 
 # Formulating Problems for ado Execution

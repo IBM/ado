@@ -1,12 +1,12 @@
 ---
 name: using-ado-cli
-description:
-  "Reference for ado CLI command syntax, flags, and usage patterns — covers get,
-  create, edit, show, and describe subcommands, output formatting with -o and
-  --output-file, convenience flags (--use-latest, --set, --with), debugging with
-  -l, and run_experiment for local point testing. Use when writing or verifying
-  ado CLI commands, looking up correct command syntax or flags, debugging
-  unexpected CLI output, or explaining ado command patterns."
+description: >-
+  Reference for ado CLI command syntax, flags, and usage patterns — get, create,
+  edit, show, describe, output flags (-o, --output-file), convenience flags
+  (--use-latest, --set, --with), debugging with -l, and run_experiment. Use when
+  writing, verifying, or debugging ado CLI commands, looking up correct command
+  syntax or flags, or when unsure which ado command or flag to use. For listing
+  catalogs or answering data questions, prefer query-ado-data.
 ---
 
 # Using the ado CLI

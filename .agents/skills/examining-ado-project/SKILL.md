@@ -1,11 +1,12 @@
 ---
 name: examining-ado-project
 description: >-
-  Builds a picture of work in an ado project: activity volume, spaces and
-  operations created over time, study documents, experiments and operation
-  configs used etc. Use to create a project/context overview report, summarize
-  what the team has been doing in an ado project, report trends across
-  spaces/operations/studies, or to onboard onto an ado project.
+  Understand the work done in an ado project/context: recent activity, research
+  underway, study documents, spaces and operations over time, experiments and
+  configs used. Use when the user asks for the latest or recent activity in a
+  project; what research strands, studies, or work are underway; a project or
+  context overview or status; trends across spaces/operations/studies; or to
+  onboard onto an ado project.
 ---
 
 # Examining an ado Project

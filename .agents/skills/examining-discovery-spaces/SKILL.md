@@ -5,8 +5,9 @@ description: >-
   space YAML, describe entity and measurement space structure, assess sampling
   coverage, export measurement data, and find related resources. Use when the
   user asks to inspect, summarise, debug, or analyse a discoveryspace; wants to
-  understand dimensions, experiments, or sampling coverage; provides a space ID
-  or asks to use --use-latest for the current space.
+  understand dimensions, experiments used in a space, or sampling
+  coverage; provides a space ID or asks to use --use-latest for the current
+  space.
 ---
 
 # Examining ado Discovery Spaces

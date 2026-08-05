@@ -126,8 +126,7 @@ ado describe experiment calculate_pressure_ideal_gas
 ```
 
 ```terminaloutput
-Identifier: custom_experiments.calculate_pressure_ideal_gas@1.0.0
-Version: 1.0.0
+Identifier: custom_experiments.calculate_pressure_ideal_gas
 
 Required Inputs:
 
@@ -152,9 +151,9 @@ Required Inputs:
     ─────────────────────────────────────────────────────────────────
 
 Outputs:
- ──────────────────────────────────────────────────────────────────────
-   calculate_pressure_ideal_gas@v1-pressure
- ──────────────────────────────────────────────────────────────────────
+ ──────────────────────────────────────────────────────────────────────────────
+   calculate_pressure_ideal_gas-pressure
+ ──────────────────────────────────────────────────────────────────────────────
 ```
 
 The three required inputs (`mol`, `temperature`, `volume`) map to entity-space
@@ -178,6 +177,8 @@ Success! Created space with identifier: space-bfed2d-19b49a
 
 Inspect the space to confirm the entity and measurement spaces are correct:
 
+<!-- markdownlint-disable MD013 -->
+
 ```bash
 ado describe space --use-latest
 ```
@@ -187,26 +188,30 @@ Identifier: 'space-bfed2d-19b49a'
 
 Entity Space:
 
+   Number of entities: 1215
+
    Discrete properties:
 
-      name        ┃ range       ┃ interval
-     ━━━━━━━━━━━━━╋━━━━━━━━━━━━━╋━━━━━━━━━━
-      temperature ┃ [270, 300]  ┃ 2
-      volume      ┃ [1, 10]     ┃ 1
-      mol         ┃ [0.1, 1.0]  ┃ 0.1
+      name        ┃ range      ┃ interval ┃ values
+     ━━━━━━━━━━━━━╋━━━━━━━━━━━━╋━━━━━━━━━━╋━━━━━━━━
+      temperature ┃ [270, 300] ┃ 2.0      ┃ None
+      volume      ┃ [1, 10]    ┃ 1.0      ┃ None
+      mol         ┃ [0.1, 1]   ┃ 0.1      ┃ None
 
 
 Measurement Space:
 
    Experiments:
 
-      base identifier                                    ┃ required major version
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━━━
-      custom_experiments.calculate_pressure_ideal_gas   ┃ v1
+      base identifier                                    ┃ required major version ┃ parameterization
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━━━╋━━━━━━━━━━━━━━━━━━
+      custom_experiments.calculate_pressure_ideal_gas   ┃ None                   ┃ None
 
 
 Sample Store identifier: 19b49a
 ```
+
+<!-- markdownlint-enable MD013 -->
 
 !!! tip
 
@@ -400,7 +405,7 @@ Try extending this example:
   high-accuracy variant
 - **Budget the sampling** — add a `samplingBudget` block with `minPoints` and
   `maxPoints` to set hard limits on how many measurements TRIM can make
-- **Switch the initial sampler** — set `noPriorsParameters.sampling_strategy` to
+- **Switch the initial sampler** — set `noPriorParameters.sampling_strategy` to
   `sobol` instead of `clhs` to use Sobol sequences for the baseline
 - **Improve final-model quality** — configure `finalModelAutoGluonArgs`
   separately from `autoGluonArgs` to give the final fit more time and better

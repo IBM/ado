@@ -22,7 +22,7 @@ operation:
       enabled: true
       meanThreshold: 0.9
       stdThreshold: 0.75
-    noPriorsParameters:
+    noPriorParameters:
       targetOutput: pressure
     targetOutput: pressure
     taskId: null

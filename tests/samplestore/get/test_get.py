@@ -1666,3 +1666,95 @@ def test_entity_experiment_references_only_invalid_results(
     result = sample_store.entity_experiment_references(entity_ids)
 
     assert result == {}
+
+
+@requires_sqlite_3_38
+def test_measurement_results_count_for_operation_with_status_filter(
+    random_identifier: Callable[[], str],
+    ml_multi_cloud_sample_store: SQLSampleStore,
+    random_ml_multi_cloud_benchmark_performance_entities: Callable[[int], list[Entity]],
+    random_ml_multi_cloud_benchmark_performance_measurement_results: Callable[
+        [Entity, int, MeasurementResultStateEnum | None], MeasurementResult
+    ],
+    valid_ado_project_context: ProjectContext,
+    ml_multi_cloud_operation_configuration: "DiscoveryOperationResourceConfiguration",
+) -> None:
+    """measurement_results_count_for_operation respects status_filter=VALID/INVALID.
+
+    Uses json_extract(data, '$.reason') on the joined results table:
+    - Valid results have no 'reason' field (NULL)
+    - Invalid results always have a 'reason' field (NOT NULL)
+    """
+    from ado.core import OperationResource
+    from ado.core.operation.config import DiscoveryOperationEnum
+    from ado.metastore.sqlstore import SQLResourceStore
+    from ado.schema.reference import ExperimentReference
+
+    operation_id = random_identifier()
+    sample_store = ml_multi_cloud_sample_store
+
+    sql = SQLResourceStore(project_context=valid_ado_project_context, ensureExists=True)
+    sql.addResourceWithRelationships(
+        OperationResource(
+            identifier=operation_id,
+            config=ml_multi_cloud_operation_configuration,
+            operationType=DiscoveryOperationEnum.EXPLORE,
+            operatorIdentifier="test-operator",
+        ),
+        relatedIdentifiers=ml_multi_cloud_operation_configuration.spaces,
+    )
+
+    entities = random_ml_multi_cloud_benchmark_performance_entities(3)
+
+    # 2 valid results, 1 invalid result
+    measurements = [
+        random_ml_multi_cloud_benchmark_performance_measurement_results(
+            entity=entities[0],
+            measurements_per_result=1,
+            status=MeasurementResultStateEnum.VALID,
+        ),
+        random_ml_multi_cloud_benchmark_performance_measurement_results(
+            entity=entities[1],
+            measurements_per_result=1,
+            status=MeasurementResultStateEnum.VALID,
+        ),
+        random_ml_multi_cloud_benchmark_performance_measurement_results(
+            entity=entities[2],
+            measurements_per_result=1,
+            status=MeasurementResultStateEnum.INVALID,
+        ),
+    ]
+
+    request = ReplayedMeasurement(
+        operation_id=operation_id,
+        requestIndex=0,
+        experimentReference=ExperimentReference(
+            experimentIdentifier="benchmark_performance",
+            actuatorIdentifier="replay",
+        ),
+        entities=entities,
+        requestid=random_identifier(),
+        status=MeasurementRequestStateEnum.SUCCESS,
+        measurements=tuple(measurements),
+    )
+    req_id = sample_store.add_measurement_request(request=request)
+    sample_store.add_measurement_results(
+        results=measurements,
+        skip_relationship_to_request=False,
+        request_db_id=req_id,
+    )
+
+    total = sample_store.measurement_results_count_for_operation(
+        operation_id=operation_id
+    )
+    valid = sample_store.measurement_results_count_for_operation(
+        operation_id=operation_id, status_filter=MeasurementResultStateEnum.VALID
+    )
+    invalid = sample_store.measurement_results_count_for_operation(
+        operation_id=operation_id, status_filter=MeasurementResultStateEnum.INVALID
+    )
+
+    assert total == 3
+    assert valid == 2
+    assert invalid == 1
+    assert valid + invalid == total

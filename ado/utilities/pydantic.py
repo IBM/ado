@@ -1,12 +1,38 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
+import json
 import re
 import typing
-from typing import Annotated, TypeVar
+from typing import Annotated, Any, TypeVar
 
 import pydantic
 from pydantic import AfterValidator, BeforeValidator
 from pydantic_core import PydanticUseDefault
+
+
+def pydantic_aware_json_serializer(value: Any) -> str:  # noqa: ANN401
+    """Serialise *value* to a JSON string, using Pydantic when available.
+
+    For Pydantic models (including ``RootModel``), delegates to
+    ``model_dump(mode="json")``, which correctly handles types the standard
+    library ``json`` module cannot — ``datetime``, ``UUID``, ``Enum``, nested
+    models, etc. — then encodes the result to a JSON string.  For all other
+    values, falls back to ``json.dumps``.
+
+    Intended for use as the ``json_serializer`` argument to
+    ``sqlalchemy.create_engine``, which requires a ``Callable[[Any], str]``.
+    This ensures every ``JSON`` column in the database uses Pydantic-aware
+    serialisation without requiring call sites to pre-convert values.
+
+    Args:
+        value: Any Python value to serialise.
+
+    Returns:
+        A JSON string.
+    """
+    if isinstance(value, pydantic.BaseModel):
+        return value.model_dump_json()
+    return json.dumps(value)
 
 
 def default_if_none(value: typing.Any) -> typing.Any:  # noqa: ANN401

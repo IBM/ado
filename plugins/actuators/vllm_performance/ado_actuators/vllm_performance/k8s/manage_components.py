@@ -543,12 +543,14 @@ class ComponentsManager:
         :raises K8sDeploymentCreationTimeoutError: if the deployment is still
             present after ``timeout`` seconds
         """
-        n_checks = math.ceil(timeout / check_interval)
-        for _ in range(n_checks):
-            time.sleep(check_interval)
+        deadline = time.monotonic() + timeout
+        while True:
             if not self.check_deployment_exist(k8s_name=k8s_name):
                 logger.debug(f"Deployment {k8s_name} confirmed deleted.")
                 return
+            if time.monotonic() >= deadline:
+                break
+            time.sleep(check_interval)
         logger.error(f"Timed out waiting for deployment {k8s_name} to be deleted")
         raise K8sDeploymentCreationTimeoutError(
             f"Timed out waiting for deployment {k8s_name} to be deleted"

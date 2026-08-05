@@ -465,7 +465,7 @@ class TestCleanupFailedDeploymentWaits:
 
     @pytest.mark.asyncio
     async def test_done_using_called_after_poll(self) -> None:
-        """done_using is called after the poll loop, not before."""
+        """done_using is called after check_deployment_exist, not before."""
         manager = _make_manager(ttl=300)
         env = Environment(
             model=DUMMY_MODEL,
@@ -473,29 +473,31 @@ class TestCleanupFailedDeploymentWaits:
             state=EnvironmentState.READY,
         )
         manager.in_use_environments[env.k8s_name] = env
+        # Gone on the first check — sleep is never reached (check-first loop).
         manager.manager.check_deployment_exist.return_value = False
 
         call_order: list[str] = []
-        orig_sleep = asyncio.sleep
+        orig_check = manager.manager.check_deployment_exist
         orig_done = manager.done_using
 
-        async def _sleep(seconds: float) -> None:
-            call_order.append("sleep")
-            await orig_sleep(0)
+        def _check(*args: object, **kwargs: object) -> bool:
+            call_order.append("check")
+            return orig_check(*args, **kwargs)
 
         def _done(*args: object, **kwargs: object) -> None:
             call_order.append("done_using")
             orig_done(*args, **kwargs)
 
+        manager.manager.check_deployment_exist = _check  # type: ignore[method-assign]
         manager.done_using = _done  # type: ignore[method-assign]
 
-        with patch("asyncio.sleep", side_effect=_sleep):
+        with patch("asyncio.sleep", new_callable=AsyncMock):
             await manager.cleanup_failed_deployment(
                 identifier=env.k8s_name,
                 deletion_check_interval=1,
                 deletion_timeout=10,
             )
 
-        assert call_order.index("sleep") < call_order.index("done_using"), (
-            "poll must run before slot is released"
+        assert call_order.index("check") < call_order.index("done_using"), (
+            "existence check must run before slot is released"
         )

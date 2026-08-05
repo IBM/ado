@@ -3,7 +3,6 @@
 
 import asyncio
 import logging
-import math
 import time
 from enum import Enum
 from typing import Annotated
@@ -329,16 +328,17 @@ class EnvironmentManager:
         self._delete_environment_k8s_resources(k8s_name=identifier)
         self.deleting_environments.append(env)
         try:
-            n_checks = math.ceil(deletion_timeout / deletion_check_interval)
-            for _ in range(n_checks):
-                await asyncio.sleep(deletion_check_interval)
+            deadline = time.monotonic() + deletion_timeout
+            while True:
                 if not self.manager.check_deployment_exist(k8s_name=identifier):
                     logger.debug(f"Deployment {identifier} confirmed deleted.")
                     break
-            else:
-                logger.error(
-                    f"Timed out waiting for deleted deployment {identifier} to disappear."
-                )
+                if time.monotonic() >= deadline:
+                    logger.error(
+                        f"Timed out waiting for deleted deployment {identifier} to disappear."
+                    )
+                    break
+                await asyncio.sleep(deletion_check_interval)
         finally:
             # Always release the slot and unblock conflicting deployments,
             # even if the poll raises an unexpected exception.

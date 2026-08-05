@@ -55,7 +55,7 @@ def create_test_environment(
     enable_prefix_caching: bool = False,
     check_interval: int = 5,
     timeout: int = 1200,
-    deletion_timeout: int = 300,
+    deletion_timeout: int = 30,
 ) -> None:
     """
     Create test deployment

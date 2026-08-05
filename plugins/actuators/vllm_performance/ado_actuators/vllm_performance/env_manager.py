@@ -310,14 +310,15 @@ class EnvironmentManager:
         self,
         identifier: str,
         deletion_check_interval: int = 5,
-        deletion_timeout: int = 300,
+        deletion_timeout: int = 30,
     ) -> None:
         """
         Clean up a failed deployment and release its environment slot.
 
-        Deletes K8s resources, then polls until the deployment
-        object disappears from the K8s API before signalling that the slot is
-        free.
+        Deletes K8s resources, then polls until the deployment object disappears
+        from the K8s API before releasing the slot.  The env is only added to
+        ``deleting_environments`` for GC monitoring when the poll did *not*
+        confirm deletion (timeout or unexpected exception).
 
         :param identifier: k8s_name of the failed environment
         :param deletion_check_interval: seconds between existence polls
@@ -326,12 +327,13 @@ class EnvironmentManager:
         """
         env = self.in_use_environments[identifier]
         self._delete_environment_k8s_resources(k8s_name=identifier)
-        self.deleting_environments.append(env)
+        confirmed_deleted = False
         try:
             deadline = time.monotonic() + deletion_timeout
             while True:
                 if not self.manager.check_deployment_exist(k8s_name=identifier):
                     logger.debug(f"Deployment {identifier} confirmed deleted.")
+                    confirmed_deleted = True
                     break
                 if time.monotonic() >= deadline:
                     logger.error(
@@ -346,6 +348,9 @@ class EnvironmentManager:
             self.deployment_conflict_manager.signal(
                 k8s_name=identifier, model=env.model, error=True
             )
+            # Hand off to GC only when the object may still exist in K8s.
+            if not confirmed_deleted:
+                self.deleting_environments.append(env)
 
     def get_matching_free_environment(self, configuration: str) -> Environment | None:
         """

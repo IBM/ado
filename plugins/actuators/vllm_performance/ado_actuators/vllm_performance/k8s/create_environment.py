@@ -95,9 +95,7 @@ def create_test_environment(
     :param enable_prefix_caching: flag to enable prefix caching in vLLM
     :param check_interval: wait interval in seconds
     :param timeout: timeout in seconds for deployment readiness
-    :param deletion_timeout: timeout in seconds to wait for a deployment to be
-        fully deleted after an error before re-raising. If deletion itself
-        times out the original error is still re-raised.
+    :param deletion_timeout: timeout in seconds for Kubernetes to carry out the deployment deletion.
     :return:
     """
     if node_selector is None:

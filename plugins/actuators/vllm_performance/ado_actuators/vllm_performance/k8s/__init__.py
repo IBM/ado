@@ -18,6 +18,10 @@ class K8sDeploymentCreationTimeoutError(Exception):
     """Error raised when the creation of a K8s deployment times out"""
 
 
+class K8sDeploymentDeletionTimeoutError(Exception):
+    """Error raised when waiting for a K8s deployment to be deleted times out"""
+
+
 class VLLMVersionExtractionError(Exception):
     """Error raised when vLLM version cannot be extracted from image string"""
 

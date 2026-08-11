@@ -86,7 +86,7 @@ test-deployment-v1:
         description: "(deployment) The fraction of GPU memory to be used for the model executor,"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        values: [.5, .75, .9]
+        values: [.5, .75, .9, .95, .98]
     - identifier: 'cpu_offload'
       metadata:
         description: "(deployment) The amount of model weights in GB to offload to the CPU per GPU. 0 means all weights are on GPU,"
@@ -519,7 +519,7 @@ test-deployment-guidellm-v1:
         description: "(deployment) The fraction of GPU memory to be used for the model executor,"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        values: [.5, .75, .9]
+        values: [.5, .75, .9, .95, .98]
     - identifier: 'cpu_offload'
       metadata:
         description: "(deployment) The amount of model weights in GB to offload to the CPU per GPU. 0 means all weights are on GPU,"
@@ -949,7 +949,7 @@ test-agentic-tool-calling:
         description: "(deployment) The fraction of GPU memory to be used for the model executor,"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        values: [.5, .75, .9]
+        values: [.5, .75, .9, .95, .98]
     - identifier: 'cpu_offload'
       metadata:
         description: "(deployment) The amount of model weights in GB to offload to the CPU per GPU. 0 means all weights are on GPU,"
@@ -1195,11 +1195,11 @@ test-agentic-tool-calling:
     - identifier: "p99_e2el_ms"
   metadata:
     description: 'Test inference performance of an agent-style model deployed by vLLM across compute resource and workload configurations'
-  version: 1.0.0
+  version: 1.1.0
 vllm-bench-deployment:
   identifier: vllm-bench-deployment
   actuatorIdentifier: "vllm_performance"
-  version: 1.0.0
+  version: 1.1.0
   requiredProperties: # Any entity passed to this experiment must have constitutive properties with these values
     - identifier: 'model'
       metadata:
@@ -1280,7 +1280,7 @@ vllm-bench-deployment:
         description: "(deployment) The fraction of GPU memory to be used for the model executor,"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        values: [.5, .75, .9]
+        values: [.5, .75, .9, .95, .98]
     - identifier: 'cpu_offload'
       metadata:
         description: "(deployment) The amount of model weights in GB to offload to the CPU per GPU. 0 means all weights are on GPU,"
@@ -1429,7 +1429,7 @@ vllm-bench-deployment:
 vllm-bench-endpoint:
   identifier: vllm-bench-endpoint
   actuatorIdentifier: "vllm_performance"
-  version: 1.0.0
+  version: 1.1.0
   requiredProperties: # Any entity passed to this experiment must have constitutive properties with these values
     - identifier: 'model'
       metadata:
@@ -1553,7 +1553,7 @@ vllm-bench-endpoint:
 guidellm-bench-deployment:
   identifier: guidellm-bench-deployment
   actuatorIdentifier: "vllm_performance"
-  version: 1.0.0
+  version: 1.1.0
   requiredProperties:
     - identifier: 'model'
       metadata:
@@ -1633,7 +1633,7 @@ guidellm-bench-deployment:
         description: "(deployment) The fraction of GPU memory to be used for the model executor,"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        values: [.5, .75, .9]
+        values: [.5, .75, .9, .95, .98]
     - identifier: 'cpu_offload'
       metadata:
         description: "(deployment) The amount of model weights in GB to offload to the CPU per GPU. 0 means all weights are on GPU,"
@@ -1781,7 +1781,7 @@ guidellm-bench-deployment:
 guidellm-bench-endpoint:
   identifier: guidellm-bench-endpoint
   actuatorIdentifier: "vllm_performance"
-  version: 1.0.0
+  version: 1.1.0
   requiredProperties:
     - identifier: 'model'
       metadata:

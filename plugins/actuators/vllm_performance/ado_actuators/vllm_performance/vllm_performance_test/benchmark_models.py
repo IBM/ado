@@ -42,7 +42,16 @@ class BenchmarkParameters(pydantic.BaseModel):
     prefix_repetition_output_len: Annotated[int, pydantic.Field(gt=0)] = 128
     burstiness: Annotated[float, pydantic.Field()] = 1.0
     dataset: Annotated[
-        Literal["random", "prefix_repetition", "bfcl"] | None, pydantic.Field()
+        Literal[
+            "random",
+            "prefix_repetition",
+            "bfcl",
+            "india_url_in_b64_out",
+            "valencia_url_in_b64_out",
+            "terramind_flood_url_in_b64_out",
+        ]
+        | None,
+        pydantic.Field(),
     ] = "random"
     bfcl_categories: Annotated[str, pydantic.Field()] = "simple,live_simple,multiple"
 

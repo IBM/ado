@@ -991,7 +991,7 @@ test-agentic-tool-calling:
         description: "(benchmark) The dataset to use for the benchmark"
       propertyDomain:
         variableType: 'CATEGORICAL_VARIABLE_TYPE'
-        values: ['random', 'prefix_repetition', 'bfcl']
+        values: ['bfcl']
     - identifier: 'prefix_repetition_prefix_len'
       metadata:
         description: "(benchmark) The number of prefix tokens that would be cached when dataset=prefix_repetition"
@@ -1104,7 +1104,7 @@ test-agentic-tool-calling:
       value: 128
     - property:
         identifier: 'dataset'
-      value: 'random'
+      value: 'bfcl'
     - property:
         identifier: 'prefix_repetition_prefix_len'
       value: 2048
@@ -1198,7 +1198,7 @@ test-agentic-tool-calling:
     - identifier: "p99_e2el_ms"
   metadata:
     description: 'Test inference performance of an agent-style model deployed by vLLM across compute resource and workload configurations'
-  version: 1.1.0
+  version: 1.2.0
 vllm-bench-deployment:
   identifier: vllm-bench-deployment
   actuatorIdentifier: "vllm_performance"

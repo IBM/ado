@@ -1433,7 +1433,7 @@ vllm-bench-deployment:
 vllm-bench-endpoint:
   identifier: vllm-bench-endpoint
   actuatorIdentifier: "vllm_performance"
-  version: 1.1.0
+  version: 1.0.0
   requiredProperties: # Any entity passed to this experiment must have constitutive properties with these values
     - identifier: 'model'
       metadata:
@@ -1786,7 +1786,7 @@ guidellm-bench-deployment:
 guidellm-bench-endpoint:
   identifier: guidellm-bench-endpoint
   actuatorIdentifier: "vllm_performance"
-  version: 1.1.0
+  version: 1.0.0
   requiredProperties:
     - identifier: 'model'
       metadata:

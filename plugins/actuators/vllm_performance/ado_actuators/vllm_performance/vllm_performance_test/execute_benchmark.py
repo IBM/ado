@@ -316,11 +316,10 @@ def execute_geospatial_benchmark(
     )
 
 
-def execute_bfcl_benchmark(
+def execute_tool_calling_benchmark(
     base_url: str,
     model: str,
     bfcl_categories: str,
-    dataset: str | None = "bfcl",
     num_prompts: int = 500,
     request_rate: int | None = None,
     max_concurrency: int | None = None,
@@ -339,7 +338,6 @@ def execute_bfcl_benchmark(
     :param model: model
     :param bfcl_categories: comma-separated BFCL category names
         (e.g. "simple,live_simple,multiple")
-    :param dataset: name of the dataset (must be 'bfcl')
     :param num_prompts: number of prompts
     :param request_rate: request rate
     :param max_concurrency: maximum number of concurrent requests
@@ -350,8 +348,6 @@ def execute_bfcl_benchmark(
 
     :return: BenchmarkResult instance
     """
-    if dataset != "bfcl":
-        raise ValueError(f"dataset must be 'bfcl', but got {dataset}")
 
     return execute_benchmark(
         base_url=base_url,

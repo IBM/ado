@@ -37,8 +37,8 @@ from ado_actuators.vllm_performance.vllm_performance_test.benchmark_models impor
 )
 from ado_actuators.vllm_performance.vllm_performance_test.execute_benchmark import (
     VLLMBenchmarkError,
-    execute_bfcl_benchmark,
     execute_geospatial_benchmark,
+    execute_tool_calling_benchmark,
     execute_vllm_benchmark,
 )
 from ado_actuators.vllm_performance.vllm_performance_test.execute_guidellm_benchmark import (
@@ -591,7 +591,7 @@ def run_resource_and_workload_experiment(
                 )
             elif experiment.identifier == "test-agentic-tool-calling":
                 logger.info("Using vLLM BFCL benchmark for deployment")
-                result = execute_bfcl_benchmark(
+                result = execute_tool_calling_benchmark(
                     base_url=benchmark_parameters.endpoint,
                     model=benchmark_parameters.model,
                     bfcl_categories=benchmark_parameters.bfcl_categories,
@@ -785,7 +785,7 @@ def run_workload_experiment(
                 )
             elif experiment.identifier == "test-agentic-tool-calling":
                 logger.info("Using vLLM BFCL benchmark for endpoint")
-                result = execute_bfcl_benchmark(
+                result = execute_tool_calling_benchmark(
                     base_url=benchmark_parameters.endpoint,
                     model=benchmark_parameters.model,
                     bfcl_categories=benchmark_parameters.bfcl_categories,

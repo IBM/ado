@@ -20,6 +20,7 @@ required-markers = [
 
 [manifest]
 members = [
+    "ado-active-learning",
     "ado-anomalous-series",
     "ado-core",
     "ado-ray-tune",
@@ -29,6 +30,26 @@ members = [
     "pfas-custom-functions",
     "robotic-lab",
     "trim-custom-experiments",
+]
+
+[[package]]
+name = "ado-active-learning"
+source = { editable = "plugins/operators/active_learning" }
+dependencies = [
+    { name = "ado-core" },
+    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.14'" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.14'" },
+    { name = "pandas" },
+    { name = "scikit-learn", version = "1.7.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.14'" },
+    { name = "scikit-learn", version = "1.9.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.14'" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "ado-core", editable = "." },
+    { name = "numpy" },
+    { name = "pandas", specifier = ">=2.2.0" },
+    { name = "scikit-learn", specifier = ">=1.6" },
 ]
 
 [[package]]
@@ -50,7 +71,6 @@ dependencies = [
     { name = "pandas" },
     { name = "pydantic" },
     { name = "torch", version = "2.10.0", source = { registry = "https://pypi.org/simple" } },
-    { name = "torch", version = "2.11.0", source = { registry = "https://pypi.org/simple" }, marker = "python_version < '0'" },
 ]
 
 [package.metadata]
@@ -119,6 +139,7 @@ docs = [
     { name = "pymdown-extensions" },
 ]
 test = [
+    { name = "ado-active-learning" },
     { name = "ado-anomalous-series" },
     { name = "ado-autoconf", marker = "python_full_version < '3.14'" },
     { name = "ado-profile-space", marker = "python_full_version < '3.14'" },
@@ -183,6 +204,7 @@ docs = [
     { name = "pymdown-extensions", specifier = ">=10.15" },
 ]
 test = [
+    { name = "ado-active-learning", editable = "plugins/operators/active_learning" },
     { name = "ado-anomalous-series", editable = "plugins/operators/anomalous_series" },
     { name = "ado-autoconf", marker = "python_full_version < '3.14'", editable = "plugins/custom_experiments/autoconf" },
     { name = "ado-profile-space", marker = "python_full_version < '3.14'", editable = "plugins/operators/profile_space" },
@@ -250,7 +272,6 @@ dependencies = [
     { name = "aim" },
     { name = "jwt" },
     { name = "psutil", version = "7.1.3", source = { registry = "https://pypi.org/simple" } },
-    { name = "psutil", version = "7.2.2", source = { registry = "https://pypi.org/simple" }, marker = "python_version < '0'" },
     { name = "transformers" },
 ]
 
@@ -269,10 +290,8 @@ dependencies = [
     { name = "ado-core" },
     { name = "autogluon-tabular", extra = ["catboost", "xgboost"] },
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" } },
-    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_version < '0'" },
     { name = "pandas" },
     { name = "scikit-learn", version = "1.7.2", source = { registry = "https://pypi.org/simple" } },
-    { name = "scikit-learn", version = "1.9.0", source = { registry = "https://pypi.org/simple" }, marker = "python_version < '0'" },
 ]
 
 [package.metadata]
@@ -329,17 +348,14 @@ dependencies = [
     { name = "boto3" },
     { name = "cachetools" },
     { name = "click", version = "8.3.3", source = { registry = "https://pypi.org/simple" } },
-    { name = "click", version = "8.4.2", source = { registry = "https://pypi.org/simple" }, marker = "python_version < '0'" },
     { name = "cryptography" },
     { name = "fastapi" },
     { name = "filelock" },
     { name = "jinja2" },
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" } },
-    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_version < '0'" },
     { name = "packaging" },
     { name = "pillow" },
     { name = "psutil", version = "7.1.3", source = { registry = "https://pypi.org/simple" } },
-    { name = "psutil", version = "7.2.2", source = { registry = "https://pypi.org/simple" }, marker = "python_version < '0'" },
     { name = "python-dateutil" },
     { name = "pytz" },
     { name = "requests" },
@@ -1866,7 +1882,6 @@ version = "1.0.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cuda-pathfinder" },
-    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_version < '0'" },
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" } },
 ]
 wheels = [
@@ -9269,7 +9284,6 @@ dependencies = [
     { name = "ml-dtypes" },
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" } },
     { name = "psutil", version = "7.2.2", source = { registry = "https://pypi.org/simple" } },
-    { name = "setuptools", marker = "python_version < '0'" },
     { name = "torch", version = "2.11.0", source = { registry = "https://pypi.org/simple" } },
     { name = "tqdm" },
     { name = "typing-extensions" },

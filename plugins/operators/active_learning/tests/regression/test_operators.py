@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 # ruff: noqa: S101
 
-"""Tests for the PKH operator registration."""
+"""Tests for the distinct PKH and FLORA operator registrations."""
 
 from collections.abc import Callable
 
@@ -12,6 +12,12 @@ from active_learning.regression._shared import (
     _outer_operation_output,
     _random_walk_parameters,
 )
+from active_learning.regression.flora.operator import flora
+from active_learning.regression.flora.parameters import (
+    FLORAOperatorParameters,
+    FLORAParameters,
+)
+from active_learning.regression.flora.sampler import FLORASampleSelector
 from active_learning.regression.pkh.operator import pkh
 from active_learning.regression.pkh.parameters import (
     PKHOperatorParameters,
@@ -38,12 +44,13 @@ from ado.modules.operators.randomwalk import (
     ("name", "function", "configuration_model"),
     [
         ("pkh", pkh, PKHOperatorParameters),
+        ("flora", flora, FLORAOperatorParameters),
     ],
 )
-def test_import_registers_operator_metadata(
+def test_import_registers_two_distinct_operators(
     name: str,
     function: Callable[..., OperationOutput],
-    configuration_model: type[PKHOperatorParameters],
+    configuration_model: type[PKHOperatorParameters] | type[FLORAOperatorParameters],
 ) -> None:
     """Importing each strategy's operator module registers its own metadata."""
 
@@ -60,12 +67,13 @@ def test_import_registers_operator_metadata(
     ("parameters_class", "sampler_parameters_class"),
     [
         (PKHOperatorParameters, PKHParameters),
+        (FLORAOperatorParameters, FLORAParameters),
     ],
-    ids=["pkh"],
+    ids=["pkh", "flora"],
 )
 def test_operator_parameter_models_round_trip(
-    parameters_class: type[PKHOperatorParameters],
-    sampler_parameters_class: type[PKHParameters],
+    parameters_class: type[PKHOperatorParameters] | type[FLORAOperatorParameters],
+    sampler_parameters_class: type[PKHParameters] | type[FLORAParameters],
 ) -> None:
     """Operator configuration adds a positive budget to sampler settings."""
 
@@ -102,12 +110,20 @@ def test_operator_parameter_models_round_trip(
             ),
             PKHSampleSelector,
         ),
+        (
+            FLORAOperatorParameters(
+                targetOutput="latency",
+                numberEntities=3,
+                nJobs=1,
+            ),
+            FLORASampleSelector,
+        ),
     ],
-    ids=["pkh"],
+    ids=["pkh", "flora"],
 )
 def test_operator_settings_construct_the_matching_sampler(
-    operator_parameters: PKHOperatorParameters,
-    selector_class: type[PKHSampleSelector],
+    operator_parameters: PKHOperatorParameters | FLORAOperatorParameters,
+    selector_class: type[PKHSampleSelector] | type[FLORASampleSelector],
 ) -> None:
     """Each operator's settings load only its own sampler implementation."""
 
@@ -138,12 +154,22 @@ def test_operator_settings_construct_the_matching_sampler(
             ),
             PKHSampleSelector,
         ),
+        (
+            FLORAOperatorParameters(
+                targetOutput="latency",
+                numberEntities=4,
+                nEstimators=5,
+                minSamplesLeaf=1,
+                nJobs=1,
+            ),
+            FLORASampleSelector,
+        ),
     ],
-    ids=["pkh"],
+    ids=["pkh", "flora"],
 )
 def test_operator_delegates_to_sequential_unfiltered_random_walk(
-    operator_parameters: PKHOperatorParameters,
-    selector_class: type[PKHSampleSelector],
+    operator_parameters: PKHOperatorParameters | FLORAOperatorParameters,
+    selector_class: type[PKHSampleSelector] | type[FLORASampleSelector],
 ) -> None:
     """Each operator builds a safe adaptive RandomWalk configuration."""
 

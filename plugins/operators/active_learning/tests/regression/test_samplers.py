@@ -2,12 +2,12 @@
 # SPDX-License-Identifier: MIT
 # ruff: noqa: S101
 
-"""Shared tests for the regression-based finite-pool sample selectors.
+"""Shared tests for the PKH and FLORA finite-pool sample selectors.
 
 Tests that exercise only one strategy's acquisition logic live next to that
-strategy, in ``tests/regression/pkh/``. This file covers the machinery in
-``active_learning.regression._shared`` and any behaviour that is
-parametrized across strategies.
+strategy, in ``tests/regression/pkh/`` and ``tests/regression/flora/``. This
+file covers the machinery in ``active_learning.regression._shared`` and any
+behaviour that is parametrized across both strategies.
 """
 
 from types import SimpleNamespace
@@ -23,6 +23,11 @@ from active_learning.regression._shared import (
     _measured_labels,
     _resolve_target,
     _SequentialSelectionState,
+)
+from active_learning.regression.flora.parameters import FLORAParameters
+from active_learning.regression.flora.sampler import (
+    FLORASampleSelector,
+    _FLORASelectionState,
 )
 from active_learning.regression.pkh.parameters import PKHParameters
 from active_learning.regression.pkh.sampler import PKHSampleSelector, _PKHSelectionState
@@ -215,11 +220,24 @@ def _adaptive_test_space() -> tuple[
                 "labelPollIntervalSeconds": 0.1,
             },
         ),
+        (
+            FLORAParameters,
+            {
+                "targetOutput": "latency",
+                "nEstimators": 100,
+                "minSamplesLeaf": 2,
+                "seed": 42,
+                "criterion": "squared_error",
+                "nJobs": -1,
+                "labelWaitTimeoutSeconds": 300.0,
+                "labelPollIntervalSeconds": 0.1,
+            },
+        ),
     ],
-    ids=["pkh"],
+    ids=["pkh", "flora"],
 )
 def test_parameter_defaults_round_trip(
-    parameters_class: type[PKHParameters],
+    parameters_class: type[PKHParameters] | type[FLORAParameters],
     expected: dict[str, object],
 ) -> None:
     """Verify defaults survive a model dump and validation round trip."""
@@ -230,9 +248,9 @@ def test_parameter_defaults_round_trip(
     assert parameters_class.model_validate(parameters.model_dump()) == parameters
 
 
-@pytest.mark.parametrize("parameters_class", [PKHParameters])
+@pytest.mark.parametrize("parameters_class", [PKHParameters, FLORAParameters])
 def test_parameter_models_reject_invalid_options(
-    parameters_class: type[PKHParameters],
+    parameters_class: type[PKHParameters] | type[FLORAParameters],
 ) -> None:
     """Verify sampler models reject unknown options and zero workers."""
 
@@ -246,12 +264,13 @@ def test_parameter_models_reject_invalid_options(
     ("selector_class", "parameters_class"),
     [
         (PKHSampleSelector, PKHParameters),
+        (FLORASampleSelector, FLORAParameters),
     ],
-    ids=["pkh"],
+    ids=["pkh", "flora"],
 )
 def test_selectors_expose_and_load_their_parameter_models(
-    selector_class: type[PKHSampleSelector],
-    parameters_class: type[PKHParameters],
+    selector_class: type[PKHSampleSelector] | type[FLORASampleSelector],
+    parameters_class: type[PKHParameters] | type[FLORAParameters],
 ) -> None:
     """Verify ADO loads each selector with its concrete parameter model."""
 
@@ -351,8 +370,8 @@ async def test_remote_iterator_refreshes_each_returned_label() -> None:
     """Verify the remote iterator observes feedback before acquisition."""
 
     discovery_space, store, target_property, entities = _adaptive_test_space()
-    selector = PKHSampleSelector(
-        PKHParameters(
+    selector = FLORASampleSelector(
+        FLORAParameters(
             targetOutput="latency",
             nEstimators=5,
             minSamplesLeaf=1,
@@ -407,11 +426,12 @@ def _complete_queries(
     ("state_class", "additional_arguments"),
     [
         (_PKHSelectionState, {"epoch_length": 3}),
+        (_FLORASelectionState, {}),
     ],
-    ids=["pkh"],
+    ids=["pkh", "flora"],
 )
 def test_unlabelled_pool_uses_one_deterministic_pilot_before_fitting(
-    state_class: type[_PKHSelectionState],
+    state_class: type[_PKHSelectionState] | type[_FLORASelectionState],
     additional_arguments: dict[str, int],
 ) -> None:
     """Verify an unlabelled pool yields a deterministic pilot before fitting."""
@@ -442,11 +462,12 @@ def test_unlabelled_pool_uses_one_deterministic_pilot_before_fitting(
     ("state_class", "additional_arguments"),
     [
         (_PKHSelectionState, {"epoch_length": 3}),
+        (_FLORASelectionState, {}),
     ],
-    ids=["pkh"],
+    ids=["pkh", "flora"],
 )
 def test_real_forest_selection_is_reproducible_and_unique(
-    state_class: type[_PKHSelectionState],
+    state_class: type[_PKHSelectionState] | type[_FLORASelectionState],
     additional_arguments: dict[str, int],
 ) -> None:
     """Verify seeded adaptive selections are reproducible and duplicate-free."""

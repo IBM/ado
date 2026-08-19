@@ -14,4 +14,4 @@ experiments:
     experimentIdentifier: calculate_density
 metadata:
   name: active-learning-density-example
-  description: Finite discrete entity space for the PKH example.
+  description: Finite discrete entity space for the PKH and FLORA examples.

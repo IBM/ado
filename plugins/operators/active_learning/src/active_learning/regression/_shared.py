@@ -1,15 +1,15 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-"""Machinery shared by ADO's regression-based active-learning strategies.
+"""Machinery shared by the regression-based active-learning strategies.
 
-A regression-based strategy like PKH fits a random-forest regressor to a
-finite, explicit discovery-space pool and selects one entity at a time based
-on that forest. This module holds everything such strategies share:
-parameter defaults, finite-pool encoding, the sequential-selection state
-machine, and the ADO operator/RandomWalk wiring.
-``active_learning.regression.pkh`` adds only the acquisition logic that is
-specific to its strategy.
+PKH and FLORA both fit a random-forest regressor to a finite, explicit
+discovery-space pool and select one entity at a time based on that forest.
+This module holds everything the two strategies share: parameter defaults,
+finite-pool encoding, the sequential-selection state machine, and the ADO
+operator/RandomWalk wiring. ``active_learning.regression.pkh`` and
+``active_learning.regression.flora`` each add only the acquisition logic that
+is specific to their strategy.
 """
 
 from __future__ import annotations

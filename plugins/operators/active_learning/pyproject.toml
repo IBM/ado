@@ -13,6 +13,7 @@ dynamic = ["version"]
 
 [project.entry-points."ado.operators"]
 pkh = "active_learning.regression.pkh.operator"
+flora = "active_learning.regression.flora.operator"
 
 [build-system]
 requires = ["hatchling", "uv-dynamic-versioning>=0.7.0"]

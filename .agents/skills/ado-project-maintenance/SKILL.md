@@ -138,9 +138,12 @@ Three labels make up the maintenance scheme.
    `exit_state: error` and made zero measurements.
 
    ```bash
-   uv run ado get operations \
-     --filter 'status=[{"event":"finished","exit_state":"error"}]' -o stats
+   uv run ado show stats operation \
+     --filter 'status=[{"event":"finished","exit_state":"error"}]' \
+     -o csv --output-file operations-error-stats.csv
    ```
+
+   Filter rows where `MEASURED_ENTITIES == 0`.
 
    Deletion Reason: `error-no-entities`.
 

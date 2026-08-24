@@ -145,6 +145,25 @@ def trim(
                 additional_info=f"This was detected during the no-priors characterization phase: {params.samplingBudget.minPoints - len(source_df)} out of {params.samplingBudget.minPoints}.",
             )
 
+    # maxPoints is a shared new-sample budget across no-priors and iterative phases
+    numberEntities_iterative_modeling = params.samplingBudget.maxPoints - (
+        len(source_df) - initial_source_space_size
+    )
+    if numberEntities_iterative_modeling <= 0:
+        logger_trim.warning(
+            "No sampling budget remains for iterative modeling; skipping it."
+        )
+        resources = (
+            [op_output_characterization_no_prior.operation]
+            if op_output_characterization_no_prior.operation is not None
+            else []
+        )
+        return OperationOutput(
+            other=[],
+            resources=resources,
+            metadata={},
+        )
+
     # TRIM Iterative Modeling
     trim_module = SamplerModuleConf(
         moduleClass="TrimSampleSelector",  # this is the name of our custom sampler class -> which I guess is CustomSequentialSampleSelector
@@ -152,10 +171,6 @@ def trim(
     )
     trim_sampler_config = CustomSamplerConfiguration(
         module=trim_module, parameters=params
-    )
-    # maxPoints is a shared new-sample budget across no-priors and iterative phases
-    numberEntities_iterative_modeling = params.samplingBudget.maxPoints - (
-        len(source_df) - initial_source_space_size
     )
     trim_rwparams = RandomWalkParameters(
         samplerConfig=trim_sampler_config,

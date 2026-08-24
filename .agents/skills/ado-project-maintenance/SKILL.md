@@ -202,7 +202,7 @@ Three labels make up the maintenance scheme.
 
    Deletion Reason: `superseded-project-report`.
 
-8. **Labeled `provisional`**: any resource carrying the `provisional` label
+8. **Labeled `provisional`**: any resource with label `provisional=true`
 
    Deletion Reason: `provisional`
 

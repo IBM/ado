@@ -80,16 +80,26 @@ _TRIM_TEST_AUTOGLUON_FIT_ARGS = {
 
 @pytest.mark.flaky(reruns=3, reruns_delay=2)
 @pytest.mark.timeout(900)
+@pytest.mark.parametrize(
+    ("min_points", "max_points", "expected_completed_operations"),
+    [
+        (8, 8, ["Characterization with no priors"]),
+        (
+            7,
+            8,
+            ["Characterization with no priors", "Iterative Modeling Operation"],
+        ),
+    ],
+    ids=["budget-exhausted", "budget-remaining"],
+)
 def test_trim_example_operation_succeeds(
     trim_minimal_discovery_space: DiscoverySpace,
     tmp_path: pathlib.Path,
+    min_points: int,
+    max_points: int,
+    expected_completed_operations: list[str],
 ) -> None:
-    """Run trim on the minimal pressure example; passes if the operation completes successfully."""
-    # Trim requires >1 distinct target value before modeling. AutoGluon's internal
-    # train/test split needs several rows (fails for n_samples=2). Budget must not
-    # exceed tests/resources/trim/space_minimal.yaml entity count (currently 8).
-    model_dir = tmp_path / "trim_models"
-    debug_dir = tmp_path / "debug_output"
+    """Run TRIM with exhausted and remaining post-characterization budgets."""
     autogluon_args = AutoGluonArgs(
         fitArgs=_TRIM_TEST_AUTOGLUON_FIT_ARGS,
         tabularPredictorArgs={
@@ -99,16 +109,19 @@ def test_trim_example_operation_succeeds(
     )
     params = TrimParameters(
         targetOutput="pressure",
-        samplingBudget=SamplingBudget(minPoints=8, maxPoints=8),
+        samplingBudget=SamplingBudget(
+            minPoints=min_points,
+            maxPoints=max_points,
+        ),
         iterationSize=1,
-        outputDirectory=str(model_dir),
-        debugDirectory=str(debug_dir),
+        outputDirectory=str(tmp_path / "trim_models"),
+        debugDirectory=str(tmp_path / "debug_output"),
         stoppingCriterion=StoppingCriterion(enabled=False),
         autoGluonArgs=autogluon_args,
         finalModelAutoGluonArgs=autogluon_args,
         noPriorParameters=NoPriorsParameters(
             targetOutput="pressure",
-            samples=8,
+            samples=min_points,
             batchSize=1,
             sampling_strategy="random",
         ),
@@ -126,3 +139,19 @@ def test_trim_example_operation_succeeds(
     assert output.exitStatus.exit_state == OperationExitStateEnum.SUCCESS
     assert output.exitStatus.event == OperationResourceEventEnum.FINISHED
     assert output.operation.status[-1].event == ADOResourceEventEnum.UPDATED
+    assert [
+        resource.config.metadata.model_dump()["completed operation"]
+        for resource in output.resources
+    ] == expected_completed_operations
+
+    if max_points > min_points:
+        iterative_operation = output.resources[-1]
+        assert (
+            iterative_operation.config.operation.parameters.numberEntities
+            == max_points - min_points
+        )
+        assert any(
+            status.event == OperationResourceEventEnum.FINISHED
+            and status.exit_state == OperationExitStateEnum.SUCCESS
+            for status in iterative_operation.status
+        )

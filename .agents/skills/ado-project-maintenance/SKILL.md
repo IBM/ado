@@ -150,8 +150,8 @@ Three labels make up the maintenance scheme.
 
    Deletion Reason: `error-no-entities`.
 
-4. **Superseded operator runs**: multiple operations applying the same
-   operator to the same inputs, at different versions.
+4. **Superseded non-explore operator runs**: multiple operations
+   applying the same non-explore operator to the same inputs, at different versions.
 
    Group operations by `operatorIdentifier` (`ado/core/operation/resource.py`
    — form `name@MAJOR.MINOR.PATCH`, strict release semver only) plus input
@@ -167,7 +167,7 @@ Three labels make up the maintenance scheme.
    no single CLI filter that performs this grouping — do it as a
    script/manual pass over the YAML dump.
 
-   Deletion Reason: `superseded-operator-minor-version`.
+   Deletion Reason: `superseded-non-explore-operator-minor-version`.
 
 5. **Orphaned datacontainers**: datacontainers belonging to an operation
    that qualifies under conditions 2-4.
@@ -209,20 +209,7 @@ Three labels make up the maintenance scheme.
 
    Deletion Reason: `provisional`
 
-9. **Pre-release/testing operator package version**: an operation whose
-   `provenance.operators.<operatorIdentifier>.distributionVersion`
-    contains a pre-release, dev, or local segment (`a`, `b`, `rc`, `.dev`, `+`).
-
-   This field has no dedicated CLI filter so fetch operation YAML and
-   inspect it client-side:
-
-   ```bash
-   uv run ado get operations -o yaml --output-file operations.yaml
-   ```
-
-   Deletion Reason: `prerelease-operator-version`.
-
-10. **Old operations with status started and no-entities**
+9. **Old operations with status started and no-entities**
 
     Operations over a week old with status started, but which
     have not measured any entities, likely crashed in a way

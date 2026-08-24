@@ -77,7 +77,7 @@ may be incorrect. This is operations which meet the following criteria
 - their status is started
 - they are over a week old
 - they have sampled entities successfully
-- their last recorded request (ado show trace) is more than a day ago
+- their last recorded request is more than a day ago
 
 These operations may have crashed in a way that meant the status
 could not be set.
@@ -208,9 +208,18 @@ Three labels make up the maintenance scheme.
 
 9. **Old operations with status started and no-entities**
 
-    Operations over a week old with status started, but which
-    have not measured any entities, likely crashed in a way
-    that failed to update the status field
+   Operations over a week old whose **current** status is started, but
+   which have not measured any entities. They likely crashed without a
+   finish event.
+
+   ```bash
+   uv run ado show stats operation -o csv --output-file operations-stats.csv
+   ```
+
+   Filter the `STATUS` column for rows where `STATUS == started`, `AGE`
+   is a week or more, and `MEASURED_ENTITIES == 0`.
+
+   Deletion Reason: `started-and-crashed-no-entities`.
 
 ## Related Skills
 

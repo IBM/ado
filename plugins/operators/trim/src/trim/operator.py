@@ -61,6 +61,8 @@ def trim(
     )
 
     random_walk = explore.operators["random_walk"].function
+    if random_walk is None:
+        raise RuntimeError("The random_walk operator has no registered function")
 
     params = TrimParameters.model_validate(kwargs)
     logger_trim.info(

@@ -113,17 +113,11 @@ Three labels make up the maintenance scheme.
 1. **Stale empty spaces**: no measured entities, older than a week.
 
    ```bash
-   uv run ado get spaces -o stats --details --output-file spaces-stats.txt
+   uv run ado show stats discoveryspace -o csv --output-file spaces-stats.csv
    ```
 
-   Then filter rows where `MEASURED_ENTITIES == 0`.
-
-   For each space use the value of `created` field
-   client-side to filter those older than a week
-
-   ```bash
-   uv run ado get space SPACE_ID -o yaml --output-file SPACE_ID.yaml
-   ```
+   Filter rows where `MEASURED_ENTITIES == 0`. Use the `AGE` column
+   (for example `7d0h` or greater) to keep only spaces older than a week.
 
    Deletion Reason: `empty-space-stale`.
 

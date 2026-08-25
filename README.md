@@ -95,7 +95,7 @@ ado show measurements operation --use-latest
 ```
 
 For a deeper walkthrough, see the
-[density example tutorial](https://ibm.github.io/ado/user-guide/examples/tutorials/density-example/).
+[density example tutorial](https://ibm.github.io/ado/latest/user-guide/examples/tutorials/density-example/).
 
 ## ado 🤝 agents
 

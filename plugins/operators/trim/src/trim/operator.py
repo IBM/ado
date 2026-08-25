@@ -30,7 +30,7 @@ logger_trim = logging.getLogger(__name__)
                 Retrieves all measured entities from the entity source and samples the others following a certain order.
                 If the number of measured entity is too small, Trim instantiates a no-priors characterization operation.
                 """,
-    version="2.0.3",
+    version="2.0.5",
 )
 def trim(
     discoverySpace: DiscoverySpace = None,  # type: ignore[name-defined]
@@ -61,6 +61,8 @@ def trim(
     )
 
     random_walk = explore.operators["random_walk"].function
+    if random_walk is None:
+        raise RuntimeError("The random_walk operator has no registered function")
 
     params = TrimParameters.model_validate(kwargs)
     logger_trim.info(
@@ -145,6 +147,25 @@ def trim(
                 additional_info=f"This was detected during the no-priors characterization phase: {params.samplingBudget.minPoints - len(source_df)} out of {params.samplingBudget.minPoints}.",
             )
 
+    # maxPoints is a shared new-sample budget across no-priors and iterative phases
+    numberEntities_iterative_modeling = params.samplingBudget.maxPoints - (
+        len(source_df) - initial_source_space_size
+    )
+    if numberEntities_iterative_modeling <= 0:
+        logger_trim.warning(
+            "No sampling budget remains for iterative modeling; skipping it."
+        )
+        resources = (
+            [op_output_characterization_no_prior.operation]
+            if op_output_characterization_no_prior.operation is not None
+            else []
+        )
+        return OperationOutput(
+            other=[],
+            resources=resources,
+            metadata={},
+        )
+
     # TRIM Iterative Modeling
     trim_module = SamplerModuleConf(
         moduleClass="TrimSampleSelector",  # this is the name of our custom sampler class -> which I guess is CustomSequentialSampleSelector
@@ -152,11 +173,6 @@ def trim(
     )
     trim_sampler_config = CustomSamplerConfiguration(
         module=trim_module, parameters=params
-    )
-    numberEntities_iterative_modeling = (
-        len(source_df) - initial_source_space_size
-        if op_output_characterization_no_prior.operation
-        else params.samplingBudget.maxPoints
     )
     trim_rwparams = RandomWalkParameters(
         samplerConfig=trim_sampler_config,

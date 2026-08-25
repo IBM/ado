@@ -25,32 +25,47 @@ use to team-wide collaboration.
 > 💡 Like our approach to agent-driven science? Drop a ⭐ to support our
 > open-source development!
 
-## ado 🤝 agents
+## At its _core_
 
-- 🧱 _Validated schemas_: research intent is expressed as structured, validated
-  configurations — constraining the agent to well-defined inputs rather than
-  free-form code generation, reducing hallucinations and keeping experiments
-  repeatable
-- ✅ _Safe execution loop_: `ado template` and `--dry-run` support a tight
-  **generate → validate → fix → run** cycle before any work is committed
-- 🔍 _Self-describing resources_: experiments and operators declare their
-  required properties, so an agent can discover what's available and what's
-  needed without parsing code
-- 📦 _Structured & queryable results_: all measurements and metadata are stored
-  in a structured database, giving agents clean access to data for analysis and
-  refinement
-- 🔗 _Full provenance_: every result is annotated with resource relationships
-  and plugin versions, so an agent always knows where data came from and how to
-  reproduce it
-- 🤖 _Bundled agent skills_: skills guide agents through
-  [end-to-end discovery workflows](https://ibm.github.io/ado/latest/user-guide/ado-and-agents/#what-you-can-ask-your-agent-to-do)
-  — from formulating a problem to analysing results
+**ado** is built on three concepts:
+
+| Concept             | Role                                                                                                                                                                                        |
+| ------------------- |---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Discovery Space** | Defines _what_ to measure, _how_ to measure it (via Experiments, which are pluggable python functions), and _where_ to store results.                                                       |
+| **Operation**       | You explore or analyse a Discovery Space using operations. You can select from different operators to perform different types of operations. Operators are also pluggable python functions. |
+| **Sample Store**    | Stores the results of measurements, and enables operations to transparently reuse existing results (memoization).                                                                           |
+
+## Decorate a function, get a full-featured CLI
+
+You can add experiments to `ado` using a decorated Python function:
+
+```python
+from typing import Any
+
+from ado.modules.actuators.custom_experiments import custom_experiment
+
+
+@custom_experiment(output_property_identifiers=["density"])
+def calculate_density(mass: float, volume: float) -> dict[str, Any]:
+    density_value = mass / volume if volume else None
+    return {"density": density_value}
+```
+
+With this `ado` can understand the experiment, create valid
+spaces of inputs for it, explore those spaces with operations
+, and store the results in a samplestore,
+all while keeping a record of your work:
+
+![Terminal recording of ado listing the installed experiments, describing
+calculate_density, viewing the discovery space definition, running an operation
+across it and printing the resulting
+measurements](docs/videos/readme_try_it_out.gif)
 
 ## Try It Out
 
-The following example runs a small experiment campaign that samples combinations
-of `mass` and `volume`, computes `density` at each point, and stores the
-results.
+The following toy example runs a small experiment campaign
+that samples combinations of mass and volume, computes density at each point,
+and stores the results.
 
 Install `ado-core` (a virtual environment is recommended). For complete
 instructions see the
@@ -83,15 +98,26 @@ ado show measurements operation --use-latest
 For a deeper walkthrough, see the
 [density example tutorial](https://ibm.github.io/ado/user-guide/examples/tutorials/density-example/).
 
-## At its _core_
+## ado 🤝 agents
 
-**ado** is built on the following core concepts:
-
-| Concept             | Role                                                                                                                                                                                        |
-| ------------------- |---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **Discovery Space** | Defines _what_ to measure, _how_ to measure it (via Experiments, which are pluggable python functions), and _where_ to store results.                                                       |
-| **Operation**       | You explore or analyse a Discovery Space using operations. You can select from different operators to perform different types of operations. Operators are also pluggable python functions. |
-| **Sample Store**    | Stores the results of measurements, and enables operations to transparently reuse existing results (memoization).                                                                           |
+- 🧱 _Validated schemas_: research intent is expressed as structured, validated
+  configurations — constraining the agent to well-defined inputs rather than
+  free-form code generation, reducing hallucinations and keeping experiments
+  repeatable
+- ✅ _Safe execution loop_: `ado template` and `--dry-run` support a tight
+  **generate → validate → fix → run** cycle before any work is committed
+- 🔍 _Self-describing resources_: experiments and operators declare their
+  required properties, so an agent can discover what's available and what's
+  needed without parsing code
+- 📦 _Structured & queryable results_: all measurements and metadata are stored
+  in a structured database, giving agents clean access to data for analysis and
+  refinement
+- 🔗 _Full provenance_: every result is annotated with resource relationships
+  and plugin versions, so an agent always knows where data came from and how to
+  reproduce it
+- 🤖 _Bundled agent skills_: skills guide agents through
+  [end-to-end discovery workflows](https://ibm.github.io/ado/latest/user-guide/ado-and-agents/#what-you-can-ask-your-agent-to-do)
+  — from formulating a problem to analysing results
 
 ## Use Cases
 

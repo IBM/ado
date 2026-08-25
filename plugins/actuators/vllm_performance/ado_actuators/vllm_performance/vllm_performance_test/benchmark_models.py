@@ -8,7 +8,7 @@ This module defines shared data models for benchmark results and parameters that
 by both vLLM and GuideLLM benchmarks, ensuring consistent output format.
 """
 
-from typing import TYPE_CHECKING, Annotated, Literal
+from typing import TYPE_CHECKING, Annotated
 
 import pydantic
 from pydantic import AfterValidator
@@ -41,9 +41,7 @@ class BenchmarkParameters(pydantic.BaseModel):
     prefix_repetition_num_prefixes: Annotated[int, pydantic.Field(gt=0)] = 10
     prefix_repetition_output_len: Annotated[int, pydantic.Field(gt=0)] = 128
     burstiness: Annotated[float, pydantic.Field()] = 1.0
-    dataset: Annotated[
-        Literal["random", "prefix_repetition", "bfcl"] | None, pydantic.Field()
-    ] = "random"
+    dataset: Annotated[str | None, pydantic.Field()] = "random"
     bfcl_categories: Annotated[str, pydantic.Field()] = "simple,live_simple,multiple"
 
 

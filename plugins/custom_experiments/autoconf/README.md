@@ -29,8 +29,8 @@ and outputs 3 parameters:
 - `workers` with an integer value
 - `gpus` with an integer value
 
-The min_gpu_recommender is exposed via an [`ado`](ibm.github.io/ado/)
-[custom experiment](https://ibm.github.io/ado/actuators/creating-custom-experiments/)
+The min_gpu_recommender is exposed via an [`ado`](https://ibm.github.io/ado/latest/)
+[custom experiment](https://ibm.github.io/ado/latest/developer-guide/creating-custom-experiments/)
 This enables validation of parameters provided for invocation against the domain
 accepted by the recommender model. This ensures that, as expected, the model
 returns `can_recommend==0` for configuration domain values (e.g. model names)
@@ -294,4 +294,4 @@ open space-entities.csv
 Look for the `can_recommend`, `gpus`, and `workers` columns in the CSV file.
 
 Learn more about exploring spaces in the ado documentation for taking a
-[RandomWalk on a space](https://ibm.github.io/ado/examples/random-walk/#exploring-the-discoveryspace).
+[RandomWalk on a space](https://ibm.github.io/ado/latest/user-guide/examples/tutorials/random-walk/).

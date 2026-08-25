@@ -203,7 +203,7 @@ class OperatorModuleConf(ModuleConf):
             removed_from_ado_version="3.0.0",
             deprecated_fields="moduleName",
             latest_format_documentation_url=(
-                "https://ibm.github.io/ado/migration/1x-to-2x/"
+                "https://ibm.github.io/ado/latest/user-guide/advanced/migration-ado-1x-to-2x/"
                 "#renamed-python-import-package-orchestrator-ado"
             ),
         )

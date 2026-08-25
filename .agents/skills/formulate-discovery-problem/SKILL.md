@@ -1,11 +1,12 @@
 ---
 name: formulate-discovery-problem
-description: |
-  Formulates problems for execution with ado by creating discoveryspace and
-  operation YAML files. Guides through experiment selection, space creation,
-  validation, operation configuration, and parameterization. Use when the user
-  wants to create discoveryspace or operation YAML files, configure experiments,
-  set up entity spaces, or formulate research, benchmarking or search problems.
+description: >-
+  Creates experiment campaigns for addressing discovery problems (research questions)
+  by creating ado discoveryspace and operation YAML.
+  Guides experiment selection and parameterization for a new space, entity-space design,
+  validation, and operator selection. Use when the user wants to create or
+  configure discoveryspace/operation YAML, choose experiments for a new space,
+  or formulate a research, benchmarking, or search problem
 ---
 
 # Formulating Problems for ado Execution
@@ -30,6 +31,9 @@ for the full workflow.
 - For metadata conventions, dynamic references (--use-latest, --with, --set),
   and resource-specific guidance, see
   [resource-yaml-creation](../resource-yaml-creation/SKILL.md)
+- If this work belongs to a named study, apply the study labels to new spaces
+  and operations and ensure a study document exists — see
+  [create-research-study-document](../create-research-study-document/SKILL.md)
 
 ## Workflow Overview
 
@@ -115,7 +119,9 @@ Review the template and configure parameters based on:
 
 - User's query/goals
 - Operator documentation
-- Example operations in `examples/`
+- If the source repo is available, check `examples/` for real-world YAML files.
+  Otherwise use `uv run ado template operation --operator-name $OP` as the
+  starting point.
 
 ### Step 2c: Create Operation YAML
 
@@ -214,12 +220,9 @@ Before finalizing, verify:
 
 - For detailed schema information, see [reference.md](reference.md)
 - For example workflows, see [examples.md](examples.md)
-- For Pydantic model details, examine:
-  - `ado/schema/experiment.py`
-  - `ado/schema/measurementspace.py`
-  - `ado/schema/entityspace.py`
-  - `ado/core/discoveryspace/config.py`
-  - `ado/core/operation/operation.py`
+- For Pydantic model details when writing code, see the resource model table
+  and schema-inspection snippet in
+  [query-ado-data — Using Resource models](../query-ado-data/SKILL.md#using-resource-models)
 
 ## References
 

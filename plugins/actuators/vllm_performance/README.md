@@ -4,7 +4,7 @@
 This repository contains the vLLM `ado` actuator for benchmarking LLM inference
 performance with vLLM. (For more about Actuators, what they represent, how to
 create them etc., see the `ado`
-[docs](https://ibm.github.io/ado/actuators/working-with-actuators/)).
+[docs](https://ibm.github.io/ado/user-guide/actuators/working-with-actuators/)).
 
 The actuator implements a set of functionalities to deploy and run serving
 benchmarks for different LLMs for vLLM. This actuator deploys
@@ -51,7 +51,7 @@ After running the exercise, please feel free to
 >    GPU. You will need access to a namespace with permissions for GPU-based
 >    deployments
 > 2. You will need to have downloaded and installed `ado` according to
->    [this guide](https://ibm.github.io/ado/getting-started/install/).
+>    [this guide](https://ibm.github.io/ado/latest/user-guide/getting-started/#installing).
 
 ## Installing and configuring the vLLM actuator
 
@@ -123,9 +123,9 @@ The vllm_performance experiments you should see are:
 - `geospatial-guidellm-bench-endpoint-custom-dataset`
 
 You can understand the
-[constitutive properties required for the experiment](https://ibm.github.io/ado/core-concepts/actuators/#experiments)
+[constitutive properties required for the experiment](https://ibm.github.io/ado/latest/concepts/actuators/#experiments)
 and the
-[target and observed properties](https://ibm.github.io/ado/core-concepts/actuators/#target-and-observed-properties)
+[target and observed properties](https://ibm.github.io/ado/latest/concepts/actuators/#target-and-observed-properties)
 measured by an experiment by running:
 
 ```commandline
@@ -225,14 +225,14 @@ ado context local
 #### Defining a Discovery Space of vLLM configurations
 
 `ado` uses the concept of
-[Discovery Spaces](https://ibm.github.io/ado/core-concepts/concepts/) to
+[Discovery Spaces](https://ibm.github.io/ado/latest/concepts/core-concepts/) to
 describe what to test (in this case vLLM workload configurations) and how to
 test them (the vLLM benchmark(s) to run).
 
 The set of configurations to test is defined by the
-[entity space](https://ibm.github.io/ado/core-concepts/entity-spaces/), and the
-set of experiments to perform by the
-[measurement space](https://ibm.github.io/ado/core-concepts/actuators#measurementspace/).
+[entity space](https://ibm.github.io/ado/latest/concepts/entity-spaces/),
+and the set of experiments to perform by the
+[measurement space](https://ibm.github.io/ado/latest/concepts/actuators/#measurement-space).
 
 An example `discoveryspace` for vLLM inference benchmarking can be found in
 [`yamls/discoveryspace_override_defaults_small.yaml`](yamls/discoveryspace_override_defaults_small.yaml).
@@ -434,7 +434,7 @@ Geospatial experiments are available for both endpoint and deployment testing,
 with support for pre-packaged datasets (india_url_in_b64_out,
 valencia_url_in_b64_out) and custom datasets. For detailed information on
 geospatial experiments, dataset formats, and usage examples, see the
-[vLLM Performance Geospatial documentation](https://ibm.github.io/ado/examples/vllm-performance-geospatial/).
+[vLLM Performance Geospatial documentation](https://ibm.github.io/ado/latest/user-guide/examples/vllm-performance-geospatial/).
 
 ## The Actuator Package: Key Files
 

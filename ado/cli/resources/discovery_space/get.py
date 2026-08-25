@@ -223,7 +223,7 @@ def _find_spaces_matching_space(
                     "NAME": space_resource.config.metadata.name,
                     "DESCRIPTION": space_resource.config.metadata.labels,
                     "AGE": datetime.now(timezone.utc) - space_resource.created,
-                    "RELATION_TO_INPUT_SPACE": space_resource.config.compare_space_hierarchy(
+                    "RELATION_TO_INPUT_ENTITY_SPACE": space_resource.config.compare_space_hierarchy(
                         reference_space=space_configuration,
                     ).value,
                 }
@@ -235,7 +235,7 @@ def _find_spaces_matching_space(
         return result_df
 
     result_df = result_df[
-        ~result_df["RELATION_TO_INPUT_SPACE"].isin(
+        ~result_df["RELATION_TO_INPUT_ENTITY_SPACE"].isin(
             {SpaceHierarchy.UNDEFINED.value, SpaceHierarchy.DISJOINT.value}
         )
     ]
@@ -245,5 +245,5 @@ def _find_spaces_matching_space(
     return (
         result_df
         if parameters.show_details
-        else result_df[["IDENTIFIER", "NAME", "AGE", "RELATION_TO_INPUT_SPACE"]]
+        else result_df[["IDENTIFIER", "NAME", "AGE", "RELATION_TO_INPUT_ENTITY_SPACE"]]
     )

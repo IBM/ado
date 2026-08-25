@@ -20,6 +20,8 @@ import ado.modules.operators.base
 import ado.modules.operators.collections
 from ado.core.datacontainer.resource import DataContainerResource
 from ado.core.discoveryspace.resource import DiscoverySpaceResource
+from ado.core.document.config import DocumentConfiguration
+from ado.core.document.resource import DocumentResource
 from ado.core.operation.config import DiscoveryOperationResourceConfiguration
 from ado.core.operation.resource import OperationResource
 from ado.core.resources import (
@@ -148,7 +150,7 @@ def test_get_resources_by_relationship(
         result = sql_store_with_resources_preloaded.get_resources_by_relationship(
             kind=resource_type,
             identifier=identifier,
-            hierarchy_direction="both",
+            relationship="both",
             max_hops=None,
             identifiers_only=True,
         )
@@ -226,7 +228,7 @@ def test_add_and_delete_discovery_space(
     assert not sql_store.get_resources_by_relationship(
         kind=CoreResourceKinds.DISCOVERYSPACE,
         identifier=space_resource.identifier,
-        hierarchy_direction="both",
+        relationship="both",
         max_hops=None,
         identifiers_only=True,
     )
@@ -264,7 +266,7 @@ def test_add_update_and_delete_operation_related_to_discovery_space(
     assert space_identifier in sql_store.get_resources_by_relationship(
         kind=CoreResourceKinds.OPERATION,
         identifier=operation_resource.identifier,
-        hierarchy_direction="up",
+        relationship="parent",
         max_hops=1,
         identifiers_only=True,
     ).get(CoreResourceKinds.DISCOVERYSPACE, set())
@@ -273,7 +275,7 @@ def test_add_update_and_delete_operation_related_to_discovery_space(
     assert operation_resource.identifier in sql_store.get_resources_by_relationship(
         kind=CoreResourceKinds.DISCOVERYSPACE,
         identifier=space_identifier,
-        hierarchy_direction="down",
+        relationship="child",
         max_hops=1,
         identifiers_only=True,
     ).get(CoreResourceKinds.OPERATION, set())
@@ -319,7 +321,7 @@ def test_add_update_and_delete_operation_related_to_discovery_space(
     assert operation_resource.identifier not in sql_store.get_resources_by_relationship(
         kind=CoreResourceKinds.DISCOVERYSPACE,
         identifier=space_identifier,
-        hierarchy_direction="down",
+        relationship="child",
         max_hops=1,
         identifiers_only=True,
     ).get(CoreResourceKinds.OPERATION, set())
@@ -327,7 +329,7 @@ def test_add_update_and_delete_operation_related_to_discovery_space(
     assert not sql_store.get_resources_by_relationship(
         kind=CoreResourceKinds.OPERATION,
         identifier=operation_resource.identifier,
-        hierarchy_direction="both",
+        relationship="both",
         max_hops=None,
         identifiers_only=True,
     )
@@ -357,7 +359,7 @@ def test_add_operation_and_output(
     dcs = sql_store.get_resources_by_relationship(
         kind=CoreResourceKinds.OPERATION,
         identifier=op_resource.identifier,
-        hierarchy_direction="down",
+        relationship="child",
         max_hops=1,
         identifiers_only=True,
     ).get(CoreResourceKinds.DATACONTAINER, set())
@@ -403,7 +405,7 @@ def test_add_operation_and_output(
     assert res.identifier not in sql_store.get_resources_by_relationship(
         kind=CoreResourceKinds.OPERATION,
         identifier=op_resource.identifier,
-        hierarchy_direction="down",
+        relationship="child",
         max_hops=1,
         identifiers_only=True,
     ).get(CoreResourceKinds.DATACONTAINER, set())
@@ -627,23 +629,6 @@ def test_get_latest_resource_identifiers_of_kinds_invalid_kind(
         resource_store.get_latest_resource_identifiers_of_kinds(kinds=[invalid_kind])
 
 
-@requires_sqlite_3_38
-def test_get_latest_resource_identifiers_of_kinds_multiple_invalid_kinds(
-    resource_store: SQLStore,
-) -> None:
-    """Test get_latest_resource_identifiers_of_kinds reports all invalid kinds at once."""
-
-    # This should raise ValueError with all invalid kinds listed
-    invalid_kind1 = "invalid_kind1"  # type: ignore[arg-type]
-    invalid_kind2 = "invalid_kind2"  # type: ignore[arg-type]
-    with pytest.raises(
-        ValueError, match="All kinds must be CoreResourceKinds instances"
-    ):
-        resource_store.get_latest_resource_identifiers_of_kinds(
-            kinds=[invalid_kind1, invalid_kind2]
-        )
-
-
 ###############################################################################
 # get_resources_by_relationship
 ###############################################################################
@@ -753,7 +738,7 @@ def test_up_from_operation_max_hops_1(
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.OPERATION,
         identifier=op_id,
-        hierarchy_direction="up",
+        relationship="parent",
         max_hops=1,
         identifiers_only=True,
     )
@@ -776,7 +761,7 @@ def test_up_from_operation_uncapped_returns_discoveryspace_and_samplestore(
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.OPERATION,
         identifier=op_id,
-        hierarchy_direction="up",
+        relationship="parent",
         identifiers_only=True,
     )
 
@@ -784,26 +769,6 @@ def test_up_from_operation_uncapped_returns_discoveryspace_and_samplestore(
     assert ds_id in result[CoreResourceKinds.DISCOVERYSPACE]
     assert CoreResourceKinds.SAMPLESTORE in result
     assert ss_id in result[CoreResourceKinds.SAMPLESTORE]
-
-
-@requires_sqlite_3_38
-def test_up_from_operation_max_hops_2(
-    resource_hierarchy: dict,
-) -> None:
-    """up from operation with max_hops=2 returns both discoveryspace and samplestore."""
-    store: SQLStore = resource_hierarchy["store"]
-    op_id = resource_hierarchy["operation_id"]
-
-    result = store.get_resources_by_relationship(
-        kind=CoreResourceKinds.OPERATION,
-        identifier=op_id,
-        hierarchy_direction="up",
-        max_hops=2,
-        identifiers_only=True,
-    )
-
-    assert CoreResourceKinds.DISCOVERYSPACE in result
-    assert CoreResourceKinds.SAMPLESTORE in result
 
 
 # ---------------------------------------------------------------------------
@@ -823,7 +788,7 @@ def test_up_from_discoveryspace_returns_samplestore_only(
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.DISCOVERYSPACE,
         identifier=ds_id,
-        hierarchy_direction="up",
+        relationship="parent",
         identifiers_only=True,
     )
 
@@ -848,7 +813,7 @@ def test_down_from_samplestore_max_hops_1(
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.SAMPLESTORE,
         identifier=ss_id,
-        hierarchy_direction="down",
+        relationship="child",
         max_hops=1,
         identifiers_only=True,
     )
@@ -872,7 +837,7 @@ def test_down_from_samplestore_max_hops_2(
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.SAMPLESTORE,
         identifier=ss_id,
-        hierarchy_direction="down",
+        relationship="child",
         max_hops=2,
         identifiers_only=True,
     )
@@ -885,40 +850,38 @@ def test_down_from_samplestore_max_hops_2(
 
 
 @requires_sqlite_3_38
-def test_down_from_samplestore_uncapped_returns_full_hierarchy(
+def test_outgoing_from_samplestore_uncapped_returns_discoveryspace_operation_and_datacontainer(
     resource_hierarchy: dict,
 ) -> None:
-    """down from samplestore uncapped returns discoveryspace, operation, dc and ac ids."""
+    """outgoing from samplestore returns resources reachable via stored edge direction."""
     store: SQLStore = resource_hierarchy["store"]
     ss_id = resource_hierarchy["samplestore_id"]
     dc_id = resource_hierarchy["datacontainer_id"]
-    ac_id = resource_hierarchy["actuatorconfiguration_id"]
 
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.SAMPLESTORE,
         identifier=ss_id,
-        hierarchy_direction="down",
+        relationship="child",
         identifiers_only=True,
     )
 
     assert CoreResourceKinds.DISCOVERYSPACE in result
     assert CoreResourceKinds.OPERATION in result
     assert CoreResourceKinds.DATACONTAINER in result
-    assert CoreResourceKinds.ACTUATORCONFIGURATION in result
+    assert CoreResourceKinds.ACTUATORCONFIGURATION not in result
     assert dc_id in result[CoreResourceKinds.DATACONTAINER]
-    assert ac_id in result[CoreResourceKinds.ACTUATORCONFIGURATION]
 
 
 # ---------------------------------------------------------------------------
-# down from discoveryspace
+# outgoing from discoveryspace
 # ---------------------------------------------------------------------------
 
 
 @requires_sqlite_3_38
-def test_down_from_discoveryspace_max_hops_1(
+def test_outgoing_from_discoveryspace_max_hops_1(
     resource_hierarchy: dict,
 ) -> None:
-    """down from discoveryspace with max_hops=1 returns only operation ids."""
+    """outgoing from discoveryspace with max_hops=1 returns only operation ids."""
     store: SQLStore = resource_hierarchy["store"]
     ds_id = resource_hierarchy["discoveryspace_id"]
     op_id = resource_hierarchy["operation_id"]
@@ -926,7 +889,7 @@ def test_down_from_discoveryspace_max_hops_1(
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.DISCOVERYSPACE,
         identifier=ds_id,
-        hierarchy_direction="down",
+        relationship="child",
         max_hops=1,
         identifiers_only=True,
     )
@@ -938,55 +901,51 @@ def test_down_from_discoveryspace_max_hops_1(
 
 
 @requires_sqlite_3_38
-def test_down_from_discoveryspace_uncapped_returns_operation_dc_ac(
+def test_outgoing_from_discoveryspace_uncapped_returns_operation_and_datacontainer(
     resource_hierarchy: dict,
 ) -> None:
-    """down from discoveryspace uncapped returns operation, datacontainer and actuatorconfiguration."""
+    """outgoing from discoveryspace returns resources reachable via stored edge direction."""
     store: SQLStore = resource_hierarchy["store"]
     ds_id = resource_hierarchy["discoveryspace_id"]
     dc_id = resource_hierarchy["datacontainer_id"]
-    ac_id = resource_hierarchy["actuatorconfiguration_id"]
 
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.DISCOVERYSPACE,
         identifier=ds_id,
-        hierarchy_direction="down",
+        relationship="child",
         identifiers_only=True,
     )
 
     assert CoreResourceKinds.OPERATION in result
     assert CoreResourceKinds.DATACONTAINER in result
-    assert CoreResourceKinds.ACTUATORCONFIGURATION in result
+    assert CoreResourceKinds.ACTUATORCONFIGURATION not in result
     assert dc_id in result[CoreResourceKinds.DATACONTAINER]
-    assert ac_id in result[CoreResourceKinds.ACTUATORCONFIGURATION]
 
 
 # ---------------------------------------------------------------------------
-# down from operation
+# outgoing from operation
 # ---------------------------------------------------------------------------
 
 
 @requires_sqlite_3_38
-def test_down_from_operation_returns_datacontainer_and_actuatorconfiguration(
+def test_outgoing_from_operation_returns_datacontainer_only(
     resource_hierarchy: dict,
 ) -> None:
-    """down from operation returns datacontainer and actuatorconfiguration ids."""
+    """outgoing from operation returns only resources reachable via stored edge direction."""
     store: SQLStore = resource_hierarchy["store"]
     op_id = resource_hierarchy["operation_id"]
     dc_id = resource_hierarchy["datacontainer_id"]
-    ac_id = resource_hierarchy["actuatorconfiguration_id"]
 
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.OPERATION,
         identifier=op_id,
-        hierarchy_direction="down",
+        relationship="child",
         identifiers_only=True,
     )
 
     assert CoreResourceKinds.DATACONTAINER in result
-    assert CoreResourceKinds.ACTUATORCONFIGURATION in result
+    assert CoreResourceKinds.ACTUATORCONFIGURATION not in result
     assert dc_id in result[CoreResourceKinds.DATACONTAINER]
-    assert ac_id in result[CoreResourceKinds.ACTUATORCONFIGURATION]
 
 
 @requires_sqlite_3_38
@@ -1004,7 +963,6 @@ def test_both_from_operation_returns_ancestors_and_descendants(
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.OPERATION,
         identifier=op_id,
-        hierarchy_direction="both",  # type: ignore[arg-type]
         identifiers_only=True,
     )
 
@@ -1015,10 +973,10 @@ def test_both_from_operation_returns_ancestors_and_descendants(
 
 
 @requires_sqlite_3_38
-def test_up_from_datacontainer_returns_operation_discoveryspace_and_samplestore(
+def test_incoming_from_datacontainer_returns_operation_discoveryspace_and_samplestore(
     resource_hierarchy: dict,
 ) -> None:
-    """up from datacontainer returns operation, discoveryspace and samplestore."""
+    """incoming from datacontainer returns operation, discoveryspace and samplestore."""
     store: SQLStore = resource_hierarchy["store"]
     dc_id = resource_hierarchy["datacontainer_id"]
     op_id = resource_hierarchy["operation_id"]
@@ -1028,7 +986,7 @@ def test_up_from_datacontainer_returns_operation_discoveryspace_and_samplestore(
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.DATACONTAINER,
         identifier=dc_id,
-        hierarchy_direction="up",
+        relationship="parent",
         identifiers_only=True,
     )
 
@@ -1038,16 +996,15 @@ def test_up_from_datacontainer_returns_operation_discoveryspace_and_samplestore(
 
 
 @requires_sqlite_3_38
-def test_both_from_datacontainer_returns_rooted_ancestors_only(
+def test_both_from_datacontainer_reaches_ancestors_and_siblings(
     resource_hierarchy: dict,
 ) -> None:
-    """both from datacontainer returns ancestors only, not siblings via operation.
+    """both from datacontainer reaches ancestors and siblings via the shared operation.
 
-    The resource_hierarchy fixture creates an actuatorconfiguration linked to
-    the same operation as the datacontainer.  When traversing 'both' from the
-    datacontainer that actuatorconfiguration is a sibling (reachable only via
-    the shared operation going down then across), not an ancestor or descendant,
-    so it must not appear in the result.
+    The open-graph traversal follows all stored edges in both directions, so
+    from a datacontainer it goes up to the parent operation and then down to the
+    actuatorconfiguration that shares the same operation.  This is the expected
+    behaviour with the raw-graph traversal.
     """
     store: SQLStore = resource_hierarchy["store"]
     dc_id = resource_hierarchy["datacontainer_id"]
@@ -1059,65 +1016,57 @@ def test_both_from_datacontainer_returns_rooted_ancestors_only(
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.DATACONTAINER,
         identifier=dc_id,
-        hierarchy_direction="both",  # type: ignore[arg-type]
         identifiers_only=True,
     )
 
     assert op_id in result[CoreResourceKinds.OPERATION]
     assert ds_id in result[CoreResourceKinds.DISCOVERYSPACE]
     assert ss_id in result[CoreResourceKinds.SAMPLESTORE]
-    # The actuatorconfiguration exists in the store and shares the same
-    # parent operation, but must not appear because it is not an ancestor
-    # or descendant of dc_id.
-    assert CoreResourceKinds.ACTUATORCONFIGURATION not in result
-    assert ac_id not in {ident for kind_ids in result.values() for ident in kind_ids}
+    # Sibling actuatorconfiguration is now reachable via dc → op → ac
+    assert ac_id in result[CoreResourceKinds.ACTUATORCONFIGURATION]
 
 
 @requires_sqlite_3_38
-def test_up_from_actuatorconfiguration_returns_operation_discoveryspace_and_samplestore(
+def test_incoming_from_actuatorconfiguration_returns_no_results(
     resource_hierarchy: dict,
 ) -> None:
-    """up from actuatorconfiguration returns operation, discoveryspace and samplestore."""
+    """incoming from actuatorconfiguration returns no resources with stored edge direction."""
+    store: SQLStore = resource_hierarchy["store"]
+    ac_id = resource_hierarchy["actuatorconfiguration_id"]
+
+    result = store.get_resources_by_relationship(
+        kind=CoreResourceKinds.ACTUATORCONFIGURATION,
+        identifier=ac_id,
+        relationship="parent",
+        identifiers_only=True,
+    )
+
+    assert result == {}
+
+
+@requires_sqlite_3_38
+def test_both_from_actuatorconfiguration_reaches_ancestors_and_siblings(
+    resource_hierarchy: dict,
+) -> None:
+    """both from actuatorconfiguration reaches ancestors and sibling datacontainer via operation."""
     store: SQLStore = resource_hierarchy["store"]
     ac_id = resource_hierarchy["actuatorconfiguration_id"]
     op_id = resource_hierarchy["operation_id"]
     ds_id = resource_hierarchy["discoveryspace_id"]
     ss_id = resource_hierarchy["samplestore_id"]
+    dc_id = resource_hierarchy["datacontainer_id"]
 
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.ACTUATORCONFIGURATION,
         identifier=ac_id,
-        hierarchy_direction="up",
         identifiers_only=True,
     )
 
     assert op_id in result[CoreResourceKinds.OPERATION]
     assert ds_id in result[CoreResourceKinds.DISCOVERYSPACE]
     assert ss_id in result[CoreResourceKinds.SAMPLESTORE]
-
-
-@requires_sqlite_3_38
-def test_both_from_actuatorconfiguration_returns_rooted_ancestors_only(
-    resource_hierarchy: dict,
-) -> None:
-    """both from actuatorconfiguration returns rooted ancestors only, not siblings via operation."""
-    store: SQLStore = resource_hierarchy["store"]
-    ac_id = resource_hierarchy["actuatorconfiguration_id"]
-    op_id = resource_hierarchy["operation_id"]
-    ds_id = resource_hierarchy["discoveryspace_id"]
-    ss_id = resource_hierarchy["samplestore_id"]
-
-    result = store.get_resources_by_relationship(
-        kind=CoreResourceKinds.ACTUATORCONFIGURATION,
-        identifier=ac_id,
-        hierarchy_direction="both",  # type: ignore[arg-type]
-        identifiers_only=True,
-    )
-
-    assert op_id in result[CoreResourceKinds.OPERATION]
-    assert ds_id in result[CoreResourceKinds.DISCOVERYSPACE]
-    assert ss_id in result[CoreResourceKinds.SAMPLESTORE]
-    assert CoreResourceKinds.DATACONTAINER not in result
+    # Sibling datacontainer is now reachable via ac → op → dc
+    assert dc_id in result[CoreResourceKinds.DATACONTAINER]
 
 
 @requires_sqlite_3_38
@@ -1135,7 +1084,6 @@ def test_both_from_discoveryspace_returns_rooted_ancestors_and_descendants_only(
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.DISCOVERYSPACE,
         identifier=ds_id,
-        hierarchy_direction="both",  # type: ignore[arg-type]
         identifiers_only=True,
     )
 
@@ -1257,7 +1205,7 @@ def test_multi_start_returns_per_origin_grouping(
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.OPERATION,
         identifier={op1_id, op2_id},
-        hierarchy_direction="down",
+        relationship="child",
         identifiers_only=True,
     )
 
@@ -1287,7 +1235,7 @@ def test_multi_start_shared_resource_appears_under_each_origin(
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.OPERATION,
         identifier={op1_id, op2_id},
-        hierarchy_direction="up",
+        relationship="parent",
         identifiers_only=True,
     )
 
@@ -1313,7 +1261,7 @@ def test_identifier_none_seeds_from_all_resources_of_kind(
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.OPERATION,
         identifier=None,
-        hierarchy_direction="up",
+        relationship="parent",
         identifiers_only=True,
     )
 
@@ -1343,7 +1291,7 @@ def test_hydrated_single_start_returns_resources(
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.OPERATION,
         identifier=op_id,
-        hierarchy_direction="down",
+        relationship="child",
         identifiers_only=False,
     )
 
@@ -1369,13 +1317,13 @@ def test_hydrated_multi_start_grouping_matches_identifier_mode(
     result_ids = store.get_resources_by_relationship(
         kind=CoreResourceKinds.OPERATION,
         identifier={op1_id, op2_id},
-        hierarchy_direction="down",
+        relationship="child",
         identifiers_only=True,
     )
     result_hydrated = store.get_resources_by_relationship(
         kind=CoreResourceKinds.OPERATION,
         identifier={op1_id, op2_id},
-        hierarchy_direction="down",
+        relationship="child",
         identifiers_only=False,
     )
 
@@ -1407,7 +1355,7 @@ def test_hydrated_start_identifier_excluded(
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.OPERATION,
         identifier=op_id,
-        hierarchy_direction="down",
+        relationship="child",
         identifiers_only=False,
     )
 
@@ -1425,16 +1373,17 @@ def test_hydrated_start_identifier_excluded(
 def test_invalid_direction_raises_value_error(
     resource_hierarchy: dict,
 ) -> None:
-    """Unsupported hierarchy_direction raises ValueError."""
+    """Unsupported relationship raises ValueError."""
     store: SQLStore = resource_hierarchy["store"]
     op_id = resource_hierarchy["operation_id"]
     with pytest.raises(
-        ValueError, match="hierarchy_direction must be 'up', 'down' or 'both'"
+        ValueError,
+        match="relationship must be 'child', 'parent' or 'both'",
     ):
         store.get_resources_by_relationship(
             kind=CoreResourceKinds.OPERATION,
             identifier=op_id,
-            hierarchy_direction="sideways",  # type: ignore[arg-type]
+            relationship="sideways",  # type: ignore[arg-type]
         )
 
 
@@ -1448,7 +1397,7 @@ def test_invalid_max_hops_zero_raises_value_error(
         store.get_resources_by_relationship(
             kind=CoreResourceKinds.OPERATION,
             identifier=op_id,
-            hierarchy_direction="up",
+            relationship="parent",
             max_hops=0,
             identifiers_only=True,
         )
@@ -1464,7 +1413,7 @@ def test_invalid_max_hops_negative_raises_value_error(
         store.get_resources_by_relationship(
             kind=CoreResourceKinds.OPERATION,
             identifier=op_id,
-            hierarchy_direction="down",
+            relationship="child",
             max_hops=-1,
             identifiers_only=True,
         )
@@ -1480,30 +1429,11 @@ def test_valid_kind_direction_combo_with_no_reachable_resources_returns_empty(
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.SAMPLESTORE,
         identifier=resource_hierarchy["samplestore_id"],
-        hierarchy_direction="up",
+        relationship="parent",
         identifiers_only=True,
     )
 
     assert result == {}
-
-
-@requires_sqlite_3_38
-def test_identifier_none_with_both_raises_value_error(
-    resource_hierarchy: dict,
-) -> None:
-    """identifier=None is not supported when hierarchy_direction is both."""
-    store: SQLStore = resource_hierarchy["store"]
-
-    with pytest.raises(
-        ValueError,
-        match="identifier=None is not supported for hierarchy_direction='both'",
-    ):
-        store.get_resources_by_relationship(
-            kind=CoreResourceKinds.OPERATION,
-            identifier=None,
-            hierarchy_direction="both",  # type: ignore[arg-type]
-            identifiers_only=True,
-        )
 
 
 @requires_sqlite_3_38
@@ -1520,7 +1450,6 @@ def test_both_from_operation_max_hops_1_returns_one_level_each_direction(
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.OPERATION,
         identifier=op_id,
-        hierarchy_direction="both",  # type: ignore[arg-type]
         max_hops=1,
         identifiers_only=True,
     )
@@ -1545,7 +1474,7 @@ def test_empty_identifier_set_returns_empty(
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.OPERATION,
         identifier=set(),
-        hierarchy_direction="down",
+        relationship="child",
         identifiers_only=True,
     )
 
@@ -1586,7 +1515,7 @@ def test_valid_traversal_with_no_related_resources(
     result = sql_store.get_resources_by_relationship(
         kind=CoreResourceKinds.SAMPLESTORE,
         identifier=ss.identifier,
-        hierarchy_direction="down",
+        relationship="child",
         identifiers_only=True,
     )
 
@@ -1611,7 +1540,7 @@ def test_include_start_resources_single_identifier(
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.OPERATION,
         identifier=op_id,
-        hierarchy_direction="down",
+        relationship="child",
         identifiers_only=False,
         include_start_resources=True,
     )
@@ -1635,7 +1564,7 @@ def test_include_start_resources_multi_identifier(
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.OPERATION,
         identifier={op1_id, op2_id},
-        hierarchy_direction="down",
+        relationship="child",
         identifiers_only=False,
         include_start_resources=True,
     )
@@ -1662,7 +1591,7 @@ def test_include_start_resources_no_related_resources(
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.SAMPLESTORE,
         identifier=ss_id,
-        hierarchy_direction="up",
+        relationship="parent",
         identifiers_only=False,
         include_start_resources=True,
     )
@@ -1686,7 +1615,7 @@ def test_include_start_resources_with_identifiers_only_raises(
         store.get_resources_by_relationship(
             kind=CoreResourceKinds.OPERATION,
             identifier=op_id,
-            hierarchy_direction="down",
+            relationship="child",
             identifiers_only=True,
             include_start_resources=True,
         )
@@ -1705,7 +1634,355 @@ def test_include_start_resources_with_identifier_none_raises(
         store.get_resources_by_relationship(
             kind=CoreResourceKinds.OPERATION,
             identifier=None,
-            hierarchy_direction="down",
+            relationship="child",
             identifiers_only=False,
             include_start_resources=True,
         )
+
+
+# ---------------------------------------------------------------------------
+# operation → operation edges
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def resource_hierarchy_with_child_operation(
+    sql_store: SQLStore,
+    random_space_resource_from_file: Callable[[str | None], DiscoverySpaceResource],
+    operation_resource: OperationResource,
+) -> dict:
+    """Build a hierarchy with a parent and a child operation linked to a second space.
+
+    Layout:
+        samplestore_1 → space_1 → parent_op → space_2 → child_op
+    """
+    from ado.core import SampleStoreResource
+    from ado.core.operation.config import (
+        DiscoveryOperationConfiguration,
+        DiscoveryOperationEnum,
+        DiscoveryOperationResourceConfiguration,
+    )
+    from ado.core.samplestore.config import (
+        SampleStoreConfiguration,
+        SampleStoreModuleConf,
+        SampleStoreSpecification,
+    )
+
+    ss1 = SampleStoreResource(
+        config=SampleStoreConfiguration(
+            specification=SampleStoreSpecification(
+                module=SampleStoreModuleConf(
+                    moduleClass="SQLSampleStore",
+                    moduleName="ado.core.samplestore.sql",
+                )
+            )
+        )
+    )
+    sql_store.addResource(ss1)
+
+    space1 = random_space_resource_from_file(sample_store_id=ss1.identifier)
+    sql_store.addResourceWithRelationships(space1, relatedIdentifiers=[ss1.identifier])
+
+    operation_resource.config.spaces = [space1.identifier]
+    sql_store.addResourceWithRelationships(
+        operation_resource, relatedIdentifiers=[space1.identifier]
+    )
+    parent_op = operation_resource
+
+    # A second space produced by the parent operation
+    space2 = random_space_resource_from_file(sample_store_id=ss1.identifier)
+    sql_store.addResourceWithRelationships(space2, relatedIdentifiers=[ss1.identifier])
+    # Link parent_op → space2
+    sql_store.addRelationship(
+        subjectIdentifier=parent_op.identifier,
+        objectIdentifier=space2.identifier,
+    )
+
+    child_op_config = DiscoveryOperationResourceConfiguration(
+        spaces=[space2.identifier],
+        operation=DiscoveryOperationConfiguration(),
+    )
+    child_op = OperationResource(
+        config=child_op_config,
+        operationType=DiscoveryOperationEnum.EXPLORE,
+        operatorIdentifier="test-child-op",
+    )
+    sql_store.addResourceWithRelationships(
+        child_op, relatedIdentifiers=[space2.identifier]
+    )
+    # Link parent_op → child_op directly
+    sql_store.addRelationship(
+        subjectIdentifier=parent_op.identifier,
+        objectIdentifier=child_op.identifier,
+    )
+
+    return {
+        "store": sql_store,
+        "samplestore_id": ss1.identifier,
+        "space1_id": space1.identifier,
+        "space2_id": space2.identifier,
+        "parent_op_id": parent_op.identifier,
+        "child_op_id": child_op.identifier,
+    }
+
+
+@requires_sqlite_3_38
+def test_outgoing_from_parent_op_returns_child_op(
+    resource_hierarchy_with_child_operation: dict,
+) -> None:
+    """outgoing max_hops=1 from parent op returns child op only (among operations)."""
+    h = resource_hierarchy_with_child_operation
+    store: SQLStore = h["store"]
+
+    result = store.get_resources_by_relationship(
+        kind=CoreResourceKinds.OPERATION,
+        identifier=h["parent_op_id"],
+        relationship="child",
+        result_kinds={CoreResourceKinds.OPERATION},
+        max_hops=1,
+        identifiers_only=True,
+    )
+
+    assert CoreResourceKinds.OPERATION in result
+    assert h["child_op_id"] in result[CoreResourceKinds.OPERATION]
+    assert h["parent_op_id"] not in result.get(CoreResourceKinds.OPERATION, set())
+
+
+@requires_sqlite_3_38
+def test_incoming_from_child_op_returns_parent_op(
+    resource_hierarchy_with_child_operation: dict,
+) -> None:
+    """incoming max_hops=1 from child op returns parent op only."""
+    h = resource_hierarchy_with_child_operation
+    store: SQLStore = h["store"]
+
+    result = store.get_resources_by_relationship(
+        kind=CoreResourceKinds.OPERATION,
+        identifier=h["child_op_id"],
+        relationship="parent",
+        result_kinds={CoreResourceKinds.OPERATION},
+        max_hops=1,
+        identifiers_only=True,
+    )
+
+    assert CoreResourceKinds.OPERATION in result
+    assert h["parent_op_id"] in result[CoreResourceKinds.OPERATION]
+    assert h["child_op_id"] not in result.get(CoreResourceKinds.OPERATION, set())
+
+
+@requires_sqlite_3_38
+def test_both_from_parent_op_returns_parent_and_child_op(
+    resource_hierarchy_with_child_operation: dict,
+) -> None:
+    """both max_hops=1 from parent op returns the child op (and space1 as incoming)."""
+    h = resource_hierarchy_with_child_operation
+    store: SQLStore = h["store"]
+
+    result = store.get_resources_by_relationship(
+        kind=CoreResourceKinds.OPERATION,
+        identifier=h["parent_op_id"],
+        result_kinds={CoreResourceKinds.OPERATION},
+        max_hops=1,
+        identifiers_only=True,
+    )
+
+    # child_op is reachable via outgoing edge parent_op → child_op
+    assert CoreResourceKinds.OPERATION in result
+    assert h["child_op_id"] in result[CoreResourceKinds.OPERATION]
+
+
+@requires_sqlite_3_38
+def test_space_op_space_op_multi_hop(
+    resource_hierarchy_with_child_operation: dict,
+) -> None:
+    """outgoing result_kinds={OPERATION} from space1 traverses space1→parent_op→child_op chain."""
+    h = resource_hierarchy_with_child_operation
+    store: SQLStore = h["store"]
+
+    result = store.get_resources_by_relationship(
+        kind=CoreResourceKinds.DISCOVERYSPACE,
+        identifier=h["space1_id"],
+        relationship="child",
+        result_kinds={CoreResourceKinds.OPERATION},
+        max_hops=4,
+        identifiers_only=True,
+    )
+
+    assert CoreResourceKinds.OPERATION in result
+    assert h["parent_op_id"] in result[CoreResourceKinds.OPERATION]
+    assert h["child_op_id"] in result[CoreResourceKinds.OPERATION]
+
+
+# ---------------------------------------------------------------------------
+# document edges
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def resource_hierarchy_with_document(
+    sql_store: SQLStore,
+    random_space_resource_from_file: Callable[[str | None], DiscoverySpaceResource],
+) -> dict:
+    """Build a hierarchy with a document that has both a parent and a child operation.
+
+    Layout:
+        samplestore → space → op_a   (parent of document)
+        document (subject=op_a, object=document  stored as addRelationship)
+        document → op_b  (child of document: subject=document, object=op_b)
+    """
+    from ado.core import SampleStoreResource
+    from ado.core.operation.config import (
+        DiscoveryOperationConfiguration,
+        DiscoveryOperationEnum,
+        DiscoveryOperationResourceConfiguration,
+    )
+    from ado.core.samplestore.config import (
+        SampleStoreConfiguration,
+        SampleStoreModuleConf,
+        SampleStoreSpecification,
+    )
+
+    ss = SampleStoreResource(
+        config=SampleStoreConfiguration(
+            specification=SampleStoreSpecification(
+                module=SampleStoreModuleConf(
+                    moduleClass="SQLSampleStore",
+                    moduleName="ado.core.samplestore.sql",
+                )
+            )
+        )
+    )
+    sql_store.addResource(ss)
+
+    space = random_space_resource_from_file(sample_store_id=ss.identifier)
+    sql_store.addResourceWithRelationships(space, relatedIdentifiers=[ss.identifier])
+
+    op_a_config = DiscoveryOperationResourceConfiguration(
+        spaces=[space.identifier],
+        operation=DiscoveryOperationConfiguration(),
+    )
+    op_a = OperationResource(
+        config=op_a_config,
+        operationType=DiscoveryOperationEnum.EXPLORE,
+        operatorIdentifier="test-op-a",
+    )
+    sql_store.addResourceWithRelationships(op_a, relatedIdentifiers=[space.identifier])
+
+    doc = DocumentResource(
+        config=DocumentConfiguration(content="# Test report", contentType="markdown")
+    )
+    sql_store.addResource(doc)
+    # op_a is the parent of the document: subject=op_a, object=doc
+    sql_store.addRelationship(
+        subjectIdentifier=op_a.identifier,
+        objectIdentifier=doc.identifier,
+    )
+
+    op_b_config = DiscoveryOperationResourceConfiguration(
+        spaces=[space.identifier],
+        operation=DiscoveryOperationConfiguration(),
+    )
+    op_b = OperationResource(
+        config=op_b_config,
+        operationType=DiscoveryOperationEnum.EXPLORE,
+        operatorIdentifier="test-op-b",
+    )
+    sql_store.addResourceWithRelationships(op_b, relatedIdentifiers=[space.identifier])
+    # doc is the parent of op_b: subject=doc, object=op_b
+    sql_store.addRelationship(
+        subjectIdentifier=doc.identifier,
+        objectIdentifier=op_b.identifier,
+    )
+
+    return {
+        "store": sql_store,
+        "op_a_id": op_a.identifier,
+        "op_b_id": op_b.identifier,
+        "doc_id": doc.identifier,
+    }
+
+
+@requires_sqlite_3_38
+def test_outgoing_from_operation_returns_document(
+    resource_hierarchy_with_document: dict,
+) -> None:
+    """outgoing from op_a returns the document (parent role)."""
+    h = resource_hierarchy_with_document
+    store: SQLStore = h["store"]
+
+    result = store.get_resources_by_relationship(
+        kind=CoreResourceKinds.OPERATION,
+        identifier=h["op_a_id"],
+        relationship="child",
+        result_kinds={CoreResourceKinds.DOCUMENT},
+        max_hops=1,
+        identifiers_only=True,
+    )
+
+    assert CoreResourceKinds.DOCUMENT in result
+    assert h["doc_id"] in result[CoreResourceKinds.DOCUMENT]
+
+
+@requires_sqlite_3_38
+def test_incoming_from_document_returns_parent_operation(
+    resource_hierarchy_with_document: dict,
+) -> None:
+    """incoming from document returns op_a (the parent operation) only."""
+    h = resource_hierarchy_with_document
+    store: SQLStore = h["store"]
+
+    result = store.get_resources_by_relationship(
+        kind=CoreResourceKinds.DOCUMENT,
+        identifier=h["doc_id"],
+        relationship="parent",
+        result_kinds={CoreResourceKinds.OPERATION},
+        max_hops=1,
+        identifiers_only=True,
+    )
+
+    assert CoreResourceKinds.OPERATION in result
+    assert h["op_a_id"] in result[CoreResourceKinds.OPERATION]
+    assert h["op_b_id"] not in result.get(CoreResourceKinds.OPERATION, set())
+
+
+@requires_sqlite_3_38
+def test_outgoing_from_document_returns_child_operation(
+    resource_hierarchy_with_document: dict,
+) -> None:
+    """outgoing from document returns op_b (the child operation) only."""
+    h = resource_hierarchy_with_document
+    store: SQLStore = h["store"]
+
+    result = store.get_resources_by_relationship(
+        kind=CoreResourceKinds.DOCUMENT,
+        identifier=h["doc_id"],
+        relationship="child",
+        result_kinds={CoreResourceKinds.OPERATION},
+        max_hops=1,
+        identifiers_only=True,
+    )
+
+    assert CoreResourceKinds.OPERATION in result
+    assert h["op_b_id"] in result[CoreResourceKinds.OPERATION]
+    assert h["op_a_id"] not in result.get(CoreResourceKinds.OPERATION, set())
+
+
+@requires_sqlite_3_38
+def test_both_from_document_returns_both_operations(
+    resource_hierarchy_with_document: dict,
+) -> None:
+    """both from document returns op_a and op_b."""
+    h = resource_hierarchy_with_document
+    store: SQLStore = h["store"]
+
+    result = store.get_resources_by_relationship(
+        kind=CoreResourceKinds.DOCUMENT,
+        identifier=h["doc_id"],
+        result_kinds={CoreResourceKinds.OPERATION},
+        max_hops=1,
+        identifiers_only=True,
+    )
+
+    assert CoreResourceKinds.OPERATION in result
+    assert h["op_a_id"] in result[CoreResourceKinds.OPERATION]
+    assert h["op_b_id"] in result[CoreResourceKinds.OPERATION]

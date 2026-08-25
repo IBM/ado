@@ -540,7 +540,7 @@ class TestCSVActuatorValidation:
                 storageLocation=FilePathLocation(path=csv_path), parameters=desc
             )
             assert store is not None
-            assert len(store.entities) == 2
+            assert len(store.get_entities(require_measurements=True)) == 2
         finally:
             # Clean up
             os.unlink(csv_path)
@@ -597,7 +597,7 @@ class TestCSVActuatorValidation:
                 constitutivePropertyColumns=["input_param"],
             )
             assert store1 is not None
-            assert len(store1.entities) == 2
+            assert len(store1.get_entities(require_measurements=True)) == 2
 
             # Test 2: Missing observed property column - should fail
             with pytest.raises(
@@ -673,7 +673,7 @@ class TestCSVActuatorValidation:
                 # Property maps will be auto-inferred
             )
             assert store1 is not None
-            assert len(store1.entities) == 2
+            assert len(store1.get_entities(require_measurements=True)) == 2
 
             # Test with propertyFormat="observed" - column names should match observed property identifiers
             # Observed property identifier format: experiment_id-target_property_id
@@ -703,7 +703,7 @@ class TestCSVActuatorValidation:
                     # Property maps will be auto-inferred
                 )
                 assert store2 is not None
-                assert len(store2.entities) == 2
+                assert len(store2.get_entities(require_measurements=True)) == 2
             finally:
                 os.unlink(csv_path2)
 

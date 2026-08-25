@@ -10,6 +10,10 @@ dependencies = [
   "numba>=0.63.0 ; python_full_version >= '3.14'",
   "pandas<3",
   "paretoset>=1.2.4",
+  # botocore → urllib3 → OpenSSL.SSL import chain fails with AttributeError
+  # on GEN_EMAIL if pyopenssl is too old.  No dep in the chain pins a minimum
+  # version that includes the fix, so we pin it explicitly here.
+  "pyopenssl>=23.0.0",
   "ray[tune]>=2.9",
   "scipy>=1.15.3",
   # Scipy's first full release that supports Python 3.14

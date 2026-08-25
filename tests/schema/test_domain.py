@@ -1066,7 +1066,7 @@ def test_binary_variable_type_with_no_values() -> None:
 def test_binary_variable_type_rejects_interval() -> None:
     """Test that BINARY_VARIABLE_TYPE rejects interval specification"""
     with pytest.raises(
-        ValueError, match="interval field for a BINARY_VARIABLE_TYPE must be None"
+        ValueError, match="A BINARY_VARIABLE_TYPE must not have interval specified"
     ):
         PropertyDomain(variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE, interval=1)
 
@@ -1074,7 +1074,7 @@ def test_binary_variable_type_rejects_interval() -> None:
 def test_binary_variable_type_rejects_domain_range() -> None:
     """Test that BINARY_VARIABLE_TYPE rejects domainRange specification"""
     with pytest.raises(
-        ValueError, match="domainRange field for a BINARY_VARIABLE_TYPE must be None"
+        ValueError, match="A BINARY_VARIABLE_TYPE must not have domainRange specified"
     ):
         PropertyDomain(
             variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE, domainRange=[0, 1]

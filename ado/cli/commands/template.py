@@ -141,7 +141,7 @@ def template_resource(
     """
     Output templates for creating resources and contexts.
 
-    See https://ibm.github.io/ado/getting-started/ado/#ado-template
+    See https://ibm.github.io/ado/latest/cli-reference/#ado-template
     for detailed documentation and examples.
 
     Examples:

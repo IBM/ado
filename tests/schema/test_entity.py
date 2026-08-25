@@ -282,21 +282,23 @@ def test_entity_to_dict(
     csv_sample_store: CSVSampleStore,
 ) -> None:
 
-    e = csv_sample_store.entities[0]
+    e = csv_sample_store.get_entities(require_measurements=True)[0]
     # Ensure the entity has some properties and values
     assert len(e.properties) != 0
     assert len(e.propertyValues) != 0
-    csv_sample_store.entities[0].model_dump(exclude_defaults=True, exclude_unset=True)
+    csv_sample_store.get_entities(require_measurements=True)[0].model_dump(
+        exclude_defaults=True, exclude_unset=True
+    )
 
 
 def test_entity_to_json(
     csv_sample_store: CSVSampleStore,
 ) -> None:
 
-    e = csv_sample_store.entities[0]
+    e = csv_sample_store.get_entities(require_measurements=True)[0]
     assert len(e.properties) != 0
     assert len(e.propertyValues) != 0
-    csv_sample_store.entities[0].model_dump_json(
+    csv_sample_store.get_entities(require_measurements=True)[0].model_dump_json(
         exclude_defaults=True, exclude_unset=True
     )
 

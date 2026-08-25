@@ -52,7 +52,7 @@ def upgrade_resource(
     """
     Upgrade resources and contexts.
 
-    See https://ibm.github.io/ado/getting-started/ado/#ado-upgrade
+    See https://ibm.github.io/ado/latest/cli-reference/#ado-upgrade
     for detailed documentation and examples.
 
     Examples:

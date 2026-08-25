@@ -4,7 +4,7 @@
 """Tests for EnvironmentManager garbage-collection of stale free environments."""
 
 import asyncio
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from ado_actuators.vllm_performance.env_manager import (
@@ -163,7 +163,8 @@ class TestDoneUsingGC:
 
 
 class TestCleanupFailedDeployment:
-    def test_tracks_env_in_deleting_environments(self) -> None:
+    @pytest.mark.asyncio
+    async def test_tracks_env_in_deleting_environments(self) -> None:
         """cleanup_failed_deployment adds the env to deleting_environments for GC monitoring."""
         manager = _make_manager(ttl=300)
         env = Environment(
@@ -172,14 +173,79 @@ class TestCleanupFailedDeployment:
             state=EnvironmentState.READY,
         )
         manager.in_use_environments[env.k8s_name] = env
+        # Never disappears → poll times out → GC should still monitor it.
+        manager.manager.check_deployment_exist.return_value = True
 
-        manager.cleanup_failed_deployment(identifier=env.k8s_name)
+        with patch("asyncio.sleep", new_callable=AsyncMock):
+            await manager.cleanup_failed_deployment(
+                identifier=env.k8s_name,
+                deletion_check_interval=1,
+                deletion_timeout=0,
+            )
 
         manager.manager.delete_service.assert_called_once()
         manager.manager.delete_deployment.assert_called_once()
         assert env in manager.deleting_environments
         assert env.k8s_name not in manager.in_use_environments
         assert env not in manager.free_environments
+
+    @pytest.mark.asyncio
+    async def test_no_overlap_between_in_use_and_deleting(self) -> None:
+        """env must never appear in both in_use_environments and deleting_environments."""
+        manager = _make_manager(ttl=300)
+        env = Environment(
+            model=DUMMY_MODEL,
+            configuration=DUMMY_CONFIGURATION,
+            state=EnvironmentState.READY,
+        )
+        manager.in_use_environments[env.k8s_name] = env
+
+        overlap_seen = False
+
+        original_check = manager.manager.check_deployment_exist.side_effect
+
+        def _check_overlap(*args: object, **kwargs: object) -> bool:
+            nonlocal overlap_seen
+            if (
+                env.k8s_name in manager.in_use_environments
+                and env in manager.deleting_environments
+            ):
+                overlap_seen = True
+            if original_check is not None:
+                return original_check(*args, **kwargs)  # type: ignore[return-value]
+            return False
+
+        manager.manager.check_deployment_exist.side_effect = _check_overlap
+
+        with patch("asyncio.sleep", new_callable=AsyncMock):
+            await manager.cleanup_failed_deployment(
+                identifier=env.k8s_name,
+                deletion_check_interval=1,
+                deletion_timeout=10,
+            )
+
+        assert not overlap_seen, (
+            "env was simultaneously in in_use_environments and deleting_environments"
+        )
+
+    @pytest.mark.asyncio
+    async def test_confirmed_deleted_not_added_to_deleting_environments(self) -> None:
+        """When the inline poll confirms deletion, deleting_environments stays empty."""
+        manager = _make_manager(ttl=300)
+        env = Environment(
+            model=DUMMY_MODEL,
+            configuration=DUMMY_CONFIGURATION,
+            state=EnvironmentState.READY,
+        )
+        manager.in_use_environments[env.k8s_name] = env
+        # Already gone on first check.
+        manager.manager.check_deployment_exist.return_value = False
+
+        with patch("asyncio.sleep", new_callable=AsyncMock):
+            await manager.cleanup_failed_deployment(identifier=env.k8s_name)
+
+        assert env not in manager.deleting_environments
+        assert env.k8s_name not in manager.in_use_environments
 
 
 # ---------------------------------------------------------------------------
@@ -381,3 +447,120 @@ class TestGcLoop:
         manager._stop_gc = True
         # Should complete without hanging (poll_interval = min(1, 60) = 1s).
         await asyncio.wait_for(manager._gc_loop(), timeout=3.0)
+
+
+# ---------------------------------------------------------------------------
+# cleanup_failed_deployment async poll tests
+# ---------------------------------------------------------------------------
+
+
+class TestCleanupFailedDeploymentWaits:
+    @pytest.mark.asyncio
+    async def test_polls_until_deployment_gone(self) -> None:
+        """cleanup_failed_deployment polls check_deployment_exist until it returns False."""
+        manager = _make_manager(ttl=300)
+        env = Environment(
+            model=DUMMY_MODEL,
+            configuration=DUMMY_CONFIGURATION,
+            state=EnvironmentState.READY,
+        )
+        manager.in_use_environments[env.k8s_name] = env
+        # Present on first poll, gone on second.
+        manager.manager.check_deployment_exist.side_effect = [True, False]
+
+        with patch("asyncio.sleep", new_callable=AsyncMock):
+            await manager.cleanup_failed_deployment(
+                identifier=env.k8s_name,
+                deletion_check_interval=1,
+                deletion_timeout=10,
+            )
+
+        assert manager.manager.check_deployment_exist.call_count == 2
+        assert env.k8s_name not in manager.in_use_environments
+
+    @pytest.mark.asyncio
+    async def test_slot_released_after_deletion_timeout(self) -> None:
+        """Even when the poll exhausts its timeout the slot is always released (C-2 guard)."""
+        manager = _make_manager(ttl=300)
+        env = Environment(
+            model=DUMMY_MODEL,
+            configuration=DUMMY_CONFIGURATION,
+            state=EnvironmentState.READY,
+        )
+        manager.in_use_environments[env.k8s_name] = env
+        # Deployment never disappears.
+        manager.manager.check_deployment_exist.return_value = True
+
+        with patch("asyncio.sleep", new_callable=AsyncMock):
+            await manager.cleanup_failed_deployment(
+                identifier=env.k8s_name,
+                deletion_check_interval=1,
+                deletion_timeout=2,
+            )
+
+        assert env.k8s_name not in manager.in_use_environments
+        assert env not in manager.free_environments
+
+    @pytest.mark.asyncio
+    async def test_slot_released_on_unexpected_exception(self) -> None:
+        """If check_deployment_exist raises unexpectedly the slot is still released."""
+        manager = _make_manager(ttl=300)
+        env = Environment(
+            model=DUMMY_MODEL,
+            configuration=DUMMY_CONFIGURATION,
+            state=EnvironmentState.READY,
+        )
+        manager.in_use_environments[env.k8s_name] = env
+        manager.manager.check_deployment_exist.side_effect = RuntimeError("api gone")
+
+        with (
+            patch("asyncio.sleep", new_callable=AsyncMock),
+            pytest.raises(RuntimeError, match="api gone"),
+        ):
+            await manager.cleanup_failed_deployment(
+                identifier=env.k8s_name,
+                deletion_check_interval=1,
+                deletion_timeout=10,
+            )
+
+        assert env.k8s_name not in manager.in_use_environments
+        assert env not in manager.free_environments
+
+    @pytest.mark.asyncio
+    async def test_done_using_called_after_poll(self) -> None:
+        """done_using is called after check_deployment_exist, not before."""
+        manager = _make_manager(ttl=300)
+        env = Environment(
+            model=DUMMY_MODEL,
+            configuration=DUMMY_CONFIGURATION,
+            state=EnvironmentState.READY,
+        )
+        manager.in_use_environments[env.k8s_name] = env
+        # Gone on the first check — sleep is never reached (check-first loop).
+        manager.manager.check_deployment_exist.return_value = False
+
+        call_order: list[str] = []
+        orig_check = manager.manager.check_deployment_exist
+        orig_done = manager.done_using
+
+        def _check(*args: object, **kwargs: object) -> bool:
+            call_order.append("check")
+            return orig_check(*args, **kwargs)
+
+        def _done(*args: object, **kwargs: object) -> None:
+            call_order.append("done_using")
+            orig_done(*args, **kwargs)
+
+        manager.manager.check_deployment_exist = _check  # type: ignore[method-assign]
+        manager.done_using = _done  # type: ignore[method-assign]
+
+        with patch("asyncio.sleep", new_callable=AsyncMock):
+            await manager.cleanup_failed_deployment(
+                identifier=env.k8s_name,
+                deletion_check_interval=1,
+                deletion_timeout=10,
+            )
+
+        assert call_order.index("check") < call_order.index("done_using"), (
+            "existence check must run before slot is released"
+        )

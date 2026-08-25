@@ -237,6 +237,6 @@ def entity_for_parameterized_experiment(
 @pytest.fixture
 def random_entities(csv_sample_store: CSVSampleStore) -> Callable[[int], list[Entity]]:
     def _random_entities(quantity: int) -> list[Entity]:
-        return csv_sample_store.entities[:quantity]
+        return csv_sample_store.get_entities(require_measurements=True)[:quantity]
 
     return _random_entities

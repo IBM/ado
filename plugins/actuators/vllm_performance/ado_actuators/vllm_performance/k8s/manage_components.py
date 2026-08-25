@@ -11,6 +11,7 @@ import pydantic
 from ado_actuators.vllm_performance.k8s import (
     K8sConnectionError,
     K8sDeploymentCreationTimeoutError,
+    K8sDeploymentDeletionTimeoutError,
 )
 from ado_actuators.vllm_performance.k8s.yaml_support.build_components import (
     ComponentsYaml,
@@ -526,6 +527,34 @@ class ComponentsManager:
         logger.error("Timed out waiting for deployment to get ready")
         raise K8sDeploymentCreationTimeoutError(
             "Timed out waiting for deployment to get ready"
+        )
+
+    def wait_deployment_deleted(
+        self, k8s_name: str, check_interval: int = 5, timeout: int = 300
+    ) -> None:
+        """
+        Wait for a deployment to be fully removed from the Kubernetes API.
+
+        Polls ``check_deployment_exist`` until the object is gone or the
+        timeout is reached.
+
+        :param k8s_name: kubernetes name of the deployment
+        :param check_interval: seconds between each poll
+        :param timeout: maximum seconds to wait before raising
+        :raises K8sDeploymentDeletionTimeoutError: if the deployment is still
+            present after ``timeout`` seconds
+        """
+        deadline = time.monotonic() + timeout
+        while True:
+            if not self.check_deployment_exist(k8s_name=k8s_name):
+                logger.debug(f"Deployment {k8s_name} confirmed deleted.")
+                return
+            if time.monotonic() >= deadline:
+                break
+            time.sleep(check_interval)
+        logger.error(f"Timed out waiting for deployment {k8s_name} to be deleted")
+        raise K8sDeploymentDeletionTimeoutError(
+            f"Timed out waiting for deployment {k8s_name} to be deleted"
         )
 
 

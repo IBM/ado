@@ -22,7 +22,7 @@ def test_resource_deletion(
     assert not sql_store.get_resources_by_relationship(
         kind=_resource_kind,
         identifier=resource.identifier,
-        hierarchy_direction="both",
+        relationship="both",
         max_hops=None,
         identifiers_only=True,
     )

@@ -1,12 +1,12 @@
 ---
 name: using-ado-cli
-description:
-  "Reference for ado CLI command syntax, flags, and usage patterns — covers get,
-  create, edit, show, and describe subcommands, output formatting with -o and
-  --output-file, convenience flags (--use-latest, --set, --with), debugging with
-  -l, and run_experiment for local point testing. Use when writing or verifying
-  ado CLI commands, looking up correct command syntax or flags, debugging
-  unexpected CLI output, or explaining ado command patterns."
+description: >-
+  Reference for ado CLI command syntax, flags, and usage patterns — get, create,
+  edit, show, describe, output flags (-o, --output-file), convenience flags
+  (--use-latest, --set, --with), debugging with -l, and run_experiment. Use when
+  writing, verifying, or debugging ado CLI commands, looking up correct command
+  syntax or flags, or when unsure which ado command or flag to use. For listing
+  catalogs or answering data questions, prefer query-ado-data.
 ---
 
 # Using the ado CLI
@@ -134,7 +134,19 @@ uv run ado get samplestore SAMPLESTORE_ID -o stats --no-trunc
 # Get statistics for all data containers
 uv run ado get datacontainers -o stats --output-file datacontainers-stats.txt
 uv run ado get datacontainer DATACONTAINER_ID -o stats --no-trunc
+
+# Get all resources of a type related to a source resource (--related-to)
+uv run ado get operations --related-to samplestore=STORE_ID
+uv run ado get spaces --related-to samplestore=STORE_ID -o name
+uv run ado get operations --related-to discoveryspace=SPACE_ID --filter config.metadata.name=OP_NAME
 ```
+
+`--related-to` filters results to resources related to the given source resource
+(`kind=id`), including through multi-hop relationships. Shorthand aliases work
+(e.g. `store=STORE_ID`). Not supported for `actuator`, `experiment`, `operator`,
+or `context`. Cannot be combined with a direct resource ID or `--use-latest`.
+Can be combined with `--filter`, `--label`, `--matching-point`,
+`--matching-space`, and `--matching-space-id`.
 
 `-o stats` extends the table with statistics columns:
 

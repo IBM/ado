@@ -5,6 +5,7 @@ import sqlalchemy
 
 from ado.metastore.sql.statements import table_exists_query
 from ado.utilities.location import SQLStoreConfiguration
+from ado.utilities.pydantic import pydantic_aware_json_serializer
 
 # Process-level cache: reuse the same SQLAlchemy Engine (and its connection pool)
 # for every call with the same database URL.  This means the metastore and the
@@ -51,7 +52,10 @@ def engine_for_sql_store(
     if db_location in _engine_cache:
         return _engine_cache[db_location]
 
-    engine_args: dict = {"echo": False}
+    engine_args: dict = {
+        "echo": False,
+        "json_serializer": pydantic_aware_json_serializer,
+    }
     if configuration.scheme != "sqlite":
         # Prevent "Lost connection to MySQL server during query" (error 2013) when
         # connections sit idle during long-running operations (e.g. CPLEX trials).

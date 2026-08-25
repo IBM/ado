@@ -35,6 +35,23 @@ metadata:
 - `--filter` supports path-based filtering across any field:
   `uv run ado get spaces --filter 'config.metadata.name=my_space'`
 
+### The `provisional` label
+
+Set `provisional` at creation time when a space or operation is known **not**
+to be meant for keeping long-term:
+
+```yaml
+metadata:
+  labels:
+    provisional: testing # or: debug, temporary
+```
+
+Canonical values:
+
+- `testing` — created to test some new functionality.
+- `debug` — created to debug a problem.
+- `temporary` — generic indicator that it's not meant to be kept.
+
 ## Dynamic Reference Resolution
 
 Resource YAMLs often reference other resources by ID. Leave these as
@@ -198,7 +215,12 @@ uv run ado create samplestore -f samplestore.yaml
 
 Use `document` resources to persist markdown or HTML reports in the metastore.
 Set `contentType` to `markdown` (default) or `html`. See the
-[document resource documentation](../../../docs/resources/document.md).
+[document resource documentation](https://ibm.github.io/ado/latest/resources/document/).
+
+> The description above is sufficient for creating document resources.
+> Only consult the source for advanced options not covered here: read
+> `docs/resources/document.md` if the source repo is available, otherwise see
+> <https://ibm.github.io/ado/latest/resources/document/>.
 Examining skills store their reports this way: put the body in `content`,
 optionally set `contentType`, and list related resources in
 `relatedResources` with `id` and `role` (`parent` = report is about that

@@ -1,11 +1,12 @@
 ---
 name: query-ado-data
-description:
-  Query ado metadata and measurement data using CLI commands. Use when the user
-  needs to find resources, filter by metadata, retrieve entities and
-  measurements, or get resource schemas. Covers metastore queries (operations,
-  discoveryspaces, samplestores, datacontainers, actuatorconfigurations) and
-  samplestore queries (entities and measurements).
+description: >-
+  Query ado catalogs, metadata, and measurement data via the CLI. Use when the
+  user asks what experiments, actuators, operators, contexts, spaces, or
+  operations are available; to list or find resources; check the active
+  context/project; filter by metadata or labels; retrieve entities and
+  measurements; or get resource schemas. Covers catalog listings (experiments,
+  actuators, operators, contexts), metastore queries, and samplestore queries.
 ---
 
 # Query ado Data
@@ -13,8 +14,11 @@ description:
 ado stores data in two places:
 
 1. **Metastore**: Metadata about all resources (operations, discoveryspaces,
-   samplestores, datacontainers, actuatorconfigurations)
+   samplestores, datacontainers, actuatorconfigurations, documents)
 2. **Samplestores**: Entities and measurements made on them
+
+Installed **plugins** (experiments, actuators, operators) and **contexts**
+(projects) are listed with the same `ado get` / `ado context` CLI patterns.
 
 ## Guidelines
 
@@ -51,16 +55,27 @@ DONTs
 
 ### Using Resource models
 
-Each resource has a pydantic model. If working in code you can use these models
+Each resource type has a Pydantic model. If working in code you can import these
+models directly (source repo required) or inspect their JSON schema via Python.
 
-- discoveryspace, ado/core/discoveryspace/resource.py:
-  DiscoverySpaceResource
-- samplestore, ado/core/samplestore/resource.py: SampleStoreResource
-- datacontainer, ado/core/datacontainer/resource.py:
-  DataContainerResource
-- operation, ado/core/operation/resource.py: OperationResource
-- actuatorconfiguration, ado/core/actuatorconfiguration/resource.py:
-  ActuatorConfigurationResource
+| Resource type | Class | Import path |
+| --- | --- | --- |
+| `discoveryspace` | `DiscoverySpaceResource` | `ado.core.discoveryspace.resource` |
+| `samplestore` | `SampleStoreResource` | `ado.core.samplestore.resource` |
+| `datacontainer` | `DataContainerResource` | `ado.core.datacontainer.resource` |
+| `operation` | `OperationResource` | `ado.core.operation.resource` |
+| `actuatorconfiguration` | `ActuatorConfigurationResource` | `ado.core.actuatorconfiguration.resource` |
+| `document` | `DocumentResource` | `ado.core.document.resource` |
+
+To inspect a model's JSON schema without reading the source:
+
+```python
+uv run python -c \
+  "from ado.core.discoveryspace.resource import DiscoverySpaceResource; \
+import json; print(json.dumps(DiscoverySpaceResource.model_json_schema()))"
+```
+
+Replace `DiscoverySpaceResource` with any class from the table above.
 
 ## Querying Metadata
 
@@ -77,7 +92,7 @@ type.
 
 **Resource types**: `operations` (`op`), `discoveryspaces` (`space`),
 `samplestores` (`store`), `datacontainers` (`dcr`), `actuatorconfigurations`
-(`ac`)
+(`ac`), `documents` (`doc`)
 
 ### Resource Statistics
 
@@ -104,11 +119,12 @@ uv run ado get datacontainer DATACONTAINER_ID -o stats --no-trunc
 ```
 
 **Operations** extra columns: `TOTAL_RESULTS`, `SUCCESSFUL_RESULTS`,
-`FAILED_RESULTS`, `MEASURED_ENTITIES` (distinct entities with at least one
-result).
+`FAILED_RESULTS`, `MEASURED_ENTITIES` (entities with at least one measurement,
+whether successful, failed, or both).
 
 **Discovery Spaces** extra columns: `EXPERIMENTS`, `OPERATIONS`,
-`EXPLORE_OPERATIONS`, `MEASURED_ENTITIES`.
+`EXPLORE_OPERATIONS`, `MEASURED_ENTITIES` (entities with at least one
+measurement, whether successful, failed, or both).
 
 **Sample Stores** extra columns: `ENTITIES`, `RESULTS`, `EXPERIMENTS`.
 
@@ -141,9 +157,16 @@ uv run ado get spaces --filter 'config.experiments={"experiments":{"identifier":
 # Combine multiple filters
 uv run ado get operations --filter 'config.operation.parameters.batchSize=1' \
   --filter 'status=[{"event": "finished", "exit_state": "success"}]'
+
+# Project overview report
+uv run ado get document -q 'config.metadata.name=project_report' --details
+
+# Study document (see create-study-document)
+uv run ado get document -q 'config.metadata.name=study-$ID' --details
 ```
 
-For extensive examples, see `docs/resources/metastore.md`.
+For extensive examples, see
+<https://ibm.github.io/ado/latest/resources/metastore/>
 
 ### Filtering by Labels
 
@@ -179,7 +202,10 @@ exclusive to spaces and override `--filter` and `--label`.
 
 ### Related Resources
 
-Get IDs of resources related to another resource (parent or child):
+#### ado show related
+
+Get IDs of all resources related to another resource (parent or child),
+traversing the full relationship graph:
 
 ```bash
 uv run ado show related $RESOURCETYPE [RESOURCE_ID] [--use-latest]
@@ -192,6 +218,35 @@ uv run ado show related $RESOURCETYPE [RESOURCE_ID] [--use-latest]
 
 ```bash
 uv run ado show related space space-abc123-456def
+```
+
+#### ado get --related-to
+
+Filter `ado get` results to resources related to a specific source resource,
+including multi-hop relationships (e.g. operations linked to a space that is
+linked to a store). Specify the source as `kind=id` (shorthand aliases supported):
+
+```bash
+uv run ado get $RESOURCETYPE --related-to kind=SOURCE_ID
+```
+
+Not supported for `actuator`, `experiment`, `operator`, or `context`. Cannot be
+combined with a direct resource ID or `--use-latest`. Can be combined with
+`--filter`, `--label`, `--matching-point`, `--matching-space`, and
+`--matching-space-id`.
+
+**Examples:**
+
+```bash
+# All operations related to a sample store
+uv run ado get operations --related-to samplestore=STORE_ID
+
+# All spaces related to a sample store (name only)
+uv run ado get spaces --related-to samplestore=STORE_ID -o name
+
+# Operations related to a space, narrowed by a metadata filter
+uv run ado get operations --related-to discoveryspace=SPACE_ID \
+  --filter config.metadata.name=my-op
 ```
 
 ## Querying Data
@@ -327,8 +382,15 @@ uv run ado show related space SPACE_ID
 
 ## Advanced Filtering
 
-The metastore class can provide more powerful querying via scripts. See
-ado/metastore/sqlstore.py
+The metastore class can provide more powerful querying via scripts. Inspect
+the available API with:
+
+```python
+uv run python -c "from ado.metastore.sqlstore import SQLResourceStore; help(SQLResourceStore)"
+```
+
+If the source repo is available, `ado/metastore/sqlstore.py` contains the full
+implementation.
 
 ## References
 

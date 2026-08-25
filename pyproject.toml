@@ -110,6 +110,9 @@ source = "uv-dynamic-versioning"
 [tool.hatch.build.targets.wheel]
 packages = ["ado"]
 
+[tool.hatch.build.targets.wheel.force-include]
+".agents/skills" = "ado/.agents/skills"
+
 # Read by Ray on first `import ray` (pytest-env runs when pytest starts, before conftest).
 [tool.pytest_env]
 RAY_ENABLE_UV_RUN_RUNTIME_ENV = "0"

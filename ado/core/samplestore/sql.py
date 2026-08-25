@@ -201,18 +201,27 @@ class SQLSampleStore(ActiveSampleStore):
         # formats (compressed: top-level experimentReference; legacy: nested
         # inside measurements[0].property.experimentReference) so both are
         # handled without fetching and deserialising every row in Python.
-        query = sqlalchemy.text(f"""
-            SELECT DISTINCT entity_id
-            FROM {self._tablename}_measurement_results
-            WHERE COALESCE(
-                JSON_EXTRACT(data, '$.experimentReference.actuatorIdentifier'),
-                JSON_EXTRACT(data, '$.measurements[0].property.experimentReference.actuatorIdentifier')
-            ) IN ('replay', '"replay"')
-        """)  # noqa: S608 - self._tablename is not untrusted
+        from sqlalchemy import func, select
+
+        res_table = self._result_table
+        actuator_id_col = func.coalesce(
+            func.json_extract(
+                res_table.c.data, "$.experimentReference.actuatorIdentifier"
+            ),
+            func.json_extract(
+                res_table.c.data,
+                "$.measurements[0].property.experimentReference.actuatorIdentifier",
+            ),
+        )
+        stmt = (
+            select(res_table.c.entity_id)
+            .where(actuator_id_col.in_(["replay", '"replay"']))
+            .distinct()
+        )
 
         try:
             with self.engine.begin() as connectable:
-                entity_ids = {row[0] for row in connectable.execute(query)}
+                entity_ids = {row[0] for row in connectable.execute(stmt)}
         except SQLAlchemyError as error:
             msg = f"Unable to query replay entity IDs for catalog from sample store {self._tablename}"
             self.log.critical(f"{msg}. Error: {error}")
@@ -877,21 +886,24 @@ class SQLSampleStore(ActiveSampleStore):
     @property
     def numberOfEntities(self) -> int:
 
+        from sqlalchemy import func, select
+
+        entity_table = self._metadata.tables[self._tablename]
+        stmt = select(func.count(entity_table.c.identifier))
         with self.engine.connect() as connectable:
-            query = sqlalchemy.text(
-                f"SELECT count(*) FROM {self._tablename}"  # noqa: S608 - self._tablename is not untrusted
-            )
-            exe = connectable.execute(query)
-            return exe.scalar()
+            return connectable.execute(stmt).scalar()
 
     def containsEntityWithIdentifier(self, entity_id: str) -> bool:
-        query = sqlalchemy.text(
-            "SELECT COUNT(1) FROM :table_name WHERE identifier=:identifier"
-        ).bindparams(table_name=self._tablename, identifier=entity_id)
+        from sqlalchemy import func, select
 
+        entity_table = self._metadata.tables[self._tablename]
+        stmt = (
+            select(func.count())
+            .select_from(entity_table)
+            .where(entity_table.c.identifier == entity_id)
+        )
         with self.engine.connect() as connectable:
-            exe = connectable.execute(query)
-            row_count = exe.scalar()
+            row_count = connectable.execute(stmt).scalar()
 
         return row_count != 0
 
@@ -1124,11 +1136,7 @@ class SQLSampleStore(ActiveSampleStore):
 
         try:
             with self.engine.begin() as connectable:
-                query = sqlalchemy.text(f"""
-                    INSERT INTO {self._tablename}_measurement_requests
-                    (uid, experiment_reference, operation_id, request_index, request_id, type, status, metadata, timestamp)
-                    VALUES (:uid, :experiment_reference, :operation_id, :request_index, :request_id, :type, :status, :metadata, :timestamp)
-                    """).bindparams(  # noqa: S608 - self._tablename is not untrusted
+                stmt = self._request_table.insert().values(
                     uid=str(db_id),
                     experiment_reference=str(request.experimentReference),
                     operation_id=request.operation_id,
@@ -1136,10 +1144,10 @@ class SQLSampleStore(ActiveSampleStore):
                     request_id=request.requestid,
                     type=request.__class__.__name__,
                     status=request.status.value,
-                    metadata=json.dumps(request.metadata),
+                    metadata=request.metadata,
                     timestamp=request.timestamp,
                 )
-                connectable.execute(query)
+                connectable.execute(stmt)
 
                 return db_id
         except SQLAlchemyError as error:
@@ -1150,13 +1158,14 @@ class SQLSampleStore(ActiveSampleStore):
 
     def entity_identifiers(self) -> set[str]:
 
-        query = sqlalchemy.text(
-            f"""SELECT identifier FROM {self._tablename}"""  # noqa: S608 - self._tablename is not untrusted
-        )
+        from sqlalchemy import select
+
+        entity_table = self._metadata.tables[self._tablename]
+        stmt = select(entity_table.c.identifier)
 
         try:
             with self.engine.begin() as connectable:
-                cur = connectable.execute(query)
+                cur = connectable.execute(stmt)
         except SQLAlchemyError as error:
             msg = f"Failed to load identifiers from sample store {self._tablename}"
             self.log.critical(f"{msg}. Error: {error}")
@@ -1182,19 +1191,15 @@ class SQLSampleStore(ActiveSampleStore):
             {
                 "uid": r.uid,
                 "entity_id": r.entityIdentifier,
-                "data": r.model_dump_json(),
+                "data": r,
             }
             for r in results
         ]
 
         try:
             with self.engine.begin() as connectable:
-                query = sqlalchemy.text(f"""
-                    INSERT INTO {self._tablename}_measurement_results
-                    (uid, entity_id, data)
-                    VALUES (:uid, :entity_id, :data)
-                    """)  # noqa: S608 - self._tablename is not untrusted
-                connectable.execute(query, prepared_results)
+                stmt = self._result_table.insert()
+                connectable.execute(stmt, prepared_results)
         except SQLAlchemyError as error:
             self.log.critical(f"Failed to add measurement results. Error: {error}")
             raise SystemError(
@@ -1248,7 +1253,7 @@ class SQLSampleStore(ActiveSampleStore):
                 values.append(
                     {
                         "uid": uid,
-                        "data": json.loads(measurement_result.model_dump_json()),
+                        "data": measurement_result,
                     }
                 )
 
@@ -1295,12 +1300,8 @@ class SQLSampleStore(ActiveSampleStore):
 
         try:
             with self.engine.begin() as connectable:
-                query = sqlalchemy.text(f"""
-                    INSERT INTO {self._tablename}_measurement_requests_results
-                    (uid, request_uid, result_uid, entity_index)
-                    VALUES (:uid, :request_uid, :result_uid, :entity_index)
-                    """)  # noqa: S608 - self._tablename is not untrusted
-                connectable.execute(query, prepared_relationships)
+                stmt = self._request_result_table.insert()
+                connectable.execute(stmt, prepared_relationships)
         except SQLAlchemyError as error:
             self.log.critical(
                 f"Failed to add link between measurement requests and results. Error: {error}"
@@ -1314,22 +1315,18 @@ class SQLSampleStore(ActiveSampleStore):
         operation_id: str,
         status_filter: MeasurementRequestStateEnum | None = None,
     ) -> int:
+        from sqlalchemy import func, select
 
-        query_text = f"""
-                        SELECT COUNT(uid)
-                        FROM {self._tablename}_measurement_requests
-                        WHERE operation_id = :operation_id
-                    """  # noqa: S608 - self._tablename is not untrusted
-        query_parameters = {"operation_id": operation_id}
-
+        req_table = self._request_table
+        stmt = select(func.count(req_table.c.uid)).where(
+            req_table.c.operation_id == operation_id
+        )
         if status_filter:
-            query_text += "AND status = :status_filter "
-            query_parameters["status_filter"] = status_filter.value
+            stmt = stmt.where(req_table.c.status == status_filter.value)
 
         try:
             with self.engine.begin() as connectable:
-                query = sqlalchemy.text(query_text).bindparams(**query_parameters)
-                return connectable.execute(query).first()[0]
+                return connectable.execute(stmt).scalar()
         except SQLAlchemyError as error:
             msg = f"Unable to get the count of measurement requests for operation {operation_id}"
             self.log.critical(f"{msg}. Error: {error}")
@@ -1340,32 +1337,38 @@ class SQLSampleStore(ActiveSampleStore):
         operation_id: str,
         status_filter: MeasurementResultStateEnum | None = None,
     ) -> int:
-        result_state_map = {
-            MeasurementResultStateEnum.VALID: "measurements",
-            MeasurementResultStateEnum.INVALID: "reason",
-        }
+        from sqlalchemy import func, select
 
-        query_parameters = {"operation_id": operation_id}
-        inner_query = f"""
-                        SELECT uid
-                        FROM {self._tablename}_measurement_requests
-                        WHERE operation_id = :operation_id
-                        """  # noqa: S608 - self._tablename is not untrusted
+        req_table = self._request_table
+        reqres_table = self._request_result_table
 
-        query_text = f"""
-                        SELECT COUNT(uid)
-                        FROM {self._tablename}_measurement_requests_results
-                        WHERE request_uid IN ({inner_query})
-                    """  # noqa: S608 - self._tablename is not untrusted and inner_query has been sanitized
+        # Subquery: UIDs of all requests belonging to this operation
+        request_uids_subq = select(req_table.c.uid).where(
+            req_table.c.operation_id == operation_id
+        )
 
-        if status_filter:
-            query_text += "AND :status_filter MEMBER OF(JSON_KEYS(data))"
-            query_parameters["status_filter"] = result_state_map[status_filter]
+        if status_filter is None:
+            # No join needed — count directly from the request-result join table
+            stmt = select(func.count(reqres_table.c.uid)).where(
+                reqres_table.c.request_uid.in_(request_uids_subq)
+            )
+        else:
+            # Join results to filter by validity via json_extract on the data column.
+            # Valid results have no "reason" field; invalid results always have one.
+            res_table = self._result_table
+            reason_expr = func.json_extract(res_table.c.data, "$.reason")
+            is_valid = status_filter == MeasurementResultStateEnum.VALID
+            stmt = (
+                select(func.count(reqres_table.c.uid))
+                .select_from(reqres_table)
+                .join(res_table, res_table.c.uid == reqres_table.c.result_uid)
+                .where(reqres_table.c.request_uid.in_(request_uids_subq))
+                .where(reason_expr.is_(None) if is_valid else reason_expr.is_not(None))
+            )
 
         try:
             with self.engine.begin() as connectable:
-                query = sqlalchemy.text(query_text).bindparams(**query_parameters)
-                return connectable.execute(query).first()[0]
+                return connectable.execute(stmt).scalar()
         except SQLAlchemyError as error:
             msg = f"Unable to get the count of measurement results for operation {operation_id}"
             self.log.critical(f"{msg}. Error: {error}")
@@ -1389,55 +1392,69 @@ class SQLSampleStore(ActiveSampleStore):
               with at least one successful measurement
             - 'total_entities': total distinct entities measured in the operation
         """
+        from sqlalchemy import case, func, select
+
+        req_table = self._request_table
+        reqres_table = self._request_result_table
+        res_table = self._result_table
+
+        # Only the request has information on what operation it belongs to, as
+        # results can be associated with multiple requests. For this reason, we
+        # start by selecting all the requests that belong to the operation we
+        # are interested in, then join them to their results via the reqres table.
+        #
+        # We then select the entity identifier, along with the total number of
+        # results associated to it (counting on the index for speed) and the
+        # number of valid measurement results by checking how many results do not
+        # have the `reason` field (only found in invalid measurement results).
+        #
+        # We can then use this information to compute the fields we are interested in.
+        reason_is_null = func.json_extract(res_table.c.data, "$.reason").is_(None)
+
+        # Inner subquery: per-entity total and valid measurement counts
+        inner_subq = (
+            select(
+                res_table.c.entity_id,
+                func.count(res_table.c.uid).label("total_measurements"),
+                func.sum(case((reason_is_null, 1), else_=0)).label(
+                    "valid_measurements"
+                ),
+            )
+            .select_from(req_table)
+            .join(reqres_table, reqres_table.c.request_uid == req_table.c.uid)
+            .join(res_table, reqres_table.c.result_uid == res_table.c.uid)
+            .where(req_table.c.operation_id == operation_id)
+            .group_by(res_table.c.entity_id)
+            .subquery("entity_stats")
+        )
+
+        # Outer query: aggregate the per-entity stats
+        valid_col = inner_subq.c.valid_measurements
+        total_col = inner_subq.c.total_measurements
+        entity_id_col = inner_subq.c.entity_id
+
+        stmt = select(
+            func.count(func.distinct(entity_id_col)).label("total_entities"),
+            func.count(
+                func.distinct(case((valid_col > 0, entity_id_col), else_=None))
+            ).label("entities_with_at_least_one_successful"),
+            func.count(
+                func.distinct(
+                    case(
+                        ((valid_col == total_col) & (total_col > 0), entity_id_col),
+                        else_=None,
+                    )
+                )
+            ).label("entities_with_all_successful"),
+        ).select_from(inner_subq)
+
         try:
             with self.engine.begin() as connectable:
-                # Only the request has information on what operation it belongs to, as
-                # results can be associated with multiple requests. For this reason, we
-                # start by selecting all the requests that belong to the operation we
-                # are interested in, then join them to their results via the reqres table.
-                #
-                # We then select the entity identifier, along with the total number of
-                # results associated to it (counting on the index for speed) and the
-                # number of valid measurement results by checking how many results do not
-                # have the `reason` field (only found in invalid measurement results).
-                #
-                # We can then use this information to compute the fields we are interested in.
-                query_text = f"""
-                    SELECT
-                        COUNT(DISTINCT entity_stats.entity_id) as total_entities,
-                        COUNT(
-                            DISTINCT CASE
-                            WHEN valid_measurements > 0
-                            THEN entity_stats.entity_id END
-                        ) as entities_with_at_least_one_successful,
-                        COUNT(
-                            DISTINCT CASE
-                            WHEN valid_measurements = total_measurements
-                            AND total_measurements > 0
-                            THEN entity_stats.entity_id END
-                        ) as entities_with_all_successful
-                    FROM (
-                        SELECT
-                            res.entity_id,
-                            COUNT(res.uid) as total_measurements,
-                            SUM(CASE WHEN JSON_EXTRACT(res.data, '$.reason') IS NULL THEN 1 ELSE 0 END) as valid_measurements
-                        FROM {self._tablename}_measurement_requests req
-                        JOIN {self._tablename}_measurement_requests_results reqres ON reqres.request_uid = req.uid
-                        JOIN {self._tablename}_measurement_results res ON reqres.result_uid = res.uid
-                        WHERE req.operation_id = :operation_id
-                        GROUP BY res.entity_id
-                    ) AS entity_stats
-                """  # noqa: S608 - self._tablename is not untrusted
-
-                query = sqlalchemy.text(query_text).bindparams(
-                    operation_id=operation_id
-                )
-                cur = connectable.execute(query)
                 (
                     total_entities,
                     entities_with_at_least_one_successful,
                     entities_with_all_successful,
-                ) = cur.one()
+                ) = connectable.execute(stmt).one()
 
                 return {
                     "entities_with_all_successful_measurements": entities_with_all_successful,

@@ -196,7 +196,7 @@ def delete_resource(
     """
     Delete resources and contexts.
 
-    See https://ibm.github.io/ado/getting-started/ado/#ado-delete
+    See https://ibm.github.io/ado/latest/cli-reference/#ado-delete
     for detailed documentation and examples.
 
     Examples:

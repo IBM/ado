@@ -13,7 +13,7 @@ from ado.core.discoveryspace.config import DiscoverySpaceConfiguration
 from ado.core.operation.config import DiscoveryOperationResourceConfiguration
 
 YAML_EXAMPLES_DIR = pathlib.Path(
-    ".cursor/skills/formulate-discovery-problem/yaml-examples"
+    ".agents/skills/formulate-discovery-problem/yaml-examples"
 )
 
 # Space YAML files: DiscoverySpaceConfiguration structure

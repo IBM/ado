@@ -35,7 +35,7 @@ def manage_contexts(
     """
     View or set the active context.
 
-    See https://ibm.github.io/ado/getting-started/ado/#ado-context for
+    See https://ibm.github.io/ado/latest/cli-reference/#ado-context for
     detailed documentation and examples.
 
     Examples:
@@ -74,7 +74,7 @@ def list_contexts(
     """
     List available contexts.
 
-    See https://ibm.github.io/ado/getting-started/ado/#ado-context
+    See https://ibm.github.io/ado/latest/cli-reference/#ado-context
     for detailed documentation and examples.
 
     Examples:
@@ -107,6 +107,7 @@ def list_contexts(
         no_trunc=False,
         output_file=None,
         output_format=output_format,
+        related_to=None,
         resource_id=None,
         resource_type=AdoGetSupportedResourceTypes.CONTEXT,
         show_deprecated=False,

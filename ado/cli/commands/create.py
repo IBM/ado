@@ -178,7 +178,7 @@ def create_resource(
     """
     Create resources, contexts, and start operations.
 
-    See https://ibm.github.io/ado/getting-started/ado/#ado-create
+    See https://ibm.github.io/ado/latest/cli-reference/#ado-create
     for detailed documentation and examples.
 
     Examples:

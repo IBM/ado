@@ -2,10 +2,11 @@
 *
 
 # Only allow what we need
+!.agents
 !.git
+!ado
 !examples
 !LICENSE
-!ado
 !plugins
 !pyproject.toml
 !README.md

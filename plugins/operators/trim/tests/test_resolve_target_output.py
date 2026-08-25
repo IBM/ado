@@ -1,14 +1,6 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-"""Unit tests for _resolve_target_output in trim/operator.py.
-
-These tests are intentionally lightweight: _resolve_target_output only reads
-discoverySpace.measurementSpace.experimentReferences and
-discoverySpace.measurementSpace.observedProperties, so a minimal stub is
-sufficient — no database or sample store is needed.
-"""
-
 from types import SimpleNamespace
 
 import pytest

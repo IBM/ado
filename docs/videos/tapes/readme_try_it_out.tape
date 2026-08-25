@@ -20,9 +20,9 @@
 # holds `ado describe experiment` without scrolling.
 #
 # Values are 2x a 100x29 layout and Padding is 0. VHS applies padding by
-# scaling the frame, which is what made the glyphs look soft; recording at
-# 2x and letting make_gif.sh scale down is the workaround recommended in
-# charmbracelet/vhs#69 and #625.
+# scaling the frame, which blurs glyphs; recording at 2x and letting
+# make_gif.sh half-scale (then add a 20px extend-pad) is the workaround
+# from charmbracelet/vhs#69 and #625.
 #
 # PlaybackSpeed 2 renders the whole recording at double speed, which halves the
 # ~40s that ado spends on Ray startup, the random walk and Ray teardown. Sleep

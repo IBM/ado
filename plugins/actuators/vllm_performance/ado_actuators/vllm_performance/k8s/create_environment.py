@@ -4,7 +4,10 @@
 import logging
 
 import pydantic
-from ado_actuators.vllm_performance.k8s import K8sDeploymentCreationTimeoutError
+from ado_actuators.vllm_performance.k8s import (
+    K8sDeploymentCreationTimeoutError,
+    K8sDeploymentDeletionTimeoutError,
+)
 from ado_actuators.vllm_performance.k8s.manage_components import (
     ComponentsManager,
 )
@@ -52,6 +55,7 @@ def create_test_environment(
     enable_prefix_caching: bool = False,
     check_interval: int = 5,
     timeout: int = 1200,
+    deletion_timeout: int = 30,
 ) -> None:
     """
     Create test deployment
@@ -90,7 +94,8 @@ def create_test_environment(
     :param kv_cache_dtype: KV cache data type (e.g. fp8, turboquant_k8v4); if None, vLLM default is used
     :param enable_prefix_caching: flag to enable prefix caching in vLLM
     :param check_interval: wait interval in seconds
-    :param timeout: timeout in seconds
+    :param timeout: timeout in seconds for deployment readiness
+    :param deletion_timeout: timeout in seconds for Kubernetes to carry out the deployment deletion.
     :return:
     """
     if node_selector is None:
@@ -172,9 +177,21 @@ def create_test_environment(
         # resources if created, to make sure we don't re-create existing resources during
         # a retry.
         if isinstance(e, K8sDeploymentCreationTimeoutError):
-            logger.debug("Creating the {k8s_name} deployment has timed out")
+            logger.debug(f"Creating the {k8s_name} deployment has timed out")
         c_manager.delete_deployment(k8s_name=k8s_name, suppress_not_found_error=True)
         c_manager.delete_service(k8s_name=k8s_name, suppress_not_found_error=True)
+        # Wait for the deployment object to disappear before re-raising so that
+        # any retry (or the next entity) does not hit a 409 AlreadyExists conflict.
+        try:
+            c_manager.wait_deployment_deleted(
+                k8s_name=k8s_name,
+                check_interval=check_interval,
+                timeout=deletion_timeout,
+            )
+        except K8sDeploymentDeletionTimeoutError:
+            logger.error(
+                f"Timed out waiting for deleted deployment {k8s_name} to disappear."
+            )
         raise (e)
 
 

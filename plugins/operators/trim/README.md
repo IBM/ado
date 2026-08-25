@@ -48,6 +48,6 @@ To learn more about TRIM and explore the full capabilities of ADO, including
 detailed documentation, configuration guides, and additional examples, visit the
 official ADO website:
 
-- **TRIM Quickstart**: <https://ibm.github.io/ado/examples/trim/>
-- **Configuring TRIM**: <https://ibm.github.io/ado/operators/trim/>
-- **ADO Documentation**: <https://ibm.github.io/ado/>
+- **TRIM Quickstart**: <https://ibm.github.io/ado/latest/user-guide/examples/trim/>
+- **Configuring TRIM**: <https://ibm.github.io/ado/latest/user-guide/operators/trim/>
+- **ADO Documentation**: <https://ibm.github.io/ado/latest/>

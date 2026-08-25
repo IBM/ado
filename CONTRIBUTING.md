@@ -87,7 +87,8 @@ You can get in touch with us by starting a
 ## Setup
 
 To set up your development environment, follow the instructions in our
-[development guide](https://ibm.github.io/ado/getting-started/developing) file.
+[development guide](https://ibm.github.io/ado/latest/developer-guide/getting-started/)
+file.
 
 ## Testing
 
@@ -167,14 +168,14 @@ And `scope` is one of the following:
 
 We require code and markup to adhere to certain rules. We enforce these rules
 though the tools we mention in
-[our development guide](https://ibm.github.io/ado/getting-started/developing),
+[our development guide](https://ibm.github.io/ado/latest/developer-guide/developing/),
 namely:
 
-- [Ruff format](https://ibm.github.io/ado/getting-started/developing#code-style)
-- [Ruff check](https://ibm.github.io/ado/getting-started/developing#linting-code-with-ruff)
-- [uv](https://ibm.github.io/ado/getting-started/developing#verifying-lockfile-integrity)
-- [Copywrite](https://ibm.github.io/ado/getting-started/developing#copyright-and-license-headers)
-- [Markdownlint-cli2](https://ibm.github.io/ado/getting-started/developing#linting-markdown-with-markdownlint-cli2)
+- [Ruff format](https://ibm.github.io/ado/latest/developer-guide/developing/#code-style)
+- [Ruff check](https://ibm.github.io/ado/latest/developer-guide/developing/#linting-code-with-ruff)
+- [uv](https://ibm.github.io/ado/latest/developer-guide/developing/#verifying-lockfile-integrity)
+- [Copywrite](https://ibm.github.io/ado/latest/developer-guide/developing/#copyright-and-license-headers)
+- [Markdownlint-cli2](https://ibm.github.io/ado/latest/developer-guide/developing/#linting-markdown-with-markdownlint-cli2)
 - [Yamlfmt](https://github.com/google/yamlfmt)
 
 Before submitting a pull request, you must ensure that all of the following
@@ -195,14 +196,14 @@ yamlfmt -lint -exclude ".venv" -exclude ".tox" .
 The `uv lock --check` command verifies that the `uv.lock` lockfile is up-to-date
 with the dependencies specified in `pyproject.toml`. If this check fails, run
 `uv lock` to regenerate the lockfile. See the
-[development guide](https://ibm.github.io/ado/getting-started/developing#verifying-lockfile-integrity)
+[development guide](https://ibm.github.io/ado/latest/developer-guide/developing/#verifying-lockfile-integrity)
 for more details.
 
 ## Website checks
 
 To minimize broken links, we use linkcheck to spot issues before things are
 merged. After you've installed it and have started serving the website
-[using the instructions provided](https://ibm.github.io/ado/getting-started/developing#website-link-checking),
+[using the instructions provided](https://ibm.github.io/ado/latest/developer-guide/developing/#website-link-checking),
 you can check for broken links with:
 
 ```commandline

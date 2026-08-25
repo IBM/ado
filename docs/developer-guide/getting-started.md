@@ -82,7 +82,7 @@ framework itself.
 ## Agent-assisted development
 
 Both paths benefit from opening the `ado` repository in an agent-enabled editor.
-The agent will automatically find all necessary rules and skills in `.cursor/`.
+The agent will automatically find all necessary rules and skills in `.agents/`.
 
 - **In-tree:** Open the `ado` repository root — the agent loads everything
   automatically.
@@ -91,7 +91,7 @@ The agent will automatically find all necessary rules and skills in `.cursor/`.
 
 For core contributors, you can ask the agent to review your work before creating
 a pull request using the template in
-[`.cursor/commands/review.md`](https://github.com/IBM/ado/blob/main/.cursor/commands/review.md).
+[`.agents/skills/review/`](https://github.com/IBM/ado/blob/main/.agents/skills/review/).
 
 ---
 

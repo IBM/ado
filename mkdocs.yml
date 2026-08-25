@@ -1,6 +1,6 @@
 # Project Information
 site_name: "ado Documentation"
-site_url: "https://ibm.github.io/ado"
+site_url: "https://ibm.github.io/ado/"
 site_description: "Documentation website for https://github.com/ibm/ado"
 site_author: "The ado authors"
 # Repository Information
@@ -19,6 +19,7 @@ copyright: Copyright IBM Research.
 extra:
   version:
     provider: mike
+    default: latest
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/ibm/ado
@@ -203,4 +204,5 @@ nav:
       - operation: resources/operation.md
       - actuatorconfiguration: resources/actuatorconfig.md
       - datacontainer: resources/datacontainer.md
+      - document: resources/document.md
   - CLI Reference: cli-reference/index.md

@@ -27,7 +27,8 @@ def show_discovery_space_stats(parameters: AdoShowStatsCommandParameters) -> Non
 
     Outputs all standard ``ado get`` table columns (IDENTIFIER, NAME, AGE)
     plus lightweight stats columns (EXPERIMENTS, OPERATIONS,
-    EXPLORE_OPERATIONS, MEASURED_ENTITIES) and heavy stats columns
+    EXPLORE_OPERATIONS, MEASURED_ENTITIES — entities with at least one
+    measurement, whether successful, failed, or both) and heavy stats columns
     (SIZE_OF_ENTITY_SPACE, UNMEASURED_ENTITIES, MATCHING_ENTITIES,
     MATCHING_WITH_MEASUREMENTS, ENTITIES_WITH_ALL_MEASUREMENTS,
     ENTITIES_WITH_PARTIAL_MEASUREMENTS,

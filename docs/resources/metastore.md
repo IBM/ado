@@ -1,7 +1,7 @@
 <!-- markdownlint-disable code-block-style -->
 <!-- markdownlint-disable-next-line first-line-h1 -->
 `ado` uses a SQL database to store
-[resource definitions](https://ibm.github.io/ado/resources/resources/#common-features-of-resources)
+[resource definitions](index.md#common-features-of-resources)
 and [SQLSampleStores](sample-stores.md#sqlsamplestore). When you execute `ado`
 commands like `get` or `describe` they are interacting with this metastore.
 
@@ -85,23 +85,16 @@ ado get contexts
 This will output something like
 
 ```terminaloutput
-┌───────┬────────────────────────┬─────────┐
-│ INDEX │ CONTEXT                │ DEFAULT │
-├───────┼────────────────────────┼─────────┤
-│ 0     │ ap-test                │         │
-│ 1     │ ap-testing             │         │
-│ 2     │ caikit-testharness     │         │
-│ 3     │ developer-testing      │         │
-│ 4     │ finetuning             │         │
-│ 5     │ ft-prod                │         │
-│ 6     │ ft-vela                │         │
-│ 7     │ llm-d                  │         │
-│ 8     │ local                  │ ✅      │
-│ 9     │ local-test             │         │
-│ 10    │ mascots2024            │         │
-│ 11    │ playground             │         │
-│ 12    │ resource-store-testing │         │
-└───────┴────────────────────────┴─────────┘
+┌───────┬─────────────────────────┬────────┐
+│ INDEX │ CONTEXT                 │ ACTIVE │
+├───────┼─────────────────────────┼────────┤
+│ 0     │ algorithm-nexus         │        │
+│ 1     │ cplex_mip               │        │
+│ 2     │ geospatial-benchmarking │        │
+│ 3     │ llm-d                   │        │
+│ 4     │ local                   │ ✅     │
+│ 5     │ playground              │        │
+└───────┴─────────────────────────┴────────┘
 ```
 
 Note, the name of the context is the name of the associated project.
@@ -164,7 +157,7 @@ existing database.
 
 The [`ado get`](../cli-reference/index.md#ado-get) CLI command lets you easily
 retrieve and search
-[resource definitions](https://ibm.github.io/ado/resources/resources/#common-features-of-resources)
+[resource definitions](index.md#common-features-of-resources)
 in the metastore in a variety of ways.
 
 ### Searching for similar spaces
@@ -174,7 +167,7 @@ space. A space is considered similar only if **both** of the following hold:
 
 - They include **exactly the same base experiments** as the reference space
 - Their **entity space** is in a **hierarchical relationship** with the
-  reference space: subspace, equal or superspace
+  reference space's entity space: subspace, equal or superspace
 
 This search can be performed in two ways:
 
@@ -185,9 +178,9 @@ This search can be performed in two ways:
   to the flag `--matching-space`. This is useful to find similar spaces without
   actually creating one first.
 
-The output of this command will include the hierarchical relationship between
-the spaces, meaning that a column will say whether the matching space is a
-subspace, a superspace, or an exact match.
+The output includes a `RELATION_TO_INPUT_ENTITY_SPACE` column indicating
+whether each matching space's entity space is a subspace, superspace, or exact
+match of the reference space.
 
 ### Searching for spaces containing a point
 

@@ -1,7 +1,7 @@
 <!-- markdownlint-disable code-block-style -->
 <!-- markdownlint-disable first-line-h1 -->
 
-!!! info end
+!!! tip end
 
     A complete example operator is provided
     [here](https://github.com/IBM/ado/tree/main/plugins/operators/profile_space).
@@ -48,11 +48,20 @@ from ado.modules.operators.collections import (
 
 
 @characterize_operation(
-    name="my_operator",  # The name of your operator.
-    description="Example operator",  # What this operator does
-    configuration_model=MyOperatorOptions,  # A pydantic model that describes your operators input parameters
-    example_configuration=MyOperatorOptions.example_configuration(),  # An example of your operators input parameters
-    version="1.0",  # Version of the operator
+    name="detect_anomalous_series",
+    description="""
+    This operation checks if the behaviour of an observed property versus
+    an independent (constitutive) property is as expected.
+
+    The behaviours that can be checked are: True (all values are 1/True); Constant (all values are the same);
+    Monotonically Increasing; or Monotonically Decreasing.
+
+    The entities in the discovery space can be divided into groups based on a user supplied set of constitutive
+    properties, other than the selected independent property.
+    """,
+    configuration_model=DetectAnomalousSeries,
+    example_configuration=DetectAnomalousSeries.example_configuration(),
+    version="1.0.5",
 )
 def detect_anomalous_series(
         discoverySpace: DiscoverySpace,
@@ -179,7 +188,7 @@ the previous section with the relevant fields called out:
     description="Example operator",
     configuration_model=MyOperatorOptions,  # <- A pydantic model that describes your operators input parameters
     example_configuration=MyOperatorOptions(), # <- An example of your operators input parameters
-    version="1.0",
+    version="1.0.0",
 )
 ```
 

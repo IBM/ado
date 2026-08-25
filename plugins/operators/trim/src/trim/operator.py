@@ -20,6 +20,78 @@ from trim.utils.logging_utils import (
 logger_trim = logging.getLogger(__name__)
 
 
+def validate_targetOutput(
+    params: "TrimParameters",
+    discoverySpace: DiscoverySpace,
+) -> "TrimParameters":
+    """Resolve and validate ``params.targetOutput`` against the measurement space.
+
+    ``targetOutput`` must be the bare *target property identifier* (e.g.
+    ``"pressure"``) because ``get_source_and_target`` calls
+    ``matchingEntitiesTable(property_type="target")`` which keys columns by
+    ``targetProperty.identifier``.
+
+    If the user supplied the fully-qualified *observed property identifier*
+    (e.g. ``"calculate_pressure_ideal_gas-pressure"``) this function silently
+    rewrites ``params.targetOutput`` (and the nested copy in
+    ``params.noPriorParameters.targetOutput``) to the bare form.
+
+    Args:
+        params: Validated ``TrimParameters`` as parsed from kwargs.
+        discoverySpace: The discovery space being characterised.
+
+    Returns:
+        ``params`` with ``targetOutput`` (and the nested copy in
+        ``noPriorParameters``) set to the bare target property identifier.
+
+    Raises:
+        ValueError: When ``targetOutput`` does not match any observed property,
+            is ambiguous, or when the discoverySpace does not contain exactly 1
+            experimentReference.
+    """
+    num_exps = len(discoverySpace.measurementSpace.experimentReferences)
+    if num_exps != 1:
+        raise ValueError(
+            "The discoverySpace must contain exactly 1 experiment but it contains "
+            f"{num_exps} experiments instead."
+        )
+
+    observed_properties = discoverySpace.measurementSpace.observedProperties
+
+    # Already a bare target property identifier — validate it exists.
+    if params.targetOutput in {
+        op.targetProperty.identifier for op in observed_properties
+    }:
+        return params
+
+    # Try to resolve from a fully-qualified observed property identifier.
+    matches = [op for op in observed_properties if op.identifier == params.targetOutput]
+
+    if len(matches) == 1:
+        resolved = matches[0].targetProperty.identifier
+        logger_trim.info(
+            f"targetOutput '{params.targetOutput}' resolved to bare target property "
+            f"identifier '{resolved}'."
+        )
+        params.targetOutput = resolved
+        params.noPriorParameters.targetOutput = resolved
+        return params
+
+    if len(matches) == 0:
+        valid = sorted({op.targetProperty.identifier for op in observed_properties})
+        raise ValueError(
+            f"targetOutput '{params.targetOutput}' does not match any observed "
+            f"property in the measurement space. "
+            f"Valid target property identifiers are: {valid}"
+        )
+
+    # len(matches) > 1: should not happen since observed property identifiers are unique.
+    candidates = sorted(op.targetProperty.identifier for op in matches)
+    raise ValueError(
+        f"targetOutput '{params.targetOutput}' is ambiguous. Candidates: {candidates}"
+    )
+
+
 @characterize_operation(
     name="trim",
     configuration_model=TrimParameters,
@@ -62,8 +134,12 @@ def trim(
     )
 
     random_walk = explore.operators["random_walk"].function
+    if random_walk is None:
+        raise RuntimeError("The random_walk operator has no registered function")
 
-    params = parameters
+    # VV: This validates the targetOutput and also converts it to "bare" format,
+    # compatible with retrieving the "target" properties in a space.
+    params = validate_targetOutput(parameters, discoverySpace)
     logger_trim.info(
         "Transfer Refined Iterative Modeling starts."
         f"Target variable = {params.targetOutput}"
@@ -149,6 +225,25 @@ def trim(
                 additional_info=f"This was detected during the no-priors characterization phase: {params.samplingBudget.minPoints - len(source_df)} out of {params.samplingBudget.minPoints}.",
             )
 
+    # maxPoints is a shared new-sample budget across no-priors and iterative phases
+    numberEntities_iterative_modeling = params.samplingBudget.maxPoints - (
+        len(source_df) - initial_source_space_size
+    )
+    if numberEntities_iterative_modeling <= 0:
+        logger_trim.warning(
+            "No sampling budget remains for iterative modeling; skipping it."
+        )
+        resources = (
+            [op_output_characterization_no_prior.operation]
+            if op_output_characterization_no_prior.operation is not None
+            else []
+        )
+        return OperationOutput(
+            other=[],
+            resources=resources,
+            metadata={},
+        )
+
     # TRIM Iterative Modeling
     trim_module = SamplerModuleConf(
         moduleClass="TrimSampleSelector",  # this is the name of our custom sampler class -> which I guess is CustomSequentialSampleSelector
@@ -156,11 +251,6 @@ def trim(
     )
     trim_sampler_config = CustomSamplerConfiguration(
         module=trim_module, parameters=params
-    )
-    numberEntities_iterative_modeling = (
-        len(source_df) - initial_source_space_size
-        if op_output_characterization_no_prior.operation
-        else params.samplingBudget.maxPoints
     )
     trim_rwparams = RandomWalkParameters(
         samplerConfig=trim_sampler_config,

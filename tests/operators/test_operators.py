@@ -453,7 +453,7 @@ def test_run_random_walk_operation(
     spaces = discoverySpace.metadataStore.get_resources_by_relationship(
         kind=CoreResourceKinds.OPERATION,
         identifier=operationOutput.operation.identifier,
-        hierarchy_direction="up",
+        relationship="parent",
         max_hops=1,
         identifiers_only=True,
     ).get(CoreResourceKinds.DISCOVERYSPACE, set())
@@ -587,7 +587,7 @@ def test_run_ray_tune_operation(
     spaces = discoverySpace.metadataStore.get_resources_by_relationship(
         kind=CoreResourceKinds.OPERATION,
         identifier=operationOutput.operation.identifier,
-        hierarchy_direction="up",
+        relationship="parent",
         max_hops=1,
         identifiers_only=True,
     ).get(CoreResourceKinds.DISCOVERYSPACE, set())

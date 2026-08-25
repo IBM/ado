@@ -14,6 +14,7 @@ from ado.cli.resources.actuator_configuration.delete import (
 from ado.cli.resources.context.delete import delete_context
 from ado.cli.resources.data_container.delete import delete_data_container
 from ado.cli.resources.discovery_space.delete import delete_discovery_space
+from ado.cli.resources.document.delete import delete_document
 from ado.cli.resources.operation.delete import delete_operation
 from ado.cli.resources.sample_store.delete import delete_sample_store
 from ado.cli.utils.input.parsers import enum_choice_with_plural_parser
@@ -195,7 +196,7 @@ def delete_resource(
     """
     Delete resources and contexts.
 
-    See https://ibm.github.io/ado/getting-started/ado/#ado-delete
+    See https://ibm.github.io/ado/latest/cli-reference/#ado-delete
     for detailed documentation and examples.
 
     Examples:
@@ -220,6 +221,7 @@ def delete_resource(
         AdoDeleteSupportedResourceTypes.CONTEXT: delete_context,
         AdoDeleteSupportedResourceTypes.DATA_CONTAINER: delete_data_container,
         AdoDeleteSupportedResourceTypes.DISCOVERY_SPACE: delete_discovery_space,
+        AdoDeleteSupportedResourceTypes.DOCUMENT: delete_document,
         AdoDeleteSupportedResourceTypes.SAMPLE_STORE: delete_sample_store,
         AdoDeleteSupportedResourceTypes.OPERATION: delete_operation,
     }

@@ -2,7 +2,7 @@
 
 Full documentation for this example is on the ado website:
 
-- [Search for best configuration with an optimizer](https://ibm.github.io/ado/user-guide/examples/best-configuration-search/)
+- [Search for best configuration with an optimizer](https://ibm.github.io/ado/latest/user-guide/examples/best-configuration-search/)
 
 ## Files in this directory
 

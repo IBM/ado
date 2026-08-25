@@ -16,6 +16,7 @@ from ado.cli.resources.actuator_configuration.template import (
 )
 from ado.cli.resources.context.template import template_context
 from ado.cli.resources.discovery_space.template import template_discovery_space
+from ado.cli.resources.document.template import template_document
 from ado.cli.resources.operation.template import template_operation
 from ado.cli.resources.sample_store.template import template_sample_store
 from ado.cli.utils.input.parsers import (
@@ -140,7 +141,7 @@ def template_resource(
     """
     Output templates for creating resources and contexts.
 
-    See https://ibm.github.io/ado/getting-started/ado/#ado-template
+    See https://ibm.github.io/ado/latest/cli-reference/#ado-template
     for detailed documentation and examples.
 
     Examples:
@@ -169,6 +170,7 @@ def template_resource(
         AdoTemplateSupportedResourceTypes.ACTUATOR_CONFIGURATION: template_actuator_configuration,
         AdoTemplateSupportedResourceTypes.CONTEXT: template_context,
         AdoTemplateSupportedResourceTypes.DISCOVERY_SPACE: template_discovery_space,
+        AdoTemplateSupportedResourceTypes.DOCUMENT: template_document,
         AdoTemplateSupportedResourceTypes.SAMPLE_STORE: template_sample_store,
         AdoTemplateSupportedResourceTypes.OPERATION: template_operation,
     }

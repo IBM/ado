@@ -57,7 +57,7 @@ app = typer.Typer(
     help="""
     ado is a unified platform for executing computational experiments at scale and analysing their results.
 
-    See https://ibm.github.io/ado/getting-started/ado/ for detailed
+    See https://ibm.github.io/ado/latest/cli-reference/ for detailed
     documentation and examples.
     """,
 )
@@ -141,7 +141,7 @@ def common_options(
 
             The active project context must use a non-SQLite (remote) metastore.
 
-            See https://ibm.github.io/ado/getting-started/remote_run/ for details.""",
+            See https://ibm.github.io/ado/latest/user-guide/advanced/remote-execution/ for details.""",
             show_default=False,
             file_okay=True,
             dir_okay=False,

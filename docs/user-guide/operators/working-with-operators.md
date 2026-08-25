@@ -39,32 +39,42 @@ ado get operators
 Example output:
 
 ```commandline
-┌───────┬─────────────────────────┬──────────────┐
-│ INDEX │ OPERATOR                │ TYPE         │
-├───────┼─────────────────────────┼──────────────┤
-│ 0     │ detect_anomalous_series │ characterize │
-│ 1     │ profile                 │ characterize │
-│ 2     │ trim                    │ characterize │
-│ 3     │ random_walk             │ explore      │
-│ 4     │ ray_tune                │ explore      │
-│ 5     │ rifferla                │ modify       │
-└───────┴─────────────────────────┴──────────────┘
+┌───────┬─────────────────────────┬─────────┬──────────────┐
+│ INDEX │ OPERATOR                │ VERSION │ TYPE         │
+├───────┼─────────────────────────┼─────────┼──────────────┤
+│ 0     │ detect_anomalous_series │ 1.0.5   │ characterize │
+│ 1     │ profile                 │ 2.0.4   │ characterize │
+│ 2     │ trim                    │ 2.0.3   │ characterize │
+│ 3     │ random_walk             │ 2.0.0   │ explore      │
+│ 4     │ ray_tune                │ 2.0.6   │ explore      │
+│ 5     │ rifferla                │ 2.0.6   │ modify       │
+└───────┴─────────────────────────┴─────────┴──────────────┘
 ```
 
 ## Using operators
 
 Using an operator involves the following steps:
 
-1. Find the input parameters for the operator:
-   - `ado template operation --operator-name $OPERATOR_NAME`
-2. Write an operation YAML for applying the operator.
-   - This involves setting specific values for its input parameters.
+1. Generate an operation template for the operator with default parameter values:
+
+      ```shell
+      ado template operation --operator-name $OPERATOR_NAME
+      ```
+
+2. Edit the generated YAML to configure the parameters to your liking.
 3. Create the operation:
-   - `ado create operation -f $YAML`
+
+      ```shell
+      ado create operation -f $OPERATION_FILE
+      ```
+
 4. Retrieve the results of the operation:
-   - `ado show related $OPERATION_IDENTIFIER`
-   - in addition `ado show measurements $OPERATION_IDENTIFIER` for explore
-     operations
+
+      ```shell
+      ado show related operation --use-latest
+      # For explore operations
+      ado show measurements operation --use-latest
+      ```
 
 These steps are covered in detail in [operations](../../resources/operation.md).
 

@@ -923,7 +923,8 @@ class DiscoverySpace:
         return self._metadataStore.get_resources_by_relationship(
             kind=ado.core.resources.CoreResourceKinds.DISCOVERYSPACE,
             identifier=self.uri,
-            hierarchy_direction="down",
+            relationship="child",
+            result_kinds={ado.core.resources.CoreResourceKinds.OPERATION},
             max_hops=1,
             identifiers_only=True,
         ).get(ado.core.resources.CoreResourceKinds.OPERATION, set())

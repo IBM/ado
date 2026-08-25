@@ -14,9 +14,7 @@ class ProfileParameters(GenericOperatorParameters):
 
 
 _EMPTY_PROFILE_PARAMETERS = ProfileParameters()
-
-
-# See https://ibm.github.io/ado/operators/creating-operators/#ado-operator-functions
+# See https://ibm.github.io/ado/latest/developer-guide/creating-operators/#ado-operator-functions
 # for documentation on the decorator and its parameters
 @characterize_operation(
     name="profile",
@@ -25,7 +23,7 @@ _EMPTY_PROFILE_PARAMETERS = ProfileParameters()
     example_configuration=ProfileParameters(),
     description="Returns a data_profiling ProfileReport for the space",
 )
-# operator function can have any name but have similar parameters - see https://ibm.github.io/ado/operators/creating-operators/#operator-function-parameters
+# operator function can have any name but have similar parameters - see https://ibm.github.io/ado/latest/developer-guide/creating-operators/#operator-function-parameters
 def profile(
     discoverySpace: DiscoverySpace,
     operationInfo: FunctionOperationInfo | None = None,
@@ -48,6 +46,6 @@ def profile(
         ]
     )
 
-    # See https://ibm.github.io/ado/operators/creating-operators/#returning-data-from-your-operation
+    # See https://ibm.github.io/ado/latest/developer-guide/creating-operators/#returning-data-from-your-operation-operation-outputs
     # for documentation on the return value of an operator function
     return OperationOutput(other=[data_profiling.ProfileReport(df)])

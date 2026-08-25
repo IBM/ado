@@ -106,13 +106,13 @@ def get_related_resource_identifiers_by_identifier(
     def _get_related_resource_identifiers_by_identifier(
         identifier: str,
         kind: CoreResourceKinds,
-        hierarchy_direction: str = "both",
+        relationship: str = "both",
     ) -> dict[CoreResourceKinds, set[str]]:
 
         return sql_store.get_resources_by_relationship(
             kind=kind,
             identifier=identifier,
-            hierarchy_direction=hierarchy_direction,
+            relationship=relationship,
             max_hops=None,
             identifiers_only=True,
         )

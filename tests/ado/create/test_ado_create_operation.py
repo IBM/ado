@@ -2,10 +2,11 @@
 # SPDX-License-Identifier: MIT
 
 import pathlib
+import sys
 from collections.abc import Callable
 
 import pytest
-from testcontainers.mysql import MySqlContainer
+from testcontainers.community.mysql import MySqlContainer
 from typer.testing import CliRunner
 
 from ado.cli.core.cli import app as ado
@@ -200,6 +201,13 @@ def test_create_operation_success_with_discovery_space(
 
 
 @requires_sqlite_3_38
+@pytest.mark.flaky(
+    reruns=3,
+    reruns_delay=5,
+    condition=sys.version_info >= (3, 14),
+    only_rerun="OutOfMemoryError",
+    reason="numba OOM on Python 3.14 when JIT compilation fails for nevergrad",
+)
 def test_create_ml_multi_cloud_operation_success_lhc_sampler(
     tmp_path: pathlib.Path,
     ml_multi_cloud_sample_store_configuration_file: pathlib.Path,

@@ -132,18 +132,18 @@ For example, the default parameters and values for a `ray_tune` operation are:
 
 ```yaml
 orchestratorConfig:
+  failed_metric_value: NaN # This will be used for the value of "metric" for any entities where it could not be measured (for any reason)
   metric_format: target # Format for metric names: "target" (default) or "observed"
-  failed_metric_value: None # This will be used for the value of "metric' for any entities where it could not be measured (for any reason)
   result_dump: none # If specified the best result found will be written to this file
   single_measurement_per_property: true # If true memoization is used. If false already measured entities will be re-measured.
 runtimeConfig:
-  stop: None # A list of Stoppers or None. See below for stoppers
+  stop: null # A list of Stoppers or null. See below for stoppers
 tuneConfig:
+  max_concurrent_trials: 1 # The maximum number of trials to run concurrently
   metric: wallclock_time # The target property identifier to optimize w.r.t
   mode: min # Whether to search for min or max of the target property
-  num_samples: 1 # The number of samples to draw
   search_alg:
-    name: ax # The name of the optimization algorithm to use
+    name: bayesopt # The name of the optimization algorithm to use
     params: {} # The parameters for the optimizer
 ```
 
@@ -157,9 +157,13 @@ together and how they interact.
 !!! info end
 
     You can get a default RayTune operation template and the schema of its
-    parameters by running
-    `ado template operation --operator-name ray_tune --include-schema`. The
-    information output by this command should always be preferred over the
+    parameters by running:
+
+    ```shell
+    ado template operation --operator-name ray_tune --include-schema
+    ```
+
+    The information output by this command should always be preferred over the
     information presented here in case of inconsistencies.
 
 ### Trials versus Samples
@@ -182,15 +186,15 @@ which are all optional:
       (e.g., `"latency"`)
     - **"observed"**: Use [observed property identifiers](../../concepts/actuators.md#target-and-observed-properties)
       (e.g., `"actuator.experiment.latency"`)
-- `failed_metric_value` (default None)
-    - This will be used for the value of "metric' for any entities where it could
-    not be measured (for any reason)
-- `result_dump` (default None)
+- `failed_metric_value` (default NaN)
+    - This will be used for the value of "metric" for any entities where it could
+      not be measured (for any reason)
+- `result_dump` (default none)
     - If specified the best result found will be written to this file
 - `single_measurement_per_property` (default true)
     - If true
-     [memoization](#what-happens-if-i-apply-multiple-ray_tune-operations-to-a-space)
-     is used.
+      [memoization](#what-happens-if-i-apply-multiple-ray_tune-operations-to-a-space)
+      is used.
     - If false already measured entities will be re-measured.
 
 <!-- prettier-ignore-end -->

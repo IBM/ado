@@ -3,6 +3,7 @@
 
 import asyncio
 import logging
+import time
 from enum import Enum
 from typing import Annotated
 
@@ -64,6 +65,18 @@ class Environment(pydantic.BaseModel):
         str,
         pydantic.Field(description="LLM model name (e.g., 'meta-llama/Llama-2-7b-hf')"),
     ]
+    freed_at: Annotated[
+        float | None,
+        pydantic.Field(
+            description="Monotonic timestamp (time.monotonic()) of when the environment entered the free pool. None until the environment is freed."
+        ),
+    ] = None
+    delete_attempts: Annotated[
+        int,
+        pydantic.Field(
+            description="Number of GC cycles in which this environment was found still present in K8s after a delete was issued."
+        ),
+    ] = 0
 
     @pydantic.model_validator(mode="before")
     @classmethod
@@ -113,6 +126,9 @@ class EnvironmentManager:
         pvc_name: str | None = None,
         pvc_template: str | None = None,
         otlp_traces_endpoint: pydantic.AnyUrl | None = None,
+        free_environment_ttl: int = 300,
+        gc_force_delete: bool = False,
+        gc_force_delete_threshold: int = 3,
     ) -> None:
         """
         Initialize
@@ -123,9 +139,21 @@ class EnvironmentManager:
         :param pvc_name: name of the PVC to be created / used
         :param pvc_template: template of the PVC to be created
         :param otlp_traces_endpoint: OpenTelemetry traces endpoint URL
+        :param free_environment_ttl: seconds a free environment may idle before
+            being garbage collected. 0 means delete immediately on release.
+        :param gc_force_delete: if True, issue a force-delete (finalizer
+            removal + grace_period=0) when a stuck deployment has been present
+            for ``gc_force_delete_threshold`` GC cycles after deletion. The
+            environment is then dropped from the watch list. When False the GC
+            keeps logging a warning every cycle until the deployment disappears.
+            Disabled by default.
+        :param gc_force_delete_threshold: number of GC cycles a deployment may
+            remain present in K8s after deletion before a force-delete is
+            issued. Only used when ``gc_force_delete`` is True.
         """
         self.in_use_environments: dict[str, Environment] = {}
         self.free_environments: list[Environment] = []
+        self.deleting_environments: list[Environment] = []
         self.environments_queue = EnvironmentsQueue()
         self.deployment_conflict_manager = DeploymentConflictManager()
         self.namespace = namespace
@@ -133,6 +161,10 @@ class EnvironmentManager:
         self.in_cluster = in_cluster
         self.verify_ssl = verify_ssl
         self.otlp_traces_endpoint = otlp_traces_endpoint
+        self.free_environment_ttl = free_environment_ttl
+        self.gc_force_delete = gc_force_delete
+        self.gc_force_delete_threshold = gc_force_delete_threshold
+        self._stop_gc = False
 
         # component manager for cleanup
         self.manager = ComponentsManager(
@@ -143,6 +175,12 @@ class EnvironmentManager:
             pvc_name=pvc_name,
             pvc_template=pvc_template,
         )
+
+        # Always start the GC loop so that deletion monitoring and escalation
+        # (force-delete) work regardless of TTL setting.
+        # When TTL is 0 the free pool is disabled and _gc_free_environments is
+        # a no-op, but _gc_confirm_deletions still tracks stuck environments.
+        self._gc_task = asyncio.get_event_loop().create_task(self._gc_loop())
 
     def _delete_environment_k8s_resources(self, k8s_name: str) -> None:
         """
@@ -203,7 +241,7 @@ class EnvironmentManager:
                         # in the case the failing ones are still running.
                         # Since the current eviction candidate environment will stay in the free ones, some other measurement might
                         # try to evict again and perhaps succeed (e.g., connection restored to the cluster).
-                        logger.critical(
+                        logger.warning(
                             f"Error deleting deployment or service {environment_to_evict.k8s_name}: {e}"
                         )
                         eviction_index += 1
@@ -214,6 +252,7 @@ class EnvironmentManager:
                         f"Active environments {self.active_environments}"
                     )
                     environment_evicted = True
+                    self.deleting_environments.append(environment_to_evict)
 
                 if environment_evicted:
                     # successfully deleted an environment
@@ -267,13 +306,51 @@ class EnvironmentManager:
 
         self.deployment_conflict_manager.signal(k8s_name=identifier, model=model)
 
-    def cleanup_failed_deployment(self, identifier: str) -> None:
+    async def cleanup_failed_deployment(
+        self,
+        identifier: str,
+        deletion_check_interval: int = 5,
+        deletion_timeout: int = 30,
+    ) -> None:
+        """
+        Clean up a failed deployment and release its environment slot.
+
+        Deletes K8s resources, then polls until the deployment object disappears
+        from the K8s API before releasing the slot.  The env is only added to
+        ``deleting_environments`` for GC monitoring when the poll did *not*
+        confirm deletion (timeout or unexpected exception).
+
+        :param identifier: k8s_name of the failed environment
+        :param deletion_check_interval: seconds between existence polls
+        :param deletion_timeout: maximum seconds to wait for the deployment to
+            disappear; on expiry an error is logged and the slot is released
+        """
         env = self.in_use_environments[identifier]
         self._delete_environment_k8s_resources(k8s_name=identifier)
-        self.done_using(identifier=identifier, reclaim_on_completion=True)
-        self.deployment_conflict_manager.signal(
-            k8s_name=identifier, model=env.model, error=True
-        )
+        confirmed_deleted = False
+        try:
+            deadline = time.monotonic() + deletion_timeout
+            while True:
+                if not self.manager.check_deployment_exist(k8s_name=identifier):
+                    logger.debug(f"Deployment {identifier} confirmed deleted.")
+                    confirmed_deleted = True
+                    break
+                if time.monotonic() >= deadline:
+                    logger.error(
+                        f"Timed out waiting for deleted deployment {identifier} to disappear."
+                    )
+                    break
+                await asyncio.sleep(deletion_check_interval)
+        finally:
+            # Always release the slot and unblock conflicting deployments,
+            # even if the poll raises an unexpected exception.
+            self.done_using(identifier=identifier, return_to_pool=False)
+            self.deployment_conflict_manager.signal(
+                k8s_name=identifier, model=env.model, error=True
+            )
+            # Hand off to GC only when the object may still exist in K8s.
+            if not confirmed_deleted:
+                self.deleting_environments.append(env)
 
     def get_matching_free_environment(self, configuration: str) -> Environment | None:
         """
@@ -301,26 +378,147 @@ class EnvironmentManager:
         """
         return self.otlp_traces_endpoint
 
-    def done_using(self, identifier: str, reclaim_on_completion: bool = False) -> None:
+    def done_using(self, identifier: str, return_to_pool: bool = True) -> None:
         """
-        Report test completion
-        :param definition: environment definition
-        :param reclaim_on_completion: flag to indicate the environment is to be completely removed and not freed for later use
+        Report test completion.
+
+        :param identifier: environment identifier
+        :param return_to_pool: if True (default) the environment is returned to
+            the free pool (or deleted immediately when TTL=0). If False the
+            environment slot is simply released without entering the free pool,
+            used when K8s resources have already been cleaned up externally.
         :return: None
         """
         env = self.in_use_environments.pop(identifier)
-        if not reclaim_on_completion:
-            self.free_environments.append(env)
+        if return_to_pool:
+            if self.free_environment_ttl == 0:
+                # TTL=0 means delete immediately.
+                # Still track it in deleting_environments so the GC can
+                # monitor and escalate if the K8s resources get stuck.
+                logger.info(
+                    f"TTL=0: deleting environment {identifier} immediately on release"
+                )
+                self._delete_environment_k8s_resources(k8s_name=identifier)
+                self.deleting_environments.append(env)
+            else:
+                env.freed_at = time.monotonic()
+                self.free_environments.append(env)
 
         # Wake up any other deployment waiting in the queue for a
         # free environment.
         self.environments_queue.signal_next()
+
+    def _gc_free_environments(self) -> None:
+        """
+        Delete and remove free environments that have been idle longer than
+        ``free_environment_ttl`` seconds.
+
+        Only called from ``_gc_loop`` when ``free_environment_ttl > 0``.
+        """
+        now = time.monotonic()
+        stale = [
+            (i, env, env.freed_at)
+            for i, env in enumerate(self.free_environments)
+            if env.freed_at is not None
+            and now - env.freed_at >= self.free_environment_ttl
+        ]
+
+        if not stale:
+            return
+
+        to_remove: set[int] = set()
+        for i, env, freed_at in stale:
+            try:
+                self._delete_environment_k8s_resources(k8s_name=env.k8s_name)
+                logger.info(
+                    f"GC: deleted stale free environment {env.k8s_name} "
+                    f"(idle {now - freed_at:.1f}s >= TTL {self.free_environment_ttl}s)"
+                )
+                to_remove.add(i)
+                self.deleting_environments.append(env)
+            except ApiException as e:  # noqa: PERF203
+                logger.warning(
+                    f"GC: failed to delete K8s resources for {env.k8s_name}: {e}. "
+                    "Keeping in free list to retry next GC cycle."
+                )
+
+        self.free_environments = [
+            env for i, env in enumerate(self.free_environments) if i not in to_remove
+        ]
+
+        # Wake any waiter that was blocked because the pool appeared full.
+        self.environments_queue.signal_next()
+
+    def _gc_confirm_deletions(self) -> None:
+        """
+        Check each environment in ``deleting_environments`` and remove it from
+        the list once the K8s deployment is confirmed gone.
+
+        When ``gc_force_delete`` is False the GC logs a warning every cycle
+        until the deployment disappears on its own. When ``gc_force_delete`` is
+        True, a force-delete (finalizer removal + grace_period=0) is issued
+        after ``gc_force_delete_threshold`` cycles and the environment is then
+        dropped from the watch list.
+        """
+        still_deleting: list[Environment] = []
+        for env in self.deleting_environments:
+            if not self.manager.check_deployment_exist(k8s_name=env.k8s_name):
+                logger.debug(
+                    f"GC: deployment {env.k8s_name} confirmed deleted from K8s."
+                )
+                continue
+
+            env.delete_attempts += 1
+
+            if (
+                self.gc_force_delete
+                and env.delete_attempts >= self.gc_force_delete_threshold
+            ):
+                logger.warning(
+                    f"GC: deployment {env.k8s_name} still present after "
+                    f"{env.delete_attempts} recheck(s). Issuing force-delete."
+                )
+                try:
+                    self.manager.force_delete_environment(k8s_name=env.k8s_name)
+                except ApiException as e:
+                    logger.error(f"GC: force-delete failed for {env.k8s_name}: {e}")
+                    # Deletion failed so we keep it in the list for the CG to check again at the next round.
+                    still_deleting.append(env)
+
+                continue
+
+            logger.warning(
+                f"GC: deployment {env.k8s_name} was deleted but is still "
+                f"present in K8s (attempt {env.delete_attempts}). "
+                "Will recheck next GC cycle."
+            )
+            still_deleting.append(env)
+        self.deleting_environments = still_deleting
+
+    async def _gc_loop(self) -> None:
+        """
+        Background async task that periodically checks deletions and
+        garbage-collects stale free environments.
+        """
+        # When TTL is 0 there is no free pool, so use 60s as the poll interval
+        # for deletion monitoring. Otherwise poll at TTL frequency (capped at 60s).
+        poll_interval = (
+            min(self.free_environment_ttl, 60) if self.free_environment_ttl > 0 else 60
+        )
+        while not self._stop_gc:
+            await asyncio.sleep(poll_interval)
+            self._gc_confirm_deletions()
+            if self.free_environment_ttl > 0:
+                self._gc_free_environments()
 
     def cleanup(self) -> None:
         """
         Clean up environment
         :return: None
         """
+        self._stop_gc = True
+        # ensuring the GC task is cleanly stopped
+        self._gc_task.cancel()
         logger.info("Cleaning environments")
         all_envs = list(self.in_use_environments.values()) + self.free_environments
         for env in all_envs:

@@ -67,13 +67,13 @@ def _check_if_using_unsupported_operator_module_conf(
         moduleLog.warning(
             "The supplied operation configuration uses an unsupported legacy format for the"
             "operation.module field: Use operatorName/operationType instead "
-            "of moduleName/moduleClass. See https://ibm.github.io/ado/examples/random-walk/#exploring-the-discoveryspace"
+            "of moduleName/moduleClass. See https://ibm.github.io/ado/latest/user-guide/examples/tutorials/density-example/#step-4-run-an-operation"
             "for an example. "
         )
         raise ValueError(
             "The supplied operation configuration uses an unsupported legacy format for the"
             "operation.module field: Use operatorName/operationType instead "
-            "of moduleName/moduleClass. See https://ibm.github.io/ado/examples/random-walk/#exploring-the-discoveryspace"
+            "of moduleName/moduleClass. See https://ibm.github.io/ado/latest/user-guide/examples/tutorials/density-example/#step-4-run-an-operation"
             "for an example. "
         )
 

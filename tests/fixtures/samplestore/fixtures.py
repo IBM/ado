@@ -3,7 +3,7 @@
 from collections.abc import Callable
 
 import pytest
-from testcontainers.mysql import MySqlContainer
+from testcontainers.community.mysql import MySqlContainer
 
 from ado.core import (
     DiscoverySpaceResource,

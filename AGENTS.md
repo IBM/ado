@@ -20,6 +20,7 @@ These guidelines apply to all code development in the ado codebase.
     - samplestore
     - datacontainer
     - actuatorconfiguration
+    - document
   - **modules/actuators**: defines actuators, custom experiments, and their
     associated management code (plugins, registry)
   - **modules/operators**: defines operators and their associated management
@@ -195,7 +196,7 @@ When writing agent skills:
 - Skills should be instructions on how to perform a specific task
 - Avoid duplication - before writing check the following sources and link
   existing relevant data
-  - all skills under .cursor/skills/
+  - all skills under .agents/skills/
   - the examples under examples/
   - the documentation under docs/
 - After writing a new skill:
@@ -216,9 +217,9 @@ When writing agent skills:
 ## Links
 
 - For plugin development, see
-  [plugin-development.mdc](.cursor/rules/plugin-development.mdc)
+  [plugin-development.mdc](.agents/rules/plugin-development.mdc)
 - For formulating problems with ado, see
-  [formulate problems for ado](.cursor/skills/formulate-discovery-problem/)
-- For using the ado CLI, see [using the ado CLI](.cursor/skills/using-ado-cli/)
+  [formulate problems for ado](.agents/skills/formulate-discovery-problem/)
+- For using the ado CLI, see [using the ado CLI](.agents/skills/using-ado-cli/)
 - For creating resource YAML files, see
-  [resource-yaml-creation](.cursor/skills/resource-yaml-creation/)
+  [resource-yaml-creation](.agents/skills/resource-yaml-creation/)

@@ -23,6 +23,7 @@ class CoreResourceKinds(str, enum.Enum):
     ACTUATORCONFIGURATION = "actuatorconfiguration"
     SAMPLESTORE = "samplestore"
     DATACONTAINER = "datacontainer"
+    DOCUMENT = "document"
 
 
 class ADOResourceReference(pydantic.BaseModel):

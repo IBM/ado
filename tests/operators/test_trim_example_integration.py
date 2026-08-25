@@ -155,3 +155,7 @@ def test_trim_example_operation_succeeds(
             and status.exit_state == OperationExitStateEnum.SUCCESS
             for status in iterative_operation.status
         )
+        # The final model must have been persisted to outputDirectory.
+        assert (tmp_path / "trim_models_finalized").is_dir(), (
+            "finalize_model was never called: the trim_models_finalized directory was not created"
+        )

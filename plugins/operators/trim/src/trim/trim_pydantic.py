@@ -156,6 +156,40 @@ class TrimParameters(BaseModel):
     def example_configuration(cls) -> "TrimParameters":
         return cls(targetOutput="TO_BE_SET")
 
+    # NOTE: set_model_folder must run before set_final_model_args.
+    # Pydantic model_validators fire in definition order (mode="after").
+    # set_model_folder writes outputDirectory into autoGluonArgs.tabularPredictorArgs["path"];
+    # set_final_model_args then copies autoGluonArgs into finalModelAutoGluonArgs when the
+    # latter is still the default.  If the order were reversed, finalModelAutoGluonArgs would
+    # be copied before the path is set and would therefore never carry the correct path,
+    # causing finalize_model to save to AutoGluon's default directory instead of outputDirectory.
+    @model_validator(mode="after")
+    def set_model_folder(self) -> "TrimParameters":
+        if self.autoGluonArgs.tabularPredictorArgs.get("path", None):
+            if self.outputDirectory:
+                if (
+                    self.autoGluonArgs.tabularPredictorArgs["path"]
+                    != self.outputDirectory
+                ):
+                    logging.error(
+                        f"Mismatch in model save path configuration: "
+                        f"AutoGluonArgs specifies '{self.autoGluonArgs.tabularPredictorArgs['path']}', "
+                        f"but expected '{self.outputDirectory}'. Changing to {self.outputDirectory}"
+                    )
+                    self.autoGluonArgs.tabularPredictorArgs["path"] = (
+                        self.outputDirectory
+                    )
+            else:
+                logging.info(
+                    f"Model folder is: {self.autoGluonArgs.tabularPredictorArgs['path']}"
+                )
+                self.outputDirectory = self.autoGluonArgs.tabularPredictorArgs["path"]
+        else:
+            self.autoGluonArgs.tabularPredictorArgs["path"] = self.outputDirectory
+
+        return self
+
+    # Must be defined after set_model_folder() so that it copies in the populated autoGluonArgs
     @model_validator(mode="after")
     def set_final_model_args(self) -> "TrimParameters":
         if self.finalModelAutoGluonArgs == AutoGluonArgs():
@@ -187,32 +221,6 @@ class TrimParameters(BaseModel):
         return self
 
     @model_validator(mode="after")
-    def set_model_folder(self) -> "TrimParameters":
-        if self.autoGluonArgs.tabularPredictorArgs.get("path", None):
-            if self.outputDirectory:
-                if (
-                    self.autoGluonArgs.tabularPredictorArgs["path"]
-                    != self.outputDirectory
-                ):
-                    logging.error(
-                        f"Mismatch in model save path configuration: "
-                        f"AutoGluonArgs specifies '{self.autoGluonArgs.tabularPredictorArgs['path']}', "
-                        f"but expected '{self.outputDirectory}'. Changing to {self.outputDirectory}"
-                    )
-                    self.autoGluonArgs.tabularPredictorArgs["path"] = (
-                        self.outputDirectory
-                    )
-            else:
-                logging.info(
-                    f"Model folder is: {self.autoGluonArgs.tabularPredictorArgs['path']}"
-                )
-                self.outputDirectory = self.autoGluonArgs.tabularPredictorArgs["path"]
-        else:
-            self.autoGluonArgs.tabularPredictorArgs["path"] = self.outputDirectory
-
-        return self
-
-    @model_validator(mode="after")
     def set_no_priors_target_output(self) -> "TrimParameters":
         if self.noPriorParameters.targetOutput != self.targetOutput:
             logging.debug(
@@ -223,6 +231,25 @@ class TrimParameters(BaseModel):
             )
             self.noPriorParameters.targetOutput = self.targetOutput
         return self
+
+
+class TrimSamplerParameters(TrimParameters):
+    """Runtime extension of TrimParameters used only by TrimSampleSelector.
+
+    Adds numberEntitiesIterativeModeling so the sampler knows exactly how many
+    entities RandomWalk will draw. This field is NOT on TrimParameters because
+    that model is serialised to YAML as the operation configuration.
+    """
+
+    numberEntitiesIterativeModeling: Annotated[
+        int,
+        Field(
+            description="Number of entities RandomWalk will draw during the "
+            "iterative modeling phase. Used by the sampler to detect the last "
+            "yield and call finalize_model() before RandomWalk stops consuming "
+            "the generator.",
+        ),
+    ]
 
 
 if __name__ == "__main__":

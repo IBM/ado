@@ -28,10 +28,14 @@ The `TRIM` operator works in two main phases:
    - Evaluates the expected improvement of a model trained on a larger dataset
      by comparing the new model's performance against that of previous models.
 
-This loop continues until the improvement is below a threshold, at which point
-TRIM automatically stops. Finally, it trains one high-quality model on all
-collected data and saves it for your use. It also outputs a file containing the
-measured values and predictions for all points in your space.
+This loop continues until the improvement falls below the configured thresholds
+or the sampling budget is exhausted. TRIM then trains one high-quality final
+model on all collected data and saves it alongside a `model_card.json` file.
+The `stopping_criteria_satisfied` field in `model_card.json` is `true` when
+TRIM stopped because the convergence thresholds were met, and `false` when the
+sampling budget was exhausted first.
+It also outputs a file containing the measured values and predictions for all
+points in your space.
 
 ## Installation
 

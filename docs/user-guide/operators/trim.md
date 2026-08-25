@@ -162,6 +162,9 @@ When the stopping criterion is met (or `samplingBudget.maxPoints` is reached):
 - Uses **all** data collected across all phases
 - Saves to `finalModelAutoGluonArgs.tabularPredictorArgs.path` if specified, or
   to `outputDirectory` with `_finalized` suffix if not specified.
+- Writes `model_card.json` alongside the model. The `stopping_criteria_satisfied`
+  field is `true` when convergence thresholds were met, `false` when the budget
+  was exhausted first.
 - This is your production-ready predictive model
 
 ---
@@ -521,6 +524,10 @@ from autogluon.tabular import TabularPredictor
 predictor = TabularPredictor.load("trim_models_finalized")
 predictions = predictor.predict(new_data)
 ```
+
+The same directory contains `model_card.json` with run metadata, including
+`stopping_criteria_satisfied` (`true` if TRIM converged on the stopping
+criterion, `false` if the sampling budget was exhausted first).
 
 ### Operation Metadata
 

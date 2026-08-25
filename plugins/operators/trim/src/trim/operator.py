@@ -11,6 +11,7 @@ from ado.modules.operators.collections import characterize_operation
 from trim.samplers.no_priors_utils import get_source_and_target
 from trim.trim_pydantic import (
     TrimParameters,
+    TrimSamplerParameters,
 )  # Importing this way works when the package is installed
 from trim.utils.logging_utils import (
     log_and_save_characterization,
@@ -65,6 +66,12 @@ def trim(
         raise RuntimeError("The random_walk operator has no registered function")
 
     params = TrimParameters.model_validate(kwargs)
+
+    if params.noPriorParameters.batchSize != 1:
+        raise ValueError(
+            f"TRIM requires batchSize=1 for the no-priors sampler, got {params.noPriorParameters.batchSize}"
+        )
+
     logger_trim.info(
         "Transfer Refined Iterative Modeling starts."
         f"Target variable = {params.targetOutput}"
@@ -171,13 +178,26 @@ def trim(
         moduleClass="TrimSampleSelector",  # this is the name of our custom sampler class -> which I guess is CustomSequentialSampleSelector
         moduleName="trim.trim_sampler",  ### If CustomSequentialSampleSelector is imported as "from trim.trim_sampler import TrimSampleSelector" then this is correct
     )
+    # TrimSamplerParameters extends TrimParameters with numberEntitiesIterativeModeling
+    # which tells the sampler exactly how many entities RandomWalk will draw. The sampler
+    # uses this to call finalize_model() after yielding the last entity, since RandomWalk
+    # stops calling anext() once the budget is met and never exhausts the generator.
+    # This field must NOT live on TrimParameters itself because that model is serialised
+    # to YAML as the operation configuration.
+    sampler_params = TrimSamplerParameters(
+        **params.model_dump(),
+        numberEntitiesIterativeModeling=numberEntities_iterative_modeling,
+    )
     trim_sampler_config = CustomSamplerConfiguration(
-        module=trim_module, parameters=params
+        module=trim_module, parameters=sampler_params
     )
     trim_rwparams = RandomWalkParameters(
         samplerConfig=trim_sampler_config,
         batchSize=1,
-        numberEntities=numberEntities_iterative_modeling,
+        # VV: Configuring RandomWalk to request one additional Entity, this enables the
+        # TrimSampler to know that it's about to run out of entities and thus it should
+        # finalize the model.
+        numberEntities=numberEntities_iterative_modeling + 1,
         singleMeasurement=True,
     )
 

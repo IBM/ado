@@ -12,13 +12,13 @@ experiments**.
 
 ## Why ado?
 
-* **ado** provides coding agents with tools for treating primary research
-as a coding problem, increasing their ability to quickly and reliably execute
+* It provides coding agents with **tools for treating primary research
+as a coding problem**, increasing their ability to quickly and reliably execute
 the research loop.
 * It's **plugin model**  enables you to easily
 take advantage of this capability for your research domain.
-* Its **SQL-backed storage** (SQLite, MySQL) automatically persists your
-experiment measurements and campaign metadata, allowing scaling from personal
+* Its **SQL-backed storage** automatically persists your
+experiment measurements and campaign metadata, and allows scaling from personal
 use to team-wide collaboration.
 
 > 💡 Like our approach to agent-driven science? Drop a ⭐ to support our

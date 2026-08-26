@@ -103,7 +103,7 @@ def validate_targetOutput(
                 Retrieves all measured entities from the entity source and samples the others following a certain order.
                 If the number of measured entity is too small, Trim instantiates a no-priors characterization operation.
                 """,
-    version="2.0.7",
+    version="2.0.8",
 )
 def trim(
     discoverySpace: DiscoverySpace = None,  # type: ignore[name-defined]
@@ -153,6 +153,25 @@ def trim(
     # VV: This validates the targetOutput and also converts it to "bare" format,
     # compatible with retrieving the "target" properties in a space.
     params = validate_targetOutput(params, discoverySpace)
+
+    # Inject the model save paths into tabularPredictorArgs so that every
+    # TabularPredictor instantiation downstream can simply unpack
+    # **tabularPredictorArgs without specifying path= explicitly.
+    for arg_name, args_obj, path in (
+        ("autoGluonArgs", params.autoGluonArgs, params.outputDirectory),
+        (
+            "finalModelAutoGluonArgs",
+            params.finalModelAutoGluonArgs,
+            (params.outputDirectory or "") + "_finalized",
+        ),
+    ):
+        if "path" in args_obj.tabularPredictorArgs:
+            logger_trim.warning(
+                f"{arg_name}.tabularPredictorArgs already contains a 'path' key; "
+                "it will be overwritten by TRIM's outputDirectory."
+            )
+        args_obj.tabularPredictorArgs["path"] = path
+
     logger_trim.info(
         "Transfer Refined Iterative Modeling starts."
         f"Target variable = {params.targetOutput}"

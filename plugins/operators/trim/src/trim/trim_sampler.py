@@ -100,6 +100,23 @@ class TrimSampleSelector(BaseSampler):
         We cannot yield multiple entities because we might not know which of the
         entities got measured unless we do more checks.
         """
+        expected_paths = {
+            "autoGluonArgs": self.params.outputDirectory,
+            "finalModelAutoGluonArgs": (self.params.outputDirectory or "")
+            + "_finalized",
+        }
+        for arg_name, args_obj in (
+            ("autoGluonArgs", self.params.autoGluonArgs),
+            ("finalModelAutoGluonArgs", self.params.finalModelAutoGluonArgs),
+        ):
+            actual = args_obj.tabularPredictorArgs.get("path")
+            expected = expected_paths[arg_name]
+            if actual != expected:
+                raise ValueError(
+                    f"{arg_name}.tabularPredictorArgs['path'] is {actual!r} but expected {expected!r}. "
+                    "TRIM expects operator.py to inject the correct path from outputDirectory."
+                )
+
         numberEntities = len(list_of_entities)
 
         initial_source_df, _target_df = get_source_and_target(
@@ -137,18 +154,6 @@ class TrimSampleSelector(BaseSampler):
                 "outputDirectory is empty; defaulting to 'trim_models'."
             )
             self.params.outputDirectory = "trim_models"
-
-        for args_name, args in [
-            ("autoGluonArgs", self.params.autoGluonArgs),
-            ("finalModelAutoGluonArgs", self.params.finalModelAutoGluonArgs),
-        ]:
-            if "path" in args.tabularPredictorArgs:
-                logger_trim_sampler.warning(
-                    f"The 'path' key in {args_name}.tabularPredictorArgs is ignored; "
-                    f"the save path is controlled by outputDirectory ('{self.params.outputDirectory}'). "
-                    "Removing it."
-                )
-                del args.tabularPredictorArgs["path"]
 
         ############################################################################################################
         ######################################### MAIN LOOP STARTS #################################################
@@ -304,7 +309,6 @@ class TrimSampleSelector(BaseSampler):
             # NOTE: assigning more weight to target space points does NOT generally improve performance
             predictor = TabularPredictor(
                 label=self.params.targetOutput,
-                path=self.params.outputDirectory,
                 **self.params.autoGluonArgs.tabularPredictorArgs,
             )
 
@@ -536,12 +540,11 @@ class TrimSampleSelector(BaseSampler):
             self.params.targetOutput,
         )
 
-        final_model_path = (self.params.outputDirectory or "") + "_finalized"
         # TODO: check why len(source_df) is minor than max(i) of the iterative modeling phase
         logger_trim_sampler.info(
             f"Finalizing the predictive model:"
             f"Fitting AutoGluon TabularPredictor on full Source Space data of {len(source_df)} rows."
-            f"Model will be saved in: {final_model_path}"
+            f"Model will be saved in: {self.params.finalModelAutoGluonArgs.tabularPredictorArgs['path']}"
         )
 
         train_cols = [
@@ -564,7 +567,6 @@ class TrimSampleSelector(BaseSampler):
         # Now, train a model on new_source_df and get performance
         predictor = TabularPredictor(
             label=self.params.targetOutput,
-            path=final_model_path,
             **self.params.finalModelAutoGluonArgs.tabularPredictorArgs,
         )
 
@@ -584,7 +586,7 @@ class TrimSampleSelector(BaseSampler):
         logger_trim_sampler.info(
             f"Model finalized using as training set all sampled points, of cardinality {len(train_data)}.\n"
             f"Final model {training_metric}={final_model_metric}."
-            f"Saving predicted model to: {final_model_path}."
+            f"Saving predicted model to: {self.params.finalModelAutoGluonArgs.tabularPredictorArgs['path']}."
         )
 
         target_predictions = predictor.predict(pd.DataFrame(target_df[train_cols]))

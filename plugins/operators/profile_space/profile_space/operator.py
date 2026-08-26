@@ -14,6 +14,8 @@ class ProfileParameters(GenericOperatorParameters):
 
 
 _EMPTY_PROFILE_PARAMETERS = ProfileParameters()
+
+
 # See https://ibm.github.io/ado/latest/developer-guide/creating-operators/#ado-operator-functions
 # for documentation on the decorator and its parameters
 @characterize_operation(

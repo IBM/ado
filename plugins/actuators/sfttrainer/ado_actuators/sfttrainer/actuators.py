@@ -339,6 +339,12 @@ def prepare_runtime_environment(
     runtime_env["env_vars"] = runtime_env.get("env_vars", {})
     runtime_env["env_vars"]["HF_HOME"] = args.hf_home
 
+    # VV: Disable the per-env setup timeout for this dynamically-created environment.
+    # The install duration is unpredictable (it includes compiling flash-attn and other
+    # heavy wheels). Ray's default of 600 s is too short and would leave a partial venv
+    # on disk that gets incorrectly reused on the next attempt.
+    runtime_env["config"] = {"setup_timeout_seconds": -1}
+
     return runtime_env
 
 

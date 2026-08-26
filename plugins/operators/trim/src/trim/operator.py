@@ -103,7 +103,7 @@ def validate_targetOutput(
                 Retrieves all measured entities from the entity source and samples the others following a certain order.
                 If the number of measured entity is too small, Trim instantiates a no-priors characterization operation.
                 """,
-    version="2.0.6",
+    version="2.0.7",
 )
 def trim(
     discoverySpace: DiscoverySpace = None,  # type: ignore[name-defined]

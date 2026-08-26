@@ -123,7 +123,7 @@ class TrimSampleSelector(BaseSampler):
         )
 
         if numberEntities < self.params.numberEntitiesIterativeModeling:
-            raise ValueError(
+            logger_trim_sampler.warning(
                 f"TRIM is configured to measure {self.params.numberEntitiesIterativeModeling} "
                 f"entities but there are only {numberEntities} in the space"
             )
@@ -165,7 +165,9 @@ class TrimSampleSelector(BaseSampler):
         # numberEntitiesIterativeModeling +1 is the exact count RandomWalk will attempt to draw.
         # When TRIM exhausts all entities it could have yielded AND random_walk asks for more then,
         # TRIM finalizes the model and does not yield any more entities.
-        for i in range(self.params.numberEntitiesIterativeModeling):
+        for i in range(
+            min(self.params.numberEntitiesIterativeModeling, numberEntities)
+        ):
             entity = [list_of_entities[i]]
             current_source_df, _current_batch_size_target_df = get_source_and_target(
                 discoverySpace,
@@ -354,8 +356,8 @@ class TrimSampleSelector(BaseSampler):
                 i < self.params.iterationSize * 3 - 1
                 or not self.params.stoppingCriterion.enabled
             ):
-                yield entity
                 yielded_entities += entity
+                yield entity
                 continue
 
             # NOTE: at the moment comparison does NOT happen at every params.iterationSize steps
@@ -462,10 +464,11 @@ class TrimSampleSelector(BaseSampler):
             else:
                 yield_log_string = f"Stopping not triggered for i={i}"
                 logger_trim_sampler.info(yield_log_string)
+                yielded_entities += entity
                 yield entity
 
         logger_trim_sampler.info(
-            f"Finished yielding {self.params.numberEntitiesIterativeModeling} entities. Finalizing model but this "
+            f"Finished yielding {len(yielded_entities)} entities. Finalizing model but this "
             "model does not actually satisfy the stopping criteria"
         )
         self.finalize_model(discoverySpace, stopping_criteria_satisfied=False)
@@ -490,10 +493,8 @@ class TrimSampleSelector(BaseSampler):
 
         async def async_wrapper() -> typing.AsyncGenerator[list[Entity], None]:
             await asyncio.sleep(0.001)
-            for entity_batch in self._core_iterator_logic(
-                discoverySpace, list_of_entities
-            ):
-                yield entity_batch
+            for entity in self._core_iterator_logic(discoverySpace, list_of_entities):
+                yield entity
                 await asyncio.sleep(0.001)  # Allow other async tasks to run
 
         return async_wrapper()

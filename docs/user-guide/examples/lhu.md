@@ -51,7 +51,7 @@ We will:
 
     <!-- markdownlint-disable MD013 -->
     ```bash
-    ado create operation -f examples/ml-multi-cloud/lhc_sampler.yaml --set "spaces[0]=$DISCOVERY_SPACE_IDENTIFIER"
+    ado create operation -f examples/ml-multi-cloud/lhc_sampler.yaml --set "inputs.discoverySpace.identifier=$DISCOVERY_SPACE_IDENTIFIER"
     ```
     <!-- markdownlint-enable MD013 -->
 
@@ -102,7 +102,7 @@ stop automatically when the most influential dimensions are known:
 
 <!-- markdownlint-disable MD013 -->
 ```bash
-ado create operation -f examples/ml-multi-cloud/lhc_sampler.yaml --set "spaces[0]=$DISCOVERY_SPACE_IDENTIFIER"
+ado create operation -f examples/ml-multi-cloud/lhc_sampler.yaml --set "inputs.discoverySpace.identifier=$DISCOVERY_SPACE_IDENTIFIER"
 ```
 <!-- markdownlint-enable MD013 -->
 

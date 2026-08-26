@@ -193,7 +193,14 @@ class TrimParameters(BaseModel):
     @model_validator(mode="after")
     def set_final_model_args(self) -> "TrimParameters":
         if self.finalModelAutoGluonArgs == AutoGluonArgs():
-            self.finalModelAutoGluonArgs = self.autoGluonArgs
+            self.finalModelAutoGluonArgs = self.autoGluonArgs.model_copy(deep=True)
+        base_path = self.finalModelAutoGluonArgs.tabularPredictorArgs.get(
+            "path", self.outputDirectory
+        )
+        if base_path and not str(base_path).endswith("_finalized"):
+            self.finalModelAutoGluonArgs.tabularPredictorArgs["path"] = (
+                str(base_path) + "_finalized"
+            )
         return self
 
     @model_validator(mode="after")

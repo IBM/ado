@@ -317,7 +317,9 @@ Success! Created operation with identifier operation-trim@2.0.3-cb3448b3 and it 
     The `op_pressure.yaml` file controls TRIM's behaviour:
 
     - **`targetOutput`** — the experiment output property to model (`pressure`)
-    - **`outputDirectory`** — where the final `AutoGluon` model is saved
+    - **`outputDirectory`** — base directory for model artefacts; the final model
+      is saved to `{outputDirectory}_finalized/`. Defaults to `trim_models`
+      relative to where you run `ado create operation`.
     - **`iterationSize`** — how many points to sample before checking the
       stopping criterion
     - **`stoppingCriterion.meanThreshold` / `stdThreshold`** — model-quality
@@ -364,14 +366,14 @@ ado show related space --use-latest
 
 ### The saved surrogate model
 
-TRIM saves the final `AutoGluon` model to the directory specified by
-`outputDirectory` (`trim_models` by default). Load it in Python to make
-predictions at unmeasured points:
+TRIM saves the final `AutoGluon` model to `{outputDirectory}_finalized/`
+(`trim_models_finalized/` by default). Load it in Python to make predictions
+at unmeasured points:
 
 ```python
 from autogluon.tabular import TabularPredictor
 
-predictor = TabularPredictor.load("trim_models")
+predictor = TabularPredictor.load("trim_models_finalized")
 
 # Predict pressure for an unmeasured configuration
 result = predictor.predict({"mol": 0.5, "temperature": 285, "volume": 4})

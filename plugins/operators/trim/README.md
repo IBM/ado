@@ -30,7 +30,9 @@ The `TRIM` operator works in two main phases:
 
 This loop continues until the improvement falls below the configured thresholds
 or the sampling budget is exhausted. TRIM then trains one high-quality final
-model on all collected data and saves it alongside a `model_card.json` file.
+model on all collected data and saves it to `{outputDirectory}_finalized/`
+(defaults to `trim_models_finalized/` in the directory you run
+`ado create operation` from), alongside a `model_card.json` file.
 The `stopping_criteria_satisfied` field in `model_card.json` is `true` when
 TRIM stopped because the convergence thresholds were met, and `false` when the
 sampling budget was exhausted first.

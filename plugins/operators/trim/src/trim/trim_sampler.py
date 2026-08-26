@@ -117,13 +117,38 @@ class TrimSampleSelector(BaseSampler):
         ]
         train_target_cols = [*train_cols, self.params.targetOutput]
         logger_trim_sampler.info(
-            f"Trim iterator will measure up to {numberEntities} entities.\n"
+            f"There are {numberEntities} entities of which TRIM will measure up "
+            f"to {self.params.numberEntitiesIterativeModeling}.\n"
             f"These entities have been ordered using {len(initial_source_df)} measurements from the discovery space."
         )
+
+        if numberEntities < self.params.numberEntitiesIterativeModeling:
+            raise ValueError(
+                f"TRIM is configured to measure {self.params.numberEntitiesIterativeModeling} "
+                f"entities but there are only {numberEntities} in the space"
+            )
 
         logger_trim_sampler.info(
             f"Training columns are {train_cols},\nThe dependent variable (target Output) is {train_target_cols[-1]}"
         )
+
+        if not self.params.outputDirectory:
+            logger_trim_sampler.warning(
+                "outputDirectory is empty; defaulting to 'trim_models'."
+            )
+            self.params.outputDirectory = "trim_models"
+
+        for args_name, args in [
+            ("autoGluonArgs", self.params.autoGluonArgs),
+            ("finalModelAutoGluonArgs", self.params.finalModelAutoGluonArgs),
+        ]:
+            if "path" in args.tabularPredictorArgs:
+                logger_trim_sampler.warning(
+                    f"The 'path' key in {args_name}.tabularPredictorArgs is ignored; "
+                    f"the save path is controlled by outputDirectory ('{self.params.outputDirectory}'). "
+                    "Removing it."
+                )
+                del args.tabularPredictorArgs["path"]
 
         ############################################################################################################
         ######################################### MAIN LOOP STARTS #################################################
@@ -137,22 +162,11 @@ class TrimSampleSelector(BaseSampler):
         yielded_rows = RowsRing(
             maxlen=(self.params.holdoutSize or self.params.iterationSize)
         )
-        # numberEntitiesIterativeModeling is the exact count RandomWalk will draw.
-        # When i reaches budget-1 this is the last entity: call finalize_model before
-        # yielding so the model is persisted while we still have CPU control.
-        # The previous entity is already measured at this point because RandomWalk
-        # called anext() to resume us here.
-        budget = self.params.numberEntitiesIterativeModeling
-        for i in range(numberEntities):
+        # numberEntitiesIterativeModeling +1 is the exact count RandomWalk will attempt to draw.
+        # When TRIM exhausts all entities it could have yielded AND random_walk asks for more then,
+        # TRIM finalizes the model and does not yield any more entities.
+        for i in range(self.params.numberEntitiesIterativeModeling):
             entity = [list_of_entities[i]]
-
-            if i + 1 >= budget:
-                logger_trim_sampler.info(
-                    f"About to yield last entity (i={i}, budget={budget}). Finalizing model but this "
-                    "model does not actually satisfy the stopping criteria"
-                )
-                self.finalize_model(discoverySpace, stopping_criteria_satisfied=False)
-
             current_source_df, _current_batch_size_target_df = get_source_and_target(
                 discoverySpace,
                 self.params.targetOutput,
@@ -288,6 +302,7 @@ class TrimSampleSelector(BaseSampler):
             # NOTE: assigning more weight to target space points does NOT generally improve performance
             predictor = TabularPredictor(
                 label=self.params.targetOutput,
+                path=self.params.outputDirectory,
                 **self.params.autoGluonArgs.tabularPredictorArgs,
             )
 
@@ -432,13 +447,6 @@ class TrimSampleSelector(BaseSampler):
                 )
 
             if should_stop:
-                # Stopping info
-                self.params.finalModelAutoGluonArgs.tabularPredictorArgs["path"] = (
-                    self.params.finalModelAutoGluonArgs.tabularPredictorArgs.get(
-                        "path", self.params.outputDirectory
-                    )
-                    + "_finalized"
-                )
                 logger_trim_sampler.info(
                     f"Stopping criteria hit after measuring {i} entities.\n"
                     f"On a iteration of batch size {self.params.iterationSize}.\n"
@@ -451,11 +459,16 @@ class TrimSampleSelector(BaseSampler):
                     stopping_criteria_satisfied=True,
                 )
                 break
-
             else:
                 yield_log_string = f"Stopping not triggered for i={i}"
                 logger_trim_sampler.info(yield_log_string)
                 yield entity
+
+        logger_trim_sampler.info(
+            f"Finished yielding {self.params.numberEntitiesIterativeModeling} entities. Finalizing model but this "
+            "model does not actually satisfy the stopping criteria"
+        )
+        self.finalize_model(discoverySpace, stopping_criteria_satisfied=False)
 
     async def remoteEntityIterator(
         self,
@@ -522,11 +535,12 @@ class TrimSampleSelector(BaseSampler):
             self.params.targetOutput,
         )
 
+        final_model_path = (self.params.outputDirectory or "") + "_finalized"
         # TODO: check why len(source_df) is minor than max(i) of the iterative modeling phase
         logger_trim_sampler.info(
             f"Finalizing the predictive model:"
             f"Fitting AutoGluon TabularPredictor on full Source Space data of {len(source_df)} rows."
-            f"Model will be saved in: {self.params.finalModelAutoGluonArgs.tabularPredictorArgs['path']}"
+            f"Model will be saved in: {final_model_path}"
         )
 
         train_cols = [
@@ -549,7 +563,7 @@ class TrimSampleSelector(BaseSampler):
         # Now, train a model on new_source_df and get performance
         predictor = TabularPredictor(
             label=self.params.targetOutput,
-            # problem_type="regression", # it is inferred atm
+            path=final_model_path,
             **self.params.finalModelAutoGluonArgs.tabularPredictorArgs,
         )
 
@@ -569,7 +583,7 @@ class TrimSampleSelector(BaseSampler):
         logger_trim_sampler.info(
             f"Model finalized using as training set all sampled points, of cardinality {len(train_data)}.\n"
             f"Final model {training_metric}={final_model_metric}."
-            f"Saving predicted model to: {self.params.finalModelAutoGluonArgs.tabularPredictorArgs['path']}."
+            f"Saving predicted model to: {final_model_path}."
         )
 
         target_predictions = predictor.predict(pd.DataFrame(target_df[train_cols]))

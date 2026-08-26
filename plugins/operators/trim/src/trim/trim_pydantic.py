@@ -95,11 +95,11 @@ class TrimParameters(BaseModel):
     ]
 
     outputDirectory: Annotated[
-        str | None,
+        str,
         pydantic.Field(
             description="The relative path of the model directory from the root folder.",
         ),
-    ] = None
+    ] = "trim_models"
 
     debugDirectory: Annotated[
         str,
@@ -156,51 +156,10 @@ class TrimParameters(BaseModel):
     def example_configuration(cls) -> "TrimParameters":
         return cls(targetOutput="TO_BE_SET")
 
-    # NOTE: set_model_folder must run before set_final_model_args.
-    # Pydantic model_validators fire in definition order (mode="after").
-    # set_model_folder writes outputDirectory into autoGluonArgs.tabularPredictorArgs["path"];
-    # set_final_model_args then copies autoGluonArgs into finalModelAutoGluonArgs when the
-    # latter is still the default.  If the order were reversed, finalModelAutoGluonArgs would
-    # be copied before the path is set and would therefore never carry the correct path,
-    # causing finalize_model to save to AutoGluon's default directory instead of outputDirectory.
-    @model_validator(mode="after")
-    def set_model_folder(self) -> "TrimParameters":
-        if self.autoGluonArgs.tabularPredictorArgs.get("path", None):
-            if self.outputDirectory:
-                if (
-                    self.autoGluonArgs.tabularPredictorArgs["path"]
-                    != self.outputDirectory
-                ):
-                    logging.error(
-                        f"Mismatch in model save path configuration: "
-                        f"AutoGluonArgs specifies '{self.autoGluonArgs.tabularPredictorArgs['path']}', "
-                        f"but expected '{self.outputDirectory}'. Changing to {self.outputDirectory}"
-                    )
-                    self.autoGluonArgs.tabularPredictorArgs["path"] = (
-                        self.outputDirectory
-                    )
-            else:
-                logging.info(
-                    f"Model folder is: {self.autoGluonArgs.tabularPredictorArgs['path']}"
-                )
-                self.outputDirectory = self.autoGluonArgs.tabularPredictorArgs["path"]
-        else:
-            self.autoGluonArgs.tabularPredictorArgs["path"] = self.outputDirectory
-
-        return self
-
-    # Must be defined after set_model_folder() so that it copies in the populated autoGluonArgs
     @model_validator(mode="after")
     def set_final_model_args(self) -> "TrimParameters":
         if self.finalModelAutoGluonArgs == AutoGluonArgs():
             self.finalModelAutoGluonArgs = self.autoGluonArgs.model_copy(deep=True)
-        base_path = self.finalModelAutoGluonArgs.tabularPredictorArgs.get(
-            "path", self.outputDirectory
-        )
-        if base_path and not str(base_path).endswith("_finalized"):
-            self.finalModelAutoGluonArgs.tabularPredictorArgs["path"] = (
-                str(base_path) + "_finalized"
-            )
         return self
 
     @model_validator(mode="after")

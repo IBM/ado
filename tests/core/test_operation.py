@@ -172,7 +172,7 @@ def test_set_manual_operation_identifier(
 
 
 def test_setting_space_id() -> None:
-    """Constructing with spaces: [id] upgrades to inputs; empty inputs is valid."""
+    """Constructing with spaces: [id] upgrades to inputs."""
     # Legacy spaces= form is upgraded to inputs by the before-validator.
     cfg = DiscoveryOperationResourceConfiguration(
         spaces=["space-abc123"],
@@ -181,13 +181,6 @@ def test_setting_space_id() -> None:
     assert cfg.spaces == ["space-abc123"]
     assert "discoverySpace" in cfg.inputs
     assert cfg.inputs["discoverySpace"].identifier == "space-abc123"
-
-    # Empty inputs (no resource) is valid in the new design (pure-compute operators).
-    cfg_empty = DiscoveryOperationResourceConfiguration(
-        operation=DiscoveryOperationConfiguration()
-    )
-    assert cfg_empty.inputs == {}
-    assert cfg_empty.spaces == []
 
 
 def test_add_operation_result(
@@ -350,13 +343,12 @@ def test_operation_config_spaces_populates_inputs() -> None:
     assert cfg.inputs["discoverySpace"].kind == CoreResourceKinds.DISCOVERYSPACE
 
 
-def test_operation_config_empty_inputs_is_valid() -> None:
-    """Omitting both 'spaces' and 'inputs' is now valid (pure-compute operators)."""
-    cfg = DiscoveryOperationResourceConfiguration(
-        operation=DiscoveryOperationConfiguration()
-    )
-    assert cfg.inputs == {}
-    assert cfg.spaces == []
+def test_operation_config_empty_inputs_is_invalid() -> None:
+    """Omitting both 'spaces' and 'inputs' is invalid; operators require resource inputs."""
+    with pytest.raises(pydantic.ValidationError, match="must not be empty"):
+        DiscoveryOperationResourceConfiguration(
+            operation=DiscoveryOperationConfiguration()
+        )
 
 
 def test_operation_config_inputs_round_trip() -> None:
@@ -370,6 +362,48 @@ def test_operation_config_inputs_round_trip() -> None:
     restored = DiscoveryOperationResourceConfiguration.model_validate(dumped)
     assert restored.inputs["discoverySpace"].identifier == "space-xyz"
     assert restored.spaces == cfg.spaces
+
+
+def test_operation_config_dumped_spaces_is_ignored_when_inputs_present() -> None:
+    """Computed ``spaces`` on dump is discarded on reload; ``inputs`` wins.
+
+    ``model_dump()`` includes both fields. Changing ``spaces`` on the dump
+    (e.g. generic ``--set spaces=``) must not override ``inputs``.
+    """
+    cfg = DiscoveryOperationResourceConfiguration(
+        operation=DiscoveryOperationConfiguration(),
+        spaces=["space-old"],
+    )
+    dumped = cfg.model_dump()
+    dumped["spaces"] = ["space-new"]
+    restored = DiscoveryOperationResourceConfiguration.model_validate(dumped)
+    assert restored.inputs["discoverySpace"].identifier == "space-old"
+    assert restored.spaces == ["space-old"]
+
+
+def test_set_input_reference_strips_legacy_spaces_so_cli_override_wins() -> None:
+    """``--with`` / ``--use-latest`` record the space in ``inputs``, not ``spaces``.
+
+    Those flags set ``inputs`` on the raw YAML dict while the file still has
+    a leftover ``spaces`` key. ``spaces`` is dropped; with ``inputs`` present
+    the before-validator also ignores any remaining ``spaces`` echo.
+    """
+    from ado.cli.resources.operation.create import _set_input_reference
+
+    operation_data = {
+        "operation": {
+            "module": {
+                "operatorName": "random_walk",
+                "operationType": "explore",
+            }
+        },
+        "spaces": ["space-old"],
+    }
+    _set_input_reference(operation_data, CoreResourceKinds.DISCOVERYSPACE, "space-new")
+    assert "spaces" not in operation_data
+    cfg = DiscoveryOperationResourceConfiguration.model_validate(operation_data)
+    assert cfg.inputs["discoverySpace"].identifier == "space-new"
+    assert cfg.spaces == ["space-new"]
 
 
 def test_ado_resource_reference_kind_populated_from_required_resource_inputs() -> None:
@@ -427,8 +461,8 @@ def test_script_operator_wrong_kind_raises() -> None:
                 )
             },
         )
-        
-        
+
+
 def test_operation_resource_wrong_kind_raises_validation_error(
     operation_resource: OperationResource,
 ) -> None:

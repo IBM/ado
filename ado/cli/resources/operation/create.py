@@ -97,13 +97,19 @@ def _set_input_reference(
     kind: CoreResourceKinds,
     identifier: str,
 ) -> None:
-    """Set a single named input reference on raw *operation_data*."""
+    """Set a single named input reference on raw *operation_data*.
+
+    When binding a discoveryspace, drops leftover YAML ``spaces``; the space
+    is now recorded in ``inputs``.
+    """
     input_name = _operator_input_name_for_kind(operation_data, kind)
     inputs = operation_data.setdefault("inputs", {})
     inputs[input_name] = {
         "identifier": identifier,
         "kind": kind.value,
     }
+    if kind == CoreResourceKinds.DISCOVERYSPACE:
+        operation_data.pop("spaces", None)
 
 
 def create_operation(parameters: AdoCreateCommandParameters) -> str | None:

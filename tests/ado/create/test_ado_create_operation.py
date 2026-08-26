@@ -157,7 +157,7 @@ def test_create_operation_success_use_latest_space(
             "-f",
             operation_configuration_file,
             "--set",
-            f'inputs.discoverySpace.identifier=["{ml_multi_cloud_space.uri}"]',
+            f"inputs.discoverySpace.identifier={ml_multi_cloud_space.uri}",
         ],
     )
     assert result.exit_code == 0, result.output

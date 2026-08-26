@@ -1,8 +1,8 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-
 import logging
+import os
 
 from ado.core.discoveryspace.space import DiscoverySpace
 from ado.core.operation.config import FunctionOperationInfo
@@ -125,6 +125,12 @@ def trim(
     Returns:
         OperationOutput containing the operation resources and metadata
     """
+    # Ensure LOGLEVEL env var reflects the current root logger level so that
+    # any Ray actors spawned by nested operations (e.g. random_walk) inherit it
+    # via configure_logging().  logging.basicConfig() is a no-op here because
+    # ado's configure_logging() has already attached a handler to the root logger.
+    os.environ["LOGLEVEL"] = logging.getLevelName(logging.getLogger().level)
+
     # Lazy import to avoid circular import issues during plugin loading
     from ado.modules.operators.collections import explore
     from ado.modules.operators.randomwalk import (

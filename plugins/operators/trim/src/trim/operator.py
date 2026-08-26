@@ -105,7 +105,7 @@ def validate_targetOutput(
     version="2.1.0",
 )
 def trim(
-    discoverySpace: DiscoverySpace = None,  # type: ignore[assignment, name-defined]
+    discoverySpace: DiscoverySpace,
     operationInfo: FunctionOperationInfo | None = None,
     *,
     parameters: TrimParameters,

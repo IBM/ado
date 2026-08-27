@@ -7,6 +7,13 @@ description: >-
   project; what research strands, studies, or work are underway; a project or
   context overview or status; trends across spaces/operations/studies; or to
   onboard onto an ado project.
+triggers:
+  - studies underway
+  - research underway
+  - research projects
+  - research study
+  - study documents
+  - project activity
 ---
 
 # Examining an ado Project

@@ -25,7 +25,7 @@ from trim.samplers.no_priors_utils import (
     get_list_of_entities_from_df_and_space,
     get_source_and_target,
 )
-from trim.trim_pydantic import TrimParameters
+from trim.trim_pydantic import TrimSamplerParameters
 
 if TYPE_CHECKING:
     from pydantic import BaseModel
@@ -90,12 +90,33 @@ class TrimSampleSelector(BaseSampler):
         self,
         discoverySpace: DiscoverySpace,
         list_of_entities: list[Entity],
-        batchsize: int,
     ) -> typing.Generator[list[Entity], None, None]:
         """
         Core iterator logic shared between sync and async implementations.
         This is a synchronous generator that yields entities based on the TRIM algorithm.
+        Each iteration yields exactly one entity wrapped in a list.
+        This is because ado calls this in an async way and we want to know that the
+        entity we've yielded in the previous iteration is now measured.
+        We cannot yield multiple entities because we might not know which of the
+        entities got measured unless we do more checks.
         """
+        expected_paths = {
+            "autoGluonArgs": self.params.outputDirectory,
+            "finalModelAutoGluonArgs": (self.params.outputDirectory or "")
+            + "_finalized",
+        }
+        for arg_name, args_obj in (
+            ("autoGluonArgs", self.params.autoGluonArgs),
+            ("finalModelAutoGluonArgs", self.params.finalModelAutoGluonArgs),
+        ):
+            actual = args_obj.tabularPredictorArgs.get("path")
+            expected = expected_paths[arg_name]
+            if actual != expected:
+                raise ValueError(
+                    f"{arg_name}.tabularPredictorArgs['path'] is {actual!r} but expected {expected!r}. "
+                    "TRIM expects operator.py to inject the correct path from outputDirectory."
+                )
+
         numberEntities = len(list_of_entities)
 
         initial_source_df, _target_df = get_source_and_target(
@@ -113,13 +134,26 @@ class TrimSampleSelector(BaseSampler):
         ]
         train_target_cols = [*train_cols, self.params.targetOutput]
         logger_trim_sampler.info(
-            f"Trim iterator will measure up to {numberEntities} entities.\n"
+            f"There are {numberEntities} entities of which TRIM will measure up "
+            f"to {self.params.numberEntitiesIterativeModeling}.\n"
             f"These entities have been ordered using {len(initial_source_df)} measurements from the discovery space."
         )
+
+        if numberEntities < self.params.numberEntitiesIterativeModeling:
+            logger_trim_sampler.warning(
+                f"TRIM is configured to measure {self.params.numberEntitiesIterativeModeling} "
+                f"entities but there are only {numberEntities} in the space"
+            )
 
         logger_trim_sampler.info(
             f"Training columns are {train_cols},\nThe dependent variable (target Output) is {train_target_cols[-1]}"
         )
+
+        if not self.params.outputDirectory:
+            logger_trim_sampler.warning(
+                "outputDirectory is empty; defaulting to 'trim_models'."
+            )
+            self.params.outputDirectory = "trim_models"
 
         ############################################################################################################
         ######################################### MAIN LOOP STARTS #################################################
@@ -133,14 +167,13 @@ class TrimSampleSelector(BaseSampler):
         yielded_rows = RowsRing(
             maxlen=(self.params.holdoutSize or self.params.iterationSize)
         )
-        for i in range(0, numberEntities, batchsize):
-            entity = list_of_entities[i : i + batchsize]
-
-            if len(entity) == 0:
-                logger_trim_sampler.warning("No Entities remaining.")
-                _ = self.finalize_model(discoverySpace)
-                break
-
+        # numberEntitiesIterativeModeling +1 is the exact count RandomWalk will attempt to draw.
+        # When TRIM exhausts all entities it could have yielded AND random_walk asks for more then,
+        # TRIM finalizes the model and does not yield any more entities.
+        for i in range(
+            min(self.params.numberEntitiesIterativeModeling, numberEntities)
+        ):
+            entity = [list_of_entities[i]]
             current_source_df, _current_batch_size_target_df = get_source_and_target(
                 discoverySpace,
                 self.params.targetOutput,
@@ -152,9 +185,7 @@ class TrimSampleSelector(BaseSampler):
                 logger_trim_sampler.debug(
                     "During the initial iterations the holdout is empty"
                 )
-                logger_trim_sampler.info(
-                    f"Yielding {len(entity)} entity, which is {entity}"
-                )
+                logger_trim_sampler.info(f"Yielding entity at index {i}: {entity}")
                 yielded_entities += entity
                 yield entity
                 continue
@@ -189,9 +220,7 @@ class TrimSampleSelector(BaseSampler):
                 yielded_rows += one_additional_row
                 yielded_entities += entity
                 previous_source_df = current_source_df
-                logger_trim_sampler.info(
-                    f"Yielding {len(entity)} entity, which is {entity}"
-                )
+                logger_trim_sampler.info(f"Yielding entity at index {i}: {entity}")
                 yield entity
                 continue
 
@@ -240,7 +269,7 @@ class TrimSampleSelector(BaseSampler):
                     previous_source_df,
                     iter_index=i,
                     debugDirectory=self.params.debugDirectory,
-                    batchsize=batchsize,
+                    batchsize=1,
                 )
 
                 yielded_rows += one_additional_row
@@ -265,7 +294,7 @@ class TrimSampleSelector(BaseSampler):
 
             logger_trim_sampler.info(
                 f"Building and evaluating a predictive model "
-                f"""that includes {batchsize} more {"entities" if batchsize > 1 else "entity"} """
+                f"that includes 1 more entity "
                 f"in the training set:\n {entity}"
             )
             # ensures we only train on rows where the target is measured
@@ -331,8 +360,8 @@ class TrimSampleSelector(BaseSampler):
                 i < self.params.iterationSize * 3 - 1
                 or not self.params.stoppingCriterion.enabled
             ):
-                yield entity
                 yielded_entities += entity
+                yield entity
                 continue
 
             # NOTE: at the moment comparison does NOT happen at every params.iterationSize steps
@@ -361,14 +390,10 @@ class TrimSampleSelector(BaseSampler):
                 )
                 # I filter these to keep only points that I know correspond to models
                 prev_iter_list_range = [
-                    i
-                    for i in _prev_iter_list_range
-                    if i in list(range(0, numberEntities, batchsize))
+                    i for i in _prev_iter_list_range if i in range(numberEntities)
                 ]
                 this_iter_list_range = [
-                    i
-                    for i in _this_iter_list_range
-                    if i in list(range(0, numberEntities, batchsize))
+                    i for i in _this_iter_list_range if i in range(numberEntities)
                 ]
 
                 logger_trim_sampler.info(
@@ -428,14 +453,6 @@ class TrimSampleSelector(BaseSampler):
                 )
 
             if should_stop:
-                # Stopping info
-                self.params.finalModelAutoGluonArgs.tabularPredictorArgs["path"] = (
-                    self.params.finalModelAutoGluonArgs.tabularPredictorArgs.get(
-                        "path", self.params.outputDirectory
-                    )
-                    + "_finalized"
-                )
-
                 logger_trim_sampler.info(
                     f"Stopping criteria hit after measuring {i} entities.\n"
                     f"On a iteration of batch size {self.params.iterationSize}.\n"
@@ -445,13 +462,20 @@ class TrimSampleSelector(BaseSampler):
                 )
                 _predictor = self.finalize_model(
                     discoverySpace=discoverySpace,
+                    stopping_criteria_satisfied=True,
                 )
                 break
-
             else:
                 yield_log_string = f"Stopping not triggered for i={i}"
                 logger_trim_sampler.info(yield_log_string)
+                yielded_entities += entity
                 yield entity
+
+        logger_trim_sampler.info(
+            f"Finished yielding {len(yielded_entities)} entities. Finalizing model but this "
+            "model does not actually satisfy the stopping criteria"
+        )
+        self.finalize_model(discoverySpace, stopping_criteria_satisfied=False)
 
     async def remoteEntityIterator(
         self,
@@ -459,8 +483,6 @@ class TrimSampleSelector(BaseSampler):
         batchsize: int = 1,  # type: ignore[name-defined]
     ) -> typing.AsyncGenerator[list[Entity], None]:
         """Returns a remoteEntityIterator that returns entities in order"""
-
-        logger_trim_sampler.debug(f"Batchsize is {batchsize} (expected 1)")
 
         logger_trim_sampler.debug(f"Trim starts with parameters:\n{self.params}\n\n")
 
@@ -475,10 +497,8 @@ class TrimSampleSelector(BaseSampler):
 
         async def async_wrapper() -> typing.AsyncGenerator[list[Entity], None]:
             await asyncio.sleep(0.001)
-            for entity_batch in self._core_iterator_logic(
-                discoverySpace, list_of_entities, batchsize
-            ):
-                yield entity_batch
+            for entity in self._core_iterator_logic(discoverySpace, list_of_entities):
+                yield entity
                 await asyncio.sleep(0.001)  # Allow other async tasks to run
 
         return async_wrapper()
@@ -487,8 +507,6 @@ class TrimSampleSelector(BaseSampler):
         self, discoverySpace: DiscoverySpace, batchsize: int = 1
     ) -> typing.Generator[list[Entity], None, None]:
         """Returns an entityIterator that returns entities in order"""
-
-        logger_trim_sampler.debug(f"Batchsize is {batchsize} (expected 1)")
 
         logger_trim_sampler.debug(f"Trim starts with parameters:\n{self.params}\n\n")
 
@@ -500,17 +518,18 @@ class TrimSampleSelector(BaseSampler):
             )
         )
 
-        return self._core_iterator_logic(discoverySpace, list_of_entities, batchsize)
+        return self._core_iterator_logic(discoverySpace, list_of_entities)
 
     def finalize_model(
-        self,
-        discoverySpace: DiscoverySpace,
+        self, discoverySpace: DiscoverySpace, stopping_criteria_satisfied: bool
     ) -> TabularPredictor:
         """
         Train a final predictive model on all sampled source space data.
 
         Args:
             discoverySpace: The discovery space containing the entities
+            stopping_criteria_satisfied: Whether the model that is about to be stored
+                has met the stopping criteria.
 
         Returns:
             TabularPredictor: The trained AutoGluon predictor on full source data
@@ -548,7 +567,6 @@ class TrimSampleSelector(BaseSampler):
         # Now, train a model on new_source_df and get performance
         predictor = TabularPredictor(
             label=self.params.targetOutput,
-            # problem_type="regression", # it is inferred atm
             **self.params.finalModelAutoGluonArgs.tabularPredictorArgs,
         )
 
@@ -605,6 +623,7 @@ class TrimSampleSelector(BaseSampler):
             "final_model_metric": final_model_metric,
             "num_train_samples": len(source_df),
             "target_output": self.params.targetOutput,
+            "stopping_criteria_satisfied": stopping_criteria_satisfied,
         }
 
         model_card_path = os.path.join(predictor.path, "model_card.json")
@@ -761,7 +780,7 @@ class TrimSampleSelector(BaseSampler):
 
     @classmethod
     def parameters_model(cls) -> type[BaseModel] | None:
-        return TrimParameters
+        return TrimSamplerParameters
 
-    def __init__(self, parameters: TrimParameters) -> None:
+    def __init__(self, parameters: TrimSamplerParameters) -> None:
         self.params = parameters

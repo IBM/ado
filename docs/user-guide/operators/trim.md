@@ -160,8 +160,11 @@ When the stopping criterion is met (or `samplingBudget.maxPoints` is reached):
 
 - Trains one final, high-quality AutoGluon model
 - Uses **all** data collected across all phases
-- Saves to `finalModelAutoGluonArgs.tabularPredictorArgs.path` if specified, or
-  to `outputDirectory` with `_finalized` suffix if not specified.
+- Saves to `{outputDirectory}_finalized/`. `outputDirectory` defaults to
+  `trim_models` relative to the directory you run `ado create operation` from.
+- Writes `model_card.json` alongside the model. The `stopping_criteria_satisfied`
+  field is `true` when convergence thresholds were met, `false` when the budget
+  was exhausted first.
 - This is your production-ready predictive model
 
 ---
@@ -191,15 +194,18 @@ parameters:
 
 #### `outputDirectory`
 
-**Type:** `str | None`
+**Type:** `str`
 
-**Default:** `None`
+**Default:** `trim_models`
 
-**Purpose:** Directory where AutoGluon models are saved. The final model is
-saved in a subfolder with `_finalized` suffix.
+**Purpose:** Base directory for AutoGluon model artefacts, relative to the
+directory you run `ado create operation` from. Intermediate models are saved
+here during the iterative phase; the final model is saved to
+`{outputDirectory}_finalized/`.
 
-**Tuning Guidance:** Always set this explicitly. If not set, models may be saved
-to a temporary location and lost.
+**Tuning Guidance:** Set this to a meaningful name so you can locate the final
+model after the run. If omitted, both `trim_models/` and `trim_models_finalized/`
+are created in the working directory.
 
 **Example:**
 
@@ -507,11 +513,9 @@ through the no-priors and iterative phases.
 
 ### Accessing the Final Model
 
-The final AutoGluon model is saved to:
-
-```text
-{outputDirectory}_finalized/
-```
+The final AutoGluon model is always saved to `{outputDirectory}_finalized/`,
+where `outputDirectory` defaults to `trim_models` if not set. Both paths are
+relative to the directory you run `ado create operation` from.
 
 You can load and use it for predictions:
 
@@ -521,6 +525,10 @@ from autogluon.tabular import TabularPredictor
 predictor = TabularPredictor.load("trim_models_finalized")
 predictions = predictor.predict(new_data)
 ```
+
+The same directory contains `model_card.json` with run metadata, including
+`stopping_criteria_satisfied` (`true` if TRIM converged on the stopping
+criterion, `false` if the sampling budget was exhausted first).
 
 ### Operation Metadata
 

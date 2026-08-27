@@ -288,7 +288,7 @@ the stopping criterion:
 ### Stage 3 — Finalizing
 
 When the stopping criterion is met or the budget is exhausted, TRIM trains one
-high-quality model on all data collected and saves it to the `outputDirectory`
+high-quality model on all data collected under `outputDirectory_finalized/`
 alongside a `model_card.json`. The `stopping_criteria_satisfied` field in that
 file is `true` if TRIM converged, `false` if the budget ran out first.
 

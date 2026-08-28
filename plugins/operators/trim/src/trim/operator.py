@@ -8,6 +8,7 @@ from ado.core.discoveryspace.space import DiscoverySpace
 from ado.core.operation.config import FunctionOperationInfo
 from ado.core.operation.operation import OperationOutput
 from ado.modules.operators.collections import characterize_operation
+from trim.samplers.no_priors_parameters import NoPriorsParametersInternal
 from trim.samplers.no_priors_utils import get_source_and_target
 from trim.trim_pydantic import (
     TrimParameters,
@@ -75,7 +76,6 @@ def validate_targetOutput(
             f"identifier '{resolved}'."
         )
         params.targetOutput = resolved
-        params.noPriorParameters.targetOutput = resolved
         return params
 
     if len(matches) == 0:
@@ -208,9 +208,16 @@ def trim(
             moduleClass="NoPriorsSampleSelector",
             moduleName="trim.samplers.no_priors_sampler",
         )
+
+        # VV: Propagate the targetOutput to the NoPriors  Sampler
+        noPriorsParams = params.noPriorParameters.model_dump()
+        noPriorsParams["targetOutput"] = params.targetOutput
+
+        noPriorsParams = NoPriorsParametersInternal.model_validate(noPriorsParams)
+
         no_priors_sampler_config = CustomSamplerConfiguration(
             module=no_priors_module,
-            parameters=params.noPriorParameters,
+            parameters=noPriorsParams,
         )
         no_priors_rwparams = RandomWalkParameters(
             samplerConfig=no_priors_sampler_config,

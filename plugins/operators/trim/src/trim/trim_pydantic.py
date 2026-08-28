@@ -140,10 +140,9 @@ class TrimParameters(BaseModel):
     noPriorParameters: Annotated[
         NoPriorsParameters,
         pydantic.Field(
-            description="Parameters of the no_priors_characterization operation. "
-            "The targetOutput will be automatically set from TrimParameters.targetOutput.",
+            description="Parameters of the no_priors_characterization operation.",
         ),
-    ] = NoPriorsParameters(targetOutput="")
+    ] = NoPriorsParameters()
 
     # disablePredictiveModeling: Annotated[
     #     bool,
@@ -186,18 +185,6 @@ class TrimParameters(BaseModel):
         self.noPriorParameters.samples = self.samplingBudget.minPoints
         return self
 
-    @model_validator(mode="after")
-    def set_no_priors_target_output(self) -> "TrimParameters":
-        if self.noPriorParameters.targetOutput != self.targetOutput:
-            logging.debug(
-                "set_no_priors_target_output: Synchronizing target output between TRIM and no-priors characterization.\n"
-                f"  noPriorParameters.targetOutput = '{self.noPriorParameters.targetOutput}'\n"
-                f"  TrimParameters.targetOutput = '{self.targetOutput}'\n"
-                f"  Setting noPriorParameters.targetOutput = '{self.targetOutput}'"
-            )
-            self.noPriorParameters.targetOutput = self.targetOutput
-        return self
-
 
 class TrimSamplerParameters(TrimParameters):
     """Runtime extension of TrimParameters used only by TrimSampleSelector.
@@ -224,7 +211,7 @@ if __name__ == "__main__":
         TrimParameters(
             targetOutput="test",
             samplingBudget=SamplingBudget(minPoints=10),
-            noPriorParameters=NoPriorsParameters(targetOutput="test", samples=2),
+            noPriorParameters=NoPriorsParameters(samples=2),
         )
     )
     print(f"Parameters set are:\n{params}")

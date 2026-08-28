@@ -8,6 +8,7 @@ from ado.core.discoveryspace.space import DiscoverySpace
 from ado.core.operation.config import FunctionOperationInfo
 from ado.core.operation.operation import OperationOutput
 from ado.modules.operators.collections import characterize_operation
+from trim.samplers.no_priors_parameters import NoPriorsParametersInternal
 from trim.samplers.no_priors_utils import get_source_and_target
 from trim.trim_pydantic import (
     TrimParameters,
@@ -34,16 +35,14 @@ def validate_targetOutput(
 
     If the user supplied the fully-qualified *observed property identifier*
     (e.g. ``"calculate_pressure_ideal_gas-pressure"``) this function silently
-    rewrites ``params.targetOutput`` (and the nested copy in
-    ``params.noPriorParameters.targetOutput``) to the bare form.
+    rewrites ``params.targetOutput`` to the bare form.
 
     Args:
         params: Validated ``TrimParameters`` as parsed from kwargs.
         discoverySpace: The discovery space being characterised.
 
     Returns:
-        ``params`` with ``targetOutput`` (and the nested copy in
-        ``noPriorParameters``) set to the bare target property identifier.
+        ``params`` with ``targetOutput`` set to the bare target property identifier.
 
     Raises:
         ValueError: When ``targetOutput`` does not match any observed property,
@@ -75,7 +74,6 @@ def validate_targetOutput(
             f"identifier '{resolved}'."
         )
         params.targetOutput = resolved
-        params.noPriorParameters.targetOutput = resolved
         return params
 
     if len(matches) == 0:
@@ -103,7 +101,7 @@ def validate_targetOutput(
                 Retrieves all measured entities from the entity source and samples the others following a certain order.
                 If the number of measured entity is too small, Trim instantiates a no-priors characterization operation.
                 """,
-    version="2.0.8",
+    version="2.1.0",
 )
 def trim(
     discoverySpace: DiscoverySpace = None,  # type: ignore[name-defined]
@@ -208,9 +206,16 @@ def trim(
             moduleClass="NoPriorsSampleSelector",
             moduleName="trim.samplers.no_priors_sampler",
         )
+
+        # VV: Propagate the targetOutput to the NoPriors  Sampler
+        noPriorsParams = params.noPriorParameters.model_dump()
+        noPriorsParams["targetOutput"] = params.targetOutput
+
+        noPriorsParams = NoPriorsParametersInternal.model_validate(noPriorsParams)
+
         no_priors_sampler_config = CustomSamplerConfiguration(
             module=no_priors_module,
-            parameters=params.noPriorParameters,
+            parameters=noPriorsParams,
         )
         no_priors_rwparams = RandomWalkParameters(
             samplerConfig=no_priors_sampler_config,

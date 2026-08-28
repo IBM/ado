@@ -59,7 +59,6 @@ def test_resolve_bare_target_identifier() -> None:
     resolved = validate_targetOutput(params, _make_space())
 
     assert resolved.targetOutput == _BARE_ID
-    assert resolved.noPriorParameters.targetOutput == _BARE_ID
 
 
 def test_resolve_fully_qualified_observed_identifier() -> None:
@@ -68,7 +67,6 @@ def test_resolve_fully_qualified_observed_identifier() -> None:
     resolved = validate_targetOutput(params, _make_space())
 
     assert resolved.targetOutput == _BARE_ID
-    assert resolved.noPriorParameters.targetOutput == _BARE_ID
 
 
 def test_unrecognised_target_raises_value_error() -> None:

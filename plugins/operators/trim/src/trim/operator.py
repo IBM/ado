@@ -35,16 +35,14 @@ def validate_targetOutput(
 
     If the user supplied the fully-qualified *observed property identifier*
     (e.g. ``"calculate_pressure_ideal_gas-pressure"``) this function silently
-    rewrites ``params.targetOutput`` (and the nested copy in
-    ``params.noPriorParameters.targetOutput``) to the bare form.
+    rewrites ``params.targetOutput`` to the bare form.
 
     Args:
         params: Validated ``TrimParameters`` as parsed from kwargs.
         discoverySpace: The discovery space being characterised.
 
     Returns:
-        ``params`` with ``targetOutput`` (and the nested copy in
-        ``noPriorParameters``) set to the bare target property identifier.
+        ``params`` with ``targetOutput`` set to the bare target property identifier.
 
     Raises:
         ValueError: When ``targetOutput`` does not match any observed property,

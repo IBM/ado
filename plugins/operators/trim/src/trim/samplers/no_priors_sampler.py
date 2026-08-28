@@ -46,6 +46,10 @@ class NoPriorsSampleSelector(BaseSampler):
         Yields:
             List of Entity objects to be measured, in the determined order
         """
+        if batchsize != 1:
+            raise ValueError(
+                f"NoPriorsSampleSelector requires batchsize=1, got {batchsize}"
+            )
 
         async def iterator_closure(
             stateHandle: DiscoverySpaceManager,  # type: ignore[name-defined]
@@ -127,6 +131,10 @@ class NoPriorsSampleSelector(BaseSampler):
         Yields:
             List of Entity objects to be measured, in the determined order
         """
+        if batchsize != 1:
+            raise ValueError(
+                f"NoPriorsSampleSelector requires batchsize=1, got {batchsize}"
+            )
 
         def iterator_closure(
             space: DiscoverySpace,

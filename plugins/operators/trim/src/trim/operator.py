@@ -1,8 +1,8 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-
 import logging
+import os
 
 from ado.core.discoveryspace.space import DiscoverySpace
 from ado.core.operation.config import FunctionOperationInfo
@@ -11,6 +11,7 @@ from ado.modules.operators.collections import characterize_operation
 from trim.samplers.no_priors_utils import get_source_and_target
 from trim.trim_pydantic import (
     TrimParameters,
+    TrimSamplerParameters,
 )  # Importing this way works when the package is installed
 from trim.utils.logging_utils import (
     log_and_save_characterization,
@@ -102,7 +103,7 @@ def validate_targetOutput(
                 Retrieves all measured entities from the entity source and samples the others following a certain order.
                 If the number of measured entity is too small, Trim instantiates a no-priors characterization operation.
                 """,
-    version="2.0.6",
+    version="2.0.8",
 )
 def trim(
     discoverySpace: DiscoverySpace = None,  # type: ignore[name-defined]
@@ -124,6 +125,12 @@ def trim(
     Returns:
         OperationOutput containing the operation resources and metadata
     """
+    # Ensure LOGLEVEL env var reflects the current root logger level so that
+    # any Ray actors spawned by nested operations (e.g. random_walk) inherit it
+    # via configure_logging().  logging.basicConfig() is a no-op here because
+    # ado's configure_logging() has already attached a handler to the root logger.
+    os.environ["LOGLEVEL"] = logging.getLevelName(logging.getLogger().level)
+
     # Lazy import to avoid circular import issues during plugin loading
     from ado.modules.operators.collections import explore
     from ado.modules.operators.randomwalk import (
@@ -137,9 +144,34 @@ def trim(
         raise RuntimeError("The random_walk operator has no registered function")
 
     params = TrimParameters.model_validate(kwargs)
+
+    if params.noPriorParameters.batchSize != 1:
+        raise ValueError(
+            f"TRIM requires batchSize=1 for the no-priors sampler, got {params.noPriorParameters.batchSize}"
+        )
+
     # VV: This validates the targetOutput and also converts it to "bare" format,
     # compatible with retrieving the "target" properties in a space.
     params = validate_targetOutput(params, discoverySpace)
+
+    # Inject the model save paths into tabularPredictorArgs so that every
+    # TabularPredictor instantiation downstream can simply unpack
+    # **tabularPredictorArgs without specifying path= explicitly.
+    for arg_name, args_obj, path in (
+        ("autoGluonArgs", params.autoGluonArgs, params.outputDirectory),
+        (
+            "finalModelAutoGluonArgs",
+            params.finalModelAutoGluonArgs,
+            (params.outputDirectory or "") + "_finalized",
+        ),
+    ):
+        if "path" in args_obj.tabularPredictorArgs:
+            logger_trim.warning(
+                f"{arg_name}.tabularPredictorArgs already contains a 'path' key; "
+                "it will be overwritten by TRIM's outputDirectory."
+            )
+        args_obj.tabularPredictorArgs["path"] = path
+
     logger_trim.info(
         "Transfer Refined Iterative Modeling starts."
         f"Target variable = {params.targetOutput}"
@@ -246,13 +278,26 @@ def trim(
         moduleClass="TrimSampleSelector",  # this is the name of our custom sampler class -> which I guess is CustomSequentialSampleSelector
         moduleName="trim.trim_sampler",  ### If CustomSequentialSampleSelector is imported as "from trim.trim_sampler import TrimSampleSelector" then this is correct
     )
+    # TrimSamplerParameters extends TrimParameters with numberEntitiesIterativeModeling
+    # which tells the sampler exactly how many entities RandomWalk will draw. The sampler
+    # uses this to call finalize_model() after yielding the last entity, since RandomWalk
+    # stops calling anext() once the budget is met and never exhausts the generator.
+    # This field must NOT live on TrimParameters itself because that model is serialised
+    # to YAML as the operation configuration.
+    sampler_params = TrimSamplerParameters(
+        **params.model_dump(),
+        numberEntitiesIterativeModeling=numberEntities_iterative_modeling,
+    )
     trim_sampler_config = CustomSamplerConfiguration(
-        module=trim_module, parameters=params
+        module=trim_module, parameters=sampler_params
     )
     trim_rwparams = RandomWalkParameters(
         samplerConfig=trim_sampler_config,
         batchSize=1,
-        numberEntities=numberEntities_iterative_modeling,
+        # VV: Configuring RandomWalk to request one additional Entity, this enables the
+        # TrimSampler to know that it's about to run out of entities and thus it should
+        # finalize the model.
+        numberEntities=numberEntities_iterative_modeling + 1,
         singleMeasurement=True,
     )
 

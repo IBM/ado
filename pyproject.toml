@@ -85,6 +85,7 @@ docs = [
 ]
 
 test = [
+  "ado-active-learning",
   "ado-anomalous-series",
   "ado-autoconf ; python_full_version < '3.14'",
   "ado-profile-space ; python_full_version < '3.14'",
@@ -139,6 +140,7 @@ members = [
   "plugins/actuators/example_actuator",
   "plugins/actuators/vllm_performance",
   # "plugins/custom_experiments/autoconf",  # Excluded: incompatible with Python 3.14+ (fastai requires spacy with wheels only on GitHub)
+  "plugins/operators/active_learning",
   "plugins/operators/anomalous_series",
   # "plugins/operators/profile_space",  # Excluded: incompatible with Python 3.14+ (fg-data-profiling requires numba<0.63)
   "plugins/operators/ray_tune",
@@ -152,6 +154,7 @@ ado-ray-tune = { workspace = true }
 ado-sfttrainer = { path = "plugins/actuators/sfttrainer", editable = true }
 ado-trim = { path = "plugins/operators/trim", editable = true }
 ado-vllm-performance = { workspace = true }
+ado-active-learning = { workspace = true }
 ado-anomalous-series = { workspace = true }
 density-test = { workspace = true }
 optimization-test-functions = { workspace = true }

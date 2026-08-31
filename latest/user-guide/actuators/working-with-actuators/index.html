@@ -9,7 +9,7 @@
 │       │                    │             │ experiments                                        │         │
 │ 1     │ mock               │ 2           │ A actuator class for testing                       │ 2.0.0   │
 │ 2     │ replay             │ 0           │ Special actuator for handling externally defined   │ 2.0.0   │
-│       │                    │             │ experiments (experiments we don&#39;t have code for)   │         │
+│       │                    │             │ experiments (experiments we don't have code for)   │         │
 │ 3     │ vllm_performance   │ 25          │ VLLM performance testing actuator for ado          │ 1.13.1  │
 └───────┴────────────────────┴─────────────┴────────────────────────────────────────────────────┴─────────┘
 </code></pre></div> <h2 id=listing-available-experiments>Listing available Experiments<a class=headerlink href=#listing-available-experiments title="Permanent link">&para;</a></h2> <p>To see the experiments each actuator provides, including their description, execute</p> <div class=highlight><pre><span></span><code>ado get experiments --details
@@ -17,7 +17,7 @@
 │ INDEX │ ACTUATOR ID        │ EXPERIMENT ID                        │ VERSION │ DESCRIPTION                              │
 ├───────┼────────────────────┼──────────────────────────────────────┼─────────┼──────────────────────────────────────────┤
 │ 0     │ custom_experiments │ avoid_oom_recommender                │ None    │ An AutoConf recommender that preserves   │
-│       │                    │                                      │         │ the requested number of GPUs if it won&#39;t │
+│       │                    │                                      │         │ the requested number of GPUs if it won't │
 │       │                    │                                      │         │ cause GPU OOM, otherwise recommends the  │
 │       │                    │                                      │         │ minimum number of GPUs needed. Keeps the │
 │       │                    │                                      │         │ per-device batch size constant.          │

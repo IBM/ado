@@ -23,7 +23,7 @@
 <span class=w>    </span><span class=nt>parameterization</span><span class=p>:</span>
 <span class=w>      </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>property</span><span class=p>:</span>
 <span class=w>          </span><span class=nt>identifier</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">fms_hf_tuning_version</span>
-<span class=w>        </span><span class=nt>value</span><span class=p>:</span><span class=w> </span><span class=s>&quot;2.8.2&quot;</span>
+<span class=w>        </span><span class=nt>value</span><span class=p>:</span><span class=w> </span><span class=s>"2.8.2"</span>
 <span class=w>      </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>property</span><span class=p>:</span>
 <span class=w>          </span><span class=nt>identifier</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">stop_after_seconds</span>
 <span class=w>        </span><span class=nt>value</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">30</span>
@@ -32,16 +32,16 @@
 <span class=w>        </span><span class=nt>value</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">False</span>
 
 <span class=nt>entitySpace</span><span class=p>:</span>
-<span class=w>  </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>identifier</span><span class=p>:</span><span class=w> </span><span class=s>&quot;model_name&quot;</span>
+<span class=w>  </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>identifier</span><span class=p>:</span><span class=w> </span><span class=s>"model_name"</span>
 <span class=w>    </span><span class=nt>propertyDomain</span><span class=p>:</span>
-<span class=w>      </span><span class=nt>values</span><span class=p>:</span><span class=w> </span><span class="p p-Indicator">[</span><span class=s>&quot;smollm2-135m&quot;</span><span class="p p-Indicator">]</span>
-<span class=w>  </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>identifier</span><span class=p>:</span><span class=w> </span><span class=s>&quot;number_gpus&quot;</span>
+<span class=w>      </span><span class=nt>values</span><span class=p>:</span><span class=w> </span><span class="p p-Indicator">[</span><span class=s>"smollm2-135m"</span><span class="p p-Indicator">]</span>
+<span class=w>  </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>identifier</span><span class=p>:</span><span class=w> </span><span class=s>"number_gpus"</span>
 <span class=w>    </span><span class=nt>propertyDomain</span><span class=p>:</span>
 <span class=w>      </span><span class=nt>values</span><span class=p>:</span><span class=w> </span><span class="p p-Indicator">[</span><span class=nv>0</span><span class="p p-Indicator">]</span>
-<span class=w>  </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>identifier</span><span class=p>:</span><span class=w> </span><span class=s>&quot;model_max_length&quot;</span>
+<span class=w>  </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>identifier</span><span class=p>:</span><span class=w> </span><span class=s>"model_max_length"</span>
 <span class=w>    </span><span class=nt>propertyDomain</span><span class=p>:</span>
 <span class=w>      </span><span class=nt>values</span><span class=p>:</span><span class=w> </span><span class="p p-Indicator">[</span><span class=nv>512</span><span class="p p-Indicator">,</span><span class=w> </span><span class=nv>1024</span><span class="p p-Indicator">]</span>
-<span class=w>  </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>identifier</span><span class=p>:</span><span class=w> </span><span class=s>&quot;batch_size&quot;</span>
+<span class=w>  </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>identifier</span><span class=p>:</span><span class=w> </span><span class=s>"batch_size"</span>
 <span class=w>    </span><span class=nt>propertyDomain</span><span class=p>:</span>
 <span class=w>      </span><span class=nt>values</span><span class=p>:</span><span class=w> </span><span class="p p-Indicator">[</span><span class=nv>1</span><span class="p p-Indicator">,</span><span class=w> </span><span class=nv>2</span><span class="p p-Indicator">]</span>
 </code></pre></div> <ol start=2 type=1> <li>Create the space:</li> </ol> <div class=highlight><pre><span></span><code>ado create space -f space.yaml
@@ -52,8 +52,8 @@
 
 <span class=nt>operation</span><span class=p>:</span>
 <span class=w>  </span><span class=nt>module</span><span class=p>:</span>
-<span class=w>    </span><span class=nt>operatorName</span><span class=p>:</span><span class=w> </span><span class=s>&quot;random_walk&quot;</span>
-<span class=w>    </span><span class=nt>operationType</span><span class=p>:</span><span class=w> </span><span class=s>&quot;explore&quot;</span>
+<span class=w>    </span><span class=nt>operatorName</span><span class=p>:</span><span class=w> </span><span class=s>"random_walk"</span>
+<span class=w>    </span><span class=nt>operationType</span><span class=p>:</span><span class=w> </span><span class=s>"explore"</span>
 <span class=w>  </span><span class=nt>parameters</span><span class=p>:</span>
 <span class=w>    </span><span class=nt>numberEntities</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">all</span>
 <span class=w>    </span><span class=nt>singleMeasurement</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">True</span>

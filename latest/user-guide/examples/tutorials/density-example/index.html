@@ -21,7 +21,7 @@ ado<span class=w> </span>show<span class=w> </span>measurements<span class=w> </
 <span class=w>  </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>actuatorIdentifier</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">custom_experiments</span>
 <span class=w>    </span><span class=nt>experimentIdentifier</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">calculate_density</span>
 </code></pre></div> <p>Run it with:</p> <div class=highlight><pre><span></span><code>run_experiment<span class=w> </span>examples/density_example/point.yaml
-</code></pre></div> <p>You should see output similar to:</p> <div class=highlight><pre><span></span><code>Point: {&#39;mass&#39;: 8, &#39;volume&#39;: 4}
+</code></pre></div> <p>You should see output similar to:</p> <div class=highlight><pre><span></span><code>Point: {'mass': 8, 'volume': 4}
 Result:
 [
   ...
@@ -94,7 +94,7 @@ Measurement Space:
 <span class=nt>status</span><span class=p>:</span>
 <span class=w>  </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>event</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">finished</span>
 <span class=w>    </span><span class=nt>exit_state</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">success</span>
-<span class=w>    </span><span class=nt>recorded_at</span><span class=p>:</span><span class=w> </span><span class=s>&quot;2026-01-01T12:00:00.000000Z&quot;</span>
+<span class=w>    </span><span class=nt>recorded_at</span><span class=p>:</span><span class=w> </span><span class=s>"2026-01-01T12:00:00.000000Z"</span>
 </code></pre></div> <h2 id=step-5-view-the-results>Step 5 — View the results<a class=headerlink href=#step-5-view-the-results title="Permanent link">&para;</a></h2> <div class=highlight><pre><span></span><code>ado<span class=w> </span>show<span class=w> </span>measurements<span class=w> </span>operation<span class=w> </span>--use-latest
 </code></pre></div> <p>This prints every entity sampled in the operation alongside its measured density (some columns have been hidden for simplicity):</p> <div class=highlight><pre><span></span><code>┌───────────────┬──────────────┬──────────────────────────┬──────────┬────────┬────────────────────┬───────┐
 │ request_index │ result_index │ identifier               │ mass     │ volume │ density            │ valid │

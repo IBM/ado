@@ -10,7 +10,7 @@
 <span class=w>  </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>actuatorIdentifier</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">someactuator</span><span class=w> </span><span class=c1># The id of the actuator that contains the experiment</span>
 <span class=w>    </span><span class=nt>experimentIdentifier</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">experiment_one</span><span class=w> </span><span class=c1># The id of the experiment to execute</span>
 <span class=nt>metadata</span><span class=p>:</span>
-<span class=w>  </span><span class=nt>description</span><span class=p>:</span><span class=w> </span><span class=s>&quot;This</span><span class=nv> </span><span class=s>is</span><span class=nv> </span><span class=s>an</span><span class=nv> </span><span class=s>example</span><span class=nv> </span><span class=s>discovery</span><span class=nv> </span><span class=s>space&quot;</span>
+<span class=w>  </span><span class=nt>description</span><span class=p>:</span><span class=w> </span><span class=s>"This</span><span class=nv> </span><span class=s>is</span><span class=nv> </span><span class=s>an</span><span class=nv> </span><span class=s>example</span><span class=nv> </span><span class=s>discovery</span><span class=nv> </span><span class=s>space"</span>
 <span class=w>  </span><span class=nt>name</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">exampleSpace</span>
 </code></pre></div> <p>The <a href=#defining-the-domains-of-constitutive-properties-in-the-entityspace>describing constitutive properties</a> page provides more information on the available options for defining constitutive properties.</p> <p>Once you have your <code>discoveryspace</code> YAML in a file called <code>FILE.yaml</code> create it with</p> <div class=highlight><pre><span></span><code>ado create space -f FILE.yaml
 </code></pre></div> <p>If there are errors or inconsistencies in the space definition the create command will output an error. A common reason for inconsistency is that the properties defined in the entity space do not match the properties required for the experiments in the measurement space. The next section shows a way to handle this issue.</p> <h3 id=generating-an-initial-yaml-from-an-experiment-list>Generating an initial YAML from an Experiment list<a class=headerlink href=#generating-an-initial-yaml-from-an-experiment-list title="Permanent link">&para;</a></h3> <p>Given a list of experiment ids that you want to use for the <code>measurementspace</code>, you can create an initial compatible <code>discoveryspace</code> which you can then edit. See <a href=#defining-the-domains-of-constitutive-properties-in-the-entityspace>constitutive properties and domains</a> for more.</p> <p>Assuming you are interested in the <code>finetune-gptq-lora-dp-r-4-a-16-tm-default-v1.1.0</code> experiment, you can create your space template using:</p> <div class=highlight><pre><span></span><code>ado template space --from-experiment finetune-gptq-lora-dp-r-4-a-16-tm-default-v1.1.0
@@ -20,11 +20,11 @@
 <span class=kn>from</span><span class=w> </span><span class=nn>ado.metastore.project</span><span class=w> </span><span class=kn>import</span> <span class=n>ProjectContext</span>
 <span class=kn>from</span><span class=w> </span><span class=nn>ado.core.discoveryspace.space</span><span class=w> </span><span class=kn>import</span> <span class=n>DiscoverySpace</span>
 
-<span class=k>with</span> <span class=nb>open</span><span class=p>(</span><span class=s2>&quot;my_context.yaml&quot;</span><span class=p>)</span> <span class=k>as</span> <span class=n>f</span><span class=p>:</span>
+<span class=k>with</span> <span class=nb>open</span><span class=p>(</span><span class=s2>"my_context.yaml"</span><span class=p>)</span> <span class=k>as</span> <span class=n>f</span><span class=p>:</span>
     <span class=n>c</span> <span class=o>=</span> <span class=n>ProjectContext</span><span class=o>.</span><span class=n>model_validate</span><span class=p>(</span><span class=n>yaml</span><span class=o>.</span><span class=n>safe_load</span><span class=p>(</span><span class=n>f</span><span class=p>))</span>
 
 <span class=n>space</span> <span class=o>=</span> <span class=n>DiscoverySpace</span><span class=o>.</span><span class=n>from_stored_configuration</span><span class=p>(</span>
-    <span class=n>project_context</span><span class=o>=</span><span class=n>c</span><span class=p>,</span> <span class=n>space_identifier</span><span class=o>=</span><span class=s2>&quot;space_abc123&quot;</span>
+    <span class=n>project_context</span><span class=o>=</span><span class=n>c</span><span class=p>,</span> <span class=n>space_identifier</span><span class=o>=</span><span class=s2>"space_abc123"</span>
 <span class=p>)</span>
 <span class=c1># Get the sampled and measured entities. Returns a pandas DataFrame</span>
 <span class=n>table</span> <span class=o>=</span> <span class=n>space</span><span class=o>.</span><span class=n>measuredEntitiesTable</span><span class=p>()</span>
@@ -55,47 +55,47 @@ Required Inputs:
 
         Type: CATEGORICAL_VARIABLE_TYPE
         Values: [
-            &#39;allam-1-13b&#39;,
-            &#39;granite-13b-v2&#39;,
-            &#39;granite-20b-v2&#39;,
-            &#39;granite-3-8b&#39;,
-            &#39;granite-3.0-1b-a400m-base&#39;,
-            &#39;granite-3.1-2b&#39;,
-            &#39;granite-3.1-3b-a800m-instruct&#39;,
-            &#39;granite-3.1-8b-instruct&#39;,
-            &#39;granite-3.3-8b&#39;,
-            &#39;granite-34b-code-base&#39;,
-            &#39;granite-3b-1.5&#39;,
-            &#39;granite-3b-code-base-128k&#39;,
-            &#39;granite-4.0-1b&#39;,
-            &#39;granite-4.0-350m&#39;,
-            &#39;granite-4.0-h-1b&#39;,
-            &#39;granite-4.0-h-micro&#39;,
-            &#39;granite-4.0-h-small&#39;,
-            &#39;granite-4.0-h-tiny&#39;,
-            &#39;granite-4.0-micro&#39;,
-            &#39;granite-7b-base&#39;,
-            &#39;granite-8b-code-base&#39;,
-            &#39;granite-8b-code-base-128k&#39;,
-            &#39;granite-8b-code-instruct&#39;,
-            &#39;granite-8b-japanese&#39;,
-            &#39;granite-vision-3.2-2b&#39;,
-            &#39;hf-tiny-model-private/tiny-random-BloomForCausalLM&#39;,
-            &#39;llama-13b&#39;,
-            &#39;llama-7b&#39;,
-            &#39;llama2-70b&#39;,
-            &#39;llama3-70b&#39;,
-            &#39;llama3-8b&#39;,
-            &#39;llama3.1-405b&#39;,
-            &#39;llama3.1-70b&#39;,
-            &#39;llama3.1-8b&#39;,
-            &#39;llama3.2-1b&#39;,
-            &#39;llama3.2-3b&#39;,
-            &#39;llava-v1.6-mistral-7b&#39;,
-            &#39;mistral-123b-v2&#39;,
-            &#39;mistral-7b-v0.1&#39;,
-            &#39;mixtral-8x7b-instruct-v0.1&#39;,
-            &#39;smollm2-135m&#39;
+            'allam-1-13b',
+            'granite-13b-v2',
+            'granite-20b-v2',
+            'granite-3-8b',
+            'granite-3.0-1b-a400m-base',
+            'granite-3.1-2b',
+            'granite-3.1-3b-a800m-instruct',
+            'granite-3.1-8b-instruct',
+            'granite-3.3-8b',
+            'granite-34b-code-base',
+            'granite-3b-1.5',
+            'granite-3b-code-base-128k',
+            'granite-4.0-1b',
+            'granite-4.0-350m',
+            'granite-4.0-h-1b',
+            'granite-4.0-h-micro',
+            'granite-4.0-h-small',
+            'granite-4.0-h-tiny',
+            'granite-4.0-micro',
+            'granite-7b-base',
+            'granite-8b-code-base',
+            'granite-8b-code-base-128k',
+            'granite-8b-code-instruct',
+            'granite-8b-japanese',
+            'granite-vision-3.2-2b',
+            'hf-tiny-model-private/tiny-random-BloomForCausalLM',
+            'llama-13b',
+            'llama-7b',
+            'llama2-70b',
+            'llama3-70b',
+            'llama3-8b',
+            'llama3.1-405b',
+            'llama3.1-70b',
+            'llama3.1-8b',
+            'llama3.2-1b',
+            'llama3.2-3b',
+            'llava-v1.6-mistral-7b',
+            'mistral-123b-v2',
+            'mistral-7b-v0.1',
+            'mixtral-8x7b-instruct-v0.1',
+            'smollm2-135m'
         ]
 
     ───────────────────────────────────────────────────────────────────────────────────────────────────
@@ -174,23 +174,23 @@ Optional Inputs and Default Values:
 
         Type: CATEGORICAL_VARIABLE_TYPE
         Values: [
-            &#39;news-chars-1024-entries-1024&#39;,
-            &#39;news-chars-1024-entries-256&#39;,
-            &#39;news-chars-1024-entries-4096&#39;,
-            &#39;news-chars-2048-entries-1024&#39;,
-            &#39;news-chars-2048-entries-256&#39;,
-            &#39;news-chars-2048-entries-4096&#39;,
-            &#39;news-chars-512-entries-1024&#39;,
-            &#39;news-chars-512-entries-256&#39;,
-            &#39;news-chars-512-entries-4096&#39;,
-            &#39;news-tokens-128kplus-entries-320&#39;,
-            &#39;news-tokens-128kplus-entries-4096&#39;,
-            &#39;news-tokens-16384plus-entries-4096&#39;,
-            &#39;vision-384x384-16384plus-entries-4096&#39;,
-            &#39;vision-384x768-16384plus-entries-4096&#39;
+            'news-chars-1024-entries-1024',
+            'news-chars-1024-entries-256',
+            'news-chars-1024-entries-4096',
+            'news-chars-2048-entries-1024',
+            'news-chars-2048-entries-256',
+            'news-chars-2048-entries-4096',
+            'news-chars-512-entries-1024',
+            'news-chars-512-entries-256',
+            'news-chars-512-entries-4096',
+            'news-tokens-128kplus-entries-320',
+            'news-tokens-128kplus-entries-4096',
+            'news-tokens-16384plus-entries-4096',
+            'vision-384x384-16384plus-entries-4096',
+            'vision-384x768-16384plus-entries-4096'
         ]
 
-     Default value: &#39;news-tokens-16384plus-entries-4096&#39;
+     Default value: 'news-tokens-16384plus-entries-4096'
     ───────────────────────────────────────────────────────────────────────────────────────────────────
     ───────────────────────────────────────────────────────────────────────────────────────────────────
      Identifier: gradient_checkpointing
@@ -209,9 +209,9 @@ Optional Inputs and Default Values:
      Domain:
 
         Type: CATEGORICAL_VARIABLE_TYPE
-        Values: [&#39;bfloat16&#39;, &#39;float16&#39;, &#39;float32&#39;]
+        Values: ['bfloat16', 'float16', 'float32']
 
-     Default value: &#39;bfloat16&#39;
+     Default value: 'bfloat16'
     ───────────────────────────────────────────────────────────────────────────────────────────────────
     ───────────────────────────────────────────────────────────────────────────────────────────────────
      Identifier: gradient_accumulation_steps
@@ -234,7 +234,7 @@ Optional Inputs and Default Values:
      Domain:
 
         Type: CATEGORICAL_VARIABLE_TYPE
-        Values: [&#39;WARMUP_60S_STABLE_120S_OR_10_STEPS&#39;, None]
+        Values: ['WARMUP_60S_STABLE_120S_OR_10_STEPS', None]
 
      Default value: None
     ───────────────────────────────────────────────────────────────────────────────────────────────────
@@ -278,7 +278,7 @@ Optional Inputs and Default Values:
      Domain:
 
         Type: CATEGORICAL_VARIABLE_TYPE
-        Values: [None, [&#39;True&#39;, &#39;True&#39;, &#39;True&#39;]]
+        Values: [None, ['True', 'True', 'True']]
 
      Default value: None
     ───────────────────────────────────────────────────────────────────────────────────────────────────
@@ -289,47 +289,47 @@ Optional Inputs and Default Values:
 
         Type: CATEGORICAL_VARIABLE_TYPE
         Values: [
-            &#39;adamw_hf&#39;,
-            &#39;adamw_torch&#39;,
-            &#39;adamw_torch_fused&#39;,
-            &#39;adamw_torch_xla&#39;,
-            &#39;adamw_torch_npu_fused&#39;,
-            &#39;adamw_apex_fused&#39;,
-            &#39;adafactor&#39;,
-            &#39;adamw_anyprecision&#39;,
-            &#39;adamw_torch_4bit&#39;,
-            &#39;ademamix&#39;,
-            &#39;sgd&#39;,
-            &#39;adagrad&#39;,
-            &#39;adamw_bnb_8bit&#39;,
-            &#39;adamw_8bit&#39;,
-            &#39;ademamix_8bit&#39;,
-            &#39;lion_8bit&#39;,
-            &#39;lion_32bit&#39;,
-            &#39;paged_adamw_32bit&#39;,
-            &#39;paged_adamw_8bit&#39;,
-            &#39;paged_ademamix_32bit&#39;,
-            &#39;paged_ademamix_8bit&#39;,
-            &#39;paged_lion_32bit&#39;,
-            &#39;paged_lion_8bit&#39;,
-            &#39;rmsprop&#39;,
-            &#39;rmsprop_bnb&#39;,
-            &#39;rmsprop_bnb_8bit&#39;,
-            &#39;rmsprop_bnb_32bit&#39;,
-            &#39;galore_adamw&#39;,
-            &#39;galore_adamw_8bit&#39;,
-            &#39;galore_adafactor&#39;,
-            &#39;galore_adamw_layerwise&#39;,
-            &#39;galore_adamw_8bit_layerwise&#39;,
-            &#39;galore_adafactor_layerwise&#39;,
-            &#39;lomo&#39;,
-            &#39;adalomo&#39;,
-            &#39;grokadamw&#39;,
-            &#39;schedule_free_adamw&#39;,
-            &#39;schedule_free_sgd&#39;
+            'adamw_hf',
+            'adamw_torch',
+            'adamw_torch_fused',
+            'adamw_torch_xla',
+            'adamw_torch_npu_fused',
+            'adamw_apex_fused',
+            'adafactor',
+            'adamw_anyprecision',
+            'adamw_torch_4bit',
+            'ademamix',
+            'sgd',
+            'adagrad',
+            'adamw_bnb_8bit',
+            'adamw_8bit',
+            'ademamix_8bit',
+            'lion_8bit',
+            'lion_32bit',
+            'paged_adamw_32bit',
+            'paged_adamw_8bit',
+            'paged_ademamix_32bit',
+            'paged_ademamix_8bit',
+            'paged_lion_32bit',
+            'paged_lion_8bit',
+            'rmsprop',
+            'rmsprop_bnb',
+            'rmsprop_bnb_8bit',
+            'rmsprop_bnb_32bit',
+            'galore_adamw',
+            'galore_adamw_8bit',
+            'galore_adafactor',
+            'galore_adamw_layerwise',
+            'galore_adamw_8bit_layerwise',
+            'galore_adafactor_layerwise',
+            'lomo',
+            'adalomo',
+            'grokadamw',
+            'schedule_free_adamw',
+            'schedule_free_sgd'
         ]
 
-     Default value: &#39;adamw_torch&#39;
+     Default value: 'adamw_torch'
     ───────────────────────────────────────────────────────────────────────────────────────────────────
     ───────────────────────────────────────────────────────────────────────────────────────────────────
      Identifier: bf16
@@ -366,9 +366,9 @@ Optional Inputs and Default Values:
      Domain:
 
         Type: CATEGORICAL_VARIABLE_TYPE
-        Values: [&#39;output&#39;, &#39;messages&#39;]
+        Values: ['output', 'messages']
 
-     Default value: &#39;output&#39;
+     Default value: 'output'
     ───────────────────────────────────────────────────────────────────────────────────────────────────
     ───────────────────────────────────────────────────────────────────────────────────────────────────
      Identifier: dataset_image_field
@@ -376,7 +376,7 @@ Optional Inputs and Default Values:
      Domain:
 
         Type: CATEGORICAL_VARIABLE_TYPE
-        Values: [None, &#39;images&#39;]
+        Values: [None, 'images']
 
      Default value: None
     ───────────────────────────────────────────────────────────────────────────────────────────────────
@@ -418,13 +418,13 @@ Optional Inputs and Default Values:
         Type: CATEGORICAL_VARIABLE_TYPE
         Values: [
             None,
-            &#39;NVIDIA-A100-SXM4-80GB&#39;,
-            &#39;NVIDIA-A100-80GB-PCIe&#39;,
-            &#39;Tesla-T4&#39;,
-            &#39;L40S&#39;,
-            &#39;Tesla-V100-PCIE-16GB&#39;,
-            &#39;NVIDIA-H100-PCIe&#39;,
-            &#39;NVIDIA-H100-80GB-HBM3&#39;
+            'NVIDIA-A100-SXM4-80GB',
+            'NVIDIA-A100-80GB-PCIe',
+            'Tesla-T4',
+            'L40S',
+            'Tesla-V100-PCIE-16GB',
+            'NVIDIA-H100-PCIe',
+            'NVIDIA-H100-80GB-HBM3'
         ]
 
      Default value: None
@@ -435,9 +435,9 @@ Optional Inputs and Default Values:
      Domain:
 
         Type: CATEGORICAL_VARIABLE_TYPE
-        Values: [&#39;DDP&#39;, &#39;FSDP&#39;, &#39;None&#39;]
+        Values: ['DDP', 'FSDP', 'None']
 
-     Default value: &#39;FSDP&#39;
+     Default value: 'FSDP'
     ───────────────────────────────────────────────────────────────────────────────────────────────────
     ───────────────────────────────────────────────────────────────────────────────────────────────────
      Identifier: number_nodes
@@ -459,23 +459,23 @@ Optional Inputs and Default Values:
 
         Type: CATEGORICAL_VARIABLE_TYPE
         Values: [
-            &#39;2.0.1&#39;,
-            &#39;2.1.0&#39;,
-            &#39;2.1.1&#39;,
-            &#39;2.1.2&#39;,
-            &#39;2.2.1&#39;,
-            &#39;2.3.1&#39;,
-            &#39;2.4.0&#39;,
-            &#39;2.5.0&#39;,
-            &#39;2.6.0&#39;,
-            &#39;2.7.1&#39;,
-            &#39;2.8.2&#39;,
-            &#39;3.0.0&#39;,
-            &#39;3.0.0.1&#39;,
-            &#39;3.1.0&#39;
+            '2.0.1',
+            '2.1.0',
+            '2.1.1',
+            '2.1.2',
+            '2.2.1',
+            '2.3.1',
+            '2.4.0',
+            '2.5.0',
+            '2.6.0',
+            '2.7.1',
+            '2.8.2',
+            '3.0.0',
+            '3.0.0.1',
+            '3.1.0'
         ]
 
-     Default value: &#39;2.1.2&#39;
+     Default value: '2.1.2'
     ───────────────────────────────────────────────────────────────────────────────────────────────────
     ───────────────────────────────────────────────────────────────────────────────────────────────────
      Identifier: enable_roce
@@ -499,9 +499,9 @@ Optional Inputs and Default Values:
      Domain:
 
         Type: CATEGORICAL_VARIABLE_TYPE
-        Values: [&#39;FULL_SHARD&#39;, &#39;SHARD_GRAD_OP&#39;, &#39;NO_SHARD&#39;, &#39;HYBRID_SHARD&#39;, &#39;HYBRID_SHARD_ZERO2&#39;]
+        Values: ['FULL_SHARD', 'SHARD_GRAD_OP', 'NO_SHARD', 'HYBRID_SHARD', 'HYBRID_SHARD_ZERO2']
 
-     Default value: &#39;FULL_SHARD&#39;
+     Default value: 'FULL_SHARD'
     ───────────────────────────────────────────────────────────────────────────────────────────────────
     ───────────────────────────────────────────────────────────────────────────────────────────────────
      Identifier: fsdp_state_dict_type
@@ -509,9 +509,9 @@ Optional Inputs and Default Values:
      Domain:
 
         Type: CATEGORICAL_VARIABLE_TYPE
-        Values: [&#39;FULL_STATE_DICT&#39;, &#39;LOCAL_STATE_DICT&#39;, &#39;SHARDED_STATE_DICT&#39;]
+        Values: ['FULL_STATE_DICT', 'LOCAL_STATE_DICT', 'SHARDED_STATE_DICT']
 
-     Default value: &#39;FULL_STATE_DICT&#39;
+     Default value: 'FULL_STATE_DICT'
     ───────────────────────────────────────────────────────────────────────────────────────────────────
     ───────────────────────────────────────────────────────────────────────────────────────────────────
      Identifier: fsdp_use_orig_params
@@ -526,14 +526,14 @@ Optional Inputs and Default Values:
     ───────────────────────────────────────────────────────────────────────────────────────────────────
     ───────────────────────────────────────────────────────────────────────────────────────────────────
      Identifier: accelerate_config_mixed_precision
-     Description: Whether or not to use mixed precision training. Choose from &#39;no&#39;, &#39;fp16&#39;, &#39;bf16&#39; or
+     Description: Whether or not to use mixed precision training. Choose from 'no', 'fp16', 'bf16' or
      requires the installation of transformers-engine.
      Domain:
 
         Type: CATEGORICAL_VARIABLE_TYPE
-        Values: [&#39;no&#39;, &#39;fp16&#39;, &#39;bf16&#39;, &#39;fp8&#39;]
+        Values: ['no', 'fp16', 'bf16', 'fp8']
 
-     Default value: &#39;no&#39;
+     Default value: 'no'
     ───────────────────────────────────────────────────────────────────────────────────────────────────
     ───────────────────────────────────────────────────────────────────────────────────────────────────
      Identifier: accelerate_config_fsdp_transformer_layer_cls_to_wrap
@@ -544,11 +544,11 @@ Optional Inputs and Default Values:
         Type: CATEGORICAL_VARIABLE_TYPE
         Values: [
             None,
-            &#39;GraniteDecoderLayer&#39;,
-            &#39;LlamaDecoderLayer&#39;,
-            &#39;MistralDecoderLayer&#39;,
-            &#39;GPTJBlock&#39;,
-            &#39;T5Block&#39;
+            'GraniteDecoderLayer',
+            'LlamaDecoderLayer',
+            'MistralDecoderLayer',
+            'GPTJBlock',
+            'T5Block'
         ]
 
      Default value: None
@@ -592,7 +592,7 @@ Required Inputs:
      Domain:
 
         Type: CATEGORICAL_VARIABLE_TYPE
-        Values: [&#39;test_peptide&#39;, &#39;test_peptide_new&#39;]
+        Values: ['test_peptide', 'test_peptide_new']
 
     ───────────────────────────────────────────────────────────────────────────────────────────────────
     ───────────────────────────────────────────────────────────────────────────────────────────────────
@@ -643,9 +643,9 @@ Optional Inputs and Default Values:
      Domain:
 
         Type: CATEGORICAL_VARIABLE_TYPE
-        Values: [&#39;harry&#39;, &#39;hermione&#39;]
+        Values: ['harry', 'hermione']
 
-     Default value: &#39;hermione&#39;
+     Default value: 'hermione'
     ───────────────────────────────────────────────────────────────────────────────────────────────────
 
 Outputs:
@@ -657,7 +657,7 @@ Outputs:
 <span class=nt>entitySpace</span><span class=p>:</span>
 <span class=w>  </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>identifier</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">peptide_identifier</span>
 <span class=w>    </span><span class=nt>propertyDomain</span><span class=p>:</span>
-<span class=w>      </span><span class=nt>values</span><span class=p>:</span><span class=w> </span><span class="p p-Indicator">[</span><span class=s>&quot;test_peptide&quot;</span><span class="p p-Indicator">]</span>
+<span class=w>      </span><span class=nt>values</span><span class=p>:</span><span class=w> </span><span class="p p-Indicator">[</span><span class=s>"test_peptide"</span><span class="p p-Indicator">]</span>
 <span class=w>  </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>identifier</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">peptide_concentration</span>
 <span class=w>    </span><span class=nt>propertyDomain</span><span class=p>:</span>
 <span class=w>      </span><span class=nt>values</span><span class=p>:</span><span class=w> </span><span class="p p-Indicator">[</span><span class=nv>0.1</span><span class="p p-Indicator">,</span><span class=w> </span><span class=nv>0.4</span><span class="p p-Indicator">,</span><span class=w> </span><span class=nv>0.6</span><span class="p p-Indicator">,</span><span class=w> </span><span class=nv>0.8</span><span class="p p-Indicator">]</span>
@@ -670,14 +670,14 @@ Outputs:
 <span class=w>    </span><span class=nt>parameterization</span><span class=p>:</span>
 <span class=w>      </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>value</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">30</span>
 <span class=w>        </span><span class=nt>property</span><span class=p>:</span>
-<span class=w>          </span><span class=nt>identifier</span><span class=p>:</span><span class=w> </span><span class=s>&quot;temperature&quot;</span>
+<span class=w>          </span><span class=nt>identifier</span><span class=p>:</span><span class=w> </span><span class=s>"temperature"</span>
 <span class=nt>metadata</span><span class=p>:</span>
 <span class=w>  </span><span class=nt>description</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">Space for exploring the absorption properties of test_peptide</span>
 </code></pre></div> <h3 id=example-multiple-customizations-of-the-same-experiment>Example: Multiple customizations of the same experiment<a class=headerlink href=#example-multiple-customizations-of-the-same-experiment title="Permanent link">&para;</a></h3> <p>You can add the multiple custom parameterizations of the same experiment e.g. one experiment that runs at 30 degrees C and another at 25 degrees.</p> <div class=highlight><pre><span></span><code><span class=nt>sampleStoreIdentifier</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">c04713</span><span class=w> </span><span class=c1># PUT REAL ID HERE</span>
 <span class=nt>entitySpace</span><span class=p>:</span>
 <span class=w>  </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>identifier</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">peptide_identifier</span>
 <span class=w>    </span><span class=nt>propertyDomain</span><span class=p>:</span>
-<span class=w>      </span><span class=nt>values</span><span class=p>:</span><span class=w> </span><span class="p p-Indicator">[</span><span class=s>&quot;test_peptide&quot;</span><span class="p p-Indicator">]</span>
+<span class=w>      </span><span class=nt>values</span><span class=p>:</span><span class=w> </span><span class="p p-Indicator">[</span><span class=s>"test_peptide"</span><span class="p p-Indicator">]</span>
 <span class=w>  </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>identifier</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">peptide_concentration</span>
 <span class=w>    </span><span class=nt>propertyDomain</span><span class=p>:</span>
 <span class=w>      </span><span class=nt>values</span><span class=p>:</span><span class=w> </span><span class="p p-Indicator">[</span><span class=nv>0.1</span><span class="p p-Indicator">,</span><span class=w> </span><span class=nv>0.4</span><span class="p p-Indicator">,</span><span class=w> </span><span class=nv>0.6</span><span class="p p-Indicator">,</span><span class=w> </span><span class=nv>0.8</span><span class="p p-Indicator">]</span>
@@ -690,20 +690,20 @@ Outputs:
 <span class=w>    </span><span class=nt>parameterization</span><span class=p>:</span>
 <span class=w>      </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>value</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">30</span>
 <span class=w>        </span><span class=nt>property</span><span class=p>:</span>
-<span class=w>          </span><span class=nt>identifier</span><span class=p>:</span><span class=w> </span><span class=s>&quot;temperature&quot;</span>
+<span class=w>          </span><span class=nt>identifier</span><span class=p>:</span><span class=w> </span><span class=s>"temperature"</span>
 <span class=w>  </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>actuatorIdentifier</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">robotic_lab</span>
 <span class=w>    </span><span class=nt>experimentIdentifier</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">peptide_mineralization</span>
 <span class=w>    </span><span class=nt>parameterization</span><span class=p>:</span>
 <span class=w>      </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>value</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">25</span>
 <span class=w>        </span><span class=nt>property</span><span class=p>:</span>
-<span class=w>          </span><span class=nt>identifier</span><span class=p>:</span><span class=w> </span><span class=s>&quot;temperature&quot;</span>
+<span class=w>          </span><span class=nt>identifier</span><span class=p>:</span><span class=w> </span><span class=s>"temperature"</span>
 <span class=nt>metadata</span><span class=p>:</span>
 <span class=w>  </span><span class=nt>description</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">Space for exploring the absorption properties of test_peptide</span>
 </code></pre></div> <h3 id=example-using-an-optional-property-in-the-entityspace>Example: Using an optional property in the <code>entityspace</code><a class=headerlink href=#example-using-an-optional-property-in-the-entityspace title="Permanent link">&para;</a></h3> <p>Finally, if you want to scan a range of temperatures in your discovery space, the best would be to move this parameter into the <code>entityspace</code>:</p> <div class=highlight><pre><span></span><code><span class=nt>sampleStoreIdentifier</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">c04713</span><span class=w> </span><span class=c1># PUT REAL ID HERE</span>
 <span class=nt>entitySpace</span><span class=p>:</span>
 <span class=w>  </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>identifier</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">peptide_identifier</span>
 <span class=w>    </span><span class=nt>propertyDomain</span><span class=p>:</span>
-<span class=w>      </span><span class=nt>values</span><span class=p>:</span><span class=w> </span><span class="p p-Indicator">[</span><span class=s>&quot;test_peptide&quot;</span><span class="p p-Indicator">]</span>
+<span class=w>      </span><span class=nt>values</span><span class=p>:</span><span class=w> </span><span class="p p-Indicator">[</span><span class=s>"test_peptide"</span><span class="p p-Indicator">]</span>
 <span class=w>  </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>identifier</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">peptide_concentration</span>
 <span class=w>    </span><span class=nt>propertyDomain</span><span class=p>:</span>
 <span class=w>      </span><span class=nt>values</span><span class=p>:</span><span class=w> </span><span class="p p-Indicator">[</span><span class=nv>0.1</span><span class="p p-Indicator">,</span><span class=w> </span><span class=nv>0.4</span><span class="p p-Indicator">,</span><span class=w> </span><span class=nv>0.6</span><span class="p p-Indicator">,</span><span class=w> </span><span class=nv>0.8</span><span class="p p-Indicator">]</span>

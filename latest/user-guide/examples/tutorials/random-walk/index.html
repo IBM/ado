@@ -41,23 +41,23 @@ ado<span class=w> </span>show<span class=w> </span>measurements<span class=w> </
 </code></pre></div> <div class="admonition tip"> <p class=admonition-title>Tip</p> <p>The sample store only needs to be created once. It can be reused across multiple discovery spaces and examples that need the <code>ml_export.csv</code> data.</p> </div> <h2 id=step-2-define-a-discovery-space>Step 2 — Define a discovery space<a class=headerlink href=#step-2-define-a-discovery-space title="Permanent link">&para;</a></h2> <p>A <strong>discovery space</strong> brings together:</p> <ul> <li>an <strong>entity space</strong> — the set of points to measure</li> <li>a <strong>measurement space</strong> — the experiments to apply to them</li> </ul> <p>The file <code>examples/ml-multi-cloud/ml_multicloud_space.yaml</code> describes the space of cloud configurations and maps them to the <code>replay.benchmark_performance</code> experiment:</p> <div class=highlight><pre><span></span><code><span class=c1># Copyright IBM Corporation 2025, 2026</span>
 <span class=c1># SPDX-License-Identifier: MIT</span>
 <span class=nt>entitySpace</span><span class=p>:</span>
-<span class=w>  </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>identifier</span><span class=p>:</span><span class=w> </span><span class=s>&quot;provider&quot;</span>
+<span class=w>  </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>identifier</span><span class=p>:</span><span class=w> </span><span class=s>"provider"</span>
 <span class=w>    </span><span class=nt>propertyDomain</span><span class=p>:</span>
-<span class=w>      </span><span class=nt>values</span><span class=p>:</span><span class=w> </span><span class="p p-Indicator">[</span><span class=s>&#39;A&#39;</span><span class="p p-Indicator">,</span><span class=w> </span><span class=s>&#39;B&#39;</span><span class="p p-Indicator">,</span><span class=w> </span><span class=s>&#39;C&#39;</span><span class="p p-Indicator">]</span>
-<span class=w>  </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>identifier</span><span class=p>:</span><span class=w> </span><span class=s>&quot;cpu_family&quot;</span>
-<span class=w>    </span><span class=nt>propertyDomain</span><span class=p>:</span>
-<span class=w>      </span><span class=nt>values</span><span class=p>:</span><span class=w> </span><span class="p p-Indicator">[</span><span class=nv>0</span><span class="p p-Indicator">,</span><span class=w> </span><span class=nv>1</span><span class="p p-Indicator">]</span>
-<span class=w>  </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>identifier</span><span class=p>:</span><span class=w> </span><span class=s>&quot;vcpu_size&quot;</span>
+<span class=w>      </span><span class=nt>values</span><span class=p>:</span><span class=w> </span><span class="p p-Indicator">[</span><span class=s>'A'</span><span class="p p-Indicator">,</span><span class=w> </span><span class=s>'B'</span><span class="p p-Indicator">,</span><span class=w> </span><span class=s>'C'</span><span class="p p-Indicator">]</span>
+<span class=w>  </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>identifier</span><span class=p>:</span><span class=w> </span><span class=s>"cpu_family"</span>
 <span class=w>    </span><span class=nt>propertyDomain</span><span class=p>:</span>
 <span class=w>      </span><span class=nt>values</span><span class=p>:</span><span class=w> </span><span class="p p-Indicator">[</span><span class=nv>0</span><span class="p p-Indicator">,</span><span class=w> </span><span class=nv>1</span><span class="p p-Indicator">]</span>
-<span class=w>  </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>identifier</span><span class=p>:</span><span class=w> </span><span class=s>&quot;nodes&quot;</span>
+<span class=w>  </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>identifier</span><span class=p>:</span><span class=w> </span><span class=s>"vcpu_size"</span>
+<span class=w>    </span><span class=nt>propertyDomain</span><span class=p>:</span>
+<span class=w>      </span><span class=nt>values</span><span class=p>:</span><span class=w> </span><span class="p p-Indicator">[</span><span class=nv>0</span><span class="p p-Indicator">,</span><span class=w> </span><span class=nv>1</span><span class="p p-Indicator">]</span>
+<span class=w>  </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>identifier</span><span class=p>:</span><span class=w> </span><span class=s>"nodes"</span>
 <span class=w>    </span><span class=nt>propertyDomain</span><span class=p>:</span>
 <span class=w>      </span><span class=nt>values</span><span class=p>:</span><span class=w> </span><span class="p p-Indicator">[</span><span class=nv>2</span><span class="p p-Indicator">,</span><span class=w> </span><span class=nv>3</span><span class="p p-Indicator">,</span><span class=w> </span><span class=nv>4</span><span class="p p-Indicator">,</span><span class=w> </span><span class=nv>5</span><span class="p p-Indicator">]</span>
 <span class=nt>experiments</span><span class=p>:</span>
-<span class=w>  </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>experimentIdentifier</span><span class=p>:</span><span class=w> </span><span class=s>&#39;benchmark_performance&#39;</span>
-<span class=w>    </span><span class=nt>actuatorIdentifier</span><span class=p>:</span><span class=w> </span><span class=s>&#39;replay&#39;</span>
+<span class=w>  </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>experimentIdentifier</span><span class=p>:</span><span class=w> </span><span class=s>'benchmark_performance'</span>
+<span class=w>    </span><span class=nt>actuatorIdentifier</span><span class=p>:</span><span class=w> </span><span class=s>'replay'</span>
 <span class=nt>metadata</span><span class=p>:</span>
-<span class=w>  </span><span class=nt>name</span><span class=p>:</span><span class=w> </span><span class=s>&quot;ml_multicloud_basic&quot;</span>
+<span class=w>  </span><span class=nt>name</span><span class=p>:</span><span class=w> </span><span class=s>"ml_multicloud_basic"</span>
 </code></pre></div> <p>Create the discovery space, linking it to the sample store you just created:</p> <div class=highlight><pre><span></span><code>ado<span class=w> </span>create<span class=w> </span>space<span class=w> </span>-f<span class=w> </span>examples/ml-multi-cloud/ml_multicloud_space.yaml<span class=w> </span>--use-latest<span class=w> </span>samplestore
 </code></pre></div> <div class=highlight><pre><span></span><code>Success! Created space with identifier: $DISCOVERY_SPACE_IDENTIFIER
 </code></pre></div> <p>Inspect it to confirm the entity space dimensions and experiment interface:</p> <div class=highlight><pre><span></span><code>ado<span class=w> </span>describe<span class=w> </span>space<span class=w> </span>--use-latest
@@ -69,7 +69,7 @@ ado<span class=w> </span>show<span class=w> </span>measurements<span class=w> </
 
       name     ┃ values
      ━━━━━━━━━━╋━━━━━━━━━━━━━━━━━
-      provider ┃ [&#39;A&#39;, &#39;B&#39;, &#39;C&#39;]
+      provider ┃ ['A', 'B', 'C']
 
    Discrete properties:
 
@@ -90,14 +90,14 @@ Measurement Space:
 </code></pre></div> <div class="admonition example"> <p class=admonition-title>Have a look</p> <p>The entity space has 48 entities — the Cartesian product of <code>provider</code> (3), <code>cpu_family</code> (2), <code>vcpu_size</code> (2), and <code>nodes</code> (4). Compare this to the number of rows in <code>ml_export.csv</code>.</p> </div> <h2 id=step-3-run-a-random-walk>Step 3 — Run a random walk<a class=headerlink href=#step-3-run-a-random-walk title="Permanent link">&para;</a></h2> <p>An <strong>operation</strong> drives an <strong>operator</strong> over the discovery space. Here we use <code>random_walk</code>, which samples entities at random.</p> <p>The file <code>examples/ml-multi-cloud/randomwalk_ml_multicloud_operation.yaml</code> configures the walk:</p> <div class=highlight><pre><span></span><code><span class=c1># Copyright IBM Corporation 2025, 2026</span>
 <span class=c1># SPDX-License-Identifier: MIT</span>
 <span class=nt>metadata</span><span class=p>:</span>
-<span class=w>  </span><span class=nt>name</span><span class=p>:</span><span class=w> </span><span class=s>&#39;randomwalk-all&#39;</span>
-<span class=w>  </span><span class=nt>description</span><span class=p>:</span><span class=w> </span><span class=s>&#39;Perform</span><span class=nv> </span><span class=s>a</span><span class=nv> </span><span class=s>random</span><span class=nv> </span><span class=s>walk</span><span class=nv> </span><span class=s>on</span><span class=nv> </span><span class=s>all</span><span class=nv> </span><span class=s>points</span><span class=nv> </span><span class=s>in</span><span class=nv> </span><span class=s>a</span><span class=nv> </span><span class=s>space&#39;</span>
+<span class=w>  </span><span class=nt>name</span><span class=p>:</span><span class=w> </span><span class=s>'randomwalk-all'</span>
+<span class=w>  </span><span class=nt>description</span><span class=p>:</span><span class=w> </span><span class=s>'Perform</span><span class=nv> </span><span class=s>a</span><span class=nv> </span><span class=s>random</span><span class=nv> </span><span class=s>walk</span><span class=nv> </span><span class=s>on</span><span class=nv> </span><span class=s>all</span><span class=nv> </span><span class=s>points</span><span class=nv> </span><span class=s>in</span><span class=nv> </span><span class=s>a</span><span class=nv> </span><span class=s>space'</span>
 <span class=nt>spaces</span><span class=p>:</span>
-<span class=w>  </span><span class="p p-Indicator">-</span><span class=w> </span><span class=s>&#39;space-630588-bfebfe&#39;</span>
+<span class=w>  </span><span class="p p-Indicator">-</span><span class=w> </span><span class=s>'space-630588-bfebfe'</span>
 <span class=nt>operation</span><span class=p>:</span>
 <span class=w>  </span><span class=nt>module</span><span class=p>:</span>
-<span class=w>    </span><span class=nt>operatorName</span><span class=p>:</span><span class=w> </span><span class=s>&quot;random_walk&quot;</span>
-<span class=w>    </span><span class=nt>operationType</span><span class=p>:</span><span class=w> </span><span class=s>&quot;explore&quot;</span>
+<span class=w>    </span><span class=nt>operatorName</span><span class=p>:</span><span class=w> </span><span class=s>"random_walk"</span>
+<span class=w>    </span><span class=nt>operationType</span><span class=p>:</span><span class=w> </span><span class=s>"explore"</span>
 <span class=w>  </span><span class=nt>parameters</span><span class=p>:</span>
 <span class=w>    </span><span class=nt>numberEntities</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">48</span>
 <span class=w>    </span><span class=nt>batchSize</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
@@ -114,7 +114,7 @@ Measurement Space:
 <span class=nt>status</span><span class=p>:</span>
 <span class=w>  </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>event</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">finished</span>
 <span class=w>    </span><span class=nt>exit_state</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">success</span>
-<span class=w>    </span><span class=nt>recorded_at</span><span class=p>:</span><span class=w> </span><span class=s>&quot;2026-07-09T09:26:52.072109Z&quot;</span>
+<span class=w>    </span><span class=nt>recorded_at</span><span class=p>:</span><span class=w> </span><span class=s>"2026-07-09T09:26:52.072109Z"</span>
 </code></pre></div> <div class="admonition tip"> <p class=admonition-title>Memoization</p> <p><code>ado</code> transparently <strong>reuses</strong> any measurement already in the sample store rather than re-running it. The operator does not need to know whether a result will come from live execution or replay — <code>ado</code> handles it automatically.</p> </div> <h2 id=step-4-view-the-results>Step 4 — View the results<a class=headerlink href=#step-4-view-the-results title="Permanent link">&para;</a></h2> <div class=highlight><pre><span></span><code>ado<span class=w> </span>show<span class=w> </span>measurements<span class=w> </span>operation<span class=w> </span>--use-latest
 </code></pre></div> <div class=highlight><pre><span></span><code>┌───────────────┬──────────────┬────────────────────────┬──────────────────────────────┬────────────┬───────┬──────────┬───────────┬────────────────────┬──────────────┬───────┐
 │ request_index │ result_index │ identifier             │ experiment_id                │ cpu_family │ nodes │ provider │ vcpu_size │ wallClockRuntime   │ status       │ valid │

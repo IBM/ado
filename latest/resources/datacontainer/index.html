@@ -5,17 +5,17 @@
 
  ────────────────────────────────────────────── Basic Data ───────────────────────────────────────────────
 
-    Label: &#39;person&#39;
-    {&#39;name&#39;: &#39;mj&#39;, &#39;age&#39;: 2}
+    Label: 'person'
+    {'name': 'mj', 'age': 2}
 
 
-    Label: &#39;important_info&#39;
-    [&#39;t1&#39;, 1, &#39;t2&#39;]
+    Label: 'important_info'
+    ['t1', 1, 't2']
 
  ─────────────────────────────────────────────────────────────────────────────────────────────────────────
  ───────────────────────────────────────────── Tabular Data ──────────────────────────────────────────────
 
-    Label: &#39;important_entities&#39;
+    Label: 'important_entities'
 
      config            cpu_family    vcpu_size    nodes    wallClockRuntime      status       provider
     ───────────────────────────────────────────────────────────────────────────────────────────────────
@@ -91,14 +91,14 @@
  ─────────────────────────────────────────────────────────────────────────────────────────────────────────
  ───────────────────────────────────────────── Location Data ─────────────────────────────────────────────
 
-    Label: &#39;entity_location&#39;
+    Label: 'entity_location'
     mysql+pymysql://admin:somepass@localhost:3306/sql_sample_store_aaa123
 
  ─────────────────────────────────────────────────────────────────────────────────────────────────────────
 </code></pre></div> <h3 id=programmatically>programmatically<a class=headerlink href=#programmatically title="Permanent link">&para;</a></h3> <p>For certain data, like large tables, it may be more convenient to access the data programmatically.</p> <p>If you do <code>ado get datacontainer $RESOURCEID -o yaml &gt; data.yaml</code>. Then the following snippet shows how to access the data in python</p> <div class=highlight><pre><span></span><code><span class=kn>from</span><span class=w> </span><span class=nn>ado.core.datacontainer.resource</span><span class=w> </span><span class=kn>import</span> <span class=n>DataContainer</span>
 <span class=kn>import</span><span class=w> </span><span class=nn>yaml</span>
 
-<span class=k>with</span> <span class=nb>open</span><span class=p>(</span><span class=s2>&quot;data.yaml&quot;</span><span class=p>)</span> <span class=k>as</span> <span class=n>f</span><span class=p>:</span>
+<span class=k>with</span> <span class=nb>open</span><span class=p>(</span><span class=s2>"data.yaml"</span><span class=p>)</span> <span class=k>as</span> <span class=n>f</span><span class=p>:</span>
     <span class=n>d</span> <span class=o>=</span> <span class=n>DataContainer</span><span class=o>.</span><span class=n>model_validate</span><span class=p>(</span><span class=n>yaml</span><span class=o>.</span><span class=n>safe_load</span><span class=p>(</span><span class=n>f</span><span class=p>))</span>
 
 <span class=c1># for tabular data</span>

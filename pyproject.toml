@@ -119,10 +119,7 @@ RAY_ENABLE_UV_RUN_RUNTIME_ENV = "0"
 
 [tool.uv]
 default-groups = ["dev", "docs"]
-required-environments = [
-  "sys_platform == 'darwin' and platform_machine == 'arm64'",
-  "sys_platform == 'linux' and platform_machine == 'x86_64'"
-]
+required-environments = ["sys_platform == 'darwin' and platform_machine == 'arm64'", "sys_platform == 'linux' and platform_machine == 'x86_64'"]
 
 # Having our plugins in the workspace section makes it so
 # that dependencies are resolved considering them as well.

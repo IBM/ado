@@ -30,7 +30,7 @@ from ado.modules.operators.collections import characterize
 
 pytest.importorskip("autogluon")
 
-from trim.samplers.no_priors_parameters import NoPriorsParameters
+from trim.samplers.no_priors_parameters import NoPriorsParametersInternal
 from trim.trim_pydantic import (
     AutoGluonArgs,
     SamplingBudget,
@@ -120,7 +120,7 @@ def test_trim_example_operation_succeeds(
         stoppingCriterion=StoppingCriterion(enabled=False),
         autoGluonArgs=autogluon_args,
         finalModelAutoGluonArgs=autogluon_args,
-        noPriorParameters=NoPriorsParameters(
+        noPriorParameters=NoPriorsParametersInternal(
             targetOutput="pressure",
             samples=min_points,
             batchSize=1,

@@ -16,6 +16,9 @@ from ado.core.operation.config import (
     validate_actuator_configurations_against_space_configuration,
 )
 from ado.modules.actuators.measurement_queue import MeasurementQueue
+from ado.modules.actuators.registry import ActuatorRegistry
+from ado.schema.experiment import Experiment
+from ado.schema.measurementspace import MeasurementSpace
 from ado.utilities.logging import configure_logging
 
 if typing.TYPE_CHECKING:
@@ -27,6 +30,30 @@ if typing.TYPE_CHECKING:
 
 configure_logging()
 moduleLog = logging.getLogger("setup")
+
+
+def find_fqi_differences(
+    registry: ActuatorRegistry, measurement_space: MeasurementSpace
+) -> list[tuple[Experiment, Experiment]]:
+    """Returns experiments in catalog whose fqi is different to the one used to create space
+
+    The major version identifiers must match to be included.
+
+    Returns: A list of tuples with two elements. Each tuple is a FQI difference
+        The first element in the tuple is an experiment from the measurement space.
+        The second is the major version matching experiment from the registry which
+        does not have the same fully qualified identifier"""
+
+    differences = []
+    for space_experiment in measurement_space.experiments:
+        catalog_experiment = registry.experimentForReference(space_experiment.reference)
+        if (
+            space_experiment.fully_qualified_identifier
+            != catalog_experiment.fully_qualified_identifier
+        ):
+            differences.append((space_experiment, catalog_experiment))
+
+    return differences
 
 
 def setup_actuators(
@@ -67,6 +94,18 @@ def setup_actuators(
             moduleLog.critical(issue)
         raise ValueError(
             "The measurement space is not supported by the known actuators"
+        )
+
+    for (
+        space_experiment,
+        catalog_experiment,
+    ) in find_fqi_differences(
+        registry=registry, measurement_space=discovery_space.measurementSpace
+    ):
+        print(
+            f"Note: Will use {catalog_experiment.fully_qualified_identifier} to satisfy request"
+            f" for {space_experiment.major_version_identifier}. (Major Version Match)."
+            f"The space was originally created with {space_experiment.fully_qualified_identifier}"
         )
 
     actuator_configurations = get_actuator_configurations(

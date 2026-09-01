@@ -104,7 +104,7 @@ def setup_actuators(
     ):
         print(
             f"Note: Will use {catalog_experiment.fully_qualified_identifier} to satisfy request"
-            f" for {space_experiment.major_version_identifier}. (Major Version Match)."
+            f" for {space_experiment.major_version_identifier} (Major Version Match)."
             f"The space was originally created with {space_experiment.fully_qualified_identifier}"
         )
 

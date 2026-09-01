@@ -67,7 +67,7 @@ class AutoGluonArgs(BaseModel):
 
 
 class TrimParameters(BaseModel):
-    model_config = ConfigDict(extra="allow")  # Allows optional extra params
+    model_config = ConfigDict(extra="forbid")
 
     autoGluonArgs: Annotated[
         AutoGluonArgs,

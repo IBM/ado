@@ -30,9 +30,9 @@ from ado.modules.operators.collections import characterize
 
 pytest.importorskip("autogluon")
 
-from trim.samplers.no_priors_parameters import NoPriorsParametersInternal
 from trim.trim_pydantic import (
     AutoGluonArgs,
+    NoPriorsParametersInternal,
     SamplingBudget,
     StoppingCriterion,
     TrimParameters,

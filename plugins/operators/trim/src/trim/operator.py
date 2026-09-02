@@ -8,9 +8,9 @@ from ado.core.discoveryspace.space import DiscoverySpace
 from ado.core.operation.config import FunctionOperationInfo
 from ado.core.operation.operation import OperationOutput
 from ado.modules.operators.collections import characterize_operation
-from trim.samplers.no_priors_parameters import NoPriorsParametersInternal
 from trim.samplers.no_priors_utils import get_source_and_target
 from trim.trim_pydantic import (
+    NoPriorsParametersInternal,
     TrimParameters,
     TrimSamplerParameters,
 )  # Importing this way works when the package is installed
@@ -207,9 +207,12 @@ def trim(
             moduleName="trim.samplers.no_priors_sampler",
         )
 
-        # VV: Propagate the targetOutput to the NoPriors  Sampler
+        # VV: Propagate additional parameters to the NoPrior sampler that we don't want to store in the SampleStore
         noPriorsParams = params.noPriorParameters.model_dump()
         noPriorsParams["targetOutput"] = params.targetOutput
+        noPriorsParams["missingTargetMeasurements"] = (
+            params.missingTargetMeasurements.model_dump()
+        )
 
         noPriorsParams = NoPriorsParametersInternal.model_validate(noPriorsParams)
 

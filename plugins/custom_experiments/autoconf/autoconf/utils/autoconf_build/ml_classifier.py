@@ -25,7 +25,9 @@ from autoconf.utils.rule_based_classifier import is_row_valid
 logger = logging.getLogger(__name__)
 
 # Default values
-DEFAULT_DATA_ROOT_DIR = Path(__file__).resolve().parents[2] / "data"
+DEFAULT_DATA_ROOT_DIR = (
+    Path("plugins") / "custom_experiments" / "autoconf" / "autoconf" / "data"
+)
 DEFAULT_FILE_NAME = "ado-sfttrainer-dataset.csv"
 DEFAULT_DATASET_URL = (
     "https://huggingface.co/datasets/ibm-research/"
@@ -343,7 +345,7 @@ def main() -> None:
         if args.refit:
             predictor.refit_full(model="best", set_best_to_refit_full=True)
 
-        predictor.clone_for_deployment(path=final_model_path)
+        predictor.clone_for_deployment(path=str(final_model_path))
 
     predictor_clone_opt = TabularPredictor.load(path=final_model_path)
 

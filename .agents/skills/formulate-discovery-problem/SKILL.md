@@ -1,22 +1,68 @@
 ---
 name: formulate-discovery-problem
 description: >-
-  Creates experiment campaigns for addressing discovery problems (research questions)
-  by creating ado discoveryspace and operation YAML.
-  Guides experiment selection and parameterization for a new space, entity-space design,
-  validation, and operator selection. Use when the user wants to create or
-  configure discoveryspace/operation YAML, choose experiments for a new space,
-  or formulate a research, benchmarking, or search problem
+  Describes how to create experiment campaigns for addressing primary research
+  questions using ado (creating ado discoveryspace and operation YAML). Guides
+  experiment selection, parameterization, entity-space design, validation, and
+  operator selection. Use when the user wants to create or configure an
+  experiment campaign (choosing points to explore, experiments to use, sampling
+  method), write discoveryspace or operation YAML to address a
+   a research, benchmarking, or search problem.
 ---
 
 # Formulating Problems for ado Execution
 
-Create validated **discoveryspace** and **operation** YAML for systematic work
-over an entity space: sampling and measuring entities, searching for entities
-that meet objectives, or benchmarking configurations (including research and
-benchmarking studies). Execution and analysis of results happen after resources
-are created — see [conduct-empirical-study](../conduct-empirical-study/SKILL.md)
-for the full workflow.
+## Context
+
+ado is built on the following idea: defining what you want to study should be
+separate from deciding how you study it. Hence, when defining experiment
+campaigns with ado there are two steps
+
+### Step 1: Formulating the Search Space
+
+First, you define your Search Space, called a DiscoverySpace in ado. This is
+your "universe of interest" — the mathematical boundary of every entity, factor,
+and hyperparameter configuration you could potentially measure. In Design of
+Experiments (DoE), this is your Factor Space. It contains all the variables and
+levels you care about, but it doesn't dictate how or when they will be run. It
+is simply a map of what is possible.
+
+### Step 2 Defining the Exploration Policy
+
+Second, you define an Exploration Policy, called an explore operation in ado.
+This decides exactly how to traverse, sample, and measure points within that
+Search Space.
+
+Because of the separation of what and how, you can search the same space with
+different strategies. The measurements recorded are property of the space not
+the operation so can naturally reused between operations on the same space
+
+### Campaign Types Supported
+
+Because the space and the exploration policy are decoupled, you gain flexibility
+in how you create your campaign:
+
+- Exhaustive Characterization (Classic Full-Factorial DoE): When you have a
+  focused set of entities you want to measure, you can create a smaller space
+  and then fully explore it (Full-Factorial Sweep) measuring every single point
+  and interaction in the space.
+- Active Discovery: You can also define
+  massive, high-dimensional spaces where exhaustive search is computationally
+  impossible. You can explore these using a space-filling algorithms (like Latin
+  Hypercube Sampling) to get overall statistics, or behavioural trends (how
+  output variables couple to inputs); or leverage black-box optimization
+  algorithms (like Bayesian Optimization) to find optimal entities
+
+## Skill Overview
+
+This skill shows how to create valid **discoveryspace** and **operation** YAML
+to describe the two steps and perform systematic work over an entity space:
+sampling and measuring entities, searching for entities that meet objectives, or
+benchmarking configurations (including research and benchmarking studies).
+
+Execution and analysis of results happen after resources are created — see
+[conduct-empirical-study](../conduct-empirical-study/SKILL.md) for the full
+workflow.
 
 ## Tips
 
@@ -35,7 +81,7 @@ for the full workflow.
   and operations and ensure a study document exists — see
   [create-research-study-document](../create-research-study-document/SKILL.md)
 
-## Workflow Overview
+## Workflow
 
 The process has two main phases:
 
@@ -43,7 +89,7 @@ The process has two main phases:
 2. **Create Operation YAML** - Configure how to explore/analyze the space
 
 Each phase follows a pattern: choose tool for task (experiment/operator) →
-create YAML for task → validate YAML → iterate.
+create YAML for task → validate YAML → iterate until YAML passes validation.
 
 ## Phase 1: Create DiscoverySpace YAML
 
@@ -220,8 +266,8 @@ Before finalizing, verify:
 
 - For detailed schema information, see [reference.md](reference.md)
 - For example workflows, see [examples.md](examples.md)
-- For Pydantic model details when writing code, see the resource model table
-  and schema-inspection snippet in
+- For Pydantic model details when writing code, see the resource model table and
+  schema-inspection snippet in
   [query-ado-data — Using Resource models](../query-ado-data/SKILL.md#using-resource-models)
 
 ## References

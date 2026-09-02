@@ -10,12 +10,13 @@ from pydantic import BaseModel
 from ado.core.discoveryspace.samplers import BaseSampler
 from ado.core.discoveryspace.space import DiscoverySpace, Entity
 from ado.modules.operators.discovery_space_manager import DiscoverySpaceManager
-from trim.samplers.no_priors_parameters import NoPriorsParametersInternal
+from trim.missing_target import record_unmeasured_entity
 from trim.samplers.no_priors_utils import (
     get_list_of_entities_from_df_and_space,
     get_source_and_target,
     order_df_for_sampling_with_no_priors,
 )
+from trim.trim_pydantic import NoPriorsParametersInternal
 
 logger_no_priors = logging.getLogger(__name__)
 
@@ -93,20 +94,37 @@ class NoPriorsSampleSelector(BaseSampler):
                 logger_no_priors.info(
                     "\n\nIteration over sorted entities for no priors characterization starts.\n"
                 )
+
+                total_unmeasured = 0
+
+                previous_source_df, _ = get_source_and_target(
+                    discoverySpace, self.params.targetOutput
+                )
+
                 await asyncio.sleep(0.1)
-                for i in range(
-                    0, len(list_of_entities_for_no_prior_characterization), batchsize
-                ):
-                    entities = list_of_entities_for_no_prior_characterization[
-                        i : i + batchsize
-                    ]
-                    if len(entities) == 0:
-                        logger_no_priors.info(
-                            "\n\nCharacterization with no-priors finished.\n"
+
+                for i in range(len(list_of_entities_for_no_prior_characterization)):
+                    entity = list_of_entities_for_no_prior_characterization[i]
+                    yield [entity]
+
+                    await asyncio.sleep(0.001)
+
+                    current_source_df, _ = get_source_and_target(
+                        discoverySpace, self.params.targetOutput
+                    )
+                    if len(current_source_df) == len(previous_source_df):
+                        total_unmeasured += 1
+                        record_unmeasured_entity(
+                            entity_identifier=entity.identifier,
+                            missing_target_measurements=self.params.missingTargetMeasurements,
+                            total_unmeasured=total_unmeasured,
+                            target_output=self.params.targetOutput,
+                            logger=logger_no_priors,
+                            additional_info="",
                         )
-                        break
-                    else:
-                        yield entities
+
+                    previous_source_df = current_source_df
+
                 logger_no_priors.info("\n\nCharacterization with no-priors finished.\n")
 
             return iterator

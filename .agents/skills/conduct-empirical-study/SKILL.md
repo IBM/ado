@@ -59,7 +59,7 @@ Step 2.
 
 Required only when Step 1 identified missing experiments, actuators, or operators.
 
-Follow [plugin-development.mdc](../../rules/plugin-development.mdc) to implement
+Follow [plugin-development](../plugin-development/SKILL.md) to implement
 the needed components.
 
 Gather user input on implementation details:

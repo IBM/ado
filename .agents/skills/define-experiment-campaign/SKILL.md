@@ -116,7 +116,7 @@ uv run ado describe experiment $EXPERIMENT_ID
 #### What to do if no experiment matching task available
 
 1. Learn how to extend ado:
-   [plugin-development.mdc](../../rules/plugin-development.mdc)
+   [plugin-development](../plugin-development/SKILL.md)
 2. Propose a custom experiment or actuator to user that would provide missing
    functionality
 3. Wait for user input
@@ -275,5 +275,5 @@ Before finalizing, verify:
 When modifying or creating code while using this skill, follow:
 
 - [AGENTS.md](../../../AGENTS.md)
-- [plugin-development.mdc](../../rules/plugin-development.mdc) (if working with
+- [plugin-development](../plugin-development/SKILL.md) (if working with
   plugins)

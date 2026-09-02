@@ -399,5 +399,5 @@ implementation.
 When modifying or creating code while using this skill, follow:
 
 - [AGENTS.md](../../../AGENTS.md)
-- [plugin-development.mdc](../../rules/plugin-development.mdc) (if working with
+- [plugin-development](../plugin-development/SKILL.md) (if working with
   plugins)

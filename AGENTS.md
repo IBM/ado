@@ -200,7 +200,7 @@ When writing agent skills:
   - the examples under examples/
   - the documentation under docs/
 - After writing a new skill:
-  - review if any information is more appropriate in an existing skill, rules or
+  - review if any information is more appropriate in an existing skill or
     AGENTS.md, if so move it there
   - verify all file and directory paths referenced, exist in the repo
   - check each section is within the scope declared in the skill's description
@@ -217,7 +217,7 @@ When writing agent skills:
 ## Links
 
 - For plugin development, see
-  [plugin-development.mdc](.agents/rules/plugin-development.mdc)
+  [plugin-development](.agents/skills/plugin-development/)
 - For formulating problems with ado, see
   [define experiment campaign](.agents/skills/define-experiment-campaign/)
 - For using the ado CLI, see [using the ado CLI](.agents/skills/using-ado-cli/)

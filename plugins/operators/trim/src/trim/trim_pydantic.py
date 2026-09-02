@@ -1,6 +1,7 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
+import enum
 import logging
 from typing import Annotated
 
@@ -64,6 +65,40 @@ class AutoGluonArgs(BaseModel):
             "AutoGluon optional parameters in Tabular Predictor fit",
         ),
     ]
+
+
+class MissingTargetMeasurementMode(str, enum.Enum):
+    Error = "Error"
+    InjectDefaultValue = "InjectDefaultValue"
+    Skip = "Skip"
+
+
+class MissingTargetMeasurements(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    budget: Annotated[
+        int | None,
+        pydantic.Field(
+            description="Maximum number of measurements missing targetOutput to tolerate before raising an error. None means unlimited."
+        ),
+    ] = None
+
+    mode: Annotated[
+        MissingTargetMeasurementMode,
+        pydantic.Field(
+            description="Action to take when a measurement has no targetOutput value. "
+            "Error: abort the operation. "
+            "Skip: exclude the measurement. "
+            "InjectDefaultValue: substitute defaultValue as the targetOutput."
+        ),
+    ] = MissingTargetMeasurementMode.Error
+
+    defaultValue: Annotated[
+        float,
+        pydantic.Field(
+            description="Value substituted for a missing targetOutput. Only used when mode=InjectDefaultValue."
+        ),
+    ] = 0.0
 
 
 class TrimParameters(BaseModel):
@@ -144,6 +179,13 @@ class TrimParameters(BaseModel):
         ),
     ] = NoPriorsParameters()
 
+    missingTargetMeasurements: Annotated[
+        MissingTargetMeasurements,
+        pydantic.Field(
+            description="Controls how TRIM handles measurements that have no targetOutput value."
+        ),
+    ] = MissingTargetMeasurements()
+
     # disablePredictiveModeling: Annotated[
     #     bool,
     #     pydantic.Field(
@@ -189,8 +231,7 @@ class TrimParameters(BaseModel):
 class TrimSamplerParameters(TrimParameters):
     """Runtime extension of TrimParameters used only by TrimSampleSelector.
 
-    Adds numberEntitiesIterativeModeling so the sampler knows exactly how many
-    entities RandomWalk will draw. This field is NOT on TrimParameters because
+    These fields are NOT on TrimParameters because
     that model is serialised to YAML as the operation configuration.
     """
 
@@ -203,6 +244,13 @@ class TrimSamplerParameters(TrimParameters):
             "the generator.",
         ),
     ]
+
+    missingTargetMeasurements: Annotated[
+        MissingTargetMeasurements,
+        pydantic.Field(
+            description="Controls how TRIM handles measurements that have no targetOutput value."
+        ),
+    ] = MissingTargetMeasurements()
 
 
 if __name__ == "__main__":

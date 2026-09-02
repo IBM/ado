@@ -394,5 +394,5 @@ uv run ado create operation -f operation.yaml --use-latest space
 - For creating and structuring resource YAML files, see
   [resource-yaml-creation](../resource-yaml-creation/)
 - For creating discoveryspace and operation YAML files, see
-  [formulate-discovery-problem](../formulate-discovery-problem/)
+  [define-experiment-campaign](../define-experiment-campaign/)
 - For general development guidelines, see [AGENTS.md](../../../AGENTS.md)

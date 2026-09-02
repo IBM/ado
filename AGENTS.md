@@ -219,7 +219,7 @@ When writing agent skills:
 - For plugin development, see
   [plugin-development.mdc](.agents/rules/plugin-development.mdc)
 - For formulating problems with ado, see
-  [formulate problems for ado](.agents/skills/formulate-discovery-problem/)
+  [define experiment campaign](.agents/skills/define-experiment-campaign/)
 - For using the ado CLI, see [using the ado CLI](.agents/skills/using-ado-cli/)
 - For creating resource YAML files, see
   [resource-yaml-creation](.agents/skills/resource-yaml-creation/)

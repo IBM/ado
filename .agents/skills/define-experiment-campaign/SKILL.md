@@ -1,5 +1,5 @@
 ---
-name: formulate-discovery-problem
+name: define-experiment-campaign
 description: >-
   Describes how to create experiment campaigns for addressing primary research
   questions using ado (creating ado discoveryspace and operation YAML). Guides

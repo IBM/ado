@@ -38,7 +38,7 @@ see [create-research-study-document](../create-research-study-document/SKILL.md)
 
 ## Step 1: Formulate the Discovery Problem
 
-Follow the [formulate-discovery-problem](../formulate-discovery-problem/SKILL.md)
+Follow the [define-experiment-campaign](../define-experiment-campaign/SKILL.md)
 skill to frame the problem with ado.
 
 Gather user input on formulation details before deciding the next step:
@@ -73,7 +73,7 @@ Gather user input on implementation details:
 ## Step 3: (Optional) Complete Problem Formulation
 
 Required if Step 2 was performed. Return to the
-[formulate-discovery-problem](../formulate-discovery-problem/SKILL.md) skill and
+[define-experiment-campaign](../define-experiment-campaign/SKILL.md) skill and
 complete the formulation, now incorporating the new components created in Step 2.
 
 ---

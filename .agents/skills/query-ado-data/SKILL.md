@@ -1,12 +1,14 @@
 ---
 name: query-ado-data
 description: >-
-  Query ado catalogs, metadata, and measurement data via the CLI. Use when the
-  user asks what experiments, actuators, operators, contexts, spaces, or
-  operations are available; to list or find resources; check the active
-  context/project; filter by metadata or labels; retrieve entities and
-  measurements; or get resource schemas. Covers catalog listings (experiments,
-  actuators, operators, contexts), metastore queries, and samplestore queries.
+  Covers how to query ado catalog listings (available experiments and operators), the ado
+  metastores (resource metadata queries) and ado samplestores (measurement data queries).
+  via the ado CLI tool. Use when: the
+  user asks what experiments, actuators or operators are available;
+  to list projects or context or check the active context or project; to list or find ado
+  resources like spaces, operations or datacontainers; to get ado resource schemas;
+  to filter resources by their metadata or labels; or to retrieve/export entities and
+  measurement data; .
 ---
 
 # Query ado Data

@@ -6,6 +6,7 @@ import argparse
 import logging
 import tempfile
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
@@ -51,6 +52,10 @@ COLS_TO_USE = [
 TARGET = "is_valid"
 
 
+class DatasetDownloadError(RuntimeError):
+    """Raised when the training dataset cannot be downloaded."""
+
+
 def ensure_dataset(dataset_url: str, data_path: Path) -> Path:
     """Download the Hugging Face dataset when it is not already available.
 
@@ -62,6 +67,7 @@ def ensure_dataset(dataset_url: str, data_path: Path) -> Path:
         The local dataset path.
 
     Raises:
+        DatasetDownloadError: If the dataset cannot be downloaded.
         ValueError: If the dataset URL uses an unsupported scheme.
     """
     if data_path.is_file():
@@ -78,6 +84,19 @@ def ensure_dataset(dataset_url: str, data_path: Path) -> Path:
     try:
         urllib.request.urlretrieve(dataset_url, partial_path)  # noqa: S310
         partial_path.replace(data_path)
+    except urllib.error.HTTPError as error:
+        raise DatasetDownloadError(
+            f"Could not download the dataset from {dataset_url}: HTTP "
+            f"{error.code} ({error.reason}). The dataset may have moved. "
+            "Provide a valid URL with --dataset-url or an existing local CSV "
+            "with --data-path."
+        ) from error
+    except urllib.error.URLError as error:
+        raise DatasetDownloadError(
+            f"Could not download the dataset from {dataset_url}: {error.reason}. "
+            "Check the network connection, provide a valid URL with "
+            "--dataset-url, or use an existing local CSV with --data-path."
+        ) from error
     finally:
         partial_path.unlink(missing_ok=True)
 
@@ -292,7 +311,11 @@ def main() -> None:
 
     # Determine data path
     path = args.data_path or args.data_root_dir / args.file_name
-    path = ensure_dataset(args.dataset_url, path)
+    try:
+        path = ensure_dataset(args.dataset_url, path)
+    except DatasetDownloadError as error:
+        logger.error("%s", error)
+        raise SystemExit(1) from None
 
     logger.info(f"Using data path: {path}")
     logger.info(f"REFIT: {args.refit}")

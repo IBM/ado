@@ -19,13 +19,6 @@ class NoPriorsParameters(BaseModel):
         - 'sobol': sobol sampling
     """
 
-    targetOutput: Annotated[
-        str,
-        Field(
-            description="The measured property you will treat as a target variable.",
-        ),
-    ]
-
     samples: Annotated[
         int,
         Field(
@@ -58,3 +51,18 @@ class NoPriorsParameters(BaseModel):
             ),
         ),
     ] = "clhs"
+
+
+class NoPriorsParametersInternal(NoPriorsParameters):
+    """Runtime extension of NoPriorsParameters used only by NoPriorsSampler.
+
+    This field is NOT on NoPriorsParameters because that model is serialised
+    to YAML as the operation configuration.
+    """
+
+    targetOutput: Annotated[
+        str,
+        Field(
+            description="The measured property you will treat as a target variable.",
+        ),
+    ]

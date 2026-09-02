@@ -43,10 +43,11 @@ to be meant for keeping long-term:
 ```yaml
 metadata:
   labels:
-    provisional: testing # or: debug, temporary
+    provisional: true
+    provisonal_reason: testing
 ```
 
-Canonical values:
+Use `provisional_reason` to record the reason with one of the following:
 
 - `testing` — created to test some new functionality.
 - `debug` — created to debug a problem.

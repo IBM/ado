@@ -68,6 +68,8 @@ class AutoGluonArgs(BaseModel):
 
 
 class TrimParameters(GenericOperatorParameters):
+    model_config = ConfigDict(extra="forbid")
+
     autoGluonArgs: Annotated[
         AutoGluonArgs,
         Field(
@@ -94,11 +96,11 @@ class TrimParameters(GenericOperatorParameters):
     ]
 
     outputDirectory: Annotated[
-        str | None,
+        str,
         pydantic.Field(
             description="The relative path of the model directory from the root folder.",
         ),
-    ] = None
+    ] = "trim_models"
 
     debugDirectory: Annotated[
         str,
@@ -139,10 +141,9 @@ class TrimParameters(GenericOperatorParameters):
     noPriorParameters: Annotated[
         NoPriorsParameters,
         pydantic.Field(
-            description="Parameters of the no_priors_characterization operation. "
-            "The targetOutput will be automatically set from TrimParameters.targetOutput.",
+            description="Parameters of the no_priors_characterization operation.",
         ),
-    ] = NoPriorsParameters(targetOutput="")
+    ] = NoPriorsParameters()
 
     # disablePredictiveModeling: Annotated[
     #     bool,
@@ -158,7 +159,7 @@ class TrimParameters(GenericOperatorParameters):
     @model_validator(mode="after")
     def set_final_model_args(self) -> "TrimParameters":
         if self.finalModelAutoGluonArgs == AutoGluonArgs():
-            self.finalModelAutoGluonArgs = self.autoGluonArgs
+            self.finalModelAutoGluonArgs = self.autoGluonArgs.model_copy(deep=True)
         return self
 
     @model_validator(mode="after")
@@ -185,43 +186,24 @@ class TrimParameters(GenericOperatorParameters):
         self.noPriorParameters.samples = self.samplingBudget.minPoints
         return self
 
-    @model_validator(mode="after")
-    def set_model_folder(self) -> "TrimParameters":
-        if self.autoGluonArgs.tabularPredictorArgs.get("path", None):
-            if self.outputDirectory:
-                if (
-                    self.autoGluonArgs.tabularPredictorArgs["path"]
-                    != self.outputDirectory
-                ):
-                    logging.error(
-                        f"Mismatch in model save path configuration: "
-                        f"AutoGluonArgs specifies '{self.autoGluonArgs.tabularPredictorArgs['path']}', "
-                        f"but expected '{self.outputDirectory}'. Changing to {self.outputDirectory}"
-                    )
-                    self.autoGluonArgs.tabularPredictorArgs["path"] = (
-                        self.outputDirectory
-                    )
-            else:
-                logging.info(
-                    f"Model folder is: {self.autoGluonArgs.tabularPredictorArgs['path']}"
-                )
-                self.outputDirectory = self.autoGluonArgs.tabularPredictorArgs["path"]
-        else:
-            self.autoGluonArgs.tabularPredictorArgs["path"] = self.outputDirectory
 
-        return self
+class TrimSamplerParameters(TrimParameters):
+    """Runtime extension of TrimParameters used only by TrimSampleSelector.
 
-    @model_validator(mode="after")
-    def set_no_priors_target_output(self) -> "TrimParameters":
-        if self.noPriorParameters.targetOutput != self.targetOutput:
-            logging.debug(
-                "set_no_priors_target_output: Synchronizing target output between TRIM and no-priors characterization.\n"
-                f"  noPriorParameters.targetOutput = '{self.noPriorParameters.targetOutput}'\n"
-                f"  TrimParameters.targetOutput = '{self.targetOutput}'\n"
-                f"  Setting noPriorParameters.targetOutput = '{self.targetOutput}'"
-            )
-            self.noPriorParameters.targetOutput = self.targetOutput
-        return self
+    Adds numberEntitiesIterativeModeling so the sampler knows exactly how many
+    entities RandomWalk will draw. This field is NOT on TrimParameters because
+    that model is serialised to YAML as the operation configuration.
+    """
+
+    numberEntitiesIterativeModeling: Annotated[
+        int,
+        Field(
+            description="Number of entities RandomWalk will draw during the "
+            "iterative modeling phase. Used by the sampler to detect the last "
+            "yield and call finalize_model() before RandomWalk stops consuming "
+            "the generator.",
+        ),
+    ]
 
 
 if __name__ == "__main__":
@@ -230,7 +212,7 @@ if __name__ == "__main__":
         TrimParameters(
             targetOutput="test",
             samplingBudget=SamplingBudget(minPoints=10),
-            noPriorParameters=NoPriorsParameters(targetOutput="test", samples=2),
+            noPriorParameters=NoPriorsParameters(samples=2),
         )
     )
     print(f"Parameters set are:\n{params}")

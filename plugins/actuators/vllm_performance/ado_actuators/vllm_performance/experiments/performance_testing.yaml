@@ -1202,7 +1202,7 @@ test-agentic-tool-calling:
 vllm-bench-deployment:
   identifier: vllm-bench-deployment
   actuatorIdentifier: "vllm_performance"
-  version: 1.1.0
+  version: 1.2.0
   requiredProperties: # Any entity passed to this experiment must have constitutive properties with these values
     - identifier: 'model'
       metadata:
@@ -1323,7 +1323,35 @@ vllm-bench-deployment:
         description: "(benchmark) The dataset to use for the benchmark"
       propertyDomain:
         variableType: 'CATEGORICAL_VARIABLE_TYPE'
-        values: ['random']
+        values: ['random', 'prefix_repetition']
+    - identifier: 'prefix_repetition_prefix_len'
+      metadata:
+        description: "(benchmark) The number of prefix tokens that would be cached when dataset=prefix_repetition"
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [1, 128001]
+        interval: 1
+    - identifier: 'prefix_repetition_suffix_len'
+      metadata:
+        description: "(benchmark) The number of suffix tokens per request when dataset=prefix_repetition. Total input length is prefix_repetition_prefix_len + prefix_repetition_suffix_len"
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [1, 128001]
+        interval: 1
+    - identifier: 'prefix_repetition_num_prefixes'
+      metadata:
+        description: "(benchmark) The number of distinct prefixes cached when dataset=prefix_repetition"
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [1, 10001]
+        interval: 1
+    - identifier: 'prefix_repetition_output_len'
+      metadata:
+        description: "(benchmark) The number of output tokens per request when dataset=prefix_repetition"
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [1, 10001]
+        interval: 1
     - identifier: 'kv_cache_dtype'
       metadata:
         description: "(deployment) KV cache data type for vLLM (e.g. fp8, turboquant_k8v4). If not set, vLLM uses the default."
@@ -1336,6 +1364,36 @@ vllm-bench-deployment:
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
         values: [0, 1]
+    - identifier: 'reasoning_parser'
+      metadata:
+        description: "(deployment) vLLM reasoning parser to use for agent-style models"
+      propertyDomain:
+        variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
+        values: ["qwen3"]
+    - identifier: 'tool_call_parser'
+      metadata:
+        description: "(deployment) vLLM tool call parser to use for agent-style models"
+      propertyDomain:
+        variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
+        values: ["qwen3_coder"]
+    - identifier: 'language_model_only'
+      metadata:
+        description: "(deployment) When 1, run vLLM in language-model-only mode (disables multimodal processing)"
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        values: [0, 1]
+    - identifier: 'enable_auto_tool_choice'
+      metadata:
+        description: "(deployment) When 1, enable automatic tool choice in vLLM"
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        values: [0, 1]
+    - identifier: 'max_model_len'
+      metadata:
+        description: "(deployment) The maximum amount of text, measured in tokens, the model can process and remember at once (context window size). If not set, vLLM uses the model default."
+      propertyDomain:
+        variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
+        values: [32768, 65536, 131072, 262144, 524288, 1048576]
   defaultParameterization:
     - property:
         identifier: 'image'
@@ -1391,6 +1449,33 @@ vllm-bench-deployment:
     - property:
         identifier: 'enable_prefix_caching'
       value: 0
+    - property:
+        identifier: 'prefix_repetition_prefix_len'
+      value: 2048
+    - property:
+        identifier: 'prefix_repetition_suffix_len'
+      value: 128
+    - property:
+        identifier: 'prefix_repetition_num_prefixes'
+      value: 10
+    - property:
+        identifier: 'prefix_repetition_output_len'
+      value: 128
+    - property:
+        identifier: 'reasoning_parser'
+      value: null
+    - property:
+        identifier: 'tool_call_parser'
+      value: null
+    - property:
+        identifier: 'language_model_only'
+      value: 0
+    - property:
+        identifier: 'enable_auto_tool_choice'
+      value: 0
+    - property:
+        identifier: 'max_model_len'
+      value: null
   # measurements
   targetProperties:
     - identifier: "duration"
@@ -1433,7 +1518,7 @@ vllm-bench-deployment:
 vllm-bench-endpoint:
   identifier: vllm-bench-endpoint
   actuatorIdentifier: "vllm_performance"
-  version: 1.0.0
+  version: 1.1.0
   requiredProperties: # Any entity passed to this experiment must have constitutive properties with these values
     - identifier: 'model'
       metadata:
@@ -1495,7 +1580,65 @@ vllm-bench-endpoint:
         description: "The dataset to use for the benchmark"
       propertyDomain:
         variableType: 'CATEGORICAL_VARIABLE_TYPE'
-        values: ['random']
+        values: ['random', 'prefix_repetition']
+    - identifier: 'prefix_repetition_prefix_len'
+      metadata:
+        description: "(benchmark) The number of prefix tokens that would be cached when dataset=prefix_repetition"
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [1, 128001]
+        interval: 1
+    - identifier: 'prefix_repetition_suffix_len'
+      metadata:
+        description: "(benchmark) The number of suffix tokens per request when dataset=prefix_repetition. Total input length is prefix_repetition_prefix_len + prefix_repetition_suffix_len"
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [1, 128001]
+        interval: 1
+    - identifier: 'prefix_repetition_num_prefixes'
+      metadata:
+        description: "(benchmark) The number of distinct prefixes cached when dataset=prefix_repetition"
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [1, 10001]
+        interval: 1
+    - identifier: 'prefix_repetition_output_len'
+      metadata:
+        description: "(benchmark) The number of output tokens per request when dataset=prefix_repetition"
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [1, 10001]
+        interval: 1
+    - identifier: 'reasoning_parser'
+      metadata:
+        description: "(deployment) vLLM reasoning parser to use for agent-style models"
+      propertyDomain:
+        variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
+        values: ["qwen3"]
+    - identifier: 'tool_call_parser'
+      metadata:
+        description: "(deployment) vLLM tool call parser to use for agent-style models"
+      propertyDomain:
+        variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
+        values: ["qwen3_coder"]
+    - identifier: 'language_model_only'
+      metadata:
+        description: "(deployment) When 1, run vLLM in language-model-only mode (disables multimodal processing)"
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        values: [0, 1]
+    - identifier: 'enable_auto_tool_choice'
+      metadata:
+        description: "(deployment) When 1, enable automatic tool choice in vLLM"
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        values: [0, 1]
+    - identifier: 'max_model_len'
+      metadata:
+        description: "(deployment) The maximum amount of text, measured in tokens, the model can process and remember at once (context window size). If not set, vLLM uses the model default."
+      propertyDomain:
+        variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
+        values: [32768, 65536, 131072, 262144, 524288, 1048576]
   defaultParameterization:
     - value: 1000
       property:
@@ -1515,6 +1658,33 @@ vllm-bench-endpoint:
     - value: 'random'
       property:
         identifier: "dataset"
+    - value: 2048
+      property:
+        identifier: 'prefix_repetition_prefix_len'
+    - value: 128
+      property:
+        identifier: 'prefix_repetition_suffix_len'
+    - value: 10
+      property:
+        identifier: 'prefix_repetition_num_prefixes'
+    - value: 128
+      property:
+        identifier: 'prefix_repetition_output_len'
+    - value: null
+      property:
+        identifier: 'reasoning_parser'
+    - value: null
+      property:
+        identifier: 'tool_call_parser'
+    - value: 0
+      property:
+        identifier: 'language_model_only'
+    - value: 0
+      property:
+        identifier: 'enable_auto_tool_choice'
+    - value: null
+      property:
+        identifier: 'max_model_len'
   # measurements
   targetProperties:
     - identifier: "duration"

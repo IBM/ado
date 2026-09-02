@@ -302,7 +302,7 @@ def avoid_oom_recommender(
     model_version: str = MODEL_VERSION,
 ) -> dict[str, int | bool]:
 
-    result = {
+    result: dict[str, int | bool] = {
         "can_recommend": False,
         "gpus": -1,
         "workers": -1,

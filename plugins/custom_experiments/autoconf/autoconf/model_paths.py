@@ -6,7 +6,9 @@ from pathlib import Path
 
 MODEL_VERSION = "4.0.0"
 MODEL_DIRECTORY = "v4-0-0"
-DEFAULT_MODEL_ROOT = Path(__file__).resolve().parent / "models"
+DEFAULT_MODEL_ROOT = (
+    Path("plugins") / "custom_experiments" / "autoconf" / "autoconf" / "models"
+)
 
 
 def model_path(model_root: Path | None = None) -> Path:

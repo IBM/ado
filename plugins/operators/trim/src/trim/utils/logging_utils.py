@@ -32,6 +32,7 @@ def log_after_split_common_and_diff(
         logger.error(
             f"Unexpected behaviour of dataframes, saving data in the directory: {directory}"
         )
+        os.makedirs(directory, exist_ok=True)
         previous_source_from_split_df.to_csv(
             os.path.join(directory, f"Mismatch_iter{iter_index}_{iter_index}.csv")
         )

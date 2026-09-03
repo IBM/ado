@@ -27,7 +27,10 @@ from trim.samplers.no_priors_utils import (
     get_list_of_entities_from_df_and_space,
     get_source_and_target,
 )
-from trim.trim_pydantic import TrimSamplerParameters
+from trim.trim_pydantic import (
+    MissingTargetMeasurementMode,
+    TrimSamplerParametersInternal,
+)
 
 if TYPE_CHECKING:
     from pydantic import BaseModel
@@ -85,6 +88,90 @@ class TrimSampleSelector(BaseSampler):
             )
             await debug_dir.mkdir(parents=True, exist_ok=True)
 
+    def _init_injected_defaults_from_no_priors(
+        self,
+        discoverySpace: DiscoverySpace,
+        train_target_cols: list[str],
+    ) -> None:
+        """Pre-populate self.injected_defaults from the no-priors RandomWalk operation.
+
+        Scans all measurement results recorded under self.params.noPriorsOperationId
+        and injects a default row for each entity that either:
+        - produced an InvalidMeasurementResult, or
+        - produced a ValidMeasurementResult that does not contain the targetOutput.
+
+        Only one row per entity is injected (first qualifying result wins).
+        No-op when mode != InjectDefaultValue or noPriorsOperationId is None.
+
+        Args:
+            discoverySpace: The discovery space being characterised.
+            train_target_cols: Ordered list of column names
+                (constitutive properties + targetOutput) used to initialise the
+                injected_defaults DataFrame.
+        """
+        from ado.schema.result import InvalidMeasurementResult, ValidMeasurementResult
+
+        self.injected_defaults = pd.DataFrame(columns=train_target_cols)
+
+        if (
+            self.params.missingTargetMeasurements.mode
+            != MissingTargetMeasurementMode.InjectDefaultValue
+            or self.params.noPriorsOperationId is None
+        ):
+            return
+
+        exp_refs = set(discoverySpace.measurementSpace.experimentReferences)
+        prior_results = discoverySpace.measurement_results_for_operation(
+            self.params.noPriorsOperationId
+        )
+        seen_entity_ids: set[str] = set()
+        for result in prior_results:
+            if isinstance(result, InvalidMeasurementResult):
+                if result.experimentReference not in exp_refs:
+                    continue
+            elif isinstance(result, ValidMeasurementResult):
+                # Only inject when the targetOutput was not measured
+                measured_targets = {
+                    m.property.targetProperty.identifier for m in result.measurements
+                }
+                if self.params.targetOutput in measured_targets:
+                    continue
+            else:
+                continue
+
+            entity_id = result.entityIdentifier
+            if entity_id in seen_entity_ids:
+                continue
+            seen_entity_ids.add(entity_id)
+            entities = discoverySpace.sample_store.get_entities(
+                identifiers=entity_id, require_measurements=False
+            )
+            if not entities:
+                self.log.warning(
+                    f"No entity found in store for identifier {entity_id!r}; skipping default injection."
+                )
+                continue
+            entity = entities[0]
+            row = {
+                cpv.property.identifier: cpv.value
+                for cpv in entity.constitutive_property_values
+            }
+            row[self.params.targetOutput] = (
+                self.params.missingTargetMeasurements.defaultValue
+            )
+            self.injected_defaults = pd.concat(
+                [self.injected_defaults, pd.DataFrame([row])],
+                ignore_index=True,
+            )
+            self.log.info(
+                f"Pre-scan: injecting default for entity {entity_id!r} "
+                f"from no-priors operation {self.params.noPriorsOperationId!r}."
+            )
+        self.log.info(
+            f"Pre-scan complete: {len(self.injected_defaults)} injected default row(s) "
+            f"from no-priors operation {self.params.noPriorsOperationId!r}."
+        )
+
     def _core_iterator_logic(
         self,
         discoverySpace: DiscoverySpace,
@@ -118,9 +205,18 @@ class TrimSampleSelector(BaseSampler):
 
         numberEntities = len(list_of_entities)
 
-        initial_source_df, _target_df = get_source_and_target(
-            discoverySpace,
-            self.params.targetOutput,
+        train_cols = [
+            cp.identifier for cp in discoverySpace.entitySpace.constitutiveProperties
+        ]
+        train_target_cols = [*train_cols, self.params.targetOutput]
+
+        self._init_injected_defaults_from_no_priors(discoverySpace, train_target_cols)
+
+        initial_source_df, _target_df = (
+            self.get_source_and_target_with_injected_defaults(
+                discoverySpace,
+                self.params.targetOutput,
+            )
         )
 
         if self.log.isEnabledFor(logging.DEBUG):
@@ -128,10 +224,6 @@ class TrimSampleSelector(BaseSampler):
                 os.path.join(self.params.debugDirectory, "initial_source_df.csv")
             )
 
-        train_cols = [
-            cp.identifier for cp in discoverySpace.entitySpace.constitutiveProperties
-        ]
-        train_target_cols = [*train_cols, self.params.targetOutput]
         self.log.info(
             f"There are {numberEntities} entities of which TRIM will measure up "
             f"to {self.params.numberEntitiesIterativeModeling}.\n"
@@ -180,9 +272,11 @@ class TrimSampleSelector(BaseSampler):
             # operation attempted the Entity we yielded above and it's now asking for one more.
             # First things first, check whether RandomWalk managed to measure the targetOutput for the
             # Entity or not.
-            current_source_df, _current_batch_size_target_df = get_source_and_target(
-                discoverySpace,
-                self.params.targetOutput,
+            current_source_df, _current_batch_size_target_df = (
+                self.get_source_and_target_with_injected_defaults(
+                    discoverySpace,
+                    self.params.targetOutput,
+                )
             )
 
             compare_to_previous_source_df, one_additional_row = split_common_and_diff(
@@ -203,9 +297,38 @@ class TrimSampleSelector(BaseSampler):
                     additional_info="",
                     logger=self.log,
                 )
-                # TODO: Implement InjectDefaultValue
+
+                if (
+                    self.params.missingTargetMeasurements.mode
+                    == MissingTargetMeasurementMode.InjectDefaultValue
+                ):
+                    row = {
+                        cpv.property.identifier: cpv.value
+                        for cpv in entity.constitutive_property_values
+                    }
+                    self.log.info(
+                        f"Injecting default {row} for entity {entity.identifier}"
+                    )
+                    row[self.params.targetOutput] = (
+                        self.params.missingTargetMeasurements.defaultValue
+                    )
+                    self.injected_defaults = pd.concat(
+                        [self.injected_defaults, pd.DataFrame([row])],
+                        ignore_index=True,
+                    )
+                    # VV: Since inject_defaults was updated we need to remember this row so that the next time
+                    # we check whether an Entity measured its targetOutput that's the only candidate for a new
+                    # row in the current_source_df dataframe
+                    current_source_df, _current_batch_size_target_df = (
+                        self.get_source_and_target_with_injected_defaults(
+                            discoverySpace,
+                            self.params.targetOutput,
+                        )
+                    )
+
                 # Advance the baseline so the next iteration's diff stays at 1 row.
                 previous_source_df = current_source_df
+
                 continue
             elif len(one_additional_row) == 1:
                 total_measured += 1
@@ -536,7 +659,7 @@ class TrimSampleSelector(BaseSampler):
             TabularPredictor: The trained AutoGluon predictor on full source data
         """
         # FIT ON FULL SOURCE SPACE DATA
-        source_df, target_df = get_source_and_target(
+        source_df, target_df = self.get_source_and_target_with_injected_defaults(
             discoverySpace,
             self.params.targetOutput,
         )
@@ -663,7 +786,7 @@ class TrimSampleSelector(BaseSampler):
             If validation checks fail.
         """
 
-        source_df, target_df = get_source_and_target(
+        source_df, target_df = self.get_source_and_target_with_injected_defaults(
             discoverySpace, self.params.targetOutput
         )
 
@@ -784,11 +907,36 @@ class TrimSampleSelector(BaseSampler):
 
     @classmethod
     def parameters_model(cls) -> type[BaseModel] | None:
-        return TrimSamplerParameters
+        return TrimSamplerParametersInternal
 
-    def __init__(self, parameters: TrimSamplerParameters) -> None:
+    def get_source_and_target_with_injected_defaults(
+        self,
+        discovery_space: DiscoverySpace | str,
+        log_string: str = "",
+    ) -> tuple[pd.DataFrame, pd.DataFrame]:
+        source_df, target_df = get_source_and_target(
+            discoverySpace=discovery_space,
+            targetOutput=self.params.targetOutput,
+            log_string=log_string,
+        )
+
+        if self.injected_defaults is not None and len(self.injected_defaults) > 0:
+            source_df = pd.concat(
+                [source_df, self.injected_defaults],
+                ignore_index=True,
+            )
+
+        return source_df, target_df
+
+    def __init__(self, parameters: TrimSamplerParametersInternal) -> None:
         self.params = parameters
 
         configure_logging()
+
+        # VV: When self.params.missingTargetMeasurements.mode==InjectDefaultValues
+        # The sampler will keep track of the injected values in this dataframe.
+        # It's used in get_source_and_target_with_injected_defaults() to concatenate the
+        # source_df with self.injected_defaults
+        self.injected_defaults: pd.DataFrame | None = None
 
         self.log = logging.getLogger(__name__)

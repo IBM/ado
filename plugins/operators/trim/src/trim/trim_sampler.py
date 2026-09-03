@@ -20,6 +20,8 @@ import pandas as pd
 from autogluon.tabular import TabularDataset, TabularPredictor
 
 from ado.core.discoveryspace.samplers import BaseSampler
+from ado.utilities.logging import configure_logging
+from trim.missing_target import record_unmeasured_entity
 from trim.samplers.no_priors_utils import (
     get_index_list_van_der_corput,
     get_list_of_entities_from_df_and_space,
@@ -41,7 +43,6 @@ from trim.utils.logging_utils import (
     log_after_first_holdout_creation,
     log_after_split_common_and_diff,
     log_before_first_holdout_update,
-    log_unable_to_proceed_with_iterative_modeling_and_raise_error,
     save_source_train_holdout_dfs,
     training_guardrail,
 )
@@ -52,8 +53,6 @@ from trim.utils.split_common_and_diff import (
     split_common_and_diff,
 )
 from trim.utils.stopping_criterion import stopping_bool_from_ratios
-
-logger_trim_sampler = logging.getLogger(__name__)
 
 
 # NOTE: to repeat the operation on the same space you can delete the operation
@@ -69,19 +68,19 @@ class TrimSampleSelector(BaseSampler):
 
     def _setup_debug_directory_sync(self) -> None:
         """Synchronously setup debug directory if debug logging is enabled."""
-        if logger_trim_sampler.isEnabledFor(logging.DEBUG):
+        if self.log.isEnabledFor(logging.DEBUG):
             debug_dir = pathlib.Path(self.params.debugDirectory).expanduser().resolve()
-            logger_trim_sampler.debug(
+            self.log.debug(
                 f"Creating a folder to save intermediate files:\n{debug_dir}\n\n"
             )
             debug_dir.mkdir(parents=True, exist_ok=True)
 
     async def _setup_debug_directory_async(self) -> None:
         """Asynchronously setup debug directory if debug logging is enabled."""
-        if logger_trim_sampler.isEnabledFor(logging.DEBUG):
+        if self.log.isEnabledFor(logging.DEBUG):
             debug_dir = await anyio.Path(self.params.debugDirectory).expanduser()
             debug_dir = await debug_dir.resolve()
-            logger_trim_sampler.debug(
+            self.log.debug(
                 f"Creating a folder to save intermediate files:\n{debug_dir}\n\n"
             )
             await debug_dir.mkdir(parents=True, exist_ok=True)
@@ -124,7 +123,7 @@ class TrimSampleSelector(BaseSampler):
             self.params.targetOutput,
         )
 
-        if logger_trim_sampler.isEnabledFor(logging.DEBUG):
+        if self.log.isEnabledFor(logging.DEBUG):
             initial_source_df.to_csv(
                 os.path.join(self.params.debugDirectory, "initial_source_df.csv")
             )
@@ -133,26 +132,24 @@ class TrimSampleSelector(BaseSampler):
             cp.identifier for cp in discoverySpace.entitySpace.constitutiveProperties
         ]
         train_target_cols = [*train_cols, self.params.targetOutput]
-        logger_trim_sampler.info(
+        self.log.info(
             f"There are {numberEntities} entities of which TRIM will measure up "
             f"to {self.params.numberEntitiesIterativeModeling}.\n"
             f"These entities have been ordered using {len(initial_source_df)} measurements from the discovery space."
         )
 
         if numberEntities < self.params.numberEntitiesIterativeModeling:
-            logger_trim_sampler.warning(
+            self.log.warning(
                 f"TRIM is configured to measure {self.params.numberEntitiesIterativeModeling} "
                 f"entities but there are only {numberEntities} in the space"
             )
 
-        logger_trim_sampler.info(
+        self.log.info(
             f"Training columns are {train_cols},\nThe dependent variable (target Output) is {train_target_cols[-1]}"
         )
 
         if not self.params.outputDirectory:
-            logger_trim_sampler.warning(
-                "outputDirectory is empty; defaulting to 'trim_models'."
-            )
+            self.log.warning("outputDirectory is empty; defaulting to 'trim_models'.")
             self.params.outputDirectory = "trim_models"
 
         ############################################################################################################
@@ -167,28 +164,69 @@ class TrimSampleSelector(BaseSampler):
         yielded_rows = RowsRing(
             maxlen=(self.params.holdoutSize or self.params.iterationSize)
         )
+        total_unmeasured = 0
+        total_measured = 0
+
+        previous_source_df = initial_source_df
+
         # numberEntitiesIterativeModeling +1 is the exact count RandomWalk will attempt to draw.
         # When TRIM exhausts all entities it could have yielded AND random_walk asks for more then,
         # TRIM finalizes the model and does not yield any more entities.
-        for i in range(
-            min(self.params.numberEntitiesIterativeModeling, numberEntities)
-        ):
-            entity = [list_of_entities[i]]
+        for i, entity in enumerate(list_of_entities):
+            self.log.info(f"Yielding entity at index {i}: {entity}")
+            yield [entity]
+
+            # VV: it's safe to get data out of the sample store, if we're here the RandomWalk
+            # operation attempted the Entity we yielded above and it's now asking for one more.
+            # First things first, check whether RandomWalk managed to measure the targetOutput for the
+            # Entity or not.
             current_source_df, _current_batch_size_target_df = get_source_and_target(
                 discoverySpace,
                 self.params.targetOutput,
             )
 
-            if i == 0:
-                previous_source_df = current_source_df
-                train_df = current_source_df
-                logger_trim_sampler.debug(
-                    "During the initial iterations the holdout is empty"
+            compare_to_previous_source_df, one_additional_row = split_common_and_diff(
+                longer_df_from_which_you_subtract=current_source_df,
+                shorter_df_that_you_subtract=previous_source_df,
+            )
+            self.log.info(
+                f"Entity {entity.identifier} added {len(one_additional_row)} rows"
+            )
+
+            if len(one_additional_row) == 0:
+                total_unmeasured += 1
+                record_unmeasured_entity(
+                    entity_identifier=entity.identifier,
+                    missing_target_measurements=self.params.missingTargetMeasurements,
+                    total_unmeasured=total_unmeasured,
+                    target_output=self.params.targetOutput,
+                    additional_info="",
+                    logger=self.log,
                 )
-                logger_trim_sampler.info(f"Yielding entity at index {i}: {entity}")
-                yielded_entities += entity
-                yield entity
+                # TODO: Implement InjectDefaultValue
+                # Advance the baseline so the next iteration's diff stays at 1 row.
+                previous_source_df = current_source_df
                 continue
+            elif len(one_additional_row) == 1:
+                total_measured += 1
+                yielded_entities.append(entity)
+                yielded_rows += one_additional_row
+                self.log.info(
+                    f"Measured {entity.identifier} in\n{one_additional_row.to_string()}"
+                )
+            else:
+                self.log.error(
+                    f"Entity {entity.identifier}: expected 1 new row in source_df but got {len(one_additional_row)}. "
+                    f"previous_source_df={len(previous_source_df)} rows, "
+                    f"current_source_df={len(current_source_df)} rows. "
+                    f"Extra rows:\n{one_additional_row.to_string()}"
+                )
+                msg = (
+                    f"This is a bug in TRIM. "
+                    f"Unexpected additional rows for {entity.identifier}: {one_additional_row.to_string()}"
+                )
+                self.log.error(msg)
+                raise ValueError(msg)
 
             # TODO: the first holdout set can also be obtained from the source space
             # atm we sample new points from the target and put these into the holdout
@@ -196,103 +234,72 @@ class TrimSampleSelector(BaseSampler):
             # source and holdout df, the rationale here would be selecting the holdout set first
             # to prioritize representativeness in the OOS set, and put the remaining points in
             # the test set
-            elif i < self.params.iterationSize:
-                compare_to_previous_source_df, one_additional_row = (
-                    split_common_and_diff(
-                        longer_df_from_which_you_subtract=current_source_df,
-                        shorter_df_that_you_subtract=previous_source_df,
-                    )
-                )
-                if len(one_additional_row) == 0:
-                    log_unable_to_proceed_with_iterative_modeling_and_raise_error(
-                        discoverySpace=discoverySpace,
-                        target_output=self.params.targetOutput,
-                        additional_info=f"Detected during Iterative Modeling, when the source space size is {len(train_df)}.",
-                    )
-
+            if total_measured < self.params.iterationSize:
                 log_after_split_common_and_diff(
-                    i,
+                    total_measured,
                     compare_to_previous_source_df,
                     previous_source_df,
                     one_additional_row,
                     directory=self.params.debugDirectory,
                 )
-                yielded_rows += one_additional_row
-                yielded_entities += entity
                 previous_source_df = current_source_df
-                logger_trim_sampler.info(f"Yielding entity at index {i}: {entity}")
-                yield entity
                 continue
-
             elif (
-                i == self.params.iterationSize
+                total_measured == self.params.iterationSize
             ):  # at this point we build the first model
+                self.log.info(
+                    f"First model: initial_source_df={len(initial_source_df)} rows, "
+                    f"current_source_df={len(current_source_df)} rows, "
+                    f"expected holdout size={self.params.holdoutSize}"
+                )
                 train_df, current_holdout_df = split_common_and_diff(
                     longer_df_from_which_you_subtract=current_source_df,
                     shorter_df_that_you_subtract=initial_source_df,
                 )
-                _, one_additional_row = split_common_and_diff(
-                    longer_df_from_which_you_subtract=current_source_df,
-                    shorter_df_that_you_subtract=previous_source_df,
-                )
-                if len(one_additional_row) == 0:
-                    log_unable_to_proceed_with_iterative_modeling_and_raise_error(
-                        discoverySpace=discoverySpace,
-                        target_output=self.params.targetOutput,
-                        additional_info=f"Detected during Iterative Modeling, when the training DataFrame size is {len(train_df)}.",
-                    )
-                yielded_rows += one_additional_row
+
                 previous_holdout_df = current_holdout_df
 
                 log_after_first_holdout_creation(
                     current_holdout_df,
                     yielded_rows,
-                    iter_index=i,
+                    iter_index=total_measured,
                     params=self.params,
                 )
-
             else:  # i > self.params.iterationSize
                 train_df, one_additional_row = split_common_and_diff(
                     longer_df_from_which_you_subtract=current_source_df,
                     shorter_df_that_you_subtract=previous_source_df,
                 )
-                if len(one_additional_row) == 0:
-                    log_unable_to_proceed_with_iterative_modeling_and_raise_error(
-                        discoverySpace=discoverySpace,
-                        target_output=self.params.targetOutput,
-                        additional_info=f"Detected during Iterative Modeling, when the training DataFrame size is {len(train_df)}.",
-                    )
 
                 log_before_first_holdout_update(
                     one_additional_row,
                     current_source_df,
                     previous_source_df,
-                    iter_index=i,
+                    iter_index=total_measured,
                     debugDirectory=self.params.debugDirectory,
                     batchsize=1,
                 )
 
-                yielded_rows += one_additional_row
                 current_holdout_df = pd.DataFrame(yielded_rows.df)
 
                 if current_holdout_df.equals(previous_holdout_df):
-                    logger_trim_sampler.warning("Holdout dataframe is not changing!")
+                    self.log.warning("Holdout dataframe is not changing!")
 
             # we rename appropriately
             previous_source_df = current_source_df
             previous_holdout_df = current_holdout_df
-            if logger_trim_sampler.isEnabledFor(logging.DEBUG):
+            if self.log.isEnabledFor(logging.DEBUG):
                 save_source_train_holdout_dfs(
                     current_source_df=current_source_df,
                     train_df=train_df,
                     current_holdout_df=current_holdout_df,
-                    iter=i,
+                    iter=total_measured,
                     directory=self.params.debugDirectory,
                 )
 
             ##############  MODEL BUILDING AND EVALUATION  #####################
 
-            logger_trim_sampler.info(
+            self.log.info(
                 f"Building and evaluating a predictive model "
                 f"that includes 1 more entity "
                 f"in the training set:\n {entity}"
@@ -312,8 +319,8 @@ class TrimSampleSelector(BaseSampler):
                 **self.params.autoGluonArgs.tabularPredictorArgs,
             )
 
-            logger_trim_sampler.info(
-                f"Fitting AutoGluon TabularPredictor, iteration {i}..."
+            self.log.info(
+                f"Fitting AutoGluon TabularPredictor, iteration {total_measured}..."
             )
             predictor.fit(train_data=train_data, **self.params.autoGluonArgs.fitArgs)
 
@@ -327,7 +334,7 @@ class TrimSampleSelector(BaseSampler):
             else:
                 best_model_name, best_score_val = None, None
 
-            metric_dict[i] = {
+            metric_dict[total_measured] = {
                 "metric": training_metric,
                 "best_model": best_model_name,
                 "best_score_val": best_score_val,
@@ -336,15 +343,15 @@ class TrimSampleSelector(BaseSampler):
                 ],
             }
 
-            logger_trim_sampler.info(
-                f"[Batch under consideration: {i}] Training metric: {training_metric};\n"
-                f"Best model: {best_model_name}; score_val: {best_score_val:.2f}; holdout_score: {metric_dict[i]['holdout_score']:.2f}",
+            self.log.info(
+                f"[Batch under consideration: {total_measured}] Training metric: {training_metric};\n"
+                f"Best model: {best_model_name}; score_val: {best_score_val:.2f}; holdout_score: {metric_dict[total_measured]['holdout_score']:.2f}",
             )
 
             # Capture model path and delete the folder
-            if not logger_trim_sampler.isEnabledFor(logging.DEBUG):
+            if not self.log.isEnabledFor(logging.DEBUG):
                 model_dir = getattr(predictor, "path", None)
-                logger_trim_sampler.info(f"AutoGluon model directory: {model_dir}")
+                self.log.info(f"AutoGluon model directory: {model_dir}")
                 del predictor
                 delete_dir(model_dir=model_dir)
 
@@ -357,34 +364,33 @@ class TrimSampleSelector(BaseSampler):
             # itersize =< i< itersize *2 : 1st iter of models
             # itersize*2 =< i< itersize *3 : 2nd iter of models
             if (
-                i < self.params.iterationSize * 3 - 1
+                total_measured < self.params.iterationSize * 3 - 1
                 or not self.params.stoppingCriterion.enabled
             ):
-                yielded_entities += entity
-                yield entity
+                yielded_entities.append(entity)
                 continue
 
             # NOTE: at the moment comparison does NOT happen at every params.iterationSize steps
             # instead, it happens at every batchsize=1 step, in a rolling fashion,
             else:
-                comparison_indices.append(i)
+                comparison_indices.append(total_measured)
                 # NOTE: if batchsize==iterationSize will compare just two models,
                 # one model from prev_iter_list_range, whose len would be 1, and
                 # one model from this_iter_list_range, whose len would be 1
                 _prev_iter_list_range = list(
                     range(
-                        i
+                        total_measured
                         - self.params.iterationSize * 2
                         + 1,  # this index might be included
-                        i
+                        total_measured
                         - self.params.iterationSize
                         + 1,  # this index cannot be included
                     )
                 )
                 _this_iter_list_range = list(
                     range(
-                        i - self.params.iterationSize + 1,
-                        i
+                        total_measured - self.params.iterationSize + 1,
+                        total_measured
                         + 1,  # this index cannot be included, but i can be included (this is desired)
                     )
                 )
@@ -396,7 +402,7 @@ class TrimSampleSelector(BaseSampler):
                     i for i in _this_iter_list_range if i in range(numberEntities)
                 ]
 
-                logger_trim_sampler.info(
+                self.log.info(
                     f"Since iterationSize is {self.params.iterationSize}, "
                     f"We now compare models at the following batch indices\n{prev_iter_list_range}\nand\n{this_iter_list_range}"
                 )
@@ -410,7 +416,7 @@ class TrimSampleSelector(BaseSampler):
                     for el in this_iter_list_range
                 ]
 
-                logger_trim_sampler.info(
+                self.log.info(
                     f"Scores that correspond to these i-ranges are:\n{scores_previous_iteration}\nand\n{scores_this_iteration}"
                 )
 
@@ -424,7 +430,7 @@ class TrimSampleSelector(BaseSampler):
                         * np.array(scores_this_iteration).std()
                         == 0
                     ):
-                        logger_trim_sampler.info(
+                        self.log.info(
                             "Product of standard deviation of the scores across batches is 0."
                             "Setting the ratio to 0"
                         )
@@ -436,13 +442,13 @@ class TrimSampleSelector(BaseSampler):
                             / np.array(scores_previous_iteration).std()
                         )
                 except Exception as e:
-                    logger_trim_sampler.warning(
+                    self.log.warning(
                         f"Exception occurred: {e}, should stop will be true."
                     )
                     mean_ratio = 1
                     std_ratio = 1
-                logger_trim_sampler.info(
-                    f"Testing stopping criterion after measuring {i} points, "
+                self.log.info(
+                    f"Testing stopping criterion after measuring {total_measured} points, "
                     "mean_ratio={mean_ratio} and std_ratio={std_ratio}"
                 )
                 should_stop = stopping_bool_from_ratios(
@@ -453,8 +459,8 @@ class TrimSampleSelector(BaseSampler):
                 )
 
             if should_stop:
-                logger_trim_sampler.info(
-                    f"Stopping criteria hit after measuring {i} entities.\n"
+                self.log.info(
+                    f"Stopping criteria hit after measuring {total_measured} entities.\n"
                     f"On a iteration of batch size {self.params.iterationSize}.\n"
                     "Performance of the model on the holdout set is estimated as:"
                     f"Mean performance of the model on the holdout set over the last iteration: {np.array(scores_this_iteration).mean()}"
@@ -465,13 +471,8 @@ class TrimSampleSelector(BaseSampler):
                     stopping_criteria_satisfied=True,
                 )
                 break
-            else:
-                yield_log_string = f"Stopping not triggered for i={i}"
-                logger_trim_sampler.info(yield_log_string)
-                yielded_entities += entity
-                yield entity
 
-        logger_trim_sampler.info(
+        self.log.info(
             f"Finished yielding {len(yielded_entities)} entities. Finalizing model but this "
             "model does not actually satisfy the stopping criteria"
         )
@@ -484,7 +485,7 @@ class TrimSampleSelector(BaseSampler):
     ) -> typing.AsyncGenerator[list[Entity], None]:
         """Returns a remoteEntityIterator that returns entities in order"""
 
-        logger_trim_sampler.debug(f"Trim starts with parameters:\n{self.params}\n\n")
+        self.log.debug(f"Trim starts with parameters:\n{self.params}\n\n")
 
         await self._setup_debug_directory_async()
 
@@ -508,7 +509,7 @@ class TrimSampleSelector(BaseSampler):
     ) -> typing.Generator[list[Entity], None, None]:
         """Returns an entityIterator that returns entities in order"""
 
-        logger_trim_sampler.debug(f"Trim starts with parameters:\n{self.params}\n\n")
+        self.log.debug(f"Trim starts with parameters:\n{self.params}\n\n")
 
         self._setup_debug_directory_sync()
 
@@ -541,7 +542,7 @@ class TrimSampleSelector(BaseSampler):
         )
 
         # TODO: check why len(source_df) is minor than max(i) of the iterative modeling phase
-        logger_trim_sampler.info(
+        self.log.info(
             f"Finalizing the predictive model:"
             f"Fitting AutoGluon TabularPredictor on full Source Space data of {len(source_df)} rows."
             f"Model will be saved in: {self.params.finalModelAutoGluonArgs.tabularPredictorArgs['path']}"
@@ -554,7 +555,7 @@ class TrimSampleSelector(BaseSampler):
 
         train_df = source_df[train_target_cols]
         # think about replicating here the guardrail about NaN in target
-        if logger_trim_sampler.isEnabledFor(logging.DEBUG):
+        if self.log.isEnabledFor(logging.DEBUG):
             train_df.to_csv(
                 os.path.join(
                     self.params.debugDirectory,
@@ -583,7 +584,7 @@ class TrimSampleSelector(BaseSampler):
             else None
         )
         training_metric = getattr(predictor, "eval_metric", None)
-        logger_trim_sampler.info(
+        self.log.info(
             f"Model finalized using as training set all sampled points, of cardinality {len(train_data)}.\n"
             f"Final model {training_metric}={final_model_metric}."
             f"Saving predicted model to: {self.params.finalModelAutoGluonArgs.tabularPredictorArgs['path']}."
@@ -592,9 +593,7 @@ class TrimSampleSelector(BaseSampler):
         target_predictions = predictor.predict(pd.DataFrame(target_df[train_cols]))
         target_df_with_predictions = target_df.copy()
         target_df_with_predictions[self.params.targetOutput] = target_predictions
-        logger_trim_sampler.info(
-            f"Generated predictions for {len(target_df)} target data points."
-        )
+        self.log.info(f"Generated predictions for {len(target_df)} target data points.")
 
         source_df_marked = source_df.copy()
         source_df_marked["is_predicted"] = False
@@ -606,12 +605,12 @@ class TrimSampleSelector(BaseSampler):
 
         combined_df_path = os.path.join(predictor.path, "combined_predictions.csv")
         combined_df.to_csv(combined_df_path, index=False)
-        logger_trim_sampler.info(f"Saved combined predictions to: {combined_df_path}")
+        self.log.info(f"Saved combined predictions to: {combined_df_path}")
 
         if final_lb is not None and not final_lb.empty:
             leaderboard_path = os.path.join(predictor.path, "model_leaderboard.csv")
             final_lb.to_csv(leaderboard_path, index=False)
-            logger_trim_sampler.info(f"Saved model leaderboard to: {leaderboard_path}")
+            self.log.info(f"Saved model leaderboard to: {leaderboard_path}")
 
         model_card = {
             "train_fraction_wrt_space": len(source_df)
@@ -629,7 +628,7 @@ class TrimSampleSelector(BaseSampler):
         model_card_path = os.path.join(predictor.path, "model_card.json")
         with open(model_card_path, "w") as f:
             json.dump(model_card, f, indent=2)
-        logger_trim_sampler.info(f"Saved model card to: {model_card_path}")
+        self.log.info(f"Saved model card to: {model_card_path}")
 
         return predictor
 
@@ -668,7 +667,7 @@ class TrimSampleSelector(BaseSampler):
             discoverySpace, self.params.targetOutput
         )
 
-        if logger_trim_sampler.isEnabledFor(logging.DEBUG):
+        if self.log.isEnabledFor(logging.DEBUG):
             source_df.to_csv(
                 os.path.join(self.params.debugDirectory, "Initial_source_space.csv")
             )
@@ -680,7 +679,7 @@ class TrimSampleSelector(BaseSampler):
                 f"Target output '{self.params.targetOutput}' has only a single distinct value: {unique_val}. "
                 "This is insufficient for downstream processing."
             )
-            logger_trim_sampler.error(msg)
+            self.log.error(msg)
             raise InsufficientDataError(msg)
 
         if len(source_df) < self.params.samplingBudget.minPoints:
@@ -688,13 +687,13 @@ class TrimSampleSelector(BaseSampler):
             the entities in the space. For example a recommender could be unable to recommend the target variables
             for some entities"""
             missing_points = self.params.samplingBudget.minPoints - len(source_df)
-            logger_trim_sampler.error(
+            self.log.error(
                 f"Insufficient data: need {self.params.samplingBudget.minPoints}, but only {len(source_df)} available. "
                 f"Consider adding {missing_points} more points or adjusting the budget."
             )
-            logger_trim_sampler.info(info_str)
+            self.log.info(info_str)
             if len(source_df) > 10:
-                logger_trim_sampler.warning(
+                self.log.warning(
                     "Attempting iterative modelling with 10 source space points"
                 )
             else:
@@ -712,7 +711,7 @@ class TrimSampleSelector(BaseSampler):
 
         merged_df = source_df.merge(target_df, how="outer")
 
-        if logger_trim_sampler.isEnabledFor(logging.DEBUG):
+        if self.log.isEnabledFor(logging.DEBUG):
             merged_df.to_csv(
                 os.path.join(self.params.debugDirectory, "initial_debug_merged.csv")
             )
@@ -730,7 +729,7 @@ class TrimSampleSelector(BaseSampler):
                 f"Validation failed: Expected {len(target_df)} rows with NaNs in {self.params.targetOutput}, "
                 f"but found {nan_rows_count}."
             )
-            logger_trim_sampler.error(msg)
+            self.log.error(msg)
             raise ValueError(msg)
 
         # Order merged dataframe by source space feature importance
@@ -743,10 +742,15 @@ class TrimSampleSelector(BaseSampler):
             merged_df_ordered_by_source_importance[self.params.targetOutput].notna()
         ].index.tolist()
 
-        # Compute index order for sampling
+        # Compute index order for sampling.
+        # get_index_list_van_der_corput seeds its output with sampled_indices and
+        # then appends new indices until it reaches tot_points_to_sample.  We
+        # therefore ask for len(sampled_indices) + len(target_df) so that after
+        # filtering out the already-measured positions exactly len(target_df)
+        # new indices remain.
         idx_order = get_index_list_van_der_corput(
             len(merged_df_ordered_by_source_importance),
-            len(target_df),
+            len(sampled_indices) + len(target_df),
             sampled_indices=sampled_indices,
         )
 
@@ -763,13 +767,13 @@ class TrimSampleSelector(BaseSampler):
             df=df_ordered_to_sample, space=discoverySpace
         )
 
-        if logger_trim_sampler.isEnabledFor(logging.DEBUG):
+        if self.log.isEnabledFor(logging.DEBUG):
             ordered_df_path_and_name = os.path.join(
                 self.params.debugDirectory, "df_ordered_to_sample_with_id.csv"
             )
             ordered_data_log_string = f"DataFrame successfully ordered, saving it now to {ordered_df_path_and_name}"
-            logger_trim_sampler.info(ordered_data_log_string)
-            logger_trim_sampler.info(
+            self.log.info(ordered_data_log_string)
+            self.log.info(
                 f"Ordered list of inferred entities identifiers is:\n{list_of_entities_identifiers}\n"
                 "Proceeding to sample entities in this order.\n"
                 f"Valid entities are built and validated using the dataframe contained in {ordered_df_path_and_name}"
@@ -784,3 +788,7 @@ class TrimSampleSelector(BaseSampler):
 
     def __init__(self, parameters: TrimSamplerParameters) -> None:
         self.params = parameters
+
+        configure_logging()
+
+        self.log = logging.getLogger(__name__)

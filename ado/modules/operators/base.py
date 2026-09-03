@@ -493,6 +493,13 @@ def create_operation_and_add_to_metastore(
         provenance=OperationProvenanceInfo(operators=operators),
     )
 
+    if ray.is_initialized():
+        try:
+            ray_job_id = ray.get_runtime_context().get_job_id()
+            operation.metadata["ray_job_id"] = ray_job_id
+        except Exception:
+            moduleLog.debug("Could not retrieve Ray job ID", exc_info=True)
+
     related_identifiers = [
         operation_resource_configuration.spaces[0],
         *operation_resource_configuration.actuatorConfigurationIdentifiers,

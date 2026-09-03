@@ -321,6 +321,23 @@ class TrimSamplerParameters(TrimParameters):
     ] = MissingTargetMeasurements()
 
 
+class TrimSamplerParametersInternal(TrimSamplerParameters):
+    """Runtime extension of TrimSamplerParameters used only by TrimSampleSelector.
+
+    These fields are NOT on TrimSamplerParameters because that model is
+    serialised into the RandomWalk operation configuration.
+    """
+
+    noPriorsOperationId: Annotated[
+        str | None,
+        Field(
+            description="Operation identifier of the no-priors RandomWalk phase. "
+            "Used by TrimSampleSelector to query invalid measurement results from "
+            "that phase and pre-populate injected defaults before iterative modeling.",
+        ),
+    ] = None
+
+
 if __name__ == "__main__":
     # Test with required targetOutput parameter
     params = TrimParameters.model_validate(

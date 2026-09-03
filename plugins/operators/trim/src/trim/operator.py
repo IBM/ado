@@ -213,7 +213,7 @@ def trim(
         noPriorsParams["missingTargetMeasurements"] = (
             params.missingTargetMeasurements.model_dump()
         )
-
+        noPriorsParams["samples"] = params.samplingBudget.minPoints - len(source_df)
         noPriorsParams = NoPriorsParametersInternal.model_validate(noPriorsParams)
 
         no_priors_sampler_config = CustomSamplerConfiguration(
@@ -223,7 +223,7 @@ def trim(
         no_priors_rwparams = RandomWalkParameters(
             samplerConfig=no_priors_sampler_config,
             batchSize=params.noPriorParameters.batchSize,
-            numberEntities=params.samplingBudget.minPoints - len(source_df),
+            numberEntities="all",
             singleMeasurement=True,
         )
 
@@ -305,7 +305,7 @@ def trim(
         # VV: Configuring RandomWalk to request one additional Entity, this enables the
         # TrimSampler to know that it's about to run out of entities and thus it should
         # finalize the model.
-        numberEntities=numberEntities_iterative_modeling + 1,
+        numberEntities="all",
         singleMeasurement=True,
     )
 

@@ -12,7 +12,7 @@ description: |
 
 For CLI command syntax, see [using-ado-cli](../using-ado-cli/SKILL.md). For full
 problem formulation workflow, see
-[formulate-discovery-problem](../formulate-discovery-problem/SKILL.md).
+[define-experiment-campaign](../define-experiment-campaign/SKILL.md).
 
 ## Metadata Fields
 
@@ -136,7 +136,7 @@ uv run ado template actuatorconfiguration --actuator-identifier my_actuator
 
 ### DiscoverySpace
 
-See [formulate-discovery-problem](../formulate-discovery-problem/SKILL.md) for
+See [define-experiment-campaign](../define-experiment-campaign/SKILL.md) for
 further details on creating discovery spaces.
 
 **Before creating** (ado create space), check if a matching space already
@@ -268,6 +268,6 @@ replacement, if the skill's replace policy says so).
 ## Related Resources
 
 - [using-ado-cli](../using-ado-cli/SKILL.md) — CLI command syntax and shortcuts
-- [formulate-discovery-problem](../formulate-discovery-problem/SKILL.md) — full
+- [define-experiment-campaign](../define-experiment-campaign/SKILL.md) — full
   problem formulation workflow
 - [AGENTS.md](../../../AGENTS.md) — YAML testing and linting guidance

@@ -1,7 +1,7 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-"""Tests that formulate-discovery-problem YAML examples parse via ado pydantic models."""
+"""Tests that define-experiment-campaign YAML examples parse via ado pydantic models."""
 
 import pathlib
 
@@ -13,7 +13,7 @@ from ado.core.discoveryspace.config import DiscoverySpaceConfiguration
 from ado.core.operation.config import DiscoveryOperationResourceConfiguration
 
 YAML_EXAMPLES_DIR = pathlib.Path(
-    ".agents/skills/formulate-discovery-problem/yaml-examples"
+    ".agents/skills/define-experiment-campaign/yaml-examples"
 )
 
 # Space YAML files: DiscoverySpaceConfiguration structure
@@ -54,7 +54,7 @@ ACTUATOR_CONFIG_YAML_PATTERNS = [
     ids=SPACE_YAML_PATTERNS,
 )
 def test_agent_space_yaml_examples(yaml_name: str) -> None:
-    """Each formulate-discovery-problem space YAML parses as DiscoverySpaceConfiguration."""
+    """Each define-experiment-campaign space YAML parses as DiscoverySpaceConfiguration."""
     base = pathlib.Path(__file__).resolve().parent.parent.parent / YAML_EXAMPLES_DIR
     path = base / f"{yaml_name}.yaml"
     if not path.exists():
@@ -70,7 +70,7 @@ def test_agent_space_yaml_examples(yaml_name: str) -> None:
     ids=OPERATION_YAML_PATTERNS,
 )
 def test_agent_operation_yaml_examples(yaml_name: str) -> None:
-    """Each formulate-discovery-problem operation YAML parses as DiscoveryOperationResourceConfiguration."""
+    """Each define-experiment-campaign operation YAML parses as DiscoveryOperationResourceConfiguration."""
     base = pathlib.Path(__file__).resolve().parent.parent.parent / YAML_EXAMPLES_DIR
     path = base / f"{yaml_name}.yaml"
     if not path.exists():
@@ -86,7 +86,7 @@ def test_agent_operation_yaml_examples(yaml_name: str) -> None:
     ids=ACTUATOR_CONFIG_YAML_PATTERNS,
 )
 def test_agent_actuator_config_yaml_examples(yaml_name: str) -> None:
-    """Each formulate-discovery-problem actuator config YAML parses as ActuatorConfiguration."""
+    """Each define-experiment-campaign actuator config YAML parses as ActuatorConfiguration."""
     base = pathlib.Path(__file__).resolve().parent.parent.parent / YAML_EXAMPLES_DIR
     path = base / f"{yaml_name}.yaml"
     if not path.exists():

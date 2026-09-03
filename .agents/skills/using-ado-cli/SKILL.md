@@ -3,10 +3,12 @@ name: using-ado-cli
 description: >-
   Reference for ado CLI command syntax, flags, and usage patterns — get, create,
   edit, show, describe, output flags (-o, --output-file), convenience flags
-  (--use-latest, --set, --with), debugging with -l, and run_experiment. Use when
-  writing, verifying, or debugging ado CLI commands, looking up correct command
-  syntax or flags, or when unsure which ado command or flag to use. For listing
-  catalogs or answering data questions, prefer query-ado-data.
+  (--use-latest KIND, --set, --with), debugging with -l, and run_experiment. Use
+  when writing, verifying, or debugging ado CLI commands; looking up correct
+  command syntax or flags; running or smoke-testing an experiment on a single
+  entity/point (run_experiment); or when unsure which ado command or flag to
+  use. For listing catalogs or answering data questions, use the query-ado-data
+  skill.
 ---
 
 # Using the ado CLI
@@ -75,8 +77,8 @@ operation in a single command. There is no separate "run" step.
 
 `run_experiment` is a **separate CLI entry point** (not an `ado` subcommand) for
 running a single entity through an experiment locally, without creating a space
-or operation. It is the correct tool for functional validation of custom
-experiments.
+or operation. Use it for functional validation (smoke test) of experiments or to
+measure one point.
 
 ```bash
 uv run run_experiment PATH_TO_POINT_YAML
@@ -392,5 +394,5 @@ uv run ado create operation -f operation.yaml --use-latest space
 - For creating and structuring resource YAML files, see
   [resource-yaml-creation](../resource-yaml-creation/)
 - For creating discoveryspace and operation YAML files, see
-  [formulate-discovery-problem](../formulate-discovery-problem/)
+  [define-experiment-campaign](../define-experiment-campaign/)
 - For general development guidelines, see [AGENTS.md](../../../AGENTS.md)

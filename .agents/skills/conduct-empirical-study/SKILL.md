@@ -1,11 +1,13 @@
 ---
 name: conduct-empirical-study
-description: End-to-end workflow for conducting empirical studies with ado — systematic
-  exploration and analysis of entity spaces. Covers problem formulation, optional
-  implementation of custom experiments/operators, execution (local or remote), and
-  analysing results. Use when the user wants to run experiments, answer research
-  questions empirically, benchmark systems, or perform any study involving systematic
-  data collection across a parameter space.
+description: >-
+  End-to-end workflow for using ado to conduct an empirical study — systematic exploration
+  of entity spaces/configuration spaces via experiment campaigns and analysis
+  of the results. Covers problem formulation, implementation of
+  custom experiments or analysis operators, campaign execution (local or remote), and analysing
+  results. Use when the user wants to run a multi-entity study, answer research
+  questions empirically, benchmark systems, or collect data across a parameter
+  space.
 ---
 
 # Conducting an Empirical Study with ado
@@ -13,6 +15,10 @@ description: End-to-end workflow for conducting empirical studies with ado — s
 ado can perform any study involving systematic exploration and analysis of a space
 of entities: executing experiments to answer research questions, benchmarking, or
 any task where data must be collected across a parameter space.
+
+For measuring **one** entity/point (functional check), use
+`run_experiment` — see [using-ado-cli](../using-ado-cli/SKILL.md) — not this
+workflow.
 
 ## Workflow Overview
 
@@ -32,7 +38,7 @@ see [create-research-study-document](../create-research-study-document/SKILL.md)
 
 ## Step 1: Formulate the Discovery Problem
 
-Follow the [formulate-discovery-problem](../formulate-discovery-problem/SKILL.md)
+Follow the [define-experiment-campaign](../define-experiment-campaign/SKILL.md)
 skill to frame the problem with ado.
 
 Gather user input on formulation details before deciding the next step:
@@ -53,7 +59,7 @@ Step 2.
 
 Required only when Step 1 identified missing experiments, actuators, or operators.
 
-Follow [plugin-development.mdc](../../rules/plugin-development.mdc) to implement
+Follow [plugin-development](../plugin-development/SKILL.md) to implement
 the needed components.
 
 Gather user input on implementation details:
@@ -67,7 +73,7 @@ Gather user input on implementation details:
 ## Step 3: (Optional) Complete Problem Formulation
 
 Required if Step 2 was performed. Return to the
-[formulate-discovery-problem](../formulate-discovery-problem/SKILL.md) skill and
+[define-experiment-campaign](../define-experiment-campaign/SKILL.md) skill and
 complete the formulation, now incorporating the new components created in Step 2.
 
 ---

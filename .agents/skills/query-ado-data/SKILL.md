@@ -8,7 +8,7 @@ description: >-
   to list projects or context or check the active context or project; to list or find ado
   resources like spaces, operations or datacontainers; to get ado resource schemas;
   to filter resources by their metadata or labels; or to retrieve/export entities and
-  measurement data; .
+  measurement data.
 ---
 
 # Query ado Data

@@ -117,7 +117,7 @@ def test_trim_skips_missing_target_measurements(
             mode=MissingTargetMeasurementMode.Skip
         ),
         samplingBudget=SamplingBudget(minPoints=40, maxPoints=100),
-        iterationSize=1,
+        iterationSize=5,
         outputDirectory=str(tmp_path / "trim_models"),
         debugDirectory=str(tmp_path / "debug_output"),
         stoppingCriterion=StoppingCriterion(enabled=False),

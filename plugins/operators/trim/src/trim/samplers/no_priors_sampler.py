@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from ado.core.discoveryspace.samplers import BaseSampler
 from ado.core.discoveryspace.space import DiscoverySpace, Entity
 from ado.modules.operators.discovery_space_manager import DiscoverySpaceManager
+from ado.utilities.logging import configure_logging
 from trim.missing_target import record_unmeasured_entity
 from trim.samplers.no_priors_utils import (
     get_list_of_entities_from_df_and_space,
@@ -17,8 +18,6 @@ from trim.samplers.no_priors_utils import (
     order_df_for_sampling_with_no_priors,
 )
 from trim.trim_pydantic import NoPriorsParametersInternal
-
-logger_no_priors = logging.getLogger(__name__)
 
 
 # NOTE: to repeat the operation on the same space I can delete the operation if the output of this operation
@@ -41,7 +40,7 @@ class NoPriorsSampleSelector(BaseSampler):
         # they also must measure the targetOutput. However, entities may be unable to
         # measure the targetOutput, this here we generate *all* entities in the order
         # that we would visit them if we had to exhaust the entire unmeasured space.
-        logger_no_priors.info(
+        self.log.info(
             f"Space has {len(source_df)} measured and {len(target_df)} unmeasured entities. "
             f"Sampling {self.params.samples} new entities as requested."
         )
@@ -62,11 +61,11 @@ class NoPriorsSampleSelector(BaseSampler):
     def noprior_iterator(
         self, discovery_space: DiscoverySpace
     ) -> typing.Generator[list[Entity], None, None]:
-        logger_no_priors.info("Characterization with no-priors starts.\n")
-        logger_no_priors.info(f"Parameters are:\n{self.params}\n\n")
+        self.log.info("Characterization with no-priors starts.\n")
+        self.log.info(f"Parameters are:\n{self.params}\n\n")
 
         sorted_entities = self.generate_sorted_entities(discovery_space)
-        logger_no_priors.warning(
+        self.log.warning(
             f"\n\nIteration over sorted entities for no priors characterization starts for {self.params.samples} "
             f"points and {len(sorted_entities)} entities.\n"
         )
@@ -93,7 +92,7 @@ class NoPriorsSampleSelector(BaseSampler):
                     missing_target_measurements=self.params.missingTargetMeasurements,
                     total_unmeasured=total_unmeasured,
                     target_output=self.params.targetOutput,
-                    logger=logger_no_priors,
+                    logger=self.log,
                     additional_info="",
                 )
             else:
@@ -104,10 +103,10 @@ class NoPriorsSampleSelector(BaseSampler):
 
             previous_source_df = current_source_df
 
-        logger_no_priors.info(
-            f"\n\nCharacterization with no-priors finished. Yielded {total_measured + total_unmeasured} "
+        self.log.info(
+            f"Characterization with no-priors finished. Yielded {total_measured + total_unmeasured} "
             f"samples out of {len(sorted_entities)} entities. "
-            f"Of those, {total_measured} measured the targetOutput. Starting Iterative Modeling.\n"
+            f"Of those, {total_measured} measured the targetOutput. Starting Iterative Modeling."
         )
 
     async def remoteEntityIterator(
@@ -176,3 +175,7 @@ class NoPriorsSampleSelector(BaseSampler):
 
     def __init__(self, parameters: NoPriorsParametersInternal) -> None:
         self.params = parameters
+
+        configure_logging()
+
+        self.log = logging.getLogger(__name__)

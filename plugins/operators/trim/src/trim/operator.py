@@ -13,6 +13,7 @@ from trim.trim_pydantic import (
     NoPriorsParametersInternal,
     TrimParameters,
     TrimSamplerParameters,
+    TrimSamplerParametersInternal,
 )  # Importing this way works when the package is installed
 from trim.utils.logging_utils import (
     log_and_save_characterization,
@@ -220,9 +221,12 @@ def trim(
             module=no_priors_module,
             parameters=noPriorsParams,
         )
+
         no_priors_rwparams = RandomWalkParameters(
             samplerConfig=no_priors_sampler_config,
             batchSize=params.noPriorParameters.batchSize,
+            # VV: The RandomWalk attempts to draw all Entities, the Sampler decides when
+            # it has drawn enough samples
             numberEntities="all",
             singleMeasurement=True,
         )
@@ -292,9 +296,17 @@ def trim(
     # stops calling anext() once the budget is met and never exhausts the generator.
     # This field must NOT live on TrimParameters itself because that model is serialised
     # to YAML as the operation configuration.
-    sampler_params = TrimSamplerParameters(
+
+    # Propagate the operation ID of the noprior sampler so that TRIM can fill in
+    # any rows that were skipped with default values when
+    # params.missingTargetMeasurements.mode is InjectDefaultValue
+    _trim_sampler_params = TrimSamplerParameters(
         **params.model_dump(),
         numberEntitiesIterativeModeling=numberEntities_iterative_modeling,
+    )
+    sampler_params = TrimSamplerParametersInternal(
+        **_trim_sampler_params.model_dump(),
+        noPriorsOperationId=(op_output_characterization_no_prior.operation.identifier),
     )
     trim_sampler_config = CustomSamplerConfiguration(
         module=trim_module, parameters=sampler_params
@@ -302,9 +314,8 @@ def trim(
     trim_rwparams = RandomWalkParameters(
         samplerConfig=trim_sampler_config,
         batchSize=1,
-        # VV: Configuring RandomWalk to request one additional Entity, this enables the
-        # TrimSampler to know that it's about to run out of entities and thus it should
-        # finalize the model.
+        # VV: The RandomWalk attempts to draw all Entities, the Sampler decides when
+        # it has drawn enough samples
         numberEntities="all",
         singleMeasurement=True,
     )

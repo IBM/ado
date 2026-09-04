@@ -641,6 +641,11 @@ def tune(
         num_samples=getattr(ray_tune_config, "num_samples", None),
     )
 
+    if stopper_report is not None:
+        emit_stopper_run_report(stopper_report)
+    else:
+        print(SAMPLING_BUDGET_HALT_REASON)
+
     return TuneOutput(
         exit_state=operation_status,
         error=error,
@@ -915,10 +920,6 @@ class RayTune(Explore):
                     if output.stopper_report is not None
                     else SAMPLING_BUDGET_HALT_REASON
                 )
-                if output.stopper_report is not None:
-                    emit_stopper_run_report(output.stopper_report)
-                else:
-                    print(halt_reason)
 
                 self.log.debug(f"Tune Result: {output}")
                 result_dict = {
@@ -930,6 +931,8 @@ class RayTune(Explore):
                     "best_result": result_dict,
                     "halt_reason": halt_reason,
                 }
+
+                # Add the stopper logs to datacontainer
                 if output.stopper_report is not None:
                     stopper_logs = output.stopper_report.stopper_logs()
                     if stopper_logs:

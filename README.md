@@ -32,7 +32,7 @@ use to team-wide collaboration.
 | **Operation**       | You explore or analyse a Discovery Space using operations. You can select from different operators to perform different types of operations. Operators are also pluggable python functions. |
 | **Sample Store**    | Stores the results of measurements, and enables operations to transparently reuse existing results (memoization).                                                                           |
 
-## Decorate a function, get a full-featured CLI
+## Try It Out
 
 You can add experiments to `ado` using a decorated Python function:
 
@@ -52,13 +52,6 @@ With this `ado` can understand the experiment, create valid
 spaces of inputs for it, explore those spaces with operations
 , and store the results in a samplestore,
 all while keeping a record of your work:
-
-![Terminal recording of ado listing the installed experiments, describing
-calculate_density, viewing the discovery space definition, running an operation
-across it and printing the resulting
-measurements](docs/videos/readme_try_it_out.gif)
-
-## Try It Out
 
 The following toy example runs a small experiment campaign
 that samples combinations of mass and volume, computes density at each point,
@@ -83,7 +76,8 @@ pip install -e examples/density_example/
 Run the experiment campaign:
 
 ```shell
-ado create operation -f examples/density_example/operation.yaml --with space=examples/density_example/space.yaml
+ado create space -f examples/density_example/space.yaml
+ado create operation -f examples/density_example/operation.yaml --use-latest space
 ```
 
 Once the operation finishes, inspect the collected measurements:
@@ -91,6 +85,12 @@ Once the operation finishes, inspect the collected measurements:
 ```shell
 ado show measurements operation --use-latest
 ```
+
+![Terminal recording of ado listing the installed experiments, describing
+calculate_density, viewing the discovery space definition, running an operation
+across it and printing the resulting
+measurements](docs/videos/readme_try_it_out.gif)
+
 
 For a deeper walkthrough, see the
 [density example tutorial](https://ibm.github.io/ado/latest/user-guide/examples/tutorials/density-example/).

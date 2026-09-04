@@ -6,6 +6,7 @@ import sys
 import time
 import typing
 
+import ray
 from ray.exceptions import RayTaskError
 
 import ado.utilities.output
@@ -58,7 +59,6 @@ def _operation_status_for_sigterm_initiated_shutdown(
 
 
 def log_space_details(discovery_space: "DiscoverySpace") -> None:
-
     from rich.console import Console
 
     console = Console()
@@ -117,6 +117,18 @@ def _run_operation_harness(
         operation_info=operation_info,
         operation_identifier=operation_identifier,
     )
+
+    if ray.is_initialized():
+        try:
+            ray_job_id = ray.get_runtime_context().get_job_id()
+            operation_resource.metadata["ray_job_id"] = ray_job_id
+        except Exception:
+            moduleLog.debug("Could not retrieve Ray job ID", exc_info=True)
+            moduleLog.warning(
+                "Could not retrieve Ray job ID - operation will proceed without it"
+            )
+    else:
+        moduleLog.debug("Operation is not running as a Ray job - no ray_job_id set")
 
     #
     # START THE OPERATION

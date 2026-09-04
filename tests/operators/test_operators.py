@@ -459,6 +459,15 @@ def test_run_random_walk_operation(
         operationOutput.operation.metadata["experiments_requested"] == 74
     )  # There are multiple measuremenst for some entities
 
+    # ray_job_id should be recorded because Ray is initialised for the test session
+    import ray
+
+    assert "ray_job_id" in operationOutput.operation.metadata
+    assert (
+        operationOutput.operation.metadata["ray_job_id"]
+        == ray.get_runtime_context().get_job_id()
+    )
+
 
 def test_random_walk_fail_invalid_config(
     ml_multi_cloud_space: DiscoverySpace,
@@ -897,63 +906,3 @@ def test_warn_if_operator_name_reused_logs_for_duplicate(
         _warn_if_operator_name_reused("characterize", "dup", ops)
 
     assert any("already registered" in r.getMessage() for r in caplog.records)
-
-
-# ---------------------------------------------------------------------------
-# create_operation_and_add_to_metastore — ray_job_id injection
-# ---------------------------------------------------------------------------
-
-
-def test_create_operation_sets_ray_job_id(
-    valid_ado_sqlite_project_context: ado.metastore.project.ProjectContext,
-) -> None:
-    """ray_job_id is recorded in operation metadata when Ray is initialized."""
-    import pathlib
-
-    import ray
-    import yaml
-
-    from ado.core.discoveryspace.config import DiscoverySpaceConfiguration
-    from ado.core.discoveryspace.space import DiscoverySpace
-    from ado.core.operation.config import FunctionOperationInfo, OperatorReference
-    from ado.core.samplestore.sql import SQLSampleStore
-    from ado.metastore.sqlstore import SQLStore
-    from ado.modules.operators.base import create_operation_and_add_to_metastore
-
-    # Build a minimal DiscoverySpace backed by SQLite (no Docker required).
-    # Pass sample_store directly to skip the metastore lookup.
-    space_config = DiscoverySpaceConfiguration.model_validate(
-        yaml.safe_load(
-            pathlib.Path("examples/optimization_test_functions/space.yaml").read_text()
-        )
-    )
-    sql_store = SQLStore(project_context=valid_ado_sqlite_project_context)
-    sample_store = SQLSampleStore(
-        identifier=None,
-        storageLocation=valid_ado_sqlite_project_context.metadataStore,
-        parameters={},
-    )
-    space = DiscoverySpace.from_configuration(
-        space_config,
-        project_context=valid_ado_sqlite_project_context,
-        identifier=None,
-        sample_store=sample_store,
-    )
-    space.saveSpace()
-
-    operator_ref = OperatorReference(
-        operatorName="random_walk",
-        operationType=ado.core.operation.config.DiscoveryOperationEnum.EXPLORE,
-    )
-
-    operation = create_operation_and_add_to_metastore(
-        discovery_space=space,
-        operator_module=operator_ref,
-        operation_parameters={},
-        operation_info=FunctionOperationInfo(),
-        metastore=sql_store,
-    )
-
-    assert ray.is_initialized()
-    expected_job_id = ray.get_runtime_context().get_job_id()
-    assert operation.metadata.get("ray_job_id") == expected_job_id

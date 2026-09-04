@@ -102,7 +102,7 @@ stop automatically when the most influential dimensions are known:
 
 <!-- markdownlint-disable MD013 -->
 ```bash
-ado create operation -f examples/ml-multi-cloud/lhc_sampler.yaml --set "spaces[0]=$DISCOVERY_SPACE_IDENTIFIER"
+ado create operation -f examples/ml-multi-cloud/lhc_sampler.yaml --with space=$DISCOVERY_SPACE_IDENTIFIER
 ```
 <!-- markdownlint-enable MD013 -->
 
@@ -123,20 +123,20 @@ early.
 
 ## Step 4 — Interpret the results
 
-Within the logs for the last sample you will see output like:
+The ranked-dimension table is printed at the end of the operation,
 
 ```text
-(tune pid=72306) Stopping criteria reached after 14 samples.
-(tune pid=72306) Total search space size is 48, search coverage is 0.2916666666666667.
-(tune pid=72306) Entropy of target variable clusters: 0.6517565611726529 nats.
-(tune pid=72306) Result:
-(tune pid=72306)     dimension  rank        mi  uncertainty%
-(tune pid=72306) 3       nodes     1  0.491089      0.753486
-(tune pid=72306) 1  cpu_family     2  0.352622      0.541033
-(tune pid=72306) 0    provider     3  0.034638      0.053146
-(tune pid=72306) 2   vcpu_size     4  0.000929      0.001425
-(tune pid=72306)
-(tune pid=72306) Pareto selection:['cpu_family', 'nodes']
+(RayTune pid=86763) RayTune operation stopped due to stopper InformationGainStopper.
+(RayTune pid=86763) Stopping criteria reached after 13 samples.
+(RayTune pid=86763) Total search space size is 48, search coverage is 0.2708333333333333.
+(RayTune pid=86763) Entropy of target variable clusters: 1.2852930241200995 nats.
+(RayTune pid=86763) Result:
+(RayTune pid=86763)     dimension  rank        mi  uncertainty%
+(RayTune pid=86763) 3       nodes     1  0.564965      0.439561
+(RayTune pid=86763) 1  cpu_family     3  0.279976      0.217831
+(RayTune pid=86763) 2   vcpu_size     3  0.279976      0.217831
+(RayTune pid=86763) 0    provider     4  0.113652      0.088425
+(RayTune pid=86763) Pareto selection:['cpu_family', 'vcpu_size', 'nodes']
 ```
 
 ### Reading the ranked dimension table

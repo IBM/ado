@@ -443,6 +443,18 @@ stopper, cannot currently be used with `ado`.
 Each of these are described in more detail, along with their parameters,
 [here](#ado-additions-to-raytune).
 
+!!! info end
+
+    When a stopper ends a ray_tune operation this is logged in
+    ado stdout.
+
+    Any stopper logs, summarizing their final state, are also printed.
+    This is done regardless if a stopper fired or not. This allows
+    examining, for example, how close stoppers were to firing when the
+    operation stopped.
+
+    The logs are also stored in the datacontainer output by ray_tune.
+
 <!-- markdownlint-enable descriptive-link-text -->
 
 #### Example
@@ -565,8 +577,9 @@ For more details, see:
 
 ### Seeing the optimal configuration found
 
-A successful `ray_tune` operation will create a `datacontainer` resource,
-containing information from RayTune on the best configuration found.
+A successful `ray_tune` operation will create a `datacontainer` resource. It
+always includes `best_result` (the best configuration RayTune found) and the
+`halt_reason` (why the optimization stopped)
 
 To get the id of the `datacontainer` related to a ray_tune `operation` resource
 with id $OPERATION_IDENTIFIER use:

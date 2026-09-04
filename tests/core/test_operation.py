@@ -8,6 +8,7 @@ import pytest
 import yaml
 
 from ado.core.operation.config import (
+    ADOResourcePropertyDescriptor,
     DiscoveryOperationConfiguration,
     DiscoveryOperationEnum,
     DiscoveryOperationResourceConfiguration,
@@ -19,7 +20,11 @@ from ado.core.operation.resource import (
     OperationResourceEventEnum,
     OperationResourceStatus,
 )
-from ado.core.resources import ADOResourceEventEnum, CoreResourceKinds
+from ado.core.resources import (
+    ADOResourceEventEnum,
+    ADOResourceReference,
+    CoreResourceKinds,
+)
 from ado.modules.module import load_module_class_or_function
 
 
@@ -166,23 +171,16 @@ def test_set_manual_operation_identifier(
     assert test.identifier == "test-xxxdd3"
 
 
-def test_setting_space_id(
-    operation_configuration: DiscoveryOperationResourceConfiguration,
-) -> None:
-
-    import pydantic
-
-    # Test setting empty spaces raises an error
-    with pytest.raises(pydantic.ValidationError):
-        DiscoveryOperationResourceConfiguration(
-            spaces=[], operation=DiscoveryOperationConfiguration()
-        )
-
-    # Test setting no space raises an error
-    with pytest.raises(pydantic.ValidationError):
-        DiscoveryOperationResourceConfiguration(
-            operation=DiscoveryOperationConfiguration()
-        )
+def test_setting_space_id() -> None:
+    """Constructing with spaces: [id] upgrades to inputs."""
+    # Legacy spaces= form is upgraded to inputs by the before-validator.
+    cfg = DiscoveryOperationResourceConfiguration(
+        spaces=["space-abc123"],
+        operation=DiscoveryOperationConfiguration(),
+    )
+    assert cfg.spaces == ["space-abc123"]
+    assert "discoverySpace" in cfg.inputs
+    assert cfg.inputs["discoverySpace"].identifier == "space-abc123"
 
 
 def test_add_operation_result(
@@ -210,8 +208,14 @@ def test_script_operator_conf_round_trip() -> None:
 
     resource_configuration = DiscoveryOperationResourceConfiguration(
         operation=operation_configuration,
-        spaces=["space-test123"],
+        inputs={
+            "discoverySpace": ADOResourceReference(
+                identifier="space-test123",
+                kind=CoreResourceKinds.DISCOVERYSPACE,
+            )
+        },
     )
+    assert resource_configuration.spaces == ["space-test123"]
 
     dumped = resource_configuration.model_dump()
     restored = DiscoveryOperationResourceConfiguration.model_validate(dumped)
@@ -220,6 +224,20 @@ def test_script_operator_conf_round_trip() -> None:
     assert restored.operation.module.version == "1.0.0"
     assert restored.operation.module.operationType == DiscoveryOperationEnum.EXPLORE
     assert restored.operation.parameters == {}
+    assert restored.spaces == ["space-test123"]
+
+
+def test_script_operator_conf_spaces_without_kind_raises() -> None:
+    """ScriptOperatorConf with kind=None input raises — use explicit kind."""
+    script_module = ScriptOperatorConf(
+        name="bad-script",
+        operationType=DiscoveryOperationEnum.EXPLORE,
+    )
+    with pytest.raises(pydantic.ValidationError, match="has no kind"):
+        DiscoveryOperationResourceConfiguration(
+            operation=DiscoveryOperationConfiguration(module=script_module),
+            spaces=["space-test123"],  # before-validator leaves kind=None → error
+        )
 
 
 def test_script_operation_resource_identifier() -> None:
@@ -230,7 +248,12 @@ def test_script_operation_resource_identifier() -> None:
     )
     operation_configuration = DiscoveryOperationResourceConfiguration(
         operation=DiscoveryOperationConfiguration(module=script_module),
-        spaces=["space-test123"],
+        inputs={
+            "discoverySpace": ADOResourceReference(
+                identifier="space-test123",
+                kind=CoreResourceKinds.DISCOVERYSPACE,
+            )
+        },
     )
     operation = OperationResource(
         operationType=script_module.operationType,
@@ -241,6 +264,203 @@ def test_script_operation_resource_identifier() -> None:
     assert operation.operationType == DiscoveryOperationEnum.CHARACTERIZE
     assert operation.operatorIdentifier == "script-inline-script-0.1.0"
     assert operation.identifier.startswith("operation-script-inline-script-0.1.0-")
+
+
+# ---------------------------------------------------------------------------
+# ADOResourcePropertyDescriptor tests
+# ---------------------------------------------------------------------------
+
+
+def test_ado_resource_property_descriptor_basics() -> None:
+    """ADOResourcePropertyDescriptor carries identifier and kind."""
+    d = ADOResourcePropertyDescriptor(
+        identifier="discoverySpace", kind=CoreResourceKinds.DISCOVERYSPACE
+    )
+    assert d.identifier == "discoverySpace"
+    assert d.kind == CoreResourceKinds.DISCOVERYSPACE
+
+
+def test_ado_resource_property_descriptor_round_trip() -> None:
+    """ADOResourcePropertyDescriptor survives model_dump → model_validate."""
+    original = ADOResourcePropertyDescriptor(
+        identifier="candidate", kind=CoreResourceKinds.OPERATION
+    )
+    dumped = original.model_dump()
+    restored = ADOResourcePropertyDescriptor.model_validate(dumped)
+    assert restored.identifier == original.identifier
+    assert restored.kind == original.kind
+
+
+def test_ado_resource_property_descriptor_extra_fields_forbidden() -> None:
+    """extra='forbid' must reject unknown fields."""
+    with pytest.raises(pydantic.ValidationError):
+        ADOResourcePropertyDescriptor.model_validate(
+            {"identifier": "x", "kind": "discoveryspace", "unknown": 1}
+        )
+
+
+def test_ado_resource_property_descriptor_is_a_property_descriptor() -> None:
+    """ADOResourcePropertyDescriptor is a PropertyDescriptor and compares by identifier."""
+    from ado.schema.property import PropertyDescriptor
+
+    d = ADOResourcePropertyDescriptor(
+        identifier="baseline", kind=CoreResourceKinds.DATACONTAINER
+    )
+    assert isinstance(d, PropertyDescriptor)
+    # PropertyDescriptor equality is identifier-based, ignoring kind.
+    other = ADOResourcePropertyDescriptor(
+        identifier="baseline", kind=CoreResourceKinds.OPERATION
+    )
+    assert d == other
+
+
+# ---------------------------------------------------------------------------
+# DiscoveryOperationResourceConfiguration — inputs field and sync validator
+# ---------------------------------------------------------------------------
+
+
+def test_operation_config_inputs_only() -> None:
+    """Creating a config with the 'inputs' field (ADOResourceReference form) works."""
+    cfg = DiscoveryOperationResourceConfiguration(
+        operation=DiscoveryOperationConfiguration(),
+        inputs={"discoverySpace": {"identifier": "space-abc123"}},
+    )
+    assert cfg.inputs["discoverySpace"].identifier == "space-abc123"
+    # kind is populated from operator bindings (RandomWalk → DISCOVERYSPACE)
+    assert cfg.inputs["discoverySpace"].kind == CoreResourceKinds.DISCOVERYSPACE
+    assert cfg.spaces == ["space-abc123"]
+
+
+def test_operation_config_spaces_populates_inputs() -> None:
+    """Providing only 'spaces' upgrades to inputs with the legacy key."""
+    cfg = DiscoveryOperationResourceConfiguration(
+        operation=DiscoveryOperationConfiguration(),
+        spaces=["space-abc123"],
+    )
+    assert cfg.spaces == ["space-abc123"]
+    assert "discoverySpace" in cfg.inputs
+    assert cfg.inputs["discoverySpace"].identifier == "space-abc123"
+    assert cfg.inputs["discoverySpace"].kind == CoreResourceKinds.DISCOVERYSPACE
+
+
+def test_operation_config_empty_inputs_is_invalid() -> None:
+    """Omitting both 'spaces' and 'inputs' is invalid; operators require resource inputs."""
+    with pytest.raises(pydantic.ValidationError, match="must not be empty"):
+        DiscoveryOperationResourceConfiguration(
+            operation=DiscoveryOperationConfiguration()
+        )
+
+
+def test_operation_config_inputs_round_trip() -> None:
+    """DiscoveryOperationResourceConfiguration with inputs survives dump → reload."""
+    cfg = DiscoveryOperationResourceConfiguration(
+        operation=DiscoveryOperationConfiguration(),
+        spaces=["space-xyz"],
+    )
+    dumped = cfg.model_dump()
+    # 'spaces' is a computed field; it appears in the dump but is stripped on reload
+    restored = DiscoveryOperationResourceConfiguration.model_validate(dumped)
+    assert restored.inputs["discoverySpace"].identifier == "space-xyz"
+    assert restored.spaces == cfg.spaces
+
+
+def test_operation_config_dumped_spaces_is_ignored_when_inputs_present() -> None:
+    """Computed ``spaces`` on dump is discarded on reload; ``inputs`` wins.
+
+    ``model_dump()`` includes both fields. Changing ``spaces`` on the dump
+    (e.g. generic ``--set spaces=``) must not override ``inputs``.
+    """
+    cfg = DiscoveryOperationResourceConfiguration(
+        operation=DiscoveryOperationConfiguration(),
+        spaces=["space-old"],
+    )
+    dumped = cfg.model_dump()
+    dumped["spaces"] = ["space-new"]
+    restored = DiscoveryOperationResourceConfiguration.model_validate(dumped)
+    assert restored.inputs["discoverySpace"].identifier == "space-old"
+    assert restored.spaces == ["space-old"]
+
+
+def test_set_input_reference_strips_legacy_spaces_so_cli_override_wins() -> None:
+    """``--with`` / ``--use-latest`` record the space in ``inputs``, not ``spaces``.
+
+    Those flags set ``inputs`` on the raw YAML dict while the file still has
+    a leftover ``spaces`` key. ``spaces`` is dropped; with ``inputs`` present
+    the before-validator also ignores any remaining ``spaces`` echo.
+    """
+    from ado.cli.resources.operation.create import _set_input_reference
+
+    operation_data = {
+        "operation": {
+            "module": {
+                "operatorName": "random_walk",
+                "operationType": "explore",
+            }
+        },
+        "spaces": ["space-old"],
+    }
+    _set_input_reference(operation_data, CoreResourceKinds.DISCOVERYSPACE, "space-new")
+    assert "spaces" not in operation_data
+    cfg = DiscoveryOperationResourceConfiguration.model_validate(operation_data)
+    assert cfg.inputs["discoverySpace"].identifier == "space-new"
+    assert cfg.spaces == ["space-new"]
+
+
+def test_ado_resource_reference_kind_populated_from_required_resource_inputs() -> None:
+    """ADOResourceReference.kind is auto-filled from RandomWalk operator's requiredResourceInputs."""
+    entry = ADOResourceReference(identifier="space-abc123")
+    assert entry.kind is None
+    cfg = DiscoveryOperationResourceConfiguration(
+        operation=DiscoveryOperationConfiguration(),
+        inputs={"discoverySpace": entry},
+    )
+    assert cfg.inputs["discoverySpace"].kind == CoreResourceKinds.DISCOVERYSPACE
+
+
+def test_ado_resource_reference_wrong_kind_raises() -> None:
+    """Explicitly supplying the wrong kind for an input raises ValidationError."""
+    with pytest.raises(pydantic.ValidationError, match="expects"):
+        DiscoveryOperationResourceConfiguration(
+            operation=DiscoveryOperationConfiguration(),
+            inputs={
+                "discoverySpace": ADOResourceReference(
+                    identifier="space-abc123",
+                    kind=CoreResourceKinds.DATACONTAINER,  # wrong — input expects DISCOVERYSPACE
+                )
+            },
+        )
+
+
+def test_ado_resource_reference_undeclared_name_raises() -> None:
+    """An input name not in the operator's requiredResourceInputs raises ValidationError."""
+    with pytest.raises(pydantic.ValidationError, match="not declared"):
+        DiscoveryOperationResourceConfiguration(
+            operation=DiscoveryOperationConfiguration(),
+            inputs={
+                "unknownInput": ADOResourceReference(
+                    identifier="space-abc123",
+                    kind=CoreResourceKinds.DISCOVERYSPACE,
+                )
+            },
+        )
+
+
+def test_script_operator_wrong_kind_raises() -> None:
+    """ScriptOperatorConf with a non-DISCOVERYSPACE kind raises ValidationError."""
+    script_module = ScriptOperatorConf(
+        name="bad-kind-script",
+        operationType=DiscoveryOperationEnum.EXPLORE,
+    )
+    with pytest.raises(pydantic.ValidationError, match="only supports discoveryspace"):
+        DiscoveryOperationResourceConfiguration(
+            operation=DiscoveryOperationConfiguration(module=script_module),
+            inputs={
+                "discoverySpace": ADOResourceReference(
+                    identifier="datacontainer-abc",
+                    kind=CoreResourceKinds.DATACONTAINER,
+                )
+            },
+        )
 
 
 def test_operation_resource_wrong_kind_raises_validation_error(

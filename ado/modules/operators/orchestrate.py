@@ -81,30 +81,32 @@ def _check_if_using_unsupported_operator_module_conf(
 def orchestrate(
     operation_resource_configuration: DiscoveryOperationResourceConfiguration,
     project_context: ProjectContext,
-    discovery_space_identifier: str,
 ) -> OperationOutput:
-    """Orchestrate the execution of an operation defined as a function or a class (OperationModule)
+    """Orchestrate the execution of an operation defined as a function or a class (OperationModule).
 
-    This function initializes Ray, loads the discovery space from the metastore, and executes
-    the operation based on its implementation type (class-based or function-based).
+    This function initializes Ray, resolves all named inputs from the operation
+    configuration, and dispatches to the appropriate orchestration path
+    (explore or general).
 
-    Params:
+    Args:
         operation_resource_configuration: Configuration for the operation including module,
-            parameters, metadata, actuator configurations, and target spaces
-        project_context: Project context for connecting to the metastore
-        discovery_space_identifier: Identifier of the discovery space to load from the metastore
+            parameters, metadata, actuator configurations, and target inputs/spaces.
+        project_context: Project context for connecting to the metastore.
 
     Returns:
-        OperationOutput containing the results and status of the operation
+        OperationOutput containing the results and status of the operation.
 
     Raises:
-        ValueError: If the measurement space is inconsistent
-        OperationException: If there is an error during the operation
-        pydantic.ValidationError: If the operation parameters are not valid
-        ray.exceptions.ActorDiedError: If there was an error initializing actors
+        ValueError: If the measurement space is inconsistent.
+        OperationException: If there is an error during the operation.
+        pydantic.ValidationError: If the operation parameters are not valid.
+        ray.exceptions.ActorDiedError: If there was an error initializing actors.
     """
-
-    import ado.modules.operators.setup
+    import ado.modules.operators.setup  # noqa: F401 — side-effect: registers Ray actors
+    from ado.core.operation.inputs import (
+        resource_references_to_rich_types,
+    )
+    from ado.metastore.sqlstore import SQLStore
 
     #
     # INIT RAY
@@ -143,16 +145,25 @@ def orchestrate(
     cleanup_callback_functions["orchestrate"] = graceful_orchestrate_shutdown
 
     #
-    # GET SPACE
+    # GET INPUTS
     #
-    discovery_space = DiscoverySpace.from_stored_configuration(
-        project_context=project_context,
-        space_identifier=discovery_space_identifier,
+
+    metastore = SQLStore(project_context=project_context)
+
+    # Resolve all inputs to rich Python objects.
+    inputs = resource_references_to_rich_types(
+        resource_references=operation_resource_configuration.inputs,
+        metastore=metastore,
     )
 
-    if not discovery_space.measurementSpace.isConsistent:
-        moduleLog.critical("The measurement space is inconsistent - aborting")
-        raise ValueError("The measurement space is inconsistent")
+    # Validate measurement space consistency for all spaces.
+    for input in inputs.values():
+        if (
+            isinstance(input, DiscoverySpace)
+            and not input.measurementSpace.isConsistent
+        ):
+            moduleLog.critical("The measurement space is inconsistent - aborting")
+            raise ValueError("The measurement space is inconsistent")
 
     #
     # RUN OPERATION
@@ -161,11 +172,10 @@ def orchestrate(
     operation_info = FunctionOperationInfo(
         metadata=operation_resource_configuration.metadata,
         actuatorConfigurationIdentifiers=operation_resource_configuration.actuatorConfigurationIdentifiers,
+        projectContext=project_context,
     )
 
     operation_parameters = operation_resource_configuration.operation.parameters
-    if isinstance(operation_parameters, pydantic.BaseModel):
-        operation_parameters = operation_parameters.model_dump()
 
     try:
         _check_if_using_unsupported_operator_module_conf(
@@ -176,9 +186,9 @@ def orchestrate(
             operation_resource_configuration.operation.module.operationFunction()
         )
         output: OperationOutput = operator_fn(
-            discovery_space,
+            **inputs,
             operationInfo=operation_info,
-            **operation_parameters,
+            parameters=operation_parameters,
         )
     except KeyboardInterrupt:
         moduleLog.warning("Caught keyboard interrupt - initiating graceful shutdown")

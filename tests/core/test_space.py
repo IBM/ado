@@ -199,6 +199,16 @@ def test_discovery_space_resource(
     assert len(discovery_space_resource.status) == 1
 
 
+def test_discovery_space_reference(pfas_space: DiscoverySpace) -> None:
+    """DiscoverySpace.reference returns an ADOResourceReference for the space."""
+    from ado.core.resources import ADOResourceReference, CoreResourceKinds
+
+    ref = pfas_space.reference
+    assert isinstance(ref, ADOResourceReference)
+    assert ref.identifier == pfas_space.uri
+    assert ref.kind == CoreResourceKinds.DISCOVERYSPACE
+
+
 def test_discovery_space_config_file_valid(
     valid_discovery_space_config_file: str,
 ) -> None:

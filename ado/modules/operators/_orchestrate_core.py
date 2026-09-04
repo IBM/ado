@@ -13,8 +13,12 @@ from ado.core import OperationResource
 from ado.core.discoveryspace.space import DiscoverySpace
 from ado.core.operation.config import (
     FunctionOperationInfo,
+    GenericOperatorParameters,
     OperatorMetadata,
     OperatorReference,
+)
+from ado.core.operation.inputs import (
+    OperatorInputType,
 )
 from ado.core.operation.operation import OperationException, OperationOutput
 from ado.core.operation.resource import (
@@ -22,6 +26,7 @@ from ado.core.operation.resource import (
     OperationResourceEventEnum,
     OperationResourceStatus,
 )
+from ado.metastore.sqlstore import SQLStore
 from ado.modules.operators import _cleanup
 from ado.modules.operators.base import (
     InterruptedOperationError,
@@ -69,35 +74,42 @@ def log_space_details(discovery_space: "DiscoverySpace") -> None:
 
 def _run_operation_harness(
     run_closure: typing.Callable[[], OperationOutput],
-    discovery_space: DiscoverySpace,
     operator_metadata: OperatorMetadata,
-    operation_parameters: dict,
+    operation_parameters: GenericOperatorParameters,
     operation_info: FunctionOperationInfo,
+    metastore: SQLStore,
+    inputs: dict[str, OperatorInputType],
     operation_identifier: str | None = None,
     finalize_callback: typing.Callable[[OperationResource], None] | None = None,
 ) -> OperationOutput:
-    """Performs common orchestration for general and explore operations
+    """Performs common orchestration for general and explore operations.
 
     This function handles the common orchestration logic shared between general and explore
     operations. It creates the operation resource, executes the operation via the run_closure,
     handles exceptions, and stores the results.
 
-    Params:
-        run_closure: Callable that executes the operation and returns OperationOutput
-        discovery_space: The discovery space the operation is running on
+    Args:
+        run_closure: Callable that executes the operation and returns OperationOutput.
         operator_metadata: Metadata for the registered operator.
-        operation_parameters: Dictionary of parameters for the operation
-        operation_info: Information about the operation including metadata and actuator configs
-        operation_identifier: Optional pre-existing identifier for the operation resource
+        operation_parameters: Validated configuration model (or dict for storage).
+        operation_info: Information about the operation including metadata and actuator configs.
+        metastore: Metastore used to persist the operation resource.
+        inputs: Mapping of parameter name → rich ado resource the operator works on.
+            References for metastore persistence are derived via each value's
+            ``.reference`` property.
+        operation_identifier: Optional pre-existing identifier for the operation resource.
         finalize_callback: Optional callback to execute on the operation resource after
-            completion, before final status update
+            completion, before final status update.
 
     Returns:
-        OperationOutput containing the results and status of the operation
+        OperationOutput containing the results and status of the operation.
 
     Raises:
-        OperationException: If there is an error during the operation execution
+        OperationException: If there is an error during the operation execution.
     """
+
+    references = {name: value.reference for name, value in inputs.items()}
+    spaces = [value for value in inputs.values() if isinstance(value, DiscoverySpace)]
 
     #
     # OPERATION RESOURCE
@@ -110,10 +122,10 @@ def _run_operation_harness(
         operatorVersion=operator_metadata.version,
     )
     operation_resource = create_operation_and_add_to_metastore(
-        discovery_space=discovery_space,
+        inputs=references,
         operator_module=operator_reference,
-        operation_parameters=operation_parameters,
-        metastore=discovery_space.metadataStore,
+        operation_parameters=operation_parameters.model_dump(),
+        metastore=metastore,
         operation_info=operation_info,
         operation_identifier=operation_identifier,
     )
@@ -143,7 +155,7 @@ def _run_operation_harness(
         nonlocal sigterm_status_was_recorded
         sigterm_status = _operation_status_for_sigterm_initiated_shutdown()
         operation_resource.status.append(sigterm_status)
-        discovery_space.metadataStore.updateResource(operation_resource)
+        metastore.updateResource(operation_resource)
         sigterm_status_was_recorded = True
         moduleLog.debug(
             f"Recorded SIGTERM shutdown status for {operation_resource.identifier}"
@@ -157,7 +169,7 @@ def _run_operation_harness(
         operation_resource.status.append(
             OperationResourceStatus(event=OperationResourceEventEnum.STARTED)
         )
-        discovery_space.metadataStore.updateResource(operation_resource)
+        metastore.updateResource(operation_resource)
         operation_output: OperationOutput | None = run_closure()
     except InterruptedOperationError as error:
         # This will occur if a nested operation caught SIGINT first.
@@ -270,7 +282,7 @@ def _run_operation_harness(
             add_operation_output_to_metastore(
                 operation=operation_resource,
                 output=operation_output,
-                metastore=discovery_space.metadataStore,
+                metastore=metastore,
             )
         else:
             # Create an output instance with a status
@@ -291,12 +303,12 @@ def _run_operation_harness(
         if not _cleanup.shutdown_signal_received and finalize_callback:
             finalize_callback(operation_resource)
 
-        discovery_space.metadataStore.updateResource(operation_resource)
+        metastore.updateResource(operation_resource)
 
         # Establish relationships with interrupted nested operations
         if interrupted_nested_operation:
             try:
-                discovery_space.metadataStore.addRelationship(
+                metastore.addRelationship(
                     subjectIdentifier=operation_resource.identifier,
                     objectIdentifier=interrupted_nested_operation,
                 )
@@ -307,8 +319,10 @@ def _run_operation_harness(
                 )
 
         print("=========== Operation Details ============\n")
-        print(f"Space ID: {operation_resource.config.spaces[0]}")
-        print(f"Sample Store ID:  {discovery_space.sample_store.identifier}")
+        for space_id in operation_resource.config.spaces:
+            print(f"Space ID: {space_id}")
+        for space in spaces:
+            print(f"Sample Store ID:  {space.sample_store.identifier}")
         print(
             f"Operation:\n "
             f"{ado.utilities.output.pydantic_model_as_yaml(operation_resource, exclude_none=True)}"

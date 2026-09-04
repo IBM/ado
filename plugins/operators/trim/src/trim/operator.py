@@ -101,12 +101,13 @@ def validate_targetOutput(
                 Retrieves all measured entities from the entity source and samples the others following a certain order.
                 If the number of measured entity is too small, Trim instantiates a no-priors characterization operation.
                 """,
-    version="2.1.1",
+    version="2.1.2",
 )
 def trim(
-    discoverySpace: DiscoverySpace = None,  # type: ignore[name-defined]
+    discoverySpace: DiscoverySpace,
     operationInfo: FunctionOperationInfo | None = None,
-    **kwargs: object,
+    *,
+    parameters: TrimParameters,
 ) -> OperationOutput:
     """
     Execute the TRIM (Transfer Refined Iterative Modeling) operation on a discovery space.
@@ -118,7 +119,7 @@ def trim(
     Args:
         discoverySpace: The discovery space to characterize
         operationInfo: Optional operation metadata
-        **kwargs: Additional parameters validated against TrimParameters model
+        parameters: TrimParameters for this operation
 
     Returns:
         OperationOutput containing the operation resources and metadata
@@ -141,16 +142,14 @@ def trim(
     if random_walk is None:
         raise RuntimeError("The random_walk operator has no registered function")
 
-    params = TrimParameters.model_validate(kwargs)
+    # VV: This validates the targetOutput and also converts it to "bare" format,
+    # compatible with retrieving the "target" properties in a space.
+    params = validate_targetOutput(parameters, discoverySpace)
 
     if params.noPriorParameters.batchSize != 1:
         raise ValueError(
             f"TRIM requires batchSize=1 for the no-priors sampler, got {params.noPriorParameters.batchSize}"
         )
-
-    # VV: This validates the targetOutput and also converts it to "bare" format,
-    # compatible with retrieving the "target" properties in a space.
-    params = validate_targetOutput(params, discoverySpace)
 
     # Inject the model save paths into tabularPredictorArgs so that every
     # TabularPredictor instantiation downstream can simply unpack
@@ -224,22 +223,25 @@ def trim(
             singleMeasurement=True,
         )
 
+        nested_info = FunctionOperationInfo(
+            metadata={
+                "completed operation": "Characterization with no priors",
+                "summary of collected data": (
+                    f"No-priors characterization will sample "
+                    f"{params.samplingBudget.minPoints - len(source_df)} points with the "
+                    f"required property {params.targetOutput}. Minimal sample size: "
+                    f"{params.samplingBudget.minPoints}"
+                ),
+            },
+            actuatorConfigurationIdentifiers=(
+                operationInfo.actuatorConfigurationIdentifiers if operationInfo else []
+            ),
+            projectContext=operationInfo.projectContext if operationInfo else None,
+        )
         op_output_characterization_no_prior = random_walk(
             discoverySpace=discoverySpace,
-            operationInfo=FunctionOperationInfo.model_validate(
-                {
-                    "metadata": {
-                        "completed operation": "Characterization with no priors",
-                        "summary of collected data": f"No-priors characterization will sample {params.samplingBudget.minPoints - len(source_df)} points with the required property {params.targetOutput}. Minimal sample size: {params.samplingBudget.minPoints}",
-                    },
-                    "actuatorConfigurationIdentifiers": (
-                        operationInfo.actuatorConfigurationIdentifiers
-                        if operationInfo
-                        else []
-                    ),
-                }
-            ),
-            **no_priors_rwparams.model_dump(),
+            operationInfo=nested_info,
+            parameters=no_priors_rwparams,
         )
 
         source_df, target_df = get_source_and_target(
@@ -308,17 +310,14 @@ def trim(
 
     op_output_iterative_modeling = random_walk(
         discoverySpace=discoverySpace,
-        operationInfo=FunctionOperationInfo.model_validate(
-            {
-                "metadata": {"completed operation": "Iterative Modeling Operation"},
-                "actuatorConfigurationIdentifiers": (
-                    operationInfo.actuatorConfigurationIdentifiers
-                    if operationInfo
-                    else []
-                ),
-            }
+        operationInfo=FunctionOperationInfo(
+            metadata={"completed operation": "Iterative Modeling Operation"},
+            actuatorConfigurationIdentifiers=(
+                operationInfo.actuatorConfigurationIdentifiers if operationInfo else []
+            ),
+            projectContext=operationInfo.projectContext if operationInfo else None,
         ),
-        **trim_rwparams.model_dump(),
+        parameters=trim_rwparams,
     )
 
     logger_trim.info(

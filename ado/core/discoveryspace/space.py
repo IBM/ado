@@ -25,7 +25,7 @@ from ado.core.discoveryspace.config import (
 )
 from ado.core.operation.config import DiscoveryOperationEnum
 from ado.core.operation.resource import OperationResource
-from ado.core.resources import CoreResourceKinds
+from ado.core.resources import ADOResourceReference, CoreResourceKinds
 from ado.metastore.project import ProjectContext
 from ado.modules.actuators.catalog import ActuatorCatalogExtension
 from ado.modules.actuators.registry import ActuatorRegistry
@@ -87,15 +87,16 @@ def _perform_preflight_checks_for_sample_store_methods(
         # Skip the DB round-trip when we've already verified this operation
         # belongs to this space (e.g. the space was built via from_operation_id).
         if operation_id not in self._verified_operation_ids:
-            space_for_operation = self._metadataStore.getResource(
+            operation_spaces = self._metadataStore.getResource(
                 identifier=operation_id,
                 kind=CoreResourceKinds.OPERATION,
                 raise_error_if_no_resource=True,
-            ).config.spaces[0]
+            ).config.spaces
 
-            if self.uri != space_for_operation:
+            if self.uri not in operation_spaces:
                 raise ValueError(
-                    f"Operation {operation_id} does not belong to space {self.uri}, but rather to {space_for_operation}"
+                    f"Operation {operation_id} does not belong to space {self.uri}; "
+                    f"its spaces are: {operation_spaces}"
                 )
 
             self._verified_operation_ids.add(operation_id)
@@ -360,7 +361,7 @@ class DiscoverySpace:
         self,
         project_context: ProjectContext,
         identifier: str | None = None,
-        sample_store: (ado.core.samplestore.base.ActiveSampleStore | None) = None,
+        sample_store: ado.core.samplestore.base.ActiveSampleStore | None = None,
         entitySpace: EntitySpaceRepresentation | None = None,
         measurementSpace: MeasurementSpace | None = None,
         properties: (
@@ -487,6 +488,15 @@ class DiscoverySpace:
         """Return an identifier for the space"""
 
         return self._identifier
+
+    @property
+    def reference(self) -> ADOResourceReference:
+        """Return a metastore reference for this discovery space."""
+
+        return ADOResourceReference(
+            identifier=self.uri,
+            kind=CoreResourceKinds.DISCOVERYSPACE,
+        )
 
     @property
     def project_context(self) -> ProjectContext:
@@ -1018,7 +1028,7 @@ class DiscoverySpace:
                 parameters={},
             ),
             metadata=config_metadata,
-            spaces=[self.uri],
+            inputs={"discoverySpace": self.reference},
         )
 
         if provenance is None:

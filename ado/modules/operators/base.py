@@ -7,8 +7,10 @@ import abc
 import contextlib
 import logging
 import typing
-from typing import Protocol
+from collections.abc import Callable
+from typing import TypeAlias
 
+import pydantic
 import ray
 import ray.exceptions
 
@@ -18,15 +20,17 @@ import ado.metastore.project
 import ado.modules
 import ado.modules.actuators.replay
 import ado.schema.reference
-from ado.core.discoveryspace.space import DiscoverySpace
 from ado.core.operation.config import (
+    DiscoveryOperationEnum,
     DiscoveryOperationResourceConfiguration,
     FunctionOperationInfo,
+    GenericOperatorParameters,
     OperatorModuleConf,
     OperatorReference,
 )
 from ado.core.operation.operation import OperationOutput
 from ado.core.operation.resource import OperationResource
+from ado.core.resources import ADOResourcePropertyDescriptor, ADOResourceReference
 from ado.metastore.sqlstore import SQLStore
 from ado.modules.actuators.measurement_queue import MeasurementQueue
 from ado.modules.operators.discovery_space_manager import (
@@ -45,35 +49,40 @@ if typing.TYPE_CHECKING:
 moduleLog = logging.getLogger("operation_base")
 
 
-class OperatorFunction(Protocol):
-    def __call__(
-        self,
-        discoverySpace: DiscoverySpace,
-        operationInfo: FunctionOperationInfo | None = None,
-        **kwargs: object,
-    ) -> OperationOutput: ...
+#: Callable that runs an operator after registration (nested calls / CLI).
+#:
+#: Structural convention::
+#:
+#:     (resource₁, …, resourceₙ, operationInfo=None, parameters: ConfigurationModel)
+#:         -> OperationOutput
+#:
+#: Resource parameter names and types are deduced from the function signature
+#: (see :func:`~ado.core.operation.inputs.resource_inputs_from_operator_function`);
+#: ``parameters`` is an instance of the operator's ``configuration_model``.
+OperatorCallable: TypeAlias = Callable[..., OperationOutput]
 
 
-def validate_operator_function_signature(fn: typing.Callable) -> None:
-    """Validate that *fn* conforms to the :class:`OperatorFunction` Protocol.
+def validate_operator_call_shape(
+    fn: typing.Callable,
+    required_resource_inputs: list[ADOResourcePropertyDescriptor],
+    configuration_model: type[pydantic.BaseModel] | None = None,
+) -> None:
+    """Validate that *fn* matches the operator call-shape convention.
 
-    Validates the positional parameter count against the Protocol, then
-    checks that every positional parameter and the return value carry a type
-    annotation whose type matches the Protocol.  Type hints are mandatory:
-    an operator function without them cannot be verified to be correct, so
-    a ``ValueError`` is raised rather than silently skipping the check.
-
-    If ``inspect.signature`` cannot be obtained for *fn* a ``ValueError`` is
-    raised, because conformance cannot be confirmed.  A failure to inspect the
-    Protocol itself propagates as-is (it indicates a framework bug).
+    Leading positional-or-keyword parameters must be the resource input
+    identifiers (in declaration order), followed by ``operationInfo``, then
+    ``parameters``. The return type must be
+    :class:`~ado.core.operation.operation.OperationOutput`.
 
     Args:
-        fn: The callable to validate.
+        fn: The callable to validate (user implementation or stored wrapper).
+        required_resource_inputs: Resource inputs deduced from *fn* (or an
+            equivalent stored callable).
+        configuration_model: When provided, ``parameters`` must be annotated
+            with this type (the operator's configuration model).
 
     Raises:
-        ValueError: If *fn* does not conform to the Protocol, if its
-            signature cannot be inspected, or if any required type hints are
-            absent or unresolvable.
+        ValueError: If *fn* does not match the call-shape convention.
     """
     import inspect
 
@@ -81,8 +90,6 @@ def validate_operator_function_signature(fn: typing.Callable) -> None:
         "Operator functions must declare the correct types for all parameters "
         "and the return value to pass validation."
     )
-
-    proto_sig = inspect.signature(OperatorFunction.__call__)
 
     try:
         sig = inspect.signature(fn)
@@ -92,39 +99,49 @@ def validate_operator_function_signature(fn: typing.Callable) -> None:
             f"be inspected ({exc})."
         ) from exc
 
-    proto_positional = [
-        p
-        for p in proto_sig.parameters.values()
-        if p.name != "self"
-        and p.kind
-        in (
-            inspect.Parameter.POSITIONAL_OR_KEYWORD,
-            inspect.Parameter.POSITIONAL_ONLY,
+    params = list(sig.parameters.values())
+    var_keyword = next(
+        (p for p in params if p.kind == inspect.Parameter.VAR_KEYWORD),
+        None,
+    )
+    var_positional = next(
+        (p for p in params if p.kind == inspect.Parameter.VAR_POSITIONAL),
+        None,
+    )
+    if var_positional is not None:
+        raise ValueError(
+            "Operator function must not declare *args; resource inputs must be "
+            "explicit named parameters."
         )
-    ]
-    actual_positional = [
+    if var_keyword is not None:
+        raise ValueError(
+            "Operator function must not declare **kwargs; operation parameters "
+            "must be a single 'parameters' argument typed as the configuration model."
+        )
+
+    positional = [
         p
-        for p in sig.parameters.values()
+        for p in params
         if p.kind
         in (
             inspect.Parameter.POSITIONAL_OR_KEYWORD,
             inspect.Parameter.POSITIONAL_ONLY,
+            inspect.Parameter.KEYWORD_ONLY,
         )
     ]
-    if len(actual_positional) < len(proto_positional):
-        missing = [p.name for p in proto_positional[len(actual_positional) :]]
-        raise ValueError(
-            f"Operator function is missing required positional parameter(s): "
-            f"{missing!r}."
-        )
-    if len(actual_positional) > len(proto_positional):
-        extra = [p.name for p in actual_positional[len(proto_positional) :]]
-        raise ValueError(
-            f"Operator function has extra positional parameter(s) not in the "
-            f"Protocol: {extra!r}."
-        )
 
-    proto_hints = typing.get_type_hints(OperatorFunction.__call__)
+    expected_names = [d.identifier for d in required_resource_inputs] + [
+        "operationInfo",
+        "parameters",
+    ]
+    actual_names = [p.name for p in positional]
+
+    if actual_names != expected_names:
+        raise ValueError(
+            "Operator function parameters must be the declared "
+            f"resource inputs {[d.identifier for d in required_resource_inputs]!r} "
+            f"followed by 'operationInfo' and 'parameters'; got {actual_names!r}."
+        )
 
     try:
         hints = typing.get_type_hints(fn)
@@ -135,7 +152,7 @@ def validate_operator_function_signature(fn: typing.Callable) -> None:
         ) from exc
 
     missing_hints: list[str] = [
-        f"parameter {p.name!r}" for p in actual_positional if p.name not in hints
+        f"parameter {name!r}" for name in expected_names if name not in hints
     ]
     if "return" not in hints:
         missing_hints.append("return type")
@@ -145,25 +162,85 @@ def validate_operator_function_signature(fn: typing.Callable) -> None:
             f"for {missing_hints}. {_HINTS_MISSING_HINT}"
         )
 
-    expected_return = proto_hints.get("return")
-    actual_return = hints["return"]
-    if expected_return is not None and actual_return != expected_return:
+    if hints["return"] != OperationOutput:
         raise ValueError(
-            f"Operator function return type must be {expected_return!r}, "
-            f"got {actual_return!r}."
+            f"Operator function return type must be {OperationOutput!r}, "
+            f"got {hints['return']!r}."
         )
 
-    for idx, (proto_param, actual_param) in enumerate(
-        zip(proto_positional, actual_positional, strict=True), start=1
-    ):
-        expected_type = proto_hints.get(proto_param.name)
-        actual_type = hints[actual_param.name]
-        if expected_type is not None and actual_type != expected_type:
+    operation_info_type = hints["operationInfo"]
+    expected_operation_info = FunctionOperationInfo | None
+    if operation_info_type != expected_operation_info:
+        raise ValueError(
+            f"Operator function parameter 'operationInfo' must be "
+            f"{expected_operation_info!r}, got {operation_info_type!r}."
+        )
+
+    parameters_type = hints["parameters"]
+    if configuration_model is not None:
+        if parameters_type is not configuration_model:
             raise ValueError(
-                f"Operator function parameter {actual_param.name!r} "
-                f"(position {idx}) must be {expected_type!r}, "
-                f"got {actual_type!r}."
+                f"Operator function parameter 'parameters' must be "
+                f"{configuration_model!r} (the configuration_model), "
+                f"got {parameters_type!r}."
             )
+    elif not (
+        isinstance(parameters_type, type)
+        and issubclass(parameters_type, (GenericOperatorParameters, pydantic.BaseModel))
+    ):
+        raise ValueError(
+            f"Operator function parameter 'parameters' must be a pydantic "
+            f"configuration model type, got {parameters_type!r}."
+        )
+
+
+def validate_operator_registration(
+    user_fn: typing.Callable,
+    required_resource_inputs: list[ADOResourcePropertyDescriptor],
+    operation_type: DiscoveryOperationEnum,
+    configuration_model: type | None = None,
+    stored_fn: typing.Callable | None = None,
+) -> None:
+    """Run all registration-time checks for an operator callable.
+
+    Entry point used by operator decorators. Runs:
+
+    1. :func:`~ado.modules.operators.inputs.validate_resource_inputs_for_operation_type`
+       — deduced inputs vs collection policy
+    2. :func:`validate_operator_call_shape` — resources then ``operationInfo``
+       then ``parameters``
+
+    Args:
+        user_fn: The operator implementation (before or under ``functools.wraps``).
+        required_resource_inputs: Resource inputs deduced from *user_fn*.
+        operation_type: Collection the operator is registered into.
+        configuration_model: The operator's parameter model class.
+        stored_fn: Optional stored callable (wrapper). When provided and distinct
+            from *user_fn* under unwrap, its call shape is also validated
+            (e.g. explore's generated function).
+
+    Raises:
+        ValueError: If any validation check fails.
+    """
+    import inspect
+
+    from ado.modules.operators.inputs import (
+        validate_resource_inputs_for_operation_type,
+    )
+
+    validate_resource_inputs_for_operation_type(
+        required_resource_inputs, operation_type
+    )
+    validate_operator_call_shape(
+        user_fn, required_resource_inputs, configuration_model=configuration_model
+    )
+
+    if stored_fn is not None and inspect.unwrap(stored_fn) is not user_fn:
+        validate_operator_call_shape(
+            stored_fn,
+            required_resource_inputs,
+            configuration_model=configuration_model,
+        )
 
 
 # Some operations are RayActors: These operations use Actuators and StateUpdateQueue and require Ray
@@ -426,7 +503,10 @@ def add_operation_and_output_to_metastore(
     with contextlib.suppress(ValueError):
         metastore.addResourceWithRelationships(
             resource=operation,
-            relatedIdentifiers=[operation_resource_configuration.spaces[0]],
+            relatedIdentifiers=[
+                ref.identifier
+                for ref in operation_resource_configuration.inputs.values()
+            ],
         )
 
     add_operation_output_to_metastore(operation, output, metastore)
@@ -435,33 +515,34 @@ def add_operation_and_output_to_metastore(
 
 
 def create_operation_and_add_to_metastore(
-    discovery_space: DiscoverySpace,
+    inputs: dict[str, ADOResourceReference],
     operator_module: OperatorModuleConf | OperatorReference,
     operation_parameters: dict,
     operation_info: FunctionOperationInfo,
     metastore: SQLStore,
     operation_identifier: str | None = None,
 ) -> OperationResource:
-    """Creates an operation resource and adds it to the metastore
+    """Creates an operation resource and adds it to the metastore.
 
     This function creates an OperationResource from the provided operator module,
     parameters, and operation info, then adds it to the metastore with relationships
-    to the discovery space and any actuator configurations.
+    to the associated ado resources and any actuator configurations.
 
-    Params:
-        discovery_space: The discovery space the operation will operate on
-        operator_module: Configuration for the operator (either module or function-based)
-        operation_parameters: Dictionary of parameters for the operation
+    Args:
+        inputs: A dictionary mapping the ado resources the operation worked on to
+            the operators input parameters.
+        operator_module: Configuration for the operator (module or function-based).
+        operation_parameters: Dictionary of parameters for the operation.
         operation_info: Information about the operation including metadata and actuator
-            configuration identifiers
-        metastore: The SQL store to add the operation resource to
+            configuration identifiers.
+        metastore: The SQL store to add the operation resource to.
+
         operation_identifier: Optional pre-existing identifier for the operation resource.
-            If not provided, a new identifier will be generated
+            If not provided, a new identifier will be generated.
 
     Returns:
-        OperationResource instance that was created and added to the metastore
+        OperationResource instance that was created and added to the metastore.
     """
-
     from ado.core.operation.config import DiscoveryOperationConfiguration
     from ado.core.operation.resource import OperationProvenanceInfo
     from ado.modules.operators.collections import provenance_for_operator
@@ -473,7 +554,7 @@ def create_operation_and_add_to_metastore(
         ),
         metadata=operation_info.metadata,
         actuatorConfigurationIdentifiers=operation_info.actuatorConfigurationIdentifiers,
-        spaces=[discovery_space.resource.identifier],
+        inputs=inputs,
     )
 
     op_module = operation_resource_configuration.operation.module
@@ -493,8 +574,9 @@ def create_operation_and_add_to_metastore(
         provenance=OperationProvenanceInfo(operators=operators),
     )
 
+    # Link all resource inputs plus any actuator configurations.
     related_identifiers = [
-        operation_resource_configuration.spaces[0],
+        *[e.identifier for e in inputs.values()],
         *operation_resource_configuration.actuatorConfigurationIdentifiers,
     ]
 

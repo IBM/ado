@@ -37,10 +37,10 @@ def setup_actuators(
     """
     Creates all the actuators required by discovery_space
 
-    Params:
+    Args:
         discovery_space: The discovery space to create the actuators for
         actuator_configuration_identifiers: A set of (optional) identifiers of configurations for actuators in the discoveryspace
-        queue: the measurement queue
+        measurement_queue: the measurement queue
 
     Raises:
         ray.exceptions.ActorDiedError if any actuator
@@ -69,9 +69,11 @@ def setup_actuators(
             "The measurement space is not supported by the known actuators"
         )
 
+    from ado.metastore.sqlstore import SQLStore
+
     actuator_configurations = get_actuator_configurations(
         actuator_configuration_identifiers=actuator_configuration_identifiers,
-        project_context=discovery_space.project_context,
+        metastore=SQLStore(project_context=discovery_space.project_context),
     )
 
     validate_actuator_configurations_against_space_configuration(
@@ -135,7 +137,7 @@ def setup_actuators(
 
 def setup_operator(
     operator_metadata: OperatorMetadata,
-    parameters: dict,
+    parameters: dict | pydantic.BaseModel,
     discovery_space: DiscoverySpace,
     namespace: str,
     discovery_space_manager: "DiscoverySpaceManagerActor",
@@ -145,10 +147,11 @@ def setup_operator(
 
     Instantiates the operator class from ``operator_metadata`` as a Ray actor.
 
-    Params:
+    Args:
         operator_metadata: Registered metadata for the operator, carrying the class
             and canonical name.
-        parameters: Dictionary of parameters to pass to the operator
+        parameters: Operation parameters as a dict or pydantic model (models are
+            dumped to a dict before actor construction).
         discovery_space: The discovery space the operator will operate on
         namespace: Ray namespace to create the operator actor in
         discovery_space_manager: DiscoverySpaceManager actor handle
@@ -176,6 +179,10 @@ def setup_operator(
 
     base_class = operator_metadata.cls
     actor_name = operator_metadata.name
+
+    # Explore actors historically expect a plain dict (``Config(**params)``).
+    if isinstance(parameters, pydantic.BaseModel):
+        parameters = parameters.model_dump()
 
     operator = (
         ray.remote(base_class)

@@ -459,6 +459,15 @@ def test_run_random_walk_operation(
         operationOutput.operation.metadata["experiments_requested"] == 74
     )  # There are multiple measuremenst for some entities
 
+    # ray_job_id should be recorded because Ray is initialised for the test session
+    import ray
+
+    assert "ray_job_id" in operationOutput.operation.metadata
+    assert (
+        operationOutput.operation.metadata["ray_job_id"]
+        == ray.get_runtime_context().get_job_id()
+    )
+
 
 def test_random_walk_fail_invalid_config(
     ml_multi_cloud_space: DiscoverySpace,

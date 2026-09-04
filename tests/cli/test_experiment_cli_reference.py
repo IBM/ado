@@ -9,6 +9,7 @@ from typer.testing import CliRunner
 from ado.cli.core.cli import app as ado
 from ado.modules.actuators.errors import ExperimentVersionMismatchError
 from ado.modules.actuators.registry import ActuatorRegistry
+from ado.schema.reference import ExperimentReference
 from tests.schema.test_algorithm_versioning import _make_experiment
 
 
@@ -102,18 +103,39 @@ def test_get_experiment_by_fully_qualified_resource_id() -> None:
     assert "test-experiment" in result.output
 
 
-def test_experiment_for_experiment_identifier_bare_versioned_wrong_version(
+def test_get_experiment_unknown_actuator_handles_error_gracefully() -> None:
+    """Get experiment with an unknown actuator exits with code 1 and error message."""
+    runner = CliRunner()
+    result = runner.invoke(
+        ado, ["get", "experiment", "nonexistent_actuator.some_experiment"]
+    )
+    assert result.exit_code == 1
+    assert (
+        "ERROR:  No actuator called nonexistent_actuator has been added to the registry"
+        in result.output
+    )
+
+
+def test_describe_experiment_unknown_actuator_handles_error_gracefully() -> None:
+    """Describe experiment with an unknown actuator exits with code 1 and error message."""
+    runner = CliRunner()
+    result = runner.invoke(
+        ado, ["describe", "experiment", "nonexistent_actuator.some_experiment"]
+    )
+    assert result.exit_code == 1
+    assert (
+        "ERROR:  No actuator called nonexistent_actuator has been added to the registry"
+        in result.output
+    )
+
+
+def test_experimentForReference_bare_versioned_wrong_version(
     global_registry: ActuatorRegistry,
 ) -> None:
-    """Version suffix in a bare (no-actuator-prefix) identifier must not be silently dropped.
-
-    Regression test for the bug where ``experiment_for_experiment_identifier``
-    parsed the version out of ``exp@MAJOR.MINOR.PATCH`` but then discarded it
-    when reconstructing the reference, so a wrong version never raised an error.
+    """Version suffix must not be silently dropped when looking up by reference.
 
     Uses a patch-level mismatch (1.0.1 vs catalog 1.0.0) so that the major-version
     lookup succeeds but the fully-qualified check then raises ExperimentVersionMismatchError.
-    Without the fix, the version is dropped and the lookup returns 1.0.0 silently.
     """
     catalog = global_registry.catalogForActuatorIdentifier("mock")
     with warnings.catch_warnings():
@@ -124,23 +146,23 @@ def test_experiment_for_experiment_identifier_bare_versioned_wrong_version(
             )
         )
 
-    # @1.0.1 shares major version 1 with the catalog's 1.0.0, so the major-version
-    # lookup finds the experiment and the fully-qualified check raises the mismatch error.
+    reference = ExperimentReference(
+        actuatorIdentifier="mock",
+        experimentIdentifier="bare_versioned_exp",
+        experimentVersion="1.0.1",
+    )
     with pytest.raises(ExperimentVersionMismatchError):
-        global_registry.experiment_for_experiment_identifier(
-            "bare_versioned_exp@1.0.1",
+        global_registry.experimentForReference(
+            reference,
             match_on="fully_qualified_version",
             resolve=True,
         )
 
 
-def test_experiment_for_experiment_identifier_bare_versioned_correct_version(
+def test_experimentForReference_bare_versioned_correct_version(
     global_registry: ActuatorRegistry,
 ) -> None:
-    """Version suffix in a bare (no-actuator-prefix) identifier must be forwarded to the lookup.
-
-    The matching version should be returned when the version suffix is correct.
-    """
+    """The correct version is returned when the reference version matches the catalog."""
     catalog = global_registry.catalogForActuatorIdentifier("mock")
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", DeprecationWarning)
@@ -150,8 +172,13 @@ def test_experiment_for_experiment_identifier_bare_versioned_correct_version(
             )
         )
 
-    result = global_registry.experiment_for_experiment_identifier(
-        "bare_versioned_correct_exp@1.0.0",
+    reference = ExperimentReference(
+        actuatorIdentifier="mock",
+        experimentIdentifier="bare_versioned_correct_exp",
+        experimentVersion="1.0.0",
+    )
+    result = global_registry.experimentForReference(
+        reference,
         match_on="fully_qualified_version",
     )
     assert result.identifier == "bare_versioned_correct_exp"

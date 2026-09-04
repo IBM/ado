@@ -372,12 +372,6 @@ def test_experiment_identifier_rejects_at_sign() -> None:
         )
 
 
-def test_reference_from_string_rejects_legacy_v1_suffix() -> None:
-    """Legacy @v1 string forms are rejected at parse time."""
-    with pytest.raises(ValueError, match="Cannot parse version suffix"):
-        ExperimentReference.referenceFromString("act.solve_mip@v1")
-
-
 # ─── Catalog lookup via experimentForReference ───────────────────────────────
 
 
@@ -729,7 +723,7 @@ def test_memoisation_major_bump_is_cache_miss() -> None:
     )
 
 
-# ─── referenceFromString and __str__ round-trip ────────────────────────────────
+# ─── ExperimentReference __str__ ──────────────────────────────────────────────
 
 
 def test_reference_str_uses_fully_qualified_form() -> None:
@@ -755,49 +749,6 @@ def test_reference_str_fq_with_parameterization() -> None:
         ],
     )
     assert str(ref) == "act.solve_mip@1.0.0-timeout.120"
-
-
-def test_reference_from_string_parses_fq_version() -> None:
-    """referenceFromString parses @MAJOR.MINOR.PATCH into experimentVersion."""
-    parsed = ExperimentReference.referenceFromString("act.solve_mip@1.2.3")
-    assert parsed.actuatorIdentifier == "act"
-    assert parsed.experimentIdentifier == "solve_mip"
-    assert parsed.experimentVersion == "1.2.3"
-    assert parsed.parameterization is None
-
-
-def test_reference_from_string_parses_fq_version_and_parameterization() -> None:
-    """referenceFromString parses FQ version and parameterization suffix."""
-    parsed = ExperimentReference.referenceFromString("act.solve_mip@1.0.0-timeout.120")
-    assert parsed.experimentIdentifier == "solve_mip"
-    assert parsed.experimentVersion == "1.0.0"
-    assert parsed.parameterization is not None
-    assert len(parsed.parameterization) == 1
-    assert parsed.parameterization[0].property.identifier == "timeout"
-    assert parsed.parameterization[0].value == 120
-
-
-def test_reference_from_string_round_trip_with_fq_form() -> None:
-    """referenceFromString(str(ref)) round-trips a versioned reference."""
-    original = ExperimentReference(
-        experimentIdentifier="solve_mip",
-        actuatorIdentifier="act",
-        experimentVersion="1.0.0",
-        parameterization=[
-            ConstitutivePropertyValue(
-                property=ConstitutivePropertyDescriptor(identifier="timeout"), value=120
-            )
-        ],
-    )
-    round_tripped = ExperimentReference.referenceFromString(str(original))
-    assert round_tripped == original
-
-
-def test_reference_from_string_without_version_sets_none() -> None:
-    """Strings without a version suffix produce experimentVersion=None."""
-    parsed = ExperimentReference.referenceFromString("act.solve_mip")
-    assert parsed.experimentIdentifier == "solve_mip"
-    assert parsed.experimentVersion is None
 
 
 def test_registry_unknown_experiment_error_lists_available_versions(

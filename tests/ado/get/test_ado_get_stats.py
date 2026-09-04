@@ -31,6 +31,35 @@ _CREATED_7_DAYS_AGO = datetime.datetime.now(datetime.timezone.utc) - datetime.ti
 _EXPECTED_AGE = "7d0h"
 
 
+def test_timedelta_to_string_boundary_rounding() -> None:
+    """timedelta_to_string must not produce overflow values when rounding carries over."""
+    from ado.cli.utils.resources.formatters import timedelta_to_string
+
+    # 59.5s rounds to 60s → should be 1m0s, not 60s
+    assert timedelta_to_string(59.5) == "1m0s"
+    # Unambiguous sub-minute case
+    assert timedelta_to_string(30.0) == "30s"
+
+    # 4m 59.5s rounds seconds to 60 → should be 5m0s, not 4m60s
+    assert timedelta_to_string(4 * 60 + 59.5) == "5m0s"
+    # Unambiguous sub-hour case
+    assert timedelta_to_string(4 * 60 + 30.0) == "4m30s"
+
+    # 2h 59m 30s rounds minutes to 60 → should be 3h0m, not 2h60m
+    assert timedelta_to_string(2 * 3600 + 59 * 60 + 30.0) == "3h0m"
+    # Unambiguous sub-day case
+    assert timedelta_to_string(2 * 3600 + 30 * 60) == "2h30m"
+
+    # 189 days + 23h 59m 30s rounds hours to 24 → should be 190d0h, not 189d24h
+    assert (
+        timedelta_to_string(float(189 * 86400 + 23 * 3600 + 59 * 60 + 30)) == "190d0h"
+    )
+    # Exactly 190 days stays 190d0h
+    assert timedelta_to_string(float(190 * 86400)) == "190d0h"
+    # Unambiguous multi-day case
+    assert timedelta_to_string(float(189 * 86400 + 3600)) == "189d1h"
+
+
 @requires_sqlite_3_38
 def test_ado_get_operations_stats_columns_present(
     tmp_path: pathlib.Path,

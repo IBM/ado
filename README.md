@@ -5,9 +5,9 @@
 ![GitHub License](https://img.shields.io/github/license/ibm/ado)
 [![DOI](https://joss.theoj.org/papers/10.21105/joss.10304/status.svg)](https://doi.org/10.21105/joss.10304)
 
-**`ado`** is a Python platform for **designing computational experiment
-campaigns and executing them at scale**. It enables
-AI Coding Agents to **autonomously formulate, run and analyze your
+**`ado`** is a tool for **designing computational experiment
+campaigns and executing them at scale**. 
+AI Coding Agents can use `ado` to **autonomously formulate, run and analyze your
 experiments**.
 
 ## Why ado?

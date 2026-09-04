@@ -88,26 +88,25 @@ class TrimSampleSelector(BaseSampler):
             )
             await debug_dir.mkdir(parents=True, exist_ok=True)
 
-    def _init_injected_defaults_from_no_priors(
+    def handle_unmeasured_targetOutputs_from_no_priors(
         self,
         discoverySpace: DiscoverySpace,
         train_target_cols: list[str],
-    ) -> None:
-        """Pre-populate self.injected_defaults from the no-priors RandomWalk operation.
+    ) -> int:
+        """Scan the no-priors operation and handle entities that did not produce the targetOutput.
 
-        Scans all measurement results recorded under self.params.noPriorsOperationId
-        and injects a default row for each entity that either:
-        - produced an InvalidMeasurementResult, or
-        - produced a ValidMeasurementResult that does not contain the targetOutput.
-
-        Only one row per entity is injected (first qualifying result wins).
-        No-op when mode != InjectDefaultValue or noPriorsOperationId is None.
+        Counts every result that either failed (InvalidMeasurementResult) or succeeded
+        without measuring the targetOutput. When mode is InjectDefaultValue, also
+        populates self.injected_defaults with one default row per such entity.
+        No-op when mode is Error.
 
         Args:
             discoverySpace: The discovery space being characterised.
-            train_target_cols: Ordered list of column names
-                (constitutive properties + targetOutput) used to initialise the
-                injected_defaults DataFrame.
+            train_target_cols: Column names (constitutive properties + targetOutput)
+                used to initialise the injected_defaults DataFrame.
+
+        Returns:
+            The number of entities that did not measure their targetOutput.
         """
         from ado.schema.result import InvalidMeasurementResult, ValidMeasurementResult
 
@@ -115,16 +114,16 @@ class TrimSampleSelector(BaseSampler):
 
         if (
             self.params.missingTargetMeasurements.mode
-            != MissingTargetMeasurementMode.InjectDefaultValue
-            or self.params.noPriorsOperationId is None
+            == MissingTargetMeasurementMode.Error
         ):
-            return
+            return 0
 
         exp_refs = set(discoverySpace.measurementSpace.experimentReferences)
         prior_results = discoverySpace.measurement_results_for_operation(
             self.params.noPriorsOperationId
         )
         seen_entity_ids: set[str] = set()
+        total_unmeasured = 0
         for result in prior_results:
             if isinstance(result, InvalidMeasurementResult):
                 if result.experimentReference not in exp_refs:
@@ -137,6 +136,13 @@ class TrimSampleSelector(BaseSampler):
                 if self.params.targetOutput in measured_targets:
                     continue
             else:
+                continue
+
+            total_unmeasured += 1
+            if (
+                self.params.missingTargetMeasurements.mode
+                != MissingTargetMeasurementMode.InjectDefaultValue
+            ):
                 continue
 
             entity_id = result.entityIdentifier
@@ -168,9 +174,11 @@ class TrimSampleSelector(BaseSampler):
                 f"from no-priors operation {self.params.noPriorsOperationId!r}."
             )
         self.log.info(
-            f"Pre-scan complete: {len(self.injected_defaults)} injected default row(s) "
-            f"from no-priors operation {self.params.noPriorsOperationId!r}."
+            f"Pre-scan complete: discovered {total_unmeasured} entities that did not measure "
+            f"the targetOutput from no-priors operation {self.params.noPriorsOperationId!r}."
         )
+
+        return total_unmeasured
 
     def _core_iterator_logic(
         self,
@@ -210,7 +218,10 @@ class TrimSampleSelector(BaseSampler):
         ]
         train_target_cols = [*train_cols, self.params.targetOutput]
 
-        self._init_injected_defaults_from_no_priors(discoverySpace, train_target_cols)
+        total_unmeasured = self.handle_unmeasured_targetOutputs_from_no_priors(
+            discoverySpace, train_target_cols
+        )
+        total_measured = 0
 
         initial_source_df, _target_df = (
             self.get_source_and_target_with_injected_defaults(
@@ -224,11 +235,23 @@ class TrimSampleSelector(BaseSampler):
                 os.path.join(self.params.debugDirectory, "initial_source_df.csv")
             )
 
-        self.log.info(
+        msg = (
             f"There are {numberEntities} entities of which TRIM will measure up "
             f"to {self.params.numberEntitiesIterativeModeling}.\n"
             f"These entities have been ordered using {len(initial_source_df)} measurements from the discovery space."
         )
+        if (
+            self.params.missingTargetMeasurements.mode
+            == MissingTargetMeasurementMode.InjectDefaultValue
+        ):
+            msg += f" There are {total_unmeasured} entities with injected targetOutput={self.params.missingTargetMeasurements.defaultValue}"
+        elif (
+            self.params.missingTargetMeasurements.mode
+            == MissingTargetMeasurementMode.Skip
+        ):
+            pass
+
+        self.log.info(msg)
 
         if numberEntities < self.params.numberEntitiesIterativeModeling:
             self.log.warning(
@@ -256,8 +279,6 @@ class TrimSampleSelector(BaseSampler):
         yielded_rows = RowsRing(
             maxlen=(self.params.holdoutSize or self.params.iterationSize)
         )
-        total_unmeasured = 0
-        total_measured = 0
 
         previous_source_df = initial_source_df
 

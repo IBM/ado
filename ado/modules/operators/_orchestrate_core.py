@@ -128,7 +128,7 @@ def _run_operation_harness(
                 "Could not retrieve Ray job ID - operation will proceed without it"
             )
     else:
-        moduleLog.debug("Operation is not running as a Ray job - no ray_job_id set")
+        moduleLog.info("Operation is not running as a Ray job - no ray_job_id set")
 
     #
     # START THE OPERATION

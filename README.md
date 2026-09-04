@@ -4,7 +4,6 @@
 ![PyPI Python Version](https://img.shields.io/pypi/pyversions/ado-core)
 ![GitHub License](https://img.shields.io/github/license/ibm/ado)
 [![DOI](https://joss.theoj.org/papers/10.21105/joss.10304/status.svg)](https://doi.org/10.21105/joss.10304)
-</br>
 [![Give a Star!](https://img.shields.io/badge/⭐-Give%20a%20Star!-yellow)](https://github.com/ibm/ado)
 
 **`ado`** provides tools for **designing computational experiment

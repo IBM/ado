@@ -151,6 +151,10 @@ def test_trim_example_operation_succeeds(
             iterative_operation.metadata["entities_submitted"]
             == max_points - min_points
         )
+        assert (
+            iterative_operation.metadata["experiments_requested"]
+            == max_points - min_points
+        )
         assert any(
             status.event == OperationResourceEventEnum.FINISHED
             and status.exit_state == OperationExitStateEnum.SUCCESS

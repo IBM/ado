@@ -128,7 +128,7 @@ def _halt_reason(triggered: list[StopperStatus]) -> str:
     if not triggered:
         return SAMPLING_BUDGET_HALT_REASON
     names = ", ".join(status.name for status in triggered)
-    return f"RayTune operation stopped because stopper {names}."
+    return f"RayTune operation stopped because of stopper {names}."
 
 
 def report_stoppers_after_fit(

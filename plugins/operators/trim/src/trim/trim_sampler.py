@@ -316,6 +316,8 @@ class TrimSampleSelector(BaseSampler):
                         [self.injected_defaults, pd.DataFrame([row])],
                         ignore_index=True,
                     )
+                    # VV: This is a yielded row, just a synthetic one not one we actually measured
+                    yielded_rows += one_additional_row
                     # VV: Since inject_defaults was updated we need to remember this row so that the next time
                     # we check whether an Entity measured its targetOutput that's the only candidate for a new
                     # row in the current_source_df dataframe
@@ -421,7 +423,6 @@ class TrimSampleSelector(BaseSampler):
                 )
 
             ##############  MODEL BUILDING AND EVALUATION  #####################
-
             self.log.info(
                 f"Building and evaluating a predictive model "
                 f"that includes 1 more entity "
@@ -435,6 +436,18 @@ class TrimSampleSelector(BaseSampler):
 
             train_data = TabularDataset(train_df)
             holdout_data = TabularDataset(current_holdout_df)
+
+            if len(train_data) < 2:
+                self.log.info(
+                    f"Skipping model building because there are only {len(train_data)} < 2 train_data rows"
+                )
+                continue
+
+            if len(holdout_data) < 2:
+                self.log.info(
+                    f"Skipping model building because there are only {len(holdout_data)} < 2 holdout_data rows"
+                )
+                continue
 
             # NOTE: assigning more weight to target space points does NOT generally improve performance
             predictor = TabularPredictor(

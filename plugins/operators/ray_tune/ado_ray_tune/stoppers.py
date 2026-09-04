@@ -1,13 +1,198 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any, NamedTuple
 
 import numpy as np
 import ray.tune
+from ray.tune.stopper import CombinedStopper, Stopper
+
+if TYPE_CHECKING:
+    import pandas as pd
 
 
-class SimpleStopper(ray.tune.Stopper):
+class AdoStopperMixin:
+    """Status helpers for ado stoppers after a Ray Tune run ends."""
+
+    should_stop: bool
+
+    def did_trigger(self) -> bool:
+        """Return True if this stopper decided the experiment should stop."""
+        return bool(self.should_stop)
+
+    def progress_message(self) -> str:
+        """Return a one-line INFO-level description of current stopping progress."""
+        raise NotImplementedError
+
+    def final_report(self) -> str | None:
+        """Return a stdout payload describing results, or None if there is none."""
+        return None
+
+
+SAMPLING_BUDGET_HALT_REASON = (
+    "RayTune operation stopped because sampling budget reached."
+)
+
+
+class StopperStatus(NamedTuple):
+    """Name and optional final log for one stopper after a run."""
+
+    name: str
+    log: str | None
+
+
+class StopperRunReport(NamedTuple):
+    """Halt reason and per-stopper status after tuner.fit()."""
+
+    halt_reason: str
+    triggered: list[StopperStatus]
+    not_triggered: list[StopperStatus]
+
+    def stopper_logs(self) -> dict[str, str]:
+        """Return name to log for stoppers that produced a final report.
+
+        Returns:
+            A mapping of stopper class name to ``final_report()`` text.
+        """
+        logs: dict[str, str] = {}
+        for status in (*self.triggered, *self.not_triggered):
+            if status.log:
+                logs[status.name] = status.log
+        return logs
+
+
+def iter_stoppers(stop: Stopper | None) -> list[Stopper]:
+    """Return configured stoppers, unwrapping nested CombinedStopper instances.
+
+    Args:
+        stop: A Ray Tune stopper, CombinedStopper, or None.
+
+    Returns:
+        The leaf stoppers in configuration order.
+    """
+    if stop is None:
+        return []
+    if isinstance(stop, CombinedStopper):
+        result: list[Stopper] = []
+        for child in stop._stoppers:
+            result.extend(iter_stoppers(child))
+        return result
+    if isinstance(stop, Stopper):
+        return [stop]
+    return []
+
+
+def stopper_did_trigger(stopper: Stopper) -> bool:
+    """Return whether a stopper reported that it ended the experiment.
+
+    Prefers ado ``did_trigger()`` / ``should_stop``, then Ray Tune ``stop_all()``.
+
+    Args:
+        stopper: A Ray Tune or ado stopper instance.
+
+    Returns:
+        True if the stopper indicates it triggered.
+    """
+    did_trigger = getattr(stopper, "did_trigger", None)
+    if callable(did_trigger):
+        return bool(did_trigger())
+    should_stop = getattr(stopper, "should_stop", None)
+    if should_stop is not None:
+        return bool(should_stop)
+    return bool(stopper.stop_all())
+
+
+def _stopper_status(stopper: Stopper) -> StopperStatus:
+    """Build a status record from a stopper instance.
+
+    Args:
+        stopper: A Ray Tune or ado stopper.
+
+    Returns:
+        The stopper class name and ``final_report()`` text, if any.
+    """
+    final_report = getattr(stopper, "final_report", None)
+    log = final_report() if callable(final_report) else None
+    return StopperStatus(name=type(stopper).__name__, log=log or None)
+
+
+def _halt_reason(triggered: list[StopperStatus]) -> str:
+    """Return the one-line halt reason for a run.
+
+    Args:
+        triggered: Stoppers that reported they ended the experiment.
+
+    Returns:
+        Sampling-budget wording, or a sentence naming the triggered stoppers.
+    """
+    if not triggered:
+        return SAMPLING_BUDGET_HALT_REASON
+    names = ", ".join(status.name for status in triggered)
+    return f"RayTune operation stopped because of stopper {names}."
+
+
+def report_stoppers_after_fit(
+    stop: Stopper | None,
+    *,
+    num_trials: int,
+    num_samples: int | None = None,
+) -> StopperRunReport:
+    """Build the halt summary after tuner.fit().
+
+    Args:
+        stop: The RunConfig stopper (possibly a CombinedStopper).
+        num_trials: Number of trials in the ResultGrid.
+        num_samples: ``tuneConfig.num_samples``, if set.
+
+    Returns:
+        Halt reason plus per-stopper names and logs.
+    """
+    del num_trials, num_samples
+    stoppers = iter_stoppers(stop)
+    if not stoppers:
+        return StopperRunReport(
+            halt_reason=SAMPLING_BUDGET_HALT_REASON,
+            triggered=[],
+            not_triggered=[],
+        )
+
+    triggered = [_stopper_status(s) for s in stoppers if stopper_did_trigger(s)]
+    not_triggered = [_stopper_status(s) for s in stoppers if not stopper_did_trigger(s)]
+    return StopperRunReport(
+        halt_reason=_halt_reason(triggered),
+        triggered=triggered,
+        not_triggered=not_triggered,
+    )
+
+
+def format_stopper_run_report(report: StopperRunReport) -> str:
+    """Format the halt summary and stopper logs for stdout.
+
+    Args:
+        report: Messages produced by ``report_stoppers_after_fit``.
+
+    Returns:
+        Text to print at the end of ``RayTune.run()``.
+    """
+    lines = [report.halt_reason]
+    lines.extend(status.log for status in report.triggered if status.log)
+    for status in report.not_triggered:
+        lines.append(f"The following stoppers did not fire. {status.name}.")
+        if status.log:
+            lines.append(f"The final status of the stopper was\n{status.log}")
+    return "\n".join(lines)
+
+
+def emit_stopper_run_report(report: StopperRunReport) -> None:
+    """Print the halt summary and stopper logs to stdout.
+
+    Args:
+        report: Messages produced by ``report_stoppers_after_fit``.
+    """
+    print(format_stopper_run_report(report))
+
+
+class SimpleStopper(AdoStopperMixin, ray.tune.Stopper):
     def __init__(self) -> None:
         self.min_trials = None
         self.trials_num = 0
@@ -63,6 +248,20 @@ class SimpleStopper(ray.tune.Stopper):
             f"SimpleStopper({self.wait_until_stop}, minimum trials: {self.min_trials})"
         )
 
+    def progress_message(self) -> str:
+        """Return a one-line description of SimpleStopper progress."""
+        if self.should_stop:
+            return f"SimpleStopper: stopping after {self.trials_num} samples."
+        if self.min_trials is not None and self.trials_num <= self.min_trials:
+            return (
+                f"SimpleStopper: not stopping: {self.trials_num}/{self.min_trials} "
+                f"samples in grace period."
+            )
+        return (
+            f"SimpleStopper: not stopping after {self.trials_num} samples. "
+            f"Remaining samples without improvement before stop: {self.wait_until_stop}."
+        )
+
     def __call__(self, trial_id: str, result: dict[str, Any]) -> bool:
         if trial_id in self.seen_trial_ids:
             self.log.debug(f"Already seen this trial: {trial_id}...")
@@ -96,13 +295,14 @@ class SimpleStopper(ray.tune.Stopper):
                     return True
         else:
             self.last_metric = metric
+        self.log.info(self.progress_message())
         return False
 
     def stop_all(self) -> bool:
         return self.should_stop
 
 
-class GrowthStopper(ray.tune.Stopper):
+class GrowthStopper(AdoStopperMixin, ray.tune.Stopper):
     def __init__(self) -> None:
         self._fist_call = True
         self.metric = None
@@ -142,6 +342,16 @@ class GrowthStopper(ray.tune.Stopper):
     def __str__(self) -> str:
         return f"GrowthStopper({self.growth_threshold}, grace {self.grace_trials})"
 
+    def progress_message(self) -> str:
+        """Return a one-line description of GrowthStopper progress."""
+        n_samples = len(self.seen_trial_ids)
+        if self.should_stop:
+            return f"GrowthStopper: stopping after {n_samples} samples."
+        return (
+            f"GrowthStopper: not stopping after {n_samples} samples. "
+            f"Remaining grace trials: {self.grace_trials}."
+        )
+
     def __call__(self, trial_id: str, result: dict[str, Any]) -> bool:
         if trial_id in self.seen_trial_ids:
             self.log.debug(f"already seen this trial {trial_id}...")
@@ -163,13 +373,14 @@ class GrowthStopper(ray.tune.Stopper):
         else:
             self._fist_call = False
             self.last_result = metric
+        self.log.info(self.progress_message())
         return False
 
     def stop_all(self) -> bool:
         return self.should_stop
 
 
-class MaxSamplesStopper(ray.tune.Stopper):
+class MaxSamplesStopper(AdoStopperMixin, ray.tune.Stopper):
     # apparently, ray.tune.stopper.maximum_iteration doesn't stop after samples,
     #  but iterations per sample??
     # also, for different optimizers, "num_samples" doesn't mean the same, some count it without random iterations,
@@ -190,6 +401,18 @@ class MaxSamplesStopper(ray.tune.Stopper):
     def __str__(self) -> str:
         return f"MaxSamplesStopper({self.max_samples})"
 
+    def progress_message(self) -> str:
+        """Return a one-line description of MaxSamplesStopper progress."""
+        if self.should_stop:
+            return (
+                f"MaxSamplesStopper: stopping after {self.trials_num} samples "
+                f"(max_samples={self.max_samples})."
+            )
+        return (
+            f"MaxSamplesStopper: not stopping: {self.trials_num}/{self.max_samples} "
+            f"samples."
+        )
+
     def __call__(self, trial_id: str, result: dict[str, Any]) -> bool:
         if trial_id in self.seen_trial_ids:
             # it is always called twice per trial...?
@@ -201,13 +424,14 @@ class MaxSamplesStopper(ray.tune.Stopper):
             self.log.info(f"maximum trials {self.trials_num} reached, stopping...")
             self.should_stop = True
             return True
+        self.log.info(self.progress_message())
         return False
 
     def stop_all(self) -> bool:
         return self.should_stop
 
 
-class InformationGainStopper(ray.tune.Stopper):
+class InformationGainStopper(AdoStopperMixin, ray.tune.Stopper):
     # apparently, ray.tune.stopper.maximum_iteration doesn't stop after samples,
     #  but iterations per sample??
     # also, for different optimizers, "num_samples" doesn't mean the same, some count it without random iterations,
@@ -239,6 +463,7 @@ class InformationGainStopper(ray.tune.Stopper):
         self.no_changes_in_ranks_cnt = 0
         self.all_below_diff_threshold_cnt = 0
         self.last_mi = None
+        self.last_entropy = None
         self.cur_coverage = 0.0
         self._invalid_trials = {}
         self.log = logging.getLogger("InformationGain")
@@ -285,8 +510,11 @@ class InformationGainStopper(ray.tune.Stopper):
         self.columns_to_mask = []
         self.diffs_over_time = None
         self.ranks_over_time = None
+        self.pareto_selection_over_time = []
         self.no_changes_in_ranks_cnt = 0
         self.all_below_diff_threshold_cnt = 0
+        self.last_mi = None
+        self.last_entropy = None
         self.log.debug(
             f"[InformationGainStopper] configured: mi_diff_limit {self.mi_diff_limit}; "
             f"samples_below_limit: {self.samples_below_limit}; min_samples {self.min_samples}; "
@@ -297,6 +525,88 @@ class InformationGainStopper(ray.tune.Stopper):
         return (
             f"InformationGainStopper({self.mi_diff_limit}, {self.samples_below_limit})"
         )
+
+    def _usable_sample_count(self) -> int:
+        """Return trials counted toward min_samples, including failed-trial credit."""
+        return self.trials_num + self.failed_trials_to_consider_num
+
+    def _in_grace_period(self) -> bool:
+        """Return True if fewer than min_samples usable trials have been seen."""
+        return (
+            self.min_samples is not None
+            and self._usable_sample_count() < self.min_samples
+        )
+
+    def _ranking_dataframe(self) -> "pd.DataFrame | None":
+        """Build the ranked-dimension table from the last MI calculation.
+
+        Returns:
+            A pandas DataFrame sorted by rank, or None if MI has not been computed.
+        """
+        if not self.ranks_over_time or not self.last_mi:
+            return None
+        import pandas as pd
+
+        ranks = [(k, self.ranks_over_time[k][-1]) for k in self.ranks_over_time]
+        entropy = self.last_entropy or float("nan")
+        rows = [
+            [
+                dim,
+                value,
+                self.last_mi[dim],
+                self.last_mi[dim] / entropy if entropy else float("nan"),
+            ]
+            for dim, value in ranks
+        ]
+        df = pd.DataFrame(
+            columns=["dimension", "rank", "mi", "uncertainty%"], data=rows
+        )
+        return df.sort_values("rank", ascending=True)
+
+    def progress_message(self) -> str:
+        """Return a one-line description of InformationGainStopper progress."""
+        if self.should_stop:
+            return f"InformationGainStopper: stopping after {self.trials_num} samples."
+        if self._in_grace_period():
+            return (
+                f"InformationGainStopper: not stopping: "
+                f"{self._usable_sample_count()}/{self.min_samples} samples in grace period."
+            )
+        return (
+            f"InformationGainStopper: not stopping after {self.trials_num} samples. "
+            f"MI-change below {self.mi_diff_limit} for "
+            f"{self.all_below_diff_threshold_cnt}/{self.samples_below_limit} "
+            f"consecutive samples; no rank/pareto change for "
+            f"{self.no_changes_in_ranks_cnt}/{self.samples_below_limit}."
+        )
+
+    def final_report(self) -> str | None:
+        """Return the ranked-dimension table for stdout, or None in the grace period."""
+        if self._in_grace_period() and not self.should_stop:
+            return None
+        df = self._ranking_dataframe()
+        if self.should_stop:
+            header = f"Stopping criteria reached after {self.trials_num} samples."
+        else:
+            header = (
+                f"Stopping criteria were not reached after {self.trials_num} samples. "
+                f"Last known ranking:"
+            )
+        lines = [
+            header,
+            f"Total search space size is {self.total_size}, search coverage is {self.cur_coverage}.",
+        ]
+        if self.last_entropy is not None:
+            lines.append(
+                f"Entropy of target variable clusters: {self.last_entropy} nats."
+            )
+        if df is not None:
+            lines.append(f"Result:\n{df}")
+        if self.pareto_selection_over_time:
+            lines.append(f"Pareto selection:{self.pareto_selection_over_time[-1]}")
+        if df is None and not self.should_stop:
+            return None
+        return "\n".join(lines)
 
     def __call__(self, trial_id: str, result: dict[str, Any]) -> bool:
         import pandas as pd
@@ -356,18 +666,14 @@ class InformationGainStopper(ray.tune.Stopper):
             self.log.debug(f"storing {results_casted} for {trial_id}.")
             self.results_df.loc[trial_id] = results_casted
         # and process
-        # if self.trials_num < self.min_samples:
-        if (self.trials_num + self.failed_trials_to_consider_num) < self.min_samples:
+        if self._in_grace_period():
+            self.log.info(self.progress_message())
             return False
-        if (
-            self.trials_num + self.failed_trials_to_consider_num
-        ) == self.last_calculation_step_num:
+        if self._usable_sample_count() == self.last_calculation_step_num:
             # will only trigger on added failed experiments
             self.log.debug("No new data, skipping...")
             return False
         try:
-            # new_mi = calculate_mutual_information(self.results_df, self.data_columns,
-            #                                      self.columns_to_mask, [], 0, self.targeted_value)
             (
                 mi_output,
                 all_below_threshold,
@@ -397,10 +703,9 @@ class InformationGainStopper(ray.tune.Stopper):
             return True
 
         new_mi = mi_output.mutual_information
-        self.last_calculation_step_num = (
-            self.trials_num + self.failed_trials_to_consider_num
-        )
+        self.last_calculation_step_num = self._usable_sample_count()
         self.last_mi = new_mi
+        self.last_entropy = mi_output.entropy
         self.diffs_over_time = new_diffs
         self.ranks_over_time = new_ranks
         self.pareto_selection_over_time = new_pareto
@@ -413,49 +718,20 @@ class InformationGainStopper(ray.tune.Stopper):
             self.no_changes_in_ranks_cnt += 1
         else:
             self.no_changes_in_ranks_cnt = 0
-        self.log.info(
-            f"Mutual information: {new_mi}; "
-            f"Consecutive samples where change in MI is below threshold of {self.mi_diff_limit}: "
-            f"{self.all_below_diff_threshold_cnt}; "
-            f"Consecutive samples with no changes in MI ranks/pareto front: {self.no_changes_in_ranks_cnt}; "
-            f"Current search space coverage: {self.cur_coverage}."
-        )
         if (
             self.no_changes_in_ranks_cnt >= self.samples_below_limit
             and self.all_below_diff_threshold_cnt >= self.samples_below_limit
         ):
-            # df
-            ranks = [(k, new_ranks[k][-1]) for k in new_ranks]
-            rows = [
-                [
-                    dim,
-                    value,
-                    mi_output.mutual_information[dim],
-                    mi_output.mutual_information[dim] / mi_output.entropy,
-                ]
-                for dim, value in ranks
-            ]
-            df = pd.DataFrame(
-                columns=["dimension", "rank", "mi", "uncertainty%"], data=rows
-            )
-            df = df.sort_values("rank", ascending=True)
-
             self.should_stop = True
-            self.log.info(
-                f"Stopping criteria reached after {self.trials_num} samples.\n"
-                f"Total search space size is {self.total_size}, search coverage is {self.cur_coverage}.\n"
-                f"Entropy of target variable clusters: {mi_output.entropy} nats.\n"
-                f"Result:\n{df}\n"
-            )
-            self.log.info(f"Pareto selection:{new_pareto[-1]}\n")
             return True
+        self.log.info(self.progress_message())
         return False
 
     def stop_all(self) -> bool:
         return self.should_stop
 
 
-class BayesianMetricDifferenceStopper(ray.tune.Stopper):
+class BayesianMetricDifferenceStopper(AdoStopperMixin, ray.tune.Stopper):
     """
     Stopper that uses Bayesian sequential analysis to detect with high confidence
     which side of a threshold the mean difference between two metrics lies on.
@@ -479,6 +755,7 @@ class BayesianMetricDifferenceStopper(ray.tune.Stopper):
         self.stop_probability = None  # The actual probability when stopped
         self.seen_trial_ids = []
         self.trials_num = 0
+        self._last_prob_abs_greater = None
         self.log = logging.getLogger("BayesianMetricDifferenceStopper")
 
     def set_config(
@@ -511,6 +788,7 @@ class BayesianMetricDifferenceStopper(ray.tune.Stopper):
         self.stop_probability = None
         self.seen_trial_ids = []
         self.trials_num = 0
+        self._last_prob_abs_greater = None
 
         # Validation
         if not 0 < target_probability < 1:
@@ -533,6 +811,30 @@ class BayesianMetricDifferenceStopper(ray.tune.Stopper):
             f"BayesianMetricDifferenceStopper("
             f"|{self.metric_a}-{self.metric_b}| vs {self.threshold}, "
             f"P={self.target_probability}, min_n={self.min_samples})"
+        )
+
+    def progress_message(self) -> str:
+        """Return a one-line description of BayesianMetricDifferenceStopper progress."""
+        if self.should_stop:
+            return (
+                f"BayesianMetricDifferenceStopper: stopping after {self.trials_num} "
+                f"trials ({self.stop_reason})."
+            )
+        n_differences = len(self.differences)
+        if n_differences < self.min_samples:
+            return (
+                f"BayesianMetricDifferenceStopper: not stopping: "
+                f"{n_differences}/{self.min_samples} usable samples in grace period."
+            )
+        if self._last_prob_abs_greater is None:
+            return (
+                f"BayesianMetricDifferenceStopper: not stopping after "
+                f"{self.trials_num} trials."
+            )
+        return (
+            f"BayesianMetricDifferenceStopper: not stopping after {self.trials_num} "
+            f"trials. Last P(|{self.metric_a}-{self.metric_b}| > {self.threshold}) = "
+            f"{self._last_prob_abs_greater:.4f}."
         )
 
     def _compute_bayesian_t_probability(
@@ -668,19 +970,12 @@ class BayesianMetricDifferenceStopper(ray.tune.Stopper):
 
         prob_abs_greater = stats_result["prob_abs_greater_than_threshold"]
         mean_diff = stats_result["mean"]
-
-        self.log.info(
-            f"Trial {self.trials_num}: Mean difference = {mean_diff:.4f} ± {stats_result['se']:.4f}, "
-            f"P(|{self.metric_a}-{self.metric_b}| > {self.threshold}) = {prob_abs_greater:.4f}"
-        )
+        self._last_prob_abs_greater = prob_abs_greater
 
         # Check if we have enough usable samples (differences collected)
         n_differences = len(self.differences)
         if n_differences < self.min_samples:
-            self.log.debug(
-                f"Collected {n_differences} usable samples, but require {self.min_samples}, "
-                f"to apply stopping criteria."
-            )
+            self.log.info(self.progress_message())
             return False
 
         # Apply stopping criterion - check if confident about EITHER side
@@ -719,6 +1014,7 @@ class BayesianMetricDifferenceStopper(ray.tune.Stopper):
             )
             return True
 
+        self.log.info(self.progress_message())
         return False
 
     def stop_all(self) -> bool:

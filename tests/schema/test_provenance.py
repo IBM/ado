@@ -304,11 +304,23 @@ def test_operation_resource_provenance_lifecycle(
     operation_resource: OperationResource,
 ) -> None:
     """OperationResource round-trips nested provenance through model_dump."""
+    from ado.schema.reference import ExperimentReference
+
     prov = PackageProvenance(
         distributionName="ado-ray-tune", distributionVersion="1.7.1"
     )
+    actuator_prov = PackageProvenance(
+        distributionName="ado-core", distributionVersion="1.2.3"
+    )
+    experiment_ref = ExperimentReference(
+        experimentIdentifier="solve_mip",
+        actuatorIdentifier="cplex_mip",
+        experimentVersion="1.2.0",
+    )
     operation_resource.provenance = OperationProvenanceInfo(
-        operators={operation_resource.operatorIdentifier: prov}
+        operators={operation_resource.operatorIdentifier: prov},
+        experiments=[experiment_ref],
+        actuators={"cplex_mip": actuator_prov},
     )
 
     dumped = operation_resource.model_dump()
@@ -318,19 +330,28 @@ def test_operation_resource_provenance_lifecycle(
         ]
         == "ado-ray-tune"
     )
+    assert dumped["provenance"]["experiments"][0]["experimentIdentifier"] == "solve_mip"
+    assert dumped["provenance"]["experiments"][0]["experimentVersion"] == "1.2.0"
+    assert dumped["provenance"]["actuators"]["cplex_mip"]["distributionName"] == (
+        "ado-core"
+    )
 
     restored = OperationResource.model_validate(dumped)
 
     assert restored.provenance.operators[operation_resource.operatorIdentifier] == prov
+    assert restored.provenance.experiments == [experiment_ref]
+    assert restored.provenance.actuators["cplex_mip"] == actuator_prov
 
 
 def test_operation_resource_provenance_defaults_empty(
     operation_resource: OperationResource,
 ) -> None:
-    """OperationResource created without provenance has empty operators dict."""
+    """OperationResource created without provenance has empty provenance collections."""
     dumped = operation_resource.model_dump()
     restored = OperationResource.model_validate(dumped)
     assert restored.provenance.operators == {}
+    assert restored.provenance.experiments == []
+    assert restored.provenance.actuators == {}
 
 
 def test_actuator_configuration_resource_provenance_lifecycle() -> None:

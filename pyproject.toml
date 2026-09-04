@@ -140,7 +140,7 @@ members = [
   # "plugins/operators/profile_space",  # Excluded: incompatible with Python 3.14+ (fg-data-profiling requires numba<0.63)
   "plugins/operators/ray_tune",
   # "plugins/actuators/sfttrainer",  # Excluded: incompatible with Python 3.13+ (aim dependency)
-  # "plugins/operators/trim",  # Excluded: incompatible with Python 3.14+ (autogluon==1.5.0 requires pyarrow==20.0.0)
+  # "plugins/operators/trim",  # Excluded: AutoGluon does not support Python 3.14+
 ]
 
 [tool.uv.sources]

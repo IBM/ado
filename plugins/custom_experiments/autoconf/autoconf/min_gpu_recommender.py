@@ -3,10 +3,10 @@
 # SPDX-License-Identifier: MIT
 
 import functools
-import importlib.resources
 import logging
 import math
 import traceback
+from pathlib import Path
 from typing import NamedTuple
 
 from autogluon.tabular import TabularPredictor
@@ -14,6 +14,10 @@ from autogluon.tabular import TabularPredictor
 from ado.modules.actuators.custom_experiments import custom_experiment
 from ado.schema.domain import PropertyDomain, VariableTypeEnum
 from ado.schema.property import ConstitutiveProperty
+from autoconf.model_paths import (
+    MODEL_VERSION,
+    model_path,
+)
 from autoconf.utils.pydantic_models import JobConfig
 from autoconf.utils.recommender import (
     NoRecommendationError,
@@ -23,8 +27,6 @@ from autoconf.utils.recommender import (
 
 moduleLog = logging.getLogger()
 
-MODEL_LATEST_VERSION = "3.1.0"
-
 
 class GPUsAndWorkers(NamedTuple):
     gpus: int
@@ -32,40 +34,39 @@ class GPUsAndWorkers(NamedTuple):
 
 
 @functools.cache
-def load_model(model_version: str) -> TabularPredictor:
-    """Loads the model
+def load_model(model_version: str, model_root: Path | None = None) -> TabularPredictor:
+    """Load a locally generated AutoConf model.
 
     Args:
-        model_version:
-            The version of the Autogluon model to use e.g. 1.0.0
+        model_version: Version of the AutoGluon model to use.
+        model_root: Optional local model root override.
 
     Returns:
-        The predictor
+        The loaded predictor.
+
+    Raises:
+        FileNotFoundError: If the model has not been generated locally.
+        ValueError: If the model version is unsupported.
     """
 
-    if model_version == "3.0.0":
-        path_weights: str = str(
-            object=importlib.resources.files(package="autoconf")
-            / "AutoGluonModels"
-            / "v3-0-0_ag-20260113_144447-clone-opt-train_frac_1"
-        )
-    elif model_version == "3.1.0":
-        path_weights = str(
-            importlib.resources.files("autoconf")
-            / "AutoGluonModels"
-            / "v3-1-0_ag-20260113_144232-refit-clone-opt-train_frac_1"
-        )
-    else:
-        raise ValueError("Unknown model_version", model_version)
+    if model_version != MODEL_VERSION:
+        raise ValueError(f"Unknown model_version: {model_version}")
 
-    return TabularPredictor.load(path_weights, require_py_version_match=False)
+    path_weights = model_path(model_root)
+    if not path_weights.is_dir():
+        raise FileNotFoundError(
+            f"AutoConf model {model_version} was not found at {path_weights}. "
+            "Generate it in this environment with: autoconf_build_model"
+        )
+
+    return TabularPredictor.load(str(path_weights), require_py_version_match=False)
 
 
 ModelVersion = ConstitutiveProperty(
     identifier="model_version",
     propertyDomain=PropertyDomain(
         variableType=VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE,
-        values=["3.0.0", "3.1.0"],
+        values=[MODEL_VERSION],
     ),
 )
 
@@ -298,10 +299,10 @@ def avoid_oom_recommender(
     number_gpus: int,
     gpus_per_worker: int = 8,
     max_gpus: int = 64,
-    model_version: str = "3.1.0",
+    model_version: str = MODEL_VERSION,
 ) -> dict[str, int | bool]:
 
-    result = {
+    result: dict[str, int | bool] = {
         "can_recommend": False,
         "gpus": -1,
         "workers": -1,

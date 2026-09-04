@@ -4,6 +4,7 @@
 ![PyPI Python Version](https://img.shields.io/pypi/pyversions/ado-core)
 ![GitHub License](https://img.shields.io/github/license/ibm/ado)
 [![DOI](https://joss.theoj.org/papers/10.21105/joss.10304/status.svg)](https://doi.org/10.21105/joss.10304)
+</br>
 [![Give a Star!](https://img.shields.io/badge/⭐-Give%20a%20Star!-yellow)](https://github.com/ibm/ado)
 
 **`ado`** provides tools for **designing computational experiment
@@ -21,9 +22,6 @@ take advantage of this capability for your research domain.
 * Its **SQL-backed storage** automatically persists your
 experiment measurements and campaign metadata, and allows scaling from personal
 use to team-wide collaboration.
-
-> 💡 Like our approach to agent-driven science? Drop a ⭐ to support our
-> open-source development!
 
 ## At its _core_
 

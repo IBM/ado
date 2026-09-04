@@ -47,6 +47,9 @@ from ado.metastore.base import (
     NoRelatedResourcesError,
     ResourceDoesNotExistError,
 )
+from ado.modules.actuators.errors import (
+    UnknownActuatorError,
+)
 
 if typing.TYPE_CHECKING:
     from ado.cli.core.config import AdoConfiguration
@@ -487,6 +490,9 @@ def get_resource(
         handle_no_related_resource(
             error=e, project_context=ado_configuration.project_context
         )
+    except UnknownActuatorError as e:
+        console_print(f"{ERROR}{e}", stderr=True)
+        raise typer.Exit(1) from e
 
 
 def register_get_command(app: typer.Typer) -> None:

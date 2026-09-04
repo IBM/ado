@@ -103,6 +103,32 @@ def test_get_experiment_by_fully_qualified_resource_id() -> None:
     assert "test-experiment" in result.output
 
 
+def test_get_experiment_unknown_actuator_handles_error_gracefully() -> None:
+    """Get experiment with an unknown actuator exits with code 1 and error message."""
+    runner = CliRunner()
+    result = runner.invoke(
+        ado, ["get", "experiment", "nonexistent_actuator.some_experiment"]
+    )
+    assert result.exit_code == 1
+    assert (
+        "ERROR:  No actuator called nonexistent_actuator has been added to the registry"
+        in result.output
+    )
+
+
+def test_describe_experiment_unknown_actuator_handles_error_gracefully() -> None:
+    """Describe experiment with an unknown actuator exits with code 1 and error message."""
+    runner = CliRunner()
+    result = runner.invoke(
+        ado, ["describe", "experiment", "nonexistent_actuator.some_experiment"]
+    )
+    assert result.exit_code == 1
+    assert (
+        "ERROR:  No actuator called nonexistent_actuator has been added to the registry"
+        in result.output
+    )
+
+
 def test_experimentForReference_bare_versioned_wrong_version(
     global_registry: ActuatorRegistry,
 ) -> None:

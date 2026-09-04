@@ -35,9 +35,8 @@ moduleLog = logging.getLogger("setup")
 def find_fqi_differences(
     registry: ActuatorRegistry, measurement_space: MeasurementSpace
 ) -> list[tuple[Experiment, Experiment]]:
-    """Returns experiments in catalog whose fqi is different to the one used to create space
+    """Returns (registry experiment, measurement space experiment) pairs with same major version identifier but different fully qualified identifiers. 
 
-    The major version identifiers must match to be included.
 
     Returns: A list of tuples with two elements. Each tuple is a FQI difference
         The first element in the tuple is an experiment from the measurement space.

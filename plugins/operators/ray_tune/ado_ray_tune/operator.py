@@ -64,6 +64,13 @@ from .config import (
     RayTuneOrchestratorConfiguration,
 )
 from .samplers import LhuSampler
+from .stoppers import (
+    SAMPLING_BUDGET_HALT_REASON,
+    StopperRunReport,
+    emit_stopper_run_report,
+    iter_stoppers,
+    report_stoppers_after_fit,
+)
 
 if TYPE_CHECKING:  # pragma: nocover
     from ray.tune.search.sample import Domain
@@ -289,7 +296,6 @@ def tune_trainable(config: dict, parameters: dict) -> dict[str, Any]:
         UnknownExperimentError: If the requested experiment is unknown to the actuator
         DeprecatedExperimentError: If the requested experiment cannot be executed by the actuator because it is deprecated
     """
-
     trainable_params = OrchTrainableParameters(**parameters)
     single_measurement = (
         trainable_params.orchestrator_config.single_measurement_per_property
@@ -520,6 +526,7 @@ class TuneOutput(NamedTuple):
     result: ray.tune.Result
     exit_state: OperationExitStateEnum
     error: str = None
+    stopper_report: StopperRunReport | None = None
 
 
 @ray.remote
@@ -553,13 +560,11 @@ def tune(
     )
     data_columns = list(search_space.keys())
     if "InformationGainStopper" in configured_stoppers:
-        # If there is more than one stopper then runtimeConfig will have a CombinedStopper
-        if len(configured_stoppers) > 1:
-            IG_stopper = ray_runtime_config.stop._stoppers[
-                configured_stoppers.index("InformationGainStopper")
-            ]
-        else:
-            IG_stopper = ray_runtime_config.stop
+        IG_stopper = next(
+            s
+            for s in iter_stoppers(ray_runtime_config.stop)
+            if type(s).__name__ == "InformationGainStopper"
+        )
 
         search_columns = [
             k.identifier
@@ -630,12 +635,19 @@ def tune(
         OperationExitStateEnum.FAIL if failed_trials else OperationExitStateEnum.SUCCESS
     )
 
+    stopper_report = report_stoppers_after_fit(
+        ray_runtime_config.stop,
+        num_trials=len(results),
+        num_samples=getattr(ray_tune_config, "num_samples", None),
+    )
+
     return TuneOutput(
         exit_state=operation_status,
         error=error,
         result=results.get_best_result(
             metric=ray_tune_config.metric, mode=ray_tune_config.mode
         ),
+        stopper_report=stopper_report,
     )
 
 
@@ -898,17 +910,31 @@ class RayTune(Explore):
                     search_space, config=self.params, parameters=internal_parameters
                 )
 
+                halt_reason = (
+                    output.stopper_report.halt_reason
+                    if output.stopper_report is not None
+                    else SAMPLING_BUDGET_HALT_REASON
+                )
+                if output.stopper_report is not None:
+                    emit_stopper_run_report(output.stopper_report)
+                else:
+                    print(halt_reason)
+
                 self.log.debug(f"Tune Result: {output}")
                 result_dict = {
                     "config": output.result.config,
                     "metrics": output.result.metrics,
                     "error": output.result.error or None,
                 }
-                resources = [
-                    DataContainerResource(
-                        config=DataContainer(data={"best_result": result_dict})
-                    )
-                ]
+                data: dict[str, dict | list | str] = {
+                    "best_result": result_dict,
+                    "halt_reason": halt_reason,
+                }
+                if output.stopper_report is not None:
+                    stopper_logs = output.stopper_report.stopper_logs()
+                    if stopper_logs:
+                        data["stopper_logs"] = stopper_logs
+                resources = [DataContainerResource(config=DataContainer(data=data))]
 
                 if output.exit_state == OperationExitStateEnum.FAIL:
                     self.log.debug("tune() exited reporting failure")
@@ -937,7 +963,7 @@ class RayTune(Explore):
                     operation_output = OperationOutput(
                         resources=resources,
                         exitStatus=OperationResourceStatus(
-                            message="Ray Tune operation completed successfully",
+                            message=halt_reason,
                             exit_state=OperationExitStateEnum.SUCCESS,
                             event=OperationResourceEventEnum.FINISHED,
                         ),
@@ -980,7 +1006,7 @@ class RayTune(Explore):
         """Returns operator metadata for the ray_tune explore operator."""
         return OperatorMetadata(
             name="ray_tune",
-            version="2.0.6",
+            version="2.0.9",
             description=cls.description(),
             configuration_model=RayTuneConfiguration,
             example_configuration=RayTuneConfiguration(

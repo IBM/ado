@@ -123,8 +123,7 @@ def _run_operation_harness(
             ray_job_id = ray.get_runtime_context().get_job_id()
             operation_resource.metadata["ray_job_id"] = ray_job_id
         except Exception:
-            moduleLog.debug("Could not retrieve Ray job ID", exc_info=True)
-            moduleLog.warning(
+            moduleLog.info(
                 "Could not retrieve Ray job ID - operation will proceed without it"
             )
     else:

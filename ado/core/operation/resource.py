@@ -83,10 +83,7 @@ class OperationProvenanceInfo(ProvenanceInfo):
         pydantic.Field(
             default_factory=list,
             description=(
-                "Catalog experiment references (including algorithm versions) that "
-                "were available to resolve the space experiments at the time this "
-                "operation was created. Space-frozen experiment versions remain on "
-                "the related discovery space."
+                "Experiments used in operation to satisfy the requirements of the measurement space "
             ),
         ),
     ]

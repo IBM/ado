@@ -1,0 +1,12 @@
+" Copyright IBM Corporation 2025, 2026
+" SPDX-License-Identifier: MIT
+"
+" Vim appearance shared by the README recording and the decorated function
+" screenshot, so the syntax highlighting matches between the two. The default
+" colour scheme draws from the terminal's ANSI palette, which keeps the
+" highlighting consistent with whichever theme the tape sets.
+syntax on
+set background=dark
+set fillchars=eob:\
+set noruler
+set noshowcmd

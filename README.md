@@ -12,15 +12,18 @@ analyze your experiments**.
 
 ## Why ado?
 
-- It provides tools for **defining, validating, executing and analysing**
-  experiment campaigns
-- It can be extended to support your research domains via its **plugin model**
-- Its **SQL-backed storage** automatically persists experiment measurements and
-  campaign metadata. The storage can be scaled from personal use to team-wide
-  collaboration.
-- It's tools enable coding agents **to treat experimentation as a coding
-  problem**, increasing their ability to quickly and reliably execute the
-  research loop.
+- **Defines Campaigns as Verifiable Code:** Provides rich, strictly typed,
+  objects for defining experiment campaigns, giving flexibility in design while
+  guaranteeing they can be executed.
+- **Simplifies Execution** : Seamlessly executes campaigns on remote clusters,
+  hiding complex setup and handling the distributed plumbing.
+- **Durable Structured Memory:** Automatically captures designs, executions, and
+  measurements in local or shared SQL databases
+- **Adapt to Any Domain:** Its flexible plugin model allows extending these core
+  capabilities to your specific research field.
+- **Empowers Agent-Driven Research**: The verifiable objects, executable APIs,
+  and durable memory enable coding agents to treat experimentation as a coding
+  problem.
 
 ## At its _core_
 
@@ -33,7 +36,7 @@ analyze your experiments**.
 | **Sample Store**    | Stores the results of measurements, and enables Operations to transparently reuse existing results (memoization).                            |
 
 In **ado** the research loop involves defining a Discovery Space, exploring it
-with an Operation, analyzing the results with additional Operations and
+with an Operation, analyzing the results with additional Operations, and
 repeating.
 
 You can create your own Experiments to use in a Discovery Space, and your own
@@ -44,8 +47,7 @@ Operators others have created.
 
 The following toy example runs a small experiment campaign that samples
 combinations of mass and volume, computes density at each point, and stores the
-results. It uses an experiment added to ado by simply decorating a Python
-function:
+results. It uses an experiment added to ado by decorating a Python function:
 
 ```python
 from typing import Any

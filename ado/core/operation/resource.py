@@ -19,6 +19,7 @@ from ado.core.resources import (
     ADOResourceStatus,
     CoreResourceKinds,
 )
+from ado.schema.reference import ExperimentReference
 
 
 class OperationResourceEventEnum(enum.Enum):
@@ -73,6 +74,25 @@ class OperationProvenanceInfo(ProvenanceInfo):
             default_factory=dict,
             description=(
                 "Mapping of operator identifier to the Python distribution that "
+                "provided it at the time this operation was created."
+            ),
+        ),
+    ]
+    experiments: Annotated[
+        list[ExperimentReference],
+        pydantic.Field(
+            default_factory=list,
+            description=(
+                "Experiments used in operation to satisfy the requirements of the measurement space "
+            ),
+        ),
+    ]
+    actuators: Annotated[
+        dict[str, PackageProvenance],
+        pydantic.Field(
+            default_factory=dict,
+            description=(
+                "Mapping of actuator identifier to the Python distribution that "
                 "provided it at the time this operation was created."
             ),
         ),

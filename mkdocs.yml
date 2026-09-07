@@ -127,6 +127,9 @@ markdown_extensions:
   toc:
     permalink: true
     toc_depth: 4
+# Recording sources for docs/videos, not publishable content
+exclude_docs: |
+  videos/tapes/
 plugins:
   - search:
   - mike:

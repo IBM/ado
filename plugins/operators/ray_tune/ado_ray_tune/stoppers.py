@@ -181,15 +181,6 @@ def format_stopper_run_report(report: AggregateStopperReports) -> str:
     return "\n".join(lines)
 
 
-def emit_stopper_run_report(report: AggregateStopperReports) -> None:
-    """Print the stop summary and stopper logs to stdout.
-
-    Args:
-        report: Messages produced by ``report_stoppers_after_fit``.
-    """
-    print(format_stopper_run_report(report))
-
-
 class SimpleStopper(AdoStopperMixin, ray.tune.Stopper):
     def __init__(self) -> None:
         self.min_trials = None

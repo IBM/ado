@@ -445,15 +445,14 @@ Each of these are described in more detail, along with their parameters,
 
 !!! info end
 
-    When a stopper ends a ray_tune operation this is logged in
-    ado stdout.
+    When a stopper ends a ray_tune operation, an informational message is
+    printed to stdout.
 
-    Any stopper logs, summarizing their final state, are also printed.
-    This is done regardless if a stopper fired or not. This allows
-    examining, for example, how close stoppers were to firing when the
-    operation stopped.
+    The final state of every stopper defined in the operation is also printed,
+    regardless of whether it triggered. This makes it possible to see, for example,
+    how close each stopper was to triggering when the operation stopped.
 
-    The logs are also stored in the datacontainer output by ray_tune.
+    These messages are also stored in the datacontainer produced by ray_tune.
 
 <!-- markdownlint-enable descriptive-link-text -->
 

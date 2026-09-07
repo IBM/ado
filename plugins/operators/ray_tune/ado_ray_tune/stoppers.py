@@ -137,21 +137,15 @@ def _stop_reason(triggered: list[StopperReport]) -> str:
 
 def report_stoppers_after_fit(
     stop: Stopper | None,
-    *,
-    num_trials: int,
-    num_samples: int | None = None,
 ) -> AggregateStopperReports:
     """Build the stop summary after tuner.fit().
 
     Args:
         stop: The RunConfig stopper (possibly a CombinedStopper).
-        num_trials: Number of trials in the ResultGrid.
-        num_samples: ``tuneConfig.num_samples``, if set.
 
     Returns:
         Stop reason plus per-stopper names and logs.
     """
-    del num_trials, num_samples
     stoppers = flatten_stoppers(stop)
     if not stoppers:
         return AggregateStopperReports(

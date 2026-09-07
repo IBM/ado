@@ -635,11 +635,7 @@ def tune(
         OperationExitStateEnum.FAIL if failed_trials else OperationExitStateEnum.SUCCESS
     )
 
-    stopper_report = report_stoppers_after_fit(
-        ray_runtime_config.stop,
-        num_trials=len(results),
-        num_samples=getattr(ray_tune_config, "num_samples", None),
-    )
+    stopper_report = report_stoppers_after_fit(ray_runtime_config.stop)
 
     if stopper_report is not None:
         print(format_stopper_run_report(stopper_report))

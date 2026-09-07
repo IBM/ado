@@ -144,7 +144,7 @@ class TestReportStoppersAfterFit:
 
     def test_no_stoppers_is_sampling_budget(self) -> None:
         """With no stopper configured, halt because the sampling budget was reached."""
-        report = report_stoppers_after_fit(None, num_trials=10, num_samples=10)
+        report = report_stoppers_after_fit(None)
         assert report.stop_reason == SAMPLING_BUDGET_STOP_REASON
         assert report.triggered == []
         assert report.not_triggered == []
@@ -156,7 +156,7 @@ class TestReportStoppersAfterFit:
     ) -> None:
         """When InformationGain did not fire, report budget halt and its last log."""
         stopper = _with_ranking(_information_gain_stopper())
-        report = report_stoppers_after_fit(stopper, num_trials=32, num_samples=32)
+        report = report_stoppers_after_fit(stopper)
 
         assert report.stop_reason == SAMPLING_BUDGET_STOP_REASON
         assert report.triggered == []
@@ -180,7 +180,7 @@ class TestReportStoppersAfterFit:
         """When InformationGain fired, halt names it and prints its log."""
         stopper = _with_ranking(_information_gain_stopper())
         stopper.should_stop = True
-        report = report_stoppers_after_fit(stopper, num_trials=14, num_samples=32)
+        report = report_stoppers_after_fit(stopper)
 
         assert (
             report.stop_reason
@@ -212,7 +212,7 @@ class TestReportStoppersAfterFit:
         information_gain = _with_ranking(_information_gain_stopper())
         combined = CombinedStopper(max_samples, information_gain)
 
-        report = report_stoppers_after_fit(combined, num_trials=10, num_samples=100)
+        report = report_stoppers_after_fit(combined)
 
         assert (
             report.stop_reason

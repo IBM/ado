@@ -81,7 +81,7 @@ ado show measurements operation --use-latest
 ![Terminal recording of ado listing the installed experiments, describing
 calculate_density, viewing the discovery space definition, running an operation
 across it and printing the resulting
-measurements](docs/videos/readme_try_it_out.gif)
+measurements](https://github.com/user-attachments/assets/876ee1fc-1b59-45cc-ab23-9042ea2b6f8f)
 
 For a deeper walkthrough, see the
 [density example tutorial](https://ibm.github.io/ado/latest/user-guide/examples/tutorials/density-example/).

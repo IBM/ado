@@ -32,11 +32,11 @@ configure_logging()
 moduleLog = logging.getLogger("setup")
 
 
-def find_fqi_differences(
+def find_fully_qualified_identifier_mismatch(
     registry: ActuatorRegistry, measurement_space: MeasurementSpace
 ) -> list[tuple[Experiment, Experiment]]:
-    """Returns (registry experiment, measurement space experiment) pairs with same major version identifier but different fully qualified identifiers. 
-
+    """Returns (registry experiment, measurement space experiment) pairs
+    with same major version identifier but different fully qualified identifiers.
 
     Returns: A list of tuples with two elements. Each tuple is a FQI difference
         The first element in the tuple is an experiment from the measurement space.
@@ -98,7 +98,7 @@ def setup_actuators(
     for (
         space_experiment,
         catalog_experiment,
-    ) in find_fqi_differences(
+    ) in find_fully_qualified_identifier_mismatch(
         registry=registry, measurement_space=discovery_space.measurementSpace
     ):
         print(

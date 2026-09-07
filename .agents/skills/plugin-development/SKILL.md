@@ -236,7 +236,8 @@ uv run ado get operators
 and confirm the plugin is installed
 
 - **Experiment execution**: Use the `run_experiment` tool to verify
-  custom_experiment or actuator experiments can execute successfully
+  custom_experiment or actuator experiments can execute successfully — see
+  [run-experiment](../run-experiment/SKILL.md)
 
 For example:
 

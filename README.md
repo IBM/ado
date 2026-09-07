@@ -16,9 +16,9 @@ analyze your experiments**.
   cross-domain schemas for defining experiment campaigns. A valid campaign
   definition has strong execution guarantees.
 - **Simplifies Execution** : Handles the complex setup and
-  distributed plumbing of scale-out campaign execution
+  distributed plumbing of scale-out campaign execution.
 - **Persistent Storage:** Automatically captures campaign definitions and
-  measurements in local or shared SQL databases
+  measurements in local or shared SQL databases.
 - **Adapt to Any Domain:** Its flexible plugin model allows extending these core
   capabilities to your specific research field.
 - **Empowers Agent-Driven Research**: The verifiable schemas, executable APIs,

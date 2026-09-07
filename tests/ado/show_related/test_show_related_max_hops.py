@@ -21,7 +21,7 @@ from tests.conftest import requires_sqlite_3_38
 
 
 @requires_sqlite_3_38
-def test_show_related_max_hops_default_traverses_full_hierarchy(
+def test_show_related_max_hops_default_excludes_grandparent(
     tmp_path: pathlib.Path,
     sql_store_with_resources_preloaded: SQLStore,
     valid_ado_project_context: ProjectContext,
@@ -30,7 +30,7 @@ def test_show_related_max_hops_default_traverses_full_hierarchy(
     sample_store_resource: SampleStoreResource,
     create_active_ado_context: Callable,
 ) -> None:
-    """Without --max-hops the full hierarchy is returned (samplestore visible from operation)."""
+    """Without --max-hops the default of 1 hop is used (samplestore not visible from operation)."""
     runner = CliRunner()
     create_active_ado_context(
         runner=runner,
@@ -50,7 +50,8 @@ def test_show_related_max_hops_default_traverses_full_hierarchy(
 
     assert result.exit_code == 0
     assert discovery_space_resource.identifier in result.output
-    assert sample_store_resource.identifier in result.output
+    # samplestore is 2 hops away; must be absent with the default of 1 hop
+    assert sample_store_resource.identifier not in result.output
 
 
 @requires_sqlite_3_38

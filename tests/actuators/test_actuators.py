@@ -89,6 +89,7 @@ def test_custom_experiments(
         "nevergrad_opt_3d_test_func",
         "calculate_pressure_ideal_gas",
         "calculate_pressure_gas",
+        "controlled_error",
     }
     if sys.version_info >= (3, 14):
         # TODO: add autoconf experiments back once it supports Python 3.14+.

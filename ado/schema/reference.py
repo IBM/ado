@@ -1,7 +1,6 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-import re
 import typing
 from typing import Annotated
 
@@ -10,24 +9,14 @@ from pydantic import ConfigDict
 
 from ado.schema.property import (
     ConstitutiveProperty,
-    ConstitutivePropertyDescriptor,
 )
 from ado.schema.property_value import (
     ConstitutivePropertyValue,
 )
 from ado.utilities.pydantic import (
-    _STRICT_SEMVER_PATTERN,
     StrictSemVerStr,
     semver_major,
 )
-
-_FQ_VERSION_WITH_PARAMS_PATTERN = re.compile(
-    r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-(.*))?$"
-)
-_MAJOR_VERSION_ID_SUFFIX_PATTERN = re.compile(r"^v(0|[1-9]\d*)$")
-# Split parameterization segments on '-' only before the next prop.value pair,
-# not on '-' that begins a negative numeric value (e.g. test_opt2.-1).
-_PARAMETERIZATION_SEGMENT_SPLIT = re.compile(r"-(?=[^.-][^.]*\.)")
 
 
 def reference_string_from_fields(
@@ -36,192 +25,6 @@ def reference_string_from_fields(
     """This method defines the identifier string used by ExperimentReference and Experiment"""
 
     return f"{actuator_identifier}.{experiment_identifier}"
-
-
-def _coerce_parameter_value(value_str: str) -> typing.Any:  # noqa: ANN401
-    """Coerce a parameterization value string to a Python scalar."""
-    if value_str == "True":
-        return True
-    if value_str == "False":
-        return False
-    try:
-        return int(value_str)
-    except ValueError:
-        pass
-    try:
-        return float(value_str)
-    except ValueError:
-        pass
-    return value_str
-
-
-def _is_parameterization_segment(segment: str) -> bool:
-    """Return True if *segment* is a ``propertyIdentifier.value`` pair."""
-    if "." not in segment:
-        return False
-    property_identifier, _separator, value_str = segment.partition(".")
-    if not property_identifier or value_str == "":
-        return False
-    hyphen_index = value_str.find("-")
-    return hyphen_index == -1 or hyphen_index == 0
-
-
-def _split_base_and_parameterization_suffix(
-    experiment_part: str,
-) -> tuple[str, str | None]:
-    """Split an experiment part into base identifier and parameterization suffix.
-
-    Scans ``-``-delimited segments left to right using
-    :data:`_PARAMETERIZATION_SEGMENT_SPLIT`.  All segments before the first
-    ``propertyIdentifier.value`` pair belong to the base experiment identifier;
-    from that segment onward is parameterization.
-
-    Args:
-        experiment_part: Experiment substring without actuator prefix.
-
-    Returns:
-        Base experiment identifier and parameterization suffix, or ``None`` when
-        no parameterization is present.
-
-    Raises:
-        ValueError: If parameterization would begin before a base identifier.
-    """
-    if "-" not in experiment_part:
-        return experiment_part, None
-
-    segments = _PARAMETERIZATION_SEGMENT_SPLIT.split(experiment_part)
-    param_start: int | None = None
-    for index, segment in enumerate(segments):
-        if _is_parameterization_segment(segment):
-            param_start = index
-            break
-
-    if param_start is None:
-        invalid_attempt = next(
-            (segment for segment in segments if "." in segment),
-            None,
-        )
-        if invalid_attempt is not None:
-            raise ValueError(
-                f"Invalid parameterization segment {invalid_attempt!r} in experiment "
-                f"reference string {experiment_part!r}. "
-                "Expected 'propertyIdentifier.value'."
-            )
-        return experiment_part, None
-
-    if param_start == 0 or not "-".join(segments[:param_start]):
-        raise ValueError(
-            f"Invalid experiment reference string {experiment_part!r}. "
-            "Parameterization cannot appear before the base experiment identifier."
-        )
-
-    invalid_segment = next(
-        (
-            segment
-            for segment in segments[param_start:]
-            if not _is_parameterization_segment(segment)
-        ),
-        None,
-    )
-    if invalid_segment is not None:
-        raise ValueError(
-            f"Invalid parameterization segment {invalid_segment!r} in experiment "
-            f"reference string {experiment_part!r}. "
-            "Expected 'propertyIdentifier.value'."
-        )
-
-    base_identifier = "-".join(segments[:param_start])
-    parameterization_suffix = "-".join(segments[param_start:])
-    return base_identifier, parameterization_suffix
-
-
-def _parameterization_from_suffix(
-    parameterization_suffix: str,
-) -> list[ConstitutivePropertyValue]:
-    """Parse a ``prop.val-prop2.val2`` suffix into property values."""
-    parameterization: list[ConstitutivePropertyValue] = []
-    segments = _PARAMETERIZATION_SEGMENT_SPLIT.split(parameterization_suffix)
-    for segment in segments:
-        if "." not in segment:
-            raise ValueError(
-                f"Invalid parameterization segment {segment!r} in experiment reference string. "
-                "Expected 'propertyIdentifier.value'."
-            )
-        property_identifier, value_str = segment.split(".", maxsplit=1)
-        parameterization.append(
-            ConstitutivePropertyValue(
-                property=ConstitutivePropertyDescriptor(identifier=property_identifier),
-                value=_coerce_parameter_value(value_str),
-            )
-        )
-    return parameterization
-
-
-def _parse_experiment_part_from_string(
-    experiment_part: str,
-    *,
-    allow_parameterization: bool = True,
-) -> tuple[str, StrictSemVerStr | None, list[ConstitutivePropertyValue] | None]:
-    """Parse the experiment portion of a reference string.
-
-    Args:
-        experiment_part: The substring after ``actuatorIdentifier.`` in a
-            reference string representation.
-        allow_parameterization: When ``False``, treat the experiment part as a
-            plain identifier (no ``propertyIdentifier.value`` suffix parsing).
-
-    Returns:
-        A tuple of base experiment identifier, optional strict SemVer version,
-        and optional parameterization values.
-    """
-    if "@" in experiment_part:
-        base_identifier, version_and_params = experiment_part.split("@", maxsplit=1)
-        if not allow_parameterization:
-            version_match = re.match(_STRICT_SEMVER_PATTERN, version_and_params)
-            if version_match is not None:
-                version: StrictSemVerStr = f"{version_match.group(1)}.{version_match.group(2)}.{version_match.group(3)}"
-                return base_identifier, version, None
-            major_version_match = _MAJOR_VERSION_ID_SUFFIX_PATTERN.match(
-                version_and_params
-            )
-            if major_version_match is not None:
-                major = major_version_match.group(1)
-                return base_identifier, f"{major}.0.0", None
-            raise ValueError(
-                f"Cannot parse version suffix in {experiment_part!r}. "
-                "Version must be strict SemVer MAJOR.MINOR.PATCH (e.g. @1.0.0) "
-                "or a major version identifier (e.g. @v1)."
-            )
-        version_match = _FQ_VERSION_WITH_PARAMS_PATTERN.match(version_and_params)
-        if version_match is not None:
-            version = f"{version_match.group(1)}.{version_match.group(2)}.{version_match.group(3)}"
-            parameterization_suffix = version_match.group(4)
-            parameterization = (
-                _parameterization_from_suffix(parameterization_suffix)
-                if parameterization_suffix
-                else None
-            )
-            return base_identifier, version, parameterization
-        raise ValueError(
-            f"Cannot parse version suffix in {experiment_part!r}. "
-            "Version must be strict SemVer MAJOR.MINOR.PATCH (e.g. @1.0.0). "
-            "Legacy forms like @v1 are not supported."
-        )
-
-    if not allow_parameterization:
-        return experiment_part, None, None
-
-    base_identifier, parameterization_suffix = _split_base_and_parameterization_suffix(
-        experiment_part
-    )
-    if parameterization_suffix is None:
-        return experiment_part, None, None
-
-    return (
-        base_identifier,
-        None,
-        _parameterization_from_suffix(parameterization_suffix),
-    )
 
 
 class ExperimentReference(pydantic.BaseModel):
@@ -299,64 +102,6 @@ class ExperimentReference(pydantic.BaseModel):
         if self.experimentVersion is not None:
             return f"{self.experimentIdentifier}@{self.experimentVersion}"
         return self.experimentIdentifier
-
-    @classmethod
-    def referenceFromString(
-        cls,
-        stringRepresentation: str,
-        *,
-        allow_parameterization: bool = True,
-    ) -> "ExperimentReference":
-        """Convert a string representation into an ExperimentReference.
-
-        Parses strings of the form ``'{actuatorId}.{experimentId}'``, where
-        ``experimentId`` may include an ``@MAJOR.MINOR.PATCH`` suffix and
-        optional parameterization produced by :meth:`__str__` (e.g.
-        ``'my_actuator.solve_mip@1.0.3'`` or
-        ``'my_actuator.solve_mip@1.0.3-timeout.120'``).
-
-        When no ``@MAJOR.MINOR.PATCH`` suffix is present, ``experimentVersion``
-        is set to ``None``.
-
-        The ``actuatorId`` must not contain periods.
-
-        Args:
-            stringRepresentation: The string to parse.
-            allow_parameterization: When ``False``, do not parse
-                ``propertyIdentifier.value`` suffixes from the experiment part.
-
-        Returns:
-            A new ExperimentReference.
-
-        Raises:
-            ValueError: If the string contains no period separator.
-        """
-        try:
-            actuator_identifier, experiment_part = stringRepresentation.split(
-                ".", maxsplit=1
-            )
-        except Exception as error:
-            raise ValueError(
-                f"String, {stringRepresentation} is not a valid representation of an ExperimentReference. "
-                f"At least one '.' is required to separate actuator id from experiment id. "
-                f"If actuator id contains a period this method will not be able to parse the id from the reference string representation"
-                f"Underlying error: {error}"
-            ) from error
-
-        (
-            experiment_identifier,
-            experiment_version,
-            parameterization,
-        ) = _parse_experiment_part_from_string(
-            experiment_part, allow_parameterization=allow_parameterization
-        )
-
-        return cls(
-            experimentIdentifier=experiment_identifier,
-            actuatorIdentifier=actuator_identifier,
-            experimentVersion=experiment_version,
-            parameterization=parameterization,
-        )
 
     def __str__(self) -> str:
         return reference_string_from_fields(

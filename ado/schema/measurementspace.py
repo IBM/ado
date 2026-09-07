@@ -140,30 +140,20 @@ class MeasurementSpace:
     @classmethod
     def measurementSpaceFromExperimentReferences(
         cls,
-        experimentReferences: list[str | ExperimentReference],
+        experimentReferences: list[ExperimentReference],
     ) -> "MeasurementSpace":
+        """Create a MeasurementSpace from a list of ExperimentReference objects.
+
+        Args:
+            experimentReferences: List of ExperimentReference objects describing
+                the experiments to include in the measurement space.
+
+        Returns:
+            A new MeasurementSpace configured for the given experiment references.
         """
-        Class method for creating a MeasurementSpace from a list of experiment references.
-
-        experimentReferences can be a list of
-        - ExperimentReference objects
-        - string representations of ExperimentReferences. These are strings like {actuator id}.{experiment name}
-        - a mixture of both
-
-        """
-
-        stringRepresentations = [
-            r for r in experimentReferences if not isinstance(r, ExperimentReference)
-        ]
-        referenceModels = [
-            r for r in experimentReferences if isinstance(r, ExperimentReference)
-        ]
-
-        references = [
-            ExperimentReference.referenceFromString(x) for x in stringRepresentations
-        ] + referenceModels
-
-        return cls.measurementSpaceFromSelection(selectedExperiments=references)
+        return cls.measurementSpaceFromSelection(
+            selectedExperiments=experimentReferences
+        )
 
     def __init__(self, configuration: MeasurementSpaceConfiguration) -> None:
         """

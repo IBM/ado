@@ -4,13 +4,13 @@
 """Tests for ado Ray Tune stopper status reporting."""
 
 from ado_ray_tune.stoppers import (
-    SAMPLING_BUDGET_HALT_REASON,
+    SAMPLING_BUDGET_STOP_REASON,
     BayesianMetricDifferenceStopper,
     InformationGainStopper,
     MaxSamplesStopper,
     SimpleStopper,
+    flatten_stoppers,
     format_stopper_run_report,
-    iter_stoppers,
     report_stoppers_after_fit,
 )
 from ray.tune.stopper import CombinedStopper, TimeoutStopper
@@ -65,13 +65,13 @@ class TestIterStoppers:
 
     def test_none_returns_empty(self) -> None:
         """None yields no stoppers."""
-        assert iter_stoppers(None) == []
+        assert flatten_stoppers(None) == []
 
     def test_single_stopper(self) -> None:
         """A single stopper is returned as a one-element list."""
         stopper = MaxSamplesStopper()
         stopper.set_config(max_samples=10)
-        assert iter_stoppers(stopper) == [stopper]
+        assert flatten_stoppers(stopper) == [stopper]
 
     def test_combined_stopper_unwraps_children(self) -> None:
         """CombinedStopper children are returned in order."""
@@ -80,7 +80,7 @@ class TestIterStoppers:
         second = SimpleStopper()
         second.set_config(mode="min", metric="loss")
         combined = CombinedStopper(first, second)
-        assert iter_stoppers(combined) == [first, second]
+        assert flatten_stoppers(combined) == [first, second]
 
     def test_nested_combined_stopper(self) -> None:
         """Nested CombinedStopper (e.g. TimeoutStopper wrap) is flattened."""
@@ -88,7 +88,7 @@ class TestIterStoppers:
         ado_stopper.set_config(max_samples=10)
         timeout = TimeoutStopper(timeout=30)
         nested = CombinedStopper(CombinedStopper(ado_stopper), timeout)
-        unwrapped = iter_stoppers(nested)
+        unwrapped = flatten_stoppers(nested)
         assert unwrapped == [ado_stopper, timeout]
 
 
@@ -145,11 +145,11 @@ class TestReportStoppersAfterFit:
     def test_no_stoppers_is_sampling_budget(self) -> None:
         """With no stopper configured, halt because the sampling budget was reached."""
         report = report_stoppers_after_fit(None, num_trials=10, num_samples=10)
-        assert report.halt_reason == SAMPLING_BUDGET_HALT_REASON
+        assert report.stop_reason == SAMPLING_BUDGET_STOP_REASON
         assert report.triggered == []
         assert report.not_triggered == []
-        assert report.stopper_logs() == {}
-        assert format_stopper_run_report(report) == SAMPLING_BUDGET_HALT_REASON
+        assert report.report_by_stopper() == {}
+        assert format_stopper_run_report(report) == SAMPLING_BUDGET_STOP_REASON
 
     def test_information_gain_did_not_fire_uses_budget_and_last_status(
         self,
@@ -158,18 +158,18 @@ class TestReportStoppersAfterFit:
         stopper = _with_ranking(_information_gain_stopper())
         report = report_stoppers_after_fit(stopper, num_trials=32, num_samples=32)
 
-        assert report.halt_reason == SAMPLING_BUDGET_HALT_REASON
+        assert report.stop_reason == SAMPLING_BUDGET_STOP_REASON
         assert report.triggered == []
         assert len(report.not_triggered) == 1
         assert report.not_triggered[0].name == "InformationGainStopper"
         assert report.not_triggered[0].log is not None
         assert "Last known ranking" in report.not_triggered[0].log
-        assert report.stopper_logs() == {
+        assert report.report_by_stopper() == {
             "InformationGainStopper": report.not_triggered[0].log
         }
 
         formatted = format_stopper_run_report(report)
-        assert formatted.startswith(SAMPLING_BUDGET_HALT_REASON)
+        assert formatted.startswith(SAMPLING_BUDGET_STOP_REASON)
         assert (
             "The following stoppers did not fire. InformationGainStopper." in formatted
         )
@@ -183,7 +183,7 @@ class TestReportStoppersAfterFit:
         report = report_stoppers_after_fit(stopper, num_trials=14, num_samples=32)
 
         assert (
-            report.halt_reason
+            report.stop_reason
             == "RayTune operation stopped because of stopper InformationGainStopper."
         )
         assert len(report.triggered) == 1
@@ -191,7 +191,7 @@ class TestReportStoppersAfterFit:
         assert report.triggered[0].log is not None
         assert "Stopping criteria reached after 14 samples" in report.triggered[0].log
         assert report.not_triggered == []
-        assert report.stopper_logs() == {
+        assert report.report_by_stopper() == {
             "InformationGainStopper": report.triggered[0].log
         }
 
@@ -215,7 +215,7 @@ class TestReportStoppersAfterFit:
         report = report_stoppers_after_fit(combined, num_trials=10, num_samples=100)
 
         assert (
-            report.halt_reason
+            report.stop_reason
             == "RayTune operation stopped because of stopper MaxSamplesStopper."
         )
         assert [status.name for status in report.triggered] == ["MaxSamplesStopper"]
@@ -225,7 +225,7 @@ class TestReportStoppersAfterFit:
         ]
         assert report.not_triggered[0].log is not None
         assert "Last known ranking" in report.not_triggered[0].log
-        assert report.stopper_logs() == {
+        assert report.report_by_stopper() == {
             "InformationGainStopper": report.not_triggered[0].log
         }
 

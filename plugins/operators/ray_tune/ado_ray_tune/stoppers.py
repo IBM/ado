@@ -29,30 +29,30 @@ class AdoStopperMixin:
         return None
 
 
-SAMPLING_BUDGET_HALT_REASON = (
+SAMPLING_BUDGET_STOP_REASON = (
     "RayTune operation stopped because sampling budget reached."
 )
 
 
-class StopperStatus(NamedTuple):
+class StopperReport(NamedTuple):
     """Name and optional final log for one stopper after a run."""
 
     name: str
     log: str | None
 
 
-class StopperRunReport(NamedTuple):
-    """Halt reason and per-stopper status after tuner.fit()."""
+class AggregateStopperReports(NamedTuple):
+    """Stop reason and per-stopper status after tuner.fit()."""
 
-    halt_reason: str
-    triggered: list[StopperStatus]
-    not_triggered: list[StopperStatus]
+    stop_reason: str
+    triggered: list[StopperReport]
+    not_triggered: list[StopperReport]
 
-    def stopper_logs(self) -> dict[str, str]:
-        """Return name to log for stoppers that produced a final report.
+    def report_by_stopper(self) -> dict[str, str]:
+        """Return name to log map for stoppers that have a report.
 
         Returns:
-            A mapping of stopper class name to ``final_report()`` text.
+            A mapping of stopper class name to its recorded log.
         """
         logs: dict[str, str] = {}
         for status in (*self.triggered, *self.not_triggered):
@@ -61,7 +61,7 @@ class StopperRunReport(NamedTuple):
         return logs
 
 
-def iter_stoppers(stop: Stopper | None) -> list[Stopper]:
+def flatten_stoppers(stop: Stopper | None) -> list[Stopper]:
     """Return configured stoppers, unwrapping nested CombinedStopper instances.
 
     Args:
@@ -69,17 +69,21 @@ def iter_stoppers(stop: Stopper | None) -> list[Stopper]:
 
     Returns:
         The leaf stoppers in configuration order.
+
+    Raises:
+        ValueError if the passed object is not a Stopper instance
     """
     if stop is None:
         return []
     if isinstance(stop, CombinedStopper):
         result: list[Stopper] = []
         for child in stop._stoppers:
-            result.extend(iter_stoppers(child))
+            result.extend(flatten_stoppers(child))
         return result
     if isinstance(stop, Stopper):
         return [stop]
-    return []
+
+    raise ValueError("Passed object is not a Stopper instance")
 
 
 def stopper_did_trigger(stopper: Stopper) -> bool:
@@ -102,7 +106,7 @@ def stopper_did_trigger(stopper: Stopper) -> bool:
     return bool(stopper.stop_all())
 
 
-def _stopper_status(stopper: Stopper) -> StopperStatus:
+def _stopper_status(stopper: Stopper) -> StopperReport:
     """Build a status record from a stopper instance.
 
     Args:
@@ -113,11 +117,11 @@ def _stopper_status(stopper: Stopper) -> StopperStatus:
     """
     final_report = getattr(stopper, "final_report", None)
     log = final_report() if callable(final_report) else None
-    return StopperStatus(name=type(stopper).__name__, log=log or None)
+    return StopperReport(name=type(stopper).__name__, log=log or None)
 
 
-def _halt_reason(triggered: list[StopperStatus]) -> str:
-    """Return the one-line halt reason for a run.
+def _stop_reason(triggered: list[StopperReport]) -> str:
+    """Return the one-line stop reason for a run.
 
     Args:
         triggered: Stoppers that reported they ended the experiment.
@@ -126,7 +130,7 @@ def _halt_reason(triggered: list[StopperStatus]) -> str:
         Sampling-budget wording, or a sentence naming the triggered stoppers.
     """
     if not triggered:
-        return SAMPLING_BUDGET_HALT_REASON
+        return SAMPLING_BUDGET_STOP_REASON
     names = ", ".join(status.name for status in triggered)
     return f"RayTune operation stopped because of stopper {names}."
 
@@ -136,8 +140,8 @@ def report_stoppers_after_fit(
     *,
     num_trials: int,
     num_samples: int | None = None,
-) -> StopperRunReport:
-    """Build the halt summary after tuner.fit().
+) -> AggregateStopperReports:
+    """Build the stop summary after tuner.fit().
 
     Args:
         stop: The RunConfig stopper (possibly a CombinedStopper).
@@ -145,28 +149,28 @@ def report_stoppers_after_fit(
         num_samples: ``tuneConfig.num_samples``, if set.
 
     Returns:
-        Halt reason plus per-stopper names and logs.
+        Stop reason plus per-stopper names and logs.
     """
     del num_trials, num_samples
-    stoppers = iter_stoppers(stop)
+    stoppers = flatten_stoppers(stop)
     if not stoppers:
-        return StopperRunReport(
-            halt_reason=SAMPLING_BUDGET_HALT_REASON,
+        return AggregateStopperReports(
+            stop_reason=SAMPLING_BUDGET_STOP_REASON,
             triggered=[],
             not_triggered=[],
         )
 
     triggered = [_stopper_status(s) for s in stoppers if stopper_did_trigger(s)]
     not_triggered = [_stopper_status(s) for s in stoppers if not stopper_did_trigger(s)]
-    return StopperRunReport(
-        halt_reason=_halt_reason(triggered),
+    return AggregateStopperReports(
+        stop_reason=_stop_reason(triggered),
         triggered=triggered,
         not_triggered=not_triggered,
     )
 
 
-def format_stopper_run_report(report: StopperRunReport) -> str:
-    """Format the halt summary and stopper logs for stdout.
+def format_stopper_run_report(report: AggregateStopperReports) -> str:
+    """Format the stop summary and stopper logs for stdout.
 
     Args:
         report: Messages produced by ``report_stoppers_after_fit``.
@@ -174,7 +178,7 @@ def format_stopper_run_report(report: StopperRunReport) -> str:
     Returns:
         Text to print at the end of ``RayTune.run()``.
     """
-    lines = [report.halt_reason]
+    lines = [report.stop_reason]
     lines.extend(status.log for status in report.triggered if status.log)
     for status in report.not_triggered:
         lines.append(f"The following stoppers did not fire. {status.name}.")
@@ -183,8 +187,8 @@ def format_stopper_run_report(report: StopperRunReport) -> str:
     return "\n".join(lines)
 
 
-def emit_stopper_run_report(report: StopperRunReport) -> None:
-    """Print the halt summary and stopper logs to stdout.
+def emit_stopper_run_report(report: AggregateStopperReports) -> None:
+    """Print the stop summary and stopper logs to stdout.
 
     Args:
         report: Messages produced by ``report_stoppers_after_fit``.

@@ -65,10 +65,10 @@ from .config import (
 )
 from .samplers import LhuSampler
 from .stoppers import (
-    SAMPLING_BUDGET_HALT_REASON,
-    StopperRunReport,
+    SAMPLING_BUDGET_STOP_REASON,
+    AggregateStopperReports,
     emit_stopper_run_report,
-    iter_stoppers,
+    flatten_stoppers,
     report_stoppers_after_fit,
 )
 
@@ -526,7 +526,7 @@ class TuneOutput(NamedTuple):
     result: ray.tune.Result
     exit_state: OperationExitStateEnum
     error: str = None
-    stopper_report: StopperRunReport | None = None
+    stopper_report: AggregateStopperReports | None = None
 
 
 @ray.remote
@@ -562,7 +562,7 @@ def tune(
     if "InformationGainStopper" in configured_stoppers:
         IG_stopper = next(
             s
-            for s in iter_stoppers(ray_runtime_config.stop)
+            for s in flatten_stoppers(ray_runtime_config.stop)
             if type(s).__name__ == "InformationGainStopper"
         )
 
@@ -644,7 +644,7 @@ def tune(
     if stopper_report is not None:
         emit_stopper_run_report(stopper_report)
     else:
-        print(SAMPLING_BUDGET_HALT_REASON)
+        print(SAMPLING_BUDGET_STOP_REASON)
 
     return TuneOutput(
         exit_state=operation_status,
@@ -915,10 +915,10 @@ class RayTune(Explore):
                     search_space, config=self.params, parameters=internal_parameters
                 )
 
-                halt_reason = (
-                    output.stopper_report.halt_reason
+                stop_reason = (
+                    output.stopper_report.stop_reason
                     if output.stopper_report is not None
-                    else SAMPLING_BUDGET_HALT_REASON
+                    else SAMPLING_BUDGET_STOP_REASON
                 )
 
                 self.log.debug(f"Tune Result: {output}")
@@ -929,14 +929,14 @@ class RayTune(Explore):
                 }
                 data: dict[str, dict | list | str] = {
                     "best_result": result_dict,
-                    "halt_reason": halt_reason,
+                    "stop_reason": stop_reason,
                 }
 
                 # Add the stopper logs to datacontainer
                 if output.stopper_report is not None:
-                    stopper_logs = output.stopper_report.stopper_logs()
+                    stopper_logs = output.stopper_report.report_by_stopper()
                     if stopper_logs:
-                        data["stopper_logs"] = stopper_logs
+                        data["report_by_stopper"] = stopper_logs
                 resources = [DataContainerResource(config=DataContainer(data=data))]
 
                 if output.exit_state == OperationExitStateEnum.FAIL:
@@ -966,7 +966,7 @@ class RayTune(Explore):
                     operation_output = OperationOutput(
                         resources=resources,
                         exitStatus=OperationResourceStatus(
-                            message=halt_reason,
+                            message=stop_reason,
                             exit_state=OperationExitStateEnum.SUCCESS,
                             event=OperationResourceEventEnum.FINISHED,
                         ),

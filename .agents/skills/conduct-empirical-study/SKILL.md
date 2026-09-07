@@ -17,7 +17,7 @@ of entities: executing experiments to answer research questions, benchmarking, o
 any task where data must be collected across a parameter space.
 
 For measuring **one** entity/point (functional check), use
-`run_experiment` — see [using-ado-cli](../using-ado-cli/SKILL.md) — not this
+`run_experiment` — see [run-experiment](../run-experiment/SKILL.md) — not this
 workflow.
 
 ## Workflow Overview

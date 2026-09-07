@@ -578,7 +578,7 @@ For more details, see:
 
 A successful `ray_tune` operation will create a `datacontainer` resource. It
 always includes `best_result` (the best configuration RayTune found) and the
-`halt_reason` (why the optimization stopped)
+`stop_reason` (why the optimization stopped)
 
 To get the id of the `datacontainer` related to a ray_tune `operation` resource
 with id $OPERATION_IDENTIFIER use:

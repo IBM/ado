@@ -47,19 +47,7 @@ use, or you can define your own.
 
 The following toy example runs a small experiment campaign that samples
 combinations of mass and volume, computes density at each point, and stores the
-results. It uses an experiment added to ado by decorating a Python function:
-
-```python
-from typing import Any
-
-from ado.modules.actuators.custom_experiments import custom_experiment
-
-
-@custom_experiment(output_property_identifiers=["density"])
-def calculate_density(mass: float, volume: float) -> dict[str, Any]:
-    density_value = mass / volume if volume else None
-    return {"density": density_value}
-```
+results.
 
 Install `ado-core` (a virtual environment is recommended). For complete
 instructions see the

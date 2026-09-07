@@ -67,8 +67,8 @@ from .samplers import LhuSampler
 from .stoppers import (
     SAMPLING_BUDGET_STOP_REASON,
     AggregateStopperReports,
-    emit_stopper_run_report,
     flatten_stoppers,
+    format_stopper_run_report,
     report_stoppers_after_fit,
 )
 
@@ -642,7 +642,7 @@ def tune(
     )
 
     if stopper_report is not None:
-        emit_stopper_run_report(stopper_report)
+        print(format_stopper_run_report(stopper_report))
     else:
         print(SAMPLING_BUDGET_STOP_REASON)
 

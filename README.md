@@ -13,7 +13,7 @@ analyze your experiments**.
 ## Why ado?
 
 - **Declarative Experiment Campaigns:** Provides flexible,
-  cross-domain, schemas for defining experiment campaigns. A valid campaign
+  cross-domain schemas for defining experiment campaigns. A valid campaign
   definition has strong execution guarantees.
 - **Simplifies Execution** : Handles the complex setup and
   distributed plumbing of scale-out campaign execution

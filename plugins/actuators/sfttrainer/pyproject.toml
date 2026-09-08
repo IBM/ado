@@ -2,7 +2,7 @@
 name = "ado-sfttrainer"
 description = "An actuator for benchmarking fine-tuning of foundation models"  # Change to describing your actuator
 readme = "ado_actuators/sfttrainer/README.md"
-requires-python = ">=3.10,<3.13"
+requires-python = ">=3.14,<3.15"
 dependencies = ["aim>=3.23.0", "jwt", "psutil", "transformers>=4.44.2"]
 dynamic = ["version"]
 

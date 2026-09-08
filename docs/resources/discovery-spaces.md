@@ -353,7 +353,7 @@ explore operation.
 
 ### Setting the experiment version
 
-`experimentVersion` is the algorithm version of the experiment, a
+The `experimentVersion` field is for the version of the experiment, a
 `MAJOR.MINOR.PATCH` SemVer string. Set it to the value in the `VERSION` column
 of `ado get experiments`, which is also shown by `ado get experiment $ID`.
 

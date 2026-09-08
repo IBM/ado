@@ -118,7 +118,7 @@ ado create space -f space.yaml
 > including defaults and per-property metadata.
 > These can be safely removed to create a more streamlined YAML.
 > See
-> [the configuration YAML](#structure-of-the-discoveryspace-yaml-configuration)
+> [defining property domains](#defining-property-domains)
 > for more.
 
 ## Structure of the `discoveryspace` YAML configuration

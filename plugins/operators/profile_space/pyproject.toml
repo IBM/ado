@@ -1,6 +1,6 @@
 [project]
 name = "ado-profile-space"
-requires-python = ">=3.10,<3.14"
+requires-python = ">=3.14,<3.15"
 # fg-data-profiling's latest release (4.19.1)
 # requires numba<0.63 which is incompatible with
 # Python 3.14

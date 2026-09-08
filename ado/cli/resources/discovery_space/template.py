@@ -48,7 +48,7 @@ def template_discovery_space(parameters: AdoTemplateCommandParameters) -> None:
                 experiments=experiment_references,
             )
         else:
-            model_instance = DiscoverySpaceConfiguration(sampleStoreIdentifier="ID")
+            model_instance = DiscoverySpaceConfiguration()
 
     serialise_pydantic_model(
         model=model_instance,

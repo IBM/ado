@@ -17,6 +17,7 @@ entitySpace:
 experiments:
   - actuatorIdentifier: TrainerActuator
     experimentIdentifier: train_model
+    experimentVersion: 1.0.0
 metadata:
   name: optimizer_comparison
   description: Compare optimizers with different learning rates

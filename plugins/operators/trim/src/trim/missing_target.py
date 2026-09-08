@@ -39,7 +39,8 @@ def record_unmeasured_entity(
     Raises:
         InsufficientDataError: When ``mode`` is ``Error``, or when
             ``total_unmeasured`` has reached or exceeded the configured
-            ``budget``.
+            ``missing_target_measurements.budget`` of measurements with 
+             missing target output.
     """
     msg = f"The measurements obtained for {entity_identifier} did not contain the target output property '{target_output}'."
 

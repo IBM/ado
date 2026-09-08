@@ -407,7 +407,7 @@ This means:
   `peptide_mineralization@v1-temperature.30`.
 
 For the rules experiment authors follow when choosing a version see
-[declaring an algorithm version](../developer-guide/creating-custom-experiments.md#declaring-an-algorithm-version).
+[declaring an experiment version](../developer-guide/creating-custom-experiments.md#declaring-an-experiment-version).
 
 ### Parameterizing experiments
 

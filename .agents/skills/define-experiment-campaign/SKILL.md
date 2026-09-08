@@ -112,6 +112,11 @@ uv run ado describe experiment $EXPERIMENT_ID
 - Required constitutive properties (must be in entity space)
 - Optional properties (can use defaults or add to entity space)
 - Target properties (what the experiment measures)
+- Experiment version (`VERSION` column of `ado get experiments`; also shown by
+  `ado describe experiment`)
+
+Copy `VERSION` into the experiment reference's `experimentVersion` field. Omit
+`experimentVersion` only if the catalog version is `None`.
 
 #### What to do if no experiment matching task available
 
@@ -128,6 +133,10 @@ uv run ado describe experiment $EXPERIMENT_ID
 ```bash
 uv run ado template space --from-experiment $EXPERIMENT_ID --output-file space.yaml
 ```
+
+`--from-experiment` fills `experimentVersion` from the catalog. Keep that field
+when editing the template. If writing YAML by hand, set it from the `VERSION`
+column as above.
 
 **Manual structure:**
 
@@ -199,6 +208,9 @@ Fix validation errors and repeat validation until successful.
    user's query. Explain why.
 4. **Default values** - Only change default values of optional properties if
    necessary. Explain why.
+5. **Set experimentVersion** - Required when the experiment has a version. Use
+   the exact `VERSION` string from the catalog. Do not embed the version in
+   `experimentIdentifier`.
 
 ### Entity Space Refinement Rules
 
@@ -236,6 +248,7 @@ Before finalizing, verify:
 - Optional properties only added if necessary (with explanation)
 - Default values only changed if necessary (with explanation)
 - Domain refinements explained
+- `experimentVersion` matches the catalog `VERSION` (omitted only if `None`)
 - DiscoverySpace YAML validates (`--dry-run`)
 - Operation YAML validates (`--dry-run`)
 - All ado CLI commands and options are valid (uv run ado [COMMAND] --help)
@@ -257,6 +270,20 @@ Before finalizing, verify:
 - **Solution:** Remove properties from entity space that aren't required by any
   experiment
 
+**Issue:** Validation error "Unknown experiment" / "fully_qualified_version"
+
+- **Solution:** The experiment has a version but `experimentVersion` is missing.
+  Set it to the `VERSION` column of `ado get experiments`.
+
+**Issue:** Validation error "Experiment version mismatch"
+
+- **Solution:** `experimentVersion` must match the catalog version exactly.
+
+**Issue:** Validation error "experimentIdentifier must not contain '@'"
+
+- **Solution:** Put the bare experiment id in `experimentIdentifier` and the
+  SemVer string in `experimentVersion`.
+
 **Issue:** Operation validation fails
 
 - **Solution:** Check operator parameters match schema. Use `--include-schema`
@@ -266,6 +293,10 @@ Before finalizing, verify:
 
 - For detailed schema information, see [reference.md](reference.md)
 - For example workflows, see [examples.md](examples.md)
+- For experiment versioning and memoization, see
+  `docs/resources/discovery-spaces.md` (section "Setting the experiment
+  version") if the source repo is available, otherwise
+  <https://ibm.github.io/ado/latest/resources/discovery-spaces/>
 - For Pydantic model details when writing code, see the resource model table and
   schema-inspection snippet in
   [query-ado-data — Using Resource models](../query-ado-data/SKILL.md#using-resource-models)

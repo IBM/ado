@@ -13,8 +13,10 @@ entitySpace:
 experiments:
   - actuatorIdentifier: TrainerActuator
     experimentIdentifier: train_model
+    experimentVersion: 1.0.0
   - actuatorIdentifier: EvaluatorActuator
     experimentIdentifier: evaluate_model
+    experimentVersion: 1.0.0
 metadata:
   name: train_and_evaluate
   description: Train models and evaluate on test set

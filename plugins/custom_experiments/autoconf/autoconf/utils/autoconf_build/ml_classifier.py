@@ -6,9 +6,6 @@ import argparse
 import logging
 import tempfile
 import time
-import urllib.error
-import urllib.parse
-import urllib.request
 from pathlib import Path
 from typing import Any
 
@@ -21,6 +18,11 @@ from autoconf.model_paths import (
     MODEL_VERSION,
     model_path,
 )
+from autoconf.utils.autoconf_build.hf_dataset import (
+    DatasetDownloadError,
+    HuggingFaceDatasetURL,
+    ensure_dataset,
+)
 from autoconf.utils.rule_based_classifier import is_row_valid
 
 logger = logging.getLogger(__name__)
@@ -29,11 +31,18 @@ logger = logging.getLogger(__name__)
 DEFAULT_DATA_ROOT_DIR = (
     Path("plugins") / "custom_experiments" / "autoconf" / "autoconf" / "data"
 )
-DEFAULT_FILE_NAME = "ado-sfttrainer-dataset.csv"
-DEFAULT_DATASET_URL = (
-    "https://huggingface.co/datasets/ibm-research/"
-    "LLMFineTuningBench/resolve/main/ado-sfttrainer-dataset.csv"
-)
+DEFAULT_FILE_NAME = "dataset.csv"
+# HuggingFace dataset URL broken into components for independent validation.
+DEFAULT_HF_BASE_URL = "https://huggingface.co"
+DEFAULT_HF_DATASET_REPO = "ibm-research/LLMFineTuningBench"
+DEFAULT_HF_BRANCH = "main"
+DEFAULT_HF_FILENAME = "ado-sfttrainer-v1-0-0.csv"
+DEFAULT_DATASET_URL = HuggingFaceDatasetURL(
+    base_url=DEFAULT_HF_BASE_URL,
+    dataset_repo=DEFAULT_HF_DATASET_REPO,
+    branch=DEFAULT_HF_BRANCH,
+    filename=DEFAULT_HF_FILENAME,
+).to_url()
 DEFAULT_REFIT = False
 DEFAULT_TRAIN_FRACTION = 1.0
 DEFAULT_PRESET_QUALITY = "medium_quality"
@@ -52,55 +61,8 @@ COLS_TO_USE = [
 TARGET = "is_valid"
 
 
-class DatasetDownloadError(RuntimeError):
-    """Raised when the training dataset cannot be downloaded."""
-
-
-def ensure_dataset(dataset_url: str, data_path: Path) -> Path:
-    """Download the Hugging Face dataset when it is not already available.
-
-    Args:
-        dataset_url: URL of the source CSV on Hugging Face.
-        data_path: Local destination for the CSV.
-
-    Returns:
-        The local dataset path.
-
-    Raises:
-        DatasetDownloadError: If the dataset cannot be downloaded.
-        ValueError: If the dataset URL uses an unsupported scheme.
-    """
-    if data_path.is_file():
-        logger.info("Using existing dataset at %s", data_path)
-        return data_path
-
-    scheme = urllib.parse.urlparse(dataset_url).scheme
-    if scheme not in {"file", "http", "https"}:
-        raise ValueError(f"Unsupported dataset URL scheme: {scheme}")
-
-    data_path.parent.mkdir(parents=True, exist_ok=True)
-    partial_path = data_path.with_suffix(f"{data_path.suffix}.part")
-    logger.info("Downloading dataset from %s to %s", dataset_url, data_path)
-    try:
-        urllib.request.urlretrieve(dataset_url, partial_path)  # noqa: S310
-        partial_path.replace(data_path)
-    except urllib.error.HTTPError as error:
-        raise DatasetDownloadError(
-            f"Could not download the dataset from {dataset_url}: HTTP "
-            f"{error.code} ({error.reason}). The dataset may have moved. "
-            "Provide a valid URL with --dataset-url or an existing local CSV "
-            "with --data-path."
-        ) from error
-    except urllib.error.URLError as error:
-        raise DatasetDownloadError(
-            f"Could not download the dataset from {dataset_url}: {error.reason}. "
-            "Check the network connection, provide a valid URL with "
-            "--dataset-url, or use an existing local CSV with --data-path."
-        ) from error
-    finally:
-        partial_path.unlink(missing_ok=True)
-
-    return data_path
+# Re-export for backwards compatibility.
+__all__ = ["DatasetDownloadError", "ensure_dataset"]
 
 
 def prepare_training_data(df: pd.DataFrame) -> pd.DataFrame:
@@ -315,6 +277,9 @@ def main() -> None:
         path = ensure_dataset(args.dataset_url, path)
     except DatasetDownloadError as error:
         logger.error("%s", error)
+        raise SystemExit(1) from None
+    except ValueError as error:
+        logger.error(f"dataset URL had the error: {error}")
         raise SystemExit(1) from None
 
     logger.info(f"Using data path: {path}")

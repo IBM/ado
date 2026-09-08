@@ -218,6 +218,11 @@ class TrimSampleSelector(BaseSampler):
         ]
         train_target_cols = [*train_cols, self.params.targetOutput]
 
+        # total_unmeasured is intentionally seeded with the pre-scan count from the
+        # no-priors phase. The budget in missingTargetMeasurements applies across BOTH
+        # phases combined: failures in no-priors consume budget, so the iterative phase
+        # starts with whatever budget remains. This means if the no-priors phase already
+        # hit N failures, only (budget - N) further failures are tolerated here.
         total_unmeasured = self.handle_unmeasured_targetOutputs_from_no_priors(
             discoverySpace, train_target_cols
         )
@@ -282,9 +287,12 @@ class TrimSampleSelector(BaseSampler):
 
         previous_source_df = initial_source_df
 
-        # numberEntitiesIterativeModeling +1 is the exact count RandomWalk will attempt to draw.
-        # When TRIM exhausts all entities it could have yielded AND random_walk asks for more then,
-        # TRIM finalizes the model and does not yield any more entities.
+        # RandomWalk will ask the sampler to yield all the entities because we cannot know
+        # a priory how many of them will measure the targetOutput. Internally, the sampler
+        # will yield enough entities such that random walk measures the targetOutput of
+        # numberEntitiesIterativeModeling entities.
+        # Afterwards, when RandomWalk asks for one additional entity, TRIM finalizes the
+        # model and does not yield any more entities.
         for i, entity in enumerate(list_of_entities):
             self.log.info(f"Yielding entity at index {i}: {entity}")
             yield [entity]

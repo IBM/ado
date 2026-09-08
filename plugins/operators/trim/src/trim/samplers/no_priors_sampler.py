@@ -65,7 +65,7 @@ class NoPriorsSampleSelector(BaseSampler):
         self.log.info(f"Parameters are:\n{self.params}\n\n")
 
         sorted_entities = self.generate_sorted_entities(discovery_space)
-        self.log.warning(
+        self.log.info(
             f"\n\nIteration over sorted entities for no priors characterization starts for {self.params.samples} "
             f"points and {len(sorted_entities)} entities.\n"
         )

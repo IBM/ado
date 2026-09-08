@@ -11,9 +11,9 @@ apply to them. It has three parts:
 - a [`samplestore`](sample-stores.md): where the result of measurements on `entities`
   are stored
 
-> [!NOTE]
+>[!NOTE]
 >
-> There are additional document covering the [concept of a Discovery Space](../concepts/discovery-spaces.md)
+> For more details see [concept of a Discovery Space](../concepts/discovery-spaces.md)
 
 ## Quickstart
 
@@ -46,16 +46,19 @@ Then generate a `discoveryspace` YAML from the experiment you picked:
 ado template space --from-experiment vllm-bench-endpoint --output-file space.yaml
 ```
 
+See [`ado template`](../cli-reference/index.md#ado-template) for more options.
+
 The generated YAML contains an `entityspace` holding every constitutive
 property the experiment requires (required input parameters),
 each with the full domain the experiment supports,
 and a `measurementspace` referencing the experiment.
 
-> ![NOTE] Optional Properties
+>[!NOTE] Optional Properties
 >
 > `ado template` does not add optional input parameters
 > of the experiment to the entity space.
 > You can do this manually as described in
+> [parameterizing experiments](#parameterizing-experiments).
 
 An example YAML file is:
 
@@ -109,12 +112,14 @@ Then create the space:
 ado create space -f space.yaml
 ```
 
-> [!NOTE]
+>[!NOTE]
 >
-> ado template outputs all the fields that have values
-> including defaults and the experiment metadata.
+> `ado template` outputs all the fields that have values
+> including defaults and per-property metadata.
 > These can be safely removed to create a more streamlined YAML.
-> See below for more
+> See
+> [the configuration YAML](#structure-of-the-discoveryspace-yaml-configuration)
+> for more.
 
 ## Structure of the `discoveryspace` YAML configuration
 
@@ -178,16 +183,32 @@ propertyDomain: # The domain describes the values the property can take
     # If the variable is DISCRETE_VARIABLE_TYPE and values are given this must be compatible with the values
   interval: # If the variable is DISCRETE_VARIABLE_TYPE this is the interval between the values.
     # If given domainRange is required and values cannot be given
+  probabilityFunction: # Optional. The sampling distribution, for example uniform
+
 ```
 
 <!-- markdownlint-enable line-length -->
 
-As long as a constitutive properties is not "UNKNOWN_VARIABLE_TYPE" there is
+As long as all constitutive properties are not "UNKNOWN_VARIABLE_TYPE" there is
 sufficient information to sample new entities from the `entityspace`
 description.
 
 For more on property types, domains and probability functions see
 [properties and domains](../concepts/properties-and-domains.md).
+
+>[!TIP] Writing Short Constitutive Properties
+>
+> You can often write the constitutive properties in a shorter form
+> then output by `ado template` which is verbose by default.
+>
+> - In many cases you do not need to specify the `variableType`
+> as [it can be inferred](../concepts/properties-and-domains.md#auto-inference-of-property-domain-types).
+> - The field `probabilityFunction` is not currently used so
+> can be safely omitted.
+> - The `metadata` fields which are output by `ado template` are not required.
+> The main reason to have `metadata` is if you want to
+> record why a certain domain was chosen.
+>
 
 ### Ensuring the `entityspace` and `measurementspace` are compatible
 
@@ -200,8 +221,8 @@ the experiments - if not entities could be sampled that experiments in the
 For example, to see the input requirements of the experiment
 `finetune_full_benchmark-v1.0.0` you can run:
 
-```shell
-ado describe experiment finetune_full_benchmark-v1.0.0
+```commandline
+ado describe experiment SFTTrainer.finetune_full_benchmark-v1.0.0
 ```
 
 you will get output like
@@ -318,7 +339,10 @@ experiments:
   - actuatorIdentifier: vllm_performance # The ACTUATOR ID column of "ado get experiments"
     experimentIdentifier: vllm-bench-endpoint # The EXPERIMENT ID column of "ado get experiments"
     experimentVersion: 1.0.0 # The VERSION column of "ado get experiments". Required if the referenced experiment has a version
-    parameterization: [] # Optional. Values to fix for the experiment's optional inputs
+    parameterization: # Optional. Values to fix for the experiment's optional inputs
+      - value: 30
+        property:
+          identifier: temperature
 ```
 
 <!-- markdownlint-enable line-length -->
@@ -398,7 +422,8 @@ For example, take the following experiment:
 <!-- markdownlint-disable line-length -->
 
 ```terminaloutput
-Identifier: robotic_lab.peptide_mineralization
+Identifier: robotic_lab.peptide_mineralization@1.0.0
+Version: 1.0.0
 Description: Measures adsorption of peptide lanthanide combinations
 
 Required Inputs:
@@ -468,8 +493,8 @@ Optional Inputs and Default Values:
 
 Outputs:
  ─────────────────────────────────────────────────────────────────────────────────────────────────────────
-   peptide_mineralization-adsorption_timeseries
-   peptide_mineralization-adsorption_plateau_value
+   peptide_mineralization@v1-adsorption_timeseries
+   peptide_mineralization@v1-adsorption_plateau_value
  ─────────────────────────────────────────────────────────────────────────────────────────────────────────
 ```
 
@@ -481,8 +506,7 @@ It has three optional properties: `temperature`, `robot_identifier` and
 >[!NOTE]
 >
 > Each parameterization defines a distinct experiment for the purposes of
-> [data reuse](#experiment-versions-and-memoization). Create a new space
-> when you want to explore a different parameterization.
+> [data reuse](#experiment-versions-and-memoization).
 
 #### Example: Customizing an experiment
 
@@ -504,6 +528,7 @@ entitySpace:
 experiments:
   - actuatorIdentifier: robotic_lab
     experimentIdentifier: peptide_mineralization
+    experimentVersion: 1.0.0
     parameterization:
       - value: 30
         property:
@@ -532,12 +557,14 @@ entitySpace:
 experiments:
   - actuatorIdentifier: robotic_lab
     experimentIdentifier: peptide_mineralization
+    experimentVersion: 1.0.0
     parameterization:
       - value: 30
         property:
           identifier: "temperature"
   - actuatorIdentifier: robotic_lab
     experimentIdentifier: peptide_mineralization
+    experimentVersion: 1.0.0
     parameterization:
       - value: 25
         property:
@@ -570,6 +597,7 @@ entitySpace:
 experiments:
   - actuatorIdentifier: robotic_lab
     experimentIdentifier: peptide_mineralization
+    experimentVersion: 1.0.0
 metadata:
   description: Space for exploring the absorption properties of test_peptide
 ```
@@ -661,7 +689,7 @@ the available operators.
 To see the measurement data collected by explore operations on a space use
 
 ```commandline
-ado show measurements space
+ado show measurements space --use-latest
 ```
 
 By default, this will output the entities and their measurements as a table.
@@ -678,10 +706,10 @@ If you want to use filter (2) - `entities` in the `samplestore` that match the
 `discoveryspace` - use:
 
 ```commandline
-ado show measurements space --include matching
+ado show measurements space --use-latest --include matching
 ```
 
-> ![NOTE]
+>[!NOTE]
 >
 > In both cases measurements on the entity will be filtered to be only those
 > defined by the `measurementspace` of the `discoveryspace`
@@ -695,7 +723,7 @@ Two other options list the `entities` of a finite space that have no data yet
 
 ### Target vs observed property formats
 
->![NOTE]
+>[!NOTE]
 >
 > For the conceptual distinction between target and observed properties see
 > [Target and Observed Properties](../concepts/actuators.md#target-and-observed-properties).
@@ -713,13 +741,13 @@ are two experiments in the Measurement Space then there will be two rows per
 entity. In this format the columns are constitutive property names and target
 property names.
 
-!!! info end
-
-    With `property-format=target` if the measurement space contains multiple
-    experiments measuring _different_ target properties, this will result in many
-    empty fields in the table. This is because the column for a given target
-    of one experiment will not have values in the rows corresponding
-    to other experiments.
+>[!NOTE]
+>
+> With `property-format=target` if the measurement space contains multiple
+> experiments measuring _different_ target properties, this will result in many
+> empty fields in the table. This is because the column for a given target
+> of one experiment will not have values in the rows corresponding
+> to other experiments.
 
 ### Accessing measurement data programmatically
 

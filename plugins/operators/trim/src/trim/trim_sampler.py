@@ -254,7 +254,7 @@ class TrimSampleSelector(BaseSampler):
             self.params.missingTargetMeasurements.mode
             == MissingTargetMeasurementMode.Skip
         ):
-            pass
+            msg += f" There are {total_unmeasured} entities that were skipped"
 
         self.log.info(msg)
 

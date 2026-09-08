@@ -5,6 +5,7 @@
 peptide_mineralization:
   identifier: peptide_mineralization
   actuatorIdentifier: "robotic_lab"
+  version: "1.0.0"
   requiredProperties: # Any entity passed to this experiment must have constitutive properties with these values
     - identifier: 'peptide_identifier'
       metadata:

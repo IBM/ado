@@ -142,7 +142,6 @@ plugins:
 nav:
   - Home:
       - Home: index.md
-      # - Demo: demo.md
       - Roadmap: roadmap.md
   - User Guide:
       - Getting Started: user-guide/getting-started.md

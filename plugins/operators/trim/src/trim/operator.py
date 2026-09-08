@@ -295,10 +295,10 @@ def trim(
     # uses this to call finalize_model() after yielding the last entity, since RandomWalk
     # stops calling anext() once the budget is met and never exhausts the generator.
     # This field must NOT live on TrimParameters itself because that model is serialised
-# TrimSamplerParameters extends TrimParameters with numberEntitiesIterativeModeling,
-# which caps the number of entities the sampler pre-orders for iterative modeling.
-# RandomWalk runs with numberEntities="all"; the sampler drives termination by either
-# exhausting list_of_entities or breaking early when the stopping criterion is met.
+    # TrimSamplerParameters extends TrimParameters with numberEntitiesIterativeModeling,
+    # which caps the number of entities the sampler pre-orders for iterative modeling.
+    # RandomWalk runs with numberEntities="all"; the sampler drives termination by either
+    # exhausting list_of_entities or breaking early when the stopping criterion is met.
 
     # Propagate the operation ID of the noprior sampler so that TRIM can fill in
     # any rows that were skipped with default values when

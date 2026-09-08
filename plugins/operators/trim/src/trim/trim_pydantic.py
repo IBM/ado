@@ -313,13 +313,6 @@ class TrimSamplerParameters(TrimParameters):
         ),
     ]
 
-    missingTargetMeasurements: Annotated[
-        MissingTargetMeasurements,
-        pydantic.Field(
-            description="Controls how TRIM handles measurements that have no targetOutput value."
-        ),
-    ] = MissingTargetMeasurements()
-
 
 class TrimSamplerParametersInternal(TrimSamplerParameters):
     """Runtime extension of TrimSamplerParameters used only by TrimSampleSelector.

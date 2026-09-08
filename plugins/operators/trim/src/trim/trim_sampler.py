@@ -337,8 +337,6 @@ class TrimSampleSelector(BaseSampler):
                         [self.injected_defaults, pd.DataFrame([row])],
                         ignore_index=True,
                     )
-                    # VV: This is a yielded row, just a synthetic one not one we actually measured
-                    yielded_rows += one_additional_row
                     # VV: Since inject_defaults was updated we need to remember this row so that the next time
                     # we check whether an Entity measured its targetOutput that's the only candidate for a new
                     # row in the current_source_df dataframe
@@ -403,6 +401,16 @@ class TrimSampleSelector(BaseSampler):
                     shorter_df_that_you_subtract=initial_source_df,
                 )
 
+                # VV: current_holdout_df must only include actual measurements
+                if (
+                    self.injected_defaults is not None
+                    and len(self.injected_defaults) > 0
+                ):
+                    _, current_holdout_df = split_common_and_diff(
+                        longer_df_from_which_you_subtract=current_holdout_df,
+                        shorter_df_that_you_subtract=self.injected_defaults,
+                    )
+
                 previous_holdout_df = current_holdout_df
 
                 log_after_first_holdout_creation(
@@ -411,7 +419,7 @@ class TrimSampleSelector(BaseSampler):
                     iter_index=total_measured,
                     params=self.params,
                 )
-            else:  # i > self.params.iterationSize
+            else:  # total_measured > self.params.iterationSize
                 train_df, one_additional_row = split_common_and_diff(
                     longer_df_from_which_you_subtract=current_source_df,
                     shorter_df_that_you_subtract=previous_source_df,
@@ -840,23 +848,13 @@ class TrimSampleSelector(BaseSampler):
             raise InsufficientDataError(msg)
 
         if len(source_df) < self.params.samplingBudget.minPoints:
-            info_str = """This may happen because it may be that the target variable cannot be measured for all
-            the entities in the space. For example a recommender could be unable to recommend the target variables
-            for some entities"""
-            missing_points = self.params.samplingBudget.minPoints - len(source_df)
-            self.log.error(
-                f"Insufficient data: need {self.params.samplingBudget.minPoints}, but only {len(source_df)} available. "
-                f"Consider adding {missing_points} more points or adjusting the budget."
+            msg = (
+                f"Insufficient data: need {self.params.samplingBudget.minPoints} rows "
+                f"in source_df but only {len(source_df)} are available. "
+                "This may happen when the target variable cannot be measured for all entities."
             )
-            self.log.info(info_str)
-            if len(source_df) > 10:
-                self.log.warning(
-                    "Attempting iterative modelling with 10 source space points"
-                )
-            else:
-                raise InsufficientDataError(
-                    f"Insufficient data: need {self.params.samplingBudget.minPoints}, but only {len(source_df)} available. "
-                )
+            self.log.error(msg)
+            raise InsufficientDataError(msg)
 
         # Compute feature importance and order
         ordered_features, _importance_dict = get_feature_importance_order(

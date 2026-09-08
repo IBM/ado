@@ -174,7 +174,7 @@ This search can be performed in two ways:
 - Using as reference an existing discovery space identifier via the flag
   `--matching-space-id`
 - Providing a
-  [DiscoverySpace configuration YAML](discovery-spaces.md#the-discoveryspace-configuration-yaml)
+  [DiscoverySpace configuration YAML](discovery-spaces.md#structure-of-the-discoveryspace-yaml-configuration)
   to the flag `--matching-space`. This is useful to find similar spaces without
   actually creating one first.
 

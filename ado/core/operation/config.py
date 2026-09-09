@@ -331,12 +331,11 @@ class OperatorMetadata(pydantic.BaseModel):
     required_properties: Annotated[
         list[str] | None,
         pydantic.Field(
-            default=None,
             description=(
                 "Target property identifiers this operator reads from a discovery space if any. "
             ),
         ),
-    ]
+    ] = None
 
     @property
     def operatorIdentifier(self) -> str:

@@ -59,7 +59,7 @@ def _operator_input_name_for_kind(
     """
     from ado.modules.operators.collections import operator_metadata_for_reference
 
-    module = (operation_data.get("operation") or {}).get("module") or {}
+    module = operation_data.get("operation", {}).get("module", {})
     if "operatorName" not in module or "operationType" not in module:
         raise ValueError(
             "Cannot resolve input name for "
@@ -72,23 +72,25 @@ def _operator_input_name_for_kind(
             operationType=module["operationType"],
         )
     )
-    required = metadata.required_resource_inputs
-    matching = [d for d in required if d.kind == kind]
-    if not matching:
+    required_resource_inputs = metadata.required_resource_inputs
+    inputs_of_kind = [i for i in required_resource_inputs if i.kind == kind]
+    if not inputs_of_kind:
         raise ValueError(
             f"Operator {metadata.name!r} has no resource input of kind {kind.value!r}."
         )
-    if len(matching) == 1:
-        return matching[0].identifier
+    if len(inputs_of_kind) == 1:
+        return inputs_of_kind[0].identifier
 
-    existing_inputs = operation_data.get("inputs") or {}
-    unset = [d.identifier for d in matching if d.identifier not in existing_inputs]
-    if len(unset) == 1:
-        return unset[0]
-    names = [d.identifier for d in matching]
+    present_inputs = operation_data.get("inputs", {})
+    missing_inputs = [
+        i.identifier for i in inputs_of_kind if i.identifier not in present_inputs
+    ]
+    if len(missing_inputs) == 1:
+        return missing_inputs[0]
+    input_identifiers_of_kind = [i.identifier for i in inputs_of_kind]
     raise ValueError(
         f"Operator {metadata.name!r} has multiple {kind.value!r} inputs "
-        f"{names}; set them explicitly in the operation YAML."
+        f"{input_identifiers_of_kind}; set them explicitly in the operation YAML."
     )
 
 
@@ -282,15 +284,15 @@ def _apply_with_resources(
         _set_input_reference(operation_data, CoreResourceKinds.DISCOVERYSPACE, space_id)
 
     if CoreResourceKinds.DATACONTAINER in parameters.with_resources:
-        dc_value = parameters.with_resources[CoreResourceKinds.DATACONTAINER]
-        if not isinstance(dc_value, str):
+        dcr_identifier = parameters.with_resources[CoreResourceKinds.DATACONTAINER]
+        if not isinstance(dcr_identifier, str):
             console_print(
                 f"{ERROR}--with datacontainer currently supports an existing "
                 "identifier only (not a YAML file).",
                 stderr=True,
             )
             raise typer.Exit(1)
-        _set_input_reference(operation_data, CoreResourceKinds.DATACONTAINER, dc_value)
+        _set_input_reference(operation_data, CoreResourceKinds.DATACONTAINER, dcr_identifier)
 
 
 def _apply_use_latest(

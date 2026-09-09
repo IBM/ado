@@ -241,11 +241,15 @@ any plugins required in the `packages.fromPyPI` section of your
 
 > [!NOTE] Wheel paths and `fromPyPI`
 >
-> Entries in `fromPyPI` that resolve to an existing `.whl` file on the machine
-> running `ado --remote` will be transferred to the remote cluster. Other
-> entries are forwarded unchanged to the cluster's `uv` install step. This
-> includes paths that were not present on submitting machine - these will be
-> interpreted as paths to wheels that are on the remote filesystem.
+> - **Absolute paths**: Resolved directly on the remote cluster's filesystem
+>   (e.g., `/data/pkg.whl`). Use `additionalFiles` to reference absolute paths
+>   on your local machine along with an entry in `fromPyPI` with the bare
+>   wheel name.
+> - **Local wheels**: List the local path in `additionalFiles` to upload it, and
+>   specify the **bare filename** (e.g., `my_pkg.whl`) in `fromPyPI`.
+> - **No duplicate filenames**: Entries in `additionalFiles` cannot share the
+>   same basename (e.g., `dist1/pkg.whl` and `dist2/pkg.whl`), or validation will
+>   fail.
 
 ### Dynamic installation from source
 

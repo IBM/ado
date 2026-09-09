@@ -254,7 +254,7 @@ packages:
 additionalFiles:
   - /absolute/local/path/to/data_file.csv
   - path/to/my_data_dir/   # directories also supported
-  - dist/my_local_pkg-1.0.0-py3-none-any.whl # local wheel to upload
+  - my_wheels/my_local_pkg-1.0.0-py3-none-any.whl # local wheel to upload
 ```
 
 > [!NOTE] Local wheels
@@ -262,6 +262,12 @@ additionalFiles:
 > Local wheel files must be listed in `additionalFiles` to be uploaded, and
 > their bare filename specified in `packages.fromPyPI`. Multiple files in
 > `additionalFiles` cannot share the same basename.
+>
+> **Do not place custom wheels inside `dist/`** when any `fromSource` entry
+> targets the parent of the `dist/` directory. The build step runs
+> `uv build --wheel -o dist --clear`, which deletes the contents of `dist/`
+> before writing the new wheel. Store extra wheels in a separate directory
+> (e.g. `my_wheels/`).
 
 Use bare filenames (no path) in space/operation YAML; ray copies
 `additionalFiles` entries into the Ray working directory.

@@ -9,9 +9,9 @@ environment where the AutoConf recommender will use it.
 
 The measurements are hosted in the Hugging Face repository
 [`ibm-research/LLMFineTuningBench`](https://huggingface.co/datasets/ibm-research/LLMFineTuningBench)
-dataset as `ado-sfttrainer-dataset.csv`. The builder downloads that file to
-`autoconf/data/ado-sfttrainer-dataset.csv` when the local file is absent. It
-reuses the local file on later runs.
+as [`ado-sfttrainer-v1-0-0.csv`](https://huggingface.co/datasets/ibm-research/LLMFineTuningBench/blob/main/ado-sfttrainer-v1-0-0.csv).
+The builder downloads that file to `autoconf/data/dataset.csv` when the local
+file is absent. It reuses the local file on later runs.
 
 The classifier uses these columns:
 
@@ -36,7 +36,7 @@ uv venv --python 3.13
 uv pip install -e plugins/custom_experiments/autoconf
 ```
 
-Once `ado-sfttrainer-dataset.csv` is published in `LLMFineTuningBench`, build
+Once `ado-sfttrainer-v1-0-0.csv` is available in `LLMFineTuningBench`, build
 the model with:
 
 ```terminal

@@ -625,7 +625,19 @@ def _dispatch_to_cluster(
         rewritten_args = _copy_files_and_rewrite_args(ado_args, working_dir)
         remote_ado_args = ["-c", context_filename, *rewritten_args]
 
-        # 3. Symlink any additionalFiles into the working directory.
+        # 3. Build wheels for fromSource plugins.
+        #    This runs uv build --clear, which wipes each plugin's dist/ directory.
+        #    additionalFiles symlinks must be created AFTER this step so their
+        #    targets are not deleted before Ray uploads the working directory.
+        if remote_context.packages.fromSource:
+            status.stop()
+        wheel_names = _build_source_wheels(
+            remote_context.packages.fromSource,
+            working_dir,
+            repo_root,
+        )
+
+        # 4. Symlink any additionalFiles into the working directory.
         #    Collect basenames already present to detect collisions.
         seen_basenames: set[str] = {f.name for f in working_dir.iterdir()}
         _symlink_additional_files(
@@ -633,15 +645,6 @@ def _dispatch_to_cluster(
             cwd,
             working_dir,
             seen_basenames,
-        )
-
-        # 4. Build wheels for fromSource plugins
-        if remote_context.packages.fromSource:
-            status.stop()
-        wheel_names = _build_source_wheels(
-            remote_context.packages.fromSource,
-            working_dir,
-            repo_root,
         )
         seen_basenames.update(wheel_names)
 

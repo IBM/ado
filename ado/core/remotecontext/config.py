@@ -252,16 +252,33 @@ class RemoteExecutionContext(pydantic.BaseModel):
 
         Ensures that:
         1. Entries in additionalFiles do not have duplicate basenames.
-        2. Wheel entries in packages.fromPyPI do not use relative subpaths.
-        3. Wheel entries prefixed with ${RAY_RUNTIME_ENV_CREATE_WORKING_DIR}/ emit a
+        2. Entries in additionalFiles do not point into the dist/ directory of a
+           fromSource package (uv build --clear deletes that directory before upload).
+        3. Wheel entries in packages.fromPyPI do not use relative subpaths.
+        4. Wheel entries prefixed with ${RAY_RUNTIME_ENV_CREATE_WORKING_DIR}/ emit a
            UserWarning and are rewritten to the bare wheel filename.
-        4. Local wheel entries not in additionalFiles emit a warning.
+        5. Local wheel entries not in additionalFiles emit a warning.
         """
         prefix = "${RAY_RUNTIME_ENV_CREATE_WORKING_DIR}/"
 
-        # Check duplicate basenames in additionalFiles
+        # Build the set of dist/ directories that will be wiped by uv build --clear
+        from_source_dist_paths: set[PurePath] = {
+            PurePath(src) / "dist" for src in self.packages.fromSource
+        }
+
+        # Check duplicate basenames in additionalFiles and fromSource dist/ collision
         seen_additional_basenames: set[str] = set()
         for add_file in self.additionalFiles:
+            add_path = PurePath(add_file)
+            for dist_path in from_source_dist_paths:
+                if add_path.is_relative_to(dist_path):
+                    raise ValueError(
+                        f"additionalFiles entry '{add_file}' is inside the dist/ "
+                        f"directory of fromSource package '{dist_path.parent}'. "
+                        "uv build --clear will delete this file before it can be "
+                        "uploaded. Store the file outside the fromSource package's "
+                        "dist/ directory and update additionalFiles accordingly."
+                    )
             name = PurePath(add_file).name
             if name in seen_additional_basenames:
                 raise ValueError(

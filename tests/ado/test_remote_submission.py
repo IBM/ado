@@ -763,6 +763,25 @@ def test_remote_dispatch_wheel_only_in_additional_files(
     assert loaded["uv"] == ["ado-core"]
 
 
+def test_additional_files_in_from_source_dist_raises() -> None:
+    """additionalFiles entry inside a fromSource package's dist/ raises ValidationError.
+
+    When a fromSource package is built, uv build --clear wipes its dist/
+    directory. Any additionalFiles entry pointing into that same dist/ will
+    be deleted before Ray can upload it, so validation must reject this.
+    """
+    raw = {
+        "executionType": {"type": "cluster", "clusterUrl": "http://localhost:8265"},
+        "packages": {
+            "fromSource": ["plugins/my_plugin"],
+            "fromPyPI": ["dep_wheel-1.0-py3-none-any.whl"],
+        },
+        "additionalFiles": ["plugins/my_plugin/dist/dep_wheel-1.0-py3-none-any.whl"],
+    }
+    with pytest.raises(pydantic.ValidationError, match="fromSource"):
+        RemoteExecutionContext.model_validate(raw)
+
+
 def test_write_runtime_env_with_ray_config(tmp_path: pathlib.Path) -> None:
     """runtimeEnv maps to Ray config keys in runtime_env.yaml."""
     ctx = RemoteExecutionContext(

@@ -8,6 +8,7 @@ import subprocess
 from io import BytesIO
 from unittest.mock import MagicMock, patch
 
+import pydantic
 import pytest
 import yaml
 from typer.testing import CliRunner
@@ -621,13 +622,13 @@ def test_write_runtime_env_env_vars_only(tmp_path: pathlib.Path) -> None:
 
 
 def test_write_runtime_env_local_wheel_in_pypi(tmp_path: pathlib.Path) -> None:
-    """Local .whl paths in fromPyPI are copied to working_dir and rewritten."""
+    """Local .whl paths in fromPyPI are symlinked to working_dir and rewritten."""
     local_whl = tmp_path / "my_local-1.0-py3-none-any.whl"
     local_whl.write_bytes(b"fake wheel")
 
     ctx = RemoteExecutionContext(
         executionType=ClusterExecutionType(clusterUrl="http://localhost:8265"),
-        packages=PackageConfiguration(fromPyPI=[str(local_whl), "ado-core"]),
+        packages=PackageConfiguration(fromPyPI=[local_whl.name, "ado-core"]),
     )
     dest = tmp_path / "runtime_env.yaml"
     working_dir = tmp_path / "working"
@@ -639,6 +640,127 @@ def test_write_runtime_env_local_wheel_in_pypi(tmp_path: pathlib.Path) -> None:
     assert "ado-core" in loaded["uv"]
     assert f"${{RAY_RUNTIME_ENV_CREATE_WORKING_DIR}}/{local_whl.name}" in loaded["uv"]
     assert str(local_whl) not in loaded["uv"]
+
+
+def test_remote_context_validation_whl_prefix_rewritten() -> None:
+    """Entry with ${RAY_RUNTIME_ENV_CREATE_WORKING_DIR}/ is rewritten to bare wheel name."""
+    raw = {
+        "executionType": {"type": "cluster", "clusterUrl": "http://localhost:8265"},
+        "packages": {
+            "fromPyPI": [
+                "${RAY_RUNTIME_ENV_CREATE_WORKING_DIR}/my_wheel-0.9.7-py3-none-any.whl",
+                "ado-core",
+            ]
+        },
+        "additionalFiles": ["dist/my_wheel-0.9.7-py3-none-any.whl"],
+    }
+    ctx = RemoteExecutionContext.model_validate(raw)
+    assert ctx.packages.fromPyPI == [
+        "my_wheel-0.9.7-py3-none-any.whl",
+        "ado-core",
+    ]
+
+
+def test_remote_context_validation_relative_subpath_emits_warning() -> None:
+    """Entry in fromPyPI with relative subpath emits a UserWarning."""
+    raw = {
+        "executionType": {"type": "cluster", "clusterUrl": "http://localhost:8265"},
+        "packages": {
+            "fromPyPI": [
+                "dist/my_wheel-0.9.7-py3-none-any.whl",
+            ]
+        },
+    }
+    with pytest.warns(UserWarning, match="contains a relative directory path"):
+        ctx = RemoteExecutionContext.model_validate(raw)
+    assert ctx.packages.fromPyPI == ["dist/my_wheel-0.9.7-py3-none-any.whl"]
+
+
+def test_remote_context_validation_bare_wheel_not_in_additional_files() -> None:
+    """Bare wheel in fromPyPI without matching additionalFiles entry is valid."""
+    raw = {
+        "executionType": {"type": "cluster", "clusterUrl": "http://localhost:8265"},
+        "packages": {
+            "fromPyPI": [
+                "my_wheel-0.9.7-py3-none-any.whl",
+            ]
+        },
+    }
+    RemoteExecutionContext.model_validate(raw)
+
+
+def test_remote_context_validation_additional_files_conflict_raises() -> None:
+    """Duplicate/conflicting filenames in additionalFiles raise ValidationError."""
+    raw = {
+        "executionType": {"type": "cluster", "clusterUrl": "http://localhost:8265"},
+        "additionalFiles": [
+            "dist1/my_wheel-0.9.7-py3-none-any.whl",
+            "dist2/my_wheel-0.9.7-py3-none-any.whl",
+        ],
+    }
+    with pytest.raises(pydantic.ValidationError, match="duplicate basename"):
+        RemoteExecutionContext.model_validate(raw)
+
+
+def test_remote_dispatch_wheel_in_additional_files(tmp_path: pathlib.Path) -> None:
+    """Bare wheel in fromPyPI matching additionalFiles is symlinked and in runtime_env."""
+    dist_dir = tmp_path / "dist"
+    dist_dir.mkdir()
+    wheel_file = dist_dir / "my_wheel-0.9.7-py3-none-any.whl"
+    wheel_file.write_bytes(b"wheel content")
+
+    ctx = RemoteExecutionContext(
+        executionType=ClusterExecutionType(clusterUrl="http://localhost:8265"),
+        packages=PackageConfiguration(
+            fromPyPI=["my_wheel-0.9.7-py3-none-any.whl", "ado-core"]
+        ),
+        additionalFiles=["dist/my_wheel-0.9.7-py3-none-any.whl"],
+    )
+    dest = tmp_path / "runtime_env.yaml"
+    working_dir = tmp_path / "working"
+    working_dir.mkdir()
+
+    seen_basenames: set[str] = set()
+    _symlink_additional_files(
+        ctx.additionalFiles, tmp_path, working_dir, seen_basenames
+    )
+    _write_runtime_env(ctx, [], dest, tmp_path, working_dir, seen_basenames)
+
+    assert (working_dir / wheel_file.name).is_symlink()
+    loaded = yaml.safe_load(dest.read_text())
+    assert f"${{RAY_RUNTIME_ENV_CREATE_WORKING_DIR}}/{wheel_file.name}" in loaded["uv"]
+    assert "ado-core" in loaded["uv"]
+
+    assert len(loaded["uv"]) == 2
+
+
+def test_remote_dispatch_wheel_only_in_additional_files(
+    tmp_path: pathlib.Path,
+) -> None:
+    """Wheel only in additionalFiles is symlinked but NOT in runtime_env uv."""
+    dist_dir = tmp_path / "dist"
+    dist_dir.mkdir()
+    extra_wheel = dist_dir / "extra-1.0-py3-none-any.whl"
+    extra_wheel.write_bytes(b"extra wheel content")
+
+    ctx = RemoteExecutionContext(
+        executionType=ClusterExecutionType(clusterUrl="http://localhost:8265"),
+        packages=PackageConfiguration(fromPyPI=["ado-core"]),
+        additionalFiles=["dist/extra-1.0-py3-none-any.whl"],
+    )
+    dest = tmp_path / "runtime_env.yaml"
+    working_dir = tmp_path / "working"
+    working_dir.mkdir()
+
+    seen_basenames: set[str] = set()
+    _symlink_additional_files(
+        ctx.additionalFiles, tmp_path, working_dir, seen_basenames
+    )
+    _write_runtime_env(ctx, [], dest, tmp_path, working_dir, seen_basenames)
+
+    assert (working_dir / extra_wheel.name).is_symlink()
+    loaded = yaml.safe_load(dest.read_text())
+    assert loaded["uv"] == ["ado-core"]
 
 
 def test_write_runtime_env_with_ray_config(tmp_path: pathlib.Path) -> None:

@@ -413,48 +413,70 @@ def _build_source_wheels(
     return wheel_names
 
 
-def identify_and_copy_local_wheels(
+def _process_pypi_packages(
     from_pypi: list[str],
+    additional_files: list[str],
     cwd: Path,
     working_dir: Path,
     seen_basenames: set[str],
-) -> tuple[list[str], list[str]]:
-    """Identify local wheel paths in the fromPyPI YAML section and copy into the working directory.
+) -> list[str]:
+    """Process fromPyPI packages for Ray runtime_env.yaml and symlink local wheels if needed.
 
-    Entries that resolve to existing .whl files are copied into the working dir
-    so they are distributed to all Ray nodes. Other entries are passed through
-    unchanged into the Ray runtime ``uv`` list (PyPI requirements, version
-    pins, or paths such as ``/data/.../*.whl`` that must exist where ``uv``
-    installs on the cluster).
+    For each entry ending in .whl that is not an absolute path:
+    1. Checks if it was listed in additionalFiles (and thus already symlinked into working_dir).
+    2. If not in additionalFiles, checks if the wheel file exists in cwd. If it does, symlinks it
+       into working_dir.
+    3. If not found in either additionalFiles or cwd, raises FileNotFoundError.
+    4. Prefixes the entry with ``${RAY_RUNTIME_ENV_CREATE_WORKING_DIR}/``.
+
+    Absolute wheel paths and standard PyPI package specs are passed through unchanged.
 
     Args:
-        from_pypi: The fromPyPI package list.
+        from_pypi: The fromPyPI package list from RemoteExecutionContext.
+        additional_files: The additionalFiles list from RemoteExecutionContext.
         cwd: Directory for resolving relative paths.
-        working_dir: Destination for copied wheels.
+        working_dir: Ray working directory for symlinking local wheels.
         seen_basenames: Basenames already in working_dir; updated in-place.
 
     Returns:
-        Tuple of (pypi_packages, local_wheel_basenames). pypi_packages has local
-        wheel paths replaced with RAY_RUNTIME_ENV_CREATE_WORKING_DIR refs;
-        local_wheel_basenames are the basenames of copied wheels.
+        List of package specs for Ray runtime_env.yaml.
     """
     pypi_packages: list[str] = []
-    local_wheel_basenames: list[str] = []
+    additional_basenames = {Path(f).name for f in additional_files}
 
     for entry in from_pypi:
-        path = Path(entry)
-        if not path.is_absolute():
-            path = (cwd / path).resolve()
+        if entry.lower().endswith(".whl"):
+            path = Path(entry)
+            wheel_name = path.name
 
-        if path.suffix.lower() == ".whl" and path.is_file():
-            _copy_file_checked(path, working_dir, seen_basenames)
-            local_wheel_basenames.append(path.name)
-            pypi_packages.append(f"${{RAY_RUNTIME_ENV_CREATE_WORKING_DIR}}/{path.name}")
-            log.debug("Copied local wheel %s for runtime env", path.name)
+            if path.is_absolute():
+                # Non-local cluster absolute path (e.g. /data/wheels/pkg.whl on the remote cluster)
+                pypi_packages.append(entry)
+                continue
+            # Check if wheel exists locally (relative to cwd)
+            local_path = (cwd / path).resolve()
+
+            if local_path.is_file():
+                if wheel_name not in seen_basenames:
+                    (working_dir / wheel_name).symlink_to(local_path)
+                    seen_basenames.add(wheel_name)
+                    log.debug("Symlinked local wheel: %s", wheel_name)
+                pypi_packages.append(
+                    f"${{RAY_RUNTIME_ENV_CREATE_WORKING_DIR}}/{wheel_name}"
+                )
+            elif wheel_name in additional_basenames:
+                # Staged via additionalFiles
+                pypi_packages.append(
+                    f"${{RAY_RUNTIME_ENV_CREATE_WORKING_DIR}}/{wheel_name}"
+                )
+            else:
+                raise FileNotFoundError(
+                    f"Cannot locate wheel file '{entry}' in additionalFiles or relative to current working directory '{cwd}'."
+                )
         else:
             pypi_packages.append(entry)
 
-    return pypi_packages, local_wheel_basenames
+    return pypi_packages
 
 
 def _write_runtime_env(
@@ -471,10 +493,6 @@ def _write_runtime_env(
     *remote_context* into a ``runtime_env.yaml`` compatible with
     ``ray job submit --runtime-env``.
 
-    Local wheel paths in fromPyPI are copied to the working dir and rewritten
-    to use RAY_RUNTIME_ENV_CREATE_WORKING_DIR so they are available on all
-    nodes (worker nodes do not have access to cluster paths like /tmp/ray/).
-
     Args:
         remote_context: The remote execution context describing packages and env vars.
         wheel_names: Basenames of wheel files from fromSource, present in working dir.
@@ -483,8 +501,9 @@ def _write_runtime_env(
         working_dir: Ray working directory for copying local wheels.
         seen_basenames: Basenames already in working_dir; updated when copying wheels.
     """
-    uv_packages, _ = identify_and_copy_local_wheels(
+    uv_packages = _process_pypi_packages(
         remote_context.packages.fromPyPI,
+        remote_context.additionalFiles,
         cwd,
         working_dir,
         seen_basenames,
@@ -494,7 +513,7 @@ def _write_runtime_env(
         for wheel_name in wheel_names
     )
 
-    runtime_env: dict[str, list[str] | dict[str, str]] = {}
+    runtime_env: dict[str, list[str] | dict[str, str] | dict[str, int | bool]] = {}
     if uv_packages:
         runtime_env["uv"] = uv_packages
 

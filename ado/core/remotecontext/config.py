@@ -1,9 +1,12 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
+import warnings
+from pathlib import PurePath
 from typing import Annotated, Literal
 
 import pydantic
+from typing_extensions import Self
 
 from ado.utilities.pydantic import validate_rfc_1123
 
@@ -242,3 +245,76 @@ class RemoteExecutionContext(pydantic.BaseModel):
             default_factory=list,
         ),
     ]
+
+    @pydantic.model_validator(mode="after")
+    def validate_and_normalize_wheels(self) -> Self:
+        """Validate wheel entries in packages.fromPyPI and additionalFiles.
+
+        Ensures that:
+        1. Entries in additionalFiles do not have duplicate basenames.
+        2. Wheel entries in packages.fromPyPI do not use relative subpaths.
+        3. Wheel entries prefixed with ${RAY_RUNTIME_ENV_CREATE_WORKING_DIR}/ emit a
+           UserWarning and are rewritten to the bare wheel filename.
+        4. Local wheel entries not in additionalFiles emit a warning.
+        """
+        prefix = "${RAY_RUNTIME_ENV_CREATE_WORKING_DIR}/"
+
+        # Check duplicate basenames in additionalFiles
+        seen_additional_basenames: set[str] = set()
+        for add_file in self.additionalFiles:
+            name = PurePath(add_file).name
+            if name in seen_additional_basenames:
+                raise ValueError(
+                    f"Conflicting duplicate basename in additionalFiles: '{name}' "
+                    f"from entry '{add_file}'."
+                )
+            seen_additional_basenames.add(name)
+
+        normalized_from_pypi: list[str] = []
+        for entry in self.packages.fromPyPI:
+            if entry.lower().endswith(".whl"):
+                # If prefixed with ${RAY_RUNTIME_ENV_CREATE_WORKING_DIR}/, warn and strip
+                if entry.startswith(prefix):
+                    warnings.warn(
+                        f"Prefix '{prefix}' in packages.fromPyPI for '{entry}' is "
+                        "unnecessary and will be automatically managed by ado. "
+                        "Removing prefix. For wheels from other local directories, "
+                        "include them in additionalFiles.",
+                        UserWarning,
+                        stacklevel=2,
+                    )
+                    wheel_name = entry[len(prefix) :]
+                else:
+                    wheel_name = entry
+
+                pure_path = PurePath(wheel_name)
+                # Check if it is an absolute path
+                if pure_path.is_absolute():
+                    normalized_from_pypi.append(wheel_name)
+                    continue
+
+                # If relative path has directories, warn to use bare wheel name + additionalFiles
+                if pure_path.parent != PurePath("."):
+                    warnings.warn(
+                        f"Wheel '{entry}' in packages.fromPyPI contains a relative "
+                        "directory path. Consider specifying a bare wheel name "
+                        f"'{pure_path.name}' and listing '{entry}' in additionalFiles instead.",
+                        UserWarning,
+                        stacklevel=2,
+                    )
+                elif wheel_name not in seen_additional_basenames:
+                    # Bare wheel: warn if not present in additionalFiles
+                    warnings.warn(
+                        f"Wheel '{wheel_name}' in packages.fromPyPI is not listed in "
+                        "additionalFiles. If it is located in the working directory, it will "
+                        "be used; otherwise, include it in additionalFiles.",
+                        UserWarning,
+                        stacklevel=2,
+                    )
+
+                normalized_from_pypi.append(wheel_name)
+            else:
+                normalized_from_pypi.append(entry)
+
+        self.packages.fromPyPI = normalized_from_pypi
+        return self

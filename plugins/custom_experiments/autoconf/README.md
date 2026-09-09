@@ -36,9 +36,11 @@ accepted by the recommender model. This ensures that, as expected, the model
 returns `can_recommend==0` for configuration domain values (e.g. model names)
 that were absent in its training set.
 
-The training measurements are published in the Hugging Face Repository
+The training measurements are published in the Hugging Face dataset
 [`ibm-research/LLMFineTuningBench`](https://huggingface.co/datasets/ibm-research/LLMFineTuningBench)
-dataset. AutoConf does not distribute trained models. Generate the model in the
+— specifically the file
+[`ado-sfttrainer-v1-0-0.csv`](https://huggingface.co/datasets/ibm-research/LLMFineTuningBench/blob/main/ado-sfttrainer-v1-0-0.csv).
+AutoConf does not distribute trained models. Generate the model in the
 same Python environment that will use the recommender so its AutoGluon and Python
 versions match.
 
@@ -56,11 +58,12 @@ Generate the model with one command:
 uv run autoconf_build_model
 ```
 
-The command downloads `ado-sfttrainer-dataset.csv` from `LLMFineTuningBench`
-when it is not already in `autoconf/data/`, derives the OOM classification
-target, and writes the generated model to `autoconf/models/v4-0-0/`. AutoConf 2.0
-pins AutoGluon 1.6.1. Both downloaded data and generated models are ignored by
-Git.
+The command downloads `ado-sfttrainer-v1-0-0.csv` from
+[`ibm-research/LLMFineTuningBench`](https://huggingface.co/datasets/ibm-research/LLMFineTuningBench/blob/main/ado-sfttrainer-v1-0-0.csv)
+via `huggingface_hub` when it is not already in `autoconf/data/`, derives the
+OOM classification target, and writes the generated model to
+`autoconf/models/v4-0-0/`. AutoConf 2.0 pins AutoGluon 1.6.1. Both downloaded
+data and generated models are ignored by Git.
 
 See the [model training guide](autoconf/utils/autoconf_build/README.md) for
 configuration options and limitations.

@@ -56,8 +56,8 @@ Generate the model with one command:
 uv run autoconf_build_model
 ```
 
-The command downloads `dataset.csv` from `ibm-research/LLMFineTuningBench` on HuggingFace,
-if it is not already in `autoconf/data/`, derives the OOM classification
+The command downloads `ado-sfttrainer-dataset.csv` from `LLMFineTuningBench`
+when it is not already in `autoconf/data/`, derives the OOM classification
 target, and writes the generated model to `autoconf/models/v4-0-0/`. AutoConf 2.0
 pins AutoGluon 1.6.1. Both downloaded data and generated models are ignored by
 Git.

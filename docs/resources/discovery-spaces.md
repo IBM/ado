@@ -199,7 +199,7 @@ For more on property types, domains and probability functions see
 >[!TIP] Writing Short Constitutive Properties
 >
 > You can often write the constitutive properties in a shorter form
-> then output by `ado template` which is verbose by default.
+> than output by `ado template` which is verbose by default.
 >
 > - In many cases you do not need to specify the `variableType`
 > as [it can be inferred](../concepts/properties-and-domains.md#auto-inference-of-property-domain-types).
@@ -339,7 +339,7 @@ experiments:
   - actuatorIdentifier: vllm_performance # The ACTUATOR ID column of "ado get experiments"
     experimentIdentifier: vllm-bench-endpoint # The EXPERIMENT ID column of "ado get experiments"
     experimentVersion: 1.0.0 # The VERSION column of "ado get experiments". Required if the referenced experiment has a version
-    parameterization: # Optional. Values to fix for the experiment's optional inputs
+    parameterization: # Optional. Values to set for the experiment's optional inputs
       - value: 30
         property:
           identifier: temperature
@@ -383,7 +383,7 @@ Explore operations can be configured to
 has already been measured by an experiment is not measured again.
 
 The key used to identify if a requested experiment has already been applied
-to an entity is the experiments **major version parameterized identifier**.
+to an entity is the experiment's **major version parameterized identifier**.
 This is made up of:
 
 - the actuator identifier
@@ -398,7 +398,7 @@ results under `vllm-bench-endpoint@v1`, and the observed property for its
 
 This means:
 
-- Bumping the minor or patch version of an experiment reuses existing results,
+- Bumping the minor or patch version of an experiment does not affect results reuse,
   as `1.0.0` and `1.2.0` share the same major version `@v1`.
 - Bumping the major version starts a fresh set of results under `@v2`.
 - Adding a version to a previously unversioned experiment starts a fresh set of
@@ -664,14 +664,14 @@ by operations on `discoveryspace` A. However, if someone uses method two on
 `discoveryspace` A and space B.
 
 Shared samples stores also allow data to be reused across `discoveryspaces`,
-potentially accelerating exploration operations. See the
+potentially accelerating explore operations. See the
 [shared sample store](../concepts/data-sharing.md) documentation for
 further details.
 
 ## Running operations on a `discoveryspace`
 
-A `discoveryspace` is a description of what can be measured. Data is added to it
-by running an `operation` on it. There are two kinds:
+A `discoveryspace` is a description of what can be measured. Measurements are
+performed by running an `operation` on it. There are two kinds:
 
 - **explore** operations, such as a random walk or a Bayesian optimization,
   sample `entities` from the `entityspace`, apply the experiments in the

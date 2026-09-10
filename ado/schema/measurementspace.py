@@ -184,13 +184,14 @@ class MeasurementSpace:
 
         content = []
 
-        def parameterization_string(e: Experiment | ParameterizedExperiment) -> str:
-
+        def parameterization_string(
+            e: Experiment | ParameterizedExperiment,
+        ) -> str | None:
+            """Return the parameterization suffix, or None for a base Experiment."""
             return (
-                None
-                if isinstance(e, Experiment)
-                # The [1:] is to cut the initial hyphen
-                else identifier_for_parameterized_experiment("", e.parameterization)[1:]
+                identifier_for_parameterized_experiment("", e.parameterization)[1:]
+                if isinstance(e, ParameterizedExperiment)
+                else None
             )
 
         # Experiments overview table

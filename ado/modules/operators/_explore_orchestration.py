@@ -146,14 +146,18 @@ def run_explore_operation_core_closure(
         discovery_space_manager.startMonitoring.remote()
         future = operator.run.remote()
 
-        # Start the rich live updates
-        run_operation_live_updates(
-            discovery_space=discovery_space,
-            operation_id=operation_id,
-            console_queue=queue_handle,
-            operation_future=future,
-        )
-
+        try:
+            run_operation_live_updates(
+                discovery_space=discovery_space,
+                operation_id=operation_id,
+                console_queue=queue_handle,
+                operation_future=future,
+            )
+        except Exception:
+            moduleLog.warning(
+                "Live console updates failed; waiting for operator",
+                exc_info=True,
+            )
         operation_output: OperationOutput = ray.get(future)
         return operation_output
 

@@ -5,7 +5,7 @@ requires-python = ">=3.10,<3.14"
 dependencies = [
   "ado-core>=2.0.0",
   "autogluon-tabular[catboost,xgboost]==1.5.0 ; python_full_version < '3.14'",
-  "pandas<3.0.0",
+  "pandas<3.0.6",
   "pydantic",
   "torch",
 ]

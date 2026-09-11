@@ -276,6 +276,13 @@ envVars:
 1. Build python wheels for those packages
 2. Instruct Ray to install the wheels as part of the Ray job submission
 
+> [!NOTE] git+ssh dependencies
+>
+> Ray cluster nodes are not guaranteed to have SSH access to git servers.
+> If your package has `git+ssh://` dependencies, make them optional in your
+> top-level `pyproject.toml` and clone their source locally so you can add
+> the local paths to `packages.fromSource` instead.
+
 ## Sending additional files
 
 If you have additional files that need to be sent use the `additionalFiles`

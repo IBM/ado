@@ -190,6 +190,24 @@ If you are still seeing stale wheels, confirm the plugin's `pyproject.toml`
 has the `format-jinja` block from the
 [plugin-development](../plugin-development/SKILL.md) skill.
 
+### Dependencies to packages obtained via git and ssh must be manually cloned and added to packages.fromSource
+
+If you use a `fromSource` entry you must also:
+
+1. Read its `pyproject.toml` or `setup.py` to collect every `git+ssh://` dependency.
+   - To find which extras apply: locate the `[project.entry-points."ado.custom_experiments"]`
+     section; the module listed there is the ado experiment. Search that module (and any modules
+     it imports from the same package) for imports of packages that appear in the
+     `[project.optional-dependencies]` extras. Include those extras in the scan.
+2. If no local clone exists strictly under the `dependencies/` directory,
+   clone it immediately:
+   ```bash
+   # given: my-utils @ git+ssh://git@github.com/ibm/my-utils.git@branch_name
+   mkdir -p dependencies && git clone git@github.com:ibm/my-utils.git -b branch_name dependencies/my-utils
+   ```
+3. Add the cloned path to `fromSource`. Never source wheels or source trees from `site-packages`.
+
+
 ---
 
 ## Execution Context YAML Reference
@@ -246,6 +264,9 @@ packages:
   fromSource:
     - plugins/actuators/my_plugin  # relative to where ado --remote is run
 ```
+
+If there are any `git+ssh://` dependencies then you must clone them and
+include them under `fromSource`.
 
 ### `additionalFiles` — ship local files to the cluster
 

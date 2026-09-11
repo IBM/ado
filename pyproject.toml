@@ -121,6 +121,17 @@ RAY_ENABLE_UV_RUN_RUNTIME_ENV = "0"
 default-groups = ["dev", "docs"]
 required-environments = ["sys_platform == 'darwin' and platform_machine == 'arm64'", "sys_platform == 'linux' and platform_machine == 'x86_64'"]
 
+# AP 11/09/26:
+# ado-vllm-performance requires vllm>=0.27.0 (security), which depends on numba==0.65.0.
+# ado-profile-space requires fg-data-profiling, which depends on numba>=0.60,<0.63.
+# These numba version ranges are incompatible, so the two packages are declared as conflicting.
+conflicts = [
+  [
+    { package = "ado-vllm-performance", extra = "vllm" },
+    { package = "ado-profile-space" },
+  ],
+]
+
 # Having our plugins in the workspace section makes it so
 # that dependencies are resolved considering them as well.
 # ref: https://docs.astral.sh/uv/concepts/projects/workspaces

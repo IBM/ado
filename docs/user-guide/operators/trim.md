@@ -216,6 +216,71 @@ parameters:
 
 ---
 
+#### `missingTargetMeasurements`
+
+By default, TRIM treats any measurement without a `targetOutput` value as a
+fatal error and aborts the operation immediately. If your experiment
+occasionally fails to produce a target value and you want
+TRIM to continue rather than abort, configure this setting.
+
+##### `missingTargetMeasurements.mode`
+
+**Type:** `str`
+
+**Default:** `Error`
+
+**Purpose:** Action to take when a measurement has no `targetOutput` value.
+
+**Supported values:**
+
+- `Error` _(default)_: Abort the operation after a single measurement that
+  lacks `targetOutput`.
+- `Skip`: Exclude the measurement from the dataset and continue. Use this when
+  occasional missing values are expected and acceptable.
+- `InjectDefaultValue`: Substitute `missingTargetMeasurements.defaultValue` as
+  the `targetOutput` for the missing measurement.
+
+##### `missingTargetMeasurements.budget`
+
+**Type:** `int | null`
+
+**Default:** `null` (unlimited)
+
+**Purpose:** Does not apply when `mode` is `Error`.
+Maximum number of missing-target measurements to tolerate before
+raising an error.
+`null` means TRIM will never abort due to missing measurements,
+regardless of how many occur
+
+##### `missingTargetMeasurements.defaultValue`
+
+**Type:** `float`
+
+**Default:** `0.0`
+
+**Purpose:** Value substituted for a missing `targetOutput`. Only used when
+`mode` is `InjectDefaultValue`.
+
+**Example — skip with an upper bound of 40 missing measurements:**
+
+```yaml
+parameters:
+  missingTargetMeasurements:
+    mode: Skip
+    budget: 40
+```
+
+**Example — inject a sentinel value for missing measurements:**
+
+```yaml
+parameters:
+  missingTargetMeasurements:
+    mode: InjectDefaultValue
+    defaultValue: -1.0
+```
+
+---
+
 ### Phase 1: Initial Data Gathering
 
 #### `samplingBudget`
@@ -577,18 +642,19 @@ TRIM maintains a rolling holdout set:
 
 ### Debugging and Troubleshooting
 
-The current version of TRIM assumes that all measurements produce the observed
-target output property, if this is not the case TRIM raises
-`InsufficientDataError`. To inspect what happened you can show the entities in
-the space with the following command
+By default, TRIM requires every measurement to produce a value for
+`targetOutput`. If a measurement does not contain that value, TRIM raises
+`InsufficientDataError` and aborts. This is the `Error` mode of
+[`missingTargetMeasurements`](#missingtargetmeasurements).
+
+To inspect what happened, show the entities in the space:
 
 ```terminal
 ado show measurements --use-latest space
 ```
 
-Looking at the output you will find out if the target output property
-`targetOutput` is not a measured property of the entities in the space. In this
-case you will see a message such as
+If `targetOutput` is not a measured property of any entity, you will see a
+message such as:
 
 <!-- markdownlint-disable line-length -->
 
@@ -610,8 +676,25 @@ ado show measurements --use-latest space --property [targetOutput]
 
 Here, remember to replace `"[targetOutput]"` with `targetOutput`.
 
+#### Continuing past missing measurements
+
+If missing target values are an expected part of your workload (for example,
+your experiment occasionally fails), configure
+`missingTargetMeasurements.mode` to avoid an immediate abort:
+
+```yaml
+parameters:
+  missingTargetMeasurements:
+    mode: Skip       # silently exclude measurements with no targetOutput
+    budget: 40       # abort if more than 40 are missing
+```
+
+See [`missingTargetMeasurements`](#missingtargetmeasurements) for all options.
+
+#### Enabling debug logging
+
 If you still need to troubleshoot, enable debug logging to save intermediate
-files. Set logging level when you launch your operation, for example:
+files. Set the logging level when you launch your operation, for example:
 
 <!-- markdownlint-disable line-length -->
 

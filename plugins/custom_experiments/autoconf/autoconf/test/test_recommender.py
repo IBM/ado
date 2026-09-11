@@ -4,6 +4,7 @@
 
 # pyright: reportCallIssue=false
 
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
@@ -184,7 +185,7 @@ def test_min_gpu_recommender_valid_model_name_mapping_granite_3_1_2b() -> None:
                     gpu_model="NVIDIA-A100-80GB-PCIe",
                     tokens_per_sample=2048,
                     batch_size=8,
-                    model_version="3.1.0",
+                    model_version="4.0.0",
                     gpus_per_worker=8,
                     max_gpus=8,
                 )
@@ -229,7 +230,7 @@ def test_min_gpu_recommender_valid_model_name_mapping_granite_3_1_8b() -> None:
                     gpu_model="NVIDIA-A100-80GB-PCIe",
                     tokens_per_sample=2048,
                     batch_size=8,
-                    model_version="3.1.0",
+                    model_version="4.0.0",
                 )
 
                 assert result["can_recommend"] is True, (
@@ -268,7 +269,7 @@ def test_min_gpu_recommender_valid_model_name_mapping_llama_3_1_8b() -> None:
                     gpu_model="NVIDIA-A100-80GB-PCIe",
                     tokens_per_sample=2048,
                     batch_size=8,
-                    model_version="3.1.0",
+                    model_version="4.0.0",
                 )
 
                 assert result["can_recommend"] is True, (
@@ -308,7 +309,7 @@ def test_min_gpu_recommender_valid_model_name_mapping_granite_4_variants() -> No
                     gpu_model="NVIDIA-A100-80GB-PCIe",
                     tokens_per_sample=2048,
                     batch_size=8,
-                    model_version="3.1.0",
+                    model_version="4.0.0",
                 )
 
                 assert result["can_recommend"] is True, (
@@ -345,7 +346,7 @@ def test_min_gpu_recommender_unmapped_model_name_unchanged() -> None:
                     gpu_model="NVIDIA-A100-80GB-PCIe",
                     tokens_per_sample=2048,
                     batch_size=8,
-                    model_version="3.1.0",
+                    model_version="4.0.0",
                 )
 
                 # Should still work, name just not mapped
@@ -383,7 +384,7 @@ def test_min_gpu_recommender_successful_recommendation() -> None:
                 gpu_model="NVIDIA-A100-80GB-PCIe",
                 tokens_per_sample=2048,
                 batch_size=8,
-                model_version="3.1.0",
+                model_version="4.0.0",
                 gpus_per_worker=8,
                 max_gpus=8,
             )
@@ -416,7 +417,7 @@ def test_min_gpu_recommender_no_recommendation_error() -> None:
                 gpu_model="NVIDIA-A100-80GB-PCIe",
                 tokens_per_sample=8192,
                 batch_size=128,
-                model_version="3.1.0",
+                model_version="4.0.0",
                 gpus_per_worker=8,
                 max_gpus=8,
             )
@@ -443,7 +444,7 @@ def test_min_gpu_recommender_validation_error() -> None:
             gpu_model="NVIDIA-A100-80GB-PCIe",
             tokens_per_sample=-100,  # Invalid: negative
             batch_size=8,
-            model_version="3.1.0",
+            model_version="4.0.0",
         )
 
         assert result["can_recommend"] is False
@@ -474,7 +475,7 @@ def test_min_gpu_recommender_default_parameters() -> None:
                 gpu_model="NVIDIA-A100-80GB-PCIe",
                 tokens_per_sample=2048,
                 batch_size=8,
-                model_version="3.1.0",
+                model_version="4.0.0",
                 # gpus_per_worker defaults to 8
                 # max_gpus defaults to 8
             )
@@ -483,12 +484,12 @@ def test_min_gpu_recommender_default_parameters() -> None:
 
 
 def test_min_gpu_recommender_model_version_validation() -> None:
-    """Test that different model versions are handled correctly."""
+    """Test that the generated model version is handled correctly."""
     from autoconf.min_gpu_recommender import min_gpu_recommender
 
     original_func = getattr(min_gpu_recommender, "_original_func", min_gpu_recommender)
 
-    valid_versions = ["3.0.0", "3.1.0"]
+    valid_versions = ["4.0.0"]
 
     for version in valid_versions:
         with patch("autoconf.min_gpu_recommender.load_model") as mock_load:
@@ -511,6 +512,58 @@ def test_min_gpu_recommender_model_version_validation() -> None:
 
                 assert result["can_recommend"] is True
                 mock_load.assert_called_once_with(model_version=version)
+
+
+def test_load_model_raises_when_autogluon_not_installed(tmp_path: Path) -> None:
+    """When autogluon is not importable and model is absent, FileNotFoundError is raised."""
+    from autoconf.min_gpu_recommender import load_model
+
+    load_model.cache_clear()
+    with (
+        patch.dict("sys.modules", {"autogluon.tabular": None}),
+        pytest.raises(FileNotFoundError, match="autoconf_build_model"),
+    ):
+        load_model(model_version="4.0.0", model_root=tmp_path)
+
+
+def test_load_model_trains_on_demand_when_model_absent(tmp_path: Path) -> None:
+    """When autogluon is installed and model is absent, _train_autogluon_on_demand is called."""
+    from autoconf.min_gpu_recommender import load_model
+
+    load_model.cache_clear()
+
+    def fake_train(model_root: Path | None) -> None:
+        # Simulate build_model creating the model directory.
+        (tmp_path / "v4-0-0").mkdir(parents=True, exist_ok=True)
+
+    mock_predictor = MagicMock()
+
+    with (
+        patch(
+            "autoconf.min_gpu_recommender._train_autogluon_on_demand",
+            side_effect=fake_train,
+        ),
+        patch(
+            "autoconf.min_gpu_recommender.TabularPredictor.load",
+            return_value=mock_predictor,
+        ),
+    ):
+        result = load_model(model_version="4.0.0", model_root=tmp_path)
+
+    assert result is mock_predictor
+
+
+def test_train_autogluon_on_demand_calls_build_model(tmp_path: Path) -> None:
+    """_train_autogluon_on_demand calls build_model with model_root."""
+    from autoconf.min_gpu_recommender import _train_autogluon_on_demand
+
+    with (
+        patch("autoconf.utils.autoconf_build.ml_classifier.build_model") as mock_build,
+        patch("warnings.warn"),
+    ):
+        _train_autogluon_on_demand(tmp_path)
+
+    mock_build.assert_called_once_with(model_root=tmp_path)
 
 
 def test_min_gpu_recommender_gpu_worker_calculation() -> None:
@@ -539,7 +592,7 @@ def test_min_gpu_recommender_gpu_worker_calculation() -> None:
                 gpu_model="NVIDIA-A100-80GB-PCIe",
                 tokens_per_sample=2048,
                 batch_size=8,
-                model_version="3.1.0",
+                model_version="4.0.0",
                 gpus_per_worker=8,
                 max_gpus=8,
             )

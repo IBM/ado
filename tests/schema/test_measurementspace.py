@@ -1019,6 +1019,47 @@ def test_measurementspace_rich_print(
     print(measurement_space_from_single_parameterized_experiment)
 
 
+def test_measurementspace_rich_print_shows_parameterization(
+    measurement_space_from_single_parameterized_experiment: MeasurementSpace,
+) -> None:
+    """The experiments overview table includes parameterization, not None.
+
+    ParameterizedExperiment subclasses Experiment, so isinstance(e, Experiment)
+    must not be used to decide the parameterization column.
+    """
+    from ado.schema.reference import identifier_for_parameterized_experiment
+    from ado.utilities.rich import render_to_string
+
+    ms = measurement_space_from_single_parameterized_experiment
+    experiment = ms.experiments[0]
+    assert isinstance(experiment, ParameterizedExperiment)
+    parameterization = identifier_for_parameterized_experiment(
+        "", experiment.parameterization
+    )[1:]
+    base_identifier = f"{experiment.actuatorIdentifier}.{experiment.identifier}"
+
+    rendered = render_to_string(ms.__rich__(), width=200)
+    table_row = next(line for line in rendered.splitlines() if base_identifier in line)
+    assert parameterization in table_row
+
+
+def test_measurementspace_rich_print_unparameterized(
+    measurement_space_direct: MeasurementSpace,
+) -> None:
+    """The experiments overview table shows None for an unparameterized experiment."""
+    from ado.utilities.rich import render_to_string
+
+    ms = measurement_space_direct
+    experiment = ms.experiments[0]
+    assert type(experiment) is Experiment
+    base_identifier = f"{experiment.actuatorIdentifier}.{experiment.identifier}"
+
+    rendered = render_to_string(ms.__rich__(), width=200)
+    table_row = next(line for line in rendered.splitlines() if base_identifier in line)
+    cells = [cell.strip() for cell in table_row.split("┃")]
+    assert cells[-1] == "None"
+
+
 def test_measurementspace_rich_print_multiple(
     measurement_space_from_multiple_parameterized_experiments: MeasurementSpace,
 ) -> None:

@@ -188,7 +188,7 @@ the git node and a timestamp to every dirty or dev build (e.g.
 `X.Y.Z.devN+g<commit>.d<timestamp>`), so each build produces a unique version.
 If you are still seeing stale wheels, confirm the plugin's `pyproject.toml`
 has the `format-jinja` block from the
-[plugin development rules](../../rules/plugin-development.mdc).
+[plugin-development](../plugin-development/SKILL.md) skill.
 
 ---
 

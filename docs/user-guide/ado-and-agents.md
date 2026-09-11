@@ -26,7 +26,7 @@ plain language:
 | Ask your agent to…    | Example prompt                                                                        | Skill used                    |
 | :-------------------- | :------------------------------------------------------------------------------------ | :---------------------------- |
 | **Run a full study**  | "Design, run, and analyse an experiment to find the best vLLM config for throughput." | `conduct-empirical-study`     |
-| **Create YAML files** | "Formulate a discovery space for my new component."                                   | `formulate-discovery-problem` |
+| **Create YAML files** | "Formulate a discovery space for my new component."                                   | `define-experiment-campaign`  |
 | **Summarise results** | "Examine the operation I just ran and tell me what it found."                         | `examining-ado-operations`    |
 | **Inspect a project** | "Give me an overview of all experiments run in this project so far."                  | `examining-ado-project`       |
 | **Query data**        | "Find all entities where `lora_rank` was 8 and export their `validation_loss`."       | `query-ado-data`              |

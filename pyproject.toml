@@ -87,7 +87,10 @@ docs = [
 test = [
   "ado-anomalous-series",
   "ado-autoconf ; python_full_version < '3.14'",
-  "ado-profile-space ; python_full_version < '3.14'",
+  # AP 11/09/26:
+  # Temporarily removing ado-profile-space due to:
+  # https://github.com/IBM/ado/pull/1414#discussion_r3988436934
+  # "ado-profile-space ; python_full_version < '3.14'",
   "ado-ray-tune",
   "ado-sfttrainer ; python_full_version < '3.13'",
   "ado-trim ; python_full_version < '3.14'",

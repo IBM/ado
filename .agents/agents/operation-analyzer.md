@@ -42,5 +42,5 @@ resource YAML
 
 ## References
 
-- see [plugin-development](../rules/plugin-development.mdc) for details on
+- see [plugin-development](../skills/plugin-development/SKILL.md) for details on
   developing operator plugins

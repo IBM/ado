@@ -9,12 +9,15 @@ entitySpace:
   - identifier: batch_size
     propertyDomain:
       variableType: DISCRETE_VARIABLE_TYPE
-      values: [16, 32, 64]
+      values: [32, 64] # Reduced for smaller space
+  - identifier: optimizer
+    propertyDomain:
+      variableType: CATEGORICAL_VARIABLE_TYPE
+      values: [adam, sgd, rmsprop]
 experiments:
   - actuatorIdentifier: TrainerActuator
     experimentIdentifier: train_model
-  - actuatorIdentifier: EvaluatorActuator
-    experimentIdentifier: evaluate_model
+    experimentVersion: 1.0.0
 metadata:
-  name: train_and_evaluate
-  description: Train models and evaluate on test set
+  name: optimizer_comparison
+  description: Compare optimizers with different learning rates

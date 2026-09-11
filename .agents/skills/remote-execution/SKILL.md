@@ -201,12 +201,13 @@ If you use a `fromSource` entry you must also:
      `[project.optional-dependencies]` extras. Include those extras in the scan.
 2. If no local clone exists strictly under the `dependencies/` directory,
    clone it immediately:
+
    ```bash
    # given: my-utils @ git+ssh://git@github.com/ibm/my-utils.git@branch_name
    mkdir -p dependencies && git clone git@github.com:ibm/my-utils.git -b branch_name dependencies/my-utils
    ```
-3. Add the cloned path to `fromSource`. Never source wheels or source trees from `site-packages`.
 
+3. Add the cloned path to `fromSource`. Never source wheels or source trees from `site-packages`.
 
 ---
 

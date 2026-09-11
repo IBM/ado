@@ -236,13 +236,19 @@ wait: false
 
 ### `packages` block
 
+- Use `fromSource` for any package whose source is available locally.
+- Use `fromPyPI` for public PyPI packages and pre-built wheels. If a
+  wheel path does not exist locally, it will instead be resolved on
+  remote RayCluster's filesystem.
+- Always prefer `fromSource` over `fromPyPI`.
+
 ```yaml
 packages:
   fromPyPI:
     - ado-core
     - ado-ray-tune
-    - ray==2.52.1                         # pin to match cluster version if needed
-    - /remote/path/to/package.whl         # path to a wheel already on the cluster
+    - ray==2.52.1           # pin to match cluster version if needed
+    - path/to/package.whl   # only if source is completely unavailable
   fromSource:
     - plugins/actuators/my_plugin  # relative to where ado --remote is run
 ```

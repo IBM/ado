@@ -190,24 +190,21 @@ If you are still seeing stale wheels, confirm the plugin's `pyproject.toml`
 has the `format-jinja` block from the
 [plugin-development](../plugin-development/SKILL.md) skill.
 
-### Dependencies to packages obtained via git and ssh must be manually cloned and added to packages.fromSource
+### Handling Version Control Source (VCS) Dependencies
 
-If you use a `fromSource` entry you must also:
+It's necessary to detect and handle any VCS dependencies used by `fromSource` packages. The process is:
 
-1. Read its `pyproject.toml` or `setup.py` to collect every `git+ssh://` dependency.
-   - To find which extras apply: locate the `[project.entry-points."ado.custom_experiments"]`
-     section; the module listed there is the ado experiment. Search that module (and any modules
-     it imports from the same package) for imports of packages that appear in the
-     `[project.optional-dependencies]` extras. Include those extras in the scan.
-2. If no local clone exists strictly under the `dependencies/` directory,
-   clone it immediately:
+1. Obtain list of all VCS dependencies in the packages project configuration files e.g. pyproject, setup.py
+2. Determine if public access: Remove any VCS dependency that refers to an open repository on e.g. public GitHub, from the list.
+If no VCS dependencies remain, stop.
+3. Clone each VCS dependency under the `dependencies/` directory. For example
 
    ```bash
    # given: my-utils @ git+ssh://git@github.com/ibm/my-utils.git@branch_name
    mkdir -p dependencies && git clone git@github.com:ibm/my-utils.git -b branch_name dependencies/my-utils
    ```
 
-3. Add the cloned path to `fromSource`. Never source wheels or source trees from `site-packages`.
+4. Add each cloned path to `fromSource`.
 
 ---
 

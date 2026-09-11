@@ -309,7 +309,12 @@ def trim(
     )
     sampler_params = TrimSamplerParametersInternal(
         **_trim_sampler_params.model_dump(),
-        noPriorsOperationId=(op_output_characterization_no_prior.operation.identifier),
+            noPriorsOperationId=(
+            op_output_characterization_no_prior.operation.identifier
+            if op_output_characterization_no_prior.operation is not None
+            else None
+        ),
+    )
     )
     trim_sampler_config = CustomSamplerConfiguration(
         module=trim_module, parameters=sampler_params

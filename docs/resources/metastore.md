@@ -1,7 +1,7 @@
 <!-- markdownlint-disable code-block-style -->
 <!-- markdownlint-disable-next-line first-line-h1 -->
 `ado` uses a SQL database to store
-[resource definitions](index.md#common-features-of-resources)
+[resource definitions](working-with-resources.md#common-features-of-resources)
 and [SQLSampleStores](sample-stores.md#sqlsamplestore). When you execute `ado`
 commands like `get` or `describe` they are interacting with this metastore.
 
@@ -157,7 +157,7 @@ existing database.
 
 The [`ado get`](../cli-reference/index.md#ado-get) CLI command lets you easily
 retrieve and search
-[resource definitions](index.md#common-features-of-resources)
+[resource definitions](working-with-resources#common-features-of-resources)
 in the metastore in a variety of ways.
 
 ### Searching for similar spaces
@@ -223,7 +223,8 @@ will retrieve all operations that have the label `labelone` with the value
 
 For more advanced searches, `ado` provides the `--filter` option to find
 resources based on the contents of their
-[stored representation](index.md#common-features-of-resources). This option
+[stored representation](working-with-resources.md#common-features-of-resources).
+This option
 can be specified multiple times and in conjunction with the `-l` option to find
 resources that match all the specified filters.
 

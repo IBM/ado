@@ -19,8 +19,8 @@ the definitions and work with the results.
 
 For more on actuators, operators and contexts see their dedicated sections
 
-- [Working with Actuators](../user-guide/actuators)
-- [Working with Operators](../user-guide/operators)
+- [Working with Actuators](../user-guide/actuators/working-with-actuators.md)
+- [Working with Operators](../user-guide/operators/working-with-operators.md)
 - [Projects & Contexts](metastore.md#contexts-and-projects)
 
 ## Resource Types

@@ -276,12 +276,25 @@ envVars:
 1. Build python wheels for those packages
 2. Instruct Ray to install the wheels as part of the Ray job submission
 
-> [!NOTE] git+ssh dependencies
+> [!NOTE] Version Control System dependencies
 >
-> Ray cluster nodes are not guaranteed to have SSH access to git servers.
-> If your package has `git+ssh://` dependencies, make them optional in your
-> top-level `pyproject.toml` and clone their source locally so you can add
-> the local paths to `packages.fromSource` instead.
+> Ray cluster nodes are not guaranteed to have access to any VCS's
+> specified in python package dependencies.
+> If your package has private VCS dependencies, declare them using
+> [`[tool.uv.sources]`](https://docs.astral.sh/uv/concepts/projects/dependencies/) in
+> your `pyproject.toml` instead of `git+ssh://` URLs in the `dependencies` list:
+>
+> ```toml
+> [project]
+> dependencies = [
+>     "private-dependency"
+> ]
+>
+> [tool.uv.sources]
+> private-dependency = { git = "ssh://git@github.com/ibm/private-dependency.git", tag = "v0.4.0" }
+> ```
+>
+> Then clone the source locally and add the local path to `packages.fromSource`.
 
 ## Sending additional files
 

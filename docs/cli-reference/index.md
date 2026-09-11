@@ -12,7 +12,8 @@
 
 **ado** comes with a CLI utility that is designed to be familiar for users of
 `kubectl` and `oc`. It allows creating and retrieving
-[resources](../resources/index.md), managing multiple backends, executing
+[resources](../resources/working-with-resources.md), managing
+multiple backends, executing
 [actuators](../user-guide/actuators/working-with-actuators.md), and more.
 
 This page provides documentation for every command that we support, presented in
@@ -130,7 +131,7 @@ ado context my-context
 ## ado create
 
 The **ado** CLI provides the _create_ command to create
-[resources](../resources/index.md) given a YAML file with their
+[resources](../resources/working-with-resources.md) given a YAML file with their
 configuration.
 
 The complete syntax of the `ado create` command is as follows:
@@ -255,7 +256,7 @@ ado create space -f ds.yaml --set "entitySpace[0].identifier=abcdef"
 ## ado delete
 
 The **ado** CLI provides the delete command to delete
-[resources](../resources/index.md) given their unique identifier.
+[resources](../resources/working-with-resources.md) given their unique identifier.
 
 The complete syntax of the `ado delete` command is as follows:
 

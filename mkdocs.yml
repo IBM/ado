@@ -141,11 +141,20 @@ plugins:
   - gh-admonitions:
 nav:
   - Home:
-      - Home: index.md
+      - Home: working-with-resources.md
       - Roadmap: roadmap.md
   - User Guide:
       - Getting Started: user-guide/getting-started.md
       - ado and Agents: user-guide/ado-and-agents.md
+      - Resources:
+          - Working with resources: resources/working-with-resources.md
+          - The metastore: resources/metastore.md
+          - samplestore: resources/sample-stores.md
+          - discoveryspace: resources/discovery-spaces.md
+          - operation: resources/operation.md
+          - actuatorconfiguration: resources/actuatorconfig.md
+          - datacontainer: resources/datacontainer.md
+          - document: resources/document.md
       - Actuators:
           - Working with actuators: user-guide/actuators/working-with-actuators.md
           - Actuator Guides:
@@ -174,7 +183,7 @@ nav:
           - Contributing: developer-guide/contributing.md
           - Developing ado: developer-guide/developing.md
   - Examples:
-      - user-guide/examples/index.md
+      - user-guide/examples/working-with-resources.md
       - Tutorials:
           - "The basics: your first ado experiment campaign": user-guide/examples/tutorials/density-example.md
           - "Beyond the basics: ado with real data": user-guide/examples/tutorials/random-walk.md
@@ -198,13 +207,4 @@ nav:
       - Entities and Entity Spaces: concepts/entity-spaces.md
       - Discovery Spaces: concepts/discovery-spaces.md
       - Shared Sample Stores: concepts/data-sharing.md
-  - Resources:
-      - resources/index.md
-      - The metastore: resources/metastore.md
-      - samplestore: resources/sample-stores.md
-      - discoveryspace: resources/discovery-spaces.md
-      - operation: resources/operation.md
-      - actuatorconfiguration: resources/actuatorconfig.md
-      - datacontainer: resources/datacontainer.md
-      - document: resources/document.md
-  - CLI Reference: cli-reference/index.md
+  - CLI Reference: cli-reference/working-with-resources.md

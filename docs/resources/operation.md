@@ -163,8 +163,8 @@ missing, the `create` operation will fail with a relevant error.
 ### `operation` resource specific fields
 
 `operation` resources have two additional top-level fields in addition to common
-ones described in [resources](index.md#common-features-of-resources) These
-are (with example values):
+ones described in [resources](working-with-resources.md#common-features-of-resources).
+These are (with example values):
 
 ```yaml
 operationType: characterize # characterize, modify, etc.
@@ -192,7 +192,7 @@ See [datacontainers](datacontainer.md) for more details.
 ## `operation` status update events
 
 In addition to the
-[status update events common to all resources](index.md#resource-status)
+[status update events common to all resources](working-with-resources.md#resource-status)
 `operations` define two more events: `started` and `finished`.
 
 The finished event also has a custom field `exit_state` which described how the

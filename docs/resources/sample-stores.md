@@ -304,7 +304,7 @@ caution. When a sample store is deleted:
   These will be measurements that were copied into the `samplestore` i.e., not
   generated through `ado` operations. All results from `ado` operations would
   have already been subject to
-  [standard deletion constraints](index.md#deleting-resources).
+  [standard deletion constraints](working-with-resources.md#deleting-resources).
 - **The corresponding database tables will be dropped**.
 
 This is especially critical when the sample store was populated externally, such

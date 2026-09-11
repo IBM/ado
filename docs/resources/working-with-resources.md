@@ -3,16 +3,37 @@
 <!-- markdownlint-disable code-block-style -->
 <!-- markdownlint-disable-next-line first-line-h1 -->
 
-`ado` manages resources related to discovery, such as descriptions of spaces to
-explore, operations for exploration and analysis, and actuator configurations.
-With `ado`, you can create these resources, which are stored in a database (the
-[metastore](metastore.md)) along with their relationships to other resources.
-You can then describe, list, or delete these resources as needed.
+With the **ado** CLI
+you work with _resources_, _actuators and operators_, and
+_contexts_.
 
-The resources are:
+**Actuators and operators**
+provide capabilities, and **resources** define how you use them.
+You store the resources in projects along with the measurement data.
+To access a particular project you have a **context** which describes
+its location and access credentials.
+
+This section covers the different resource types, writing
+resource definitions, and using the CLI to create resources from
+the definitions and work with the results.
+
+For more on actuators, operators and contexts see their dedicated sections
+
+- [Working with Actuators](../user-guide/actuators/working-with-actuators.md)
+- [Working with Operators](../user-guide/operators/working-with-operators.md)
+- [Projects & Contexts](metastore.md#contexts-and-projects)
+
+## Resource Types
+
+You use the `ado` CLI to create, list, inspect or delete resources.
+To create a resources you first defined it in a YAML files. On
+creation the resource definition is stored in a database (the
+[metastore](metastore.md)).
+
+The current `ado` resources are:
 
 - **[samplestore](sample-stores.md)**: A database for storing entities and
-  measurement results
+  measurement results.
 - **[discoveryspace](discovery-spaces.md)**: Describes a set of entities along
   with the experiment protocols that should be applied to them
 - **[operation](operation.md)**: An instance of applying an operator to a
@@ -24,12 +45,20 @@ The resources are:
 - **[document](document.md)**: A markdown or HTML report or note stored in the
   metastore, optionally linked to related resources.
 
+Creating some resource triggers other events to occur. In particular
+
+- creating a `samplestore` resource results in specific
+piece of storage being created.
+- creating an operation resource causes an operation to execute.
+The operation may sample and measure entities in a space or
+could perform an analysis, potentially returning new resources
+
 > [!NOTE]
 >
 > Some resources take other resources as input, for example `operations` take
 > `discoveryspaces` as input.
 
-## Naming Conventions: Concepts versus Resources
+### Naming Conventions: Concepts versus Resources
 
 `ado` resources are directly related to `ado`
 [concepts](../concepts/core-concepts.md) and usually have the same name. To
@@ -39,22 +68,6 @@ adopt the following conventions.
 When we refer to concepts, upper case nouns like "Sample Store", "Actuator" are
 used. However, for the corresponding resources lower case is used, with no
 spaces, so `samplestore` and `actuator`.
-
-We also apply the same approach to `entities`, although these are not properly
-resources. See [below](#where-are-the-entities) for more.
-
-## `actuators`, `operators` and `contexts`
-
-Many `ado` commands work with `actuators`, `operators` and `contexts` as if they
-were resources. However, they are not true resources and are not stored in the
-metastore.
-
-- For more on `actuators` see
-  [working with actuators](../user-guide/actuators/working-with-actuators.md).
-- For more on `operators` see
-  [working with operators](../user-guide/operators/working-with-operators.md).
-- For more on `contexts` see the
-  [metastore docs](metastore.md#contexts-and-projects)
 
 ## Common CLI commands for interacting with resources
 
@@ -179,20 +192,6 @@ from ado.core import kindmap
 with open("resource.yaml") as f:
     resource = kindmap["discoveryspace"].model_validate(yaml.safe_load(f))
 ```
-
-## Where are the entities?
-
-Note that `entities` are not a resource `ado` manages. Instead, you work at the
-level of sets of `entities` i.e. a `discoveryspace`.
-
-- A `discoveryspace` defines a set of `entities`
-- Applying certain `operations` to a `discoveryspace` results in `entities`
-  being sampled from the space and measurements being applied to them
-- The sampled entities and measurement results are stored in a `samplestore`
-
-You can think of `discoveryspaces`, `samplestores` and `operations` as being
-(different) "containers" of Entities. `ado` also provides commands to `show` the
-Entities that are in those containers.
 
 ## What's next
 

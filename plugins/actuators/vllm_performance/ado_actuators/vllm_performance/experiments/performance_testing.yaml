@@ -1202,7 +1202,7 @@ test-agentic-tool-calling:
 vllm-bench-deployment:
   identifier: vllm-bench-deployment
   actuatorIdentifier: "vllm_performance"
-  version: 1.2.0
+  version: 1.3.0
   requiredProperties: # Any entity passed to this experiment must have constitutive properties with these values
     - identifier: 'model'
       metadata:
@@ -1352,6 +1352,12 @@ vllm-bench-deployment:
         variableType: 'DISCRETE_VARIABLE_TYPE'
         domainRange: [1, 10001]
         interval: 1
+    - identifier: 'ignore_eos'
+      metadata:
+        description: "(benchmark) When 1, passes --ignore-eos to the benchmark so each request generates the requested number of output tokens instead of stopping at the EOS token. Only used when dataset=prefix_repetition."
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        values: [0, 1]
     - identifier: 'kv_cache_dtype'
       metadata:
         description: "(deployment) KV cache data type for vLLM (e.g. fp8, turboquant_k8v4). If not set, vLLM uses the default."
@@ -1462,6 +1468,9 @@ vllm-bench-deployment:
         identifier: 'prefix_repetition_output_len'
       value: 128
     - property:
+        identifier: 'ignore_eos'
+      value: 0
+    - property:
         identifier: 'reasoning_parser'
       value: null
     - property:
@@ -1518,7 +1527,7 @@ vllm-bench-deployment:
 vllm-bench-endpoint:
   identifier: vllm-bench-endpoint
   actuatorIdentifier: "vllm_performance"
-  version: 1.1.0
+  version: 1.2.0
   requiredProperties: # Any entity passed to this experiment must have constitutive properties with these values
     - identifier: 'model'
       metadata:
@@ -1609,6 +1618,12 @@ vllm-bench-endpoint:
         variableType: 'DISCRETE_VARIABLE_TYPE'
         domainRange: [1, 10001]
         interval: 1
+    - identifier: 'ignore_eos'
+      metadata:
+        description: "(benchmark) When 1, passes --ignore-eos to the benchmark so each request generates the requested number of output tokens instead of stopping at the EOS token. Only used when dataset=prefix_repetition."
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        values: [0, 1]
     - identifier: 'reasoning_parser'
       metadata:
         description: "(deployment) vLLM reasoning parser to use for agent-style models"
@@ -1670,6 +1685,9 @@ vllm-bench-endpoint:
     - value: 128
       property:
         identifier: 'prefix_repetition_output_len'
+    - value: 0
+      property:
+        identifier: 'ignore_eos'
     - value: null
       property:
         identifier: 'reasoning_parser'

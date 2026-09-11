@@ -380,7 +380,8 @@ ERROR:  Experiment version mismatch in configuration: Algorithm version mismatch
 
 Explore operations can be configured to
 [memoize](../concepts/data-sharing.md#memoization) measurements: an entity that
-has already been measured by an experiment is not measured again.
+has already been measured by an experiment is not measured again,
+the existing results are reused.
 
 The key used to identify if a requested experiment has already been applied
 to an entity is the experiment's **major version parameterized identifier**.
@@ -391,20 +392,19 @@ This is made up of:
 - the **major** version
 - the parameterization.
 
-So `vllm-bench-endpoint` at version `1.0.0` stores its
-results under `vllm-bench-endpoint@v1`, and the observed property for its
-`request_throughput` target property is
+So the results of `vllm-bench-endpoint` at version `1.0.0` are stored
+under the key `vllm-bench-endpoint@v1`, and the observed property for its
+`request_throughput` target property under this key is
 `vllm-bench-endpoint@v1-request_throughput`.
 
 This means:
 
 - Bumping the minor or patch version of an experiment does not affect results reuse,
   as `1.0.0` and `1.2.0` share the same major version `@v1`.
-- Bumping the major version starts a fresh set of results under `@v2`.
-- Adding a version to a previously unversioned experiment starts a fresh set of
-  results, as `solve_mip` and `solve_mip@v1` are different keys.
-- Each parameterization of the experiments gets its own key, for example
-  `peptide_mineralization@v1-temperature.30`.
+- Bumping the major version creates a new key for storing experiment results.
+- Adding a version to a previously unversioned experiment creates a new
+  key for storing experiment results.
+- Each unique parameterization of an experiment has its own key
 
 For the rules experiment authors follow when choosing a version see
 [declaring an experiment version](../developer-guide/creating-custom-experiments.md#declaring-an-experiment-version).
@@ -649,8 +649,8 @@ Multiple `discoveryspace` resources can use the same `samplestore` resource. In
 this case you can think of the `discoveryspace` as a "view" on the `samplestore`
 contents, filtering just the `entities` that match its description.
 
-To be more rigorous, given a `discoveryspace` you can apply this filter in two
-ways:
+To be more rigorous, given a `discoveryspace` there are
+two methods for applying this filter:
 
 1. Filter `entities` that were placed in the `samplestore` via an operation on
    the `discoveryspace`
@@ -658,8 +658,8 @@ ways:
 
 To understand the difference in these two methods imagine two overlapping
 `discoveryspaces`, A and B, that use the same `samplestore`. If someone uses
-method one on `discoveryspace` A, they will only see the `entities` placed there
-by operations on `discoveryspace` A. However, if someone uses method two on
+method (1) on `discoveryspace` A, they will only see the `entities` placed there
+by operations on `discoveryspace` A. However, if someone uses method (2) on
 `discoveryspace` A, they will see `entities` placed there via operations on both
 `discoveryspace` A and space B.
 
@@ -670,14 +670,21 @@ further details.
 
 ## Running operations on a `discoveryspace`
 
-A `discoveryspace` is a description of what can be measured. Measurements are
-performed by running an `operation` on it. There are two kinds:
+A `discoveryspace` defines a set of entities, and a set of
+experiments that can be applied to them. It also contains the
+results for the entities that have been measured so far -
+the measured entities.
+
+There are then two high-level types of operations you can apply to a space
 
 - **explore** operations, such as a random walk or a Bayesian optimization,
   sample `entities` from the `entityspace`, apply the experiments in the
-  `measurementspace` to them, and store the results in the `samplestore`
-- **analysis** and other operations process an existing space, for example
-  ranking its `entities` or producing a report
+  `measurementspace` to them, and store the results in the `samplestore`.
+  This is how you add measured entities to the `discoveryspace`.
+- **non-explore operations** process the measured entities in a space.
+  For example calculating statistics, or comparing two spaces.
+  These operations are called different names depending on what they do
+  e.g. characterize, modify, compare.
 
 See the [operation](operation.md) documentation for how to configure and start
 one, and

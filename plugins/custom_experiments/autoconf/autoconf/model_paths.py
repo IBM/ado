@@ -6,9 +6,10 @@ from pathlib import Path
 
 MODEL_VERSION = "4.0.0"
 MODEL_DIRECTORY = "v4-0-0"
-DEFAULT_MODEL_ROOT = (
-    Path("plugins") / "custom_experiments" / "autoconf" / "autoconf" / "models"
-)
+# Anchor to the package location so this resolves correctly regardless of cwd.
+# Equivalent to: <repo>/plugins/custom_experiments/autoconf/autoconf/models/
+_PACKAGE_ROOT = Path(__file__).parent
+DEFAULT_MODEL_ROOT = _PACKAGE_ROOT / "models"
 
 
 def model_path(model_root: Path | None = None) -> Path:

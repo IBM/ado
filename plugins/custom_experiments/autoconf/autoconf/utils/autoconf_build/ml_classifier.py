@@ -24,9 +24,11 @@ from autoconf.utils.rule_based_classifier import is_row_valid
 logger = logging.getLogger(__name__)
 
 # Default values
-DEFAULT_DATA_ROOT_DIR = (
-    Path("plugins") / "custom_experiments" / "autoconf" / "autoconf" / "data"
-)
+# Anchor to the package location so this resolves correctly regardless of cwd.
+# __file__ is autoconf/utils/autoconf_build/ml_classifier.py
+# .parent x3 reaches the autoconf/ package root.
+_PACKAGE_ROOT = Path(__file__).parent.parent.parent
+DEFAULT_DATA_ROOT_DIR = _PACKAGE_ROOT / "data"
 DEFAULT_FILE_NAME = "dataset.csv"
 DEFAULT_HF_REPO_ID = "ibm-research/LLMFineTuningBench"
 DEFAULT_HF_FILENAME = "ado-sfttrainer-v1-0-0.csv"
@@ -302,37 +304,53 @@ def log_metrics(
     return metrics_dict
 
 
-def main() -> None:
-    """Main execution function."""
-    logging.basicConfig(level=logging.INFO)
-    # Parse command line arguments
-    args = parse_arguments()
+def build_model(
+    model_root: Path = DEFAULT_MODEL_ROOT,
+    repo_id: str = DEFAULT_HF_REPO_ID,
+    filename: str = DEFAULT_HF_FILENAME,
+    data_root_dir: Path = DEFAULT_DATA_ROOT_DIR,
+    file_name: str = DEFAULT_FILE_NAME,
+    train_fraction: float = DEFAULT_TRAIN_FRACTION,
+    preset_quality: str = DEFAULT_PRESET_QUALITY,
+    refit: bool = DEFAULT_REFIT,
+) -> Path:
+    """Download the dataset if absent, train an AutoGluon classifier, save it.
 
-    # Determine data path
-    path = args.data_path or args.data_root_dir / args.file_name
-    try:
-        path = ensure_dataset(args.repo_id, args.filename, path)
-    except DatasetDownloadError as error:
-        logger.error("%s", error)
-        raise SystemExit(1) from None
+    This is the programmatic equivalent of running ``autoconf_build_model``
+    from the command line. It is called automatically by :func:`load_model`
+    when autogluon is installed but no trained model is present.
+
+    Args:
+        model_root: Root directory for the saved model.
+        repo_id: HuggingFace dataset repository.
+        filename: Filename within the repository.
+        data_root_dir: Local directory for the cached CSV.
+        file_name: Local CSV filename.
+        train_fraction: Fraction of data used for training.
+        preset_quality: AutoGluon preset name.
+        refit: Whether to refit the best model before cloning.
+
+    Returns:
+        Path to the saved model directory (e.g. ``autoconf/models/v4-0-0/``).
+
+    Raises:
+        DatasetDownloadError: If the dataset cannot be downloaded.
+        FileExistsError: If a model already exists at the target path.
+    """
+    path = data_root_dir / file_name
+    path = ensure_dataset(repo_id, filename, path)
 
     logger.info(f"Using data path: {path}")
-    logger.info(f"REFIT: {args.refit}")
-    logger.info(f"TRAIN_FRACTION: {args.train_fraction}")
-    logger.info(f"PRESET_QUALITY: {args.preset_quality}")
+    logger.info(f"REFIT: {refit}")
+    logger.info(f"TRAIN_FRACTION: {train_fraction}")
+    logger.info(f"PRESET_QUALITY: {preset_quality}")
 
     # Load and process data
     df_original = pd.read_csv(path)
     df_original = prepare_training_data(df_original)
-    validate_training_data(
-        df_original, require_both_target_classes=not args.validate_data_only
-    )
+    validate_training_data(df_original, require_both_target_classes=True)
     logger.info(f"Models supported are: {set(df_original['model_name'].values)}")
     logger.info("Target distribution: %s", df_original[TARGET].value_counts().to_dict())
-
-    if args.validate_data_only:
-        logger.info("Dataset validation completed successfully")
-        return
 
     # Filter and shuffle data
     df = filter_valid_with_hard_logic(df_original)
@@ -343,28 +361,28 @@ def main() -> None:
         f"Percentage of valid runs in the filtered DataFrame: {len(df[df['is_valid'] == 1]) / len(df)}"
     )
 
-    final_model_path = model_path(args.model_root_dir)
+    final_model_path = model_path(model_root)
     if final_model_path.exists():
         raise FileExistsError(
             f"Model already exists at {final_model_path}. Remove it before retraining."
         )
 
-    args.model_root_dir.mkdir(parents=True, exist_ok=True)
+    model_root.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(
-        dir=args.model_root_dir, prefix="autoconf-training-"
+        dir=model_root, prefix="autoconf-training-"
     ) as temporary_directory:
         training_path = Path(temporary_directory) / "model"
         predictor, df_train, df_test, elapsed_time = fit_tabular_predictor(
             df,
-            train_fraction=args.train_fraction,
-            preset_quality=args.preset_quality,
+            train_fraction=train_fraction,
+            preset_quality=preset_quality,
             output_path=training_path,
         )
         size_original = predictor.disk_usage()
         logger.info(f"Temporary model path is: {predictor.path}")
 
         # Refitting can improve inference speed at the cost of accuracy.
-        if args.refit:
+        if refit:
             predictor.refit_full(model="best", set_best_to_refit_full=True)
 
         predictor.clone_for_deployment(path=str(final_model_path))
@@ -382,16 +400,17 @@ def main() -> None:
         predictor_clone_opt,
         df_test=df_test,
         df_train=df_train,
-        train_fraction=args.train_fraction,
+        train_fraction=train_fraction,
     )
 
-    model_card_data = {
+    model_card_data: dict[str, Any] = {
         "data_path": str(path),
-        "dataset_url": args.dataset_url,
-        "refit": args.refit,
+        "repo_id": repo_id,
+        "hf_filename": filename,
+        "refit": refit,
         "model_version": MODEL_VERSION,
-        "train_fraction": args.train_fraction,
-        "preset_quality": args.preset_quality,
+        "train_fraction": train_fraction,
+        "preset_quality": preset_quality,
         "size_original_bytes": size_original,
         "size_optimized_bytes": size_opt,
         "elapsed_time": elapsed_time,
@@ -409,6 +428,51 @@ def main() -> None:
     df_model_card.to_csv(model_card_path, index=False)
 
     logger.info(f"Model card saved successfully at: {model_card_path}")
+    return final_model_path
+
+
+def main() -> None:
+    """Main execution function."""
+    logging.basicConfig(level=logging.INFO)
+    args = parse_arguments()
+
+    # Determine data path
+    path = args.data_path or args.data_root_dir / args.file_name
+
+    # Validate-only path: download + validate without training.
+    if args.validate_data_only:
+        try:
+            path = ensure_dataset(args.repo_id, args.filename, path)
+        except DatasetDownloadError as error:
+            logger.error("%s", error)
+            raise SystemExit(1) from None
+        df_original = pd.read_csv(path)
+        df_original = prepare_training_data(df_original)
+        validate_training_data(df_original, require_both_target_classes=False)
+        logger.info(f"Models supported are: {set(df_original['model_name'].values)}")
+        logger.info(
+            "Target distribution: %s", df_original[TARGET].value_counts().to_dict()
+        )
+        logger.info("Dataset validation completed successfully")
+        return
+
+    try:
+        build_model(
+            model_root=args.model_root_dir,
+            repo_id=args.repo_id,
+            filename=args.filename,
+            data_root_dir=args.data_root_dir,
+            file_name=args.file_name,
+            train_fraction=args.train_fraction,
+            preset_quality=args.preset_quality,
+            refit=args.refit,
+        )
+    except DatasetDownloadError as error:
+        logger.error("%s", error)
+        raise SystemExit(1) from None
+    except ValueError as error:
+        logger.error("dataset error: %s", error)
+        raise SystemExit(1) from None
 
 
 if __name__ == "__main__":

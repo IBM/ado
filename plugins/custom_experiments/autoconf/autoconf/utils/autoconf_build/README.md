@@ -2,8 +2,16 @@
 
 AutoConf uses an AutoGluon binary classifier to predict whether a fine-tuning
 configuration will complete without a GPU out-of-memory error. Model binaries
-are not stored in ado or on Hugging Face. Build the model in the Python
-environment where the AutoConf recommender will use it.
+are not stored in ado or on Hugging Face.
+
+The classifier is trained automatically on the first inference call when no
+model is present (see [Installation and Usage](../../README.md#installation-and-usage)).
+The `autoconf_build_model` CLI described here is for manual pre-training or
+retraining with a custom configuration, and calls the same `build_model()`
+function internally.
+
+Build the model in the Python environment where the AutoConf recommender will
+use it.
 
 ## Dataset
 

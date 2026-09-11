@@ -514,13 +514,56 @@ def test_min_gpu_recommender_model_version_validation() -> None:
                 mock_load.assert_called_once_with(model_version=version)
 
 
-def test_load_model_reports_how_to_generate_missing_model(tmp_path: Path) -> None:
-    """A missing generated model produces an actionable error."""
+def test_load_model_raises_when_autogluon_not_installed(tmp_path: Path) -> None:
+    """When autogluon is not importable and model is absent, FileNotFoundError is raised."""
     from autoconf.min_gpu_recommender import load_model
 
     load_model.cache_clear()
-    with pytest.raises(FileNotFoundError, match="autoconf_build_model"):
+    with (
+        patch.dict("sys.modules", {"autogluon.tabular": None}),
+        pytest.raises(FileNotFoundError, match="autoconf_build_model"),
+    ):
         load_model(model_version="4.0.0", model_root=tmp_path)
+
+
+def test_load_model_trains_on_demand_when_model_absent(tmp_path: Path) -> None:
+    """When autogluon is installed and model is absent, _train_autogluon_on_demand is called."""
+    from autoconf.min_gpu_recommender import load_model
+
+    load_model.cache_clear()
+
+    def fake_train(model_root: Path | None) -> None:
+        # Simulate build_model creating the model directory.
+        (tmp_path / "v4-0-0").mkdir(parents=True, exist_ok=True)
+
+    mock_predictor = MagicMock()
+
+    with (
+        patch(
+            "autoconf.min_gpu_recommender._train_autogluon_on_demand",
+            side_effect=fake_train,
+        ),
+        patch(
+            "autoconf.min_gpu_recommender.TabularPredictor.load",
+            return_value=mock_predictor,
+        ),
+    ):
+        result = load_model(model_version="4.0.0", model_root=tmp_path)
+
+    assert result is mock_predictor
+
+
+def test_train_autogluon_on_demand_calls_build_model(tmp_path: Path) -> None:
+    """_train_autogluon_on_demand calls build_model with model_root."""
+    from autoconf.min_gpu_recommender import _train_autogluon_on_demand
+
+    with (
+        patch("autoconf.utils.autoconf_build.ml_classifier.build_model") as mock_build,
+        patch("warnings.warn"),
+    ):
+        _train_autogluon_on_demand(tmp_path)
+
+    mock_build.assert_called_once_with(model_root=tmp_path)
 
 
 def test_min_gpu_recommender_gpu_worker_calculation() -> None:

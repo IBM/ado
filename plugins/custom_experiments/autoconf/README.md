@@ -52,21 +52,34 @@ Install the package e.g. from the root of the ado repository, run:
 pip install plugins/custom_experiments/autoconf
 ```
 
-Generate the model with one command:
+The recommender requires a trained AutoGluon model. There are two ways to
+provide it:
 
-```terminal
+#### Automatic (default)
+
+On the first inference call, if no model is present, AutoConf automatically:
+
+1. Emits a warning that training is starting.
+2. Downloads the training dataset from
+   [`ibm-research/LLMFineTuningBench`](https://huggingface.co/datasets/ibm-research/LLMFineTuningBench/blob/main/ado-sfttrainer-v1-0-0.csv)
+   via `huggingface_hub`.
+3. Trains an AutoGluon classifier (~2 minutes on `medium_quality`).
+4. Saves the model to `autoconf/models/v4-0-0/`.
+
+Subsequent calls load the cached model with no delay.
+
+#### Manual pre-training (optional, avoids the first-call delay)
+
+```bash
 uv run autoconf_build_model
 ```
 
-The command downloads `ado-sfttrainer-v1-0-0.csv` from
-[`ibm-research/LLMFineTuningBench`](https://huggingface.co/datasets/ibm-research/LLMFineTuningBench/blob/main/ado-sfttrainer-v1-0-0.csv)
-via `huggingface_hub` when it is not already in `autoconf/data/`, derives the
-OOM classification target, and writes the generated model to
-`autoconf/models/v4-0-0/`. AutoConf 2.0 pins AutoGluon 1.6.1. Both downloaded
+The model is written to `autoconf/models/v4-0-0/` and loaded automatically
+on all subsequent calls. AutoConf 2.0 pins AutoGluon 1.6.1. Both downloaded
 data and generated models are ignored by Git.
 
 See the [model training guide](autoconf/utils/autoconf_build/README.md) for
-configuration options and limitations.
+configuration options: custom dataset, preset quality, training fraction.
 
 The min_gpu_recommender model can be invoked in multiple ways:
 

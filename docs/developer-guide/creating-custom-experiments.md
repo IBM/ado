@@ -278,9 +278,9 @@ def calculate_density(mass, volume, round_result: bool = False):
 The above registers `round_result` as an optional properties of the experiment,
 with its value in the function signature as the default parameterization.
 
-### Declaring an algorithm version
+### Declaring an experiment version
 
-Use the `version` parameter of `@custom_experiment` to declare the algorithm
+Use the `version` parameter of `@custom_experiment` to declare the
 version of your experiment as a strict `MAJOR.MINOR.PATCH` SemVer string:
 
 ```python

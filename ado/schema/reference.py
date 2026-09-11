@@ -67,7 +67,7 @@ class ExperimentReference(pydantic.BaseModel):
         if "@" in value:
             raise ValueError(
                 "experimentIdentifier must not contain '@'. "
-                "Use experimentVersion for algorithm versioning."
+                "Use experimentVersion to supply version information."
             )
         return value
 
@@ -192,7 +192,7 @@ class ExperimentReference(pydantic.BaseModel):
         """Return the major version parameterized experiment identifier.
 
         Uses :attr:`major_version_experiment_identifier` as the prefix so that the
-        memoisation key encodes the major algorithm version.
+        memoisation key encodes the experiment major version.
 
         * No version, no params: ``'solve_mip'`` (backward-compatible)
         * Version ``1.0.0``, no params: ``'solve_mip@v1'``

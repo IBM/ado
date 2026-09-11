@@ -174,7 +174,7 @@ This search can be performed in two ways:
 - Using as reference an existing discovery space identifier via the flag
   `--matching-space-id`
 - Providing a
-  [DiscoverySpace configuration YAML](discovery-spaces.md#discovery-space-configuration-yaml)
+  [DiscoverySpace configuration YAML](discovery-spaces.md#structure-of-the-discoveryspace-yaml-configuration)
   to the flag `--matching-space`. This is useful to find similar spaces without
   actually creating one first.
 
@@ -300,7 +300,7 @@ Examples for different value types are shown below.
 !!! warning inline end
 
     `ado` converts boolean
-    [property values](discovery-spaces.md#defining-the-domains-of-constitutive-properties-in-the-entityspace)
+    [property values](discovery-spaces.md#defining-property-domains)
     to integers. For more details on how this works in practice, refer to the
     [additional examples](#additional-examples).
 
@@ -379,7 +379,7 @@ ado get operations --filter config.operation.module.moduleClass=RayTune
 To filter all spaces parameterized with the `bf16` property with the boolean
 value `true`, you will have to filter using the value `1` instead. This is
 because `ado` applies a type conversion to boolean values in
-[properties](discovery-spaces.md#defining-the-domains-of-constitutive-properties-in-the-entityspace):
+[properties](discovery-spaces.md#defining-property-domains):
 
 <!-- markdownlint-disable line-length -->
 ```commandline

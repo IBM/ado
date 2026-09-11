@@ -95,6 +95,7 @@ For example, for an Experiment instance like
 peptide_mineralization:
   identifier: peptide_mineralization
   actuatorIdentifier: "robotic_lab"
+  version: "1.0.0"
   requiredProperties:
     - identifier: "peptide_identifier"
       propertyDomain:

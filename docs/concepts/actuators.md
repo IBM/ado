@@ -28,7 +28,8 @@ robotic biology lab:
 
 <!-- markdownlint-disable line-length -->
 ```terminaloutput
-Identifier: robotic_lab.peptide_mineralization
+Identifier: robotic_lab.peptide_mineralization@1.0.0
+Version: 1.0.0
 Description: Measures adsorption of peptide lanthanide combinations
 
 
@@ -105,8 +106,8 @@ Optional Inputs and Default Values:
 
 Outputs:
  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-   peptide_mineralization-adsorption_timeseries
-   peptide_mineralization-adsorption_plateau_value
+   peptide_mineralization@v1-adsorption_timeseries
+   peptide_mineralization@v1-adsorption_plateau_value
  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ```
 <!-- markdownlint-enable line-length -->
@@ -155,7 +156,7 @@ In the example above:
 
 - `adsorption_plateau_value` is the **target property** — the concept being
   measured.
-- `peptide_mineralization-adsorption_plateau_value` is the **observed property**
+- `peptide_mineralization@v1-adsorption_plateau_value` is the **observed property**
   — that value as recorded by this specific Experiment.
 
 For a full description of property types see

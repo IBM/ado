@@ -122,9 +122,11 @@ class Experiment(pydantic.BaseModel):
         StrictSemVerStr | None,
         pydantic.Field(
             description=(
-                "Algorithm version for this experiment following strict SemVer "
-                "(MAJOR.MINOR.PATCH). MAJOR identifies the memoisation boundary: "
-                "results from different major versions are never reused. MINOR covers "
+                "The version for this experiment following strict SemVer "
+                "(MAJOR.MINOR.PATCH). MAJOR identifies the algorithm equivalence boundary: "
+                "experiments with same major version are expected to produce the"
+                "same values for outputs (or same distribution) given same inputs. "
+                "MINOR covers "
                 "backward-compatible extensions (new outputs/inputs). PATCH covers "
                 "bug fixes and refactoring that do not change observable outputs."
             ),
@@ -483,7 +485,7 @@ class Experiment(pydantic.BaseModel):
     def reference(self) -> ExperimentReference:
         """Return an ExperimentReference for the receiver.
 
-        The reference carries the experiment's algorithm version so that
+        The reference carries the experiment's version so that
         memoisation and comparison use the major version identifier automatically.
 
         Returns:
@@ -568,7 +570,7 @@ class Experiment(pydantic.BaseModel):
             experiment: The experiment to check against
             exactMath: If True `experiment` must provide exactly the same property i.e. matching parameterization.
                 If False `experiment` must measure the same base experiment as each required
-                input (any algorithm version satisfies — the target metric is unchanged).
+                input (any version satisfies — the target metric is unchanged).
         """
 
         retval = True
@@ -949,7 +951,7 @@ class ParameterizedExperiment(Experiment):
         """Return the major version parameterized identifier.
 
         Uses the base experiment's :attr:`~Experiment.major_version_identifier`
-        as the prefix so that the memoisation key encodes the major algorithm
+        as the prefix so that the memoisation key encodes the experiment major
         version.  For example: ``'solve_mip@v1-time_limit_s.3600'``.
 
         Returns:
@@ -1102,7 +1104,7 @@ class ParameterizedExperiment(Experiment):
 
         Returns:
             An ExperimentReference carrying the parameterization and
-            algorithm version.
+            experiment version.
         """
         return ExperimentReference(
             experimentIdentifier=self.identifier,

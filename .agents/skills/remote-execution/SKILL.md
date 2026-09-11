@@ -190,6 +190,22 @@ If you are still seeing stale wheels, confirm the plugin's `pyproject.toml`
 has the `format-jinja` block from the
 [plugin-development](../plugin-development/SKILL.md) skill.
 
+### Handling Version Control Source (VCS) Dependencies
+
+It's necessary to detect and handle any VCS dependencies used by `fromSource` packages. The process is:
+
+1. Obtain list of all VCS dependencies in the packages project configuration files e.g. pyproject, setup.py
+2. Determine if public access: Remove any VCS dependency that refers to an open repository on e.g. public GitHub, from the list.
+If no VCS dependencies remain, stop.
+3. Clone each VCS dependency under the `dependencies/` directory. For example
+
+   ```bash
+   # given: my-utils @ git+ssh://git@github.com/ibm/my-utils.git@branch_name
+   mkdir -p dependencies && git clone git@github.com:ibm/my-utils.git -b branch_name dependencies/my-utils
+   ```
+
+4. Add each cloned path to `fromSource`.
+
 ---
 
 ## Execution Context YAML Reference
@@ -246,6 +262,9 @@ packages:
   fromSource:
     - plugins/actuators/my_plugin  # relative to where ado --remote is run
 ```
+
+If there are any `git+ssh://` dependencies then you must clone them and
+include them under `fromSource`.
 
 ### `additionalFiles` — ship local files to the cluster
 

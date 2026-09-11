@@ -1,7 +1,9 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
+import json
 import logging
+import os
 import sys
 import time
 import typing
@@ -67,6 +69,54 @@ def log_space_details(discovery_space: "DiscoverySpace") -> None:
     console.print(discovery_space)
 
 
+def _record_ray_job_metadata(operation_resource: OperationResource) -> None:
+    """Record Ray job and submission IDs on the operation resource if available.
+
+    ``ray_job_id`` is the Ray Core driver ID (hex), available whenever Ray is
+    initialized. ``ray_submission_id`` is the Jobs API submission ID
+    (``raysubmit_...``), available only when this process is a Ray Jobs API
+    driver. The submission ID is the identifier used by ``ray job status``,
+    ``ray job stop``, and ``ray job logs``.
+
+    Args:
+        operation_resource: Operation whose metadata should be updated in place.
+    """
+    if not ray.is_initialized():
+        moduleLog.info("Operation is not running as a Ray job - no ray_job_id set")
+        return
+
+    try:
+        operation_resource.metadata["ray_job_id"] = (
+            ray.get_runtime_context().get_job_id()
+        )
+    except Exception:
+        moduleLog.info(
+            "Could not retrieve Ray job ID - operation will proceed without it"
+        )
+
+    job_config_json = os.environ.get("RAY_JOB_CONFIG_JSON_ENV_VAR")
+    if not job_config_json:
+        return
+
+    try:
+        job_config = json.loads(job_config_json)
+        metadata = job_config.get("metadata") if isinstance(job_config, dict) else None
+        submission_id = (
+            metadata.get("job_submission_id") if isinstance(metadata, dict) else None
+        )
+        if submission_id:
+            operation_resource.metadata["ray_submission_id"] = submission_id
+        else:
+            moduleLog.info(
+                "Ray job config present but no job_submission_id - "
+                "ray_submission_id will not be set"
+            )
+    except Exception:
+        moduleLog.info(
+            "Could not retrieve Ray submission ID - operation will proceed without it"
+        )
+
+
 def _run_operation_harness(
     run_closure: typing.Callable[[], OperationOutput],
     discovery_space: DiscoverySpace,
@@ -118,16 +168,7 @@ def _run_operation_harness(
         operation_identifier=operation_identifier,
     )
 
-    if ray.is_initialized():
-        try:
-            ray_job_id = ray.get_runtime_context().get_job_id()
-            operation_resource.metadata["ray_job_id"] = ray_job_id
-        except Exception:
-            moduleLog.info(
-                "Could not retrieve Ray job ID - operation will proceed without it"
-            )
-    else:
-        moduleLog.info("Operation is not running as a Ray job - no ray_job_id set")
+    _record_ray_job_metadata(operation_resource)
 
     #
     # START THE OPERATION

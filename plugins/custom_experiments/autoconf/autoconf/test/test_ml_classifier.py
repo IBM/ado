@@ -30,28 +30,20 @@ def test_build_model_trains_and_returns_path(tmp_path: Path) -> None:
     from autoconf.model_paths import model_path
     from autoconf.utils.autoconf_build.ml_classifier import build_model
 
-    expected_path = model_path(tmp_path)
-
-    mock_predictor = MagicMock()
-    mock_predictor.disk_usage.return_value = 1000
-    mock_predictor.path = str(tmp_path / "tmp_model")
-
-    # Simulate clone_for_deployment creating the model directory on disk.
-    def fake_clone(path: str) -> None:
-        Path(path).mkdir(parents=True, exist_ok=True)
-
-    mock_predictor.clone_for_deployment.side_effect = fake_clone
-
-    mock_clone = MagicMock()
-    mock_clone.disk_usage.return_value = 800
-    mock_clone.evaluate.return_value = {"accuracy": 0.9}
-
-    dataset_path = tmp_path / "dataset.csv"
+    mock_predictor = MagicMock(
+        disk_usage=MagicMock(return_value=1000),
+        path=str(tmp_path / "tmp_model"),
+        clone_for_deployment=lambda path: Path(path).mkdir(parents=True, exist_ok=True),
+    )
+    mock_clone = MagicMock(
+        disk_usage=MagicMock(return_value=800),
+        evaluate=MagicMock(return_value={"accuracy": 0.9}),
+    )
 
     with (
         patch(
             "autoconf.utils.autoconf_build.ml_classifier.ensure_dataset",
-            return_value=dataset_path,
+            return_value=tmp_path / "dataset.csv",
         ),
         patch("pandas.read_csv", return_value=_make_df()),
         patch(
@@ -63,9 +55,7 @@ def test_build_model_trains_and_returns_path(tmp_path: Path) -> None:
             return_value=mock_clone,
         ),
     ):
-        result = build_model(model_root=tmp_path)
-
-    assert result == expected_path
+        assert build_model(model_root=tmp_path) == model_path(tmp_path)
 
 
 def test_build_model_raises_if_model_exists(tmp_path: Path) -> None:
@@ -74,12 +64,10 @@ def test_build_model_raises_if_model_exists(tmp_path: Path) -> None:
     from autoconf.utils.autoconf_build.ml_classifier import build_model
 
     model_path(tmp_path).mkdir(parents=True)
-
-    dataset_path = tmp_path / "dataset.csv"
     with (
         patch(
             "autoconf.utils.autoconf_build.ml_classifier.ensure_dataset",
-            return_value=dataset_path,
+            return_value=tmp_path / "dataset.csv",
         ),
         patch("pandas.read_csv", return_value=_make_df()),
         pytest.raises(FileExistsError),

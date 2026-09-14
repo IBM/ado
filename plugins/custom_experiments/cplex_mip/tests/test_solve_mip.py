@@ -487,7 +487,8 @@ class TestSolveMipVectorOutput:
         assert result["solve_statuses"][1].startswith("ray_task_failed:")
         assert result["solve_statuses"][2] == "optimal"
         assert result["objective_values"][1] is None
-        assert result["nodes_explored"][1] == 0
+        assert result["solve_times"][1] is None
+        assert result["nodes_explored"][1] is None
 
     def test_progress_interval_produces_aligned_time_series(
         self, solve_mip_func: Callable[..., Any]
@@ -580,6 +581,8 @@ class TestCollectParallelSeedResults:
         assert results[0]["solve_status"] == "optimal"
         assert results[1]["solve_status"] == "ray_task_failed: runtime env timeout"
         assert results[1]["objective_value"] is None
+        assert results[1]["solve_time_s"] is None
+        assert results[1]["nodes_explored"] is None
         assert results[2]["solve_status"] == "optimal"
 
     def test_all_seeds_ray_failure_returns_failure_vectors(self) -> None:
@@ -593,6 +596,8 @@ class TestCollectParallelSeedResults:
         assert len(results) == 2
         assert all(r["solve_status"] == "ray_task_failed: worker died" for r in results)
         assert all(r["objective_value"] is None for r in results)
+        assert all(r["solve_time_s"] is None for r in results)
+        assert all(r["nodes_explored"] is None for r in results)
 
 
 class TestApplyCutPassesAll:
@@ -785,7 +790,178 @@ class TestCommunityEditionLimits:
         assert result["objective_value"] is None
         assert result["mip_gap"] is None
         assert result["best_bound"] is None
+        assert result["solve_time_s"] is None
+        assert result["nodes_explored"] is None
         assert result["best_solution_mst"] == ""
+
+    def test_missing_warm_start_file_returns_none_metrics(self) -> None:
+        """A missing MIP-start file must not record a zero solve time."""
+        from unittest.mock import MagicMock, patch
+
+        import cplex
+        from cplex_mip_experiments.solve_mip import _run_single_seed
+
+        mock_model = MagicMock()
+        with patch.object(cplex, "Cplex", return_value=mock_model):
+            result = _run_single_seed(
+                mps_file=DEFAULT_MPS,
+                seed=0,
+                seed_index=0,
+                n_seeds=1,
+                node_selection=1,
+                variable_selection=0,
+                heuristic_frequency=0,
+                time_limit_s=10.0,
+                n_threads=1,
+                rins_frequency=0,
+                cut_passes=0,
+                mip_emphasis=0,
+                warm_start_file="/no/such/warm_start.mst",
+            )
+
+        assert result["solve_status"].startswith("warm_start_file_not_found:")
+        assert result["solve_time_s"] is None
+        assert result["nodes_explored"] is None
+        assert result["objective_value"] is None
+        mock_model.solve.assert_not_called()
+
+    def test_rejected_mip_start_aborts_solve(self, tmp_path: pathlib.Path) -> None:
+        """If CPLEX discards the MIP start, abort immediately instead of running to time limit."""
+        import sys
+
+        import cplex
+        from cplex_mip_experiments.solve_mip import _run_single_seed
+
+        mst_path = tmp_path / "warm.mst"
+        mst_path.write_text(
+            '<?xml version="1.0" encoding="UTF-8"?>\n'
+            '<CPLEXSolution version="1.2"></CPLEXSolution>\n',
+            encoding="utf-8",
+        )
+
+        mock_model = MagicMock()
+        streams: list[object] = []
+
+        def capture_stream(stream: object) -> None:
+            streams.append(stream)
+
+        mock_model.set_log_stream.side_effect = capture_stream
+        mock_model.set_error_stream.side_effect = capture_stream
+        mock_model.set_warning_stream.side_effect = capture_stream
+        mock_model.set_results_stream.side_effect = capture_stream
+
+        def fake_solve() -> None:
+            for stream in streams:
+                if stream in (sys.stdout, sys.stderr):
+                    continue
+                write = getattr(stream, "write", None)
+                if write is not None:
+                    write("Warning:  No solution found from 1 MIP starts.\n")
+                    return
+
+        mock_model.solve.side_effect = fake_solve
+
+        with patch.object(cplex, "Cplex", return_value=mock_model):
+            result = _run_single_seed(
+                mps_file=DEFAULT_MPS,
+                seed=0,
+                seed_index=0,
+                n_seeds=1,
+                node_selection=1,
+                variable_selection=0,
+                heuristic_frequency=0,
+                time_limit_s=3600.0,
+                n_threads=1,
+                rins_frequency=0,
+                cut_passes=0,
+                mip_emphasis=0,
+                warm_start_file=str(mst_path),
+            )
+
+        assert result["solve_status"] == f"warm_start_rejected: {mst_path}"
+        assert result["solve_time_s"] is None
+        assert result["objective_value"] is None
+        assert result["mip_gap"] is None
+        mock_model.solve.assert_called_once()
+        mock_model.terminate.assert_called()
+
+    def test_chunked_mip_start_reject_warning_still_aborts(
+        self, tmp_path: pathlib.Path
+    ) -> None:
+        """CPLEX may flush the reject warning in pieces; still abort."""
+        import sys
+
+        import cplex
+        from cplex_mip_experiments.solve_mip import _run_single_seed
+
+        mst_path = tmp_path / "warm.mst"
+        mst_path.write_text('<CPLEXSolution version="1.2"></CPLEXSolution>\n')
+
+        mock_model = MagicMock()
+        streams: list[object] = []
+        mock_model.set_warning_stream.side_effect = streams.append
+        mock_model.set_log_stream.side_effect = streams.append
+        mock_model.set_results_stream.side_effect = streams.append
+        mock_model.set_error_stream.side_effect = streams.append
+
+        def fake_solve() -> None:
+            for stream in streams:
+                if stream in (sys.stdout, sys.stderr):
+                    continue
+                write = getattr(stream, "write", None)
+                if write is not None:
+                    write("Warning:  No solution found from")
+                    write(" 1 MIP starts.\n")
+                    return
+
+        mock_model.solve.side_effect = fake_solve
+
+        with patch.object(cplex, "Cplex", return_value=mock_model):
+            result = _run_single_seed(
+                mps_file=DEFAULT_MPS,
+                seed=0,
+                seed_index=0,
+                n_seeds=1,
+                node_selection=1,
+                variable_selection=0,
+                heuristic_frequency=0,
+                time_limit_s=3600.0,
+                n_threads=1,
+                rins_frequency=0,
+                cut_passes=0,
+                mip_emphasis=0,
+                warm_start_file=str(mst_path),
+            )
+
+        assert result["solve_status"].startswith("warm_start_rejected:")
+        mock_model.terminate.assert_called()
+
+
+class TestMipStartRejectMessage:
+    def test_detects_cplex_reject_warning(self) -> None:
+        """The log line from this operation must be recognized as a discarded MIP start."""
+        from cplex_mip_experiments.solve_mip import _is_mip_start_rejected_message
+
+        assert _is_mip_start_rejected_message(
+            "Warning:  No solution found from 1 MIP starts."
+        )
+        assert _is_mip_start_rejected_message(
+            "Warning:  No solution found from 5 MIP starts."
+        )
+
+    def test_ignores_unrelated_warnings(self) -> None:
+        """Other CPLEX warnings must not be treated as a discarded MIP start."""
+        from cplex_mip_experiments.solve_mip import _is_mip_start_rejected_message
+
+        assert not _is_mip_start_rejected_message(
+            "MIP start 'incumbent' defined no solution."
+        )
+        assert not _is_mip_start_rejected_message(
+            "Retaining values of one MIP start for possible repair."
+        )
+        assert not _is_mip_start_rejected_message(
+            "Warning:  No solution found from heuristics."
+        )
 
 
 class TestBestBoundSentinel:
@@ -1105,7 +1281,7 @@ class TestRunSingleSeedIntegration:
         mst_path = tmp_path / "warm.mst"
         mst_path.write_text(first["best_solution_mst"], encoding="utf-8")
 
-        _run_single_seed(
+        second = _run_single_seed(
             mps_file=DEFAULT_MPS,
             seed=1,
             seed_index=0,
@@ -1119,6 +1295,7 @@ class TestRunSingleSeedIntegration:
             cut_passes=0,
             warm_start_file=str(mst_path),
         )
+        assert not second["solve_status"].startswith("warm_start_rejected")
 
 
 class TestEstimateMemoryBytes:

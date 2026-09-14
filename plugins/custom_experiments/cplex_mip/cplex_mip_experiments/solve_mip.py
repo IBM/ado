@@ -991,6 +991,7 @@ def _run_single_seed(
         )
     },
     parameterization={},
+    version="0.2.0",
 )
 def solve_mip(
     mps_file: str,

@@ -25,10 +25,9 @@ For more on actuators, operators and contexts see their dedicated sections
 
 ## Resource Types
 
-You use the `ado` CLI to create, list, inspect or delete resources.
-To create a resources you first defined it in a YAML files. On
-creation the resource definition is stored in a database (the
-[metastore](metastore.md)).
+You use the `ado` CLI to create, list, inspect, and delete resources.
+To create a resource, define it in a YAML file and pass it to `ado create`.
+The resource definition is then stored in the [metastore](metastore.md).
 
 The current `ado` resources are:
 
@@ -45,13 +44,12 @@ The current `ado` resources are:
 - **[document](document.md)**: A markdown or HTML report or note stored in the
   metastore, optionally linked to related resources.
 
-Creating some resource triggers other events to occur. In particular
+Creating certain resources triggers side effects:
 
-- creating a `samplestore` resource results in specific
-piece of storage being created.
-- creating an operation resource causes an operation to execute.
-The operation may sample and measure entities in a space or
-could perform an analysis, potentially returning new resources
+- Creating a `samplestore` resource creates the underlying tables.
+- Creating an `operation` resource executes the operation, which may sample
+  and measure entities in a space or perform an analysis, potentially
+  producing new resources.
 
 > [!NOTE]
 >

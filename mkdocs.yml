@@ -141,7 +141,7 @@ plugins:
   - gh-admonitions:
 nav:
   - Home:
-      - Home: working-with-resources.md
+      - Home: index.md
       - Roadmap: roadmap.md
   - User Guide:
       - Getting Started: user-guide/getting-started.md
@@ -183,7 +183,7 @@ nav:
           - Contributing: developer-guide/contributing.md
           - Developing ado: developer-guide/developing.md
   - Examples:
-      - user-guide/examples/working-with-resources.md
+      - user-guide/examples/index.md
       - Tutorials:
           - "The basics: your first ado experiment campaign": user-guide/examples/tutorials/density-example.md
           - "Beyond the basics: ado with real data": user-guide/examples/tutorials/random-walk.md
@@ -207,4 +207,4 @@ nav:
       - Entities and Entity Spaces: concepts/entity-spaces.md
       - Discovery Spaces: concepts/discovery-spaces.md
       - Shared Sample Stores: concepts/data-sharing.md
-  - CLI Reference: cli-reference/working-with-resources.md
+  - CLI Reference: cli-reference/index.md

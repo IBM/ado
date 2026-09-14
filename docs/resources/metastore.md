@@ -157,7 +157,7 @@ existing database.
 
 The [`ado get`](../cli-reference/index.md#ado-get) CLI command lets you easily
 retrieve and search
-[resource definitions](working-with-resources#common-features-of-resources)
+[resource definitions](working-with-resources.md#common-features-of-resources)
 in the metastore in a variety of ways.
 
 ### Searching for similar spaces

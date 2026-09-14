@@ -292,9 +292,9 @@ If any validation fails, a detailed error message will indicate what's wrong.
 
 !!!info
 
-      Please note that
-      [standard deletion constraints](index.md#deleting-resources) apply alongside
-      the considerations discussed in this section.
+      Please note that [standard deletion
+      constraints](working-with-resources.md#deleting-resources) apply
+      alongside the considerations discussed in this section.
 
 Deleting a sample store is a high-impact operation and should be performed with
 caution. When a sample store is deleted:

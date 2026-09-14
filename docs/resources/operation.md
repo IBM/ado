@@ -238,9 +238,9 @@ version: v1
 
 !!!info
 
-    Please note that
-    [standard deletion constraints](index.md#deleting-resources) apply alongside
-    the considerations discussed in this section.
+    Please note that [standard deletion
+    constraints](working-with-resources.md#deleting-resources) apply
+    alongside the considerations discussed in this section.
 
 !!!warning
 

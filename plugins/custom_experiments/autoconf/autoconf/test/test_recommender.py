@@ -531,26 +531,21 @@ def test_load_model_trains_on_demand_when_model_absent(tmp_path: Path) -> None:
     from autoconf.min_gpu_recommender import load_model
 
     load_model.cache_clear()
-
-    def fake_train(model_root: Path | None) -> None:
-        # Simulate build_model creating the model directory.
-        (tmp_path / "v4-0-0").mkdir(parents=True, exist_ok=True)
-
     mock_predictor = MagicMock()
 
     with (
         patch(
             "autoconf.min_gpu_recommender._train_autogluon_on_demand",
-            side_effect=fake_train,
+            side_effect=lambda root: (tmp_path / "v4-0-0").mkdir(
+                parents=True, exist_ok=True
+            ),
         ),
         patch(
             "autoconf.min_gpu_recommender.TabularPredictor.load",
             return_value=mock_predictor,
         ),
     ):
-        result = load_model(model_version="4.0.0", model_root=tmp_path)
-
-    assert result is mock_predictor
+        assert load_model(model_version="4.0.0", model_root=tmp_path) is mock_predictor
 
 
 def test_train_autogluon_on_demand_calls_build_model(tmp_path: Path) -> None:
@@ -562,7 +557,6 @@ def test_train_autogluon_on_demand_calls_build_model(tmp_path: Path) -> None:
         patch("warnings.warn"),
     ):
         _train_autogluon_on_demand(tmp_path)
-
     mock_build.assert_called_once_with(model_root=tmp_path)
 
 

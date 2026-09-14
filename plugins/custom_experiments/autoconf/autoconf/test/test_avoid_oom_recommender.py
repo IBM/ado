@@ -16,63 +16,25 @@ def generated_model_root(tmp_path_factory: pytest.TempPathFactory) -> Path:
     """Build a small real predictor for recommendation integration tests."""
     model_root = tmp_path_factory.mktemp("autoconf-models")
     model_path = model_root / "v4-0-0"
-    rows = [
-        {
-            "model_name": "llama-7b",
-            "method": "lora",
-            "number_gpus": 1,
-            "gpu_model": "NVIDIA-A100-80GB-PCIe",
-            "tokens_per_sample": 8192,
-            "batch_size": 16,
-            "is_valid": 0,
-        },
-        {
-            "model_name": "llama-7b",
-            "method": "lora",
-            "number_gpus": 2,
-            "gpu_model": "NVIDIA-A100-80GB-PCIe",
-            "tokens_per_sample": 8192,
-            "batch_size": 32,
-            "is_valid": 0,
-        },
-        {
-            "model_name": "llama-7b",
-            "method": "lora",
-            "number_gpus": 4,
-            "gpu_model": "NVIDIA-A100-80GB-PCIe",
-            "tokens_per_sample": 8192,
-            "batch_size": 64,
-            "is_valid": 1,
-        },
-        {
-            "model_name": "llama-7b",
-            "method": "lora",
-            "number_gpus": 16,
-            "gpu_model": "NVIDIA-A100-80GB-PCIe",
-            "tokens_per_sample": 8192,
-            "batch_size": 32,
-            "is_valid": 1,
-        },
-        {
-            "model_name": "llama3.1-405b",
-            "method": "full",
-            "number_gpus": 64,
-            "gpu_model": "NVIDIA-A100-80GB-PCIe",
-            "tokens_per_sample": 8192,
-            "batch_size": 8192,
-            "is_valid": 0,
-        },
-        {
-            "model_name": "llama3.1-405b",
-            "method": "full",
-            "number_gpus": 64,
-            "gpu_model": "NVIDIA-A100-80GB-PCIe",
-            "tokens_per_sample": 512,
-            "batch_size": 64,
-            "is_valid": 1,
-        },
+    cols = [
+        "model_name",
+        "method",
+        "number_gpus",
+        "gpu_model",
+        "tokens_per_sample",
+        "batch_size",
+        "is_valid",
     ]
-    training_data = pd.DataFrame(rows * 10)
+    gpu = "NVIDIA-A100-80GB-PCIe"
+    data = [
+        ["llama-7b", "lora", 1, gpu, 8192, 16, 0],
+        ["llama-7b", "lora", 2, gpu, 8192, 32, 0],
+        ["llama-7b", "lora", 4, gpu, 8192, 64, 1],
+        ["llama-7b", "lora", 16, gpu, 8192, 32, 1],
+        ["llama3.1-405b", "full", 64, gpu, 8192, 8192, 0],
+        ["llama3.1-405b", "full", 64, gpu, 512, 64, 1],
+    ]
+    training_data = pd.DataFrame(data * 10, columns=cols)
     TabularPredictor(
         label="is_valid",
         path=model_path,

@@ -51,6 +51,10 @@ class TestExperimentRegistration:
         """Actuator identifier must be 'custom_experiments'."""
         assert experiment.actuatorIdentifier == "custom_experiments"
 
+    def test_experiment_version(self, experiment: Experiment) -> None:
+        """Experiment version must be 0.2.0 (scalar best_bound target property)."""
+        assert experiment.version == "0.2.0"
+
 
 class TestRequiredProperties:
     def test_mps_file_required(self, experiment: Experiment) -> None:
@@ -288,6 +292,7 @@ class TestTargetProperties:
             "nodes_explored",
             "solve_statuses",
             "best_bounds",
+            "best_bound",
             "best_solution_mst",
             "progress_time_grid",
             "objective_over_time",
@@ -305,9 +310,34 @@ class TestExperimentRoundTrip:
         reloaded = Experiment.model_validate(dumped)
         assert reloaded.identifier == experiment.identifier
         assert reloaded.actuatorIdentifier == experiment.actuatorIdentifier
+        assert reloaded.version == experiment.version == "0.2.0"
         assert len(reloaded.requiredProperties) == len(experiment.requiredProperties)
         assert len(reloaded.optionalProperties) == len(experiment.optionalProperties)
         assert len(reloaded.targetProperties) == len(experiment.targetProperties)
+        assert "best_bound" in {p.identifier for p in reloaded.targetProperties}
+
+
+class TestScalarBestBoundHelper:
+    def test_min_of_finite_values(self) -> None:
+        """Helper must return the min of finite duals."""
+        from cplex_mip_experiments.solve_mip import _scalar_best_bound
+
+        assert _scalar_best_bound([4015.0, 925.0, 834.0]) == 834.0
+
+    def test_skips_none_nan_inf(self) -> None:
+        """None, NaN, and inf must be ignored."""
+        from cplex_mip_experiments.solve_mip import _scalar_best_bound
+
+        assert (
+            _scalar_best_bound([None, float("nan"), float("inf"), 12.0, -3.0]) == -3.0
+        )
+
+    def test_all_non_finite_is_none(self) -> None:
+        """All missing or non-finite duals must yield None."""
+        from cplex_mip_experiments.solve_mip import _scalar_best_bound
+
+        assert _scalar_best_bound([None, float("nan"), float("-inf")]) is None
+        assert _scalar_best_bound([]) is None
 
 
 class TestSolveMipVectorOutput:
@@ -359,6 +389,7 @@ class TestSolveMipVectorOutput:
             "nodes_explored",
             "solve_statuses",
             "best_bounds",
+            "best_bound",
             "best_solution_mst",
             "progress_time_grid",
             "objective_over_time",
@@ -366,6 +397,56 @@ class TestSolveMipVectorOutput:
             "nodes_explored_over_time",
             "mip_gap_over_time",
         }
+
+    def test_scalar_best_bound_equals_min_of_vector(
+        self, solve_mip_func: Callable[..., Any]
+    ) -> None:
+        """Scalar best_bound must be the min of finite per-seed best_bounds."""
+        with patch(
+            "cplex_mip_experiments.solve_mip._run_single_seed",
+            side_effect=lambda **kw: self._make_seed_result(kw["seed"]),
+        ):
+            result = solve_mip_func(mps_file=DEFAULT_MPS, n_seeds=3, parallel=False)
+
+        assert result["best_bounds"] == [-90.0, -91.0, -92.0]
+        assert result["best_bound"] == min(result["best_bounds"])
+
+    def test_scalar_best_bound_none_when_all_missing(
+        self, solve_mip_func: Callable[..., Any]
+    ) -> None:
+        """Scalar best_bound must be None when every seed dual is missing."""
+
+        def missing_bound(**kw: Any) -> dict[str, Any]:  # noqa: ANN401
+            result = self._make_seed_result(kw["seed"])
+            result["best_bound"] = None
+            return result
+
+        with patch(
+            "cplex_mip_experiments.solve_mip._run_single_seed",
+            side_effect=missing_bound,
+        ):
+            result = solve_mip_func(mps_file=DEFAULT_MPS, n_seeds=2, parallel=False)
+
+        assert result["best_bounds"] == [None, None]
+        assert result["best_bound"] is None
+
+    def test_scalar_best_bound_ignores_false_opt_outlier(
+        self, solve_mip_func: Callable[..., Any]
+    ) -> None:
+        """A huge false-opt dual must not become the scalar best_bound."""
+
+        def mixed_bounds(**kw: Any) -> dict[str, Any]:  # noqa: ANN401
+            result = self._make_seed_result(kw["seed"])
+            result["best_bound"] = [4015.0, 925.0, 834.0][kw["seed"]]
+            return result
+
+        with patch(
+            "cplex_mip_experiments.solve_mip._run_single_seed",
+            side_effect=mixed_bounds,
+        ):
+            result = solve_mip_func(mps_file=DEFAULT_MPS, n_seeds=3, parallel=False)
+
+        assert result["best_bound"] == 834.0
 
     def test_export_solution_false_returns_empty_mst_strings(
         self, solve_mip_func: Callable[..., Any]

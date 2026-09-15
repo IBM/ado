@@ -214,3 +214,84 @@ def test_uncertain_property_value(
         uncertainty=True, **val.model_dump(exclude_defaults=True)
     )
     assert uncertain_val.isUncertain() is True
+
+
+# ---------------------------------------------------------------------------
+# Tests for PropertyValue.compact_representation
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def prop() -> ConstitutiveProperty:
+    """A simple constitutive property used across compact_representation tests."""
+    return ConstitutiveProperty(identifier="testprop")
+
+
+def test_compact_representation_numeric_int(prop: ConstitutiveProperty) -> None:
+    """Integer scalar renders as a plain string."""
+    val = ConstitutivePropertyValue(value=3600, property=prop.descriptor())
+    assert val.compact_representation() == "3600"
+
+
+def test_compact_representation_numeric_float(prop: ConstitutiveProperty) -> None:
+    """Float scalar renders as a plain string."""
+    val = ConstitutivePropertyValue(value=3.14, property=prop.descriptor())
+    assert val.compact_representation() == "3.14"
+
+
+def test_compact_representation_numeric_none(prop: ConstitutiveProperty) -> None:
+    """None scalar renders as 'None'."""
+    val = ConstitutivePropertyValue(value=None, property=prop.descriptor())
+    assert val.compact_representation() == "None"
+
+
+def test_compact_representation_string(prop: ConstitutiveProperty) -> None:
+    """String scalar renders as a plain string (no extra quoting)."""
+    val = ConstitutivePropertyValue(
+        value="capped_493_188_req013327_seed0.mst", property=prop.descriptor()
+    )
+    assert val.compact_representation() == "capped_493_188_req013327_seed0.mst"
+
+
+def test_compact_representation_vector_full(prop: ConstitutiveProperty) -> None:
+    """Vector value renders as a bracket-enclosed list."""
+    val = ConstitutivePropertyValue(value=[0, 1, 2], property=prop.descriptor())
+    assert val.compact_representation() == "[0, 1, 2]"
+
+
+def test_compact_representation_vector_truncated(prop: ConstitutiveProperty) -> None:
+    """Vector value truncates in the middle, showing first and last items."""
+    val = ConstitutivePropertyValue(
+        value=[0, 1, 2, 3, 4, 5, 6, 7], property=prop.descriptor()
+    )
+    result = val.compact_representation(max_items=3)
+    # max_items=3 → head=ceil(3/2)=2, tail=1 → [0, 1, ..., 7] (+5 more)
+    assert result == "[0, 1, ..., 7] (+5 more)"
+
+
+def test_compact_representation_vector_exact_max_items(
+    prop: ConstitutiveProperty,
+) -> None:
+    """Vector value with exactly max_items elements is not truncated."""
+    val = ConstitutivePropertyValue(value=[10, 20, 30], property=prop.descriptor())
+    result = val.compact_representation(max_items=3)
+    assert result == "[10, 20, 30]"
+
+
+def test_compact_representation_vector_max_items_none(
+    prop: ConstitutiveProperty,
+) -> None:
+    """Passing max_items=None shows full vector without truncation."""
+    val = ConstitutivePropertyValue(value=list(range(20)), property=prop.descriptor())
+    result = val.compact_representation(max_items=None)
+    expected = "[" + ", ".join(str(i) for i in range(20)) + "]"
+    assert result == expected
+
+
+def test_compact_representation_blob(prop: ConstitutiveProperty) -> None:
+    """Blob value renders as <blob N bytes>."""
+    data = b"PNG\r89\n\x1a\n"
+    val = ConstitutivePropertyValue(
+        valueType="BLOB_VALUE_TYPE", value=data, property=prop.descriptor()
+    )
+    assert val.compact_representation() == f"<blob {len(data)} bytes>"

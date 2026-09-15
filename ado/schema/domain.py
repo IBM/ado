@@ -972,3 +972,78 @@ class PropertyDomain(pydantic.BaseModel):
                 size = math.inf
 
         return size
+
+    def compact_representation(self, max_items: int | None = None) -> str:
+        """Return a compact string representation of this domain.
+
+        Args:
+            max_items: Maximum number of items to show before truncating with a
+                ``(+N more)`` suffix.  Pass ``None`` to disable truncation.
+
+        Returns:
+            A compact string such as ``[270, 300)``, ``[0, 20) @ 5``,
+            ``[0, 1, 5]``, or ``['A', 'B', 'C', ...] (+10 more)``.
+        """
+
+        def _format_list(items: list, max_items: int | None) -> str:
+            """Format a list, optionally truncating in the middle with a count.
+
+            When truncation is needed the first ``ceil(max_items / 2)`` and
+            last ``floor(max_items / 2)`` items are shown with the omitted
+            count reported in the middle, e.g.
+            ``['A', 'B', ..., 'Y', 'Z'] (+10 more)``.
+
+            Args:
+                items: The list of items to format.
+                max_items: Maximum number of items to show (head + tail combined).
+
+            Returns:
+                Formatted string representation of the list.
+            """
+            import math
+
+            def _fmt(v: object) -> str:
+                return f"'{v}'" if isinstance(v, str) else str(v)
+
+            if max_items is not None and len(items) > max_items:
+                omitted = len(items) - max_items
+                head_n = math.ceil(max_items / 2)
+                tail_n = max_items - head_n
+                head = [_fmt(v) for v in items[:head_n]]
+                if tail_n:
+                    tail = [_fmt(v) for v in items[len(items) - tail_n :]]
+                    parts = [*head, "...", *tail]
+                    return "[" + ", ".join(parts) + f"] (+{omitted} more)"
+                return "[" + ", ".join(head) + f", ...] (+{omitted} more)"
+            if items and isinstance(items[0], str):
+                return "[" + ", ".join(f"'{v}'" for v in items) + "]"
+            return "[" + ", ".join(str(v) for v in items) + "]"
+
+        match self.variableType:
+            case VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE:
+                if self.domainRange is not None:
+                    lo, hi = min(self.domainRange), max(self.domainRange)
+                    return f"[{lo}, {hi})"
+                return "-"
+
+            case VariableTypeEnum.DISCRETE_VARIABLE_TYPE:
+                if self.interval is not None and self.domainRange is not None:
+                    lo, hi = min(self.domainRange), max(self.domainRange)
+                    return f"[{lo}, {hi}) @ {self.interval}"
+                if self.values is not None:
+                    return _format_list(self.values, max_items)
+                return "-"
+
+            case (
+                VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE
+                | VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE
+            ):
+                items = self.values if self.values is not None else []
+                return _format_list(items, max_items)
+
+            case VariableTypeEnum.BINARY_VARIABLE_TYPE:
+                return "['False', 'True']"
+
+            case _:
+                # UNKNOWN_VARIABLE_TYPE, IDENTIFIER_VARIABLE_TYPE, or any future type
+                return "-"

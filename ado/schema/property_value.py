@@ -162,6 +162,42 @@ class PropertyValue(pydantic.BaseModel):
 
         return self.uncertainty is not None
 
+    def compact_representation(self, max_items: int | None = None) -> str:
+        """Return a compact string representation of this property value.
+
+        Args:
+            max_items: Maximum number of items to show for vector values before
+                truncating with a ``(+N more)`` suffix.  Pass ``None`` to
+                disable truncation.
+
+        Returns:
+            A compact string such as ``3600``, ``some_file.mst``,
+            ``[0, 1, 2]``, ``[0, 1, 2, ...] (+5 more)``, or
+            ``<blob 42 bytes>``.
+        """
+        if self.valueType == ValueTypeEnum.BLOB_VALUE_TYPE:
+            n = len(self.value) if self.value is not None else 0
+            return f"<blob {n} bytes>"
+
+        if self.valueType == ValueTypeEnum.VECTOR_VALUE_TYPE:
+            import math
+
+            items: list = self.value if self.value is not None else []
+            if max_items is not None and len(items) > max_items:
+                omitted = len(items) - max_items
+                head_n = math.ceil(max_items / 2)
+                tail_n = max_items - head_n
+                head = [str(v) for v in items[:head_n]]
+                if tail_n:
+                    tail = [str(v) for v in items[len(items) - tail_n :]]
+                    parts = [*head, "...", *tail]
+                    return "[" + ", ".join(parts) + f"] (+{omitted} more)"
+                return "[" + ", ".join(head) + f", ...] (+{omitted} more)"
+            return "[" + ", ".join(str(v) for v in items) + "]"
+
+        # NUMERIC_VALUE_TYPE and STRING_VALUE_TYPE — scalar
+        return str(self.value)
+
 
 class ConstitutivePropertyValue(PropertyValue):
     property: Annotated[

@@ -1272,3 +1272,89 @@ def test_overlaps_open_categorical_always_true() -> None:
     for other in others:
         assert open_cat.overlaps(other), f"OPEN_CAT should overlap {other.variableType}"
         assert other.overlaps(open_cat), f"{other.variableType} should overlap OPEN_CAT"
+
+
+# ---------------------------------------------------------------------------
+# Tests for PropertyDomain.compact_representation
+# ---------------------------------------------------------------------------
+
+
+def test_compact_representation_continuous_with_range() -> None:
+    """Continuous domain with a range renders as [lo, hi)."""
+    domain = PropertyDomain(domainRange=[270, 300])
+    assert domain.compact_representation() == "[270, 300)"
+
+
+def test_compact_representation_continuous_no_range() -> None:
+    """Continuous domain without a range renders as the em-dash placeholder."""
+    domain = PropertyDomain(variableType=VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE)
+    assert domain.compact_representation() == "-"
+
+
+def test_compact_representation_discrete_range_and_interval() -> None:
+    """Discrete domain with range + interval renders as [lo, hi) @ step."""
+    domain = PropertyDomain(domainRange=[0, 20], interval=5)
+    assert domain.compact_representation() == "[0, 20) @ 5"
+
+
+def test_compact_representation_discrete_explicit_values_no_truncation() -> None:
+    """Discrete domain with explicit numeric values renders full list."""
+    domain = PropertyDomain(values=[0, 1, 5])
+    assert domain.compact_representation() == "[0, 1, 5]"
+
+
+def test_compact_representation_discrete_explicit_values_truncated() -> None:
+    """Discrete domain truncates in the middle, showing first and last items."""
+    domain = PropertyDomain(values=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+    result = domain.compact_representation(max_items=3)
+    # max_items=3 → head=ceil(3/2)=2, tail=1 → [0, 1, ..., 9] (+7 more)
+    assert result == "[0, 1, ..., 9] (+7 more)"
+
+
+def test_compact_representation_discrete_explicit_values_exact_max_items() -> None:
+    """Discrete domain with exactly max_items values is not truncated."""
+    domain = PropertyDomain(values=[10, 20, 30])
+    result = domain.compact_representation(max_items=3)
+    assert result == "[10, 20, 30]"
+
+
+def test_compact_representation_categorical_full() -> None:
+    """Categorical domain with string values renders quoted full list."""
+    domain = PropertyDomain(values=["A", "B", "C"])
+    assert domain.compact_representation() == "['A', 'B', 'C']"
+
+
+def test_compact_representation_categorical_truncated() -> None:
+    """Categorical domain truncates in the middle, showing first and last items."""
+    domain = PropertyDomain(values=["A", "B", "C", "D", "E"])
+    result = domain.compact_representation(max_items=3)
+    # max_items=3 → head=ceil(3/2)=2, tail=1 → ['A', 'B', ..., 'E'] (+2 more)
+    assert result == "['A', 'B', ..., 'E'] (+2 more)"
+
+
+def test_compact_representation_categorical_max_items_none() -> None:
+    """Passing max_items=None disables truncation."""
+    domain = PropertyDomain(values=["A", "B", "C", "D", "E"])
+    result = domain.compact_representation(max_items=None)
+    assert result == "['A', 'B', 'C', 'D', 'E']"
+
+
+def test_compact_representation_open_categorical() -> None:
+    """Open-categorical domain with values renders as a list."""
+    domain = PropertyDomain(
+        values=["X", "Y"],
+        variableType=VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE,
+    )
+    assert domain.compact_representation() == "['X', 'Y']"
+
+
+def test_compact_representation_binary() -> None:
+    """Binary domain renders as ['False', 'True']."""
+    domain = PropertyDomain(variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE)
+    assert domain.compact_representation() == "['False', 'True']"
+
+
+def test_compact_representation_unknown() -> None:
+    """Unknown domain renders as the em-dash placeholder."""
+    domain = PropertyDomain(variableType=VariableTypeEnum.UNKNOWN_VARIABLE_TYPE)
+    assert domain.compact_representation() == "-"

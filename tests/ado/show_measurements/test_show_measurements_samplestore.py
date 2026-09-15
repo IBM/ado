@@ -120,7 +120,7 @@ def test_show_measurements_samplestore_unsupported_include(
     ],
     ml_multi_cloud_sample_store: SQLSampleStore,
 ) -> None:
-    """Unsupported --include value for samplestore: non-zero exit code."""
+    """Unsupported --include for samplestore: warns and resets to 'measured', exits 0."""
     runner = CliRunner()
     create_active_ado_context(
         runner=runner, path=tmp_path, project_context=valid_ado_project_context
@@ -138,4 +138,5 @@ def test_show_measurements_samplestore_unsupported_include(
         ],
     )
 
-    assert result.exit_code != 0
+    assert result.exit_code == 0
+    assert "--include is only supported for spaces" in result.output

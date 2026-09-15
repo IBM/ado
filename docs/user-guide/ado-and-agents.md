@@ -43,7 +43,7 @@ Add `ado-core` to your project dependencies (version 2.1.0 or later), then run
 [library-skills](https://library-skills.io/use/) from your project directory:
 
 ```shell
-uv add ado-core>=2.1.0
+uv add "ado-core>=2.1.0"
 uvx library-skills
 ```
 

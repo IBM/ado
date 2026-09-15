@@ -36,8 +36,10 @@ from ado.cli.utils.resources.formatters import (
     format_ado_get_stats_for_spaces,
     format_default_ado_get_multiple_resources,
     format_default_ado_get_single_resource,
+    format_discovery_space_properties,
     format_resource_for_ado_get_custom_format,
 )
+from ado.core import DiscoverySpaceResource
 from ado.core.metadata import ConfigurationMetadata
 from ado.metastore.base import ResourceDoesNotExistError
 from ado.utilities.output import pydantic_model_as_yaml
@@ -136,22 +138,25 @@ def _build_table_output_dataframe(
         return dataframe
 
     if resources is not None:
-        if isinstance(resources, list):
-            if not resources:
-                return pd.DataFrame()
-            return pd.concat(
-                [
-                    format_default_ado_get_single_resource(
-                        resource=resource, show_details=parameters.show_details
-                    )
-                    for resource in resources
-                ],
-                ignore_index=True,
+        resource_list = resources if isinstance(resources, list) else [resources]
+        if not resource_list:
+            return pd.DataFrame()
+        rows = []
+        for resource in resource_list:
+            row = format_default_ado_get_single_resource(
+                resource=resource, show_details=parameters.show_details
             )
-
-        return format_default_ado_get_single_resource(
-            resource=resources, show_details=parameters.show_details
-        )
+            if parameters.include_properties and isinstance(
+                resource, DiscoverySpaceResource
+            ):
+                for identifier, value in format_discovery_space_properties(
+                    resource,
+                    parameters.include_properties,
+                    parameters.no_trunc,
+                ).items():
+                    row[identifier] = value
+            rows.append(row)
+        return pd.concat(rows, ignore_index=True)
 
     if resource_type is None:
         console_print(
@@ -183,6 +188,20 @@ def _build_table_output_dataframe(
                     resources_df["IDENTIFIER"].isin(related_ids)
                 ].reset_index(drop=True)
 
+            if (
+                parameters.include_properties
+                and resource_type.value == "discoveryspace"
+            ):
+                resources = list(
+                    sql_store.getResources(resources_df["IDENTIFIER"].tolist()).values()
+                )
+                return _build_table_output_dataframe(
+                    parameters=parameters,
+                    resource_type=None,
+                    dataframe=None,
+                    resources=resources,
+                )
+
             status.update(ADO_SPINNER_GETTING_OUTPUT_READY)
             return format_default_ado_get_multiple_resources(
                 resources=resources_df,
@@ -199,8 +218,11 @@ def _build_table_output_dataframe(
                 resource_id=parameters.resource_id, kind=resource_type
             )
 
-        return format_default_ado_get_single_resource(
-            resource=resource, show_details=parameters.show_details
+        return _build_table_output_dataframe(
+            parameters=parameters,
+            resource_type=None,
+            dataframe=None,
+            resources=resource,
         )
 
 

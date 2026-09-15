@@ -30,6 +30,7 @@ class AdoGetCommandParameters(pydantic.BaseModel):
     exclude_none: bool
     exclude_unset: bool
     field_selectors: list[dict[str, str]]
+    include_properties: list[str] | None = None
     matching_point: pathlib.Path | None
     matching_space_id: str | None
     matching_space: pathlib.Path | None

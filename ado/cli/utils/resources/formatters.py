@@ -159,6 +159,75 @@ def format_default_ado_get_multiple_resources(
     return resources[columns]
 
 
+def format_discovery_space_properties(
+    resource: DiscoverySpaceResource,
+    include_properties: list[str],
+    no_trunc: bool | list[str],
+) -> dict[str, str]:
+    """Return requested discovery-space property representations by identifier."""
+    max_items = None if no_trunc else 4
+    constitutive = {
+        property.identifier: property.propertyDomain.compact_representation(max_items)
+        for property in resource.config.entitySpace or []
+    }
+    parameterized: dict[str, str] = {}
+    optional: dict[str, str] = {}
+    observed: dict[str, str] = {}
+    experiments = resource.config.experiments
+
+    if experiments is not None:
+        if isinstance(experiments, list):
+            experiment_values = experiments
+        else:
+            experiment_values = experiments.experiments
+
+        for experiment in experiment_values:
+            for property in getattr(experiment, "targetProperties", []):
+                domain = getattr(property, "propertyDomain", None)
+                observed[property.identifier] = (
+                    domain.compact_representation(max_items)
+                    if domain is not None
+                    else "—"
+                )
+
+            custom_values = getattr(experiment, "parameterization", None) or []
+            default_values = getattr(experiment, "defaultParameterization", [])
+            for value in custom_values:
+                parameterized[value.property.identifier] = value.compact_representation(
+                    max_items
+                )
+            for value in [*default_values, *custom_values]:
+                optional[value.property.identifier] = value.compact_representation(
+                    max_items
+                )
+
+    available = {**constitutive, **optional, **parameterized, **observed}
+    property_identifiers: list[str] = []
+    for requested in include_properties:
+        for value in requested.split(","):
+            match value.lower():
+                case "constitutive":
+                    identifiers = constitutive
+                case "parameterized":
+                    identifiers = parameterized
+                case "optional":
+                    identifiers = optional
+                case "observed":
+                    identifiers = observed
+                case "all":
+                    identifiers = available
+                case _:
+                    identifiers = {value: available.get(value, "—")}
+            for identifier in identifiers:
+                if identifier not in property_identifiers:
+                    property_identifiers.append(identifier)
+
+    return {
+        identifier: available.get(identifier, "—")
+        for identifier in property_identifiers
+    }
+
+
 def build_resource_listing_dataframe(
     resources: dict[str, "ADOResource"],
     resource_kind: "CoreResourceKinds",

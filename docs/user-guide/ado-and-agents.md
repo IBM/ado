@@ -39,21 +39,17 @@ There are two ways to get ado's skills into your agent-enabled IDE.
 
 ### Option 1: install via library-skills (recommended)
 
-If you have `ado-core` as a dependency in your project, you can install ado's
-skills directly into your workspace using
-[library-skills](https://library-skills.io/use/), without cloning the
-repository.
-
-From your project directory, run:
+Add `ado-core` to your project dependencies (version 2.1.0 or later), then run
+[library-skills](https://library-skills.io/use/) from your project directory:
 
 ```shell
+uv add ado-core>=2.1.0
 uvx library-skills
 ```
 
-The tool scans your installed environment, finds the skills bundled with
-`ado-core`, and creates symbolic links under `.agents/skills` (or
-`.claude/skills` for Claude Code). Your agent will then pick them up
-automatically.
+The tool scans all packages in your project's dependencies, finds any bundled
+skills, and prompts you to choose which ones to install. Your agent will then
+pick them up automatically.
 
 ### Option 2: clone the repository
 

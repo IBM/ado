@@ -24,6 +24,9 @@ from ado.cli.resources.discovery_space.show_measurements import (
 from ado.cli.resources.operation.show_measurements import (
     show_operation_measurements,
 )
+from ado.cli.resources.sample_store.show_measurements import (
+    show_sample_store_measurements,
+)
 from ado.cli.utils.generic.common import get_effective_resource_id
 from ado.cli.utils.input.parsers import enum_choice_with_plural_parser
 from ado.cli.utils.output.prints import (
@@ -154,7 +157,7 @@ def show_measurements_for_resources(
     ] = False,
 ) -> None:
     """
-    Show measurements related to a space or an operation.
+    Show measurements related to a space, an operation, or a samplestore.
 
     See https://ibm.github.io/ado/latest/cli-reference/#ado-show-measurements
     for detailed documentation and examples.
@@ -169,6 +172,9 @@ def show_measurements_for_resources(
 
     # Show the measurements for an operation, one row per entity
     ado show measurements operation <operation-id> --property-format target
+
+    # Show all measured entities in a samplestore
+    ado show measurements samplestore <samplestore-id>
     """
     ado_configuration: AdoConfiguration = ctx.obj
 
@@ -214,6 +220,7 @@ def show_measurements_for_resources(
     method_mapping = {
         AdoShowMeasurementsSupportedResourceTypes.DISCOVERY_SPACE: show_discovery_space_measurements,
         AdoShowMeasurementsSupportedResourceTypes.OPERATION: show_operation_measurements,
+        AdoShowMeasurementsSupportedResourceTypes.SAMPLE_STORE: show_sample_store_measurements,
     }
 
     try:

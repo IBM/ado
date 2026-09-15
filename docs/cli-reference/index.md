@@ -838,7 +838,7 @@ the four following subcommands.
 ### ado show measurements
 
 _show measurements_ supports displaying measurement data (entities with their
-measured properties) that belong to a space or an operation.
+measured properties) that belong to a space, an operation, or a samplestore.
 
 The complete syntax of the `ado show measurements` command is as follows:
 
@@ -862,6 +862,7 @@ Where:
 
     - _discoveryspace_ (_space_)
     - _operation_ (_op_)
+    - _samplestore_ (_store_)
 
     <!-- prettier-ignore-end -->
 
@@ -901,8 +902,8 @@ Where:
 
 - `--property` (can be specified multiple times) is used to filter what measured
   properties need to be output.
-- `--include` (**exclusive to spaces**) determines what type of entities to
-  include. One of:
+- `--include` (**only supported for spaces**; samplestore always uses `measured`)
+  determines what type of entities to include. One of:
 
     <!-- prettier-ignore-start -->
 
@@ -972,6 +973,18 @@ ado show measurements operation randomwalk-0.5.0-123abc -o json \
 
 ```shell
 ado show measurements space space-abc123-456def --output-file entities-table.txt
+```
+
+##### Show all measured entities in a samplestore
+
+```shell
+ado show measurements samplestore store-abc123-456def
+```
+
+##### Show all measured entities in a samplestore as CSV
+
+```shell
+ado show measurements samplestore store-abc123-456def -o csv --output-file entities.csv
 ```
 
 ### ado show trace

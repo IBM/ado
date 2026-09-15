@@ -66,10 +66,11 @@
 <span class=n>pattern</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s2>"default-unprefixed"</span>
 <span class=n>pattern-prefix</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s2>"example-actuator/"</span>
 <span class=n>fallback-version</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s2>"0.0.0"</span>
+<span class=n>format-jinja-imports</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=p>[{</span><span class=w> </span><span class=n>module</span><span class=w> </span><span class=p>=</span><span class=w> </span><span class=s2>"datetime"</span><span class=p>,</span><span class=w> </span><span class=n>item</span><span class=w> </span><span class=p>=</span><span class=w> </span><span class=s2>"datetime"</span><span class=w> </span><span class=p>}]</span>
 <span class=n>format-jinja</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s2>"""</span>
 <span class=s2>{%- set metadata = [</span>
 <span class=s2>    distance != 0 and "g" ~ commit,</span>
-<span class=s2>    distance != 0 and "d" ~ timestamp,</span>
+<span class=s2>    distance != 0 and "d" ~ datetime.utcnow().strftime("%Y%m%d%H%M%S"),</span>
 <span class=s2>    dirty and "dirty"</span>
 <span class=s2>] -%}</span>
 <span class=s2>{{ serialize_pep440(</span>

@@ -902,8 +902,8 @@ Where:
 
 - `--property` (can be specified multiple times) is used to filter what measured
   properties need to be output.
-- `--include` (**only supported for spaces**; samplestore always uses `measured`)
-  determines what type of entities to include. One of:
+- `--include` (**only supported for spaces**; ignored for operations and
+  samplestores) determines what type of entities to include. One of:
 
     <!-- prettier-ignore-start -->
 

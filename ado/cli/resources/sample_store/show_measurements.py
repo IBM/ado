@@ -3,12 +3,10 @@
 
 import typing
 
-import typer
 from rich.status import Status
 
 from ado.cli.models.parameters import AdoShowMeasurementsCommandParameters
 from ado.cli.models.types import (
-    AdoShowMeasurementsSupportedEntityTypes,
     AdoShowMeasurementsSupportedPropertyFormats,
 )
 from ado.cli.utils.generic.wrappers import get_sql_store
@@ -36,15 +34,6 @@ def show_sample_store_measurements(
             output format, property format, and optional filters.
     """
     import pandas as pd
-
-    # Only ``measured`` is valid: a bare samplestore has no entity-space
-    # knowledge, so ``sampled``, ``unsampled``, ``matching``, and ``missing``
-    # cannot be computed.
-    if parameters.measurements_type != AdoShowMeasurementsSupportedEntityTypes.MEASURED:
-        raise typer.BadParameter(
-            f"--include must be '{AdoShowMeasurementsSupportedEntityTypes.MEASURED.value}' "
-            "for ado show measurements samplestore",
-        )
 
     sql_store = get_sql_store(
         project_context=parameters.ado_configuration.project_context

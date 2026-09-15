@@ -31,6 +31,7 @@ from ado.cli.utils.generic.common import get_effective_resource_id
 from ado.cli.utils.input.parsers import enum_choice_with_plural_parser
 from ado.cli.utils.output.prints import (
     ERROR,
+    WARN,
     console_print,
 )
 from ado.core.samplestore.base import (
@@ -97,7 +98,7 @@ def show_measurements_for_resources(
         AdoShowMeasurementsSupportedEntityTypes | None,
         typer.Option(
             "--include",
-            help="The type of entities to include. Ignored for operations.",
+            help="The type of entities to include. Only supported for spaces.",
             rich_help_panel=SPACE_PANEL_NAME,
         ),
     ] = AdoShowMeasurementsSupportedEntityTypes.MEASURED.value,
@@ -203,6 +204,17 @@ def show_measurements_for_resources(
             stderr=True,
         )
         raise typer.Exit(1)
+
+    if (
+        resource_type != AdoShowMeasurementsSupportedResourceTypes.DISCOVERY_SPACE
+        and entity_type != AdoShowMeasurementsSupportedEntityTypes.MEASURED
+    ):
+        console_print(
+            f"{WARN}--include is only supported for spaces; "
+            f"resetting to '{AdoShowMeasurementsSupportedEntityTypes.MEASURED.value}'.",
+            stderr=True,
+        )
+        entity_type = AdoShowMeasurementsSupportedEntityTypes.MEASURED
 
     parameters = AdoShowMeasurementsCommandParameters(
         ado_configuration=ado_configuration,

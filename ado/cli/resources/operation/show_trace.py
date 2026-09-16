@@ -60,6 +60,7 @@ def show_operation_trace(parameters: AdoShowTraceCommandParameters) -> None:
             raise
 
         if not isinstance(samplestore, SQLSampleStore):
+            status.stop()
             console_print(
                 f"{ERROR}This command requires an SQLSampleStore",
                 stderr=True,

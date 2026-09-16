@@ -332,7 +332,12 @@ class _MipStartRejectWatcher:
 
 
 class _CplexStreamTee:
-    """File-like wrapper that tees CPLEX output and buffers partial lines."""
+    """File-like wrapper that tees CPLEX output and buffers partial lines.
+
+    ``Cplex.set_*_stream`` requires ``write``/``flush``.
+      The buffer is needed because CPLEX can split the
+      MIP-start reject warning across multiple writes.
+    """
 
     def __init__(self, dest: object, watcher: _MipStartRejectWatcher) -> None:
         self._dest = dest

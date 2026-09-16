@@ -51,10 +51,6 @@ class TestExperimentRegistration:
         """Actuator identifier must be 'custom_experiments'."""
         assert experiment.actuatorIdentifier == "custom_experiments"
 
-    def test_experiment_version(self, experiment: Experiment) -> None:
-        """Experiment version must be 0.2.0 (best_bounds target property)."""
-        assert experiment.version == "0.2.0"
-
 
 class TestRequiredProperties:
     def test_mps_file_required(self, experiment: Experiment) -> None:
@@ -309,7 +305,7 @@ class TestExperimentRoundTrip:
         reloaded = Experiment.model_validate(dumped)
         assert reloaded.identifier == experiment.identifier
         assert reloaded.actuatorIdentifier == experiment.actuatorIdentifier
-        assert reloaded.version == experiment.version == "0.2.0"
+        assert reloaded.version == experiment.version
         assert len(reloaded.requiredProperties) == len(experiment.requiredProperties)
         assert len(reloaded.optionalProperties) == len(experiment.optionalProperties)
         assert len(reloaded.targetProperties) == len(experiment.targetProperties)

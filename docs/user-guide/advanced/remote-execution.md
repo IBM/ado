@@ -269,12 +269,14 @@ envVars:
   PYTHONUNBUFFERED: "x"
 ```
 
-<!-- markdownlint-enable line-length -->
+<!-- markdownlint-disable line-length -->
 
 `ado` then will:
 
 1. Build python wheels for those packages
 2. Instruct Ray to install the wheels as part of the Ray job submission
+
+<!-- markdownlint-enable line-length -->
 
 > [!NOTE] Version Control System dependencies
 >
@@ -295,6 +297,8 @@ envVars:
 > ```
 >
 > Then clone the source locally and add the local path to `packages.fromSource`.
+
+<!-- markdownlint-enable line-length -->
 
 ## Sending additional files
 

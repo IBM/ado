@@ -173,7 +173,7 @@ class PropertyValue(pydantic.BaseModel):
 
         Returns:
             A compact string such as ``3600``, ``some_file.mst``,
-            ``[0, 1, 2]``, ``[0, 1, 2, ...] (+5 more)``, or
+            ``[0, 1, 2]``, ``[0, 1, ..., 7] (+5 more)``, or
             ``<blob 42 bytes>``.
         """
         if self.valueType == ValueTypeEnum.BLOB_VALUE_TYPE:

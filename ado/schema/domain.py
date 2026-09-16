@@ -984,7 +984,7 @@ class PropertyDomain(pydantic.BaseModel):
 
         Returns:
             A compact string such as ``[270, 300)``, ``[0, 20) @ 5``,
-            ``[0, 1, 5]``, or ``['A', 'B', 'C', ...] (+10 more)``.
+            ``[0, 1, 5]``, or ``['A', 'B', ..., 'Y', 'Z'] (+10 more)``.
         """
 
         match self.variableType:

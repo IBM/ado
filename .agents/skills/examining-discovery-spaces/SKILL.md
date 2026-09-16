@@ -96,6 +96,10 @@ uv run ado show related space --use-latest
 `--output-file PATH` (with the same `-o yaml`) to save it once and reuse the
 file instead of calling `ado get` repeatedly for the same resource.
 
+Table listings (`ado get … --details`) should also use `--output-file`. Tool
+stdout capture can drops long tables. See
+[using-ado-cli](../using-ado-cli/SKILL.md).
+
 ### Large output files
 
 The output produced for a given `-o`/`--output` **format** can be very large
@@ -184,7 +188,8 @@ same entity structure. Use this to understand research progression and why this
 space was created.
 
 ```bash
-uv run ado get space --matching-space-id SPACE_ID --details
+uv run ado get space --matching-space-id SPACE_ID --details \
+  --output-file /tmp/ado-matching-spaces.txt
 ```
 
 ### Step 5: Export Measurement Data

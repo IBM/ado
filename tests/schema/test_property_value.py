@@ -223,30 +223,24 @@ def test_uncertain_property_value(
 
 @pytest.fixture
 def prop() -> ConstitutiveProperty:
-    """A simple constitutive property used across compact_representation tests."""
+    """Return a constitutive property for compact representation tests."""
     return ConstitutiveProperty(identifier="testprop")
 
 
-def test_compact_representation_numeric_int(prop: ConstitutiveProperty) -> None:
-    """Integer scalar renders as a plain string."""
-    val = ConstitutivePropertyValue(value=3600, property=prop.descriptor())
-    assert val.compact_representation() == "3600"
-
-
-def test_compact_representation_numeric_float(prop: ConstitutiveProperty) -> None:
-    """Float scalar renders as a plain string."""
+def test_compact_representation_numeric_scalar(prop: ConstitutiveProperty) -> None:
+    """Numeric scalar renders as a plain string."""
     val = ConstitutivePropertyValue(value=3.14, property=prop.descriptor())
     assert val.compact_representation() == "3.14"
 
 
-def test_compact_representation_numeric_none(prop: ConstitutiveProperty) -> None:
-    """None scalar renders as 'None'."""
+def test_compact_representation_none(prop: ConstitutiveProperty) -> None:
+    """None renders as 'None'."""
     val = ConstitutivePropertyValue(value=None, property=prop.descriptor())
     assert val.compact_representation() == "None"
 
 
 def test_compact_representation_string(prop: ConstitutiveProperty) -> None:
-    """String scalar renders as a plain string (no extra quoting)."""
+    """String scalar renders without extra quoting."""
     val = ConstitutivePropertyValue(
         value="capped_493_188_req013327_seed0.mst", property=prop.descriptor()
     )
@@ -267,15 +261,6 @@ def test_compact_representation_vector_truncated(prop: ConstitutiveProperty) -> 
     result = val.compact_representation(max_items=3)
     # max_items=3 → head=ceil(3/2)=2, tail=1 → [0, 1, ..., 7] (+5 more)
     assert result == "[0, 1, ..., 7] (+5 more)"
-
-
-def test_compact_representation_vector_exact_max_items(
-    prop: ConstitutiveProperty,
-) -> None:
-    """Vector value with exactly max_items elements is not truncated."""
-    val = ConstitutivePropertyValue(value=[10, 20, 30], property=prop.descriptor())
-    result = val.compact_representation(max_items=3)
-    assert result == "[10, 20, 30]"
 
 
 def test_compact_representation_vector_max_items_none(

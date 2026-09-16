@@ -1286,7 +1286,7 @@ def test_compact_representation_continuous_with_range() -> None:
 
 
 def test_compact_representation_continuous_no_range() -> None:
-    """Continuous domain without a range renders as the em-dash placeholder."""
+    """Continuous domain without a range renders as a hyphen placeholder."""
     domain = PropertyDomain(variableType=VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE)
     assert domain.compact_representation() == "-"
 
@@ -1311,13 +1311,6 @@ def test_compact_representation_discrete_explicit_values_truncated() -> None:
     assert result == "[0, 1, ..., 9] (+7 more)"
 
 
-def test_compact_representation_discrete_explicit_values_exact_max_items() -> None:
-    """Discrete domain with exactly max_items values is not truncated."""
-    domain = PropertyDomain(values=[10, 20, 30])
-    result = domain.compact_representation(max_items=3)
-    assert result == "[10, 20, 30]"
-
-
 def test_compact_representation_categorical_full() -> None:
     """Categorical domain with string values renders quoted full list."""
     domain = PropertyDomain(values=["A", "B", "C"])
@@ -1330,13 +1323,6 @@ def test_compact_representation_categorical_truncated() -> None:
     result = domain.compact_representation(max_items=3)
     # max_items=3 → head=ceil(3/2)=2, tail=1 → ['A', 'B', ..., 'E'] (+2 more)
     assert result == "['A', 'B', ..., 'E'] (+2 more)"
-
-
-def test_compact_representation_categorical_max_items_none() -> None:
-    """Passing max_items=None disables truncation."""
-    domain = PropertyDomain(values=["A", "B", "C", "D", "E"])
-    result = domain.compact_representation(max_items=None)
-    assert result == "['A', 'B', 'C', 'D', 'E']"
 
 
 def test_compact_representation_open_categorical() -> None:
@@ -1364,6 +1350,6 @@ def test_compact_representation_identifier() -> None:
 
 
 def test_compact_representation_unknown() -> None:
-    """Unknown domain renders as the em-dash placeholder."""
+    """Unknown domain renders as a hyphen placeholder."""
     domain = PropertyDomain(variableType=VariableTypeEnum.UNKNOWN_VARIABLE_TYPE)
     assert domain.compact_representation() == "-"

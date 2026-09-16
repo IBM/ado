@@ -840,7 +840,27 @@ class PropertyDomain(pydantic.BaseModel):
                 retval = value in self.values
             else:
                 if self.domainRange is not None:
-                    retval = value in self.domain_values
+                    import numbers
+
+                    # Booleans are a subclass of int in Python, so reject them explicitly
+                    if not isinstance(value, numbers.Number) or isinstance(value, bool):
+                        retval = False
+                    else:
+                        lower = min(self.domainRange)
+                        upper = max(self.domainRange)
+                        # Range is half-open: [lower, upper)
+                        if value < lower or value >= upper:
+                            retval = False
+                        elif self.interval is not None:
+                            # A value is on-grid iff its step index (value - lower) / interval
+                            # is a whole number. np.isclose absorbs float rounding noise
+                            # (e.g. 0.3 / 0.1 == 2.9999...) and is exact for integer grids
+                            # where step is always a precise integer.
+                            step = (value - lower) / self.interval
+                            retval = bool(np.isclose(step, round(step)))
+                        else:
+                            # No interval constraint — any value inside [lower, upper) is valid
+                            retval = True
                 else:
                     # The domain has no range or values which means we just accept the value
                     retval = True

@@ -10,7 +10,7 @@ operation:
     samplingBudget:
       minPoints: 25
       maxPoints: 150
-    noPriorsParameters:
+    noPriorParameters:
       sampling_strategy: 'sobol'
     iterationSize: 7
     stoppingCriterion:

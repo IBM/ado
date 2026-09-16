@@ -3,10 +3,11 @@ name: using-ado-cli
 description: >-
   Reference for ado CLI command syntax, flags, and usage patterns — get, create,
   edit, show, describe, output flags (-o, --output-file), convenience flags
-  (--use-latest, --set, --with), debugging with -l, and run_experiment. Use when
-  writing, verifying, or debugging ado CLI commands, looking up correct command
-  syntax or flags, or when unsure which ado command or flag to use. For listing
-  catalogs or answering data questions, prefer query-ado-data.
+  (--use-latest KIND, --set, --with), and debugging with -l. Use when writing,
+  verifying, or debugging ado CLI commands; looking up correct command syntax or
+  flags; or when unsure which ado command or flag to use. For listing catalogs
+  or answering data questions, use the query-ado-data skill. For running a
+  single experiment on one point, use the run-experiment skill.
 ---
 
 # Using the ado CLI
@@ -70,32 +71,6 @@ These plausible-sounding commands do not exist in ado. Do not write them:
 
 **Key principle**: `ado create operation` both _defines_ and _starts_ the
 operation in a single command. There is no separate "run" step.
-
-## Point Testing with run_experiment
-
-`run_experiment` is a **separate CLI entry point** (not an `ado` subcommand) for
-running a single entity through an experiment locally, without creating a space
-or operation. It is the correct tool for functional validation of custom
-experiments.
-
-```bash
-uv run run_experiment PATH_TO_POINT_YAML
-```
-
-A point YAML has the form:
-
-```yaml
-entity:
-  param_a: value_a
-  param_b: value_b
-
-experiments:
-  - actuatorIdentifier: custom_experiments
-    experimentIdentifier: my_experiment
-```
-
-It prints the result as a pandas Series and exits. No metastore or Ray cluster
-needed beyond a local Ray instance (started automatically).
 
 ## Core Commands
 
@@ -201,6 +176,7 @@ uv run ado show trace operation OPERATION_ID
 # Get entities and measurements
 uv run ado show measurements space SPACE_ID
 uv run ado show measurements operation OPERATION_ID
+uv run ado show measurements samplestore SAMPLESTORE_ID
 
 # Show in-depth statistics (more columns than ado get -o stats)
 # No IDs = all resources of that type
@@ -244,15 +220,16 @@ plus measured properties (outputs).
 
 <!-- markdownlint-disable line-length -->
 
-| Command                       | What It Shows                                                                                                            |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `show measurements operation` | Entities (inputs) and their measurements (outputs) from this operation                                                   |
-| `show measurements space`     | All entities and measurements collected in this space                                                                    |
-| `show trace operation`        | The trace of measurement requests made during an explore operation. Optionally can show per entity measurement metadata  |
-| `show stats operation`        | In-depth stats: results (total/successful/failed), measured entities, plus request-level counts. No IDs = all operations |
-| `show stats discoveryspace`   | In-depth stats: experiments, operations, measured entities, plus full entity-space coverage columns. No IDs = all spaces |
-| `show stats samplestore`      | In-depth stats: entities, results, and experiments counts. No IDs = all sample stores                                    |
-| `show stats datacontainer`    | In-depth stats: tables, locations, key-values, and data bytes. No IDs = all data containers                              |
+| Command                          | What It Shows                                                                                                            |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `show measurements operation`    | Entities (inputs) and their measurements (outputs) from this operation                                                   |
+| `show measurements space`        | All entities and measurements collected in this space                                                                    |
+| `show measurements samplestore`  | All measured entities in a samplestore; only `--include measured` is supported (space-relative modes are rejected)       |
+| `show trace operation`           | The trace of measurement requests made during an explore operation. Optionally can show per entity measurement metadata  |
+| `show stats operation`           | In-depth stats: results (total/successful/failed), measured entities, plus request-level counts. No IDs = all operations |
+| `show stats discoveryspace`      | In-depth stats: experiments, operations, measured entities, plus full entity-space coverage columns. No IDs = all spaces |
+| `show stats samplestore`         | In-depth stats: entities, results, and experiments counts. No IDs = all sample stores                                    |
+| `show stats datacontainer`       | In-depth stats: tables, locations, key-values, and data bytes. No IDs = all data containers                              |
 
 <!-- markdownlint-enable line-length -->
 
@@ -392,5 +369,7 @@ uv run ado create operation -f operation.yaml --use-latest space
 - For creating and structuring resource YAML files, see
   [resource-yaml-creation](../resource-yaml-creation/)
 - For creating discoveryspace and operation YAML files, see
-  [formulate-discovery-problem](../formulate-discovery-problem/)
+  [define-experiment-campaign](../define-experiment-campaign/)
+- For running a single point through an experiment with the separate
+  `run_experiment` tool, see [run-experiment](../run-experiment/SKILL.md)
 - For general development guidelines, see [AGENTS.md](../../../AGENTS.md)

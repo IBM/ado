@@ -10,7 +10,7 @@ operation:
     samplingBudget:
       minPoints: 15
       maxPoints: 50
-    noPriorsParameters:
+    noPriorParameters:
       sampling_strategy: 'clhs'
     iterationSize: 5
     stoppingCriterion:

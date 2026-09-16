@@ -17,6 +17,7 @@ uv run ado describe experiment TrainerActuator.train_model
 
 **Experiment details:**
 
+- Version: `1.0.0` (set as `experimentVersion`)
 - Required: `learning_rate`, `batch_size`
 - Optional: `optimizer` (default: "sgd"), `epochs` (default: 10)
 - Targets: `accuracy`, `loss`
@@ -55,10 +56,12 @@ uv run ado create operation -f operation.yaml --dry-run
 
 ```bash
 uv run ado describe experiment TrainerActuator.train_model
+# Version: 1.0.0
 # Required: learning_rate, batch_size
 # Targets: accuracy, loss
 
 uv run ado describe experiment EvaluatorActuator.evaluate_model
+# Version: 1.0.0
 # Required: accuracy (ObservedProperty from train_model)
 # Targets: test_accuracy, test_loss
 ```
@@ -89,6 +92,7 @@ with different learning rates"
 
 ```bash
 uv run ado describe experiment TrainerActuator.train_model
+# Version: 1.0.0
 # Required: learning_rate, batch_size
 # Optional: optimizer (default: "sgd")
 ```
@@ -119,6 +123,7 @@ learning rates"
 
 ```bash
 uv run ado describe experiment TrainerActuator.train_model
+# Version: 1.0.0
 # Optional: optimizer (default: "sgd")
 ```
 
@@ -147,6 +152,7 @@ uv run ado create space -f space.yaml --dry-run
 
 ```bash
 uv run ado describe experiment TrainerActuator.train_model
+# Version: 1.0.0
 # Required: learning_rate (domain: [0.0001, 1.0])
 ```
 
@@ -240,3 +246,22 @@ ValueError: Identified an entity space dimension that is not required for any ex
 
 **Fix:** Remove properties not required by any experiment, or add an experiment
 that requires it.
+
+### Error: missing or wrong experimentVersion
+
+**Error message:**
+
+```text
+Unknown experiment in configuration ... using mode fully_qualified_version.
+Available versions in catalog: 1.0.0.
+```
+
+or
+
+```text
+Experiment version mismatch in configuration: ... Reference requires version
+'train_model@1.0.1' but catalog provides 'train_model@1.0.0'.
+```
+
+**Fix:** Set `experimentVersion` to the catalog `VERSION`. Omit the field only
+if `VERSION` is `None`. Do not put `@1.0.0` in `experimentIdentifier`.

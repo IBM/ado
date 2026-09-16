@@ -7,6 +7,7 @@ Designed to be used for real-time visualization of long-running Discovery operat
 Contains message definitions, FIFO Ray actor queue for cross-process safe messaging, and utilities for rendering and updating progress/spinner views as well as result tables from DiscoverySpace data.
 """
 
+import logging
 import queue
 import typing
 from typing import Literal
@@ -26,6 +27,8 @@ from rich.progress import (
 from rich.table import Table
 
 from ado.core.discoveryspace.space import DiscoverySpace
+
+moduleLog = logging.getLogger("console_output")
 
 if typing.TYPE_CHECKING:
     import pandas as pd
@@ -199,114 +202,133 @@ def rich_console_spinner_update_from_message(
 
 
 def output_operation_results(
-    discovery_space: DiscoverySpace, operation_id: str, row_limit: int | None = None
+    discovery_space: DiscoverySpace,
+    operation_id: str,
+    row_limit: int | None = None,
+    fallback: Table | None = None,
 ) -> Table:
     """
     Generate and return a Rich Table summarizing the most recent measurements for a DiscoverySpace operation.
     Dynamically determines columns shown based on terminal width. Can limit number of rows.
 
+    Sample-store read failures do not raise an Exception. If ``fallback`` is
+    provided it is returned unchanged; otherwise an empty table is returned so
+    live console updates can continue.
+
     Args:
         discovery_space (DiscoverySpace): Source of measurement/result timeseries.
         operation_id (str): Operation ID/tag to extract measurements for.
         row_limit (int|None): Maximum number of table rows to show (None = no limit).
+        fallback (Table|None): Last successfully rendered table to keep on failure.
 
     Returns:
         Table: Rendered rich.Table object containing formatted measurement data.
     """
     import numpy as np
 
-    df: pd.DataFrame = (
-        discovery_space.complete_measurement_request_with_results_timeseries(
-            operation_id=operation_id,
-            output_format="target",
-        )
-    )
-
-    table_title = (
-        f"Latest measurements - {operation_id}"
-        if row_limit
-        else f"Measurements - {operation_id}"
-    )
-
-    table = Table(title=table_title)
-
-    if df.empty:
-        return table
-
-    # Remove unnecessary columns and setup index
-    df = df.drop(
-        columns=["result_index", "generatorid", "identifier"],
-        errors="ignore",
-    )
-    df.insert(0, "index", np.arange(len(df)))
-
-    # Optionally drop/convert experiment column
-    if len(discovery_space.measurementSpace.experiments) == 1:
-        df = df.drop(columns=["experiment_id"], errors="ignore")
-    else:
-        df["experiment_id"] = df["experiment_id"].apply(
-            lambda x: x.split(".", 1)[1] if "." in x else x
+    try:
+        df: pd.DataFrame = (
+            discovery_space.complete_measurement_request_with_results_timeseries(
+                operation_id=operation_id,
+                output_format="target",
+            )
         )
 
-    # AP 09/12/2025:
-    # rich does not really give us tools to dynamically determine the height
-    # of a renderable. Since we can't/don't want to use Panels to determine
-    # height ratios, we try to calculate how many rows our table should have.
-    #
-    # NOTE: This calculation assumes that each table row is only 1-2 terminal
-    # rows and there is only 1 spinner active.
+        table_title = (
+            f"Latest measurements - {operation_id}"
+            if row_limit
+            else f"Measurements - {operation_id}"
+        )
 
-    # We need to remove lines for:
-    # - The table title
-    # - The 3 table border segments (2 header, 1 bottom)
-    # - The column names
-    # - 3 more to take into account a spinner and the panel borders
-    # Total: 8
-    console = Console()
-    if not row_limit:
-        row_limit = max(int(console.height / 2) - 8, 3)
+        table = Table(title=table_title)
 
-    # Determine the amount of columns the screen can fit
-    # We create a support Table where we add column by column and
-    # if the terminal wouldn't fit another column of minimum width
-    # (based on the current size of the table), we stop adding them.
-    #
-    # NOTE: This is very conservative, as rich can squeeze columns
-    # a bit to decrease their size.
-    terminal_width = console.width
-    measurement_table = Table(title=table_title)
-    measurement_table.add_column("... (+XX more)")
-    for column in df.columns:
-        if (
-            terminal_width - console.measure(measurement_table).maximum
-        ) < console.measure(measurement_table).minimum:
-            break
-        measurement_table.add_column(column)
+        if df.empty:
+            return table
 
-    max_columns = len(measurement_table.columns)
-    visible_columns = list(df.columns[:max_columns])
-    hidden_columns = len(df.columns) - max_columns
-    if hidden_columns > 0:
-        visible_columns.append(f"... (+{hidden_columns} more)")
+        # Remove unnecessary columns and setup index
+        df = df.drop(
+            columns=["result_index", "generatorid", "identifier"],
+            errors="ignore",
+        )
+        df.insert(0, "index", np.arange(len(df)))
 
-    for col in visible_columns:
-        table.add_column(col, overflow="fold")
+        # Optionally drop/convert experiment column
+        if len(discovery_space.measurementSpace.experiments) == 1:
+            df = df.drop(columns=["experiment_id"], errors="ignore")
+        else:
+            df["experiment_id"] = df["experiment_id"].apply(
+                lambda x: x.split(".", 1)[1] if "." in x else x
+            )
 
-    # We add the rows in descending order
-    for row_number, (_, row) in enumerate(df[::-1].iterrows()):
-        if row_limit and row_number == row_limit:
-            break
+        # AP 09/12/2025:
+        # rich does not really give us tools to dynamically determine the height
+        # of a renderable. Since we can't/don't want to use Panels to determine
+        # height ratios, we try to calculate how many rows our table should have.
+        #
+        # NOTE: This calculation assumes that each table row is only 1-2 terminal
+        # rows and there is only 1 spinner active.
 
-        row_data = [
-            (f"{row[col]:.2f}" if isinstance(row[col], float) else str(row[col]))
-            for col in df.columns[:max_columns]
-        ]
+        # We need to remove lines for:
+        # - The table title
+        # - The 3 table border segments (2 header, 1 bottom)
+        # - The column names
+        # - 3 more to take into account a spinner and the panel borders
+        # Total: 8
+        console = Console()
+        if not row_limit:
+            row_limit = max(int(console.height / 2) - 8, 3)
 
+        # Determine the amount of columns the screen can fit
+        # We create a support Table where we add column by column and
+        # if the terminal wouldn't fit another column of minimum width
+        # (based on the current size of the table), we stop adding them.
+        #
+        # NOTE: This is very conservative, as rich can squeeze columns
+        # a bit to decrease their size.
+        terminal_width = console.width
+        measurement_table = Table(title=table_title)
+        measurement_table.add_column("... (+XX more)")
+        for column in df.columns:
+            if (
+                terminal_width - console.measure(measurement_table).maximum
+            ) < console.measure(measurement_table).minimum:
+                break
+            measurement_table.add_column(column)
+
+        max_columns = len(measurement_table.columns)
+        visible_columns = list(df.columns[:max_columns])
+        hidden_columns = len(df.columns) - max_columns
         if hidden_columns > 0:
-            row_data.append("...")
-        table.add_row(*row_data)
+            visible_columns.append(f"... (+{hidden_columns} more)")
 
-    return table
+        for col in visible_columns:
+            table.add_column(col, overflow="fold")
+
+        # We add the rows in descending order
+        for row_number, (_, row) in enumerate(df[::-1].iterrows()):
+            if row_limit and row_number == row_limit:
+                break
+
+            row_data = [
+                (f"{row[col]:.2f}" if isinstance(row[col], float) else str(row[col]))
+                for col in df.columns[:max_columns]
+            ]
+
+            if hidden_columns > 0:
+                row_data.append("...")
+            table.add_row(*row_data)
+
+        return table
+    except Exception:
+        moduleLog.warning(
+            "Failed to load measurement results for live console updates "
+            "of operation %s; continuing without refreshing the table",
+            operation_id,
+            exc_info=True,
+        )
+        if fallback is not None:
+            return fallback
+        return Table(title=f"Measurements temporarily unavailable - {operation_id}")
 
 
 def render_progress_indicators(progress_items: dict) -> Panel | Group:
@@ -333,6 +355,9 @@ def run_operation_live_updates(
     Handles periodic refresh of the operation results table and processes all messages from the Ray queue to update progress bars and spinners in real-time.
     Designed for use inside a Ray worker overseeing a DiscoverySpace operation.
 
+    Table refreshes are best-effort: sample-store or render failures keep the
+    last good table.
+
     Args:
         discovery_space (DiscoverySpace): Measurement/orchestration context.
         operation_id (str): Operation identifier (tag).
@@ -342,30 +367,39 @@ def run_operation_live_updates(
     finished = []
     # Dict of message.id --> renderable (Spinner or Progress)
     progress_items = {}
+    results_table = output_operation_results(
+        discovery_space=discovery_space,
+        operation_id=operation_id,
+    )
 
     with Live(
         Group(
             render_progress_indicators(progress_items=progress_items),
-            output_operation_results(
-                discovery_space=discovery_space,
-                operation_id=operation_id,
-            ),
+            results_table,
         ),
         refresh_per_second=10,
     ) as live:
         while not finished:
-            # 1. Update measurement results
-            results_table = output_operation_results(
-                discovery_space=discovery_space,
-                operation_id=operation_id,
-            )
-            # Update results table now in case there are no progress items
-            live.update(
-                Group(
-                    render_progress_indicators(progress_items=progress_items),
-                    results_table,
+            # 1. Update measurement results. Failures keep the last good table.
+            try:
+                results_table = output_operation_results(
+                    discovery_space=discovery_space,
+                    operation_id=operation_id,
+                    fallback=results_table,
                 )
-            )
+                # Update results table now in case there are no progress items
+                live.update(
+                    Group(
+                        render_progress_indicators(progress_items=progress_items),
+                        results_table,
+                    )
+                )
+            except Exception:
+                moduleLog.warning(
+                    "Failed to refresh live console for operation %s; continuing",
+                    operation_id,
+                    exc_info=True,
+                )
             # 2. Fetch all pending messages (FIFO)
             while True:
                 try:
@@ -403,21 +437,36 @@ def run_operation_live_updates(
                     del progress_items[msg.id]
 
                 # Update live view after every change
-                live.update(
-                    Group(
-                        render_progress_indicators(progress_items=progress_items),
-                        results_table,
+                try:
+                    live.update(
+                        Group(
+                            render_progress_indicators(progress_items=progress_items),
+                            results_table,
+                        )
                     )
-                )
+                except Exception:
+                    moduleLog.warning(
+                        "Failed to refresh live console for operation %s; continuing",
+                        operation_id,
+                        exc_info=True,
+                    )
 
             finished, _ = ray.wait(ray_waitables=[operation_future], timeout=2)
         # Final whole-table output
-        live.update(
-            Group(
-                render_progress_indicators(progress_items=progress_items),
-                output_operation_results(
-                    discovery_space=discovery_space,
-                    operation_id=operation_id,
-                ),
+        try:
+            live.update(
+                Group(
+                    render_progress_indicators(progress_items=progress_items),
+                    output_operation_results(
+                        discovery_space=discovery_space,
+                        operation_id=operation_id,
+                        fallback=results_table,
+                    ),
+                )
             )
-        )
+        except Exception:
+            moduleLog.warning(
+                "Failed to render final live console table for operation %s",
+                operation_id,
+                exc_info=True,
+            )

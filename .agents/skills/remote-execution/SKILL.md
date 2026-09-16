@@ -184,11 +184,12 @@ version as a wheel already cached by Ray. Ray sees the version as already
 installed and skips reinstallation.
 
 Plugins use `uv-dynamic-versioning` with a `format-jinja` template that appends
-the git node and a timestamp to every dirty or dev build (e.g.
-`X.Y.Z.devN+g<commit>.d<timestamp>`), so each build produces a unique version.
+the git node and a build-time UTC timestamp to every dirty or dev build (e.g.
+`X.Y.Z.devN+g<commit>.d<build-timestamp>.dirty`), so each `uv build` invocation
+produces a unique version string even when the underlying commit has not changed.
 If you are still seeing stale wheels, confirm the plugin's `pyproject.toml`
 has the `format-jinja` block from the
-[plugin development rules](../../rules/plugin-development.mdc).
+[plugin-development](../plugin-development/SKILL.md) skill.
 
 ---
 

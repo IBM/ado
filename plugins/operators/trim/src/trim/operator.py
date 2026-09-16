@@ -1,16 +1,18 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-
 import logging
+import os
 
 from ado.core.discoveryspace.space import DiscoverySpace
 from ado.core.operation.config import FunctionOperationInfo
 from ado.core.operation.operation import OperationOutput
 from ado.modules.operators.collections import characterize_operation
+from trim.samplers.no_priors_parameters import NoPriorsParametersInternal
 from trim.samplers.no_priors_utils import get_source_and_target
 from trim.trim_pydantic import (
     TrimParameters,
+    TrimSamplerParameters,
 )  # Importing this way works when the package is installed
 from trim.utils.logging_utils import (
     log_and_save_characterization,
@@ -18,6 +20,75 @@ from trim.utils.logging_utils import (
 )
 
 logger_trim = logging.getLogger(__name__)
+
+
+def validate_targetOutput(
+    params: "TrimParameters",
+    discoverySpace: DiscoverySpace,
+) -> "TrimParameters":
+    """Resolve and validate ``params.targetOutput`` against the measurement space.
+
+    ``targetOutput`` must be the bare *target property identifier* (e.g.
+    ``"pressure"``) because ``get_source_and_target`` calls
+    ``matchingEntitiesTable(property_type="target")`` which keys columns by
+    ``targetProperty.identifier``.
+
+    If the user supplied the fully-qualified *observed property identifier*
+    (e.g. ``"calculate_pressure_ideal_gas-pressure"``) this function silently
+    rewrites ``params.targetOutput`` to the bare form.
+
+    Args:
+        params: Validated ``TrimParameters`` as parsed from kwargs.
+        discoverySpace: The discovery space being characterised.
+
+    Returns:
+        ``params`` with ``targetOutput`` set to the bare target property identifier.
+
+    Raises:
+        ValueError: When ``targetOutput`` does not match any observed property,
+            is ambiguous, or when the discoverySpace does not contain exactly 1
+            experimentReference.
+    """
+    num_exps = len(discoverySpace.measurementSpace.experimentReferences)
+    if num_exps != 1:
+        raise ValueError(
+            "The discoverySpace must contain exactly 1 experiment but it contains "
+            f"{num_exps} experiments instead."
+        )
+
+    observed_properties = discoverySpace.measurementSpace.observedProperties
+
+    # Already a bare target property identifier — validate it exists.
+    if params.targetOutput in {
+        op.targetProperty.identifier for op in observed_properties
+    }:
+        return params
+
+    # Try to resolve from a fully-qualified observed property identifier.
+    matches = [op for op in observed_properties if op.identifier == params.targetOutput]
+
+    if len(matches) == 1:
+        resolved = matches[0].targetProperty.identifier
+        logger_trim.info(
+            f"targetOutput '{params.targetOutput}' resolved to bare target property "
+            f"identifier '{resolved}'."
+        )
+        params.targetOutput = resolved
+        return params
+
+    if len(matches) == 0:
+        valid = sorted({op.targetProperty.identifier for op in observed_properties})
+        raise ValueError(
+            f"targetOutput '{params.targetOutput}' does not match any observed "
+            f"property in the measurement space. "
+            f"Valid target property identifiers are: {valid}"
+        )
+
+    # len(matches) > 1: should not happen since observed property identifiers are unique.
+    candidates = sorted(op.targetProperty.identifier for op in matches)
+    raise ValueError(
+        f"targetOutput '{params.targetOutput}' is ambiguous. Candidates: {candidates}"
+    )
 
 
 @characterize_operation(
@@ -30,7 +101,7 @@ logger_trim = logging.getLogger(__name__)
                 Retrieves all measured entities from the entity source and samples the others following a certain order.
                 If the number of measured entity is too small, Trim instantiates a no-priors characterization operation.
                 """,
-    version="2.0.3",
+    version="2.1.1",
 )
 def trim(
     discoverySpace: DiscoverySpace = None,  # type: ignore[name-defined]
@@ -52,6 +123,12 @@ def trim(
     Returns:
         OperationOutput containing the operation resources and metadata
     """
+    # Ensure LOGLEVEL env var reflects the current root logger level so that
+    # any Ray actors spawned by nested operations (e.g. random_walk) inherit it
+    # via configure_logging().  logging.basicConfig() is a no-op here because
+    # ado's configure_logging() has already attached a handler to the root logger.
+    os.environ["LOGLEVEL"] = logging.getLevelName(logging.getLogger().level)
+
     # Lazy import to avoid circular import issues during plugin loading
     from ado.modules.operators.collections import explore
     from ado.modules.operators.randomwalk import (
@@ -61,8 +138,38 @@ def trim(
     )
 
     random_walk = explore.operators["random_walk"].function
+    if random_walk is None:
+        raise RuntimeError("The random_walk operator has no registered function")
 
     params = TrimParameters.model_validate(kwargs)
+
+    if params.noPriorParameters.batchSize != 1:
+        raise ValueError(
+            f"TRIM requires batchSize=1 for the no-priors sampler, got {params.noPriorParameters.batchSize}"
+        )
+
+    # VV: This validates the targetOutput and also converts it to "bare" format,
+    # compatible with retrieving the "target" properties in a space.
+    params = validate_targetOutput(params, discoverySpace)
+
+    # Inject the model save paths into tabularPredictorArgs so that every
+    # TabularPredictor instantiation downstream can simply unpack
+    # **tabularPredictorArgs without specifying path= explicitly.
+    for arg_name, args_obj, path in (
+        ("autoGluonArgs", params.autoGluonArgs, params.outputDirectory),
+        (
+            "finalModelAutoGluonArgs",
+            params.finalModelAutoGluonArgs,
+            (params.outputDirectory or "") + "_finalized",
+        ),
+    ):
+        if "path" in args_obj.tabularPredictorArgs:
+            logger_trim.warning(
+                f"{arg_name}.tabularPredictorArgs already contains a 'path' key; "
+                "it will be overwritten by TRIM's outputDirectory."
+            )
+        args_obj.tabularPredictorArgs["path"] = path
+
     logger_trim.info(
         "Transfer Refined Iterative Modeling starts."
         f"Target variable = {params.targetOutput}"
@@ -99,9 +206,16 @@ def trim(
             moduleClass="NoPriorsSampleSelector",
             moduleName="trim.samplers.no_priors_sampler",
         )
+
+        # VV: Propagate the targetOutput to the NoPriors  Sampler
+        noPriorsParams = params.noPriorParameters.model_dump()
+        noPriorsParams["targetOutput"] = params.targetOutput
+
+        noPriorsParams = NoPriorsParametersInternal.model_validate(noPriorsParams)
+
         no_priors_sampler_config = CustomSamplerConfiguration(
             module=no_priors_module,
-            parameters=params.noPriorParameters,
+            parameters=noPriorsParams,
         )
         no_priors_rwparams = RandomWalkParameters(
             samplerConfig=no_priors_sampler_config,
@@ -145,23 +259,50 @@ def trim(
                 additional_info=f"This was detected during the no-priors characterization phase: {params.samplingBudget.minPoints - len(source_df)} out of {params.samplingBudget.minPoints}.",
             )
 
+    # maxPoints is a shared new-sample budget across no-priors and iterative phases
+    numberEntities_iterative_modeling = params.samplingBudget.maxPoints - (
+        len(source_df) - initial_source_space_size
+    )
+    if numberEntities_iterative_modeling <= 0:
+        logger_trim.warning(
+            "No sampling budget remains for iterative modeling; skipping it."
+        )
+        resources = (
+            [op_output_characterization_no_prior.operation]
+            if op_output_characterization_no_prior.operation is not None
+            else []
+        )
+        return OperationOutput(
+            other=[],
+            resources=resources,
+            metadata={},
+        )
+
     # TRIM Iterative Modeling
     trim_module = SamplerModuleConf(
         moduleClass="TrimSampleSelector",  # this is the name of our custom sampler class -> which I guess is CustomSequentialSampleSelector
         moduleName="trim.trim_sampler",  ### If CustomSequentialSampleSelector is imported as "from trim.trim_sampler import TrimSampleSelector" then this is correct
     )
-    trim_sampler_config = CustomSamplerConfiguration(
-        module=trim_module, parameters=params
+    # TrimSamplerParameters extends TrimParameters with numberEntitiesIterativeModeling
+    # which tells the sampler exactly how many entities RandomWalk will draw. The sampler
+    # uses this to call finalize_model() after yielding the last entity, since RandomWalk
+    # stops calling anext() once the budget is met and never exhausts the generator.
+    # This field must NOT live on TrimParameters itself because that model is serialised
+    # to YAML as the operation configuration.
+    sampler_params = TrimSamplerParameters(
+        **params.model_dump(),
+        numberEntitiesIterativeModeling=numberEntities_iterative_modeling,
     )
-    numberEntities_iterative_modeling = (
-        len(source_df) - initial_source_space_size
-        if op_output_characterization_no_prior.operation
-        else params.samplingBudget.maxPoints
+    trim_sampler_config = CustomSamplerConfiguration(
+        module=trim_module, parameters=sampler_params
     )
     trim_rwparams = RandomWalkParameters(
         samplerConfig=trim_sampler_config,
         batchSize=1,
-        numberEntities=numberEntities_iterative_modeling,
+        # VV: Configuring RandomWalk to request one additional Entity, this enables the
+        # TrimSampler to know that it's about to run out of entities and thus it should
+        # finalize the model.
+        numberEntities=numberEntities_iterative_modeling + 1,
         singleMeasurement=True,
     )
 

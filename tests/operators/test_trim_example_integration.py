@@ -30,7 +30,7 @@ from ado.modules.operators.collections import characterize
 
 pytest.importorskip("autogluon")
 
-from trim.samplers.no_priors_parameters import NoPriorsParameters
+from trim.samplers.no_priors_parameters import NoPriorsParametersInternal
 from trim.trim_pydantic import (
     AutoGluonArgs,
     SamplingBudget,
@@ -69,27 +69,38 @@ def trim_minimal_discovery_space(
     )
 
 
-# Lightweight AutoGluon settings for CI
+# Minimal AutoGluon settings — fast enough for CI and light enough to survive
+# on a developer laptop.  LR only; no neural nets or tree ensembles.
 _TRIM_TEST_AUTOGLUON_FIT_ARGS = {
-    "time_limit": 60,
+    "time_limit": 10,
     "presets": "medium_quality",
     "auto_stack": False,
-    "excluded_model_types": ["CAT"],
+    "excluded_model_types": ["CAT", "NN_TORCH", "FASTAI", "GBM", "XGB", "RF"],
 }
 
 
-@pytest.mark.flaky(reruns=3, reruns_delay=2)
+# @pytest.mark.flaky(reruns=3, reruns_delay=2)
 @pytest.mark.timeout(900)
+@pytest.mark.parametrize(
+    ("min_points", "max_points", "expected_completed_operations"),
+    [
+        (8, 8, ["Characterization with no priors"]),
+        (
+            7,
+            8,
+            ["Characterization with no priors", "Iterative Modeling Operation"],
+        ),
+    ],
+    ids=["budget-exhausted", "budget-remaining"],
+)
 def test_trim_example_operation_succeeds(
     trim_minimal_discovery_space: DiscoverySpace,
     tmp_path: pathlib.Path,
+    min_points: int,
+    max_points: int,
+    expected_completed_operations: list[str],
 ) -> None:
-    """Run trim on the minimal pressure example; passes if the operation completes successfully."""
-    # Trim requires >1 distinct target value before modeling. AutoGluon's internal
-    # train/test split needs several rows (fails for n_samples=2). Budget must not
-    # exceed tests/resources/trim/space_minimal.yaml entity count (currently 8).
-    model_dir = tmp_path / "trim_models"
-    debug_dir = tmp_path / "debug_output"
+    """Run TRIM with exhausted and remaining post-characterization budgets."""
     autogluon_args = AutoGluonArgs(
         fitArgs=_TRIM_TEST_AUTOGLUON_FIT_ARGS,
         tabularPredictorArgs={
@@ -99,16 +110,19 @@ def test_trim_example_operation_succeeds(
     )
     params = TrimParameters(
         targetOutput="pressure",
-        samplingBudget=SamplingBudget(minPoints=8, maxPoints=8),
+        samplingBudget=SamplingBudget(
+            minPoints=min_points,
+            maxPoints=max_points,
+        ),
         iterationSize=1,
-        outputDirectory=str(model_dir),
-        debugDirectory=str(debug_dir),
+        outputDirectory=str(tmp_path / "trim_models"),
+        debugDirectory=str(tmp_path / "debug_output"),
         stoppingCriterion=StoppingCriterion(enabled=False),
         autoGluonArgs=autogluon_args,
         finalModelAutoGluonArgs=autogluon_args,
-        noPriorParameters=NoPriorsParameters(
+        noPriorParameters=NoPriorsParametersInternal(
             targetOutput="pressure",
-            samples=8,
+            samples=min_points,
             batchSize=1,
             sampling_strategy="random",
         ),
@@ -126,3 +140,26 @@ def test_trim_example_operation_succeeds(
     assert output.exitStatus.exit_state == OperationExitStateEnum.SUCCESS
     assert output.exitStatus.event == OperationResourceEventEnum.FINISHED
     assert output.operation.status[-1].event == ADOResourceEventEnum.UPDATED
+    assert [
+        resource.config.metadata.model_dump()["completed operation"]
+        for resource in output.resources
+    ] == expected_completed_operations
+
+    if max_points > min_points:
+        iterative_operation = output.resources[-1]
+        assert (
+            iterative_operation.config.operation.parameters.numberEntities
+            # VV: TRIM configure random_walk (i.e.numberEntitise above) to measure 1 point
+            # more than what the user actually specified. This enables the TRIM Sampler to
+            # know that it has exhausted its budget and thus finalize the model
+            == (max_points - min_points) + 1
+        )
+        assert any(
+            status.event == OperationResourceEventEnum.FINISHED
+            and status.exit_state == OperationExitStateEnum.SUCCESS
+            for status in iterative_operation.status
+        )
+        # The final model must have been persisted to outputDirectory.
+        assert (tmp_path / "trim_models_finalized").is_dir(), (
+            "finalize_model was never called: the trim_models_finalized directory was not created"
+        )

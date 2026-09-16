@@ -9,3 +9,4 @@ entitySpace:
 experiments:
   - actuatorIdentifier: trainer
     experimentIdentifier: train_model
+    experimentVersion: 1.0.0

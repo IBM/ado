@@ -266,7 +266,7 @@ class ExperimentCatalog(BaseCatalog):
         ):
             if resolve:
                 raise ExperimentVersionMismatchError(
-                    f"Algorithm version mismatch for experiment "
+                    f"Version mismatch for experiment "
                     f"{reference.experimentIdentifier!r} in catalog {self._identifier!r}. "
                     f"Reference requires version "
                     f"{reference.fully_qualified_experiment_identifier!r} but catalog "

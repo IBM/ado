@@ -88,7 +88,10 @@ test = [
   "ado-active-learning",
   "ado-anomalous-series",
   "ado-autoconf ; python_full_version < '3.14'",
-  "ado-profile-space ; python_full_version < '3.14'",
+  # AP 11/09/26:
+  # Temporarily removing ado-profile-space due to:
+  # https://github.com/IBM/ado/pull/1414#discussion_r3988436934
+  # "ado-profile-space ; python_full_version < '3.14'",
   "ado-ray-tune",
   "ado-sfttrainer ; python_full_version < '3.13'",
   "ado-trim ; python_full_version < '3.14'",
@@ -120,10 +123,7 @@ RAY_ENABLE_UV_RUN_RUNTIME_ENV = "0"
 
 [tool.uv]
 default-groups = ["dev", "docs"]
-required-environments = [
-  "sys_platform == 'darwin' and platform_machine == 'arm64'",
-  "sys_platform == 'linux' and platform_machine == 'x86_64'"
-]
+required-environments = ["sys_platform == 'darwin' and platform_machine == 'arm64'", "sys_platform == 'linux' and platform_machine == 'x86_64'"]
 
 # Having our plugins in the workspace section makes it so
 # that dependencies are resolved considering them as well.
@@ -169,15 +169,19 @@ vcs = "git"
 style = "pep440"
 pattern = "default-unprefixed"
 fallback-version = "0.0.0"
+# Import datetime so the Jinja template can call datetime.utcnow()
+format-jinja-imports = [{ module = "datetime", item = "datetime" }]
 # Versioning logic (Dunamai / PEP 440):
 # - Exact tag (distance == 0) → use the base version; add +dirty only if the repo is dirty
-# - Ahead of tag (distance > 0) → bump the base version, add .devN, plus commit/timestamp metadata
+# - Ahead of tag (distance > 0) → bump the base version, add .devN, plus commit/build-timestamp metadata
+# - The build-time timestamp (datetime.utcnow()) changes on every `uv build` invocation,
+#   ensuring two wheels built from the same dirty commit have distinct version strings.
 # - `select | list` removes optional entries and materializes metadata as a real list
 #   (required by serialize_pep440)
 format-jinja = """
 {%- set metadata = [
     distance != 0 and "g" ~ commit,
-    distance != 0 and "d" ~ timestamp,
+    distance != 0 and "d" ~ datetime.utcnow().strftime("%Y%m%d%H%M%S"),
     dirty and "dirty"
 ] -%}
 

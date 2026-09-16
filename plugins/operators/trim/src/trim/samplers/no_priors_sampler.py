@@ -10,7 +10,7 @@ from pydantic import BaseModel
 from ado.core.discoveryspace.samplers import BaseSampler
 from ado.core.discoveryspace.space import DiscoverySpace, Entity
 from ado.modules.operators.discovery_space_manager import DiscoverySpaceManager
-from trim.samplers.no_priors_parameters import NoPriorsParameters
+from trim.samplers.no_priors_parameters import NoPriorsParametersInternal
 from trim.samplers.no_priors_utils import (
     get_list_of_entities_from_df_and_space,
     get_source_and_target,
@@ -46,6 +46,10 @@ class NoPriorsSampleSelector(BaseSampler):
         Yields:
             List of Entity objects to be measured, in the determined order
         """
+        if batchsize != 1:
+            raise ValueError(
+                f"NoPriorsSampleSelector requires batchsize=1, got {batchsize}"
+            )
 
         async def iterator_closure(
             stateHandle: DiscoverySpaceManager,  # type: ignore[name-defined]
@@ -127,6 +131,10 @@ class NoPriorsSampleSelector(BaseSampler):
         Yields:
             List of Entity objects to be measured, in the determined order
         """
+        if batchsize != 1:
+            raise ValueError(
+                f"NoPriorsSampleSelector requires batchsize=1, got {batchsize}"
+            )
 
         def iterator_closure(
             space: DiscoverySpace,
@@ -186,7 +194,7 @@ class NoPriorsSampleSelector(BaseSampler):
 
     @classmethod
     def parameters_model(cls) -> type[BaseModel] | None:
-        return NoPriorsParameters
+        return NoPriorsParametersInternal
 
-    def __init__(self, parameters: NoPriorsParameters) -> None:
+    def __init__(self, parameters: NoPriorsParametersInternal) -> None:
         self.params = parameters

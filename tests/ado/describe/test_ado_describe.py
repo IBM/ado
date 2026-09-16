@@ -67,7 +67,8 @@ def test_describe_peptide_mineralization_experiment() -> None:
     runner = CliRunner()
     result = runner.invoke(ado, ["describe", "experiment", "peptide_mineralization"])
     assert result.exit_code == 0
-    assert ("Identifier: robotic_lab.peptide_mineralization") in result.output
+    assert "Identifier: robotic_lab.peptide_mineralization@1.0.0" in result.output
+    assert "Version: 1.0.0" in result.output
 
     assert "Measures adsorption of peptide lanthanide combinations" in result.output
 

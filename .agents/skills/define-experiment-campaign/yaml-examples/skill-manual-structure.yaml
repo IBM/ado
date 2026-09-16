@@ -9,6 +9,7 @@ entitySpace:
 experiments:
   - actuatorIdentifier: actuator_name
     experimentIdentifier: experiment_name
+    experimentVersion: 1.0.0 # Omit if the experiment has no version
 metadata:
   name: space_name
   description: Description of the discovery space

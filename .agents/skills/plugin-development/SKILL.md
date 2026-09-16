@@ -1,16 +1,18 @@
 ---
-description:
-  Guidelines for developing ado plugins (actuators, operators,
-  custom_experiments)
-globs: "{plugins,examples}/**/*"
-alwaysApply: false
+name: plugin-development
+description: >-
+  Guidelines for developing ado plugins (actuators, operators, and custom
+  experiments). Covers package structure, versioning, entry points, custom
+  experiment decorators, testing, and linting. Use when creating, modifying, or
+  reviewing a plugin under plugins/ or examples/; adding an actuator, operator,
+  or custom experiment; or when the user asks how to extend ado.
 ---
 
-# Plugin Development Guidelines
+# Plugin Development
 
-These guidelines apply when developing plugins for ado. Plugins are developed
-under `plugins/` or `examples/` directories. All general development guidelines
-from `AGENTS.md` also apply.
+Follow these instructions when creating or modifying ado plugins under
+`plugins/` or `examples/`. General development guidelines in
+[AGENTS.md](../../../AGENTS.md) also apply.
 
 ---
 
@@ -61,6 +63,12 @@ Use the trim plugin as a reference: [`plugins/operators/trim/pyproject.toml`](..
 
 Set `pattern-prefix` to the plugin's namespaced tag prefix, and
 `[tool.hatch.build.targets.wheel] packages` to the plugin's source directory.
+
+The `format-jinja` template uses `datetime.utcnow()` (imported via
+`format-jinja-imports`) to embed a **build-time** UTC timestamp in every dev or
+dirty wheel version string. This ensures two `uv build` calls from the same
+dirty commit produce distinct wheel filenames, which is required so remote Ray
+clusters reinstall updated plugins correctly.
 
 ### Dependencies
 
@@ -195,7 +203,7 @@ def my_custom_experiment(my_property: float, ...) -> dict[str, Any]:
 - Include descriptive metadata
 
 For the full decorator API and worked examples, see
-[creating-custom-experiments.md](../../../website/docs/actuators/creating-custom-experiments.md).
+[creating-custom-experiments.md](../../../docs/developer-guide/creating-custom-experiments.md).
 
 ---
 
@@ -234,7 +242,8 @@ uv run ado get operators
 and confirm the plugin is installed
 
 - **Experiment execution**: Use the `run_experiment` tool to verify
-  custom_experiment or actuator experiments can execute successfully
+  custom_experiment or actuator experiments can execute successfully — see
+  [run-experiment](../run-experiment/SKILL.md)
 
 For example:
 
@@ -345,3 +354,8 @@ my_experiment = "my_package.my_experiment"
 # versioning block: copy from trim, set pattern-prefix = "my-custom-experiment/"
 # and packages = ["src/my_custom_experiment"]
 ```
+
+## References
+
+- [AGENTS.md](../../../AGENTS.md)
+- [creating-custom-experiments.md](../../../docs/developer-guide/creating-custom-experiments.md)

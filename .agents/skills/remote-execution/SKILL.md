@@ -193,16 +193,20 @@ has the `format-jinja` block from the
 
 ### Handling Version Control Source (VCS) Dependencies
 
-It's necessary to detect and handle any VCS dependencies used by `fromSource` packages. The process is:
+It's necessary to detect and handle any VCS dependencies used by `fromSource`
+packages. The process is:
 
-1. Obtain list of all VCS dependencies in the packages project configuration files e.g. pyproject, setup.py
-2. Determine if public access: Remove any VCS dependency that refers to an open repository on e.g. public GitHub, from the list.
-If no VCS dependencies remain, stop.
+1. Obtain list of all VCS dependencies in the packages project configuration
+   files e.g. pyproject, setup.py
+2. Determine if public access: Remove any VCS dependency that refers to an
+   open repository on e.g. public GitHub, from the list. If no VCS dependencies
+   remain, stop.
 3. Clone each VCS dependency under the `dependencies/` directory. For example
 
    ```bash
-   # given: my-utils @ git+ssh://git@github.com/ibm/my-utils.git@branch_name
-   mkdir -p dependencies && git clone git@github.com:ibm/my-utils.git -b branch_name dependencies/my-utils
+   # given: repo @ git+ssh://git@github.com/ibm/repo.git@branch_name
+   mkdir -p dependencies && \
+   git clone git@github.com:ibm/repo.git -b branch_name dependencies/repo
    ```
 
 4. Add each cloned path to `fromSource`.

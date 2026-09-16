@@ -3,6 +3,7 @@
 experiments:
   - actuatorIdentifier: trainer
     experimentIdentifier: train_model
+    experimentVersion: 1.0.0
     parameterization:
       - property:
           identifier: optimizer

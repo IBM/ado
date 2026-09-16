@@ -31,8 +31,18 @@ Detailed reference information for formulating problems in ado.
 
 ### Experiment Reference Format
 
+Each experiment entry needs `actuatorIdentifier` and `experimentIdentifier`.
+Add `experimentVersion` when the catalog `VERSION` is not `None` (a
+`MAJOR.MINOR.PATCH` SemVer string). Do not put `@version` in
+`experimentIdentifier`.
+
 See
 [reference-experiment-format.yaml](yaml-examples/reference-experiment-format.yaml).
+
+For version matching, memoization keys, and the errors raised when the field is
+missing or wrong, see `docs/resources/discovery-spaces.md` (section "Setting
+the experiment version") if the source repo is available, otherwise
+<https://ibm.github.io/ado/latest/resources/discovery-spaces/>.
 
 ## Entity Space Property Schema
 

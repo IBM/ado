@@ -27,10 +27,11 @@ style = "pep440"
 pattern = "default-unprefixed"
 pattern-prefix = "anomalous-series/"
 fallback-version = "0.0.0"
+format-jinja-imports = [{ module = "datetime", item = "datetime" }]
 format-jinja = """
 {%- set metadata = [
     distance != 0 and "g" ~ commit,
-    distance != 0 and "d" ~ timestamp,
+    distance != 0 and "d" ~ datetime.utcnow().strftime("%Y%m%d%H%M%S"),
     dirty and "dirty"
 ] -%}
 {{ serialize_pep440(

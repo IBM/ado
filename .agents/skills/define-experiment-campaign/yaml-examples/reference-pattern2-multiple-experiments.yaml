@@ -9,5 +9,7 @@ entitySpace:
 experiments:
   - actuatorIdentifier: trainer
     experimentIdentifier: train_model # Measures: accuracy
+    experimentVersion: 1.0.0
   - actuatorIdentifier: evaluator
     experimentIdentifier: evaluate_model # Requires: accuracy (from train_model)
+    experimentVersion: 1.0.0

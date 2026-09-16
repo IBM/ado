@@ -5,6 +5,7 @@ import re
 import numpy as np
 import pytest
 
+from ado.cli.utils.resources.experiments import parse_cli_experiment_id
 from ado.core.samplestore.csv import CSVSampleStore
 from ado.modules.actuators.registry import ActuatorRegistry
 from ado.schema.entity import (
@@ -625,7 +626,11 @@ def test_experiment_series(
             )
 
         for ov in test_entity.propertyValuesFromExperimentReference(
-            ExperimentReference.referenceFromString(s["experiment_id"])
+            ExperimentReference(
+                actuatorIdentifier=parse_cli_experiment_id(s["experiment_id"])[0] or "",
+                experimentIdentifier=parse_cli_experiment_id(s["experiment_id"])[1],
+                experimentVersion=parse_cli_experiment_id(s["experiment_id"])[2],
+            )
         ):
             assert s[ov.property.targetProperty.identifier] == ov.value, (
                 f"Expected the experiment series for {s['experiment_id']} to contain a key:value for {ov}"
@@ -680,7 +685,11 @@ def test_experiment_series(
             )
 
         for ov in test_entity.propertyValuesFromExperimentReference(
-            ExperimentReference.referenceFromString(s["experiment_id"])
+            ExperimentReference(
+                actuatorIdentifier=parse_cli_experiment_id(s["experiment_id"])[0] or "",
+                experimentIdentifier=parse_cli_experiment_id(s["experiment_id"])[1],
+                experimentVersion=parse_cli_experiment_id(s["experiment_id"])[2],
+            )
         ):
             assert s[ov.property.targetProperty.identifier] == ov.value, (
                 f"Expected the experiment series for {s['experiment_id']} to contain a key:value for {ov}"

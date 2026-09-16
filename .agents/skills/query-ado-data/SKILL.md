@@ -1,12 +1,14 @@
 ---
 name: query-ado-data
 description: >-
-  Query ado catalogs, metadata, and measurement data via the CLI. Use when the
-  user asks what experiments, actuators, operators, contexts, spaces, or
-  operations are available; to list or find resources; check the active
-  context/project; filter by metadata or labels; retrieve entities and
-  measurements; or get resource schemas. Covers catalog listings (experiments,
-  actuators, operators, contexts), metastore queries, and samplestore queries.
+  Covers how to query ado catalog listings (available experiments and operators), the ado
+  metastores (resource metadata queries) and ado samplestores (measurement data queries).
+  via the ado CLI tool. Use when: the
+  user asks what experiments, actuators or operators are available;
+  to list projects or context or check the active context or project; to list or find ado
+  resources like spaces, operations or datacontainers; to get ado resource schemas;
+  to filter resources by their metadata or labels; or to retrieve/export entities and
+  measurement data.
 ---
 
 # Query ado Data
@@ -253,7 +255,7 @@ uv run ado get operations --related-to discoveryspace=SPACE_ID \
 
 ### Show Entities
 
-Get entities and their measurements from a space or operation:
+Get entities and their measurements from a space, operation, or samplestore:
 
 ```bash
 uv run ado show measurements RESOURCE_TYPE [RESOURCE_ID] \
@@ -262,15 +264,19 @@ uv run ado show measurements RESOURCE_TYPE [RESOURCE_ID] \
                   [--output | -o {csv | json | table}] \
                   [--output-file <path>] \
                   [--property <property-name>] \
-                  [--include {sampled | matching | missing | unsampled}] \
+                  [--include {sampled | matching | missing | \
+                              unsampled | measured}] \
                   [--aggregate {mean | median | variance | std | min | max}]
 ```
 
-**Resource types**: `operation` (`op`), `discoveryspace` (`space`)
+**Resource types**: `operation` (`op`), `discoveryspace` (`space`),
+`samplestore` (`store`)
 
 **Key options:**
 
 - `--include` (spaces only): `sampled`, `unsampled`, `matching`, `missing`
+- `--include` (samplestore): only `measured` is accepted; `sampled`,
+  `unsampled`, `matching`, and `missing` are rejected with an error
 - `--property-format`: `observed` (one row per entity) or `target` (one row per
   entity-experiment pair)
 - `--output` (or `-o`): `csv`, `json`, or `table`
@@ -292,6 +298,13 @@ uv run ado show measurements operation randomwalk-0.5.0-123abc \
                   --property my-property-1 \
                   --property my-property-2 \
                   -o csv --output-file randomwalk-0.5.0-123abc.csv
+
+# Show all measured entities in a samplestore
+uv run ado show measurements samplestore store-abc123-456def
+
+# Export samplestore measurements as CSV
+uv run ado show measurements samplestore store-abc123-456def \
+                  -o csv --output-file store-abc123-456def-entities.csv
 ```
 
 ### Show Trace
@@ -397,5 +410,5 @@ implementation.
 When modifying or creating code while using this skill, follow:
 
 - [AGENTS.md](../../../AGENTS.md)
-- [plugin-development.mdc](../../rules/plugin-development.mdc) (if working with
+- [plugin-development](../plugin-development/SKILL.md) (if working with
   plugins)

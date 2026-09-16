@@ -3,6 +3,7 @@
 experiments:
   - actuatorIdentifier: actuator_id
     experimentIdentifier: experiment_id
+    experimentVersion: 1.0.0 # Required if ado get experiments shows a VERSION
     parameterization: # Optional - only if customizing optional properties
       - property:
           identifier: property_name

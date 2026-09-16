@@ -316,7 +316,7 @@ def execute_geospatial_benchmark(
     )
 
 
-def execute_bfcl_benchmark(
+def execute_tool_calling_benchmark(
     base_url: str,
     model: str,
     bfcl_categories: str,
@@ -348,6 +348,7 @@ def execute_bfcl_benchmark(
 
     :return: BenchmarkResult instance
     """
+
     return execute_benchmark(
         base_url=base_url,
         backend="openai-chat",

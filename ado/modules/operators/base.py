@@ -464,6 +464,14 @@ def create_operation_and_add_to_metastore(
 
     from ado.core.operation.config import DiscoveryOperationConfiguration
     from ado.core.operation.resource import OperationProvenanceInfo
+    from ado.modules.actuators.errors import (
+        DeprecatedExperimentError,
+        MissingActuatorConfigurationForCatalogError,
+        UnexpectedCatalogRetrievalError,
+        UnknownActuatorError,
+        UnknownExperimentError,
+    )
+    from ado.modules.actuators.registry import ActuatorRegistry
     from ado.modules.operators.collections import provenance_for_operator
 
     operation_resource_configuration = DiscoveryOperationResourceConfiguration(
@@ -485,12 +493,40 @@ def create_operation_and_add_to_metastore(
         if operator_provenance is not None:
             operators[op_module.operatorIdentifier] = operator_provenance
 
+    experiments = []
+    actuators = {}
+    registry = ActuatorRegistry.globalRegistry()
+    for space_experiment in discovery_space.measurementSpace.experiments:
+        try:
+            catalog_experiment = registry.experimentForReference(
+                space_experiment.reference, resolve=True
+            )
+        except (
+            UnknownExperimentError,
+            UnknownActuatorError,
+            DeprecatedExperimentError,
+            UnexpectedCatalogRetrievalError,
+            MissingActuatorConfigurationForCatalogError,
+        ):
+            continue
+
+        experiments.append(catalog_experiment.reference)
+        actuator_id = catalog_experiment.actuatorIdentifier
+        if actuator_id not in actuators:
+            actuator_provenance = registry.provenance_for_actuator(actuator_id)
+            if actuator_provenance is not None:
+                actuators[actuator_id] = actuator_provenance
+
     operation = OperationResource(
         identifier=operation_identifier,
         operationType=op_module.operationType,
         operatorIdentifier=op_module.operatorIdentifier,
         config=operation_resource_configuration,
-        provenance=OperationProvenanceInfo(operators=operators),
+        provenance=OperationProvenanceInfo(
+            operators=operators,
+            experiments=experiments,
+            actuators=actuators,
+        ),
     )
 
     related_identifiers = [

@@ -77,7 +77,7 @@ may be incorrect. This is operations which meet the following criteria
 - their status is started
 - they are over a week old
 - they have sampled entities successfully
-- their last recorded request (ado show trace) is more than a day ago
+- their last recorded request is more than a day ago
 
 These operations may have crashed in a way that meant the status
 could not be set.
@@ -113,17 +113,11 @@ Three labels make up the maintenance scheme.
 1. **Stale empty spaces**: no measured entities, older than a week.
 
    ```bash
-   uv run ado get spaces -o stats --details --output-file spaces-stats.txt
+   uv run ado show stats discoveryspace -o csv --output-file spaces-stats.csv
    ```
 
-   Then filter rows where `MEASURED_ENTITIES == 0`.
-
-   For each space use the value of `created` field
-   client-side to filter those older than a week
-
-   ```bash
-   uv run ado get space SPACE_ID -o yaml --output-file SPACE_ID.yaml
-   ```
+   Filter rows where `MEASURED_ENTITIES == 0`. Use the `AGE` column
+   (for example `7d0h` or greater) to keep only spaces older than a week.
 
    Deletion Reason: `empty-space-stale`.
 
@@ -144,14 +138,17 @@ Three labels make up the maintenance scheme.
    `exit_state: error` and made zero measurements.
 
    ```bash
-   uv run ado get operations \
-     --filter 'status=[{"event":"finished","exit_state":"error"}]' -o stats
+   uv run ado show stats operation \
+     --filter 'status=[{"event":"finished","exit_state":"error"}]' \
+     -o csv --output-file operations-error-stats.csv
    ```
+
+   Filter rows where `MEASURED_ENTITIES == 0`.
 
    Deletion Reason: `error-no-entities`.
 
-4. **Superseded operator runs**: multiple operations applying the same
-   operator to the same inputs, at different versions.
+4. **Superseded non-explore operator runs**: multiple operations
+   applying the same non-explore operator to the same inputs, at different versions.
 
    Group operations by `operatorIdentifier` (`ado/core/operation/resource.py`
    — form `name@MAJOR.MINOR.PATCH`, strict release semver only) plus input
@@ -167,7 +164,7 @@ Three labels make up the maintenance scheme.
    no single CLI filter that performs this grouping — do it as a
    script/manual pass over the YAML dump.
 
-   Deletion Reason: `superseded-operator-minor-version`.
+   Deletion Reason: `superseded-non-explore-operator-minor-version`.
 
 5. **Orphaned datacontainers**: datacontainers belonging to an operation
    that qualifies under conditions 2-4.
@@ -205,28 +202,24 @@ Three labels make up the maintenance scheme.
 
    Deletion Reason: `superseded-project-report`.
 
-8. **Labeled `provisional`**: any resource carrying the `provisional` label
+8. **Labeled `provisional`**: any resource with label `provisional=true`
 
    Deletion Reason: `provisional`
 
-9. **Pre-release/testing operator package version**: an operation whose
-   `provenance.operators.<operatorIdentifier>.distributionVersion`
-    contains a pre-release, dev, or local segment (`a`, `b`, `rc`, `.dev`, `+`).
+9. **Old operations with status started and no-entities**
 
-   This field has no dedicated CLI filter so fetch operation YAML and
-   inspect it client-side:
+   Operations over a week old whose **current** status is started, but
+   which have not measured any entities. They likely crashed without a
+   finish event.
 
    ```bash
-   uv run ado get operations -o yaml --output-file operations.yaml
+   uv run ado show stats operation -o csv --output-file operations-stats.csv
    ```
 
-   Deletion Reason: `prerelease-operator-version`.
+   Filter the `STATUS` column for rows where `STATUS == started`, `AGE`
+   is a week or more, and `MEASURED_ENTITIES == 0`.
 
-10. **Old operations with status started and no-entities**
-
-    Operations over a week old with status started, but which
-    have not measured any entities, likely crashed in a way
-    that failed to update the status field
+   Deletion Reason: `started-and-crashed-no-entities`.
 
 ## Related Skills
 

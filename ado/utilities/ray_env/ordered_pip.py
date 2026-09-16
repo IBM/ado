@@ -8,7 +8,14 @@ import threading
 import typing
 
 import anyio
-import ray._private.runtime_env.packaging
+
+try:
+    from ray._common.runtime_env_uri import parse_uri
+except ImportError:
+    # VV: This got removed in ray 2.57.0
+    from ray._private.runtime_env.packaging import parse_uri
+
+
 from ray._private.runtime_env import virtualenv_utils
 from ray._private.runtime_env.pip import PipPlugin
 from ray._private.runtime_env.plugin import RuntimeEnvPlugin
@@ -296,7 +303,7 @@ class OrderedPipPlugin(RuntimeEnvPlugin):
         return self._cache[uri]
 
     def get_path_to_pip_venv(self, uri: str) -> str:
-        _, env_hash = ray._private.runtime_env.packaging.parse_uri(uri)
+        _, env_hash = parse_uri(uri)
         return os.path.join(self._pip_resources_dir, "pip", env_hash)
 
     def delete_uri(

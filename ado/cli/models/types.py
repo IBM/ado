@@ -141,6 +141,7 @@ class AdoShowMeasurementsSupportedPropertyFormats(Enum):
 class AdoShowMeasurementsSupportedResourceTypes(Enum):
     DISCOVERY_SPACE = _DISCOVERY_SPACE_SINGULAR
     OPERATION = _OPERATION_SINGULAR
+    SAMPLE_STORE = _SAMPLE_STORE_SINGULAR
 
 
 #################### ado show related ####################

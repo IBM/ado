@@ -680,7 +680,7 @@ def get_df_at_least_one_measured_value(
             valid_targetOutput_list.append(el)
         elif f"{el}-mean" in all_df_cols and el not in all_df_cols:
             logger.warning(
-                f"Column named '{el}-mean' (instead of '{el}', which is not present)"
+                f"Column named '{el}-mean' (instead of '{el}', which is not present) "
                 "found in the DataFrame obtained through matchingEntitiesTable. "
                 f"Renaming it to '{el}'."
             )
@@ -688,7 +688,7 @@ def get_df_at_least_one_measured_value(
             valid_targetOutput_list += [el]
         elif f"{el}-mean" in all_df_cols and el in all_df_cols:
             logger.warning(
-                f"Columns named '{el}-mean' and '{el}'"
+                f"Columns named '{el}-mean' and '{el}' "
                 "found in the DataFrame obtained through matchingEntitiesTable. "
                 f"Renaming it to '{el}'."
             )

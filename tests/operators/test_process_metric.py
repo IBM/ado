@@ -66,6 +66,16 @@ class TestProcessMetricDirectHit:
         )
         assert result == 0.05
 
+    def test_direct_metric_none_returns_failed_value(self, entity: Entity) -> None:
+        """A stored None must not be reported to Optuna; use failed_metric_value."""
+        result = process_metric(
+            metric="mip_gaps",
+            all_results={"mip_gaps": [None]},
+            entity=entity,
+            trainable_params=_make_trainable_params(failed_value=float("nan")),
+        )
+        assert math.isnan(result)
+
 
 class TestProcessMetricVirtualTargetFormat:
     """Virtual property computed from allResults using measurement space observed properties."""

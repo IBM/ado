@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-import math
 import os
 import pathlib
 import sys
@@ -417,28 +416,6 @@ def _export_incumbent_mst(model: object, objective_value: float | None) -> str:
     except Exception:  # noqa: BLE001
         logger.debug("SOL export fallback failed", exc_info=True)
         return ""
-
-
-def _scalar_best_bound(best_bounds: list[Any]) -> float | None:
-    """Return the min of finite per-seed duals, or None if none are finite.
-
-    Conservative dual for a minimization MIP: a false-opt seed with a large
-    dual must not dominate. TPE maximising this scalar then maximises the
-    worst-seed dual.
-    """
-    finite: list[float] = []
-    for value in best_bounds:
-        if value is None:
-            continue
-        try:
-            number = float(value)
-        except (TypeError, ValueError):
-            continue
-        if math.isfinite(number):
-            finite.append(number)
-    if not finite:
-        return None
-    return min(finite)
 
 
 def _structured_seed_failure(
@@ -915,7 +892,7 @@ def _run_single_seed(
 
     # Always append the terminal sample.  When progress_interval_s > 0 it is
     # included in time-series alignment; in all cases it is the canonical source
-    # for the scalar best_bound derived below.
+    # for the per-seed best_bound that populates best_bounds.
     _append_terminal_progress_sample(
         model=model,
         progress_samples=progress_samples,
@@ -925,7 +902,7 @@ def _run_single_seed(
         nodes_explored=nodes,
     )
 
-    # Scalar best_bound: last non-None best_bound in progress_samples.
+    # Per-seed best_bound: last non-None best_bound in progress_samples.
     # The terminal sample sets this to objective_value at optimality (mip_gap == 0)
     # and forward-fills the last callback-recorded LP-relaxation bound otherwise,
     # avoiding the post-solve CPLEX API which may return the incumbent.
@@ -972,7 +949,6 @@ def _run_single_seed(
         "nodes_explored",
         "solve_statuses",
         "best_bounds",
-        "best_bound",
         "best_solution_mst",
         "progress_time_grid",
         "objective_over_time",
@@ -983,9 +959,8 @@ def _run_single_seed(
     metadata={
         "description": (
             "Solves a MIP instance with CPLEX across N random seeds and reports "
-            "vectors of performance metrics plus a scalar best_bound (the min of "
-            "finite per-seed duals) for search operators. Each vector output is a "
-            "list of length n_seeds, capturing solve time, objective value, MIP gap, "
+            "vectors of performance metrics. Each output property is a list of "
+            "length n_seeds, capturing solve time, objective value, MIP gap, "
             "nodes explored, solver status, and best bound per seed. This enables "
             "analysis of both parameter effects and seed-induced variability."
         )
@@ -1047,7 +1022,6 @@ def solve_mip(
         - solve_times: Wall-clock solve times in seconds.
         - objective_values: Best objective values found.
         - best_bounds: Final MIP best bounds per seed.
-        - best_bound: Min of finite per-seed best_bounds, or None if none are finite.
         - best_solution_mst: MST XML strings for warm-start round-trip, or ``""``.
         - mip_gaps: Final relative MIP gaps.
         - nodes_explored: B&B nodes processed.
@@ -1108,7 +1082,6 @@ def solve_mip(
         "solve_times": [r["solve_time_s"] for r in results],
         "objective_values": [r["objective_value"] for r in results],
         "best_bounds": best_bounds,
-        "best_bound": _scalar_best_bound(best_bounds),
         "best_solution_mst": [r["best_solution_mst"] for r in results],
         "mip_gaps": [r["mip_gap"] for r in results],
         "nodes_explored": [r["nodes_explored"] for r in results],

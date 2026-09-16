@@ -15,6 +15,7 @@ from ado.schema.property import (
     Property,
     PropertyDescriptor,
 )
+from ado.utilities.output import format_elided_list
 
 logger = logging.getLogger("property_value")
 
@@ -180,20 +181,8 @@ class PropertyValue(pydantic.BaseModel):
             return f"<blob {n} bytes>"
 
         if self.valueType == ValueTypeEnum.VECTOR_VALUE_TYPE:
-            import math
-
             items: list = self.value if self.value is not None else []
-            if max_items is not None and len(items) > max_items:
-                omitted = len(items) - max_items
-                head_n = math.ceil(max_items / 2)
-                tail_n = max_items - head_n
-                head = [str(v) for v in items[:head_n]]
-                if tail_n:
-                    tail = [str(v) for v in items[len(items) - tail_n :]]
-                    parts = [*head, "...", *tail]
-                    return "[" + ", ".join(parts) + f"] (+{omitted} more)"
-                return "[" + ", ".join(head) + f", ...] (+{omitted} more)"
-            return "[" + ", ".join(str(v) for v in items) + "]"
+            return format_elided_list(items, max_items)
 
         # NUMERIC_VALUE_TYPE and STRING_VALUE_TYPE — scalar
         return str(self.value)

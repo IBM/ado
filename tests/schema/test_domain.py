@@ -1354,6 +1354,15 @@ def test_compact_representation_binary() -> None:
     assert domain.compact_representation() == "['False', 'True']"
 
 
+def test_compact_representation_identifier() -> None:
+    """Identifier domain renders its identifier value."""
+    domain = PropertyDomain(
+        values=["identifier-1"],
+        variableType=VariableTypeEnum.IDENTIFIER_VARIABLE_TYPE,
+    )
+    assert domain.compact_representation() == "['identifier-1']"
+
+
 def test_compact_representation_unknown() -> None:
     """Unknown domain renders as the em-dash placeholder."""
     domain = PropertyDomain(variableType=VariableTypeEnum.UNKNOWN_VARIABLE_TYPE)

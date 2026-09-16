@@ -276,7 +276,7 @@ envVars:
 1. Build python wheels for those packages
 2. Instruct Ray to install the wheels as part of the Ray job submission
 
-<!-- markdownlint-enable line-length -->
+<!-- markdownlint-disable line-length -->
 
 > [!NOTE] Version Control System dependencies
 >

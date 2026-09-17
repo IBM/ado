@@ -8,7 +8,14 @@ from ado.schema.domain import PropertyDomain, VariableTypeEnum
 from ado.schema.property import (
     AbstractPropertyDescriptor,
     ConstitutiveProperty,
+    ConstitutivePropertyDescriptor,
 )
+
+
+@pytest.fixture
+def constitutive_property_descriptor() -> ConstitutivePropertyDescriptor:
+    """Return a ConstitutivePropertyDescriptor for use in tests."""
+    return ConstitutivePropertyDescriptor(identifier="my_conc_prop")
 
 
 @pytest.fixture

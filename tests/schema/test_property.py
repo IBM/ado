@@ -33,11 +33,6 @@ def concrete_property_descriptor() -> ConcretePropertyDescriptor:
     return ConcretePropertyDescriptor(identifier="my_conc_prop")
 
 
-@pytest.fixture
-def constitutive_property_descriptor() -> ConstitutivePropertyDescriptor:
-    return ConstitutivePropertyDescriptor(identifier="my_conc_prop")
-
-
 @pytest.mark.parametrize(
     "pairs",
     [

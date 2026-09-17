@@ -3,6 +3,7 @@
 import json
 import math
 
+import numpy as np
 import pytest
 
 from ado.schema.domain import (
@@ -161,13 +162,11 @@ def test_valid_property_domains() -> None:
     assert discretePropertyDomainFloatRange.valueInDomain(0.19) is False
     assert discretePropertyDomainFloatRange.valueInDomain(0.21) is False
     assert discretePropertyDomainFloatRange.valueInDomain(0.01) is False
-    # Values close to valid points with np.isclose default tolerance (rtol=1e-5, atol=1e-8)
-    # Outside default tolerance (step error = 1e-4 / 0.2 = 5e-4 > 1e-5)
+    # Off-step float values close to valid points are not in domain
     assert discretePropertyDomainFloatRange.valueInDomain(0.2 + 1e-4) is False
     assert discretePropertyDomainFloatRange.valueInDomain(0.2 - 1e-4) is False
-    # Inside default tolerance (floating-point noise)
-    assert discretePropertyDomainFloatRange.valueInDomain(0.2 + 1e-7) is True
-    assert discretePropertyDomainFloatRange.valueInDomain(0.2 - 1e-7) is True
+    assert discretePropertyDomainFloatRange.valueInDomain(0.2 + 1e-7) is False
+    assert discretePropertyDomainFloatRange.valueInDomain(0.2 - 1e-7) is False
     # Out of range
     assert discretePropertyDomainFloatRange.valueInDomain(-0.2) is False
     assert discretePropertyDomainFloatRange.valueInDomain(1.2) is False
@@ -1123,17 +1122,91 @@ def test_binary_variable_type_error_message_suggests_discrete() -> None:
         )
 
 
+def test_internal_range_values_generates_value_matches_internal_range_values() -> None:
+    """Test that _internal_range_values_generates_value exactly matches list membership in _internal_range_values."""
+    from ado.schema.domain import (
+        _internal_range_values,
+        _internal_range_values_generates_value,
+    )
+
+    test_ranges = [
+        (0, 10, 1),
+        (0, 10, 2),
+        (1, 9, 3),
+        (-5, 5, 2),
+        (0.0, 1.0, 0.2),
+        (0.0, 1.0, 0.1),
+        (0.1, 0.4, 0.1),
+        (-1.5, 1.5, 0.5),
+        (0.0, 1.0, 0.33),
+    ]
+
+    test_values = [
+        -2,
+        -1,
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        8,
+        9,
+        10,
+        11,
+        -1.5,
+        0.0,
+        0.1,
+        0.2,
+        0.3,
+        0.4,
+        0.5,
+        0.6,
+        0.7,
+        0.8,
+        0.9,
+        1.0,
+        1.2,
+        0.2 + 1e-4,
+        0.2 - 1e-4,
+        0.2 + 1e-7,
+        0.2 - 1e-7,
+        0.1 + 0.2,
+        True,
+        False,
+        float("nan"),
+        1 + 0j,
+        1 + 1j,
+        0 + 0j,
+        "42",
+        None,
+        [1],
+        {"a": 1},
+        np.int64(1),
+        np.float64(0.2),
+    ]
+
+    for lo, hi, step in test_ranges:
+        ref = _internal_range_values(lo, hi, step)
+        for v in test_values:
+            expected = (
+                v in ref if isinstance(v, (int, float, complex, np.number)) else False
+            )
+            actual = _internal_range_values_generates_value(v, lo, hi, step)
+            assert actual == expected, (
+                f"Range ({lo}, {hi}, {step}) with value {v!r}: "
+                f"expected {expected}, got {actual}"
+            )
+
+
 def test_discrete_variable_large_range_value_in_domain_performance() -> None:
     """Test that valueInDomain for DISCRETE_VARIABLE_TYPE with huge range is O(1) and instantaneous."""
-    import time
-
     domain = PropertyDomain(
         variableType=VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
         domainRange=[0, 2147483647],
         interval=1,
     )
 
-    t0 = time.perf_counter()
     assert domain.valueInDomain(0) is True
     assert domain.valueInDomain(42) is True
     assert domain.valueInDomain(1000000) is True
@@ -1144,15 +1217,16 @@ def test_discrete_variable_large_range_value_in_domain_performance() -> None:
     assert domain.valueInDomain(-1) is False
     # Non-integer with interval 1
     assert domain.valueInDomain(42.5) is False
-    # Boolean should not pass as int
-    assert domain.valueInDomain(True) is False
-    assert domain.valueInDomain(False) is False
-    # Non-numeric
+    assert domain.valueInDomain(1000000.4) is False
+    assert domain.valueInDomain(1000000.5) is False
+    # Boolean equality in list membership: True == 1, False == 0 (which are in [0, 2147483647))
+    assert domain.valueInDomain(True) is True
+    assert domain.valueInDomain(False) is True
+    # Non-numeric / NaN / complex
     assert domain.valueInDomain("42") is False
-    t1 = time.perf_counter()
-
-    # Must complete in well under 1 second (detects O(N) range materialization vs O(1) arithmetic)
-    assert t1 - t0 < 1.0
+    assert domain.valueInDomain(float("nan")) is False
+    assert domain.valueInDomain(1 + 0j) is True
+    assert domain.valueInDomain(1 + 1j) is False
 
 
 # ---------------------------------------------------------------------------

@@ -100,20 +100,21 @@ def _record_ray_job_metadata(operation_resource: OperationResource) -> None:
 
     try:
         job_config = json.loads(job_config_json)
-        metadata = job_config.get("metadata") if isinstance(job_config, dict) else None
-        submission_id = (
-            metadata.get("job_submission_id") if isinstance(metadata, dict) else None
-        )
-        if submission_id:
-            operation_resource.metadata["ray_submission_id"] = submission_id
-        else:
-            moduleLog.info(
-                "Ray job config present but no job_submission_id - "
-                "ray_submission_id will not be set"
-            )
     except Exception:
         moduleLog.info(
             "Could not retrieve Ray submission ID - operation will proceed without it"
+        )
+        return
+
+    metadata = job_config.get("metadata", {}) if isinstance(job_config, dict) else {}
+    submission_id = metadata.get("job_submission_id")
+
+    if submission_id:
+        operation_resource.metadata["ray_submission_id"] = submission_id
+    else:
+        moduleLog.info(
+            "Ray job config present but no job_submission_id - "
+            "ray_submission_id will not be set"
         )
 
 

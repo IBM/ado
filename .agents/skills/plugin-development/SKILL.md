@@ -64,6 +64,12 @@ Use the trim plugin as a reference: [`plugins/operators/trim/pyproject.toml`](..
 Set `pattern-prefix` to the plugin's namespaced tag prefix, and
 `[tool.hatch.build.targets.wheel] packages` to the plugin's source directory.
 
+The `format-jinja` template uses `datetime.utcnow()` (imported via
+`format-jinja-imports`) to embed a **build-time** UTC timestamp in every dev or
+dirty wheel version string. This ensures two `uv build` calls from the same
+dirty commit produce distinct wheel filenames, which is required so remote Ray
+clusters reinstall updated plugins correctly.
+
 ### Dependencies
 
 **Always include ado-core** in the dependencies:

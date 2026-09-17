@@ -32,6 +32,8 @@ related metadata in the ado project associated to the active context.
 
 - Prefer metastore listing and YAML dumps before heavy `uv run ado show` data
   pulls; see [query-ado-data](../query-ado-data/SKILL.md).
+- Write `ado get --details` listings with `--output-file` and read the file.
+  See [using-ado-cli](../using-ado-cli/SKILL.md).
 - For creating document resources that store reports, see
   [resource-yaml-creation — Document](../resource-yaml-creation/SKILL.md#document).
 - For study documents (`study-$ID`), see
@@ -67,7 +69,8 @@ The project report is stored as a `document` resource whose `metadata.name` is
 Query the metastore:
 
 ```bash
-uv run ado get document -q 'config.metadata.name=project_report' --details
+uv run ado get document -q 'config.metadata.name=project_report' --details \
+  --output-file /tmp/ado-project-report-docs.txt
 ```
 
 There **may** be zero, one, or
@@ -92,12 +95,12 @@ Here we check whether there has been meaningful activity since the current repor
 was written:
 
 1. Contextualizing Activity
-   1. Run `uv run ado get docs --details`
+   1. Run `uv run ado get docs --details --output-file /tmp/ado-docs-details.txt`
    2. Find any study docs that were created after the last project report was written
    3. If there are, there has been recent activity in describing the motivations
       and scope of project
 2. Operation Activity
-   1. Run `uv run ado get operations --details -o stats`
+   1. Run `uv run ado get operations --details -o stats --output-file /tmp/ado-operations-details-stats.txt`
    2. Find all the operations that were created after the last report was written
    3. Filter these for ones that are finished AND, if explore operations, that
       measured entities
@@ -115,8 +118,10 @@ First check if there are study documents outlining
 the research underway in the project
 
 ```bash
-uv run ado get document --details | grep "study-"
+uv run ado get document --details --output-file /tmp/ado-documents-details.txt
 ```
+
+Then search that file for names matching `study-`.
 
 For each study found, run
 
@@ -136,7 +141,7 @@ Goal: volume of work, recency, and which spaces attract the most operations.
 1. **Spaces (tabular, with metadata)**
 
    ```bash
-   uv run ado get spaces --details
+   uv run ado get spaces --details --output-file /tmp/ado-spaces-details.txt
    ```
 
    Use **age** (list is age-sorted, most recent last), **name**,
@@ -145,7 +150,7 @@ Goal: volume of work, recency, and which spaces attract the most operations.
 2. **Operations (tabular, with metadata)**
 
    ```bash
-   uv run ado get operations --details
+   uv run ado get operations --details --output-file /tmp/ado-operations-details.txt
    ```
 
    Relates operations to target spaces; age and labels summarize recent work.
@@ -246,9 +251,9 @@ Gain further information on the experiments using
 
 ```bash
 # Outputs description of actuators used
-uv run ado get actuators --details
+uv run ado get actuators --details --output-file /tmp/ado-actuators-details.txt
 # Outputs description of experiments used
-uv run ado get experiments --details
+uv run ado get experiments --details --output-file /tmp/ado-experiments-details.txt
 # Outputs detailed information on an experiment
 # Use to drill down into most used experiments
 uv run ado describe experiment $EXPERIMENT_ID
@@ -277,7 +282,8 @@ Find **Spaces that match these spaces** (refinement, expansion, or parallel
 configurations)
 
 ```bash
-uv run ado get spaces --matching-space-id SPACE_ID
+uv run ado get spaces --matching-space-id SPACE_ID --details \
+  --output-file /tmp/ado-matching-spaces.txt
 ```
 
 Use the output to

@@ -98,7 +98,7 @@ create YAML for task → validate YAML → iterate until YAML passes validation.
 **List available experiments:**
 
 ```bash
-uv run ado get experiments --details
+uv run ado get experiments --details --output-file /tmp/ado-experiments-details.txt
 ```
 
 **Describe a specific experiment:**

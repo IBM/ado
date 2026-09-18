@@ -36,12 +36,13 @@ accepted by the recommender model. This ensures that, as expected, the model
 returns `can_recommend==0` for configuration domain values (e.g. model names)
 that were absent in its training set.
 
-Please note that the accepted domains of the models are updated with every
-version of the model. Please see
-[models README](autoconf/AutoGluonModels/README.md) for information on the
-different model versions available. Please refer to
-[the changelog](autoconf/AutoGluonModels/changelog.md) for more details on model
-updates
+The training measurements are published in the Hugging Face dataset
+[`ibm-research/LLMFineTuningBench`](https://huggingface.co/datasets/ibm-research/LLMFineTuningBench)
+— specifically the file
+[`ado-sfttrainer-v1-0-0.csv`](https://huggingface.co/datasets/ibm-research/LLMFineTuningBench/blob/main/ado-sfttrainer-v1-0-0.csv).
+AutoConf does not distribute trained models. Generate the model in the
+same Python environment that will use the recommender so its AutoGluon and Python
+versions match.
 
 ### Installation and Usage
 
@@ -50,6 +51,35 @@ Install the package e.g. from the root of the ado repository, run:
 ```bash
 pip install plugins/custom_experiments/autoconf
 ```
+
+The recommender requires a trained AutoGluon model. There are two ways to
+provide it:
+
+#### Automatic (default)
+
+On the first inference call, if no model is present, AutoConf automatically:
+
+1. Emits a warning that training is starting.
+2. Downloads the training dataset from
+   [`ibm-research/LLMFineTuningBench`](https://huggingface.co/datasets/ibm-research/LLMFineTuningBench/blob/main/ado-sfttrainer-v1-0-0.csv)
+   via `huggingface_hub`.
+3. Trains an AutoGluon classifier (~2 minutes on `medium_quality`).
+4. Saves the model to `autoconf/models/v4-0-0/`.
+
+Subsequent calls load the cached model with no delay.
+
+#### Manual pre-training (optional, avoids the first-call delay)
+
+```bash
+uv run autoconf_build_model
+```
+
+The model is written to `autoconf/models/v4-0-0/` and loaded automatically
+on all subsequent calls. AutoConf 2.0 pins AutoGluon 1.6.1. Both downloaded
+data and generated models are ignored by Git.
+
+See the [model training guide](autoconf/utils/autoconf_build/README.md) for
+configuration options: custom dataset, preset quality, training fraction.
 
 The min_gpu_recommender model can be invoked in multiple ways:
 
@@ -65,7 +95,7 @@ entity:
   gpu_model: NVIDIA-A100-80GB-PCIe
   tokens_per_sample: 8192
   batch_size: 16
-  model_version: 3.1.0
+  model_version: 4.0.0
 
 experiments:
   - actuatorIdentifier: custom_experiments
@@ -83,7 +113,7 @@ After a few seconds you should see:
 <!-- markdownlint-disable line-length -->
 
 ```bash
-Point: {'model_name': 'llama-7b', 'method': 'lora', 'gpu_model': 'NVIDIA-A100-80GB-PCIe', 'tokens_per_sample': 8192, 'batch_size': 16, 'model_version': '3.0.0'}
+Point: {'model_name': 'llama-7b', 'method': 'lora', 'gpu_model': 'NVIDIA-A100-80GB-PCIe', 'tokens_per_sample': 8192, 'batch_size': 16, 'model_version': '4.0.0'}
 2025-11-13 13:26:24,925 INFO worker.py:2003 -- Started a local Ray instance. View the dashboard at http://127.0.0.1:8265
 /Users/username/projects/orchestrator/autoconf/.venv/lib/python3.12/site-packages/ray/_private/worker.py:2051: FutureWarning: Tip: In future versions of Ray, Ray will no longer override accelerator visible devices env var if num_gpus=0 or num_gpus=None (default). To enable this behavior and turn off this error message, set RAY_ACCEL_ENV_VAR_OVERRIDE_ON_ZERO=0
   warnings.warn(
@@ -102,7 +132,7 @@ generatorid                                                        unk
 gpu_model                                        NVIDIA-A100-80GB-PCIe
 method                                                            lora
 model_name                                                    llama-7b
-model_version                                                    3.0.0
+model_version                                                    4.0.0
 tokens_per_sample                                                 8192
 identifier           model_name.llama-7b-method.lora-gpu_model.NVID...
 experiment_id                   custom_experiments.min_gpu_recommender
@@ -148,7 +178,7 @@ configuration = {
     "gpu_model": "NVIDIA-A100-80GB-PCIe",
     "tokens_per_sample": 8192,
     "batch_size": 16,
-    "model_version": "3.1.0",
+    "model_version": "4.0.0",
 }
 
 measured_properties = min_gpu_recommender(**configuration)
@@ -192,7 +222,7 @@ configuration = {
     "gpu_model": "NVIDIA-A100-80GB-PCIe",
     "tokens_per_sample": 8192,
     "batch_size": 16,
-    "model_version": "3.1.0",
+    "model_version": "4.0.0",
 }
 
 entity = SpacePoint.model_validate({"entity": configuration}).to_entity()
@@ -273,7 +303,7 @@ entitySpace:
   - identifier: model_version
     propertyDomain:
       values:
-        - "3.1.0"
+        - "4.0.0"
 ```
 
 To execute this run:

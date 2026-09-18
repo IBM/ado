@@ -11,6 +11,8 @@ import numpy as np
 import pydantic
 from pydantic import ConfigDict
 
+from ado.utilities.output import format_elided_list
+
 if typing.TYPE_CHECKING:
     from rich.console import RenderableType
 
@@ -972,3 +974,55 @@ class PropertyDomain(pydantic.BaseModel):
                 size = math.inf
 
         return size
+
+    def compact_representation(self, max_items: int | None = None) -> str:
+        """Return a compact string representation of this domain.
+
+        Args:
+            max_items: Maximum number of items to show before truncating with a
+                ``(+N more)`` suffix.  Pass ``None`` to disable truncation.
+
+        Returns:
+            A compact string such as ``[270, 300)``, ``[0, 20) @ 5``,
+            ``[0, 1, 5]``, or ``['A', 'B', ..., 'Y', 'Z'] (+10 more)``.
+        """
+
+        match self.variableType:
+            case VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE:
+                if self.domainRange is not None:
+                    range_start, range_end = (
+                        min(self.domainRange),
+                        max(self.domainRange),
+                    )
+                    return f"[{range_start}, {range_end})"
+                return "-"
+
+            case VariableTypeEnum.DISCRETE_VARIABLE_TYPE:
+                if self.interval is not None and self.domainRange is not None:
+                    range_start, range_end = (
+                        min(self.domainRange),
+                        max(self.domainRange),
+                    )
+                    return f"[{range_start}, {range_end}) @ {self.interval}"
+                if self.values is not None:
+                    return format_elided_list(self.values, max_items)
+                return "-"
+
+            case (
+                VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE
+                | VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE
+            ):
+                items = self.values if self.values is not None else []
+                return format_elided_list(items, max_items)
+
+            case VariableTypeEnum.BINARY_VARIABLE_TYPE:
+                return "['False', 'True']"
+
+            case VariableTypeEnum.IDENTIFIER_VARIABLE_TYPE:
+                if self.values is not None:
+                    return format_elided_list(self.values, max_items)
+                return "-"
+
+            case _:
+                # UNKNOWN_VARIABLE_TYPE or any future type
+                return "-"

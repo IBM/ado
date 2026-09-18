@@ -63,10 +63,10 @@ rather than running it again. This transparent data sharing is a core feature of
 
     ---
 
-    Go to [resources](../resources/index.md) to learn more about working
+    Go to [resources](../resources/working-with-resources.md) to learn more about working
     with these core concepts in `ado`.
 
-    [ado resources :octicons-arrow-right-24:](../resources/index.md)
+    [ado resources :octicons-arrow-right-24:](../resources/working-with-resources.md)
 
 - :octicons-workflow-24:{ .lg .middle } **Try our examples**
 

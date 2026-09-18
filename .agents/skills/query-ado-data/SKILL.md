@@ -36,6 +36,9 @@ DOs:
 - IMPORTANT Before deciding on what to query check the resource schema to
   confirm what is available in metadata - ado template RESOURCETYPE
   --include-schema
+- Write lists for reading to `--output-file`, then read the file.
+  Stdout capture of `ado get --details` can be truncated by agent harness. See
+  [using-ado-cli](../using-ado-cli/SKILL.md) (Output Format and File Handling).
 - Use Server side filtering
   - prefer --filter or --matching to fetching metadata and filtering on client
     side
@@ -86,11 +89,11 @@ Replace `DiscoverySpaceResource` with any class from the table above.
 Get a general overview of what's present:
 
 ```bash
-uv run ado get $RESOURCETYPE --details
+uv run ado get $RESOURCETYPE --details --output-file /tmp/ado-$RESOURCETYPE-details.txt
 ```
 
 Returns an age-sorted list (most recent last) of resources of the specified
-type.
+type. Read the file; do not treat stdout as complete.
 
 **Resource types**: `operations` (`op`), `discoveryspaces` (`space`),
 `samplestores` (`store`), `datacontainers` (`dcr`), `actuatorconfigurations`
@@ -190,13 +193,16 @@ Find spaces matching a point or another space:
 
 ```bash
 # Match spaces containing a specific entity point
-uv run ado get space --matching-point point.yaml
+uv run ado get space --matching-point point.yaml --details \
+  --output-file /tmp/ado-matching-point.txt
 
 # Match spaces similar to another space (by ID)
-uv run ado get space --matching-space-id space-abc123-456def
+uv run ado get space --matching-space-id space-abc123-456def --details \
+  --output-file /tmp/ado-matching-spaces.txt
 
 # Match spaces similar to a space configuration (without creating it)
-uv run ado get space --matching-space space.yaml
+uv run ado get space --matching-space space.yaml --details \
+  --output-file /tmp/ado-matching-spaces.txt
 ```
 
 **Note**: `--matching-point`, `--matching-space`, and `--matching-space-id` are
@@ -255,7 +261,7 @@ uv run ado get operations --related-to discoveryspace=SPACE_ID \
 
 ### Show Entities
 
-Get entities and their measurements from a space or operation:
+Get entities and their measurements from a space, operation, or samplestore:
 
 ```bash
 uv run ado show measurements RESOURCE_TYPE [RESOURCE_ID] \
@@ -264,15 +270,19 @@ uv run ado show measurements RESOURCE_TYPE [RESOURCE_ID] \
                   [--output | -o {csv | json | table}] \
                   [--output-file <path>] \
                   [--property <property-name>] \
-                  [--include {sampled | matching | missing | unsampled}] \
+                  [--include {sampled | matching | missing | \
+                              unsampled | measured}] \
                   [--aggregate {mean | median | variance | std | min | max}]
 ```
 
-**Resource types**: `operation` (`op`), `discoveryspace` (`space`)
+**Resource types**: `operation` (`op`), `discoveryspace` (`space`),
+`samplestore` (`store`)
 
 **Key options:**
 
 - `--include` (spaces only): `sampled`, `unsampled`, `matching`, `missing`
+- `--include` (samplestore): only `measured` is accepted; `sampled`,
+  `unsampled`, `matching`, and `missing` are rejected with an error
 - `--property-format`: `observed` (one row per entity) or `target` (one row per
   entity-experiment pair)
 - `--output` (or `-o`): `csv`, `json`, or `table`
@@ -294,6 +304,13 @@ uv run ado show measurements operation randomwalk-0.5.0-123abc \
                   --property my-property-1 \
                   --property my-property-2 \
                   -o csv --output-file randomwalk-0.5.0-123abc.csv
+
+# Show all measured entities in a samplestore
+uv run ado show measurements samplestore store-abc123-456def
+
+# Export samplestore measurements as CSV
+uv run ado show measurements samplestore store-abc123-456def \
+                  -o csv --output-file store-abc123-456def-entities.csv
 ```
 
 ### Show Trace

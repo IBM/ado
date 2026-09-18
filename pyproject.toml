@@ -166,15 +166,19 @@ vcs = "git"
 style = "pep440"
 pattern = "default-unprefixed"
 fallback-version = "0.0.0"
+# Import datetime so the Jinja template can call datetime.utcnow()
+format-jinja-imports = [{ module = "datetime", item = "datetime" }]
 # Versioning logic (Dunamai / PEP 440):
 # - Exact tag (distance == 0) → use the base version; add +dirty only if the repo is dirty
-# - Ahead of tag (distance > 0) → bump the base version, add .devN, plus commit/timestamp metadata
+# - Ahead of tag (distance > 0) → bump the base version, add .devN, plus commit/build-timestamp metadata
+# - The build-time timestamp (datetime.utcnow()) changes on every `uv build` invocation,
+#   ensuring two wheels built from the same dirty commit have distinct version strings.
 # - `select | list` removes optional entries and materializes metadata as a real list
 #   (required by serialize_pep440)
 format-jinja = """
 {%- set metadata = [
     distance != 0 and "g" ~ commit,
-    distance != 0 and "d" ~ timestamp,
+    distance != 0 and "d" ~ datetime.utcnow().strftime("%Y%m%d%H%M%S"),
     dirty and "dirty"
 ] -%}
 

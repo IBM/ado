@@ -24,10 +24,14 @@ from ado.cli.resources.discovery_space.show_measurements import (
 from ado.cli.resources.operation.show_measurements import (
     show_operation_measurements,
 )
+from ado.cli.resources.sample_store.show_measurements import (
+    show_sample_store_measurements,
+)
 from ado.cli.utils.generic.common import get_effective_resource_id
 from ado.cli.utils.input.parsers import enum_choice_with_plural_parser
 from ado.cli.utils.output.prints import (
     ERROR,
+    WARN,
     console_print,
 )
 from ado.core.samplestore.base import (
@@ -94,7 +98,7 @@ def show_measurements_for_resources(
         AdoShowMeasurementsSupportedEntityTypes | None,
         typer.Option(
             "--include",
-            help="The type of entities to include. Ignored for operations.",
+            help="The type of entities to include. Only supported for spaces.",
             rich_help_panel=SPACE_PANEL_NAME,
         ),
     ] = AdoShowMeasurementsSupportedEntityTypes.MEASURED.value,
@@ -154,7 +158,7 @@ def show_measurements_for_resources(
     ] = False,
 ) -> None:
     """
-    Show measurements related to a space or an operation.
+    Show measurements related to a space, an operation, or a samplestore.
 
     See https://ibm.github.io/ado/latest/cli-reference/#ado-show-measurements
     for detailed documentation and examples.
@@ -169,6 +173,9 @@ def show_measurements_for_resources(
 
     # Show the measurements for an operation, one row per entity
     ado show measurements operation <operation-id> --property-format target
+
+    # Show all measured entities in a samplestore
+    ado show measurements samplestore <samplestore-id>
     """
     ado_configuration: AdoConfiguration = ctx.obj
 
@@ -198,6 +205,17 @@ def show_measurements_for_resources(
         )
         raise typer.Exit(1)
 
+    if (
+        resource_type != AdoShowMeasurementsSupportedResourceTypes.DISCOVERY_SPACE
+        and entity_type != AdoShowMeasurementsSupportedEntityTypes.MEASURED
+    ):
+        console_print(
+            f"{WARN}--include is only supported for spaces; "
+            f"resetting to '{AdoShowMeasurementsSupportedEntityTypes.MEASURED.value}'.",
+            stderr=True,
+        )
+        entity_type = AdoShowMeasurementsSupportedEntityTypes.MEASURED
+
     parameters = AdoShowMeasurementsCommandParameters(
         ado_configuration=ado_configuration,
         aggregation_method=aggregation_method,
@@ -214,6 +232,7 @@ def show_measurements_for_resources(
     method_mapping = {
         AdoShowMeasurementsSupportedResourceTypes.DISCOVERY_SPACE: show_discovery_space_measurements,
         AdoShowMeasurementsSupportedResourceTypes.OPERATION: show_operation_measurements,
+        AdoShowMeasurementsSupportedResourceTypes.SAMPLE_STORE: show_sample_store_measurements,
     }
 
     try:

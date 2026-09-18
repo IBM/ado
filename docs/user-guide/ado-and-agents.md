@@ -7,14 +7,14 @@ existing ones, and run the full exploration loop.
 
 ## Why ado works well with agents
 
-| Feature | How it helps agents |
-| :------ | :------------------ |
-| 🤖 **Bundled agent skills** | Ready-made skills guide agents through end-to-end discovery workflows — from formulating a problem to analysing results. |
-| 🔍 **Self-describing resources** | Experiments and operators declare their required properties, so an agent can discover what's available and what's needed without parsing code. |
-| 🧱 **Validated schemas** | Research intent is expressed as structured, validated configurations — constraining the agent to well-defined inputs rather than free-form code generation, reducing hallucinations and keeping experiments repeatable. |
-| ✅ **Safe execution loop** | `ado template` and `--dry-run` support a tight **generate → validate → fix → run** cycle before any work is committed. |
-| 📦 **Structured & queryable results** | All measurements and metadata are stored in a structured database, giving agents clean access to data for analysis and refinement. |
-| 🔗 **Full provenance** | Every result is annotated with resource relationships and plugin versions, so an agent always knows where data came from and how to reproduce it. |
+| Feature                               | How it helps agents                                                                                                                                                                                                     |
+| :------------------------------------ | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 🤖 **Bundled agent skills**           | Ready-made skills guide agents through end-to-end discovery workflows — from formulating a problem to analysing results.                                                                                                |
+| 🔍 **Self-describing resources**      | Experiments and operators declare their required properties, so an agent can discover what's available and what's needed without parsing code.                                                                          |
+| 🧱 **Validated schemas**              | Research intent is expressed as structured, validated configurations — constraining the agent to well-defined inputs rather than free-form code generation, reducing hallucinations and keeping experiments repeatable. |
+| ✅ **Safe execution loop**            | `ado template` and `--dry-run` support a tight **generate → validate → fix → run** cycle before any work is committed.                                                                                                  |
+| 📦 **Structured & queryable results** | All measurements and metadata are stored in a structured database, giving agents clean access to data for analysis and refinement.                                                                                      |
+| 🔗 **Full provenance**                | Every result is annotated with resource relationships and plugin versions, so an agent always knows where data came from and how to reproduce it.                                                                       |
 
 ## What you can ask your agent to do
 
@@ -23,17 +23,42 @@ plain language:
 
 <!-- markdownlint-disable line-length -->
 
-| Ask your agent to…    | Example prompt                                                                        | Skill used                    |
-| :-------------------- | :------------------------------------------------------------------------------------ | :---------------------------- |
-| **Run a full study**  | "Design, run, and analyse an experiment to find the best vLLM config for throughput." | `conduct-empirical-study`     |
-| **Create YAML files** | "Formulate a discovery space for my new component."                                   | `define-experiment-campaign`  |
-| **Summarise results** | "Examine the operation I just ran and tell me what it found."                         | `examining-ado-operations`    |
-| **Inspect a project** | "Give me an overview of all experiments run in this project so far."                  | `examining-ado-project`       |
-| **Query data**        | "Find all entities where `lora_rank` was 8 and export their `validation_loss`."       | `query-ado-data`              |
+| Ask your agent to…    | Example prompt                                                                        | Skill used                   |
+| :-------------------- | :------------------------------------------------------------------------------------ | :--------------------------- |
+| **Run a full study**  | "Design, run, and analyse an experiment to find the best vLLM config for throughput." | `conduct-empirical-study`    |
+| **Create YAML files** | "Formulate a discovery space for my new component."                                   | `define-experiment-campaign` |
+| **Summarise results** | "Examine the operation I just ran and tell me what it found."                         | `examining-ado-operations`   |
+| **Inspect a project** | "Give me an overview of all experiments run in this project so far."                  | `examining-ado-project`      |
+| **Query data**        | "Find all entities where `lora_rank` was 8 and export their `validation_loss`."       | `query-ado-data`             |
 
 <!-- markdownlint-enable line-length -->
 
 ## Getting set up for agent-assisted workflows
+
+There are two ways to get ado's skills into your agent-enabled IDE.
+
+### Option 1: install via library-skills (recommended)
+
+Add `ado-core` to your project dependencies (version 2.1.0 or later), then run
+[library-skills](https://library-skills.io/use/) from your project directory:
+
+```shell
+uv add "ado-core>=2.1.0"
+uvx library-skills install --all -y
+```
+
+The tool scans all packages in your project's dependencies and installs all
+bundled skills from every dependency— not just those from `ado-core`. Your agent
+will then pick them up automatically.
+
+If you want finer-grained control over which skills to install, omit `--all -y`
+and the tool will prompt you to choose:
+
+```shell
+uvx library-skills install
+```
+
+### Option 2: clone the repository
 
 If you haven't already followed Path B in [Getting Started](getting-started.md),
 clone the repository and set up the full environment:
@@ -46,8 +71,8 @@ source .venv/bin/activate
 ```
 
 Open the cloned `ado` folder as your workspace root in an agent-enabled IDE
-(Claude, Cursor, Bob, and others will automatically detect and load the
-built-in skills).
+(Claude, Cursor, Bob, and others will automatically detect and load the built-in
+skills).
 
 ---
 

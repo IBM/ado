@@ -26,13 +26,15 @@ def template_discovery_space(parameters: AdoTemplateCommandParameters) -> None:
         serialise_pydantic_model_json_schema,
     )
 
-    with Status(ADO_SPINNER_GETTING_OUTPUT_READY):
-        if parameters.from_experiments:
-            experiment_references = [
-                _ado_lookup_cli_experiment(experiment_id).reference
-                for experiment_id in parameters.from_experiments
-            ]
+    if parameters.from_experiments:
+        # Look up experiments before starting Status. Lookup errors print via a
+        # separate Console and would otherwise share a line with the spinner.
+        experiment_references = [
+            _ado_lookup_cli_experiment(experiment_id).reference
+            for experiment_id in parameters.from_experiments
+        ]
 
+        with Status(ADO_SPINNER_GETTING_OUTPUT_READY):
             measurement_space = (
                 MeasurementSpace.measurementSpaceFromExperimentReferences(
                     experimentReferences=experiment_references
@@ -47,7 +49,8 @@ def template_discovery_space(parameters: AdoTemplateCommandParameters) -> None:
                 entitySpace=entity_space.constitutiveProperties,
                 experiments=experiment_references,
             )
-        else:
+    else:
+        with Status(ADO_SPINNER_GETTING_OUTPUT_READY):
             model_instance = DiscoverySpaceConfiguration()
 
     serialise_pydantic_model(

@@ -1122,11 +1122,11 @@ def test_binary_variable_type_error_message_suggests_discrete() -> None:
         )
 
 
-def test_internal_range_values_generates_value_matches_internal_range_values() -> None:
-    """Test that _internal_range_values_generates_value exactly matches list membership in _internal_range_values."""
+def test_is_value_in_internal_range_values_matches_internal_range_values() -> None:
+    """Test that _is_value_in_internal_range_values exactly matches list membership in _internal_range_values."""
     from ado.schema.domain import (
         _internal_range_values,
-        _internal_range_values_generates_value,
+        _is_value_in_internal_range_values,
     )
 
     test_ranges = [
@@ -1192,7 +1192,7 @@ def test_internal_range_values_generates_value_matches_internal_range_values() -
             expected = (
                 v in ref if isinstance(v, (int, float, complex, np.number)) else False
             )
-            actual = _internal_range_values_generates_value(v, lo, hi, step)
+            actual = _is_value_in_internal_range_values(v, lo, hi, step)
             assert actual == expected, (
                 f"Range ({lo}, {hi}, {step}) with value {v!r}: "
                 f"expected {expected}, got {actual}"

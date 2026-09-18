@@ -269,12 +269,36 @@ envVars:
   PYTHONUNBUFFERED: "x"
 ```
 
-<!-- markdownlint-enable line-length -->
+<!-- markdownlint-disable line-length -->
 
 `ado` then will:
 
 1. Build python wheels for those packages
 2. Instruct Ray to install the wheels as part of the Ray job submission
+
+<!-- markdownlint-disable line-length -->
+
+> [!NOTE] Version Control System dependencies
+>
+> Ray cluster nodes are not guaranteed to have access to any VCS's
+> specified in python package dependencies.
+> If your package has private VCS dependencies, declare them using
+> [`[tool.uv.sources]`](https://docs.astral.sh/uv/concepts/projects/dependencies/) in
+> your `pyproject.toml` instead of `git+ssh://` URLs in the `dependencies` list:
+>
+> ```toml
+> [project]
+> dependencies = [
+>     "private-dependency"
+> ]
+>
+> [tool.uv.sources]
+> private-dependency = { git = "ssh://git@github.com/ibm/private-dependency.git", tag = "v0.4.0" }
+> ```
+>
+> Then clone the source locally and add the local path to `packages.fromSource`.
+
+<!-- markdownlint-enable line-length -->
 
 ## Sending additional files
 

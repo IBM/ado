@@ -82,7 +82,7 @@ def _internal_range_values(lower: float, upper: float, interval: float) -> list:
     return np.round(values, 10).tolist()
 
 
-def _internal_range_values_generates_value(
+def _is_value_in_internal_range_values(
     value: typing.Any,  # noqa: ANN401
     lower: float,
     upper: float,
@@ -912,7 +912,7 @@ class PropertyDomain(pydantic.BaseModel):
                 retval = value in self.values
             else:
                 if self.domainRange is not None:
-                    retval = _internal_range_values_generates_value(
+                    retval = _is_value_in_internal_range_values(
                         value=value,
                         lower=min(self.domainRange),
                         upper=max(self.domainRange),

@@ -143,6 +143,7 @@ Where `type` is one of the following:
 
 And `scope` is one of the following:
 
+- **active-learning**: changes to ado-active-learning
 - **anomalous-series**: changes to ado-anomalous-series
 - **autoconf**: changes to ado-autoconf
 - **changelog**: changes to the changelog

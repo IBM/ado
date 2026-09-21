@@ -10,6 +10,12 @@ import pydantic
 import typer
 import yaml
 
+try:
+    from yaml import CSafeDumper as SafeDumper
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:  # pragma: nocover
+    from yaml import SafeDumper, SafeLoader  # type: ignore[assignment]
+
 from ado.cli.models.types import AdoGetSupportedOutputFormats
 from ado.cli.utils.generic.constants import (
     SECONDS_IN_A_DAY,
@@ -797,13 +803,14 @@ def _config_formatter_for_ado_resource(
     # We can't simply use model_dump because we would end up with errors like:
     #    RepresenterError: ('cannot represent an object', <ADOResourceEventEnum.CREATED: 'created'>)
     # when calling yaml.safe_dump
-    dict_representation = yaml.safe_load(
+    dict_representation = yaml.load(
         printable_pydantic_model(serialization_target).model_dump_json(
             exclude_none=parameters.exclude_none,
             exclude_unset=parameters.exclude_unset,
             exclude_defaults=parameters.exclude_default,
             context=serialization_context,
-        )
+        ),
+        Loader=SafeLoader,
     )
 
     if parameters.exclude_fields:
@@ -811,7 +818,7 @@ def _config_formatter_for_ado_resource(
             dict_representation, parameters.exclude_fields
         )
 
-    return yaml.safe_dump(dict_representation)
+    return yaml.dump(dict_representation, Dumper=SafeDumper)
 
 
 def _yaml_formatter_for_ado_resource(
@@ -842,13 +849,14 @@ def _yaml_formatter_for_ado_resource(
     # We can't simply use model_dump because we would end up with errors like:
     #    RepresenterError: ('cannot represent an object', <ADOResourceEventEnum.CREATED: 'created'>)
     # when calling yaml.safe_dump
-    dict_representation = yaml.safe_load(
+    dict_representation = yaml.load(
         printable_pydantic_model(serialization_target).model_dump_json(
             exclude_none=parameters.exclude_none,
             exclude_unset=parameters.exclude_unset,
             exclude_defaults=parameters.exclude_default,
             context=serialization_context,
-        )
+        ),
+        Loader=SafeLoader,
     )
 
     if parameters.exclude_fields:
@@ -856,7 +864,7 @@ def _yaml_formatter_for_ado_resource(
             dict_representation, parameters.exclude_fields
         )
 
-    return yaml.safe_dump(dict_representation)
+    return yaml.dump(dict_representation, Dumper=SafeDumper)
 
 
 def _json_formatter_for_ado_resource(

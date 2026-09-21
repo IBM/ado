@@ -125,6 +125,34 @@ def _render_dataframe_table_output(
     _write_or_print_output(table, parameters.output_file)
 
 
+def _build_dataframe_from_resources(
+    parameters: "AdoGetCommandParameters",
+    resources: "list[ADOResource] | ADOResource",
+) -> "pd.DataFrame":
+    """Build a DataFrame from one or more pre-fetched resources."""
+    import pandas as pd
+
+    resource_list = resources if isinstance(resources, list) else [resources]
+    if not resource_list:
+        return pd.DataFrame()
+    rows = []
+    for resource in resource_list:
+        row = format_default_ado_get_single_resource(
+            resource=resource, show_details=parameters.show_details
+        )
+        if parameters.include_properties and isinstance(
+            resource, DiscoverySpaceResource
+        ):
+            for identifier, value in format_discovery_space_properties(
+                resource,
+                parameters.include_properties,
+                parameters.no_trunc,
+            ).items():
+                row[identifier] = value
+        rows.append(row)
+    return pd.concat(rows, ignore_index=True)
+
+
 def _build_table_output_dataframe(
     parameters: "AdoGetCommandParameters",
     resource_type: "CoreResourceKinds | None",
@@ -132,31 +160,11 @@ def _build_table_output_dataframe(
     resources: "list[ADOResource] | ADOResource | None",
 ) -> "pd.DataFrame":
     """Build the DataFrame used by table-like get output formats."""
-    import pandas as pd
-
     if dataframe is not None:
         return dataframe
 
     if resources is not None:
-        resource_list = resources if isinstance(resources, list) else [resources]
-        if not resource_list:
-            return pd.DataFrame()
-        rows = []
-        for resource in resource_list:
-            row = format_default_ado_get_single_resource(
-                resource=resource, show_details=parameters.show_details
-            )
-            if parameters.include_properties and isinstance(
-                resource, DiscoverySpaceResource
-            ):
-                for identifier, value in format_discovery_space_properties(
-                    resource,
-                    parameters.include_properties,
-                    parameters.no_trunc,
-                ).items():
-                    row[identifier] = value
-            rows.append(row)
-        return pd.concat(rows, ignore_index=True)
+        return _build_dataframe_from_resources(parameters, resources)
 
     if resource_type is None:
         console_print(
@@ -192,15 +200,11 @@ def _build_table_output_dataframe(
                 parameters.include_properties
                 and resource_type.value == "discoveryspace"
             ):
-                resources = list(
+                fetched = list(
                     sql_store.getResources(resources_df["IDENTIFIER"].tolist()).values()
                 )
-                return _build_table_output_dataframe(
-                    parameters=parameters,
-                    resource_type=None,
-                    dataframe=None,
-                    resources=resources,
-                )
+                status.update(ADO_SPINNER_GETTING_OUTPUT_READY)
+                return _build_dataframe_from_resources(parameters, fetched)
 
             status.update(ADO_SPINNER_GETTING_OUTPUT_READY)
             return format_default_ado_get_multiple_resources(
@@ -218,12 +222,7 @@ def _build_table_output_dataframe(
                 resource_id=parameters.resource_id, kind=resource_type
             )
 
-        return _build_table_output_dataframe(
-            parameters=parameters,
-            resource_type=None,
-            dataframe=None,
-            resources=resource,
-        )
+        return _build_dataframe_from_resources(parameters, resource)
 
 
 def handle_ado_get(

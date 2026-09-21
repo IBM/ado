@@ -41,6 +41,12 @@ from ado.core.operation.resource import (
 )
 from ado.core.resources import ADOResourceEventEnum, ADOResourceStatus
 from ado.schema.domain import VariableTypeEnum
+from ado.schema.experiment import Experiment, ParameterizedExperiment
+from ado.schema.measurementspace import (
+    MeasurementSpace,
+    MeasurementSpaceConfiguration,
+)
+from ado.schema.reference import ExperimentReference
 from ado.utilities.output import (
     printable_pydantic_model,
 )
@@ -172,36 +178,40 @@ def format_discovery_space_properties(
     }
     parameterized: dict[str, str] = {}
     optional: dict[str, str] = {}
-    observed: dict[str, str] = {}
     experiments = resource.config.experiments
 
     if experiments is not None:
-        if isinstance(experiments, list):
-            experiment_values = experiments
-        else:
+        experiment_values: list[
+            Experiment | ParameterizedExperiment | ExperimentReference
+        ] = []
+        if isinstance(experiments, MeasurementSpaceConfiguration):
             experiment_values = experiments.experiments
+        elif isinstance(experiments, list):
+            try:
+                ms = MeasurementSpace.measurementSpaceFromExperimentReferences(
+                    experiments
+                )
+                experiment_values = ms.experiments
+            except Exception:
+                experiment_values = experiments
 
         for experiment in experiment_values:
-            for property in getattr(experiment, "targetProperties", []):
-                domain = getattr(property, "propertyDomain", None)
-                observed[property.identifier] = (
-                    domain.compact_representation(max_items)
-                    if domain is not None
-                    else "—"
-                )
+            if isinstance(experiment, Experiment):
+                for default_value in experiment.defaultParameterization:
+                    optional[default_value.property.identifier] = (
+                        default_value.compact_representation(max_items)
+                    )
 
-            custom_values = getattr(experiment, "parameterization", None) or []
-            default_values = getattr(experiment, "defaultParameterization", [])
-            for value in custom_values:
-                parameterized[value.property.identifier] = value.compact_representation(
-                    max_items
-                )
-            for value in [*default_values, *custom_values]:
-                optional[value.property.identifier] = value.compact_representation(
-                    max_items
-                )
+            if isinstance(experiment, (ParameterizedExperiment, ExperimentReference)):
+                for custom_value in experiment.parameterization or []:
+                    parameterized[custom_value.property.identifier] = (
+                        custom_value.compact_representation(max_items)
+                    )
+                    optional[custom_value.property.identifier] = (
+                        custom_value.compact_representation(max_items)
+                    )
 
-    available = {**constitutive, **optional, **parameterized, **observed}
+    available = {**constitutive, **optional, **parameterized}
     property_identifiers: list[str] = []
     for requested in include_properties:
         for value in requested.split(","):
@@ -212,8 +222,6 @@ def format_discovery_space_properties(
                     identifiers = parameterized
                 case "optional":
                     identifiers = optional
-                case "observed":
-                    identifiers = observed
                 case "all":
                     identifiers = available
                 case _:

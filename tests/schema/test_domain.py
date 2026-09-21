@@ -10,6 +10,7 @@ from ado.schema.domain import (
     ProbabilityFunctionsEnum,
     PropertyDomain,
     VariableTypeEnum,
+    _internal_range_values,
 )
 
 
@@ -1353,3 +1354,104 @@ def test_compact_representation_unknown() -> None:
     """Unknown domain renders as a hyphen placeholder."""
     domain = PropertyDomain(variableType=VariableTypeEnum.UNKNOWN_VARIABLE_TYPE)
     assert domain.compact_representation() == "-"
+
+
+# ---------------------------------------------------------------------------
+# Tests for _internal_range_values
+# ---------------------------------------------------------------------------
+
+
+def test_internal_range_values_integer_path_returns_native_int() -> None:
+    """Elements must be native Python int, not numpy.int64."""
+    values = _internal_range_values(0, 10, 1)
+    for v in values:
+        assert type(v) is int, f"Expected native int, got {type(v)}"
+
+
+def test_internal_range_values_float_path_returns_native_float() -> None:
+    """Elements must be native Python float, not numpy.float64."""
+    values = _internal_range_values(0.0, 1.0, 0.1)
+    for v in values:
+        assert type(v) is float, f"Expected native float, got {type(v)}"
+
+
+def test_internal_range_values_integer_upper_bound_excluded() -> None:
+    """Upper bound must not appear in the result (half-open interval)."""
+    values = _internal_range_values(0, 10, 1)
+    assert 10 not in values
+    assert values == list(range(10))
+
+
+def test_internal_range_values_float_upper_bound_excluded() -> None:
+    """Upper bound must not appear even when float arithmetic hits it exactly."""
+    # 0.1 * 4 == 0.4 in IEEE 754, so the last step lands exactly on the upper bound.
+    values = _internal_range_values(0.1, 0.4, 0.1)
+    assert 0.4 not in values
+    assert values == pytest.approx([0.1, 0.2, 0.3])
+
+
+def test_internal_range_values_single_element() -> None:
+    """When the range spans exactly one step, only the lower bound is returned."""
+    assert _internal_range_values(5, 6, 1) == [5]
+    assert _internal_range_values(0.5, 1.0, 0.5) == [0.5]
+
+
+def test_internal_range_values_large_integer_step() -> None:
+    """Interval larger than the range still produces only the lower bound."""
+    assert _internal_range_values(0, 5, 10) == [0]
+
+
+def test_internal_range_values_negative_lower_bound() -> None:
+    """Negative lower bounds are handled correctly."""
+    values = _internal_range_values(-3, 3, 1)
+    assert values == [-3, -2, -1, 0, 1, 2]
+    assert 3 not in values
+
+
+def test_internal_range_values_integer_list_not_in_domain() -> None:
+    """Regression: numpy.int64 elements falsely reported a list as in-domain.
+
+    With the old list(np.arange(...)), np.int64(1) == [1] returned array([True]),
+    which is truthy, so `[1] in range_values` was True.  With .tolist() the
+    elements are native int and `int(1) == [1]` is False.
+    """
+    values = _internal_range_values(0, 10, 1)
+    assert [1] not in values, (
+        "A Python list [1] must not compare equal to the integer 1 in the range"
+    )
+
+
+def test_internal_range_values_float_list_not_in_domain() -> None:
+    """Same numpy scalar regression for the float path."""
+    values = _internal_range_values(0.0, 1.0, 0.1)
+    assert [0.5] not in values, (
+        "A Python list [0.5] must not compare equal to the float 0.5 in the range"
+    )
+
+
+def test_internal_range_values_exact_upper_equal_to_lower() -> None:
+    """When lower == upper no values fall in the half-open interval."""
+    values = _internal_range_values(5, 5, 1)
+    # floor((5-5)/1) + 1 == 1, values == [5], last == upper → strip → []
+    assert values == []
+
+
+def test_internal_range_values_non_unit_float_interval() -> None:
+    """Non-trivial float step with a non-unit multiplier."""
+    values = _internal_range_values(0.0, 1.0, 0.25)
+    assert values == pytest.approx([0.0, 0.25, 0.5, 0.75])
+    assert 1.0 not in values
+
+
+def test_internal_range_values_int_interval_does_not_skip_values() -> None:
+    """Integer path with a step >1 must not skip values inside the range."""
+    values = _internal_range_values(0, 10, 2)
+    assert values == [0, 2, 4, 6, 8]
+
+
+def test_internal_range_values_mixed_int_float_uses_float_path() -> None:
+    """Mixing int lower/upper with a float interval must trigger the float path."""
+    values = _internal_range_values(0, 1, 0.5)
+    for v in values:
+        assert type(v) is float, f"Expected float, got {type(v)}"
+    assert values == pytest.approx([0.0, 0.5])

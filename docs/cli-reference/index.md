@@ -494,7 +494,9 @@ ado get RESOURCE_TYPE [RESOURCE_ID] [--output | -o <default | yaml | json | conf
                                     [--exclude-default | --no-exclude-default] \
                                     [--exclude-unset | --no-exclude-unset ] \
                                     [--exclude-none | --no-exclude-none ] \
-                                    [--minimize] \
+                                    [--minimize-output] \
+                                    [--no-trunc] \
+                                    [--include-properties | -p <properties>] \
                                     [--filter | -q <path=value>] \
                                     [--label | -l <key=value>] \
                                     [--details] [--show-deprecated] \
@@ -577,10 +579,18 @@ Where:
   <https://github.com/h2non/jsonpath-ng?tab=readme-ov-file#jsonpath-syntax>.
   This flag is only supported when using the `yaml`, `json`, or `config` output
   format.
-- `--minimize` minimizes the output. This might entail applying transformations
-  on the model, changing it from the original. If set, it implies
-  `--exclude-default`, `--exclude-unset`, and `--exclude-none`. This option is
-  ignored when the output type is `table` or `raw`.
+- `--minimize-output` makes an attempt to minimize the output produced. This
+  might entail applying transformations on the model, changing it from the
+  original. If set, it implies `--exclude-default`, `--exclude-unset`, and
+  `--exclude-none`. This option is ignored when the output type is `table` or `raw`.
+- `--no-trunc` prevents truncation of table content. When enabled, columns are
+  sized to fit all content without truncation. Only applies to the default
+  (`table`) output format.
+- By using (optionally multiple times) the `--include-properties` (or `-p`) flag
+  (**only supported for discovery spaces**), users can include columns with compact
+  string representations of discovery-space properties in table output. You can
+  specify `constitutive`, `parameterized`, `optional`, `all`, or a comma-separated
+  list of specific property identifiers.
 - When using the `--details` flag with the `table` output format, additional
   columns with the _description_ and the _labels_ of the matching resources are
   printed.
@@ -633,6 +643,18 @@ ado get spaces
 
 ```shell
 ado get spaces --details
+```
+
+#### Getting Discovery Spaces with constitutive properties included
+
+```shell
+ado get spaces -p constitutive --no-trunc
+```
+
+#### Getting Discovery Spaces with specific properties included
+
+```shell
+ado get spaces -p batch_size,learning_rate
 ```
 
 <!-- markdownlint-disable line-length -->

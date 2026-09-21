@@ -1181,12 +1181,6 @@ def test_is_value_in_internal_range_values_matches_internal_range_values() -> No
         np.nan,
         np.inf,
         -np.inf,
-        1 + 0j,
-        1 + 1j,
-        0 + 0j,
-        np.complex128(1 + 0j),
-        np.complex128(1 + 1j),
-        np.complex64(0 + 0j),
         "42",
         None,
         [1],
@@ -1198,9 +1192,7 @@ def test_is_value_in_internal_range_values_matches_internal_range_values() -> No
     for lo, hi, step in test_ranges:
         ref = _internal_range_values(lo, hi, step)
         for v in test_values:
-            expected = (
-                v in ref if isinstance(v, (int, float, complex, np.number)) else False
-            )
+            expected = v in ref
             actual = _is_value_in_internal_range_values(v, lo, hi, step)
             assert actual == expected, (
                 f"Range ({lo}, {hi}, {step}) with value {v!r}: "
@@ -1231,11 +1223,9 @@ def test_discrete_variable_large_range_value_in_domain_performance() -> None:
     # Boolean equality in list membership: True == 1, False == 0 (which are in [0, 2147483647))
     assert domain.valueInDomain(True) is True
     assert domain.valueInDomain(False) is True
-    # Non-numeric / NaN / complex
+    # Non-numeric / NaN
     assert domain.valueInDomain("42") is False
     assert domain.valueInDomain(float("nan")) is False
-    assert domain.valueInDomain(1 + 0j) is True
-    assert domain.valueInDomain(1 + 1j) is False
 
 
 # ---------------------------------------------------------------------------

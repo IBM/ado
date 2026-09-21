@@ -6,6 +6,11 @@ from pathlib import Path
 import pydantic
 import yaml
 
+try:
+    from yaml import CSafeDumper as SafeDumper
+except ImportError:  # pragma: nocover
+    from yaml import SafeDumper  # type: ignore[assignment]
+
 from ado.cli.utils.output.prints import SUCCESS, console_print, magenta
 
 
@@ -45,7 +50,7 @@ def serialise_pydantic_model_json_schema(
     output_path: Path | None,
     suppress_success_message: bool = False,
 ) -> None:
-    schema_content = yaml.safe_dump(model.model_json_schema())
+    schema_content = yaml.dump(model.model_json_schema(), Dumper=SafeDumper)
 
     if output_path is None:
         # Write to stdout

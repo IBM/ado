@@ -22,8 +22,6 @@ from ado.modules.actuators.errors import (
     DeprecatedExperimentError,
     ExperimentVersionMismatchError,
     MissingActuatorConfigurationForCatalogError,
-    NoActuatorWithExperimentError,
-    TooManyActuatorsWithExperimentError,
     UnexpectedCatalogRetrievalError,
     UnknownActuatorError,
     UnknownExperimentError,
@@ -37,7 +35,6 @@ from ado.schema.experiment import (
 from ado.schema.measurementspace import MeasurementSpace
 from ado.schema.reference import (
     ExperimentReference,
-    _parse_experiment_part_from_string,
 )
 from ado.utilities.logging import configure_logging
 
@@ -96,19 +93,6 @@ _MEASUREMENT_SPACE_INTERFACE_ISSUE_TEMPLATES: dict[
         "is not produced by the actuator catalog experiment"
     ),
 }
-
-
-def _split_resource_id_prefix(resource_id: str) -> tuple[str | None, str]:
-    """Split ``resource_id`` on the first ``.`` unless ``@`` precedes it."""
-    dot_index = resource_id.find(".")
-    if dot_index == -1:
-        return None, resource_id
-
-    at_index = resource_id.find("@")
-    if at_index != -1 and at_index < dot_index:
-        return None, resource_id
-
-    return resource_id[:dot_index], resource_id[dot_index + 1 :]
 
 
 def format_measurement_space_interface_issue(
@@ -601,71 +585,6 @@ class ActuatorRegistry:
                     actuators_with_target_experiment.add(actuator_id)
 
         return actuators_with_target_experiment
-
-    def experiment_for_experiment_identifier(
-        self,
-        experiment_identifier: str,
-        *,
-        allow_parameterization: bool = True,
-        match_on: ExperimentReferenceMatchMode = "major_version",
-        resolve: bool = False,
-    ) -> Experiment:
-        """Returns experiment matching an experiment identifier string
-
-        Args:
-            experiment_identifier: Bare experiment identifier, versioned identifier with an
-                ``@MAJOR.MINOR.PATCH`` suffix, or a fully-qualified reference
-                string of the form ``actuator_id.experiment_id``.
-            allow_parameterization: If True (default) string parsing considers that
-                parameterization could be present in the identifier.
-                If False, string parsing assumes there is no parameterization.
-            match_on: ``"major_version"`` (default), ``"fully_qualified_version"``,
-                ``"base"``, or ``"any"``. See
-                :meth:`~ado.modules.actuators.catalog.ExperimentCatalog.experimentForReference`.
-            resolve: When ``True``, apply version checks, deprecated checks, and
-                parameterization.
-
-        Returns:
-            Parsed experiment reference.
-
-        Raises:
-            NoActuatorWithExperimentError: If no actuator implements the experiment.
-            TooManyActuatorsWithExperimentError: If multiple actuators implement the
-                experiment.
-            ValueError: If ``resource_id`` is not a valid experiment reference string.
-        """
-
-        prefix, _ = _split_resource_id_prefix(experiment_identifier)
-        if prefix is not None and prefix in self.actuatorIdentifierMap:
-            reference = ExperimentReference.referenceFromString(
-                experiment_identifier, allow_parameterization=allow_parameterization
-            )
-            return self.experimentForReference(
-                reference, match_on=match_on, resolve=resolve
-            )
-
-        base_experiment_identifier, _, _ = _parse_experiment_part_from_string(
-            experiment_identifier, allow_parameterization=False
-        )
-        actuators_with_target_experiment = (
-            self.actuators_containing_experiment_with_base_identifier(
-                base_experiment_identifier
-            )
-        )
-
-        if len(actuators_with_target_experiment) > 1:
-            raise TooManyActuatorsWithExperimentError(actuators_with_target_experiment)
-        if len(actuators_with_target_experiment) == 0:
-            raise NoActuatorWithExperimentError
-        actuator_id = next(iter(actuators_with_target_experiment))
-
-        reference = ExperimentReference.referenceFromString(
-            f"{actuator_id}.{experiment_identifier}",
-            allow_parameterization=allow_parameterization,
-        )
-        return self.experimentForReference(
-            reference, match_on=match_on, resolve=resolve
-        )
 
     @property
     def catalogs(self) -> list[ExperimentCatalog]:

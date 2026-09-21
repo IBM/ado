@@ -14,6 +14,7 @@ entitySpace:
 experiments:
   - actuatorIdentifier: robotic_lab
     experimentIdentifier: peptide_mineralization
+    experimentVersion: 1.0.0
     parameterization:
       - value: 30
         property:

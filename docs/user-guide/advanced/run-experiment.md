@@ -24,7 +24,7 @@
 
 ```bash
 run_experiment <point_file.yaml> [--remote <ENDPOINT>] [--timeout <SECONDS>] [--no-validate] \
-               [--actuator-configuration-id <identifier>] [--verify-certs | --no-verify-certs] \
+               [--actuator-config-id <identifier>] [--verify-certs | --no-verify-certs] \
                [--request-timeout <timeout-in-seconds>]
 ```
 
@@ -38,7 +38,7 @@ run_experiment <point_file.yaml> [--remote <ENDPOINT>] [--timeout <SECONDS>] [--
 - `--timeout <SECONDS>`: Timeout for remote execution (default: 300 seconds).
 - `--no-validate`: Skip entity validation before execution.
   This is useful if the experiment is not installed locally but is available remotely.
-- `--actuator-configuration-id`: Actuator configuration identifiers to use
+- `--actuator-config-id`: Actuator configuration identifiers to use
   in the experiment. Can be specified multiple times.
 - `--verify-certs`, `--no-verify-certs`: Enable or disable SSL certificate verification
   of remote hosts. (default: `--no-verify-certs`).

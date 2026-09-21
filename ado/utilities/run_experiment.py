@@ -248,6 +248,7 @@ def run(
     timeout: Annotated[
         int,
         typer.Option(
+            "--timeout",
             metavar="TIMEOUT",
             help="Timeout for the remote experiment in seconds. If not given the default is 300 seconds",
         ),

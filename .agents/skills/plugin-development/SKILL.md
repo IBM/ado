@@ -1,0 +1,361 @@
+---
+name: plugin-development
+description: >-
+  Guidelines for developing ado plugins (actuators, operators, and custom
+  experiments). Covers package structure, versioning, entry points, custom
+  experiment decorators, testing, and linting. Use when creating, modifying, or
+  reviewing a plugin under plugins/ or examples/; adding an actuator, operator,
+  or custom experiment; or when the user asks how to extend ado.
+---
+
+# Plugin Development
+
+Follow these instructions when creating or modifying ado plugins under
+`plugins/` or `examples/`. General development guidelines in
+[AGENTS.md](../../../AGENTS.md) also apply.
+
+---
+
+## Plugin Structure
+
+### Package Organization
+
+- **Actuators**: Each actuator is its own package under `plugins/actuators/`
+  - Note: In-tree actuator plugins currently use the `ado_actuators` namespace
+    package, but this is not required for new actuator plugins
+- **Operators**: Each operator is its own package under `plugins/operators/`
+- **Custom Experiments**: Can have multiple custom experiments in a single
+  package under `plugins/custom_experiments/`
+
+### Directory Layout
+
+Each plugin package should contain:
+
+- `pyproject.toml` - Package configuration
+- `VERSION` - Plain-text file containing the current semver string (e.g. `2.0.0`)
+- `tests/` - Unit and integration tests (keep within the plugin package)
+- YAML examples - Example discoveryspace and operation files for the plugin
+- Plugin implementation code
+
+---
+
+## Package Setup
+
+### Plugin Versioning
+
+Each plugin has a `VERSION` file at its root (e.g. `2.0.0`) and uses
+`hatchling` + `uv-dynamic-versioning` with a namespaced git tag (e.g.
+`trim/2.0.0`) as the version source. Tag prefixes use hyphens matching the
+plugin's directory name (e.g. `ray-tune/` for `plugins/operators/ray_tune`).
+
+**When making changes to a plugin, update `VERSION` if needed:**
+
+- **Patch** (`x.y.Z`): bug fixes, no behaviour change
+- **Minor** (`x.Y.0`): new features, backwards compatible
+- **Major** (`X.0.0`): breaking changes to the operator interface or output
+
+If the plugin has a `version=` argument in a `@characterize_operation`
+decorator (or equivalent), keep it in sync with `VERSION`.
+
+#### pyproject.toml configuration
+
+Use the trim plugin as a reference: [`plugins/operators/trim/pyproject.toml`](../../../plugins/operators/trim/pyproject.toml).
+
+Set `pattern-prefix` to the plugin's namespaced tag prefix, and
+`[tool.hatch.build.targets.wheel] packages` to the plugin's source directory.
+
+The `format-jinja` template uses `datetime.utcnow()` (imported via
+`format-jinja-imports`) to embed a **build-time** UTC timestamp in every dev or
+dirty wheel version string. This ensures two `uv build` calls from the same
+dirty commit produce distinct wheel filenames, which is required so remote Ray
+clusters reinstall updated plugins correctly.
+
+### Dependencies
+
+**Always include ado-core** in the dependencies:
+
+```toml
+[project]
+dependencies = [
+    "ado-core",
+    # ... other dependencies
+]
+```
+
+### Installation
+
+Install the plugin into the top-level venv from the repo root:
+
+```bash
+uv pip install -e plugins/your_plugin_type/your_plugin
+```
+
+### Workspace Membership
+
+By default, plugins added in-tree are not workspace members and should not be
+added to `[tool.uv.workspace]` members in the root `pyproject.toml`.
+
+This means the plugins pyproject.toml should not include a `[tool.uv.sources]`
+section resolving `ado-core` via `{ workspace = true }`.
+
+Only add a plugin to the workspace when explicitly asked, for example when the
+plugin must be included in `uv sync` for CI or cross-plugin dependency
+resolution.
+
+If you mistakenly add `ado-core = { workspace = true }` to a plugin's
+`[tool.uv.sources]` without adding it to the workspace, `uv pip install` will
+fail with:
+
+```text
+Failed to parse entry: `ado-core`
+`ado-core` references a workspace ... but is not a workspace member
+```
+
+### Adding Dependencies with uv
+
+Use `uv` to add new dependencies to your plugin:
+
+```bash
+cd plugins/actuators/your_plugin/
+uv add package-name
+```
+
+---
+
+## Plugin Registration
+
+### Actuators: Entry Points
+
+Actuators use the `ado.actuators` entry point in `pyproject.toml`:
+
+```toml
+[project.entry-points."ado.actuators"]
+my-actuator = "my_plugin.actuators:MyActuator"
+```
+
+Actuators may optionally include an `experiments.yaml` file for experiment
+catalog definitions. Declare it as package data:
+
+```toml
+[tool.hatch.build.targets.wheel]
+packages = ["src/my_actuator"]
+artifacts = ["src/my_actuator/experiments.yaml"]
+```
+
+### Operators and Custom Experiments: Entry Points
+
+Operators and custom experiments use entry points in `pyproject.toml`:
+
+**Operator Example:**
+
+```toml
+[project.entry-points."ado.operators"]
+ado-ray-tune = "ado_ray_tune.operator_function"
+```
+
+**Custom Experiment Example:**
+
+```toml
+[project.entry-points."ado.custom_experiments"]
+min_gpu_experiment = "autoconf.min_gpu_recommender"
+```
+
+---
+
+## Custom Experiments
+
+### Decorator Requirements
+
+Custom experiments **must** use the `@custom_experiment` decorator correctly:
+
+```python
+from typing import Any
+from ado.modules.actuators.custom_experiments import custom_experiment
+from ado.schema.property import ConstitutiveProperty
+
+# Define your properties explicitly (or let ado infer from type annotations)
+MyProperty = ConstitutiveProperty(...)
+
+@custom_experiment(
+    required_properties=[MyProperty, ...],
+    optional_properties=[...],
+    output_property_identifiers=["output1", "output2"],
+    metadata={
+        "description": "Clear description of what this experiment does"
+    },
+    parameterization={},
+)
+def my_custom_experiment(my_property: float, ...) -> dict[str, Any]:
+    # Function parameters must match required/optional property identifiers
+    return {"output1": ..., "output2": ...}
+```
+
+**Key Points:**
+
+- Function **parameter names must match the property identifiers** — ado maps
+  values to the function by name, not by position
+- Positional parameters become required properties; keyword parameters become
+  optional properties
+- Type annotations on positional parameters allow ado to infer domains: `float`
+  → continuous, `int` → discrete, `Literal` → categorical
+- Return a `dict` whose keys include the `output_property_identifiers`
+- Define `output_property_identifiers` for measurement results
+- Include descriptive metadata
+
+For the full decorator API and worked examples, see
+[creating-custom-experiments.md](../../../docs/developer-guide/creating-custom-experiments.md).
+
+---
+
+## Testing Requirements
+
+### Unit & Integration Test Location
+
+Keep unit and integration tests **within the plugin package**, not in the
+top-level `tests/` directory.
+
+### Testing Checklist
+
+Before considering a plugin complete, verify:
+
+- **Plugin Installation**: Install the plugin into the top-level uv venv from
+  the repo root:
+
+  ```bash
+  uv pip install -e plugins/your_plugin_type/your_plugin
+  ```
+
+- **Confirm actuator or operator registration**:
+
+Run
+
+```bash
+uv run ado get actuators --details
+```
+
+or
+
+```bash
+uv run ado get operators
+```
+
+and confirm the plugin is installed
+
+- **Experiment execution**: Use the `run_experiment` tool to verify
+  custom_experiment or actuator experiments can execute successfully — see
+  [run-experiment](../run-experiment/SKILL.md)
+
+For example:
+
+```bash
+uv run run_experiment point.yaml
+```
+
+- **Valid DiscoverySpace YAML**: Create and validate a discoveryspace YAML that
+  uses the experiment/actuator
+
+  ```bash
+  ado create discoveryspace -f space.yaml --dry-run
+  ```
+
+- **Valid Operation YAML**: Create and validate an operation YAML that uses the
+  operator
+
+  ```bash
+  ado create operation -f operation.yaml --dry-run
+  ```
+
+- **Unit tests pass**: Run pytest on the plugin package
+
+  ```bash
+  uv run pytest plugins/your_plugin_type/your_plugin/tests/
+  ```
+
+### Example YAML Files
+
+Include example YAML files in your plugin package that demonstrate:
+
+- How to configure a discoveryspace with your actuator/experiment
+- How to configure an operation with your operator
+- Different use cases or configurations
+
+---
+
+## Linting
+
+After making changes to plugin code, run linting at the plugin directory level:
+
+```bash
+cd plugins/actuators/your_plugin/
+uv run ruff format .
+uv run ruff check --fix .
+uv run tombi fmt .
+```
+
+Fix any issues that ruff cannot automatically resolve.
+
+---
+
+## Complete pyproject.toml Examples
+
+For the full versioning block, copy from
+[`plugins/operators/trim/pyproject.toml`](../../../plugins/operators/trim/pyproject.toml)
+and adjust `pattern-prefix` and `packages` for the new plugin.
+
+### Actuator Example
+
+```toml
+[project]
+name = "my-actuator"
+description = "Description of your actuator"
+dynamic = ["version"]
+dependencies = [
+  "ado-core",
+]
+
+[project.entry-points."ado.actuators"]
+my-actuator = "my_plugin.actuators:MyActuator"
+
+# versioning block: copy from trim, set pattern-prefix = "my-actuator/"
+# and packages = ["src/my_actuator"]
+```
+
+### Operator Example
+
+```toml
+[project]
+name = "my-operator"
+dynamic = ["version"]
+dependencies = [
+  "ado-core",
+]
+
+[project.entry-points."ado.operators"]
+my-operator = "my_operator.operator_function"
+
+# versioning block: copy from trim, set pattern-prefix = "my-operator/"
+# and packages = ["src/my_operator"]
+```
+
+### Custom Experiment Example
+
+```toml
+[project]
+name = "my-custom-experiment"
+description = "Description of your custom experiment"
+dynamic = ["version"]
+dependencies = [
+  "ado-core",
+]
+
+[project.entry-points."ado.custom_experiments"]
+my_experiment = "my_package.my_experiment"
+
+# versioning block: copy from trim, set pattern-prefix = "my-custom-experiment/"
+# and packages = ["src/my_custom_experiment"]
+```
+
+## References
+
+- [AGENTS.md](../../../AGENTS.md)
+- [creating-custom-experiments.md](../../../docs/developer-guide/creating-custom-experiments.md)

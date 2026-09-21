@@ -1,0 +1,10 @@
+# Copyright IBM Corporation 2025, 2026
+# SPDX-License-Identifier: MIT
+experiments:
+  - actuatorIdentifier: trainer
+    experimentIdentifier: train_model
+    experimentVersion: 1.0.0
+    parameterization:
+      - property:
+          identifier: optimizer
+        value: adam # Override default "sgd"

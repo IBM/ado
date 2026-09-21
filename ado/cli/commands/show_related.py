@@ -81,7 +81,7 @@ def show_related_for_resources(
             min=1,
             max=_MAX_HIERARCHY_HOPS,
         ),
-    ] = None,
+    ] = 1,
 ) -> None:
     """
     Show resources related to the requested resource, grouped by type.

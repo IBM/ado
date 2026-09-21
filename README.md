@@ -4,30 +4,49 @@
 ![PyPI Python Version](https://img.shields.io/pypi/pyversions/ado-core)
 ![GitHub License](https://img.shields.io/github/license/ibm/ado)
 [![DOI](https://joss.theoj.org/papers/10.21105/joss.10304/status.svg)](https://doi.org/10.21105/joss.10304)
+[![Give a Star!](https://img.shields.io/badge/⭐-Give%20a%20Star!-yellow)](https://github.com/ibm/ado)
 
-**`ado`** is a Python platform for **designing computational experiment
-campaigns and executing them at scale**. It enables distributed teams of
-researchers and engineers to collaborate, execute experiments, and share data.
+**`ado`** provides tools for **executing computational experiment
+campaigns**. Coding Agents can use `ado` to **autonomously formulate, run, and
+analyze your experiments**.
 
-You can extend `ado` across different domains through its **plugin model** —
-often as simple as decorating a Python function. By integrating your
-methodology, you gain cross-cutting capabilities — such as **parallel
-execution**, **data provenance**, and a **unified CLI** — alongside a structured
-foundation that allows AI coding agents to **autonomously formulate and run your
-experiments**.
+## Why ado?
+
+- **Declarative Experiment Campaigns:** Provides flexible,
+  cross-domain schemas for defining experiment campaigns. A valid campaign
+  definition has strong execution guarantees.
+- **Simplifies Execution** : Handles the complex setup and
+  distributed plumbing of scale-out campaign execution.
+- **Persistent Storage:** Automatically captures campaign definitions and
+  measurements in local or shared SQL databases.
+- **Adapt to Any Domain:** Its flexible plugin model allows extending these core
+  capabilities to your specific research field.
+- **Empowers Agent-Driven Research**: The verifiable schemas, executable APIs,
+  and persistent storage enable coding agents to treat experimentation as a coding
+  problem.
 
 ## At its _core_
 
-| Concept             | Role                                                                                                                                                                                        |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Discovery Space** | Defines _what_ to measure, _how_ to measure it (via Experiments, which are pluggable python functions), and _where_ to store results.                                                       |
-| **Operation**       | You explore or analyse a Discovery Space using operations. You can select from different operators to perform different types of operations. Operators are also pluggable python functions. |
-| **Sample Store**    | Stores the results of measurements, and enables operations to transparently reuse existing results (memoization).                                                                           |
+**ado** is built on three concepts:
+
+| Concept             | Role                                                                                                                                         |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Discovery Space** | Defines _what_ to measure (Entities), _how_ to measure them (Experiments) and _where_ to store results.                                      |
+| **Operation**       | You explore or analyse a Discovery Space using Operations. You can select from different Operators to perform different types of Operations. |
+| **Sample Store**    | Stores the results of measurements, and enables Operations to transparently reuse existing results (memoization).                            |
+
+In **ado** the research loop involves defining a Discovery Space, exploring it
+with an Operation, analyzing the results with additional Operations, and
+repeating.
+
+You can create your own Experiments to use in a Discovery Space. `ado`
+provides many advanced exploration and analysis Operators you can
+use, or you can define your own.
 
 ## Try It Out
 
-The following example runs a small experiment campaign that samples combinations
-of `mass` and `volume`, computes `density` at each point, and stores the
+The following toy example runs a small experiment campaign that samples
+combinations of mass and volume, computes density at each point, and stores the
 results.
 
 Install `ado-core` (a virtual environment is recommended). For complete
@@ -49,7 +68,8 @@ pip install -e examples/density_example/
 Run the experiment campaign:
 
 ```shell
-ado create operation -f examples/density_example/operation.yaml --with space=examples/density_example/space.yaml
+ado create space -f examples/density_example/space.yaml
+ado create operation -f examples/density_example/operation.yaml --use-latest space
 ```
 
 Once the operation finishes, inspect the collected measurements:
@@ -58,34 +78,32 @@ Once the operation finishes, inspect the collected measurements:
 ado show measurements operation --use-latest
 ```
 
+![Terminal recording of ado listing the installed experiments, describing
+calculate_density, viewing the discovery space definition, running an operation
+across it and printing the resulting
+measurements](https://github.com/user-attachments/assets/876ee1fc-1b59-45cc-ab23-9042ea2b6f8f)
+
 For a deeper walkthrough, see the
-[density example tutorial](https://ibm.github.io/ado/user-guide/examples/tutorials/density-example/).
+[density example tutorial](https://ibm.github.io/ado/latest/user-guide/examples/tutorials/density-example/).
 
-## ado ❤️ agents
+## ado 🤝 agents
 
-ado's typed resources, expressive CLI, and bundled agent skills make it a
-natural fit for agentic research workflows. Once prompted with a research
-problem, an agent can design the Discovery Space, write new experiments or reuse
-existing ones, and run the full exploration loop:
-
-- 🤖 _Bundled agent skills_: ready-made skills guide agents through
-  [end-to-end discovery workflows](https://ibm.github.io/ado/latest/user-guide/ado-and-agents/#what-you-can-ask-your-agent-to-do)
-  — from formulating a problem to analysing results
 - 🔍 _Self-describing resources_: experiments and operators declare their
   required properties, so an agent can discover what's available and what's
-  needed without parsing code
-- 🧱 _Validated schemas_: research intent is expressed as structured, validated
-  configurations — constraining the agent to well-defined inputs rather than
-  free-form code generation, reducing hallucinations and keeping experiments
-  repeatable
-- ✅ _Safe execution loop_: `ado template` and `--dry-run` support a tight
-  **generate → validate → fix → run** cycle before any work is committed
-- 📦 _Structured & queryable results_: all measurements and metadata are stored
-  in a structured database, giving agents clean access to data for analysis and
-  refinement
+  needed without parsing code.
+- ✅ _Campaigns as Verifiable Code_: `ado`'s structured, verifiable schemas
+  for expressing research intent enable a tight
+  **generate → validate → fix → run** cycle. This reduces hallucinations and the
+  need for free-form code.
+- 📦 _Durable Long-Term Memory_: `ado`s structured databases enable agents
+  to understand what has been done, and to access the relevant data, beyond
+  their context window.
 - 🔗 _Full provenance_: every result is annotated with resource relationships
   and plugin versions, so an agent always knows where data came from and how to
-  reproduce it
+  reproduce it.
+- 🤖 _Bundled agent skills_: skills guide agents through
+  [end-to-end discovery workflows](https://ibm.github.io/ado/latest/user-guide/ado-and-agents/#what-you-can-ask-your-agent-to-do)
+  — from formulating a problem to analysing results.
 
 ## Use Cases
 

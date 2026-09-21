@@ -1,7 +1,7 @@
 <!-- markdownlint-disable code-block-style -->
 <!-- markdownlint-disable-next-line first-line-h1 -->
 `ado` uses a SQL database to store
-[resource definitions](index.md#common-features-of-resources)
+[resource definitions](working-with-resources.md#common-features-of-resources)
 and [SQLSampleStores](sample-stores.md#sqlsamplestore). When you execute `ado`
 commands like `get` or `describe` they are interacting with this metastore.
 
@@ -157,7 +157,7 @@ existing database.
 
 The [`ado get`](../cli-reference/index.md#ado-get) CLI command lets you easily
 retrieve and search
-[resource definitions](index.md#common-features-of-resources)
+[resource definitions](working-with-resources.md#common-features-of-resources)
 in the metastore in a variety of ways.
 
 ### Searching for similar spaces
@@ -174,7 +174,7 @@ This search can be performed in two ways:
 - Using as reference an existing discovery space identifier via the flag
   `--matching-space-id`
 - Providing a
-  [DiscoverySpace configuration YAML](discovery-spaces.md#discovery-space-configuration-yaml)
+  [DiscoverySpace configuration YAML](discovery-spaces.md#structure-of-the-discoveryspace-yaml-configuration)
   to the flag `--matching-space`. This is useful to find similar spaces without
   actually creating one first.
 
@@ -223,7 +223,8 @@ will retrieve all operations that have the label `labelone` with the value
 
 For more advanced searches, `ado` provides the `--filter` option to find
 resources based on the contents of their
-[stored representation](index.md#common-features-of-resources). This option
+[stored representation](working-with-resources.md#common-features-of-resources).
+This option
 can be specified multiple times and in conjunction with the `-l` option to find
 resources that match all the specified filters.
 
@@ -300,7 +301,7 @@ Examples for different value types are shown below.
 !!! warning inline end
 
     `ado` converts boolean
-    [property values](discovery-spaces.md#defining-the-domains-of-constitutive-properties-in-the-entityspace)
+    [property values](discovery-spaces.md#defining-property-domains)
     to integers. For more details on how this works in practice, refer to the
     [additional examples](#additional-examples).
 
@@ -379,7 +380,7 @@ ado get operations --filter config.operation.module.moduleClass=RayTune
 To filter all spaces parameterized with the `bf16` property with the boolean
 value `true`, you will have to filter using the value `1` instead. This is
 because `ado` applies a type conversion to boolean values in
-[properties](discovery-spaces.md#defining-the-domains-of-constitutive-properties-in-the-entityspace):
+[properties](discovery-spaces.md#defining-property-domains):
 
 <!-- markdownlint-disable line-length -->
 ```commandline

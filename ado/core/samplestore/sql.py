@@ -3,9 +3,11 @@
 
 import json
 import logging
+import sys
 import typing
 import uuid
 import warnings
+from functools import cached_property
 from typing import TYPE_CHECKING, Annotated, Literal
 
 import pydantic
@@ -52,6 +54,7 @@ from ado.utilities.pandas import (
     filter_dataframe_columns,
     reorder_dataframe_columns,
 )
+from ado.utilities.pydantic import pydantic_aware_json_serializer
 
 if TYPE_CHECKING:
     import pandas as pd
@@ -464,6 +467,33 @@ class SQLSampleStore(ActiveSampleStore):
     def location(self) -> ado.utilities.location.SQLStoreConfiguration:
 
         return self._configuration.model_copy()
+
+    @cached_property
+    def _max_json_column_bytes(self) -> int | None:
+        """Return the maximum bytes writable to a JSON column, or None if unknown.
+
+        Queries the live database to discover the JSON column size limit for the
+        active dialect. The value is computed at most once per instance.
+
+        Returns:
+            The maximum number of bytes for a JSON column:
+            - MySQL: the ``max_allowed_packet`` server variable.
+            - SQLite: ``1_000_000_000`` (compile-time ``SQLITE_MAX_LENGTH``).
+            - Any other dialect: ``None``.
+        """
+        dialect = self.engine.dialect.name
+        if dialect == "mysql":
+            try:
+                with self.engine.connect() as conn:
+                    row = conn.execute(
+                        sqlalchemy.text("SHOW VARIABLES LIKE 'max_allowed_packet'")
+                    ).fetchone()
+                    return int(row[1])
+            except Exception:
+                return None
+        if dialect == "sqlite":
+            return 1_000_000_000
+        return None
 
     @property
     def entities(self) -> list[Entity]:
@@ -1186,6 +1216,26 @@ class SQLSampleStore(ActiveSampleStore):
             raise ValueError(
                 "request_db_id cannot be None when skip_relationship_to_request is false"
             )
+
+        if self._max_json_column_bytes is not None:
+            limit = self._max_json_column_bytes
+            threshold = (limit * 3) // 4
+            for r in results:
+                # Use the shallow size of the model's dict representation as a
+                # cheap pre-check before paying the cost of full JSON serialization.
+                if sys.getsizeof(r.model_dump()) > threshold:
+                    payload = pydantic_aware_json_serializer(r)
+                    size = len(payload.encode("utf-8"))
+                    if size > limit:
+                        msg = (
+                            f"Measurement result for entity '{r.entityIdentifier}' is too large "
+                            f"to store: {size} bytes ({size / 1_048_576:.2f} MB) exceeds the "
+                            f"database JSON column limit of {limit} bytes "
+                            f"({limit / 1_048_576:.2f} MB). "
+                            "Reduce the size of your output properties."
+                        )
+                        self.log.critical(msg)
+                        raise SystemError(msg)
 
         prepared_results = [
             {

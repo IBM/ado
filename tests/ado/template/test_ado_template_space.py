@@ -28,6 +28,11 @@ def test_template_space(
     assert result.exit_code == 0
     assert f"Success! File saved as {file_name}" in result.output
 
+    space_configuration = DiscoverySpaceConfiguration.model_validate(
+        yaml.safe_load(file_name.read_text())
+    )
+    assert space_configuration.sampleStoreIdentifier == "default"
+
 
 def test_template_space_from_experiment(
     tmp_path: pathlib.Path, random_identifier: Callable[[], str]
@@ -56,6 +61,8 @@ def test_template_space_from_experiment(
         == "peptide_mineralization"
     )
     assert space_configuration.experiments[0].actuatorIdentifier == "robotic_lab"
+    assert space_configuration.experiments[0].experimentVersion == "1.0.0"
+    assert space_configuration.sampleStoreIdentifier == "default"
     assert len(space_configuration.entitySpace) == 3
 
 
@@ -116,6 +123,7 @@ def test_template_space_from_experiment_with_actuator_prefix(
         == "peptide_mineralization"
     )
     assert space_configuration.experiments[0].actuatorIdentifier == "robotic_lab"
+    assert space_configuration.experiments[0].experimentVersion == "1.0.0"
 
 
 def test_template_space_from_experiment_minified_domains(

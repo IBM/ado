@@ -1008,14 +1008,27 @@ def timedelta_to_string(total_seconds: float) -> str:
     if math.isnan(total_seconds):
         return "NaT"
     if total_seconds < SECONDS_IN_A_MINUTE:
-        return f"{round(total_seconds)}s"
+        seconds = round(total_seconds)
+        if seconds == 60:
+            return "1m0s"
+        return f"{seconds}s"
     if total_seconds < SECONDS_IN_AN_HOUR:
-        minutes, seconds = divmod(total_seconds, SECONDS_IN_A_MINUTE)
-        return f"{int(minutes)}m{round(seconds)}s"
+        minutes, remainder = divmod(total_seconds, SECONDS_IN_A_MINUTE)
+        seconds = round(remainder)
+        if seconds == 60:
+            minutes += 1
+            seconds = 0
+        return f"{int(minutes)}m{seconds}s"
     if total_seconds < SECONDS_IN_A_DAY:
         hours, remainder = divmod(total_seconds, SECONDS_IN_AN_HOUR)
-        minutes = remainder / SECONDS_IN_A_MINUTE
-        return f"{int(hours)}h{round(minutes)}m"
+        minutes = round(remainder / SECONDS_IN_A_MINUTE)
+        if minutes == 60:
+            hours += 1
+            minutes = 0
+        return f"{int(hours)}h{minutes}m"
     days, remainder = divmod(total_seconds, SECONDS_IN_A_DAY)
-    hours = remainder / SECONDS_IN_AN_HOUR
-    return f"{int(days)}d{round(hours)}h"
+    hours = round(remainder / SECONDS_IN_AN_HOUR)
+    if hours == 24:
+        days += 1
+        hours = 0
+    return f"{int(days)}d{hours}h"

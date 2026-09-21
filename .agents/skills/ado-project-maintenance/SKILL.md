@@ -19,14 +19,16 @@ description: >-
 
 ### Step 1: Delete marked resources
 
-Query every deletable type for existing marks:
+Query every deletable type for existing marks. Write listings to files and
+read them; do not rely on stdout. See
+[using-ado-cli](../using-ado-cli/SKILL.md).
 
    ```bash
-   uv run ado get operation -l for_deletion=true --details
-   uv run ado get discoveryspace -l for_deletion=true --details
-   uv run ado get datacontainer -l for_deletion=true --details
-   uv run ado get document -l for_deletion=true --details
-   uv run ado get samplestore -l for_deletion=true --details
+   uv run ado get operation -l for_deletion=true --details --output-file /tmp/ado-for-deletion-operations.txt
+   uv run ado get discoveryspace -l for_deletion=true --details --output-file /tmp/ado-for-deletion-spaces.txt
+   uv run ado get datacontainer -l for_deletion=true --details --output-file /tmp/ado-for-deletion-dcrs.txt
+   uv run ado get document -l for_deletion=true --details --output-file /tmp/ado-for-deletion-docs.txt
+   uv run ado get samplestore -l for_deletion=true --details --output-file /tmp/ado-for-deletion-stores.txt
    ```
 
 If nothing is marked, move on to Step 2.
@@ -181,7 +183,8 @@ Three labels make up the maintenance scheme.
    related to the same space or operation.
 
    ```bash
-   uv run ado get document -q 'config.relatedResources=RESOURCE_ID' --details
+   uv run ado get document -q 'config.relatedResources=RESOURCE_ID' --details \
+     --output-file /tmp/ado-related-docs.txt
    ```
 
    Keep the newest by `created`, mark the rest (mirrors the replace-report
@@ -195,7 +198,8 @@ Three labels make up the maintenance scheme.
    `metadata.name: project_report`.
 
    ```bash
-   uv run ado get document -q 'config.metadata.name=project_report' --details
+   uv run ado get document -q 'config.metadata.name=project_report' --details \
+     --output-file /tmp/ado-project-report-docs.txt
    ```
 
    Keep the newest, mark the rest

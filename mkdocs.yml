@@ -127,6 +127,9 @@ markdown_extensions:
   toc:
     permalink: true
     toc_depth: 4
+# Recording sources for docs/videos, not publishable content
+exclude_docs: |
+  videos/tapes/
 plugins:
   - search:
   - mike:
@@ -139,11 +142,19 @@ plugins:
 nav:
   - Home:
       - Home: index.md
-      # - Demo: demo.md
       - Roadmap: roadmap.md
   - User Guide:
       - Getting Started: user-guide/getting-started.md
       - ado and Agents: user-guide/ado-and-agents.md
+      - Resources:
+          - Working with resources: resources/working-with-resources.md
+          - The metastore: resources/metastore.md
+          - samplestore: resources/sample-stores.md
+          - discoveryspace: resources/discovery-spaces.md
+          - operation: resources/operation.md
+          - actuatorconfiguration: resources/actuatorconfig.md
+          - datacontainer: resources/datacontainer.md
+          - document: resources/document.md
       - Actuators:
           - Working with actuators: user-guide/actuators/working-with-actuators.md
           - Actuator Guides:
@@ -196,13 +207,4 @@ nav:
       - Entities and Entity Spaces: concepts/entity-spaces.md
       - Discovery Spaces: concepts/discovery-spaces.md
       - Shared Sample Stores: concepts/data-sharing.md
-  - Resources:
-      - resources/index.md
-      - The metastore: resources/metastore.md
-      - samplestore: resources/sample-stores.md
-      - discoveryspace: resources/discovery-spaces.md
-      - operation: resources/operation.md
-      - actuatorconfiguration: resources/actuatorconfig.md
-      - datacontainer: resources/datacontainer.md
-      - document: resources/document.md
   - CLI Reference: cli-reference/index.md

@@ -128,6 +128,7 @@ def _render_dataframe_table_output(
 def _build_dataframe_from_resources(
     parameters: "AdoGetCommandParameters",
     resources: "list[ADOResource] | ADOResource",
+    fill_nan_with: str | None = None,
 ) -> "pd.DataFrame":
     """Build a DataFrame from one or more pre-fetched resources."""
     import pandas as pd
@@ -150,7 +151,10 @@ def _build_dataframe_from_resources(
             ).items():
                 row[identifier] = value
         rows.append(row)
-    return pd.concat(rows, ignore_index=True)
+    df = pd.concat(rows, ignore_index=True)
+    if fill_nan_with is not None:
+        df = df.fillna(fill_nan_with)
+    return df
 
 
 def _build_table_output_dataframe(
@@ -204,7 +208,9 @@ def _build_table_output_dataframe(
                     sql_store.getResources(resources_df["IDENTIFIER"].tolist()).values()
                 )
                 status.update(ADO_SPINNER_GETTING_OUTPUT_READY)
-                return _build_dataframe_from_resources(parameters, fetched)
+                return _build_dataframe_from_resources(
+                    parameters, fetched, fill_nan_with="-"
+                )
 
             status.update(ADO_SPINNER_GETTING_OUTPUT_READY)
             return format_default_ado_get_multiple_resources(

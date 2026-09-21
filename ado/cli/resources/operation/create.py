@@ -94,7 +94,7 @@ def _operator_input_name_for_kind(
     )
 
 
-def _set_input_reference(
+def _add_operation_input_of_kind(
     operation_data: dict,
     kind: CoreResourceKinds,
     identifier: str,
@@ -281,7 +281,9 @@ def _apply_with_resources(
                     use_latest=[],
                 )
             )
-        _set_input_reference(operation_data, CoreResourceKinds.DISCOVERYSPACE, space_id)
+        _add_operation_input_of_kind(
+            operation_data, CoreResourceKinds.DISCOVERYSPACE, space_id
+        )
 
     if CoreResourceKinds.DATACONTAINER in parameters.with_resources:
         dcr_identifier = parameters.with_resources[CoreResourceKinds.DATACONTAINER]
@@ -292,7 +294,9 @@ def _apply_with_resources(
                 stderr=True,
             )
             raise typer.Exit(1)
-        _set_input_reference(operation_data, CoreResourceKinds.DATACONTAINER, dcr_identifier)
+        _add_operation_input_of_kind(
+            operation_data, CoreResourceKinds.DATACONTAINER, dcr_identifier
+        )
 
 
 def _apply_use_latest(
@@ -322,7 +326,7 @@ def _apply_use_latest(
             CoreResourceKinds.DISCOVERYSPACE,
             CoreResourceKinds.DATACONTAINER,
         ):
-            _set_input_reference(operation_data, resource_kind, latest_id)
+            _add_operation_input_of_kind(operation_data, resource_kind, latest_id)
         else:
             continue
 

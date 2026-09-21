@@ -21,8 +21,8 @@ from ado.core.operation.config import (
     OperatorReference,
 )
 from ado.core.operation.context import (
-    assert_inputs_in_metastore,
     resolve_operation_project_context,
+    verify_inputs_exist_in_metastore,
 )
 from ado.core.operation.inputs import resource_inputs_from_operator_function
 from ado.core.resources import (
@@ -179,7 +179,7 @@ def _make_general_orchestration_wrapper(
                 update={"projectContext": project_context}
             )
         metastore = SQLStore(project_context=project_context)
-        assert_inputs_in_metastore(inputs, metastore)  # type: ignore[arg-type]
+        verify_inputs_exist_in_metastore(inputs, metastore)  # type: ignore[arg-type]
 
         return orchestrate_general_operation(
             operator_metadata=collection.operators[name],
@@ -374,7 +374,7 @@ def explore_operation(
                 update={"projectContext": project_context}
             )
         metastore = SQLStore(project_context=project_context)
-        assert_inputs_in_metastore(inputs, metastore)
+        verify_inputs_exist_in_metastore(inputs, metastore)
         return orchestrate_explore_operation(
             operator_metadata=op_meta,
             discovery_space=discoverySpace,

@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import inspect
 import typing
-from typing import TYPE_CHECKING, Annotated, get_args, get_origin
+from typing import TYPE_CHECKING
 
 from ado.core.datacontainer.resource import DataContainerResource
 from ado.core.discoveryspace.space import DiscoverySpace
@@ -20,6 +20,7 @@ from ado.core.resources import (
     ADOResourceReference,
     CoreResourceKinds,
 )
+from ado.utilities.annotations import _unwrap_annotated
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -53,14 +54,6 @@ OPERATOR_INPUT_PROJECT_CONTEXT_GETTERS: dict[
 ] = {
     DiscoverySpace: lambda resource: resource.project_context,  # type: ignore[attr-defined,return-value]
 }
-
-
-def _unwrap_annotated(hint: object) -> object:
-    """Return the underlying type if *hint* is ``Annotated[T, ...]``, else *hint*."""
-    if get_origin(hint) is Annotated:
-        args = get_args(hint)
-        return args[0] if args else hint
-    return hint
 
 
 def resource_inputs_from_operator_function(

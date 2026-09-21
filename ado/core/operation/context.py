@@ -64,7 +64,7 @@ def resolve_operation_project_context(
     return carried[0][1]
 
 
-def assert_inputs_in_metastore(
+def verify_inputs_exist_in_metastore(
     inputs: dict[str, OperatorInputType],
     metastore: SQLStore,
 ) -> None:

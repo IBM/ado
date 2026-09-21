@@ -6,11 +6,9 @@ import logging
 from typing import Annotated, Literal
 
 import pydantic
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, model_validator
 
 from ado.core.operation.config import GenericOperatorParameters
-from trim.samplers.no_priors_parameters import NoPriorsParameters
-from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, model_validator
 
 
 class MissingTargetMeasurementMode(str, enum.Enum):

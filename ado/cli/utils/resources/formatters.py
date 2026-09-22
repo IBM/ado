@@ -47,6 +47,12 @@ from ado.core.operation.resource import (
 )
 from ado.core.resources import ADOResourceEventEnum, ADOResourceStatus
 from ado.schema.domain import VariableTypeEnum
+from ado.schema.experiment import Experiment, ParameterizedExperiment
+from ado.schema.measurementspace import (
+    MeasurementSpace,
+    MeasurementSpaceConfiguration,
+)
+from ado.schema.reference import ExperimentReference
 from ado.utilities.output import (
     printable_pydantic_model,
 )
@@ -163,6 +169,77 @@ def format_default_ado_get_multiple_resources(
         )
 
     return resources[columns]
+
+
+def format_discovery_space_properties(
+    resource: DiscoverySpaceResource,
+    include_properties: list[str],
+    no_trunc: bool | list[str],
+) -> dict[str, str]:
+    """Return requested discovery-space property representations by identifier."""
+    max_items = None if no_trunc else 4
+    constitutive = {
+        property.identifier: property.propertyDomain.compact_representation(max_items)
+        for property in resource.config.entitySpace or []
+    }
+    parameterized: dict[str, str] = {}
+    optional: dict[str, str] = {}
+    experiments = resource.config.experiments
+
+    if experiments is not None:
+        experiment_values: list[
+            Experiment | ParameterizedExperiment | ExperimentReference
+        ] = []
+        if isinstance(experiments, MeasurementSpaceConfiguration):
+            experiment_values = experiments.experiments
+        elif isinstance(experiments, list):
+            try:
+                ms = MeasurementSpace.measurementSpaceFromExperimentReferences(
+                    experiments
+                )
+                experiment_values = ms.experiments
+            except Exception:
+                experiment_values = experiments
+
+        for experiment in experiment_values:
+            if isinstance(experiment, Experiment):
+                for default_value in experiment.defaultParameterization:
+                    optional[default_value.property.identifier] = (
+                        default_value.compact_representation(max_items)
+                    )
+
+            if isinstance(experiment, (ParameterizedExperiment, ExperimentReference)):
+                for custom_value in experiment.parameterization or []:
+                    parameterized[custom_value.property.identifier] = (
+                        custom_value.compact_representation(max_items)
+                    )
+                    optional[custom_value.property.identifier] = (
+                        custom_value.compact_representation(max_items)
+                    )
+
+    available = {**constitutive, **optional, **parameterized}
+    property_identifiers: list[str] = []
+    for requested in include_properties:
+        for value in requested.split(","):
+            match value.lower():
+                case "constitutive":
+                    identifiers = constitutive
+                case "parameterized":
+                    identifiers = parameterized
+                case "optional":
+                    identifiers = optional
+                case "all":
+                    identifiers = available
+                case _:
+                    identifiers = {value: available.get(value, "—")}
+            for identifier in identifiers:
+                if identifier not in property_identifiers:
+                    property_identifiers.append(identifier)
+
+    return {
+        identifier: available.get(identifier, "—")
+        for identifier in property_identifiers
+    }
 
 
 def build_resource_listing_dataframe(

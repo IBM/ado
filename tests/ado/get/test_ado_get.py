@@ -50,6 +50,102 @@ def test_space_exists(
         assert pfas_space.uri in result.output
 
 
+@requires_sqlite_3_38
+def test_get_space_includes_requested_constitutive_properties(
+    tmp_path: pathlib.Path,
+    mysql_test_instance: MySqlContainer,
+    sql_store: SQLStore,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+) -> None:
+    """ado get space -p constitutive displays constitutive property domains."""
+    from ado.core import DiscoverySpaceResource
+
+    runner = CliRunner()
+    create_active_ado_context(
+        runner=runner, path=tmp_path, project_context=valid_ado_project_context
+    )
+    space = DiscoverySpaceResource.model_validate(
+        yaml.safe_load(
+            pathlib.Path(
+                "tests/resources/space/discoveryspace_resource.json"
+            ).read_text()
+        )
+    )
+    sql_store.addResource(space)
+
+    result = runner.invoke(
+        ado, ["get", "space", space.identifier, "-p", "constitutive", "--no-trunc"]
+    )
+
+    assert result.exit_code == 0
+    assert "provider" in result.output
+    assert "['A', 'B', 'C']" in result.output
+
+
+@requires_sqlite_3_38
+def test_get_space_includes_optional_and_parameterized_properties(
+    tmp_path: pathlib.Path,
+    mysql_test_instance: MySqlContainer,
+    sql_store: SQLStore,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+) -> None:
+    """Requested optional and parameterized properties use their configured values."""
+    from ado.core import DiscoverySpaceResource
+
+    runner = CliRunner()
+    create_active_ado_context(
+        runner=runner, path=tmp_path, project_context=valid_ado_project_context
+    )
+    space_data = yaml.safe_load(
+        pathlib.Path("tests/resources/space/discoveryspace_resource.json").read_text()
+    )
+    experiment = space_data["config"]["experiments"]["experiments"][0]
+    experiment["optionalProperties"] = [
+        {
+            "identifier": "warm_start_file",
+            "propertyType": "CONSTITUTIVE_PROPERTY_TYPE",
+            "propertyDomain": {
+                "values": ["default.mst", "custom.mst"],
+                "variableType": "CATEGORICAL_VARIABLE_TYPE",
+            },
+        }
+    ]
+    experiment["defaultParameterization"] = [
+        {
+            "property": {"identifier": "warm_start_file"},
+            "value": "default.mst",
+        }
+    ]
+    experiment["parameterization"] = [
+        {
+            "property": {"identifier": "warm_start_file"},
+            "value": "custom.mst",
+        }
+    ]
+    space = DiscoverySpaceResource.model_validate(space_data)
+    sql_store.addResource(space)
+
+    optional = runner.invoke(
+        ado, ["get", "space", space.identifier, "-p", "optional", "--no-trunc"]
+    )
+    parameterized = runner.invoke(
+        ado, ["get", "space", space.identifier, "-p", "parameterized", "--no-trunc"]
+    )
+
+    assert optional.exit_code == 0
+    assert parameterized.exit_code == 0
+    assert "warm_start_file" in optional.output
+    assert "custom.mst" in optional.output
+    assert "warm_start_file" in parameterized.output
+    assert "custom.mst" in parameterized.output
+
+
 def test_get_robotic_lab_actuator() -> None:
 
     runner = CliRunner()

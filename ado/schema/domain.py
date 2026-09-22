@@ -51,27 +51,35 @@ def is_float_range(
 
 
 def _internal_range_values(lower: float, upper: float, interval: float) -> list:
-    """Returns the values in the half-open [lower,upper) range
+    """Returns the values in the half-open [lower, upper) range.
 
-    If all values are integers uses arange
-    If one value is a float uses linspace and then removes the last value
+    If all values are integers uses np.arange.
+    If any value is a float computes values as lower + i * interval
+    then removes the upper bound if included.
 
-    All values are rounded to 10 decimal places
+    All values are rounded to 10 decimal places to handle precision
+    issues like 0.1 + 0.2 == 0.30000000000000004.
 
-    This function is required due to floating precision issues.
-    The rounding deals with issues like 0.2+0.1 = 0.30000000000000004
-    linspace delas with issue like arange(0.1,0.4,0.1) includes 0.4
+    Args:
+        lower: Inclusive lower bound of the range.
+        upper: Exclusive upper bound of the range.
+        interval: Step size between consecutive values.
+
+    Returns:
+        List of evenly-spaced values in [lower, upper), rounded to 10
+        decimal places.
 
     """
 
     if not is_float_range(interval=interval, domain_range=[lower, upper]):
-        return list(np.arange(lower, upper, interval))
+        return np.arange(lower, upper, interval).tolist()
+
     num = int(np.floor((upper - lower) / interval)) + 1
     values = [lower + i * interval for i in range(num)]
     if values[-1] == upper:
         values = values[:-1]
-    # values = np.linspace(lower, upper, num)[:-1]
-    return list(np.round(values, 10))
+
+    return np.round(values, 10).tolist()
 
 
 def is_subdomain_of_unknown_domain(

@@ -287,6 +287,9 @@ Where:
 - `RESOURCE_ID` is the unique identifier of the resource to delete. Multiple
   resource IDs can be provided to delete multiple resources of the same type in
   a single command.
+  Deleting an operation automatically cascades to delete all child data container
+  resources associated with it (provided those data containers do not have
+  dependent children of their own).
 - `--force` enables forced deletion of resources in the following cases:
 
     <!-- prettier-ignore-start -->

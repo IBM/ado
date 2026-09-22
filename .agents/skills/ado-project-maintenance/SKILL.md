@@ -33,7 +33,9 @@ read them; do not rely on stdout. See
 
 If nothing is marked, move on to Step 2.
 
-Delete children before parents. You cannot delete resources that have children.
+Delete children before parents. You cannot delete resources that have children
+(except for operations, which automatically cascade-delete their child
+`datacontainer` resources unless those data containers have further children).
 
 Order:
    `datacontainer` → `operation` → `discoveryspace`  → `samplestore`

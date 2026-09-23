@@ -879,12 +879,12 @@ class PropertyDomain(pydantic.BaseModel):
 
         if self.variableType == VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE:
             if self.domainRange is not None:
-                retval = (value < max(self.domainRange)) and (
-                    value >= min(self.domainRange)
+                retval = bool(
+                    (value < max(self.domainRange)) and (value >= min(self.domainRange))
                 )
             else:
-                # The domain has no range which means we just accept the value if it is a number
-                retval = bool(isinstance(value, numbers.Number))
+                # The domain has no range which means we just accept the value if it is a number or numpy scalar
+                retval = bool(isinstance(value, (numbers.Number, np.generic)))
         elif self.variableType == VariableTypeEnum.DISCRETE_VARIABLE_TYPE:
             if self.values:
                 retval = value in self.values

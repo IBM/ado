@@ -156,6 +156,16 @@ def show_measurements_for_resources(
             """,
         ),
     ] = False,
+    from_experiment: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--from-experiment",
+            help="Filter measurements to those produced by any of these experiments "
+            "(OR semantics). Can be repeated. Each value accepts an experiment "
+            "identifier string or a path to an ExperimentReference YAML file.",
+            show_default=False,
+        ),
+    ] = None,
 ) -> None:
     """
     Show measurements related to a space, an operation, or a samplestore.
@@ -176,6 +186,9 @@ def show_measurements_for_resources(
 
     # Show all measured entities in a samplestore
     ado show measurements samplestore <samplestore-id>
+
+    # Show only measurements produced by a specific experiment
+    ado show measurements samplestore <samplestore-id> --from-experiment my_exp
     """
     ado_configuration: AdoConfiguration = ctx.obj
 
@@ -219,6 +232,7 @@ def show_measurements_for_resources(
     parameters = AdoShowMeasurementsCommandParameters(
         ado_configuration=ado_configuration,
         aggregation_method=aggregation_method,
+        from_experiment=from_experiment,
         measurements_output_format=output_format,
         measurements_property_format=property_format,
         measurements_type=entity_type,

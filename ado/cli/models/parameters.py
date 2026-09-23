@@ -87,6 +87,7 @@ class AdoEditCommandParameters(pydantic.BaseModel):
 class AdoShowMeasurementsCommandParameters(pydantic.BaseModel):
     ado_configuration: AdoConfiguration
     aggregation_method: PropertyAggregationMethodEnum | None
+    from_experiment: list[pathlib.Path | str] | None = None
     measurements_output_format: AdoShowMeasurementsSupportedOutputFormats
     measurements_property_format: AdoShowMeasurementsSupportedPropertyFormats
     measurements_type: AdoShowMeasurementsSupportedEntityTypes

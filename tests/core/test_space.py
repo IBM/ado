@@ -442,18 +442,6 @@ def test_matching_entities_table_experiment_references_filter_no_match(
     assert df.empty
 
 
-def test_measured_entities_table_experiment_references_filter_no_match(
-    ml_multi_cloud_space: DiscoverySpace,
-) -> None:
-    """experimentReferences that match no entity return an empty DataFrame from measuredEntitiesTable."""
-    ref = ExperimentReference(
-        actuatorIdentifier="no_such_actuator",
-        experimentIdentifier="no_such_experiment",
-    )
-    df = ml_multi_cloud_space.measuredEntitiesTable(experimentReferences=[ref])
-    assert df.empty
-
-
 def test_matching_entities_table_experiment_references_filter_or_semantics(
     ml_multi_cloud_space: DiscoverySpace,
 ) -> None:

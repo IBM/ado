@@ -1284,6 +1284,34 @@ def test_valueInDomain_with_np_bool() -> None:
     assert open_cat.valueInDomain(np.bool(False)) is True
 
 
+def test_property_domain_with_np_bool_values_classified_as_discrete() -> None:
+    """A PropertyDomain whose values are all np.bool scalars should be classified as DISCRETE.
+
+    NumPy scalar types (np.generic subclasses) are numeric but are not instances of
+    numbers.Number, so they must be recognised as numeric values when auto-detecting
+    the variable type.
+    """
+    domain = PropertyDomain(values=[np.bool(True), np.bool(False)])
+    assert domain.variableType == VariableTypeEnum.DISCRETE_VARIABLE_TYPE
+
+
+def test_categorical_domain_with_numeric_values_and_domain_range_is_accepted() -> None:
+    """A CATEGORICAL domain with numeric values and a domainRange must not raise.
+
+    When values are present, domainRange is silently discarded by the
+    range_requirements validator, so supplying both is a valid combination.
+    """
+    domain = PropertyDomain(
+        variableType=VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE,
+        values=[1, 2, 3],
+        domainRange=[1, 4],
+    )
+    assert domain.variableType == VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE
+    assert domain.values == [1, 2, 3]
+    # domainRange is nullified by range_requirements when values are present
+    assert domain.domainRange is None
+
+
 # ---------------------------------------------------------------------------
 # Tests for PropertyDomain.overlaps()
 # ---------------------------------------------------------------------------

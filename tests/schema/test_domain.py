@@ -1230,6 +1230,60 @@ def test_discrete_variable_large_range_value_in_domain_performance() -> None:
     assert domain.valueInDomain(float("nan")) is False
 
 
+def test_valueInDomain_with_np_bool() -> None:
+    """Test that np.bool values are handled consistently across all variable types in valueInDomain."""
+    # CONTINUOUS with domainRange: np.bool(True)==1, np.bool(False)==0 are numeric
+    cont_with_range = PropertyDomain(domainRange=[0, 2])
+    assert cont_with_range.valueInDomain(np.bool(True)) is True
+    assert cont_with_range.valueInDomain(np.bool(False)) is True
+
+    # CONTINUOUS without domainRange: any numeric value accepted
+    cont_no_range = PropertyDomain(
+        variableType=VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE
+    )
+    assert cont_no_range.valueInDomain(np.bool(True)) is True
+    assert cont_no_range.valueInDomain(np.bool(False)) is True
+
+    # DISCRETE with domainRange: np.bool(True)==1, np.bool(False)==0
+    disc_with_range = PropertyDomain(
+        variableType=VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
+        domainRange=[0, 2],
+        interval=1,
+    )
+    assert disc_with_range.valueInDomain(np.bool(True)) is True
+    assert disc_with_range.valueInDomain(np.bool(False)) is True
+
+    # DISCRETE with explicit values
+    disc_with_values = PropertyDomain(values=[0, 1, 2])
+    assert disc_with_values.valueInDomain(np.bool(True)) is True
+    assert disc_with_values.valueInDomain(np.bool(False)) is True
+
+    # BINARY
+    binary = PropertyDomain(variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE)
+    assert binary.valueInDomain(np.bool(True)) is True
+    assert binary.valueInDomain(np.bool(False)) is True
+
+    # CATEGORICAL
+    categorical = PropertyDomain(
+        variableType=VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE,
+        values=[True, False],
+    )
+    assert categorical.valueInDomain(np.bool(True)) is True
+    assert categorical.valueInDomain(np.bool(False)) is True
+
+    # UNKNOWN
+    unknown = PropertyDomain(variableType=VariableTypeEnum.UNKNOWN_VARIABLE_TYPE)
+    assert unknown.valueInDomain(np.bool(True)) is True
+    assert unknown.valueInDomain(np.bool(False)) is True
+
+    # OPEN_CATEGORICAL
+    open_cat = PropertyDomain(
+        variableType=VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE
+    )
+    assert open_cat.valueInDomain(np.bool(True)) is True
+    assert open_cat.valueInDomain(np.bool(False)) is True
+
+
 # ---------------------------------------------------------------------------
 # Tests for PropertyDomain.overlaps()
 # ---------------------------------------------------------------------------

@@ -875,7 +875,8 @@ ado show measurements RESOURCE_TYPE [RESOURCE_ID] [--use-latest] [--file | -f <f
                       [--output-file <path>] \
                       [--property <property-name>] \
                       [--include {sampled | matching | missing | unsampled}] \
-                      [--aggregate {mean | median | variance | std | min | max}]
+                      [--aggregate {mean | median | variance | std | min | max}]\
+                      [--from-experiment <experiment-id-or-file>]
 ```
 
 Where:
@@ -958,6 +959,20 @@ Where:
 
     <!-- prettier-ignore-end -->
 
+- `--from-experiment` (can be specified multiple times) filters the output to
+  only include entities that have at least one measurement from any of the
+  specified experiments (OR semantics). Accepts either:
+
+    <!-- prettier-ignore-start -->
+
+    - An experiment identifier string qualified by actuator name, such as
+      `actuator.my_exp`, `actuator.my_exp@v1`, or `actuator.my_exp@1.0.0`
+    - A path to a YAML file containing an `ExperimentReference` object with
+      fields `experimentIdentifier`, `actuatorIdentifier`, and optionally
+      `experimentVersion` and `parameterization`
+
+    <!-- prettier-ignore-end -->
+
 #### Examples
 
 <!-- markdownlint-disable line-length -->
@@ -1011,6 +1026,23 @@ ado show measurements samplestore store-abc123-456def
 
 ```shell
 ado show measurements samplestore store-abc123-456def -o csv --output-file entities.csv
+```
+
+##### Show only measurements from a specific experiment in a samplestore
+
+```shell
+ado show measurements samplestore store-abc123-456def \
+    --from-experiment replay.benchmark_performance
+```
+
+<!-- markdownlint-disable line-length -->
+
+##### Filter measurements in a samplestore using a parameterized ExperimentReference YAML file
+
+<!-- markdownlint-enable line-length -->
+
+```shell
+ado show measurements samplestore store-abc123-456def --from-experiment experiment_ref.yaml
 ```
 
 ### ado show trace

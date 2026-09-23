@@ -104,28 +104,30 @@ Use Test Driven Development
 ### Code Linting
 
 - Linting must be run after any code changes and must pass before running tests.
-- Run **ruff format** after changes:
+- Run **ruff-format** hook after changes:
 
-  uv run ruff format $DIR
+  uv run pre-commit run ruff-format --all-files
 
-- Run **ruff check** after changes:
+- Run **ruff** linting hook after changes:
 
-  uv run ruff check --fix $DIR
+  uv run pre-commit run ruff --all-files
 
 - Fix any issues reported by ruff that it could not fix automatically.
-- Run ruff format and ruff check at directory level for efficiency (e.g. `ado/`,
-  `plugins/`, `tests/`).
-- Run the mkdocs linter on markdown files (\*.md) that have added or modified:
+- Run markdown linter on markdown files (\*.md) that have been added or modified:
 
   uv run markdownlint-cli2 NEW_OR_CHANGED_MARKDOWN_FILE --fix
 
-- Run if YAML changed or added
+- Run if YAML changed or added:
 
-  pre-commit run yamlfmt
+  uv run pre-commit run yamlfmt --all-files
 
-- Run if TOML changed or added
+- Run if TOML changed or added:
 
-  uv run tombi fmt
+  uv run pre-commit run tombi-format --all-files
+
+- Run spellcheck:
+
+  uv run pre-commit run codespell --all-files
 
 ---
 
@@ -177,9 +179,10 @@ within the repo.
 
 ### ado CLI command-line construction and testing
 
-- Confirm all ado CLI commands and options written in documentation are correct
+- Confirm all ado CLI commands and options written in documentation are correct:
 
-  uv run ado [COMMAND] --help uv run ado [COMMAND] [SUBCOMMAND1] ... --help
+  uv run ado [COMMAND] --help
+  uv run ado [COMMAND] [SUBCOMMAND1] ... --help
 
 - Leverage the --use-latest ado CLI command arg when writing documentation if an
   "ado create" or "ado show" command requires the identifier of a previously
@@ -217,9 +220,12 @@ When writing agent skills:
 ## Links
 
 - For plugin development, see
-  [plugin-development](.agents/skills/plugin-development/)
+  [plugin-development](.agents/skills/plugin-development/SKILL.md)
 - For formulating problems with ado, see
-  [define experiment campaign](.agents/skills/define-experiment-campaign/)
-- For using the ado CLI, see [using the ado CLI](.agents/skills/using-ado-cli/)
+  [define-experiment-campaign](.agents/skills/define-experiment-campaign/SKILL.md)
+- For using the ado CLI, see
+  [using-ado-cli](.agents/skills/using-ado-cli/SKILL.md)
 - For creating resource YAML files, see
-  [resource-yaml-creation](.agents/skills/resource-yaml-creation/)
+  [resource-yaml-creation](.agents/skills/resource-yaml-creation/SKILL.md)
+- For querying catalog and measurement data, see
+  [query-ado-data](.agents/skills/query-ado-data/SKILL.md)

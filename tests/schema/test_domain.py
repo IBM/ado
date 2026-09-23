@@ -1175,6 +1175,8 @@ def test_is_value_in_internal_range_values_matches_internal_range_values() -> No
         0.1 + 0.2,
         True,
         False,
+        np.bool(True),
+        np.bool(False),
         float("nan"),
         float("inf"),
         float("-inf"),

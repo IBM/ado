@@ -241,11 +241,13 @@ any plugins required in the `packages.fromPyPI` section of your
 
 > [!NOTE] Wheel paths and `fromPyPI`
 >
-> Entries in `fromPyPI` that resolve to an existing `.whl` file on the machine
-> running `ado --remote` will be transferred to the remote cluster. Other
-> entries are forwarded unchanged to the cluster's `uv` install step. This
-> includes paths that were not present on submitting machine - these will be
-> interpreted as paths to wheels that are on the remote filesystem.
+> Use `fromPyPI` for public PyPI packages and pre-built wheels (only if the
+> source is unavailable). Entries in `fromPyPI` that resolve to an existing
+> `.whl` file on the machine running `ado --remote` will be transferred to the
+> remote cluster. Other entries are forwarded unchanged to the cluster's `uv`
+> install step. This includes paths that were not present on submitting
+> machine - these will be interpreted as paths to wheels that are on the
+> remote filesystem.
 
 ### Dynamic installation from source
 
@@ -308,6 +310,14 @@ an operator or actuator requires these files as input.
 
 The paths can be absolute or relative. If relative they are resolved with
 respect to the directory `ado --remote [COMMAND]` is executed from.
+
+Do not include `.whl` files in `additionalFiles` and then reference them in
+`packages.fromPyPI`. Instead, use `packages.fromSource` when you have the source
+of the package, or `packages.fromPyPI` when you only have the wheel.
+
+Do not use `additionalFiles` to ship wheels for installation. Instead, use
+`packages.fromSource` if the source is available, or specify the path to the
+pre-built `.whl` directly in `packages.fromPyPI`.
 
 ```yaml
 executionType:

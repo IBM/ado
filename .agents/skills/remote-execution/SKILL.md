@@ -261,7 +261,6 @@ wait: false
 - Use `fromPyPI` for public PyPI packages and pre-built wheels. If a
   wheel path does not exist locally, it will instead be resolved on
   remote RayCluster's filesystem.
-- Always prefer `fromSource` over `fromPyPI`.
 
 ```yaml
 packages:
@@ -286,7 +285,10 @@ additionalFiles:
 ```
 
 Use bare filenames (no path) in space/operation YAML; ray copies
-`additionalFiles` entries into the Ray working directory.
+`additionalFiles` entries into the Ray working directory. Do not
+use `additionalFiles` to ship wheels for installation. Instead, use
+`packages.fromSource` if the source is available, or specify the path to the
+pre-built `.whl` directly in `packages.fromPyPI`.
 
 ### `runtimeEnv` block
 

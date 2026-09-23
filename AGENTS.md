@@ -115,7 +115,7 @@ Use Test Driven Development
 - Fix any issues reported by ruff that it could not fix automatically.
 - Run markdown linter on markdown files (\*.md) that have been added or modified:
 
-  uv run markdownlint-cli2 NEW_OR_CHANGED_MARKDOWN_FILE --fix
+  uv run pre-commit run markdownlint-cli2-docker --all-files
 
 - Run if YAML changed or added:
 

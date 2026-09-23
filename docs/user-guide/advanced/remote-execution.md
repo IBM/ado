@@ -311,10 +311,6 @@ an operator or actuator requires these files as input.
 The paths can be absolute or relative. If relative they are resolved with
 respect to the directory `ado --remote [COMMAND]` is executed from.
 
-Do not include `.whl` files in `additionalFiles` and then reference them in
-`packages.fromPyPI`. Instead, use `packages.fromSource` when you have the source
-of the package, or `packages.fromPyPI` when you only have the wheel.
-
 Do not use `additionalFiles` to ship wheels for installation. Instead, use
 `packages.fromSource` if the source is available, or specify the path to the
 pre-built `.whl` directly in `packages.fromPyPI`.

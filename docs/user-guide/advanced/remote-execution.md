@@ -313,7 +313,7 @@ respect to the directory `ado --remote [COMMAND]` is executed from.
 
 Do not use `additionalFiles` to ship wheels for installation. Instead, use
 `packages.fromSource` if the source is available, or specify the path to the
-pre-built `.whl` directly in `packages.fromPyPI`.
+pre-built `.whl` in `packages.fromPyPI`.
 
 ```yaml
 executionType:

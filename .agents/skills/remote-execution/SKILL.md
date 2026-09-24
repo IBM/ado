@@ -267,8 +267,8 @@ packages:
   fromPyPI:
     - ado-core
     - ado-ray-tune
-    - ray==2.52.1           # pin to match cluster version if needed
-    - path/to/package.whl   # only if source is completely unavailable
+    - ray==2.52.1                         # pin to match cluster version if needed
+    - /remote/path/to/package.whl         # path to a wheel already on the cluster
   fromSource:
     - plugins/actuators/my_plugin  # relative to where ado --remote is run
 ```
@@ -288,7 +288,7 @@ Use bare filenames (no path) in space/operation YAML; ray copies
 `additionalFiles` entries into the Ray working directory. Do not
 use `additionalFiles` to ship wheels for installation. Instead, use
 `packages.fromSource` if the source is available, or specify the path to the
-pre-built `.whl` directly in `packages.fromPyPI`.
+pre-built `.whl` in `packages.fromPyPI`.
 
 ### `runtimeEnv` block
 

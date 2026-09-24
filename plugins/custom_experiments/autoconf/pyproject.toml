@@ -6,7 +6,7 @@ dependencies = [
   "ado-core>=2.0.0",
   "autogluon-tabular[catboost,xgboost]==1.6.1; python_full_version < '3.14'",
   "huggingface_hub>=0.23",
-  "pandas<3.0.0",
+  "pandas<3.0.7",
   "pydantic",
   "torch",
 ]

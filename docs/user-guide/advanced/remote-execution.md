@@ -28,6 +28,11 @@ generating the Ray runtime environment, and running `ray job submit` for you.
 > If your cluster requires a port-forward, `oc` (OpenShift CLI) or `kubectl`
 > must be installed, and you must be logged in to the cluster.
 
+> [!IMPORTANT] The Ray cluster must have `uv` installed
+>
+> If `uv` is not present on the cluster, the Ray job will
+> fail during virtual environment setup.
+
 ## Defining a remote execution context
 
 The details about a remote execution environment, where it is, what packages to
@@ -244,10 +249,10 @@ any plugins required in the `packages.fromPyPI` section of your
 > Use `fromPyPI` for public PyPI packages and pre-built wheels (only if the
 > source is unavailable). Entries in `fromPyPI` that resolve to an existing
 > `.whl` file on the machine running `ado --remote` will be transferred to the
-> remote cluster. Other entries are forwarded unchanged to the cluster's `uv`
-> install step. This includes paths that were not present on submitting
-> machine - these will be interpreted as paths to wheels that are on the
-> remote filesystem.
+> remote cluster. Other entries are forwarded unchanged to the cluster's
+> virtual environment install step. This includes paths that were not present
+> on submitting machine - these will be interpreted as paths to wheels that are
+> on the remote filesystem.
 
 ### Dynamic installation from source
 

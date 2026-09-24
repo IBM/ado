@@ -44,9 +44,9 @@ documentation. Some highlights will include:
     complete.
 - **Plugin updates**: Fixes and small capability updates across the plugins
 
-### **October 2026** Version 2.2.0
+### **October 2026** Version 2.3.0
 
-Version 2.2.0 will focus on increasing the capabilities of operator plugins.
+Version 2.3.0 will focus on increasing the capabilities of operator plugins.
 We've noticed that many scripts created for results analysis can't be expressed
 as operators and hence can't be easily distributed for reuse and fall out of the
 provenance system.
@@ -61,12 +61,12 @@ provenance system.
 - **Batch Operator Application**: Provide mechanisms to simplify executing
   operators multiple times
 
-### **November 2026** Version 2.3.0
+### **November 2026** Version 2.4.0
 
 Currently `ado` only supports cartesian product spaces (full-factorial designs).
 It also only supports scalar dimensions (scalar experiment input types).
 
-Version 2.3.0 will expand the type of configuration spaces that can be explored.
+Version 2.4.0 will expand the type of configuration spaces that can be explored.
 This also means richer experiment definitions (more types, input relationships)
 
 - **Constraints**: e.g. Allow the value of one property to be conditional on

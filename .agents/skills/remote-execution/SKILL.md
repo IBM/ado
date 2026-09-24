@@ -258,9 +258,11 @@ wait: false
 ### `packages` block
 
 - Use `fromSource` for any package whose source is available locally.
-- Use `fromPyPI` for public PyPI packages and pre-built wheels. If a
-  wheel path does not exist locally, it will instead be resolved on
-  remote RayCluster's filesystem.
+- Use `fromPyPI` for public PyPI packages and pre-built wheels.
+  Entries in `fromPyPI` that resolve to an existing `.whl` file on the
+  machine running `ado --remote` will be transferred to the
+  remote cluster.
+
 
 ```yaml
 packages:

@@ -672,7 +672,8 @@ class PropertyDomain(pydantic.BaseModel):
 
             if values.data.get("values") is not None:
                 if all(
-                    isinstance(e, numbers.Number) for e in values.data.get("values")
+                    isinstance(e, (numbers.Number, np.generic))
+                    for e in values.data.get("values")
                 ):
                     value = VariableTypeEnum.DISCRETE_VARIABLE_TYPE
                 else:
@@ -694,17 +695,6 @@ class PropertyDomain(pydantic.BaseModel):
             if values.data.get("interval") is not None:
                 raise ValueError(
                     "The interval field for a CATEGORICAL_VARIABLE_TYPE was not None"
-                )
-
-            if (
-                not all(
-                    isinstance(e, numbers.Number) for e in values.data.get("values")
-                )
-                and values.data.get("domainRange") is not None
-            ):
-                raise ValueError(
-                    "The domainRange field was not None for a CATEGORICAL_VARIABLE_TYPE "
-                    "where the values are not all numbers"
                 )
 
         elif value == VariableTypeEnum.DISCRETE_VARIABLE_TYPE:
@@ -804,7 +794,7 @@ class PropertyDomain(pydantic.BaseModel):
                     # We can remove the variableType for categorical variables
                     # if we have values and the values are not all numbers
                     can_delete_variable_type = self.values and not all(
-                        isinstance(v, numbers.Number) for v in self.values
+                        isinstance(v, (numbers.Number, np.generic)) for v in self.values
                     )
                 case VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE:
                     # We can remove the variableType for continuous variables

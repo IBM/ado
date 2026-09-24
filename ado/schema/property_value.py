@@ -15,6 +15,7 @@ from ado.schema.property import (
     Property,
     PropertyDescriptor,
 )
+from ado.utilities.output import format_elided_list
 
 logger = logging.getLogger("property_value")
 
@@ -161,6 +162,30 @@ class PropertyValue(pydantic.BaseModel):
     def isUncertain(self) -> bool:
 
         return self.uncertainty is not None
+
+    def compact_representation(self, max_items: int | None = None) -> str:
+        """Return a compact string representation of this property value.
+
+        Args:
+            max_items: Maximum number of items to show for vector values before
+                truncating with a ``(+N more)`` suffix.  Pass ``None`` to
+                disable truncation.
+
+        Returns:
+            A compact string such as ``3600``, ``some_file.mst``,
+            ``[0, 1, 2]``, ``[0, 1, ..., 7] (+5 more)``, or
+            ``<blob 42 bytes>``.
+        """
+        if self.valueType == ValueTypeEnum.BLOB_VALUE_TYPE:
+            n = len(self.value) if self.value is not None else 0
+            return f"<blob {n} bytes>"
+
+        if self.valueType == ValueTypeEnum.VECTOR_VALUE_TYPE:
+            items: list = self.value if self.value is not None else []
+            return format_elided_list(items, max_items)
+
+        # NUMERIC_VALUE_TYPE and STRING_VALUE_TYPE — scalar
+        return str(self.value)
 
 
 class ConstitutivePropertyValue(PropertyValue):

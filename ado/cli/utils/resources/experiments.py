@@ -1,9 +1,11 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
+import pathlib
 import re
 
 import typer
+import yaml
 
 from ado.cli.utils.output.prints import ERROR, console_print, magenta
 from ado.modules.actuators.errors import (
@@ -135,3 +137,83 @@ def _ado_lookup_cli_experiment(
     except ValueError as error:
         console_print(f"{ERROR}{error}", stderr=True)
         raise typer.Exit(1) from error
+
+
+def parse_cli_from_experiment(
+    from_experiment: pathlib.Path | str | list[pathlib.Path | str],
+) -> list[ExperimentReference]:
+    """Resolve ``--from-experiment`` CLI values to a list of ``ExperimentReference`` objects.
+
+    Accepts a single value or a list of values, where each value can be either
+    a path to a YAML ``ExperimentReference`` file or an experiment identifier
+    string (``actuator.experiment``, ``actuator.experiment@v1``, etc.).
+
+    If a string identifier is provided without an actuator prefix, an error is
+    raised instructing the user to qualify the experiment with the actuator name
+    or supply an ``ExperimentReference`` YAML file.
+
+    Args:
+        from_experiment: A file path, identifier string, or list thereof supplied
+            via ``--from-experiment``.
+
+    Returns:
+        A list of resolved :class:`~ado.schema.reference.ExperimentReference` objects.
+
+    Raises:
+        typer.Exit: On any parse, validation, or resolution error, after printing
+            an error message to stderr.
+    """
+    from pydantic import ValidationError
+
+    items = from_experiment if isinstance(from_experiment, list) else [from_experiment]
+
+    resolved_references: list[ExperimentReference] = []
+
+    for item in items:
+        # --- YAML file path branch ---
+        path = pathlib.Path(item)
+        if path.exists():
+            try:
+                resolved_references.append(
+                    ExperimentReference.model_validate(yaml.safe_load(path.read_text()))
+                )
+                continue
+            except (OSError, yaml.YAMLError) as error:
+                console_print(
+                    f"{ERROR}Could not read ExperimentReference YAML file {path}: {error}",
+                    stderr=True,
+                )
+                raise typer.Exit(1) from error
+            except ValidationError as error:
+                console_print(
+                    f"{ERROR}The file {path} could not be parsed as an ExperimentReference:\n{error}",
+                    stderr=True,
+                )
+                raise typer.Exit(1) from error
+
+        # --- Identifier string branch ---
+        try:
+            actuator_id, experiment_id, version = parse_cli_experiment_id(str(item))
+        except ValueError as error:
+            console_print(f"{ERROR}{error}", stderr=True)
+            raise typer.Exit(1) from error
+
+        if actuator_id is None:
+            console_print(
+                f"{ERROR}Could not resolve actuator for experiment "
+                f"{magenta(experiment_id)}. "
+                f"Specify the actuator (e.g. {magenta(f'actuator.{experiment_id}')}) "
+                "or provide a path to an ExperimentReference YAML file.",
+                stderr=True,
+            )
+            raise typer.Exit(1)
+
+        resolved_references.append(
+            ExperimentReference(
+                actuatorIdentifier=actuator_id,
+                experimentIdentifier=experiment_id,
+                experimentVersion=version,
+            )
+        )
+
+    return resolved_references

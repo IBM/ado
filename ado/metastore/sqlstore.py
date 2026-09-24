@@ -22,6 +22,7 @@ from ado.metastore.base import (
     NonEmptySampleStorePreventingDeletionError,
     NotSupportedOnSQLiteError,
     ResourceDoesNotExistError,
+    ResourceHasChildrenError,
     ResourceStore,
     RunningOperationsPreventingDeletionError,
     kind_custom_model_dump,
@@ -1296,6 +1297,87 @@ class SQLResourceStore(ResourceStore):
                             )
 
                     # <--------- END CHECKS FOR RUNNING OPERATIONS --------->
+
+                    # <--------- CASCADE DELETE DATACONTAINER CHILDREN --------->
+                    # Query all direct children of this operation
+                    import pandas as pd
+
+                    child_rows = session.execute(
+                        sqlalchemy.text(
+                            "SELECT rr.object_identifier, r.kind "
+                            "FROM resource_relationships rr "
+                            "INNER JOIN resources r "
+                            "  ON rr.object_identifier = r.identifier "
+                            "WHERE rr.subject_identifier = :operation_id"
+                        ).bindparams(operation_id=identifier)
+                    ).fetchall()
+
+                    child_resources_df = pd.DataFrame(
+                        child_rows, columns=["IDENTIFIER", "TYPE"]
+                    )
+
+                    if not child_resources_df.empty:
+                        non_data_container_children = child_resources_df[
+                            child_resources_df["TYPE"]
+                            != CoreResourceKinds.DATACONTAINER.value
+                        ]
+                        if not non_data_container_children.empty:
+                            raise ResourceHasChildrenError(
+                                resource_id=identifier,
+                                kind=CoreResourceKinds.OPERATION,
+                                children_resources=non_data_container_children,
+                            )
+
+                        # All children are DataContainers - check each has no
+                        # grandchildren
+                        for data_container_id in child_resources_df["IDENTIFIER"]:
+                            grandchildren_rows = session.execute(
+                                sqlalchemy.text(
+                                    "SELECT rr.object_identifier, r.kind "
+                                    "FROM resource_relationships rr "
+                                    "INNER JOIN resources r "
+                                    "  ON rr.object_identifier = r.identifier "
+                                    "WHERE rr.subject_identifier = :data_container_id"
+                                ).bindparams(data_container_id=data_container_id)
+                            ).fetchall()
+
+                            if grandchildren_rows:
+                                grandchildren_df = pd.DataFrame(
+                                    grandchildren_rows, columns=["IDENTIFIER", "TYPE"]
+                                )
+                                raise ResourceHasChildrenError(
+                                    resource_id=data_container_id,
+                                    kind=CoreResourceKinds.DATACONTAINER,
+                                    children_resources=grandchildren_df,
+                                )
+
+                        # Safe to delete all DataContainer children
+                        data_container_ids = child_resources_df["IDENTIFIER"].tolist()
+                        session.execute(
+                            sqlalchemy.text(
+                                "DELETE FROM resource_relationships "
+                                "WHERE object_identifier IN :data_container_ids"
+                            ).bindparams(
+                                sqlalchemy.bindparam(
+                                    "data_container_ids", expanding=True
+                                ),
+                                data_container_ids=data_container_ids,
+                            )
+                        )
+                        session.execute(
+                            sqlalchemy.text(
+                                "DELETE FROM resources "
+                                "WHERE identifier IN :data_container_ids "
+                                "AND kind = :kind"
+                            ).bindparams(
+                                sqlalchemy.bindparam(
+                                    "data_container_ids", expanding=True
+                                ),
+                                data_container_ids=data_container_ids,
+                                kind=CoreResourceKinds.DATACONTAINER.value,
+                            )
+                        )
+                    # <--------- END CASCADE DELETE DATACONTAINER CHILDREN --------->
 
                     # We first delete the mappings from the results belonging
                     # to this operation to the requests.

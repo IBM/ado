@@ -459,7 +459,8 @@ def test_run_random_walk_operation(
         operationOutput.operation.metadata["experiments_requested"] == 74
     )  # There are multiple measuremenst for some entities
 
-    # ray_job_id should be recorded because Ray is initialised for the test session
+    # ray_job_id should be recorded because Ray is initialised for the test session.
+    # ray_submission_id is only set for Jobs API drivers (ray job submit).
     import ray
 
     assert "ray_job_id" in operationOutput.operation.metadata
@@ -467,6 +468,7 @@ def test_run_random_walk_operation(
         operationOutput.operation.metadata["ray_job_id"]
         == ray.get_runtime_context().get_job_id()
     )
+    assert "ray_submission_id" not in operationOutput.operation.metadata
 
 
 def test_random_walk_fail_invalid_config(

@@ -111,6 +111,10 @@ context.
 `--output-file PATH` with the same format flag, then work from that file to
 avoid repeated `ado get` calls for the same resource.
 
+Table listings (`ado get … --details`) should also use `--output-file`. Tool
+stdout capture can drops long tables. See
+[using-ado-cli](../using-ado-cli/SKILL.md).
+
 In particular `ado get datacontainer … -o yaml` or `-o json` can be large; use
 `--output-file` and load the file with Python (or another tool) instead of
 re-fetching.

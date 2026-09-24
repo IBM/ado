@@ -59,7 +59,7 @@ requires-dist = [
     { name = "autogluon-tabular", extras = ["catboost", "xgboost"], marker = "python_full_version < '3.14'", specifier = "==1.6.1" },
     { name = "autogluon-tabular", extras = ["lightgbm"], marker = "extra == 'libomp'" },
     { name = "huggingface-hub", specifier = ">=0.23" },
-    { name = "pandas", specifier = "<3.0.0" },
+    { name = "pandas", specifier = "<3.0.7" },
     { name = "pydantic" },
     { name = "torch" },
 ]
@@ -237,7 +237,7 @@ requires-dist = [
     { name = "bayesian-optimization", specifier = ">=1.4.0" },
     { name = "nevergrad", specifier = ">=1.0.12" },
     { name = "numba", marker = "python_full_version >= '3.14'", specifier = ">=0.63.0" },
-    { name = "pandas", specifier = "<3" },
+    { name = "pandas", specifier = "<4" },
     { name = "paretoset", specifier = ">=1.2.4" },
     { name = "pyopenssl", specifier = ">=23.0.0" },
     { name = "ray", extras = ["tune"], specifier = ">=2.9" },

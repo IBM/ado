@@ -8,7 +8,7 @@ dependencies = [
   # version 0.63.0. By adding this requirement explicitly
   # we help uv perform a forked resolution for the lockfile.
   "numba>=0.63.0 ; python_full_version >= '3.14'",
-  "pandas<3",
+  "pandas<4",
   "paretoset>=1.2.4",
   # botocore → urllib3 → OpenSSL.SSL import chain fails with AttributeError
   # on GEN_EMAIL if pyopenssl is too old.  No dep in the chain pins a minimum

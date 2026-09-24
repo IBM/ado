@@ -69,7 +69,7 @@ It also only supports scalar dimensions (scalar experiment input types).
 Version 2.4.0 will expand the type of configuration spaces that can be explored.
 This also means richer experiment definitions (more types, input relationships)
 
-- **Constraints**: e.g. Allow the value of one property to be conditional on
+- **Constraints**: e.g. Allow the value of one property to be conditional on another
   - _Allows fractional factorial designs_
   - _Enables experiments to forbid certain combinations of parameter values_
 - **Treatments**: Allow a space to specify list of explicit points to explore,
@@ -82,8 +82,8 @@ This also means richer experiment definitions (more types, input relationships)
   - _Currently, you would have to specify each dimension separately_
 - **Property Groups**: Allow grouping properties/dimensions in experiments
   - _Enables an experiment be passed a nested dictionary of their parameters
-    rather than flat dictionary**
-  - _This will the need to group input parameters after being passed them**
+    rather than flat dictionary_
+  - _This will the need to group input parameters after being passed them_
 
 ## 📆 Recent Milestones
 
@@ -100,11 +100,6 @@ In this release we were adding some features to address these issues:
   - _Store reports written for operations or spaces so they can be accessed by
     collaborators_
   - _Associate research plans and todos with projects/contexts_
-- **Expanded operator interface** allowing operations on any resource types, in
-  any number and combination
-  - _Allow easily package analysis scripts for a project as an operator bundle
-    that can be distributed_
-  - _Leverage ado provenance and storage for the data produced by these scripts_
 - **Agent skills for project maintenance**
   - Improve ability of Agents to correctly version plugins, manage their
     life-cycle and identify versioning related issues

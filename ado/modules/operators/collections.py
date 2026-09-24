@@ -25,10 +25,6 @@ from ado.modules.operators.base import (
     validate_operator_function_signature,
 )
 from ado.modules.operators.errors import OperatorVersionMismatchError
-from ado.modules.operators.orchestrate import (
-    orchestrate_explore_operation,
-    orchestrate_general_operation,
-)
 
 moduleLog = logging.getLogger("operation_collections")
 
@@ -147,6 +143,10 @@ def characterize_operation(
             operationInfo: FunctionOperationInfo | None = None,
             **kwargs: object,
         ) -> OperationOutput:
+            from ado.modules.operators.orchestrate import (
+                orchestrate_general_operation,
+            )
+
             return orchestrate_general_operation(
                 operator_metadata=characterize.operators[name],
                 operation_parameters=kwargs,
@@ -248,6 +248,10 @@ def explore_operation(
         operationInfo: FunctionOperationInfo | None = None,
         **kwargs: object,
     ) -> OperationOutput:
+        from ado.modules.operators.orchestrate import (
+            orchestrate_explore_operation,
+        )
+
         return orchestrate_explore_operation(
             operator_metadata=explore.operators[op_name],
             discovery_space=discoverySpace,
@@ -297,6 +301,10 @@ def modify_operation(
             operationInfo: FunctionOperationInfo | None = None,
             **kwargs: object,
         ) -> OperationOutput:
+            from ado.modules.operators.orchestrate import (
+                orchestrate_general_operation,
+            )
+
             return orchestrate_general_operation(
                 operator_metadata=modify.operators[name],
                 operation_parameters=kwargs,
@@ -349,6 +357,10 @@ def export_operation(
             operationInfo: FunctionOperationInfo | None = None,
             **kwargs: object,
         ) -> OperationOutput:
+            from ado.modules.operators.orchestrate import (
+                orchestrate_general_operation,
+            )
+
             return orchestrate_general_operation(
                 operator_metadata=export.operators[name],
                 operation_parameters=kwargs,

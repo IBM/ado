@@ -36,8 +36,10 @@ from ado.cli.utils.resources.formatters import (
     format_ado_get_stats_for_spaces,
     format_default_ado_get_multiple_resources,
     format_default_ado_get_single_resource,
+    format_discovery_space_properties,
     format_resource_for_ado_get_custom_format,
 )
+from ado.core import DiscoverySpaceResource
 from ado.core.metadata import ConfigurationMetadata
 from ado.metastore.base import ResourceDoesNotExistError
 from ado.utilities.output import pydantic_model_as_yaml
@@ -123,6 +125,38 @@ def _render_dataframe_table_output(
     _write_or_print_output(table, parameters.output_file)
 
 
+def _build_dataframe_from_resources(
+    parameters: "AdoGetCommandParameters",
+    resources: "list[ADOResource] | ADOResource",
+    fill_nan_with: str | None = None,
+) -> "pd.DataFrame":
+    """Build a DataFrame from one or more pre-fetched resources."""
+    import pandas as pd
+
+    resource_list = resources if isinstance(resources, list) else [resources]
+    if not resource_list:
+        return pd.DataFrame()
+    rows = []
+    for resource in resource_list:
+        row = format_default_ado_get_single_resource(
+            resource=resource, show_details=parameters.show_details
+        )
+        if parameters.include_properties and isinstance(
+            resource, DiscoverySpaceResource
+        ):
+            for identifier, value in format_discovery_space_properties(
+                resource,
+                parameters.include_properties,
+                parameters.no_trunc,
+            ).items():
+                row[identifier] = value
+        rows.append(row)
+    df = pd.concat(rows, ignore_index=True)
+    if fill_nan_with is not None:
+        df = df.fillna(fill_nan_with)
+    return df
+
+
 def _build_table_output_dataframe(
     parameters: "AdoGetCommandParameters",
     resource_type: "CoreResourceKinds | None",
@@ -130,28 +164,11 @@ def _build_table_output_dataframe(
     resources: "list[ADOResource] | ADOResource | None",
 ) -> "pd.DataFrame":
     """Build the DataFrame used by table-like get output formats."""
-    import pandas as pd
-
     if dataframe is not None:
         return dataframe
 
     if resources is not None:
-        if isinstance(resources, list):
-            if not resources:
-                return pd.DataFrame()
-            return pd.concat(
-                [
-                    format_default_ado_get_single_resource(
-                        resource=resource, show_details=parameters.show_details
-                    )
-                    for resource in resources
-                ],
-                ignore_index=True,
-            )
-
-        return format_default_ado_get_single_resource(
-            resource=resources, show_details=parameters.show_details
-        )
+        return _build_dataframe_from_resources(parameters, resources)
 
     if resource_type is None:
         console_print(
@@ -183,6 +200,18 @@ def _build_table_output_dataframe(
                     resources_df["IDENTIFIER"].isin(related_ids)
                 ].reset_index(drop=True)
 
+            if (
+                parameters.include_properties
+                and resource_type.value == "discoveryspace"
+            ):
+                fetched = list(
+                    sql_store.getResources(resources_df["IDENTIFIER"].tolist()).values()
+                )
+                status.update(ADO_SPINNER_GETTING_OUTPUT_READY)
+                return _build_dataframe_from_resources(
+                    parameters, fetched, fill_nan_with="-"
+                )
+
             status.update(ADO_SPINNER_GETTING_OUTPUT_READY)
             return format_default_ado_get_multiple_resources(
                 resources=resources_df,
@@ -199,9 +228,7 @@ def _build_table_output_dataframe(
                 resource_id=parameters.resource_id, kind=resource_type
             )
 
-        return format_default_ado_get_single_resource(
-            resource=resource, show_details=parameters.show_details
-        )
+        return _build_dataframe_from_resources(parameters, resource)
 
 
 def handle_ado_get(

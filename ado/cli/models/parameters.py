@@ -30,6 +30,7 @@ class AdoGetCommandParameters(pydantic.BaseModel):
     exclude_none: bool
     exclude_unset: bool
     field_selectors: list[dict[str, str]]
+    include_properties: list[str] | None = None
     matching_point: pathlib.Path | None
     matching_space_id: str | None
     matching_space: pathlib.Path | None
@@ -87,6 +88,7 @@ class AdoEditCommandParameters(pydantic.BaseModel):
 class AdoShowMeasurementsCommandParameters(pydantic.BaseModel):
     ado_configuration: AdoConfiguration
     aggregation_method: PropertyAggregationMethodEnum | None
+    from_experiment: list[pathlib.Path | str] | None = None
     measurements_output_format: AdoShowMeasurementsSupportedOutputFormats
     measurements_property_format: AdoShowMeasurementsSupportedPropertyFormats
     measurements_type: AdoShowMeasurementsSupportedEntityTypes

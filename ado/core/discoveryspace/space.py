@@ -36,6 +36,7 @@ from ado.schema.entityspace import (
 from ado.schema.experiment import Experiment
 from ado.schema.measurementspace import MeasurementSpace
 from ado.schema.property_value import constitutive_property_values_from_point
+from ado.schema.reference import ExperimentReference
 from ado.schema.request import MeasurementRequest
 from ado.schema.result import MeasurementResult
 
@@ -703,12 +704,33 @@ class DiscoverySpace:
         aggregationMethod: (
             ado.schema.virtual_property.PropertyAggregationMethodEnum | None
         ) = None,
+        experimentReferences: list[ExperimentReference] | None = None,
     ) -> "DataFrame":
-        """Returns a dataframe contain entities with at least one measured property"""
+        """Returns a dataframe contain entities with at least one measured property.
+
+        Args:
+            property_type: Controls if observed or target names are used to label
+                properties.
+            virtualPropertyIdentifiers: An optional list of virtual property
+                identifiers. These will replace the underlying property in the table.
+            aggregationMethod: Controls how to handle properties with multiple values
+                (where no virtual property identifier is associated with them by the
+                previous parameter). By default, all values will be returned.
+            experimentReferences: When supplied, only entities whose
+                ``experimentReferences`` contain at least one of these references
+                are included (OR semantics).
+        """
 
         from pandas import DataFrame
 
         references = self.measurementSpace.experimentReferences
+
+        def _entity_matches_criteria(e: Entity) -> bool:
+            has_measurements = len(e.observedPropertyValues) > 0
+            has_requested_experiment_reference = experimentReferences is None or any(
+                r in e.experimentReferences for r in experimentReferences
+            )
+            return has_measurements and has_requested_experiment_reference
 
         if property_type == "observed":
             return DataFrame(
@@ -719,13 +741,13 @@ class DiscoverySpace:
                         aggregationMethod=aggregationMethod,
                     )
                     for e in self.sampledEntities()
-                    if len(e.observedPropertyValues) > 0
+                    if _entity_matches_criteria(e)
                 ]
             )
         if property_type == "target":
             data = []
             for e in self.sampledEntities():
-                if len(e.observedPropertyValues) > 0:
+                if _entity_matches_criteria(e):
                     data.extend(
                         e.experimentSeries(
                             experimentReferences=references,
@@ -746,6 +768,7 @@ class DiscoverySpace:
         aggregationMethod: (
             ado.schema.virtual_property.PropertyAggregationMethodEnum | None
         ) = None,
+        experimentReferences: list[ExperimentReference] | None = None,
     ) -> "DataFrame":
         """Returns a dataframe containing entities in the sample store that match the space definition.
 
@@ -756,16 +779,36 @@ class DiscoverySpace:
         This means that entities that match the entity-space but have no measurements from the measurement
         space are not output in the table
 
-        Parameters:
-            property_type: Controls if observed or target names are used to label properties
-            virtualPropertyIdentifiers: An optional list of virtual property identifiers.
-                These will replace the underlying property in the table
-            aggregationMethod: Controls how to handle properties with multiple values (where
-            no virtual property identifier is associated with them by previous parameter).
-                By default, all values will be returned.
+        Args:
+            property_type: Controls if observed or target names are used to label
+                properties.
+            virtualPropertyIdentifiers: An optional list of virtual property
+                identifiers. These will replace the underlying property in the table.
+            aggregationMethod: Controls how to handle properties with multiple values
+                (where no virtual property identifier is associated with them by the
+                previous parameter). By default, all values will be returned.
+            experimentReferences: When supplied, only entities whose
+                ``experimentReferences`` contain at least one of these references
+                are included (OR semantics).
         """
 
         from pandas import DataFrame
+
+        def _entity_matches_criteria(
+            e: Entity, *, require_in_measurement_space: bool
+        ) -> bool:
+            has_measurements = len(e.observedPropertyValues) > 0
+            in_measurement_space = not require_in_measurement_space or not set(
+                self.measurementSpace.experimentReferences
+            ).isdisjoint(e.experimentReferences)
+            has_requested_experiment_reference = experimentReferences is None or any(
+                r in e.experimentReferences for r in experimentReferences
+            )
+            return (
+                has_measurements
+                and in_measurement_space
+                and has_requested_experiment_reference
+            )
 
         if property_type == "observed":
             return DataFrame(
@@ -776,16 +819,13 @@ class DiscoverySpace:
                         aggregationMethod=aggregationMethod,
                     )
                     for e in self.matchingEntities()
-                    if len(e.observedPropertyValues) > 0
-                    and not set(self.measurementSpace.experimentReferences).isdisjoint(
-                        set(e.experimentReferences)
-                    )
+                    if _entity_matches_criteria(e, require_in_measurement_space=True)
                 ]
             )
         if property_type == "target":
             data = []
             for e in self.matchingEntities():
-                if len(e.observedPropertyValues) > 0:
+                if _entity_matches_criteria(e, require_in_measurement_space=False):
                     data.extend(
                         e.experimentSeries(
                             self.measurementSpace.experimentReferences,

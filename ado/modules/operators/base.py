@@ -396,44 +396,6 @@ def add_operation_output_to_metastore(
             metastore.updateResource(operation)
 
 
-def add_operation_and_output_to_metastore(
-    operation_resource_configuration: DiscoveryOperationResourceConfiguration,
-    output: OperationOutput,
-    metastore: SQLStore,
-) -> OperationResource:
-    """Creates an operation resource from the given configuration and adds it and its outputs to the resource store"""
-    from ado.core.operation.resource import OperationProvenanceInfo
-    from ado.modules.operators.collections import provenance_for_operator
-
-    operator_module = operation_resource_configuration.operation.module
-    operators = {}
-    if isinstance(operator_module, OperatorReference):
-        operator_provenance = provenance_for_operator(
-            operator_module.operatorName, operator_module.operationType
-        )
-        if operator_provenance is not None:
-            operators[operator_module.operatorIdentifier] = operator_provenance
-
-    operation = OperationResource(
-        operationType=operator_module.operationType,
-        operatorIdentifier=operator_module.operatorIdentifier,
-        config=operation_resource_configuration,
-        status=[output.exitStatus],
-        provenance=OperationProvenanceInfo(operators=operators),
-    )
-
-    # ValueError means the resource has already been added
-    with contextlib.suppress(ValueError):
-        metastore.addResourceWithRelationships(
-            resource=operation,
-            relatedIdentifiers=[operation_resource_configuration.spaces[0]],
-        )
-
-    add_operation_output_to_metastore(operation, output, metastore)
-
-    return operation
-
-
 def create_operation_and_add_to_metastore(
     discovery_space: DiscoverySpace,
     operator_module: OperatorModuleConf | OperatorReference,

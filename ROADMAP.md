@@ -23,9 +23,9 @@ regularly as the project evolves.
 
 ## Upcoming Releases
 
-### **September 2026** Version 2.1.1
+### **September 2026** Version 2.2.0
 
-Version 2.1.1 will be a maintenance release. It will address a variety of issues
+Version 2.2.0 will be a maintenance release. It will address a variety of issues
 found in day-to-day use, along with updates to the bundled plugins and
 documentation. Some highlights will include:
 

@@ -61,6 +61,8 @@ repos:
     rev: v0.23.3
     hooks:
       - id: markdownlint-cli2-docker
+        args:
+          - --fix
   - repo: https://github.com/google/yamlfmt
     rev: v0.21.0
     hooks:

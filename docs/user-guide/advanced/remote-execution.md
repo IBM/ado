@@ -28,6 +28,8 @@ generating the Ray runtime environment, and running `ray job submit` for you.
 > If your cluster requires a port-forward, `oc` (OpenShift CLI) or `kubectl`
 > must be installed, and you must be logged in to the cluster.
 
+<!-- markdownlint-disable-next-line MD028 -->
+
 > [!IMPORTANT] The Ray cluster must have `uv` installed
 >
 > If `uv` is not present on the cluster, the Ray job will

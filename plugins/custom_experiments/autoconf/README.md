@@ -3,6 +3,42 @@
 This package contains ado custom experiments for use in automated configuration
 of workload resources requirements for GenAI workloads.
 
+## throughput_recommender
+
+**throughput_recommender** recommends the feasible fine-tuning configuration
+with the highest predicted dataset throughput (tokens per second). It uses the
+existing AutoConf OOM classifier to screen candidates, then an AutoGluon
+regressor trained on the same Hugging Face measurements to rank them.
+
+The required ADO entity properties are `model_name`, `method`, `gpu_model`, and
+`tokens_per_sample`. Node count and GPUs per node can also be constrained. The
+experiment returns `can_recommend`; when a feasible configuration exists it
+also returns `workers` (nodes), `gpus` (per node), `effective_batch_size`,
+`per_device_batch_size`, and `estimated_throughput` in dataset tokens per second.
+When no candidate is feasible, it returns only `can_recommend: false`.
+
+The search considers candidate per-device batch sizes and total GPU counts,
+subject to the requested node capacity.
+The regressor trains automatically on first use from the same downloaded CSV as
+the classifier and is then loaded from its saved model directory. If the
+classifier is absent, its existing on-demand builder trains it. Neither model
+binary is shipped with the plugin.
+
+`model_name` is open categorical. If the name is absent from training data,
+AutoConf warns that the throughput estimate is unvalidated and still attempts
+prediction. Use a model represented in the dataset, or add measurements and
+retrain, before relying on a recommendation for a new model.
+
+Run the [single-point example](examples/throughput.yaml) from the repository
+root in the `local` ADO context:
+
+```bash
+uv run run_experiment plugins/custom_experiments/autoconf/examples/throughput.yaml
+```
+
+This uses ADO entity properties; it does not edit trace CSVs or metadata
+columns.
+
 ## min_gpu_recommender
 
 **min_gpu_recommender** is a predictive model that recommends the minimum number

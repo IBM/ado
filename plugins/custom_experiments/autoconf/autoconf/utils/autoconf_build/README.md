@@ -30,6 +30,14 @@ The classifier uses these columns:
 - `tokens_per_sample`
 - `batch_size`
 
+The `throughput_recommender` loads the existing classifier or uses its on-demand
+builder if it is absent. Its separate regressor uses this same downloaded
+dataset. It trains only on successful configurations with a positive
+`dataset_tokens_per_second` value where the global `batch_size` is evenly
+divisible by `number_gpus` (the total GPU count). It uses the same feature
+columns, excluding all metadata columns. Once trained, the regressor is saved
+and loaded on later calls.
+
 If the dataset has no explicit `is_valid` column, the builder derives it from
 `train_runtime`: a recorded runtime is a successful run and a missing runtime is
 a failed run. Rows rejected by AutoConf's deterministic configuration rules are
@@ -45,15 +53,17 @@ uv pip install -e plugins/custom_experiments/autoconf
 ```
 
 Once `ado-sfttrainer-v1-0-0.csv` is available in `LLMFineTuningBench`, build
-the model with:
+the classifier model with:
 
 ```terminal
 uv run autoconf_build_model
 ```
 
-The generated model is written to `autoconf/models/v4-0-0/`, where the installed
-recommender loads it. AutoConf 2.0 pins AutoGluon 1.6.1. Downloaded data and model
-output are ignored by Git.
+The generated classifier is written to `autoconf/models/v4-0-0/`, where the
+installed recommenders load it. AutoConf 2.1 pins AutoGluon 1.6.1. The
+throughput recommender trains its separate regressor automatically on first
+use and stores it under `autoconf/models/v4-1-0-regressor/`. Downloaded data
+and model output are ignored by Git.
 
 Use `uv run autoconf_build_model --help` to select a different local data path,
 dataset URL, model root, training fraction, or AutoGluon quality preset.
@@ -64,7 +74,7 @@ the released package in a clean environment:
 ```terminal
 python -m venv .venv
 source .venv/bin/activate
-python -m pip install "ado-autoconf==2.0.0"
+python -m pip install "ado-autoconf==2.1.0"
 autoconf_build_model
 ```
 

@@ -17,6 +17,7 @@ autoconf_build_model = "autoconf.utils.autoconf_build.ml_classifier:main"
 
 [project.entry-points."ado.custom_experiments"]
 min_gpu_experiment = "autoconf.min_gpu_recommender"
+throughput_experiment = "autoconf.throughput_recommender"
 
 [project.optional-dependencies]
 libomp = ["autogluon.tabular[lightgbm]"]

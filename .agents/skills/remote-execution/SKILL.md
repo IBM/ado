@@ -263,7 +263,6 @@ wait: false
   machine running `ado --remote` will be transferred to the
   remote cluster.
 
-
 ```yaml
 packages:
   fromPyPI:

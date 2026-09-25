@@ -28,6 +28,13 @@ generating the Ray runtime environment, and running `ray job submit` for you.
 > If your cluster requires a port-forward, `oc` (OpenShift CLI) or `kubectl`
 > must be installed, and you must be logged in to the cluster.
 
+<!-- markdownlint-disable-next-line MD028 -->
+
+> [!IMPORTANT] The Ray cluster must already have `uv` installed
+>
+> If `uv` is not already installed on the cluster nodes, the Ray job will
+> fail during the creation of its virtual environment.
+
 ## Defining a remote execution context
 
 The details about a remote execution environment, where it is, what packages to
@@ -241,11 +248,13 @@ any plugins required in the `packages.fromPyPI` section of your
 
 > [!NOTE] Wheel paths and `fromPyPI`
 >
-> Entries in `fromPyPI` that resolve to an existing `.whl` file on the machine
-> running `ado --remote` will be transferred to the remote cluster. Other
-> entries are forwarded unchanged to the cluster's `uv` install step. This
-> includes paths that were not present on submitting machine - these will be
-> interpreted as paths to wheels that are on the remote filesystem.
+> Use `fromPyPI` for public PyPI packages and pre-built wheels (only if the
+> source is unavailable). Entries in `fromPyPI` that resolve to an existing
+> `.whl` file on the machine running `ado --remote` will be transferred to the
+> remote cluster. Other entries are forwarded unchanged to the cluster's
+> virtual environment install step. This includes paths that were not present
+> on submitting machine - these will be interpreted as paths to wheels that are
+> on the remote filesystem.
 
 ### Dynamic installation from source
 
@@ -308,6 +317,10 @@ an operator or actuator requires these files as input.
 
 The paths can be absolute or relative. If relative they are resolved with
 respect to the directory `ado --remote [COMMAND]` is executed from.
+
+Do not use `additionalFiles` to ship wheels for installation. Instead, use
+`packages.fromSource` if the source is available, or specify the path to the
+pre-built `.whl` in `packages.fromPyPI`.
 
 ```yaml
 executionType:

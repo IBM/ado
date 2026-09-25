@@ -257,6 +257,12 @@ wait: false
 
 ### `packages` block
 
+- Use `fromSource` for any package whose source is available locally.
+- Use `fromPyPI` for public PyPI packages and pre-built wheels.
+  Entries in `fromPyPI` that resolve to an existing `.whl` file on the
+  machine running `ado --remote` will be transferred to the
+  remote cluster.
+
 ```yaml
 packages:
   fromPyPI:
@@ -280,7 +286,10 @@ additionalFiles:
 ```
 
 Use bare filenames (no path) in space/operation YAML; ray copies
-`additionalFiles` entries into the Ray working directory.
+`additionalFiles` entries into the Ray working directory. Do not
+use `additionalFiles` to ship wheels for installation. Instead, use
+`packages.fromSource` if the source is available, or specify the path to the
+pre-built `.whl` in `packages.fromPyPI`.
 
 ### `runtimeEnv` block
 

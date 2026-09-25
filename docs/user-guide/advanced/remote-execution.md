@@ -30,10 +30,10 @@ generating the Ray runtime environment, and running `ray job submit` for you.
 
 <!-- markdownlint-disable-next-line MD028 -->
 
-> [!IMPORTANT] The Ray cluster must have `uv` installed
+> [!IMPORTANT] The Ray cluster must already have `uv` installed
 >
-> If `uv` is not present on the cluster, the Ray job will
-> fail during virtual environment setup.
+> If `uv` is not already installed on the cluster nodes, the Ray job will
+> fail during the creation of its virtual environment.
 
 ## Defining a remote execution context
 

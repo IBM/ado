@@ -26,6 +26,7 @@ from ado.core.operation.config import DiscoveryOperationResourceConfiguration
 from ado.core.operation.resource import OperationResource
 from ado.core.resources import (
     ADOResourceEventEnum,
+    ADOResourceReference,
     CoreResourceKinds,
 )
 from ado.metastore.project import ProjectContext
@@ -345,7 +346,12 @@ def test_add_operation_and_output(
 
     space_resource = random_space_resource_from_db()
     space_identifier = space_resource.identifier
-    random_walk_multicloud_operation_configuration.spaces = [space_identifier]
+    random_walk_multicloud_operation_configuration.inputs["discoverySpace"] = (
+        ADOResourceReference(
+            identifier=space_identifier,
+            kind=CoreResourceKinds.DISCOVERYSPACE,
+        )
+    )
 
     op_resource = ado.modules.operators.base.add_operation_and_output_to_metastore(
         operation_resource_configuration=random_walk_multicloud_operation_configuration,
@@ -681,7 +687,10 @@ def resource_hierarchy(
     sql_store.addResourceWithRelationships(ds, relatedIdentifiers=[ss.identifier])
 
     # 3. operation (child of discoveryspace)
-    operation_resource.config.spaces = [ds.identifier]
+    operation_resource.config.inputs["discoverySpace"] = ADOResourceReference(
+        identifier=ds.identifier,
+        kind=CoreResourceKinds.DISCOVERYSPACE,
+    )
     sql_store.addResourceWithRelationships(
         operation_resource, relatedIdentifiers=[ds.identifier]
     )
@@ -1683,7 +1692,10 @@ def resource_hierarchy_with_child_operation(
     space1 = random_space_resource_from_file(sample_store_id=ss1.identifier)
     sql_store.addResourceWithRelationships(space1, relatedIdentifiers=[ss1.identifier])
 
-    operation_resource.config.spaces = [space1.identifier]
+    operation_resource.config.inputs["discoverySpace"] = ADOResourceReference(
+        identifier=space1.identifier,
+        kind=CoreResourceKinds.DISCOVERYSPACE,
+    )
     sql_store.addResourceWithRelationships(
         operation_resource, relatedIdentifiers=[space1.identifier]
     )

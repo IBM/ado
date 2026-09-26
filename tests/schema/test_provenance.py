@@ -215,9 +215,9 @@ def test_provenance_for_operator_wrong_type_returns_none() -> None:
 
 def test_operator_metadata_provenance_lifecycle() -> None:
     """OperatorMetadata round-trips provenance through model_dump / model_validate."""
-    from ado.core.operation.config import OperatorMetadata
+    from ado.core.operation.config import GenericOperatorParameters, OperatorMetadata
 
-    class _ExampleConfig(pydantic.BaseModel):
+    class _ExampleConfig(GenericOperatorParameters):
         value: int = 1
 
     prov = PackageProvenance(distributionName="ado-core", distributionVersion="1.2.3")

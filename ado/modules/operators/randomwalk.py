@@ -30,6 +30,7 @@ from ado.core.discoveryspace.samplers import (
 )
 from ado.core.operation.config import (
     DiscoveryOperationEnum,
+    GenericOperatorParameters,
     OperatorMetadata,
 )
 from ado.modules.module import (
@@ -332,7 +333,7 @@ SamplerConfig = Annotated[
 ]
 
 
-class RandomWalkParameters(pydantic.BaseModel):
+class RandomWalkParameters(GenericOperatorParameters):
     samplerConfig: Annotated[
         SamplerConfig,
         pydantic.Field(

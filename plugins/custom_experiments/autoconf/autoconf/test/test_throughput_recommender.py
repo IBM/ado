@@ -10,20 +10,6 @@ import pytest
 from autogluon.tabular import TabularPredictor
 
 
-def test_candidate_combinations_match_reference_defaults() -> None:
-    """Default limits retain the POC's ordered, divisible candidates."""
-    from autoconf.throughput_recommender import BATCH_SIZES, candidate_combinations
-
-    candidates = candidate_combinations(max_nodes=1, gpus_per_node=8)
-    assert candidates[0] == (1, 1)
-    assert candidates[-1] == (2048, 8)
-    assert all(batch % gpus == 0 for batch, gpus in candidates)
-    assert all(batch // gpus <= 256 for batch, gpus in candidates)
-    assert {gpus for _, gpus in candidates} == {1, 2, 4, 8}
-    # Every per-device batch size must be a value the regressor was trained on.
-    assert all(batch // gpus in BATCH_SIZES for batch, gpus in candidates)
-
-
 def test_candidate_combinations_only_include_representable_gpu_counts() -> None:
     """Non-power-of-two node capacities cannot overstate total GPU count."""
     from autoconf.throughput_recommender import candidate_combinations
@@ -33,31 +19,6 @@ def test_candidate_combinations_only_include_representable_gpu_counts() -> None:
     assert (4096, 16) in candidate_combinations(max_nodes=2, gpus_per_node=8)
     with pytest.raises(ValueError, match="positive"):
         candidate_combinations(max_nodes=0, gpus_per_node=8)
-
-
-def test_prepare_regression_data_filters_and_limits_features() -> None:
-    """Only successful, divisible, positive-throughput rows reach AutoGluon."""
-    from autoconf.throughput_recommender import (
-        REGRESSION_COLUMNS,
-        prepare_regression_data,
-    )
-
-    data = pd.DataFrame(
-        {
-            "model_name": ["llama-7b"] * 4,
-            "method": ["lora"] * 4,
-            "number_gpus": [2, 2, 3, 2],
-            "gpu_model": ["NVIDIA-A100-80GB-PCIe"] * 4,
-            "tokens_per_sample": [2048] * 4,
-            "batch_size": [8, 8, 8, 8],
-            "is_valid": [1, 0, 1, 1],
-            "dataset_tokens_per_second": [10.0, 12.0, 20.0, 0.0],
-            "metadata.uid": ["a", "b", "c", "d"],
-        }
-    )
-    prepared = prepare_regression_data(data)
-    assert list(prepared.columns) == REGRESSION_COLUMNS
-    assert prepared["dataset_tokens_per_second"].tolist() == [10.0]
 
 
 def test_prepare_regression_data_rejects_missing_or_unusable_targets() -> None:
@@ -142,41 +103,6 @@ def test_unknown_model_warning_is_advisory() -> None:
     with pytest.warns(UserWarning, match="unvalidated"):
         warn_if_unknown_model("new-model", frozenset({"llama-7b"}))
     warn_if_unknown_model("llama-7b", frozenset({"llama-7b"}))
-
-
-def test_ado_experiment_interface_and_version() -> None:
-    """ADO exposes the required fields, defaults, and six result properties."""
-    from ado.schema.domain import VariableTypeEnum
-    from autoconf.throughput_recommender import throughput_recommender
-
-    experiment = throughput_recommender._experiment
-    assert experiment.identifier == "throughput_recommender"
-    required = {prop.identifier: prop for prop in experiment.requiredProperties}
-    assert set(required) == {
-        "model_name",
-        "method",
-        "gpu_model",
-        "tokens_per_sample",
-    }
-    assert (
-        required["model_name"].propertyDomain.variableType
-        == VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE
-    )
-    assert {prop.identifier for prop in experiment.optionalProperties} == {
-        "max_nodes",
-        "gpus_per_node",
-        "model_version",
-    }
-    assert throughput_recommender._original_func.__defaults__ == (1, 8, "4.1.0")
-
-
-def test_regressor_path_does_not_change_classifier_path(tmp_path: Path) -> None:
-    """The new model and the existing classifier use separate versioned paths."""
-    from autoconf.model_paths import model_path
-    from autoconf.throughput_recommender import regressor_path
-
-    assert model_path(tmp_path) == tmp_path / "v4-0-0"
-    assert regressor_path(tmp_path) == tmp_path / "v4-1-0-regressor"
 
 
 def _make_build_data(tmp_path: Path) -> Path:

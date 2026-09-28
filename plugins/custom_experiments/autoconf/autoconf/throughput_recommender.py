@@ -7,6 +7,7 @@ import functools
 import itertools
 import json
 import math
+import shutil
 import tempfile
 import warnings
 from pathlib import Path
@@ -165,19 +166,24 @@ def build_regressor(
         "time_limit": 1800,
         "num_bag_folds": 5,
     }
-    with tempfile.TemporaryDirectory(
-        dir=model_root, prefix="autoconf-regression-training-"
-    ) as temporary_directory:
-        predictor = TabularPredictor(
-            label=TARGET,
-            problem_type="regression",
-            eval_metric="root_mean_squared_error",
-            path=str(Path(temporary_directory) / "model"),
-        ).fit(train_data=TabularDataset(training_data), **options)
-        predictor.clone_for_deployment(path=str(destination))
-    (destination / KNOWN_MODELS_FILE).write_text(
-        json.dumps(known_models), encoding="utf-8"
-    )
+    try:
+        with tempfile.TemporaryDirectory(
+            dir=model_root, prefix="autoconf-regression-training-"
+        ) as temporary_directory:
+            predictor = TabularPredictor(
+                label=TARGET,
+                problem_type="regression",
+                eval_metric="root_mean_squared_error",
+                path=str(Path(temporary_directory) / "model"),
+            ).fit(train_data=TabularDataset(training_data), **options)
+            predictor.clone_for_deployment(path=str(destination))
+        (destination / KNOWN_MODELS_FILE).write_text(
+            json.dumps(known_models), encoding="utf-8"
+        )
+    except Exception:
+        if destination.exists():
+            shutil.rmtree(destination, ignore_errors=True)
+        raise
     return destination
 
 

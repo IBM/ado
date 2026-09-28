@@ -175,6 +175,55 @@ def test_regressor_path_does_not_change_classifier_path(tmp_path: Path) -> None:
     assert regressor_path(tmp_path) == tmp_path / "v4-1-0-regressor"
 
 
+def test_build_regressor_cleans_up_destination_on_failure(tmp_path: Path) -> None:
+    """A failed build must not leave a partial destination directory.
+
+    Without cleanup, the next call raises FileExistsError and recovery
+    requires manual deletion.
+    """
+    from unittest.mock import patch
+
+    import pandas as pd
+
+    from autoconf.throughput_recommender import build_regressor, regressor_path
+
+    # Use the same row layout as trained_predictors so AutoGluon can fit RF.
+    rows = [
+        {
+            "model_name": "llama-7b",
+            "method": "lora",
+            "number_gpus": number_gpus,
+            "gpu_model": "NVIDIA-A100-80GB-PCIe",
+            "tokens_per_sample": 2048,
+            "batch_size": number_gpus * (repeat % 4 + 1),
+            "is_valid": int(number_gpus > 1),
+            "dataset_tokens_per_second": float(number_gpus * 10 + repeat),
+        }
+        for repeat in range(8)
+        for number_gpus in (2, 4, 8)
+    ]
+    data_root = tmp_path / "data"
+    data_root.mkdir()
+    (data_root / "dataset.csv").write_text(pd.DataFrame(rows).to_csv(index=False))
+
+    # Simulate clone_for_deployment failing after destination is created.
+    with (
+        patch(
+            "autoconf.throughput_recommender.TabularPredictor.clone_for_deployment",
+            side_effect=RuntimeError("simulated clone failure"),
+        ),
+        pytest.raises(RuntimeError, match="simulated clone failure"),
+    ):
+        build_regressor(
+            model_root=tmp_path,
+            data_root_dir=data_root,
+            fit_options={"hyperparameters": {"RF": {}}, "num_bag_folds": 0},
+        )
+
+    # Destination must be absent so a retry can succeed.
+    assert not regressor_path(tmp_path).exists()
+
+
 @pytest.fixture(scope="module")
 def trained_predictors(
     tmp_path_factory: pytest.TempPathFactory,

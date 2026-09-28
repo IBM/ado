@@ -230,7 +230,7 @@ def select_best_candidate(
     if valid_candidates.empty:
         return {"can_recommend": False}
 
-    valid_candidates["estimated_throughput"] = np.asarray(throughput_predictions)
+    valid_candidates["estimated_throughput"] = throughput_predictions.to_numpy()
     valid_candidates = valid_candidates.loc[
         np.isfinite(valid_candidates["estimated_throughput"])
     ]

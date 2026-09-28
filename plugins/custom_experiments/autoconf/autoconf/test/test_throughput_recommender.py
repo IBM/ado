@@ -84,6 +84,28 @@ def test_select_best_candidate_preserves_first_tie() -> None:
     }
 
 
+def test_select_best_candidate_uses_index_aligned_throughput() -> None:
+    """throughput_predictions with non-default index must align positionally.
+
+    rows 0 and 2 are valid; the regressor returns a Series with index [0, 2].
+    positional assignment must pair throughput[0]=10 → row 0 and
+    throughput[1]=99 → row 2, so the winner is row 2 (batch_size=32).
+    """
+    from autoconf.throughput_recommender import select_best_candidate
+
+    candidates = pd.DataFrame({"batch_size": [8, 16, 32], "number_gpus": [2, 2, 2]})
+    throughput = pd.Series([10.0, 99.0], index=[0, 2])
+    result = select_best_candidate(candidates, pd.Series([1, 0, 1]), throughput)
+    assert result == {
+        "can_recommend": True,
+        "gpus": 2,
+        "workers": 1,
+        "effective_batch_size": 32,
+        "per_device_batch_size": 16,
+        "estimated_throughput": 99.0,
+    }
+
+
 def test_select_best_candidate_handles_no_valid_candidate() -> None:
     """No successful candidate has the existing recommender's failure shape."""
     from autoconf.throughput_recommender import select_best_candidate

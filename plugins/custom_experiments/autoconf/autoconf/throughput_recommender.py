@@ -53,6 +53,10 @@ REGRESSION_COLUMNS = [*FEATURE_COLUMNS, TARGET]
 BATCH_SIZES = [1, 2, 4, 8, 16, 32, 64, 128, 256]
 GPU_COUNTS = [1, 2, 4, 8, 16]
 
+# OPEN_CATEGORICAL is intentional: throughput_recommender accepts any model
+# name and emits an advisory warning for names absent from training data
+# (see warn_if_unknown_model). The OOM classifier uses a closed categorical
+# list instead; the two experiments have different validation contracts.
 ModelName = ConstitutiveProperty(
     identifier="model_name",
     propertyDomain=PropertyDomain(
@@ -201,6 +205,7 @@ def load_regressor(
         warnings.warn(
             "AutoConf throughput regressor not found. Training it from the default "
             "Hugging Face dataset; this may take several minutes.",
+            UserWarning,
             stacklevel=2,
         )
         build_regressor(model_root=model_root or DEFAULT_MODEL_ROOT)

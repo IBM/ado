@@ -446,32 +446,6 @@ def resolve_operator_reference(ref: OperatorReference) -> OperatorReference:
     return ref
 
 
-def provenance_for_operator(
-    name: str, op_type: DiscoveryOperationEnum
-) -> PackageProvenance | None:
-    """Return the package provenance for a registered operator.
-
-    Looks up the operator in the collection for ``op_type`` and returns the
-    :class:`~ado.core.metadata.PackageProvenance` recorded on its
-    registry metadata at registration time.
-
-    Args:
-        name: Canonical operator name.
-        op_type: The discovery operation type the operator belongs to.
-
-    Returns:
-        A :class:`~ado.core.metadata.PackageProvenance` instance,
-        or ``None`` if provenance is unavailable.
-    """
-    collection = operationCollectionMap.get(op_type)
-    if collection is None:
-        return None
-    metadata = collection.operators.get(name)
-    if metadata is None:
-        return None
-    return metadata.provenance
-
-
 def load_operators() -> None:
     """Load all operator plugins via ``ado.operators`` entry points."""
     from importlib.metadata import entry_points

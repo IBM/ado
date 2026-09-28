@@ -32,6 +32,7 @@ from ado.modules.operators.console_output import (
     run_operation_live_updates,
 )
 from ado.modules.operators.discovery_space_manager import DiscoverySpaceManager
+from ado.modules.operators.provenance import explore_operation_provenance
 
 moduleLog = logging.getLogger("explore_orchestration")
 
@@ -222,6 +223,10 @@ def orchestrate_explore_operation(
 
     log_space_details(discovery_space)
 
+    provenance = explore_operation_provenance(
+        operator_metadata.reference, discovery_space.measurementSpace
+    )
+
     # create cleaner for this namespace
     initialize_ray_resource_cleaner(namespace=operation_info.ray_namespace)
 
@@ -334,6 +339,7 @@ def orchestrate_explore_operation(
             operator_metadata=operator_metadata,
             operation_parameters=parameters,
             operation_info=operation_info,
+            provenance=provenance,
             operation_identifier=identifier,
             finalize_callback=finalize_callback_closure(operator),
         )

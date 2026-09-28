@@ -136,6 +136,10 @@ def test_trim_example_operation_succeeds(
     )
 
     assert output.operation is not None
+    assert output.operation.provenance.operators
+    assert output.operation.operatorIdentifier in output.operation.provenance.operators
+    assert output.operation.provenance.experiments == []
+    assert output.operation.provenance.actuators == {}
     assert output.exitStatus is not None
     assert output.exitStatus.exit_state == OperationExitStateEnum.SUCCESS
     assert output.exitStatus.event == OperationResourceEventEnum.FINISHED

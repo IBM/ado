@@ -49,7 +49,7 @@ FEATURE_COLUMNS = [
     "batch_size",
 ]
 REGRESSION_COLUMNS = [*FEATURE_COLUMNS, TARGET]
-BATCH_SIZES = [1, 2, 4, 8, 16, 32, 128, 256]
+BATCH_SIZES = [1, 2, 4, 8, 16, 32, 64, 128, 256]
 GPU_COUNTS = [1, 2, 4, 8, 16]
 
 ModelName = ConstitutiveProperty(

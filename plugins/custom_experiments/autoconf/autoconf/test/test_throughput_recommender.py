@@ -12,7 +12,7 @@ from autogluon.tabular import TabularPredictor
 
 def test_candidate_combinations_match_reference_defaults() -> None:
     """Default limits retain the POC's ordered, divisible candidates."""
-    from autoconf.throughput_recommender import candidate_combinations
+    from autoconf.throughput_recommender import BATCH_SIZES, candidate_combinations
 
     candidates = candidate_combinations(max_nodes=1, gpus_per_node=8)
     assert candidates[0] == (1, 1)
@@ -20,6 +20,8 @@ def test_candidate_combinations_match_reference_defaults() -> None:
     assert all(batch % gpus == 0 for batch, gpus in candidates)
     assert all(batch // gpus <= 256 for batch, gpus in candidates)
     assert {gpus for _, gpus in candidates} == {1, 2, 4, 8}
+    # Every per-device batch size must be a value the regressor was trained on.
+    assert all(batch // gpus in BATCH_SIZES for batch, gpus in candidates)
 
 
 def test_candidate_combinations_only_include_representable_gpu_counts() -> None:

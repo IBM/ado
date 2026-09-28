@@ -89,14 +89,18 @@ def test_select_best_candidate_preserves_first_tie() -> None:
 def test_select_best_candidate_uses_index_aligned_throughput() -> None:
     """throughput_predictions with non-default index must align positionally.
 
-    rows 0 and 2 are valid; the regressor returns a Series with index [0, 2].
-    positional assignment must pair throughput[0]=10 → row 0 and
-    throughput[1]=99 → row 2, so the winner is row 2 (batch_size=32).
+    rows 0 and 2 are valid; the regressor returns a Series with index [0, 1]
+    (reset by AutoGluon). Positional alignment must pair index-0 prediction
+    10.0 → candidate row 0 and index-1 prediction 99.0 → candidate row 2,
+    so the winner is row 2 (batch_size=32). A label-based assignment would
+    incorrectly map index 1 → candidate row 1 (invalid) and produce no
+    valid candidate, failing the assertion.
     """
     from autoconf.throughput_recommender import select_best_candidate
 
     candidates = pd.DataFrame({"batch_size": [8, 16, 32], "number_gpus": [2, 2, 2]})
-    throughput = pd.Series([10.0, 99.0], index=[0, 2])
+    # valid_mask selects rows 0 and 2; AutoGluon resets the prediction index to [0, 1]
+    throughput = pd.Series([10.0, 99.0], index=[0, 1])
     result = select_best_candidate(candidates, pd.Series([1, 0, 1]), throughput)
     assert result == {
         "can_recommend": True,
@@ -175,19 +179,8 @@ def test_regressor_path_does_not_change_classifier_path(tmp_path: Path) -> None:
     assert regressor_path(tmp_path) == tmp_path / "v4-1-0-regressor"
 
 
-def test_build_regressor_cleans_up_destination_on_failure(tmp_path: Path) -> None:
-    """A failed build must not leave a partial destination directory.
-
-    Without cleanup, the next call raises FileExistsError and recovery
-    requires manual deletion.
-    """
-    from unittest.mock import patch
-
-    import pandas as pd
-
-    from autoconf.throughput_recommender import build_regressor, regressor_path
-
-    # Use the same row layout as trained_predictors so AutoGluon can fit RF.
+def _make_build_data(tmp_path: Path) -> Path:
+    """Write a minimal regression CSV under tmp_path/data/dataset.csv."""
     rows = [
         {
             "model_name": "llama-7b",
@@ -203,16 +196,35 @@ def test_build_regressor_cleans_up_destination_on_failure(tmp_path: Path) -> Non
         for number_gpus in (2, 4, 8)
     ]
     data_root = tmp_path / "data"
-    data_root.mkdir()
-    (data_root / "dataset.csv").write_text(pd.DataFrame(rows).to_csv(index=False))
+    data_root.mkdir(exist_ok=True)
+    pd.DataFrame(rows).to_csv(data_root / "dataset.csv", index=False)
+    return data_root
 
-    # Simulate clone_for_deployment failing after destination is created.
+
+def test_build_regressor_cleans_up_staging_on_failure(tmp_path: Path) -> None:
+    """A failed build must not leave staging artifacts behind.
+
+    clone_for_deployment creates the staging directory before the patch raises,
+    so the cleanup path actually removes an existing directory. A retry after
+    cleanup must succeed.
+    """
+    from unittest.mock import patch
+
+    from autoconf.throughput_recommender import build_regressor, regressor_path
+
+    data_root = _make_build_data(tmp_path)
+    staging = Path(str(regressor_path(tmp_path)) + ".staging")
+
+    original_clone = TabularPredictor.clone_for_deployment
+
+    def clone_then_fail(self: TabularPredictor, path: str, **kwargs: object) -> None:
+        # Call the real method so staging is populated, then raise.
+        original_clone(self, path, **kwargs)
+        raise RuntimeError("post-clone failure")
+
     with (
-        patch(
-            "autoconf.throughput_recommender.TabularPredictor.clone_for_deployment",
-            side_effect=RuntimeError("simulated clone failure"),
-        ),
-        pytest.raises(RuntimeError, match="simulated clone failure"),
+        patch.object(TabularPredictor, "clone_for_deployment", clone_then_fail),
+        pytest.raises(RuntimeError, match="post-clone failure"),
     ):
         build_regressor(
             model_root=tmp_path,
@@ -220,8 +232,45 @@ def test_build_regressor_cleans_up_destination_on_failure(tmp_path: Path) -> Non
             fit_options={"hyperparameters": {"RF": {}}, "num_bag_folds": 0},
         )
 
-    # Destination must be absent so a retry can succeed.
+    # Staging and destination must both be absent.
+    assert not staging.exists()
     assert not regressor_path(tmp_path).exists()
+
+    # A retry must succeed now that staging is clean.
+    result = build_regressor(
+        model_root=tmp_path,
+        data_root_dir=data_root,
+        fit_options={"hyperparameters": {"RF": {}}, "num_bag_folds": 0},
+    )
+    assert result == regressor_path(tmp_path)
+    assert regressor_path(tmp_path).is_dir()
+
+
+def test_build_regressor_second_caller_skips_training(tmp_path: Path) -> None:
+    """A builder that arrives after another has published must not retrain.
+
+    This covers the re-check-under-lock path: a second call with an already-
+    present destination returns immediately without touching the model files.
+    """
+    from autoconf.throughput_recommender import build_regressor, regressor_path
+
+    data_root = _make_build_data(tmp_path)
+    build_regressor(
+        model_root=tmp_path,
+        data_root_dir=data_root,
+        fit_options={"hyperparameters": {"RF": {}}, "num_bag_folds": 0},
+    )
+    destination = regressor_path(tmp_path)
+    mtime_before = destination.stat().st_mtime
+
+    # Second call must return without modifying the destination.
+    result = build_regressor(
+        model_root=tmp_path,
+        data_root_dir=data_root,
+        fit_options={"hyperparameters": {"RF": {}}, "num_bag_folds": 0},
+    )
+    assert result == destination
+    assert destination.stat().st_mtime == mtime_before
 
 
 @pytest.fixture(scope="module")

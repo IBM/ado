@@ -7,6 +7,7 @@ import functools
 import itertools
 import json
 import math
+import os
 import shutil
 import tempfile
 import warnings
@@ -16,6 +17,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 from autogluon.tabular import TabularDataset, TabularPredictor
+from filelock import FileLock
 
 from ado.modules.actuators.custom_experiments import custom_experiment
 from ado.schema.domain import PropertyDomain, VariableTypeEnum
@@ -153,41 +155,57 @@ def build_regressor(
     filename: str = DEFAULT_HF_FILENAME,
     fit_options: dict[str, Any] | None = None,
 ) -> Path:
-    """Train and save the throughput regressor from the classifier's dataset."""
-    destination = regressor_path(model_root)
-    if destination.exists():
-        raise FileExistsError(f"Regressor already exists at {destination}")
+    """Train and save the throughput regressor from the classifier's dataset.
 
-    data_path = ensure_dataset(repo_id, filename, data_root_dir / file_name)
-    training_data = prepare_regression_data(
-        prepare_training_data(pd.read_csv(data_path))
-    )
-    known_models = sorted(training_data["model_name"].dropna().unique().tolist())
+    Publication is atomic: the model is trained into a private staging
+    directory, ``known_model_names.json`` is written there, and then the
+    directory is renamed to the final destination in one OS call.  A
+    ``FileLock`` serializes concurrent callers so only the first builder
+    trains; subsequent callers that arrive while training is in progress
+    wait for the lock and then return the already-published destination.
+    """
     model_root.mkdir(parents=True, exist_ok=True)
-    options = fit_options or {
-        "presets": "good",
-        "excluded_model_types": ["GBM"],
-        "time_limit": 1800,
-        "num_bag_folds": 5,
-    }
-    try:
-        with tempfile.TemporaryDirectory(
-            dir=model_root, prefix="autoconf-regression-training-"
-        ) as temporary_directory:
-            predictor = TabularPredictor(
-                label=TARGET,
-                problem_type="regression",
-                eval_metric="root_mean_squared_error",
-                path=str(Path(temporary_directory) / "model"),
-            ).fit(train_data=TabularDataset(training_data), **options)
-            predictor.clone_for_deployment(path=str(destination))
-        (destination / KNOWN_MODELS_FILE).write_text(
-            json.dumps(known_models), encoding="utf-8"
-        )
-    except Exception:
+    destination = regressor_path(model_root)
+    lock_path = Path(str(destination) + ".lock")
+
+    with FileLock(str(lock_path)):
+        # Re-check under the lock: a concurrent builder may have finished.
         if destination.exists():
-            shutil.rmtree(destination, ignore_errors=True)
-        raise
+            return destination
+
+        data_path = ensure_dataset(repo_id, filename, data_root_dir / file_name)
+        training_data = prepare_regression_data(
+            prepare_training_data(pd.read_csv(data_path))
+        )
+        known_models = sorted(training_data["model_name"].dropna().unique().tolist())
+        options = fit_options or {
+            "presets": "good",
+            "excluded_model_types": ["GBM"],
+            "time_limit": 1800,
+            "num_bag_folds": 5,
+        }
+        staging = Path(str(destination) + ".staging")
+        if staging.exists():
+            shutil.rmtree(staging)
+        try:
+            with tempfile.TemporaryDirectory(
+                dir=model_root, prefix="autoconf-regression-training-"
+            ) as temporary_directory:
+                predictor = TabularPredictor(
+                    label=TARGET,
+                    problem_type="regression",
+                    eval_metric="root_mean_squared_error",
+                    path=str(Path(temporary_directory) / "model"),
+                ).fit(train_data=TabularDataset(training_data), **options)
+                predictor.clone_for_deployment(path=str(staging))
+            (staging / KNOWN_MODELS_FILE).write_text(
+                json.dumps(known_models), encoding="utf-8"
+            )
+            os.rename(staging, destination)
+        except Exception:
+            if staging.exists():
+                shutil.rmtree(staging, ignore_errors=True)
+            raise
     return destination
 
 

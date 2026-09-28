@@ -214,7 +214,7 @@ def warn_if_unknown_model(model_name: str, known_models: frozenset[str]) -> None
             "throughput estimate is unvalidated. Use a model represented in "
             "the dataset, or add measurements and retrain the models.",
             UserWarning,
-            stacklevel=2,
+            stacklevel=4,
         )
 
 

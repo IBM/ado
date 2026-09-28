@@ -275,15 +275,15 @@ The path can be relative or absolute. Relative paths are resolved with respect
 to the directory `ado remote` is run in.
 
 The wheels will be transferred to the working dir of the ray job on the remote
-cluster and installed in the ray jobs virtual env.
+cluster and installed in the ray job's virtual env.
 
 #### Installing remote wheels
 
 If there is a wheel your job needs that already exists on the remote cluster,
-add its path to from PyPI. `ado remote` will notice that it is not on the local
+add its path to `fromPyPI`. `ado remote` will notice that it is not on the local
 machine and pass the full path to ray to install on the remote machine. For
 example, if the wheel is located at `/data/mywheel.whl` on the remote cluster,
-do,
+do:
 
 ```yaml
 packages:
@@ -296,7 +296,7 @@ packages:
 
 > [!IMPORTANT] Failure Modes
 >
-> If you add a entry for a wheel that is not local or remote, the installation
+> If you add an entry for a wheel that is not local or remote, the installation
 > step will fail
 
 <!-- markdownlint-disable-next-line MD028 -->
@@ -311,7 +311,7 @@ packages:
 
 > [!TIP] Use absolute paths
 >
-> For remote wheels it's better to use an absolute path as a relative path will
+> For remote wheels it's better to use an absolute path, as a relative path will
 > be interpreted w.r.t. the remote working dir which you cannot guarantee the
 > location of.
 

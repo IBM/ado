@@ -1,6 +1,0 @@
-{
-  "settingsInheritedFrom": "ibm-mend-config/mend-config@main",
-  "scanSettings": {
-    "configMode": "LOCAL"
-  }
-}

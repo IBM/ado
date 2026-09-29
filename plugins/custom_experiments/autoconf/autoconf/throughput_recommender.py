@@ -66,7 +66,12 @@ GPU_COUNTS = sorted([1, 2, 4, 8, 16])
 # estimated_throughput. If no feasible candidate exists the result is
 # {"can_recommend": False}. The known model names are saved alongside the
 # trained regressor in KNOWN_MODELS_FILE (known_model_names.json) and loaded
-# by load_regressor.
+# by load_regressor. AutoGluon treats the unknown name as a missing value
+# during feature encoding; the resulting prediction depends on how the winning
+# model handles NaN categoricals.
+# The avoid_oom_recommender and min_gpu_recommender custom experiments
+# use a closed categorical list instead; throughput_recommender has a
+# different validation contract.
 ModelName = ConstitutiveProperty(
     identifier="model_name",
     propertyDomain=PropertyDomain(

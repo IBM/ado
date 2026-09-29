@@ -52,13 +52,22 @@ FEATURE_COLUMNS = [
     "batch_size",
 ]
 REGRESSION_COLUMNS = [*FEATURE_COLUMNS, TARGET]
+# Candidate recommendation ranges for throughput model version 4.1.0.
+# Values were selected after post-processing AutoConf's LLMFineTuningBench
+# training measurements. BATCH_SIZES are per-device batch sizes; GPU_COUNTS
+# are total GPUs across the selected nodes.
 BATCH_SIZES = sorted([1, 2, 4, 8, 16, 32, 64, 128, 256])
 GPU_COUNTS = sorted([1, 2, 4, 8, 16])
 
 # OPEN_CATEGORICAL is intentional: throughput_recommender accepts any model
-# name and emits an advisory warning for names absent from training data
-# (see warn_if_unknown_model). The OOM classifier uses a closed categorical
-# list instead; the two experiments have different validation contracts.
+# name. For a name absent from the regressor's training data, AutoConf emits
+# a warning and proceeds with prediction; the recommendation returns
+# can_recommend=True, the batch size and GPU layout, and an unvalidated
+# estimated_throughput. If no feasible candidate exists the result is
+# {"can_recommend": False}. The known model names are saved alongside the
+# trained regressor in KNOWN_MODELS_FILE (known_model_names.json) and loaded
+# by load_regressor. The OOM classifier uses a closed categorical list
+# instead; the two experiments have different validation contracts.
 ModelName = ConstitutiveProperty(
     identifier="model_name",
     propertyDomain=PropertyDomain(

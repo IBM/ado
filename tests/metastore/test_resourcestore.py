@@ -2023,3 +2023,17 @@ def test_both_from_document_returns_both_operations(
     assert CoreResourceKinds.OPERATION in result
     assert h["op_a_id"] in result[CoreResourceKinds.OPERATION]
     assert h["op_b_id"] in result[CoreResourceKinds.OPERATION]
+
+
+def test_table_reflection_is_cached_across_instances(
+    valid_ado_project_context: ProjectContext,
+) -> None:
+    """Reflected table objects are shared across store instances with the same engine URL."""
+    from ado.metastore.sqlstore import SQLResourceStore, _reflected_metadata_cache
+
+    store_a = SQLResourceStore(project_context=valid_ado_project_context)
+    store_b = SQLResourceStore(project_context=valid_ado_project_context)
+
+    assert store_a._resources_table is store_b._resources_table
+    assert store_a._relationships_table is store_b._relationships_table
+    assert str(store_a.engine.url) in _reflected_metadata_cache

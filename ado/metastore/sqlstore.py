@@ -43,9 +43,11 @@ from ado.utilities.pydantic import (
 if TYPE_CHECKING:
     import pandas as pd
 
-# Cache to track databases where we've verified tables exist
 # Key: database connection string, Value: True if tables exist
 _tables_exist_cache: dict[str, bool] = {}
+
+# Key: engine URL string, Value: sqlalchemy.MetaData with reflected resources tables
+_reflected_metadata_cache: dict[str, sqlalchemy.MetaData] = {}
 
 
 class SQLStore(ResourceStore):
@@ -142,7 +144,6 @@ class SQLResourceStore(ResourceStore):
         if ensureExists:
             self.log.debug("Initialising SQL db if it does not exist")
             create_sql_resource_store(self.engine)
-            # Update cache after creating tables
             cache_key = (
                 self.configuration.url().unicode_string()
                 if self.configuration.scheme != "sqlite"
@@ -151,7 +152,21 @@ class SQLResourceStore(ResourceStore):
             _tables_exist_cache[cache_key] = True
             self.log.debug("Done")
 
+        self._reflect_tables()
         super().__init__()
+
+    def _reflect_tables(self) -> None:
+        """Reflect the resources and resource_relationships tables, caching the metadata by engine URL."""
+        cache_key = str(self._engine.url)
+        if cache_key not in _reflected_metadata_cache:
+            metadata = sqlalchemy.MetaData()
+            metadata.reflect(
+                bind=self._engine, only=["resources", "resource_relationships"]
+            )
+            _reflected_metadata_cache[cache_key] = metadata
+        metadata = _reflected_metadata_cache[cache_key]
+        self._resources_table = metadata.tables["resources"]
+        self._relationships_table = metadata.tables["resource_relationships"]
 
     # The SQLAlchemy Engine is not picklable, so anything using
     # Ray would fail. To avoid this, we remove it before pickling
@@ -159,11 +174,14 @@ class SQLResourceStore(ResourceStore):
     def __getstate__(self) -> dict:
         state = self.__dict__.copy()
         del state["_engine"]
+        del state["_resources_table"]
+        del state["_relationships_table"]
         return state
 
     def __setstate__(self, state: dict) -> None:
         self.__dict__.update(state)
         self._engine = engine_for_sql_store(self.configuration)
+        self._reflect_tables()
 
     @property
     def engine(self) -> sqlalchemy.Engine:

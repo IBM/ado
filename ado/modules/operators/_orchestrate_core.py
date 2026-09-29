@@ -17,11 +17,11 @@ from ado.core.discoveryspace.space import DiscoverySpace
 from ado.core.operation.config import (
     FunctionOperationInfo,
     OperatorMetadata,
-    OperatorReference,
 )
 from ado.core.operation.operation import OperationException, OperationOutput
 from ado.core.operation.resource import (
     OperationExitStateEnum,
+    OperationProvenanceInfo,
     OperationResourceEventEnum,
     OperationResourceStatus,
 )
@@ -124,6 +124,7 @@ def _run_operation_harness(
     operator_metadata: OperatorMetadata,
     operation_parameters: dict,
     operation_info: FunctionOperationInfo,
+    provenance: OperationProvenanceInfo,
     operation_identifier: str | None = None,
     finalize_callback: typing.Callable[[OperationResource], None] | None = None,
 ) -> OperationOutput:
@@ -139,6 +140,7 @@ def _run_operation_harness(
         operator_metadata: Metadata for the registered operator.
         operation_parameters: Dictionary of parameters for the operation
         operation_info: Information about the operation including metadata and actuator configs
+        provenance: Package provenance for the operation, built by the caller
         operation_identifier: Optional pre-existing identifier for the operation resource
         finalize_callback: Optional callback to execute on the operation resource after
             completion, before final status update
@@ -155,17 +157,13 @@ def _run_operation_harness(
     # Create and add OperationResource to metastore
     #
 
-    operator_reference = OperatorReference(
-        operatorName=operator_metadata.name,
-        operationType=operator_metadata.type,
-        operatorVersion=operator_metadata.version,
-    )
     operation_resource = create_operation_and_add_to_metastore(
-        discovery_space=discovery_space,
-        operator_module=operator_reference,
+        space_identifier=discovery_space.uri,
+        operator_module=operator_metadata.reference,
         operation_parameters=operation_parameters,
         metastore=discovery_space.metadataStore,
         operation_info=operation_info,
+        provenance=provenance,
         operation_identifier=operation_identifier,
     )
 

@@ -22,8 +22,12 @@ from ado.core.datacontainer.resource import DataContainerResource
 from ado.core.discoveryspace.resource import DiscoverySpaceResource
 from ado.core.document.config import DocumentConfiguration
 from ado.core.document.resource import DocumentResource
-from ado.core.operation.config import DiscoveryOperationResourceConfiguration
-from ado.core.operation.resource import OperationResource
+from ado.core.metadata import PackageProvenance
+from ado.core.operation.config import (
+    DiscoveryOperationResourceConfiguration,
+    FunctionOperationInfo,
+)
+from ado.core.operation.resource import OperationProvenanceInfo, OperationResource
 from ado.core.resources import (
     ADOResourceEventEnum,
     CoreResourceKinds,
@@ -336,7 +340,7 @@ def test_add_update_and_delete_operation_related_to_discovery_space(
 
 
 @requires_sqlite_3_38
-def test_add_operation_and_output(
+def test_create_operation_and_add_output(
     random_space_resource_from_db: Callable[[str | None], DiscoverySpaceResource],
     sql_store: SQLStore,
     random_walk_multicloud_operation_configuration: DiscoveryOperationResourceConfiguration,
@@ -345,15 +349,48 @@ def test_add_operation_and_output(
 
     space_resource = random_space_resource_from_db()
     space_identifier = space_resource.identifier
-    random_walk_multicloud_operation_configuration.spaces = [space_identifier]
+    operation_parameters = (
+        random_walk_multicloud_operation_configuration.operation.parameters
+    )
+    if hasattr(operation_parameters, "model_dump"):
+        operation_parameters = operation_parameters.model_dump()
 
-    op_resource = ado.modules.operators.base.add_operation_and_output_to_metastore(
-        operation_resource_configuration=random_walk_multicloud_operation_configuration,
+    provenance = OperationProvenanceInfo(
+        operators={
+            random_walk_multicloud_operation_configuration.operation.module.operatorIdentifier: PackageProvenance(
+                distributionName="ado-core",
+                distributionVersion="1.2.3",
+            )
+        }
+    )
+    op_resource = ado.modules.operators.base.create_operation_and_add_to_metastore(
+        space_identifier=space_identifier,
+        operator_module=random_walk_multicloud_operation_configuration.operation.module,
+        operation_parameters=operation_parameters,
+        operation_info=FunctionOperationInfo(
+            metadata=random_walk_multicloud_operation_configuration.metadata,
+            actuatorConfigurationIdentifiers=(
+                random_walk_multicloud_operation_configuration.actuatorConfigurationIdentifiers
+            ),
+        ),
         metastore=sql_store,
+        provenance=provenance,
+    )
+    ado.modules.operators.base.add_operation_output_to_metastore(
+        operation=op_resource,
         output=ado.modules.operators.base.OperationOutput(
             resources=[data_container_resource]
         ),
+        metastore=sql_store,
     )
+
+    assert op_resource.config.spaces == [space_identifier]
+    loaded = sql_store.getResource(
+        identifier=op_resource.identifier, kind=CoreResourceKinds.OPERATION
+    )
+    assert loaded.provenance.operators == provenance.operators
+    assert loaded.provenance.experiments == []
+    assert loaded.provenance.actuators == {}
 
     # Test we can get the datacontainer
     dcs = sql_store.get_resources_by_relationship(

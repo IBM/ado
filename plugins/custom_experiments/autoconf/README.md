@@ -17,8 +17,16 @@ also returns `workers` (nodes), `gpus` (per node), `effective_batch_size`,
 `per_device_batch_size`, and `estimated_throughput` in dataset tokens per second.
 When no candidate is feasible, it returns only `can_recommend: false`.
 
-The search considers candidate per-device batch sizes and total GPU counts,
-subject to the requested node capacity.
+The search is over the following candidates, tied to throughput model version
+4.1.0 and selected after post-processing the
+[`ado-sfttrainer-v1-0-0.csv`](https://huggingface.co/datasets/ibm-research/LLMFineTuningBench/blob/main/ado-sfttrainer-v1-0-0.csv)
+training dataset:
+
+- Per-device batch sizes: `[1, 2, 4, 8, 16, 32, 64, 128, 256]`
+- Total GPU counts: `[1, 2, 4, 8, 16]`
+- Effective batch sizes: powers of two from 1 up to 4096, limited by the
+  requested node capacity.
+
 The regressor trains automatically on first use from the same downloaded CSV as
 the classifier and is then loaded from its saved model directory. If the
 classifier is absent, its existing on-demand builder trains it. Neither model
@@ -27,7 +35,9 @@ binary is shipped with the plugin.
 `model_name` is open categorical. If the name is absent from training data,
 AutoConf warns that the throughput estimate is unvalidated and still attempts
 prediction. Use a model represented in the dataset, or add measurements and
-retrain, before relying on a recommendation for a new model.
+retrain, before relying on a recommendation for a new model. The model names
+represented in the regressor's training data are recorded in
+`known_model_names.json` in the saved model directory when training completes.
 
 Run the [single-point example](examples/throughput.yaml) from the repository
 root in the `local` ADO context:

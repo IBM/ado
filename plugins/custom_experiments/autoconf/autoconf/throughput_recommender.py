@@ -66,8 +66,7 @@ GPU_COUNTS = sorted([1, 2, 4, 8, 16])
 # estimated_throughput. If no feasible candidate exists the result is
 # {"can_recommend": False}. The known model names are saved alongside the
 # trained regressor in KNOWN_MODELS_FILE (known_model_names.json) and loaded
-# by load_regressor. The OOM classifier uses a closed categorical list
-# instead; the two experiments have different validation contracts.
+# by load_regressor.
 ModelName = ConstitutiveProperty(
     identifier="model_name",
     propertyDomain=PropertyDomain(

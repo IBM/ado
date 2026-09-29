@@ -118,13 +118,11 @@ ado get experiments --details
 <!-- markdownlint-disable line-length -->
 
 ```text
-┌───────┬────────────────────┬─────────────────────┬─────────┬─────────────┐
-│ INDEX │ ACTUATOR ID        │ EXPERIMENT ID       │ VERSION │ DESCRIPTION │
-├───────┼────────────────────┼─────────────────────┼─────────┼─────────────┤
-│ 0     │ custom_experiments │ ml-multicloud-cost  │ 1.0.0   │             │
-│ 1     │ mock               │ test-experiment     │ None    │             │
-│ 2     │ mock               │ test-experiment-two │ None    │             │
-└───────┴────────────────────┴─────────────────────┴─────────┴─────────────┘
+┌───────┬────────────────────┬────────────────────────┬─────────┬─────────────┐
+│ INDEX │ ACTUATOR ID        │ EXPERIMENT ID          │ VERSION │ DESCRIPTION │
+├───────┼────────────────────┼────────────────────────┼─────────┼─────────────┤
+│ 0     │ custom_experiments │ ml-multicloud-cost     │ 1.0.0   │             │
+└───────┴────────────────────┴────────────────────────┴─────────┴─────────────┘
 ```
 
 <!-- markdownlint-enable line-length -->

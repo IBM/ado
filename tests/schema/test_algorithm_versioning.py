@@ -494,21 +494,21 @@ def test_catalog_lookup_any_ambiguous_raises() -> None:
 
 
 def test_registry_experiment_for_reference_any(
+    test_actuator_catalog: ExperimentCatalog,
     global_registry: ActuatorRegistry,
 ) -> None:
     """Registry delegates any matching to the actuator catalog."""
-    catalog = global_registry.catalogForActuatorIdentifier("mock")
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", DeprecationWarning)
-        catalog.addExperiment(
+        test_actuator_catalog.addExperiment(
             _make_experiment("registry_any_lookup_exp", version="1.0.0").model_copy(
-                update={"actuatorIdentifier": "mock"}
+                update={"actuatorIdentifier": "test"}
             )
         )
 
     ref = ExperimentReference(
         experimentIdentifier="registry_any_lookup_exp",
-        actuatorIdentifier="mock",
+        actuatorIdentifier="test",
     )
     result = global_registry.experimentForReference(ref, match_on="any")
     assert result.identifier == "registry_any_lookup_exp"
@@ -752,22 +752,22 @@ def test_reference_str_fq_with_parameterization() -> None:
 
 
 def test_registry_unknown_experiment_error_lists_available_versions(
+    test_actuator_catalog: ExperimentCatalog,
     global_registry: ActuatorRegistry,
 ) -> None:
     """Registry UnknownExperimentError hints at available versions when omitted."""
-    catalog = global_registry.catalogForActuatorIdentifier("mock")
     versioned_exp = Experiment(
-        actuatorIdentifier="mock",
+        actuatorIdentifier="test",
         identifier="version_hint_exp",
         targetProperties=[AbstractPropertyDescriptor(identifier="output")],
         version="1.0.0",
     )
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", DeprecationWarning)
-        catalog.addExperiment(versioned_exp)
+        test_actuator_catalog.addExperiment(versioned_exp)
     ref = ExperimentReference(
         experimentIdentifier="version_hint_exp",
-        actuatorIdentifier="mock",
+        actuatorIdentifier="test",
     )
     with pytest.raises(
         UnknownExperimentError, match=r"Available versions in catalog: 1\.0\.0"
@@ -788,12 +788,13 @@ def test_registry_experiment_for_reference_unknown_actuator_raises(
 
 
 def test_registry_experiment_for_reference_unknown_experiment_raises(
+    test_actuator_catalog: ExperimentCatalog,
     global_registry: ActuatorRegistry,
 ) -> None:
     """Known actuator with missing experiment must raise UnknownExperimentError."""
     ref = ExperimentReference(
         experimentIdentifier="nonexistent_experiment",
-        actuatorIdentifier="mock",
+        actuatorIdentifier="test",
     )
     with pytest.raises(UnknownExperimentError, match="actuator was found"):
         global_registry.experimentForReference(ref, resolve=False)
@@ -808,13 +809,13 @@ def test_registry_experiment_for_reference_miss_without_actuator_catalog(
 
     ref = ExperimentReference(
         experimentIdentifier="missing_experiment",
-        actuatorIdentifier="mock",
+        actuatorIdentifier="test",
     )
     supplementary = ExperimentCatalog(catalogIdentifier="supplementary", experiments={})
 
     def raise_missing_configuration(*_args: object, **_kwargs: object) -> None:
         raise MissingActuatorConfigurationForCatalogError(
-            "Actuator mock requires configuration information to create catalog."
+            "Actuator test requires configuration information to create catalog."
         )
 
     monkeypatch.setattr(
@@ -838,12 +839,12 @@ def test_registry_experiment_for_reference_no_catalogs_raises(
 
     ref = ExperimentReference(
         experimentIdentifier="some_experiment",
-        actuatorIdentifier="mock",
+        actuatorIdentifier="test",
     )
 
     def raise_missing_configuration(*_args: object, **_kwargs: object) -> None:
         raise MissingActuatorConfigurationForCatalogError(
-            "Actuator mock requires configuration information to create catalog."
+            "Actuator test requires configuration information to create catalog."
         )
 
     monkeypatch.setattr(
@@ -859,31 +860,31 @@ def test_registry_experiment_for_reference_no_catalogs_raises(
 # ─── FQ version pin at measurement space creation ─────────────────────────────
 
 
-def _add_versioned_experiment_to_mock_catalog(
-    global_registry: ActuatorRegistry,
+def _add_versioned_experiment_to_test_catalog(
+    test_catalog: ExperimentCatalog,
     identifier: str = "fq_pin_exp",
     version: str = "1.0.0",
 ) -> None:
-    catalog = global_registry.catalogForActuatorIdentifier("mock")
     experiment = Experiment(
-        actuatorIdentifier="mock",
+        actuatorIdentifier="test",
         identifier=identifier,
         targetProperties=[AbstractPropertyDescriptor(identifier="output")],
         version=version,
     )
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", DeprecationWarning)
-        catalog.addExperiment(experiment)
+        test_catalog.addExperiment(experiment)
 
 
 def test_resolve_experiment_for_measurement_space_fq_exact_match(
+    test_actuator_catalog: ExperimentCatalog,
     global_registry: ActuatorRegistry,
 ) -> None:
     """Versioned YAML ref matching catalog version resolves successfully."""
-    _add_versioned_experiment_to_mock_catalog(global_registry)
+    _add_versioned_experiment_to_test_catalog(test_actuator_catalog)
     ref = ExperimentReference(
         experimentIdentifier="fq_pin_exp",
-        actuatorIdentifier="mock",
+        actuatorIdentifier="test",
         experimentVersion="1.0.0",
     )
     result = global_registry.experimentForReference(
@@ -894,13 +895,14 @@ def test_resolve_experiment_for_measurement_space_fq_exact_match(
 
 
 def test_resolve_experiment_for_measurement_space_fq_mismatch(
+    test_actuator_catalog: ExperimentCatalog,
     global_registry: ActuatorRegistry,
 ) -> None:
     """Versioned YAML ref with wrong patch/minor raises AlgorithmVersionMismatchError."""
-    _add_versioned_experiment_to_mock_catalog(global_registry)
+    _add_versioned_experiment_to_test_catalog(test_actuator_catalog)
     ref = ExperimentReference(
         experimentIdentifier="fq_pin_exp",
-        actuatorIdentifier="mock",
+        actuatorIdentifier="test",
         experimentVersion="1.1.0",
     )
     with pytest.raises(ExperimentVersionMismatchError):
@@ -910,15 +912,16 @@ def test_resolve_experiment_for_measurement_space_fq_mismatch(
 
 
 def test_measurement_space_from_selection_fq_mismatch(
+    test_actuator_catalog: ExperimentCatalog,
     global_registry: ActuatorRegistry,
 ) -> None:
     """measurementSpaceFromSelection enforces exact version when experimentVersion is set."""
     from ado.schema.measurementspace import MeasurementSpace
 
-    _add_versioned_experiment_to_mock_catalog(global_registry)
+    _add_versioned_experiment_to_test_catalog(test_actuator_catalog)
     ref = ExperimentReference(
         experimentIdentifier="fq_pin_exp",
-        actuatorIdentifier="mock",
+        actuatorIdentifier="test",
         experimentVersion="1.1.0",
     )
     with pytest.raises(ExperimentVersionMismatchError):
@@ -926,15 +929,16 @@ def test_measurement_space_from_selection_fq_mismatch(
 
 
 def test_measurement_space_from_selection_fq_exact_match(
+    test_actuator_catalog: ExperimentCatalog,
     global_registry: ActuatorRegistry,
 ) -> None:
     """measurementSpaceFromSelection stores catalog version when YAML pin matches."""
     from ado.schema.measurementspace import MeasurementSpace
 
-    _add_versioned_experiment_to_mock_catalog(global_registry)
+    _add_versioned_experiment_to_test_catalog(test_actuator_catalog)
     ref = ExperimentReference(
         experimentIdentifier="fq_pin_exp",
-        actuatorIdentifier="mock",
+        actuatorIdentifier="test",
         experimentVersion="1.0.0",
     )
     space = MeasurementSpace.measurementSpaceFromSelection(selectedExperiments=[ref])

@@ -30,6 +30,7 @@ from ado.core.samplestore.config import (
     SampleStoreSpecification,
 )
 from ado.metastore.project import ProjectContext
+from ado.modules.actuators.catalog import ExperimentCatalog
 from ado.modules.actuators.registry import ActuatorRegistry
 from ado.schema.entityspace import EntitySpaceRepresentation
 from ado.schema.measurementspace import (
@@ -288,7 +289,7 @@ def test_convert_experiments_to_reference_list_preserves_version() -> None:
     from ado.schema.property import AbstractPropertyDescriptor
 
     experiment = Experiment(
-        actuatorIdentifier="mock",
+        actuatorIdentifier="test",
         identifier="versioned_exp",
         targetProperties=[AbstractPropertyDescriptor(identifier="output")],
         version="1.0.0",
@@ -304,6 +305,7 @@ def test_convert_experiments_to_reference_list_preserves_version() -> None:
 
 
 def test_convert_experiments_to_measurement_space_config_version_mismatch(
+    test_actuator_catalog: ExperimentCatalog,
     global_registry: ActuatorRegistry,
 ) -> None:
     """convert_experiments_to_measurement_space_config fails on FQ version mismatch."""
@@ -314,12 +316,11 @@ def test_convert_experiments_to_measurement_space_config_version_mismatch(
     from ado.schema.property import AbstractPropertyDescriptor
     from ado.schema.reference import ExperimentReference
 
-    catalog = global_registry.catalogForActuatorIdentifier("mock")
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", DeprecationWarning)
-        catalog.addExperiment(
+        test_actuator_catalog.addExperiment(
             Experiment(
-                actuatorIdentifier="mock",
+                actuatorIdentifier="test",
                 identifier="fq_config_exp",
                 targetProperties=[AbstractPropertyDescriptor(identifier="output")],
                 version="1.0.0",
@@ -330,7 +331,7 @@ def test_convert_experiments_to_measurement_space_config_version_mismatch(
         experiments=[
             ExperimentReference(
                 experimentIdentifier="fq_config_exp",
-                actuatorIdentifier="mock",
+                actuatorIdentifier="test",
                 experimentVersion="1.1.0",
             )
         ],

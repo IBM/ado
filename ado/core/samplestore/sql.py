@@ -968,13 +968,17 @@ class SQLSampleStore(ActiveSampleStore):
             self.log.debug(f"Inserting {len(values)} entities")
 
             try:
-                # Remote
+                entity_table = self._metadata.tables[self._tablename]
+                if self.engine.dialect.name == "sqlite":
+                    from sqlalchemy.dialects.sqlite import insert as sqlite_insert
+
+                    stmt = sqlite_insert(entity_table).prefix_with("OR IGNORE")
+                else:
+                    from sqlalchemy.dialects.mysql import insert as mysql_insert
+
+                    stmt = mysql_insert(entity_table).prefix_with("IGNORE")
                 with self.engine.begin() as connectable:
-                    query = ado.metastore.sql.statements.insert_entities_ignore_on_duplicate(
-                        sample_store_name=self._tablename,
-                        dialect=self.engine.dialect.name,
-                    )
-                    connectable.execute(query, values)
+                    connectable.execute(stmt, values)
             except SQLAlchemyError as error:
                 self.log.critical(
                     f"Failed to insert entity batch starting from {index}. Error: {error}"

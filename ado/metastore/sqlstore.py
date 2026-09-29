@@ -329,20 +329,16 @@ class SQLResourceStore(ResourceStore):
             resource schema - callers should use :meth:`getResource` if they
             need a fully-typed object.
         """
-        import pandas as pd
-
-        query = sqlalchemy.text(
-            "SELECT * FROM resources WHERE identifier=:identifier"
-        ).bindparams(identifier=identifier)
-
+        stmt = sqlalchemy.select(self._resources_table).where(
+            self._resources_table.c.identifier == identifier
+        )
         with self.engine.connect() as connectable:
-            table = pd.read_sql(query, con=connectable)
+            row = connectable.execute(stmt).mappings().first()
 
-        raw = None
-        if table.shape[0] > 0:
-            raw = json.loads(table.data[0])
-
-        return raw
+        if row is None:
+            return None
+        data_raw = row["data"]
+        return json.loads(data_raw) if isinstance(data_raw, str) else data_raw
 
     def getResource(
         self,
@@ -396,22 +392,19 @@ class SQLResourceStore(ResourceStore):
               is instantiated.
         """
 
-        import pandas as pd
-
-        query = sqlalchemy.text("""
-            SELECT * FROM resources
-            WHERE identifier=:identifier
-            AND kind=:kind
-            """).bindparams(identifier=identifier, kind=kind.value)
-
+        stmt = sqlalchemy.select(self._resources_table).where(
+            self._resources_table.c.identifier == identifier,
+            self._resources_table.c.kind == kind.value,
+        )
         with self.engine.connect() as connectable:
-            table = pd.read_sql(query, con=connectable)
+            row = connectable.execute(stmt).mappings().first()
 
         resource = None
-        if table.shape[0] > 0:
-            d = json.loads(table.data[0])
+        if row is not None:
+            data_raw = row["data"]
+            d = json.loads(data_raw) if isinstance(data_raw, str) else data_raw
             resource = self._deserialize_resource(
-                table.kind[0],
+                row["kind"],
                 d,
                 ignore_plugin_validation=ignore_plugin_validation,
             )
@@ -480,36 +473,31 @@ class SQLResourceStore(ResourceStore):
             if isinstance(identifiers, pd.Series):
                 identifiers = identifiers.tolist()
 
-            query = sqlalchemy.text(
-                "SELECT * FROM resources WHERE identifier in :identifiers"
-            ).bindparams(
-                sqlalchemy.bindparam(
-                    key="identifiers", value=identifiers, expanding=True
-                )
+            stmt = sqlalchemy.select(self._resources_table).where(
+                self._resources_table.c.identifier.in_(identifiers)
             )
-
             with self.engine.connect() as connectable:
-                table = pd.read_sql(query, con=connectable)
+                rows = connectable.execute(stmt).mappings().all()
 
-            if table.shape[0] > 0:
-                for identifier, data, kind in zip(
-                    table.identifier, table.data, table.kind, strict=True
-                ):
-                    d = json.loads(data)
-                    try:
-                        resource = self._deserialize_resource(
-                            kind,
-                            d,
-                            ignore_plugin_validation=ignore_plugin_validation,
-                        )
-                    except Exception as error:
-                        msg = f"Unable to create pydantic model for resource with id: {identifier} with data: {data}. {error}"
-                        if ignore_validation_errors:
-                            self.log.warning(msg)
-                        else:
-                            raise ValueError(msg) from error
+            for row in rows:
+                identifier = row["identifier"]
+                data_raw = row["data"]
+                kind = row["kind"]
+                d = json.loads(data_raw) if isinstance(data_raw, str) else data_raw
+                try:
+                    resource = self._deserialize_resource(
+                        kind,
+                        d,
+                        ignore_plugin_validation=ignore_plugin_validation,
+                    )
+                except Exception as error:
+                    msg = f"Unable to create pydantic model for resource with id: {identifier} with data: {data_raw}. {error}"
+                    if ignore_validation_errors:
+                        self.log.warning(msg)
                     else:
-                        retval[identifier] = resource
+                        raise ValueError(msg) from error
+                else:
+                    retval[identifier] = resource
 
         # Sort by resource.created ascending (oldest first, matching AGE sort behavior)
         return dict(sorted(retval.items(), key=lambda item: item[1].created))
@@ -765,12 +753,16 @@ class SQLResourceStore(ResourceStore):
         return latest_ids
 
     def resourceTable(self) -> "pd.DataFrame":
+        """Return all rows of the resources table as a DataFrame.
+
+        Returns:
+            A DataFrame containing all columns and rows of the resources table.
+        """
         import pandas as pd
 
-        query = """SELECT * FROM resources"""
-
+        stmt = sqlalchemy.select(self._resources_table)
         with self.engine.connect() as connectable:
-            return pd.read_sql(query, con=connectable)
+            return pd.read_sql(stmt, con=connectable)
 
     def getResourcesOfKind(
         self,
@@ -871,28 +863,26 @@ class SQLResourceStore(ResourceStore):
 
         import pandas as pd
 
-        query_text = """SELECT subject_identifier, resources.kind
-                              FROM resource_relationships
-                              INNER JOIN resources
-                                 ON resource_relationships.subject_identifier = resources.identifier
-                              WHERE resource_relationships.object_identifier=:identifier"""
-        query_parameters = {"identifier": identifier}
-
+        rr = self._relationships_table
+        r = self._resources_table
+        stmt = (
+            sqlalchemy.select(
+                rr.c.subject_identifier,
+                r.c.kind,
+            )
+            .join(r, rr.c.subject_identifier == r.c.identifier)
+            .where(rr.c.object_identifier == identifier)
+        )
         if kind is not None:
-            query_text += """ AND resources.kind=:kind"""
-            query_parameters["kind"] = kind
-
+            stmt = stmt.where(r.c.kind == kind)
         if version is not None:
-            query_text += """ AND resources.version=:version"""
-            query_parameters["version"] = version
+            stmt = stmt.where(r.c.version == version)
 
-        query = sqlalchemy.text(query_text).bindparams(**query_parameters)
         with self.engine.connect() as connectable:
-            table = pd.read_sql(query, con=connectable)
+            rows = connectable.execute(stmt).fetchall()
 
-        related_identifiers = table["subject_identifier"].values
-        related_kinds = table["kind"].values
-
+        related_identifiers = [row[0] for row in rows]
+        related_kinds = [row[1] for row in rows]
         return pd.DataFrame({"IDENTIFIER": related_identifiers, "TYPE": related_kinds})
 
     def getRelatedObjectResourceIdentifiers(
@@ -940,56 +930,67 @@ class SQLResourceStore(ResourceStore):
 
         import pandas as pd
 
-        # First select where identifier is the subject
-        query_text = """SELECT object_identifier, resources.kind
-                    FROM resource_relationships
-                    INNER JOIN resources
-                       ON resource_relationships.object_identifier = resources.identifier
-                    WHERE resource_relationships.subject_identifier=:identifier"""
-        query_parameters = {"identifier": identifier}
-
+        rr = self._relationships_table
+        r = self._resources_table
+        stmt = (
+            sqlalchemy.select(
+                rr.c.object_identifier,
+                r.c.kind,
+            )
+            .join(r, rr.c.object_identifier == r.c.identifier)
+            .where(rr.c.subject_identifier == identifier)
+        )
         if kind is not None:
-            query_text += " AND resources.kind=:kind"
-            query_parameters["kind"] = kind
-
+            stmt = stmt.where(r.c.kind == kind)
         if version is not None:
-            query_text += " AND resources.version=:version"
-            query_parameters["version"] = version
+            stmt = stmt.where(r.c.version == version)
 
-        query = sqlalchemy.text(query_text).bindparams(**query_parameters)
         with self.engine.connect() as connectable:
-            table = pd.read_sql(query, con=connectable)
+            rows = connectable.execute(stmt).fetchall()
 
-        related_identifiers = table["object_identifier"].values
-        related_kinds = table["kind"].values
-
+        related_identifiers = [row[0] for row in rows]
+        related_kinds = [row[1] for row in rows]
         return pd.DataFrame({"IDENTIFIER": related_identifiers, "TYPE": related_kinds})
 
     def containsResourceWithIdentifier(
         self, identifier: str, kind: CoreResourceKinds | None = None
     ) -> bool:
+        """Check whether the resources table contains a row for the given identifier.
 
-        query_text = "SELECT COUNT(1) FROM resources WHERE identifier=:identifier"
-        query_parameters = {"identifier": identifier}
-        if kind:
-            query_text += " AND kind=:kind"
-            query_parameters["kind"] = kind.value
+        Args:
+            identifier: The resource identifier to look up.
+            kind: When provided, also filters by resource kind.
 
-        query = sqlalchemy.text(query_text).bindparams(**query_parameters)
+        Returns:
+            True if a matching row exists, False otherwise.
+        """
+        stmt = sqlalchemy.select(sqlalchemy.func.count()).where(
+            self._resources_table.c.identifier == identifier
+        )
+        if kind is not None:
+            stmt = stmt.where(self._resources_table.c.kind == kind.value)
+        stmt = stmt.select_from(self._resources_table)
+
         with self.engine.connect() as connectable:
-            exe = connectable.execute(query)
-            row_count = exe.scalar()
+            row_count = connectable.execute(stmt).scalar()
 
         return row_count != 0
 
     def addResource(self, resource: ado.core.resources.ADOResource) -> None:
+        """Insert a new resource row into the resources table.
 
+        Args:
+            resource: The resource to insert.
+
+        Raises:
+            ValueError: If resource is not an ADOResource subclass, or if a
+                row with the same identifier already exists.
+        """
         if not isinstance(resource, ado.core.resources.ADOResource):
             raise ValueError(
                 f"Cannot add resource, {resource}, that is not a subclass of ADOResource"
             )
 
-        # Connect to SQL and add entry
         if self.containsResourceWithIdentifier(resource.identifier):
             raise ValueError(
                 f"Resource with id {resource.identifier} already present. "
@@ -1004,36 +1005,32 @@ class SQLResourceStore(ResourceStore):
         else:
             representation = resource.model_dump_json()
 
+        stmt = self._resources_table.insert().values(
+            identifier=resource.identifier,
+            kind=resource.kind.value,
+            version=resource.version,
+            data=json.loads(representation),
+        )
         with self.engine.begin() as connectable:
-            query = sqlalchemy.text(
-                r"INSERT INTO resources"
-                r"(identifier, kind, version, data)"
-                r"VALUES(:identifier, :kind, :version, :data)"
-            ).bindparams(
-                identifier=resource.identifier,
-                kind=resource.kind.value,
-                version=resource.version,
-                data=representation,
-            )
-            connectable.execute(query)
+            connectable.execute(stmt)
 
     def addRelationship(
         self,
         subjectIdentifier: str,
         objectIdentifier: str,
     ) -> None:
+        """Insert a row into the resource_relationships table.
 
-        # Connect to SQL and add entry
+        Args:
+            subjectIdentifier: Identifier of the subject resource.
+            objectIdentifier: Identifier of the object resource.
+        """
+        stmt = self._relationships_table.insert().values(
+            subject_identifier=subjectIdentifier,
+            object_identifier=objectIdentifier,
+        )
         with self.engine.begin() as connectable:
-            query = sqlalchemy.text(
-                r"INSERT INTO resource_relationships"
-                r"(subject_identifier, object_identifier)"
-                r"VALUES(:subject_identifier, :object_identifier)"
-            ).bindparams(
-                subject_identifier=subjectIdentifier,
-                object_identifier=objectIdentifier,
-            )
-            connectable.execute(query)
+            connectable.execute(stmt)
 
     def addRelationshipForResources(
         self, subjectResource: pydantic.BaseModel, objectResource: pydantic.BaseModel
@@ -1068,13 +1065,14 @@ class SQLResourceStore(ResourceStore):
             )
 
     def updateResource(self, resource: ado.core.resources.ADOResource) -> None:
-        """Replaces any data stored against "resource.identifier" with resource
+        """Replace any data stored against ``resource.identifier`` with ``resource``.
 
-        Raises:
-            ValueError if resource is not already stored.
+        Uses a dialect-specific upsert so that the row is inserted if absent
+        or updated in-place if it already exists.
 
+        Args:
+            resource: The resource whose stored data should be overwritten.
         """
-
         resource.status.append(
             ado.core.resources.ADOResourceStatus(event=ADOResourceEventEnum.UPDATED)
         )
@@ -1084,23 +1082,44 @@ class SQLResourceStore(ResourceStore):
         else:
             representation = resource.model_dump_json()
 
-        with self.engine.begin() as connectable:
-            query = ado.metastore.sql.statements.resource_upsert(
-                resource=resource,
-                json_representation=representation,
-                dialect=self.engine.dialect.name,
-            )
+        values = {
+            "identifier": resource.identifier,
+            "kind": resource.kind.value,
+            "version": resource.version,
+            "data": json.loads(representation),
+        }
+        if self.engine.dialect.name == "sqlite":
+            from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 
-            connectable.execute(query)
+            stmt = sqlite_insert(self._resources_table).values(**values)
+            stmt = stmt.on_conflict_do_update(
+                index_elements=["identifier"],
+                set_={"data": stmt.excluded.data},
+            )
+        else:
+            from sqlalchemy.dialects.mysql import insert as mysql_insert
+
+            stmt = mysql_insert(self._resources_table).values(**values)
+            stmt = stmt.on_duplicate_key_update(data=stmt.inserted.data)
+
+        with self.engine.begin() as connectable:
+            connectable.execute(stmt)
 
     def deleteResource(self, identifier: str) -> None:
+        """Delete a resource and its object-side relationships from the store.
 
+        Args:
+            identifier: The identifier of the resource to delete.
+
+        Raises:
+            ValueError: If the resource does not exist, or if relationships
+                exist where this resource is the subject.
+        """
         if not self.containsResourceWithIdentifier(identifier):
             raise ValueError(
                 f"Cannot delete resource with id {identifier} - it is not present"
             )
 
-        # Cannot delete if there are relationships where the identifier is the subject
         relatedAsObject = self.getRelatedObjectResourceIdentifiers(
             identifier=identifier
         )
@@ -1109,20 +1128,24 @@ class SQLResourceStore(ResourceStore):
                 f"Cannot delete resource {identifier} as there are existing relationships where it is the subject. "
                 f"You must delete all the related object resources first:\n{relatedAsObject['IDENTIFIER']}"
             )
-        # Delete all relationships where the identifier is the object
         self.deleteObjectRelationships(identifier=identifier)
+        stmt = sqlalchemy.delete(self._resources_table).where(
+            self._resources_table.c.identifier == identifier
+        )
         with self.engine.begin() as connectable:
-            query = sqlalchemy.text(
-                r"DELETE FROM resources WHERE identifier=:identifier"
-            ).bindparams(identifier=identifier)
-            connectable.execute(query)
+            connectable.execute(stmt)
 
     def deleteObjectRelationships(self, identifier: str) -> None:
-        """Deletes all recorded relationships for identifier where it is the object
+        """Delete all relationship rows where ``identifier`` is the object.
 
-        Only works if it is not the subject of another relationship"""
+        Args:
+            identifier: The object-side identifier whose relationship rows
+                should be removed.
 
-        # Cannot delete if there are object relationships (the identifier is the subject) as this breaks provenance
+        Raises:
+            ValueError: If relationships exist where this identifier is also
+                the subject, which would break provenance.
+        """
         relatedAsObject = self.getRelatedObjectResourceIdentifiers(
             identifier=identifier
         )
@@ -1131,11 +1154,11 @@ class SQLResourceStore(ResourceStore):
                 f"Cannot delete relationships where {identifier} is the object as there are existing relationships where it is the subject. "
                 f"You must delete all the related object resources first:\n{relatedAsObject['IDENTIFIER']}"
             )
+        stmt = sqlalchemy.delete(self._relationships_table).where(
+            self._relationships_table.c.object_identifier == identifier
+        )
         with self.engine.begin() as connectable:
-            query = sqlalchemy.text(
-                r"DELETE FROM resource_relationships WHERE object_identifier=:identifier"
-            ).bindparams(identifier=identifier)
-            connectable.execute(query)
+            connectable.execute(stmt)
 
     def delete_sample_store(
         self, identifier: str, force_deletion: bool = False
@@ -1165,17 +1188,16 @@ class SQLResourceStore(ResourceStore):
             try:
                 with session.begin():
                     session.execute(
-                        sqlalchemy.text(
-                            "DELETE FROM resource_relationships WHERE object_identifier=:identifier"
-                        ).bindparams(identifier=identifier)
+                        sqlalchemy.delete(self._relationships_table).where(
+                            self._relationships_table.c.object_identifier == identifier
+                        )
                     )
 
                     session.execute(
-                        sqlalchemy.text(
-                            "DELETE FROM resources WHERE identifier=:identifier AND kind=:kind"
-                        ).bindparams(
-                            identifier=identifier,
-                            kind=CoreResourceKinds.SAMPLESTORE.value,
+                        sqlalchemy.delete(self._resources_table).where(
+                            self._resources_table.c.identifier == identifier,
+                            self._resources_table.c.kind
+                            == CoreResourceKinds.SAMPLESTORE.value,
                         )
                     )
 
@@ -1349,14 +1371,15 @@ class SQLResourceStore(ResourceStore):
                         # All children are DataContainers - check each has no
                         # grandchildren
                         for data_container_id in child_resources_df["IDENTIFIER"]:
+                            rr = self._relationships_table
+                            r = self._resources_table
                             grandchildren_rows = session.execute(
-                                sqlalchemy.text(
-                                    "SELECT rr.object_identifier, r.kind "
-                                    "FROM resource_relationships rr "
-                                    "INNER JOIN resources r "
-                                    "  ON rr.object_identifier = r.identifier "
-                                    "WHERE rr.subject_identifier = :data_container_id"
-                                ).bindparams(data_container_id=data_container_id)
+                                sqlalchemy.select(
+                                    rr.c.object_identifier,
+                                    r.c.kind,
+                                )
+                                .join(r, rr.c.object_identifier == r.c.identifier)
+                                .where(rr.c.subject_identifier == data_container_id)
                             ).fetchall()
 
                             if grandchildren_rows:
@@ -1372,27 +1395,19 @@ class SQLResourceStore(ResourceStore):
                         # Safe to delete all DataContainer children
                         data_container_ids = child_resources_df["IDENTIFIER"].tolist()
                         session.execute(
-                            sqlalchemy.text(
-                                "DELETE FROM resource_relationships "
-                                "WHERE object_identifier IN :data_container_ids"
-                            ).bindparams(
-                                sqlalchemy.bindparam(
-                                    "data_container_ids", expanding=True
-                                ),
-                                data_container_ids=data_container_ids,
+                            sqlalchemy.delete(self._relationships_table).where(
+                                self._relationships_table.c.object_identifier.in_(
+                                    data_container_ids
+                                )
                             )
                         )
                         session.execute(
-                            sqlalchemy.text(
-                                "DELETE FROM resources "
-                                "WHERE identifier IN :data_container_ids "
-                                "AND kind = :kind"
-                            ).bindparams(
-                                sqlalchemy.bindparam(
-                                    "data_container_ids", expanding=True
+                            sqlalchemy.delete(self._resources_table).where(
+                                self._resources_table.c.identifier.in_(
+                                    data_container_ids
                                 ),
-                                data_container_ids=data_container_ids,
-                                kind=CoreResourceKinds.DATACONTAINER.value,
+                                self._resources_table.c.kind
+                                == CoreResourceKinds.DATACONTAINER.value,
                             )
                         )
                     # <--------- END CASCADE DELETE DATACONTAINER CHILDREN --------->
@@ -1457,22 +1472,17 @@ class SQLResourceStore(ResourceStore):
                             """)  # noqa: S608 - sample store id is not a user input
                     )
 
-                    # We must delete the resource from the relationships table
-                    # as we otherwise would break its foreign key constraint
                     session.execute(
-                        sqlalchemy.text(
-                            "DELETE FROM resource_relationships WHERE object_identifier=:identifier"
-                        ).bindparams(identifier=identifier)
+                        sqlalchemy.delete(self._relationships_table).where(
+                            self._relationships_table.c.object_identifier == identifier
+                        )
                     )
 
-                    # As the last step, we can now delete the operation resource
                     session.execute(
-                        sqlalchemy.text(
-                            r"DELETE FROM resources "
-                            r"WHERE identifier=:identifier AND kind=:kind"
-                        ).bindparams(
-                            identifier=identifier,
-                            kind=CoreResourceKinds.OPERATION.value,
+                        sqlalchemy.delete(self._resources_table).where(
+                            self._resources_table.c.identifier == identifier,
+                            self._resources_table.c.kind
+                            == CoreResourceKinds.OPERATION.value,
                         )
                     )
 
@@ -1485,27 +1495,31 @@ class SQLResourceStore(ResourceStore):
                 ) from e
 
     def delete_discovery_space(self, identifier: str) -> None:
+        """Delete a discovery space resource and its object-side relationships.
+
+        Args:
+            identifier: The identifier of the discovery space to delete.
+
+        Raises:
+            DeleteFromDatabaseError: If the delete transaction fails.
+        """
         import sqlalchemy.orm
 
         with sqlalchemy.orm.Session(self.engine) as session:
             try:
                 with session.begin():
                     session.execute(
-                        sqlalchemy.text(
-                            r"DELETE FROM resource_relationships WHERE object_identifier=:identifier"
-                        ).bindparams(identifier=identifier)
-                    )
-
-                    session.execute(
-                        sqlalchemy.text(
-                            r"DELETE FROM resources "
-                            r"WHERE identifier=:identifier AND kind=:kind"
-                        ).bindparams(
-                            identifier=identifier,
-                            kind=CoreResourceKinds.DISCOVERYSPACE.value,
+                        sqlalchemy.delete(self._relationships_table).where(
+                            self._relationships_table.c.object_identifier == identifier
                         )
                     )
-
+                    session.execute(
+                        sqlalchemy.delete(self._resources_table).where(
+                            self._resources_table.c.identifier == identifier,
+                            self._resources_table.c.kind
+                            == CoreResourceKinds.DISCOVERYSPACE.value,
+                        )
+                    )
             except Exception as e:
                 session.rollback()
                 raise DeleteFromDatabaseError(
@@ -1515,27 +1529,31 @@ class SQLResourceStore(ResourceStore):
                 ) from e
 
     def delete_data_container(self, identifier: str) -> None:
+        """Delete a data container resource and its object-side relationships.
+
+        Args:
+            identifier: The identifier of the data container to delete.
+
+        Raises:
+            DeleteFromDatabaseError: If the delete transaction fails.
+        """
         import sqlalchemy.orm
 
         with sqlalchemy.orm.Session(self.engine) as session:
             try:
                 with session.begin():
                     session.execute(
-                        sqlalchemy.text(
-                            r"DELETE FROM resource_relationships WHERE object_identifier=:identifier"
-                        ).bindparams(identifier=identifier)
-                    )
-
-                    session.execute(
-                        sqlalchemy.text(
-                            r"DELETE FROM resources "
-                            r"WHERE identifier=:identifier AND kind=:kind"
-                        ).bindparams(
-                            identifier=identifier,
-                            kind=CoreResourceKinds.DATACONTAINER.value,
+                        sqlalchemy.delete(self._relationships_table).where(
+                            self._relationships_table.c.object_identifier == identifier
                         )
                     )
-
+                    session.execute(
+                        sqlalchemy.delete(self._resources_table).where(
+                            self._resources_table.c.identifier == identifier,
+                            self._resources_table.c.kind
+                            == CoreResourceKinds.DATACONTAINER.value,
+                        )
+                    )
             except Exception as e:
                 session.rollback()
                 raise DeleteFromDatabaseError(
@@ -1545,27 +1563,31 @@ class SQLResourceStore(ResourceStore):
                 ) from e
 
     def delete_actuator_configuration(self, identifier: str) -> None:
+        """Delete an actuator configuration resource and its object-side relationships.
+
+        Args:
+            identifier: The identifier of the actuator configuration to delete.
+
+        Raises:
+            DeleteFromDatabaseError: If the delete transaction fails.
+        """
         import sqlalchemy.orm
 
         with sqlalchemy.orm.Session(self.engine) as session:
             try:
                 with session.begin():
                     session.execute(
-                        sqlalchemy.text(
-                            r"DELETE FROM resource_relationships WHERE object_identifier=:identifier"
-                        ).bindparams(identifier=identifier)
-                    )
-
-                    session.execute(
-                        sqlalchemy.text(
-                            r"DELETE FROM resources "
-                            r"WHERE identifier=:identifier AND kind=:kind"
-                        ).bindparams(
-                            identifier=identifier,
-                            kind=CoreResourceKinds.ACTUATORCONFIGURATION.value,
+                        sqlalchemy.delete(self._relationships_table).where(
+                            self._relationships_table.c.object_identifier == identifier
                         )
                     )
-
+                    session.execute(
+                        sqlalchemy.delete(self._resources_table).where(
+                            self._resources_table.c.identifier == identifier,
+                            self._resources_table.c.kind
+                            == CoreResourceKinds.ACTUATORCONFIGURATION.value,
+                        )
+                    )
             except Exception as e:
                 session.rollback()
                 raise DeleteFromDatabaseError(
@@ -1575,33 +1597,36 @@ class SQLResourceStore(ResourceStore):
                 ) from e
 
     def delete_document(self, identifier: str) -> None:
+        """Delete a document resource and all its relationships.
+
+        Args:
+            identifier: The identifier of the document to delete.
+
+        Raises:
+            DeleteFromDatabaseError: If the delete transaction fails.
+        """
         import sqlalchemy.orm
 
         with sqlalchemy.orm.Session(self.engine) as session:
             try:
                 with session.begin():
                     session.execute(
-                        sqlalchemy.text(
-                            r"DELETE FROM resource_relationships WHERE object_identifier=:identifier"
-                        ).bindparams(identifier=identifier)
-                    )
-
-                    session.execute(
-                        sqlalchemy.text(
-                            r"DELETE FROM resource_relationships WHERE subject_identifier=:identifier"
-                        ).bindparams(identifier=identifier)
-                    )
-
-                    session.execute(
-                        sqlalchemy.text(
-                            r"DELETE FROM resources "
-                            r"WHERE identifier=:identifier AND kind=:kind"
-                        ).bindparams(
-                            identifier=identifier,
-                            kind=CoreResourceKinds.DOCUMENT.value,
+                        sqlalchemy.delete(self._relationships_table).where(
+                            self._relationships_table.c.object_identifier == identifier
                         )
                     )
-
+                    session.execute(
+                        sqlalchemy.delete(self._relationships_table).where(
+                            self._relationships_table.c.subject_identifier == identifier
+                        )
+                    )
+                    session.execute(
+                        sqlalchemy.delete(self._resources_table).where(
+                            self._resources_table.c.identifier == identifier,
+                            self._resources_table.c.kind
+                            == CoreResourceKinds.DOCUMENT.value,
+                        )
+                    )
             except Exception as e:
                 session.rollback()
                 raise DeleteFromDatabaseError(

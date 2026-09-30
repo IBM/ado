@@ -18,7 +18,6 @@ from ado.core.operation.config import (
 )
 from ado.core.operation.inputs import OperatorInputType
 from ado.core.operation.operation import OperationOutput
-from ado.core.operation.resource import OperationProvenanceInfo
 from ado.modules.actuators.measurement_queue import MeasurementQueue
 from ado.modules.operators import _cleanup
 from ado.modules.operators._cleanup import (
@@ -30,13 +29,13 @@ from ado.modules.operators._cleanup import (
 from ado.modules.operators._orchestrate_core import (
     _run_operation_harness,
     log_space_details,
-    operator_provenance_mapping,
 )
 from ado.modules.operators.console_output import (
     RichConsoleQueue,
     run_operation_live_updates,
 )
 from ado.modules.operators.discovery_space_manager import DiscoverySpaceManager
+from ado.modules.operators.provenance import explore_operation_provenance
 from ado.schema.reference import ExperimentReference
 
 moduleLog = logging.getLogger("explore_orchestration")
@@ -249,32 +248,6 @@ def experiment_and_actuator_provenance_from_spaces(
     return experiments, actuators
 
 
-def explore_operation_provenance(
-    operator_metadata: OperatorMetadata,
-    spaces: list[DiscoverySpace],
-) -> OperationProvenanceInfo:
-    """Build provenance for an explore operation.
-
-    Records the operator package plus the experiments and actuators that
-    satisfy the discovery-space measurement spaces.
-
-    Args:
-        operator_metadata: Registered metadata for the explore operator.
-        spaces: Discovery spaces whose measurement spaces should be recorded.
-
-    Returns:
-        Provenance with operator, experiment, and actuator entries. Operator
-        provenance is omitted when the operator has none. Experiment and
-        actuator collections are empty when *spaces* is empty.
-    """
-    experiments, actuators = experiment_and_actuator_provenance_from_spaces(spaces)
-    return OperationProvenanceInfo(
-        operators=operator_provenance_mapping(operator_metadata),
-        experiments=experiments,
-        actuators=actuators,
-    )
-
-
 def orchestrate_explore_operation(
     operator_metadata: OperatorMetadata,
     inputs: dict[str, OperatorInputType],
@@ -336,6 +309,10 @@ def orchestrate_explore_operation(
         raise ValueError("Measurement space is inconsistent")
 
     log_space_details(discovery_space)
+
+    provenance = explore_operation_provenance(
+        operator_metadata.reference, discovery_space.measurementSpace
+    )
 
     # create cleaner for this namespace
     initialize_ray_resource_cleaner(namespace=operation_info.ray_namespace)
@@ -450,9 +427,7 @@ def orchestrate_explore_operation(
             operation_parameters=parameters,
             operation_info=operation_info,
             metastore=discovery_space.metadataStore,
-            provenance=explore_operation_provenance(
-                operator_metadata, [discovery_space]
-            ),
+            provenance=provenance,
             operation_identifier=identifier,
             finalize_callback=finalize_callback_closure(operator),
         )

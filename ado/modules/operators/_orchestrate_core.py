@@ -19,7 +19,6 @@ from ado.core.operation.config import (
     FunctionOperationInfo,
     GenericOperatorParameters,
     OperatorMetadata,
-    OperatorReference,
 )
 from ado.core.operation.inputs import (
     OperatorInputType,
@@ -181,6 +180,8 @@ def _run_operation_harness(
         OperationException: If there is an error during the operation execution.
     """
 
+    from ado.core.operation.config import OperatorReference
+
     references = {name: value.reference for name, value in inputs.items()}
     spaces = [value for value in inputs.values() if isinstance(value, DiscoverySpace)]
 
@@ -194,6 +195,7 @@ def _run_operation_harness(
         operationType=operator_metadata.type,
         operatorVersion=operator_metadata.version,
     )
+
     operation_resource = create_operation_and_add_to_metastore(
         inputs=references,
         operator_module=operator_reference,

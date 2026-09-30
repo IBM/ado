@@ -23,7 +23,7 @@ from ado.core.operation.resource import (
     OperationResource,
 )
 from ado.modules.actuators.registry import ActuatorRegistry
-from ado.modules.operators.collections import provenance_for_operator
+from ado.modules.operators.provenance import provenance_for_operator
 
 # ---------------------------------------------------------------------------
 # PackageProvenance model

@@ -255,30 +255,43 @@ class SQLResourceStore(ResourceStore):
             ResourceDoesNotExistError: When ``raise_error_if_no_resource`` is
                 ``True`` and any resource in the chain cannot be found.
         """
-        n = len(chain)
+        hop_count = len(chain)
 
-        # Build SELECT with explicit per-resource column aliases to avoid
-        # collisions when the same column name appears across table aliases.
-        selects = ", ".join(
-            f"r{i}.data AS r{i}_data, r{i}.kind AS r{i}_kind" for i in range(n + 1)
+        # Build one alias per hop.  alias() gives each copy of the table a
+        # distinct name (r0, r1, …) so column references stay unambiguous.
+        resource_aliases = [
+            self._resources_table.alias(f"r{i}") for i in range(hop_count + 1)
+        ]
+
+        # Collect the columns we need: data and kind per alias.
+        select_columns = []
+        for i, resource_alias in enumerate(resource_aliases):
+            select_columns.append(resource_alias.c.data.label(f"r{i}_data"))
+            select_columns.append(resource_alias.c.kind.label(f"r{i}_kind"))
+
+        # Build the FROM clause by chaining JOINs.  The ON condition uses the
+        # ->> JSON path operator (supported by both SQLite ≥3.38 and MySQL).
+        joined_from = resource_aliases[0]
+        for i, (json_path, linked_kind) in enumerate(chain):
+            current_alias = resource_aliases[i]
+            next_alias = resource_aliases[i + 1]
+            joined_from = joined_from.join(
+                next_alias,
+                sqlalchemy.and_(
+                    next_alias.c.identifier
+                    == current_alias.c.data.op("->>")(sqlalchemy.literal(json_path)),
+                    next_alias.c.kind == linked_kind.value,
+                ),
+            )
+
+        query = (
+            sqlalchemy.select(*select_columns)
+            .select_from(joined_from)
+            .where(
+                resource_aliases[0].c.identifier == identifier,
+                resource_aliases[0].c.kind == kind.value,
+            )
         )
-
-        # Each JOIN hop resolves the next resource identifier from the JSON
-        # field of the previous resource.  Kind filtering is included in the
-        # ON clause so an incorrect kind never silently matches.
-        joins = "\n".join(
-            f"JOIN resources r{i + 1}"
-            f"  ON r{i + 1}.identifier = r{i}.data->>'{json_path}'"
-            f" AND r{i + 1}.kind = '{linked_kind.value}'"
-            for i, (json_path, linked_kind) in enumerate(chain)
-        )
-
-        # selects and joins are built from CoreResourceKinds enum values and
-        # literal JSON paths only; no user-supplied text is interpolated.
-        query = sqlalchemy.text(
-            f"SELECT {selects} FROM resources r0 {joins}"  # noqa: S608
-            " WHERE r0.identifier = :identifier AND r0.kind = :kind"
-        ).bindparams(identifier=identifier, kind=kind.value)
 
         with self.engine.connect() as connectable:
             row = connectable.execute(query).fetchone()
@@ -286,19 +299,19 @@ class SQLResourceStore(ResourceStore):
         if row is None:
             if raise_error_if_no_resource:
                 raise ResourceDoesNotExistError(resource_id=identifier, kind=kind)
-            return [None] * (n + 1)
+            return [None] * (hop_count + 1)
 
-        mapping = row._mapping
-        all_kinds = [kind] + [k for _, k in chain]
+        row_mapping = row._mapping
+        all_kinds = [kind] + [linked_kind for _, linked_kind in chain]
         resources = []
-        for i, _rk in enumerate(all_kinds):
-            data_raw = mapping[f"r{i}_data"]
-            kind_val = mapping[f"r{i}_kind"]
-            d = json.loads(data_raw) if isinstance(data_raw, str) else data_raw
-            resource = self._deserialize_resource(kind_val, d)
+        for i, _ in enumerate(all_kinds):
+            raw_data = row_mapping[f"r{i}_data"]
+            raw_kind = row_mapping[f"r{i}_kind"]
+            data_dict = json.loads(raw_data) if isinstance(raw_data, str) else raw_data
+            resource = self._deserialize_resource(raw_kind, data_dict)
 
             if ado.core.resources.VersionIsGreaterThan(
-                resource.version, d.get("version", "v0")
+                resource.version, data_dict.get("version", "v0")
             ):
                 self.updateResource(resource)
 
@@ -729,26 +742,48 @@ class SQLResourceStore(ResourceStore):
                 f"All kinds must be CoreResourceKinds instances. Invalid: {invalid_kinds}"
             )
 
-        # Convert CoreResourceKinds to string values for SQL query
+        # Convert CoreResourceKinds to string values for the IN clause
         kind_values = [kind.value for kind in kinds]
 
-        # Generate and execute the SQL query (returns bound TextClause)
-        query = ado.metastore.sql.statements.resource_select_latest_by_kinds(
-            kinds=kind_values,
-            dialect=self.engine.dialect.name,
+        # Build CTE: rank resources within each kind by their created timestamp
+        # descending so row_rank=1 identifies the most recently created one.
+        # Cast the ->> result to String so SQLAlchemy doesn't run the JSON
+        # column type processor on the extracted scalar value.
+        resources_table = self._resources_table
+        created_at_col = sqlalchemy.cast(
+            resources_table.c.data.op("->>")(sqlalchemy.literal("$.created")),
+            sqlalchemy.String,
+        )
+        ranked_resources_cte = (
+            sqlalchemy.select(
+                resources_table.c.identifier,
+                resources_table.c.kind,
+                created_at_col.label("created"),
+                sqlalchemy.func.row_number()
+                .over(
+                    partition_by=resources_table.c.kind,
+                    order_by=created_at_col.desc(),
+                )
+                .label("row_rank"),
+            )
+            .where(resources_table.c.kind.in_(kind_values))
+            .cte("ranked_resources")
         )
 
-        with self.engine.connect() as connectable:
-            result = connectable.execute(query)
-            rows = result.fetchall()
+        query = sqlalchemy.select(
+            ranked_resources_cte.c.identifier,
+            ranked_resources_cte.c.kind,
+            ranked_resources_cte.c.created,
+        ).where(ranked_resources_cte.c.row_rank == 1)
 
-        # Build dictionary mapping kind to identifier
+        with self.engine.connect() as connectable:
+            rows = connectable.execute(query).fetchall()
+
+        # Build dictionary mapping kind enum to its most recently created identifier
         latest_ids: dict[CoreResourceKinds, str] = {}
         for row in rows:
-            identifier, kind_str, _created = row
-            # Convert string kind back to CoreResourceKinds enum
-            kind_enum = CoreResourceKinds(kind_str)
-            latest_ids[kind_enum] = identifier
+            kind_enum = CoreResourceKinds(row.kind)
+            latest_ids[kind_enum] = row.identifier
 
         return latest_ids
 
@@ -1772,15 +1807,147 @@ class SQLResourceStore(ResourceStore):
         # ------------------------------------------------------------------
         # 2. Build and execute the single traversal query
         # ------------------------------------------------------------------
-        # The hierarchy maximum (3 hops across 4 levels) is enforced inside
-        # graph_traversal_query; passing max_hops=None lets it use the full cap.
-        query = ado.metastore.sql.statements.graph_traversal_query(
-            kind=kind,
-            relationship=relationship,
-            origin_identifiers=_identifiers_requested,
-            max_hops=max_hops,
-            dialect=self.engine.dialect.name,
+        # The hierarchy maximum is enforced by capping max_hops; passing
+        # max_hops=None lets the traversal run to the full depth cap.
+        from ado.metastore.sql.statements import _MAX_HIERARCHY_HOPS
+
+        effective_max_hops = (
+            _MAX_HIERARCHY_HOPS
+            if max_hops is None
+            else min(max_hops, _MAX_HIERARCHY_HOPS)
         )
+
+        resources_table = self._resources_table
+        relationships_table = self._relationships_table
+
+        # logical_edges_cte: join relationships with resources on both ends so we
+        # have (from_id, from_kind, to_id, to_kind) for each stored edge.
+        subject_resource_alias = resources_table.alias("le_parent")
+        object_resource_alias = resources_table.alias("le_child")
+        logical_edges_cte = (
+            sqlalchemy.select(
+                subject_resource_alias.c.identifier.label("from_identifier"),
+                subject_resource_alias.c.kind.label("from_kind"),
+                object_resource_alias.c.identifier.label("to_identifier"),
+                object_resource_alias.c.kind.label("to_kind"),
+            )
+            .select_from(relationships_table)
+            .join(
+                subject_resource_alias,
+                subject_resource_alias.c.identifier
+                == relationships_table.c.subject_identifier,
+            )
+            .join(
+                object_resource_alias,
+                object_resource_alias.c.identifier
+                == relationships_table.c.object_identifier,
+            )
+            .cte("logical_edges")
+        )
+
+        # Seed: one row per origin identifier of the requested kind.
+        # visited_path is seeded as ',id,' so membership checks are unambiguous.
+        is_sqlite = self.engine.dialect.name == "sqlite"
+
+        if is_sqlite:
+            seed_visited_path = (
+                sqlalchemy.literal(",")
+                + resources_table.c.identifier
+                + sqlalchemy.literal(",")
+            )
+        else:
+            seed_visited_path = sqlalchemy.func.CONCAT(
+                sqlalchemy.literal(","),
+                resources_table.c.identifier,
+                sqlalchemy.literal(","),
+            )
+
+        traversal_seed = sqlalchemy.select(
+            resources_table.c.identifier.label("origin_identifier"),
+            resources_table.c.kind.label("current_kind"),
+            resources_table.c.identifier.label("current_identifier"),
+            sqlalchemy.literal(0).label("depth"),
+            seed_visited_path.label("visited_path"),
+        ).where(
+            resources_table.c.kind == kind.value,
+            resources_table.c.identifier.in_(list(_identifiers_requested)),
+        )
+
+        traversal_cte = traversal_seed.cte("traversal", recursive=True)
+        edges = logical_edges_cte
+
+        # next_identifier/next_kind expressions depend on traversal direction.
+        if relationship == "child":
+            step_join_condition = (
+                edges.c.from_identifier == traversal_cte.c.current_identifier
+            )
+            next_identifier = edges.c.to_identifier
+            next_kind = edges.c.to_kind
+        elif relationship == "parent":
+            step_join_condition = (
+                edges.c.to_identifier == traversal_cte.c.current_identifier
+            )
+            next_identifier = edges.c.from_identifier
+            next_kind = edges.c.from_kind
+        else:  # "both"
+            step_join_condition = sqlalchemy.or_(
+                edges.c.from_identifier == traversal_cte.c.current_identifier,
+                edges.c.to_identifier == traversal_cte.c.current_identifier,
+            )
+            next_identifier = sqlalchemy.case(
+                (
+                    edges.c.from_identifier == traversal_cte.c.current_identifier,
+                    edges.c.to_identifier,
+                ),
+                else_=edges.c.from_identifier,
+            )
+            next_kind = sqlalchemy.case(
+                (
+                    edges.c.from_identifier == traversal_cte.c.current_identifier,
+                    edges.c.to_kind,
+                ),
+                else_=edges.c.from_kind,
+            )
+
+        # visited_path cycle guard: append next_identifier and a trailing comma.
+        if is_sqlite:
+            next_visited_path = (
+                traversal_cte.c.visited_path + next_identifier + sqlalchemy.literal(",")
+            )
+            cycle_guard_pattern = (
+                sqlalchemy.literal("%,") + next_identifier + sqlalchemy.literal(",%")
+            )
+        else:
+            next_visited_path = sqlalchemy.func.CONCAT(
+                traversal_cte.c.visited_path, next_identifier, sqlalchemy.literal(",")
+            )
+            cycle_guard_pattern = sqlalchemy.func.CONCAT(
+                sqlalchemy.literal("%,"), next_identifier, sqlalchemy.literal(",%")
+            )
+
+        recursive_step = (
+            sqlalchemy.select(
+                traversal_cte.c.origin_identifier,
+                next_kind.label("current_kind"),
+                next_identifier.label("current_identifier"),
+                (traversal_cte.c.depth + 1).label("depth"),
+                next_visited_path.label("visited_path"),
+            )
+            .select_from(traversal_cte)
+            .join(edges, step_join_condition)
+            .where(
+                traversal_cte.c.depth < effective_max_hops,
+                traversal_cte.c.visited_path.notlike(cycle_guard_pattern),
+            )
+        )
+
+        traversal_cte = traversal_cte.union_all(recursive_step)
+
+        query = sqlalchemy.select(
+            traversal_cte.c.origin_identifier,
+            traversal_cte.c.current_identifier.label("identifier"),
+            traversal_cte.c.current_kind.label("kind"),
+        ).where(traversal_cte.c.depth > 0)
 
         with self.engine.connect() as connectable:
             raw_rows = connectable.execute(query).fetchall()
@@ -1910,44 +2077,73 @@ class SQLResourceStore(ResourceStore):
         # returned even when it has no operations (LEFT JOIN).
         # The experiment list lives at $.config.experiments.experiments inside
         # the space's own resources.data column.
-        # MySQL uses JSON_LENGTH(); SQLite uses json_array_length().
+        # Both MySQL JSON_LENGTH and SQLite json_array_length are called via
+        # func so SQLAlchemy emits the right name per dialect.
         # ------------------------------------------------------------------
         is_sqlite = self.engine.dialect.name == "sqlite"
-        array_length_fn = "json_array_length" if is_sqlite else "JSON_LENGTH"
+        space_alias = self._resources_table.alias("sp")
+        relationship_alias = self._relationships_table.alias("rr")
+        operation_alias = self._resources_table.alias("op")
 
-        query_text = f"""
-            SELECT
-                sp.identifier AS space_id,
-                COALESCE({array_length_fn}(
-                    JSON_EXTRACT(sp.data, '$.config.experiments.experiments')
-                ), 0) AS num_experiments,
-                COUNT(op.identifier) AS total_operations,
-                COUNT(
-                    CASE
-                        WHEN JSON_EXTRACT(op.data, '$.operationType') IN (:explore_type, :explore_type_legacy)
-                        THEN 1
-                    END
-                ) AS explore_operations
-            FROM resources sp
-            LEFT JOIN resource_relationships rr
-                ON rr.subject_identifier = sp.identifier
-            LEFT JOIN resources op
-                ON op.identifier = rr.object_identifier
-                AND op.kind = :op_kind
-            WHERE sp.identifier IN :space_ids
-            GROUP BY sp.identifier, sp.data
-        """  # noqa: S608 - identifier is an internal column name, not untrusted input
+        json_array_length_func = (
+            sqlalchemy.func.json_array_length
+            if is_sqlite
+            else sqlalchemy.func.JSON_LENGTH  # noqa: E501
+        )
+        num_experiments_col = sqlalchemy.func.coalesce(
+            json_array_length_func(
+                sqlalchemy.func.JSON_EXTRACT(
+                    space_alias.c.data,
+                    sqlalchemy.literal("$.config.experiments.experiments"),
+                )
+            ),
+            0,
+        )
+
+        explore_type_literal = sqlalchemy.literal(DiscoveryOperationEnum.EXPLORE.value)
+        explore_legacy_literal = sqlalchemy.literal("search")
+        operation_type_extract = sqlalchemy.func.JSON_EXTRACT(
+            operation_alias.c.data, sqlalchemy.literal("$.operationType")
+        )
+        is_explore_operation_case = sqlalchemy.case(
+            (
+                operation_type_extract.in_(
+                    [explore_type_literal, explore_legacy_literal]
+                ),
+                1,
+            ),
+        )
+
+        query = (
+            sqlalchemy.select(
+                space_alias.c.identifier.label("space_id"),
+                num_experiments_col.label("num_experiments"),
+                sqlalchemy.func.count(operation_alias.c.identifier).label(
+                    "total_operations"
+                ),
+                sqlalchemy.func.count(is_explore_operation_case).label(
+                    "explore_operations"
+                ),
+            )
+            .select_from(space_alias)
+            .outerjoin(
+                relationship_alias,
+                relationship_alias.c.subject_identifier == space_alias.c.identifier,
+            )
+            .outerjoin(
+                operation_alias,
+                sqlalchemy.and_(
+                    operation_alias.c.identifier
+                    == relationship_alias.c.object_identifier,
+                    operation_alias.c.kind == CoreResourceKinds.OPERATION.value,
+                ),
+            )
+            .where(space_alias.c.identifier.in_(list(_space_ids)))
+            .group_by(space_alias.c.identifier, space_alias.c.data)
+        )
 
         try:
             with self.engine.begin() as conn:
-                query = sqlalchemy.text(query_text).bindparams(
-                    sqlalchemy.bindparam("space_ids", expanding=True),
-                    space_ids=list(_space_ids),
-                    explore_type=DiscoveryOperationEnum.EXPLORE.value,
-                    explore_type_legacy="search",
-                    op_kind=CoreResourceKinds.OPERATION.value,
-                )
-
                 rows = {row.space_id: row for row in conn.execute(query)}
 
         except Exception as error:
@@ -2001,29 +2197,59 @@ class SQLResourceStore(ResourceStore):
         # MySQL uses JSON_LENGTH() which counts object members correctly.
         # SQLite's json_array_length() only counts array elements and returns 0
         # for objects, so we use correlated subqueries with json_each() instead.
+        # The dialect-specific JSON column expressions are wrapped with
+        # literal_column() so they are emitted verbatim; the table reference
+        # comes from self._resources_table to avoid hard-coding the table name.
         is_sqlite = self.engine.dialect.name == "sqlite"
+        resources_table = self._resources_table
 
         if is_sqlite:
-            query_text = """
-                SELECT
-                    identifier,
-                    (SELECT count(*)
-                     FROM json_each(json_extract(data, '$.config.tabularData'))
-                    ) AS num_tables,
-                    (SELECT count(*)
-                     FROM json_each(json_extract(data, '$.config.locationData'))
-                    ) AS num_locations,
-                    (SELECT count(*)
-                     FROM json_each(json_extract(data, '$.config.data'))
-                    ) AS num_key_values,
-                    COALESCE(
-                        LENGTH(JSON_EXTRACT(data, '$.config'))
-                        - LENGTH(JSON_EXTRACT(data, '$.config.metadata')),
-                        0
-                    ) AS data_bytes
-                FROM resources
-                WHERE identifier IN :ids
-            """
+
+            def _sqlite_json_count(path: str) -> sqlalchemy.ColumnElement:  # type: ignore[type-arg]
+                """Count entries in a JSON object/array at the given path via json_each.
+
+                Args:
+                    path: A JSON path expression (e.g. ``$.config.tabularData``).
+
+                Returns:
+                    A correlated scalar subquery that counts rows returned by
+                    ``json_each`` for the JSON value at ``path``.
+                """
+                json_each_alias = sqlalchemy.func.json_each(
+                    sqlalchemy.func.json_extract(
+                        resources_table.c.data, sqlalchemy.literal(path)
+                    )
+                ).alias("je")
+                return (
+                    sqlalchemy.select(sqlalchemy.func.count())
+                    .select_from(json_each_alias)
+                    .correlate(resources_table)
+                    .scalar_subquery()
+                )
+
+            num_tables_col = _sqlite_json_count("$.config.tabularData").label(
+                "num_tables"
+            )
+            num_locations_col = _sqlite_json_count("$.config.locationData").label(
+                "num_locations"
+            )
+            num_key_values_col = _sqlite_json_count("$.config.data").label(
+                "num_key_values"
+            )
+            data_bytes_col = sqlalchemy.func.coalesce(
+                sqlalchemy.func.LENGTH(
+                    sqlalchemy.func.JSON_EXTRACT(
+                        resources_table.c.data, sqlalchemy.literal("$.config")
+                    )
+                )
+                - sqlalchemy.func.LENGTH(
+                    sqlalchemy.func.JSON_EXTRACT(
+                        resources_table.c.data,
+                        sqlalchemy.literal("$.config.metadata"),
+                    )
+                ),
+                0,
+            ).label("data_bytes")
         else:
             # On MySQL, JSON_LENGTH of a JSON null scalar returns 1 (scalar
             # length is 1 per the spec).  We must guard with JSON_TYPE to
@@ -2031,36 +2257,63 @@ class SQLResourceStore(ResourceStore):
             # For byte count, JSON_STORAGE_SIZE returns the actual binary
             # storage size of the JSON value, which is more accurate than
             # LENGTH(JSON_EXTRACT(...)) (text representation length).
-            query_text = """
-                SELECT
-                    identifier,
-                    IF(JSON_TYPE(data->'$.config.tabularData') = 'NULL',
-                       0, COALESCE(JSON_LENGTH(
-                           data->'$.config.tabularData'
-                       ), 0)) AS num_tables,
-                    IF(JSON_TYPE(data->'$.config.locationData') = 'NULL',
-                       0, COALESCE(JSON_LENGTH(
-                           data->'$.config.locationData'
-                       ), 0)) AS num_locations,
-                    IF(JSON_TYPE(data->'$.config.data') = 'NULL',
-                       0, COALESCE(JSON_LENGTH(
-                           data->'$.config.data'
-                       ), 0)) AS num_key_values,
-                    COALESCE(
-                        JSON_STORAGE_SIZE(JSON_EXTRACT(data, '$.config'))
-                        - JSON_STORAGE_SIZE(JSON_EXTRACT(data, '$.config.metadata')),
-                        0
-                    ) AS data_bytes
-                FROM resources
-                WHERE identifier IN :ids
-            """
+            def _mysql_json_count(path: str) -> sqlalchemy.ColumnElement:  # type: ignore[type-arg]
+                """Return JSON_LENGTH of the value at path, or 0 if absent or JSON null.
+
+                Args:
+                    path: A JSON path expression (e.g. ``$.config.tabularData``).
+
+                Returns:
+                    An expression that evaluates to 0 when the field is absent
+                    (``->>`` returns SQL NULL, handled by COALESCE) or is a
+                    JSON null literal (guarded by JSON_TYPE check), otherwise
+                    returns JSON_LENGTH of the value.
+                """
+                extracted_value = resources_table.c.data.op("->>")(
+                    sqlalchemy.literal(path)
+                )
+                return sqlalchemy.func.IF(
+                    sqlalchemy.func.JSON_TYPE(extracted_value) == "NULL",
+                    0,
+                    sqlalchemy.func.coalesce(
+                        sqlalchemy.func.JSON_LENGTH(extracted_value), 0
+                    ),
+                )
+
+            num_tables_col = _mysql_json_count("$.config.tabularData").label(
+                "num_tables"
+            )
+            num_locations_col = _mysql_json_count("$.config.locationData").label(
+                "num_locations"
+            )
+            num_key_values_col = _mysql_json_count("$.config.data").label(
+                "num_key_values"
+            )
+            data_bytes_col = sqlalchemy.func.coalesce(
+                sqlalchemy.func.JSON_STORAGE_SIZE(
+                    sqlalchemy.func.JSON_EXTRACT(
+                        resources_table.c.data, sqlalchemy.literal("$.config")
+                    )
+                )
+                - sqlalchemy.func.JSON_STORAGE_SIZE(
+                    sqlalchemy.func.JSON_EXTRACT(
+                        resources_table.c.data,
+                        sqlalchemy.literal("$.config.metadata"),
+                    )
+                ),
+                0,
+            ).label("data_bytes")
+
+        query = sqlalchemy.select(
+            resources_table.c.identifier,
+            num_tables_col,
+            num_locations_col,
+            num_key_values_col,
+            data_bytes_col,
+        ).where(resources_table.c.identifier.in_(list(datacontainer_ids)))
 
         try:
             with self.engine.begin() as conn:
-                query = sqlalchemy.text(query_text).bindparams(
-                    sqlalchemy.bindparam("ids", expanding=True),
-                    ids=list(datacontainer_ids),
-                )
                 rows_by_id = {row.identifier: row for row in conn.execute(query)}
         except Exception as error:
             msg = f"Unable to get statistics for datacontainer(s) {datacontainer_ids}"

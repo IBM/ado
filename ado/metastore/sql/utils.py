@@ -108,11 +108,6 @@ def create_sql_resource_store(
 ) -> sqlalchemy.MetaData:
     """Create the metastore tables if they do not exist and return the schema.
 
-    Defines the ``resources`` and ``resource_relationships`` tables, issues
-    ``CREATE TABLE IF NOT EXISTS`` for each, and returns the populated
-    :class:`~sqlalchemy.MetaData` object so callers can use the table
-    definitions directly without a separate reflection step.
-
     Args:
         engine: SQLAlchemy engine for the target database.
 

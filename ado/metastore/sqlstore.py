@@ -416,16 +416,16 @@ class SQLResourceStore(ResourceStore):
         resource = None
         if row is not None:
             data_raw = row["data"]
-            d = json.loads(data_raw) if isinstance(data_raw, str) else data_raw
+            data_dict = json.loads(data_raw) if isinstance(data_raw, str) else data_raw
             resource = self._deserialize_resource(
                 row["kind"],
-                d,
+                data_dict,
                 ignore_plugin_validation=ignore_plugin_validation,
             )
 
             # The stored resource should always have a version - if somehow it doesn't we want this to fail
             if ado.core.resources.VersionIsGreaterThan(
-                resource.version, d.get("version", "v0")
+                resource.version, data_dict.get("version", "v0")
             ):
                 self.updateResource(resource)
 
@@ -497,11 +497,13 @@ class SQLResourceStore(ResourceStore):
                 identifier = row["identifier"]
                 data_raw = row["data"]
                 kind = row["kind"]
-                d = json.loads(data_raw) if isinstance(data_raw, str) else data_raw
+                data_dict = (
+                    json.loads(data_raw) if isinstance(data_raw, str) else data_raw
+                )
                 try:
                     resource = self._deserialize_resource(
                         kind,
-                        d,
+                        data_dict,
                         ignore_plugin_validation=ignore_plugin_validation,
                     )
                 except Exception as error:
@@ -954,20 +956,24 @@ class SQLResourceStore(ResourceStore):
 
         import pandas as pd
 
-        rr = self._relationships_table
-        r = self._resources_table
+        relationships_table = self._relationships_table
+        resources_table = self._resources_table
         stmt = (
             sqlalchemy.select(
-                rr.c.subject_identifier,
-                r.c.kind,
+                relationships_table.c.subject_identifier,
+                resources_table.c.kind,
             )
-            .join(r, rr.c.subject_identifier == r.c.identifier)
-            .where(rr.c.object_identifier == identifier)
+            .join(
+                resources_table,
+                relationships_table.c.subject_identifier
+                == resources_table.c.identifier,
+            )
+            .where(relationships_table.c.object_identifier == identifier)
         )
         if kind is not None:
-            stmt = stmt.where(r.c.kind == kind)
+            stmt = stmt.where(resources_table.c.kind == kind)
         if version is not None:
-            stmt = stmt.where(r.c.version == version)
+            stmt = stmt.where(resources_table.c.version == version)
 
         with self.engine.connect() as connectable:
             rows = connectable.execute(stmt).fetchall()
@@ -1021,20 +1027,23 @@ class SQLResourceStore(ResourceStore):
 
         import pandas as pd
 
-        rr = self._relationships_table
-        r = self._resources_table
+        relationships_table = self._relationships_table
+        resources_table = self._resources_table
         stmt = (
             sqlalchemy.select(
-                rr.c.object_identifier,
-                r.c.kind,
+                relationships_table.c.object_identifier,
+                resources_table.c.kind,
             )
-            .join(r, rr.c.object_identifier == r.c.identifier)
-            .where(rr.c.subject_identifier == identifier)
+            .join(
+                resources_table,
+                relationships_table.c.object_identifier == resources_table.c.identifier,
+            )
+            .where(relationships_table.c.subject_identifier == identifier)
         )
         if kind is not None:
-            stmt = stmt.where(r.c.kind == kind)
+            stmt = stmt.where(resources_table.c.kind == kind)
         if version is not None:
-            stmt = stmt.where(r.c.version == version)
+            stmt = stmt.where(resources_table.c.version == version)
 
         with self.engine.connect() as connectable:
             rows = connectable.execute(stmt).fetchall()
@@ -1142,11 +1151,11 @@ class SQLResourceStore(ResourceStore):
         This is because the others ids must already exist"""
 
         # Test that the relatedIdentifiers exist before adding
-        r = [
+        resource_exists_checks = [
             self.containsResourceWithIdentifier(identifier=ident)
             for ident in relatedIdentifiers
         ]
-        if False in r:
+        if False in resource_exists_checks:
             raise ValueError(f"Unknown resource identifier passed {relatedIdentifiers}")
 
         self.addResource(resource=resource)
@@ -1376,49 +1385,75 @@ class SQLResourceStore(ResourceStore):
                     # belongs to. This is to find all the spaces that
                     # belong to the sample store to see if operations
                     # are currently running on them.
+                    relationships_table = self._relationships_table
+                    resources_table = self._resources_table
+
+                    space_subquery = (
+                        sqlalchemy.select(relationships_table.c.subject_identifier)
+                        .where(
+                            relationships_table.c.object_identifier == identifier,
+                            relationships_table.c.subject_identifier.like("space-%"),
+                        )
+                        .scalar_subquery()
+                    )
                     sample_store_id = session.execute(
-                        sqlalchemy.text(
-                            "SELECT data->>'$.config.sampleStoreIdentifier' "
-                            "FROM resources "
-                            "WHERE identifier = ("
-                            "   SELECT subject_identifier"
-                            "   FROM resource_relationships"
-                            "   WHERE object_identifier=:operation_identifier"
-                            "   AND subject_identifier LIKE 'space-%')"
-                        ).bindparams(operation_identifier=identifier)
+                        sqlalchemy.select(
+                            resources_table.c.data.op("->>")(
+                                sqlalchemy.literal("$.config.sampleStoreIdentifier")
+                            )
+                        ).where(resources_table.c.identifier == space_subquery)
                     ).first()[0]
 
                     # The user might choose to ignore running operations
                     # <--------- START CHECKS FOR RUNNING OPERATIONS --------->
                     if not ignore_running_operations:
-                        spaces_in_sample_store = session.execute(
-                            sqlalchemy.text(
-                                "SELECT object_identifier "
-                                "FROM resource_relationships "
-                                "WHERE subject_identifier=:sample_store_id "
-                                "AND object_identifier LIKE 'space-%'"
-                            ).bindparams(sample_store_id=sample_store_id)
-                        )
                         spaces_in_sample_store = [
-                            result[0] for result in spaces_in_sample_store
-                        ]
-
-                        running_operations = session.execute(
-                            sqlalchemy.text("""
-                                SELECT identifier
-                                FROM resources
-                                WHERE kind = 'operation'
-                                    AND JSON_OVERLAPS(data->'$.config.spaces', :spaces_in_sample_store)
-                                    AND JSON_CONTAINS(data->'$.status', '{"event":"started"}')
-                                    AND NOT JSON_CONTAINS(data->'$.status', '{"event":"finished"}')
-                                """).bindparams(
-                                spaces_in_sample_store=json.dumps(
-                                    spaces_in_sample_store
+                            result[0]
+                            for result in session.execute(
+                                sqlalchemy.select(
+                                    relationships_table.c.object_identifier
+                                ).where(
+                                    relationships_table.c.subject_identifier
+                                    == sample_store_id,
+                                    relationships_table.c.object_identifier.like(
+                                        "space-%"
+                                    ),
                                 )
                             )
+                        ]
+
+                        spaces_json = sqlalchemy.literal(
+                            json.dumps(spaces_in_sample_store)
                         )
+                        data_col = resources_table.c.data
                         running_operations = [
-                            result[0] for result in running_operations
+                            result[0]
+                            for result in session.execute(
+                                sqlalchemy.select(resources_table.c.identifier).where(
+                                    resources_table.c.kind
+                                    == CoreResourceKinds.OPERATION.value,
+                                    sqlalchemy.func.JSON_OVERLAPS(
+                                        data_col.op("->")(
+                                            sqlalchemy.literal("$.config.spaces")
+                                        ),
+                                        spaces_json,
+                                    ),
+                                    sqlalchemy.func.JSON_CONTAINS(
+                                        data_col.op("->")(
+                                            sqlalchemy.literal("$.status")
+                                        ),
+                                        sqlalchemy.literal('{"event":"started"}'),
+                                    ),
+                                    sqlalchemy.not_(
+                                        sqlalchemy.func.JSON_CONTAINS(
+                                            data_col.op("->")(
+                                                sqlalchemy.literal("$.status")
+                                            ),
+                                            sqlalchemy.literal('{"event":"finished"}'),
+                                        )
+                                    ),
+                                )
+                            )
                         ]
 
                         if running_operations:
@@ -1434,13 +1469,16 @@ class SQLResourceStore(ResourceStore):
                     import pandas as pd
 
                     child_rows = session.execute(
-                        sqlalchemy.text(
-                            "SELECT rr.object_identifier, r.kind "
-                            "FROM resource_relationships rr "
-                            "INNER JOIN resources r "
-                            "  ON rr.object_identifier = r.identifier "
-                            "WHERE rr.subject_identifier = :operation_id"
-                        ).bindparams(operation_id=identifier)
+                        sqlalchemy.select(
+                            relationships_table.c.object_identifier,
+                            resources_table.c.kind,
+                        )
+                        .join(
+                            resources_table,
+                            relationships_table.c.object_identifier
+                            == resources_table.c.identifier,
+                        )
+                        .where(relationships_table.c.subject_identifier == identifier)
                     ).fetchall()
 
                     child_resources_df = pd.DataFrame(
@@ -1462,15 +1500,20 @@ class SQLResourceStore(ResourceStore):
                         # All children are DataContainers - check each has no
                         # grandchildren
                         for data_container_id in child_resources_df["IDENTIFIER"]:
-                            rr = self._relationships_table
-                            r = self._resources_table
                             grandchildren_rows = session.execute(
                                 sqlalchemy.select(
-                                    rr.c.object_identifier,
-                                    r.c.kind,
+                                    relationships_table.c.object_identifier,
+                                    resources_table.c.kind,
                                 )
-                                .join(r, rr.c.object_identifier == r.c.identifier)
-                                .where(rr.c.subject_identifier == data_container_id)
+                                .join(
+                                    resources_table,
+                                    relationships_table.c.object_identifier
+                                    == resources_table.c.identifier,
+                                )
+                                .where(
+                                    relationships_table.c.subject_identifier
+                                    == data_container_id
+                                )
                             ).fetchall()
 
                             if grandchildren_rows:
@@ -2140,9 +2183,9 @@ class SQLResourceStore(ResourceStore):
         # func so SQLAlchemy emits the right name per dialect.
         # ------------------------------------------------------------------
         is_sqlite = self.engine.dialect.name == "sqlite"
-        space_alias = self._resources_table.alias("sp")
-        relationship_alias = self._relationships_table.alias("rr")
-        operation_alias = self._resources_table.alias("op")
+        space_alias = self._resources_table.alias("space_table")
+        relationship_alias = self._relationships_table.alias("relationship_table")
+        operation_alias = self._resources_table.alias("operation_table")
 
         json_array_length_func = (
             sqlalchemy.func.json_array_length
@@ -2278,7 +2321,7 @@ class SQLResourceStore(ResourceStore):
                     sqlalchemy.func.json_extract(
                         resources_table.c.data, sqlalchemy.literal(path)
                     )
-                ).alias("je")
+                ).alias("json_each_entries")
                 return (
                     sqlalchemy.select(sqlalchemy.func.count())
                     .select_from(json_each_alias)

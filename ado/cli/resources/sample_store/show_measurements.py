@@ -17,6 +17,7 @@ from ado.cli.utils.output.prints import (
     console_print,
     magenta,
 )
+from ado.cli.utils.resources.experiments import parse_cli_from_experiment
 from ado.core.samplestore.base import SampleStore
 from ado.metastore.base import ResourceDoesNotExistError
 
@@ -53,6 +54,24 @@ def show_sample_store_measurements(
         entities: list[Entity] = sample_store.get_entities(require_measurements=True)
 
     measured_entities = [e for e in entities if len(e.observedPropertyValues) > 0]
+
+    if parameters.from_experiment is not None:
+        requested_experiment_references = parse_cli_from_experiment(
+            from_experiment=parameters.from_experiment,
+        )
+        measured_entities = [
+            e
+            for e in measured_entities
+            if any(r in e.experimentReferences for r in requested_experiment_references)
+        ]
+        if not measured_entities:
+            console_print(
+                f"{INFO}No entities with measurements from experiments "
+                f"{magenta(', '.join(r.fully_qualified_parameterized_experiment_identifier for r in requested_experiment_references))} "
+                f"were found in [i]samplestore {magenta(parameters.resource_id)}[/i].",
+                stderr=True,
+            )
+            return
 
     if not measured_entities:
         console_print(

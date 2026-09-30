@@ -388,7 +388,7 @@ def test_set_input_reference_strips_legacy_spaces_so_cli_override_wins() -> None
     a leftover ``spaces`` key. ``spaces`` is dropped; with ``inputs`` present
     the before-validator also ignores any remaining ``spaces`` echo.
     """
-    from ado.cli.resources.operation.create import _add_operation_input_of_kind
+    from ado.cli.resources.operation.create import _add_operation_input_for_reference
 
     operation_data = {
         "operation": {
@@ -399,8 +399,11 @@ def test_set_input_reference_strips_legacy_spaces_so_cli_override_wins() -> None
         },
         "spaces": ["space-old"],
     }
-    _add_operation_input_of_kind(
-        operation_data, CoreResourceKinds.DISCOVERYSPACE, "space-new"
+    _add_operation_input_for_reference(
+        operation_data,
+        ADOResourceReference(
+            kind=CoreResourceKinds.DISCOVERYSPACE, identifier="space-new"
+        ),
     )
     assert "spaces" not in operation_data
     cfg = DiscoveryOperationResourceConfiguration.model_validate(operation_data)

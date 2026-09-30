@@ -103,7 +103,9 @@ the [ado CLI guide](../cli-reference/index.md) for more details
 > - [Deleting operations](operation.md#deleting-operations)
 
 In **ado** you can delete resources, but there is an important constraint: a
-resource cannot be deleted if it has dependent (child) resources.
+resource cannot be deleted if it has dependent (child) resources (with the
+exception of operations, which automatically cascade-delete their child
+`datacontainer` resources).
 
 If you attempt to delete a resource that still has children, you will encounter
 an error similar to the following:

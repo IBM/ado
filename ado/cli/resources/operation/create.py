@@ -34,6 +34,7 @@ from ado.core.operation.operation import OperationException, OperationOutput
 from ado.core.operation.resource import (
     OperationExitStateEnum,
 )
+from ado.core.resources import ADOResourceReference
 from ado.modules.operators.errors import OperatorVersionMismatchError
 
 
@@ -94,23 +95,22 @@ def _operator_input_name_for_kind(
     )
 
 
-def _add_operation_input_of_kind(
+def _add_operation_input_for_reference(
     operation_data: dict,
-    kind: CoreResourceKinds,
-    identifier: str,
+    reference: ADOResourceReference,
 ) -> None:
     """Set a single named input reference on raw *operation_data*.
 
     When binding a discoveryspace, drops leftover YAML ``spaces``; the space
     is now recorded in ``inputs``.
     """
-    input_name = _operator_input_name_for_kind(operation_data, kind)
+    input_name = _operator_input_name_for_kind(operation_data, reference.kind)
     inputs = operation_data.setdefault("inputs", {})
     inputs[input_name] = {
-        "identifier": identifier,
-        "kind": kind.value,
+        "identifier": reference.identifier,
+        "kind": reference.kind.value,
     }
-    if kind == CoreResourceKinds.DISCOVERYSPACE:
+    if reference.kind == CoreResourceKinds.DISCOVERYSPACE:
         operation_data.pop("spaces", None)
 
 
@@ -281,8 +281,11 @@ def _apply_with_resources(
                     use_latest=[],
                 )
             )
-        _add_operation_input_of_kind(
-            operation_data, CoreResourceKinds.DISCOVERYSPACE, space_id
+        _add_operation_input_for_reference(
+            operation_data,
+            ADOResourceReference(
+                kind=CoreResourceKinds.DISCOVERYSPACE, identifier=space_id
+            ),
         )
 
     if CoreResourceKinds.DATACONTAINER in parameters.with_resources:
@@ -294,8 +297,11 @@ def _apply_with_resources(
                 stderr=True,
             )
             raise typer.Exit(1)
-        _add_operation_input_of_kind(
-            operation_data, CoreResourceKinds.DATACONTAINER, dcr_identifier
+        _add_operation_input_for_reference(
+            operation_data,
+            ADOResourceReference(
+                kind=CoreResourceKinds.DATACONTAINER, identifier=dcr_identifier
+            ),
         )
 
 
@@ -326,7 +332,10 @@ def _apply_use_latest(
             CoreResourceKinds.DISCOVERYSPACE,
             CoreResourceKinds.DATACONTAINER,
         ):
-            _add_operation_input_of_kind(operation_data, resource_kind, latest_id)
+            _add_operation_input_for_reference(
+                operation_data,
+                ADOResourceReference(kind=resource_kind, identifier=latest_id),
+            )
         else:
             continue
 

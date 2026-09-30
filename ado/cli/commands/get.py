@@ -130,6 +130,19 @@ def get_resource(
             show_default=True,
         ),
     ] = False,
+    include_properties: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--include-properties",
+            "-p",
+            help=(
+                "Include discovery-space properties. Specify constitutive, parameterized, "
+                "optional, all, or one or more property identifiers."
+            ),
+            rich_help_panel=DISCOVERY_SPACE_ONLY_OPTIONS,
+            show_default=False,
+        ),
+    ] = None,
     output_format: Annotated[
         AdoGetSupportedOutputFormats,
         typer.Option(
@@ -452,6 +465,7 @@ def get_resource(
         exclude_none=exclude_none,
         exclude_unset=exclude_unset,
         field_selectors=filter_conditions,
+        include_properties=include_properties,
         matching_point=matching_point,
         matching_space_id=matching_space_id,
         matching_space=matching_space,

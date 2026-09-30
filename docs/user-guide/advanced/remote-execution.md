@@ -17,9 +17,9 @@ generating the Ray runtime environment, and running `ray job submit` for you.
 > [!IMPORTANT] Only remote project contexts are supported
 >
 > The project context used must be
-> [remote](../../resources/metastore.md#contexts-for-remote-projects),
-> as it must be accessible when ado executes on the remote ray cluster. `ado`
-> will fail with a clear error if a SQLite context is detected.
+> [remote](../../resources/metastore.md#contexts-for-remote-projects), as it
+> must be accessible when ado executes on the remote ray cluster. `ado` will
+> fail with a clear error if a SQLite context is detected.
 
 <!-- markdownlint-disable-next-line MD028 -->
 
@@ -27,6 +27,13 @@ generating the Ray runtime environment, and running `ray job submit` for you.
 >
 > If your cluster requires a port-forward, `oc` (OpenShift CLI) or `kubectl`
 > must be installed, and you must be logged in to the cluster.
+
+<!-- markdownlint-disable-next-line MD028 -->
+
+> [!IMPORTANT] The Ray cluster must already have `uv` installed
+>
+> If `uv` is not already installed on the cluster nodes, the Ray job will fail
+> during the creation of its virtual environment.
 
 ## Defining a remote execution context
 
@@ -87,16 +94,16 @@ wait: false
 
 ### Runtime environment setup options
 
-When many jobs start at once (for example during cluster autoscaling,
-many concurrent measurements), Ray may
-need extra time to install each job's runtime environment on workers. Use the
-optional `runtimeEnv` block to tune Ray's runtime-env behaviour.
+When many jobs start at once (for example during cluster autoscaling, many
+concurrent measurements), Ray may need extra time to install each job's runtime
+environment on workers. Use the optional `runtimeEnv` block to tune Ray's
+runtime-env behaviour.
 
 - `setupTimeoutSeconds` (default `600`): maximum seconds to create the runtime
   environment on a worker. Use `-1` to disable the timeout.
-- `eagerInstall` (default `true`): if `true`, install the runtime environment
-  on a worker when the job starts; if `false`, install lazily when the
-  first task runs.
+- `eagerInstall` (default `true`): if `true`, install the runtime environment on
+  a worker when the job starts; if `false`, install lazily when the first task
+  runs.
 
 <!-- markdownlint-disable line-length -->
 
@@ -117,8 +124,7 @@ wait: false
 
 <!-- markdownlint-enable line-length -->
 
-If `runtimeEnv` the defaults are used.
-These are the same as the Ray defaults.
+If `runtimeEnv` the defaults are used. These are the same as the Ray defaults.
 
 ## Submitting commands
 
@@ -190,13 +196,15 @@ ado -c mysql_project.yaml --remote remote_context.yaml create operation -f opera
 ## Installing python packages on a remote Ray cluster
 
 When executing on a remote Ray cluster you often need to install additional
-packages, either from PyPI or local development. There are three methods
+packages, either from PyPI or local development. There are four methods
 available:
 
 - [Pre-installing](#pre-installing-ado-packages): Best when you are using the
   same actuators and operators constantly
 - [Dynamic installation from pypi](#dynamic-installation-from-pypi): Best in
   general case
+- [Dynamic installation from wheels](#dynamic-installation-from-wheels):
+  Provides additional flexibility
 - [Dynamic installation from source](#dynamic-installation-from-source): Best
   for developers
 
@@ -235,17 +243,77 @@ job start from python package download or build steps.
 
 ### Dynamic installation from pypi
 
-The recommended method is to specify `ado-core` and the pypi package names of
-any plugins required in the `packages.fromPyPI` section of your
-`remote_context.yaml`.
+You can specify PyPI package names of any python packages you need installed in
+the `packages.fromPyPI` section of your `remote_context.yaml`. This can include
+newer versions of `ado-core` or other plugins you might need.
 
-> [!NOTE] Wheel paths and `fromPyPI`
+```yaml
+packages:
+  fromPyPI:
+    - ado-ray-tune>=2.0
+    - numpy>2.3.4 # e.g. new numpy version has some performance enhancements
+```
+
+### Dynamic installation from wheels
+
+You can also install python wheels.
+
+#### Installing local wheels
+
+If you have a wheel on your local machine at $PATH, just add that path to
+`fromPyPI`. Extending the previous example, this looks like,
+
+```yaml
+packages:
+  fromPyPI:
+    - ado-ray-tune>=2.0
+    - numpy>2.3.4
+    - build/wheels/my_wheel.whl #A local path on your machine
+```
+
+The path can be relative or absolute. Relative paths are resolved with respect
+to the directory `ado remote` is run in.
+
+The wheels will be transferred to the working dir of the ray job on the remote
+cluster and installed in the ray job's virtual env.
+
+#### Installing remote wheels
+
+If there is a wheel your job needs that already exists on the remote cluster,
+add its path to `fromPyPI`. `ado remote` will notice that it is not on the local
+machine and pass the full path to ray to install on the remote machine. For
+example, if the wheel is located at `/data/mywheel.whl` on the remote cluster,
+do:
+
+```yaml
+packages:
+  fromPyPI:
+    - ado-ray-tune>=2.0
+    - numpy>2.3.4
+    - build/wheels/my_wheel.whl #A local path on your machine
+    - /data/mywheel.whl # A path on the remote cluster
+```
+
+> [!IMPORTANT] Failure Modes
 >
-> Entries in `fromPyPI` that resolve to an existing `.whl` file on the machine
-> running `ado --remote` will be transferred to the remote cluster. Other
-> entries are forwarded unchanged to the cluster's `uv` install step. This
-> includes paths that were not present on submitting machine - these will be
-> interpreted as paths to wheels that are on the remote filesystem.
+> If you add an entry for a wheel that is not local or remote, the installation
+> step will fail
+
+<!-- markdownlint-disable-next-line MD028 -->
+
+> [!WARNING] Overlapping paths
+>
+> Ensure that you do not have a local wheel at the same path as a wheel on the
+> remote cluster you want to install. The local one will be transferred and
+> installed.
+
+<!-- markdownlint-disable-next-line MD028 -->
+
+> [!TIP] Use absolute paths
+>
+> For remote wheels it's better to use an absolute path, as a relative path will
+> be interpreted w.r.t. the remote working dir which you cannot guarantee the
+> location of.
 
 ### Dynamic installation from source
 
@@ -280,11 +348,12 @@ envVars:
 
 > [!NOTE] Version Control System dependencies
 >
-> Ray cluster nodes are not guaranteed to have access to any VCS's
-> specified in python package dependencies.
-> If your package has private VCS dependencies, declare them using
-> [`[tool.uv.sources]`](https://docs.astral.sh/uv/concepts/projects/dependencies/) in
-> your `pyproject.toml` instead of `git+ssh://` URLs in the `dependencies` list:
+> Ray cluster nodes are not guaranteed to have access to any VCS's specified in
+> python package dependencies. If your package has private VCS dependencies,
+> declare them using
+> [`[tool.uv.sources]`](https://docs.astral.sh/uv/concepts/projects/dependencies/)
+> in your `pyproject.toml` instead of `git+ssh://` URLs in the `dependencies`
+> list:
 >
 > ```toml
 > [project]
@@ -308,6 +377,10 @@ an operator or actuator requires these files as input.
 
 The paths can be absolute or relative. If relative they are resolved with
 respect to the directory `ado --remote [COMMAND]` is executed from.
+
+Do not use `additionalFiles` to ship wheels for installation. Instead, use
+`packages.fromSource` if the source is available, or specify the path to the
+pre-built `.whl` in `packages.fromPyPI`.
 
 ```yaml
 executionType:

@@ -9,6 +9,11 @@ import typing
 
 import yaml
 
+try:
+    from yaml import CSafeDumper as SafeDumper
+except ImportError:  # pragma: nocover
+    from yaml import SafeDumper  # type: ignore[assignment]
+
 from ado.cli.models.types import AdoShowStatsSupportedOutputFormats
 from ado.cli.utils.output.prints import (
     SUCCESS,
@@ -52,7 +57,7 @@ def render_stats_dataframe(
             if output_format == Fmt.JSON:
                 result: str = json.dumps(data, indent=2, default=str)
             else:
-                result = yaml.dump(data, default_flow_style=False)
+                result = yaml.dump(data, default_flow_style=False, Dumper=SafeDumper)
         case Fmt.TABLE:
             import rich.box
 

@@ -3,6 +3,7 @@
 import json
 import math
 
+import numpy as np
 import pytest
 
 from ado.schema.domain import (
@@ -10,6 +11,7 @@ from ado.schema.domain import (
     ProbabilityFunctionsEnum,
     PropertyDomain,
     VariableTypeEnum,
+    _internal_range_values,
 )
 
 
@@ -100,6 +102,15 @@ def test_valid_property_domains() -> None:
         discretePropertyDomain.variableType == VariableTypeEnum.DISCRETE_VARIABLE_TYPE
     )
 
+    discretePropertyDomainFloatRange = PropertyDomain(
+        domainRange=[0.0, 1.0], interval=0.2
+    )
+
+    assert (
+        discretePropertyDomainFloatRange.variableType
+        == VariableTypeEnum.DISCRETE_VARIABLE_TYPE
+    )
+
     categoricalPropertyDomain = PropertyDomain(values=["A", "B", 3])
 
     assert (
@@ -111,6 +122,7 @@ def test_valid_property_domains() -> None:
         continuousPropertyDomain,
         discretePropertyDomain,
         discretePropertyDomainNoRange,
+        discretePropertyDomainFloatRange,
         categoricalPropertyDomain,
     ]
     for d in domains:
@@ -137,6 +149,28 @@ def test_valid_property_domains() -> None:
     assert discretePropertyDomainNoRange.valueInDomain(1) is True
     # For discrete variables with an interval we need at least one part of range to anchor the interval!
     assert discretePropertyDomainNoRange.valueInDomain(100) is True
+    assert discretePropertyDomainFloatRange.valueInDomain(0.0) is True
+    assert discretePropertyDomainFloatRange.valueInDomain(0.2) is True
+    assert discretePropertyDomainFloatRange.valueInDomain(0.4) is True
+    assert discretePropertyDomainFloatRange.valueInDomain(0.6) is True
+    assert discretePropertyDomainFloatRange.valueInDomain(0.8) is True
+    # Upper bound exclusive
+    assert discretePropertyDomainFloatRange.valueInDomain(1.0) is False
+    # Off-step
+    assert discretePropertyDomainFloatRange.valueInDomain(0.3) is False
+    assert discretePropertyDomainFloatRange.valueInDomain(0.1) is False
+    # Off-step close to valid values
+    assert discretePropertyDomainFloatRange.valueInDomain(0.19) is False
+    assert discretePropertyDomainFloatRange.valueInDomain(0.21) is False
+    assert discretePropertyDomainFloatRange.valueInDomain(0.01) is False
+    # Off-step float values close to valid points are not in domain
+    assert discretePropertyDomainFloatRange.valueInDomain(0.2 + 1e-4) is False
+    assert discretePropertyDomainFloatRange.valueInDomain(0.2 - 1e-4) is False
+    assert discretePropertyDomainFloatRange.valueInDomain(0.2 + 1e-7) is False
+    assert discretePropertyDomainFloatRange.valueInDomain(0.2 - 1e-7) is False
+    # Out of range
+    assert discretePropertyDomainFloatRange.valueInDomain(-0.2) is False
+    assert discretePropertyDomainFloatRange.valueInDomain(1.2) is False
     assert categoricalPropertyDomain.valueInDomain("A") is True
     assert categoricalPropertyDomain.valueInDomain(3) is True
     assert categoricalPropertyDomain.valueInDomain("F") is False
@@ -1089,6 +1123,195 @@ def test_binary_variable_type_error_message_suggests_discrete() -> None:
         )
 
 
+def test_is_value_in_internal_range_values_matches_internal_range_values() -> None:
+    """Test that _is_value_in_internal_range_values exactly matches list membership in _internal_range_values."""
+    from ado.schema.domain import (
+        _internal_range_values,
+        _is_value_in_internal_range_values,
+    )
+
+    test_ranges = [
+        (0, 10, 1),
+        (0, 10, 2),
+        (1, 9, 3),
+        (-5, 5, 2),
+        (0.0, 1.0, 0.2),
+        (0.0, 1.0, 0.1),
+        (0.1, 0.4, 0.1),
+        (-1.5, 1.5, 0.5),
+        (0.0, 1.0, 0.33),
+    ]
+
+    test_values = [
+        -2,
+        -1,
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        8,
+        9,
+        10,
+        11,
+        -1.5,
+        0.0,
+        0.1,
+        0.2,
+        0.3,
+        0.4,
+        0.5,
+        0.6,
+        0.7,
+        0.8,
+        0.9,
+        1.0,
+        1.2,
+        0.2 + 1e-4,
+        0.2 - 1e-4,
+        0.2 + 1e-7,
+        0.2 - 1e-7,
+        0.1 + 0.2,
+        True,
+        False,
+        np.bool(True),
+        np.bool(False),
+        float("nan"),
+        float("inf"),
+        float("-inf"),
+        np.nan,
+        np.inf,
+        -np.inf,
+        "42",
+        None,
+        [1],
+        {"a": 1},
+        np.int64(1),
+        np.float64(0.2),
+    ]
+
+    for lo, hi, step in test_ranges:
+        ref = _internal_range_values(lo, hi, step)
+        for v in test_values:
+            expected = v in ref
+            actual = _is_value_in_internal_range_values(v, lo, hi, step)
+            assert actual == expected, (
+                f"Range ({lo}, {hi}, {step}) with value {v!r}: "
+                f"expected {expected}, got {actual}"
+            )
+
+
+def test_discrete_variable_large_range_value_in_domain_performance() -> None:
+    """Test that valueInDomain for DISCRETE_VARIABLE_TYPE with huge range is O(1) and instantaneous."""
+    domain = PropertyDomain(
+        variableType=VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
+        domainRange=[0, 2147483647],
+        interval=1,
+    )
+
+    assert domain.valueInDomain(0) is True
+    assert domain.valueInDomain(42) is True
+    assert domain.valueInDomain(1000000) is True
+    assert domain.valueInDomain(2147483646) is True
+    # Upper bound is exclusive
+    assert domain.valueInDomain(2147483647) is False
+    # Lower bound boundary
+    assert domain.valueInDomain(-1) is False
+    # Non-integer with interval 1
+    assert domain.valueInDomain(42.5) is False
+    assert domain.valueInDomain(1000000.4) is False
+    assert domain.valueInDomain(1000000.5) is False
+    # Boolean equality in list membership: True == 1, False == 0 (which are in [0, 2147483647))
+    assert domain.valueInDomain(True) is True
+    assert domain.valueInDomain(False) is True
+    # Non-numeric / NaN
+    assert domain.valueInDomain("42") is False
+    assert domain.valueInDomain(float("nan")) is False
+
+
+def test_valueInDomain_with_np_bool() -> None:
+    """Test that np.bool values are handled consistently across all variable types in valueInDomain."""
+    # CONTINUOUS with domainRange: np.bool(True)==1, np.bool(False)==0 are numeric
+    cont_with_range = PropertyDomain(domainRange=[0, 2])
+    assert cont_with_range.valueInDomain(np.bool(True)) is True
+    assert cont_with_range.valueInDomain(np.bool(False)) is True
+
+    # CONTINUOUS without domainRange: any numeric value accepted
+    cont_no_range = PropertyDomain(
+        variableType=VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE
+    )
+    assert cont_no_range.valueInDomain(np.bool(True)) is True
+    assert cont_no_range.valueInDomain(np.bool(False)) is True
+
+    # DISCRETE with domainRange: np.bool(True)==1, np.bool(False)==0
+    disc_with_range = PropertyDomain(
+        variableType=VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
+        domainRange=[0, 2],
+        interval=1,
+    )
+    assert disc_with_range.valueInDomain(np.bool(True)) is True
+    assert disc_with_range.valueInDomain(np.bool(False)) is True
+
+    # DISCRETE with explicit values
+    disc_with_values = PropertyDomain(values=[0, 1, 2])
+    assert disc_with_values.valueInDomain(np.bool(True)) is True
+    assert disc_with_values.valueInDomain(np.bool(False)) is True
+
+    # BINARY
+    binary = PropertyDomain(variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE)
+    assert binary.valueInDomain(np.bool(True)) is True
+    assert binary.valueInDomain(np.bool(False)) is True
+
+    # CATEGORICAL
+    categorical = PropertyDomain(
+        variableType=VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE,
+        values=[True, False],
+    )
+    assert categorical.valueInDomain(np.bool(True)) is True
+    assert categorical.valueInDomain(np.bool(False)) is True
+
+    # UNKNOWN
+    unknown = PropertyDomain(variableType=VariableTypeEnum.UNKNOWN_VARIABLE_TYPE)
+    assert unknown.valueInDomain(np.bool(True)) is True
+    assert unknown.valueInDomain(np.bool(False)) is True
+
+    # OPEN_CATEGORICAL
+    open_cat = PropertyDomain(
+        variableType=VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE
+    )
+    assert open_cat.valueInDomain(np.bool(True)) is True
+    assert open_cat.valueInDomain(np.bool(False)) is True
+
+
+def test_property_domain_with_np_bool_values_classified_as_discrete() -> None:
+    """A PropertyDomain whose values are all np.bool scalars should be classified as DISCRETE.
+
+    NumPy scalar types (np.generic subclasses) are numeric but are not instances of
+    numbers.Number, so they must be recognised as numeric values when auto-detecting
+    the variable type.
+    """
+    domain = PropertyDomain(values=[np.bool(True), np.bool(False)])
+    assert domain.variableType == VariableTypeEnum.DISCRETE_VARIABLE_TYPE
+
+
+def test_categorical_domain_with_numeric_values_and_domain_range_is_accepted() -> None:
+    """A CATEGORICAL domain with numeric values and a domainRange must not raise.
+
+    When values are present, domainRange is silently discarded by the
+    range_requirements validator, so supplying both is a valid combination.
+    """
+    domain = PropertyDomain(
+        variableType=VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE,
+        values=[1, 2, 3],
+        domainRange=[1, 4],
+    )
+    assert domain.variableType == VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE
+    assert domain.values == [1, 2, 3]
+    # domainRange is nullified by range_requirements when values are present
+    assert domain.domainRange is None
+
+
 # ---------------------------------------------------------------------------
 # Tests for PropertyDomain.overlaps()
 # ---------------------------------------------------------------------------
@@ -1353,3 +1576,104 @@ def test_compact_representation_unknown() -> None:
     """Unknown domain renders as a hyphen placeholder."""
     domain = PropertyDomain(variableType=VariableTypeEnum.UNKNOWN_VARIABLE_TYPE)
     assert domain.compact_representation() == "-"
+
+
+# ---------------------------------------------------------------------------
+# Tests for _internal_range_values
+# ---------------------------------------------------------------------------
+
+
+def test_internal_range_values_integer_path_returns_native_int() -> None:
+    """Elements must be native Python int, not numpy.int64."""
+    values = _internal_range_values(0, 10, 1)
+    for v in values:
+        assert type(v) is int, f"Expected native int, got {type(v)}"
+
+
+def test_internal_range_values_float_path_returns_native_float() -> None:
+    """Elements must be native Python float, not numpy.float64."""
+    values = _internal_range_values(0.0, 1.0, 0.1)
+    for v in values:
+        assert type(v) is float, f"Expected native float, got {type(v)}"
+
+
+def test_internal_range_values_integer_upper_bound_excluded() -> None:
+    """Upper bound must not appear in the result (half-open interval)."""
+    values = _internal_range_values(0, 10, 1)
+    assert 10 not in values
+    assert values == list(range(10))
+
+
+def test_internal_range_values_float_upper_bound_excluded() -> None:
+    """Upper bound must not appear even when float arithmetic hits it exactly."""
+    # 0.1 * 4 == 0.4 in IEEE 754, so the last step lands exactly on the upper bound.
+    values = _internal_range_values(0.1, 0.4, 0.1)
+    assert 0.4 not in values
+    assert values == pytest.approx([0.1, 0.2, 0.3])
+
+
+def test_internal_range_values_single_element() -> None:
+    """When the range spans exactly one step, only the lower bound is returned."""
+    assert _internal_range_values(5, 6, 1) == [5]
+    assert _internal_range_values(0.5, 1.0, 0.5) == [0.5]
+
+
+def test_internal_range_values_large_integer_step() -> None:
+    """Interval larger than the range still produces only the lower bound."""
+    assert _internal_range_values(0, 5, 10) == [0]
+
+
+def test_internal_range_values_negative_lower_bound() -> None:
+    """Negative lower bounds are handled correctly."""
+    values = _internal_range_values(-3, 3, 1)
+    assert values == [-3, -2, -1, 0, 1, 2]
+    assert 3 not in values
+
+
+def test_internal_range_values_integer_list_not_in_domain() -> None:
+    """Regression: numpy.int64 elements falsely reported a list as in-domain.
+
+    With the old list(np.arange(...)), np.int64(1) == [1] returned array([True]),
+    which is truthy, so `[1] in range_values` was True.  With .tolist() the
+    elements are native int and `int(1) == [1]` is False.
+    """
+    values = _internal_range_values(0, 10, 1)
+    assert [1] not in values, (
+        "A Python list [1] must not compare equal to the integer 1 in the range"
+    )
+
+
+def test_internal_range_values_float_list_not_in_domain() -> None:
+    """Same numpy scalar regression for the float path."""
+    values = _internal_range_values(0.0, 1.0, 0.1)
+    assert [0.5] not in values, (
+        "A Python list [0.5] must not compare equal to the float 0.5 in the range"
+    )
+
+
+def test_internal_range_values_exact_upper_equal_to_lower() -> None:
+    """When lower == upper no values fall in the half-open interval."""
+    values = _internal_range_values(5, 5, 1)
+    # floor((5-5)/1) + 1 == 1, values == [5], last == upper → strip → []
+    assert values == []
+
+
+def test_internal_range_values_non_unit_float_interval() -> None:
+    """Non-trivial float step with a non-unit multiplier."""
+    values = _internal_range_values(0.0, 1.0, 0.25)
+    assert values == pytest.approx([0.0, 0.25, 0.5, 0.75])
+    assert 1.0 not in values
+
+
+def test_internal_range_values_int_interval_does_not_skip_values() -> None:
+    """Integer path with a step >1 must not skip values inside the range."""
+    values = _internal_range_values(0, 10, 2)
+    assert values == [0, 2, 4, 6, 8]
+
+
+def test_internal_range_values_mixed_int_float_uses_float_path() -> None:
+    """Mixing int lower/upper with a float interval must trigger the float path."""
+    values = _internal_range_values(0, 1, 0.5)
+    for v in values:
+        assert type(v) is float, f"Expected float, got {type(v)}"
+    assert values == pytest.approx([0.0, 0.5])

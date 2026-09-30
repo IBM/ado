@@ -37,10 +37,6 @@ from ado.modules.operators.base import (
     validate_operator_registration,
 )
 from ado.modules.operators.errors import OperatorVersionMismatchError
-from ado.modules.operators.orchestrate import (
-    orchestrate_explore_operation,
-    orchestrate_general_operation,
-)
 
 moduleLog = logging.getLogger("operation_collections")
 
@@ -156,6 +152,10 @@ def _make_general_orchestration_wrapper(
         bound = user_sig.bind(*args, **kwargs)
         bound.apply_defaults()
         arguments = dict(bound.arguments)
+
+        from ado.modules.operators._general_orchestration import (
+            orchestrate_general_operation,
+        )
 
         missing = [iid for iid in input_ids if iid not in arguments]
         if missing:
@@ -364,6 +364,10 @@ def explore_operation(
         operationInfo: FunctionOperationInfo | None = None,
         parameters: GenericOperatorParameters = _EMPTY_OPERATOR_PARAMETERS,
     ) -> OperationOutput:
+        from ado.modules.operators.orchestrate import (
+            orchestrate_explore_operation,
+        )
+
         op_meta = explore.operators[op_name]
         params_model = op_meta.configuration_model.model_validate(parameters)
         operation_info = operationInfo or FunctionOperationInfo()
@@ -377,7 +381,7 @@ def explore_operation(
         verify_inputs_exist_in_metastore(inputs, metastore)
         return orchestrate_explore_operation(
             operator_metadata=op_meta,
-            discovery_space=discoverySpace,
+            inputs=inputs,
             parameters=params_model,
             operation_info=operation_info,
         )

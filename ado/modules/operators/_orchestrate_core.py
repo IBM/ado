@@ -14,6 +14,7 @@ from ray.exceptions import RayTaskError
 import ado.utilities.output
 from ado.core import OperationResource
 from ado.core.discoveryspace.space import DiscoverySpace
+from ado.core.metadata import PackageProvenance
 from ado.core.operation.config import (
     FunctionOperationInfo,
     GenericOperatorParameters,
@@ -26,6 +27,7 @@ from ado.core.operation.inputs import (
 from ado.core.operation.operation import OperationException, OperationOutput
 from ado.core.operation.resource import (
     OperationExitStateEnum,
+    OperationProvenanceInfo,
     OperationResourceEventEnum,
     OperationResourceStatus,
 )
@@ -63,6 +65,23 @@ def _operation_status_for_sigterm_initiated_shutdown(
         exit_state=OperationExitStateEnum.ERROR,
         message=message,
     )
+
+
+def operator_provenance_mapping(
+    operator_metadata: OperatorMetadata,
+) -> dict[str, PackageProvenance]:
+    """Return package provenance for the operator that will run an operation.
+
+    Args:
+        operator_metadata: Registered metadata for the operator.
+
+    Returns:
+        A mapping of operator identifier to package provenance. Empty when the
+        operator has no recorded package provenance.
+    """
+    if operator_metadata.provenance is None:
+        return {}
+    return {operator_metadata.operatorIdentifier: operator_metadata.provenance}
 
 
 def log_space_details(discovery_space: "DiscoverySpace") -> None:
@@ -130,6 +149,7 @@ def _run_operation_harness(
     operation_info: FunctionOperationInfo,
     metastore: SQLStore,
     inputs: dict[str, OperatorInputType],
+    provenance: OperationProvenanceInfo,
     operation_identifier: str | None = None,
     finalize_callback: typing.Callable[[OperationResource], None] | None = None,
 ) -> OperationOutput:
@@ -148,6 +168,8 @@ def _run_operation_harness(
         inputs: Mapping of parameter name → rich ado resource the operator works on.
             References for metastore persistence are derived via each value's
             ``.reference`` property.
+        provenance: Operator, and for explore operations experiment and actuator,
+            provenance to store on the operation resource.
         operation_identifier: Optional pre-existing identifier for the operation resource.
         finalize_callback: Optional callback to execute on the operation resource after
             completion, before final status update.
@@ -178,6 +200,7 @@ def _run_operation_harness(
         operation_parameters=operation_parameters.model_dump(),
         metastore=metastore,
         operation_info=operation_info,
+        provenance=provenance,
         operation_identifier=operation_identifier,
     )
 

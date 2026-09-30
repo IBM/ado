@@ -477,6 +477,12 @@ def test_run_random_walk_operation(
     )
     assert "ray_submission_id" not in operationOutput.operation.metadata
 
+    # Explore operations record operator, experiment, and actuator provenance
+    assert operation.provenance.operators
+    assert operation.operatorIdentifier in operation.provenance.operators
+    assert operation.provenance.experiments
+    assert operation.provenance.actuators
+
 
 def test_random_walk_fail_invalid_config(
     ml_multi_cloud_space: DiscoverySpace,

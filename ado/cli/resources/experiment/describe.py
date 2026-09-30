@@ -17,11 +17,9 @@ from ado.modules.actuators.registry import (
 
 
 def describe_experiment(parameters: AdoDescribeCommandParameters) -> None:
-
+    """Print a human-readable description of a catalogued experiment."""
     with Status(ADO_SPINNER_INITIALIZING_ACTUATOR_REGISTRY):
         registry = ActuatorRegistry.globalRegistry()
-        experiment = _ado_lookup_cli_experiment(
-            parameters.resource_id, registry=registry
-        )
 
+    experiment = _ado_lookup_cli_experiment(parameters.resource_id, registry=registry)
     console_print(experiment)

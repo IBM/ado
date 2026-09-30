@@ -7,6 +7,7 @@ import pathlib
 import sys
 import tempfile
 import time
+from collections.abc import Callable
 from typing import Any, Literal
 
 from ado.modules.actuators.custom_experiments import custom_experiment
@@ -208,6 +209,9 @@ WarmStartFile = ConstitutiveProperty(
         "description": (
             "Path to a CPLEX MIP-start file (.mst, or .sol with the same XML structure). "
             "Empty string disables warm start. Applied before solve on every seed run. "
+            "If the file is missing or unreadable, or CPLEX discards the start "
+            "(no feasible solution from the MIP start), the seed fails immediately "
+            "with a structured error status "
             "For remote execution, use a bare filename and ship the file via "
             "execution context additionalFiles."
         )
@@ -291,6 +295,79 @@ def _normalize_cplex_value(value: float | None) -> float | None:
     return float(value)
 
 
+def _is_mip_start_rejected_message(message: str) -> bool:
+    """Return True if a CPLEX log line means every MIP start was discarded.
+
+    CPLEX emits this after processing starts, e.g.
+    ``Warning:  No solution found from 1 MIP starts.``
+    Do not match the earlier ``defined no solution`` / repair lines: those can
+    precede a successful repair.
+    """
+    return "No solution found from" in message and "MIP start" in message
+
+
+class _MipStartRejectWatcher:
+    """Watch CPLEX streams and terminate the solve if all MIP starts are discarded."""
+
+    def __init__(self, model: object) -> None:
+        self.rejected = False
+        self._model = model
+
+    def observe(self, message: str) -> None:
+        """Record a discarded MIP start and ask CPLEX to stop."""
+        if self.rejected or not _is_mip_start_rejected_message(message):
+            return
+        self.rejected = True
+        logger.warning("CPLEX discarded all MIP starts; terminating solve")
+        terminate = getattr(self._model, "terminate", None)
+        if callable(terminate):
+            try:
+                terminate()
+            except Exception:  # noqa: BLE001
+                logger.debug("Cplex.terminate() raised", exc_info=True)
+
+    def tee(self, dest: object) -> "_CplexStreamTee":
+        """Return a stream that copies to ``dest`` and feeds this watcher."""
+        return _CplexStreamTee(dest, self)
+
+
+class _CplexStreamTee:
+    """File-like wrapper that tees CPLEX output and buffers partial lines.
+
+    ``Cplex.set_*_stream`` requires ``write``/``flush``.
+      The buffer is needed because CPLEX can split the
+      MIP-start reject warning across multiple writes.
+    """
+
+    def __init__(self, dest: object, watcher: _MipStartRejectWatcher) -> None:
+        self._dest = dest
+        self._watcher = watcher
+        self._buf = ""
+
+    def write(self, data: str) -> int:
+        """Write ``data`` to the underlying stream and inspect it for reject messages."""
+        if not data:
+            return 0
+        write = getattr(self._dest, "write", None)
+        if callable(write):
+            write(data)
+        self._buf += data
+        if _is_mip_start_rejected_message(self._buf):
+            self._watcher.observe(self._buf)
+            self._buf = ""
+        elif "\n" in self._buf:
+            self._buf = self._buf.rsplit("\n", 1)[-1]
+        return len(data)
+
+    def flush(self) -> None:
+        """Flush the underlying stream and inspect any remaining buffered text."""
+        if self._buf:
+            self._watcher.observe(self._buf)
+        flush = getattr(self._dest, "flush", None)
+        if callable(flush):
+            flush()
+
+
 def _load_warm_start(model: object, warm_start_file: str) -> str | None:
     """Load a MIP start from disk. Return an error status string on failure."""
     if not warm_start_file:
@@ -348,17 +425,21 @@ def _export_incumbent_mst(model: object, objective_value: float | None) -> str:
 
 def _structured_seed_failure(
     *,
-    solve_time: float,
     solve_status: str,
+    solve_time: float | None = None,
     progress_samples: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    """Build a single-seed result dict for a failed or aborted run."""
+    """Build a single-seed result dict for a failed or aborted run.
+
+    Numeric metrics are ``None`` so aggregations such as ``solve_times-mean``
+    ignore the seed instead of treating a crash as a zero-second solve.
+    """
     return {
         "solve_time_s": solve_time,
         "objective_value": None,
         "best_bound": None,
         "mip_gap": None,
-        "nodes_explored": 0,
+        "nodes_explored": None,
         "solve_status": solve_status,
         "best_solution_mst": "",
         "progress_samples": progress_samples or [],
@@ -368,8 +449,16 @@ def _structured_seed_failure(
 def _make_progress_callback(
     interval_seconds: float,
     samples: list[dict[str, Any]],
+    abort_if: Callable[[], bool] | None = None,
 ) -> type:
-    """Create a MIPInfoCallback subclass that records progress at fixed intervals."""
+    """Create a MIPInfoCallback that records progress and can abort the solve.
+
+    Args:
+        interval_seconds: Sample period. ``<= 0`` disables progress sampling.
+        samples: List appended with progress dictionaries.
+        abort_if: If provided and returns True, abort the current solve. Used to
+            stop quickly when CPLEX has discarded every MIP start.
+    """
     import cplex
 
     class ProgressCallbackImpl(cplex.callbacks.MIPInfoCallback):
@@ -378,8 +467,14 @@ def _make_progress_callback(
             self._interval = interval_seconds
             self._samples = samples
             self._last_t: float | None = None
+            self._abort_if = abort_if
 
         def __call__(self) -> None:
+            if self._abort_if is not None and self._abort_if():
+                self.abort()
+                return
+            if self._interval <= 0:
+                return
             t = self.get_time() - self.get_start_time()
             if self._last_t is None or t >= self._last_t + self._interval:
                 self._last_t = t
@@ -600,7 +695,6 @@ def _collect_parallel_seed_results(
             logger.warning("Ray seed task %d failed: %s", seed_index, exc)
             results.append(
                 _structured_seed_failure(
-                    solve_time=0.0,
                     solve_status=f"ray_task_failed: {exc}",
                 )
             )
@@ -647,7 +741,8 @@ def _run_single_seed(
             value in MB and enables compressed on-disk node files
             (CPX_PARAM_NODEFILEIND=3) so the solver spills to disk rather than
             crashing OOM.  Should be ~80% of the Ray task memory reservation.
-        warm_start_file: Optional CPLEX MIP-start file path; empty disables warm start.
+        warm_start_file: Optional CPLEX MIP-start file path; empty disables warm
+            start. If CPLEX discards the start, the seed fails immediately.
         export_solution: If True, populate best_solution_mst with MST XML.
 
     Returns:
@@ -661,10 +756,17 @@ def _run_single_seed(
     logger.info("Start solver %d of %d", solver_n, n_seeds)
 
     model = cplex.Cplex()
-    model.set_log_stream(sys.stdout)
-    model.set_error_stream(sys.stderr)
-    model.set_warning_stream(sys.stderr)
-    model.set_results_stream(sys.stdout)
+    reject_watcher: _MipStartRejectWatcher | None = None
+    log_stream: object = sys.stdout
+    warn_stream: object = sys.stderr
+    if warm_start_file:
+        reject_watcher = _MipStartRejectWatcher(model)
+        log_stream = reject_watcher.tee(sys.stdout)
+        warn_stream = reject_watcher.tee(sys.stderr)
+    model.set_log_stream(log_stream)
+    model.set_error_stream(warn_stream)
+    model.set_warning_stream(warn_stream)
+    model.set_results_stream(log_stream)
 
     model.read(mps_file)
     warm_start_error = _load_warm_start(model, warm_start_file)
@@ -676,7 +778,6 @@ def _run_single_seed(
         )
         logger.info("End solver %d of %d", solver_n, n_seeds)
         return _structured_seed_failure(
-            solve_time=0.0,
             solve_status=warm_start_error,
         )
 
@@ -698,9 +799,16 @@ def _run_single_seed(
         _apply_cut_passes_all(model, int(cut_passes_all))
 
     progress_samples: list[dict[str, Any]] = []
-    if progress_interval_s > 0:
+    abort_if: Callable[[], bool] | None = (
+        (lambda: reject_watcher.rejected) if reject_watcher is not None else None
+    )
+    if progress_interval_s > 0 or abort_if is not None:
         model.register_callback(
-            _make_progress_callback(progress_interval_s, progress_samples)
+            _make_progress_callback(
+                progress_interval_s,
+                progress_samples,
+                abort_if=abort_if,
+            )
         )
 
     logger.debug(
@@ -720,11 +828,23 @@ def _run_single_seed(
         time_limit_s,
     )
 
+    def _rejected_warm_start_result() -> dict[str, Any]:
+        logger.warning(
+            "Warm start rejected on seed %d: %s",
+            seed,
+            warm_start_file,
+        )
+        logger.info("End solver %d of %d", solver_n, n_seeds)
+        return _structured_seed_failure(
+            solve_status=f"warm_start_rejected: {warm_start_file}",
+        )
+
     t0 = time.perf_counter()
     try:
         model.solve()
     except cplex.exceptions.CplexSolverError as exc:
-        solve_time = time.perf_counter() - t0
+        if reject_watcher is not None and reject_watcher.rejected:
+            return _rejected_warm_start_result()
         # CPLEX error 1016 (CPXERR_RESTRICTED_VERSION) is the community-edition
         # size limit. Re-raise so the framework produces InvalidMeasurementResult,
         # preventing memoization from reusing this failed result.
@@ -736,14 +856,16 @@ def _run_single_seed(
                 "CPLEX Community Edition limits exceeded on seed %d: %s", seed, exc
             )
             raise
-        # For other CPLEX errors, return a structured result.
+        # For other CPLEX errors, return a structured result. Solve time is None
+        # so a crash is not treated as a fast solve by min(solve_times-mean).
         status = f"cplex_error_{error_code}" if error_code else f"cplex_error: {exc}"
         logger.warning("CPLEX solver error on seed %d: %s", seed, exc)
         logger.info("End solver %d of %d", solver_n, n_seeds)
         return _structured_seed_failure(
-            solve_time=solve_time,
             solve_status=status,
         )
+    if reject_watcher is not None and reject_watcher.rejected:
+        return _rejected_warm_start_result()
     solve_time = time.perf_counter() - t0
 
     status = model.solution.get_status_string()
@@ -775,7 +897,7 @@ def _run_single_seed(
 
     # Always append the terminal sample.  When progress_interval_s > 0 it is
     # included in time-series alignment; in all cases it is the canonical source
-    # for the scalar best_bound derived below.
+    # for the per-seed best_bound that populates best_bounds.
     _append_terminal_progress_sample(
         model=model,
         progress_samples=progress_samples,
@@ -785,7 +907,7 @@ def _run_single_seed(
         nodes_explored=nodes,
     )
 
-    # Scalar best_bound: last non-None best_bound in progress_samples.
+    # Per-seed best_bound: last non-None best_bound in progress_samples.
     # The terminal sample sets this to objective_value at optimality (mip_gap == 0)
     # and forward-fills the last callback-recorded LP-relaxation bound otherwise,
     # avoiding the post-solve CPLEX API which may return the incumbent.
@@ -844,11 +966,12 @@ def _run_single_seed(
             "Solves a MIP instance with CPLEX across N random seeds and reports "
             "vectors of performance metrics. Each output property is a list of "
             "length n_seeds, capturing solve time, objective value, MIP gap, "
-            "nodes explored, and solver status per seed. This enables analysis "
-            "of both parameter effects and seed-induced variability."
+            "nodes explored, solver status, and best bound per seed. This enables "
+            "analysis of both parameter effects and seed-induced variability."
         )
     },
     parameterization={},
+    version="0.2.0",
 )
 def solve_mip(
     mps_file: str,
@@ -893,14 +1016,17 @@ def solve_mip(
             still returned (partial-OK policy).
         progress_interval_s: If > 0, capture intermediate progress at this interval
             (seconds). Outputs progress_time_grid and aligned time-series.
-        warm_start_file: Optional CPLEX MIP-start file applied before each seed solve.
+        warm_start_file: Optional CPLEX MIP-start file applied before each seed
+            solve. Missing, unreadable, or discarded starts fail that seed
+            immediately (``warm_start_file_not_found``, ``warm_start_read_error``,
+            or ``warm_start_rejected``) instead of running to ``time_limit_s``.
         export_solution: If True, populate best_solution_mst with MST XML per seed.
 
     Returns:
         Dictionary with vector-valued outputs (one element per seed):
         - solve_times: Wall-clock solve times in seconds.
         - objective_values: Best objective values found.
-        - best_bounds: Final MIP best bounds.
+        - best_bounds: Final MIP best bounds per seed.
         - best_solution_mst: MST XML strings for warm-start round-trip, or ``""``.
         - mip_gaps: Final relative MIP gaps.
         - nodes_explored: B&B nodes processed.
@@ -956,10 +1082,11 @@ def solve_mip(
             result = _run_one(seed)
             results.append(result)
 
-    out: dict[str, list] = {
+    best_bounds = [r["best_bound"] for r in results]
+    out: dict[str, Any] = {
         "solve_times": [r["solve_time_s"] for r in results],
         "objective_values": [r["objective_value"] for r in results],
-        "best_bounds": [r["best_bound"] for r in results],
+        "best_bounds": best_bounds,
         "best_solution_mst": [r["best_solution_mst"] for r in results],
         "mip_gaps": [r["mip_gap"] for r in results],
         "nodes_explored": [r["nodes_explored"] for r in results],

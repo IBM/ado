@@ -19,12 +19,10 @@ from ado.modules.operators.randomwalk import RandomWalk
 def expected_characterize_operators() -> list[str]:
     """Return characterize operators expected for the current Python version."""
 
-    operators = ["detect_anomalous_series", "trim"]
+    operators = ["detect_anomalous_series", "profile", "trim"]
     if sys.version_info >= (3, 14):
-        # TODO: add profile and trim back once their plugins support Python 3.14+.
-        operators = [
-            operator for operator in operators if operator not in {"profile", "trim"}
-        ]
+        # TODO: add trim back once their plugins support Python 3.14+.
+        operators = [operator for operator in operators if operator != "trim"]
 
     return operators
 

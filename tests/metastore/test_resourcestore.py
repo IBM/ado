@@ -22,8 +22,12 @@ from ado.core.datacontainer.resource import DataContainerResource
 from ado.core.discoveryspace.resource import DiscoverySpaceResource
 from ado.core.document.config import DocumentConfiguration
 from ado.core.document.resource import DocumentResource
-from ado.core.operation.config import DiscoveryOperationResourceConfiguration
-from ado.core.operation.resource import OperationResource
+from ado.core.metadata import PackageProvenance
+from ado.core.operation.config import (
+    DiscoveryOperationResourceConfiguration,
+    FunctionOperationInfo,
+)
+from ado.core.operation.resource import OperationProvenanceInfo, OperationResource
 from ado.core.resources import (
     ADOResourceEventEnum,
     ADOResourceReference,
@@ -337,7 +341,7 @@ def test_add_update_and_delete_operation_related_to_discovery_space(
 
 
 @requires_sqlite_3_38
-def test_add_operation_and_output(
+def test_create_operation_and_add_output(
     random_space_resource_from_db: Callable[[str | None], DiscoverySpaceResource],
     sql_store: SQLStore,
     random_walk_multicloud_operation_configuration: DiscoveryOperationResourceConfiguration,
@@ -353,13 +357,53 @@ def test_add_operation_and_output(
         )
     )
 
-    op_resource = ado.modules.operators.base.add_operation_and_output_to_metastore(
-        operation_resource_configuration=random_walk_multicloud_operation_configuration,
+    provenance = OperationProvenanceInfo(
+        operators={
+            random_walk_multicloud_operation_configuration.operation.module.operatorIdentifier: PackageProvenance(
+                distributionName="ado-core",
+                distributionVersion="1.2.3",
+            )
+        }
+    )
+    operation_parameters = (
+        random_walk_multicloud_operation_configuration.operation.parameters
+    )
+    if hasattr(operation_parameters, "model_dump"):
+        operation_parameters = operation_parameters.model_dump()
+
+    op_resource = ado.modules.operators.base.create_operation_and_add_to_metastore(
+        inputs={
+            "discoverySpace": ADOResourceReference(
+                identifier=space_identifier,
+                kind=CoreResourceKinds.DISCOVERYSPACE,
+            )
+        },
+        operator_module=random_walk_multicloud_operation_configuration.operation.module,
+        operation_parameters=operation_parameters,
+        operation_info=FunctionOperationInfo(
+            metadata=random_walk_multicloud_operation_configuration.metadata,
+            actuatorConfigurationIdentifiers=(
+                random_walk_multicloud_operation_configuration.actuatorConfigurationIdentifiers
+            ),
+        ),
         metastore=sql_store,
+        provenance=provenance,
+    )
+    ado.modules.operators.base.add_operation_output_to_metastore(
+        operation=op_resource,
         output=ado.modules.operators.base.OperationOutput(
             resources=[data_container_resource]
         ),
+        metastore=sql_store,
     )
+
+    assert op_resource.config.spaces == [space_identifier]
+    loaded = sql_store.getResource(
+        identifier=op_resource.identifier, kind=CoreResourceKinds.OPERATION
+    )
+    assert loaded.provenance.operators == provenance.operators
+    assert loaded.provenance.experiments == []
+    assert loaded.provenance.actuators == {}
 
     # Test we can get the datacontainer
     dcs = sql_store.get_resources_by_relationship(
@@ -1147,7 +1191,12 @@ def two_op_hierarchy(
     sql_store.addResourceWithRelationships(ds, relatedIdentifiers=[ss.identifier])
 
     op1_config = DiscoveryOperationResourceConfiguration(
-        spaces=[ds.identifier],
+        inputs={
+            "discoverySpace": ADOResourceReference(
+                kind=CoreResourceKinds.DISCOVERYSPACE,
+                identifier=ds.identifier,
+            )
+        },
         operation=DiscoveryOperationConfiguration(),
     )
     op1 = OperationResource(
@@ -1158,7 +1207,12 @@ def two_op_hierarchy(
     sql_store.addResourceWithRelationships(op1, relatedIdentifiers=[ds.identifier])
 
     op2_config = DiscoveryOperationResourceConfiguration(
-        spaces=[ds.identifier],
+        inputs={
+            "discoverySpace": ADOResourceReference(
+                kind=CoreResourceKinds.DISCOVERYSPACE,
+                identifier=ds.identifier,
+            )
+        },
         operation=DiscoveryOperationConfiguration(),
     )
     op2 = OperationResource(
@@ -1711,7 +1765,12 @@ def resource_hierarchy_with_child_operation(
     )
 
     child_op_config = DiscoveryOperationResourceConfiguration(
-        spaces=[space2.identifier],
+        inputs={
+            "discoverySpace": ADOResourceReference(
+                kind=CoreResourceKinds.DISCOVERYSPACE,
+                identifier=space2.identifier,
+            )
+        },
         operation=DiscoveryOperationConfiguration(),
     )
     child_op = OperationResource(
@@ -1870,7 +1929,12 @@ def resource_hierarchy_with_document(
     sql_store.addResourceWithRelationships(space, relatedIdentifiers=[ss.identifier])
 
     op_a_config = DiscoveryOperationResourceConfiguration(
-        spaces=[space.identifier],
+        inputs={
+            "discoverySpace": ADOResourceReference(
+                kind=CoreResourceKinds.DISCOVERYSPACE,
+                identifier=space.identifier,
+            )
+        },
         operation=DiscoveryOperationConfiguration(),
     )
     op_a = OperationResource(
@@ -1891,7 +1955,12 @@ def resource_hierarchy_with_document(
     )
 
     op_b_config = DiscoveryOperationResourceConfiguration(
-        spaces=[space.identifier],
+        inputs={
+            "discoverySpace": ADOResourceReference(
+                kind=CoreResourceKinds.DISCOVERYSPACE,
+                identifier=space.identifier,
+            )
+        },
         operation=DiscoveryOperationConfiguration(),
     )
     op_b = OperationResource(

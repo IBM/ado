@@ -29,7 +29,10 @@ from ado.core.operation.config import (
     OperatorReference,
 )
 from ado.core.operation.operation import OperationOutput
-from ado.core.operation.resource import OperationResource
+from ado.core.operation.resource import (
+    OperationProvenanceInfo,
+    OperationResource,
+)
 from ado.core.resources import ADOResourcePropertyDescriptor, ADOResourceReference
 from ado.metastore.sqlstore import SQLStore
 from ado.modules.actuators.measurement_queue import MeasurementQueue
@@ -473,53 +476,13 @@ def add_operation_output_to_metastore(
             metastore.updateResource(operation)
 
 
-def add_operation_and_output_to_metastore(
-    operation_resource_configuration: DiscoveryOperationResourceConfiguration,
-    output: OperationOutput,
-    metastore: SQLStore,
-) -> OperationResource:
-    """Creates an operation resource from the given configuration and adds it and its outputs to the resource store"""
-    from ado.core.operation.resource import OperationProvenanceInfo
-    from ado.modules.operators.collections import provenance_for_operator
-
-    operator_module = operation_resource_configuration.operation.module
-    operators = {}
-    if isinstance(operator_module, OperatorReference):
-        operator_provenance = provenance_for_operator(
-            operator_module.operatorName, operator_module.operationType
-        )
-        if operator_provenance is not None:
-            operators[operator_module.operatorIdentifier] = operator_provenance
-
-    operation = OperationResource(
-        operationType=operator_module.operationType,
-        operatorIdentifier=operator_module.operatorIdentifier,
-        config=operation_resource_configuration,
-        status=[output.exitStatus],
-        provenance=OperationProvenanceInfo(operators=operators),
-    )
-
-    # ValueError means the resource has already been added
-    with contextlib.suppress(ValueError):
-        metastore.addResourceWithRelationships(
-            resource=operation,
-            relatedIdentifiers=[
-                ref.identifier
-                for ref in operation_resource_configuration.inputs.values()
-            ],
-        )
-
-    add_operation_output_to_metastore(operation, output, metastore)
-
-    return operation
-
-
 def create_operation_and_add_to_metastore(
     inputs: dict[str, ADOResourceReference],
     operator_module: OperatorModuleConf | OperatorReference,
     operation_parameters: dict,
     operation_info: FunctionOperationInfo,
     metastore: SQLStore,
+    provenance: OperationProvenanceInfo,
     operation_identifier: str | None = None,
 ) -> OperationResource:
     """Creates an operation resource and adds it to the metastore.
@@ -534,26 +497,19 @@ def create_operation_and_add_to_metastore(
         operator_module: Configuration for the operator (module or function-based).
         operation_parameters: Dictionary of parameters for the operation.
         operation_info: Information about the operation including metadata and actuator
-            configuration identifiers.
-        metastore: The SQL store to add the operation resource to.
-
+            configuration identifiers
+        metastore: The SQL store to add the operation resource to
+        provenance: Package provenance for the operation, built by the caller
         operation_identifier: Optional pre-existing identifier for the operation resource.
             If not provided, a new identifier will be generated.
 
     Returns:
         OperationResource instance that was created and added to the metastore.
     """
-    from ado.core.operation.config import DiscoveryOperationConfiguration
-    from ado.core.operation.resource import OperationProvenanceInfo
-    from ado.modules.actuators.errors import (
-        DeprecatedExperimentError,
-        MissingActuatorConfigurationForCatalogError,
-        UnexpectedCatalogRetrievalError,
-        UnknownActuatorError,
-        UnknownExperimentError,
+
+    from ado.core.operation.config import (
+        DiscoveryOperationConfiguration,
     )
-    from ado.modules.actuators.registry import ActuatorRegistry
-    from ado.modules.operators.collections import provenance_for_operator
 
     operation_resource_configuration = DiscoveryOperationResourceConfiguration(
         operation=DiscoveryOperationConfiguration(
@@ -566,48 +522,12 @@ def create_operation_and_add_to_metastore(
     )
 
     op_module = operation_resource_configuration.operation.module
-    operators = {}
-    if isinstance(op_module, OperatorReference):
-        operator_provenance = provenance_for_operator(
-            op_module.operatorName, op_module.operationType
-        )
-        if operator_provenance is not None:
-            operators[op_module.operatorIdentifier] = operator_provenance
-
-    experiments = []
-    actuators = {}
-    registry = ActuatorRegistry.globalRegistry()
-    for space_experiment in discovery_space.measurementSpace.experiments:
-        try:
-            catalog_experiment = registry.experimentForReference(
-                space_experiment.reference, resolve=True
-            )
-        except (
-            UnknownExperimentError,
-            UnknownActuatorError,
-            DeprecatedExperimentError,
-            UnexpectedCatalogRetrievalError,
-            MissingActuatorConfigurationForCatalogError,
-        ):
-            continue
-
-        experiments.append(catalog_experiment.reference)
-        actuator_id = catalog_experiment.actuatorIdentifier
-        if actuator_id not in actuators:
-            actuator_provenance = registry.provenance_for_actuator(actuator_id)
-            if actuator_provenance is not None:
-                actuators[actuator_id] = actuator_provenance
-
     operation = OperationResource(
         identifier=operation_identifier,
         operationType=op_module.operationType,
         operatorIdentifier=op_module.operatorIdentifier,
         config=operation_resource_configuration,
-        provenance=OperationProvenanceInfo(
-            operators=operators,
-            experiments=experiments,
-            actuators=actuators,
-        ),
+        provenance=provenance,
     )
 
     # Link all resource inputs plus any actuator configurations.

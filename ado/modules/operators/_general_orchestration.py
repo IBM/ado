@@ -15,10 +15,12 @@ from ado.core.operation.config import (
 )
 from ado.core.operation.inputs import OperatorInputType
 from ado.core.operation.operation import OperationOutput
+from ado.core.operation.resource import OperationProvenanceInfo
 from ado.metastore.sqlstore import SQLStore
 from ado.modules.operators._orchestrate_core import (
     _run_operation_harness,
     log_space_details,
+    operator_provenance_mapping,
 )
 
 moduleLog = logging.getLogger("general_orchestration")
@@ -135,6 +137,9 @@ def orchestrate_general_operation(
         operation_parameters=operation_parameters,
     )
 
+    provenance = OperationProvenanceInfo(
+        operators=operator_provenance_mapping(operator_metadata),
+    )
     return _run_operation_harness(
         run_closure=operation_run_closure,
         inputs=inputs,
@@ -142,4 +147,5 @@ def orchestrate_general_operation(
         operation_parameters=operation_parameters,
         operation_info=operation_info,
         metastore=metastore,
+        provenance=provenance,
     )

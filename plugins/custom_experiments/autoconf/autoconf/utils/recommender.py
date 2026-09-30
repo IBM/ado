@@ -4,6 +4,7 @@
 
 import logging
 
+import numpy as np
 import pandas as pd
 from autogluon.tabular import TabularPredictor
 
@@ -40,7 +41,7 @@ def get_model_prediction_and_metadata(
     row_is_valid, rule_based_classifier_error = is_row_valid(config)
     if int(row_is_valid) == 1:
         try:
-            pred = predictor.predict(config).values[0]
+            pred = np.asarray(predictor.predict(config))[0]
             logger.debug("Prediction succeeded")
         except Exception as e:
             logger.debug("Prediction FAILED")

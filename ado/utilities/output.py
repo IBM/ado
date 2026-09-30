@@ -7,6 +7,12 @@ import typing
 import pydantic
 import yaml
 
+try:
+    from yaml import CSafeDumper as SafeDumper
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:  # pragma: nocover
+    from yaml import SafeDumper, SafeLoader  # type: ignore[assignment]
+
 
 def format_elided_list(items: list, max_items: int | None) -> str:
     """Format a list, optionally truncating in the middle with an omission count.
@@ -68,14 +74,16 @@ def pydantic_model_as_yaml(
 ) -> str:
 
     model = printable_pydantic_model(model)
-    return yaml.safe_dump(
-        yaml.safe_load(
+    return yaml.dump(
+        yaml.load(
             model.model_dump_json(
                 exclude_unset=exclude_unset,
                 exclude_defaults=exclude_defaults,
                 exclude_none=exclude_none,
                 indent=indent,
                 context=context,
-            )
-        )
+            ),
+            Loader=SafeLoader,
+        ),
+        Dumper=SafeDumper,
     )

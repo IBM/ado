@@ -1398,8 +1398,9 @@ class SQLResourceStore(ResourceStore):
                     )
                     sample_store_id = session.execute(
                         sqlalchemy.select(
-                            resources_table.c.data.op("->>")(
-                                sqlalchemy.literal("$.config.sampleStoreIdentifier")
+                            json_extract_field_as_string(
+                                resources_table.c.data,
+                                "$.config.sampleStoreIdentifier",
                             )
                         ).where(resources_table.c.identifier == space_subquery)
                     ).first()[0]

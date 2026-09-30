@@ -1,9 +1,10 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
+from typing import Literal
+
 import sqlalchemy
 
-from ado.metastore.sql.statements import table_exists_query
 from ado.utilities.location import SQLStoreConfiguration
 from ado.utilities.pydantic import pydantic_aware_json_serializer
 
@@ -12,6 +13,10 @@ from ado.utilities.pydantic import pydantic_aware_json_serializer
 # samplestore — which both point at the same MySQL server — share one pool and
 # avoid the overhead of opening a second TCP connection.
 _engine_cache: dict[str, sqlalchemy.Engine] = {}
+
+# The resource graph can include operation→operation nesting and document
+# edges, so a larger cap is needed; 10 is sufficient for any realistic chain.
+_MAX_HIERARCHY_HOPS = 10
 
 
 def engine_for_sql_store(
@@ -73,6 +78,40 @@ def engine_for_sql_store(
     return engine
 
 
+def table_exists_query(
+    tablename: str,
+    dialect: Literal["mysql", "sqlite"],
+) -> sqlalchemy.TextClause:
+    """Return a bound SQL query that checks whether a table exists in the database.
+
+    ``dialect`` is a `sqlalchemy.engine.Dialect.name` (e.g. ``mysql``, ``sqlite``).
+
+    Args:
+        tablename: The name of the table to check for.
+        dialect: "mysql" or "sqlite"
+
+    Returns:
+        A bound :class:`sqlalchemy.TextClause` that returns one row when the
+        table exists and no rows when it does not.
+
+    Raises:
+        ValueError: If ``dialect`` is neither sqlite nor mysql.
+    """
+    if dialect == "sqlite":
+        return sqlalchemy.text(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name=:name"
+        ).bindparams(name=tablename)
+    if dialect == "mysql":
+        return sqlalchemy.text(
+            "SELECT 1 FROM information_schema.tables"
+            " WHERE table_schema = DATABASE() AND table_name = :name LIMIT 1"
+        ).bindparams(name=tablename)
+    raise ValueError(
+        f"Unsupported dialect for table_exists_query: {dialect!r} "
+        "(expected 'sqlite' or 'mysql')"
+    )
+
+
 def check_table_exists(engine: sqlalchemy.Engine, tablename: str) -> bool:
     """Return whether ``tablename`` exists in the database behind ``engine``.
 
@@ -95,6 +134,33 @@ def check_table_exists(engine: sqlalchemy.Engine, tablename: str) -> bool:
     except Exception:
         inspector = sqlalchemy.inspect(engine)
         return inspector.has_table(tablename)
+
+
+def json_extract_field_as_string(
+    col: sqlalchemy.Column,
+    path: str,
+) -> sqlalchemy.ColumnElement:
+    """Extract a scalar text value from a JSON column using the ``->>`` operator.
+
+    The ``->>`` operator extracts a scalar string from a JSON document.
+    Wrapping the result in :func:`sqlalchemy.cast` with :class:`sqlalchemy.String`
+    prevents SQLAlchemy's JSON column type processor from attempting to
+    JSON-decode the already-extracted scalar value, which would raise a
+    ``JSONDecodeError`` for plain strings or silently coerce numeric strings
+    to ``int``.
+
+    Args:
+        col: The JSON :class:`~sqlalchemy.Column` to extract from.
+        path: A JSON path expression (e.g. ``$.config.metadata.name``).
+
+    Returns:
+        A SQLAlchemy column expression that evaluates to the extracted scalar
+        text value, typed as :class:`sqlalchemy.String`.
+    """
+    return sqlalchemy.cast(
+        col.op("->>")(sqlalchemy.literal(path)),
+        sqlalchemy.String,
+    )
 
 
 def create_sql_resource_store(engine: sqlalchemy.Engine) -> sqlalchemy.Engine:

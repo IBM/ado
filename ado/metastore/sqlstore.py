@@ -33,6 +33,7 @@ from ado.metastore.sql.utils import (
     check_table_exists,
     create_sql_resource_store,
     engine_for_sql_store,
+    json_extract_field_as_string,
 )
 from ado.utilities.pydantic import (
     do_not_populate_ado_provenance_context,
@@ -583,87 +584,145 @@ class SQLResourceStore(ResourceStore):
                 If the supplied ``kind`` is not a known
                 ``CoreResourceKinds`` value.
         """
+        import datetime
+        import math
 
         import pandas as pd
 
         if kind not in [v.value for v in ado.core.resources.CoreResourceKinds]:
             raise ValueError(f"Unknown kind specified: {kind}")
 
-        # SELECT
-        select_statement = "SELECT identifier"
-        select_name = ado.metastore.sql.statements.resource_select_metadata_field(
-            field_name="name", needs_select=False, dialect=self.engine.dialect.name
-        )
-        select_age = ado.metastore.sql.statements.resource_select_created_field(
-            as_age=True, needs_select=False, dialect=self.engine.dialect.name
-        )
+        resources_table = self._resources_table
+        dialect = self.engine.dialect.name
 
-        if details:
-            select_description = (
-                ado.metastore.sql.statements.resource_select_metadata_field(
-                    field_name="description",
-                    needs_select=False,
-                    dialect=self.engine.dialect.name,
-                )
-            )
-            select_labels = ado.metastore.sql.statements.resource_select_metadata_field(
-                field_name="labels",
-                needs_select=False,
-                dialect=self.engine.dialect.name,
-            )
+        # --- column expressions ---
+        col_identifier = resources_table.c.identifier
+        col_data = resources_table.c.data
 
-            select_statement = f"{select_statement} {select_name} {select_description} {select_labels} {select_age} "
+        # name: $.config.metadata.name
+        # MySQL returns JSON null as the string "null"; coerce it to SQL NULL.
+        if dialect == "sqlite":
+            col_name = json_extract_field_as_string(
+                col_data, "$.config.metadata.name"
+            ).label("name")
         else:
-            select_statement = f"{select_statement} {select_name} {select_age} "
+            col_name = sqlalchemy.func.nullif(
+                json_extract_field_as_string(col_data, "$.config.metadata.name"),
+                "null",
+            ).label("name")
 
-        # Add the status and space to the resources that have it
-        if kind == ado.core.resources.CoreResourceKinds.OPERATION.value:
-            select_status = ado.metastore.sql.statements.resource_select_data_field(
-                field_name="status",
-                needs_select=False,
-                dialect=self.engine.dialect.name,
-            )
-            select_space = ado.metastore.sql.statements.resource_select_data_field(
-                field_name="config.spaces[0]",
-                needs_select=False,
-                dialect=self.engine.dialect.name,
-                output_field_name="space",
-            )
-            select_statement = f"{select_statement} {select_status} {select_space}"
-
-        # FROM
-        from_statement = "FROM resources "
-
-        field_selectors = field_selectors or {}
-
-        # WHERE
-        where_statement = f"WHERE kind = '{kind}'"
-        field_queries = ""
-        if not field_selectors:
-            field_selectors = {}
-
-        for field_selector in field_selectors:
-            for path, candidate in field_selector.items():
-                field_queries += (
-                    ado.metastore.sql.statements.resource_filter_by_arbitrary_selection(
-                        path=path,
-                        candidate=candidate,
-                        needs_where=False,
-                        dialect=self.engine.dialect.name,
+        # age in seconds from $.created
+        if dialect == "sqlite":
+            col_age = sqlalchemy.func.round(
+                (
+                    sqlalchemy.func.julianday(sqlalchemy.func.datetime("NOW"))
+                    - sqlalchemy.func.julianday(
+                        sqlalchemy.func.datetime(
+                            json_extract_field_as_string(col_data, "$.created")
+                        )
                     )
                 )
+                * 86400
+            ).label("age")
+        else:
+            col_age = sqlalchemy.func.timestampdiff(
+                sqlalchemy.text("SECOND"),
+                sqlalchemy.func.str_to_date(
+                    json_extract_field_as_string(col_data, "$.created"),
+                    sqlalchemy.literal("%Y-%m-%dT%T.%fZ"),
+                ),
+                sqlalchemy.func.now(),
+            ).label("age")
 
-        version_filter = f"AND version = '{version}'" if version else ""
-        where_statement = f"""{where_statement} {field_queries} {version_filter}"""
+        selected_columns: list = [col_identifier, col_name, col_age]
 
-        # ORDER BY
-        order_by_statement = ado.metastore.sql.statements.resource_order_by_age_desc(
-            self.engine.dialect.name
+        if details:
+            if dialect == "sqlite":
+                col_description = json_extract_field_as_string(
+                    col_data, "$.config.metadata.description"
+                ).label("description")
+                col_labels = json_extract_field_as_string(
+                    col_data, "$.config.metadata.labels"
+                ).label("labels")
+            else:
+                col_description = sqlalchemy.func.nullif(
+                    json_extract_field_as_string(
+                        col_data, "$.config.metadata.description"
+                    ),
+                    "null",
+                ).label("description")
+                col_labels = sqlalchemy.func.nullif(
+                    json_extract_field_as_string(col_data, "$.config.metadata.labels"),
+                    "null",
+                ).label("labels")
+            # description and labels are inserted before age (the last element)
+            selected_columns = [
+                col_identifier,
+                col_name,
+                col_description,
+                col_labels,
+                col_age,
+            ]
+
+        if kind == ado.core.resources.CoreResourceKinds.OPERATION.value:
+            col_status = json_extract_field_as_string(col_data, "$.status").label(
+                "status"
+            )
+            col_space = json_extract_field_as_string(
+                col_data, "$.config.spaces[0]"
+            ).label("space")
+            selected_columns = [*selected_columns, col_status, col_space]
+
+        # --- build query ---
+        query = sqlalchemy.select(*selected_columns).where(
+            resources_table.c.kind == kind
         )
 
-        query = f"{select_statement} {from_statement} {where_statement} {order_by_statement};"
-        with self.engine.connect() as connectable:
-            table = pd.read_sql(query, con=connectable)
+        if version is not None:
+            query = query.where(resources_table.c.version == version)
+
+        # field selectors
+        for field_selector in field_selectors or []:
+            for path, candidate in field_selector.items():
+                if dialect == "sqlite":
+                    where_fragment = (
+                        ado.metastore.sql.statements.simulate_json_contains_on_sqlite(
+                            path, candidate
+                        )
+                    )
+                    query = query.where(sqlalchemy.text(where_fragment))
+                else:
+                    # MySQL: JSON_CONTAINS(data, candidate, path)
+                    # Also handle null candidates: match rows where path does not exist
+                    json_contains_expr = sqlalchemy.func.json_contains(
+                        col_data, candidate, path
+                    )
+                    if candidate == "null":
+                        not_contains_path_expr = sqlalchemy.not_(
+                            sqlalchemy.func.json_contains_path(
+                                col_data, sqlalchemy.literal("one"), path
+                            )
+                        )
+                        query = query.where(
+                            sqlalchemy.or_(json_contains_expr, not_contains_path_expr)
+                        )
+                    else:
+                        query = query.where(json_contains_expr)
+
+        # ORDER BY age DESC, NULLs last
+        if dialect == "sqlite":
+            query = query.order_by(col_age.is_(None), col_age.desc())
+        else:
+            query = query.order_by(
+                sqlalchemy.func.isnull(col_age),
+                col_age.desc(),
+            )
+
+        with self.engine.connect() as connection:
+            result_rows = connection.execute(query).fetchall()
+
+        # Build output DataFrame from query results
+        row_dicts = [row._mapping for row in result_rows]
 
         columns = (
             ["IDENTIFIER", "NAME", "DESCRIPTION", "LABELS", "AGE"]
@@ -673,30 +732,30 @@ class SQLResourceStore(ResourceStore):
 
         output_df = pd.DataFrame(
             data={
-                "IDENTIFIER": table["identifier"],
-                "NAME": table["name"],
-                "AGE": table["age"],
+                "IDENTIFIER": [r["identifier"] for r in row_dicts],
+                "NAME": [r["name"] for r in row_dicts],
+                "AGE": [r["age"] for r in row_dicts],
             }
         )
 
-        import datetime
-        import math
-
-        # The DB returns us timedelta objects in seconds, we want Pandas to
-        # parse them correctly
+        # The DB returns age in seconds; convert to timedelta (NaN values are preserved)
         output_df["AGE"] = output_df["AGE"].apply(
-            lambda x: datetime.timedelta(seconds=x) if not math.isnan(x) else x
+            lambda x: (
+                datetime.timedelta(seconds=x)
+                if x is not None and not math.isnan(x)
+                else x
+            )
         )
 
         if details:
-            output_df["DESCRIPTION"] = table["description"]
-            output_df["LABELS"] = table["labels"]
+            output_df["DESCRIPTION"] = [r["description"] for r in row_dicts]
+            output_df["LABELS"] = [r["labels"] for r in row_dicts]
 
         if kind == ado.core.resources.CoreResourceKinds.OPERATION.value:
             columns.insert(-1, "STATUS")
-            output_df["STATUS"] = table["status"]
+            output_df["STATUS"] = [r["status"] for r in row_dicts]
             columns.insert(-1, "SPACE")
-            output_df["SPACE"] = table["space"]
+            output_df["SPACE"] = [r["space"] for r in row_dicts]
 
         return output_df[columns]
 
@@ -747,12 +806,9 @@ class SQLResourceStore(ResourceStore):
 
         # Build CTE: rank resources within each kind by their created timestamp
         # descending so row_rank=1 identifies the most recently created one.
-        # Cast the ->> result to String so SQLAlchemy doesn't run the JSON
-        # column type processor on the extracted scalar value.
         resources_table = self._resources_table
-        created_at_col = sqlalchemy.cast(
-            resources_table.c.data.op("->>")(sqlalchemy.literal("$.created")),
-            sqlalchemy.String,
+        created_at_col = json_extract_field_as_string(
+            resources_table.c.data, "$.created"
         )
         ranked_resources_cte = (
             sqlalchemy.select(
@@ -1700,7 +1756,7 @@ class SQLResourceStore(ResourceStore):
         Issues at most three SQL queries: when ``identifier=None`` a seed query
         fetches all identifiers of ``kind`` via
         :meth:`getResourceIdentifiersOfKind`; then one recursive traversal query
-        via :func:`ado.metastore.sql.statements.graph_traversal_query`;
+        built as a SQLAlchemy Core recursive CTE;
         and, when ``identifiers_only=False``, one additional batched resource
         query via :meth:`getResources`. When ``identifier`` is a ``str`` or
         ``set[str]`` only the latter two queries (or one, if
@@ -1809,7 +1865,7 @@ class SQLResourceStore(ResourceStore):
         # ------------------------------------------------------------------
         # The hierarchy maximum is enforced by capping max_hops; passing
         # max_hops=None lets the traversal run to the full depth cap.
-        from ado.metastore.sql.statements import _MAX_HIERARCHY_HOPS
+        from ado.metastore.sql.utils import _MAX_HIERARCHY_HOPS
 
         effective_max_hops = (
             _MAX_HIERARCHY_HOPS
@@ -1874,39 +1930,42 @@ class SQLResourceStore(ResourceStore):
         )
 
         traversal_cte = traversal_seed.cte("traversal", recursive=True)
-        edges = logical_edges_cte
 
         # next_identifier/next_kind expressions depend on traversal direction.
         if relationship == "child":
             step_join_condition = (
-                edges.c.from_identifier == traversal_cte.c.current_identifier
+                logical_edges_cte.c.from_identifier
+                == traversal_cte.c.current_identifier
             )
-            next_identifier = edges.c.to_identifier
-            next_kind = edges.c.to_kind
+            next_identifier = logical_edges_cte.c.to_identifier
+            next_kind = logical_edges_cte.c.to_kind
         elif relationship == "parent":
             step_join_condition = (
-                edges.c.to_identifier == traversal_cte.c.current_identifier
+                logical_edges_cte.c.to_identifier == traversal_cte.c.current_identifier
             )
-            next_identifier = edges.c.from_identifier
-            next_kind = edges.c.from_kind
+            next_identifier = logical_edges_cte.c.from_identifier
+            next_kind = logical_edges_cte.c.from_kind
         else:  # "both"
             step_join_condition = sqlalchemy.or_(
-                edges.c.from_identifier == traversal_cte.c.current_identifier,
-                edges.c.to_identifier == traversal_cte.c.current_identifier,
+                logical_edges_cte.c.from_identifier
+                == traversal_cte.c.current_identifier,
+                logical_edges_cte.c.to_identifier == traversal_cte.c.current_identifier,
             )
             next_identifier = sqlalchemy.case(
                 (
-                    edges.c.from_identifier == traversal_cte.c.current_identifier,
-                    edges.c.to_identifier,
+                    logical_edges_cte.c.from_identifier
+                    == traversal_cte.c.current_identifier,
+                    logical_edges_cte.c.to_identifier,
                 ),
-                else_=edges.c.from_identifier,
+                else_=logical_edges_cte.c.from_identifier,
             )
             next_kind = sqlalchemy.case(
                 (
-                    edges.c.from_identifier == traversal_cte.c.current_identifier,
-                    edges.c.to_kind,
+                    logical_edges_cte.c.from_identifier
+                    == traversal_cte.c.current_identifier,
+                    logical_edges_cte.c.to_kind,
                 ),
-                else_=edges.c.from_kind,
+                else_=logical_edges_cte.c.from_kind,
             )
 
         # visited_path cycle guard: append next_identifier and a trailing comma.
@@ -1934,7 +1993,7 @@ class SQLResourceStore(ResourceStore):
                 next_visited_path.label("visited_path"),
             )
             .select_from(traversal_cte)
-            .join(edges, step_join_condition)
+            .join(logical_edges_cte, step_join_condition)
             .where(
                 traversal_cte.c.depth < effective_max_hops,
                 traversal_cte.c.visited_path.notlike(cycle_guard_pattern),
@@ -1949,8 +2008,8 @@ class SQLResourceStore(ResourceStore):
             traversal_cte.c.current_kind.label("kind"),
         ).where(traversal_cte.c.depth > 0)
 
-        with self.engine.connect() as connectable:
-            raw_rows = connectable.execute(query).fetchall()
+        with self.engine.connect() as connection:
+            raw_rows = connection.execute(query).fetchall()
 
         # ------------------------------------------------------------------
         # 3. Build the mapping
@@ -1961,24 +2020,24 @@ class SQLResourceStore(ResourceStore):
 
         for row in raw_rows:
             origin_identifier = row.origin_identifier
-            identifier_to = row.identifier
-            identifier_to_kind = row.kind
+            related_identifier = row.identifier
+            related_kind = row.kind
 
             # Don't include the start identifiers in discovered results
             # This should never happen, if it does, we have a bug.
-            if identifier_to in _identifiers_requested:
+            if related_identifier in _identifiers_requested:
                 continue
 
-            resource_kind = CoreResourceKinds(identifier_to_kind)
+            resource_kind = CoreResourceKinds(related_kind)
 
             # Apply result_kinds filter if specified
             if result_kinds is not None and resource_kind not in result_kinds:
                 continue
 
-            identifiers_to_fetch.add(identifier_to)
+            identifiers_to_fetch.add(related_identifier)
             related_by_origin.setdefault(origin_identifier, {}).setdefault(
                 resource_kind, set()
-            ).add(identifier_to)
+            ).add(related_identifier)
 
         # ------------------------------------------------------------------
         # 4. Shape the result

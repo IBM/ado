@@ -4,11 +4,8 @@
 import pytest
 import sqlalchemy
 
-from ado.metastore.sql.statements import (
-    simulate_json_contains_on_sqlite,
-    table_exists_query,
-)
-from ado.metastore.sql.utils import check_table_exists
+from ado.metastore.sql.statements import simulate_json_contains_on_sqlite
+from ado.metastore.sql.utils import check_table_exists, table_exists_query
 from tests.conftest import requires_sqlite_3_38
 
 

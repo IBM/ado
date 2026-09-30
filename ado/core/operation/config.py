@@ -33,11 +33,23 @@ if typing.TYPE_CHECKING:
     import ado.modules.operators.base
     from ado.metastore.sqlstore import SQLStore
 
-#: Represents the default typed input parameter used for operators that work on a single discovery space.
-# i.e. a parameter `discoverySpace: DiscoverySpace`
-_DEFAULT_DISCOVERY_SPACE_INPUT_PROPERTY = ADOResourcePropertyDescriptor(
-    identifier="discoverySpace",
-    kind=CoreResourceKinds.DISCOVERYSPACE,
+# Parameter name required by function operators created before multi-input
+# operators existed: ``discoverySpace: DiscoverySpace``.
+# This was an ado interface requirement
+#
+# This includes both user written operator functions (general operators)
+# and ado generated explore operator function wrappers
+#
+# New user written function operators do not have to use this name
+# However explore operator functions will continue to use it as
+# ado must decide a single name for the input for all
+# explore operator functions and changing it will break existing
+# explore operators.
+_REQUIRED_INPUT_PROPERTY_FOR_ORIGINAL_FUNCTION_OPERATORS = (
+    ADOResourcePropertyDescriptor(
+        identifier="discoverySpace",
+        kind=CoreResourceKinds.DISCOVERYSPACE,
+    )
 )
 
 
@@ -764,10 +776,13 @@ class DiscoveryOperationResourceConfiguration(pydantic.BaseModel):
 
             operator_metadata = operator_metadata_for_reference(module)
 
-        # Use the default single-space input when the operator declares none
-        # (should not happen for correctly registered operators).
+        # Empty when metadata was not filled at registration (older function
+        # operators, and explore classes whose operator_metadata() does not
+        # copy the registry entry). Both cases use the name ``discoverySpace``:
+        # registered explore operators record that same name from the generated
+        # wrapper, so this fallback is not a second explore naming scheme.
         required_resource_inputs = operator_metadata.required_resource_inputs or (
-            _DEFAULT_DISCOVERY_SPACE_INPUT_PROPERTY,
+            _REQUIRED_INPUT_PROPERTY_FOR_ORIGINAL_FUNCTION_OPERATORS,
         )
         input_map = {d.identifier: d.kind for d in required_resource_inputs}
 

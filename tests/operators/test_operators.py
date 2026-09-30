@@ -1222,7 +1222,7 @@ def test_fuse_operation_decorator_rejects_unsupported_parameter_type() -> None:
 def test_characterize_operation_deduces_default_space_input() -> None:
     """characterize_operation deduces a single discoverySpace from the signature."""
     from ado.core.operation.config import (
-        _DEFAULT_DISCOVERY_SPACE_INPUT_PROPERTY,
+        _REQUIRED_INPUT_PROPERTY_FOR_ORIGINAL_FUNCTION_OPERATORS,
         FunctionOperationInfo,
         GenericOperatorParameters,
     )
@@ -1249,7 +1249,9 @@ def test_characterize_operation_deduces_default_space_input() -> None:
     ) -> OperationOutput: ...
 
     meta = characterize.operators["_test_char_default_input"]
-    assert meta.required_resource_inputs == (_DEFAULT_DISCOVERY_SPACE_INPUT_PROPERTY,)
+    assert meta.required_resource_inputs == (
+        _REQUIRED_INPUT_PROPERTY_FOR_ORIGINAL_FUNCTION_OPERATORS,
+    )
 
 
 def test_characterize_operation_multi_resource_inputs() -> None:

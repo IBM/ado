@@ -24,7 +24,10 @@ from ado.core.operation.context import (
     resolve_operation_project_context,
     verify_inputs_exist_in_metastore,
 )
-from ado.core.operation.inputs import resource_inputs_from_operator_function
+from ado.core.operation.inputs import (
+    OperatorInputType,
+    resource_inputs_from_operator_function,
+)
 from ado.core.resources import (
     ADOResourcePropertyDescriptor,
 )
@@ -354,6 +357,10 @@ def explore_operation(
         NotImplementedError: If ``cls.operator_metadata()`` is not implemented.
         TypeError: If ``cls`` fails :func:`_validate_explore_cls`.
     """
+    from ado.core.operation.config import (
+        _REQUIRED_INPUT_PROPERTY_FOR_ORIGINAL_FUNCTION_OPERATORS,
+    )
+
     metadata = cls.operator_metadata()
     _validate_explore_cls(cls, metadata)
     op_name = metadata.name
@@ -371,7 +378,11 @@ def explore_operation(
         op_meta = explore.operators[op_name]
         params_model = op_meta.configuration_model.model_validate(parameters)
         operation_info = operationInfo or FunctionOperationInfo()
-        inputs = {"discoverySpace": discoverySpace}
+        inputs: dict[str, OperatorInputType] = {
+            _REQUIRED_INPUT_PROPERTY_FOR_ORIGINAL_FUNCTION_OPERATORS.identifier: (
+                discoverySpace
+            )
+        }
         project_context = resolve_operation_project_context(operation_info, inputs)
         if operation_info.projectContext is None:
             operation_info = operation_info.model_copy(

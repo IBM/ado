@@ -17,7 +17,7 @@ use it.
 
 The measurements are hosted in the Hugging Face repository
 [`ibm-research/LLMFineTuningBench`](https://huggingface.co/datasets/ibm-research/LLMFineTuningBench)
-as [`ado-sfttrainer-v1-0-0.csv`](https://huggingface.co/datasets/ibm-research/LLMFineTuningBench/blob/main/ado-sfttrainer-v1-0-0.csv).
+as [`ado-sfttrainer.csv`](https://huggingface.co/datasets/ibm-research/LLMFineTuningBench/blob/main/ado-sfttrainer.csv).
 The builder downloads that file to `autoconf/data/dataset.csv` when the local
 file is absent. It reuses the local file on later runs.
 
@@ -52,7 +52,7 @@ uv venv --python 3.13
 uv pip install -e plugins/custom_experiments/autoconf
 ```
 
-Once `ado-sfttrainer-v1-0-0.csv` is available in `LLMFineTuningBench`, build
+Once `ado-sfttrainer.csv` is available in `LLMFineTuningBench`, build
 the classifier model with:
 
 ```terminal

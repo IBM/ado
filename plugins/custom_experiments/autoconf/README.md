@@ -19,7 +19,7 @@ When no candidate is feasible, it returns only `can_recommend: false`.
 
 The search is over the following candidates, tied to throughput model version
 4.1.0 and selected after post-processing the
-[`ado-sfttrainer-v1-0-0.csv`](https://huggingface.co/datasets/ibm-research/LLMFineTuningBench/blob/main/ado-sfttrainer-v1-0-0.csv)
+[`ado-sfttrainer.csv`](https://huggingface.co/datasets/ibm-research/LLMFineTuningBench/blob/main/ado-sfttrainer.csv)
 training dataset:
 
 - Per-device batch sizes: `[1, 2, 4, 8, 16, 32, 64, 128, 256]`
@@ -85,7 +85,7 @@ that were absent in its training set.
 The training measurements are published in the Hugging Face dataset
 [`ibm-research/LLMFineTuningBench`](https://huggingface.co/datasets/ibm-research/LLMFineTuningBench)
 — specifically the file
-[`ado-sfttrainer-v1-0-0.csv`](https://huggingface.co/datasets/ibm-research/LLMFineTuningBench/blob/main/ado-sfttrainer-v1-0-0.csv).
+[`ado-sfttrainer.csv`](https://huggingface.co/datasets/ibm-research/LLMFineTuningBench/blob/main/ado-sfttrainer.csv).
 AutoConf does not distribute trained models. Generate the model in the
 same Python environment that will use the recommender so its AutoGluon and Python
 versions match.
@@ -107,7 +107,7 @@ On the first inference call, if no model is present, AutoConf automatically:
 
 1. Emits a warning that training is starting.
 2. Downloads the training dataset from
-   [`ibm-research/LLMFineTuningBench`](https://huggingface.co/datasets/ibm-research/LLMFineTuningBench/blob/main/ado-sfttrainer-v1-0-0.csv)
+   [`ibm-research/LLMFineTuningBench`](https://huggingface.co/datasets/ibm-research/LLMFineTuningBench/blob/main/ado-sfttrainer.csv)
    via `huggingface_hub`.
 3. Trains an AutoGluon classifier (~2 minutes on `medium_quality`).
 4. Saves the model to `autoconf/models/v4-0-0/`.

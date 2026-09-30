@@ -201,7 +201,7 @@ def test_operation_entity_statistics_mixed_valid_invalid(
     sample_store = ml_multi_cloud_sample_store
 
     # Create operation in metastore
-    sql = SQLResourceStore(project_context=valid_ado_project_context, ensureExists=True)
+    sql = SQLResourceStore(project_context=valid_ado_project_context)
     sql.addResourceWithRelationships(
         OperationResource(
             identifier=operation_id,
@@ -925,7 +925,7 @@ def test_entities_in_operations_empty_operation(
     operation_id = random_identifier()
 
     # Create an operation with no entities
-    sql = SQLResourceStore(project_context=valid_ado_project_context, ensureExists=True)
+    sql = SQLResourceStore(project_context=valid_ado_project_context)
     sql.addResource(
         OperationResource(
             identifier=operation_id,
@@ -1160,7 +1160,7 @@ def test_operation_measurement_statistics_mixed_valid_invalid(
     operation_id = random_identifier()
     sample_store = ml_multi_cloud_sample_store
 
-    sql = SQLResourceStore(project_context=valid_ado_project_context, ensureExists=True)
+    sql = SQLResourceStore(project_context=valid_ado_project_context)
     sql.addResourceWithRelationships(
         OperationResource(
             identifier=operation_id,
@@ -1693,7 +1693,7 @@ def test_measurement_results_count_for_operation_with_status_filter(
     operation_id = random_identifier()
     sample_store = ml_multi_cloud_sample_store
 
-    sql = SQLResourceStore(project_context=valid_ado_project_context, ensureExists=True)
+    sql = SQLResourceStore(project_context=valid_ado_project_context)
     sql.addResourceWithRelationships(
         OperationResource(
             identifier=operation_id,

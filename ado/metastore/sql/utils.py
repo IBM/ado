@@ -84,11 +84,10 @@ def table_exists_query(
 ) -> sqlalchemy.TextClause:
     """Return a bound SQL query that checks whether a table exists in the database.
 
-    ``dialect`` is a `sqlalchemy.engine.Dialect.name` (e.g. ``mysql``, ``sqlite``).
-
     Args:
         tablename: The name of the table to check for.
-        dialect: "mysql" or "sqlite"
+        dialect: SQL dialect name (e.g. the value of ``sqlalchemy.Engine.dialect.name``).
+            Accepted values are ``"mysql"`` and ``"sqlite"``.
 
     Returns:
         A bound :class:`sqlalchemy.TextClause` that returns one row when the

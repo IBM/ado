@@ -157,7 +157,7 @@ class SQLResourceStore(ResourceStore):
         super().__init__()
 
     def _reflect_tables(self) -> None:
-        """Reflect the resources and resource_relationships tables, caching the metadata by engine URL."""
+        """Reflect the resources and resource_relationships tables into ``_resources_table`` and ``_relationships_table``."""
         cache_key = str(self._engine.url)
         if cache_key not in _reflected_metadata_cache:
             metadata = sqlalchemy.MetaData()
@@ -258,8 +258,7 @@ class SQLResourceStore(ResourceStore):
         """
         hop_count = len(chain)
 
-        # Build one alias per hop.  alias() gives each copy of the table a
-        # distinct name (r0, r1, …) so column references stay unambiguous.
+        # Build one alias per hop with a distinct name (r0, r1, …).
         resource_aliases = [
             self._resources_table.alias(f"r{i}") for i in range(hop_count + 1)
         ]
@@ -270,8 +269,7 @@ class SQLResourceStore(ResourceStore):
             select_columns.append(resource_alias.c.data.label(f"r{i}_data"))
             select_columns.append(resource_alias.c.kind.label(f"r{i}_kind"))
 
-        # Build the FROM clause by chaining JOINs.  The ON condition uses the
-        # ->> JSON path operator (supported by both SQLite ≥3.38 and MySQL).
+        # Build the FROM clause by chaining JOINs using the ->> JSON path operator.
         joined_from = resource_aliases[0]
         for i, (json_path, linked_kind) in enumerate(chain):
             current_alias = resource_aliases[i]
@@ -396,14 +394,6 @@ class SQLResourceStore(ResourceStore):
                 If the resource is not located in the database and the
                 *raise_error_if_no_resource* flag is ``True``.
 
-        Notes:
-            * The database uses SQLAlchemy under the hood, and the query
-              result is loaded into a :class:`pandas.DataFrame` before the
-              JSON column is parsed.
-            * Custom load functions registered in
-              ``kind_custom_model_load`` are used when available; otherwise
-              the default Pydantic model from ``ado.core.kindmap``
-              is instantiated.
         """
 
         stmt = sqlalchemy.select(self._resources_table).where(
@@ -601,8 +591,7 @@ class SQLResourceStore(ResourceStore):
         col_identifier = resources_table.c.identifier
         col_data = resources_table.c.data
 
-        # name: $.config.metadata.name
-        # MySQL returns JSON null as the string "null"; coerce it to SQL NULL.
+        # name: $.config.metadata.name (MySQL coerces JSON null to SQL NULL)
         if dialect == "sqlite":
             col_name = json_extract_field_as_string(
                 col_data, "$.config.metadata.name"
@@ -657,7 +646,6 @@ class SQLResourceStore(ResourceStore):
                     json_extract_field_as_string(col_data, "$.config.metadata.labels"),
                     "null",
                 ).label("labels")
-            # description and labels are inserted before age (the last element)
             selected_columns = [
                 col_identifier,
                 col_name,
@@ -694,8 +682,7 @@ class SQLResourceStore(ResourceStore):
                     )
                     query = query.where(sqlalchemy.text(where_fragment))
                 else:
-                    # MySQL: JSON_CONTAINS(data, candidate, path)
-                    # Also handle null candidates: match rows where path does not exist
+                    # MySQL: JSON_CONTAINS for normal values; OR NOT JSON_CONTAINS_PATH for null candidates
                     json_contains_expr = sqlalchemy.func.json_contains(
                         col_data, candidate, path
                     )
@@ -793,7 +780,6 @@ class SQLResourceStore(ResourceStore):
         if not kinds:
             return {}
 
-        # Validate all kinds are CoreResourceKinds instances
         invalid_kinds = [
             kind for kind in kinds if not isinstance(kind, CoreResourceKinds)
         ]
@@ -806,8 +792,7 @@ class SQLResourceStore(ResourceStore):
         # Convert CoreResourceKinds to string values for the IN clause
         kind_values = [kind.value for kind in kinds]
 
-        # Build CTE: rank resources within each kind by their created timestamp
-        # descending so row_rank=1 identifies the most recently created one.
+        # Build CTE: rank resources within each kind by their created timestamp descending.
         resources_table = self._resources_table
         created_at_col = json_extract_field_as_string(
             resources_table.c.data, "$.created"

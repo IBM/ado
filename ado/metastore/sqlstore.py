@@ -30,7 +30,6 @@ from ado.metastore.base import (
 )
 from ado.metastore.project import ProjectContext
 from ado.metastore.sql.utils import (
-    check_table_exists,
     create_sql_resource_store,
     engine_for_sql_store,
     json_extract_field_as_string,
@@ -44,9 +43,6 @@ from ado.utilities.pydantic import (
 if TYPE_CHECKING:
     import pandas as pd
 
-# Key: database connection string, Value: True if tables exist
-_tables_exist_cache: dict[str, bool] = {}
-
 # Key: engine URL string, Value: sqlalchemy.MetaData with reflected resources tables
 _reflected_metadata_cache: dict[str, sqlalchemy.MetaData] = {}
 
@@ -55,42 +51,7 @@ class SQLStore(ResourceStore):
     """Base class for SQLStores"""
 
     def __new__(cls, project_context: ProjectContext) -> "SQLResourceStore":
-        import logging
-
-        FORMAT = ado.utilities.logging.FORMAT
-        LOGLEVEL = os.environ.get("LOGLEVEL", "WARNING").upper()
-        logging.basicConfig(level=LOGLEVEL, format=FORMAT)
-        log = logging.getLogger("SQLStore")
-
-        log.debug("Creating SQL engine...")
-        engine = engine_for_sql_store(configuration=project_context.metadataStore)
-
-        # Get cache key from database connection string
-        cache_key = (
-            project_context.metadataStore.url().unicode_string()
-            if project_context.metadataStore.scheme != "sqlite"
-            else f"sqlite:///{project_context.metadataStore.path}"
-        )
-
-        # Check cache first to avoid network query
-        if cache_key in _tables_exist_cache:
-            tables_exist = _tables_exist_cache[cache_key]
-            log.debug(
-                f"Using cached table existence check result: tables_exist={tables_exist}"
-            )
-        else:
-            # Prefer raw SQL via check_table_exists; falls back to inspect on error.
-            log.debug("Checking if 'resources' table exists (network query)...")
-            tables_exist = check_table_exists(engine, "resources")
-            log.debug(f"Table existence check complete: tables_exist={tables_exist}")
-            # Cache the result
-            _tables_exist_cache[cache_key] = tables_exist
-
-        # We set ensureExists manually by checking just one table.
-        return SQLResourceStore(
-            project_context=project_context,
-            ensureExists=not tables_exist,
-        )
+        return SQLResourceStore(project_context=project_context)
 
     def __init__(self, project_context: ProjectContext) -> None:
 
@@ -110,24 +71,13 @@ class SQLResourceStore(ResourceStore):
 
     """
 
-    def __init__(
-        self, project_context: ProjectContext, ensureExists: bool = True
-    ) -> None:
+    def __init__(self, project_context: ProjectContext) -> None:
+        """Create a SQLResourceStore instance based on the ProjectContext.
+
+        Args:
+            project_context: The ProjectContext containing credentials to connect
+                to the SQL db.
         """
-        Creates a SQLResourceStore instance based on the ProjectContext
-
-        Parameters:
-            project_context: The ProjectContext containing credentials to connect to the SQL db
-            ensureExists: If True the existence of the required tables is checked, and
-                they are created if missing. If False the check is not performed (assumes existence).
-                This can be used to skip the check if the caller knows the tables exist.
-
-        Note:
-        -  If a project_context object is passed the value of its active field determines is the SQLStore is active.
-           By default, this field is True
-
-        """
-
         self.project_context = project_context
         self.configuration = project_context.metadataStore
         self._engine = engine_for_sql_store(configuration=project_context.metadataStore)
@@ -142,18 +92,15 @@ class SQLResourceStore(ResourceStore):
             f"Database: {self.configuration.database if self.configuration.scheme != 'sqlite' else self.configuration.path}"
         )
 
-        if ensureExists:
+        cache_key = str(self._engine.url)
+        if cache_key not in _reflected_metadata_cache:
             self.log.debug("Initialising SQL db if it does not exist")
-            create_sql_resource_store(self.engine)
-            cache_key = (
-                self.configuration.url().unicode_string()
-                if self.configuration.scheme != "sqlite"
-                else f"sqlite:///{self.configuration.path}"
-            )
-            _tables_exist_cache[cache_key] = True
+            metadata = create_sql_resource_store(self.engine)
             self.log.debug("Done")
-
-        self._reflect_tables()
+            _reflected_metadata_cache[cache_key] = metadata
+        metadata = _reflected_metadata_cache[cache_key]
+        self._resources_table = metadata.tables["resources"]
+        self._relationships_table = metadata.tables["resource_relationships"]
         super().__init__()
 
     def _reflect_tables(self) -> None:

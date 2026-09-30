@@ -1,8 +1,6 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-from typing import Literal
-
 import sqlalchemy
 
 from ado.utilities.location import SQLStoreConfiguration
@@ -78,63 +76,6 @@ def engine_for_sql_store(
     return engine
 
 
-def table_exists_query(
-    tablename: str,
-    dialect: Literal["mysql", "sqlite"],
-) -> sqlalchemy.TextClause:
-    """Return a bound SQL query that checks whether a table exists in the database.
-
-    Args:
-        tablename: The name of the table to check for.
-        dialect: SQL dialect name (e.g. the value of ``sqlalchemy.Engine.dialect.name``).
-            Accepted values are ``"mysql"`` and ``"sqlite"``.
-
-    Returns:
-        A bound :class:`sqlalchemy.TextClause` that returns one row when the
-        table exists and no rows when it does not.
-
-    Raises:
-        ValueError: If ``dialect`` is neither sqlite nor mysql.
-    """
-    if dialect == "sqlite":
-        return sqlalchemy.text(
-            "SELECT 1 FROM sqlite_master WHERE type='table' AND name=:name"
-        ).bindparams(name=tablename)
-    if dialect == "mysql":
-        return sqlalchemy.text(
-            "SELECT 1 FROM information_schema.tables"
-            " WHERE table_schema = DATABASE() AND table_name = :name LIMIT 1"
-        ).bindparams(name=tablename)
-    raise ValueError(
-        f"Unsupported dialect for table_exists_query: {dialect!r} "
-        "(expected 'sqlite' or 'mysql')"
-    )
-
-
-def check_table_exists(engine: sqlalchemy.Engine, tablename: str) -> bool:
-    """Return whether ``tablename`` exists in the database behind ``engine``.
-
-    First tries a single round-trip using :func:`table_exists_query` with
-    ``engine.dialect.name``. On any exception (unsupported dialect, execution
-    error, etc.), falls back to :func:`sqlalchemy.inspect` and
-    :meth:`~sqlalchemy.engine.reflection.Inspector.has_table`.
-
-    Args:
-        engine: SQLAlchemy engine for the target database.
-        tablename: Unqualified table name to check.
-
-    Returns:
-        ``True`` if the table exists, ``False`` otherwise.
-    """
-    try:
-        query = table_exists_query(tablename, dialect=engine.dialect.name)
-        with engine.connect() as conn:
-            return conn.execute(query).fetchone() is not None
-    except Exception:
-        inspector = sqlalchemy.inspect(engine)
-        return inspector.has_table(tablename)
-
-
 def json_extract_field_as_string(
     col: sqlalchemy.Column,
     path: str,
@@ -162,25 +103,37 @@ def json_extract_field_as_string(
     )
 
 
-def create_sql_resource_store(engine: sqlalchemy.Engine) -> sqlalchemy.Engine:
+def create_sql_resource_store(
+    engine: sqlalchemy.Engine,
+) -> sqlalchemy.MetaData:
+    """Create the metastore tables if they do not exist and return the schema.
+
+    Defines the ``resources`` and ``resource_relationships`` tables, issues
+    ``CREATE TABLE IF NOT EXISTS`` for each, and returns the populated
+    :class:`~sqlalchemy.MetaData` object so callers can use the table
+    definitions directly without a separate reflection step.
+
+    Args:
+        engine: SQLAlchemy engine for the target database.
+
+    Returns:
+        A :class:`~sqlalchemy.MetaData` instance containing the
+        ``resources`` and ``resource_relationships`` table definitions.
+    """
     from sqlalchemy import JSON, String
 
-    # Create the tables if they don't exist
     meta = sqlalchemy.MetaData()
 
-    resources = sqlalchemy.Table(  # noqa: F841
+    sqlalchemy.Table(
         "resources",
         meta,
         sqlalchemy.Column("identifier", String(256), primary_key=True),
         sqlalchemy.Column("kind", String(256), index=True),
         sqlalchemy.Column("version", String(128)),
-        # Use to store resource objecte (1MB)
         sqlalchemy.Column("data", JSON(False)),
     )
 
-    # Holds relationships between two objects
-    # Since the predicate between two kinds is known we don't have to store it
-    resourceRelationships = sqlalchemy.Table(  # noqa: F841
+    sqlalchemy.Table(
         "resource_relationships",
         meta,
         sqlalchemy.Column(
@@ -199,4 +152,4 @@ def create_sql_resource_store(engine: sqlalchemy.Engine) -> sqlalchemy.Engine:
 
     meta.create_all(engine, checkfirst=True)
 
-    return engine
+    return meta

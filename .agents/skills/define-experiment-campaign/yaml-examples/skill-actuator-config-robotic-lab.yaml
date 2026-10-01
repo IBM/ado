@@ -1,0 +1,8 @@
+# Copyright IBM Corporation 2025, 2026
+# SPDX-License-Identifier: MIT
+# Minimal actuator config using robotic_lab actuator (example plugin)
+actuatorIdentifier: robotic_lab
+parameters: {}
+metadata:
+  name: robotic_lab_config
+  description: Robotic lab actuator configuration example

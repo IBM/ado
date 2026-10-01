@@ -104,13 +104,22 @@ class SQLResourceStore(ResourceStore):
         super().__init__()
 
     def _reflect_tables(self) -> None:
-        """Reflect the resources and resource_relationships tables into ``_resources_table`` and ``_relationships_table``."""
+        """Populate ``_resources_table`` and ``_relationships_table`` by reflecting existing DB tables.
+
+        Raises:
+            RuntimeError: If no tables are found in the database.
+        """
         cache_key = str(self._engine.url)
         if cache_key not in _reflected_metadata_cache:
             metadata = sqlalchemy.MetaData()
             metadata.reflect(
                 bind=self._engine, only=["resources", "resource_relationships"]
             )
+            if not metadata.tables:
+                raise RuntimeError(
+                    f"No tables found at '{self._engine.url}'. "
+                    "The database must be initialised before reflecting."
+                )
             _reflected_metadata_cache[cache_key] = metadata
         metadata = _reflected_metadata_cache[cache_key]
         self._resources_table = metadata.tables["resources"]

@@ -402,8 +402,8 @@ you can create. The fastest way to update these metadata is to use the
 The complete syntax of the `ado edit` command is as follows:
 
 ```shell
-ado edit RESOURCE_TYPE RESOURCE_ID [-p | --patch <YAML>] \
-    [--patch-file <FILE>] [--editor <NAME>]
+ado edit RESOURCE_TYPE RESOURCE_ID [RESOURCE_ID ...] \
+    [-p | --patch <YAML>] [--patch-file <FILE>] [--editor <NAME>]
 ```
 
 Where:
@@ -423,7 +423,9 @@ Where:
 
     <!-- prettier-ignore-end -->
 
-- `RESOURCE_ID` is the unique identifier of the resource to edit.
+- `RESOURCE_ID` is the unique identifier of one or more resources to edit.
+  When multiple IDs are provided, `--patch` or `--patch-file` is required —
+  interactive editor mode supports only a single resource at a time.
 - `-p` / `--patch` is an optional inline YAML/JSON string for non-interactive
   editing (similar to `oc` / `kubectl patch -p`). It is **merged** into the
   resource's existing stored metadata using a one-level strategic update:
@@ -478,6 +480,18 @@ ado edit space space-abc123-456def -p "labels: { team: front }"
 
 ```shell
 ado edit space space-abc123-456def --patch-file extra-metadata.yaml
+```
+
+#### Bulk patching multiple resources (non-interactive)
+
+Apply the same metadata patch to several resources at once:
+
+```shell
+ado edit space space-abc123 space-def456 -p "labels: { team: front }"
+```
+
+```shell
+ado edit operation op-abc123 op-def456 --patch-file shared-metadata.yaml
 ```
 
 ## ado get

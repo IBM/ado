@@ -25,10 +25,11 @@ from ado.cli.resources.document.edit import edit_document
 from ado.cli.resources.operation.edit import edit_operation
 from ado.cli.resources.sample_store.edit import edit_sample_store
 from ado.cli.utils.input.parsers import enum_choice_with_plural_parser
-from ado.cli.utils.output.prints import ERROR, console_print
+from ado.cli.utils.output.prints import ERROR, INFO, console_print
 from ado.metastore.base import (
     NoRelatedResourcesError,
     ResourceDoesNotExistError,
+    ResourcesDoNotExistError,
 )
 
 if typing.TYPE_CHECKING:
@@ -47,11 +48,11 @@ def edit_resource(
             metavar=f"[{'|'.join(m.value for m in AdoEditSupportedResourceTypes)}]",
         ),
     ],
-    resource_id: Annotated[
-        str,
+    resource_ids: Annotated[
+        list[str],
         typer.Argument(
             ...,
-            help="The id of the resource to edit metadata of.",
+            help="The id(s) of the resource(s) to edit metadata of. Multiple IDs can be provided.",
             show_default=False,
         ),
     ],
@@ -103,7 +104,7 @@ def edit_resource(
 
     Examples:
 
-    # Edit the metadata of a sample store
+    # Edit the metadata of a sample store interactively
     ado edit samplestore <sample-store-id>
 
     # Edit the metadata of a space using vim
@@ -112,6 +113,9 @@ def edit_resource(
     # Merge metadata with an inline patch (oc-style) or a file
     ado edit space <space-id> -p "labels: { team: core }"
     ado edit space <space-id> --patch-file meta.yaml
+
+    # Bulk patch multiple resources in one atomic write
+    ado edit space <space-id-1> <space-id-2> -p "labels: { team: core }"
     """
     if patch is not None and patch_file is not None:
         console_print(
@@ -120,11 +124,19 @@ def edit_resource(
         )
         raise typer.Exit(1)
 
+    if len(resource_ids) > 1 and patch is None and patch_file is None:
+        console_print(
+            f"{ERROR}Multiple resource IDs require --patch or --patch-file. "
+            "Interactive editor mode supports only a single resource at a time.",
+            stderr=True,
+        )
+        raise typer.Exit(1)
+
     ado_configuration: AdoConfiguration = ctx.obj
     parameters = AdoEditCommandParameters(
         ado_configuration=ado_configuration,
         editor=editor,
-        resource_id=resource_id,
+        resource_ids=resource_ids,
         metadata_patch=patch,
         metadata_path=patch_file,
     )
@@ -144,6 +156,10 @@ def edit_resource(
         handle_resource_does_not_exist(
             error=e, project_context=ado_configuration.project_context
         )
+    except ResourcesDoNotExistError as e:
+        console_print(f"{ERROR}{e}", stderr=True)
+        console_print(f"{INFO}No changes were made.", stderr=True)
+        raise typer.Exit(1) from e
     except NoRelatedResourcesError as e:
         handle_no_related_resource(
             error=e, project_context=ado_configuration.project_context

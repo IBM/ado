@@ -104,7 +104,8 @@ class SQLResourceStore(ResourceStore):
         super().__init__()
 
     def _reflect_tables(self) -> None:
-        """Populate ``_resources_table`` and ``_relationships_table`` by reflecting existing DB tables.
+        """Populate ``_resources_table`` and ``_relationships_table`` by reflecting existing DB
+        tables.
 
         Raises:
             RuntimeError: If no tables are found in the database.

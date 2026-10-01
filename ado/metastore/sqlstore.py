@@ -1202,6 +1202,62 @@ class SQLResourceStore(ResourceStore):
         with self.engine.begin() as connectable:
             connectable.execute(stmt)
 
+    def update_resources(self, resources: list[ado.core.resources.ADOResource]) -> None:
+        """Replaces stored data for each resource in resources atomically.
+
+        All resources are validated to exist before any write is performed.
+        If every resource passes validation all writes are committed in a
+        single transaction — either all succeed or none do.
+
+        Args:
+            resources: Resources to update. Each resource must already be
+                stored; its current stored representation is replaced.
+
+        Raises:
+            ResourcesDoNotExistError: If any resource in the list is not
+                already stored. No resource is modified in this case.
+
+        """
+        if resources:
+            self.has_resources_with_identifiers(resources, raise_if_missing=True)
+
+        rows: list[dict] = []
+        for resource in resources:
+            resource.status.append(
+                ado.core.resources.ADOResourceStatus(event=ADOResourceEventEnum.UPDATED)
+            )
+            custom_model_dump = kind_custom_model_dump.get(resource.kind)
+            representation = (
+                custom_model_dump(resource)
+                if custom_model_dump
+                else resource.model_dump_json()
+            )
+            rows.append(
+                {
+                    "identifier": resource.identifier,
+                    "kind": resource.kind.value,
+                    "version": resource.version,
+                    "data": json.loads(representation),
+                }
+            )
+
+        if self.engine.dialect.name == "sqlite":
+            from sqlalchemy.dialects.sqlite import insert as sqlite_insert
+
+            stmt = sqlite_insert(self._resources_table).values(rows)
+            stmt = stmt.on_conflict_do_update(
+                index_elements=["identifier"],
+                set_={"data": stmt.excluded.data},
+            )
+        else:
+            from sqlalchemy.dialects.mysql import insert as mysql_insert
+
+            stmt = mysql_insert(self._resources_table).values(rows)
+            stmt = stmt.on_duplicate_key_update(data=stmt.inserted.data)
+
+        with self.engine.begin() as connectable:
+            connectable.execute(stmt)
+
     def deleteResource(self, identifier: str) -> None:
         """Delete a resource and its object-side relationships from the store.
 

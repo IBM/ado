@@ -1145,12 +1145,15 @@ class SQLResourceStore(ResourceStore):
         This is because the others ids must already exist"""
 
         # Test that the relatedIdentifiers exist before adding
-        resource_exists_checks = [
-            self.containsResourceWithIdentifier(identifier=ident)
-            for ident in relatedIdentifiers
-        ]
-        if False in resource_exists_checks:
-            raise ValueError(f"Unknown resource identifier passed {relatedIdentifiers}")
+        if relatedIdentifiers:
+            try:
+                self.has_resources_with_identifiers(
+                    relatedIdentifiers, raise_if_missing=True
+                )
+            except ResourcesDoNotExistError as e:
+                raise ValueError(
+                    f"Unknown resource identifier passed {relatedIdentifiers}"
+                ) from e
 
         self.addResource(resource=resource)
         for identifier in relatedIdentifiers:

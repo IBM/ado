@@ -31,6 +31,20 @@ class ResourceDoesNotExistError(ValueError):
         )
 
 
+class ResourcesDoNotExistError(ValueError):
+    """Raised when one or more resources do not exist in the project."""
+
+    def __init__(
+        self, missing_ids: set[str], kind: CoreResourceKinds | None = None
+    ) -> None:
+        self.missing_ids = missing_ids
+        self.kind = kind
+        kind_specifier = f"of kind {kind.value} " if kind else ""
+        super().__init__(
+            f"The following resources {kind_specifier}do not exist in the project: {missing_ids}"
+        )
+
+
 class NoRelatedResourcesError(ValueError):
     def __init__(self, resource_id: str, kind: CoreResourceKinds) -> None:
         self.resource_id = resource_id
@@ -233,6 +247,29 @@ class ResourceStore(abc.ABC):
         (optionally of a specific kind)
 
         False otherwise
+        """
+
+    @abc.abstractmethod
+    def has_resources_with_identifiers(
+        self,
+        resources: list[ADOResource] | tuple[ADOResource, ...] | list[str] | set[str],
+        kind: CoreResourceKinds | None = None,
+        raise_if_missing: bool = True,
+    ) -> dict[str, bool]:
+        """Checks existence of multiple resources in a single bulk query.
+
+        Args:
+            resources: A collection of ADOResource objects or resource identifier strings.
+            kind: Optional resource kind to restrict the check.
+            raise_if_missing: If True, raises ResourcesDoNotExistError when any
+                identifiers are not found.
+
+        Returns:
+            A dictionary mapping each resource identifier to whether it exists.
+
+        Raises:
+            ResourcesDoNotExistError: If raise_if_missing is True and one or more
+                identifiers are missing.
         """
 
     @abc.abstractmethod

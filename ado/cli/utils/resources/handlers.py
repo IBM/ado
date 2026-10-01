@@ -749,9 +749,8 @@ def handle_ado_upgrade(
             kind=resource_type.value, ignore_validation_errors=False
         )
 
-        for idx, resource in enumerate(resources.values()):
-            status.update(ADO_SPINNER_SAVING_TO_DB + f" ({idx + 1}/{len(resources)})")
-            sql_store.updateResource(resource=resource)
+        status.update(ADO_SPINNER_SAVING_TO_DB)
+        sql_store.update_resources(list(resources.values()))
 
     console_print(SUCCESS)
 

@@ -19,13 +19,11 @@ ado<span class=w> </span>show<span class=w> </span>measurements<span class=w> </
 └───────┴─────────────┴─────────┴─────────┘
 </code></pre></div> <h3 id=the-ml-multicloud-cost-custom-experiment>The <code>ml-multicloud-cost</code> custom experiment<a class=headerlink href=#the-ml-multicloud-cost-custom-experiment title="Permanent link">&para;</a></h3> <p>The example ships a custom experiment that derives a cost from two inputs: the number of nodes in the configuration and the run time measured by the <code>benchmark_performance</code> experiment.</p> <p>Install it from the example directory:</p> <div class=highlight><pre><span></span><code>pip<span class=w> </span>install<span class=w> </span>examples/ml-multi-cloud/custom_experiment/
 </code></pre></div> <p>Confirm <code>ado</code> can see it:</p> <div class=highlight><pre><span></span><code>ado<span class=w> </span>get<span class=w> </span>experiments<span class=w> </span>--details
-</code></pre></div> <div class=highlight><pre><span></span><code>┌───────┬────────────────────┬─────────────────────┬─────────┬─────────────┐
-│ INDEX │ ACTUATOR ID        │ EXPERIMENT ID       │ VERSION │ DESCRIPTION │
-├───────┼────────────────────┼─────────────────────┼─────────┼─────────────┤
-│ 0     │ custom_experiments │ ml-multicloud-cost  │ 1.0.0   │             │
-│ 1     │ mock               │ test-experiment     │ None    │             │
-│ 2     │ mock               │ test-experiment-two │ None    │             │
-└───────┴────────────────────┴─────────────────────┴─────────┴─────────────┘
+</code></pre></div> <div class=highlight><pre><span></span><code>┌───────┬────────────────────┬────────────────────────┬─────────┬─────────────┐
+│ INDEX │ ACTUATOR ID        │ EXPERIMENT ID          │ VERSION │ DESCRIPTION │
+├───────┼────────────────────┼────────────────────────┼─────────┼─────────────┤
+│ 0     │ custom_experiments │ ml-multicloud-cost     │ 1.0.0   │             │
+└───────┴────────────────────┴────────────────────────┴─────────┴─────────────┘
 </code></pre></div> <p>Inspect the experiment interface:</p> <div class=highlight><pre><span></span><code>ado<span class=w> </span>describe<span class=w> </span>experiment<span class=w> </span>ml-multicloud-cost
 </code></pre></div> <div class=highlight><pre><span></span><code>Identifier: custom_experiments.ml-multicloud-cost@1.0.0
 Version: 1.0.0

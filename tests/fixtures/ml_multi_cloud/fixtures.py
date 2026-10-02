@@ -338,9 +338,7 @@ def simulate_ml_multi_cloud_random_walk_operation(
         operation_id = operation_id or random_identifier()
         sample_store = ml_multi_cloud_sample_store
 
-        sql = SQLResourceStore(
-            project_context=valid_ado_project_context, ensureExists=True
-        )
+        sql = SQLResourceStore(project_context=valid_ado_project_context)
 
         resource = OperationResource(
             identifier=operation_id,

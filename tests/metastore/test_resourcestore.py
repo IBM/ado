@@ -482,6 +482,59 @@ def test_delete_unknown_resource_raise_exception(resource_store: SQLStore) -> No
         resource_store.deleteResource(identifier=fake_identifier)
 
 
+def test_update_resource_overwrites_stored_data(
+    sql_store: SQLStore,
+    random_space_resource_from_db: Callable[[str | None], DiscoverySpaceResource],
+) -> None:
+    """updateResource stores the new payload for an existing identifier.
+
+    After calling updateResource, the retrieved resource reflects the change
+    and its status log contains the UPDATED event.
+    """
+    space = random_space_resource_from_db(None)
+
+    space.metadata["tag"] = "overwritten"
+    sql_store.updateResource(space)
+
+    reloaded = sql_store.getResource(
+        space.identifier, kind=CoreResourceKinds.DISCOVERYSPACE
+    )
+    assert reloaded is not None
+    assert reloaded.metadata["tag"] == "overwritten"
+    events = [s.event for s in reloaded.status]
+    assert ADOResourceEventEnum.UPDATED in events
+
+
+def test_delete_object_relationships_removes_subject_object_links(
+    sql_store: SQLStore,
+    random_space_resource_from_db: Callable[[str | None], DiscoverySpaceResource],
+    operation_resource: OperationResource,
+) -> None:
+    """deleteObjectRelationships removes all relationships where identifier is the object.
+
+    After deletion, getRelatedSubjectResourceIdentifiers returns an empty
+    DataFrame for that identifier. The resources themselves remain in the store.
+    """
+    space = random_space_resource_from_db(None)
+    sql_store.addResourceWithRelationships(
+        operation_resource, relatedIdentifiers=[space.identifier]
+    )
+
+    subjects = sql_store.getRelatedSubjectResourceIdentifiers(
+        operation_resource.identifier
+    )
+    assert space.identifier in subjects["IDENTIFIER"].values
+
+    sql_store.deleteObjectRelationships(identifier=operation_resource.identifier)
+
+    subjects_after = sql_store.getRelatedSubjectResourceIdentifiers(
+        operation_resource.identifier
+    )
+    assert subjects_after.empty
+    assert sql_store.containsResourceWithIdentifier(space.identifier)
+    assert sql_store.containsResourceWithIdentifier(operation_resource.identifier)
+
+
 ### Custom Serializations
 
 
@@ -2023,3 +2076,17 @@ def test_both_from_document_returns_both_operations(
     assert CoreResourceKinds.OPERATION in result
     assert h["op_a_id"] in result[CoreResourceKinds.OPERATION]
     assert h["op_b_id"] in result[CoreResourceKinds.OPERATION]
+
+
+def test_table_reflection_is_cached_across_instances(
+    valid_ado_project_context: ProjectContext,
+) -> None:
+    """Reflected table objects are shared across store instances with the same engine URL."""
+    from ado.metastore.sqlstore import SQLResourceStore, _reflected_metadata_cache
+
+    store_a = SQLResourceStore(project_context=valid_ado_project_context)
+    store_b = SQLResourceStore(project_context=valid_ado_project_context)
+
+    assert store_a._resources_table is store_b._resources_table
+    assert store_a._relationships_table is store_b._relationships_table
+    assert str(store_a.engine.url) in _reflected_metadata_cache

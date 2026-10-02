@@ -30,9 +30,9 @@ from ado.metastore.base import (
 )
 from ado.metastore.project import ProjectContext
 from ado.metastore.sql.utils import (
-    check_table_exists,
     create_sql_resource_store,
     engine_for_sql_store,
+    json_extract_field_as_string,
 )
 from ado.utilities.pydantic import (
     do_not_populate_ado_provenance_context,
@@ -43,51 +43,15 @@ from ado.utilities.pydantic import (
 if TYPE_CHECKING:
     import pandas as pd
 
-# Cache to track databases where we've verified tables exist
-# Key: database connection string, Value: True if tables exist
-_tables_exist_cache: dict[str, bool] = {}
+# Key: engine URL string, Value: sqlalchemy.MetaData with reflected resources tables
+_reflected_metadata_cache: dict[str, sqlalchemy.MetaData] = {}
 
 
 class SQLStore(ResourceStore):
     """Base class for SQLStores"""
 
     def __new__(cls, project_context: ProjectContext) -> "SQLResourceStore":
-        import logging
-
-        FORMAT = ado.utilities.logging.FORMAT
-        LOGLEVEL = os.environ.get("LOGLEVEL", "WARNING").upper()
-        logging.basicConfig(level=LOGLEVEL, format=FORMAT)
-        log = logging.getLogger("SQLStore")
-
-        log.debug("Creating SQL engine...")
-        engine = engine_for_sql_store(configuration=project_context.metadataStore)
-
-        # Get cache key from database connection string
-        cache_key = (
-            project_context.metadataStore.url().unicode_string()
-            if project_context.metadataStore.scheme != "sqlite"
-            else f"sqlite:///{project_context.metadataStore.path}"
-        )
-
-        # Check cache first to avoid network query
-        if cache_key in _tables_exist_cache:
-            tables_exist = _tables_exist_cache[cache_key]
-            log.debug(
-                f"Using cached table existence check result: tables_exist={tables_exist}"
-            )
-        else:
-            # Prefer raw SQL via check_table_exists; falls back to inspect on error.
-            log.debug("Checking if 'resources' table exists (network query)...")
-            tables_exist = check_table_exists(engine, "resources")
-            log.debug(f"Table existence check complete: tables_exist={tables_exist}")
-            # Cache the result
-            _tables_exist_cache[cache_key] = tables_exist
-
-        # We set ensureExists manually by checking just one table.
-        return SQLResourceStore(
-            project_context=project_context,
-            ensureExists=not tables_exist,
-        )
+        return SQLResourceStore(project_context=project_context)
 
     def __init__(self, project_context: ProjectContext) -> None:
 
@@ -107,24 +71,13 @@ class SQLResourceStore(ResourceStore):
 
     """
 
-    def __init__(
-        self, project_context: ProjectContext, ensureExists: bool = True
-    ) -> None:
+    def __init__(self, project_context: ProjectContext) -> None:
+        """Create a SQLResourceStore instance based on the ProjectContext.
+
+        Args:
+            project_context: The ProjectContext containing credentials to connect
+                to the SQL db.
         """
-        Creates a SQLResourceStore instance based on the ProjectContext
-
-        Parameters:
-            project_context: The ProjectContext containing credentials to connect to the SQL db
-            ensureExists: If True the existence of the required tables is checked, and
-                they are created if missing. If False the check is not performed (assumes existence).
-                This can be used to skip the check if the caller knows the tables exist.
-
-        Note:
-        -  If a project_context object is passed the value of its active field determines is the SQLStore is active.
-           By default, this field is True
-
-        """
-
         self.project_context = project_context
         self.configuration = project_context.metadataStore
         self._engine = engine_for_sql_store(configuration=project_context.metadataStore)
@@ -139,19 +92,39 @@ class SQLResourceStore(ResourceStore):
             f"Database: {self.configuration.database if self.configuration.scheme != 'sqlite' else self.configuration.path}"
         )
 
-        if ensureExists:
+        cache_key = str(self._engine.url)
+        if cache_key not in _reflected_metadata_cache:
             self.log.debug("Initialising SQL db if it does not exist")
-            create_sql_resource_store(self.engine)
-            # Update cache after creating tables
-            cache_key = (
-                self.configuration.url().unicode_string()
-                if self.configuration.scheme != "sqlite"
-                else f"sqlite:///{self.configuration.path}"
-            )
-            _tables_exist_cache[cache_key] = True
+            metadata = create_sql_resource_store(self.engine)
             self.log.debug("Done")
-
+            _reflected_metadata_cache[cache_key] = metadata
+        metadata = _reflected_metadata_cache[cache_key]
+        self._resources_table = metadata.tables["resources"]
+        self._relationships_table = metadata.tables["resource_relationships"]
         super().__init__()
+
+    def _reflect_tables(self) -> None:
+        """Populate ``_resources_table`` and ``_relationships_table`` by reflecting existing DB
+        tables.
+
+        Raises:
+            RuntimeError: If no tables are found in the database.
+        """
+        cache_key = str(self._engine.url)
+        if cache_key not in _reflected_metadata_cache:
+            metadata = sqlalchemy.MetaData()
+            metadata.reflect(
+                bind=self._engine, only=["resources", "resource_relationships"]
+            )
+            if not metadata.tables:
+                raise RuntimeError(
+                    f"No tables found at '{self._engine.url}'. "
+                    "The database must be initialised before reflecting."
+                )
+            _reflected_metadata_cache[cache_key] = metadata
+        metadata = _reflected_metadata_cache[cache_key]
+        self._resources_table = metadata.tables["resources"]
+        self._relationships_table = metadata.tables["resource_relationships"]
 
     # The SQLAlchemy Engine is not picklable, so anything using
     # Ray would fail. To avoid this, we remove it before pickling
@@ -159,11 +132,14 @@ class SQLResourceStore(ResourceStore):
     def __getstate__(self) -> dict:
         state = self.__dict__.copy()
         del state["_engine"]
+        del state["_resources_table"]
+        del state["_relationships_table"]
         return state
 
     def __setstate__(self, state: dict) -> None:
         self.__dict__.update(state)
         self._engine = engine_for_sql_store(self.configuration)
+        self._reflect_tables()
 
     @property
     def engine(self) -> sqlalchemy.Engine:
@@ -237,30 +213,41 @@ class SQLResourceStore(ResourceStore):
             ResourceDoesNotExistError: When ``raise_error_if_no_resource`` is
                 ``True`` and any resource in the chain cannot be found.
         """
-        n = len(chain)
+        hop_count = len(chain)
 
-        # Build SELECT with explicit per-resource column aliases to avoid
-        # collisions when the same column name appears across table aliases.
-        selects = ", ".join(
-            f"r{i}.data AS r{i}_data, r{i}.kind AS r{i}_kind" for i in range(n + 1)
+        # Build one alias per hop with a distinct name (r0, r1, …).
+        resource_aliases = [
+            self._resources_table.alias(f"r{i}") for i in range(hop_count + 1)
+        ]
+
+        # Collect the columns we need: data and kind per alias.
+        select_columns = []
+        for i, resource_alias in enumerate(resource_aliases):
+            select_columns.append(resource_alias.c.data.label(f"r{i}_data"))
+            select_columns.append(resource_alias.c.kind.label(f"r{i}_kind"))
+
+        # Build the FROM clause by chaining JOINs using the ->> JSON path operator.
+        joined_from = resource_aliases[0]
+        for i, (json_path, linked_kind) in enumerate(chain):
+            current_alias = resource_aliases[i]
+            next_alias = resource_aliases[i + 1]
+            joined_from = joined_from.join(
+                next_alias,
+                sqlalchemy.and_(
+                    next_alias.c.identifier
+                    == current_alias.c.data.op("->>")(sqlalchemy.literal(json_path)),
+                    next_alias.c.kind == linked_kind.value,
+                ),
+            )
+
+        query = (
+            sqlalchemy.select(*select_columns)
+            .select_from(joined_from)
+            .where(
+                resource_aliases[0].c.identifier == identifier,
+                resource_aliases[0].c.kind == kind.value,
+            )
         )
-
-        # Each JOIN hop resolves the next resource identifier from the JSON
-        # field of the previous resource.  Kind filtering is included in the
-        # ON clause so an incorrect kind never silently matches.
-        joins = "\n".join(
-            f"JOIN resources r{i + 1}"
-            f"  ON r{i + 1}.identifier = r{i}.data->>'{json_path}'"
-            f" AND r{i + 1}.kind = '{linked_kind.value}'"
-            for i, (json_path, linked_kind) in enumerate(chain)
-        )
-
-        # selects and joins are built from CoreResourceKinds enum values and
-        # literal JSON paths only; no user-supplied text is interpolated.
-        query = sqlalchemy.text(
-            f"SELECT {selects} FROM resources r0 {joins}"  # noqa: S608
-            " WHERE r0.identifier = :identifier AND r0.kind = :kind"
-        ).bindparams(identifier=identifier, kind=kind.value)
 
         with self.engine.connect() as connectable:
             row = connectable.execute(query).fetchone()
@@ -268,19 +255,19 @@ class SQLResourceStore(ResourceStore):
         if row is None:
             if raise_error_if_no_resource:
                 raise ResourceDoesNotExistError(resource_id=identifier, kind=kind)
-            return [None] * (n + 1)
+            return [None] * (hop_count + 1)
 
-        mapping = row._mapping
-        all_kinds = [kind] + [k for _, k in chain]
+        row_mapping = row._mapping
+        all_kinds = [kind] + [linked_kind for _, linked_kind in chain]
         resources = []
-        for i, _rk in enumerate(all_kinds):
-            data_raw = mapping[f"r{i}_data"]
-            kind_val = mapping[f"r{i}_kind"]
-            d = json.loads(data_raw) if isinstance(data_raw, str) else data_raw
-            resource = self._deserialize_resource(kind_val, d)
+        for i, _ in enumerate(all_kinds):
+            raw_data = row_mapping[f"r{i}_data"]
+            raw_kind = row_mapping[f"r{i}_kind"]
+            data_dict = json.loads(raw_data) if isinstance(raw_data, str) else raw_data
+            resource = self._deserialize_resource(raw_kind, data_dict)
 
             if ado.core.resources.VersionIsGreaterThan(
-                resource.version, d.get("version", "v0")
+                resource.version, data_dict.get("version", "v0")
             ):
                 self.updateResource(resource)
 
@@ -311,20 +298,16 @@ class SQLResourceStore(ResourceStore):
             resource schema - callers should use :meth:`getResource` if they
             need a fully-typed object.
         """
-        import pandas as pd
-
-        query = sqlalchemy.text(
-            "SELECT * FROM resources WHERE identifier=:identifier"
-        ).bindparams(identifier=identifier)
-
+        stmt = sqlalchemy.select(self._resources_table).where(
+            self._resources_table.c.identifier == identifier
+        )
         with self.engine.connect() as connectable:
-            table = pd.read_sql(query, con=connectable)
+            row = connectable.execute(stmt).mappings().first()
 
-        raw = None
-        if table.shape[0] > 0:
-            raw = json.loads(table.data[0])
-
-        return raw
+        if row is None:
+            return None
+        data_raw = row["data"]
+        return json.loads(data_raw) if isinstance(data_raw, str) else data_raw
 
     def getResource(
         self,
@@ -368,39 +351,28 @@ class SQLResourceStore(ResourceStore):
                 If the resource is not located in the database and the
                 *raise_error_if_no_resource* flag is ``True``.
 
-        Notes:
-            * The database uses SQLAlchemy under the hood, and the query
-              result is loaded into a :class:`pandas.DataFrame` before the
-              JSON column is parsed.
-            * Custom load functions registered in
-              ``kind_custom_model_load`` are used when available; otherwise
-              the default Pydantic model from ``ado.core.kindmap``
-              is instantiated.
         """
 
-        import pandas as pd
-
-        query = sqlalchemy.text("""
-            SELECT * FROM resources
-            WHERE identifier=:identifier
-            AND kind=:kind
-            """).bindparams(identifier=identifier, kind=kind.value)
-
+        stmt = sqlalchemy.select(self._resources_table).where(
+            self._resources_table.c.identifier == identifier,
+            self._resources_table.c.kind == kind.value,
+        )
         with self.engine.connect() as connectable:
-            table = pd.read_sql(query, con=connectable)
+            row = connectable.execute(stmt).mappings().first()
 
         resource = None
-        if table.shape[0] > 0:
-            d = json.loads(table.data[0])
+        if row is not None:
+            data_raw = row["data"]
+            data_dict = json.loads(data_raw) if isinstance(data_raw, str) else data_raw
             resource = self._deserialize_resource(
-                table.kind[0],
-                d,
+                row["kind"],
+                data_dict,
                 ignore_plugin_validation=ignore_plugin_validation,
             )
 
             # The stored resource should always have a version - if somehow it doesn't we want this to fail
             if ado.core.resources.VersionIsGreaterThan(
-                resource.version, d.get("version", "v0")
+                resource.version, data_dict.get("version", "v0")
             ):
                 self.updateResource(resource)
 
@@ -462,36 +434,33 @@ class SQLResourceStore(ResourceStore):
             if isinstance(identifiers, pd.Series):
                 identifiers = identifiers.tolist()
 
-            query = sqlalchemy.text(
-                "SELECT * FROM resources WHERE identifier in :identifiers"
-            ).bindparams(
-                sqlalchemy.bindparam(
-                    key="identifiers", value=identifiers, expanding=True
-                )
+            stmt = sqlalchemy.select(self._resources_table).where(
+                self._resources_table.c.identifier.in_(identifiers)
             )
-
             with self.engine.connect() as connectable:
-                table = pd.read_sql(query, con=connectable)
+                rows = connectable.execute(stmt).mappings().all()
 
-            if table.shape[0] > 0:
-                for identifier, data, kind in zip(
-                    table.identifier, table.data, table.kind, strict=True
-                ):
-                    d = json.loads(data)
-                    try:
-                        resource = self._deserialize_resource(
-                            kind,
-                            d,
-                            ignore_plugin_validation=ignore_plugin_validation,
-                        )
-                    except Exception as error:
-                        msg = f"Unable to create pydantic model for resource with id: {identifier} with data: {data}. {error}"
-                        if ignore_validation_errors:
-                            self.log.warning(msg)
-                        else:
-                            raise ValueError(msg) from error
+            for row in rows:
+                identifier = row["identifier"]
+                data_raw = row["data"]
+                kind = row["kind"]
+                data_dict = (
+                    json.loads(data_raw) if isinstance(data_raw, str) else data_raw
+                )
+                try:
+                    resource = self._deserialize_resource(
+                        kind,
+                        data_dict,
+                        ignore_plugin_validation=ignore_plugin_validation,
+                    )
+                except Exception as error:
+                    msg = f"Unable to create pydantic model for resource with id: {identifier} with data: {data_raw}. {error}"
+                    if ignore_validation_errors:
+                        self.log.warning(msg)
                     else:
-                        retval[identifier] = resource
+                        raise ValueError(msg) from error
+                else:
+                    retval[identifier] = resource
 
         # Sort by resource.created ascending (oldest first, matching AGE sort behavior)
         return dict(sorted(retval.items(), key=lambda item: item[1].created))
@@ -564,87 +533,142 @@ class SQLResourceStore(ResourceStore):
                 If the supplied ``kind`` is not a known
                 ``CoreResourceKinds`` value.
         """
+        import datetime
+        import math
 
         import pandas as pd
 
         if kind not in [v.value for v in ado.core.resources.CoreResourceKinds]:
             raise ValueError(f"Unknown kind specified: {kind}")
 
-        # SELECT
-        select_statement = "SELECT identifier"
-        select_name = ado.metastore.sql.statements.resource_select_metadata_field(
-            field_name="name", needs_select=False, dialect=self.engine.dialect.name
-        )
-        select_age = ado.metastore.sql.statements.resource_select_created_field(
-            as_age=True, needs_select=False, dialect=self.engine.dialect.name
-        )
+        resources_table = self._resources_table
+        dialect = self.engine.dialect.name
 
-        if details:
-            select_description = (
-                ado.metastore.sql.statements.resource_select_metadata_field(
-                    field_name="description",
-                    needs_select=False,
-                    dialect=self.engine.dialect.name,
-                )
-            )
-            select_labels = ado.metastore.sql.statements.resource_select_metadata_field(
-                field_name="labels",
-                needs_select=False,
-                dialect=self.engine.dialect.name,
-            )
+        # --- column expressions ---
+        col_identifier = resources_table.c.identifier
+        col_data = resources_table.c.data
 
-            select_statement = f"{select_statement} {select_name} {select_description} {select_labels} {select_age} "
+        # name: $.config.metadata.name (MySQL coerces JSON null to SQL NULL)
+        if dialect == "sqlite":
+            col_name = json_extract_field_as_string(
+                col_data, "$.config.metadata.name"
+            ).label("name")
         else:
-            select_statement = f"{select_statement} {select_name} {select_age} "
+            col_name = sqlalchemy.func.nullif(
+                json_extract_field_as_string(col_data, "$.config.metadata.name"),
+                "null",
+            ).label("name")
 
-        # Add the status and space to the resources that have it
-        if kind == ado.core.resources.CoreResourceKinds.OPERATION.value:
-            select_status = ado.metastore.sql.statements.resource_select_data_field(
-                field_name="status",
-                needs_select=False,
-                dialect=self.engine.dialect.name,
-            )
-            select_space = ado.metastore.sql.statements.resource_select_data_field(
-                field_name="config.spaces[0]",
-                needs_select=False,
-                dialect=self.engine.dialect.name,
-                output_field_name="space",
-            )
-            select_statement = f"{select_statement} {select_status} {select_space}"
-
-        # FROM
-        from_statement = "FROM resources "
-
-        field_selectors = field_selectors or {}
-
-        # WHERE
-        where_statement = f"WHERE kind = '{kind}'"
-        field_queries = ""
-        if not field_selectors:
-            field_selectors = {}
-
-        for field_selector in field_selectors:
-            for path, candidate in field_selector.items():
-                field_queries += (
-                    ado.metastore.sql.statements.resource_filter_by_arbitrary_selection(
-                        path=path,
-                        candidate=candidate,
-                        needs_where=False,
-                        dialect=self.engine.dialect.name,
+        # age in seconds from $.created
+        if dialect == "sqlite":
+            col_age = sqlalchemy.func.round(
+                (
+                    sqlalchemy.func.julianday(sqlalchemy.func.datetime("NOW"))
+                    - sqlalchemy.func.julianday(
+                        sqlalchemy.func.datetime(
+                            json_extract_field_as_string(col_data, "$.created")
+                        )
                     )
                 )
+                * 86400
+            ).label("age")
+        else:
+            col_age = sqlalchemy.func.timestampdiff(
+                sqlalchemy.text("SECOND"),
+                sqlalchemy.func.str_to_date(
+                    json_extract_field_as_string(col_data, "$.created"),
+                    sqlalchemy.literal("%Y-%m-%dT%T.%fZ"),
+                ),
+                sqlalchemy.func.now(),
+            ).label("age")
 
-        version_filter = f"AND version = '{version}'" if version else ""
-        where_statement = f"""{where_statement} {field_queries} {version_filter}"""
+        selected_columns: list = [col_identifier, col_name, col_age]
 
-        # ORDER BY
-        order_by_statement = ado.metastore.sql.statements.resource_order_by_age_desc(
-            self.engine.dialect.name
+        if details:
+            if dialect == "sqlite":
+                col_description = json_extract_field_as_string(
+                    col_data, "$.config.metadata.description"
+                ).label("description")
+                col_labels = json_extract_field_as_string(
+                    col_data, "$.config.metadata.labels"
+                ).label("labels")
+            else:
+                col_description = sqlalchemy.func.nullif(
+                    json_extract_field_as_string(
+                        col_data, "$.config.metadata.description"
+                    ),
+                    "null",
+                ).label("description")
+                col_labels = sqlalchemy.func.nullif(
+                    json_extract_field_as_string(col_data, "$.config.metadata.labels"),
+                    "null",
+                ).label("labels")
+            selected_columns = [
+                col_identifier,
+                col_name,
+                col_description,
+                col_labels,
+                col_age,
+            ]
+
+        if kind == ado.core.resources.CoreResourceKinds.OPERATION.value:
+            col_status = json_extract_field_as_string(col_data, "$.status").label(
+                "status"
+            )
+            col_space = json_extract_field_as_string(
+                col_data, "$.config.spaces[0]"
+            ).label("space")
+            selected_columns = [*selected_columns, col_status, col_space]
+
+        # --- build query ---
+        query = sqlalchemy.select(*selected_columns).where(
+            resources_table.c.kind == kind
         )
 
-        query = f"{select_statement} {from_statement} {where_statement} {order_by_statement};"
-        with self.engine.connect() as connectable:
-            table = pd.read_sql(query, con=connectable)
+        if version is not None:
+            query = query.where(resources_table.c.version == version)
+
+        # field selectors
+        for field_selector in field_selectors or []:
+            for path, candidate in field_selector.items():
+                if dialect == "sqlite":
+                    where_fragment = (
+                        ado.metastore.sql.statements.simulate_json_contains_on_sqlite(
+                            path, candidate
+                        )
+                    )
+                    query = query.where(sqlalchemy.text(where_fragment))
+                else:
+                    # MySQL: JSON_CONTAINS for normal values; OR NOT JSON_CONTAINS_PATH for null candidates
+                    json_contains_expr = sqlalchemy.func.json_contains(
+                        col_data, candidate, path
+                    )
+                    if candidate == "null":
+                        not_contains_path_expr = sqlalchemy.not_(
+                            sqlalchemy.func.json_contains_path(
+                                col_data, sqlalchemy.literal("one"), path
+                            )
+                        )
+                        query = query.where(
+                            sqlalchemy.or_(json_contains_expr, not_contains_path_expr)
+                        )
+                    else:
+                        query = query.where(json_contains_expr)
+
+        # ORDER BY age DESC, NULLs last
+        if dialect == "sqlite":
+            query = query.order_by(col_age.is_(None), col_age.desc())
+        else:
+            query = query.order_by(
+                sqlalchemy.func.isnull(col_age),
+                col_age.desc(),
+            )
+
+        with self.engine.connect() as connection:
+            result_rows = connection.execute(query).fetchall()
+
+        # Build output DataFrame from query results
+        row_dicts = [row._mapping for row in result_rows]
 
         columns = (
             ["IDENTIFIER", "NAME", "DESCRIPTION", "LABELS", "AGE"]
@@ -654,30 +678,30 @@ class SQLResourceStore(ResourceStore):
 
         output_df = pd.DataFrame(
             data={
-                "IDENTIFIER": table["identifier"],
-                "NAME": table["name"],
-                "AGE": table["age"],
+                "IDENTIFIER": [r["identifier"] for r in row_dicts],
+                "NAME": [r["name"] for r in row_dicts],
+                "AGE": [r["age"] for r in row_dicts],
             }
         )
 
-        import datetime
-        import math
-
-        # The DB returns us timedelta objects in seconds, we want Pandas to
-        # parse them correctly
+        # The DB returns age in seconds; convert to timedelta (NaN values are preserved)
         output_df["AGE"] = output_df["AGE"].apply(
-            lambda x: datetime.timedelta(seconds=x) if not math.isnan(x) else x
+            lambda x: (
+                datetime.timedelta(seconds=x)
+                if x is not None and not math.isnan(x)
+                else x
+            )
         )
 
         if details:
-            output_df["DESCRIPTION"] = table["description"]
-            output_df["LABELS"] = table["labels"]
+            output_df["DESCRIPTION"] = [r["description"] for r in row_dicts]
+            output_df["LABELS"] = [r["labels"] for r in row_dicts]
 
         if kind == ado.core.resources.CoreResourceKinds.OPERATION.value:
             columns.insert(-1, "STATUS")
-            output_df["STATUS"] = table["status"]
+            output_df["STATUS"] = [r["status"] for r in row_dicts]
             columns.insert(-1, "SPACE")
-            output_df["SPACE"] = table["space"]
+            output_df["SPACE"] = [r["space"] for r in row_dicts]
 
         return output_df[columns]
 
@@ -713,7 +737,6 @@ class SQLResourceStore(ResourceStore):
         if not kinds:
             return {}
 
-        # Validate all kinds are CoreResourceKinds instances
         invalid_kinds = [
             kind for kind in kinds if not isinstance(kind, CoreResourceKinds)
         ]
@@ -723,36 +746,58 @@ class SQLResourceStore(ResourceStore):
                 f"All kinds must be CoreResourceKinds instances. Invalid: {invalid_kinds}"
             )
 
-        # Convert CoreResourceKinds to string values for SQL query
+        # Convert CoreResourceKinds to string values for the IN clause
         kind_values = [kind.value for kind in kinds]
 
-        # Generate and execute the SQL query (returns bound TextClause)
-        query = ado.metastore.sql.statements.resource_select_latest_by_kinds(
-            kinds=kind_values,
-            dialect=self.engine.dialect.name,
+        # Build CTE: rank resources within each kind by their created timestamp descending.
+        resources_table = self._resources_table
+        created_at_col = json_extract_field_as_string(
+            resources_table.c.data, "$.created"
+        )
+        ranked_resources_cte = (
+            sqlalchemy.select(
+                resources_table.c.identifier,
+                resources_table.c.kind,
+                created_at_col.label("created"),
+                sqlalchemy.func.row_number()
+                .over(
+                    partition_by=resources_table.c.kind,
+                    order_by=created_at_col.desc(),
+                )
+                .label("row_rank"),
+            )
+            .where(resources_table.c.kind.in_(kind_values))
+            .cte("ranked_resources")
         )
 
-        with self.engine.connect() as connectable:
-            result = connectable.execute(query)
-            rows = result.fetchall()
+        query = sqlalchemy.select(
+            ranked_resources_cte.c.identifier,
+            ranked_resources_cte.c.kind,
+            ranked_resources_cte.c.created,
+        ).where(ranked_resources_cte.c.row_rank == 1)
 
-        # Build dictionary mapping kind to identifier
+        with self.engine.connect() as connectable:
+            rows = connectable.execute(query).fetchall()
+
+        # Build dictionary mapping kind enum to its most recently created identifier
         latest_ids: dict[CoreResourceKinds, str] = {}
         for row in rows:
-            identifier, kind_str, _created = row
-            # Convert string kind back to CoreResourceKinds enum
-            kind_enum = CoreResourceKinds(kind_str)
-            latest_ids[kind_enum] = identifier
+            kind_enum = CoreResourceKinds(row.kind)
+            latest_ids[kind_enum] = row.identifier
 
         return latest_ids
 
     def resourceTable(self) -> "pd.DataFrame":
+        """Return all rows of the resources table as a DataFrame.
+
+        Returns:
+            A DataFrame containing all columns and rows of the resources table.
+        """
         import pandas as pd
 
-        query = """SELECT * FROM resources"""
-
+        stmt = sqlalchemy.select(self._resources_table)
         with self.engine.connect() as connectable:
-            return pd.read_sql(query, con=connectable)
+            return pd.read_sql(stmt, con=connectable)
 
     def getResourcesOfKind(
         self,
@@ -853,28 +898,30 @@ class SQLResourceStore(ResourceStore):
 
         import pandas as pd
 
-        query_text = """SELECT subject_identifier, resources.kind
-                              FROM resource_relationships
-                              INNER JOIN resources
-                                 ON resource_relationships.subject_identifier = resources.identifier
-                              WHERE resource_relationships.object_identifier=:identifier"""
-        query_parameters = {"identifier": identifier}
-
+        relationships_table = self._relationships_table
+        resources_table = self._resources_table
+        stmt = (
+            sqlalchemy.select(
+                relationships_table.c.subject_identifier,
+                resources_table.c.kind,
+            )
+            .join(
+                resources_table,
+                relationships_table.c.subject_identifier
+                == resources_table.c.identifier,
+            )
+            .where(relationships_table.c.object_identifier == identifier)
+        )
         if kind is not None:
-            query_text += """ AND resources.kind=:kind"""
-            query_parameters["kind"] = kind
-
+            stmt = stmt.where(resources_table.c.kind == kind)
         if version is not None:
-            query_text += """ AND resources.version=:version"""
-            query_parameters["version"] = version
+            stmt = stmt.where(resources_table.c.version == version)
 
-        query = sqlalchemy.text(query_text).bindparams(**query_parameters)
         with self.engine.connect() as connectable:
-            table = pd.read_sql(query, con=connectable)
+            rows = connectable.execute(stmt).fetchall()
 
-        related_identifiers = table["subject_identifier"].values
-        related_kinds = table["kind"].values
-
+        related_identifiers = [row[0] for row in rows]
+        related_kinds = [row[1] for row in rows]
         return pd.DataFrame({"IDENTIFIER": related_identifiers, "TYPE": related_kinds})
 
     def getRelatedObjectResourceIdentifiers(
@@ -922,56 +969,70 @@ class SQLResourceStore(ResourceStore):
 
         import pandas as pd
 
-        # First select where identifier is the subject
-        query_text = """SELECT object_identifier, resources.kind
-                    FROM resource_relationships
-                    INNER JOIN resources
-                       ON resource_relationships.object_identifier = resources.identifier
-                    WHERE resource_relationships.subject_identifier=:identifier"""
-        query_parameters = {"identifier": identifier}
-
+        relationships_table = self._relationships_table
+        resources_table = self._resources_table
+        stmt = (
+            sqlalchemy.select(
+                relationships_table.c.object_identifier,
+                resources_table.c.kind,
+            )
+            .join(
+                resources_table,
+                relationships_table.c.object_identifier == resources_table.c.identifier,
+            )
+            .where(relationships_table.c.subject_identifier == identifier)
+        )
         if kind is not None:
-            query_text += " AND resources.kind=:kind"
-            query_parameters["kind"] = kind
-
+            stmt = stmt.where(resources_table.c.kind == kind)
         if version is not None:
-            query_text += " AND resources.version=:version"
-            query_parameters["version"] = version
+            stmt = stmt.where(resources_table.c.version == version)
 
-        query = sqlalchemy.text(query_text).bindparams(**query_parameters)
         with self.engine.connect() as connectable:
-            table = pd.read_sql(query, con=connectable)
+            rows = connectable.execute(stmt).fetchall()
 
-        related_identifiers = table["object_identifier"].values
-        related_kinds = table["kind"].values
-
+        related_identifiers = [row[0] for row in rows]
+        related_kinds = [row[1] for row in rows]
         return pd.DataFrame({"IDENTIFIER": related_identifiers, "TYPE": related_kinds})
 
     def containsResourceWithIdentifier(
         self, identifier: str, kind: CoreResourceKinds | None = None
     ) -> bool:
+        """Check whether the resources table contains a row for the given identifier.
 
-        query_text = "SELECT COUNT(1) FROM resources WHERE identifier=:identifier"
-        query_parameters = {"identifier": identifier}
-        if kind:
-            query_text += " AND kind=:kind"
-            query_parameters["kind"] = kind.value
+        Args:
+            identifier: The resource identifier to look up.
+            kind: When provided, also filters by resource kind.
 
-        query = sqlalchemy.text(query_text).bindparams(**query_parameters)
+        Returns:
+            True if a matching row exists, False otherwise.
+        """
+        stmt = sqlalchemy.select(sqlalchemy.func.count()).where(
+            self._resources_table.c.identifier == identifier
+        )
+        if kind is not None:
+            stmt = stmt.where(self._resources_table.c.kind == kind.value)
+        stmt = stmt.select_from(self._resources_table)
+
         with self.engine.connect() as connectable:
-            exe = connectable.execute(query)
-            row_count = exe.scalar()
+            row_count = connectable.execute(stmt).scalar()
 
         return row_count != 0
 
     def addResource(self, resource: ado.core.resources.ADOResource) -> None:
+        """Insert a new resource row into the resources table.
 
+        Args:
+            resource: The resource to insert.
+
+        Raises:
+            ValueError: If resource is not an ADOResource subclass, or if a
+                row with the same identifier already exists.
+        """
         if not isinstance(resource, ado.core.resources.ADOResource):
             raise ValueError(
                 f"Cannot add resource, {resource}, that is not a subclass of ADOResource"
             )
 
-        # Connect to SQL and add entry
         if self.containsResourceWithIdentifier(resource.identifier):
             raise ValueError(
                 f"Resource with id {resource.identifier} already present. "
@@ -986,36 +1047,32 @@ class SQLResourceStore(ResourceStore):
         else:
             representation = resource.model_dump_json()
 
+        stmt = self._resources_table.insert().values(
+            identifier=resource.identifier,
+            kind=resource.kind.value,
+            version=resource.version,
+            data=json.loads(representation),
+        )
         with self.engine.begin() as connectable:
-            query = sqlalchemy.text(
-                r"INSERT INTO resources"
-                r"(identifier, kind, version, data)"
-                r"VALUES(:identifier, :kind, :version, :data)"
-            ).bindparams(
-                identifier=resource.identifier,
-                kind=resource.kind.value,
-                version=resource.version,
-                data=representation,
-            )
-            connectable.execute(query)
+            connectable.execute(stmt)
 
     def addRelationship(
         self,
         subjectIdentifier: str,
         objectIdentifier: str,
     ) -> None:
+        """Insert a row into the resource_relationships table.
 
-        # Connect to SQL and add entry
+        Args:
+            subjectIdentifier: Identifier of the subject resource.
+            objectIdentifier: Identifier of the object resource.
+        """
+        stmt = self._relationships_table.insert().values(
+            subject_identifier=subjectIdentifier,
+            object_identifier=objectIdentifier,
+        )
         with self.engine.begin() as connectable:
-            query = sqlalchemy.text(
-                r"INSERT INTO resource_relationships"
-                r"(subject_identifier, object_identifier)"
-                r"VALUES(:subject_identifier, :object_identifier)"
-            ).bindparams(
-                subject_identifier=subjectIdentifier,
-                object_identifier=objectIdentifier,
-            )
-            connectable.execute(query)
+            connectable.execute(stmt)
 
     def addRelationshipForResources(
         self, subjectResource: pydantic.BaseModel, objectResource: pydantic.BaseModel
@@ -1036,11 +1093,11 @@ class SQLResourceStore(ResourceStore):
         This is because the others ids must already exist"""
 
         # Test that the relatedIdentifiers exist before adding
-        r = [
+        resource_exists_checks = [
             self.containsResourceWithIdentifier(identifier=ident)
             for ident in relatedIdentifiers
         ]
-        if False in r:
+        if False in resource_exists_checks:
             raise ValueError(f"Unknown resource identifier passed {relatedIdentifiers}")
 
         self.addResource(resource=resource)
@@ -1050,13 +1107,14 @@ class SQLResourceStore(ResourceStore):
             )
 
     def updateResource(self, resource: ado.core.resources.ADOResource) -> None:
-        """Replaces any data stored against "resource.identifier" with resource
+        """Replace any data stored against ``resource.identifier`` with ``resource``.
 
-        Raises:
-            ValueError if resource is not already stored.
+        Uses a dialect-specific upsert so that the row is inserted if absent
+        or updated in-place if it already exists.
 
+        Args:
+            resource: The resource whose stored data should be overwritten.
         """
-
         resource.status.append(
             ado.core.resources.ADOResourceStatus(event=ADOResourceEventEnum.UPDATED)
         )
@@ -1066,23 +1124,44 @@ class SQLResourceStore(ResourceStore):
         else:
             representation = resource.model_dump_json()
 
-        with self.engine.begin() as connectable:
-            query = ado.metastore.sql.statements.resource_upsert(
-                resource=resource,
-                json_representation=representation,
-                dialect=self.engine.dialect.name,
-            )
+        values = {
+            "identifier": resource.identifier,
+            "kind": resource.kind.value,
+            "version": resource.version,
+            "data": json.loads(representation),
+        }
+        if self.engine.dialect.name == "sqlite":
+            from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 
-            connectable.execute(query)
+            stmt = sqlite_insert(self._resources_table).values(**values)
+            stmt = stmt.on_conflict_do_update(
+                index_elements=["identifier"],
+                set_={"data": stmt.excluded.data},
+            )
+        else:
+            from sqlalchemy.dialects.mysql import insert as mysql_insert
+
+            stmt = mysql_insert(self._resources_table).values(**values)
+            stmt = stmt.on_duplicate_key_update(data=stmt.inserted.data)
+
+        with self.engine.begin() as connectable:
+            connectable.execute(stmt)
 
     def deleteResource(self, identifier: str) -> None:
+        """Delete a resource and its object-side relationships from the store.
 
+        Args:
+            identifier: The identifier of the resource to delete.
+
+        Raises:
+            ValueError: If the resource does not exist, or if relationships
+                exist where this resource is the subject.
+        """
         if not self.containsResourceWithIdentifier(identifier):
             raise ValueError(
                 f"Cannot delete resource with id {identifier} - it is not present"
             )
 
-        # Cannot delete if there are relationships where the identifier is the subject
         relatedAsObject = self.getRelatedObjectResourceIdentifiers(
             identifier=identifier
         )
@@ -1091,20 +1170,24 @@ class SQLResourceStore(ResourceStore):
                 f"Cannot delete resource {identifier} as there are existing relationships where it is the subject. "
                 f"You must delete all the related object resources first:\n{relatedAsObject['IDENTIFIER']}"
             )
-        # Delete all relationships where the identifier is the object
         self.deleteObjectRelationships(identifier=identifier)
+        stmt = sqlalchemy.delete(self._resources_table).where(
+            self._resources_table.c.identifier == identifier
+        )
         with self.engine.begin() as connectable:
-            query = sqlalchemy.text(
-                r"DELETE FROM resources WHERE identifier=:identifier"
-            ).bindparams(identifier=identifier)
-            connectable.execute(query)
+            connectable.execute(stmt)
 
     def deleteObjectRelationships(self, identifier: str) -> None:
-        """Deletes all recorded relationships for identifier where it is the object
+        """Delete all relationship rows where ``identifier`` is the object.
 
-        Only works if it is not the subject of another relationship"""
+        Args:
+            identifier: The object-side identifier whose relationship rows
+                should be removed.
 
-        # Cannot delete if there are object relationships (the identifier is the subject) as this breaks provenance
+        Raises:
+            ValueError: If relationships exist where this identifier is also
+                the subject, which would break provenance.
+        """
         relatedAsObject = self.getRelatedObjectResourceIdentifiers(
             identifier=identifier
         )
@@ -1113,11 +1196,11 @@ class SQLResourceStore(ResourceStore):
                 f"Cannot delete relationships where {identifier} is the object as there are existing relationships where it is the subject. "
                 f"You must delete all the related object resources first:\n{relatedAsObject['IDENTIFIER']}"
             )
+        stmt = sqlalchemy.delete(self._relationships_table).where(
+            self._relationships_table.c.object_identifier == identifier
+        )
         with self.engine.begin() as connectable:
-            query = sqlalchemy.text(
-                r"DELETE FROM resource_relationships WHERE object_identifier=:identifier"
-            ).bindparams(identifier=identifier)
-            connectable.execute(query)
+            connectable.execute(stmt)
 
     def delete_sample_store(
         self, identifier: str, force_deletion: bool = False
@@ -1147,17 +1230,16 @@ class SQLResourceStore(ResourceStore):
             try:
                 with session.begin():
                     session.execute(
-                        sqlalchemy.text(
-                            "DELETE FROM resource_relationships WHERE object_identifier=:identifier"
-                        ).bindparams(identifier=identifier)
+                        sqlalchemy.delete(self._relationships_table).where(
+                            self._relationships_table.c.object_identifier == identifier
+                        )
                     )
 
                     session.execute(
-                        sqlalchemy.text(
-                            "DELETE FROM resources WHERE identifier=:identifier AND kind=:kind"
-                        ).bindparams(
-                            identifier=identifier,
-                            kind=CoreResourceKinds.SAMPLESTORE.value,
+                        sqlalchemy.delete(self._resources_table).where(
+                            self._resources_table.c.identifier == identifier,
+                            self._resources_table.c.kind
+                            == CoreResourceKinds.SAMPLESTORE.value,
                         )
                     )
 
@@ -1245,49 +1327,76 @@ class SQLResourceStore(ResourceStore):
                     # belongs to. This is to find all the spaces that
                     # belong to the sample store to see if operations
                     # are currently running on them.
+                    relationships_table = self._relationships_table
+                    resources_table = self._resources_table
+
+                    space_subquery = (
+                        sqlalchemy.select(relationships_table.c.subject_identifier)
+                        .where(
+                            relationships_table.c.object_identifier == identifier,
+                            relationships_table.c.subject_identifier.like("space-%"),
+                        )
+                        .scalar_subquery()
+                    )
                     sample_store_id = session.execute(
-                        sqlalchemy.text(
-                            "SELECT data->>'$.config.sampleStoreIdentifier' "
-                            "FROM resources "
-                            "WHERE identifier = ("
-                            "   SELECT subject_identifier"
-                            "   FROM resource_relationships"
-                            "   WHERE object_identifier=:operation_identifier"
-                            "   AND subject_identifier LIKE 'space-%')"
-                        ).bindparams(operation_identifier=identifier)
+                        sqlalchemy.select(
+                            json_extract_field_as_string(
+                                resources_table.c.data,
+                                "$.config.sampleStoreIdentifier",
+                            )
+                        ).where(resources_table.c.identifier == space_subquery)
                     ).first()[0]
 
                     # The user might choose to ignore running operations
                     # <--------- START CHECKS FOR RUNNING OPERATIONS --------->
                     if not ignore_running_operations:
-                        spaces_in_sample_store = session.execute(
-                            sqlalchemy.text(
-                                "SELECT object_identifier "
-                                "FROM resource_relationships "
-                                "WHERE subject_identifier=:sample_store_id "
-                                "AND object_identifier LIKE 'space-%'"
-                            ).bindparams(sample_store_id=sample_store_id)
-                        )
                         spaces_in_sample_store = [
-                            result[0] for result in spaces_in_sample_store
-                        ]
-
-                        running_operations = session.execute(
-                            sqlalchemy.text("""
-                                SELECT identifier
-                                FROM resources
-                                WHERE kind = 'operation'
-                                    AND JSON_OVERLAPS(data->'$.config.spaces', :spaces_in_sample_store)
-                                    AND JSON_CONTAINS(data->'$.status', '{"event":"started"}')
-                                    AND NOT JSON_CONTAINS(data->'$.status', '{"event":"finished"}')
-                                """).bindparams(
-                                spaces_in_sample_store=json.dumps(
-                                    spaces_in_sample_store
+                            result[0]
+                            for result in session.execute(
+                                sqlalchemy.select(
+                                    relationships_table.c.object_identifier
+                                ).where(
+                                    relationships_table.c.subject_identifier
+                                    == sample_store_id,
+                                    relationships_table.c.object_identifier.like(
+                                        "space-%"
+                                    ),
                                 )
                             )
+                        ]
+
+                        spaces_json = sqlalchemy.literal(
+                            json.dumps(spaces_in_sample_store)
                         )
+                        data_col = resources_table.c.data
                         running_operations = [
-                            result[0] for result in running_operations
+                            result[0]
+                            for result in session.execute(
+                                sqlalchemy.select(resources_table.c.identifier).where(
+                                    resources_table.c.kind
+                                    == CoreResourceKinds.OPERATION.value,
+                                    sqlalchemy.func.JSON_OVERLAPS(
+                                        data_col.op("->")(
+                                            sqlalchemy.literal("$.config.spaces")
+                                        ),
+                                        spaces_json,
+                                    ),
+                                    sqlalchemy.func.JSON_CONTAINS(
+                                        data_col.op("->")(
+                                            sqlalchemy.literal("$.status")
+                                        ),
+                                        sqlalchemy.literal('{"event":"started"}'),
+                                    ),
+                                    sqlalchemy.not_(
+                                        sqlalchemy.func.JSON_CONTAINS(
+                                            data_col.op("->")(
+                                                sqlalchemy.literal("$.status")
+                                            ),
+                                            sqlalchemy.literal('{"event":"finished"}'),
+                                        )
+                                    ),
+                                )
+                            )
                         ]
 
                         if running_operations:
@@ -1303,13 +1412,16 @@ class SQLResourceStore(ResourceStore):
                     import pandas as pd
 
                     child_rows = session.execute(
-                        sqlalchemy.text(
-                            "SELECT rr.object_identifier, r.kind "
-                            "FROM resource_relationships rr "
-                            "INNER JOIN resources r "
-                            "  ON rr.object_identifier = r.identifier "
-                            "WHERE rr.subject_identifier = :operation_id"
-                        ).bindparams(operation_id=identifier)
+                        sqlalchemy.select(
+                            relationships_table.c.object_identifier,
+                            resources_table.c.kind,
+                        )
+                        .join(
+                            resources_table,
+                            relationships_table.c.object_identifier
+                            == resources_table.c.identifier,
+                        )
+                        .where(relationships_table.c.subject_identifier == identifier)
                     ).fetchall()
 
                     child_resources_df = pd.DataFrame(
@@ -1332,13 +1444,19 @@ class SQLResourceStore(ResourceStore):
                         # grandchildren
                         for data_container_id in child_resources_df["IDENTIFIER"]:
                             grandchildren_rows = session.execute(
-                                sqlalchemy.text(
-                                    "SELECT rr.object_identifier, r.kind "
-                                    "FROM resource_relationships rr "
-                                    "INNER JOIN resources r "
-                                    "  ON rr.object_identifier = r.identifier "
-                                    "WHERE rr.subject_identifier = :data_container_id"
-                                ).bindparams(data_container_id=data_container_id)
+                                sqlalchemy.select(
+                                    relationships_table.c.object_identifier,
+                                    resources_table.c.kind,
+                                )
+                                .join(
+                                    resources_table,
+                                    relationships_table.c.object_identifier
+                                    == resources_table.c.identifier,
+                                )
+                                .where(
+                                    relationships_table.c.subject_identifier
+                                    == data_container_id
+                                )
                             ).fetchall()
 
                             if grandchildren_rows:
@@ -1354,27 +1472,19 @@ class SQLResourceStore(ResourceStore):
                         # Safe to delete all DataContainer children
                         data_container_ids = child_resources_df["IDENTIFIER"].tolist()
                         session.execute(
-                            sqlalchemy.text(
-                                "DELETE FROM resource_relationships "
-                                "WHERE object_identifier IN :data_container_ids"
-                            ).bindparams(
-                                sqlalchemy.bindparam(
-                                    "data_container_ids", expanding=True
-                                ),
-                                data_container_ids=data_container_ids,
+                            sqlalchemy.delete(self._relationships_table).where(
+                                self._relationships_table.c.object_identifier.in_(
+                                    data_container_ids
+                                )
                             )
                         )
                         session.execute(
-                            sqlalchemy.text(
-                                "DELETE FROM resources "
-                                "WHERE identifier IN :data_container_ids "
-                                "AND kind = :kind"
-                            ).bindparams(
-                                sqlalchemy.bindparam(
-                                    "data_container_ids", expanding=True
+                            sqlalchemy.delete(self._resources_table).where(
+                                self._resources_table.c.identifier.in_(
+                                    data_container_ids
                                 ),
-                                data_container_ids=data_container_ids,
-                                kind=CoreResourceKinds.DATACONTAINER.value,
+                                self._resources_table.c.kind
+                                == CoreResourceKinds.DATACONTAINER.value,
                             )
                         )
                     # <--------- END CASCADE DELETE DATACONTAINER CHILDREN --------->
@@ -1439,22 +1549,17 @@ class SQLResourceStore(ResourceStore):
                             """)  # noqa: S608 - sample store id is not a user input
                     )
 
-                    # We must delete the resource from the relationships table
-                    # as we otherwise would break its foreign key constraint
                     session.execute(
-                        sqlalchemy.text(
-                            "DELETE FROM resource_relationships WHERE object_identifier=:identifier"
-                        ).bindparams(identifier=identifier)
+                        sqlalchemy.delete(self._relationships_table).where(
+                            self._relationships_table.c.object_identifier == identifier
+                        )
                     )
 
-                    # As the last step, we can now delete the operation resource
                     session.execute(
-                        sqlalchemy.text(
-                            r"DELETE FROM resources "
-                            r"WHERE identifier=:identifier AND kind=:kind"
-                        ).bindparams(
-                            identifier=identifier,
-                            kind=CoreResourceKinds.OPERATION.value,
+                        sqlalchemy.delete(self._resources_table).where(
+                            self._resources_table.c.identifier == identifier,
+                            self._resources_table.c.kind
+                            == CoreResourceKinds.OPERATION.value,
                         )
                     )
 
@@ -1467,27 +1572,31 @@ class SQLResourceStore(ResourceStore):
                 ) from e
 
     def delete_discovery_space(self, identifier: str) -> None:
+        """Delete a discovery space resource and its object-side relationships.
+
+        Args:
+            identifier: The identifier of the discovery space to delete.
+
+        Raises:
+            DeleteFromDatabaseError: If the delete transaction fails.
+        """
         import sqlalchemy.orm
 
         with sqlalchemy.orm.Session(self.engine) as session:
             try:
                 with session.begin():
                     session.execute(
-                        sqlalchemy.text(
-                            r"DELETE FROM resource_relationships WHERE object_identifier=:identifier"
-                        ).bindparams(identifier=identifier)
-                    )
-
-                    session.execute(
-                        sqlalchemy.text(
-                            r"DELETE FROM resources "
-                            r"WHERE identifier=:identifier AND kind=:kind"
-                        ).bindparams(
-                            identifier=identifier,
-                            kind=CoreResourceKinds.DISCOVERYSPACE.value,
+                        sqlalchemy.delete(self._relationships_table).where(
+                            self._relationships_table.c.object_identifier == identifier
                         )
                     )
-
+                    session.execute(
+                        sqlalchemy.delete(self._resources_table).where(
+                            self._resources_table.c.identifier == identifier,
+                            self._resources_table.c.kind
+                            == CoreResourceKinds.DISCOVERYSPACE.value,
+                        )
+                    )
             except Exception as e:
                 session.rollback()
                 raise DeleteFromDatabaseError(
@@ -1497,27 +1606,31 @@ class SQLResourceStore(ResourceStore):
                 ) from e
 
     def delete_data_container(self, identifier: str) -> None:
+        """Delete a data container resource and its object-side relationships.
+
+        Args:
+            identifier: The identifier of the data container to delete.
+
+        Raises:
+            DeleteFromDatabaseError: If the delete transaction fails.
+        """
         import sqlalchemy.orm
 
         with sqlalchemy.orm.Session(self.engine) as session:
             try:
                 with session.begin():
                     session.execute(
-                        sqlalchemy.text(
-                            r"DELETE FROM resource_relationships WHERE object_identifier=:identifier"
-                        ).bindparams(identifier=identifier)
-                    )
-
-                    session.execute(
-                        sqlalchemy.text(
-                            r"DELETE FROM resources "
-                            r"WHERE identifier=:identifier AND kind=:kind"
-                        ).bindparams(
-                            identifier=identifier,
-                            kind=CoreResourceKinds.DATACONTAINER.value,
+                        sqlalchemy.delete(self._relationships_table).where(
+                            self._relationships_table.c.object_identifier == identifier
                         )
                     )
-
+                    session.execute(
+                        sqlalchemy.delete(self._resources_table).where(
+                            self._resources_table.c.identifier == identifier,
+                            self._resources_table.c.kind
+                            == CoreResourceKinds.DATACONTAINER.value,
+                        )
+                    )
             except Exception as e:
                 session.rollback()
                 raise DeleteFromDatabaseError(
@@ -1527,27 +1640,31 @@ class SQLResourceStore(ResourceStore):
                 ) from e
 
     def delete_actuator_configuration(self, identifier: str) -> None:
+        """Delete an actuator configuration resource and its object-side relationships.
+
+        Args:
+            identifier: The identifier of the actuator configuration to delete.
+
+        Raises:
+            DeleteFromDatabaseError: If the delete transaction fails.
+        """
         import sqlalchemy.orm
 
         with sqlalchemy.orm.Session(self.engine) as session:
             try:
                 with session.begin():
                     session.execute(
-                        sqlalchemy.text(
-                            r"DELETE FROM resource_relationships WHERE object_identifier=:identifier"
-                        ).bindparams(identifier=identifier)
-                    )
-
-                    session.execute(
-                        sqlalchemy.text(
-                            r"DELETE FROM resources "
-                            r"WHERE identifier=:identifier AND kind=:kind"
-                        ).bindparams(
-                            identifier=identifier,
-                            kind=CoreResourceKinds.ACTUATORCONFIGURATION.value,
+                        sqlalchemy.delete(self._relationships_table).where(
+                            self._relationships_table.c.object_identifier == identifier
                         )
                     )
-
+                    session.execute(
+                        sqlalchemy.delete(self._resources_table).where(
+                            self._resources_table.c.identifier == identifier,
+                            self._resources_table.c.kind
+                            == CoreResourceKinds.ACTUATORCONFIGURATION.value,
+                        )
+                    )
             except Exception as e:
                 session.rollback()
                 raise DeleteFromDatabaseError(
@@ -1557,33 +1674,36 @@ class SQLResourceStore(ResourceStore):
                 ) from e
 
     def delete_document(self, identifier: str) -> None:
+        """Delete a document resource and all its relationships.
+
+        Args:
+            identifier: The identifier of the document to delete.
+
+        Raises:
+            DeleteFromDatabaseError: If the delete transaction fails.
+        """
         import sqlalchemy.orm
 
         with sqlalchemy.orm.Session(self.engine) as session:
             try:
                 with session.begin():
                     session.execute(
-                        sqlalchemy.text(
-                            r"DELETE FROM resource_relationships WHERE object_identifier=:identifier"
-                        ).bindparams(identifier=identifier)
-                    )
-
-                    session.execute(
-                        sqlalchemy.text(
-                            r"DELETE FROM resource_relationships WHERE subject_identifier=:identifier"
-                        ).bindparams(identifier=identifier)
-                    )
-
-                    session.execute(
-                        sqlalchemy.text(
-                            r"DELETE FROM resources "
-                            r"WHERE identifier=:identifier AND kind=:kind"
-                        ).bindparams(
-                            identifier=identifier,
-                            kind=CoreResourceKinds.DOCUMENT.value,
+                        sqlalchemy.delete(self._relationships_table).where(
+                            self._relationships_table.c.object_identifier == identifier
                         )
                     )
-
+                    session.execute(
+                        sqlalchemy.delete(self._relationships_table).where(
+                            self._relationships_table.c.subject_identifier == identifier
+                        )
+                    )
+                    session.execute(
+                        sqlalchemy.delete(self._resources_table).where(
+                            self._resources_table.c.identifier == identifier,
+                            self._resources_table.c.kind
+                            == CoreResourceKinds.DOCUMENT.value,
+                        )
+                    )
             except Exception as e:
                 session.rollback()
                 raise DeleteFromDatabaseError(
@@ -1622,7 +1742,7 @@ class SQLResourceStore(ResourceStore):
         Issues at most three SQL queries: when ``identifier=None`` a seed query
         fetches all identifiers of ``kind`` via
         :meth:`getResourceIdentifiersOfKind`; then one recursive traversal query
-        via :func:`ado.metastore.sql.statements.graph_traversal_query`;
+        built as a SQLAlchemy Core recursive CTE;
         and, when ``identifiers_only=False``, one additional batched resource
         query via :meth:`getResources`. When ``identifier`` is a ``str`` or
         ``set[str]`` only the latter two queries (or one, if
@@ -1729,18 +1849,153 @@ class SQLResourceStore(ResourceStore):
         # ------------------------------------------------------------------
         # 2. Build and execute the single traversal query
         # ------------------------------------------------------------------
-        # The hierarchy maximum (3 hops across 4 levels) is enforced inside
-        # graph_traversal_query; passing max_hops=None lets it use the full cap.
-        query = ado.metastore.sql.statements.graph_traversal_query(
-            kind=kind,
-            relationship=relationship,
-            origin_identifiers=_identifiers_requested,
-            max_hops=max_hops,
-            dialect=self.engine.dialect.name,
+        # The hierarchy maximum is enforced by capping max_hops; passing
+        # max_hops=None lets the traversal run to the full depth cap.
+        from ado.metastore.sql.utils import _MAX_HIERARCHY_HOPS
+
+        effective_max_hops = (
+            _MAX_HIERARCHY_HOPS
+            if max_hops is None
+            else min(max_hops, _MAX_HIERARCHY_HOPS)
         )
 
-        with self.engine.connect() as connectable:
-            raw_rows = connectable.execute(query).fetchall()
+        resources_table = self._resources_table
+        relationships_table = self._relationships_table
+
+        # logical_edges_cte: join relationships with resources on both ends so we
+        # have (from_id, from_kind, to_id, to_kind) for each stored edge.
+        subject_resource_alias = resources_table.alias("le_parent")
+        object_resource_alias = resources_table.alias("le_child")
+        logical_edges_cte = (
+            sqlalchemy.select(
+                subject_resource_alias.c.identifier.label("from_identifier"),
+                subject_resource_alias.c.kind.label("from_kind"),
+                object_resource_alias.c.identifier.label("to_identifier"),
+                object_resource_alias.c.kind.label("to_kind"),
+            )
+            .select_from(relationships_table)
+            .join(
+                subject_resource_alias,
+                subject_resource_alias.c.identifier
+                == relationships_table.c.subject_identifier,
+            )
+            .join(
+                object_resource_alias,
+                object_resource_alias.c.identifier
+                == relationships_table.c.object_identifier,
+            )
+            .cte("logical_edges")
+        )
+
+        # Seed: one row per origin identifier of the requested kind.
+        # visited_path is seeded as ',id,' so membership checks are unambiguous.
+        is_sqlite = self.engine.dialect.name == "sqlite"
+
+        if is_sqlite:
+            seed_visited_path = (
+                sqlalchemy.literal(",")
+                + resources_table.c.identifier
+                + sqlalchemy.literal(",")
+            )
+        else:
+            seed_visited_path = sqlalchemy.func.CONCAT(
+                sqlalchemy.literal(","),
+                resources_table.c.identifier,
+                sqlalchemy.literal(","),
+            )
+
+        traversal_seed = sqlalchemy.select(
+            resources_table.c.identifier.label("origin_identifier"),
+            resources_table.c.kind.label("current_kind"),
+            resources_table.c.identifier.label("current_identifier"),
+            sqlalchemy.literal(0).label("depth"),
+            seed_visited_path.label("visited_path"),
+        ).where(
+            resources_table.c.kind == kind.value,
+            resources_table.c.identifier.in_(list(_identifiers_requested)),
+        )
+
+        traversal_cte = traversal_seed.cte("traversal", recursive=True)
+
+        # next_identifier/next_kind expressions depend on traversal direction.
+        if relationship == "child":
+            step_join_condition = (
+                logical_edges_cte.c.from_identifier
+                == traversal_cte.c.current_identifier
+            )
+            next_identifier = logical_edges_cte.c.to_identifier
+            next_kind = logical_edges_cte.c.to_kind
+        elif relationship == "parent":
+            step_join_condition = (
+                logical_edges_cte.c.to_identifier == traversal_cte.c.current_identifier
+            )
+            next_identifier = logical_edges_cte.c.from_identifier
+            next_kind = logical_edges_cte.c.from_kind
+        else:  # "both"
+            step_join_condition = sqlalchemy.or_(
+                logical_edges_cte.c.from_identifier
+                == traversal_cte.c.current_identifier,
+                logical_edges_cte.c.to_identifier == traversal_cte.c.current_identifier,
+            )
+            next_identifier = sqlalchemy.case(
+                (
+                    logical_edges_cte.c.from_identifier
+                    == traversal_cte.c.current_identifier,
+                    logical_edges_cte.c.to_identifier,
+                ),
+                else_=logical_edges_cte.c.from_identifier,
+            )
+            next_kind = sqlalchemy.case(
+                (
+                    logical_edges_cte.c.from_identifier
+                    == traversal_cte.c.current_identifier,
+                    logical_edges_cte.c.to_kind,
+                ),
+                else_=logical_edges_cte.c.from_kind,
+            )
+
+        # visited_path cycle guard: append next_identifier and a trailing comma.
+        if is_sqlite:
+            next_visited_path = (
+                traversal_cte.c.visited_path + next_identifier + sqlalchemy.literal(",")
+            )
+            cycle_guard_pattern = (
+                sqlalchemy.literal("%,") + next_identifier + sqlalchemy.literal(",%")
+            )
+        else:
+            next_visited_path = sqlalchemy.func.CONCAT(
+                traversal_cte.c.visited_path, next_identifier, sqlalchemy.literal(",")
+            )
+            cycle_guard_pattern = sqlalchemy.func.CONCAT(
+                sqlalchemy.literal("%,"), next_identifier, sqlalchemy.literal(",%")
+            )
+
+        recursive_step = (
+            sqlalchemy.select(
+                traversal_cte.c.origin_identifier,
+                next_kind.label("current_kind"),
+                next_identifier.label("current_identifier"),
+                (traversal_cte.c.depth + 1).label("depth"),
+                next_visited_path.label("visited_path"),
+            )
+            .select_from(traversal_cte)
+            .join(logical_edges_cte, step_join_condition)
+            .where(
+                traversal_cte.c.depth < effective_max_hops,
+                traversal_cte.c.visited_path.notlike(cycle_guard_pattern),
+            )
+        )
+
+        traversal_cte = traversal_cte.union_all(recursive_step)
+
+        query = sqlalchemy.select(
+            traversal_cte.c.origin_identifier,
+            traversal_cte.c.current_identifier.label("identifier"),
+            traversal_cte.c.current_kind.label("kind"),
+        ).where(traversal_cte.c.depth > 0)
+
+        with self.engine.connect() as connection:
+            raw_rows = connection.execute(query).fetchall()
 
         # ------------------------------------------------------------------
         # 3. Build the mapping
@@ -1751,24 +2006,24 @@ class SQLResourceStore(ResourceStore):
 
         for row in raw_rows:
             origin_identifier = row.origin_identifier
-            identifier_to = row.identifier
-            identifier_to_kind = row.kind
+            related_identifier = row.identifier
+            related_kind = row.kind
 
             # Don't include the start identifiers in discovered results
             # This should never happen, if it does, we have a bug.
-            if identifier_to in _identifiers_requested:
+            if related_identifier in _identifiers_requested:
                 continue
 
-            resource_kind = CoreResourceKinds(identifier_to_kind)
+            resource_kind = CoreResourceKinds(related_kind)
 
             # Apply result_kinds filter if specified
             if result_kinds is not None and resource_kind not in result_kinds:
                 continue
 
-            identifiers_to_fetch.add(identifier_to)
+            identifiers_to_fetch.add(related_identifier)
             related_by_origin.setdefault(origin_identifier, {}).setdefault(
                 resource_kind, set()
-            ).add(identifier_to)
+            ).add(related_identifier)
 
         # ------------------------------------------------------------------
         # 4. Shape the result
@@ -1867,44 +2122,73 @@ class SQLResourceStore(ResourceStore):
         # returned even when it has no operations (LEFT JOIN).
         # The experiment list lives at $.config.experiments.experiments inside
         # the space's own resources.data column.
-        # MySQL uses JSON_LENGTH(); SQLite uses json_array_length().
+        # Both MySQL JSON_LENGTH and SQLite json_array_length are called via
+        # func so SQLAlchemy emits the right name per dialect.
         # ------------------------------------------------------------------
         is_sqlite = self.engine.dialect.name == "sqlite"
-        array_length_fn = "json_array_length" if is_sqlite else "JSON_LENGTH"
+        space_alias = self._resources_table.alias("space_table")
+        relationship_alias = self._relationships_table.alias("relationship_table")
+        operation_alias = self._resources_table.alias("operation_table")
 
-        query_text = f"""
-            SELECT
-                sp.identifier AS space_id,
-                COALESCE({array_length_fn}(
-                    JSON_EXTRACT(sp.data, '$.config.experiments.experiments')
-                ), 0) AS num_experiments,
-                COUNT(op.identifier) AS total_operations,
-                COUNT(
-                    CASE
-                        WHEN JSON_EXTRACT(op.data, '$.operationType') IN (:explore_type, :explore_type_legacy)
-                        THEN 1
-                    END
-                ) AS explore_operations
-            FROM resources sp
-            LEFT JOIN resource_relationships rr
-                ON rr.subject_identifier = sp.identifier
-            LEFT JOIN resources op
-                ON op.identifier = rr.object_identifier
-                AND op.kind = :op_kind
-            WHERE sp.identifier IN :space_ids
-            GROUP BY sp.identifier, sp.data
-        """  # noqa: S608 - identifier is an internal column name, not untrusted input
+        json_array_length_func = (
+            sqlalchemy.func.json_array_length
+            if is_sqlite
+            else sqlalchemy.func.JSON_LENGTH  # noqa: E501
+        )
+        num_experiments_col = sqlalchemy.func.coalesce(
+            json_array_length_func(
+                sqlalchemy.func.JSON_EXTRACT(
+                    space_alias.c.data,
+                    sqlalchemy.literal("$.config.experiments.experiments"),
+                )
+            ),
+            0,
+        )
+
+        explore_type_literal = sqlalchemy.literal(DiscoveryOperationEnum.EXPLORE.value)
+        explore_legacy_literal = sqlalchemy.literal("search")
+        operation_type_extract = sqlalchemy.func.JSON_EXTRACT(
+            operation_alias.c.data, sqlalchemy.literal("$.operationType")
+        )
+        is_explore_operation_case = sqlalchemy.case(
+            (
+                operation_type_extract.in_(
+                    [explore_type_literal, explore_legacy_literal]
+                ),
+                1,
+            ),
+        )
+
+        query = (
+            sqlalchemy.select(
+                space_alias.c.identifier.label("space_id"),
+                num_experiments_col.label("num_experiments"),
+                sqlalchemy.func.count(operation_alias.c.identifier).label(
+                    "total_operations"
+                ),
+                sqlalchemy.func.count(is_explore_operation_case).label(
+                    "explore_operations"
+                ),
+            )
+            .select_from(space_alias)
+            .outerjoin(
+                relationship_alias,
+                relationship_alias.c.subject_identifier == space_alias.c.identifier,
+            )
+            .outerjoin(
+                operation_alias,
+                sqlalchemy.and_(
+                    operation_alias.c.identifier
+                    == relationship_alias.c.object_identifier,
+                    operation_alias.c.kind == CoreResourceKinds.OPERATION.value,
+                ),
+            )
+            .where(space_alias.c.identifier.in_(list(_space_ids)))
+            .group_by(space_alias.c.identifier, space_alias.c.data)
+        )
 
         try:
             with self.engine.begin() as conn:
-                query = sqlalchemy.text(query_text).bindparams(
-                    sqlalchemy.bindparam("space_ids", expanding=True),
-                    space_ids=list(_space_ids),
-                    explore_type=DiscoveryOperationEnum.EXPLORE.value,
-                    explore_type_legacy="search",
-                    op_kind=CoreResourceKinds.OPERATION.value,
-                )
-
                 rows = {row.space_id: row for row in conn.execute(query)}
 
         except Exception as error:
@@ -1958,29 +2242,59 @@ class SQLResourceStore(ResourceStore):
         # MySQL uses JSON_LENGTH() which counts object members correctly.
         # SQLite's json_array_length() only counts array elements and returns 0
         # for objects, so we use correlated subqueries with json_each() instead.
+        # The dialect-specific JSON column expressions are wrapped with
+        # literal_column() so they are emitted verbatim; the table reference
+        # comes from self._resources_table to avoid hard-coding the table name.
         is_sqlite = self.engine.dialect.name == "sqlite"
+        resources_table = self._resources_table
 
         if is_sqlite:
-            query_text = """
-                SELECT
-                    identifier,
-                    (SELECT count(*)
-                     FROM json_each(json_extract(data, '$.config.tabularData'))
-                    ) AS num_tables,
-                    (SELECT count(*)
-                     FROM json_each(json_extract(data, '$.config.locationData'))
-                    ) AS num_locations,
-                    (SELECT count(*)
-                     FROM json_each(json_extract(data, '$.config.data'))
-                    ) AS num_key_values,
-                    COALESCE(
-                        LENGTH(JSON_EXTRACT(data, '$.config'))
-                        - LENGTH(JSON_EXTRACT(data, '$.config.metadata')),
-                        0
-                    ) AS data_bytes
-                FROM resources
-                WHERE identifier IN :ids
-            """
+
+            def _sqlite_json_count(path: str) -> sqlalchemy.ColumnElement:  # type: ignore[type-arg]
+                """Count entries in a JSON object/array at the given path via json_each.
+
+                Args:
+                    path: A JSON path expression (e.g. ``$.config.tabularData``).
+
+                Returns:
+                    A correlated scalar subquery that counts rows returned by
+                    ``json_each`` for the JSON value at ``path``.
+                """
+                json_each_alias = sqlalchemy.func.json_each(
+                    sqlalchemy.func.json_extract(
+                        resources_table.c.data, sqlalchemy.literal(path)
+                    )
+                ).alias("json_each_entries")
+                return (
+                    sqlalchemy.select(sqlalchemy.func.count())
+                    .select_from(json_each_alias)
+                    .correlate(resources_table)
+                    .scalar_subquery()
+                )
+
+            num_tables_col = _sqlite_json_count("$.config.tabularData").label(
+                "num_tables"
+            )
+            num_locations_col = _sqlite_json_count("$.config.locationData").label(
+                "num_locations"
+            )
+            num_key_values_col = _sqlite_json_count("$.config.data").label(
+                "num_key_values"
+            )
+            data_bytes_col = sqlalchemy.func.coalesce(
+                sqlalchemy.func.LENGTH(
+                    sqlalchemy.func.JSON_EXTRACT(
+                        resources_table.c.data, sqlalchemy.literal("$.config")
+                    )
+                )
+                - sqlalchemy.func.LENGTH(
+                    sqlalchemy.func.JSON_EXTRACT(
+                        resources_table.c.data,
+                        sqlalchemy.literal("$.config.metadata"),
+                    )
+                ),
+                0,
+            ).label("data_bytes")
         else:
             # On MySQL, JSON_LENGTH of a JSON null scalar returns 1 (scalar
             # length is 1 per the spec).  We must guard with JSON_TYPE to
@@ -1988,36 +2302,63 @@ class SQLResourceStore(ResourceStore):
             # For byte count, JSON_STORAGE_SIZE returns the actual binary
             # storage size of the JSON value, which is more accurate than
             # LENGTH(JSON_EXTRACT(...)) (text representation length).
-            query_text = """
-                SELECT
-                    identifier,
-                    IF(JSON_TYPE(data->'$.config.tabularData') = 'NULL',
-                       0, COALESCE(JSON_LENGTH(
-                           data->'$.config.tabularData'
-                       ), 0)) AS num_tables,
-                    IF(JSON_TYPE(data->'$.config.locationData') = 'NULL',
-                       0, COALESCE(JSON_LENGTH(
-                           data->'$.config.locationData'
-                       ), 0)) AS num_locations,
-                    IF(JSON_TYPE(data->'$.config.data') = 'NULL',
-                       0, COALESCE(JSON_LENGTH(
-                           data->'$.config.data'
-                       ), 0)) AS num_key_values,
-                    COALESCE(
-                        JSON_STORAGE_SIZE(JSON_EXTRACT(data, '$.config'))
-                        - JSON_STORAGE_SIZE(JSON_EXTRACT(data, '$.config.metadata')),
-                        0
-                    ) AS data_bytes
-                FROM resources
-                WHERE identifier IN :ids
-            """
+            def _mysql_json_count(path: str) -> sqlalchemy.ColumnElement:  # type: ignore[type-arg]
+                """Return JSON_LENGTH of the value at path, or 0 if absent or JSON null.
+
+                Args:
+                    path: A JSON path expression (e.g. ``$.config.tabularData``).
+
+                Returns:
+                    An expression that evaluates to 0 when the field is absent
+                    (``->>`` returns SQL NULL, handled by COALESCE) or is a
+                    JSON null literal (guarded by JSON_TYPE check), otherwise
+                    returns JSON_LENGTH of the value.
+                """
+                extracted_value = resources_table.c.data.op("->>")(
+                    sqlalchemy.literal(path)
+                )
+                return sqlalchemy.func.IF(
+                    sqlalchemy.func.JSON_TYPE(extracted_value) == "NULL",
+                    0,
+                    sqlalchemy.func.coalesce(
+                        sqlalchemy.func.JSON_LENGTH(extracted_value), 0
+                    ),
+                )
+
+            num_tables_col = _mysql_json_count("$.config.tabularData").label(
+                "num_tables"
+            )
+            num_locations_col = _mysql_json_count("$.config.locationData").label(
+                "num_locations"
+            )
+            num_key_values_col = _mysql_json_count("$.config.data").label(
+                "num_key_values"
+            )
+            data_bytes_col = sqlalchemy.func.coalesce(
+                sqlalchemy.func.JSON_STORAGE_SIZE(
+                    sqlalchemy.func.JSON_EXTRACT(
+                        resources_table.c.data, sqlalchemy.literal("$.config")
+                    )
+                )
+                - sqlalchemy.func.JSON_STORAGE_SIZE(
+                    sqlalchemy.func.JSON_EXTRACT(
+                        resources_table.c.data,
+                        sqlalchemy.literal("$.config.metadata"),
+                    )
+                ),
+                0,
+            ).label("data_bytes")
+
+        query = sqlalchemy.select(
+            resources_table.c.identifier,
+            num_tables_col,
+            num_locations_col,
+            num_key_values_col,
+            data_bytes_col,
+        ).where(resources_table.c.identifier.in_(list(datacontainer_ids)))
 
         try:
             with self.engine.begin() as conn:
-                query = sqlalchemy.text(query_text).bindparams(
-                    sqlalchemy.bindparam("ids", expanding=True),
-                    ids=list(datacontainer_ids),
-                )
                 rows_by_id = {row.identifier: row for row in conn.execute(query)}
         except Exception as error:
             msg = f"Unable to get statistics for datacontainer(s) {datacontainer_ids}"

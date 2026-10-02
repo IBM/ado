@@ -37,7 +37,7 @@ from ado.metastore.base import (
     NoRelatedResourcesError,
     ResourceDoesNotExistError,
 )
-from ado.metastore.sql.statements import _MAX_HIERARCHY_HOPS
+from ado.metastore.sql.utils import _MAX_HIERARCHY_HOPS
 
 if typing.TYPE_CHECKING:
     from ado.cli.core.config import AdoConfiguration

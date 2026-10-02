@@ -313,6 +313,24 @@ class ResourceStore(abc.ABC):
         """
 
     @abc.abstractmethod
+    def update_resources(self, resources: list[ADOResource]) -> None:
+        """Replaces stored data for each resource in resources atomically.
+
+        All resources are validated to exist before any write is performed.
+        If every resource passes validation the writes are committed in a
+        single transaction — either all succeed or none do.
+
+        Args:
+            resources: Resources to update. Each resource must already be
+                stored; its current stored representation is replaced.
+
+        Raises:
+            ResourcesDoNotExistError: If any resource in the list is not
+                already stored. No resource is modified in this case.
+
+        """
+
+    @abc.abstractmethod
     def deleteResource(self, identifier: str) -> None:
 
         pass

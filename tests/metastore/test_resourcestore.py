@@ -2192,3 +2192,124 @@ def test_has_resources_with_identifiers_empty_input(
     """Empty list/set -> returns {} with no exception."""
     assert sql_store.has_resources_with_identifiers([]) == {}
     assert sql_store.has_resources_with_identifiers(set()) == {}
+
+
+###############################################################################
+# update_resources
+###############################################################################
+
+
+def test_update_resources_updates_all(
+    sql_store: SQLStore,
+    random_space_resource_from_db: Callable[[str | None], DiscoverySpaceResource],
+) -> None:
+    """update_resources applies changes to all supplied resources and marks each UPDATED."""
+
+    space1 = random_space_resource_from_db()
+    space2 = random_space_resource_from_db()
+
+    space1.metadata = {"updated": "yes", "index": 1}
+    space2.metadata = {"updated": "yes", "index": 2}
+
+    sql_store.update_resources([space1, space2])
+
+    loaded1 = sql_store.getResource(
+        identifier=space1.identifier, kind=CoreResourceKinds.DISCOVERYSPACE
+    )
+    loaded2 = sql_store.getResource(
+        identifier=space2.identifier, kind=CoreResourceKinds.DISCOVERYSPACE
+    )
+
+    assert loaded1.metadata == {"updated": "yes", "index": 1}
+    assert loaded2.metadata == {"updated": "yes", "index": 2}
+    assert loaded1.status[-1].event == ADOResourceEventEnum.UPDATED
+    assert loaded2.status[-1].event == ADOResourceEventEnum.UPDATED
+
+
+def test_update_resources_is_atomic(
+    sql_store: SQLStore,
+    random_space_resource_from_db: Callable[[str | None], DiscoverySpaceResource],
+) -> None:
+    """update_resources rolls back all changes when the SQL statement fails.
+
+    The entire batch is sent as a single SQL statement inside one
+    ``engine.begin()`` transaction.  If that statement raises, the context
+    manager rolls back and neither row should be visible in the database.
+    """
+    import unittest.mock
+
+    import sqlalchemy.exc
+
+    space1 = random_space_resource_from_db()
+    space2 = random_space_resource_from_db()
+
+    original_status_len1 = len(space1.status)
+    original_status_len2 = len(space2.status)
+
+    space1.metadata = {"should_not": "land1"}
+    space2.metadata = {"should_not": "land2"}
+
+    # Patch connectable.execute inside engine.begin() to raise, simulating a
+    # mid-transaction DB failure so the context manager triggers a rollback.
+    real_begin = sql_store.engine.begin
+
+    class _FailingConn:
+        def __enter__(self_inner) -> "_FailingConn":  # noqa: N805, ANN204, PYI034
+            self_inner._conn = real_begin().__enter__()
+            return self_inner
+
+        def __exit__(self_inner, *args: object) -> bool | None:  # noqa: N805
+            # Always roll back by propagating the exception
+            return self_inner._conn.__exit__(*args)
+
+        def execute(self_inner, *args: object, **kwargs: object) -> None:  # noqa: N805
+            raise sqlalchemy.exc.OperationalError(
+                "simulated DB failure", params=None, orig=None
+            )
+
+    with (
+        unittest.mock.patch.object(sql_store.engine, "begin", _FailingConn),
+        pytest.raises(sqlalchemy.exc.OperationalError),
+    ):
+        sql_store.update_resources([space1, space2])
+
+    # Neither resource should have been updated in the store
+    loaded1 = sql_store.getResource(
+        identifier=space1.identifier, kind=CoreResourceKinds.DISCOVERYSPACE
+    )
+    loaded2 = sql_store.getResource(
+        identifier=space2.identifier, kind=CoreResourceKinds.DISCOVERYSPACE
+    )
+
+    assert loaded1.metadata != {"should_not": "land1"}
+    assert loaded2.metadata != {"should_not": "land2"}
+    # Status list must not have grown (no UPDATED event was committed)
+    assert len(loaded1.status) == original_status_len1
+    assert len(loaded2.status) == original_status_len2
+
+
+def test_update_resources_unknown_id_raises_and_does_not_modify(
+    sql_store: SQLStore,
+    random_space_resource_from_db: Callable[[str | None], DiscoverySpaceResource],
+) -> None:
+    """update_resources raises ResourcesDoNotExistError for an unknown ID and
+    leaves the existing resource unmodified (all-or-nothing)."""
+    space = random_space_resource_from_db()
+    original_metadata = dict(space.metadata) if space.metadata else {}
+
+    # Build a ghost resource that was never persisted
+    ghost = DiscoverySpaceResource(
+        identifier="ghost-id-that-does-not-exist",
+        config=space.config,
+    )
+
+    space.metadata = {"should_not": "appear"}
+
+    with pytest.raises(ResourcesDoNotExistError):
+        sql_store.update_resources([space, ghost])
+
+    # The persisted space must not have changed
+    loaded = sql_store.getResource(
+        identifier=space.identifier, kind=CoreResourceKinds.DISCOVERYSPACE
+    )
+    assert loaded.metadata == original_metadata

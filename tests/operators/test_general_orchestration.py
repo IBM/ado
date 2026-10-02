@@ -7,7 +7,23 @@ import pytest
 
 import ado.modules.operators.randomwalk  # noqa: F401 — loads operator plugins
 from ado.modules.operators._general_orchestration import _operator_callable_for_harness
-from ado.modules.operators.collections import characterize
+from ado.modules.operators._orchestrate_core import operator_provenance_mapping
+from ado.modules.operators.collections import characterize, explore
+
+
+def test_operator_provenance_mapping_uses_package_provenance() -> None:
+    """Registered operators record their package under the operator identifier."""
+    metadata = explore.operators["random_walk"]
+    mapping = operator_provenance_mapping(metadata)
+
+    assert set(mapping) == {metadata.operatorIdentifier}
+    assert mapping[metadata.operatorIdentifier].distributionName == "ado-core"
+
+
+def test_operator_provenance_mapping_empty_when_unset() -> None:
+    """Operators with no package provenance contribute an empty mapping."""
+    metadata = explore.operators["random_walk"].model_copy(update={"provenance": None})
+    assert operator_provenance_mapping(metadata) == {}
 
 
 @pytest.mark.parametrize(

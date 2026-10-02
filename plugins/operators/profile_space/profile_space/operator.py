@@ -2,23 +2,25 @@
 # SPDX-License-Identifier: MIT
 
 import pandas as pd
-import pydantic
 
 from ado.core.discoveryspace.space import DiscoverySpace
-from ado.core.operation.config import FunctionOperationInfo
+from ado.core.operation.config import FunctionOperationInfo, GenericOperatorParameters
 from ado.core.operation.operation import OperationOutput
 from ado.modules.operators.collections import characterize_operation
 
 
-class ProfileParameters(pydantic.BaseModel):
+class ProfileParameters(GenericOperatorParameters):
     """Parameters for the profile operator (no configurable options)."""
+
+
+_EMPTY_PROFILE_PARAMETERS = ProfileParameters()
 
 
 # See https://ibm.github.io/ado/latest/developer-guide/creating-operators/#ado-operator-functions
 # for documentation on the decorator and its parameters
 @characterize_operation(
     name="profile",
-    version="2.0.4",
+    version="2.1.0",
     configuration_model=ProfileParameters,
     example_configuration=ProfileParameters(),
     description="Returns a data_profiling ProfileReport for the space",
@@ -27,7 +29,8 @@ class ProfileParameters(pydantic.BaseModel):
 def profile(
     discoverySpace: DiscoverySpace,
     operationInfo: FunctionOperationInfo | None = None,
-    **kwargs: dict,
+    *,
+    parameters: ProfileParameters = _EMPTY_PROFILE_PARAMETERS,
 ) -> OperationOutput:
     import data_profiling
 

@@ -10,10 +10,13 @@ import ray.util.queue
 
 from ado.core import OperationResource
 from ado.core.discoveryspace.space import DiscoverySpace
+from ado.core.metadata import PackageProvenance
 from ado.core.operation.config import (
     FunctionOperationInfo,
+    GenericOperatorParameters,
     OperatorMetadata,
 )
+from ado.core.operation.inputs import OperatorInputType
 from ado.core.operation.operation import OperationOutput
 from ado.modules.actuators.measurement_queue import MeasurementQueue
 from ado.modules.operators import _cleanup
@@ -33,6 +36,7 @@ from ado.modules.operators.console_output import (
 )
 from ado.modules.operators.discovery_space_manager import DiscoverySpaceManager
 from ado.modules.operators.provenance import explore_operation_provenance
+from ado.schema.reference import ExperimentReference
 
 moduleLog = logging.getLogger("explore_orchestration")
 
@@ -165,10 +169,89 @@ def run_explore_operation_core_closure(
     return _run_explore_operation_core
 
 
+def _check_and_extract_discovery_space(
+    inputs: dict[str, OperatorInputType],
+) -> DiscoverySpace:
+    """Check inputs contains one DiscoverySpace and returns it. Otherwise, raise an error
+
+    Args:
+        inputs: Mapping of parameter name to rich operator input.
+
+    Returns:
+        The single DiscoverySpace instance in inputs
+
+    Raises:
+        ValueError: If *inputs* does not contain exactly one DiscoverySpace
+    """
+    spaces = [value for value in inputs.values() if isinstance(value, DiscoverySpace)]
+    if len(spaces) != 1:
+        raise ValueError(
+            "Explore operations require exactly one discovery space input; "
+            f"found {len(spaces)}."
+        )
+    return spaces[0]
+
+
+def experiment_and_actuator_provenance_from_spaces(
+    spaces: list[DiscoverySpace],
+) -> tuple[list[ExperimentReference], dict[str, PackageProvenance]]:
+    """Resolve catalog experiments and actuator packages for discovery-space inputs.
+
+    Experiments that cannot be resolved against the actuator catalog are skipped.
+    Experiment references are deduplicated by equality. Actuators are
+    deduplicated by identifier.
+
+    Args:
+        spaces: Discovery spaces whose measurement spaces should be recorded.
+
+    Returns:
+        Resolved experiment references and actuator package provenance. Both
+        collections are empty when *spaces* is empty.
+    """
+    from ado.modules.actuators.errors import (
+        DeprecatedExperimentError,
+        MissingActuatorConfigurationForCatalogError,
+        UnexpectedCatalogRetrievalError,
+        UnknownActuatorError,
+        UnknownExperimentError,
+    )
+    from ado.modules.actuators.registry import ActuatorRegistry
+
+    experiments: list[ExperimentReference] = []
+    actuators: dict[str, PackageProvenance] = {}
+    registry = ActuatorRegistry.globalRegistry()
+    for space in spaces:
+        for space_experiment in space.measurementSpace.experiments:
+            try:
+                catalog_experiment = registry.experimentForReference(
+                    space_experiment.reference, resolve=True
+                )
+            except (
+                UnknownExperimentError,
+                UnknownActuatorError,
+                DeprecatedExperimentError,
+                UnexpectedCatalogRetrievalError,
+                MissingActuatorConfigurationForCatalogError,
+            ):
+                continue
+
+            reference = catalog_experiment.reference
+            if reference not in experiments:
+                experiments.append(reference)
+
+            actuator_id = catalog_experiment.actuatorIdentifier
+            if actuator_id not in actuators:
+                actuator_provenance = registry.provenance_for_actuator(actuator_id)
+                if actuator_provenance is not None:
+                    actuators[actuator_id] = actuator_provenance
+
+    return experiments, actuators
+
+
 def orchestrate_explore_operation(
     operator_metadata: OperatorMetadata,
-    discovery_space: DiscoverySpace,
-    parameters: dict,
+    inputs: dict[str, OperatorInputType],
+    parameters: GenericOperatorParameters,
     operation_info: FunctionOperationInfo,
 ) -> OperationOutput:
     """Orchestrates an explore operation.
@@ -187,8 +270,9 @@ def orchestrate_explore_operation(
     Params:
         operator_metadata: Registered metadata for the operator, carrying the class,
             configuration model, name, and type.
-        discovery_space: The discovery space to operate on
-        parameters: Dictionary of parameters for the operation
+        inputs: A dict with exactly one key:value pair whose value is
+            a DiscoverySpace instance.
+        parameters: Configuration model instance  for the operation
         operation_info: Information about the operation including metadata, actuator
             configuration identifiers, and namespace
 
@@ -196,8 +280,9 @@ def orchestrate_explore_operation(
         OperationOutput containing the results and status of the operation
 
     Raises:
-        ValueError: If the MeasurementSpace is not consistent with EntitySpace,
-            actuator configurations are invalid, or no operator class is registered
+        ValueError: If *inputs* does not contain exactly one discovery space, the
+            MeasurementSpace is not consistent with EntitySpace, actuator
+            configurations are invalid, or no operator class is registered
         pydantic.ValidationError: If the operation parameters are not valid
         OperationException: If there is an error during the operation
         ray.exceptions.ActorDiedError: If there was an error initializing the actuators
@@ -207,6 +292,8 @@ def orchestrate_explore_operation(
     import uuid
 
     import ado.modules.operators.setup
+
+    discovery_space = _check_and_extract_discovery_space(inputs)
 
     if not operation_info.ray_namespace:
         operation_info.ray_namespace = (
@@ -331,10 +418,11 @@ def orchestrate_explore_operation(
     try:
         operation_output = _run_operation_harness(
             run_closure=explore_run_closure,
-            discovery_space=discovery_space,
+            inputs=inputs,
             operator_metadata=operator_metadata,
             operation_parameters=parameters,
             operation_info=operation_info,
+            metastore=discovery_space.metadataStore,
             provenance=provenance,
             operation_identifier=identifier,
             finalize_callback=finalize_callback_closure(operator),

@@ -9,6 +9,7 @@ import pydantic
 import ray
 from pydantic import ConfigDict
 
+from ado.core.operation.config import GenericOperatorParameters
 from ado.modules.module import (
     ModuleConf,
     ModuleTypeEnum,
@@ -345,7 +346,7 @@ class OrchRunConfig(pydantic.BaseModel):
         )
 
 
-class RayTuneConfiguration(pydantic.BaseModel):
+class RayTuneConfiguration(GenericOperatorParameters):
     """Model for options related to using ray tune"""
 
     tuneConfig: Annotated[

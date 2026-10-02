@@ -17,7 +17,7 @@ from ado.core.operation.config import (
     OperatorReference,
 )
 from ado.core.operation.resource import OperationResource
-from ado.core.resources import CoreResourceKinds
+from ado.core.resources import ADOResourceReference, CoreResourceKinds
 from ado.metastore.project import ProjectContext
 from ado.metastore.sqlstore import SQLStore
 from ado.utilities.pydantic import ignore_plugin_validation_context
@@ -119,7 +119,10 @@ def test_ml_multi_cloud_operation_valid(
     )
 
     # Overrides
-    operation_configuration.spaces = [ml_multi_cloud_space.uri]
+    operation_configuration.inputs["discoverySpace"] = ADOResourceReference(
+        identifier=ml_multi_cloud_space.uri,
+        kind=CoreResourceKinds.DISCOVERYSPACE,
+    )
     operation_configuration.actuatorConfigurationIdentifiers = [
         ml_multi_cloud_correct_actuatorconfiguration.identifier
     ]
@@ -144,7 +147,10 @@ def test_ml_multi_cloud_operation_invalid(
     )
 
     # Overrides
-    operation_configuration.spaces = [ml_multi_cloud_space.uri]
+    operation_configuration.inputs["discoverySpace"] = ADOResourceReference(
+        identifier=ml_multi_cloud_space.uri,
+        kind=CoreResourceKinds.DISCOVERYSPACE,
+    )
     operation_configuration.actuatorConfigurationIdentifiers = [
         ml_multi_cloud_invalid_actuatorconfiguration.identifier
     ]

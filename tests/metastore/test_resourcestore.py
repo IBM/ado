@@ -30,6 +30,7 @@ from ado.core.operation.config import (
 from ado.core.operation.resource import OperationProvenanceInfo, OperationResource
 from ado.core.resources import (
     ADOResourceEventEnum,
+    ADOResourceReference,
     CoreResourceKinds,
 )
 from ado.metastore.base import ResourcesDoNotExistError
@@ -350,11 +351,12 @@ def test_create_operation_and_add_output(
 
     space_resource = random_space_resource_from_db()
     space_identifier = space_resource.identifier
-    operation_parameters = (
-        random_walk_multicloud_operation_configuration.operation.parameters
+    random_walk_multicloud_operation_configuration.inputs["discoverySpace"] = (
+        ADOResourceReference(
+            identifier=space_identifier,
+            kind=CoreResourceKinds.DISCOVERYSPACE,
+        )
     )
-    if hasattr(operation_parameters, "model_dump"):
-        operation_parameters = operation_parameters.model_dump()
 
     provenance = OperationProvenanceInfo(
         operators={
@@ -364,8 +366,19 @@ def test_create_operation_and_add_output(
             )
         }
     )
+    operation_parameters = (
+        random_walk_multicloud_operation_configuration.operation.parameters
+    )
+    if hasattr(operation_parameters, "model_dump"):
+        operation_parameters = operation_parameters.model_dump()
+
     op_resource = ado.modules.operators.base.create_operation_and_add_to_metastore(
-        space_identifier=space_identifier,
+        inputs={
+            "discoverySpace": ADOResourceReference(
+                identifier=space_identifier,
+                kind=CoreResourceKinds.DISCOVERYSPACE,
+            )
+        },
         operator_module=random_walk_multicloud_operation_configuration.operation.module,
         operation_parameters=operation_parameters,
         operation_info=FunctionOperationInfo(
@@ -772,7 +785,10 @@ def resource_hierarchy(
     sql_store.addResourceWithRelationships(ds, relatedIdentifiers=[ss.identifier])
 
     # 3. operation (child of discoveryspace)
-    operation_resource.config.spaces = [ds.identifier]
+    operation_resource.config.inputs["discoverySpace"] = ADOResourceReference(
+        identifier=ds.identifier,
+        kind=CoreResourceKinds.DISCOVERYSPACE,
+    )
     sql_store.addResourceWithRelationships(
         operation_resource, relatedIdentifiers=[ds.identifier]
     )
@@ -1229,7 +1245,12 @@ def two_op_hierarchy(
     sql_store.addResourceWithRelationships(ds, relatedIdentifiers=[ss.identifier])
 
     op1_config = DiscoveryOperationResourceConfiguration(
-        spaces=[ds.identifier],
+        inputs={
+            "discoverySpace": ADOResourceReference(
+                kind=CoreResourceKinds.DISCOVERYSPACE,
+                identifier=ds.identifier,
+            )
+        },
         operation=DiscoveryOperationConfiguration(),
     )
     op1 = OperationResource(
@@ -1240,7 +1261,12 @@ def two_op_hierarchy(
     sql_store.addResourceWithRelationships(op1, relatedIdentifiers=[ds.identifier])
 
     op2_config = DiscoveryOperationResourceConfiguration(
-        spaces=[ds.identifier],
+        inputs={
+            "discoverySpace": ADOResourceReference(
+                kind=CoreResourceKinds.DISCOVERYSPACE,
+                identifier=ds.identifier,
+            )
+        },
         operation=DiscoveryOperationConfiguration(),
     )
     op2 = OperationResource(
@@ -1774,7 +1800,10 @@ def resource_hierarchy_with_child_operation(
     space1 = random_space_resource_from_file(sample_store_id=ss1.identifier)
     sql_store.addResourceWithRelationships(space1, relatedIdentifiers=[ss1.identifier])
 
-    operation_resource.config.spaces = [space1.identifier]
+    operation_resource.config.inputs["discoverySpace"] = ADOResourceReference(
+        identifier=space1.identifier,
+        kind=CoreResourceKinds.DISCOVERYSPACE,
+    )
     sql_store.addResourceWithRelationships(
         operation_resource, relatedIdentifiers=[space1.identifier]
     )
@@ -1790,7 +1819,12 @@ def resource_hierarchy_with_child_operation(
     )
 
     child_op_config = DiscoveryOperationResourceConfiguration(
-        spaces=[space2.identifier],
+        inputs={
+            "discoverySpace": ADOResourceReference(
+                kind=CoreResourceKinds.DISCOVERYSPACE,
+                identifier=space2.identifier,
+            )
+        },
         operation=DiscoveryOperationConfiguration(),
     )
     child_op = OperationResource(
@@ -1949,7 +1983,12 @@ def resource_hierarchy_with_document(
     sql_store.addResourceWithRelationships(space, relatedIdentifiers=[ss.identifier])
 
     op_a_config = DiscoveryOperationResourceConfiguration(
-        spaces=[space.identifier],
+        inputs={
+            "discoverySpace": ADOResourceReference(
+                kind=CoreResourceKinds.DISCOVERYSPACE,
+                identifier=space.identifier,
+            )
+        },
         operation=DiscoveryOperationConfiguration(),
     )
     op_a = OperationResource(
@@ -1970,7 +2009,12 @@ def resource_hierarchy_with_document(
     )
 
     op_b_config = DiscoveryOperationResourceConfiguration(
-        spaces=[space.identifier],
+        inputs={
+            "discoverySpace": ADOResourceReference(
+                kind=CoreResourceKinds.DISCOVERYSPACE,
+                identifier=space.identifier,
+            )
+        },
         operation=DiscoveryOperationConfiguration(),
     )
     op_b = OperationResource(

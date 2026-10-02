@@ -267,8 +267,9 @@ def fit_tabular_predictor(
     train_idx = int(len(df) * train_fraction)
     df_train = df.iloc[:train_idx][cols_to_use]
     df_test = df.iloc[train_idx:][cols_to_use]
-    df_test = filter_valid_with_hard_logic(df_test)
-    fit_params = {"presets": [preset_quality], "excluded_model_types": "GBM"}
+    if not df_test.empty:
+        df_test = filter_valid_with_hard_logic(df_test)
+    fit_params = {"presets": [preset_quality], "excluded_model_types": ["GBM", "XGB"]}
     train_data = TabularDataset(df_train)
     train_data.head()
     start = time.time()

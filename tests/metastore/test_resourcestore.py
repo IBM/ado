@@ -32,6 +32,7 @@ from ado.core.resources import (
     ADOResourceEventEnum,
     CoreResourceKinds,
 )
+from ado.metastore.base import ResourcesDoNotExistError
 from ado.metastore.project import ProjectContext
 from ado.metastore.sqlstore import SQLStore
 from tests.conftest import requires_sqlite_3_38
@@ -2090,3 +2091,104 @@ def test_table_reflection_is_cached_across_instances(
     assert store_a._resources_table is store_b._resources_table
     assert store_a._relationships_table is store_b._relationships_table
     assert str(store_a.engine.url) in _reflected_metadata_cache
+
+
+# ---------------------------------------------------------------------------
+# has_resources_with_identifiers
+# ---------------------------------------------------------------------------
+
+
+@requires_sqlite_3_38
+def test_has_resources_with_identifiers_all_present(
+    sql_store: SQLStore,
+    random_space_resource_from_file: Callable[[str | None], DiscoverySpaceResource],
+    create_resources: Callable[[list[ado.core.resources.ADOResource], SQLStore], None],
+) -> None:
+    """All identifiers exist -> all True, no exception."""
+    space1 = random_space_resource_from_file()
+    space2 = random_space_resource_from_file()
+    create_resources([space1, space2])
+
+    result = sql_store.has_resources_with_identifiers(
+        [space1.identifier, space2.identifier]
+    )
+    assert result == {space1.identifier: True, space2.identifier: True}
+
+
+@requires_sqlite_3_38
+def test_has_resources_with_identifiers_some_missing_no_raise(
+    sql_store: SQLStore,
+    random_space_resource_from_file: Callable[[str | None], DiscoverySpaceResource],
+    create_resources: Callable[[list[ado.core.resources.ADOResource], SQLStore], None],
+) -> None:
+    """Some identifiers absent, raise_if_missing=False -> returns mixed dict, no exception."""
+    space1 = random_space_resource_from_file()
+    create_resources([space1])
+    missing_id = "non-existent-id-123"
+
+    result = sql_store.has_resources_with_identifiers(
+        [space1.identifier, missing_id], raise_if_missing=False
+    )
+    assert result == {space1.identifier: True, missing_id: False}
+
+
+@requires_sqlite_3_38
+def test_has_resources_with_identifiers_some_missing_raises(
+    sql_store: SQLStore,
+    random_space_resource_from_file: Callable[[str | None], DiscoverySpaceResource],
+    create_resources: Callable[[list[ado.core.resources.ADOResource], SQLStore], None],
+) -> None:
+    """Some identifiers absent, raise_if_missing=True (default) -> ResourcesDoNotExistError raised."""
+    space1 = random_space_resource_from_file()
+    create_resources([space1])
+    missing_id1 = "non-existent-id-1"
+    missing_id2 = "non-existent-id-2"
+
+    with pytest.raises(ResourcesDoNotExistError) as exc_info:
+        sql_store.has_resources_with_identifiers(
+            [space1.identifier, missing_id1, missing_id2]
+        )
+
+    assert exc_info.value.missing_ids == {missing_id1, missing_id2}
+    assert exc_info.value.kind is None
+
+
+@requires_sqlite_3_38
+def test_has_resources_with_identifiers_kind_filter(
+    sql_store: SQLStore,
+    random_space_resource_from_file: Callable[[str | None], DiscoverySpaceResource],
+    create_resources: Callable[[list[ado.core.resources.ADOResource], SQLStore], None],
+) -> None:
+    """Identifier exists under one kind but query uses a different kind -> treated as missing."""
+    space1 = random_space_resource_from_file()
+    create_resources([space1])
+
+    # Present when filtered by its correct kind
+    result_correct = sql_store.has_resources_with_identifiers(
+        [space1.identifier],
+        kind=CoreResourceKinds.DISCOVERYSPACE,
+        raise_if_missing=False,
+    )
+    assert result_correct == {space1.identifier: True}
+
+    # Missing when filtered by another kind
+    result_wrong = sql_store.has_resources_with_identifiers(
+        [space1.identifier], kind=CoreResourceKinds.OPERATION, raise_if_missing=False
+    )
+    assert result_wrong == {space1.identifier: False}
+
+    with pytest.raises(ResourcesDoNotExistError) as exc_info:
+        sql_store.has_resources_with_identifiers(
+            [space1.identifier], kind=CoreResourceKinds.OPERATION, raise_if_missing=True
+        )
+    assert exc_info.value.missing_ids == {space1.identifier}
+    assert exc_info.value.kind == CoreResourceKinds.OPERATION
+
+
+@requires_sqlite_3_38
+def test_has_resources_with_identifiers_empty_input(
+    sql_store: SQLStore,
+) -> None:
+    """Empty list/set -> returns {} with no exception."""
+    assert sql_store.has_resources_with_identifiers([]) == {}
+    assert sql_store.has_resources_with_identifiers(set()) == {}

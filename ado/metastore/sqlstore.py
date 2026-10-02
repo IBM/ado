@@ -23,6 +23,7 @@ from ado.metastore.base import (
     NotSupportedOnSQLiteError,
     ResourceDoesNotExistError,
     ResourceHasChildrenError,
+    ResourcesDoNotExistError,
     ResourceStore,
     RunningOperationsPreventingDeletionError,
     kind_custom_model_dump,
@@ -1018,6 +1019,57 @@ class SQLResourceStore(ResourceStore):
 
         return row_count != 0
 
+    def has_resources_with_identifiers(
+        self,
+        resources: (
+            list[ado.core.resources.ADOResource]
+            | tuple[ado.core.resources.ADOResource, ...]
+            | list[str]
+            | set[str]
+        ),
+        kind: CoreResourceKinds | None = None,
+        raise_if_missing: bool = True,
+    ) -> dict[str, bool]:
+        """Checks existence of multiple resources in a single bulk query.
+
+        Args:
+            resources: A collection of ADOResource objects or resource identifier strings.
+            kind: Optional resource kind to restrict the check.
+            raise_if_missing: If True, raises ResourcesDoNotExistError when any
+                identifiers are not found.
+
+        Returns:
+            A dictionary mapping each resource identifier to whether it exists.
+
+        Raises:
+            ResourcesDoNotExistError: If raise_if_missing is True and one or more
+                identifiers are missing.
+        """
+        identifiers = {
+            r.identifier if isinstance(r, ado.core.resources.ADOResource) else r
+            for r in resources
+        }
+        if not identifiers:
+            return {}
+
+        stmt = sqlalchemy.select(self._resources_table.c.identifier).where(
+            self._resources_table.c.identifier.in_(identifiers)
+        )
+        if kind is not None:
+            stmt = stmt.where(self._resources_table.c.kind == kind.value)
+
+        with self.engine.connect() as connectable:
+            rows = connectable.execute(stmt).fetchall()
+
+        found = {row[0] for row in rows}
+        result = {id_: id_ in found for id_ in identifiers}
+        missing = identifiers.difference(found)
+
+        if raise_if_missing and missing:
+            raise ResourcesDoNotExistError(missing, kind)
+
+        return result
+
     def addResource(self, resource: ado.core.resources.ADOResource) -> None:
         """Insert a new resource row into the resources table.
 
@@ -1093,12 +1145,15 @@ class SQLResourceStore(ResourceStore):
         This is because the others ids must already exist"""
 
         # Test that the relatedIdentifiers exist before adding
-        resource_exists_checks = [
-            self.containsResourceWithIdentifier(identifier=ident)
-            for ident in relatedIdentifiers
-        ]
-        if False in resource_exists_checks:
-            raise ValueError(f"Unknown resource identifier passed {relatedIdentifiers}")
+        if relatedIdentifiers:
+            try:
+                self.has_resources_with_identifiers(
+                    relatedIdentifiers, raise_if_missing=True
+                )
+            except ResourcesDoNotExistError as e:
+                raise ValueError(
+                    f"Unknown resource identifier passed {relatedIdentifiers}"
+                ) from e
 
         self.addResource(resource=resource)
         for identifier in relatedIdentifiers:

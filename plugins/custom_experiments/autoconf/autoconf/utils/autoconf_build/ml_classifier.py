@@ -31,7 +31,7 @@ _PACKAGE_ROOT = Path(__file__).parent.parent.parent
 DEFAULT_DATA_ROOT_DIR = _PACKAGE_ROOT / "data"
 DEFAULT_FILE_NAME = "dataset.csv"
 DEFAULT_HF_REPO_ID = "ibm-research/LLMFineTuningBench"
-DEFAULT_HF_FILENAME = "ado-sfttrainer-v1-0-0.csv"
+DEFAULT_HF_FILENAME = "ado-sfttrainer.csv"
 DEFAULT_REFIT = False
 DEFAULT_TRAIN_FRACTION = 1.0
 DEFAULT_PRESET_QUALITY = "medium_quality"
@@ -64,7 +64,7 @@ def ensure_dataset(repo_id: str, filename: str, data_path: Path) -> Path:
         repo_id: HuggingFace dataset repository, e.g.
             ``"ibm-research/LLMFineTuningBench"``.
         filename: File name within the repository, e.g.
-            ``"ado-sfttrainer-v1-0-0.csv"``.
+            ``"ado-sfttrainer.csv"``.
         data_path: Local destination path for the CSV.
 
     Returns:

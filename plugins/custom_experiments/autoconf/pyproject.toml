@@ -5,6 +5,7 @@ requires-python = ">=3.10,<3.14"
 dependencies = [
   "ado-core>=2.0.0",
   "autogluon-tabular[catboost,xgboost]==1.6.1; python_full_version < '3.14'",
+  "filelock>=3",
   "huggingface_hub>=0.23",
   "pandas<3.0.0",
   "pydantic",
@@ -17,6 +18,7 @@ autoconf_build_model = "autoconf.utils.autoconf_build.ml_classifier:main"
 
 [project.entry-points."ado.custom_experiments"]
 min_gpu_experiment = "autoconf.min_gpu_recommender"
+throughput_experiment = "autoconf.throughput_recommender"
 
 [project.optional-dependencies]
 libomp = ["autogluon.tabular[lightgbm]"]

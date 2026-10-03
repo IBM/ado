@@ -3,6 +3,52 @@
 This package contains ado custom experiments for use in automated configuration
 of workload resources requirements for GenAI workloads.
 
+## throughput_recommender
+
+**throughput_recommender** recommends the feasible fine-tuning configuration
+with the highest predicted dataset throughput (tokens per second). It uses the
+existing AutoConf OOM classifier to screen candidates, then an AutoGluon
+regressor trained on the same Hugging Face measurements to rank them.
+
+The required ADO entity properties are `model_name`, `method`, `gpu_model`, and
+`tokens_per_sample`. Node count and GPUs per node can also be constrained. The
+experiment returns `can_recommend`; when a feasible configuration exists it
+also returns `workers` (nodes), `gpus` (per node), `effective_batch_size`,
+`per_device_batch_size`, and `estimated_throughput` in dataset tokens per second.
+When no candidate is feasible, it returns only `can_recommend: false`.
+
+The search is over the following candidates, tied to throughput model version
+4.1.0 and selected after post-processing the
+[`ado-sfttrainer.csv`](https://huggingface.co/datasets/ibm-research/LLMFineTuningBench/blob/main/ado-sfttrainer.csv)
+training dataset:
+
+- Per-device batch sizes: `[1, 2, 4, 8, 16, 32, 64, 128, 256]`
+- Total GPU counts: `[1, 2, 4, 8, 16]`
+- Effective batch sizes: powers of two from 1 up to 4096, limited by the
+  requested node capacity.
+
+The regressor trains automatically on first use from the same downloaded CSV as
+the classifier and is then loaded from its saved model directory. If the
+classifier is absent, its existing on-demand builder trains it. Neither model
+binary is shipped with the plugin.
+
+`model_name` is open categorical. If the name is absent from training data,
+AutoConf warns that the throughput estimate is unvalidated and still attempts
+prediction. Use a model represented in the dataset, or add measurements and
+retrain, before relying on a recommendation for a new model. The model names
+represented in the regressor's training data are recorded in
+`known_model_names.json` in the saved model directory when training completes.
+
+Run the [single-point example](examples/throughput.yaml) from the repository
+root in the `local` ADO context:
+
+```bash
+uv run run_experiment plugins/custom_experiments/autoconf/examples/throughput.yaml
+```
+
+This uses ADO entity properties; it does not edit trace CSVs or metadata
+columns.
+
 ## min_gpu_recommender
 
 **min_gpu_recommender** is a predictive model that recommends the minimum number
@@ -39,7 +85,7 @@ that were absent in its training set.
 The training measurements are published in the Hugging Face dataset
 [`ibm-research/LLMFineTuningBench`](https://huggingface.co/datasets/ibm-research/LLMFineTuningBench)
 — specifically the file
-[`ado-sfttrainer-v1-0-0.csv`](https://huggingface.co/datasets/ibm-research/LLMFineTuningBench/blob/main/ado-sfttrainer-v1-0-0.csv).
+[`ado-sfttrainer.csv`](https://huggingface.co/datasets/ibm-research/LLMFineTuningBench/blob/main/ado-sfttrainer.csv).
 AutoConf does not distribute trained models. Generate the model in the
 same Python environment that will use the recommender so its AutoGluon and Python
 versions match.
@@ -61,7 +107,7 @@ On the first inference call, if no model is present, AutoConf automatically:
 
 1. Emits a warning that training is starting.
 2. Downloads the training dataset from
-   [`ibm-research/LLMFineTuningBench`](https://huggingface.co/datasets/ibm-research/LLMFineTuningBench/blob/main/ado-sfttrainer-v1-0-0.csv)
+   [`ibm-research/LLMFineTuningBench`](https://huggingface.co/datasets/ibm-research/LLMFineTuningBench/blob/main/ado-sfttrainer.csv)
    via `huggingface_hub`.
 3. Trains an AutoGluon classifier (~2 minutes on `medium_quality`).
 4. Saves the model to `autoconf/models/v4-0-0/`.

@@ -292,7 +292,9 @@ uv run ado show measurements RESOURCE_TYPE [RESOURCE_ID] \
 - `--output` (or `-o`): `csv`, `json`, or `table`
 - `--output-file` specifies a file path to write the output to. If not provided,
   output is written to stdout.
-- `--property`: Filter specific properties (can specify multiple times)
+- `--property`: Filter specific properties (can specify multiple times).
+  Output keeps `identifier` and the listed columns only; also list any input
+  (constitutive) properties you need.
 - `--aggregate`: Aggregate multiple values
 
 **Examples:**

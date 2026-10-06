@@ -340,6 +340,10 @@ uv run ado show measurements operation OPERATION_ID \
   -o csv --output-file OPERATION_ID_entities.csv
 ```
 
+If only some metrics are needed, add `--property` for each metric and input
+property to keep the file and data fetched from database small — see
+[query-ado-data](../query-ado-data/SKILL.md#show-entities).
+
 ### Step 4: Analyze the Measurement data
 
 Perform an analysis of the measurements, checking e.g. distributions of metrics,

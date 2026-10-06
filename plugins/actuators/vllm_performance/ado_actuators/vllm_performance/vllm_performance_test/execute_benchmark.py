@@ -209,6 +209,7 @@ def execute_vllm_benchmark(
     prefix_repetition_suffix_len: int = 128,
     prefix_repetition_num_prefixes: int = 10,
     prefix_repetition_output_len: int = 128,
+    ignore_eos: bool = False,
 ) -> BenchmarkResult:
     """
     Execute vLLM benchmark with random or prefix repetition dataset.
@@ -228,12 +229,15 @@ def execute_vllm_benchmark(
     :param prefix_repetition_suffix_len: suffix tokens per request for prefix repetition dataset (default 128),
     :param prefix_repetition_num_prefixes: distinct cached prefixes for prefix repetition dataset (default 10),
     :param prefix_repetition_output_len: output tokens per request for prefix repetition dataset (default 128),
+    :param ignore_eos: when True, pass --ignore-eos so requests generate the full
+        requested number of output tokens instead of stopping at the EOS token.
+        Only used when dataset='prefix_repetition'.
 
     :return: BenchmarkResult instance
     """
 
     if dataset == "random":
-        custom_args = {
+        custom_args: dict[str, Any] = {
             "--random-input-len": number_input_tokens,
             "--random-output-len": max_output_tokens,
         }
@@ -244,6 +248,10 @@ def execute_vllm_benchmark(
             "--prefix-repetition-num-prefixes": prefix_repetition_num_prefixes,
             "--prefix-repetition-output-len": prefix_repetition_output_len,
         }
+        if ignore_eos:
+            # A valueless flag: execute_benchmark appends the key alone when the
+            # value is falsy.
+            custom_args["--ignore-eos"] = None
     else:
         # We should never get here but we keep this just in case because the dataset field
         # could have another value as well that should not be used with this function.

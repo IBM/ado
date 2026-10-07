@@ -15,7 +15,7 @@ from ado.core import (
     SampleStoreResource,
 )
 from ado.metastore.project import ProjectContext
-from ado.metastore.sql.statements import _MAX_HIERARCHY_HOPS
+from ado.metastore.sql.utils import _MAX_HIERARCHY_HOPS
 from ado.metastore.sqlstore import SQLStore
 from tests.conftest import requires_sqlite_3_38
 

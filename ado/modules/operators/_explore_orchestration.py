@@ -247,10 +247,6 @@ def orchestrate_explore_operation(
         discovery_space=discovery_space,
         measurement_queue=measurement_queue,
     )
-    # FIXME: This is only necessary for mock actuator - but does it actually need to use it?
-    for actuator in actuators.values():
-        actuator.setMeasurementSpace.remote(discovery_space.measurementSpace)
-
     #
     # DISCOVERY SPACE MANAGER
     #

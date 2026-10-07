@@ -25,6 +25,7 @@ from ado.cli.utils.output.prints import (
     ADO_SPINNER_QUERYING_DB,
     ADO_SPINNER_SAVING_TO_DB,
     ERROR,
+    INFO,
     SUCCESS,
     console_print,
     cyan,
@@ -650,14 +651,108 @@ def strategic_merge_configuration_metadata(
     return merged | overrides
 
 
-def handle_edit_resource_metadata(
+def apply_patch_to_resources(
+    resource_ids: list[str],
+    resource_type: "CoreResourceKinds",
+    project_context: "ProjectContext",
+    metadata_patch: str | None,
+    metadata_path: pathlib.Path | None,
+) -> None:
+    """Apply a metadata patch to one or more resources.
+
+    Args:
+        resource_ids: IDs of the resources to patch.
+        resource_type: Kind of each resource.
+        project_context: Active project context used to obtain the SQL store.
+        metadata_patch: Inline YAML/JSON patch string; mutually exclusive with
+            ``metadata_path``.
+        metadata_path: Path to a YAML/JSON patch file; mutually exclusive with
+            ``metadata_patch``.
+
+    Raises:
+        ResourcesDoNotExistError: If any ID in ``resource_ids`` is not found.
+        typer.Exit: With code 1 if the patch YAML is invalid or any resulting
+            metadata fails validation.
+    """
+    try:
+        raw = yaml.load(
+            metadata_patch if metadata_patch is not None else metadata_path.read_text(),  # type: ignore[union-attr]
+            Loader=yaml.CSafeLoader,
+        )
+        if raw is not None and not isinstance(raw, dict):
+            console_print(
+                f"{ERROR}The provided metadata must be a YAML/JSON object "
+                f"(mapping), not {type(raw).__name__}.",
+                stderr=True,
+            )
+            raise typer.Exit(1)
+        _ = ConfigurationMetadata.model_validate(raw)
+    except (OSError, yaml.YAMLError, ValueError) as e:
+        console_print(
+            f"{ERROR}The provided metadata was invalid: {e}",
+            stderr=True,
+        )
+        raise typer.Exit(1) from e
+
+    patch_dict: dict = {} if raw is None else raw
+
+    sql = get_sql_store(project_context=project_context)
+
+    with Status(ADO_SPINNER_QUERYING_DB):
+        sql.has_resources_with_identifiers(
+            resources=resource_ids, kind=resource_type, raise_if_missing=True
+        )
+        resources = sql.getResources(identifiers=resource_ids)
+
+    patched = []
+    errors: list[str] = []
+    for resource in resources.values():
+        new_metadata = strategic_merge_configuration_metadata(
+            base=resource.config.metadata.model_dump(),  # type: ignore[union-attr]
+            patch=patch_dict,
+        )
+        try:
+            resource.config.metadata = ConfigurationMetadata.model_validate(  # type: ignore[union-attr]
+                new_metadata
+            )
+            patched.append(resource)
+        except pydantic.ValidationError as e:
+            errors.append(
+                f"{resource.identifier}: {e}"  # type: ignore[union-attr]
+            )
+
+    if errors:
+        for msg in errors:
+            console_print(
+                f"{ERROR}The updated metadata was invalid: {msg}", stderr=True
+            )
+        console_print(f"{INFO}No changes were made.", stderr=True)
+        raise typer.Exit(1)
+
+    with Status(ADO_SPINNER_SAVING_TO_DB):
+        sql.update_resources(patched)
+
+    console_print(SUCCESS, stderr=True)
+
+
+def interactively_edit_resource_metadata(
     resource_id: str,
     resource_type: "CoreResourceKinds",
     project_context: "ProjectContext",
     editor: AdoEditSupportedEditors,
-    metadata_path: pathlib.Path | None = None,
-    metadata_patch: str | None = None,
 ) -> None:
+    """Open an editor to interactively edit metadata for a single resource.
+
+    Args:
+        resource_id: ID of the resource to edit.
+        resource_type: Kind of the resource.
+        project_context: Active project context used to obtain the SQL store.
+        editor: Editor to launch.
+
+    Raises:
+        ResourceDoesNotExistError: If the resource is not found.
+        typer.Exit: With code 1 on any validation or editor error.
+    """
     import subprocess  # noqa: S404
     import tempfile
 
@@ -670,54 +765,21 @@ def handle_edit_resource_metadata(
             status.stop()
             raise ResourceDoesNotExistError(resource_id=resource_id, kind=resource_type)
 
-    # Non-interactive mode: use patch or patch_file (editor is ignored)
-    if metadata_path is not None or metadata_patch is not None:
+    with tempfile.TemporaryDirectory() as d:
+        file = pathlib.Path(d) / pathlib.Path("tmp_metadata.yaml")
+        ado.cli.utils.pydantic.serializers.serialise_pydantic_model(
+            model=resource.config.metadata,
+            output_path=file,
+            suppress_success_message=True,
+        )
+
         try:
-            raw = yaml.safe_load(
-                metadata_patch
-                if metadata_patch is not None
-                else metadata_path.read_text()
-            )
-            if raw is not None and not isinstance(raw, dict):
-                console_print(
-                    f"{ERROR}The provided metadata must be a YAML/JSON object "
-                    f"(mapping), not {type(raw).__name__}.",
-                    stderr=True,
-                )
-                raise typer.Exit(1)
-            _ = ConfigurationMetadata.model_validate(raw)
-        except (OSError, yaml.YAMLError, ValueError) as e:
-            console_print(
-                f"{ERROR}The provided metadata was invalid: {e}",
-                stderr=True,
-            )
+            subprocess.run([editor.value, file], check=True)  # noqa: S603
+        except subprocess.CalledProcessError as e:
+            console_print(f"{ERROR}The editor exited with an error: {e}", stderr=True)
             raise typer.Exit(1) from e
-        if raw is None:
-            new_metadata = {}
-        else:
-            base_dict = resource.config.metadata.model_dump()
-            new_metadata = strategic_merge_configuration_metadata(
-                base=base_dict, patch=raw
-            )
-    else:
-        # Interactive mode: use editor
-        with tempfile.TemporaryDirectory() as d:
-            file = pathlib.Path(d) / pathlib.Path("tmp_metadata.yaml")
-            ado.cli.utils.pydantic.serializers.serialise_pydantic_model(
-                model=resource.config.metadata,
-                output_path=file,
-                suppress_success_message=True,
-            )
 
-            try:
-                subprocess.run([editor.value, file], check=True)  # noqa: S603
-            except subprocess.CalledProcessError as e:
-                console_print(
-                    f"{ERROR}The editor exited with an error: {e}", stderr=True
-                )
-                raise typer.Exit(1) from e
-
-            new_metadata = yaml.safe_load(file.read_text())
+        new_metadata = yaml.load(file.read_text(), Loader=yaml.CSafeLoader)
 
     try:
         resource.config.metadata = ConfigurationMetadata.model_validate(new_metadata)
@@ -749,9 +811,8 @@ def handle_ado_upgrade(
             kind=resource_type.value, ignore_validation_errors=False
         )
 
-        for idx, resource in enumerate(resources.values()):
-            status.update(ADO_SPINNER_SAVING_TO_DB + f" ({idx + 1}/{len(resources)})")
-            sql_store.updateResource(resource=resource)
+        status.update(ADO_SPINNER_SAVING_TO_DB)
+        sql_store.update_resources(list(resources.values()))
 
     console_print(SUCCESS)
 

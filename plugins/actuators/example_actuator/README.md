@@ -32,15 +32,13 @@ You will see:
 ┌─────────────┬────────────────────────┬────────────────────────────────────────────────────────┐
 │ ACTUATOR ID │ EXPERIMENT ID          │ DESCRIPTION                                            │
 ├─────────────┼────────────────────────┼────────────────────────────────────────────────────────┤
-│ mock        │ test-experiment        │                                                        │
-│ mock        │ test-experiment-two    │                                                        │
 │ robotic_lab │ peptide_mineralization │ Measures adsorption of peptide lanthanide combinations │
 └─────────────┴────────────────────────┴────────────────────────────────────────────────────────┘
 ```
 
 <!-- markdownlint-enable line-length -->
 
-On the last line, you can see the new actuator and its experiment.
+You can see the new actuator and its experiment.
 
 ## Create a `discoveryspace` and Operation
 

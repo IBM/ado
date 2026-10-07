@@ -20,6 +20,7 @@ from ado.core import (
 from ado.core.discoveryspace.space import DiscoverySpace
 from ado.metastore.project import ProjectContext
 from ado.metastore.sqlstore import SQLStore
+from ado.modules.actuators.catalog import ExperimentCatalog
 from ado.utilities.rich import dataframe_to_rich_table, render_to_string
 from tests.conftest import requires_sqlite_3_38
 from tests.utilities.cli_rendering import (
@@ -192,6 +193,7 @@ def test_field_filtering(
         [CliRunner, pathlib.Path, ProjectContext], None
     ],
     sample_store_resource: SampleStoreResource,
+    test_actuator_catalog: ExperimentCatalog,
 ) -> None:
 
     runner = CliRunner()
@@ -231,7 +233,7 @@ def test_field_filtering(
     actuator_config_with_underscores = ActuatorConfigurationResource.model_validate(
         yaml.safe_load(
             pathlib.Path(
-                "tests/resources/actuatorconfiguration/mock-ac-with-snake-case.yaml"
+                "tests/resources/actuatorconfiguration/test-ac-with-snake-case.yaml"
             ).read_text()
         )
     )

@@ -42,9 +42,9 @@ OPERATION_YAML_PATTERNS = [
 ]
 
 # Actuator config YAML files: ActuatorConfiguration structure
-# Uses mock actuator (available in test env)
+# Uses robotic_lab actuator (example plugin)
 ACTUATOR_CONFIG_YAML_PATTERNS = [
-    "skill-actuator-config-mock",
+    "skill-actuator-config-robotic-lab",
 ]
 
 

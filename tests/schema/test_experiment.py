@@ -6,6 +6,7 @@ from typing import Any
 import pydantic
 import pytest
 
+from ado.modules.actuators.catalog import ExperimentCatalog
 from ado.modules.actuators.registry import (
     ActuatorRegistry,
 )
@@ -20,6 +21,7 @@ from ado.schema.observed_property import (
 )
 from ado.schema.property import (
     AbstractProperty,
+    AbstractPropertyDescriptor,
     ConstitutiveProperty,
     ConstitutivePropertyDescriptor,
     MeasuredPropertyTypeEnum,
@@ -706,18 +708,20 @@ def test_experiment_property_values_from_entity(
             exp.propertyValuesFromEntity(entity_copy)
 
 
-def test_parameterized_experiment_reference_validation_detects_invalid_cases() -> None:
+def test_parameterized_experiment_reference_validation_detects_invalid_cases(
+    test_actuator_catalog: ExperimentCatalog,
+) -> None:
 
     # Test creating a parameterized reference for an experiment that doesn't exist
     with pytest.raises(
         ValueError,
         match=re.escape(
-            "Failed validating parameterization. Cannot find experiment test from actuator mock in catalog"
+            "Failed validating parameterization. Cannot find experiment nonexistent from actuator test in catalog"
         ),
     ):
         ExperimentReference(
-            experimentIdentifier="test",
-            actuatorIdentifier="mock",
+            experimentIdentifier="nonexistent",
+            actuatorIdentifier="test",
             parameterization=[
                 ConstitutivePropertyValue(
                     value=3, property=ConstitutivePropertyDescriptor(identifier="test")
@@ -726,16 +730,24 @@ def test_parameterized_experiment_reference_validation_detects_invalid_cases() -
         ).validate_parameterization()
 
     # Test trying to parameterize a non-parameterizable experiment
+    # Register a bare experiment with only targetProperties (no parameterizable properties)
+    bare_exp = Experiment(
+        actuatorIdentifier="test",
+        identifier="bare-experiment",
+        targetProperties=[AbstractPropertyDescriptor(identifier="score")],
+    )
+    test_actuator_catalog.addExperiment(bare_exp)
+
     with pytest.raises(
         ValueError,
         match=re.escape(
-            "Experiment reference mock.test-experiment-test.3 specifies custom parameterization "
+            "Experiment reference test.bare-experiment-test.3 specifies custom parameterization "
             "but the referenced experiment has no parameterizable properties."
         ),
     ):
         ExperimentReference(
-            experimentIdentifier="test-experiment",
-            actuatorIdentifier="mock",
+            experimentIdentifier="bare-experiment",
+            actuatorIdentifier="test",
             parameterization=[
                 ConstitutivePropertyValue(
                     value=3, property=ConstitutivePropertyDescriptor(identifier="test")

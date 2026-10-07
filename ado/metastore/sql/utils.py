@@ -3,7 +3,6 @@
 
 import sqlalchemy
 
-from ado.metastore.sql.statements import table_exists_query
 from ado.utilities.location import SQLStoreConfiguration
 from ado.utilities.pydantic import pydantic_aware_json_serializer
 
@@ -12,6 +11,10 @@ from ado.utilities.pydantic import pydantic_aware_json_serializer
 # samplestore — which both point at the same MySQL server — share one pool and
 # avoid the overhead of opening a second TCP connection.
 _engine_cache: dict[str, sqlalchemy.Engine] = {}
+
+# The resource graph can include operation→operation nesting and document
+# edges, so a larger cap is needed; 10 is sufficient for any realistic chain.
+_MAX_HIERARCHY_HOPS = 10
 
 
 def engine_for_sql_store(
@@ -73,49 +76,59 @@ def engine_for_sql_store(
     return engine
 
 
-def check_table_exists(engine: sqlalchemy.Engine, tablename: str) -> bool:
-    """Return whether ``tablename`` exists in the database behind ``engine``.
+def json_extract_field_as_string(
+    col: sqlalchemy.Column,
+    path: str,
+) -> sqlalchemy.ColumnElement:
+    """Extract a scalar text value from a JSON column using the ``->>`` operator.
 
-    First tries a single round-trip using :func:`table_exists_query` with
-    ``engine.dialect.name``. On any exception (unsupported dialect, execution
-    error, etc.), falls back to :func:`sqlalchemy.inspect` and
-    :meth:`~sqlalchemy.engine.reflection.Inspector.has_table`.
+    The ``->>`` operator extracts a scalar string from a JSON document.
+    Wrapping the result in :func:`sqlalchemy.cast` with :class:`sqlalchemy.String`
+    prevents SQLAlchemy's JSON column type processor from attempting to
+    JSON-decode the already-extracted scalar value, which would raise a
+    ``JSONDecodeError`` for plain strings or silently coerce numeric strings
+    to ``int``.
+
+    Args:
+        col: The JSON :class:`~sqlalchemy.Column` to extract from.
+        path: A JSON path expression (e.g. ``$.config.metadata.name``).
+
+    Returns:
+        A SQLAlchemy column expression that evaluates to the extracted scalar
+        text value, typed as :class:`sqlalchemy.String`.
+    """
+    return sqlalchemy.cast(
+        col.op("->>")(sqlalchemy.literal(path)),
+        sqlalchemy.String,
+    )
+
+
+def create_sql_resource_store(
+    engine: sqlalchemy.Engine,
+) -> sqlalchemy.MetaData:
+    """Create the metastore tables if they do not exist and return the schema.
 
     Args:
         engine: SQLAlchemy engine for the target database.
-        tablename: Unqualified table name to check.
 
     Returns:
-        ``True`` if the table exists, ``False`` otherwise.
+        A :class:`~sqlalchemy.MetaData` instance containing the
+        ``resources`` and ``resource_relationships`` table definitions.
     """
-    try:
-        query = table_exists_query(tablename, dialect=engine.dialect.name)
-        with engine.connect() as conn:
-            return conn.execute(query).fetchone() is not None
-    except Exception:
-        inspector = sqlalchemy.inspect(engine)
-        return inspector.has_table(tablename)
-
-
-def create_sql_resource_store(engine: sqlalchemy.Engine) -> sqlalchemy.Engine:
     from sqlalchemy import JSON, String
 
-    # Create the tables if they don't exist
     meta = sqlalchemy.MetaData()
 
-    resources = sqlalchemy.Table(  # noqa: F841
+    sqlalchemy.Table(
         "resources",
         meta,
         sqlalchemy.Column("identifier", String(256), primary_key=True),
         sqlalchemy.Column("kind", String(256), index=True),
         sqlalchemy.Column("version", String(128)),
-        # Use to store resource objecte (1MB)
         sqlalchemy.Column("data", JSON(False)),
     )
 
-    # Holds relationships between two objects
-    # Since the predicate between two kinds is known we don't have to store it
-    resourceRelationships = sqlalchemy.Table(  # noqa: F841
+    sqlalchemy.Table(
         "resource_relationships",
         meta,
         sqlalchemy.Column(
@@ -134,4 +147,4 @@ def create_sql_resource_store(engine: sqlalchemy.Engine) -> sqlalchemy.Engine:
 
     meta.create_all(engine, checkfirst=True)
 
-    return engine
+    return meta

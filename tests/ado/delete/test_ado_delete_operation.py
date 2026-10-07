@@ -109,7 +109,7 @@ def test_delete_operation_with_datacontainer_child_cascades(
     sql_store: SQLStore,
     data_container_resource: DataContainerResource,
     random_sql_sample_store: Callable[[], SQLSampleStore],
-    discovery_space_configuration: DiscoverySpaceConfiguration,
+    discovery_space_configuration_no_replay: DiscoverySpaceConfiguration,
     create_space: Callable[[DiscoverySpaceConfiguration, str], DiscoverySpace],
     create_operation: Callable[[DiscoverySpace], OperationResource],
 ) -> None:
@@ -120,7 +120,9 @@ def test_delete_operation_with_datacontainer_child_cascades(
     )
 
     sample_store = random_sql_sample_store()
-    space = create_space(discovery_space_configuration, sample_store.identifier)
+    space = create_space(
+        discovery_space_configuration_no_replay, sample_store.identifier
+    )
     operation = create_operation(space)
     op_id = operation.identifier
 
@@ -160,7 +162,7 @@ def test_delete_operation_with_non_datacontainer_child_raises(
     ],
     sql_store: SQLStore,
     random_sql_sample_store: Callable[[], SQLSampleStore],
-    discovery_space_configuration: DiscoverySpaceConfiguration,
+    discovery_space_configuration_no_replay: DiscoverySpaceConfiguration,
     create_space: Callable[[DiscoverySpaceConfiguration, str], DiscoverySpace],
     create_operation: Callable[[DiscoverySpace], OperationResource],
 ) -> None:
@@ -171,14 +173,16 @@ def test_delete_operation_with_non_datacontainer_child_raises(
     )
 
     sample_store = random_sql_sample_store()
-    space = create_space(discovery_space_configuration, sample_store.identifier)
+    space = create_space(
+        discovery_space_configuration_no_replay, sample_store.identifier
+    )
     operation = create_operation(space)
     op_id = operation.identifier
 
     # Link an additional DiscoverySpace (non-DataContainer) as a child of the operation.
     extra_sample_store = random_sql_sample_store()
     extra_space = create_space(
-        discovery_space_configuration, extra_sample_store.identifier
+        discovery_space_configuration_no_replay, extra_sample_store.identifier
     )
     sql_store.addRelationship(
         subjectIdentifier=op_id,
@@ -210,7 +214,7 @@ def test_delete_operation_with_datacontainer_having_grandchildren_raises(
     random_sql_sample_store: Callable[[], SQLSampleStore],
     testTabularDataString: object,
     test_sample_store_location: object,
-    discovery_space_configuration: DiscoverySpaceConfiguration,
+    discovery_space_configuration_no_replay: DiscoverySpaceConfiguration,
     create_space: Callable[[DiscoverySpaceConfiguration, str], DiscoverySpace],
     create_operation: Callable[[DiscoverySpace], OperationResource],
 ) -> None:
@@ -221,7 +225,9 @@ def test_delete_operation_with_datacontainer_having_grandchildren_raises(
     )
 
     sample_store = random_sql_sample_store()
-    space = create_space(discovery_space_configuration, sample_store.identifier)
+    space = create_space(
+        discovery_space_configuration_no_replay, sample_store.identifier
+    )
     operation = create_operation(space)
     op_id = operation.identifier
 

@@ -55,16 +55,50 @@ remotely unless the user explicitly requests it.
 
 ## Prerequisites
 
-Before dispatching to a cluster with port-forward, verify cluster login:
+Before dispatching to a cluster, complete both steps in order:
 
-```bash
-oc whoami   # OpenShift
-# or
-kubectl get nodes   # Kubernetes
-```
+1. **Verify cluster login**
 
-If this fails, request user to log in first — the port-forward will
-fail with a credentials error otherwise.
+   ```bash
+   oc whoami   # OpenShift
+   # or
+   kubectl get nodes   # Kubernetes
+   ```
+
+   If this fails, ask the user to log in first — the port-forward will fail
+   with a credentials error otherwise.
+
+2. **Query the cluster's Ray version and pin it**
+
+   Ray raises `Changing the ray version is not allowed` if the version in the
+   execution context differs from the one installed on the cluster.
+   Query the cluster to get the authoritative version:
+
+   ```bash
+   # Start the port-forward in the background (replace values to match your context)
+   kubectl port-forward -n <namespace> svc/<ray-head-svc> 8265:8265 &
+   PF_PID=$!
+   sleep 3
+
+   # Query the Ray Dashboard REST API
+   RAY_VERSION=$(python3 -c \
+     "import urllib.request, json; print(json.load(urllib.request.urlopen('http://localhost:8265/api/version'))['ray_version'])")
+
+   echo "Cluster Ray version: $RAY_VERSION"
+
+   # Stop the temporary port-forward
+   kill $PF_PID
+   ```
+
+   Then pin the retrieved version in the execution context YAML:
+
+   ```yaml
+   packages:
+     fromPyPI:
+       - ado-core
+       - ray==2.47.0  # replace with the value echoed above
+       - ado-ray-tune
+   ```
 
 ---
 
@@ -187,18 +221,6 @@ additionalFiles:
 The same applies to actuator configuration files that reference local paths
 (e.g. model weights, config files). Audit all `-f` files for local path
 references before dispatching remotely.
-
-### Ray version mismatch
-
-If you see `Changing the ray version is not allowed`, pin the Ray version in
-`fromPyPI` to match the cluster:
-
-```yaml
-fromPyPI:
-  - ado-core
-  - ray==2.52.1 # match the cluster's installed version
-  - ado-ray-tune
-```
 
 ### fromSource plugin changes not reflected in remote run
 

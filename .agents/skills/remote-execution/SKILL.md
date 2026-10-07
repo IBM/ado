@@ -55,8 +55,7 @@ remotely unless the user explicitly requests it.
 
 ## Prerequisites
 
-Before creating an execution context YAML or dispatching to a cluster,
-complete both steps in order:
+Before dispatching to a cluster, complete both steps in order:
 
 1. **Verify cluster login**
 
@@ -100,9 +99,6 @@ complete both steps in order:
        - ray==2.47.0  # replace with the value echoed above
        - ado-ray-tune
    ```
-
-   Always re-query and update this pin before every submission — cluster
-   upgrades can change the installed Ray version between runs.
 
 ---
 

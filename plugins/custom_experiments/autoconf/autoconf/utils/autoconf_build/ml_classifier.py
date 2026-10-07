@@ -498,7 +498,7 @@ def main() -> None:
                 fit_options={
                     "presets": args.preset_quality,
                     "excluded_model_types": ["GBM"],
-                    "time_limit": 1800,
+                    "time_limit": 900,
                     "num_bag_folds": 5,
                 },
             )

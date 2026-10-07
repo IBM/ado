@@ -98,9 +98,9 @@ For other options see the AutoGluon [documentation](https://auto.gluon.ai/stable
 | Model | Preset | Training time (~15 k samples) |
 | --- | --- | --- |
 | Classifier (`v4-0-0`) | `medium_quality` + `optimize_for_deployment` | ~2 min |
-| Regressor (`v4-1-0-regressor`) | `good` (30 min time limit, 5-fold bagging) | up to ~30 min |
+| Regressor (`v4-1-0-regressor`) | `good` (15 min time limit, 5-fold bagging) | up to ~15 min |
 
-> **Note:** The regressor default preset (`good`, up to 30 min) is more expensive
+> **Note:** The regressor default preset (`good`, up to 15 min) is more expensive
 > than the classifier default (`medium_quality`, ~2 min) by design — it targets
 > prediction accuracy over disk size, which matters for throughput estimates.
 

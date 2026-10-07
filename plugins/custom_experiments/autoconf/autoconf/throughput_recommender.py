@@ -194,7 +194,7 @@ def build_regressor(
         options = fit_options or {
             "presets": "good",
             "excluded_model_types": ["GBM"],
-            "time_limit": 1800,
+            "time_limit": 900,
             "num_bag_folds": 5,
         }
         staging = Path(str(destination) + ".staging")

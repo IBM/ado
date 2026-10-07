@@ -32,6 +32,7 @@ from ado.core.samplestore.csv import CSVSampleStore
 from ado.core.samplestore.sql import SQLSampleStore
 from ado.metastore.project import ProjectContext
 from ado.metastore.sqlstore import SQLResourceStore, SQLStore
+from ado.modules.actuators.catalog import ExperimentCatalog
 from ado.modules.actuators.registry import ActuatorRegistry
 from ado.schema.entity import Entity
 from ado.schema.experiment import Experiment
@@ -175,14 +176,12 @@ def ml_multi_cloud_invalid_actuatorconfiguration(
         [ado.core.actuatorconfiguration.config.ActuatorConfiguration],
         ActuatorConfigurationResource,
     ],
+    test_actuator_catalog: ExperimentCatalog,
 ) -> ActuatorConfigurationResource:
     actuator_configuration = (
-        ado.core.actuatorconfiguration.config.ActuatorConfiguration.model_validate(
-            yaml.safe_load(
-                pathlib.Path(
-                    "tests/resources/mock_actuatorconfiguration.yaml"
-                ).read_text()
-            )
+        ado.core.actuatorconfiguration.config.ActuatorConfiguration(
+            actuatorIdentifier="test",
+            parameters={},
         )
     )
     return create_actuatorconfiguration(actuator_configuration)
@@ -344,9 +343,7 @@ def simulate_ml_multi_cloud_random_walk_operation(
         operation_id = operation_id or random_identifier()
         sample_store = ml_multi_cloud_sample_store
 
-        sql = SQLResourceStore(
-            project_context=valid_ado_project_context, ensureExists=True
-        )
+        sql = SQLResourceStore(project_context=valid_ado_project_context)
 
         resource = OperationResource(
             identifier=operation_id,

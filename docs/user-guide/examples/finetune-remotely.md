@@ -100,7 +100,6 @@ To explore this space, you will:
     ├────────────────────┼─────────────┤
     │ SFTTrainer         │ 5           │
     │ custom_experiments │ 6           │
-    │ mock               │ 2           │
     │ replay             │ 0           │
     │ robotic_lab        │ 1           │
     └────────────────────┴─────────────┘

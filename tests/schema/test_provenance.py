@@ -22,6 +22,7 @@ from ado.core.operation.resource import (
     OperationProvenanceInfo,
     OperationResource,
 )
+from ado.modules.actuators.catalog import ExperimentCatalog
 from ado.modules.actuators.registry import ActuatorRegistry
 from ado.modules.operators.provenance import provenance_for_operator
 
@@ -181,11 +182,10 @@ def test_provenance_for_plugin_actuator() -> None:
     from ado.modules.actuators.registry import ActuatorRegistry
 
     registry = ActuatorRegistry.globalRegistry()
-    # mock actuator is registered as a plugin in test fixtures
-    prov = registry.provenance_for_actuator("mock")
-    if prov is not None:
-        assert prov.distributionName
-        assert prov.distributionVersion
+    prov = registry.provenance_for_actuator("robotic_lab")
+    assert prov is not None
+    assert prov.distributionName
+    assert prov.distributionVersion
 
 
 # ---------------------------------------------------------------------------
@@ -354,29 +354,33 @@ def test_operation_resource_provenance_defaults_empty(
     assert restored.provenance.actuators == {}
 
 
-def test_actuator_configuration_resource_provenance_lifecycle() -> None:
+def test_actuator_configuration_resource_provenance_lifecycle(
+    test_actuator_catalog: ExperimentCatalog,
+) -> None:
     """ActuatorConfigurationResource round-trips nested provenance through model_dump."""
     from ado.core.actuatorconfiguration.config import ActuatorConfiguration
 
-    config = ActuatorConfiguration(actuatorIdentifier="mock")
-    prov = PackageProvenance(distributionName="ado-mock", distributionVersion="0.1.0")
+    config = ActuatorConfiguration(actuatorIdentifier="test")
+    prov = PackageProvenance(distributionName="ado-test", distributionVersion="0.1.0")
     resource = ActuatorConfigurationResource(
         config=config,
-        provenance=ActuatorConfigurationProvenanceInfo(actuators={"mock": prov}),
+        provenance=ActuatorConfigurationProvenanceInfo(actuators={"test": prov}),
     )
 
-    assert resource.provenance.actuators["mock"] == prov
+    assert resource.provenance.actuators["test"] == prov
 
     dumped = resource.model_dump()
     restored = ActuatorConfigurationResource.model_validate(dumped)
-    assert restored.provenance.actuators["mock"] == prov
+    assert restored.provenance.actuators["test"] == prov
 
 
-def test_actuator_configuration_resource_provenance_defaults_empty() -> None:
+def test_actuator_configuration_resource_provenance_defaults_empty(
+    test_actuator_catalog: ExperimentCatalog,
+) -> None:
     """ActuatorConfigurationResource created without provenance has empty actuators dict."""
     from ado.core.actuatorconfiguration.config import ActuatorConfiguration
 
-    config = ActuatorConfiguration(actuatorIdentifier="mock")
+    config = ActuatorConfiguration(actuatorIdentifier="test")
     resource = ActuatorConfigurationResource(config=config)
 
     assert resource.provenance.actuators == {}

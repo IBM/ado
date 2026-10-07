@@ -184,10 +184,18 @@ uv run ado edit space SPACE_ID -p "labels: { team: research }"
 
 # Or merge from a file
 uv run ado edit space SPACE_ID --patch-file meta.yaml
+
+# Bulk patch: apply the same patch to multiple resources in one atomic write
+uv run ado edit space SPACE_ID_1 SPACE_ID_2 -p "labels: { team: research }"
+uv run ado edit operation OP_ID_1 OP_ID_2 --patch-file meta.yaml
 ```
 
-Always prefer a non-interative edit with `-p` / `--patch` or `--patch-file`. Use
-`uv run ado edit --help` for current options.
+Multiple IDs require `--patch` or `--patch-file` — interactive mode supports
+only a single resource at a time. All IDs are validated to exist before any
+write is performed; the transaction is all-or-nothing.
+
+Always prefer a non-interactive edit with `-p` / `--patch` or `--patch-file`.
+Use `uv run ado edit --help` for current options.
 
 ### ado show
 

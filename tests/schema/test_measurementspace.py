@@ -271,7 +271,8 @@ def test_space_with_unknown_experiment(
             selectedExperiments=[
                 *parameterized_references,
                 ExperimentReference(
-                    actuatorIdentifier="mock", experimentIdentifier="unknown_experiment"
+                    actuatorIdentifier="custom_experiments",
+                    experimentIdentifier="unknown_experiment",
                 ),
             ]
         )

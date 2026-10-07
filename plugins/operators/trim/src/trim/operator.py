@@ -155,20 +155,23 @@ def trim(
     # Inject the model save paths into tabularPredictorArgs so that every
     # TabularPredictor instantiation downstream can simply unpack
     # **tabularPredictorArgs without specifying path= explicitly.
-    for arg_name, args_obj, path in (
-        ("autoGluonArgs", params.autoGluonArgs, params.outputDirectory),
+    # Copy first: callers may pass the same AutoGluonArgs instance for both
+    # fields, and in-place mutation would make the two paths alias.
+    for arg_name, path in (
+        ("autoGluonArgs", params.outputDirectory),
         (
             "finalModelAutoGluonArgs",
-            params.finalModelAutoGluonArgs,
             (params.outputDirectory or "") + "_finalized",
         ),
     ):
+        args_obj = getattr(params, arg_name).model_copy(deep=True)
         if "path" in args_obj.tabularPredictorArgs:
             logger_trim.warning(
                 f"{arg_name}.tabularPredictorArgs already contains a 'path' key; "
                 "it will be overwritten by TRIM's outputDirectory."
             )
         args_obj.tabularPredictorArgs["path"] = path
+        setattr(params, arg_name, args_obj)
 
     logger_trim.info(
         "Transfer Refined Iterative Modeling starts."

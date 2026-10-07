@@ -14,7 +14,6 @@ from ray.exceptions import RayTaskError
 import ado.utilities.output
 from ado.core import OperationResource
 from ado.core.discoveryspace.space import DiscoverySpace
-from ado.core.metadata import PackageProvenance
 from ado.core.operation.config import (
     FunctionOperationInfo,
     GenericOperatorParameters,
@@ -64,23 +63,6 @@ def _operation_status_for_sigterm_initiated_shutdown(
         exit_state=OperationExitStateEnum.ERROR,
         message=message,
     )
-
-
-def operator_provenance_mapping(
-    operator_metadata: OperatorMetadata,
-) -> dict[str, PackageProvenance]:
-    """Return package provenance for the operator that will run an operation.
-
-    Args:
-        operator_metadata: Registered metadata for the operator.
-
-    Returns:
-        A mapping of operator identifier to package provenance. Empty when the
-        operator has no recorded package provenance.
-    """
-    if operator_metadata.provenance is None:
-        return {}
-    return {operator_metadata.operatorIdentifier: operator_metadata.provenance}
 
 
 def log_space_details(discovery_space: "DiscoverySpace") -> None:

@@ -10,7 +10,6 @@ import ray.util.queue
 
 from ado.core import OperationResource
 from ado.core.discoveryspace.space import DiscoverySpace
-from ado.core.metadata import PackageProvenance
 from ado.core.operation.config import (
     FunctionOperationInfo,
     GenericOperatorParameters,
@@ -36,7 +35,6 @@ from ado.modules.operators.console_output import (
 )
 from ado.modules.operators.discovery_space_manager import DiscoverySpaceManager
 from ado.modules.operators.provenance import explore_operation_provenance
-from ado.schema.reference import ExperimentReference
 
 moduleLog = logging.getLogger("explore_orchestration")
 
@@ -192,62 +190,6 @@ def _check_and_extract_discovery_space(
     return spaces[0]
 
 
-def experiment_and_actuator_provenance_from_spaces(
-    spaces: list[DiscoverySpace],
-) -> tuple[list[ExperimentReference], dict[str, PackageProvenance]]:
-    """Resolve catalog experiments and actuator packages for discovery-space inputs.
-
-    Experiments that cannot be resolved against the actuator catalog are skipped.
-    Experiment references are deduplicated by equality. Actuators are
-    deduplicated by identifier.
-
-    Args:
-        spaces: Discovery spaces whose measurement spaces should be recorded.
-
-    Returns:
-        Resolved experiment references and actuator package provenance. Both
-        collections are empty when *spaces* is empty.
-    """
-    from ado.modules.actuators.errors import (
-        DeprecatedExperimentError,
-        MissingActuatorConfigurationForCatalogError,
-        UnexpectedCatalogRetrievalError,
-        UnknownActuatorError,
-        UnknownExperimentError,
-    )
-    from ado.modules.actuators.registry import ActuatorRegistry
-
-    experiments: list[ExperimentReference] = []
-    actuators: dict[str, PackageProvenance] = {}
-    registry = ActuatorRegistry.globalRegistry()
-    for space in spaces:
-        for space_experiment in space.measurementSpace.experiments:
-            try:
-                catalog_experiment = registry.experimentForReference(
-                    space_experiment.reference, resolve=True
-                )
-            except (
-                UnknownExperimentError,
-                UnknownActuatorError,
-                DeprecatedExperimentError,
-                UnexpectedCatalogRetrievalError,
-                MissingActuatorConfigurationForCatalogError,
-            ):
-                continue
-
-            reference = catalog_experiment.reference
-            if reference not in experiments:
-                experiments.append(reference)
-
-            actuator_id = catalog_experiment.actuatorIdentifier
-            if actuator_id not in actuators:
-                actuator_provenance = registry.provenance_for_actuator(actuator_id)
-                if actuator_provenance is not None:
-                    actuators[actuator_id] = actuator_provenance
-
-    return experiments, actuators
-
-
 def orchestrate_explore_operation(
     operator_metadata: OperatorMetadata,
     inputs: dict[str, OperatorInputType],
@@ -310,9 +252,7 @@ def orchestrate_explore_operation(
 
     log_space_details(discovery_space)
 
-    provenance = explore_operation_provenance(
-        operator_metadata.reference, discovery_space.measurementSpace
-    )
+    provenance = explore_operation_provenance(operator_metadata, [discovery_space])
 
     # create cleaner for this namespace
     initialize_ray_resource_cleaner(namespace=operation_info.ray_namespace)

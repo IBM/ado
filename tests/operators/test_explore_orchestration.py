@@ -8,9 +8,9 @@ from ado.core.discoveryspace.space import DiscoverySpace
 from ado.core.operation.resource import OperationProvenanceInfo
 from ado.modules.operators._explore_orchestration import (
     _check_and_extract_discovery_space,
-    explore_operation_provenance,
 )
 from ado.modules.operators.collections import explore
+from ado.modules.operators.provenance import explore_operation_provenance
 
 
 class _Space(DiscoverySpace):
@@ -50,10 +50,10 @@ def test_explore_provenance_from_space_is_deduplicated(
     pfas_space: DiscoverySpace,
 ) -> None:
     """The same experiment on more than one input space is recorded once."""
-    metadata = explore.operators["random_walk"].model_copy(update={"provenance": None})
+    metadata = explore.operators["random_walk"]
     provenance = explore_operation_provenance(metadata, [pfas_space, pfas_space])
 
-    assert provenance.operators == {}
+    assert set(provenance.operators) == {metadata.operatorIdentifier}
     assert len(provenance.experiments) == 1
     assert provenance.experiments[0].actuatorIdentifier == "replay"
     assert (

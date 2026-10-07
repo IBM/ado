@@ -235,10 +235,27 @@ def parse_arguments(arguments: list[str] | None = None) -> argparse.Namespace:
             "best_quality",
             "high_quality",
             "good_quality",
+            "good",
             "medium_quality",
             "optimize_for_deployment",
         ],
-        help="AutoGluon preset quality level",
+        help=(
+            "AutoGluon preset quality level applied to both the classifier and the "
+            "regressor when building. Defaults to 'medium_quality' for the classifier "
+            "and 'good' for the regressor; passing this flag overrides both."
+        ),
+    )
+
+    parser.add_argument(
+        "--model",
+        choices=["classifier", "regressor", "all"],
+        default="all",
+        help=(
+            "Which model(s) to build. "
+            "'classifier' trains the OOM classifier (v4-0-0). "
+            "'regressor' trains the throughput regressor (v4-1-0-regressor). "
+            "'all' trains both (default)."
+        ),
     )
 
     return parser.parse_args(arguments)
@@ -458,16 +475,33 @@ def main() -> None:
         return
 
     try:
-        build_model(
-            model_root=args.model_root_dir,
-            repo_id=args.repo_id,
-            filename=args.filename,
-            data_root_dir=args.data_root_dir,
-            file_name=args.file_name,
-            train_fraction=args.train_fraction,
-            preset_quality=args.preset_quality,
-            refit=args.refit,
-        )
+        if args.model in ("classifier", "all"):
+            build_model(
+                model_root=args.model_root_dir,
+                repo_id=args.repo_id,
+                filename=args.filename,
+                data_root_dir=args.data_root_dir,
+                file_name=args.file_name,
+                train_fraction=args.train_fraction,
+                preset_quality=args.preset_quality,
+                refit=args.refit,
+            )
+        if args.model in ("regressor", "all"):
+            from autoconf.throughput_recommender import build_regressor
+
+            build_regressor(
+                model_root=args.model_root_dir,
+                repo_id=args.repo_id,
+                filename=args.filename,
+                data_root_dir=args.data_root_dir,
+                file_name=args.file_name,
+                fit_options={
+                    "presets": args.preset_quality,
+                    "excluded_model_types": ["GBM"],
+                    "time_limit": 1800,
+                    "num_bag_folds": 5,
+                },
+            )
     except DatasetDownloadError as error:
         logger.error("%s", error)
         raise SystemExit(1) from None

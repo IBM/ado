@@ -120,12 +120,13 @@ Subsequent calls load the cached model with no delay.
 uv run autoconf_build_model
 ```
 
-The model is written to `autoconf/models/v4-0-0/` and loaded automatically
-on all subsequent calls. AutoConf 2.0 pins AutoGluon 1.6.1. Both downloaded
-data and generated models are ignored by Git.
+By default this trains both models: the OOM classifier (`v4-0-0`) and the
+throughput regressor (`v4-1-0-regressor`). Use `--model classifier` or
+`--model regressor` to train only one. Both downloaded data and generated
+models are ignored by Git.
 
 See the [model training guide](autoconf/utils/autoconf_build/README.md) for
-configuration options: custom dataset, preset quality, training fraction.
+configuration options: `--model`, custom dataset, preset quality, training fraction.
 
 The min_gpu_recommender model can be invoked in multiple ways:
 

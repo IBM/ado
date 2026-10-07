@@ -1,4 +1,4 @@
-# Training the AutoConf OOM Classifier
+# Training the AutoConf Models
 
 AutoConf uses an AutoGluon binary classifier to predict whether a fine-tuning
 configuration will complete without a GPU out-of-memory error. Model binaries
@@ -52,18 +52,24 @@ uv venv --python 3.13
 uv pip install -e plugins/custom_experiments/autoconf
 ```
 
-Once `ado-sfttrainer.csv` is available in `LLMFineTuningBench`, build
-the classifier model with:
+Once `ado-sfttrainer.csv` is available in `LLMFineTuningBench`, build both
+models with:
 
 ```terminal
 uv run autoconf_build_model
 ```
 
-The generated classifier is written to `autoconf/models/v4-0-0/`, where the
-installed recommenders load it. AutoConf 2.1 pins AutoGluon 1.6.1. The
-throughput recommender trains its separate regressor automatically on first
-use and stores it under `autoconf/models/v4-1-0-regressor/`. Downloaded data
-and model output are ignored by Git.
+This trains both the OOM classifier (`v4-0-0`) and the throughput regressor
+(`v4-1-0-regressor`). Use `--model` to build only one:
+
+```terminal
+uv run autoconf_build_model --model classifier   # OOM classifier only
+uv run autoconf_build_model --model regressor    # throughput regressor only
+uv run autoconf_build_model --model all          # both (default)
+```
+
+AutoConf 2.1 pins AutoGluon 1.6.1. Downloaded data and generated models are
+ignored by Git.
 
 Use `uv run autoconf_build_model --help` to select a different local data path,
 dataset URL, model root, training fraction, or AutoGluon quality preset.
@@ -82,67 +88,21 @@ The package brings
 in `ado-core` and pins AutoGluon 1.6.1. The command downloads the training CSV
 and writes the model into the same environment that will load it.
 
-## Minimal Computational Performance Results of Various Presets
+## Default Presets
 
-These approaches prioritize **inference speed**, **disk usage**, and **training
-time** over raw accuracy.
+These presets are recommended for the default dataset
+([`ado-sfttrainer.csv`](https://huggingface.co/datasets/ibm-research/LLMFineTuningBench/blob/main/ado-sfttrainer.csv)).
+LightGBM (`GBM`) is excluded to avoid the `libomp` dependency on macOS.
+For other options see the AutoGluon [documentation](https://auto.gluon.ai/stable/tutorials/tabular/).
 
-You can modify the presets and customize the model creation according to your
-needs.
-For detailed options and explanations, refer to the official AutoGluon
-[documentation](https://auto.gluon.ai/stable/tutorials/tabular/).
+| Model | Preset | Training time (~15 k samples) |
+| --- | --- | --- |
+| Classifier (`v4-0-0`) | `medium_quality` + `optimize_for_deployment` | ~2 min |
+| Regressor (`v4-1-0-regressor`) | `good` (30 min time limit, 5-fold bagging) | up to ~30 min |
 
-We exclude LightGBM to avoid needing the additional dependency on `libomp` on
-macOS machines.
+> **Note:** The regressor default preset (`good`, up to 30 min) is more expensive
+> than the classifier default (`medium_quality`, ~2 min) by design — it targets
+> prediction accuracy over disk size, which matters for throughput estimates.
 
-### Current Setting
-
-- **Preset:** `medium_quality` + `optimize_for_deployment`
-- **Excluded Models:** `GBM`
-- **Training Time:** ~1 minutes on ~12,000 samples
-- **Model Size:** ~5 MB
-
-```python
-fit_params = {
-    "presets": ["medium_quality", "optimize_for_deployment"],
-    "excluded_model_types": "GBM",
-}
-```
-
----
-
-### Option 1: Medium Quality Only
-
-- **Preset:** `good_quality`
-- **Excluded Models:** `GBM`
-- **Training Time:** equal to current setting
-- **Model Size:** ~300 MB
-
-```python
-fit_params = {"presets": ["medium_quality"], "excluded_model_types": "GBM"}
-```
-
-### Option 2: Good Quality + Optimize for Deployment
-
-- **Preset:** `good_quality`, `optimize_for_deployment`
-- **Excluded Models:** `GBM`
-- **Training Time:** ~30× longer than current setting
-- **Model Size:** ~353 MB
-
-```python
-fit_params = {
-    "presets": ["good_quality", "optimize_for_deployment"],
-    "excluded_model_types": "GBM",
-}
-```
-
-### Option 3: Good Quality Only
-
-- **Preset:** `good_quality`
-- **Excluded Models:** `GBM`
-- **Training Time:** ~30× longer than current setting
-- **Model Size:** ~600 MB
-
-```python
-fit_params = {"presets": ["good_quality"], "excluded_model_types": "GBM"}
-```
+Use `--preset-quality` to override the preset for both models at once.
+The `good` shorthand is equivalent to `good_quality` for the regressor.

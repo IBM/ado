@@ -64,10 +64,10 @@ from ado.modules.operators.collections import (
     version="1.0.5",
 )
 def detect_anomalous_series(
-        discoverySpace: DiscoverySpace,
-        operationInfo: FunctionOperationInfo | None = None,
-        *,
-        parameters: MyOperatorOptions,
+    discoverySpace: DiscoverySpace,
+    operationInfo: FunctionOperationInfo | None = None,
+    *,
+    parameters: MyOperatorOptions,
 ) -> OperationOutput:
     # Your operation logic - can also call other Python modules etc.
     ...
@@ -93,6 +93,7 @@ from ado.core.operation.config import FunctionOperationInfo
 from ado.core.operation.operation import OperationOutput
 from ado.modules.operators.collections import compare_operation
 
+
 @compare_operation(
     name="my_compare",
     description="Compare two data containers",
@@ -101,13 +102,12 @@ from ado.modules.operators.collections import compare_operation
     version="1.0.0",
 )
 def my_comparison(
-        baseline: DataContainerResource,
-        candidate: DataContainerResource,
-        operationInfo: FunctionOperationInfo | None = None,
-        *,
-        parameters: MyCompareOptions,
-) -> OperationOutput:
-    ...
+    baseline: DataContainerResource,
+    candidate: DataContainerResource,
+    operationInfo: FunctionOperationInfo | None = None,
+    *,
+    parameters: MyCompareOptions,
+) -> OperationOutput: ...
 ```
 
 Decorator metadata parameters (`name`, `version`, `configuration_model`,
@@ -133,12 +133,11 @@ For the common single-space case:
 
 ```python
 def detect_anomalous_series(
-        discoverySpace: DiscoverySpace,
-        operationInfo: FunctionOperationInfo | None = None,
-        *,
-        parameters: MyOperatorOptions,
-) -> OperationOutput:
-    ...
+    discoverySpace: DiscoverySpace,
+    operationInfo: FunctionOperationInfo | None = None,
+    *,
+    parameters: MyOperatorOptions,
+) -> OperationOutput: ...
 ```
 
 Note that the name of the parameter above (`discoverySpace`) can be anything —
@@ -154,13 +153,12 @@ from ado.core.datacontainer.resource import DataContainerResource
 
 
 def my_comparison(
-        baseline: DataContainerResource,
-        candidate: DataContainerResource,
-        operationInfo: FunctionOperationInfo | None = None,
-        *,
-        parameters: MyCompareOptions,
-) -> OperationOutput:
-    ...
+    baseline: DataContainerResource,
+    candidate: DataContainerResource,
+    operationInfo: FunctionOperationInfo | None = None,
+    *,
+    parameters: MyCompareOptions,
+) -> OperationOutput: ...
 ```
 
 Operator functions also take an optional `operationInfo` parameter that holds

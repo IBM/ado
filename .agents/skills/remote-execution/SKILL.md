@@ -83,24 +83,24 @@ uv run ado --remote morrigan_execution.yaml create operation \
 ```
 
 Only supply `-c context.yaml` when you need to target a different project
-then the one currently active.
+than the one currently active.
 
 ---
 
 ## Validating Resources
 
-Validate resources to be created remotely, locally i.e.,
+Validate resources locally before creating them remotely, i.e.:
 
 ```bash
-#Validate operation yaml locally using --dry-run
+# Validate operation yaml locally using --dry-run
 uv run ado create operation \
   -f operation.yaml --use-latest space --dry-run
-#Create it remotely
+# Create it remotely
 uv run ado --remote execution_context.yaml create operation \
     -f operation.yaml --use-latest space
 ```
 
-Validation is the same in both cases so it is
+Validation is the same in both cases, so it is
 more efficient to run locally.
 
 ## Monitoring Remote Ray Jobs
@@ -120,9 +120,9 @@ or check ado operation status
 ado get op <my_op_id> -o yaml
 ```
 
-to check if job pending, started etc.
+to check if the job is pending, has started, etc.
 
-Fetch logs when you need information beyond
+Fetch the logs only when you need information beyond
 what these commands give.
 
 ---
@@ -146,7 +146,7 @@ after a successful submission.
 
 ## Common Issues
 
-### file paths in YAML not valid on the remote cluster
+### File paths in YAML not valid on the remote cluster
 
 Any file path appearing in a space, operation, or actuator configuration YAML
 (e.g. `mps_file`, a model checkpoint, a dataset path) must satisfy **both**

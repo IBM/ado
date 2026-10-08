@@ -45,7 +45,7 @@ Example output:
 │ 0     │ detect_anomalous_series │ 1.0.5   │ characterize │
 │ 1     │ profile                 │ 2.0.4   │ characterize │
 │ 2     │ trim                    │ 2.0.3   │ characterize │
-│ 3     │ random_walk             │ 2.0.0   │ explore      │
+│ 3     │ random_walk             │ 2.1.0   │ explore      │
 │ 4     │ ray_tune                │ 2.0.6   │ explore      │
 │ 5     │ rifferla                │ 2.0.6   │ modify       │
 └───────┴─────────────────────────┴─────────┴──────────────┘

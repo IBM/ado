@@ -6,6 +6,7 @@ import typing
 import pydantic
 import pytest
 
+from ado.schema.observed_property import ObservedProperty, ObservedPropertyValue
 from ado.schema.property import ConstitutiveProperty, ConstitutivePropertyDescriptor
 from ado.schema.property_value import (
     ConstitutivePropertyValue,
@@ -297,3 +298,50 @@ def test_compact_representation_blob(
         property=constitutive_property_descriptor,
     )
     assert val.compact_representation() == f"<blob {len(data)} bytes>"
+
+
+def test_observed_property_value_unsupported_value_type(
+    observed_property: ObservedProperty,
+) -> None:
+    """Constructing ObservedPropertyValue with an unsupported value type raises exactly one error."""
+    with pytest.raises(pydantic.ValidationError) as exc_info:
+        ObservedPropertyValue(value={"a": 1}, property=observed_property)
+
+    errors = exc_info.value.errors()
+    assert len(errors) == 1, f"Expected exactly 1 error, got {len(errors)}: {errors}"
+    error_message = str(errors[0]["msg"])
+    assert "'dict'" in error_message, (
+        f"Error message does not mention 'dict': {error_message}"
+    )
+    assert "test_prop" in error_message, (
+        f"Error message does not include property identifier: {error_message}"
+    )
+    assert "Accepted types" in error_message, (
+        f"Error message does not list accepted types: {error_message}"
+    )
+
+
+@pytest.mark.parametrize("value", [42, 3.14, "hello", [1, 2], b"bytes", None, True])
+def test_observed_property_value_valid_value_types(
+    value: object,
+    observed_property: ObservedProperty,
+) -> None:
+    """ObservedPropertyValue accepts all supported value types without error."""
+    ObservedPropertyValue(value=value, property=observed_property)
+
+
+@pytest.mark.parametrize("value", [42, 3.14, "hello", [1, 2], b"bytes", None])
+def test_observed_property_value_lifecycle(
+    value: object,
+    observed_property: ObservedProperty,
+) -> None:
+    """ObservedPropertyValue round-trips correctly through model_dump / model_validate."""
+    observed_property_value = ObservedPropertyValue(
+        value=value, property=observed_property
+    )
+    reloaded = ObservedPropertyValue.model_validate(
+        observed_property_value.model_dump()
+    )
+    assert reloaded == observed_property_value, (
+        f"Round-trip mismatch for value {value!r}"
+    )

@@ -91,7 +91,20 @@ def test_selector_all_uses_matching_entities_when_space_is_larger() -> None:
         filter_mode=FilterModeEnum.noFilter,
     )
 
-    assert resolved == 3
+    assert resolved.count == 3
+    assert resolved.source == "the number of matching entities in the sample store"
+
+
+def test_selector_requires_matching_entity_count() -> None:
+    with pytest.raises(ValueError, match="matching_entity_count is required"):
+        resolve_number_entities_to_sample(
+            number_entities="all",
+            sampler_config=_selector(),
+            entity_space=_discrete_space(8),
+            matching_entity_count=None,
+            sample_store_entity_count=5,
+            filter_mode=FilterModeEnum.noFilter,
+        )
 
 
 def test_grouped_selector_all_uses_matching_entities() -> None:
@@ -104,7 +117,7 @@ def test_grouped_selector_all_uses_matching_entities() -> None:
         filter_mode=FilterModeEnum.noFilter,
     )
 
-    assert resolved == 3
+    assert resolved.count == 3
 
 
 def test_selector_all_on_non_discrete_space_uses_matching_entities() -> None:
@@ -117,7 +130,7 @@ def test_selector_all_on_non_discrete_space_uses_matching_entities() -> None:
         filter_mode=FilterModeEnum.noFilter,
     )
 
-    assert resolved == 2
+    assert resolved.count == 2
 
 
 def test_selector_all_with_no_entity_space_uses_matching_entities() -> None:
@@ -130,7 +143,7 @@ def test_selector_all_with_no_entity_space_uses_matching_entities() -> None:
         filter_mode=FilterModeEnum.noFilter,
     )
 
-    assert resolved == 4
+    assert resolved.count == 4
 
 
 def test_selector_all_with_no_matching_entities_samples_zero() -> None:
@@ -143,7 +156,7 @@ def test_selector_all_with_no_matching_entities_samples_zero() -> None:
         filter_mode=FilterModeEnum.noFilter,
     )
 
-    assert resolved == 0
+    assert resolved.count == 0
 
 
 def test_generator_all_uses_entity_space_size() -> None:
@@ -151,12 +164,13 @@ def test_generator_all_uses_entity_space_size() -> None:
         number_entities="all",
         sampler_config=_generator(),
         entity_space=_discrete_space(8),
-        matching_entity_count=3,
+        matching_entity_count=None,
         sample_store_entity_count=3,
         filter_mode=FilterModeEnum.noFilter,
     )
 
-    assert resolved == 8
+    assert resolved.count == 8
+    assert resolved.source == "the size of the entity space"
 
 
 def test_generator_all_with_no_entity_space_uses_sample_store_count() -> None:
@@ -164,12 +178,12 @@ def test_generator_all_with_no_entity_space_uses_sample_store_count() -> None:
         number_entities="all",
         sampler_config=_generator(),
         entity_space=None,
-        matching_entity_count=0,
+        matching_entity_count=None,
         sample_store_entity_count=6,
         filter_mode=FilterModeEnum.noFilter,
     )
 
-    assert resolved == 6
+    assert resolved.count == 6
 
 
 def test_generator_count_can_exceed_entities_already_in_the_store() -> None:
@@ -177,12 +191,13 @@ def test_generator_count_can_exceed_entities_already_in_the_store() -> None:
         number_entities=5,
         sampler_config=_generator(),
         entity_space=_discrete_space(8),
-        matching_entity_count=0,
+        matching_entity_count=None,
         sample_store_entity_count=0,
         filter_mode=FilterModeEnum.noFilter,
     )
 
-    assert resolved == 5
+    assert resolved.count == 5
+    assert resolved.source is None
 
 
 def test_custom_sampler_all_uses_entity_space_size() -> None:
@@ -200,12 +215,12 @@ def test_custom_sampler_all_uses_entity_space_size() -> None:
         number_entities="all",
         sampler_config=sampler_config,
         entity_space=_discrete_space(8),
-        matching_entity_count=1,
+        matching_entity_count=None,
         sample_store_entity_count=1,
         filter_mode=FilterModeEnum.noFilter,
     )
 
-    assert resolved == 8
+    assert resolved.count == 8
 
 
 def test_unfiltered_selector_raises_when_request_exceeds_matching_entities() -> None:
@@ -236,11 +251,11 @@ def test_filtered_selector_allows_request_above_matching_count(
         filter_mode=filter_mode,
     )
 
-    assert resolved == 4
+    assert resolved.count == 4
 
 
 def test_request_above_space_size_raises_for_selector_even_with_a_filter() -> None:
-    with pytest.raises(ValueError, match="space size"):
+    with pytest.raises(ValueError, match="entity space"):
         resolve_number_entities_to_sample(
             number_entities=9,
             sampler_config=_selector(),
@@ -257,7 +272,7 @@ def test_generator_all_raises_for_non_discrete_space() -> None:
             number_entities="all",
             sampler_config=_generator(),
             entity_space=_continuous_space(),
-            matching_entity_count=2,
+            matching_entity_count=None,
             sample_store_entity_count=2,
             filter_mode=FilterModeEnum.noFilter,
         )
@@ -269,7 +284,7 @@ def test_generator_all_raises_for_unbounded_discrete_space() -> None:
             number_entities="all",
             sampler_config=_generator(),
             entity_space=_unbounded_discrete_space(),
-            matching_entity_count=0,
+            matching_entity_count=None,
             sample_store_entity_count=0,
             filter_mode=FilterModeEnum.noFilter,
         )
@@ -283,7 +298,7 @@ def test_request_above_sample_store_count_raises_when_there_is_no_entity_space()
             number_entities=5,
             sampler_config=_generator(),
             entity_space=None,
-            matching_entity_count=2,
+            matching_entity_count=None,
             sample_store_entity_count=2,
             filter_mode=FilterModeEnum.noFilter,
         )

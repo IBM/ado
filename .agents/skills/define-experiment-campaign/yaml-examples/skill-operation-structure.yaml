@@ -12,6 +12,8 @@ operation:
     # defaults from RandomWalkParameters
     numberEntities: 100
     batchSize: 10
+    samplerConfig:
+      samplerType: generator
 actuatorConfigurationIdentifiers: [actuator_config_id] # Optional
 metadata:
   name: operation_name

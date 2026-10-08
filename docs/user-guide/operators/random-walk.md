@@ -154,33 +154,35 @@ this many concurrent experiment requests during the operation.
 
 ### Sampling all Entities
 
-If either of the following conditions are true you can specify a value of "all"
-for the `numberEntities` field in the random walk configuration:
+You can specify `all` for `numberEntities` when either of the following is true:
 
-- All dimensions in the `entityspace`s are discrete and bounded or categorical
-- The sampling type is `selector` i.e. you are iterating over an existing set
-  number of entities in a `samplestore`
+- The sampling type is `selector`
+- All dimensions in the `entityspace` are discrete and bounded or categorical
 
-In the first case `all` will be converted to the size of the space. In the
-second case `all` will be converted to the number of matching entities in the
-`samplestore`.
+When the sampling type is `selector`, `all` is the number of matching entities
+in the `samplestore`. This is used even when the `entityspace` is also finite.
+For a `generator` on a finite `entityspace`, `all` is the size of that space.
+If the discovery space has no `entityspace`, `all` is the number of entities in
+the `samplestore`.
 
-If both of these conditions is False the `random_walk` operator will raise a
-ValueError when the execution starts.
+If neither condition is true, `random_walk` raises a ValueError when execution
+starts.
 
 !!! info end
 
-    Depending on the Filter settings a randomwalk operation may not sample "all"
-    entities even if "all" is specified. This is because the filter may filter out
-    some entities.
+    A filter can cause a random walk to sample fewer entities than
+    `numberEntities`, including when `all` is specified. Entities that do not
+    match the filter are skipped, and the operation still finishes successfully.
 
 !!! warning end
 
-    For `discoveryspaces` where one/both of the above conditions are True setting
-    `numberEntities` greater than the corresponding size (size of space, or number
-    of matching entities in `samplestore`) will raise a ValueError. This means you
-    cannot set `numberEntities` to an arbitrarily large number to ensure sampling
-    all of them - use `all` instead.
+    A `generator` raises a ValueError if `numberEntities` is greater than the
+    size of a finite `entityspace`. A `selector` with `filterMode: noFilter`
+    raises a ValueError if `numberEntities` is greater than the number of
+    matching entities in the `samplestore`. Use `all` to sample every entity
+    the sampler can draw. A filter is not subject to that matching-entity
+    ceiling: the walk samples the entities that pass the filter and then
+    finishes.
 
 ## Basic Sampling
 

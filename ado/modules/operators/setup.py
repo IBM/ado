@@ -96,6 +96,7 @@ def setup_actuators(
         )
 
     from ado.metastore.sqlstore import SQLStore
+
     for (
         space_experiment,
         catalog_experiment,

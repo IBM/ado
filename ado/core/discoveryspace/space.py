@@ -1068,7 +1068,7 @@ class DiscoverySpace:
                 parameters={},
             ),
             metadata=config_metadata,
-            inputs={"discoverySpace": self.reference},
+            inputs={CoreResourceKinds.DISCOVERYSPACE.value: self.reference},
         )
 
         if provenance is None:

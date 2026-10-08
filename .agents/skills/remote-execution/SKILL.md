@@ -10,6 +10,13 @@ description:
 
 # Running ado on remote Ray clusters
 
+## Basic Skill Requirements
+
+Ensure you read the following basic skills first:
+
+- [using-ado-cli](../using-ado-cli/SKILL.md)
+- [resource-yaml-creation](../resource-yaml-creation/SKILL.md)
+
 ## Execution context files
 
 An execution context YAML configures a specific cluster and environment.
@@ -48,59 +55,109 @@ remotely unless the user explicitly requests it.
 
 ## Prerequisites
 
-Before dispatching to a cluster with port-forward, verify cluster login:
+Before dispatching to a cluster, complete both steps in order:
 
-```bash
-oc whoami   # OpenShift
-# or
-kubectl get nodes   # Kubernetes
-```
+1. **Verify cluster login**
 
-If this fails, request user to log in first — the port-forward will
-fail with a credentials error otherwise.
+   ```bash
+   oc whoami   # OpenShift
+   # or
+   kubectl get nodes   # Kubernetes
+   ```
+
+   If this fails, ask the user to log in first — the port-forward will fail
+   with a credentials error otherwise.
+
+2. **Query the cluster's Ray version and pin it**
+
+   Ray raises `Changing the ray version is not allowed` if the version in the
+   execution context differs from the one installed on the cluster.
+   Query the cluster to get the authoritative version:
+
+   ```bash
+   # Start the port-forward in the background (replace values to match your context)
+   kubectl port-forward -n <namespace> svc/<ray-head-svc> 8265:8265 &
+   PF_PID=$!
+   sleep 3
+
+   # Query the Ray Dashboard REST API
+   RAY_VERSION=$(python3 -c \
+     "import urllib.request, json; print(json.load(urllib.request.urlopen('http://localhost:8265/api/version'))['ray_version'])")
+
+   echo "Cluster Ray version: $RAY_VERSION"
+
+   # Stop the temporary port-forward
+   kill $PF_PID
+   ```
+
+   Then pin the retrieved version in the execution context YAML:
+
+   ```yaml
+   packages:
+     fromPyPI:
+       - ado-core
+       - ray==2.47.0  # replace with the value echoed above
+       - ado-ray-tune
+   ```
 
 ---
 
 ## Project context
 
-The active local project context is automatically forwarded to the remote job.
-To work on the same project locally and remotely, use the same active context
-for both — do not add a separate `-c` flag unless explicitly switching context:
+The active project context is automatically forwarded to the remote job.
 
 ```bash
 # Local: uses active context
 uv run ado create space -f space.yaml
 
 # Remote: forwards the same active context automatically
+# --use-latest will be the space created above
 uv run ado --remote morrigan_execution.yaml create operation \
     -f operation.yaml --use-latest space
 ```
 
-Only supply `-c context.yaml` when you need to target a different project than
-the one currently active.
+Only supply `-c context.yaml` when you need to target a different project
+than the one currently active.
 
 ---
 
-## Operation creation command patterns
+## Validating Resources
 
-**One step** — create space and operation together remotely:
-
-```bash
-uv run ado --remote execution_context.yaml create operation \
-    -f operation.yaml \
-    --with space=space.yaml
-```
-
-**Two steps** — create space locally, run operation remotely:
+Validate resources locally before creating them remotely, i.e.:
 
 ```bash
-uv run ado create space -f space.yaml
+# Validate operation yaml locally using --dry-run
+uv run ado create operation \
+  -f operation.yaml --use-latest space --dry-run
+# Create it remotely
 uv run ado --remote execution_context.yaml create operation \
     -f operation.yaml --use-latest space
 ```
 
-Prefer the two-step pattern when you want the space registered in the local
-metastore (e.g. for local querying or validation) before submitting.
+Validation is the same in both cases, so it is
+more efficient to run locally.
+
+## Monitoring Remote Ray Jobs
+
+The logs of the ray job associated with an operation
+can be large.
+
+Prefer to check ray job status
+
+```commandline
+ray job status <my_job_id>
+```
+
+or check ado operation status
+
+```commandline
+ado get op <my_op_id> -o yaml
+```
+
+to check if the job is pending, has started, etc.
+
+Fetch the logs only when you need information beyond
+what these commands give.
 
 ---
 
@@ -117,9 +174,13 @@ for `create operation` as it can be hours long.
 If you are executing `get` or `show` commands waiting is valid
 as these may only take seconds to minutes.
 
+The command after `--remote` is parsed and run on the cluster, not locally.
+Errors in its arguments will only appear in the Ray job logs
+after a successful submission.
+
 ## Common Issues
 
-### file paths in YAML not valid on the remote cluster
+### File paths in YAML not valid on the remote cluster
 
 Any file path appearing in a space, operation, or actuator configuration YAML
 (e.g. `mps_file`, a model checkpoint, a dataset path) must satisfy **both**
@@ -160,18 +221,6 @@ additionalFiles:
 The same applies to actuator configuration files that reference local paths
 (e.g. model weights, config files). Audit all `-f` files for local path
 references before dispatching remotely.
-
-### Ray version mismatch
-
-If you see `Changing the ray version is not allowed`, pin the Ray version in
-`fromPyPI` to match the cluster:
-
-```yaml
-fromPyPI:
-  - ado-core
-  - ray==2.52.1 # match the cluster's installed version
-  - ado-ray-tune
-```
 
 ### fromSource plugin changes not reflected in remote run
 

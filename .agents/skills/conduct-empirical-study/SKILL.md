@@ -20,44 +20,78 @@ For measuring **one** entity/point (functional check), use
 `run_experiment` — see [run-experiment](../run-experiment/SKILL.md) — not this
 workflow.
 
+## Basic Skill Requirements
+
+Ensure you read the following basic skills first:
+
+- [using-ado-cli](../using-ado-cli/SKILL.md)
+- [Querying ado data](../query-ado-data)
+
 ## Workflow Overview
 
-Five sequential steps. Steps 2 and 3 are optional, but if step 2 is performed,
-step 3 must follow.
+Six sequential steps. Steps 3 is optional.
 
-```text
-1. Formulate  →  2. (Optional) Implement  →  3. (Optional) Complete
-  →  4. Execute  →  5. Analyse
+1. Check Prior Work
+2. Define/Refine Study
+3. (Optional) Implement Experiments
+4. Define Experiment Campaign
+5. Execute Experiment Campaign
+6. Analyse
+
+---
+
+## Step 1: Check Prior Work
+
+To perform this step read:
+
+- [Create Research Study Document](../create-research-study-document)
+
+List existing study documents
+
+```commandline
+ado get documents --details --no-trunc --output-file studies.txt
 ```
+
+Identify any relevant ones. For the ones identified run
+
+```commandline
+ado get document $DOCUMENTID -o yaml --output-file $ID.yaml
+```
+
+Find the relevant study labels and then query for resources that have those labels.
+[See the examples](../create-research-study-document/SKILL.md#query).
+
+Form a picture of the current study state. In particular:
+
+- What and how much has been explored
+- What experiments have been used
+- What relevant analysis operators exists
+
+---
+
+## Step 2: Define or Refine the Study
 
 At the start of a named study (and when objectives or next steps change), create
 or refresh a study document and apply its study labels to spaces/operations —
 see [create-research-study-document](../create-research-study-document/SKILL.md).
 
----
+Decide if this constitutes a new study or is an extension of an existing
+one (matches the scope of an existing study).
 
-## Step 1: Formulate the Discovery Problem
+If it is an extension of an existing study decide if the study
+document should be refreshed with additional information.
+In any case use that studies labels where possible in the subsequent steps.
 
-Follow the [define-experiment-campaign](../define-experiment-campaign/SKILL.md)
-skill to frame the problem with ado.
-
-Gather user input on formulation details before deciding the next step:
-
-- Preferred exploration technique (random search, space-filling, multi-objective
-  optimization, etc.)
-- Values for actuator configuration
-
-**Outcome A** — All required experiments and analysis tools exist:
-skip to Step 4.
-
-**Outcome B** — Required experiments or analysis tools are missing: proceed to
-Step 2.
+If it constitutes a new study write a study document for it.
 
 ---
 
-## Step 2: (Optional) Implementation Phase
+## Step 3: (Optional) Implementation Phase
 
-Required only when Step 1 identified missing experiments, actuators, or operators.
+Read [define-experiment-campaign](../define-experiment-campaign/SKILL.md)
+
+Decide if any new experiments or analysis operators are required for the
+study.
 
 Follow [plugin-development](../plugin-development/SKILL.md) to implement
 the needed components.
@@ -67,20 +101,19 @@ Gather user input on implementation details:
 - Whether experiments should be actuators or custom experiments
 - Which parameters should be required vs. optional in a custom experiment
 - Fields needed in actuator configurations or operator parameters
+- Details on analysis operators
 
 ---
 
-## Step 3: (Optional) Complete Problem Formulation
+## Step 4: Define Experiment Campaign
 
-Required if Step 2 was performed. Return to the
-[define-experiment-campaign](../define-experiment-campaign/SKILL.md) skill and
-complete the formulation, now incorporating the new components created in Step 2.
+Define an initial experiment campaign following [define-experiment-campaign](../define-experiment-campaign/SKILL.md).
 
 ---
 
-## Step 4: Execute the Empirical Study
+## Step 5: Execute the Experiment Campign
 
-Execute the plan from Step 1 or Step 3.
+Execute the experiment campaign.
 
 **Local execution**: create and start the operation from the repo root (verify
 flags with `uv run ado create operation --help`):
@@ -89,9 +122,6 @@ flags with `uv run ado create operation --help`):
 uv run ado create space -f space.yaml
 uv run ado create operation -f operation.yaml --use-latest space
 ```
-
-For CLI conventions, shortcuts, and debugging, see
-[using-ado-cli](../using-ado-cli/SKILL.md).
 
 **Remote execution**: follow [remote-execution](../remote-execution/SKILL.md).
 
@@ -109,7 +139,7 @@ Gather user input on execution details:
 
 ---
 
-## Step 5: Analyse Results
+## Step 6: Analyse Results
 
 After the operation has produced data, use:
 

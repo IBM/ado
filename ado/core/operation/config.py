@@ -901,6 +901,7 @@ class FunctionOperationInfo(pydantic.BaseModel):
     projectContext: Annotated[
         ProjectContext | None,
         pydantic.Field(
-            description=("Project this operation runs in."),
+            description="Project this operation runs in.",
+            exclude=True,
         ),
     ] = None

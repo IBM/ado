@@ -12,6 +12,7 @@ from ado.core.operation.config import (
     DiscoveryOperationConfiguration,
     DiscoveryOperationEnum,
     DiscoveryOperationResourceConfiguration,
+    FunctionOperationInfo,
     ScriptOperatorConf,
 )
 from ado.core.operation.resource import (
@@ -31,6 +32,35 @@ from ado.modules.module import load_module_class_or_function
 def test_discovery_operation_enum_legacy_search_redirects_to_explore() -> None:
     """Legacy 'search' value is accepted and redirected to EXPLORE via _missing_."""
     assert DiscoveryOperationEnum("search") is DiscoveryOperationEnum.EXPLORE
+
+
+def test_function_operation_info_excludes_project_context_from_serialization() -> None:
+    """projectContext stays on the instance and is omitted from dumps.
+
+    Reconstructing from a dump leaves the field at its default.
+    """
+    from ado.metastore.project import ProjectContext
+    from ado.utilities.location import SQLStoreConfiguration
+
+    project_context = ProjectContext(
+        project="credproj",
+        metadataStore=SQLStoreConfiguration(
+            scheme="mysql+pymysql",
+            host="db.example",
+            database="credproj",
+            user="ado",
+            password="s3cret-token",  # pragma: allowlist secret
+        ),
+    )
+    info = FunctionOperationInfo(projectContext=project_context)
+
+    assert info.projectContext == project_context
+    dumped = info.model_dump()
+    assert "projectContext" not in dumped
+    assert "s3cret-token" not in info.model_dump_json()
+
+    restored = FunctionOperationInfo.model_validate(dumped)
+    assert restored.projectContext is None
 
 
 @pytest.fixture

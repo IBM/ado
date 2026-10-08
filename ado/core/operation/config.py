@@ -694,6 +694,40 @@ class DiscoveryOperationResourceConfiguration(pydantic.BaseModel):
             data["inputs"] = {"discoverySpace": {"identifier": spaces[0]}}
         return data
 
+    def _validate_script_operator_inputs(self) -> None:
+        """Check that a script operator has exactly one discoveryspace input.
+
+        The input's ``kind`` must be set and equal
+        :attr:`~ado.core.resources.CoreResourceKinds.DISCOVERYSPACE`.
+
+        Raises:
+            ValueError: If ``inputs`` is empty, has more than one entry, or an
+                entry's kind is missing or is not a discoveryspace.
+        """
+        if not self.inputs:
+            raise ValueError(
+                "ScriptOperatorConf operations require exactly one input "
+                "(the discovery space); 'inputs' is empty."
+            )
+        if len(self.inputs) > 1:
+            raise ValueError(
+                "ScriptOperatorConf operations support exactly one input "
+                f"(the discovery space); found: {list(self.inputs)}."
+            )
+        for name, entry in self.inputs.items():
+            if entry.kind is None:
+                raise ValueError(
+                    f"Input '{name}' has no kind. ScriptOperatorConf "
+                    "operations must be created via "
+                    "DiscoverySpace.operation_context(), which always "
+                    "provides an explicit kind."
+                )
+            if entry.kind != CoreResourceKinds.DISCOVERYSPACE:
+                raise ValueError(
+                    f"Input '{name}' has kind {entry.kind.value!r}; "
+                    "ScriptOperatorConf only supports discoveryspace inputs."
+                )
+
     @pydantic.model_validator(mode="after")
     def validate_inputs(self, info: pydantic.ValidationInfo) -> Self:
         """Validate and populate ``kind`` on all input entries.
@@ -734,31 +768,7 @@ class DiscoveryOperationResourceConfiguration(pydantic.BaseModel):
         module = self.operation.module
 
         if isinstance(module, ScriptOperatorConf):
-            # Script operators are always created via DiscoverySpace.operation_context,
-            # which provides a fully-typed ADOResourceReference (kind=DISCOVERYSPACE).
-            if not self.inputs:
-                raise ValueError(
-                    "ScriptOperatorConf operations require exactly one input "
-                    "(the discovery space); 'inputs' is empty."
-                )
-            if len(self.inputs) > 1:
-                raise ValueError(
-                    "ScriptOperatorConf operations support exactly one input "
-                    f"(the discovery space); found: {list(self.inputs)}."
-                )
-            for name, entry in self.inputs.items():
-                if entry.kind is None:
-                    raise ValueError(
-                        f"Input '{name}' has no kind. ScriptOperatorConf "
-                        "operations must be created via "
-                        "DiscoverySpace.operation_context(), which always "
-                        "provides an explicit kind."
-                    )
-                if entry.kind != CoreResourceKinds.DISCOVERYSPACE:
-                    raise ValueError(
-                        f"Input '{name}' has kind {entry.kind.value!r}; "
-                        "ScriptOperatorConf only supports discoveryspace inputs."
-                    )
+            self._validate_script_operator_inputs()
             return self
 
         # Load operator required_resource_inputs (mirrors validate_and_downcast_parameters).

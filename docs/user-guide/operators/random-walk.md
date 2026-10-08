@@ -67,7 +67,7 @@ The parameters for a `random_walk` operation are (default values shown):
 <!-- markdownlint-disable line-length -->
 
 ```yaml
-numberEntities: 1 # The maximum number of entities to sample. Can also be the string "all" - see "Sampling all Entities".
+numberEntities: 1 # The number of entities to sample (unfiltered), or the maximum number of entities to sample (filtered). Can also be the string "all" - see "Sampling all Entities".
 batchSize: 1 # The Number of entities in the initial batch. For more on this see "Batch Size and Concurrent Experiments" below
 samplerConfig:
   mode: random # How to sample - can be random, sequential, sequentialgrouped or randomgrouped. sequential requires the sampling supports sequencing entities
@@ -161,9 +161,7 @@ You can specify `all` for `numberEntities` when either of the following is true:
 
 When the sampling type is `selector`, `all` is the number of matching entities
 in the `samplestore`. This is used even when the `entityspace` is also finite.
-For a `generator` on a finite `entityspace`, `all` is the size of that space.
-If the discovery space has no `entityspace`, `all` is the number of entities in
-the `samplestore`.
+For a `generator`, `all` is the size of the `entityspace`, which must be finite.
 
 If neither condition is true, `random_walk` raises a ValueError when execution
 starts.
@@ -176,9 +174,9 @@ starts.
 
 !!! warning end
 
-    A `generator` raises a ValueError if `numberEntities` is greater than the
+    `random_walk` raises a ValueError if `numberEntities` is greater than the
     size of a finite `entityspace`. A `selector` with `filterMode: noFilter`
-    raises a ValueError if `numberEntities` is greater than the number of
+    also raises a ValueError if `numberEntities` is greater than the number of
     matching entities in the `samplestore`. Use `all` to sample every entity
     the sampler can draw. A filter is not subject to that matching-entity
     ceiling: the walk samples the entities that pass the filter and then

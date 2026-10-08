@@ -20,16 +20,13 @@ on, and whether measurements and results look healthy.
   `document` resource in the active ado metastore context (see
   [Producing a report](#producing-a-report)).
 
-**Related skills**:
+**Basic skills**:
 
-- For CLI verification and command spelling, see
-  [using-ado-cli](../using-ado-cli/SKILL.md).
-- For metastore filtering, schemas see
-  [query-ado-data](../query-ado-data/SKILL.md).
-- For creating document resources that store reports, see
-  [resource-yaml-creation — Document](../resource-yaml-creation/SKILL.md#document).
-- For a project/context wide view (all spaces and operations), see
-  [examining-ado-project](../examining-ado-project/SKILL.md).
+Read the following basic skills first:
+
+- [using-ado-cli](../using-ado-cli/SKILL.md).
+- [query-ado-data](../query-ado-data/SKILL.md).
+- [resource-yaml-creation — Document](../resource-yaml-creation/SKILL.md#document).
 
 ## Key Concepts
 
@@ -339,6 +336,10 @@ To get the data on measurements execute (noting the
 uv run ado show measurements operation OPERATION_ID \
   -o csv --output-file OPERATION_ID_entities.csv
 ```
+
+If only some metrics are needed, add `--property` for each metric and input
+property to keep the file and data fetched from database small — see
+[query-ado-data](../query-ado-data/SKILL.md#show-entities).
 
 ### Step 4: Analyze the Measurement data
 

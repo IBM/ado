@@ -941,11 +941,12 @@ class RandomWalk(Explore):
     @classmethod
     def operator_metadata(cls) -> OperatorMetadata:
         """Returns operator metadata for the random_walk explore operator."""
+        samplerConfig = BaseSamplerConfiguration(samplerType="generator")
         return OperatorMetadata(
             name="random_walk",
             version="2.0.0",
             description=cls.description(),
             configuration_model=RandomWalkParameters,
-            example_configuration=RandomWalkParameters(),
+            example_configuration=RandomWalkParameters(samplerConfig=samplerConfig),
             type=DiscoveryOperationEnum.EXPLORE,
         )

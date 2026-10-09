@@ -146,7 +146,7 @@ vs `ENTITY_SPACE_SIZE` to understand exploration progress.
 - `SAMPLED_FULL`: entities with valid results for all experiments in the space.
 - `SAMPLED_PARTIAL`: entities with valid results for some but not all experiments.
 - `SAMPLED_FAILED`: entities with at least one invalid result and zero
-  valid results for in-space experiments.
+  valid results for experiments in the measurement space.
 
 Compare `SAMPLED_FULL` vs `MATCHING_FULL`
 to understand memoization opportunities — a large gap signals other overlapping

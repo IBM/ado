@@ -771,7 +771,7 @@ importlib-metadata==9.0.1 ; python_full_version < '3.10.2' \
     --hash=sha256:ab830580bc0ef3db61ce8fae716389e5462b67e033018bab6d8f80ef17172f99 \
     --hash=sha256:bba5600596a7e21f3eef53281cf28d6a5195634d2f2b78ff9501a3272c6eaab0
     # via build
-jinja2==3.1.6 \
+jinja2==3.1.6 ; python_full_version >= '3.14' \
     --hash=sha256:0137fb05990d35f1275a587e9aee6d56da821fc83491a0fb838183be43f66d6d \
     --hash=sha256:85ece4451f492d0c13c5dd7c13a64681a86afae63a5f347908daf103ce6d2f67
     # via ray
@@ -791,7 +791,7 @@ markdown-it-py==4.2.0 \
     --hash=sha256:04a21681d6fbb623de53f6f364d352309d4094dd4194040a10fd51833e418d49 \
     --hash=sha256:9f7ebbcd14fe59494226453aed97c1070d83f8d24b6fc3a3bcf9a38092641c4a
     # via rich
-markupsafe==3.0.4 \
+markupsafe==3.0.4 ; python_full_version >= '3.14' \
     --hash=sha256:051417f74bcaaefa316276e0ff723f541616ca51043d070da00249d9bddd3e3c \
     --hash=sha256:06de8ef6331f6e822c28d577dc8bf43fe398800477c49498f38fc38b67ff33fc \
     --hash=sha256:0764a13d34cae40db7bbf3a09b7e9b491bf4603e20b263a7a9d6b8e324975d0a \
@@ -1889,7 +1889,27 @@ pyyaml==6.0.3 \
     #   ado-core
     #   ray
     #   uvicorn
-ray==2.59.0 \
+ray==2.56.1 ; python_full_version < '3.14' \
+    --hash=sha256:44bc0000c5bfad85b2ff6e0ef91e95f901d1a2d2fdd72f94f08a046eb494cd61 \
+    --hash=sha256:49aa1f8aa1799a6b63adc8e4edd600b949b2bb648461abedcbcccd56c8ef0f82 \
+    --hash=sha256:4df45f33cc176b11c69191efdcfb4aceaeea22fecfa784f6485b6504ef8c8b26 \
+    --hash=sha256:58b8c037a9f2b7b7866439cb6fe19d452ba3961f2b62d0a247dc3adf2ca45265 \
+    --hash=sha256:5eebd776cd461edebc5874d2dfba3005147b6b45645d8a16a6549311c5efffea \
+    --hash=sha256:7005a13785c7478c3d183b6f1e7a344c069c4c4fb187707c4fc31ca8c84d8d9f \
+    --hash=sha256:76f6268a669c1d9910f1d7b73903de3ede9850ed94d3e28318d495559bd37d0e \
+    --hash=sha256:7fdc47de4e230f0db7c6c668a9e161f864dac548bd32230986e0b0c36e386eb5 \
+    --hash=sha256:8052573ee5ef8c4fdd7aeb6a257c80542e69c48f3f6d117101f95c970ffdc7e2 \
+    --hash=sha256:81f2db202cc31bc3f5c4acf9ef154d10f1f39ece602d9d2d3108875c49bf01c3 \
+    --hash=sha256:8fdd6b096215906cf1f9acdc7898c9d6140606f2d27245778b8385a9f19e6cb0 \
+    --hash=sha256:93dedab658334af81877b6ed840c4e5f85e2e0b1b3641b20eaaee37cad835cc6 \
+    --hash=sha256:ad87fa57c5c69c77edab14820226868842648de7181894dba4fb1e874a0ab27e \
+    --hash=sha256:ae91fe578fadea38c13a208a0fec27e1ced238ccdf5fff95ef3e30ac3071dec9 \
+    --hash=sha256:c102fb09e82c2e10828d5c21cfb744e27bca690b287c7d0a77d0d883c0c86907 \
+    --hash=sha256:e5d3173696831134c76bd09451dfe95c32d72c271253b0d6b09d2df9994aa660 \
+    --hash=sha256:e7003a47a42ef2ad33ec0b34dc5b6afb03f63fe59465e6f4c8f6d05492d9e4a6 \
+    --hash=sha256:ea372c7f95b14f1f76f0bdd2abc9602c56e88bc30699d2228f78133e7749b2f1
+    # via ado-core
+ray==2.59.0 ; python_full_version >= '3.14' \
     --hash=sha256:050781099ce641b7d89896e7b0d79c820813529da86c9b5c65ecb7c89403e667 \
     --hash=sha256:09e2dd8ba367f07f1829fc2e35f41e9c3fa9f6ec0babace13d70ebe14e8cf662 \
     --hash=sha256:3f89f68ade71fe6ff57fd15de893754905a09ebf6efe0d9e32870745c62b52a7 \
@@ -1911,7 +1931,7 @@ ray==2.59.0 \
     --hash=sha256:d3a119eac653c0a1b3bf4e25609de123e5fb994a33d4e1f270ed1ce5e304693d \
     --hash=sha256:e59bbeed9fd3ae29e326bcf73a6dc6b957029004230e9f1e874670c4e390b147
     # via ado-core
-ray-haproxy==2.8.25 ; sys_platform == 'linux' \
+ray-haproxy==2.8.25 ; python_full_version >= '3.14' and sys_platform == 'linux' \
     --hash=sha256:51671f11afb571ed5b37042f9287daf48de235f2d32ad18b732ee9587e9ad076 \
     --hash=sha256:a63902c2fe7eb51fbcb502980228d743b79da6cecab230c4c24674517b1ac3ac
     # via ray

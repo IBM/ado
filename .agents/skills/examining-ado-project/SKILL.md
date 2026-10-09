@@ -187,11 +187,11 @@ When examining a study, add `-l study=$ID` (the study's label) to the
    uv run ado get spaces -o stats --output-file spaces-stats.txt
    ```
 
-   Adds `EXPERIMENTS`, `OPERATIONS`, `EXPLORE_OPERATIONS`, and
-   `MEASURED_ENTITIES` columns.
+   Adds `EXPERIMENTS`, `OPERATIONS`, `EXPLORE_OPS` columns.
 
    For richer stats that also include full entity-space coverage columns
-   (`SIZE_OF_ENTITY_SPACE`, `UNMEASURED_ENTITIES`, `MATCHING_ENTITIES`, etc.):
+   (`ENTITY_SPACE_SIZE`, `UNSAMPLED`, `SAMPLED_FULL`, `SAMPLED_PARTIAL`,
+   `SAMPLED_FAILED`, `MATCHING_FULL`, `MATCHING_PARTIAL`, `MATCHING_FAILED`):
 
    ```bash
    uv run ado show stats discoveryspace --output-file spaces-fullstats.csv -o csv

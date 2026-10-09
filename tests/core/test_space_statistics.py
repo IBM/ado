@@ -3,14 +3,31 @@
 
 import math
 from collections.abc import Callable
+from typing import TYPE_CHECKING
 
+if TYPE_CHECKING:
+    import datetime
+
+from ado.core import OperationResource
 from ado.core.discoveryspace.space import DiscoverySpace
 from ado.core.discoveryspace.stats import (
     DiscoverySpaceStatistics,
     space_statistics_for_spaces,
 )
+from ado.core.operation.config import (
+    DiscoveryOperationEnum,
+    DiscoveryOperationResourceConfiguration,
+)
 from ado.core.samplestore.sql import SQLSampleStore
-from ado.schema.request import MeasurementRequest
+from ado.metastore.project import ProjectContext
+from ado.metastore.sqlstore import SQLResourceStore
+from ado.schema.reference import ExperimentReference
+from ado.schema.request import (
+    MeasurementRequest,
+    MeasurementRequestStateEnum,
+    ReplayedMeasurement,
+)
+from ado.schema.result import InvalidMeasurementResult, MeasurementResultStateEnum
 from tests.conftest import requires_sqlite_3_38
 
 # ---------------------------------------------------------------------------
@@ -28,11 +45,12 @@ def test_heavy_fields_default_to_none() -> None:
     )
     assert stats.size_of_entity_space is None
     assert stats.number_unmeasured_entities is None
-    assert stats.number_matching_entities is None
-    assert stats.number_matching_entities_with_measurements is None
-    assert stats.entities_with_all_measurements is None
-    assert stats.entities_with_partial_measurements is None
-    assert stats.matching_entities_with_all_measurements is None
+    assert stats.sampled_full is None
+    assert stats.sampled_partial is None
+    assert stats.sampled_failed is None
+    assert stats.matching_full is None
+    assert stats.matching_partial is None
+    assert stats.matching_failed is None
 
 
 def test_nan_unmeasured_entities_round_trip() -> None:
@@ -44,8 +62,9 @@ def test_nan_unmeasured_entities_round_trip() -> None:
         number_measured_entities=5,
         size_of_entity_space=None,
         number_unmeasured_entities=math.nan,
-        number_matching_entities=None,
-        number_matching_entities_with_measurements=None,
+        sampled_full=None,
+        sampled_partial=None,
+        sampled_failed=None,
     )
     restored = DiscoverySpaceStatistics.model_validate(stats.model_dump())
     assert restored.size_of_entity_space is None
@@ -61,8 +80,9 @@ def test_inf_unmeasured_entities_round_trip() -> None:
         number_measured_entities=0,
         size_of_entity_space=None,
         number_unmeasured_entities=math.inf,
-        number_matching_entities=None,
-        number_matching_entities_with_measurements=None,
+        sampled_full=None,
+        sampled_partial=None,
+        sampled_failed=None,
     )
     restored = DiscoverySpaceStatistics.model_validate(stats.model_dump())
     assert math.isinf(restored.number_unmeasured_entities)
@@ -98,11 +118,12 @@ def test_space_statistics_lightweight_only(
     # Heavy fields must be None when lightweight_only=True
     assert stats.size_of_entity_space is None
     assert stats.number_unmeasured_entities is None
-    assert stats.number_matching_entities is None
-    assert stats.number_matching_entities_with_measurements is None
-    assert stats.entities_with_all_measurements is None
-    assert stats.entities_with_partial_measurements is None
-    assert stats.matching_entities_with_all_measurements is None
+    assert stats.sampled_full is None
+    assert stats.sampled_partial is None
+    assert stats.sampled_failed is None
+    assert stats.matching_full is None
+    assert stats.matching_partial is None
+    assert stats.matching_failed is None
 
 
 @requires_sqlite_3_38
@@ -119,20 +140,29 @@ def test_space_statistics_full_no_operations(
     assert stats.number_measured_entities == 0
     assert stats.size_of_entity_space == _ENTITY_SPACE_SIZE
     assert stats.number_unmeasured_entities == _ENTITY_SPACE_SIZE
-    assert stats.number_matching_entities == _NUMBER_OF_MATCHING_ENTITIES
     # The CSV sample store already carries observed property values for the
     # benchmark_performance experiment, so all matching entities have measurements
-    assert (
-        stats.number_matching_entities_with_measurements == _NUMBER_OF_MATCHING_ENTITIES
-    )
-    assert stats.matching_entities_with_all_measurements == _NUMBER_OF_MATCHING_ENTITIES
+    assert stats.matching_full == _NUMBER_OF_MATCHING_ENTITIES
+    assert stats.matching_partial == 0
+    assert stats.matching_failed == 0
+    # No sampled entities (no operations) → all buckets are 0
+    assert stats.sampled_full == 0
+    assert stats.sampled_partial == 0
+    assert stats.sampled_failed == 0
 
 
 @requires_sqlite_3_38
 def test_space_statistics_full_with_operation(
     ml_multi_cloud_space: DiscoverySpace,
     simulate_ml_multi_cloud_random_walk_operation: Callable[
-        [int, int, int, str | None],
+        [
+            int,
+            int,
+            int,
+            str | None,
+            "datetime.datetime | None",
+            "MeasurementResultStateEnum | None",
+        ],
         tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
     ],
 ) -> None:
@@ -155,19 +185,96 @@ def test_space_statistics_full_with_operation(
     assert stats.number_measured_entities == number_entities
     assert stats.size_of_entity_space == _ENTITY_SPACE_SIZE
     assert stats.number_unmeasured_entities == _ENTITY_SPACE_SIZE - number_entities
-    assert stats.number_matching_entities == _NUMBER_OF_MATCHING_ENTITIES
     # The CSV sample store already carries observed property values for all entities,
     # so all matching entities have measurements regardless of the simulated operation
-    assert (
-        stats.number_matching_entities_with_measurements == _NUMBER_OF_MATCHING_ENTITIES
+    assert stats.matching_full == _NUMBER_OF_MATCHING_ENTITIES
+    assert stats.matching_partial == 0
+    assert stats.matching_failed == 0
+    assert stats.sampled_full == number_entities
+    assert stats.sampled_partial == 0
+    assert stats.sampled_failed == 0
+
+
+@requires_sqlite_3_38
+def test_space_statistics_failure_only_entities(
+    ml_multi_cloud_space: DiscoverySpace,
+    ml_multi_cloud_sample_store: SQLSampleStore,
+    ml_multi_cloud_operation_configuration: DiscoveryOperationResourceConfiguration,
+    valid_ado_project_context: ProjectContext,
+) -> None:
+    """sampled_failed equals the number of sampled entities when all results are failures."""
+    # The ml_multi_cloud entity space has 48 points; the CSV store seeds 42.
+    # Enumerate all entity-space points and collect those whose identifier is
+    # not yet in the SQL store — these have no valid measurements of any kind.
+    store_identifiers = ml_multi_cloud_sample_store.entity_identifiers()
+    prop_names = [
+        c.identifier for c in ml_multi_cloud_space.entitySpace.constitutiveProperties
+    ]
+    entities_to_fail = []
+    for point in ml_multi_cloud_space.entitySpace.sequential_point_iterator():
+        entity = ml_multi_cloud_space.entitySpace.entity_for_point(
+            dict(zip(prop_names, point, strict=True))
+        )
+        if entity.identifier not in store_identifiers:
+            entities_to_fail.append(entity)
+        if len(entities_to_fail) == 3:
+            break
+    assert len(entities_to_fail) == 3, (
+        "Not enough entity-space points absent from the store to run this test"
     )
-    assert stats.matching_entities_with_all_measurements == _NUMBER_OF_MATCHING_ENTITIES
-    assert stats.entities_with_all_measurements == number_entities
-    assert stats.entities_with_partial_measurements == 0
-    assert (
-        stats.entities_with_all_measurements + stats.entities_with_partial_measurements
-        == number_entities * number_requests
+
+    # Add the entities to the store so get_entities() can find them during
+    # Pass 1 of space_statistics.  They have no valid measurements at this
+    # point — only the InvalidMeasurementResult added below.
+    ml_multi_cloud_sample_store.addEntities(entities_to_fail)
+
+    # Register a synthetic operation in the metastore linked to this space.
+    operation_id = "regression-bug1-failure-only-001"
+    sql = SQLResourceStore(project_context=valid_ado_project_context)
+    resource = OperationResource(
+        identifier=operation_id,
+        config=ml_multi_cloud_operation_configuration,
+        operationType=DiscoveryOperationEnum.EXPLORE,
+        operatorIdentifier="test",
     )
+    sql.addResourceWithRelationships(
+        resource,
+        relatedIdentifiers=ml_multi_cloud_operation_configuration.spaces,
+    )
+
+    # Add a request and invalid results for the unmeasured entities.
+    exp_ref = ExperimentReference(
+        experimentIdentifier="benchmark_performance",
+        actuatorIdentifier="replay",
+    )
+    request = ReplayedMeasurement(
+        operation_id=operation_id,
+        requestIndex=0,
+        experimentReference=exp_ref,
+        entities=tuple(entities_to_fail),
+        requestid="regression-req-001",
+        status=MeasurementRequestStateEnum.SUCCESS,
+        measurements=tuple(
+            InvalidMeasurementResult(
+                entityIdentifier=e.identifier,
+                reason="test failure",
+                experimentReference=exp_ref,
+            )
+            for e in entities_to_fail
+        ),
+    )
+    request_db_id = ml_multi_cloud_sample_store.add_measurement_request(request=request)
+    ml_multi_cloud_sample_store.add_measurement_results(
+        results=list(request.measurements),
+        skip_relationship_to_request=False,
+        request_db_id=request_db_id,
+    )
+
+    stats = ml_multi_cloud_space.space_statistics(lightweight_only=False)
+
+    assert stats.sampled_failed == len(entities_to_fail)
+    assert stats.sampled_full == 0
+    assert stats.sampled_partial == 0
 
 
 def test_space_statistics_for_spaces_empty() -> None:

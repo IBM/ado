@@ -8,6 +8,7 @@ import pydantic
 
 from ado.cli.utils.output.prints import ADO_SPINNER_GETTING_OUTPUT_READY
 from ado.core.resources import CoreResourceKinds
+from ado.schema.reference import ExperimentReference
 
 if TYPE_CHECKING:
     from rich.status import Status
@@ -51,22 +52,24 @@ class DiscoverySpaceStatistics(pydantic.BaseModel):
             ``number_measured_entities``. ``None`` when ``lightweight_only=True``.
             May be ``math.inf`` for continuous spaces or ``math.nan`` when
             ``size_of_entity_space`` could not be determined.
-        number_matching_entities: Count of entities in the sample store that
-            satisfy ``isEntityInSpace`` for this space. ``None`` when
+        sampled_full: Sampled entities that have a valid result for every
+            experiment in the measurement space. ``None`` when
             ``lightweight_only=True``.
-        number_matching_entities_with_measurements: Subset of
-            ``number_matching_entities`` that have at least one measurement whose
-            experiment reference is in the space's measurement space. ``None``
+        sampled_partial: Sampled entities that have at least one valid result
+            from the measurement space but not all experiments covered. ``None``
             when ``lightweight_only=True``.
-        entities_with_all_measurements: Entities in the space that have a result
-            for every experiment in the measurement space. ``None`` when
+        sampled_failed: Sampled entities with at least one invalid result and
+            no valid results for any in-space experiment. ``None`` when
             ``lightweight_only=True``.
-        entities_with_partial_measurements: Entities with at least one result but
-            not for every experiment in the measurement space. ``None`` when
+        matching_full: Entities in the sample store that satisfy
+            ``isEntityInSpace`` and have a valid result for every experiment in
+            the measurement space. ``None`` when ``lightweight_only=True``.
+        matching_partial: Matching entities with at least one valid result from
+            the measurement space but not all experiments. ``None`` when
             ``lightweight_only=True``.
-        matching_entities_with_all_measurements: Matching entities in the sample
-            store that have a result for every experiment in the measurement
-            space. ``None`` when ``lightweight_only=True``.
+        matching_failed: Matching entities with at least one invalid result and
+            no valid results for any in-space experiment. ``None`` when
+            ``lightweight_only=True``.
     """
 
     # --- Lightweight fields (always populated) ---
@@ -121,54 +124,67 @@ class DiscoverySpaceStatistics(pydantic.BaseModel):
             ),
         ),
     ]
-    number_matching_entities: Annotated[
+    sampled_full: Annotated[
         int | None,
         pydantic.Field(
             default=None,
             description=(
-                "Count of entities in the sample store satisfying isEntityInSpace. "
-                "None when lightweight_only=True."
-            ),
-        ),
-    ]
-    number_matching_entities_with_measurements: Annotated[
-        int | None,
-        pydantic.Field(
-            default=None,
-            description=(
-                "Subset of number_matching_entities that have at least one measurement "
-                "whose experiment reference is in the space's measurement space. "
-                "None when lightweight_only=True."
-            ),
-        ),
-    ]
-    entities_with_all_measurements: Annotated[
-        int | None,
-        pydantic.Field(
-            default=None,
-            description=(
-                "Entities in the space that have a result for every experiment in "
+                "Sampled entities that have a valid result for every experiment in "
                 "the measurement space. None when lightweight_only=True."
             ),
         ),
     ]
-    entities_with_partial_measurements: Annotated[
+    sampled_partial: Annotated[
         int | None,
         pydantic.Field(
             default=None,
             description=(
-                "Entities with at least one result but not for every experiment in "
-                "the measurement space. None when lightweight_only=True."
+                "Sampled entities with at least one valid result from the measurement "
+                "space but not all experiments covered. "
+                "None when lightweight_only=True."
             ),
         ),
     ]
-    matching_entities_with_all_measurements: Annotated[
+    sampled_failed: Annotated[
         int | None,
         pydantic.Field(
             default=None,
             description=(
-                "Matching entities in the sample store that have a result for every "
-                "experiment in the measurement space. None when lightweight_only=True."
+                "Sampled entities with at least one invalid result and no valid "
+                "results for any in-space experiment. "
+                "None when lightweight_only=True."
+            ),
+        ),
+    ]
+    matching_full: Annotated[
+        int | None,
+        pydantic.Field(
+            default=None,
+            description=(
+                "Entities in the sample store satisfying isEntityInSpace that have "
+                "a valid result for every experiment in the measurement space. "
+                "None when lightweight_only=True."
+            ),
+        ),
+    ]
+    matching_partial: Annotated[
+        int | None,
+        pydantic.Field(
+            default=None,
+            description=(
+                "Matching entities with at least one valid result from the measurement "
+                "space but not all experiments. None when lightweight_only=True."
+            ),
+        ),
+    ]
+    matching_failed: Annotated[
+        int | None,
+        pydantic.Field(
+            default=None,
+            description=(
+                "Matching entities with at least one invalid result and no valid "
+                "results for any in-space experiment. "
+                "None when lightweight_only=True."
             ),
         ),
     ]
@@ -181,9 +197,10 @@ def lightweight_space_statistics(
 ) -> "dict[str, DiscoverySpaceStatistics]":
     """Compute lightweight statistics for spaces given only their IDs and stores.
 
-    Heavy fields (``size_of_entity_space``, ``number_unmeasured_entities``,
-    ``number_matching_entities``, ``number_matching_entities_with_measurements``)
-    are always ``None``.
+    The heavy fields (``size_of_entity_space``, ``number_unmeasured_entities``,
+    ``sampled_full``, ``sampled_partial``, ``sampled_failed``,
+    ``matching_full``, ``matching_partial``, ``matching_failed``)
+    are set to ``None`` in every returned :class:`DiscoverySpaceStatistics`.
 
     Args:
         space_ids: Set of space URIs to compute statistics for.
@@ -199,9 +216,9 @@ def lightweight_space_statistics(
     if not space_ids:
         return {}
 
-    metastore_stats_by_space_id: dict[str, DiscoverySpaceStatistics] = (
-        metastore.get_space_metastore_stats(space_ids)
-    )
+    metastore_stats_by_space_id = metastore.get_space_metastore_stats(space_ids)
+    if not isinstance(metastore_stats_by_space_id, dict):
+        raise TypeError("Expected dict from get_space_metastore_stats")
 
     missing = space_ids - metastore_stats_by_space_id.keys()
     if missing:
@@ -221,11 +238,12 @@ def lightweight_space_statistics(
             number_measured_entities=len(entity_ids_by_space_id.get(space_id, set())),
             size_of_entity_space=None,
             number_unmeasured_entities=None,
-            number_matching_entities=None,
-            number_matching_entities_with_measurements=None,
-            entities_with_all_measurements=None,
-            entities_with_partial_measurements=None,
-            matching_entities_with_all_measurements=None,
+            sampled_full=None,
+            sampled_partial=None,
+            sampled_failed=None,
+            matching_full=None,
+            matching_partial=None,
+            matching_failed=None,
         )
         for space_id in space_ids
     }
@@ -305,6 +323,10 @@ def space_statistics_for_spaces(
                     set(operation_id_to_space_id.keys()), group_by_operation=True
                 )
             )
+            if not isinstance(entity_identifiers_by_operation, dict):
+                raise TypeError(
+                    "Expected dict from entity_identifiers_in_operations with group_by_operation=True"
+                )
             for operation_id, ids in entity_identifiers_by_operation.items():
                 group_entity_ids[operation_id_to_space_id[operation_id]].update(ids)
         entity_ids_by_space_id.update(group_entity_ids)
@@ -416,12 +438,16 @@ def space_statistics_for_spaces(
         spinner.update(ADO_SPINNER_GETTING_OUTPUT_READY)
 
     # ------------------------------------------------------------------
-    # Batch: one entity_experiment_references call per sample-store group
+    # Batch: one experiment_references_by_entity call per sample-store group
     # ------------------------------------------------------------------
-    exp_refs_by_store: dict[str, dict] = {}
+    from ado.core.samplestore.base import ExperimentReferencesByMeasurementValidity
+
+    exp_refs_by_store: dict[
+        str, dict[str, ExperimentReferencesByMeasurementValidity]
+    ] = {}
     for store_id, entity_identifiers in entity_identifiers_by_sample_store.items():
         store = spaces_by_sample_store[store_id][0].sample_store
-        exp_refs_by_store[store_id] = store.entity_experiment_references(
+        exp_refs_by_store[store_id] = store.experiment_references_by_entity(
             entity_identifiers
         )
 
@@ -430,15 +456,63 @@ def space_statistics_for_spaces(
     # ------------------------------------------------------------------
     result: dict[str, DiscoverySpaceStatistics] = {}
 
+    def classify_entities(
+        entity_ids: set[str],
+        exp_refs_by_entity: dict[str, ExperimentReferencesByMeasurementValidity],
+        refs_in_measurement_space: set[ExperimentReference],
+        num_experiments_in_space: int,
+    ) -> tuple[int, int, int]:
+        """Classify entities into full, partial, and failed buckets.
+
+        Args:
+            entity_ids: Entity identifiers to classify.
+            exp_refs_by_entity: Mapping from entity ID to its experiment references
+                split by validity.
+            refs_in_measurement_space: Set of experiment references in the space's
+                measurement space (R).
+            num_experiments_in_space: Number of experiments in the measurement space (N).
+
+        Returns:
+            Tuple of (full, partial, failed) counts.
+        """
+        full = 0
+        partial = 0
+        failed = 0
+
+        for entity_id in entity_ids:
+            refs = exp_refs_by_entity.get(entity_id)
+            if refs is None:
+                continue
+
+            valid_in_space = refs.with_valid_measurements.intersection(
+                refs_in_measurement_space
+            )
+            invalid_in_space = refs.with_invalid_measurements.intersection(
+                refs_in_measurement_space
+            )
+
+            n_valid = len(valid_in_space)
+            n_invalid = len(invalid_in_space)
+
+            if num_experiments_in_space == 0:
+                pass
+            elif n_valid == num_experiments_in_space:
+                full += 1
+            elif n_valid > 0:
+                partial += 1
+            elif n_invalid > 0:
+                failed += 1
+
+        return full, partial, failed
+
     for space in spaces:
         base = lightweight_stats[space.uri]
-        r = intermediate[space.uri]
-        sampled_ids = r.sampled_ids
-        matching_ids = r.matching_ids
-        size_of_entity_space = r.size_of_entity_space
-        number_unmeasured = r.number_unmeasured
-        number_matching = r.number_matching
-        number_measured = r.number_measured
+        sampling_state = intermediate[space.uri]
+        sampled_ids = sampling_state.sampled_ids
+        matching_ids = sampling_state.matching_ids
+        size_of_entity_space = sampling_state.size_of_entity_space
+        number_unmeasured = sampling_state.number_unmeasured
+        number_measured = sampling_state.number_measured
 
         store_id = space.sample_store.identifier
         store_exp_refs = exp_refs_by_store.get(store_id, {})
@@ -451,33 +525,23 @@ def space_statistics_for_spaces(
             k: store_exp_refs[k] for k in sampled_ids if k in store_exp_refs
         }
 
-        exp_refs_in_measurement_space = set(space.measurementSpace.experimentReferences)
-        experiments_in_measurement_space = len(space.measurementSpace.experiments)
+        refs_in_measurement_space = set(space.measurementSpace.experimentReferences)
+        num_experiments_in_space = len(refs_in_measurement_space)
 
-        number_matching_with_measurements = 0
-        matching_entities_with_all_measurements = 0
-        for entity_id in matching_ids:
-            entity_exp_refs = exp_refs_by_matching_entity.get(entity_id, set())
-            n_measured = len(
-                exp_refs_in_measurement_space.intersection(entity_exp_refs)
-            )
-            if n_measured > 0:
-                number_matching_with_measurements += 1
-            if n_measured == experiments_in_measurement_space:
-                matching_entities_with_all_measurements += 1
-
-        sampled_entities_with_all_measurements = sum(
-            1
-            for entity_id in sampled_ids
-            if len(
-                exp_refs_in_measurement_space.intersection(
-                    exp_refs_by_sampled_entity.get(entity_id, set())
-                )
-            )
-            == experiments_in_measurement_space
+        # Three-bucket classification for sampled entities.
+        sampled_full, sampled_partial, sampled_failed = classify_entities(
+            sampled_ids,
+            exp_refs_by_sampled_entity,
+            refs_in_measurement_space,
+            num_experiments_in_space,
         )
-        entities_with_partial_measurements = (
-            number_measured - sampled_entities_with_all_measurements
+
+        # Three-bucket classification for matching entities.
+        matching_full, matching_partial, matching_failed = classify_entities(
+            matching_ids,
+            exp_refs_by_matching_entity,
+            refs_in_measurement_space,
+            num_experiments_in_space,
         )
 
         result[space.uri] = DiscoverySpaceStatistics(
@@ -487,11 +551,12 @@ def space_statistics_for_spaces(
             number_measured_entities=number_measured,
             size_of_entity_space=size_of_entity_space,
             number_unmeasured_entities=number_unmeasured,
-            number_matching_entities=number_matching,
-            number_matching_entities_with_measurements=number_matching_with_measurements,
-            entities_with_all_measurements=sampled_entities_with_all_measurements,
-            entities_with_partial_measurements=entities_with_partial_measurements,
-            matching_entities_with_all_measurements=matching_entities_with_all_measurements,
+            sampled_full=sampled_full,
+            sampled_partial=sampled_partial,
+            sampled_failed=sampled_failed,
+            matching_full=matching_full,
+            matching_partial=matching_partial,
+            matching_failed=matching_failed,
         )
 
     return result

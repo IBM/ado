@@ -12,11 +12,16 @@ description: >-
 
 # Formulating Problems for ado Execution
 
+## Basic Skill Requirements
+
+Ensure you read the following skills first
+
+- [using-ado-cli](../using-ado-cli/SKILL.md)
+- [resource-yaml-creation](../resource-yaml-creation/SKILL.md)
+
 ## Context
 
-ado is built on the following idea: defining what you want to study should be
-separate from deciding how you study it. Hence, when defining experiment
-campaigns with ado there are two steps
+When defining experiment campaigns with ado there are two steps
 
 ### Step 1: Formulating the Search Space
 
@@ -71,12 +76,8 @@ workflow.
 - If you want to change the default value of an optional property use experiment
   parameterization, rather than setting a single valued property in the entity
   space
-- Before creating a space or actuator configuration, check if one already exists
-  — see [resource-yaml-creation](../resource-yaml-creation/SKILL.md)
-- Learn [ado CLI command-line construction and testing](../using-ado-cli/)
-- For metadata conventions, dynamic references (--use-latest, --with, --set),
-  and resource-specific guidance, see
-  [resource-yaml-creation](../resource-yaml-creation/SKILL.md)
+- Before creating a discoveryspace or actuator configuration, check if
+one already exists
 - If this work belongs to a named study, apply the study labels to new spaces
   and operations and ensure a study document exists — see
   [create-research-study-document](../create-research-study-document/SKILL.md)

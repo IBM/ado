@@ -25,7 +25,7 @@ from ado.cli.utils.output.prints import (
 from ado.cli.utils.pydantic.updaters import override_values_in_pydantic_model
 from ado.core import CoreResourceKinds
 from ado.core.discoveryspace.config import DiscoverySpaceConfiguration
-from ado.core.discoveryspace.space import DiscoverySpace
+from ado.core.discoveryspace.space import DiscoverySpace, SpaceInconsistencyError
 from ado.metastore.base import ResourceDoesNotExistError
 from ado.modules.actuators.errors import (
     ExperimentVersionMismatchError,
@@ -257,6 +257,10 @@ def create_discovery_space(parameters: AdoCreateCommandParameters) -> str | None
                 f"{ERROR}Experiment version mismatch when creating the discovery space: {error}",
                 stderr=True,
             )
+            raise typer.Exit(1) from error
+        except SpaceInconsistencyError as error:
+            status.stop()
+            console_print(f"{ERROR}{error}", stderr=True)
             raise typer.Exit(1) from error
         except Exception as error:
             status.stop()

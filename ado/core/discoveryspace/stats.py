@@ -59,16 +59,15 @@ class DiscoverySpaceStatistics(pydantic.BaseModel):
             from the measurement space but not all experiments covered. ``None``
             when ``lightweight_only=True``.
         sampled_failed: Sampled entities with at least one invalid result and
-            no valid results for any in-space experiment. ``None`` when
+            no valid results for any experiment in the measurement space. ``None`` when
             ``lightweight_only=True``.
-        matching_full: Entities in the sample store that satisfy
-            ``isEntityInSpace`` and have a valid result for every experiment in
+        matching_full: Matching entities that have a valid result for every experiment in
             the measurement space. ``None`` when ``lightweight_only=True``.
         matching_partial: Matching entities with at least one valid result from
             the measurement space but not all experiments. ``None`` when
             ``lightweight_only=True``.
         matching_failed: Matching entities with at least one invalid result and
-            no valid results for any in-space experiment. ``None`` when
+            no valid results for any experiment in the measurement space. ``None`` when
             ``lightweight_only=True``.
     """
 
@@ -151,7 +150,7 @@ class DiscoverySpaceStatistics(pydantic.BaseModel):
             default=None,
             description=(
                 "Sampled entities with at least one invalid result and no valid "
-                "results for any in-space experiment. "
+                "results for any experiment in the measurement space. "
                 "None when lightweight_only=True."
             ),
         ),

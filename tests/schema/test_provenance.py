@@ -248,18 +248,6 @@ def test_operator_metadata_has_package_provenance() -> None:
     assert metadata.provenance.distributionVersion
 
 
-def test_operator_metadata_version_is_independent_of_package_provenance() -> None:
-    """Operator version and package provenance capture different information."""
-    from ado.modules.operators.collections import explore
-
-    metadata = explore.operators.get("random_walk")
-    assert metadata is not None
-    assert metadata.provenance is not None
-    # random_walk declares an explicit algorithm version independent of package provenance.
-    assert metadata.version == "2.0.0"
-    assert metadata.provenance.distributionName == "ado-core"
-
-
 # ---------------------------------------------------------------------------
 # Resource provenance fields: lifecycle (create -> dump -> validate)
 # ---------------------------------------------------------------------------

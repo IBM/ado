@@ -1567,11 +1567,11 @@ def test_entities_with_valid_measurements_mixed(
 
 
 # ---------------------------------------------------------------------------
-# entity_experiment_references
+# experiment_references_by_entity
 # ---------------------------------------------------------------------------
 
 
-def test_entity_experiment_references_empty_input(
+def test_experiment_references_by_entity_empty_input(
     simulate_ml_multi_cloud_random_walk_operation: Callable[
         [int, int, int, str | None],
         tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
@@ -1580,12 +1580,12 @@ def test_entity_experiment_references_empty_input(
     """Empty input returns an empty dict without a DB round-trip."""
     sample_store, _requests, _ids = simulate_ml_multi_cloud_random_walk_operation()
 
-    result = sample_store.entity_experiment_references(set())
+    result = sample_store.experiment_references_by_entity(set())
 
     assert result == {}
 
 
-def test_entity_experiment_references_all_valid(
+def test_experiment_references_by_entity_all_valid(
     random_identifier: Callable[[], str],
     simulate_ml_multi_cloud_random_walk_operation: Callable[
         [int, int, int, str | None],
@@ -1593,6 +1593,7 @@ def test_entity_experiment_references_all_valid(
     ],
 ) -> None:
     """All entities with valid results → every entity mapped to its experiment reference."""
+    from ado.core.samplestore.base import ExperimentReferencesByMeasurementValidity
     from ado.schema.reference import ExperimentReference
 
     operation_id = random_identifier()
@@ -1610,14 +1611,16 @@ def test_entity_experiment_references_all_valid(
         actuatorIdentifier="replay",
     )
 
-    result = sample_store.entity_experiment_references(entity_ids)
+    result = sample_store.experiment_references_by_entity(entity_ids)
 
     assert set(result.keys()) == entity_ids
-    for exp_refs in result.values():
-        assert expected_exp_ref in exp_refs
+    for refs in result.values():
+        assert isinstance(refs, ExperimentReferencesByMeasurementValidity)
+        assert expected_exp_ref in refs.with_valid_measurements
+        assert refs.with_invalid_measurements == set()
 
 
-def test_entity_experiment_references_only_invalid_results(
+def test_experiment_references_by_entity_only_invalid_results(
     random_identifier: Callable[[], str],
     random_sql_sample_store: Callable[[], SQLSampleStore],
     random_ml_multi_cloud_benchmark_performance_entities: Callable[[int], list[Entity]],
@@ -1626,7 +1629,8 @@ def test_entity_experiment_references_only_invalid_results(
     ],
     add_entities_to_sample_store: Callable[[SQLSampleStore, list[Entity]], None],
 ) -> None:
-    """Entity with only invalid results → not included in output dict (fresh store)."""
+    """Entity with only invalid results → present with empty with_valid_measurements."""
+    from ado.core.samplestore.base import ExperimentReferencesByMeasurementValidity
     from ado.schema.reference import ExperimentReference
 
     sample_store = random_sql_sample_store()
@@ -1663,9 +1667,392 @@ def test_entity_experiment_references_only_invalid_results(
     )
 
     entity_ids = {e.identifier for e in entities}
-    result = sample_store.entity_experiment_references(entity_ids)
+    result = sample_store.experiment_references_by_entity(entity_ids)
 
-    assert result == {}
+    assert set(result.keys()) == entity_ids
+    expected_exp_ref = ExperimentReference(
+        experimentIdentifier="benchmark_performance",
+        actuatorIdentifier="replay",
+    )
+    for refs in result.values():
+        assert isinstance(refs, ExperimentReferencesByMeasurementValidity)
+        assert refs.with_valid_measurements == set()
+        assert refs.with_invalid_measurements == {expected_exp_ref}
+
+
+def test_experiment_references_by_entity_mixed_valid_invalid(
+    random_identifier: Callable[[], str],
+    random_sql_sample_store: Callable[[], SQLSampleStore],
+    random_ml_multi_cloud_benchmark_performance_entities: Callable[[int], list[Entity]],
+    add_entities_to_sample_store: Callable[[SQLSampleStore, list[Entity]], None],
+) -> None:
+    """Entity with mixed valid and invalid results for different experiments."""
+    from ado.core.samplestore.base import ExperimentReferencesByMeasurementValidity
+    from ado.schema.observed_property import ObservedProperty, ObservedPropertyValue
+    from ado.schema.property import AbstractPropertyDescriptor
+    from ado.schema.reference import ExperimentReference
+    from ado.schema.result import ValidMeasurementResult
+
+    sample_store = random_sql_sample_store()
+    entities = random_ml_multi_cloud_benchmark_performance_entities(2)
+    for e in entities:
+        e.measurement_results = []
+    add_entities_to_sample_store(sample_store, entities)
+
+    exp_ref_a = ExperimentReference(
+        experimentIdentifier="experiment_a", actuatorIdentifier="replay"
+    )
+    exp_ref_b = ExperimentReference(
+        experimentIdentifier="experiment_b", actuatorIdentifier="replay"
+    )
+
+    # Entity 1: valid for A
+    result_e1_valid = ValidMeasurementResult(
+        entityIdentifier=entities[0].identifier,
+        measurements=[
+            ObservedPropertyValue(
+                value=1.0,
+                property=ObservedProperty(
+                    targetProperty=AbstractPropertyDescriptor(
+                        identifier="wallClockRuntime"
+                    ),
+                    experimentReference=exp_ref_a,
+                ),
+            )
+        ],
+    )
+    request1 = ReplayedMeasurement(
+        operation_id=random_identifier(),
+        requestIndex=0,
+        experimentReference=exp_ref_a,
+        entities=[entities[0]],
+        requestid=random_identifier(),
+        status=MeasurementRequestStateEnum.SUCCESS,
+        measurements=(result_e1_valid,),
+    )
+    req_id1 = sample_store.add_measurement_request(request=request1)
+    sample_store.add_measurement_results(
+        results=[result_e1_valid],
+        skip_relationship_to_request=False,
+        request_db_id=req_id1,
+    )
+
+    # Entity 1: invalid for B
+    result_e1_invalid = InvalidMeasurementResult(
+        entityIdentifier=entities[0].identifier,
+        reason="test failure",
+        experimentReference=exp_ref_b,
+    )
+    request2 = ReplayedMeasurement(
+        operation_id=random_identifier(),
+        requestIndex=1,
+        experimentReference=exp_ref_b,
+        entities=[entities[0]],
+        requestid=random_identifier(),
+        status=MeasurementRequestStateEnum.SUCCESS,
+        measurements=(result_e1_invalid,),
+    )
+    req_id2 = sample_store.add_measurement_request(request=request2)
+    sample_store.add_measurement_results(
+        results=[result_e1_invalid],
+        skip_relationship_to_request=False,
+        request_db_id=req_id2,
+    )
+
+    # Entity 2: invalid for A
+    result_e2_invalid = InvalidMeasurementResult(
+        entityIdentifier=entities[1].identifier,
+        reason="test failure",
+        experimentReference=exp_ref_a,
+    )
+    request3 = ReplayedMeasurement(
+        operation_id=random_identifier(),
+        requestIndex=2,
+        experimentReference=exp_ref_a,
+        entities=[entities[1]],
+        requestid=random_identifier(),
+        status=MeasurementRequestStateEnum.SUCCESS,
+        measurements=(result_e2_invalid,),
+    )
+    req_id3 = sample_store.add_measurement_request(request=request3)
+    sample_store.add_measurement_results(
+        results=[result_e2_invalid],
+        skip_relationship_to_request=False,
+        request_db_id=req_id3,
+    )
+
+    # Entity 2: valid for B
+    result_e2_valid = ValidMeasurementResult(
+        entityIdentifier=entities[1].identifier,
+        measurements=[
+            ObservedPropertyValue(
+                value=1.0,
+                property=ObservedProperty(
+                    targetProperty=AbstractPropertyDescriptor(
+                        identifier="wallClockRuntime"
+                    ),
+                    experimentReference=exp_ref_b,
+                ),
+            )
+        ],
+    )
+    request4 = ReplayedMeasurement(
+        operation_id=random_identifier(),
+        requestIndex=3,
+        experimentReference=exp_ref_b,
+        entities=[entities[1]],
+        requestid=random_identifier(),
+        status=MeasurementRequestStateEnum.SUCCESS,
+        measurements=(result_e2_valid,),
+    )
+    req_id4 = sample_store.add_measurement_request(request=request4)
+    sample_store.add_measurement_results(
+        results=[result_e2_valid],
+        skip_relationship_to_request=False,
+        request_db_id=req_id4,
+    )
+
+    entity_ids = {e.identifier for e in entities}
+    result = sample_store.experiment_references_by_entity(entity_ids)
+
+    assert set(result.keys()) == entity_ids
+    # Entity 1: valid A, invalid B
+    e1_refs = result[entities[0].identifier]
+    assert isinstance(e1_refs, ExperimentReferencesByMeasurementValidity)
+    assert e1_refs.with_valid_measurements == {exp_ref_a}
+    assert e1_refs.with_invalid_measurements == {exp_ref_b}
+    # Entity 2: invalid A, valid B
+    e2_refs = result[entities[1].identifier]
+    assert isinstance(e2_refs, ExperimentReferencesByMeasurementValidity)
+    assert e2_refs.with_valid_measurements == {exp_ref_b}
+    assert e2_refs.with_invalid_measurements == {exp_ref_a}
+
+
+def test_experiment_references_by_entity_same_experiment_invalid_then_valid(
+    random_identifier: Callable[[], str],
+    random_sql_sample_store: Callable[[], SQLSampleStore],
+    random_ml_multi_cloud_benchmark_performance_entities: Callable[[int], list[Entity]],
+    random_ml_multi_cloud_benchmark_performance_measurement_results: Callable[
+        [Entity, int, MeasurementResultStateEnum | None], MeasurementResult
+    ],
+    add_entities_to_sample_store: Callable[[SQLSampleStore, list[Entity]], None],
+) -> None:
+    """Same experiment invalid then valid → ref in both fields."""
+    from ado.core.samplestore.base import ExperimentReferencesByMeasurementValidity
+    from ado.schema.reference import ExperimentReference
+
+    sample_store = random_sql_sample_store()
+    entities = random_ml_multi_cloud_benchmark_performance_entities(1)
+    for e in entities:
+        e.measurement_results = []
+    add_entities_to_sample_store(sample_store, entities)
+
+    exp_ref = ExperimentReference(
+        experimentIdentifier="benchmark_performance", actuatorIdentifier="replay"
+    )
+
+    # First add invalid result
+    invalid_result = InvalidMeasurementResult(
+        entityIdentifier=entities[0].identifier,
+        reason="first attempt failed",
+        experimentReference=exp_ref,
+    )
+    request1 = ReplayedMeasurement(
+        operation_id=random_identifier(),
+        requestIndex=0,
+        experimentReference=exp_ref,
+        entities=[entities[0]],
+        requestid=random_identifier(),
+        status=MeasurementRequestStateEnum.SUCCESS,
+        measurements=(invalid_result,),
+    )
+    req_id1 = sample_store.add_measurement_request(request=request1)
+    sample_store.add_measurement_results(
+        results=[invalid_result],
+        skip_relationship_to_request=False,
+        request_db_id=req_id1,
+    )
+
+    # Then add valid result for same experiment
+    valid_result = random_ml_multi_cloud_benchmark_performance_measurement_results(
+        entity=entities[0],
+        measurements_per_result=1,
+        status=MeasurementResultStateEnum.VALID,
+    )
+    request2 = ReplayedMeasurement(
+        operation_id=random_identifier(),
+        requestIndex=1,
+        experimentReference=exp_ref,
+        entities=[entities[0]],
+        requestid=random_identifier(),
+        status=MeasurementRequestStateEnum.SUCCESS,
+        measurements=(valid_result,),
+    )
+    req_id2 = sample_store.add_measurement_request(request=request2)
+    sample_store.add_measurement_results(
+        results=[valid_result],
+        skip_relationship_to_request=False,
+        request_db_id=req_id2,
+    )
+
+    entity_ids = {e.identifier for e in entities}
+    result = sample_store.experiment_references_by_entity(entity_ids)
+
+    assert set(result.keys()) == entity_ids
+    refs = result[entities[0].identifier]
+    assert isinstance(refs, ExperimentReferencesByMeasurementValidity)
+    assert refs.with_valid_measurements == {exp_ref}
+    assert refs.with_invalid_measurements == {exp_ref}
+
+
+def test_experiment_references_by_entity_unknown_entity_omitted(
+    random_identifier: Callable[[], str],
+    random_sql_sample_store: Callable[[], SQLSampleStore],
+    random_ml_multi_cloud_benchmark_performance_entities: Callable[[int], list[Entity]],
+    random_ml_multi_cloud_benchmark_performance_measurement_results: Callable[
+        [Entity, int, MeasurementResultStateEnum | None], MeasurementResult
+    ],
+    add_entities_to_sample_store: Callable[[SQLSampleStore, list[Entity]], None],
+) -> None:
+    """Entity present in store but with no results is omitted from output dict."""
+    from ado.core.samplestore.base import ExperimentReferencesByMeasurementValidity
+    from ado.schema.reference import ExperimentReference
+
+    sample_store = random_sql_sample_store()
+    entities = random_ml_multi_cloud_benchmark_performance_entities(2)
+    for e in entities:
+        e.measurement_results = []
+    add_entities_to_sample_store(sample_store, entities)
+
+    # Add valid result for only the first entity
+    results = [
+        random_ml_multi_cloud_benchmark_performance_measurement_results(
+            entity=entities[0],
+            measurements_per_result=1,
+            status=MeasurementResultStateEnum.VALID,
+        )
+    ]
+    exp_ref = ExperimentReference(
+        experimentIdentifier="benchmark_performance", actuatorIdentifier="replay"
+    )
+    request = ReplayedMeasurement(
+        operation_id=random_identifier(),
+        requestIndex=0,
+        experimentReference=exp_ref,
+        entities=[entities[0]],
+        requestid=random_identifier(),
+        status=MeasurementRequestStateEnum.SUCCESS,
+        measurements=tuple(results),
+    )
+    req_id = sample_store.add_measurement_request(request=request)
+    sample_store.add_measurement_results(
+        results=results,
+        skip_relationship_to_request=False,
+        request_db_id=req_id,
+    )
+
+    # Query for both entities
+    entity_ids = {e.identifier for e in entities}
+    result = sample_store.experiment_references_by_entity(entity_ids)
+
+    # Only the entity with results should be present
+    assert set(result.keys()) == {entities[0].identifier}
+    refs = result[entities[0].identifier]
+    assert isinstance(refs, ExperimentReferencesByMeasurementValidity)
+    assert refs.with_valid_measurements == {exp_ref}
+    assert refs.with_invalid_measurements == set()
+
+
+def test_experiment_references_by_entity_model_lifecycle(
+    random_identifier: Callable[[], str],
+    random_sql_sample_store: Callable[[], SQLSampleStore],
+    random_ml_multi_cloud_benchmark_performance_entities: Callable[[int], list[Entity]],
+    random_ml_multi_cloud_benchmark_performance_measurement_results: Callable[
+        [Entity, int, MeasurementResultStateEnum | None], MeasurementResult
+    ],
+    add_entities_to_sample_store: Callable[[SQLSampleStore, list[Entity]], None],
+) -> None:
+    """Test model lifecycle: create -> dump -> create from dump."""
+    from ado.core.samplestore.base import ExperimentReferencesByMeasurementValidity
+    from ado.schema.reference import ExperimentReference
+
+    sample_store = random_sql_sample_store()
+    entities = random_ml_multi_cloud_benchmark_performance_entities(2)
+    for e in entities:
+        e.measurement_results = []
+    add_entities_to_sample_store(sample_store, entities)
+
+    exp_ref_a = ExperimentReference(
+        experimentIdentifier="experiment_a", actuatorIdentifier="replay"
+    )
+    exp_ref_b = ExperimentReference(
+        experimentIdentifier="experiment_b", actuatorIdentifier="replay"
+    )
+
+    # Entity 1: valid for A
+    result_e1 = random_ml_multi_cloud_benchmark_performance_measurement_results(
+        entity=entities[0],
+        measurements_per_result=1,
+        status=MeasurementResultStateEnum.VALID,
+    )
+    request1 = ReplayedMeasurement(
+        operation_id=random_identifier(),
+        requestIndex=0,
+        experimentReference=exp_ref_a,
+        entities=[entities[0]],
+        requestid=random_identifier(),
+        status=MeasurementRequestStateEnum.SUCCESS,
+        measurements=(result_e1,),
+    )
+    req_id1 = sample_store.add_measurement_request(request=request1)
+    sample_store.add_measurement_results(
+        results=[result_e1],
+        skip_relationship_to_request=False,
+        request_db_id=req_id1,
+    )
+
+    # Entity 2: invalid for B
+    result_e2 = InvalidMeasurementResult(
+        entityIdentifier=entities[1].identifier,
+        reason="test failure",
+        experimentReference=exp_ref_b,
+    )
+    request2 = ReplayedMeasurement(
+        operation_id=random_identifier(),
+        requestIndex=1,
+        experimentReference=exp_ref_b,
+        entities=[entities[1]],
+        requestid=random_identifier(),
+        status=MeasurementRequestStateEnum.SUCCESS,
+        measurements=(result_e2,),
+    )
+    req_id2 = sample_store.add_measurement_request(request=request2)
+    sample_store.add_measurement_results(
+        results=[result_e2],
+        skip_relationship_to_request=False,
+        request_db_id=req_id2,
+    )
+
+    entity_ids = {e.identifier for e in entities}
+    result = sample_store.experiment_references_by_entity(entity_ids)
+
+    # Test model lifecycle for each entity's result
+    for refs in result.values():
+        # Dump to JSON-compatible dict (sets become lists)
+        dumped = refs.model_dump(mode="json")
+        # Re-create from dump
+        recreated = ExperimentReferencesByMeasurementValidity.model_validate(dumped)
+        assert recreated == refs
+
+    # Also test empty instance lifecycle
+    empty_refs = ExperimentReferencesByMeasurementValidity()
+    dumped_empty = empty_refs.model_dump(mode="json")
+    recreated_empty = ExperimentReferencesByMeasurementValidity.model_validate(
+        dumped_empty
+    )
+    assert recreated_empty == empty_refs
+    assert recreated_empty.with_valid_measurements == set()
+    assert recreated_empty.with_invalid_measurements == set()
 
 
 @requires_sqlite_3_38

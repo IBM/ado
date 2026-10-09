@@ -318,8 +318,7 @@ def test_ado_get_spaces_stats_values(
                 "AGE": _EXPECTED_AGE,
                 "EXPERIMENTS": 1,
                 "OPERATIONS": 1,
-                "EXPLORE_OPERATIONS": 1,
-                "MEASURED_ENTITIES": number_entities,
+                "EXPLORE_OPS": 1,
             },
             index=pd.Index([0]),
         )
@@ -394,8 +393,7 @@ def test_ado_get_space_stats_single_resource(
                 "AGE": _EXPECTED_AGE,
                 "EXPERIMENTS": 1,
                 "OPERATIONS": 1,
-                "EXPLORE_OPERATIONS": 1,
-                "MEASURED_ENTITIES": number_entities,
+                "EXPLORE_OPS": 1,
             },
             index=pd.Index([0]),
         )

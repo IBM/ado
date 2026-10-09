@@ -475,15 +475,12 @@ def space_statistics_for_spaces(
             if refs is None:
                 continue
 
-            valid_in_space = refs.with_valid_measurements.intersection(
-                refs_in_measurement_space
+            n_valid = len(
+                refs.with_valid_measurements.intersection(refs_in_measurement_space)
             )
-            invalid_in_space = refs.with_invalid_measurements.intersection(
-                refs_in_measurement_space
+            n_invalid = len(
+                refs.with_invalid_measurements.intersection(refs_in_measurement_space)
             )
-
-            n_valid = len(valid_in_space)
-            n_invalid = len(invalid_in_space)
 
             if num_experiments_in_space == 0:
                 pass

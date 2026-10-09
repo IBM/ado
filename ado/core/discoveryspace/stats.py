@@ -104,17 +104,15 @@ class DiscoverySpaceStatistics(pydantic.BaseModel):
     size_of_entity_space: Annotated[
         int | None,
         pydantic.Field(
-            default=None,
             description=(
                 "Total number of points in the entity space when discrete. "
                 "None if the space is continuous, not defined, or lightweight_only=True."
             ),
         ),
-    ]
+    ] = None
     number_unmeasured_entities: Annotated[
         int | float | None,
         pydantic.Field(
-            default=None,
             description=(
                 "size_of_entity_space minus number_measured_entities. "
                 "None when lightweight_only=True. "
@@ -122,71 +120,65 @@ class DiscoverySpaceStatistics(pydantic.BaseModel):
                 "could not be determined."
             ),
         ),
-    ]
+    ] = None
     sampled_full: Annotated[
         int | None,
         pydantic.Field(
-            default=None,
             description=(
                 "Sampled entities that have a valid result for every experiment in "
                 "the measurement space. None when lightweight_only=True."
             ),
         ),
-    ]
+    ] = None
     sampled_partial: Annotated[
         int | None,
         pydantic.Field(
-            default=None,
             description=(
                 "Sampled entities with at least one valid result from the measurement "
                 "space but not all experiments covered. "
                 "None when lightweight_only=True."
             ),
         ),
-    ]
+    ] = None
     sampled_failed: Annotated[
         int | None,
         pydantic.Field(
-            default=None,
             description=(
                 "Sampled entities with at least one invalid result and no valid "
                 "results for any experiment in the measurement space. "
                 "None when lightweight_only=True."
             ),
         ),
-    ]
+    ] = None
     matching_full: Annotated[
         int | None,
         pydantic.Field(
-            default=None,
             description=(
                 "Entities in the sample store satisfying isEntityInSpace that have "
                 "a valid result for every experiment in the measurement space. "
                 "None when lightweight_only=True."
             ),
         ),
-    ]
+    ] = None
     matching_partial: Annotated[
         int | None,
         pydantic.Field(
-            default=None,
             description=(
                 "Matching entities with at least one valid result from the measurement "
                 "space but not all experiments. None when lightweight_only=True."
             ),
         ),
-    ]
+    ] = None
     matching_failed: Annotated[
         int | None,
         pydantic.Field(
-            default=None,
             description=(
                 "Matching entities with at least one invalid result and no valid "
-                "results for any in-space experiment. "
+                "results for any experiment in the measurement space. "
                 "None when lightweight_only=True."
             ),
         ),
-    ]
+    ] = None
 
 
 def lightweight_space_statistics(

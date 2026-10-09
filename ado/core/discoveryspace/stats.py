@@ -459,9 +459,9 @@ def space_statistics_for_spaces(
             entity_ids: Entity identifiers to classify.
             exp_refs_by_entity: Mapping from entity ID to its experiment references
                 split by validity.
-            refs_in_measurement_space: Set of experiment references in the space's
-                measurement space (R).
-            num_experiments_in_space: Number of experiments in the measurement space (N).
+            refs_in_measurement_space: Experiment references that belong to the
+                space's measurement space.
+            num_experiments_in_space: Number of experiments in the measurement space.
 
         Returns:
             Tuple of (full, partial, failed) counts.

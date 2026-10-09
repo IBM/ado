@@ -156,8 +156,7 @@ Can be combined with `--filter`, `--label`, `--matching-point`,
 
 - **Operations**: `TOTAL_RESULTS`, `SUCCESSFUL_RESULTS`, `FAILED_RESULTS`,
   `MEASURED_ENTITIES`.
-- **Discovery Spaces**: `EXPERIMENTS`, `OPERATIONS`, `EXPLORE_OPERATIONS`,
-  `MEASURED_ENTITIES`.
+- **Discovery Spaces**: `EXPERIMENTS`, `OPERATIONS`, `EXPLORE_OPS`.
 - **Sample Stores**: `ENTITIES`, `RESULTS`, `EXPERIMENTS`.
 - **Data Containers**: `TABLES`, `LOCATIONS`, `KEY_VALUES`, `DATA_BYTES`.
 

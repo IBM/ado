@@ -451,7 +451,7 @@ def format_ado_get_stats_for_spaces(
 
     When ``include_heavy=False`` (default), also issues a metastore stats
     query and a ``space_entity_statistics`` query per distinct sample store,
-    then appends four lightweight columns.
+    then appends three lightweight columns.
 
     When ``include_heavy=True``, builds full
     :class:`~ado.core.discoveryspace.space.DiscoverySpace` instances
@@ -466,11 +466,9 @@ def format_ado_get_stats_for_spaces(
         sql_store: The ``SQLStore`` to use for relationship and stats queries.
         spinner: Optional rich status spinner to update with progress messages.
         include_heavy: When ``True`` also compute and append the heavy stats
-            columns (``SIZE_OF_ENTITY_SPACE``, ``UNMEASURED_ENTITIES``,
-            ``MATCHING_ENTITIES``, ``MATCHING_WITH_MEASUREMENTS``,
-            ``ENTITIES_WITH_ALL_MEASUREMENTS``,
-            ``ENTITIES_WITH_PARTIAL_MEASUREMENTS``,
-            ``MATCHING_ENTITIES_WITH_ALL_MEASUREMENTS``).
+            columns (``ENTITY_SPACE_SIZE``, ``UNSAMPLED``,
+            ``SAMPLED_FULL``, ``SAMPLED_PARTIAL``, ``SAMPLED_FAILED``,
+            ``MATCHING_FULL``, ``MATCHING_PARTIAL``, ``MATCHING_FAILED``).
             Requires ``space_resources`` and ``project_context``.
         space_resources: Mapping of space identifier → hydrated
             :class:`~ado.core.resources.ADOResource`.  Required when
@@ -481,15 +479,11 @@ def format_ado_get_stats_for_spaces(
 
     Returns:
         The same DataFrame with extra columns appended.
-        Lightweight columns: ``EXPERIMENTS``, ``OPERATIONS``,
-        ``EXPLORE_OPERATIONS``, ``MEASURED_ENTITIES`` (entities with at least
-        one measurement, whether successful, failed, or both).
+        Lightweight columns: ``EXPERIMENTS``, ``OPERATIONS``, ``EXPLORE_OPS``.
         Heavy columns (only when ``include_heavy=True``):
-        ``SIZE_OF_ENTITY_SPACE``, ``UNMEASURED_ENTITIES``,
-        ``MATCHING_ENTITIES``, ``MATCHING_WITH_MEASUREMENTS``,
-        ``ENTITIES_WITH_ALL_MEASUREMENTS``,
-        ``ENTITIES_WITH_PARTIAL_MEASUREMENTS``,
-        ``MATCHING_ENTITIES_WITH_ALL_MEASUREMENTS``.
+        ``ENTITY_SPACE_SIZE``, ``UNSAMPLED``, ``SAMPLED_FULL``,
+        ``SAMPLED_PARTIAL``, ``SAMPLED_FAILED``, ``MATCHING_FULL``,
+        ``MATCHING_PARTIAL``, ``MATCHING_FAILED``.
         Spaces with no recorded operations or sample store show ``0`` in all
         lightweight stats columns; heavy columns show ``None`` for spaces
         where the value cannot be determined.
@@ -636,29 +630,25 @@ def format_ado_get_stats_for_spaces(
             all_stats[space_id].number_of_operations if space_id in all_stats else 0
         )
     )
-    df["EXPLORE_OPERATIONS"] = df["IDENTIFIER"].apply(
+    df["EXPLORE_OPS"] = df["IDENTIFIER"].apply(
         lambda space_id: (
             all_stats[space_id].number_of_explore_operations
             if space_id in all_stats
             else 0
         )
     )
-    df["MEASURED_ENTITIES"] = df["IDENTIFIER"].apply(
-        lambda space_id: (
-            all_stats[space_id].number_measured_entities if space_id in all_stats else 0
-        )
-    )
 
     # Attach heavy columns only when requested.
     if include_heavy:
         _heavy_field_map = {
-            "SIZE_OF_ENTITY_SPACE": "size_of_entity_space",
-            "UNMEASURED_ENTITIES": "number_unmeasured_entities",
-            "MATCHING_ENTITIES": "number_matching_entities",
-            "MATCHING_WITH_MEASUREMENTS": "number_matching_entities_with_measurements",
-            "ENTITIES_WITH_ALL_MEASUREMENTS": "entities_with_all_measurements",
-            "ENTITIES_WITH_PARTIAL_MEASUREMENTS": "entities_with_partial_measurements",
-            "MATCHING_ENTITIES_WITH_ALL_MEASUREMENTS": "matching_entities_with_all_measurements",
+            "ENTITY_SPACE_SIZE": "size_of_entity_space",
+            "UNSAMPLED": "number_unmeasured_entities",
+            "SAMPLED_FULL": "sampled_full",
+            "SAMPLED_PARTIAL": "sampled_partial",
+            "SAMPLED_FAILED": "sampled_failed",
+            "MATCHING_FULL": "matching_full",
+            "MATCHING_PARTIAL": "matching_partial",
+            "MATCHING_FAILED": "matching_failed",
         }
         for col, field in _heavy_field_map.items():
             df[col] = df["IDENTIFIER"].apply(
@@ -669,15 +659,15 @@ def format_ado_get_stats_for_spaces(
                 )
             )
 
-        # Coerce SIZE_OF_ENTITY_SPACE and UNMEASURED_ENTITIES to int where the
-        # value is finite (i.e. not inf/nan/None).  Pandas stores mixed
+        # Coerce ENTITY_SPACE_SIZE and UNSAMPLED to int where the value is
+        # finite (i.e. not inf/nan/None).  Pandas stores mixed
         # int/float/None columns as float64, which renders integers as "45.0".
         def _coerce_to_int_if_finite(v: object) -> object:
             if isinstance(v, float) and math.isfinite(v):
                 return int(v)
             return v
 
-        for col in ("SIZE_OF_ENTITY_SPACE", "UNMEASURED_ENTITIES"):
+        for col in ("ENTITY_SPACE_SIZE", "UNSAMPLED"):
             if col in df.columns:
                 df[col] = df[col].apply(_coerce_to_int_if_finite)
 

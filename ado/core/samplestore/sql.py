@@ -19,6 +19,7 @@ import ado.core.samplestore.csv
 import ado.metastore.sql.statements
 from ado.core.samplestore.base import (
     ActiveSampleStore,
+    ExperimentReferencesByMeasurementValidity,
     FailedToDecodeStoredEntityError,
     FailedToDecodeStoredMeasurementResultForEntityError,
 )
@@ -1560,18 +1561,20 @@ class SQLSampleStore(ActiveSampleStore):
             self.log.critical(f"{msg}. Error: {error}")
             raise SystemError(f"{msg}. Error: {error}") from error
 
-    def entity_experiment_references(
+    def experiment_references_by_entity(
         self, entity_identifiers: set[str]
-    ) -> "dict[str, set[ExperimentReference]]":
-        """Return the experiment references covered by valid measurements per entity.
+    ) -> "dict[str, ExperimentReferencesByMeasurementValidity]":
+        """Return the experiment references per entity, split by measurement validity.
 
         Args:
             entity_identifiers: Set of entity identifier strings to query.
 
         Returns:
-            ``dict`` mapping each entity identifier (only those with ≥1 valid result)
-            to the set of :class:`~ado.schema.reference.ExperimentReference` objects
-            for which they have a valid result.
+            ``dict`` mapping each entity identifier (only those with ≥1 result)
+            to an :class:`ExperimentReferencesByMeasurementValidity` instance
+            containing the experiment references for which the entity has at least
+            one valid measurement or at least one invalid measurement.
+            Entity identifiers with no measurement results at all are omitted.
 
         Raises:
             SystemError: If the underlying SQL query fails.
@@ -1594,24 +1597,30 @@ class SQLSampleStore(ActiveSampleStore):
                     "$.measurements[0].property.experimentReference",
                 ),
             ).label("experiment_reference_json")
+            is_valid_col = (
+                sqlalchemy.func.json_extract(res_table.c.data, "$.reason").is_(None)
+            ).label("is_valid")
             stmt = (
-                select(res_table.c.entity_id, exp_ref_col)
+                select(res_table.c.entity_id, exp_ref_col, is_valid_col)
                 .where(res_table.c.entity_id.in_(entity_identifiers))
-                .where(
-                    sqlalchemy.func.json_extract(res_table.c.data, "$.reason").is_(None)
-                )
                 .distinct()
             )
 
             with self.engine.begin() as connectable:
                 rows = connectable.execute(stmt).fetchall()
-            result: dict[str, set[ExperimentReference]] = {}
+
+            result: dict[str, ExperimentReferencesByMeasurementValidity] = {}
             for row in rows:
                 blob = row.experiment_reference_json
                 if blob is None:
                     continue
                 exp_ref = ExperimentReference.model_validate_json(blob)
-                result.setdefault(row.entity_id, set()).add(exp_ref)
+                if row.entity_id not in result:
+                    result[row.entity_id] = ExperimentReferencesByMeasurementValidity()
+                if row.is_valid:
+                    result[row.entity_id].with_valid_measurements.add(exp_ref)
+                else:
+                    result[row.entity_id].with_invalid_measurements.add(exp_ref)
             return result
         except SQLAlchemyError as error:
             msg = "Unable to get entity experiment references"

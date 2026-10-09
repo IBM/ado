@@ -131,9 +131,7 @@ uv run ado get datacontainer DATACONTAINER_ID -o stats --no-trunc
 `FAILED_RESULTS`, `MEASURED_ENTITIES` (entities with at least one measurement,
 whether successful, failed, or both).
 
-**Discovery Spaces** extra columns: `EXPERIMENTS`, `OPERATIONS`,
-`EXPLORE_OPERATIONS`, `MEASURED_ENTITIES` (entities with at least one
-measurement, whether successful, failed, or both).
+**Discovery Spaces** extra columns: `EXPERIMENTS`, `OPERATIONS`, `EXPLORE_OPS`.
 
 **Sample Stores** extra columns: `ENTITIES`, `RESULTS`, `EXPERIMENTS`.
 

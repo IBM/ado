@@ -3,23 +3,17 @@
 
 """Builds the package provenance recorded on operation resources."""
 
+from ado.core.discoveryspace.space import DiscoverySpace
 from ado.core.metadata import PackageProvenance
 from ado.core.operation.config import (
     DiscoveryOperationEnum,
+    OperatorMetadata,
     OperatorModuleConf,
     OperatorReference,
 )
 from ado.core.operation.resource import OperationProvenanceInfo
-from ado.modules.actuators.errors import (
-    DeprecatedExperimentError,
-    MissingActuatorConfigurationForCatalogError,
-    UnexpectedCatalogRetrievalError,
-    UnknownActuatorError,
-    UnknownExperimentError,
-)
-from ado.modules.actuators.registry import ActuatorRegistry
 from ado.modules.operators.collections import operationCollectionMap
-from ado.schema.measurementspace import MeasurementSpace
+from ado.schema.reference import ExperimentReference
 
 
 def provenance_for_operator(
@@ -51,7 +45,7 @@ def provenance_for_operator(
 def operation_provenance(
     operator_module: OperatorModuleConf | OperatorReference,
 ) -> OperationProvenanceInfo:
-    """Return the provenance for a general operation
+    """Return the provenance for a general operation.
 
     Args:
         operator_module: The operator the operation runs. Provenance is only
@@ -73,50 +67,82 @@ def operation_provenance(
     return OperationProvenanceInfo(operators=operators)
 
 
-def explore_operation_provenance(
-    operator_module: OperatorModuleConf | OperatorReference,
-    measurement_space: MeasurementSpace,
-) -> OperationProvenanceInfo:
-    """Return the provenance for an explore operation.
+def experiment_and_actuator_provenance_from_spaces(
+    spaces: list[DiscoverySpace],
+) -> tuple[list[ExperimentReference], dict[str, PackageProvenance]]:
+    """Resolve catalog experiments and actuator packages for discovery-space inputs.
 
-    Explore operations measure entities, so in addition to the operator this
-    records the experiments that will satisfy the measurement space and the
-    packages providing the actuators that will execute them.
-
-    Experiments that cannot be resolved from the registry are skipped rather
-    than raising: an unresolvable experiment has no provenance to record, and
-    the operation itself will fail later with a more specific error.
+    Experiments that cannot be resolved against the actuator catalog are skipped.
+    Experiment references are deduplicated by equality. Actuators are
+    deduplicated by identifier.
 
     Args:
-        operator_module: The operator the operation runs.
-        measurement_space: The measurement space the operation will explore.
+        spaces: Discovery spaces whose measurement spaces should be recorded.
 
     Returns:
-        An :class:`~ado.core.operation.resource.OperationProvenanceInfo` with
-        the operators, experiments, and actuators for the operation.
+        Resolved experiment references and actuator package provenance. Both
+        collections are empty when *spaces* is empty.
     """
-    provenance = operation_provenance(operator_module)
+    from ado.modules.actuators.errors import (
+        DeprecatedExperimentError,
+        MissingActuatorConfigurationForCatalogError,
+        UnexpectedCatalogRetrievalError,
+        UnknownActuatorError,
+        UnknownExperimentError,
+    )
+    from ado.modules.actuators.registry import ActuatorRegistry
 
+    experiments: list[ExperimentReference] = []
+    actuators: dict[str, PackageProvenance] = {}
     registry = ActuatorRegistry.globalRegistry()
-    for space_experiment in measurement_space.experiments:
-        try:
-            catalog_experiment = registry.experimentForReference(
-                space_experiment.reference, resolve=True
-            )
-        except (
-            UnknownExperimentError,
-            UnknownActuatorError,
-            DeprecatedExperimentError,
-            UnexpectedCatalogRetrievalError,
-            MissingActuatorConfigurationForCatalogError,
-        ):
-            continue
+    for space in spaces:
+        for space_experiment in space.measurementSpace.experiments:
+            try:
+                catalog_experiment = registry.experimentForReference(
+                    space_experiment.reference, resolve=True
+                )
+            except (
+                UnknownExperimentError,
+                UnknownActuatorError,
+                DeprecatedExperimentError,
+                UnexpectedCatalogRetrievalError,
+                MissingActuatorConfigurationForCatalogError,
+            ):
+                continue
 
-        provenance.experiments.append(catalog_experiment.reference)
-        actuator_id = catalog_experiment.actuatorIdentifier
-        if actuator_id not in provenance.actuators:
-            actuator_provenance = registry.provenance_for_actuator(actuator_id)
-            if actuator_provenance is not None:
-                provenance.actuators[actuator_id] = actuator_provenance
+            reference = catalog_experiment.reference
+            if reference not in experiments:
+                experiments.append(reference)
 
+            actuator_id = catalog_experiment.actuatorIdentifier
+            if actuator_id not in actuators:
+                actuator_provenance = registry.provenance_for_actuator(actuator_id)
+                if actuator_provenance is not None:
+                    actuators[actuator_id] = actuator_provenance
+
+    return experiments, actuators
+
+
+def explore_operation_provenance(
+    operator_metadata: OperatorMetadata,
+    spaces: list[DiscoverySpace],
+) -> OperationProvenanceInfo:
+    """Build provenance for an explore operation.
+
+    Records the operator package plus the experiments and actuators that
+    satisfy the discovery-space measurement spaces.
+
+    Args:
+        operator_metadata: Registered metadata for the explore operator.
+        spaces: Discovery spaces whose measurement spaces should be recorded.
+
+    Returns:
+        Provenance with operator, experiment, and actuator entries. Operator
+        provenance is omitted when the operator has none. Experiment and
+        actuator collections are empty when *spaces* is empty.
+    """
+    provenance = operation_provenance(operator_metadata.reference)
+    experiments, actuators = experiment_and_actuator_provenance_from_spaces(spaces)
+    provenance.experiments.extend(experiments)
+    provenance.actuators.update(actuators)
     return provenance

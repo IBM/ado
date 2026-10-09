@@ -3,7 +3,6 @@
 
 import enum
 import itertools
-import typing
 from typing import Annotated
 
 import pandas as pd
@@ -14,7 +13,7 @@ from ado.core import DataContainerResource
 from ado.core.datacontainer.resource import DataContainer, TabularData
 from ado.core.discoveryspace.config import EntityFilter
 from ado.core.discoveryspace.space import DiscoverySpace
-from ado.core.operation.config import FunctionOperationInfo
+from ado.core.operation.config import FunctionOperationInfo, GenericOperatorParameters
 from ado.core.operation.operation import OperationOutput
 from ado.modules.operators.collections import characterize_operation
 
@@ -41,7 +40,7 @@ class PropertyTypeEnum(enum.Enum):
     observed = "observed"
 
 
-class DetectAnomalousSeries(pydantic.BaseModel):
+class DetectAnomalousSeries(GenericOperatorParameters):
     model_config = ConfigDict(extra="forbid")
 
     entity_filter: Annotated[
@@ -123,12 +122,13 @@ class DetectAnomalousSeries(pydantic.BaseModel):
     """,
     configuration_model=DetectAnomalousSeries,
     example_configuration=DetectAnomalousSeries.example_configuration(),
-    version="1.0.5",
+    version="1.1.0",
 )
 def detect_anomalous_series(
     discoverySpace: DiscoverySpace,
     operationInfo: FunctionOperationInfo | None = None,
-    **parameters: typing.Any,  # noqa: ANN401
+    *,
+    parameters: DetectAnomalousSeries,
 ) -> OperationOutput:
     """
     This function checks if the behaviour of an observed property versus
@@ -147,7 +147,7 @@ def detect_anomalous_series(
     def monotonically_decreasing(samples: pd.Series) -> bool:
         return all(x > y for x, y in itertools.pairwise(samples))
 
-    config = DetectAnomalousSeries.model_validate(parameters)
+    config = parameters
 
     if config.entity_filter == EntityFilter.SAMPLED:
         if config.test_property_type == PropertyTypeEnum.target:

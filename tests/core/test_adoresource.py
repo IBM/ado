@@ -95,3 +95,22 @@ def test_resource_provenance_ser_deser(
     dump = resource.model_dump()
     deser = SampleStoreResource.model_validate(dump)
     assert deser.provenance.ado == ado
+
+
+def test_ado_resource_reference(
+    sample_store_resource: SampleStoreResource,
+    discovery_space_resource: DiscoverySpaceResource,
+    operation_resource: OperationResource,
+) -> None:
+    """ADOResource.reference returns an ADOResourceReference for the resource."""
+    from ado.core.resources import ADOResourceReference, CoreResourceKinds
+
+    for resource, kind in (
+        (sample_store_resource, CoreResourceKinds.SAMPLESTORE),
+        (discovery_space_resource, CoreResourceKinds.DISCOVERYSPACE),
+        (operation_resource, CoreResourceKinds.OPERATION),
+    ):
+        ref = resource.reference
+        assert isinstance(ref, ADOResourceReference)
+        assert ref.identifier == resource.identifier
+        assert ref.kind == kind

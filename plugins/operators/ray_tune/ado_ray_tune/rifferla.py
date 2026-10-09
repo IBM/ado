@@ -13,6 +13,7 @@ from ado.core.discoveryspace.config import EntityFilter
 from ado.core.discoveryspace.space import DiscoverySpace
 from ado.core.operation.config import (
     FunctionOperationInfo,
+    GenericOperatorParameters,
 )
 from ado.core.operation.operation import OperationOutput
 from ado.core.samplestore.sql import SQLSampleStore
@@ -26,7 +27,7 @@ from ado.schema.property import (
 from ado.schema.reference import ExperimentReference
 
 
-class RifferlaParameters(pydantic.BaseModel):
+class RifferlaParameters(GenericOperatorParameters):
     model_config = ConfigDict(extra="forbid")
 
     failed_metric: Annotated[
@@ -93,19 +94,20 @@ class RifferlaParameters(pydantic.BaseModel):
     "It does this by identifying which entity space dimensions should be fixed to set values, which explored, and setting range limits for those dimensions. "
     "The method leverages Mutual Information to identify dimensions correlated with the desired observed property.",
     example_configuration=RifferlaParameters.example_configuration(),
-    version="2.0.6",
+    version="2.1.0",
 )
 def rifferla(
     discoverySpace: DiscoverySpace,
     operationInfo: FunctionOperationInfo | None = None,
-    **parameters: object,
+    *,
+    parameters: RifferlaParameters,
 ) -> OperationOutput:
     """
     This function assumes the given space *was* already sampled using LHU_sampler. This operation then analyzes the result
     and returns the new space and also the values for the non-selected dimensions.
     """
 
-    config = RifferlaParameters.model_validate(parameters)
+    config = parameters
 
     import pandas as pd
 

@@ -130,7 +130,7 @@ def test_trim_skips_missing_target_measurements(
 
     output = trim_fn(
         controlled_error_space,
-        **params.model_dump(),
+        parameters=params,
     )
 
     assert output.exitStatus is not None

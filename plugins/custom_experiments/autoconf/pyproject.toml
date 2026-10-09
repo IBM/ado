@@ -7,7 +7,7 @@ dependencies = [
   "autogluon-tabular[catboost,xgboost]==1.6.1; python_full_version < '3.14'",
   "filelock>=3",
   "huggingface_hub>=0.23",
-  "pandas<3.0.0",
+  "pandas<3.0.7",
   "pydantic",
   "ray>=2.43.0,<2.57.0",
   "torch",

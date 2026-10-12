@@ -6,7 +6,7 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    import datetime
+    import datetime as dt
 
 from ado.core import OperationResource
 from ado.core.discoveryspace.space import DiscoverySpace
@@ -45,10 +45,10 @@ def test_heavy_fields_default_to_none() -> None:
     )
     assert stats.size_of_entity_space is None
     assert stats.number_unmeasured_entities is None
-    assert stats.sampled_full is None
+    assert stats.sampled_complete is None
     assert stats.sampled_partial is None
     assert stats.sampled_failed is None
-    assert stats.matching_full is None
+    assert stats.matching_complete is None
     assert stats.matching_partial is None
     assert stats.matching_failed is None
 
@@ -62,7 +62,7 @@ def test_nan_unmeasured_entities_round_trip() -> None:
         number_measured_entities=5,
         size_of_entity_space=None,
         number_unmeasured_entities=math.nan,
-        sampled_full=None,
+        sampled_complete=None,
         sampled_partial=None,
         sampled_failed=None,
     )
@@ -80,7 +80,7 @@ def test_inf_unmeasured_entities_round_trip() -> None:
         number_measured_entities=0,
         size_of_entity_space=None,
         number_unmeasured_entities=math.inf,
-        sampled_full=None,
+        sampled_complete=None,
         sampled_partial=None,
         sampled_failed=None,
     )
@@ -118,10 +118,10 @@ def test_space_statistics_lightweight_only(
     # Heavy fields must be None when lightweight_only=True
     assert stats.size_of_entity_space is None
     assert stats.number_unmeasured_entities is None
-    assert stats.sampled_full is None
+    assert stats.sampled_complete is None
     assert stats.sampled_partial is None
     assert stats.sampled_failed is None
-    assert stats.matching_full is None
+    assert stats.matching_complete is None
     assert stats.matching_partial is None
     assert stats.matching_failed is None
 
@@ -142,11 +142,11 @@ def test_space_statistics_full_no_operations(
     assert stats.number_unmeasured_entities == _ENTITY_SPACE_SIZE
     # The CSV sample store already carries observed property values for the
     # benchmark_performance experiment, so all matching entities have measurements
-    assert stats.matching_full == _NUMBER_OF_MATCHING_ENTITIES
+    assert stats.matching_complete == _NUMBER_OF_MATCHING_ENTITIES
     assert stats.matching_partial == 0
     assert stats.matching_failed == 0
     # No sampled entities (no operations) → all buckets are 0
-    assert stats.sampled_full == 0
+    assert stats.sampled_complete == 0
     assert stats.sampled_partial == 0
     assert stats.sampled_failed == 0
 
@@ -160,7 +160,7 @@ def test_space_statistics_full_with_operation(
             int,
             int,
             str | None,
-            "datetime.datetime | None",
+            "dt.datetime | None",
             "MeasurementResultStateEnum | None",
         ],
         tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
@@ -187,10 +187,10 @@ def test_space_statistics_full_with_operation(
     assert stats.number_unmeasured_entities == _ENTITY_SPACE_SIZE - number_entities
     # The CSV sample store already carries observed property values for all entities,
     # so all matching entities have measurements regardless of the simulated operation
-    assert stats.matching_full == _NUMBER_OF_MATCHING_ENTITIES
+    assert stats.matching_complete == _NUMBER_OF_MATCHING_ENTITIES
     assert stats.matching_partial == 0
     assert stats.matching_failed == 0
-    assert stats.sampled_full == number_entities
+    assert stats.sampled_complete == number_entities
     assert stats.sampled_partial == 0
     assert stats.sampled_failed == 0
 
@@ -273,7 +273,7 @@ def test_space_statistics_failure_only_entities(
     stats = ml_multi_cloud_space.space_statistics(lightweight_only=False)
 
     assert stats.sampled_failed == len(entities_to_fail)
-    assert stats.sampled_full == 0
+    assert stats.sampled_complete == 0
     assert stats.sampled_partial == 0
 
 

@@ -467,8 +467,8 @@ def format_ado_get_stats_for_spaces(
         spinner: Optional rich status spinner to update with progress messages.
         include_heavy: When ``True`` also compute and append the heavy stats
             columns (``ENTITY_SPACE_SIZE``, ``UNSAMPLED``,
-            ``SAMPLED_FULL``, ``SAMPLED_PARTIAL``, ``SAMPLED_FAILED``,
-            ``MATCHING_FULL``, ``MATCHING_PARTIAL``, ``MATCHING_FAILED``).
+            ``SAMPLED_COMPLETE``, ``SAMPLED_PARTIAL``, ``SAMPLED_FAILED``,
+            ``MATCHING_COMPLETE``, ``MATCHING_PARTIAL``, ``MATCHING_FAILED``).
             Requires ``space_resources`` and ``project_context``.
         space_resources: Mapping of space identifier → hydrated
             :class:`~ado.core.resources.ADOResource`.  Required when
@@ -481,8 +481,8 @@ def format_ado_get_stats_for_spaces(
         The same DataFrame with extra columns appended.
         Lightweight columns: ``EXPERIMENTS``, ``OPERATIONS``, ``EXPLORE_OPS``.
         Heavy columns (only when ``include_heavy=True``):
-        ``ENTITY_SPACE_SIZE``, ``UNSAMPLED``, ``SAMPLED_FULL``,
-        ``SAMPLED_PARTIAL``, ``SAMPLED_FAILED``, ``MATCHING_FULL``,
+        ``ENTITY_SPACE_SIZE``, ``UNSAMPLED``, ``SAMPLED_COMPLETE``,
+        ``SAMPLED_PARTIAL``, ``SAMPLED_FAILED``, ``MATCHING_COMPLETE``,
         ``MATCHING_PARTIAL``, ``MATCHING_FAILED``.
         Spaces with no recorded operations or sample store show ``0`` in all
         lightweight stats columns; heavy columns show ``None`` for spaces
@@ -643,10 +643,10 @@ def format_ado_get_stats_for_spaces(
         _heavy_field_map = {
             "ENTITY_SPACE_SIZE": "size_of_entity_space",
             "UNSAMPLED": "number_unmeasured_entities",
-            "SAMPLED_FULL": "sampled_full",
+            "SAMPLED_COMPLETE": "sampled_complete",
             "SAMPLED_PARTIAL": "sampled_partial",
             "SAMPLED_FAILED": "sampled_failed",
-            "MATCHING_FULL": "matching_full",
+            "MATCHING_COMPLETE": "matching_complete",
             "MATCHING_PARTIAL": "matching_partial",
             "MATCHING_FAILED": "matching_failed",
         }

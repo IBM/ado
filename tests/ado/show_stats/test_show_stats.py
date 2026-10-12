@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 from typer.testing import CliRunner
 
 if TYPE_CHECKING:
-    import datetime
+    import datetime as dt
 
     from ado.schema.result import MeasurementResultStateEnum
 
@@ -49,7 +49,7 @@ def test_show_stats_discoveryspace_heavy_stats_values(
             int,
             int,
             "str | None",
-            "datetime.datetime | None",
+            "dt.datetime | None",
             "MeasurementResultStateEnum | None",
         ],
         tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
@@ -62,10 +62,10 @@ def test_show_stats_discoveryspace_heavy_stats_values(
     known ml_multi_cloud space geometry and CSV sample store:
       - ENTITY_SPACE_SIZE: 48 (3x2x2x4 entity-space points)
       - UNSAMPLED: 45 (48 - 3 measured)
-      - SAMPLED_FULL: 3 (one experiment, each entity has one valid result)
+      - SAMPLED_COMPLETE: 3 (one experiment, each entity has one valid result)
       - SAMPLED_PARTIAL: 0
       - SAMPLED_FAILED: 0
-      - MATCHING_FULL: 42 (CSV sample store carries observations for all matching entities)
+      - MATCHING_COMPLETE: 42 (CSV sample store carries observations for all matching entities)
       - MATCHING_PARTIAL: 0
       - MATCHING_FAILED: 0
     """
@@ -102,10 +102,10 @@ def test_show_stats_discoveryspace_heavy_stats_values(
     assert isinstance(stats["ENTITY_SPACE_SIZE"], int)
     assert stats["UNSAMPLED"] == _ENTITY_SPACE_SIZE - number_entities
     assert isinstance(stats["UNSAMPLED"], int)
-    assert stats["SAMPLED_FULL"] == number_entities
+    assert stats["SAMPLED_COMPLETE"] == number_entities
     assert stats["SAMPLED_PARTIAL"] == 0
     assert stats["SAMPLED_FAILED"] == 0
-    assert stats["MATCHING_FULL"] == _NUMBER_OF_MATCHING_ENTITIES
+    assert stats["MATCHING_COMPLETE"] == _NUMBER_OF_MATCHING_ENTITIES
     assert stats["MATCHING_PARTIAL"] == 0
     assert stats["MATCHING_FAILED"] == 0
 
@@ -128,7 +128,7 @@ def test_show_stats_operation_request_level_stats_values(
             int,
             int,
             "str | None",
-            "datetime.datetime | None",
+            "dt.datetime | None",
             "MeasurementResultStateEnum | None",
         ],
         tuple[SQLSampleStore, list[MeasurementRequest], list[str]],

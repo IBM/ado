@@ -52,7 +52,7 @@ class DiscoverySpaceStatistics(pydantic.BaseModel):
             ``number_measured_entities``. ``None`` when ``lightweight_only=True``.
             May be ``math.inf`` for continuous spaces or ``math.nan`` when
             ``size_of_entity_space`` could not be determined.
-        sampled_full: Sampled entities that have a valid result for every
+        sampled_complete: Sampled entities that have a valid result for every
             experiment in the measurement space. ``None`` when
             ``lightweight_only=True``.
         sampled_partial: Sampled entities that have at least one valid result
@@ -61,7 +61,7 @@ class DiscoverySpaceStatistics(pydantic.BaseModel):
         sampled_failed: Sampled entities with at least one invalid result and
             no valid results for any experiment in the measurement space. ``None`` when
             ``lightweight_only=True``.
-        matching_full: Matching entities that have a valid result for every experiment in
+        matching_complete: Matching entities that have a valid result for every experiment in
             the measurement space. ``None`` when ``lightweight_only=True``.
         matching_partial: Matching entities with at least one valid result from
             the measurement space but not all experiments. ``None`` when
@@ -121,7 +121,7 @@ class DiscoverySpaceStatistics(pydantic.BaseModel):
             ),
         ),
     ] = None
-    sampled_full: Annotated[
+    sampled_complete: Annotated[
         int | None,
         pydantic.Field(
             description=(
@@ -150,7 +150,7 @@ class DiscoverySpaceStatistics(pydantic.BaseModel):
             ),
         ),
     ] = None
-    matching_full: Annotated[
+    matching_complete: Annotated[
         int | None,
         pydantic.Field(
             description=(
@@ -189,8 +189,8 @@ def lightweight_space_statistics(
     """Compute lightweight statistics for spaces given only their IDs and stores.
 
     The heavy fields (``size_of_entity_space``, ``number_unmeasured_entities``,
-    ``sampled_full``, ``sampled_partial``, ``sampled_failed``,
-    ``matching_full``, ``matching_partial``, ``matching_failed``)
+    ``sampled_complete``, ``sampled_partial``, ``sampled_failed``,
+    ``matching_complete``, ``matching_partial``, ``matching_failed``)
     are set to ``None`` in every returned :class:`DiscoverySpaceStatistics`.
 
     Args:
@@ -229,10 +229,10 @@ def lightweight_space_statistics(
             number_measured_entities=len(entity_ids_by_space_id.get(space_id, set())),
             size_of_entity_space=None,
             number_unmeasured_entities=None,
-            sampled_full=None,
+            sampled_complete=None,
             sampled_partial=None,
             sampled_failed=None,
-            matching_full=None,
+            matching_complete=None,
             matching_partial=None,
             matching_failed=None,
         )
@@ -453,7 +453,7 @@ def space_statistics_for_spaces(
         refs_in_measurement_space: set[ExperimentReference],
         num_experiments_in_space: int,
     ) -> tuple[int, int, int]:
-        """Classify entities into full, partial, and failed buckets.
+        """Classify entities into complete, partial, and failed buckets.
 
         Args:
             entity_ids: Entity identifiers to classify.
@@ -464,9 +464,9 @@ def space_statistics_for_spaces(
             num_experiments_in_space: Number of experiments in the measurement space.
 
         Returns:
-            Tuple of (full, partial, failed) counts.
+            Tuple of (complete, partial, failed) counts.
         """
-        full = 0
+        complete = 0
         partial = 0
         failed = 0
 
@@ -485,13 +485,13 @@ def space_statistics_for_spaces(
             if num_experiments_in_space == 0:
                 pass
             elif n_valid == num_experiments_in_space:
-                full += 1
+                complete += 1
             elif n_valid > 0:
                 partial += 1
             elif n_invalid > 0:
                 failed += 1
 
-        return full, partial, failed
+        return complete, partial, failed
 
     for space in spaces:
         base = lightweight_stats[space.uri]
@@ -517,7 +517,7 @@ def space_statistics_for_spaces(
         num_experiments_in_space = len(refs_in_measurement_space)
 
         # Three-bucket classification for sampled entities.
-        sampled_full, sampled_partial, sampled_failed = classify_entities(
+        sampled_complete, sampled_partial, sampled_failed = classify_entities(
             sampled_ids,
             exp_refs_by_sampled_entity,
             refs_in_measurement_space,
@@ -525,7 +525,7 @@ def space_statistics_for_spaces(
         )
 
         # Three-bucket classification for matching entities.
-        matching_full, matching_partial, matching_failed = classify_entities(
+        matching_complete, matching_partial, matching_failed = classify_entities(
             matching_ids,
             exp_refs_by_matching_entity,
             refs_in_measurement_space,
@@ -539,10 +539,10 @@ def space_statistics_for_spaces(
             number_measured_entities=number_measured,
             size_of_entity_space=size_of_entity_space,
             number_unmeasured_entities=number_unmeasured,
-            sampled_full=sampled_full,
+            sampled_complete=sampled_complete,
             sampled_partial=sampled_partial,
             sampled_failed=sampled_failed,
-            matching_full=matching_full,
+            matching_complete=matching_complete,
             matching_partial=matching_partial,
             matching_failed=matching_failed,
         )

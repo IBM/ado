@@ -62,8 +62,8 @@ Why is it useful to work with matching data?
      sampled spaced to analyze it. You can perform analysis on existing data
      even though no operation has been run on the new discoveryspace.
 2. Memoization: You can understand if there are memoization opportunities that
-   would speed up an operation on the space. When `MATCHING_FULL` is
-   significantly larger than `SAMPLED_FULL`, data from other operations
+   would speed up an operation on the space. When `MATCHING_COMPLETE` is
+   significantly larger than `SAMPLED_COMPLETE`, data from other operations
    sharing the same sample store could be replayed.
 
    > The explanation above is sufficient for assessing memoization opportunities.
@@ -137,18 +137,18 @@ uv run ado show stats discoveryspace SPACE_ID
 ```
 
 This outputs the base table columns plus full entity-space coverage columns:
-`ENTITY_SPACE_SIZE`, `UNSAMPLED`, `SAMPLED_FULL`, `SAMPLED_PARTIAL`,
-`SAMPLED_FAILED`, `MATCHING_FULL`, `MATCHING_PARTIAL`, `MATCHING_FAILED`.
+`ENTITY_SPACE_SIZE`, `UNSAMPLED`, `SAMPLED_COMPLETE`, `SAMPLED_PARTIAL`,
+`SAMPLED_FAILED`, `MATCHING_COMPLETE`, `MATCHING_PARTIAL`, `MATCHING_FAILED`.
 
-Compare `SAMPLED_FULL + SAMPLED_PARTIAL + SAMPLED_FAILED`
+Compare `SAMPLED_COMPLETE + SAMPLED_PARTIAL + SAMPLED_FAILED`
 vs `ENTITY_SPACE_SIZE` to understand exploration progress.
 
-- `SAMPLED_FULL`: entities with valid results for all experiments in the space.
+- `SAMPLED_COMPLETE`: entities with valid results for all experiments in the space.
 - `SAMPLED_PARTIAL`: entities with valid results for some but not all experiments.
 - `SAMPLED_FAILED`: entities with at least one invalid result and zero
   valid results for experiments in the measurement space.
 
-Compare `SAMPLED_FULL` vs `MATCHING_FULL`
+Compare `SAMPLED_COMPLETE` vs `MATCHING_COMPLETE`
 to understand memoization opportunities — a large gap signals other overlapping
 spaces exist that could be replayed.
 

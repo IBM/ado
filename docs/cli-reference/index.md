@@ -1345,8 +1345,8 @@ The statistics columns produced per resource type are:
   successful, failed, or both), `TOTAL_REQUESTS`, `FAILED_REQUESTS`,
   `SUCCESSFUL_REQUESTS`.
 - **Discovery Spaces**: `EXPERIMENTS`, `OPERATIONS`, `EXPLORE_OPS`,
-  `ENTITY_SPACE_SIZE`, `UNSAMPLED`, `SAMPLED_FULL`, `SAMPLED_PARTIAL`,
-  `SAMPLED_FAILED`, `MATCHING_FULL`, `MATCHING_PARTIAL`, `MATCHING_FAILED`.
+  `ENTITY_SPACE_SIZE`, `UNSAMPLED`, `SAMPLED_COMPLETE`, `SAMPLED_PARTIAL`,
+  `SAMPLED_FAILED`, `MATCHING_COMPLETE`, `MATCHING_PARTIAL`, `MATCHING_FAILED`.
 - **Sample Stores**: `ENTITIES`, `RESULTS`, `EXPERIMENTS`.
 - **Data Containers**: `TABLES`, `LOCATIONS`, `KEY_VALUES`, `DATA_BYTES`.
 
@@ -1356,7 +1356,7 @@ The statistics columns produced per resource type are:
 
     `ado show stats discoveryspace` computes full entity-space coverage
     statistics including the heavy columns (`ENTITY_SPACE_SIZE`, `UNSAMPLED`,
-    `SAMPLED_FULL`, `SAMPLED_PARTIAL`, `SAMPLED_FAILED`, `MATCHING_FULL`,
+    `SAMPLED_COMPLETE`, `SAMPLED_PARTIAL`, `SAMPLED_FAILED`, `MATCHING_COMPLETE`,
     `MATCHING_PARTIAL`, `MATCHING_FAILED`).
     This is slower than `ado get spaces -o stats` because it instantiates each
     `DiscoverySpace` and queries the sample store. Use `ado get -o stats` for

@@ -190,8 +190,8 @@ When examining a study, add `-l study=$ID` (the study's label) to the
    Adds `EXPERIMENTS`, `OPERATIONS`, `EXPLORE_OPS` columns.
 
    For richer stats that also include full entity-space coverage columns
-   (`ENTITY_SPACE_SIZE`, `UNSAMPLED`, `SAMPLED_FULL`, `SAMPLED_PARTIAL`,
-   `SAMPLED_FAILED`, `MATCHING_FULL`, `MATCHING_PARTIAL`, `MATCHING_FAILED`):
+   (`ENTITY_SPACE_SIZE`, `UNSAMPLED`, `SAMPLED_COMPLETE`, `SAMPLED_PARTIAL`,
+   `SAMPLED_FAILED`, `MATCHING_COMPLETE`, `MATCHING_PARTIAL`, `MATCHING_FAILED`):
 
    ```bash
    uv run ado show stats discoveryspace --output-file spaces-fullstats.csv -o csv

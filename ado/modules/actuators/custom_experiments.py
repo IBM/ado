@@ -831,9 +831,15 @@ class CustomExperiments(ActuatorBase):
                 _notifier = ray.get_runtime_context().current_actor
             except Exception:
                 _notifier = None
-            executor_ref = ray.remote(
-                custom_experiment_executor, **remote_kwargs
-            ).remote(
+            # ray.remote(fn, **options) is rejected. Options belong on the
+            # decorator: ray.remote(**options)(fn). An empty option dict must
+            # stay ray.remote(fn), because ray.remote() with no arguments
+            # is the decorator form.
+            if remote_kwargs:
+                remote_fn = ray.remote(**remote_kwargs)(custom_experiment_executor)
+            else:
+                remote_fn = ray.remote(custom_experiment_executor)
+            executor_ref = remote_fn.remote(
                 fn,
                 self._catalog.experimentForReference(
                     request.experimentReference

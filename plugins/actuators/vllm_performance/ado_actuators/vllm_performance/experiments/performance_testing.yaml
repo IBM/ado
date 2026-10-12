@@ -1202,7 +1202,7 @@ test-agentic-tool-calling:
 vllm-bench-deployment:
   identifier: vllm-bench-deployment
   actuatorIdentifier: "vllm_performance"
-  version: 1.3.0
+  version: 1.2.0
   requiredProperties: # Any entity passed to this experiment must have constitutive properties with these values
     - identifier: 'model'
       metadata:
@@ -1527,7 +1527,7 @@ vllm-bench-deployment:
 vllm-bench-endpoint:
   identifier: vllm-bench-endpoint
   actuatorIdentifier: "vllm_performance"
-  version: 1.2.0
+  version: 1.1.0
   requiredProperties: # Any entity passed to this experiment must have constitutive properties with these values
     - identifier: 'model'
       metadata:

@@ -68,7 +68,7 @@ uv run autoconf_build_model --model regressor    # throughput regressor only
 uv run autoconf_build_model --model all          # both (default)
 ```
 
-AutoConf 2.1 pins AutoGluon 1.6.1. Downloaded data and generated models are
+AutoConf 2.1.1 pins AutoGluon 1.6.3. Downloaded data and generated models are
 ignored by Git.
 
 Use `uv run autoconf_build_model --help` to select a different local data path,
@@ -80,12 +80,12 @@ the released package in a clean environment:
 ```terminal
 python -m venv .venv
 source .venv/bin/activate
-python -m pip install "ado-autoconf==2.1.0"
+python -m pip install "ado-autoconf==2.1.1"
 autoconf_build_model
 ```
 
 The package brings
-in `ado-core` and pins AutoGluon 1.6.1. The command downloads the training CSV
+in `ado-core` and pins AutoGluon 1.6.3. The command downloads the training CSV
 and writes the model into the same environment that will load it.
 
 ## Default Presets

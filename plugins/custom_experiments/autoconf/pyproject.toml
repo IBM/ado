@@ -4,12 +4,12 @@ description = "An AutoConf plugin that suggests the minimum number of gpus neces
 requires-python = ">=3.10,<3.14"
 dependencies = [
   "ado-core>=2.0.0",
-  "autogluon-tabular[catboost,xgboost]==1.6.1; python_full_version < '3.14'",
+  "autogluon-tabular[catboost,xgboost]==1.6.3 ; python_full_version < '3.14'",
   "filelock>=3",
   "huggingface_hub>=0.23",
   "pandas<3.0.0",
   "pydantic",
-  "ray>=2.43.0,<2.57.0",
+  "ray>=2.43.0,<2.59.0",
   "torch",
 ]
 dynamic = ["version"]

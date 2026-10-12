@@ -1,7 +1,7 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-import datetime
+import datetime as dt
 import json
 import math
 import typing
@@ -273,7 +273,7 @@ def build_resource_listing_dataframe(
     """
     import pandas as pd
 
-    now = datetime.datetime.now(datetime.timezone.utc)
+    now = dt.datetime.now(dt.timezone.utc)
 
     def resource_to_row(
         identifier: str, resource: "ADOResource"
@@ -1064,12 +1064,12 @@ def _minimize_ado_resource_representation(
     return to_print
 
 
-def time_since_timestamp(ts: datetime.datetime) -> datetime.timedelta:
+def time_since_timestamp(ts: dt.datetime) -> dt.timedelta:
     # AP: there are still some datetimes that are not timezone aware
     return (
-        datetime.datetime.now() - ts
+        dt.datetime.now() - ts
         if not ts.tzinfo
-        else datetime.datetime.now(tz=datetime.timezone.utc) - ts
+        else dt.datetime.now(tz=dt.timezone.utc) - ts
     )
 
 

@@ -534,7 +534,7 @@ class SQLResourceStore(ResourceStore):
                 If the supplied ``kind`` is not a known
                 ``CoreResourceKinds`` value.
         """
-        import datetime
+        import datetime as dt
         import math
 
         import pandas as pd
@@ -688,9 +688,7 @@ class SQLResourceStore(ResourceStore):
         # The DB returns age in seconds; convert to timedelta (NaN values are preserved)
         output_df["AGE"] = output_df["AGE"].apply(
             lambda x: (
-                datetime.timedelta(seconds=x)
-                if x is not None and not math.isnan(x)
-                else x
+                dt.timedelta(seconds=x) if x is not None and not math.isnan(x) else x
             )
         )
 

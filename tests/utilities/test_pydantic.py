@@ -1,6 +1,6 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
-import datetime
+import datetime as dt
 import enum
 import json
 import uuid
@@ -17,7 +17,7 @@ class _Color(str, enum.Enum):
 
 class _Inner(pydantic.BaseModel):
     value: float
-    when: datetime.datetime
+    when: dt.datetime
 
 
 class _Outer(pydantic.BaseModel):
@@ -34,9 +34,7 @@ class _Outer(pydantic.BaseModel):
 
 def test_pydantic_model_returns_json_string() -> None:
     """A Pydantic model is serialised to a JSON string."""
-    model = _Inner(
-        value=1.5, when=datetime.datetime(2024, 1, 1, tzinfo=datetime.timezone.utc)
-    )
+    model = _Inner(value=1.5, when=dt.datetime(2024, 1, 1, tzinfo=dt.timezone.utc))
     result = pydantic_aware_json_serializer(model)
     assert isinstance(result, str)
     parsed = json.loads(result)
@@ -53,7 +51,7 @@ def test_pydantic_nested_model_is_fully_serialised() -> None:
         color=_Color.RED,
         inner=_Inner(
             value=3.14,
-            when=datetime.datetime(2024, 6, 1, tzinfo=datetime.timezone.utc),
+            when=dt.datetime(2024, 6, 1, tzinfo=dt.timezone.utc),
         ),
     )
     result = pydantic_aware_json_serializer(model)
@@ -68,7 +66,7 @@ def test_pydantic_model_round_trip() -> None:
     """Serialising then re-parsing a model produces an equal instance with correct field values."""
     original = _Inner(
         value=2.718,
-        when=datetime.datetime(2024, 3, 15, 12, 0, tzinfo=datetime.timezone.utc),
+        when=dt.datetime(2024, 3, 15, 12, 0, tzinfo=dt.timezone.utc),
     )
     result = pydantic_aware_json_serializer(original)
     recovered = _Inner.model_validate_json(result)
@@ -86,7 +84,7 @@ def test_pydantic_nested_model_round_trip() -> None:
         color=_Color.RED,
         inner=_Inner(
             value=1.41,
-            when=datetime.datetime(2025, 1, 1, tzinfo=datetime.timezone.utc),
+            when=dt.datetime(2025, 1, 1, tzinfo=dt.timezone.utc),
         ),
     )
     result = pydantic_aware_json_serializer(original)

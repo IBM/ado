@@ -1,7 +1,7 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-import datetime
+import datetime as dt
 import typing
 from collections.abc import Callable
 from typing import Any
@@ -142,7 +142,7 @@ def test_sample_store_resource(sample_store_resource: SampleStoreResource) -> No
         sample_store_resource.kind == ado.core.resources.CoreResourceKinds.SAMPLESTORE
     )
 
-    assert sample_store_resource.created < datetime.datetime.now(datetime.timezone.utc)
+    assert sample_store_resource.created < dt.datetime.now(dt.timezone.utc)
     assert isinstance(sample_store_resource.metadata, dict)
     assert sample_store_resource.config is not None
     assert isinstance(sample_store_resource.config, SampleStoreConfiguration)

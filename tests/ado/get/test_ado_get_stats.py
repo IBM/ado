@@ -1,6 +1,6 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
-import datetime
+import datetime as dt
 import os
 import pathlib
 import typing
@@ -25,9 +25,7 @@ if typing.TYPE_CHECKING:
     from ado.core import DataContainerResource
 
 # A past timestamp far enough from "now" that AGE is stable across a test run.
-_CREATED_7_DAYS_AGO = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(
-    days=7
-)
+_CREATED_7_DAYS_AGO = dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=7)
 _EXPECTED_AGE = "7d0h"
 
 
@@ -118,7 +116,7 @@ def test_ado_get_operations_stats_values(
     ],
     ml_multi_cloud_space: DiscoverySpace,
     simulate_ml_multi_cloud_random_walk_operation: Callable[
-        [int, int, int, str | None, datetime.datetime | None],
+        [int, int, int, str | None, dt.datetime | None],
         tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
     ],
 ) -> None:
@@ -195,7 +193,7 @@ def test_ado_get_operation_stats_single_resource(
     ],
     ml_multi_cloud_space: DiscoverySpace,
     simulate_ml_multi_cloud_random_walk_operation: Callable[
-        [int, int, int, str | None, datetime.datetime | None],
+        [int, int, int, str | None, dt.datetime | None],
         tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
     ],
 ) -> None:
@@ -271,7 +269,7 @@ def test_ado_get_spaces_stats_values(
         [CliRunner, pathlib.Path, ProjectContext], None
     ],
     ml_multi_cloud_space: DiscoverySpace,
-    backdate_resource: Callable[[str, CoreResourceKinds, datetime.datetime], None],
+    backdate_resource: Callable[[str, CoreResourceKinds, dt.datetime], None],
     simulate_ml_multi_cloud_random_walk_operation: Callable[
         [int, int, int, str | None],
         tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
@@ -347,7 +345,7 @@ def test_ado_get_space_stats_single_resource(
         [CliRunner, pathlib.Path, ProjectContext], None
     ],
     ml_multi_cloud_space: DiscoverySpace,
-    backdate_resource: Callable[[str, CoreResourceKinds, datetime.datetime], None],
+    backdate_resource: Callable[[str, CoreResourceKinds, dt.datetime], None],
     simulate_ml_multi_cloud_random_walk_operation: Callable[
         [int, int, int, str | None],
         tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
@@ -456,7 +454,7 @@ def test_ado_get_samplestores_stats_values(
         [CliRunner, pathlib.Path, ProjectContext], None
     ],
     ml_multi_cloud_sample_store: SQLSampleStore,
-    backdate_resource: Callable[[str, CoreResourceKinds, datetime.datetime], None],
+    backdate_resource: Callable[[str, CoreResourceKinds, dt.datetime], None],
     simulate_ml_multi_cloud_random_walk_operation: Callable[
         [int, int, int, str | None],
         tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
@@ -566,7 +564,7 @@ def test_ado_get_datacontainers_stats_values(
     ],
     data_container_resource: "DataContainerResource",
     create_resources: Callable,
-    backdate_resource: Callable[[str, CoreResourceKinds, "datetime.datetime"], None],
+    backdate_resource: Callable[[str, CoreResourceKinds, "dt.datetime"], None],
 ) -> None:
     """Stats values for a known datacontainer match expected counts in the rendered table."""
     from ado.metastore.sqlstore import SQLStore
@@ -640,7 +638,7 @@ def test_ado_get_operation_stats_details_columns(
         [CliRunner, pathlib.Path, ProjectContext], None
     ],
     simulate_ml_multi_cloud_random_walk_operation: Callable[
-        [int, int, int, str | None, datetime.datetime | None],
+        [int, int, int, str | None, dt.datetime | None],
         tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
     ],
 ) -> None:

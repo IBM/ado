@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import dataclasses
-import datetime
+import datetime as dt
 import logging
 import os
 import typing
@@ -192,8 +192,8 @@ class Metrics:
         metadata={"help": "The number of training steps excluding the warmup steps"},
     )
     aim_run_hash: str | None = None
-    train_time_start: datetime.datetime | None = None
-    train_time_stop: datetime.datetime | None = None
+    train_time_start: dt.datetime | None = None
+    train_time_stop: dt.datetime | None = None
     hostname_gpus: dict[str, list[int]] = dataclasses.field(
         default_factory=dict,
         metadata={
@@ -367,9 +367,9 @@ class Metrics:
         format_time = "%d%m%y-%H%M%S"
 
         if train_time_start:
-            train_time_start = datetime.datetime.strptime(train_time_start, format_time)
+            train_time_start = dt.datetime.strptime(train_time_start, format_time)
         if train_time_stop:
-            train_time_stop = datetime.datetime.strptime(train_time_stop, format_time)
+            train_time_stop = dt.datetime.strptime(train_time_stop, format_time)
 
         # VV: training_steps does not include the warmup_steps
         training_steps = aim_info["training_steps"] - (

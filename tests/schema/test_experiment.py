@@ -45,16 +45,6 @@ from ado.utilities.support import get_experiment_input_values
 #
 
 
-def test_property_values_from_entity_multiple_required() -> None:
-
-    pass
-
-
-def test_property_values_from_entity_missing_required_constitutive() -> None:
-
-    pass
-
-
 def experiment_equality_non_experiment(experiment: Experiment) -> None:
     "Utility function for use in tests"
 
@@ -84,7 +74,7 @@ def experiment_is_hashable(experiment: Experiment) -> None:
 
 
 def test_parameterizable_experiment_equality_experiment_same_id_different_actuator(
-    parameterizable_experiment: Experiment, global_registry: ActuatorRegistry
+    parameterizable_experiment: Experiment,
 ) -> None:
 
     cp = parameterizable_experiment.model_copy(
@@ -95,7 +85,7 @@ def test_parameterizable_experiment_equality_experiment_same_id_different_actuat
 
 
 def test_parameterized_experiment_equality_experiment_same_id_different_actuator(
-    parameterized_experiment: ParameterizedExperiment, global_registry: ActuatorRegistry
+    parameterized_experiment: ParameterizedExperiment,
 ) -> None:
 
     assert parameterized_experiment != parameterized_experiment.model_copy(
@@ -104,14 +94,14 @@ def test_parameterized_experiment_equality_experiment_same_id_different_actuator
 
 
 def test_parameterizable_experiment_equality_non_experiment(
-    parameterizable_experiment: Experiment, global_registry: ActuatorRegistry
+    parameterizable_experiment: Experiment,
 ) -> None:
 
     experiment_equality_non_experiment(parameterizable_experiment)
 
 
 def test_parameterized_experiment_equality_non_experiment(
-    parameterized_experiment: ParameterizedExperiment, global_registry: ActuatorRegistry
+    parameterized_experiment: ParameterizedExperiment,
 ) -> None:
 
     experiment_equality_non_experiment(parameterized_experiment)
@@ -176,16 +166,6 @@ def test_parameterized_experiment_base_equality_methods(
 
     assert parameterized_experiment.has_same_base_as_experiment(base_exp)
     assert base_exp.has_same_base_as_experiment(parameterized_experiment)
-
-
-def test_parameterizable_experiment_rich_print(
-    parameterized_experiment: ParameterizedExperiment, global_registry: ActuatorRegistry
-) -> None:
-
-    from rich.console import Console
-
-    # Requesting global_registry fixture to ensure the experiments are added to the registry for testing
-    Console().print(parameterized_experiment)
 
 
 def test_parameterized_experiment_rich_print(
@@ -407,9 +387,11 @@ def test_get_experiment_optional_parameter_value(
 def test_is_valid_experiment_parameterization(
     experimentWithOptions: Experiment,
     defaultParameterization: list[ConstitutivePropertyValue],
+    customParameterization: list[ConstitutivePropertyValue],
 ) -> None:
 
     assert experimentWithOptions.isValidParameterization(defaultParameterization)
+    assert experimentWithOptions.isValidParameterization(customParameterization)
 
     values = [
         ConstitutivePropertyValue(
@@ -423,8 +405,7 @@ def test_is_valid_experiment_parameterization(
         ),
     ]
 
-    # THis value is not in the domain of test_opt1 optional property so it should cause failure
-
+    # This value is not in the domain of test_opt1 optional property so it should cause failure
     assert not experimentWithOptions.isValidParameterization(values)
 
     # Remove a parameterization
@@ -436,14 +417,6 @@ def test_is_valid_experiment_parameterization(
     )
 
     assert not experimentWithOptions.isValidParameterization(values)
-
-
-def test_custom_experiment_parameterization_is_valid(
-    experimentWithOptions: Experiment,
-    customParameterization: list[ConstitutivePropertyValue],
-) -> None:
-
-    assert experimentWithOptions.isValidParameterization(customParameterization)
 
 
 def test_experiment_rich_print(experiment: Experiment) -> None:
@@ -594,6 +567,33 @@ def test_create_parameterized_experiment(
             **experimentWithOptions.model_dump(),
             parameterization=incorrectParameterization,
         )
+
+
+def test_parameterized_experiment_parameterization_order_is_irrelevant(
+    experimentWithOptions: Experiment,
+    customParameterization: list[ConstitutivePropertyValue],
+) -> None:
+
+    p = ParameterizedExperiment(
+        **experimentWithOptions.model_dump(), parameterization=customParameterization
+    )
+    reversed_p = ParameterizedExperiment(
+        **experimentWithOptions.model_dump(),
+        parameterization=list(reversed(customParameterization)),
+    )
+
+    assert p == reversed_p
+    assert hash(p) == hash(reversed_p)
+    assert str(p) == str(reversed_p)
+    assert (
+        p.major_version_parameterized_identifier
+        == reversed_p.major_version_parameterized_identifier
+    )
+    assert p.reference == reversed_p.reference
+    assert str(p.reference) == str(reversed_p.reference)
+    assert reversed_p.parameterization == sorted(
+        customParameterization, key=lambda v: v.property.identifier
+    )
 
 
 # Missing:

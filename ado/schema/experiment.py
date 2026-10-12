@@ -25,7 +25,6 @@ from ado.schema.property import (
 )
 from ado.schema.property_value import (
     ConstitutivePropertyValue,
-    PropertyValue,
     validate_point_against_properties,
 )
 from ado.schema.reference import (
@@ -39,7 +38,7 @@ from ado.schema.virtual_property import (
     PropertyAggregationMethodEnum,
     VirtualObservedProperty,
 )
-from ado.utilities.pydantic import StrictSemVerStr, semver_major
+from ado.utilities.pydantic import StrictSemVerStr, semver_major, sort_by_identifier
 
 if typing.TYPE_CHECKING:  # pragma: nocover
     from rich.console import RenderableType
@@ -930,6 +929,7 @@ class ParameterizedExperiment(Experiment):
         pydantic.Field(
             default_factory=list, description="Values for optional properties"
         ),
+        pydantic.AfterValidator(sort_by_identifier),
     ]
     mapping: Annotated[
         dict,
@@ -1039,8 +1039,11 @@ class ParameterizedExperiment(Experiment):
 
     @pydantic.field_validator("parameterization")
     def validate_not_empty_parameterization(
-        cls, parameterization: list[PropertyValue], values: "pydantic.ValidationInfo"
-    ) -> list[PropertyValue]:
+        cls,
+        parameterization: list[ConstitutivePropertyValue],
+        values: "pydantic.ValidationInfo",
+    ) -> list[ConstitutivePropertyValue]:
+        """Validate the parameterization is not empty."""
 
         # Check it's not empty - it is raise error as should use ParameterizedExperiment
         if not parameterization:

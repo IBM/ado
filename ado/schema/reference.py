@@ -16,6 +16,7 @@ from ado.schema.property_value import (
 from ado.utilities.pydantic import (
     StrictSemVerStr,
     semver_major,
+    sort_by_identifier,
 )
 
 
@@ -45,6 +46,7 @@ class ExperimentReference(pydantic.BaseModel):
         pydantic.Field(
             description="A list of values for optional properties of the experiment"
         ),
+        pydantic.AfterValidator(sort_by_identifier),
     ] = None
     experimentVersion: Annotated[
         StrictSemVerStr | None,

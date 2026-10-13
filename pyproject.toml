@@ -86,7 +86,7 @@ docs = [
 
 test = [
   "ado-anomalous-series",
-  "ado-autoconf ; python_full_version < '3.14'",
+  "ado-autoconf ; python_full_version >= '3.11' and python_full_version < '3.14'",
   "ado-profile-space",
   "ado-ray-tune",
   "ado-sfttrainer ; python_full_version >= '3.11' and python_full_version < '3.13'",
@@ -135,7 +135,7 @@ members = [
   "examples/trim/custom_experiments",
   "plugins/actuators/example_actuator",
   # "plugins/actuators/vllm_performance",  # Excluded: incompatible with Python 3.10 (requires-python >=3.11)
-  # "plugins/custom_experiments/autoconf",  # Excluded: incompatible with Python 3.14+ (fastai requires spacy with wheels only on GitHub)
+  # "plugins/custom_experiments/autoconf",  # Excluded: incompatible with Python 3.10 and Python 3.14+ (AutoGluon; fastai requires spacy with wheels only on GitHub)
   "plugins/operators/anomalous_series",
   # "plugins/operators/profile_space",  # Excluded: incompatible with Python 3.14+ (fg-data-profiling requires numba<0.63)
   "plugins/operators/ray_tune",

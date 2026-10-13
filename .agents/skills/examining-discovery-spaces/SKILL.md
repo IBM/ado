@@ -20,18 +20,13 @@ covered its entity space is, and what data has been collected.
   `document` resource in the active ado metastore context (see
   [Producing a report](#producing-a-report)).
 
-**Related skills**:
+**Basic skills**:
 
-- For CLI verification and command spelling, see
-  [using-ado-cli](../using-ado-cli/SKILL.md).
-- For metastore filtering and schemas, see
-  [query-ado-data](../query-ado-data/SKILL.md).
-- For creating document resources that store reports, see
-  [resource-yaml-creation — Document](../resource-yaml-creation/SKILL.md#document).
-- For examining operations run on a space, see
-  [examining-ado-operations](../examining-ado-operations/SKILL.md).
-- For a project/context wide view (all spaces and operations), see
-  [examining-ado-project](../examining-ado-project/SKILL.md).
+Read the following basic skills first:
+
+- [using-ado-cli](../using-ado-cli/SKILL.md).
+- [query-ado-data](../query-ado-data/SKILL.md).
+- [resource-yaml-creation — Document](../resource-yaml-creation/SKILL.md#document).
 
 ## Context
 

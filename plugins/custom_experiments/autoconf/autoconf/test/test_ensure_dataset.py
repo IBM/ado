@@ -17,7 +17,7 @@ from autoconf.utils.autoconf_build.ml_classifier import (
 )
 
 _REPO_ID = "ibm-research/LLMFineTuningBench"
-_FILENAME = "ado-sfttrainer-v1-0-0.csv"
+_FILENAME = "ado-sfttrainer.csv"
 
 
 def test_existing_file_returned_without_download(tmp_path: Path) -> None:

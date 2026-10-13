@@ -2,8 +2,10 @@
 # SPDX-License-Identifier: MIT
 
 import pathlib
+import sys
 from collections.abc import Callable
 
+import pytest
 import yaml
 from typer.testing import CliRunner
 
@@ -66,6 +68,10 @@ def test_template_space_from_experiment(
     assert len(space_configuration.entitySpace) == 3
 
 
+@pytest.mark.skipif(
+    sys.version_info < (3, 11),
+    reason="ado-vllm-performance requires Python >= 3.11",
+)
 def test_template_space_from_vllm_experiment(
     tmp_path: pathlib.Path, random_identifier: Callable[[], str]
 ) -> None:

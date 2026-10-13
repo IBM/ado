@@ -1,7 +1,7 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-import datetime
+import datetime as dt
 import pathlib
 import random
 from collections.abc import Callable
@@ -325,7 +325,7 @@ def simulate_ml_multi_cloud_random_walk_operation(
     ],
     ml_multi_cloud_benchmark_performance_experiment: Experiment,
 ) -> Callable[
-    [int, int, int, str | None, "datetime.datetime | None"],
+    [int, int, int, str | None, "dt.datetime | None"],
     tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
 ]:
     def _simulate_ml_multi_cloud_random_walk_operation(
@@ -333,7 +333,7 @@ def simulate_ml_multi_cloud_random_walk_operation(
         number_requests: int = 3,
         measurements_per_result: int = 2,
         operation_id: str | None = None,
-        created: "datetime.datetime | None" = None,
+        created: "dt.datetime | None" = None,
     ) -> tuple[SQLSampleStore, list[MeasurementRequest], list[str]]:
         operation_id = operation_id or random_identifier()
         sample_store = ml_multi_cloud_sample_store
@@ -391,7 +391,7 @@ def simulate_ml_multi_cloud_random_walk_operation(
 @pytest.fixture
 def backdate_resource(
     valid_ado_project_context: ProjectContext,
-) -> Callable[[str, CoreResourceKinds, datetime.datetime], None]:
+) -> Callable[[str, CoreResourceKinds, dt.datetime], None]:
     """Return a callable that overwrites the ``created`` timestamp of any resource.
 
     Args:
@@ -403,7 +403,7 @@ def backdate_resource(
     def _backdate_resource(
         identifier: str,
         kind: CoreResourceKinds,
-        created: datetime.datetime,
+        created: dt.datetime,
     ) -> None:
         sql = SQLStore(project_context=valid_ado_project_context)
         resource = sql.getResource(identifier=identifier, kind=kind)

@@ -3,9 +3,11 @@
 
 import enum
 import logging
+import numbers
 import typing
-from typing import Annotated
+from typing import Annotated, Any
 
+import numpy as np
 import pydantic
 from pydantic import WithJsonSchema
 
@@ -73,6 +75,48 @@ class PropertyValue(pydantic.BaseModel):
             description="The uncertainty in the measured value. Can be None"
         ),
     ] = None
+
+    @pydantic.model_validator(mode="before")
+    @classmethod
+    def validate_value_type_supported(
+        cls,
+        data: Any,  # noqa: ANN401
+    ) -> Any:  # noqa: ANN401
+        """Validate that the value type is supported.
+
+        Args:
+            data: The raw model input data.
+
+        Returns:
+            The data unchanged when the value type is supported.
+
+        Raises:
+            ValueError: When ``value`` is not one of the supported types
+                (``int``, ``float``, ``str``, ``list``, ``bytes``, or ``None``).
+        """
+        if not isinstance(data, dict):
+            return data
+
+        raw_value = data.get("value")
+        if not isinstance(
+            raw_value, (numbers.Real, np.bool_, list, str, bytes, type(None))
+        ):
+            raw_property = data.get("property")
+            property_identifier = getattr(raw_property, "identifier", None) or (
+                raw_property.get("identifier")
+                if isinstance(raw_property, dict)
+                else None
+            )
+
+            property_error_prefix = (
+                f"Property '{property_identifier}': " if property_identifier else ""
+            )
+            raise ValueError(
+                f"{property_error_prefix}unsupported value type '{type(raw_value).__name__}'. "
+                f"Accepted types: int, float, str, list, bytes, None."
+            )
+
+        return data
 
     @pydantic.field_validator("property", mode="before")
     def convert_property_to_descriptor(

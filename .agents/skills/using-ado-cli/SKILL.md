@@ -41,6 +41,7 @@ For `ado get` and `ado show` subcommands:
   `csv`, `json`, or `stats`; allowed values depend on the command — use
   `--help`).
 - `--output-file PATH` writes formatted output to **PATH** instead of stdout.
+  Note: automatically expands table cells that appear clipped we sent to terminal.
 - `--no-trunc` expands clipped **table cells**. Note: It does not prevent a long
   listing from being cut off in tool stdout capture.
 
@@ -54,9 +55,13 @@ Write every listing or dump you will read to a file, then read that file:
 
 ```bash
 uv run ado get operations --details --output-file /tmp/ado-operations-details.txt
-uv run ado get spaces --details --output-file /tmp/ado-spaces-details.txt
+uv run ado get spaces -l study=$ID --details --output-file /tmp/ado-study-spaces.txt
 uv run ado get operations -o stats --output-file /tmp/ado-operations-stats.txt
 ```
+
+Tip: Narrow listings with `-l`/`--filter` when you
+only need a subset — see
+[query-ado-data](../query-ado-data/SKILL.md#fast-querying).
 
 Prefer `/tmp/ado-*.txt` (or another path outside the repo) so listings are not
 left as untracked files.
@@ -307,14 +312,18 @@ The `--use-latest` flag automatically fills in the latest space ID.
 ### --set
 
 Overrides individual fields in a resource YAML at creation time without editing
-the file. Takes `path=JSON_document` pairs; can be used multiple times.
+the file. Takes `JSON_path=JSON_document` pairs; can be used multiple times.
+The path must already exist in the resource configuration.
 
 ```bash
 # Override the sample store used by a space
 uv run ado create space -f space.yaml --set sampleStoreIdentifier=my_store
 
 # Override a nested operation parameter
-uv run ado create operation -f operation.yaml --set parameters.budget=100
+uv run ado create operation -f operation.yaml --set operation.parameters.tuneConfig.num_samples=50
+
+# Override a list item
+uv run ado create operation -f operation.yaml --set "spaces[0]=space-abc123"
 ```
 
 ### --with

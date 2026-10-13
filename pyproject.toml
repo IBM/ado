@@ -89,9 +89,9 @@ test = [
   "ado-autoconf ; python_full_version < '3.14'",
   "ado-profile-space",
   "ado-ray-tune",
-  "ado-sfttrainer ; python_full_version < '3.13'",
+  "ado-sfttrainer ; python_full_version >= '3.11' and python_full_version < '3.13'",
   "ado-trim ; python_full_version < '3.14'",
-  "ado-vllm-performance",
+  "ado-vllm-performance ; python_full_version >= '3.11'",
   "cloudpickle>=3.1.2",
   "density-test",
   "optimization-test-functions",
@@ -134,7 +134,7 @@ members = [
   "examples/pfas-generative-models/custom_actuator_function",
   "examples/trim/custom_experiments",
   "plugins/actuators/example_actuator",
-  "plugins/actuators/vllm_performance",
+  # "plugins/actuators/vllm_performance",  # Excluded: incompatible with Python 3.10 (requires-python >=3.11)
   # "plugins/custom_experiments/autoconf",  # Excluded: incompatible with Python 3.14+ (fastai requires spacy with wheels only on GitHub)
   "plugins/operators/anomalous_series",
   # "plugins/operators/profile_space",  # Excluded: incompatible with Python 3.14+ (fg-data-profiling requires numba<0.63)
@@ -148,7 +148,7 @@ ado-autoconf = { path = "plugins/custom_experiments/autoconf", editable = true }
 ado-ray-tune = { workspace = true }
 ado-sfttrainer = { path = "plugins/actuators/sfttrainer", editable = true }
 ado-trim = { path = "plugins/operators/trim", editable = true }
-ado-vllm-performance = { workspace = true }
+ado-vllm-performance = { path = "plugins/actuators/vllm_performance", editable = true }
 ado-anomalous-series = { workspace = true }
 density-test = { workspace = true }
 optimization-test-functions = { workspace = true }

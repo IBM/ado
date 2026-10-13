@@ -29,9 +29,14 @@ features.
 
 ## Requirements
 
-> [!NOTE]
+> [!IMPORTANT]
 >
-> As of `v1.8.4`, `ado-sfttrainer` requires `ado-core>=2.0.0`.
+> `ado-sfttrainer` requires:
+>
+> - Python 3.11 or later
+> - `ado-core>=2.0.0` (as of `v1.8.4`)
+> - `fms_hf_tuning_version` **greater than `2.8.2`**; earlier versions of
+>   `fms-hf-tuning` are not supported
 
 [fms-hf-tuning](https://github.com/foundation-model-stack/fms-hf-tuning) imports
 packages like `flash-attn` and `mamba-ssm`, which import `torch` during their
@@ -55,21 +60,12 @@ build phase, so the correct `torch` version must be installed before them.
 **If you cannot use `ordered_pip`**, you must either build your own image with
 the appropriate `torch` version (see the
 [SFTTrainer packages directory](https://github.com/IBM/ado/tree/main/plugins/actuators/sfttrainer/ado_actuators/sfttrainer/packages))
-or use one of the following tested images:
+or use the following tested image:
 
-- **`fms_hf_tuning_version <= 2.8.2`**
+- `quay.io/ado/ado:c6ba952ad79a2d86d1174fd9aaebddd8953c78cf-py311-cu121-ofed2410v1140`
+  (tested with `fms_hf_tuning_version==3.0.0`, not guaranteed for future versions)
 
-  - Install `torch==2.4.1`
-  - For RayClusters on Kubernetes, use:
-    `quay.io/ado/ado:1.0.1-py310-cu121-ofed2410v1140`
-
-- **`fms_hf_tuning_version > 2.8.2`**
-
-  - Use the tested image
-    `quay.io/ado/ado:c6ba952ad79a2d86d1174fd9aaebddd8953c78cf-py311-cu121-ofed2410v1140`
-    (tested with `fms_hf_tuning_version==3.0.0`, not guaranteed for future versions)
-
-  <!-- markdownlint-enable line-length -->
+<!-- markdownlint-enable line-length -->
 
 ## Available experiments
 
@@ -2067,14 +2063,14 @@ To enable RoCE in a RayCluster on Kubernetes, you need to:
 
 This example walks you through deploying a RayCluster on Kubernetes, including
 building a custom image for the GPU worker nodes. We’ll use the
-`mirror.gcr.io/rayproject/ray:latest-py310-cu121` base image, which includes
+`mirror.gcr.io/rayproject/ray:latest-py311-cu121` base image, which includes
 both Ray and the necessary NVIDIA libraries.
 
 <!-- markdownlint-disable line-length -->
 <!-- markdownlint-disable code-block-style -->
 
 ```docker
-ARG base_image=mirror.gcr.io/rayproject/ray:latest-py310-cu121
+ARG base_image=mirror.gcr.io/rayproject/ray:latest-py311-cu121
 FROM $base_image
 
 USER 0

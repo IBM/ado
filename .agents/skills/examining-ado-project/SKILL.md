@@ -14,33 +14,33 @@ description: >-
 End-to-end workflow to summarize **all** discoveryspaces, operations, and
 related metadata in the ado project associated to the active context.
 
-- Run all commands from the **repository root** with `uv run` (see
-  [using-ado-cli](../using-ado-cli/SKILL.md)).
-- The report produced by this skill is stored as a
-  `document` resource in the active ado metastore context (see
-  [Producing a report](#step-7-write-the-report)).
+- Run all commands from the **repository root** with `uv run`
 - A **project** is a namespace for a set of ado resources (spaces, operations,
   stores). A **context** is the local config pointing to a project's metastore.
-  Context name equals project name by construction. This definition is
-  sufficient for applying this skill.
-  Only consult the source if you need full schema details: read
-  `docs/resources/metastore.md` if the source repo is available, otherwise see
+  Context name equals project name by construction. If more details are required
+  see `docs/resources/metastore.md` if the source repo is available, otherwise see
   <https://ibm.github.io/ado/latest/resources/metastore/#contexts-and-projects>.
 - Users may refer to an ado project using either the term "project" or "context"
+-
+
+**Basic skills**:
+
+Read the following basic skills first:
+
+- [using-ado-cli](../using-ado-cli/SKILL.md).
+- [query-ado-data](../query-ado-data/SKILL.md).
+- [resource-yaml-creation — Document](../resource-yaml-creation/SKILL.md#document).
 
 ## Tips
 
 - Prefer metastore listing and YAML dumps before heavy `uv run ado show` data
-  pulls; see [query-ado-data](../query-ado-data/SKILL.md).
+  pulls.
 - Write `ado get --details` listings with `--output-file` and read the file.
-  See [using-ado-cli](../using-ado-cli/SKILL.md).
-- For creating document resources that store reports, see
-  [resource-yaml-creation — Document](../resource-yaml-creation/SKILL.md#document).
 - For study documents (`study-$ID`), see
   [create-research-study-document](../create-research-study-document/SKILL.md).
-- For one space in depth:
+- For examining one space in depth:
   [examining-discovery-spaces](../examining-discovery-spaces/SKILL.md).
-- For one operation in depth:
+- For examining one operation in depth:
   [examining-ado-operations](../examining-ado-operations/SKILL.md).
 
 ## Pre-requisites
@@ -134,9 +134,12 @@ used to identify resources associated with the study
 
 If there are study documents perform the next steps per study.
 
-## Step 4: Examine research activities
+### Step 4: Examine research activities
 
 Goal: volume of work, recency, and which spaces attract the most operations.
+
+When examining a study, add `-l study=$ID` (the study's label) to the
+`ado get` commands below so only that study's resources are fetched.
 
 1. **Spaces (tabular, with metadata)**
 
@@ -313,7 +316,7 @@ Write a concise markdown report. Store it as the `content` field of a
   `Project overview as of YYYY-MM-DD`.
 - Omit `relatedResources` (or leave empty).
 
-### Project summary
+#### Project summary
 
 - If study documents available:
   - Summary of the particular study or studies underway
@@ -321,14 +324,14 @@ Write a concise markdown report. Store it as the `content` field of a
   - Domains or problems implied by experiments, actuators, and space descriptions.
 - Dominant **operation** and **experiment** patterns.
 
-### Latest activity
+#### Latest activity
 
 Per-study when possible
 
 - Most recent spaces and operations (from `--details` listings).
 - What the latest work seems focused on (labels, names, target spaces).
 
-### Spaces overview
+#### Spaces overview
 
 Per-study when possible
 
@@ -336,7 +339,7 @@ Per-study when possible
 - How **entity spaces** and **matching-space** relationships evolve: expanding,
   narrowing, or shifting configuration.
 
-### Operations overview
+#### Operations overview
 
 Per-study when possible
 

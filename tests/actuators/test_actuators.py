@@ -86,6 +86,7 @@ def test_custom_experiments(
         "calculate_density",
         "min_gpu_recommender",
         "avoid_oom_recommender",
+        "throughput_recommender",
         "nevergrad_opt_3d_test_func",
         "calculate_pressure_ideal_gas",
         "calculate_pressure_gas",
@@ -96,6 +97,7 @@ def test_custom_experiments(
         expected_identifiers -= {
             "min_gpu_recommender",
             "avoid_oom_recommender",
+            "throughput_recommender",
         }
 
     # AP 18/10/24:

@@ -10,9 +10,11 @@ description: |
 
 # Creating ado Resource YAML Files
 
-For CLI command syntax, see [using-ado-cli](../using-ado-cli/SKILL.md). For full
-problem formulation workflow, see
-[define-experiment-campaign](../define-experiment-campaign/SKILL.md).
+## Basic Skill Requirements
+
+Ensure you read the following basic skills first:
+
+- [using-ado-cli](../using-ado-cli/SKILL.md)
 
 ## Metadata Fields
 
@@ -102,11 +104,11 @@ file. Useful for environment-specific values or quick one-off changes.
 # Override the sample store identifier
 uv run ado create space -f space.yaml --set sampleStoreIdentifier=my_store
 
-# Override a nested field using dot notation
-uv run ado create operation -f operation.yaml --set parameters.budget=100
+# Override a nested field
+uv run ado create operation -f operation.yaml --set operation.parameters.tuneConfig.num_samples=50
 ```
 
-`--set` takes `path=JSON_document` pairs and can be used multiple times.
+`--set` takes `JSON_path=JSON_document` pairs and can be used multiple times.
 
 ## Validation
 
@@ -290,7 +292,6 @@ replacement, if the skill's replace policy says so).
 
 ## Related Resources
 
-- [using-ado-cli](../using-ado-cli/SKILL.md) — CLI command syntax and shortcuts
 - [define-experiment-campaign](../define-experiment-campaign/SKILL.md) — full
   problem formulation workflow
 - [AGENTS.md](../../../AGENTS.md) — YAML testing and linting guidance

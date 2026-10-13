@@ -372,7 +372,9 @@ def resolve_number_entities_to_sample(
 
     # matching_entity_count is guaranteed non-None for selectors at this point;
     # for non-selectors it is unused, so 0 is a safe sentinel.
-    effective_matching = matching_entity_count if matching_entity_count is not None else 0
+    effective_matching = (
+        matching_entity_count if matching_entity_count is not None else 0
+    )
 
     if number_entities == "all":
         if _is_selector_sampler(sampler_config):

@@ -255,9 +255,8 @@ def get_resource(
             help="""
             Provide a space YAML file as a reference to find matching spaces. Only for spaces.
 
-            A space matches if it has exactly the same base experiments as the reference
-            and its entity space is in a hierarchical relationship with the reference
-            (subspace, equal, or superspace).
+            A space matches if it shares at least one experiment with the reference
+            and its entity space overlaps with or is hierarchically related to the reference.
 
             If set, disregards --filter and --label, and uses the table output format.
             """,
@@ -275,9 +274,8 @@ def get_resource(
             Provide an existing space ID as a reference to find matching spaces. Only for spaces.
             Takes precedence over --matching-space.
 
-            A space matches if it has exactly the same base experiments as the reference
-            and its entity space is in a hierarchical relationship with the reference
-            (subspace, equal, or superspace).
+            A space matches if it shares at least one experiment with the reference
+            and its entity space overlaps with or is hierarchically related to the reference.
 
             If set, disregards --filter and --label, and uses the table output format.
             """,

@@ -1,6 +1,6 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
-"""Tests for DiscoverySpaceConfiguration.compare_space_hierarchy()
+"""Tests for DiscoverySpaceConfiguration.compare_entity_space()
 
 Covers all six SpaceHierarchy return values:
   EQUAL_SPACE, SUB_SPACE, SUPER_SPACE, OVERLAPPING, DISJOINT, UNDEFINED
@@ -17,7 +17,7 @@ def test_equal_space(
 ) -> None:
     """Identical entity spaces → EQUAL_SPACE."""
     space = make_continuous_space_configuration([0, 10])
-    assert space.compare_space_hierarchy(space) == SpaceHierarchy.EQUAL_SPACE
+    assert space.compare_entity_space(space) == SpaceHierarchy.EQUAL_SPACE
 
 
 def test_sub_space(
@@ -26,8 +26,8 @@ def test_sub_space(
     """Strictly smaller space → SUB_SPACE."""
     large = make_continuous_space_configuration([0, 10])
     small = make_continuous_space_configuration([2, 8])
-    assert small.compare_space_hierarchy(large) == SpaceHierarchy.SUB_SPACE
-    assert large.compare_space_hierarchy(small) == SpaceHierarchy.SUPER_SPACE
+    assert small.compare_entity_space(large) == SpaceHierarchy.SUB_SPACE
+    assert large.compare_entity_space(small) == SpaceHierarchy.SUPER_SPACE
 
 
 def test_super_space(
@@ -36,8 +36,8 @@ def test_super_space(
     """Strictly larger space → SUPER_SPACE."""
     large = make_continuous_space_configuration([0, 20])
     small = make_continuous_space_configuration([5, 15])
-    assert large.compare_space_hierarchy(small) == SpaceHierarchy.SUPER_SPACE
-    assert small.compare_space_hierarchy(large) == SpaceHierarchy.SUB_SPACE
+    assert large.compare_entity_space(small) == SpaceHierarchy.SUPER_SPACE
+    assert small.compare_entity_space(large) == SpaceHierarchy.SUB_SPACE
 
 
 def test_overlapping_space(
@@ -46,8 +46,8 @@ def test_overlapping_space(
     """Domains that intersect but neither contains the other → OVERLAPPING."""
     space_a = make_continuous_space_configuration([0, 10])
     space_b = make_continuous_space_configuration([5, 15])
-    assert space_a.compare_space_hierarchy(space_b) == SpaceHierarchy.OVERLAPPING
-    assert space_b.compare_space_hierarchy(space_a) == SpaceHierarchy.OVERLAPPING
+    assert space_a.compare_entity_space(space_b) == SpaceHierarchy.OVERLAPPING
+    assert space_b.compare_entity_space(space_a) == SpaceHierarchy.OVERLAPPING
 
 
 def test_disjoint_space(
@@ -56,8 +56,8 @@ def test_disjoint_space(
     """Domains that share no points → DISJOINT."""
     space_a = make_continuous_space_configuration([0, 5])
     space_b = make_continuous_space_configuration([10, 20])
-    assert space_a.compare_space_hierarchy(space_b) == SpaceHierarchy.DISJOINT
-    assert space_b.compare_space_hierarchy(space_a) == SpaceHierarchy.DISJOINT
+    assert space_a.compare_entity_space(space_b) == SpaceHierarchy.DISJOINT
+    assert space_b.compare_entity_space(space_a) == SpaceHierarchy.DISJOINT
 
 
 def test_disjoint_space_no_shared_properties(
@@ -66,8 +66,8 @@ def test_disjoint_space_no_shared_properties(
     """Spaces with completely different property identifiers → DISJOINT."""
     space_a = make_continuous_space_configuration([0, 10], identifier="x")
     space_b = make_continuous_space_configuration([0, 10], identifier="y")
-    assert space_a.compare_space_hierarchy(space_b) == SpaceHierarchy.DISJOINT
-    assert space_b.compare_space_hierarchy(space_a) == SpaceHierarchy.DISJOINT
+    assert space_a.compare_entity_space(space_b) == SpaceHierarchy.DISJOINT
+    assert space_b.compare_entity_space(space_a) == SpaceHierarchy.DISJOINT
 
 
 def test_undefined_when_entity_space_empty(
@@ -77,11 +77,11 @@ def test_undefined_when_entity_space_empty(
     """Empty entity spaces → UNDEFINED (exception path)."""
     space = make_continuous_space_configuration([0, 10])
     assert (
-        space_configuration_none_entity_space.compare_space_hierarchy(space)
+        space_configuration_none_entity_space.compare_entity_space(space)
         == SpaceHierarchy.UNDEFINED
     )
     assert (
-        space.compare_space_hierarchy(space_configuration_none_entity_space)
+        space.compare_entity_space(space_configuration_none_entity_space)
         == SpaceHierarchy.UNDEFINED
     )
 
@@ -102,7 +102,7 @@ def test_overlapping_multiple_properties(
             ("y", PropertyDomain(values=["B", "C"])),
         ]
     )
-    assert space_a.compare_space_hierarchy(space_b) == SpaceHierarchy.OVERLAPPING
+    assert space_a.compare_entity_space(space_b) == SpaceHierarchy.OVERLAPPING
 
 
 def test_disjoint_when_one_shared_property_is_disjoint(
@@ -121,7 +121,7 @@ def test_disjoint_when_one_shared_property_is_disjoint(
             ("y", PropertyDomain(values=["B", "C"])),
         ]
     )
-    assert space_a.compare_space_hierarchy(space_b) == SpaceHierarchy.DISJOINT
+    assert space_a.compare_entity_space(space_b) == SpaceHierarchy.DISJOINT
 
 
 def test_overlapping_discrete_domains(
@@ -130,7 +130,7 @@ def test_overlapping_discrete_domains(
     """Overlapping with discrete domains sharing a value."""
     space_a = make_discrete_space_configuration([1, 2, 3])
     space_b = make_discrete_space_configuration([3, 4, 5])
-    assert space_a.compare_space_hierarchy(space_b) == SpaceHierarchy.OVERLAPPING
+    assert space_a.compare_entity_space(space_b) == SpaceHierarchy.OVERLAPPING
 
 
 def test_disjoint_discrete_domains(
@@ -139,7 +139,7 @@ def test_disjoint_discrete_domains(
     """DISJOINT with non-intersecting discrete domains."""
     space_a = make_discrete_space_configuration([1, 2])
     space_b = make_discrete_space_configuration([3, 4])
-    assert space_a.compare_space_hierarchy(space_b) == SpaceHierarchy.DISJOINT
+    assert space_a.compare_entity_space(space_b) == SpaceHierarchy.DISJOINT
 
 
 def test_sub_space_with_extra_property(
@@ -154,4 +154,4 @@ def test_sub_space_with_extra_property(
         ]
     )
     sub = make_continuous_space_configuration([2, 8])
-    assert sub.compare_space_hierarchy(reference) == SpaceHierarchy.SUB_SPACE
+    assert sub.compare_entity_space(reference) == SpaceHierarchy.SUB_SPACE

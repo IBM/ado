@@ -8,7 +8,6 @@ from collections.abc import Callable
 
 import pandas as pd
 import pytest
-import rich.box
 from testcontainers.community.mysql import MySqlContainer
 from typer.testing import CliRunner
 
@@ -18,8 +17,8 @@ from ado.core.discoveryspace.space import DiscoverySpace
 from ado.core.samplestore.sql import SQLSampleStore
 from ado.metastore.project import ProjectContext
 from ado.schema.request import MeasurementRequest
-from ado.utilities.rich import dataframe_to_rich_table, render_to_string
 from tests.conftest import requires_sqlite_3_38
+from tests.utilities.cli_rendering import render_dataframe_to_cli_output
 
 if typing.TYPE_CHECKING:
     from ado.core import DataContainerResource
@@ -168,15 +167,8 @@ def test_ado_get_operations_stats_values(
             },
             index=pd.Index([0]),
         )
-        rendered_output = render_to_string(
-            dataframe_to_rich_table(
-                expected_output,
-                show_index=True,
-                show_edge=True,
-                box=rich.box.SQUARE,
-                do_not_truncate_columns=True,
-            ),
-            auto_width=True,
+        rendered_output = render_dataframe_to_cli_output(
+            expected_output, do_not_truncate_columns=True
         )
         assert rendered_output in result.output, (
             f"Expected output:\n{rendered_output}\nnot found in:\n{result.output}"
@@ -245,15 +237,8 @@ def test_ado_get_operation_stats_single_resource(
             },
             index=pd.Index([0]),
         )
-        rendered_output = render_to_string(
-            dataframe_to_rich_table(
-                expected_output,
-                show_index=True,
-                show_edge=True,
-                box=rich.box.SQUARE,
-                do_not_truncate_columns=True,
-            ),
-            auto_width=True,
+        rendered_output = render_dataframe_to_cli_output(
+            expected_output, do_not_truncate_columns=True
         )
         assert rendered_output in result.output, (
             f"Expected output:\n{rendered_output}\nnot found in:\n{result.output}"
@@ -321,15 +306,8 @@ def test_ado_get_spaces_stats_values(
             },
             index=pd.Index([0]),
         )
-        rendered_output = render_to_string(
-            dataframe_to_rich_table(
-                expected_output,
-                show_index=True,
-                show_edge=True,
-                box=rich.box.SQUARE,
-                do_not_truncate_columns=True,
-            ),
-            auto_width=True,
+        rendered_output = render_dataframe_to_cli_output(
+            expected_output, do_not_truncate_columns=True
         )
         assert rendered_output in result.output, (
             f"Expected output:\n{rendered_output}\nnot found in:\n{result.output}"
@@ -397,15 +375,8 @@ def test_ado_get_space_stats_single_resource(
             },
             index=pd.Index([0]),
         )
-        rendered_output = render_to_string(
-            dataframe_to_rich_table(
-                expected_output,
-                show_index=True,
-                show_edge=True,
-                box=rich.box.SQUARE,
-                do_not_truncate_columns=True,
-            ),
-            auto_width=True,
+        rendered_output = render_dataframe_to_cli_output(
+            expected_output, do_not_truncate_columns=True
         )
         assert rendered_output in result.output, (
             f"Expected output:\n{rendered_output}\nnot found in:\n{result.output}"
@@ -503,15 +474,8 @@ def test_ado_get_samplestores_stats_values(
             },
             index=pd.Index([0]),
         )
-        rendered_output = render_to_string(
-            dataframe_to_rich_table(
-                expected_output,
-                show_index=True,
-                show_edge=True,
-                box=rich.box.SQUARE,
-                do_not_truncate_columns=True,
-            ),
-            auto_width=True,
+        rendered_output = render_dataframe_to_cli_output(
+            expected_output, do_not_truncate_columns=True
         )
         assert rendered_output in result.output, (
             f"Expected output:\n{rendered_output}\nnot found in:\n{result.output}"
@@ -614,15 +578,8 @@ def test_ado_get_datacontainers_stats_values(
             },
             index=pd.Index([0]),
         )
-        rendered_output = render_to_string(
-            dataframe_to_rich_table(
-                expected_output,
-                show_index=True,
-                show_edge=True,
-                box=rich.box.SQUARE,
-                do_not_truncate_columns=True,
-            ),
-            auto_width=True,
+        rendered_output = render_dataframe_to_cli_output(
+            expected_output, do_not_truncate_columns=True
         )
         assert rendered_output in result.output, (
             f"Expected output:\n{rendered_output}\nnot found in:\n{result.output}"

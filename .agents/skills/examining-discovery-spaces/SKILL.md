@@ -178,9 +178,10 @@ uv run ado show related space SPACE_ID
 
 ### Step 4: Find Similar spaces
 
-`ado get space --matching-space-id SPACE_ID --details` finds spaces with the
-same entity structure. Use this to understand research progression and why this
-space was created.
+`ado get space --matching-space-id SPACE_ID --details` finds spaces with
+overlapping measurement and related entity spaces (reporting `ENTITY_SPACE_MATCH`,
+`MEASUREMENT_SPACE_MATCH`, `VERSION_MATCH`, and `PARAMETERIZATION_MATCH`). Use
+this to understand research progression and why this space was created.
 
 ```bash
 uv run ado get space --matching-space-id SPACE_ID --details \

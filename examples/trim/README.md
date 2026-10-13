@@ -53,8 +53,8 @@ We will:
     !!! danger "Python version compatibility"
 
         The `trim` operator is not available on Python 3.14 due to a dependency
-        on `autogluon==1.5.0`, which requires `pyarrow==20.0.0` (incompatible
-        with Python 3.14). Use Python 3.10–3.13.
+        on `autogluon==1.6.3` (incompatible with Python 3.14).
+        Use Python 3.11–3.13.
 
     All commands in this walkthrough are run from the **repository root**
     (`ado/`).

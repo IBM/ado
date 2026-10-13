@@ -90,7 +90,7 @@ test = [
   "ado-profile-space",
   "ado-ray-tune",
   "ado-sfttrainer ; python_full_version >= '3.11' and python_full_version < '3.13'",
-  "ado-trim ; python_full_version < '3.14'",
+  "ado-trim ; python_full_version >= '3.11' and python_full_version < '3.14'",
   "ado-vllm-performance ; python_full_version >= '3.11'",
   "cloudpickle>=3.1.2",
   "density-test",
@@ -140,7 +140,7 @@ members = [
   # "plugins/operators/profile_space",  # Excluded: incompatible with Python 3.14+ (fg-data-profiling requires numba<0.63)
   "plugins/operators/ray_tune",
   # "plugins/actuators/sfttrainer",  # Excluded: incompatible with Python 3.13+ (aim dependency)
-  # "plugins/operators/trim",  # Excluded: AutoGluon does not support Python 3.14+
+  # "plugins/operators/trim",  # Excluded: incompatible with Python 3.10 and Python 3.14+ (AutoGluon)
 ]
 
 [tool.uv.sources]

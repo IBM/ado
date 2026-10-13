@@ -145,7 +145,7 @@ test = [
     { name = "ado-profile-space" },
     { name = "ado-ray-tune" },
     { name = "ado-sfttrainer", marker = "python_full_version >= '3.11' and python_full_version < '3.13'" },
-    { name = "ado-trim", marker = "python_full_version < '3.14'" },
+    { name = "ado-trim", marker = "python_full_version >= '3.11' and python_full_version < '3.14'" },
     { name = "ado-vllm-performance", marker = "python_full_version >= '3.11'" },
     { name = "cloudpickle" },
     { name = "density-test" },
@@ -209,7 +209,7 @@ test = [
     { name = "ado-profile-space", editable = "plugins/operators/profile_space" },
     { name = "ado-ray-tune", editable = "plugins/operators/ray_tune" },
     { name = "ado-sfttrainer", marker = "python_full_version >= '3.11' and python_full_version < '3.13'", editable = "plugins/actuators/sfttrainer" },
-    { name = "ado-trim", marker = "python_full_version < '3.14'", editable = "plugins/operators/trim" },
+    { name = "ado-trim", marker = "python_full_version >= '3.11' and python_full_version < '3.14'", editable = "plugins/operators/trim" },
     { name = "ado-vllm-performance", marker = "python_full_version >= '3.11'", editable = "plugins/actuators/vllm_performance" },
     { name = "cloudpickle", specifier = ">=3.1.2" },
     { name = "density-test", editable = "examples/density_example" },
@@ -288,13 +288,11 @@ source = { editable = "plugins/operators/trim" }
 dependencies = [
     { name = "ado-core" },
     { name = "autogluon-tabular", extra = ["catboost", "xgboost"] },
-    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11' or python_full_version >= '3.14'" },
-    { name = "numpy", version = "2.3.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11' and python_full_version < '3.13'" },
+    { name = "numpy", version = "2.3.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version != '3.13.*'" },
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.13.*'" },
     { name = "pandas" },
     { name = "ray" },
-    { name = "scikit-learn", version = "1.7.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11' or python_full_version >= '3.14'" },
-    { name = "scikit-learn", version = "1.9.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11' and python_full_version < '3.14'" },
+    { name = "scikit-learn", version = "1.9.1", source = { registry = "https://pypi.org/simple" } },
 ]
 
 [package.metadata]
@@ -7778,8 +7776,7 @@ version = "5.17.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "huggingface-hub" },
-    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11' or python_full_version >= '3.13'" },
-    { name = "numpy", version = "2.3.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11' and python_full_version < '3.13'" },
+    { name = "numpy", version = "2.3.5", source = { registry = "https://pypi.org/simple" } },
     { name = "packaging" },
     { name = "pyyaml" },
     { name = "regex" },

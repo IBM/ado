@@ -170,6 +170,10 @@ def test_describe_calculate_density_experiment() -> None:
     assert "calculate_density" in result.output
 
 
+@pytest.mark.skipif(
+    sys.version_info < (3, 11),
+    reason="ado-vllm-performance requires Python >= 3.11",
+)
 def test_describe_vllm_bench_deployment_experiment() -> None:
     runner = CliRunner()
     result = runner.invoke(ado, ["describe", "experiment", "vllm-bench-deployment"])

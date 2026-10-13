@@ -3,9 +3,11 @@
 import importlib.metadata
 import os
 import pathlib
+import sys
 from collections.abc import Callable
 
 import pandas as pd
+import pytest
 import rich.box
 import yaml
 from testcontainers.community.mysql import MySqlContainer
@@ -176,6 +178,10 @@ def test_get_robotic_lab_actuator() -> None:
         assert rendered_output in result.output
 
 
+@pytest.mark.skipif(
+    sys.version_info < (3, 11),
+    reason="ado-vllm-performance requires Python >= 3.11",
+)
 def test_get_vllm_performance_actuator_details() -> None:
     runner = CliRunner()
     result = runner.invoke(ado, ["get", "actuators", "vllm_performance", "--details"])

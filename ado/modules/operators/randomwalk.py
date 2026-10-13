@@ -322,11 +322,19 @@ def _is_selector_sampler(
     )
 
 
+class AllCountSource(enum.Enum):
+    """Describes what value was used when ``all`` was requested for number of entities."""
+
+    MATCHING_ENTITIES = "the number of matching entities in the sample store"
+    ENTITY_SPACE = "the size of the entity space"
+    SAMPLE_STORE = "the number of entities in the sample store"
+
+
 class NumberEntitiesResolution(typing.NamedTuple):
     """Number of entities a walk will try to sample, and where an ``all`` count came from."""
 
     count: int
-    source: str | None
+    source: AllCountSource | None
 
 
 def resolve_number_entities_to_sample(
@@ -359,68 +367,61 @@ def resolve_number_entities_to_sample(
             entities.
     """
 
-    selects_existing_entities = _is_selector_sampler(sampler_config)
-    if selects_existing_entities and matching_entity_count is None:
+    if _is_selector_sampler(sampler_config) and matching_entity_count is None:
         raise ValueError("matching_entity_count is required for a selector sampler.")
 
-    source: str | None = None
+    # matching_entity_count is guaranteed non-None for selectors at this point;
+    # for non-selectors it is unused, so 0 is a safe sentinel.
+    effective_matching = matching_entity_count if matching_entity_count is not None else 0
+
     if number_entities == "all":
-        if selects_existing_entities:
-            resolved = matching_entity_count
-            source = "the number of matching entities in the sample store"
-        elif entity_space is not None:
-            if entity_space.isDiscreteSpace:
-                try:
-                    resolved = entity_space.size
-                except AttributeError as error:
-                    raise ValueError(
-                        "Cannot specify 'all' for number of entities to sample "
-                        "for a space with unbounded dimensions."
-                    ) from error
-            else:
+        if _is_selector_sampler(sampler_config):
+            resolved, source = effective_matching, AllCountSource.MATCHING_ENTITIES
+        elif entity_space is None:
+            resolved, source = sample_store_entity_count, AllCountSource.SAMPLE_STORE
+        elif not entity_space.isDiscreteSpace:
+            raise ValueError(
+                "Cannot specify 'all' for number of entities to sample "
+                "for a non-discrete space."
+            )
+        else:
+            try:
+                resolved = entity_space.size
+            except AttributeError as error:
                 raise ValueError(
                     "Cannot specify 'all' for number of entities to sample "
-                    "for a non-discrete space."
-                )
-            source = "the size of the entity space"
-        else:
-            resolved = sample_store_entity_count
-            source = "the number of entities in the sample store"
+                    "for a space with unbounded dimensions."
+                ) from error
+            source = AllCountSource.ENTITY_SPACE
     else:
-        resolved = number_entities
-
-    if resolved is None:
-        raise ValueError("matching_entity_count is required for a selector sampler.")
+        resolved, source = number_entities, None
 
     if entity_space is not None and entity_space.isDiscreteSpace:
         try:
             size = entity_space.size
         except AttributeError:
-            # No size - whatever numberEntities is, is fine
-            pass
-        else:
-            if size < resolved:
-                raise ValueError(
-                    f"Requested number of entities to sample ({resolved}) is greater than "
-                    f"the size of the entity space ({size}). "
-                    f"Use 'all' to sample every entity."
-                )
+            size = None  # unbounded discrete space — no upper-bound check
+        if size is not None and size < resolved:
+            raise ValueError(
+                f"Requested number of entities to sample ({resolved}) is greater than "
+                f"{AllCountSource.ENTITY_SPACE.value} ({size}). "
+                f"Use 'all' to sample every entity."
+            )
     elif entity_space is None and sample_store_entity_count < resolved:
         raise ValueError(
             f"Requested number of entities to sample ({resolved}) is greater than "
-            f"the number of entities in the sample store ({sample_store_entity_count}). "
+            f"{AllCountSource.SAMPLE_STORE.value} ({sample_store_entity_count}). "
             f"Use 'all' to sample every entity."
         )
 
     if (
-        selects_existing_entities
+        _is_selector_sampler(sampler_config)
         and filter_mode == FilterModeEnum.noFilter
-        and matching_entity_count is not None
-        and matching_entity_count < resolved
+        and effective_matching < resolved
     ):
         raise ValueError(
             f"Requested number of entities to sample ({resolved}) is greater than "
-            f"the number of matching entities in the sample store ({matching_entity_count}). "
+            f"{AllCountSource.MATCHING_ENTITIES.value} ({effective_matching}). "
             f"Use 'all' to sample every matching entity, or set a filter."
         )
 
@@ -645,7 +646,7 @@ class RandomWalk(Explore):
         if resolution.source is not None:
             print(
                 f"'all' specified for number of entities to sample. "
-                f"This is {number_entities} entities - {resolution.source}"
+                f"This is {number_entities} entities - {resolution.source.value}"
             )
 
         iterator = await sampler.remoteEntityIterator(

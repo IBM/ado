@@ -89,7 +89,7 @@ test = [
   "ado-autoconf ; python_full_version < '3.14'",
   "ado-profile-space",
   "ado-ray-tune",
-  "ado-sfttrainer ; python_full_version < '3.13'",
+  "ado-sfttrainer ; python_full_version >= '3.11' and python_full_version < '3.13'",
   "ado-trim ; python_full_version < '3.14'",
   "ado-vllm-performance",
   "cloudpickle>=3.1.2",

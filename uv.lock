@@ -145,7 +145,7 @@ test = [
     { name = "ado-autoconf", marker = "python_full_version < '3.14'" },
     { name = "ado-profile-space" },
     { name = "ado-ray-tune" },
-    { name = "ado-sfttrainer", marker = "python_full_version < '3.13'" },
+    { name = "ado-sfttrainer", marker = "python_full_version >= '3.11' and python_full_version < '3.13'" },
     { name = "ado-trim", marker = "python_full_version < '3.14'" },
     { name = "ado-vllm-performance" },
     { name = "cloudpickle" },
@@ -209,7 +209,7 @@ test = [
     { name = "ado-autoconf", marker = "python_full_version < '3.14'", editable = "plugins/custom_experiments/autoconf" },
     { name = "ado-profile-space", editable = "plugins/operators/profile_space" },
     { name = "ado-ray-tune", editable = "plugins/operators/ray_tune" },
-    { name = "ado-sfttrainer", marker = "python_full_version < '3.13'", editable = "plugins/actuators/sfttrainer" },
+    { name = "ado-sfttrainer", marker = "python_full_version >= '3.11' and python_full_version < '3.13'", editable = "plugins/actuators/sfttrainer" },
     { name = "ado-trim", marker = "python_full_version < '3.14'", editable = "plugins/operators/trim" },
     { name = "ado-vllm-performance", editable = "plugins/actuators/vllm_performance" },
     { name = "cloudpickle", specifier = ">=3.1.2" },
@@ -363,8 +363,7 @@ dependencies = [
     { name = "fastapi" },
     { name = "filelock" },
     { name = "jinja2" },
-    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11' or python_full_version >= '3.13'" },
-    { name = "numpy", version = "2.3.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11' and python_full_version < '3.13'" },
+    { name = "numpy", version = "2.3.5", source = { registry = "https://pypi.org/simple" } },
     { name = "packaging" },
     { name = "pillow" },
     { name = "psutil" },
@@ -372,13 +371,11 @@ dependencies = [
     { name = "pytz" },
     { name = "requests" },
     { name = "restrictedpython" },
-    { name = "sqlalchemy", version = "2.0.54", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11' or python_full_version >= '3.13'" },
-    { name = "sqlalchemy", version = "2.1.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11' and python_full_version < '3.13'" },
+    { name = "sqlalchemy", version = "2.1.4", source = { registry = "https://pypi.org/simple" } },
     { name = "tqdm" },
     { name = "uvicorn" },
     { name = "watchdog" },
-    { name = "websockets", version = "16.1.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11' or python_full_version >= '3.13'" },
-    { name = "websockets", version = "17.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11' and python_full_version < '3.13'" },
+    { name = "websockets", version = "17.2", source = { registry = "https://pypi.org/simple" } },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/da/25/c825c73ec2f48c93324f631dba6e4cdac3bb60a7fde36e0b916820ae62a5/aim-3.29.1.tar.gz", hash = "sha256:30fb70f983844eebd270049206c839e6dc09ce9de500048dc97a7a8b22ed83fb", size = 1660733, upload-time = "2025-05-08T09:51:58.892Z" }
 wheels = [
@@ -655,9 +652,7 @@ version = "1.20.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "mako" },
-    { name = "sqlalchemy", version = "2.0.54", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11' or python_full_version >= '3.13'" },
-    { name = "sqlalchemy", version = "2.1.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11' and python_full_version < '3.13'" },
-    { name = "tomli", marker = "python_full_version < '3.11' or python_full_version >= '3.13'" },
+    { name = "sqlalchemy", version = "2.1.4", source = { registry = "https://pypi.org/simple" } },
     { name = "typing-extensions" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/ed/aa/02910bdb8e2f1444f6654d5b296cd827d126f82209050ee7b1000f92ac4b/alembic-1.20.0.tar.gz", hash = "sha256:db505480647bc60386c5369402f4a57a506b7539c9e9ef5e270d45cbbe4939bf", size = 2093272, upload-time = "2026-09-11T19:09:11.126Z" }
@@ -10108,6 +10103,7 @@ wheels = [
 name = "tombi"
 version = "1.8.2"
 source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/c6/4c/3b569c1a33b1c4a9cee8a2a347986d3b8c636a78588b1f8662ddd3215343/tombi-1.8.2.tar.gz", hash = "sha256:d0d340866ba056b85bbda36ae3aac964a43f820383384513b3b31272fc9fd013", size = 849529, upload-time = "2026-10-12T12:24:44.845Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/82/65/c283109cba460955e503b040ec9286d20acb38e761e3e6ee7a0468224af8/tombi-1.8.2-py3-none-macosx_10_12_x86_64.whl", hash = "sha256:50e1eeeaf97f8537b902ccfe51367e923e8b7bb50d5744aab5d9e8d1c64ec1a2", size = 8619421, upload-time = "2026-10-12T04:43:06.184Z" },
     { url = "https://files.pythonhosted.org/packages/bc/62/a5e4f4b44dac8d6425d7f903e268716897111ba01b7a34299518f2ed9a41/tombi-1.8.2-py3-none-macosx_11_0_arm64.whl", hash = "sha256:7e33f93c4b7528b6b02a147b00822003ad28d8279d0f57d4717add12733b3108", size = 8121018, upload-time = "2026-10-12T04:43:08.848Z" },
@@ -10117,6 +10113,12 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/54/15/805e41ef4221f81e86cf11a0ac02fcb0233d2d520fd8cbf25b21715de057/tombi-1.8.2-py3-none-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:4f0add1cc22811456ca80b8d7ab327318ecd91a57fa0efa73e966dac57b69faf", size = 9063881, upload-time = "2026-10-12T04:43:16.765Z" },
     { url = "https://files.pythonhosted.org/packages/83/40/828b74d119f1f02d85b77be7e30f0f682d3fd3563c8c581be42c3b5b7b8f/tombi-1.8.2-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:ce3533e0c1aad58136685458d6cab21d9a49119f55376a22b43ea5f11de1fa52", size = 8942192, upload-time = "2026-10-12T04:43:18.669Z" },
     { url = "https://files.pythonhosted.org/packages/5d/29/bba42ee0b9f466d26dd2714b94b9f3f6590162d62d19e91fac19fa89e5cb/tombi-1.8.2-py3-none-manylinux_2_28_aarch64.whl", hash = "sha256:da6b5ab01e9db7b90f519f65ae3c661bbf1f28daf75fdf0483a42e59087581a5", size = 8343753, upload-time = "2026-10-12T04:43:20.413Z" },
+    { url = "https://files.pythonhosted.org/packages/04/9d/a82c93c43f18d1e1aa8e5e1d892fc513d3b656dc38d84e6fd362af7b9456/tombi-1.8.2-py3-none-musllinux_1_2_aarch64.whl", hash = "sha256:3de31edb99103087314e68b7605c1724398dec4bdf2ac354621cd92ae751a9d6", size = 8376251, upload-time = "2026-10-12T12:24:09.743Z" },
+    { url = "https://files.pythonhosted.org/packages/a9/31/410713b3730ab91635562699845bb1780e0900abd9daedea2a326afc33f6/tombi-1.8.2-py3-none-musllinux_1_2_armv7l.whl", hash = "sha256:783b72d31549bc7b48dce1ff2f900abfc6c66cbc503caedef9a3dfc339f32203", size = 8575938, upload-time = "2026-10-12T12:24:11.547Z" },
+    { url = "https://files.pythonhosted.org/packages/ed/a4/5d398b121a1f0e03d9ade9c04539aa9c92c4c91ffeaf0ad7accaace43aab/tombi-1.8.2-py3-none-musllinux_1_2_i686.whl", hash = "sha256:d775986c720367829bcc3a86a71c90ffdab6f795c39a32717e2ad812a21195be", size = 8849232, upload-time = "2026-10-12T12:24:13.592Z" },
+    { url = "https://files.pythonhosted.org/packages/79/50/686ce1c4725e9927d7010c5341426d434ecdc1b258dce2b58c7f1f03a8ca/tombi-1.8.2-py3-none-musllinux_1_2_x86_64.whl", hash = "sha256:d12f6819417e17445ebcd1f5375ef4cad8d96dd4867b8a8701c7503a5c3544e8", size = 9040418, upload-time = "2026-10-12T12:24:15.607Z" },
+    { url = "https://files.pythonhosted.org/packages/64/27/1d01cc566ef8e26fd6cb1bd42615e75567dff6c204905cf03965db560819/tombi-1.8.2-py3-none-win32.whl", hash = "sha256:4e607031e51af018492f59e936ed5be43af04d7702969e5b491e402c71b32721", size = 8446131, upload-time = "2026-10-12T12:24:18.08Z" },
+    { url = "https://files.pythonhosted.org/packages/5e/a4/535b5716550e5ae52a3c14aa27f4c0c6ee81202a2f7b39d7a608d7cf21c8/tombi-1.8.2-py3-none-win_amd64.whl", hash = "sha256:380e37cbdac98df7fabb74c623fe707fec1b85645c7df64101a3b804366f96da", size = 9789530, upload-time = "2026-10-12T12:24:20.219Z" },
 ]
 
 [[package]]

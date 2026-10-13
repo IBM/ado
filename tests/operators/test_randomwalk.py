@@ -12,6 +12,7 @@ from ado.core.operation.resource import (
     OperationResourceEventEnum,
 )
 from ado.modules.operators.randomwalk import (
+    AllCountSource,
     BaseSamplerConfiguration,
     EntityFilter,
     FilterModeEnum,
@@ -60,8 +61,8 @@ def test_selector_all_uses_matching_entities_when_space_is_larger(
         filter_mode=FilterModeEnum.noFilter,
     )
 
-    assert resolved.count == matching_entity_count
-    assert resolved.source == "the number of matching entities in the sample store"
+    assert resolved.count == 3
+    assert resolved.source == AllCountSource.MATCHING_ENTITIES
 
 
 def test_selector_requires_matching_entity_count(
@@ -106,8 +107,8 @@ def test_generator_all_uses_entity_space_size(
         filter_mode=FilterModeEnum.noFilter,
     )
 
-    assert resolved.count == entity_space.size
-    assert resolved.source == "the size of the entity space"
+    assert resolved.count == 8
+    assert resolved.source == AllCountSource.ENTITY_SPACE
 
 
 def test_generator_all_with_no_entity_space_uses_sample_store_count() -> None:

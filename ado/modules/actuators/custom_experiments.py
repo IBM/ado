@@ -680,6 +680,29 @@ def custom_experiment_executor(
         )
 
 
+def _custom_experiment_executor_remote(
+    fn: Callable[..., Any],  # noqa: ANN401
+) -> ray.remote_function.RemoteFunction:
+    """Build the Ray remote function that runs a custom experiment.
+
+    Args:
+        fn: Decorated custom experiment function. Its ``_ray_options``
+            attribute supplies the Ray task options when set.
+
+    Returns:
+        A remote function wrapping ``custom_experiment_executor``.
+    """
+    ray_options_model = getattr(fn, "_ray_options", None)
+    remote_kwargs = (
+        ray_options_model.model_dump(exclude_none=True)
+        if ray_options_model is not None
+        else {}
+    )
+    if remote_kwargs:
+        return ray.remote(**remote_kwargs)(custom_experiment_executor)
+    return ray.remote(custom_experiment_executor)
+
+
 class CustomExperimentsParameters(ExperimentExecutorSupervisorParameters):
     """Configuration parameters for the CustomExperiments actuator."""
 
@@ -816,13 +839,7 @@ class CustomExperiments(ActuatorBase):
             request.experimentReference.experimentIdentifier
         ]
         use_ray = getattr(fn, "_use_ray", True)
-        ray_options_model = getattr(fn, "_ray_options", None)
         if use_ray:
-            remote_kwargs = (
-                ray_options_model.model_dump(exclude_none=True)
-                if getattr(fn, "_ray_options", None)
-                else {}
-            )
             # Dispatch as Ray task. Pass ray options if present.
             # Pass the actor handle (not self) so the executor can call
             # mark_measurement_request_completed.remote() without pickling the actor object.
@@ -831,14 +848,7 @@ class CustomExperiments(ActuatorBase):
                 _notifier = ray.get_runtime_context().current_actor
             except Exception:
                 _notifier = None
-            # ray.remote(fn, **options) is rejected. Options belong on the
-            # decorator: ray.remote(**options)(fn). An empty option dict must
-            # stay ray.remote(fn), because ray.remote() with no arguments
-            # is the decorator form.
-            if remote_kwargs:
-                remote_fn = ray.remote(**remote_kwargs)(custom_experiment_executor)
-            else:
-                remote_fn = ray.remote(custom_experiment_executor)
+            remote_fn = _custom_experiment_executor_remote(fn)
             executor_ref = remote_fn.remote(
                 fn,
                 self._catalog.experimentForReference(

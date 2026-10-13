@@ -247,6 +247,68 @@ def test_custom_experiment_executor_invalid_result_status_is_failed() -> None:
     assert isinstance(result.measurements[0], InvalidMeasurementResult)
 
 
+def test_custom_experiment_executor_remote_without_ray_options() -> None:
+    """A custom experiment with no ray_options is wrapped by ray.remote(fn)."""
+
+    @custom_experiments.custom_experiment(output_property_identifiers=["y"])
+    def ray_options_dispatch_unset(x: int) -> dict[str, int]:
+        return {"y": x}
+
+    remote_fn = custom_experiments._custom_experiment_executor_remote(
+        ray_options_dispatch_unset
+    )
+    options = remote_fn._default_options
+    assert options.get("num_cpus") is None
+    assert options.get("num_gpus") is None
+    assert options.get("resources") is None
+    assert options.get("runtime_env") is None
+
+
+def test_custom_experiment_executor_remote_empty_ray_options() -> None:
+    """An empty ray_options dict is wrapped by ray.remote(fn)."""
+
+    @custom_experiments.custom_experiment(
+        output_property_identifiers=["y"],
+        ray_options={},
+    )
+    def ray_options_dispatch_empty(x: int) -> dict[str, int]:
+        return {"y": x}
+
+    remote_fn = custom_experiments._custom_experiment_executor_remote(
+        ray_options_dispatch_empty
+    )
+    options = remote_fn._default_options
+    assert options.get("num_cpus") is None
+    assert options.get("num_gpus") is None
+    assert options.get("resources") is None
+    assert options.get("runtime_env") is None
+
+
+def test_custom_experiment_executor_remote_applies_ray_options() -> None:
+    """Non-empty ray_options, including zeros, are applied to the Ray task."""
+
+    @custom_experiments.custom_experiment(
+        output_property_identifiers=["y"],
+        ray_options={
+            "num_cpus": 2,
+            "num_gpus": 0,
+            "resources": {"CustomResource": 1},
+            "runtime_env": {"env_vars": {"OMP_NUM_THREADS": "2"}},
+        },
+    )
+    def ray_options_dispatch_set(x: int) -> dict[str, int]:
+        return {"y": x}
+
+    remote_fn = custom_experiments._custom_experiment_executor_remote(
+        ray_options_dispatch_set
+    )
+    options = remote_fn._default_options
+    assert options["num_cpus"] == 2.0
+    assert options["num_gpus"] == 0.0
+    assert options["resources"] == {"CustomResource": 1}
+    assert options["runtime_env"] == {"env_vars": {"OMP_NUM_THREADS": "2"}}
+
+
 def test_check_parameters_and_infer() -> None:
 
     def fn(a: int, b: float, c: int = 1) -> None:

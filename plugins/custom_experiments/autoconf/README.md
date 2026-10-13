@@ -240,7 +240,7 @@ This will print a similar text to:
 
 ```bash
 Found 1 mismatches between original and current metadata:
- WARNING: AutoGluon Python version mismatch (original=3.12, current=3.10)
+ WARNING: AutoGluon Python version mismatch (original=3.12, current=3.11)
  {'can_recommend': True, 'gpus': 4, 'workers': 1}
 ```
 

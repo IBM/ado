@@ -1665,9 +1665,9 @@ six==1.17.0 \
     # via
     #   opencensus
     #   python-dateutil
-smart-open==8.0.2 \
-    --hash=sha256:7ff6e4acf454269905db0c747f5d14fdba6056db572c0f8398043676dc91515c \
-    --hash=sha256:d5b5c85d2d31a6657bb18b3725856125f3b5be0ae3020c0fafa4649f6c493122
+smart-open==8.0.3 \
+    --hash=sha256:398eb1d6af1e887ccd30347af540793235369bd6602dc42f72c44f939ae9c80f \
+    --hash=sha256:c3f67795b1a2bdb62dd9aca9ba4d4018e8f11e4188700b3246ea5ae049f65887
     # via ray
 sqlalchemy==2.1.4 \
     --hash=sha256:07c60abaffb980b7382f2c75be8a5279c2b5df2626a0f5d751dd942799bf3b5c \

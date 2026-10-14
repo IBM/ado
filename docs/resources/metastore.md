@@ -184,7 +184,7 @@ The output includes four match columns:
 | Column | Description | Possible Values |
 | --- | --- | --- |
 | `ENTITY_SPACE_MATCH` | Relationship between the candidate's and reference's entity spaces | `= IDENTICAL`, `⊃ SUPERSPACE`, `⊂ SUBSPACE`, `∩ OVERLAPPING` |
-| `BASE_EXPERIMENT_MATCH` | Relationship between the candidate's and reference's sets of experiments | `= IDENTICAL`, `⊃ SUPERSPACE`, `⊂ SUBSPACE`, `∩ OVERLAPPING` |
+| `BASE_EXPERIMENT_MATCH` | Relationship between the candidate's and reference's sets of base experiment identifiers | `= IDENTICAL`, `⊃ SUPERSPACE`, `⊂ SUBSPACE`, `∩ OVERLAPPING` |
 | `VERSION_MATCH` | Version matching across paired experiments | `= IDENTICAL`, `≈ MAJOR_ONLY` |
 | `PARAMETERIZATION_MATCH` | Parameterization matching across paired experiments | `= IDENTICAL`, `≠ DIFFERENT`, `N/A` |
 
@@ -206,9 +206,11 @@ The output includes four match columns:
   candidate space is possible when `PARAMETERIZATION_MATCH` is `= IDENTICAL` or
   `N/A`, `VERSION_MATCH` is `= IDENTICAL` or `≈ MAJOR_ONLY`, and the entity
   spaces overlap.
-- **Note on defaults:** If one reference omits a parameter (defaulting
-  implicitly) while another sets that parameter explicitly to the default value,
-  `PARAMETERIZATION_MATCH` reports `≠ DIFFERENT`.
+- **Note on placement:** If one space sets an optional experiment parameter via
+  `parameterization` in the experiment space while another space sets the same
+  parameter as a dimension in the entity space, `PARAMETERIZATION_MATCH` reports
+  `≠ DIFFERENT` even when the values are identical, because the parameter appears
+  in the experiment reference of one space and not the other.
 
 ### Searching for spaces containing a point
 

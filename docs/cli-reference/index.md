@@ -568,11 +568,11 @@ Where:
     - The `stats` format augments the default `table` output with additional
       statistics columns. Supported resource types and their columns are:
         - **Operations**: `TOTAL_RESULTS`, `SUCCESSFUL_RESULTS`,
-          `FAILED_RESULTS`, `MEASURED_ENTITIES` (entities with at least one
+          `FAILED_RESULTS`, `SAMPLED_ENTITIES` (entities with at least one
           measurement, whether successful, failed, or both).
-        - **Discovery Spaces**: `EXPERIMENTS`, `OPERATIONS`,
-          `EXPLORE_OPERATIONS`, `MEASURED_ENTITIES` (entities with at least one
-          measurement, whether successful, failed, or both).
+        - **Discovery Spaces**: `EXPERIMENTS`, `OPERATIONS`, `EXPLORE_OPS`,
+          `SAMPLED_ENTITIES` (entities with at least one measurement, whether
+          successful, failed, or both).
         - **Sample Stores**: `ENTITIES`, `RESULTS`, `EXPERIMENTS`.
         - **Data Containers**: `TABLES`, `LOCATIONS`, `KEY_VALUES`,
           `DATA_BYTES`.
@@ -1346,15 +1346,12 @@ The statistics columns produced per resource type are:
 <!-- prettier-ignore-start -->
 
 - **Operations**: `TOTAL_RESULTS`, `SUCCESSFUL_RESULTS`, `FAILED_RESULTS`,
-  `MEASURED_ENTITIES` (entities with at least one measurement, whether
+  `SAMPLED_ENTITIES` (entities with at least one measurement, whether
   successful, failed, or both), `TOTAL_REQUESTS`, `FAILED_REQUESTS`,
   `SUCCESSFUL_REQUESTS`.
-- **Discovery Spaces**: `EXPERIMENTS`, `OPERATIONS`, `EXPLORE_OPERATIONS`,
-  `MEASURED_ENTITIES` (entities with at least one measurement, whether
-  successful, failed, or both), `SIZE_OF_ENTITY_SPACE`, `UNMEASURED_ENTITIES`,
-  `MATCHING_ENTITIES`, `MATCHING_WITH_MEASUREMENTS`,
-  `ENTITIES_WITH_ALL_MEASUREMENTS`, `ENTITIES_WITH_PARTIAL_MEASUREMENTS`,
-  `MATCHING_ENTITIES_WITH_ALL_MEASUREMENTS`.
+- **Discovery Spaces**: `EXPERIMENTS`, `OPERATIONS`, `EXPLORE_OPS`,
+  `ENTITY_SPACE_SIZE`, `UNSAMPLED`, `SAMPLED_COMPLETE`, `SAMPLED_PARTIAL`,
+  `SAMPLED_FAILED`, `MATCHING_COMPLETE`, `MATCHING_PARTIAL`, `MATCHING_FAILED`.
 - **Sample Stores**: `ENTITIES`, `RESULTS`, `EXPERIMENTS`.
 - **Data Containers**: `TABLES`, `LOCATIONS`, `KEY_VALUES`, `DATA_BYTES`.
 
@@ -1363,9 +1360,10 @@ The statistics columns produced per resource type are:
 !!! note
 
     `ado show stats discoveryspace` computes full entity-space coverage
-    statistics including the heavy columns (`SIZE_OF_ENTITY_SPACE`,
-    `UNMEASURED_ENTITIES`, `MATCHING_ENTITIES`, etc.). This is slower than
-    `ado get spaces -o stats` because it instantiates each
+    statistics including the heavy columns (`ENTITY_SPACE_SIZE`, `UNSAMPLED`,
+    `SAMPLED_COMPLETE`, `SAMPLED_PARTIAL`, `SAMPLED_FAILED`, `MATCHING_COMPLETE`,
+    `MATCHING_PARTIAL`, `MATCHING_FAILED`).
+    This is slower than `ado get spaces -o stats` because it instantiates each
     `DiscoverySpace` and queries the sample store. Use `ado get -o stats` for
     quick overviews.
 

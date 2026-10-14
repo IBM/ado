@@ -170,8 +170,8 @@ When examining a study, add `-l study=$ID` (the study's label) to the
    ```
 
    Adds `TOTAL_RESULTS`, `SUCCESSFUL_RESULTS`, `FAILED_RESULTS`, and
-   `MEASURED_ENTITIES` columns. For explore operations, compare
-   `MEASURED_ENTITIES` against the operator's `numberEntities` to check sampling
+   `SAMPLED_ENTITIES` columns. For explore operations, compare
+   `SAMPLED_ENTITIES` against the operator's `numberEntities` to check sampling
    completeness.
 
    For richer stats that also include request-level counts
@@ -187,11 +187,12 @@ When examining a study, add `-l study=$ID` (the study's label) to the
    uv run ado get spaces -o stats --output-file spaces-stats.txt
    ```
 
-   Adds `EXPERIMENTS`, `OPERATIONS`, `EXPLORE_OPERATIONS`, and
-   `MEASURED_ENTITIES` columns.
+   Adds `EXPERIMENTS`, `OPERATIONS`, `EXPLORE_OPS`, and `SAMPLED_ENTITIES`
+   columns.
 
    For richer stats that also include full entity-space coverage columns
-   (`SIZE_OF_ENTITY_SPACE`, `UNMEASURED_ENTITIES`, `MATCHING_ENTITIES`, etc.):
+   (`ENTITY_SPACE_SIZE`, `UNSAMPLED`, `SAMPLED_COMPLETE`, `SAMPLED_PARTIAL`,
+   `SAMPLED_FAILED`, `MATCHING_COMPLETE`, `MATCHING_PARTIAL`, `MATCHING_FAILED`):
 
    ```bash
    uv run ado show stats discoveryspace --output-file spaces-fullstats.csv -o csv

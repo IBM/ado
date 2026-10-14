@@ -26,13 +26,9 @@ def show_discovery_space_stats(parameters: AdoShowStatsCommandParameters) -> Non
     """Show statistics for one or more discovery spaces.
 
     Outputs all standard ``ado get`` table columns (IDENTIFIER, NAME, AGE)
-    plus lightweight stats columns (EXPERIMENTS, OPERATIONS,
-    EXPLORE_OPERATIONS, MEASURED_ENTITIES — entities with at least one
-    measurement, whether successful, failed, or both) and heavy stats columns
-    (SIZE_OF_ENTITY_SPACE, UNMEASURED_ENTITIES, MATCHING_ENTITIES,
-    MATCHING_WITH_MEASUREMENTS, ENTITIES_WITH_ALL_MEASUREMENTS,
-    ENTITIES_WITH_PARTIAL_MEASUREMENTS,
-    MATCHING_ENTITIES_WITH_ALL_MEASUREMENTS).
+    plus stats columns (EXPERIMENTS, OPERATIONS, EXPLORE_OPS,
+    ENTITY_SPACE_SIZE, UNSAMPLED, SAMPLED_COMPLETE, SAMPLED_PARTIAL,
+    SAMPLED_FAILED, MATCHING_COMPLETE, MATCHING_PARTIAL, MATCHING_FAILED).
 
     Args:
         parameters: Command parameters including resource IDs, output format,

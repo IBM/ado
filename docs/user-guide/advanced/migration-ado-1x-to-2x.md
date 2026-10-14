@@ -206,7 +206,7 @@ prose-report output format (`-o md-report`) it provided has no direct
 replacement.
 
 For numeric and tabular space statistics (EXPERIMENTS, OPERATIONS,
-EXPLORE_OPS, SAMPLED_ENTITIES, ENTITY_SPACE_SIZE, UNSAMPLED,
+EXPLORE_OPS, ENTITY_SPACE_SIZE, UNSAMPLED,
 SAMPLED_COMPLETE, SAMPLED_PARTIAL, SAMPLED_FAILED, MATCHING_COMPLETE,
 MATCHING_PARTIAL, MATCHING_FAILED), use `ado show stats discoveryspace`.
 

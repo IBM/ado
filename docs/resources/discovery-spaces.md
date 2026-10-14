@@ -825,13 +825,12 @@ space-047b6a-f60613:
   NAME: rosenbrock_3d
   OPERATIONS: 1
   SAMPLED_COMPLETE: 79
-  SAMPLED_ENTITIES: 79
   SAMPLED_FAILED: 0
   SAMPLED_PARTIAL: 0
   UNSAMPLED: 0
 ```
 
-The `SAMPLED_ENTITIES` counts come from operations on this space, while the
+The `SAMPLED_*` counts come from operations on this space, while the
 `MATCHING_*` counts cover every entity in the `samplestore` that matches the
 space - the two filters described in
 [shared samplestores](#discoveryspaces-and-shared-samplestores).

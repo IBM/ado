@@ -120,8 +120,10 @@ Three labels make up the maintenance scheme.
    uv run ado show stats discoveryspace -o csv --output-file spaces-stats.csv
    ```
 
-   Filter rows where `SAMPLED_ENTITIES == 0`. Use the `AGE` column
-   (for example `7d0h` or greater) to keep only spaces older than a week.
+   Filter rows where `SAMPLED_COMPLETE == 0` and `SAMPLED_PARTIAL == 0` and
+   `SAMPLED_FAILED == 0` (no entities sampled under any outcome). Use the
+   `AGE` column (for example `7d0h` or greater) to keep only spaces older
+   than a week.
 
    Deletion Reason: `empty-space-stale`.
 

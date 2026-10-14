@@ -258,10 +258,9 @@ def test_custom_experiment_executor_remote_without_ray_options() -> None:
         ray_options_dispatch_unset
     )
     options = remote_fn._default_options
-    assert options.get("num_cpus") is None
-    assert options.get("num_gpus") is None
-    assert options.get("resources") is None
-    assert options.get("runtime_env") is None
+    assert not options, (
+        "Expected _custom_experiment_executor_remote to not set additional ray remote options. It set {options}."
+    )
 
 
 def test_custom_experiment_executor_remote_empty_ray_options() -> None:
@@ -278,23 +277,23 @@ def test_custom_experiment_executor_remote_empty_ray_options() -> None:
         ray_options_dispatch_empty
     )
     options = remote_fn._default_options
-    assert options.get("num_cpus") is None
-    assert options.get("num_gpus") is None
-    assert options.get("resources") is None
-    assert options.get("runtime_env") is None
+    assert not options, (
+        "Expected _custom_experiment_executor_remote to not set additional ray remote options. It set {options}."
+    )
 
 
 def test_custom_experiment_executor_remote_applies_ray_options() -> None:
     """Non-empty ray_options, including zeros, are applied to the Ray task."""
 
+    requested_options = {
+        "num_cpus": 2,
+        "num_gpus": 0,
+        "resources": {"CustomResource": 1},
+        "runtime_env": {"env_vars": {"OMP_NUM_THREADS": "2"}},
+    }
+
     @custom_experiments.custom_experiment(
-        output_property_identifiers=["y"],
-        ray_options={
-            "num_cpus": 2,
-            "num_gpus": 0,
-            "resources": {"CustomResource": 1},
-            "runtime_env": {"env_vars": {"OMP_NUM_THREADS": "2"}},
-        },
+        output_property_identifiers=["y"], ray_options=requested_options
     )
     def ray_options_dispatch_set(x: int) -> dict[str, int]:
         return {"y": x}
@@ -307,6 +306,9 @@ def test_custom_experiment_executor_remote_applies_ray_options() -> None:
     assert options["num_gpus"] == 0.0
     assert options["resources"] == {"CustomResource": 1}
     assert options["runtime_env"] == {"env_vars": {"OMP_NUM_THREADS": "2"}}
+    assert options == requested_options, (
+        "Expected set ray remote options to be identical to requested"
+    )
 
 
 def test_check_parameters_and_infer() -> None:

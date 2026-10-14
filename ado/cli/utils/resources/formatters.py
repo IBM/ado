@@ -344,7 +344,7 @@ def format_ado_get_stats_for_operations(
     Returns:
         The same DataFrame with extra columns appended.
         Always appended: ``TOTAL_RESULTS``, ``SUCCESSFUL_RESULTS``,
-        ``FAILED_RESULTS``, ``MEASURED_ENTITIES`` (entities with at least one
+        ``FAILED_RESULTS``, ``SAMPLED_ENTITIES`` (entities with at least one
         measurement, whether successful, failed, or both).
         Appended when *include_request_columns* is ``True``:
         ``TOTAL_REQUESTS``, ``FAILED_REQUESTS``, ``SUCCESSFUL_REQUESTS``.
@@ -359,7 +359,7 @@ def format_ado_get_stats_for_operations(
         "TOTAL_RESULTS",
         "SUCCESSFUL_RESULTS",
         "FAILED_RESULTS",
-        "MEASURED_ENTITIES",
+        "SAMPLED_ENTITIES",
     ]
     _REQUEST_COLUMNS = [
         "TOTAL_REQUESTS",
@@ -417,7 +417,7 @@ def format_ado_get_stats_for_operations(
                 "TOTAL_RESULTS": stat.total_results,
                 "SUCCESSFUL_RESULTS": stat.successful_results,
                 "FAILED_RESULTS": stat.failed_results,
-                "MEASURED_ENTITIES": stat.measured_entities,
+                "SAMPLED_ENTITIES": stat.measured_entities,
                 "TOTAL_REQUESTS": stat.total_requests,
                 "FAILED_REQUESTS": stat.failed_requests,
                 "SUCCESSFUL_REQUESTS": stat.successful_requests,
@@ -451,7 +451,7 @@ def format_ado_get_stats_for_spaces(
 
     When ``include_heavy=False`` (default), also issues a metastore stats
     query and a ``space_entity_statistics`` query per distinct sample store,
-    then appends three lightweight columns.
+    then appends four lightweight columns.
 
     When ``include_heavy=True``, builds full
     :class:`~ado.core.discoveryspace.space.DiscoverySpace` instances
@@ -479,7 +479,9 @@ def format_ado_get_stats_for_spaces(
 
     Returns:
         The same DataFrame with extra columns appended.
-        Lightweight columns: ``EXPERIMENTS``, ``OPERATIONS``, ``EXPLORE_OPS``.
+        Lightweight columns: ``EXPERIMENTS``, ``OPERATIONS``, ``EXPLORE_OPS``,
+        ``SAMPLED_ENTITIES`` (entities with at least one measurement, whether
+        successful, failed, or both).
         Heavy columns (only when ``include_heavy=True``):
         ``ENTITY_SPACE_SIZE``, ``UNSAMPLED``, ``SAMPLED_COMPLETE``,
         ``SAMPLED_PARTIAL``, ``SAMPLED_FAILED``, ``MATCHING_COMPLETE``,
@@ -635,6 +637,11 @@ def format_ado_get_stats_for_spaces(
             all_stats[space_id].number_of_explore_operations
             if space_id in all_stats
             else 0
+        )
+    )
+    df["SAMPLED_ENTITIES"] = df["IDENTIFIER"].apply(
+        lambda space_id: (
+            all_stats[space_id].number_measured_entities if space_id in all_stats else 0
         )
     )
 

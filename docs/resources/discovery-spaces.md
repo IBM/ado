@@ -816,25 +816,26 @@ ado show stats space space-047b6a-f60613 -o yaml
 ```terminaloutput
 space-047b6a-f60613:
   AGE: 367d7h
-  ENTITIES_WITH_ALL_MEASUREMENTS: 28
-  ENTITIES_WITH_PARTIAL_MEASUREMENTS: 12
+  ENTITY_SPACE_SIZE: 79
   EXPERIMENTS: 1
-  EXPLORE_OPERATIONS: 1
-  MATCHING_ENTITIES: 148
-  MATCHING_ENTITIES_WITH_ALL_MEASUREMENTS: 148
-  MATCHING_WITH_MEASUREMENTS: 148
-  MEASURED_ENTITIES: 40
+  EXPLORE_OPS: 1
+  MATCHING_COMPLETE: 79
+  MATCHING_FAILED: 0
+  MATCHING_PARTIAL: 0
   NAME: rosenbrock_3d
   OPERATIONS: 1
-  SIZE_OF_ENTITY_SPACE: null
-  UNMEASURED_ENTITIES: .inf
+  SAMPLED_COMPLETE: 79
+  SAMPLED_ENTITIES: 79
+  SAMPLED_FAILED: 0
+  SAMPLED_PARTIAL: 0
+  UNSAMPLED: 0
 ```
 
-The `MEASURED_ENTITIES` counts come from operations on this space, while the
+The `SAMPLED_ENTITIES` counts come from operations on this space, while the
 `MATCHING_*` counts cover every entity in the `samplestore` that matches the
 space - the two filters described in
 [shared samplestores](#discoveryspaces-and-shared-samplestores).
-`SIZE_OF_ENTITY_SPACE` and `UNMEASURED_ENTITIES` have values for finite spaces.
+`ENTITY_SPACE_SIZE` and `UNSAMPLED` have values for finite spaces.
 
 For a human-readable view of the `entityspace`, the `measurementspace` and the
 `samplestore` a space uses:

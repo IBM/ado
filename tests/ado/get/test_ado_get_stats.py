@@ -101,7 +101,7 @@ def test_ado_get_operations_stats_columns_present(
             "TOTAL_RESULTS",
             "SUCCESSFUL_RESULTS",
             "FAILED_RESULTS",
-            "MEASURED_ENTITIES",
+            "SAMPLED_ENTITIES",
         ]:
             assert col in result.output, f"Column {col!r} missing from output"
 
@@ -127,7 +127,7 @@ def test_ado_get_operations_stats_values(
     )
 
     number_entities = 3
-    # Use 1 request so MEASURED_ENTITIES == number_entities (entities are sampled per-request)
+    # Use 1 request so SAMPLED_ENTITIES == number_entities (entities are sampled per-request)
     number_requests = 1
     operation_id = "op-stats-test-abc123"
 
@@ -164,7 +164,7 @@ def test_ado_get_operations_stats_values(
                 "TOTAL_RESULTS": number_requests * number_entities,
                 "SUCCESSFUL_RESULTS": number_requests * number_entities,
                 "FAILED_RESULTS": 0,
-                "MEASURED_ENTITIES": number_entities,
+                "SAMPLED_ENTITIES": number_entities,
             },
             index=pd.Index([0]),
         )
@@ -204,7 +204,7 @@ def test_ado_get_operation_stats_single_resource(
     )
 
     number_entities = 2
-    # Use 1 request so MEASURED_ENTITIES == number_entities (entities are sampled per-request)
+    # Use 1 request so SAMPLED_ENTITIES == number_entities (entities are sampled per-request)
     number_requests = 1
     operation_id = "op-stats-single-xyz789"
 
@@ -241,7 +241,7 @@ def test_ado_get_operation_stats_single_resource(
                 "TOTAL_RESULTS": number_requests * number_entities,
                 "SUCCESSFUL_RESULTS": number_requests * number_entities,
                 "FAILED_RESULTS": 0,
-                "MEASURED_ENTITIES": number_entities,
+                "SAMPLED_ENTITIES": number_entities,
             },
             index=pd.Index([0]),
         )
@@ -282,7 +282,7 @@ def test_ado_get_spaces_stats_values(
     )
 
     number_entities = 3
-    # Use 1 request so MEASURED_ENTITIES == number_entities (entities are sampled per-request)
+    # Use 1 request so SAMPLED_ENTITIES == number_entities (entities are sampled per-request)
     number_requests = 1
     operation_id = "op-space-stats-abc123"
 
@@ -317,6 +317,7 @@ def test_ado_get_spaces_stats_values(
                 "EXPERIMENTS": 1,
                 "OPERATIONS": 1,
                 "EXPLORE_OPS": 1,
+                "SAMPLED_ENTITIES": number_entities,
             },
             index=pd.Index([0]),
         )
@@ -357,7 +358,7 @@ def test_ado_get_space_stats_single_resource(
     )
 
     number_entities = 2
-    # Use 1 request so MEASURED_ENTITIES == number_entities (entities are sampled per-request)
+    # Use 1 request so SAMPLED_ENTITIES == number_entities (entities are sampled per-request)
     number_requests = 1
     operation_id = "op-space-stats-single-xyz789"
 
@@ -392,6 +393,7 @@ def test_ado_get_space_stats_single_resource(
                 "EXPERIMENTS": 1,
                 "OPERATIONS": 1,
                 "EXPLORE_OPS": 1,
+                "SAMPLED_ENTITIES": number_entities,
             },
             index=pd.Index([0]),
         )

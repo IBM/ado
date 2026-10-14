@@ -120,7 +120,7 @@ Three labels make up the maintenance scheme.
    uv run ado show stats discoveryspace -o csv --output-file spaces-stats.csv
    ```
 
-   Filter rows where `MEASURED_ENTITIES == 0`. Use the `AGE` column
+   Filter rows where `SAMPLED_ENTITIES == 0`. Use the `AGE` column
    (for example `7d0h` or greater) to keep only spaces older than a week.
 
    Deletion Reason: `empty-space-stale`.
@@ -147,7 +147,7 @@ Three labels make up the maintenance scheme.
      -o csv --output-file operations-error-stats.csv
    ```
 
-   Filter rows where `MEASURED_ENTITIES == 0`.
+   Filter rows where `SAMPLED_ENTITIES == 0`.
 
    Deletion Reason: `error-no-entities`.
 
@@ -223,7 +223,7 @@ Three labels make up the maintenance scheme.
    ```
 
    Filter the `STATUS` column for rows where `STATUS == started`, `AGE`
-   is a week or more, and `MEASURED_ENTITIES == 0`.
+   is a week or more, and `SAMPLED_ENTITIES == 0`.
 
    Deletion Reason: `started-and-crashed-no-entities`.
 

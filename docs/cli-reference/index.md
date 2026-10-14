@@ -568,9 +568,11 @@ Where:
     - The `stats` format augments the default `table` output with additional
       statistics columns. Supported resource types and their columns are:
         - **Operations**: `TOTAL_RESULTS`, `SUCCESSFUL_RESULTS`,
-          `FAILED_RESULTS`, `MEASURED_ENTITIES` (entities with at least one
+          `FAILED_RESULTS`, `SAMPLED_ENTITIES` (entities with at least one
           measurement, whether successful, failed, or both).
-        - **Discovery Spaces**: `EXPERIMENTS`, `OPERATIONS`, `EXPLORE_OPS`.
+        - **Discovery Spaces**: `EXPERIMENTS`, `OPERATIONS`, `EXPLORE_OPS`,
+          `SAMPLED_ENTITIES` (entities with at least one measurement, whether
+          successful, failed, or both).
         - **Sample Stores**: `ENTITIES`, `RESULTS`, `EXPERIMENTS`.
         - **Data Containers**: `TABLES`, `LOCATIONS`, `KEY_VALUES`,
           `DATA_BYTES`.
@@ -1341,12 +1343,14 @@ The statistics columns produced per resource type are:
 <!-- prettier-ignore-start -->
 
 - **Operations**: `TOTAL_RESULTS`, `SUCCESSFUL_RESULTS`, `FAILED_RESULTS`,
-  `MEASURED_ENTITIES` (entities with at least one measurement, whether
+  `SAMPLED_ENTITIES` (entities with at least one measurement, whether
   successful, failed, or both), `TOTAL_REQUESTS`, `FAILED_REQUESTS`,
   `SUCCESSFUL_REQUESTS`.
 - **Discovery Spaces**: `EXPERIMENTS`, `OPERATIONS`, `EXPLORE_OPS`,
-  `ENTITY_SPACE_SIZE`, `UNSAMPLED`, `SAMPLED_COMPLETE`, `SAMPLED_PARTIAL`,
-  `SAMPLED_FAILED`, `MATCHING_COMPLETE`, `MATCHING_PARTIAL`, `MATCHING_FAILED`.
+  `SAMPLED_ENTITIES` (entities with at least one measurement, whether
+  successful, failed, or both), `ENTITY_SPACE_SIZE`, `UNSAMPLED`,
+  `SAMPLED_COMPLETE`, `SAMPLED_PARTIAL`, `SAMPLED_FAILED`,
+  `MATCHING_COMPLETE`, `MATCHING_PARTIAL`, `MATCHING_FAILED`.
 - **Sample Stores**: `ENTITIES`, `RESULTS`, `EXPERIMENTS`.
 - **Data Containers**: `TABLES`, `LOCATIONS`, `KEY_VALUES`, `DATA_BYTES`.
 

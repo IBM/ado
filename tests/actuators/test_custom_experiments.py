@@ -259,7 +259,7 @@ def test_custom_experiment_executor_remote_without_ray_options() -> None:
     )
     options = remote_fn._default_options
     assert not options, (
-        "Expected _custom_experiment_executor_remote to not set additional ray remote options. It set {options}."
+        f"Expected _custom_experiment_executor_remote to not set additional ray remote options. It set {options}."
     )
 
 
@@ -278,7 +278,7 @@ def test_custom_experiment_executor_remote_empty_ray_options() -> None:
     )
     options = remote_fn._default_options
     assert not options, (
-        "Expected _custom_experiment_executor_remote to not set additional ray remote options. It set {options}."
+        f"Expected _custom_experiment_executor_remote to not set additional ray remote options. It set {options}."
     )
 
 

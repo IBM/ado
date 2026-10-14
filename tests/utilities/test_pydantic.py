@@ -8,7 +8,9 @@ import uuid
 import pydantic
 import pytest
 
-from ado.utilities.pydantic import pydantic_aware_json_serializer
+from ado.schema.property import AbstractPropertyDescriptor
+from ado.schema.property_value import ConstitutivePropertyValue
+from ado.utilities.pydantic import pydantic_aware_json_serializer, sort_by_identifier
 
 
 class _Color(str, enum.Enum):
@@ -135,3 +137,53 @@ def test_non_serialisable_raises() -> None:
     """Non-serialisable objects raise TypeError."""
     with pytest.raises(TypeError):
         pydantic_aware_json_serializer(object())
+
+
+# ---------------------------------------------------------------------------
+# sort_by_identifier
+# ---------------------------------------------------------------------------
+
+
+def test_sort_by_identifier_returns_none_for_none() -> None:
+    """None input produces None output."""
+    assert sort_by_identifier(None) is None
+
+
+def test_sort_by_identifier_preserves_container_type() -> None:
+    """List input returns a list; tuple input returns a tuple."""
+    props = [
+        AbstractPropertyDescriptor(identifier="b"),
+        AbstractPropertyDescriptor(identifier="a"),
+    ]
+    assert isinstance(sort_by_identifier(props), list)
+    assert isinstance(sort_by_identifier(tuple(props)), tuple)
+
+
+def test_sort_by_identifier_sorts_by_identifier() -> None:
+    """Items with .identifier are sorted alphabetically."""
+    props = [
+        AbstractPropertyDescriptor(identifier="c"),
+        AbstractPropertyDescriptor(identifier="a"),
+        AbstractPropertyDescriptor(identifier="b"),
+    ]
+    result = sort_by_identifier(props)
+    assert [v.identifier for v in result] == ["a", "b", "c"]
+
+
+def test_sort_by_identifier_sorts_by_property_identifier() -> None:
+    """Items with .property.identifier (PropertyValue subtypes) are sorted by that key."""
+    from ado.schema.property import ConstitutivePropertyDescriptor
+
+    values = [
+        ConstitutivePropertyValue(
+            value=1, property=ConstitutivePropertyDescriptor(identifier="c")
+        ),
+        ConstitutivePropertyValue(
+            value=2, property=ConstitutivePropertyDescriptor(identifier="a")
+        ),
+        ConstitutivePropertyValue(
+            value=3, property=ConstitutivePropertyDescriptor(identifier="b")
+        ),
+    ]
+    result = sort_by_identifier(values)
+    assert [v.property.identifier for v in result] == ["a", "b", "c"]

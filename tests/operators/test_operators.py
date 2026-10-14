@@ -141,7 +141,7 @@ def test_explore_operator_function_conf_identifier_matches_registered_name() -> 
             operationType=ado.core.operation.config.DiscoveryOperationEnum.EXPLORE,
         )
         # The identifier must start with the registered function name, not the
-        # class name (e.g. "random_walk@2.0.0", not "RandomWalk@...")
+        # class name (e.g. "random_walk@2.1.0", not "RandomWalk@...")
         identifier = conf.operatorIdentifier
         assert identifier.startswith(f"{name}@"), (
             f"Expected identifier to start with '{name}@', got '{identifier}'"

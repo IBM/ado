@@ -91,7 +91,7 @@ Available operators by type:
 ┌───────┬─────────────┬─────────┬─────────┐
 │ INDEX │ OPERATOR    │ VERSION │ TYPE    │
 ├───────┼─────────────┼─────────┼─────────┤
-│ 0     │ random_walk │ 2.0.0   │ explore │
+│ 0     │ random_walk │ 2.1.0   │ explore │
 │ 1     │ ray_tune    │ 2.0.3   │ explore │
 │ 2     │ rifferla    │ 2.0.3   │ modify  │
 └───────┴─────────────┴─────────┴─────────┘

@@ -178,9 +178,24 @@ uv run ado show related space SPACE_ID
 
 ### Step 4: Find Similar spaces
 
-`ado get space --matching-space-id SPACE_ID --details` finds spaces with the
-same entity structure. Use this to understand research progression and why this
-space was created.
+`ado get space --matching-space-id SPACE_ID --details` finds spaces with related
+entity and experiment spaces. The output includes four columns:
+
+- `ENTITY_SPACE_MATCH`: relationship between the entity spaces (`= IDENTICAL`,
+  `⊃ SUPERSPACE`, `⊂ SUBSPACE`, `∩ OVERLAPPING`).
+- `BASE_EXPERIMENT_MATCH`: relationship between the sets of base experiment
+  identifiers (`= IDENTICAL`, `⊃ SUPERSPACE`, `⊂ SUBSPACE`, `∩ OVERLAPPING`).
+- `VERSION_MATCH`: whether paired experiments share the same version (`=
+  IDENTICAL`) or only the same major version (`≈ MAJOR_ONLY`).
+- `PARAMETERIZATION_MATCH`: whether paired experiments have identical
+  parameterization (`= IDENTICAL`), differing values (`≠ DIFFERENT`), or no
+  parameterization on either side (`N/A`).
+
+See the metastore docs ([source](../../../docs/resources/metastore.md) /
+[website](https://ibm.github.io/ado/latest/resources/metastore/)) for the full pairing
+rules, aggregation semantics, and memoization conditions.
+
+Use this to understand research progression and why this space was created.
 
 ```bash
 uv run ado get space --matching-space-id SPACE_ID --details \

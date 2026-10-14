@@ -645,8 +645,11 @@ for detailed information on the following options, including syntax.
 - The `--matching-space` option allows searching for `discoveryspaces` which
   match a given
   [configuration YAML](../resources/discovery-spaces.md#structure-of-the-discoveryspace-yaml-configuration).
+  Displays `ENTITY_SPACE_MATCH`, `BASE_EXPERIMENT_MATCH`, `VERSION_MATCH`, and
+  `PARAMETERIZATION_MATCH` columns describing how candidate spaces relate to
+  the reference.
 - The `--matching-space-id` option works in the same way as `--matching-space`
-  but allows the user to provide a space id instead of a configuration
+  but allows the user to provide a space id instead of a configuration.
 
 ### Examples
 

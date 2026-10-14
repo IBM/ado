@@ -9,7 +9,6 @@ from datetime import UTC, datetime
 
 import pandas as pd
 import pytest
-import rich.box
 import yaml
 from testcontainers.community.mysql import MySqlContainer
 from typer.testing import CliRunner
@@ -24,10 +23,10 @@ from ado.core.discoveryspace.space import DiscoverySpace
 from ado.metastore.project import ProjectContext
 from ado.metastore.sqlstore import SQLStore
 from ado.modules.actuators.catalog import ExperimentCatalog
-from ado.utilities.rich import dataframe_to_rich_table, render_to_string
 from tests.conftest import requires_sqlite_3_38
 from tests.utilities.cli_rendering import (
     render_ado_resources_to_cli_output,
+    render_dataframe_to_cli_output,
 )
 
 
@@ -171,11 +170,7 @@ def test_get_robotic_lab_actuator() -> None:
             },
             index=pd.Index([0]),
         )
-        rendered_output = render_to_string(
-            dataframe_to_rich_table(
-                expected_output, show_index=True, show_edge=True, box=rich.box.SQUARE
-            )
-        )
+        rendered_output = render_dataframe_to_cli_output(expected_output)
         assert rendered_output in result.output
 
 

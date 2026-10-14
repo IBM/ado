@@ -136,9 +136,10 @@ coverage columns, use:
 uv run ado show stats discoveryspace SPACE_ID
 ```
 
-This outputs the base table columns plus full entity-space coverage columns:
-`ENTITY_SPACE_SIZE`, `UNSAMPLED`, `SAMPLED_COMPLETE`, `SAMPLED_PARTIAL`,
-`SAMPLED_FAILED`, `MATCHING_COMPLETE`, `MATCHING_PARTIAL`, `MATCHING_FAILED`.
+This outputs the base table columns plus all stats columns: `EXPERIMENTS`,
+`OPERATIONS`, `EXPLORE_OPS`, `ENTITY_SPACE_SIZE`, `UNSAMPLED`,
+`SAMPLED_COMPLETE`, `SAMPLED_PARTIAL`, `SAMPLED_FAILED`, `MATCHING_COMPLETE`,
+`MATCHING_PARTIAL`, `MATCHING_FAILED`.
 
 Compare `SAMPLED_COMPLETE + SAMPLED_PARTIAL + SAMPLED_FAILED`
 vs `ENTITY_SPACE_SIZE` to understand exploration progress.

@@ -141,7 +141,7 @@ def test_get_space_matching_space_id(
                     SpaceHierarchy.SUPER_SPACE.value,
                     SpaceHierarchy.OVERLAPPING.value,
                 ],
-                "MEASUREMENT_SPACE_MATCH": [
+                "BASE_EXPERIMENT_MATCH": [
                     SpaceHierarchy.EQUAL_SPACE.value,
                     SpaceHierarchy.EQUAL_SPACE.value,
                     SpaceHierarchy.SUPER_SPACE.value,
@@ -215,7 +215,7 @@ def test_get_space_matching_space_file(
                 "NAME": ["Target"],
                 "AGE": ["3d0h"],
                 "ENTITY_SPACE_MATCH": [SpaceHierarchy.EQUAL_SPACE.value],
-                "MEASUREMENT_SPACE_MATCH": [SpaceHierarchy.EQUAL_SPACE.value],
+                "BASE_EXPERIMENT_MATCH": [SpaceHierarchy.EQUAL_SPACE.value],
                 "VERSION_MATCH": [VersionMatch.IDENTICAL.value],
                 "PARAMETERIZATION_MATCH": [ParameterizationMatch.NOT_APPLICABLE.value],
             }
@@ -307,7 +307,7 @@ def test_get_space_matching_space_version_and_parameterization(
                 "DESCRIPTION": [None, None],
                 "AGE": ["7d0h", "6d0h"],
                 "ENTITY_SPACE_MATCH": [SpaceHierarchy.EQUAL_SPACE.value] * 2,
-                "MEASUREMENT_SPACE_MATCH": [SpaceHierarchy.EQUAL_SPACE.value] * 2,
+                "BASE_EXPERIMENT_MATCH": [SpaceHierarchy.EQUAL_SPACE.value] * 2,
                 "VERSION_MATCH": [
                     VersionMatch.IDENTICAL.value,
                     VersionMatch.MAJOR_ONLY.value,

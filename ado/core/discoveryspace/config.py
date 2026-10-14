@@ -35,7 +35,7 @@ class ParameterizationMatch(enum.Enum):
 
 
 class MeasurementSpaceComparisonResult(pydantic.BaseModel):
-    measurement_space_match: Annotated[
+    base_experiment_match: Annotated[
         SpaceHierarchy,
         pydantic.Field(
             description="How the sets of experiments relate",
@@ -355,22 +355,22 @@ class DiscoverySpaceConfiguration(pydantic.BaseModel):
 
         if not candidate_keys or not reference_keys:
             return MeasurementSpaceComparisonResult(
-                measurement_space_match=SpaceHierarchy.DISJOINT,
+                base_experiment_match=SpaceHierarchy.DISJOINT,
             )
 
         if candidate_keys.isdisjoint(reference_keys):
             return MeasurementSpaceComparisonResult(
-                measurement_space_match=SpaceHierarchy.DISJOINT,
+                base_experiment_match=SpaceHierarchy.DISJOINT,
             )
 
         if candidate_keys == reference_keys:
-            measurement_space_match = SpaceHierarchy.EQUAL_SPACE
+            base_experiment_match = SpaceHierarchy.EQUAL_SPACE
         elif candidate_keys.issuperset(reference_keys):
-            measurement_space_match = SpaceHierarchy.SUPER_SPACE
+            base_experiment_match = SpaceHierarchy.SUPER_SPACE
         elif candidate_keys.issubset(reference_keys):
-            measurement_space_match = SpaceHierarchy.SUB_SPACE
+            base_experiment_match = SpaceHierarchy.SUB_SPACE
         else:
-            measurement_space_match = SpaceHierarchy.OVERLAPPING
+            base_experiment_match = SpaceHierarchy.OVERLAPPING
 
         # Compute version match across all shared experiment pairs
         # Report least powerful outcome: one MAJOR_ONLY makes it MAJOR_ONLY
@@ -423,7 +423,7 @@ class DiscoverySpaceConfiguration(pydantic.BaseModel):
             parameterization_match = ParameterizationMatch.NOT_APPLICABLE
 
         return MeasurementSpaceComparisonResult(
-            measurement_space_match=measurement_space_match,
+            base_experiment_match=base_experiment_match,
             version_match=version_match,
             parameterization_match=parameterization_match,
         )

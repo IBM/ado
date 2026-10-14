@@ -216,7 +216,7 @@ def _find_spaces_matching_space(
                     reference_space=space_configuration,
                 )
             )
-            if measurement_space_comparison.measurement_space_match in {
+            if measurement_space_comparison.base_experiment_match in {
                 SpaceHierarchy.UNDEFINED,
                 SpaceHierarchy.DISJOINT,
             }:
@@ -229,7 +229,7 @@ def _find_spaces_matching_space(
                     "DESCRIPTION": space_resource.config.metadata.labels,
                     "AGE": time_since_timestamp(space_resource.created),
                     "ENTITY_SPACE_MATCH": entity_space_match.value,
-                    "MEASUREMENT_SPACE_MATCH": measurement_space_comparison.measurement_space_match.value,
+                    "BASE_EXPERIMENT_MATCH": measurement_space_comparison.base_experiment_match.value,
                     "VERSION_MATCH": (
                         measurement_space_comparison.version_match.value
                         if measurement_space_comparison.version_match
@@ -259,7 +259,7 @@ def _find_spaces_matching_space(
         "NAME",
         "AGE",
         "ENTITY_SPACE_MATCH",
-        "MEASUREMENT_SPACE_MATCH",
+        "BASE_EXPERIMENT_MATCH",
         "VERSION_MATCH",
         "PARAMETERIZATION_MATCH",
     ]

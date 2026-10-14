@@ -184,7 +184,7 @@ The output includes four match columns:
 | Column | Description | Possible Values |
 | --- | --- | --- |
 | `ENTITY_SPACE_MATCH` | Relationship between the candidate's and reference's entity spaces | `= IDENTICAL`, `⊃ SUPERSPACE`, `⊂ SUBSPACE`, `∩ OVERLAPPING` |
-| `MEASUREMENT_SPACE_MATCH` | Relationship between the candidate's and reference's sets of experiments | `= IDENTICAL`, `⊃ SUPERSPACE`, `⊂ SUBSPACE`, `∩ OVERLAPPING` |
+| `BASE_EXPERIMENT_MATCH` | Relationship between the candidate's and reference's sets of experiments | `= IDENTICAL`, `⊃ SUPERSPACE`, `⊂ SUBSPACE`, `∩ OVERLAPPING` |
 | `VERSION_MATCH` | Version matching across paired experiments | `= IDENTICAL`, `≈ MAJOR_ONLY` |
 | `PARAMETERIZATION_MATCH` | Parameterization matching across paired experiments | `= IDENTICAL`, `≠ DIFFERENT`, `N/A` |
 

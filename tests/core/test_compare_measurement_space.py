@@ -18,7 +18,7 @@ from ado.schema.reference import ExperimentReference
 def test_measurement_space_comparison_result_lifecycle() -> None:
     """Test full create -> dump -> validate lifecycle for MeasurementSpaceComparisonResult."""
     result = MeasurementSpaceComparisonResult(
-        measurement_space_match=SpaceHierarchy.EQUAL_SPACE,
+        base_experiment_match=SpaceHierarchy.EQUAL_SPACE,
         version_match=VersionMatch.IDENTICAL,
         parameterization_match=ParameterizationMatch.IDENTICAL,
     )
@@ -27,7 +27,7 @@ def test_measurement_space_comparison_result_lifecycle() -> None:
     assert loaded == result
 
     result_disjoint = MeasurementSpaceComparisonResult(
-        measurement_space_match=SpaceHierarchy.DISJOINT,
+        base_experiment_match=SpaceHierarchy.DISJOINT,
     )
     dumped_disjoint = result_disjoint.model_dump()
     loaded_disjoint = MeasurementSpaceComparisonResult.model_validate(dumped_disjoint)
@@ -42,7 +42,7 @@ def test_compare_identical_spaces(experiment_reference: ExperimentReference) -> 
     space2 = DiscoverySpaceConfiguration(experiments=[experiment_reference])
 
     comparison_result = space1.compare_measurement_space(space2)
-    assert comparison_result.measurement_space_match == SpaceHierarchy.EQUAL_SPACE
+    assert comparison_result.base_experiment_match == SpaceHierarchy.EQUAL_SPACE
     assert comparison_result.version_match == VersionMatch.IDENTICAL
     assert (
         comparison_result.parameterization_match == ParameterizationMatch.NOT_APPLICABLE
@@ -57,7 +57,7 @@ def test_compare_superspace(
     reference = DiscoverySpaceConfiguration(experiments=parameterized_references[:2])
 
     comparison_result = candidate.compare_measurement_space(reference)
-    assert comparison_result.measurement_space_match == SpaceHierarchy.SUPER_SPACE
+    assert comparison_result.base_experiment_match == SpaceHierarchy.SUPER_SPACE
     assert comparison_result.version_match == VersionMatch.IDENTICAL
     assert comparison_result.parameterization_match == ParameterizationMatch.IDENTICAL
 
@@ -70,7 +70,7 @@ def test_compare_subspace(
     reference = DiscoverySpaceConfiguration(experiments=parameterized_references[:2])
 
     comparison_result = candidate.compare_measurement_space(reference)
-    assert comparison_result.measurement_space_match == SpaceHierarchy.SUB_SPACE
+    assert comparison_result.base_experiment_match == SpaceHierarchy.SUB_SPACE
     assert comparison_result.version_match == VersionMatch.IDENTICAL
     assert comparison_result.parameterization_match == ParameterizationMatch.IDENTICAL
 
@@ -85,7 +85,7 @@ def test_compare_overlapping(
     reference = DiscoverySpaceConfiguration(experiments=parameterized_references[:2])
 
     comparison_result = candidate.compare_measurement_space(reference)
-    assert comparison_result.measurement_space_match == SpaceHierarchy.OVERLAPPING
+    assert comparison_result.base_experiment_match == SpaceHierarchy.OVERLAPPING
     assert comparison_result.version_match == VersionMatch.IDENTICAL
     assert comparison_result.parameterization_match == ParameterizationMatch.IDENTICAL
 
@@ -98,7 +98,7 @@ def test_compare_disjoint(
     reference = DiscoverySpaceConfiguration(experiments=[parameterized_references[1]])
 
     comparison_result = candidate.compare_measurement_space(reference)
-    assert comparison_result.measurement_space_match == SpaceHierarchy.DISJOINT
+    assert comparison_result.base_experiment_match == SpaceHierarchy.DISJOINT
     assert comparison_result.version_match is None
     assert comparison_result.parameterization_match is None
 
@@ -112,19 +112,19 @@ def test_compare_empty_or_none_experiments(
     space_none = DiscoverySpaceConfiguration(experiments=None)
 
     assert (
-        space_empty.compare_measurement_space(space_with_exp).measurement_space_match
+        space_empty.compare_measurement_space(space_with_exp).base_experiment_match
         == SpaceHierarchy.DISJOINT
     )
     assert (
-        space_with_exp.compare_measurement_space(space_empty).measurement_space_match
+        space_with_exp.compare_measurement_space(space_empty).base_experiment_match
         == SpaceHierarchy.DISJOINT
     )
     assert (
-        space_none.compare_measurement_space(space_with_exp).measurement_space_match
+        space_none.compare_measurement_space(space_with_exp).base_experiment_match
         == SpaceHierarchy.DISJOINT
     )
     assert (
-        space_none.compare_measurement_space(space_empty).measurement_space_match
+        space_none.compare_measurement_space(space_empty).base_experiment_match
         == SpaceHierarchy.DISJOINT
     )
 
@@ -145,7 +145,7 @@ def test_version_match_exact_and_major_only(
     )
 
     comparison_result = candidate.compare_measurement_space(reference)
-    assert comparison_result.measurement_space_match == SpaceHierarchy.EQUAL_SPACE
+    assert comparison_result.base_experiment_match == SpaceHierarchy.EQUAL_SPACE
     assert comparison_result.version_match == VersionMatch.MAJOR_ONLY
 
 
@@ -165,7 +165,7 @@ def test_different_major_version_not_paired(
     )
 
     comparison_result = candidate.compare_measurement_space(reference)
-    assert comparison_result.measurement_space_match == SpaceHierarchy.DISJOINT
+    assert comparison_result.base_experiment_match == SpaceHierarchy.DISJOINT
     assert comparison_result.version_match is None
     assert comparison_result.parameterization_match is None
 
@@ -178,7 +178,7 @@ def test_unversioned_experiments_paired(
     reference = DiscoverySpaceConfiguration(experiments=[experiment_reference])
 
     comparison_result = candidate.compare_measurement_space(reference)
-    assert comparison_result.measurement_space_match == SpaceHierarchy.EQUAL_SPACE
+    assert comparison_result.base_experiment_match == SpaceHierarchy.EQUAL_SPACE
     assert comparison_result.version_match == VersionMatch.IDENTICAL
 
 
@@ -194,7 +194,7 @@ def test_unversioned_and_versioned_not_paired(
     )
 
     comparison_result = candidate.compare_measurement_space(reference)
-    assert comparison_result.measurement_space_match == SpaceHierarchy.DISJOINT
+    assert comparison_result.base_experiment_match == SpaceHierarchy.DISJOINT
 
 
 def test_different_actuators_not_paired(
@@ -217,7 +217,7 @@ def test_different_actuators_not_paired(
     )
 
     comparison_result = candidate.compare_measurement_space(reference)
-    assert comparison_result.measurement_space_match == SpaceHierarchy.DISJOINT
+    assert comparison_result.base_experiment_match == SpaceHierarchy.DISJOINT
 
 
 def test_parameterization_match_identical(
@@ -242,7 +242,7 @@ def test_parameterization_match_identical(
     reference = DiscoverySpaceConfiguration(experiments=[reference_ref])
 
     comparison_result = candidate.compare_measurement_space(reference)
-    assert comparison_result.measurement_space_match == SpaceHierarchy.EQUAL_SPACE
+    assert comparison_result.base_experiment_match == SpaceHierarchy.EQUAL_SPACE
     assert comparison_result.parameterization_match == ParameterizationMatch.IDENTICAL
 
 
@@ -268,7 +268,7 @@ def test_parameterization_match_reordered_is_identical(
     reference = DiscoverySpaceConfiguration(experiments=[reference_ref])
 
     comparison_result = candidate.compare_measurement_space(reference)
-    assert comparison_result.measurement_space_match == SpaceHierarchy.EQUAL_SPACE
+    assert comparison_result.base_experiment_match == SpaceHierarchy.EQUAL_SPACE
     assert comparison_result.parameterization_match == ParameterizationMatch.IDENTICAL
 
 
@@ -295,7 +295,7 @@ def test_parameterization_match_different(
     reference = DiscoverySpaceConfiguration(experiments=[reference_ref])
 
     comparison_result = candidate.compare_measurement_space(reference)
-    assert comparison_result.measurement_space_match == SpaceHierarchy.EQUAL_SPACE
+    assert comparison_result.base_experiment_match == SpaceHierarchy.EQUAL_SPACE
     assert comparison_result.parameterization_match == ParameterizationMatch.DIFFERENT
 
 
@@ -318,7 +318,7 @@ def test_parameterization_match_one_side_only(
     reference = DiscoverySpaceConfiguration(experiments=[reference_ref])
 
     comparison_result = candidate.compare_measurement_space(reference)
-    assert comparison_result.measurement_space_match == SpaceHierarchy.EQUAL_SPACE
+    assert comparison_result.base_experiment_match == SpaceHierarchy.EQUAL_SPACE
     assert comparison_result.parameterization_match == ParameterizationMatch.DIFFERENT
 
 
@@ -340,7 +340,7 @@ def test_aggregation_least_powerful_version(
     reference = DiscoverySpaceConfiguration(experiments=[ref_a, ref_b])
 
     comparison_result = candidate.compare_measurement_space(reference)
-    assert comparison_result.measurement_space_match == SpaceHierarchy.EQUAL_SPACE
+    assert comparison_result.base_experiment_match == SpaceHierarchy.EQUAL_SPACE
     assert comparison_result.version_match == VersionMatch.MAJOR_ONLY
 
 
@@ -417,7 +417,7 @@ def test_measurement_space_configuration_form(
     )
 
     comparison_result = candidate.compare_measurement_space(reference)
-    assert comparison_result.measurement_space_match == SpaceHierarchy.EQUAL_SPACE
+    assert comparison_result.base_experiment_match == SpaceHierarchy.EQUAL_SPACE
     assert comparison_result.version_match == VersionMatch.IDENTICAL
     assert (
         comparison_result.parameterization_match == ParameterizationMatch.NOT_APPLICABLE

@@ -1,4 +1,4 @@
-ARG PYTHON_VERSION=310
+ARG PYTHON_VERSION=311
 ARG BASE_IMAGE=mirror.gcr.io/rayproject/ray:latest-py${PYTHON_VERSION}-cpu
 FROM $BASE_IMAGE
 

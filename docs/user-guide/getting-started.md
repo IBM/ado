@@ -51,7 +51,7 @@ drive it for you using built-in agent skills.
 
 === "Path A — Direct CLI"
 
-    Make sure you are on **Python 3.10 – 3.14** (`python --version`), and work
+    Make sure you are on **Python 3.11 – 3.14** (`python --version`), and work
     inside a virtual environment to avoid dependency conflicts:
 
     ```shell

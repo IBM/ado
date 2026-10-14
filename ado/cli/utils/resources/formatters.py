@@ -273,7 +273,7 @@ def build_resource_listing_dataframe(
     """
     import pandas as pd
 
-    now = dt.datetime.now(dt.timezone.utc)
+    now = dt.datetime.now(dt.UTC)
 
     def resource_to_row(
         identifier: str, resource: "ADOResource"
@@ -1066,11 +1066,7 @@ def _minimize_ado_resource_representation(
 
 def time_since_timestamp(ts: dt.datetime) -> dt.timedelta:
     # AP: there are still some datetimes that are not timezone aware
-    return (
-        dt.datetime.now() - ts
-        if not ts.tzinfo
-        else dt.datetime.now(tz=dt.timezone.utc) - ts
-    )
+    return dt.datetime.now() - ts if not ts.tzinfo else dt.datetime.now(tz=dt.UTC) - ts
 
 
 def most_important_status_update(

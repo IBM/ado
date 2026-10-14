@@ -20,13 +20,8 @@ def expected_characterize_operators() -> list[str]:
     """Return characterize operators expected for the current Python version."""
 
     operators = ["detect_anomalous_series", "profile", "trim"]
-    if sys.version_info < (3, 11):
-        # profile and trim do not support Python 3.10.
-        operators = [
-            operator for operator in operators if operator not in ("profile", "trim")
-        ]
-    elif sys.version_info >= (3, 14):
-        # TODO: add trim back once its plugin supports Python 3.14+.
+    if sys.version_info >= (3, 14):
+        # TODO: add trim back once their plugins support Python 3.14+.
         operators = [operator for operator in operators if operator != "trim"]
 
     return operators

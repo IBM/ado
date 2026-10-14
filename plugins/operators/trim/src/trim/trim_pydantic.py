@@ -9,7 +9,7 @@ import pydantic
 from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, model_validator
 
 
-class MissingTargetMeasurementMode(str, enum.Enum):
+class MissingTargetMeasurementMode(enum.StrEnum):
     Error = "Error"
     InjectDefaultValue = "InjectDefaultValue"
     Skip = "Skip"

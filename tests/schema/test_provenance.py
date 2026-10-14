@@ -98,10 +98,8 @@ def test_package_provenance_from_module_name_src_layout() -> None:
 
     In a locked (dev) install robotic_lab is editable (hatchling adds a .pth
     file so packages_distributions() has no entry for 'robotic_lab_actuator').
-    In a nonlocked tox install it is non-editable but still has no top_level.txt,
-    so packages_distributions() also misses it on Python 3.10 (which only reads
-    top_level.txt, unlike 3.11+ which also infers from RECORD).
-    Resolution falls back to scanning RECORD files across all distributions.
+    In a nonlocked tox install it is non-editable and packages_distributions()
+    infers 'robotic_lab_actuator' from the distribution's RECORD file.
     """
     prov = PackageProvenance.from_module_name("robotic_lab_actuator.actuator")
     assert prov is not None

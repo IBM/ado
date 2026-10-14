@@ -2,10 +2,10 @@
 # SPDX-License-Identifier: MIT
 image:
   repository: rayproject/ray
-  tag: 2.46.0-py310-cpu
+  tag: 2.59.0-py311-cpu
   pullPolicy: Always
 head:
-  rayVersion: 2.46.0
+  rayVersion: 2.59.0
   enableInTreeAutoscaling: true
   autoscalerOptions:
     upscalingMode: Default
@@ -74,7 +74,7 @@ worker:
 #      resources: '"{\"NVIDIA-A100-80GB-PCIe\": 2}"'
 #    image:
 #      repository: rayproject/ray
-#      tag: 2.46.0-py310-gpu
+#      tag: 2.59.0-py311-gpu
 #      pullPolicy: Always
 #    containerEnv:
 #      - name: OMP_NUM_THREADS

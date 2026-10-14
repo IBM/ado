@@ -2,11 +2,10 @@
 # SPDX-License-Identifier: MIT
 
 import enum
-from typing import Annotated, Any
+from typing import Annotated, Any, Self
 
 import numpy as np
 import pydantic
-from typing_extensions import Self
 
 from ado.schema.observed_property import (
     ObservedProperty,

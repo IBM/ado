@@ -1131,7 +1131,7 @@ class ParameterizedExperiment(Experiment):
         return retval
 
 
-class ExperimentInterfaceIssueKind(str, enum.Enum):
+class ExperimentInterfaceIssueKind(enum.StrEnum):
     """Kinds of experiment interface mismatches detected by compatibility checks."""
 
     MISSING_REQUIRED_CONSTITUTIVE_IN_PROVIDED = (

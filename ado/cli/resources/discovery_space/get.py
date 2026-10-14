@@ -1,6 +1,7 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 import typing
+from datetime import UTC, datetime
 
 import pydantic
 import typer
@@ -212,8 +213,6 @@ def _find_spaces_matching_space(
 
         spaces_matching_experiments = filtered_spaces_matching_experiments
 
-        from datetime import datetime, timezone
-
         import pandas as pd
 
         result_df = pd.DataFrame(
@@ -222,7 +221,7 @@ def _find_spaces_matching_space(
                     "IDENTIFIER": space_resource.identifier,
                     "NAME": space_resource.config.metadata.name,
                     "DESCRIPTION": space_resource.config.metadata.labels,
-                    "AGE": datetime.now(timezone.utc) - space_resource.created,
+                    "AGE": datetime.now(UTC) - space_resource.created,
                     "RELATION_TO_INPUT_ENTITY_SPACE": space_resource.config.compare_space_hierarchy(
                         reference_space=space_configuration,
                     ).value,

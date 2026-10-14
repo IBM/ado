@@ -6,6 +6,7 @@ import pathlib
 import re
 import sys
 from collections.abc import Callable
+from datetime import UTC, datetime
 
 import pytest
 from testcontainers.community.mysql import MySqlContainer
@@ -192,8 +193,6 @@ def test_describe_datacontainer_with_use_latest(
     ],
 ) -> None:
     """Test that ado describe datacontainer --use-latest resolves the latest datacontainer."""
-    from datetime import datetime, timezone
-
     runner = CliRunner()
     create_active_ado_context(
         runner=runner, path=tmp_path, project_context=valid_ado_project_context
@@ -202,12 +201,12 @@ def test_describe_datacontainer_with_use_latest(
     # Create two datacontainer resources with different identifiers and timestamps
     dc_1 = DataContainerResource(config=DataContainer(data={"key": "value1"}))
     dc_1.identifier = "dc-test-older"
-    dc_1.created = datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+    dc_1.created = datetime(2024, 1, 1, 0, 0, 0, tzinfo=UTC)
     sql_store.addResource(dc_1)
 
     dc_2 = DataContainerResource(config=DataContainer(data={"key": "value2"}))
     dc_2.identifier = "dc-test-latest"
-    dc_2.created = datetime(2024, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
+    dc_2.created = datetime(2024, 12, 31, 23, 59, 59, tzinfo=UTC)
     sql_store.addResource(dc_2)
 
     result = runner.invoke(ado, ["describe", "datacontainer", "--use-latest"])

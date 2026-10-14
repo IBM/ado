@@ -4,11 +4,10 @@
 import enum
 import importlib.metadata
 import typing
-from typing import Annotated
+from typing import Annotated, Self
 
 import pydantic
 from pydantic import ConfigDict
-from typing_extensions import Self
 
 from ado.core.actuatorconfiguration.config import ActuatorConfiguration
 from ado.core.discoveryspace.config import (

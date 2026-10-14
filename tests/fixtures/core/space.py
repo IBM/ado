@@ -41,7 +41,7 @@ def random_space_resource_from_file(
         # Final touch-ups
         space.identifier = random_resource_id
         space.config.sampleStoreIdentifier = sample_store_id
-        space.created = dt.datetime.now(dt.timezone.utc)
+        space.created = dt.datetime.now(dt.UTC)
         return space
 
     return _random_space_resource_from_file

@@ -11,7 +11,7 @@ import pytest
 from ado.utilities.pydantic import pydantic_aware_json_serializer
 
 
-class _Color(str, enum.Enum):
+class _Color(enum.StrEnum):
     RED = "red"
 
 
@@ -34,7 +34,7 @@ class _Outer(pydantic.BaseModel):
 
 def test_pydantic_model_returns_json_string() -> None:
     """A Pydantic model is serialised to a JSON string."""
-    model = _Inner(value=1.5, when=dt.datetime(2024, 1, 1, tzinfo=dt.timezone.utc))
+    model = _Inner(value=1.5, when=dt.datetime(2024, 1, 1, tzinfo=dt.UTC))
     result = pydantic_aware_json_serializer(model)
     assert isinstance(result, str)
     parsed = json.loads(result)
@@ -51,7 +51,7 @@ def test_pydantic_nested_model_is_fully_serialised() -> None:
         color=_Color.RED,
         inner=_Inner(
             value=3.14,
-            when=dt.datetime(2024, 6, 1, tzinfo=dt.timezone.utc),
+            when=dt.datetime(2024, 6, 1, tzinfo=dt.UTC),
         ),
     )
     result = pydantic_aware_json_serializer(model)
@@ -66,7 +66,7 @@ def test_pydantic_model_round_trip() -> None:
     """Serialising then re-parsing a model produces an equal instance with correct field values."""
     original = _Inner(
         value=2.718,
-        when=dt.datetime(2024, 3, 15, 12, 0, tzinfo=dt.timezone.utc),
+        when=dt.datetime(2024, 3, 15, 12, 0, tzinfo=dt.UTC),
     )
     result = pydantic_aware_json_serializer(original)
     recovered = _Inner.model_validate_json(result)
@@ -84,7 +84,7 @@ def test_pydantic_nested_model_round_trip() -> None:
         color=_Color.RED,
         inner=_Inner(
             value=1.41,
-            when=dt.datetime(2025, 1, 1, tzinfo=dt.timezone.utc),
+            when=dt.datetime(2025, 1, 1, tzinfo=dt.UTC),
         ),
     )
     result = pydantic_aware_json_serializer(original)

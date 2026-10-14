@@ -25,7 +25,7 @@ if typing.TYPE_CHECKING:
     from ado.core import DataContainerResource
 
 # A past timestamp far enough from "now" that AGE is stable across a test run.
-_CREATED_7_DAYS_AGO = dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=7)
+_CREATED_7_DAYS_AGO = dt.datetime.now(dt.UTC) - dt.timedelta(days=7)
 _EXPECTED_AGE = "7d0h"
 
 

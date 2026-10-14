@@ -16,7 +16,7 @@ from ado.core.metadata import ProvenanceInfo
 from ado.utilities.pydantic import Defaultable
 
 
-class CoreResourceKinds(str, enum.Enum):
+class CoreResourceKinds(enum.StrEnum):
     OPERATION = "operation"
     DISCOVERYSPACE = "discoveryspace"
     ACTUATORCONFIGURATION = "actuatorconfiguration"
@@ -54,7 +54,7 @@ class ADOResourceStatus(pydantic.BaseModel):
     recorded_at: Annotated[
         dt.datetime,
         pydantic.Field(
-            default_factory=lambda: dt.datetime.now(dt.timezone.utc),
+            default_factory=lambda: dt.datetime.now(dt.UTC),
             description="When this status was recorded",
         ),
     ]
@@ -72,7 +72,7 @@ class ADOResource(pydantic.BaseModel):
     created: Annotated[
         dt.datetime,
         pydantic.Field(
-            default_factory=lambda: dt.datetime.now(dt.timezone.utc),
+            default_factory=lambda: dt.datetime.now(dt.UTC),
             description="When the resource was created",
         ),
     ]

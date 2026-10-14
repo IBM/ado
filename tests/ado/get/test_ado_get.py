@@ -5,6 +5,7 @@ import os
 import pathlib
 import sys
 from collections.abc import Callable
+from datetime import UTC, datetime
 
 import pandas as pd
 import pytest
@@ -540,8 +541,6 @@ def test_get_space_with_use_latest(
     )
 
     # Create two spaces explicitly
-    from datetime import datetime, timezone
-
     # Load file content once
     space_data = yaml.safe_load(
         pathlib.Path("tests/resources/space/discoveryspace_resource.json").read_text()
@@ -550,13 +549,13 @@ def test_get_space_with_use_latest(
     # Create first space
     space_1 = DiscoverySpaceResource.model_validate(space_data)
     space_1.identifier = "space-test-older"
-    space_1.created = datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+    space_1.created = datetime(2024, 1, 1, 0, 0, 0, tzinfo=UTC)
     sql_store.addResource(space_1)
 
     # Create second space
     space_2 = DiscoverySpaceResource.model_validate(space_data)
     space_2.identifier = "space-test-latest"
-    space_2.created = datetime(2024, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
+    space_2.created = datetime(2024, 12, 31, 23, 59, 59, tzinfo=UTC)
     sql_store.addResource(space_2)
 
     # Test with YAML output format
@@ -598,7 +597,6 @@ def test_get_operation_with_use_latest(
     )
 
     # Create two operations with different identifiers
-    from datetime import datetime, timezone
 
     # Load file content once
     operation_data = yaml.safe_load(
@@ -610,13 +608,13 @@ def test_get_operation_with_use_latest(
     # Create first operation
     operation_1 = OperationResource.model_validate(operation_data)
     operation_1.identifier = "operation-test-older"
-    operation_1.created = datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+    operation_1.created = datetime(2024, 1, 1, 0, 0, 0, tzinfo=UTC)
     sql_store.addResource(operation_1)
 
     # Create second operation
     operation_2 = OperationResource.model_validate(operation_data)
     operation_2.identifier = "operation-test-latest"
-    operation_2.created = datetime(2024, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
+    operation_2.created = datetime(2024, 12, 31, 23, 59, 59, tzinfo=UTC)
     sql_store.addResource(operation_2)
 
     # Test with YAML output format
@@ -659,7 +657,6 @@ def test_get_with_use_latest_and_explicit_id(
     )
 
     # Create two spaces with different identifiers
-    from datetime import datetime, timezone
 
     # Load file content once
     space_data = yaml.safe_load(
@@ -669,13 +666,13 @@ def test_get_with_use_latest_and_explicit_id(
     # Create first space
     space_1 = DiscoverySpaceResource.model_validate(space_data)
     space_1.identifier = "space-test-older"
-    space_1.created = datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+    space_1.created = datetime(2024, 1, 1, 0, 0, 0, tzinfo=UTC)
     sql_store.addResource(space_1)
 
     # Create second space
     space_2 = DiscoverySpaceResource.model_validate(space_data)
     space_2.identifier = "space-test-latest"
-    space_2.created = datetime(2024, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
+    space_2.created = datetime(2024, 12, 31, 23, 59, 59, tzinfo=UTC)
     sql_store.addResource(space_2)
 
     # Test with both explicit ID and --use-latest
@@ -721,7 +718,6 @@ def test_get_with_use_latest_table_format(
     )
 
     # Create two spaces with different identifiers
-    from datetime import datetime, timezone
 
     # Load file content once
     space_data = yaml.safe_load(
@@ -731,13 +727,13 @@ def test_get_with_use_latest_table_format(
     # Create first space
     space_1 = DiscoverySpaceResource.model_validate(space_data)
     space_1.identifier = "space-test-older"
-    space_1.created = datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+    space_1.created = datetime(2024, 1, 1, 0, 0, 0, tzinfo=UTC)
     sql_store.addResource(space_1)
 
     # Create second space
     space_2 = DiscoverySpaceResource.model_validate(space_data)
     space_2.identifier = "space-test-latest"
-    space_2.created = datetime(2024, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
+    space_2.created = datetime(2024, 12, 31, 23, 59, 59, tzinfo=UTC)
     sql_store.addResource(space_2)
 
     # Test with table format (default)
@@ -769,7 +765,6 @@ def test_get_with_use_latest_name_format(
     )
 
     # Create two spaces with different identifiers
-    from datetime import datetime, timezone
 
     # Load file content once
     space_data = yaml.safe_load(
@@ -779,13 +774,13 @@ def test_get_with_use_latest_name_format(
     # Create first space
     space_1 = DiscoverySpaceResource.model_validate(space_data)
     space_1.identifier = "space-test-older"
-    space_1.created = datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+    space_1.created = datetime(2024, 1, 1, 0, 0, 0, tzinfo=UTC)
     sql_store.addResource(space_1)
 
     # Create second space
     space_2 = DiscoverySpaceResource.model_validate(space_data)
     space_2.identifier = "space-test-latest"
-    space_2.created = datetime(2024, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
+    space_2.created = datetime(2024, 12, 31, 23, 59, 59, tzinfo=UTC)
     sql_store.addResource(space_2)
 
     # Test with name format

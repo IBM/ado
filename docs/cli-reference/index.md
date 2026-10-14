@@ -567,8 +567,8 @@ Where:
       performing no validation.
     - The `stats` format augments the default `table` output with additional
       statistics columns. Supported resource types and their columns are:
-        - **Operations**: `TOTAL_RESULTS`, `SUCCESSFUL_RESULTS`,
-          `FAILED_RESULTS`, `SAMPLED_ENTITIES` (entities with at least one
+        - **Operations**: `TOTAL_MEASUREMENTS`, `SUCCESSFUL_MEASUREMENTS`,
+          `FAILED_MEASUREMENTS`, `SAMPLED_ENTITIES` (entities with at least one
           measurement, whether successful, failed, or both).
         - **Discovery Spaces**: `EXPERIMENTS`, `OPERATIONS`, `EXPLORE_OPS`,
           `SAMPLED_ENTITIES` (entities with at least one measurement, whether
@@ -1345,7 +1345,7 @@ The statistics columns produced per resource type are:
 
 <!-- prettier-ignore-start -->
 
-- **Operations**: `TOTAL_RESULTS`, `SUCCESSFUL_RESULTS`, `FAILED_RESULTS`,
+- **Operations**: `TOTAL_MEASUREMENTS`, `SUCCESSFUL_MEASUREMENTS`, `FAILED_MEASUREMENTS`,
   `SAMPLED_ENTITIES` (entities with at least one measurement, whether
   successful, failed, or both), `TOTAL_REQUESTS`, `FAILED_REQUESTS`,
   `SUCCESSFUL_REQUESTS`.

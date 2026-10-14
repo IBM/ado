@@ -282,8 +282,8 @@ trace, use:
 uv run ado show stats operation $OPERATION_ID
 ```
 
-This outputs the base table columns output by ado get plus `TOTAL_RESULTS`,
-`SUCCESSFUL_RESULTS`, `FAILED_RESULTS`, `SAMPLED_ENTITIES`, `TOTAL_REQUESTS`,
+This outputs the base table columns output by ado get plus `TOTAL_MEASUREMENTS`,
+`SUCCESSFUL_MEASUREMENTS`, `FAILED_MEASUREMENTS`, `SAMPLED_ENTITIES`, `TOTAL_REQUESTS`,
 `FAILED_REQUESTS`, `SUCCESSFUL_REQUESTS`.
 
 Compare this with the number of samples requested in the operator parameters.

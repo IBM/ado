@@ -154,7 +154,7 @@ Can be combined with `--filter`, `--label`, `--matching-point`,
 
 `-o stats` extends the table with statistics columns:
 
-- **Operations**: `TOTAL_RESULTS`, `SUCCESSFUL_RESULTS`, `FAILED_RESULTS`,
+- **Operations**: `TOTAL_MEASUREMENTS`, `SUCCESSFUL_MEASUREMENTS`, `FAILED_MEASUREMENTS`,
   `SAMPLED_ENTITIES`.
 - **Discovery Spaces**: `EXPERIMENTS`, `OPERATIONS`, `EXPLORE_OPS`,
   `SAMPLED_ENTITIES`.

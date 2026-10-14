@@ -107,7 +107,7 @@ def test_generator_all_uses_entity_space_size(
         filter_mode=FilterModeEnum.noFilter,
     )
 
-    assert resolved.count == 8
+    assert resolved.count == entity_space.size
     assert resolved.source == AllCountSource.ENTITY_SPACE
 
 
@@ -122,7 +122,7 @@ def test_generator_all_with_no_entity_space_uses_sample_store_count() -> None:
     )
 
     assert resolved.count == 6
-    assert resolved.source == "the number of entities in the sample store"
+    assert resolved.source == AllCountSource.SAMPLE_STORE
 
 
 def test_generator_count_can_exceed_entities_already_in_the_store(

@@ -479,13 +479,13 @@ def format_ado_get_stats_for_spaces(
 
     Returns:
         The same DataFrame with extra columns appended.
-        Lightweight columns: ``EXPERIMENTS``, ``OPERATIONS``, ``EXPLORE_OPS``,
-        ``SAMPLED_ENTITIES`` (entities with at least one measurement, whether
-        successful, failed, or both).
-        Heavy columns (only when ``include_heavy=True``):
-        ``ENTITY_SPACE_SIZE``, ``UNSAMPLED``, ``SAMPLED_COMPLETE``,
-        ``SAMPLED_PARTIAL``, ``SAMPLED_FAILED``, ``MATCHING_COMPLETE``,
-        ``MATCHING_PARTIAL``, ``MATCHING_FAILED``.
+        Lightweight columns (``include_heavy=False``): ``EXPERIMENTS``,
+        ``OPERATIONS``, ``EXPLORE_OPS``, ``SAMPLED_ENTITIES`` (entities with
+        at least one measurement, whether successful, failed, or both).
+        Heavy columns (``include_heavy=True``): ``EXPERIMENTS``,
+        ``OPERATIONS``, ``EXPLORE_OPS``, ``ENTITY_SPACE_SIZE``, ``UNSAMPLED``,
+        ``SAMPLED_COMPLETE``, ``SAMPLED_PARTIAL``, ``SAMPLED_FAILED``,
+        ``MATCHING_COMPLETE``, ``MATCHING_PARTIAL``, ``MATCHING_FAILED``.
         Spaces with no recorded operations or sample store show ``0`` in all
         lightweight stats columns; heavy columns show ``None`` for spaces
         where the value cannot be determined.
@@ -639,11 +639,14 @@ def format_ado_get_stats_for_spaces(
             else 0
         )
     )
-    df["SAMPLED_ENTITIES"] = df["IDENTIFIER"].apply(
-        lambda space_id: (
-            all_stats[space_id].number_measured_entities if space_id in all_stats else 0
+    if not include_heavy:
+        df["SAMPLED_ENTITIES"] = df["IDENTIFIER"].apply(
+            lambda space_id: (
+                all_stats[space_id].number_measured_entities
+                if space_id in all_stats
+                else 0
+            )
         )
-    )
 
     # Attach heavy columns only when requested.
     if include_heavy:

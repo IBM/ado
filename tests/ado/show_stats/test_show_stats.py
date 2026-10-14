@@ -102,7 +102,7 @@ def test_show_stats_discoveryspace_heavy_stats_values(
     assert isinstance(stats["ENTITY_SPACE_SIZE"], int)
     assert stats["UNSAMPLED"] == _ENTITY_SPACE_SIZE - number_entities
     assert isinstance(stats["UNSAMPLED"], int)
-    assert stats["SAMPLED_ENTITIES"] == number_entities
+    assert "SAMPLED_ENTITIES" not in stats
     assert stats["SAMPLED_COMPLETE"] == number_entities
     assert stats["SAMPLED_PARTIAL"] == 0
     assert stats["SAMPLED_FAILED"] == 0

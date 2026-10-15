@@ -3,9 +3,10 @@
 
 import pytest
 
+import ado.core.operation.config
 import ado.modules.operators.collections
 from ado.core.discoveryspace.space import DiscoverySpace
-from ado.core.operation.operation import OperationException
+from ado.core.operation.operation import OperationException, OperationOutput
 from ado.core.operation.resource import (
     DiscoveryOperationResourceConfiguration,
     OperationExitStateEnum,
@@ -259,6 +260,32 @@ def _configure_selector(
     return config
 
 
+def _run_configured_random_walk(
+    space: DiscoverySpace,
+    config: DiscoveryOperationResourceConfiguration,
+    *,
+    number_entities: int,
+    filter_mode: FilterModeEnum,
+) -> OperationOutput:
+    """Run random_walk with a sequential selector and the given count and filter."""
+
+    function = ado.modules.operators.collections.explore.operators[
+        "random_walk"
+    ].function
+    assert function is not None
+    return function(
+        space,
+        operationInfo=ado.core.operation.config.FunctionOperationInfo(
+            projectContext=space.project_context
+        ),
+        parameters=_configure_selector(
+            config,
+            number_entities=number_entities,
+            filter_mode=filter_mode,
+        ).operation.parameters,
+    )
+
+
 def test_random_walk_selector_raises_when_count_exceeds_matching_entities(
     ml_multi_cloud_space: DiscoverySpace,
     ml_multi_cloud_operation_configuration: DiscoveryOperationResourceConfiguration,
@@ -270,18 +297,12 @@ def test_random_walk_selector_raises_when_count_exceeds_matching_entities(
     requested = matching + 1
     assert requested <= ml_multi_cloud_space.entitySpace.size
 
-    function = ado.modules.operators.collections.explore.operators[
-        "random_walk"
-    ].function
-    assert function is not None
     with pytest.raises(OperationException) as exc_info:
-        function(
+        _run_configured_random_walk(
             ml_multi_cloud_space,
-            **_configure_selector(
-                ml_multi_cloud_operation_configuration,
-                number_entities=requested,
-                filter_mode=FilterModeEnum.noFilter,
-            ).operation.parameters.model_dump(),
+            ml_multi_cloud_operation_configuration,
+            number_entities=requested,
+            filter_mode=FilterModeEnum.noFilter,
         )
 
     finished = [
@@ -304,18 +325,12 @@ def test_random_walk_selector_filter_succeeds_when_fewer_entities_pass(
     # One experiment cannot be partially measured, so every entity is rejected.
     assert len(ml_multi_cloud_space.measurementSpace.experiments) == 1
     matching = len(ml_multi_cloud_space.matchingEntities())
-    function = ado.modules.operators.collections.explore.operators[
-        "random_walk"
-    ].function
-    assert function is not None
 
-    operation_output = function(
+    operation_output = _run_configured_random_walk(
         ml_multi_cloud_space,
-        **_configure_selector(
-            ml_multi_cloud_operation_configuration,
-            number_entities=matching + 1,
-            filter_mode=FilterModeEnum.partial,
-        ).operation.parameters.model_dump(),
+        ml_multi_cloud_operation_configuration,
+        number_entities=matching + 1,
+        filter_mode=FilterModeEnum.partial,
     )
 
     assert operation_output.exitStatus.exit_state == OperationExitStateEnum.SUCCESS

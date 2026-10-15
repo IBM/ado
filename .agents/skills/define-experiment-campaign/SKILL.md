@@ -39,8 +39,8 @@ This decides exactly how to traverse, sample, and measure points within that
 Search Space.
 
 Because of the separation of what and how, you can search the same space with
-different strategies. The measurements recorded are property of the space not
-the operation so can naturally reused between operations on the same space
+different strategies. The measurements recorded are properties of the space not
+the operation so can be reused between operations on the same space
 
 ### Campaign Types Supported
 
@@ -127,21 +127,25 @@ Copy `VERSION` into the experiment reference's `experimentVersion` field. Omit
    functionality
 3. Wait for user input
 
-### Step 1b: Create DiscoverySpace YAML
+### Step 1b: Create Initial DiscoverySpace YAML
 
-**Generate initial template from experiment:**
+**Generate initial DiscoverySpace YAML from experiment:**
 
 ```bash
 uv run ado template space --from-experiment $EXPERIMENT_ID --output-file space.yaml
 ```
 
 `--from-experiment` fills `experimentVersion` from the catalog. Keep that field
-when editing the template. If writing YAML by hand, set it from the `VERSION`
-column as above.
+when editing the template.
 
-**Manual structure:**
+Note: this initial YAML will not include any optional properties.
 
-See [skill-manual-structure.yaml](yaml-examples/skill-manual-structure.yaml).
+**Write initial DiscoverySpace YAML manually:**
+
+See [skill-manual-structure.yaml](yaml-examples/skill-manual-structure.yaml) for
+an example of the structure of the YAML
+
+Note, ensure the `experimentVersion` field is set to the correct value.
 
 ### Step 1c: Validate DiscoverySpace YAML
 
@@ -149,13 +153,25 @@ See [skill-manual-structure.yaml](yaml-examples/skill-manual-structure.yaml).
 uv run ado create space -f space.yaml --dry-run
 ```
 
-### Step 1d: Iterate Until Valid
+### Step 1d: Refine Entity Space and Iterate Until Valid
+
+Adjust the dimensions and their domains in the entity space
+to obtain the desired experiment campaign.
+
+Note: the desired sampling operation to perform on the space
+can constrain the entity spaces definition: for example, grids
+(`random_walk` generator) and ado's `lhu_sampler` need discrete, bounded
+dimensions.  Check [choose-sampling-strategy](../choose-sampling-strategy/SKILL.md)
+and consider if this is the case.
 
 Fix validation errors and repeat validation until successful.
 
 ## Phase 2: Create Operation YAML
 
 ### Step 2a: Choose Operator
+
+To choose the operator, sampler, or optimizer for the goal, follow
+[choose-sampling-strategy](../choose-sampling-strategy/SKILL.md).
 
 **List available operators:**
 

@@ -42,6 +42,7 @@ from ado.modules.operators.base import Explore, measure_or_replay
 from ado.modules.operators.collections import explore_operation
 from ado.modules.operators.discovery_space_manager import DiscoverySpaceManager
 from ado.schema.entity import Entity
+from ado.schema.entityspace import EntitySpaceRepresentation
 from ado.schema.measurementspace import MeasurementSpace
 from ado.schema.request import MeasurementRequest, MeasurementRequestStateEnum
 from ado.utilities.environment import enable_ray_actor_coverage
@@ -51,7 +52,6 @@ from ado.utilities.support import prepare_dependent_experiment_input
 if typing.TYPE_CHECKING:
     from ado.modules.actuators.base import ActuatorBase
     from ado.modules.actuators.measurement_queue import MeasurementQueue
-    from ado.schema.entityspace import EntitySpaceRepresentation
 
 import sys
 
@@ -312,6 +312,125 @@ class CustomSamplerConfiguration(pydantic.BaseModel):
         return sampler
 
 
+def _is_selector_sampler(
+    sampler_config: BaseSamplerConfiguration | CustomSamplerConfiguration,
+) -> bool:
+    """Return whether the sampler draws existing matching entities."""
+
+    return (
+        isinstance(sampler_config, BaseSamplerConfiguration)
+        and sampler_config.samplerType == "selector"
+    )
+
+
+class AllCountSource(enum.Enum):
+    """Describes what value was used when ``all`` was requested for number of entities."""
+
+    MATCHING_ENTITIES = "the number of matching entities in the sample store"
+    ENTITY_SPACE = "the size of the entity space"
+    SAMPLE_STORE = "the number of entities in the sample store"
+
+
+class NumberEntitiesResolution(typing.NamedTuple):
+    """Number of entities a walk will try to sample, and where an ``all`` count came from."""
+
+    count: int
+    source: AllCountSource | None
+
+
+def resolve_number_entities_to_sample(
+    number_entities: int | Literal["all"],
+    sampler_config: BaseSamplerConfiguration | CustomSamplerConfiguration,
+    entity_space: EntitySpaceRepresentation | None,
+    matching_entity_count: int | None,
+    sample_store_entity_count: int,
+    filter_mode: FilterModeEnum,
+) -> NumberEntitiesResolution:
+    """Resolve the number of entities a walk will try to sample.
+
+    Args:
+        number_entities: Requested count, or ``all``.
+        sampler_config: Sampler configuration for the walk.
+        entity_space: Entity space of the discovery space, if one is defined.
+        matching_entity_count: Number of sample-store entities that match the
+            space. Required for a selector. ``None`` for other samplers.
+        sample_store_entity_count: Number of entities in the sample store.
+        filter_mode: Filter applied to sampled entities.
+
+    Returns:
+        The number of entities to sample. ``source`` describes where an ``all``
+        count came from, and is ``None`` when a numeric count was requested.
+
+    Raises:
+        ValueError: If ``all`` cannot be resolved, a selector is missing
+            ``matching_entity_count``, or the requested count exceeds the entity
+            space size or, for an unfiltered selector, the number of matching
+            entities.
+    """
+
+    if _is_selector_sampler(sampler_config) and matching_entity_count is None:
+        raise ValueError("matching_entity_count is required for a selector sampler.")
+
+    # matching_entity_count is guaranteed non-None for selectors at this point;
+    # for non-selectors it is unused, so 0 is a safe sentinel.
+    effective_matching = (
+        matching_entity_count if matching_entity_count is not None else 0
+    )
+
+    if number_entities == "all":
+        if _is_selector_sampler(sampler_config):
+            resolved, source = effective_matching, AllCountSource.MATCHING_ENTITIES
+        elif entity_space is None:
+            resolved, source = sample_store_entity_count, AllCountSource.SAMPLE_STORE
+        elif not entity_space.isDiscreteSpace:
+            raise ValueError(
+                "Cannot specify 'all' for number of entities to sample "
+                "for a non-discrete space."
+            )
+        else:
+            try:
+                resolved = entity_space.size
+            except AttributeError as error:
+                raise ValueError(
+                    "Cannot specify 'all' for number of entities to sample "
+                    "for a space with unbounded dimensions."
+                ) from error
+            source = AllCountSource.ENTITY_SPACE
+    else:
+        resolved, source = number_entities, None
+
+    if entity_space is not None and entity_space.isDiscreteSpace:
+        try:
+            size = entity_space.size
+        except AttributeError:
+            size = None  # unbounded discrete space — no upper-bound check
+        if size is not None and size < resolved:
+            raise ValueError(
+                f"Requested number of entities to sample ({resolved}) is greater than "
+                f"{AllCountSource.ENTITY_SPACE.value} ({size}). "
+                f"Use 'all' to sample every entity."
+            )
+    elif entity_space is None and sample_store_entity_count < resolved:
+        raise ValueError(
+            f"Requested number of entities to sample ({resolved}) is greater than "
+            f"{AllCountSource.SAMPLE_STORE.value} ({sample_store_entity_count}). "
+            f"Use 'all' to sample every entity."
+        )
+
+    if (
+        _is_selector_sampler(sampler_config)
+        and filter_mode == FilterModeEnum.noFilter
+        and effective_matching < resolved
+    ):
+        raise ValueError(
+            f"Requested number of entities to sample ({resolved}) is greater than "
+            f"{AllCountSource.MATCHING_ENTITIES.value} ({effective_matching}). "
+            f"Use 'all' to sample every matching entity, or set a filter."
+        )
+
+    return NumberEntitiesResolution(count=resolved, source=source)
+
+
 def sampler_type_discriminator(sampler_config: typing.Any) -> str:  # noqa: ANN401
 
     if isinstance(sampler_config, CustomSamplerConfiguration):
@@ -344,8 +463,13 @@ class RandomWalkParameters(GenericOperatorParameters):
     numberEntities: Annotated[
         int | Literal["all"],
         pydantic.Field(
-            description="Number of entities to sample or 'all' if you want to sample all and discoveryspace is finite. "
-            "Note if discoveryspace is not-finite then specifying 'all' will raise an error at runtime",
+            description="The number of entities to sample (unfiltered), or the maximum "
+            "number of entities to sample (filtered). Can also be 'all'. "
+            "For a selector, 'all' is the number of matching entities in the samplestore. "
+            "For a generator, 'all' is the size of a finite entity space. "
+            "A finite entity space raises an error if this value is greater than its size. "
+            "A selector with no filter raises an error if this value is greater than "
+            "the number of matching entities.",
         ),
     ] = 1
     batchSize: Annotated[
@@ -491,10 +615,6 @@ class RandomWalk(Explore):
         sampler = self.params.samplerConfig.sampler()
         self.log.debug(sampler)
 
-        iterator = await sampler.remoteEntityIterator(
-            remoteDiscoverySpace=self.ds_manager, batchsize=1
-        )
-
         # noinspection PyUnresolvedReferences
         ds = await self.ds_manager.discoverySpace.remote()  # type: DiscoverySpace
 
@@ -504,60 +624,37 @@ class RandomWalk(Explore):
         #
         # Check and/or Determine numberOfEntities to sample
         #
-        if self.params.numberEntities == "all":
-            if entity_space is not None:
-                if entity_space.isDiscreteSpace:
-                    try:
-                        number_entities = entity_space.size
-                    except AttributeError as error:
-                        # noinspection PyUnresolvedReferences
-                        self.ds_manager.unsubscribeFromUpdates.remote(
-                            subscriberName=self.actorName
-                        )
-                        raise ValueError(
-                            "Cannot specify 'all' for number of entities to sample for space with unbounded dimensions"
-                        ) from error
-                    else:
-                        print(
-                            f"'all' specified for number of entities to sample. "
-                            f"This is {number_entities} entities - the size of the entity space"
-                        )
-                else:
-                    # noinspection PyUnresolvedReferences
-                    self.ds_manager.unsubscribeFromUpdates.remote(
-                        subscriberName=self.actorName
-                    )
-                    raise ValueError(
-                        "Cannot specify 'all' for number of entities to sample for non-discrete space"
-                    )
-            else:
-                number_entities = ds.sample_store.numberOfEntities
-                print(
-                    f"'all' specified for number of entities to sample. "
-                    f"This is {number_entities} entities - the number of entities in the sample store"
+        selects_existing_entities = _is_selector_sampler(self.params.samplerConfig)
+        try:
+            matching_entity_count = None
+            if selects_existing_entities:
+                # noinspection PyUnresolvedReferences
+                matching_entity_count = (
+                    await self.ds_manager.numberOfMatchingEntitiesInSource.remote()
                 )
-        else:
-            number_entities = self.params.numberEntities  # type: int
-
-        if entity_space is not None and entity_space.isDiscreteSpace:
-            try:
-                size = entity_space.size
-            except AttributeError:
-                # No size - whatever numberEntities is, is fine
-                pass
-            else:
-                if size < number_entities:
-                    raise ValueError(
-                        f"Requested number of entities to sample, {number_entities}, "
-                        f"is greater than the space size {size} "
-                    )
-        elif (
-            entity_space is None and ds.sample_store.numberOfEntities < number_entities
-        ):
-            raise ValueError(
-                f"Requested number of entities to sample, {number_entities}, "
-                f"is greater than the number of entities in the sample store {ds.sample_store.numberOfEntities} "
+            resolution = resolve_number_entities_to_sample(
+                number_entities=self.params.numberEntities,
+                sampler_config=self.params.samplerConfig,
+                entity_space=entity_space,
+                matching_entity_count=matching_entity_count,
+                sample_store_entity_count=ds.sample_store.numberOfEntities,
+                filter_mode=self.params.filter.filterMode,
             )
+        except Exception:
+            # noinspection PyUnresolvedReferences
+            self.ds_manager.unsubscribeFromUpdates.remote(subscriberName=self.actorName)
+            raise
+
+        number_entities = resolution.count
+        if resolution.source is not None:
+            print(
+                f"'all' specified for number of entities to sample. "
+                f"This is {number_entities} entities - {resolution.source.value}"
+            )
+
+        iterator = await sampler.remoteEntityIterator(
+            remoteDiscoverySpace=self.ds_manager, batchsize=1
+        )
 
         print(
             f"Running random walk for {number_entities} iterations. Sampler is {self.params.samplerConfig}"
@@ -942,11 +1039,12 @@ class RandomWalk(Explore):
     @classmethod
     def operator_metadata(cls) -> OperatorMetadata:
         """Returns operator metadata for the random_walk explore operator."""
+        samplerConfig = BaseSamplerConfiguration(samplerType="generator")
         return OperatorMetadata(
             name="random_walk",
-            version="2.0.0",
+            version="2.1.0",
             description=cls.description(),
             configuration_model=RandomWalkParameters,
-            example_configuration=RandomWalkParameters(),
+            example_configuration=RandomWalkParameters(samplerConfig=samplerConfig),
             type=DiscoveryOperationEnum.EXPLORE,
         )

@@ -11,7 +11,7 @@ from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, model_valida
 from ado.core.operation.config import GenericOperatorParameters
 
 
-class MissingTargetMeasurementMode(str, enum.Enum):
+class MissingTargetMeasurementMode(enum.StrEnum):
     Error = "Error"
     InjectDefaultValue = "InjectDefaultValue"
     Skip = "Skip"

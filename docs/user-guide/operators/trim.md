@@ -67,9 +67,8 @@ TRIM is particularly valuable when:
 > [!NOTE]
 >
 > **Python Version Compatibility**: The TRIM operator is not available on Python
-> 3.14 due to a dependency on `autogluon==1.5.0`, which requires
-> `pyarrow==20.0.0` (incompatible with Python 3.14). If you need to use TRIM,
-> please use Python 3.10-3.13.
+> 3.14 due to a dependency on `autogluon==1.6.3`(incompatible with Python 3.14).
+> If you need to use TRIM, please use Python 3.11-3.13.
 
 <!-- markdownlint-enable no-blanks-blockquote -->
 

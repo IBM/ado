@@ -5,11 +5,32 @@
 import pytest
 
 from ado.schema.domain import PropertyDomain, VariableTypeEnum
+from ado.schema.observed_property import ObservedProperty
 from ado.schema.property import (
     AbstractPropertyDescriptor,
     ConstitutiveProperty,
     ConstitutivePropertyDescriptor,
 )
+from ado.schema.reference import ExperimentReference
+
+
+@pytest.fixture
+def abstract_property_descriptor() -> AbstractPropertyDescriptor:
+    """Return an AbstractPropertyDescriptor for use in tests."""
+    return AbstractPropertyDescriptor(identifier="test_prop")
+
+
+@pytest.fixture
+def observed_property(
+    abstract_property_descriptor: AbstractPropertyDescriptor,
+) -> ObservedProperty:
+    """Return an ObservedProperty for use in tests."""
+    return ObservedProperty(
+        targetProperty=abstract_property_descriptor,
+        experimentReference=ExperimentReference(
+            experimentIdentifier="test_exp", actuatorIdentifier="test_act"
+        ),
+    )
 
 
 @pytest.fixture

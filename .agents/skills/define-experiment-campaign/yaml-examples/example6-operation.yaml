@@ -8,6 +8,9 @@ operation:
   parameters:
     numberEntities: 50
     batchSize: 1
+    samplerConfig:
+      mode: sequential
+      samplerType: generator
 actuatorConfigurationIdentifiers: [actuatorconfiguration-xyz789]
 metadata:
   name: gpu_random_walk

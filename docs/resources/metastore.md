@@ -163,11 +163,12 @@ in the metastore in a variety of ways.
 ### Searching for similar spaces
 
 A common use case is searching for spaces that are "similar" to a reference
-space. A space is considered similar only if **both** of the following hold:
+space. A candidate space is returned if **both** of the following hold:
 
-- They include **exactly the same base experiments** as the reference space
-- Their **entity space** is in a **hierarchical relationship** with the
-  reference space's entity space: subspace, equal or superspace
+- It shares **at least one experiment** with the reference space (paired by
+  actuator, base experiment identifier, and major version)
+- Its **entity space** overlaps with or is hierarchically related to the
+  reference space (not disjoint or undefined)
 
 This search can be performed in two ways:
 
@@ -178,9 +179,38 @@ This search can be performed in two ways:
   to the flag `--matching-space`. This is useful to find similar spaces without
   actually creating one first.
 
-The output includes a `RELATION_TO_INPUT_ENTITY_SPACE` column indicating
-whether each matching space's entity space is a subspace, superspace, or exact
-match of the reference space.
+The output includes four match columns:
+
+| Column | Description | Possible Values |
+| --- | --- | --- |
+| `ENTITY_SPACE_MATCH` | Relationship between the candidate's and reference's entity spaces | `= IDENTICAL`, `⊃ SUPERSPACE`, `⊂ SUBSPACE`, `∩ OVERLAPPING` |
+| `BASE_EXPERIMENT_MATCH` | Relationship between the candidate's and reference's sets of base experiment identifiers | `= IDENTICAL`, `⊃ SUPERSPACE`, `⊂ SUBSPACE`, `∩ OVERLAPPING` |
+| `VERSION_MATCH` | Version matching across paired experiments | `= IDENTICAL`, `≈ MAJOR_ONLY` |
+| `PARAMETERIZATION_MATCH` | Parameterization matching across paired experiments | `= IDENTICAL`, `≠ DIFFERENT`, `N/A` |
+
+#### How experiments are paired and evaluated
+
+- **Pairing key:** Two experiments are paired if they share the same actuator,
+  base identifier, and major version (e.g. `solve_mip@v1`). Experiments with
+  different major versions or different actuators are not paired.
+- **Aggregation:** For `VERSION_MATCH` and `PARAMETERIZATION_MATCH`, the
+  outcome is aggregated across all paired experiments by reporting the least
+  powerful result:
+  - If any paired experiment has different minor/patch versions, `VERSION_MATCH`
+    is `≈ MAJOR_ONLY` (otherwise `= IDENTICAL`).
+  - If any paired experiment has different parameter values,
+    `PARAMETERIZATION_MATCH` is `≠ DIFFERENT`. If all paired experiments lack
+    parameterization on both sides, it reports `N/A`. Otherwise it reports
+    `= IDENTICAL`.
+- **Memoization reading:** Reusing or memoizing existing measurements from a
+  candidate space is possible when `PARAMETERIZATION_MATCH` is `= IDENTICAL` or
+  `N/A`, `VERSION_MATCH` is `= IDENTICAL` or `≈ MAJOR_ONLY`, and the entity
+  spaces overlap.
+- **Note on placement:** If one space sets an optional experiment parameter via
+  `parameterization` in the experiment space while another space sets the same
+  parameter as a dimension in the entity space, `PARAMETERIZATION_MATCH` reports
+  `≠ DIFFERENT` even when the values are identical, because the parameter appears
+  in the experiment reference of one space and not the other.
 
 ### Searching for spaces containing a point
 

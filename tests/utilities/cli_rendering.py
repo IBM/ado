@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 """Utility functions for rendering resources to CLI output format in tests."""
 
+import pandas as pd
 import rich.box
 
 from ado.cli.utils.resources.formatters import (
@@ -9,6 +10,35 @@ from ado.cli.utils.resources.formatters import (
 )
 from ado.core import ADOResource
 from ado.utilities.rich import dataframe_to_rich_table, render_to_string
+
+
+def render_dataframe_to_cli_output(
+    df: pd.DataFrame,
+    show_index: bool = True,
+    do_not_truncate_columns: bool | list[str] = False,
+) -> str:
+    """Render a DataFrame to the table format used by the 'ado get' commands.
+
+    Args:
+        df: The DataFrame to render.
+        show_index: Whether to show the row index in the output table. Default is True.
+        do_not_truncate_columns: Controls which columns should not be truncated:
+            - False (default): All columns use default truncation behavior
+            - True: No columns are truncated (all widths calculated, table width set)
+            - list[str]: Only specified column names are not truncated
+
+    Returns:
+        A string containing the rendered table that can be compared against
+        CLI command output in tests.
+    """
+    table = dataframe_to_rich_table(
+        df,
+        show_edge=True,
+        box=rich.box.SQUARE,
+        show_index=show_index,
+        do_not_truncate_columns=do_not_truncate_columns,
+    )
+    return render_to_string(table, auto_width=True)
 
 
 def render_ado_resources_to_cli_output(
@@ -50,8 +80,6 @@ def render_ado_resources_to_cli_output(
         resources = [resources]
 
     # Use the default formatter for each resource and concatenate DataFrames
-    import pandas as pd
-
     dfs = []
     for resource in resources:
         df = format_default_ado_get_single_resource(
@@ -62,13 +90,8 @@ def render_ado_resources_to_cli_output(
     # Concatenate all DataFrames and reset index
     combined_df = pd.concat(dfs, ignore_index=True) if dfs else pd.DataFrame()
 
-    # Render to rich table and convert to string
-    table = dataframe_to_rich_table(
+    return render_dataframe_to_cli_output(
         combined_df,
-        show_edge=True,
-        box=rich.box.SQUARE,
         show_index=show_index,
         do_not_truncate_columns=do_not_truncate_columns,
     )
-
-    return render_to_string(table, auto_width=True)

@@ -22,6 +22,8 @@ from ado.cli.utils.queries.parser import prepare_query_filters_for_db
 from ado.cli.utils.resources.formatters import (
     build_resource_listing_dataframe,
     format_default_ado_get_multiple_resources,
+    time_since_timestamp,
+    timedelta_to_string,
 )
 from ado.core import DiscoverySpaceResource
 from ado.core.discoveryspace.config import (
@@ -173,77 +175,93 @@ def _find_spaces_matching_space(
     # Pre-filtering on experiment identifiers allows us to check less things by hand
     target_base_experiment_identifiers = {
         experiment.experimentIdentifier
-        for experiment in space_configuration.convert_experiments_to_reference_list().experiments
+        for experiment in (
+            space_configuration.convert_experiments_to_reference_list().experiments
+            or []
+        )
     }
     with Status("Preparing query") as spinner:
-        experiment_selectors = []
+        matching_spaces_by_id: dict[str, DiscoverySpaceResource] = {}
         for identifier in target_base_experiment_identifiers:
-            experiment_selectors.extend(
-                prepare_query_filters_for_db(
-                    {"config.experiments": {"experiments": {"identifier": identifier}}}
+            for query_filter in [
+                {"config.experiments": {"experiments": {"identifier": identifier}}},
+                {"config.experiments": {"experimentIdentifier": identifier}},
+            ]:
+                selectors = prepare_query_filters_for_db(query_filter)
+                spinner.update(ADO_SPINNER_QUERYING_DB)
+                spaces = sql_store.getResourcesOfKind(
+                    kind=CoreResourceKinds.DISCOVERYSPACE.value,
+                    field_selectors=selectors,
                 )
-            )
+                matching_spaces_by_id.update(spaces)
 
-        spinner.update(ADO_SPINNER_QUERYING_DB)
-        spaces_matching_experiments: list[DiscoverySpaceResource] = list(
-            sql_store.getResourcesOfKind(
-                kind=CoreResourceKinds.DISCOVERYSPACE.value,
-                field_selectors=experiment_selectors,
-            ).values()
-        )
+        spaces_matching_experiments = list(matching_spaces_by_id.values())
 
-        # The DB query only fetches spaces that have *at least*
-        # the experiments that we ask for. If we want an exact
-        # match, we then have to manually filter out the spaces
-        # that have additional experiments
         spinner.update(ADO_SPINNER_GETTING_OUTPUT_READY)
-        filtered_spaces_matching_experiments = []
-        for space in spaces_matching_experiments:
-            current_base_experiment_identifiers = {
-                experiment.experimentIdentifier
-                for experiment in space.config.convert_experiments_to_reference_list().experiments
-            }
-
-            if (
-                current_base_experiment_identifiers
-                == target_base_experiment_identifiers
-            ):
-                filtered_spaces_matching_experiments.append(space)
-
-        spaces_matching_experiments = filtered_spaces_matching_experiments
-
-        from datetime import datetime, timezone
-
         import pandas as pd
 
-        result_df = pd.DataFrame(
-            [
+        result_rows = []
+        for space_resource in spaces_matching_experiments:
+            entity_space_match = space_resource.config.compare_entity_space(
+                reference_space=space_configuration,
+            )
+            if entity_space_match in {
+                SpaceHierarchy.UNDEFINED,
+                SpaceHierarchy.DISJOINT,
+            }:
+                continue
+
+            measurement_space_comparison = (
+                space_resource.config.compare_measurement_space(
+                    reference_space=space_configuration,
+                )
+            )
+            if measurement_space_comparison.base_experiment_match in {
+                SpaceHierarchy.UNDEFINED,
+                SpaceHierarchy.DISJOINT,
+            }:
+                continue
+
+            result_rows.append(
                 {
                     "IDENTIFIER": space_resource.identifier,
                     "NAME": space_resource.config.metadata.name,
                     "DESCRIPTION": space_resource.config.metadata.labels,
-                    "AGE": datetime.now(timezone.utc) - space_resource.created,
-                    "RELATION_TO_INPUT_ENTITY_SPACE": space_resource.config.compare_space_hierarchy(
-                        reference_space=space_configuration,
-                    ).value,
+                    "AGE": time_since_timestamp(space_resource.created),
+                    "ENTITY_SPACE_MATCH": entity_space_match.value,
+                    "BASE_EXPERIMENT_MATCH": measurement_space_comparison.base_experiment_match.value,
+                    "VERSION_MATCH": (
+                        measurement_space_comparison.version_match.value
+                        if measurement_space_comparison.version_match
+                        else None
+                    ),
+                    "PARAMETERIZATION_MATCH": (
+                        measurement_space_comparison.parameterization_match.value
+                        if measurement_space_comparison.parameterization_match
+                        else None
+                    ),
                 }
-                for space_resource in spaces_matching_experiments
-            ]
-        )
+            )
+
+        result_df = pd.DataFrame(result_rows)
 
     if result_df.empty:
         return result_df
 
-    result_df = result_df[
-        ~result_df["RELATION_TO_INPUT_ENTITY_SPACE"].isin(
-            {SpaceHierarchy.UNDEFINED.value, SpaceHierarchy.DISJOINT.value}
-        )
-    ]
     result_df = result_df.sort_values(by="AGE", ascending=False)
     result_df = result_df.reset_index(drop=True)
-
-    return (
-        result_df
-        if parameters.show_details
-        else result_df[["IDENTIFIER", "NAME", "AGE", "RELATION_TO_INPUT_ENTITY_SPACE"]]
+    result_df["AGE"] = result_df["AGE"].apply(
+        lambda age: timedelta_to_string(age.total_seconds())
     )
+
+    default_columns = [
+        "IDENTIFIER",
+        "NAME",
+        "AGE",
+        "ENTITY_SPACE_MATCH",
+        "BASE_EXPERIMENT_MATCH",
+        "VERSION_MATCH",
+        "PARAMETERIZATION_MATCH",
+    ]
+
+    return result_df if parameters.show_details else result_df[default_columns]

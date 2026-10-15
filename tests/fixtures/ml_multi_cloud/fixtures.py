@@ -1,7 +1,7 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-import datetime
+import datetime as dt
 import pathlib
 import random
 from collections.abc import Callable
@@ -289,6 +289,7 @@ def random_ml_multi_cloud_benchmark_performance_measurement_requests(
         measurements_per_result: int,
         status: MeasurementRequestStateEnum | None = None,
         operation_id: str | None = None,
+        result_status: MeasurementResultStateEnum | None = None,
     ) -> ReplayedMeasurement:
         assert number_entities > 0, "There need to be at least 1 entity"
         entities = random_ml_multi_cloud_benchmark_performance_entities(number_entities)
@@ -308,7 +309,9 @@ def random_ml_multi_cloud_benchmark_performance_measurement_requests(
             measurements=tuple(
                 [
                     random_ml_multi_cloud_benchmark_performance_measurement_results(
-                        entity=e, measurements_per_result=measurements_per_result
+                        entity=e,
+                        measurements_per_result=measurements_per_result,
+                        status=result_status,
                     )
                     for e in entities
                 ]
@@ -325,12 +328,25 @@ def simulate_ml_multi_cloud_random_walk_operation(
     ml_multi_cloud_sample_store: SQLSampleStore,
     random_identifier: Callable[[], str],
     random_ml_multi_cloud_benchmark_performance_measurement_requests: Callable[
-        [int, int, MeasurementRequestStateEnum | None, str | None],
+        [
+            int,
+            int,
+            MeasurementRequestStateEnum | None,
+            str | None,
+            MeasurementResultStateEnum | None,
+        ],
         ReplayedMeasurement,
     ],
     ml_multi_cloud_benchmark_performance_experiment: Experiment,
 ) -> Callable[
-    [int, int, int, str | None, "datetime.datetime | None"],
+    [
+        int,
+        int,
+        int,
+        str | None,
+        "dt.datetime | None",
+        MeasurementResultStateEnum | None,
+    ],
     tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
 ]:
     def _simulate_ml_multi_cloud_random_walk_operation(
@@ -338,7 +354,8 @@ def simulate_ml_multi_cloud_random_walk_operation(
         number_requests: int = 3,
         measurements_per_result: int = 2,
         operation_id: str | None = None,
-        created: "datetime.datetime | None" = None,
+        created: "dt.datetime | None" = None,
+        result_status: MeasurementResultStateEnum | None = None,
     ) -> tuple[SQLSampleStore, list[MeasurementRequest], list[str]]:
         operation_id = operation_id or random_identifier()
         sample_store = ml_multi_cloud_sample_store
@@ -363,6 +380,7 @@ def simulate_ml_multi_cloud_random_walk_operation(
                 number_entities=number_entities,
                 measurements_per_result=measurements_per_result,
                 operation_id=operation_id,
+                result_status=result_status,
             )
             for _ in range(number_requests)
         ]
@@ -370,8 +388,12 @@ def simulate_ml_multi_cloud_random_walk_operation(
         assert len(requests) == number_requests
         for r in requests:
             assert len(r.measurements) == number_entities
-            for m in r.measurements:
-                assert len(m.measurements) == measurements_per_result
+            if (
+                result_status is None
+                or result_status == MeasurementResultStateEnum.VALID
+            ):
+                for m in r.measurements:
+                    assert len(m.measurements) == measurements_per_result
 
         request_ids = [
             sample_store.add_measurement_request(request=requests[i])
@@ -396,7 +418,7 @@ def simulate_ml_multi_cloud_random_walk_operation(
 @pytest.fixture
 def backdate_resource(
     valid_ado_project_context: ProjectContext,
-) -> Callable[[str, CoreResourceKinds, datetime.datetime], None]:
+) -> Callable[[str, CoreResourceKinds, dt.datetime], None]:
     """Return a callable that overwrites the ``created`` timestamp of any resource.
 
     Args:
@@ -408,7 +430,7 @@ def backdate_resource(
     def _backdate_resource(
         identifier: str,
         kind: CoreResourceKinds,
-        created: datetime.datetime,
+        created: dt.datetime,
     ) -> None:
         sql = SQLStore(project_context=valid_ado_project_context)
         resource = sql.getResource(identifier=identifier, kind=kind)

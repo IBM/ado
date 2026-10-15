@@ -31,7 +31,7 @@ _PACKAGE_ROOT = Path(__file__).parent.parent.parent
 DEFAULT_DATA_ROOT_DIR = _PACKAGE_ROOT / "data"
 DEFAULT_FILE_NAME = "dataset.csv"
 DEFAULT_HF_REPO_ID = "ibm-research/LLMFineTuningBench"
-DEFAULT_HF_FILENAME = "ado-sfttrainer-v1-0-0.csv"
+DEFAULT_HF_FILENAME = "ado-sfttrainer.csv"
 DEFAULT_REFIT = False
 DEFAULT_TRAIN_FRACTION = 1.0
 DEFAULT_PRESET_QUALITY = "medium_quality"
@@ -64,7 +64,7 @@ def ensure_dataset(repo_id: str, filename: str, data_path: Path) -> Path:
         repo_id: HuggingFace dataset repository, e.g.
             ``"ibm-research/LLMFineTuningBench"``.
         filename: File name within the repository, e.g.
-            ``"ado-sfttrainer-v1-0-0.csv"``.
+            ``"ado-sfttrainer.csv"``.
         data_path: Local destination path for the CSV.
 
     Returns:
@@ -235,10 +235,27 @@ def parse_arguments(arguments: list[str] | None = None) -> argparse.Namespace:
             "best_quality",
             "high_quality",
             "good_quality",
+            "good",
             "medium_quality",
             "optimize_for_deployment",
         ],
-        help="AutoGluon preset quality level",
+        help=(
+            "AutoGluon preset quality level applied to both the classifier and the "
+            "regressor when building. Defaults to 'medium_quality' for the classifier "
+            "and 'good' for the regressor; passing this flag overrides both."
+        ),
+    )
+
+    parser.add_argument(
+        "--model",
+        choices=["classifier", "regressor", "all"],
+        default="all",
+        help=(
+            "Which model(s) to build. "
+            "'classifier' trains the OOM classifier (v4-0-0). "
+            "'regressor' trains the throughput regressor (v4-1-0-regressor). "
+            "'all' trains both (default)."
+        ),
     )
 
     return parser.parse_args(arguments)
@@ -267,8 +284,9 @@ def fit_tabular_predictor(
     train_idx = int(len(df) * train_fraction)
     df_train = df.iloc[:train_idx][cols_to_use]
     df_test = df.iloc[train_idx:][cols_to_use]
-    df_test = filter_valid_with_hard_logic(df_test)
-    fit_params = {"presets": [preset_quality], "excluded_model_types": "GBM"}
+    if not df_test.empty:
+        df_test = filter_valid_with_hard_logic(df_test)
+    fit_params = {"presets": [preset_quality], "excluded_model_types": ["GBM", "XGB"]}
     train_data = TabularDataset(df_train)
     train_data.head()
     start = time.time()
@@ -457,16 +475,33 @@ def main() -> None:
         return
 
     try:
-        build_model(
-            model_root=args.model_root_dir,
-            repo_id=args.repo_id,
-            filename=args.filename,
-            data_root_dir=args.data_root_dir,
-            file_name=args.file_name,
-            train_fraction=args.train_fraction,
-            preset_quality=args.preset_quality,
-            refit=args.refit,
-        )
+        if args.model in ("classifier", "all"):
+            build_model(
+                model_root=args.model_root_dir,
+                repo_id=args.repo_id,
+                filename=args.filename,
+                data_root_dir=args.data_root_dir,
+                file_name=args.file_name,
+                train_fraction=args.train_fraction,
+                preset_quality=args.preset_quality,
+                refit=args.refit,
+            )
+        if args.model in ("regressor", "all"):
+            from autoconf.throughput_recommender import build_regressor
+
+            build_regressor(
+                model_root=args.model_root_dir,
+                repo_id=args.repo_id,
+                filename=args.filename,
+                data_root_dir=args.data_root_dir,
+                file_name=args.file_name,
+                fit_options={
+                    "presets": args.preset_quality,
+                    "excluded_model_types": ["GBM"],
+                    "time_limit": 900,
+                    "num_bag_folds": 5,
+                },
+            )
     except DatasetDownloadError as error:
         logger.error("%s", error)
         raise SystemExit(1) from None

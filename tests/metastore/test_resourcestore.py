@@ -100,23 +100,17 @@ def test_get_resources_sorted_by_created_ascending(
     create_resources: Callable[[list[ado.core.resources.ADOResource], SQLStore], None],
 ) -> None:
     """Test that getResources returns resources sorted by created timestamp in ascending order (oldest first)."""
-    import datetime
+    import datetime as dt
 
     # Create multiple resources from file with explicit created timestamps
     space1 = random_space_resource_from_file()
-    space1.created = datetime.datetime(
-        2024, 1, 1, 12, 0, 0, tzinfo=datetime.timezone.utc
-    )
+    space1.created = dt.datetime(2024, 1, 1, 12, 0, 0, tzinfo=dt.UTC)
 
     space2 = random_space_resource_from_file()
-    space2.created = datetime.datetime(
-        2024, 1, 2, 12, 0, 0, tzinfo=datetime.timezone.utc
-    )
+    space2.created = dt.datetime(2024, 1, 2, 12, 0, 0, tzinfo=dt.UTC)
 
     space3 = random_space_resource_from_file()
-    space3.created = datetime.datetime(
-        2024, 1, 3, 12, 0, 0, tzinfo=datetime.timezone.utc
-    )
+    space3.created = dt.datetime(2024, 1, 3, 12, 0, 0, tzinfo=dt.UTC)
 
     # Add resources to database using create_resources fixture
     create_resources([space1, space2, space3])

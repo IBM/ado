@@ -42,6 +42,42 @@ def default_if_none(value: typing.Any) -> typing.Any:  # noqa: ANN401
 
 
 T = TypeVar("T")
+
+
+def sort_by_identifier(
+    items: list[T] | tuple[T, ...] | None,
+) -> list[T] | tuple[T, ...] | None:
+    """Return *items* sorted into a canonical order by identifier.
+
+    Items whose type has a ``property`` attribute (i.e. :class:`PropertyValue`
+    subtypes) are sorted by ``item.property.identifier``; all other items are
+    sorted by ``item.identifier`` directly.
+
+    The return type mirrors the input container type: a ``list`` input produces
+    a sorted ``list``; a ``tuple`` input produces a sorted ``tuple``; ``None``
+    is returned unchanged.
+
+    Args:
+        items: The collection to sort, or ``None``.
+
+    Returns:
+        A sorted collection of the same container type, or ``None``.
+    """
+    if items is None:
+        return None
+    if not items:
+        return items
+
+    first = next(iter(items))
+    if hasattr(first, "property"):
+        key = lambda v: v.property.identifier  # noqa: E731
+    else:
+        key = lambda v: v.identifier  # noqa: E731
+
+    sorted_items: list[T] = sorted(items, key=key)
+    return tuple(sorted_items) if isinstance(items, tuple) else sorted_items
+
+
 Defaultable = Annotated[T, BeforeValidator(default_if_none)]
 
 

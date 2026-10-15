@@ -5,7 +5,7 @@
 
 The resource template models are kept in config"""
 
-import datetime
+import datetime as dt
 import enum
 import typing
 from typing import Annotated
@@ -17,7 +17,7 @@ from ado.schema.property import PropertyDescriptor
 from ado.utilities.pydantic import Defaultable
 
 
-class CoreResourceKinds(str, enum.Enum):
+class CoreResourceKinds(enum.StrEnum):
     OPERATION = "operation"
     DISCOVERYSPACE = "discoveryspace"
     ACTUATORCONFIGURATION = "actuatorconfiguration"
@@ -71,9 +71,9 @@ class ADOResourceStatus(pydantic.BaseModel):
         ),
     ] = None
     recorded_at: Annotated[
-        datetime.datetime,
+        dt.datetime,
         pydantic.Field(
-            default_factory=lambda: datetime.datetime.now(datetime.timezone.utc),
+            default_factory=lambda: dt.datetime.now(dt.UTC),
             description="When this status was recorded",
         ),
     ]
@@ -89,9 +89,9 @@ class ADOResource(pydantic.BaseModel):
     version: Annotated[str, pydantic.Field()] = "v1"
     kind: Annotated[CoreResourceKinds, pydantic.Field()]
     created: Annotated[
-        datetime.datetime,
+        dt.datetime,
         pydantic.Field(
-            default_factory=lambda: datetime.datetime.now(datetime.timezone.utc),
+            default_factory=lambda: dt.datetime.now(dt.UTC),
             description="When the resource was created",
         ),
     ]

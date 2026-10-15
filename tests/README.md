@@ -72,7 +72,7 @@ There are two ways to run the tests:
 
 The list of supported Tox environments can always be queried by running
 `tox list`. As of the time of writing, we support testing on Python versions
-3.10-3.13 on Linux and macOS using locked and non-locked dependencies.
+3.11-3.14 on Linux and macOS using locked and non-locked dependencies.
 
 To run the tests using Python 3.11, locked dependencies on a macOS machine, run
 the following command:

@@ -138,7 +138,7 @@ class OrchSearchAlgorithm(pydantic.BaseModel):
                 "Optuna sampler parameters specified but no sampler specified"
             )
 
-        if optuna_sampler and sampler_parameters:
+        if optuna_sampler:
             try:
                 import optuna.samplers
 

@@ -67,8 +67,8 @@ Breaking these causes a validation error or a misconfigured operation.
 * `numberEntities` larger than the space (generator) or than the matching
   entities (selector with `filterMode: noFilter`) raises a ValueError. Use
   `numberEntities: all`.
-* `bayesopt`, the `ray_tune` template default, supports only continuous
-  dimensions. Replace it for any space with discrete or categorical dimensions.
+* `bayesopt` supports only continuous dimensions. The `ray_tune` template
+  default is Optuna `TPESampler` (`multivariate: true`).
 * Multi-objective (list `metric` / `mode`) requires `optuna`.
 * Nevergrad optimizer arguments (`budget`, `num_workers`) go in
   `params.optimizer_kwargs`; elsewhere they are dropped.
@@ -81,11 +81,10 @@ Breaking these causes a validation error or a misconfigured operation.
   sampler is exhausted.
 * An optimizer learns only from trials in its own operation. To reuse earlier
   results, list them in `points_to_evaluate`; measured points are replayed.
-* `ado-ray-tune` installs `nevergrad` and `bayesian-optimization` only. Check
-  `uv run python -c "import optuna"` before using Optuna. `GPSampler` needs
-  `torch`, `CmaEsSampler` needs `cmaes`. Install with `uv pip install` from
-  the repo root, and on the cluster for remote runs (see
-  [remote-execution](../remote-execution/SKILL.md)).
+* `ado-ray-tune` installs `optuna` and `nevergrad`. `nevergrad` installs
+  `bayesian-optimization`, so `bayesopt` is available without a separate install.
+* Optuna's`GPSampler` needs `torch` and `CmaEsSampler` needs `cmaes`. These are
+  optional packages that must be installed to use these samplers.
 
 ## random_walk: selector or generator
 
@@ -145,7 +144,8 @@ Optimizer names and parameters: read
 source repo is available, otherwise see
 <https://ibm.github.io/ado/latest/user-guide/operators/ray-tune/#available-optimizers>.
 
-Default: Optuna `TPESampler` with `multivariate: true` and a `seed`. It handles
+Default: Optuna `TPESampler` with `multivariate: true`, which is what the
+`ray_tune` template uses. Set a `seed` to reproduce a run. It handles
 categorical and mixed spaces, noisy metrics and concurrent trials. Its first
 `n_startup_trials` (default 10) are random; raise this for many dimensions.
 

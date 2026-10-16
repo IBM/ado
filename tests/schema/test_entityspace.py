@@ -300,7 +300,7 @@ def test_entity_space_dimension_values(
 
     with pytest.raises(
         ValueError,
-        match="Cannot return dimension_values for a space with continuous or unknown dimensions",
+        match="Cannot return dimension_values for a space with continuous, unknown, or open categorical dimensions",
     ):
         es_continuous.dimension_values()
 
@@ -374,6 +374,38 @@ def test_entity_space_iterators(
     )
 
     assert len(set(random)) == len(random), "Expected no points to be duplicated"
+
+
+def test_entity_space_keeps_open_categorical_property_without_values() -> None:
+    """An open categorical dimension with no values stays open and is not enumerable."""
+    from ado.core.discoveryspace.samplers import ExplicitEntitySpaceGridSampleGenerator
+
+    es = EntitySpaceRepresentation(
+        constitutiveProperties=[
+            ConstitutiveProperty(
+                identifier="uid",
+                propertyDomain=PropertyDomain(
+                    variableType=VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE,
+                ),
+            )
+        ]
+    )
+
+    assert (
+        es.constitutiveProperties[0].propertyDomain.variableType
+        == VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE
+    )
+    assert es.isDiscreteSpace is False
+    with pytest.raises(AttributeError, match="non-countable dimensions"):
+        _ = es.size
+    assert es.isPointInSpace({"uid": "generated-uid-1"})
+    assert es.isPointInSpace({"uid": "generated-uid-2"})
+    with pytest.raises(ValueError, match="open categorical"):
+        es.dimension_values()
+    assert (
+        ExplicitEntitySpaceGridSampleGenerator.samplerCompatibleWithEntitySpace(es)
+        is False
+    )
 
 
 def test_entity_space_updates_open_categorical_property() -> None:

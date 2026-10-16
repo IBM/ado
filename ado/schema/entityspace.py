@@ -34,11 +34,13 @@ class EntitySpaceRepresentation:
     ) -> None:
 
         self._propertyLookup = {c.identifier: c for c in constitutiveProperties}
-        # Update open-categorical type to categorical -> once in an entityspace the category can't be open anymore
+        # Listed values close an open categorical dimension to those values.
+        # With no values the dimension stays open and the space is not enumerable.
         for c in constitutiveProperties:
             if (
                 c.propertyDomain.variableType
                 == VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE
+                and c.propertyDomain.values is not None
             ):
                 # ConstitutiveProperty is immutable so we need to create a new one
                 propertyDomain = PropertyDomain(
@@ -72,11 +74,12 @@ class EntitySpaceRepresentation:
         non_discrete_dims = [
             d
             for d in self._constitutiveProperties
-            if (
-                d.propertyDomain.variableType
-                == VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE
+            if d.propertyDomain.variableType
+            in (
+                VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE,
+                VariableTypeEnum.UNKNOWN_VARIABLE_TYPE,
+                VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE,
             )
-            or (d.propertyDomain.variableType == VariableTypeEnum.UNKNOWN_VARIABLE_TYPE)
         ]
 
         return len(non_discrete_dims) == 0
@@ -160,6 +163,13 @@ class EntitySpaceRepresentation:
             if cv.propertyDomain.variableType == VariableTypeEnum.UNKNOWN_VARIABLE_TYPE
         ]
 
+        openCategoricalProperties = [
+            cv
+            for cv in self._constitutiveProperties
+            if cv.propertyDomain.variableType
+            == VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE
+        ]
+
         binaryProperties = [
             cv
             for cv in self._constitutiveProperties
@@ -220,6 +230,16 @@ class EntitySpaceRepresentation:
             content.extend(
                 [
                     Text("Continuous properties:", style="bold"),
+                    Panel(dataframe_to_rich_table(df), box=rich.box.SIMPLE_HEAD),
+                ]
+            )
+
+        if openCategoricalProperties:
+            data = [[cv.identifier] for cv in openCategoricalProperties]
+            df = pd.DataFrame(data, columns=["name"])
+            content.extend(
+                [
+                    Text("Open categorical properties:", style="bold"),
                     Panel(dataframe_to_rich_table(df), box=rich.box.SIMPLE_HEAD),
                 ]
             )
@@ -357,7 +377,7 @@ class EntitySpaceRepresentation:
 
         if not self.isDiscreteSpace:
             raise ValueError(
-                "Cannot return dimension_values for a space with continuous or unknown dimensions"
+                "Cannot return dimension_values for a space with continuous, unknown, or open categorical dimensions"
             )
 
         return {

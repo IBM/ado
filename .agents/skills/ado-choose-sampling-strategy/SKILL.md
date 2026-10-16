@@ -1,7 +1,7 @@
 ---
-name: choose-sampling-strategy
+name: ado-choose-sampling-strategy
 description: >-
-  Describes how how to configure sampling of a discoveryspace in ado: which operator
+  Describes how to configure sampling of a discoveryspace in ado: which operator
   (random_walk, ray_tune, trim), which sampler or optimizer (grid, random,
   selector, Latin hypercube, Sobol, Optuna TPE, Bayesian optimization,
   Nevergrad), which stoppers, and how to stage multiple sampling campaigns on
@@ -17,11 +17,18 @@ This skill covers choosing which strategy to use. For writing and validating the
 operation YAML see
 [define-experiment-campaign](../define-experiment-campaign/SKILL.md).
 
-Operator reference:
+Operator reference. Read the file under `docs/user-guide/operators/` if the
+source repo is available; otherwise use the website.
 
-* [random_walk](../../../docs/user-guide/operators/random-walk.md),
-* [ray_tune](../../../docs/user-guide/operators/ray-tune.md),
-* [trim](../../../docs/user-guide/operators/trim.md).
+* `random_walk` (PyPI `ado-core`):
+  `docs/user-guide/operators/random-walk.md`,
+  <https://ibm.github.io/ado/latest/user-guide/operators/random-walk/>
+* `ray_tune` (PyPI `ado-ray-tune`):
+  `docs/user-guide/operators/ray-tune.md`,
+  <https://ibm.github.io/ado/latest/user-guide/operators/ray-tune/>
+* `trim` (PyPI `ado-trim`):
+  `docs/user-guide/operators/trim.md`,
+  <https://ibm.github.io/ado/latest/user-guide/operators/trim/>
 
 ## Inputs to the choice
 
@@ -30,9 +37,10 @@ Operator reference:
    measurements (see
    [examining-discovery-spaces](../examining-discovery-spaces/SKILL.md)).
 3. **Budget**: affordable measurements, cost per measurement, concurrency.
-4. **Installed operators**: `uv run ado get operators`. `ray_tune` and the
-   `rifferla` modify operator come from `ado-ray-tune`; `trim` (characterize)
-   and `NoPriorsSampleSelector` come from `ado-trim`.
+4. **Installed operators**: `uv run ado get operators`. `random_walk` comes
+   from `ado-core`; `ray_tune` and the `rifferla` modify operator come from
+   `ado-ray-tune`; `trim` (characterize) and `NoPriorsSampleSelector` come
+   from `ado-trim`.
 
 ## Goal → strategy
 
@@ -80,8 +88,10 @@ Breaking these causes a validation error or a misconfigured operation.
 
 ## random_walk: selector or generator
 
-Sampler types, modes and filters are defined in
-[random-walk.md](../../../docs/user-guide/operators/random-walk.md#sampling-types).
+Sampler types, modes and filters: read
+`docs/user-guide/operators/random-walk.md` (`#sampling-types`) if the source
+repo is available, otherwise see
+<https://ibm.github.io/ado/latest/user-guide/operators/random-walk/#sampling-types>.
 
 Use a `selector` when:
 
@@ -129,8 +139,10 @@ and [lhc_sampler.yaml](../../../examples/ml-multi-cloud/lhc_sampler.yaml).
 
 ## Choosing an optimizer (guidance)
 
-Optimizer names and parameters:
-[ray-tune.md](../../../docs/user-guide/operators/ray-tune.md#available-optimizers).
+Optimizer names and parameters: read
+`docs/user-guide/operators/ray-tune.md` (`#available-optimizers`) if the
+source repo is available, otherwise see
+<https://ibm.github.io/ado/latest/user-guide/operators/ray-tune/#available-optimizers>.
 
 Default: Optuna `TPESampler` with `multivariate: true`, which is what the
 `ray_tune` template uses. Set a `seed` to reproduce a run. It handles

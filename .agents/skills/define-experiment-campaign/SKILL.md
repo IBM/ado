@@ -161,7 +161,7 @@ to obtain the desired experiment campaign.
 Note: the desired sampling operation to perform on the space
 can constrain the entity spaces definition: for example, grids
 (`random_walk` generator) and ado's `lhu_sampler` need discrete, bounded
-dimensions.  Check [choose-sampling-strategy](../choose-sampling-strategy/SKILL.md)
+dimensions.  Check [choose-sampling-strategy](../ado-choose-sampling-strategy/SKILL.md)
 and consider if this is the case.
 
 Fix validation errors and repeat validation until successful.
@@ -171,7 +171,7 @@ Fix validation errors and repeat validation until successful.
 ### Step 2a: Choose Operator
 
 To choose the operator, sampler, or optimizer for the goal, follow
-[choose-sampling-strategy](../choose-sampling-strategy/SKILL.md).
+[choose-sampling-strategy](../ado-choose-sampling-strategy/SKILL.md).
 
 **List available operators:**
 

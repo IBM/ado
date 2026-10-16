@@ -14,31 +14,33 @@ description: >-
 End-to-end workflow to summarize **all** discoveryspaces, operations, and
 related metadata in the ado project associated to the active context.
 
-- Run all commands from the **repository root** with `uv run` (see
-  [using-ado-cli](../using-ado-cli/SKILL.md)).
-- The report produced by this skill is stored as a
-  `document` resource in the active ado metastore context (see
-  [Producing a report](#step-7-write-the-report)).
+- Run all commands from the **repository root** with `uv run`
 - A **project** is a namespace for a set of ado resources (spaces, operations,
   stores). A **context** is the local config pointing to a project's metastore.
-  Context name equals project name by construction. This definition is
-  sufficient for applying this skill.
-  Only consult the source if you need full schema details: read
-  `docs/resources/metastore.md` if the source repo is available, otherwise see
+  Context name equals project name by construction. If more details are required
+  see `docs/resources/metastore.md` if the source repo is available, otherwise see
   <https://ibm.github.io/ado/latest/resources/metastore/#contexts-and-projects>.
 - Users may refer to an ado project using either the term "project" or "context"
+-
+
+**Basic skills**:
+
+Read the following basic skills first:
+
+- [using-ado-cli](../using-ado-cli/SKILL.md).
+- [query-ado-data](../query-ado-data/SKILL.md).
+- [resource-yaml-creation — Document](../resource-yaml-creation/SKILL.md#document).
 
 ## Tips
 
 - Prefer metastore listing and YAML dumps before heavy `uv run ado show` data
-  pulls; see [query-ado-data](../query-ado-data/SKILL.md).
-- For creating document resources that store reports, see
-  [resource-yaml-creation — Document](../resource-yaml-creation/SKILL.md#document).
+  pulls.
+- Write `ado get --details` listings with `--output-file` and read the file.
 - For study documents (`study-$ID`), see
   [create-research-study-document](../create-research-study-document/SKILL.md).
-- For one space in depth:
+- For examining one space in depth:
   [examining-discovery-spaces](../examining-discovery-spaces/SKILL.md).
-- For one operation in depth:
+- For examining one operation in depth:
   [examining-ado-operations](../examining-ado-operations/SKILL.md).
 
 ## Pre-requisites
@@ -67,7 +69,8 @@ The project report is stored as a `document` resource whose `metadata.name` is
 Query the metastore:
 
 ```bash
-uv run ado get document -q 'config.metadata.name=project_report' --details
+uv run ado get document -q 'config.metadata.name=project_report' --details \
+  --output-file /tmp/ado-project-report-docs.txt
 ```
 
 There **may** be zero, one, or
@@ -92,12 +95,12 @@ Here we check whether there has been meaningful activity since the current repor
 was written:
 
 1. Contextualizing Activity
-   1. Run `uv run ado get docs --details`
+   1. Run `uv run ado get docs --details --output-file /tmp/ado-docs-details.txt`
    2. Find any study docs that were created after the last project report was written
    3. If there are, there has been recent activity in describing the motivations
       and scope of project
 2. Operation Activity
-   1. Run `uv run ado get operations --details -o stats`
+   1. Run `uv run ado get operations --details -o stats --output-file /tmp/ado-operations-details-stats.txt`
    2. Find all the operations that were created after the last report was written
    3. Filter these for ones that are finished AND, if explore operations, that
       measured entities
@@ -115,8 +118,10 @@ First check if there are study documents outlining
 the research underway in the project
 
 ```bash
-uv run ado get document --details | grep "study-"
+uv run ado get document --details --output-file /tmp/ado-documents-details.txt
 ```
+
+Then search that file for names matching `study-`.
 
 For each study found, run
 
@@ -129,14 +134,17 @@ used to identify resources associated with the study
 
 If there are study documents perform the next steps per study.
 
-## Step 4: Examine research activities
+### Step 4: Examine research activities
 
 Goal: volume of work, recency, and which spaces attract the most operations.
+
+When examining a study, add `-l study=$ID` (the study's label) to the
+`ado get` commands below so only that study's resources are fetched.
 
 1. **Spaces (tabular, with metadata)**
 
    ```bash
-   uv run ado get spaces --details
+   uv run ado get spaces --details --output-file /tmp/ado-spaces-details.txt
    ```
 
    Use **age** (list is age-sorted, most recent last), **name**,
@@ -145,7 +153,7 @@ Goal: volume of work, recency, and which spaces attract the most operations.
 2. **Operations (tabular, with metadata)**
 
    ```bash
-   uv run ado get operations --details
+   uv run ado get operations --details --output-file /tmp/ado-operations-details.txt
    ```
 
    Relates operations to target spaces; age and labels summarize recent work.
@@ -161,9 +169,10 @@ Goal: volume of work, recency, and which spaces attract the most operations.
    uv run ado get operations -o stats --output-file operations-stats.txt
    ```
 
-   Adds `TOTAL_RESULTS`, `SUCCESSFUL_RESULTS`, `FAILED_RESULTS`, and
-   `MEASURED_ENTITIES` columns. For explore operations, compare
-   `MEASURED_ENTITIES` against the operator's `numberEntities` to check sampling
+   Adds `TOTAL_MEASUREMENTS`, `SUCCESSFUL_MEASUREMENTS`,
+   `FAILED_MEASUREMENTS`, and `SAMPLED_ENTITIES` columns. For explore operations,
+   compare
+   `SAMPLED_ENTITIES` against the operator's `numberEntities` to check sampling
    completeness.
 
    For richer stats that also include request-level counts
@@ -179,11 +188,12 @@ Goal: volume of work, recency, and which spaces attract the most operations.
    uv run ado get spaces -o stats --output-file spaces-stats.txt
    ```
 
-   Adds `EXPERIMENTS`, `OPERATIONS`, `EXPLORE_OPERATIONS`, and
-   `MEASURED_ENTITIES` columns.
+   Adds `EXPERIMENTS`, `OPERATIONS`, `EXPLORE_OPS`, and `SAMPLED_ENTITIES`
+   columns.
 
    For richer stats that also include full entity-space coverage columns
-   (`SIZE_OF_ENTITY_SPACE`, `UNMEASURED_ENTITIES`, `MATCHING_ENTITIES`, etc.):
+   (`ENTITY_SPACE_SIZE`, `UNSAMPLED`, `SAMPLED_COMPLETE`, `SAMPLED_PARTIAL`,
+   `SAMPLED_FAILED`, `MATCHING_COMPLETE`, `MATCHING_PARTIAL`, `MATCHING_FAILED`):
 
    ```bash
    uv run ado show stats discoveryspace --output-file spaces-fullstats.csv -o csv
@@ -246,9 +256,9 @@ Gain further information on the experiments using
 
 ```bash
 # Outputs description of actuators used
-uv run ado get actuators --details
+uv run ado get actuators --details --output-file /tmp/ado-actuators-details.txt
 # Outputs description of experiments used
-uv run ado get experiments --details
+uv run ado get experiments --details --output-file /tmp/ado-experiments-details.txt
 # Outputs detailed information on an experiment
 # Use to drill down into most used experiments
 uv run ado describe experiment $EXPERIMENT_ID
@@ -277,7 +287,8 @@ Find **Spaces that match these spaces** (refinement, expansion, or parallel
 configurations)
 
 ```bash
-uv run ado get spaces --matching-space-id SPACE_ID
+uv run ado get spaces --matching-space-id SPACE_ID --details \
+  --output-file /tmp/ado-matching-spaces.txt
 ```
 
 Use the output to
@@ -307,7 +318,7 @@ Write a concise markdown report. Store it as the `content` field of a
   `Project overview as of YYYY-MM-DD`.
 - Omit `relatedResources` (or leave empty).
 
-### Project summary
+#### Project summary
 
 - If study documents available:
   - Summary of the particular study or studies underway
@@ -315,14 +326,14 @@ Write a concise markdown report. Store it as the `content` field of a
   - Domains or problems implied by experiments, actuators, and space descriptions.
 - Dominant **operation** and **experiment** patterns.
 
-### Latest activity
+#### Latest activity
 
 Per-study when possible
 
 - Most recent spaces and operations (from `--details` listings).
 - What the latest work seems focused on (labels, names, target spaces).
 
-### Spaces overview
+#### Spaces overview
 
 Per-study when possible
 
@@ -330,7 +341,7 @@ Per-study when possible
 - How **entity spaces** and **matching-space** relationships evolve: expanding,
   narrowing, or shifting configuration.
 
-### Operations overview
+#### Operations overview
 
 Per-study when possible
 

@@ -102,14 +102,15 @@ Apply the study labels to every space and operation created for the study
 
 ```bash
 # Find a study document by name
-uv run ado get document -q 'config.metadata.name=study-$ID' --details
+uv run ado get document -q 'config.metadata.name=study-$ID' --details \
+  --output-file /tmp/ado-study-docs.txt
 
 # List documents and select names matching study-*
-uv run ado get document --details
+uv run ado get document --details --output-file /tmp/ado-documents-details.txt
 
 # Spaces / operations in the study
-uv run ado get spaces -l study=$ID --details
-uv run ado get operations -l study=$ID --details
+uv run ado get spaces -l study=$ID --details --output-file /tmp/ado-study-spaces.txt
+uv run ado get operations -l study=$ID --details --output-file /tmp/ado-study-operations.txt
 ```
 
 Fetch the study body with `uv run ado describe document DOCUMENT_ID`.

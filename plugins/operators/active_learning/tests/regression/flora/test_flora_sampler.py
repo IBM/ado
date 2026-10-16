@@ -73,3 +73,139 @@ def test_flora_averages_pointwise_tree_disagreement_within_each_leaf() -> None:
             assert state.leaf_disagreement_[tree_index, leaf_code] == pytest.approx(
                 np.mean(expected_disagreement[members])
             )
+
+
+@pytest.mark.parametrize(
+    ("seed", "expected_forest_seeds", "expected_tie_prefix"),
+    [
+        (
+            42,
+            [1319930014, 250891444, 1679823183, 1737235761, 1771475718],
+            [15, 36, 10, 6, 12, 28, 38, 17, 23, 22, 24, 32],
+        ),
+        (
+            17,
+            [357838922, 207341212, 1822441986, 313021393, 1581564404],
+            [14, 23, 28, 9, 32, 10, 6, 22, 20, 13, 36, 15],
+        ),
+        (
+            2**32 + 42,
+            [1319930014, 250891444, 1679823183, 1737235761, 1771475718],
+            [15, 36, 10, 6, 12, 28, 38, 17, 23, 22, 24, 32],
+        ),
+    ],
+    ids=["seed-42", "seed-17", "32-bit-seed-domain"],
+)
+def test_flora_replays_legacy_forest_and_tie_random_streams(
+    seed: int,
+    expected_forest_seeds: list[int],
+    expected_tie_prefix: list[int],
+) -> None:
+    """Replay legacy FORE/TIES vectors across actual scheduled forest refits."""
+
+    features = np.arange(40, dtype=float).reshape(-1, 1)
+    initial_indices = np.arange(5)
+    trajectories = []
+    for _ in range(2):
+        state = _FLORASelectionState(
+            features,
+            initial_indices,
+            np.ones(5),
+            n_estimators=5,
+            min_samples_leaf=1,
+            seed=seed,
+            n_jobs=1,
+        )
+        choices = []
+        forests = []
+        forest_seeds = []
+        refit_sizes = []
+        for _ in range(20):
+            index = state.query_one()
+            if not forests or state.forest_ is not forests[-1]:
+                forests.append(state.forest_)
+                forest_seeds.append(state.forest_.random_state)
+                refit_sizes.append(len(state.selected_indices))
+            assert np.all(state.point_disagreement_ == 0.0)
+            choices.append(index)
+            state.update(index, 1.0)
+
+        assert refit_sizes == [5, 8, 12, 17, 23]
+        assert forest_seeds == expected_forest_seeds
+        assert choices[:12] == expected_tie_prefix
+        trajectories.append(choices)
+
+    assert trajectories[0] == trajectories[1]
+
+
+def test_flora_extra_tie_draws_do_not_change_forest_seeds() -> None:
+    """Identical training labels produce matching seeds despite different ties."""
+
+    features = np.arange(40, dtype=float).reshape(-1, 1)
+    initial_indices = np.arange(5)
+    tied = _FLORASelectionState(
+        features,
+        initial_indices,
+        np.ones(5),
+        n_estimators=5,
+        min_samples_leaf=1,
+        seed=42,
+        n_jobs=1,
+    )
+    singleton = _FLORASelectionState(
+        features,
+        initial_indices,
+        np.ones(5),
+        n_estimators=5,
+        min_samples_leaf=1,
+        seed=42,
+        n_jobs=1,
+    )
+    forest_seeds = []
+    for _ in range(15):
+        index = tied.query_one()
+        assert singleton.query_one(np.array([index])) == index
+        assert tied.forest_.random_state == singleton.forest_.random_state
+        if not forest_seeds or tied.forest_.random_state != forest_seeds[-1]:
+            forest_seeds.append(tied.forest_.random_state)
+        tied.update(index, 1.0)
+        singleton.update(index, 1.0)
+        assert tied.selected_indices == singleton.selected_indices
+
+    assert len(forest_seeds) == 4
+
+
+def test_flora_extra_forest_refits_do_not_change_tie_choices() -> None:
+    """Additional fits leave tie choices unchanged for constant-label forests."""
+
+    features = np.arange(40, dtype=float).reshape(-1, 1)
+    initial_indices = np.arange(5)
+    scheduled = _FLORASelectionState(
+        features,
+        initial_indices,
+        np.ones(5),
+        n_estimators=5,
+        min_samples_leaf=1,
+        seed=42,
+        n_jobs=1,
+    )
+    frequent = _FLORASelectionState(
+        features,
+        initial_indices,
+        np.ones(5),
+        n_estimators=5,
+        min_samples_leaf=1,
+        seed=42,
+        n_jobs=1,
+    )
+    seeds_differ = False
+    for step in range(12):
+        if step > 0:
+            frequent._fit_epoch()
+        index = scheduled.query_one()
+        assert frequent.query_one() == index
+        seeds_differ |= scheduled.forest_.random_state != frequent.forest_.random_state
+        scheduled.update(index, 1.0)
+        frequent.update(index, 1.0)
+
+    assert seeds_differ

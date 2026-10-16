@@ -83,6 +83,8 @@ def test_operator_parameter_models_round_trip(
         nEstimators=11,
         minSamplesLeaf=1,
         nJobs=1,
+        pilotSize=3,
+        maxFeatures=0.5,
     )
     restored = parameters_class.model_validate(parameters.model_dump())
     sampler_parameters = sampler_parameters_class.model_validate(
@@ -92,6 +94,10 @@ def test_operator_parameter_models_round_trip(
     assert restored == parameters
     assert restored.numberEntities == 7
     assert sampler_parameters.targetOutput == "benchmark.latency"
+    assert restored.pilotSize == 3
+    assert sampler_parameters.pilotSize == 3
+    assert restored.maxFeatures == 0.5
+    assert sampler_parameters.maxFeatures == 0.5
     assert "numberEntities" not in sampler_parameters.model_dump()
 
     with pytest.raises(pydantic.ValidationError):
@@ -107,6 +113,7 @@ def test_operator_parameter_models_round_trip(
                 numberEntities=3,
                 epochLength=2,
                 nJobs=1,
+                maxFeatures=1.0,
             ),
             PKHSampleSelector,
         ),
@@ -115,6 +122,7 @@ def test_operator_parameter_models_round_trip(
                 targetOutput="latency",
                 numberEntities=3,
                 nJobs=1,
+                maxFeatures=1.0,
             ),
             FLORASampleSelector,
         ),
@@ -139,6 +147,8 @@ def test_operator_settings_construct_the_matching_sampler(
 
     assert isinstance(selector, selector_class)
     assert selector.params.targetOutput == operator_parameters.targetOutput
+    assert selector.params.maxFeatures == 1.0
+    assert isinstance(selector.params.maxFeatures, float)
 
 
 @pytest.mark.parametrize(
@@ -151,6 +161,7 @@ def test_operator_settings_construct_the_matching_sampler(
                 nEstimators=5,
                 minSamplesLeaf=1,
                 nJobs=1,
+                maxFeatures=1.0,
             ),
             PKHSampleSelector,
         ),
@@ -161,6 +172,7 @@ def test_operator_settings_construct_the_matching_sampler(
                 nEstimators=5,
                 minSamplesLeaf=1,
                 nJobs=1,
+                maxFeatures=1.0,
             ),
             FLORASampleSelector,
         ),
@@ -194,6 +206,8 @@ def test_operator_delegates_to_sequential_unfiltered_random_walk(
     selector = random_walk_parameters.samplerConfig.sampler()
     assert isinstance(selector, selector_class)
     assert selector.params.targetOutput == operator_parameters.targetOutput
+    assert selector.params.maxFeatures == 1.0
+    assert isinstance(selector.params.maxFeatures, float)
 
 
 def test_nested_random_walk_operation_becomes_an_outer_resource() -> None:

@@ -212,6 +212,8 @@ def _adaptive_test_space() -> tuple[
                 "targetOutput": "latency",
                 "nEstimators": 100,
                 "minSamplesLeaf": 2,
+                "maxFeatures": "sqrt",
+                "pilotSize": 5,
                 "epochLength": 10,
                 "seed": 42,
                 "criterion": "squared_error",
@@ -226,6 +228,8 @@ def _adaptive_test_space() -> tuple[
                 "targetOutput": "latency",
                 "nEstimators": 100,
                 "minSamplesLeaf": 2,
+                "maxFeatures": "sqrt",
+                "pilotSize": 5,
                 "seed": 42,
                 "criterion": "squared_error",
                 "nJobs": -1,
@@ -260,6 +264,33 @@ def test_parameter_models_reject_invalid_options(
         parameters_class(targetOutput="latency", nJobs=0)
 
 
+@pytest.mark.parametrize("parameters_class", [PKHParameters, FLORAParameters])
+@pytest.mark.parametrize("pilot_size", [1, 7, 1_000_000])
+def test_custom_pilot_size_round_trip(
+    parameters_class: type[PKHParameters] | type[FLORAParameters],
+    pilot_size: int,
+) -> None:
+    """Verify positive pilot sizes survive parameter serialization."""
+
+    parameters = parameters_class(targetOutput="latency", pilotSize=pilot_size)
+    restored = parameters_class.model_validate(parameters.model_dump())
+
+    assert restored == parameters
+    assert restored.pilotSize == pilot_size
+
+
+@pytest.mark.parametrize("parameters_class", [PKHParameters, FLORAParameters])
+@pytest.mark.parametrize("pilot_size", [0, -1, 2.5])
+def test_parameter_models_reject_invalid_pilot_sizes(
+    parameters_class: type[PKHParameters] | type[FLORAParameters],
+    pilot_size: float,
+) -> None:
+    """Verify the pilot size must be a positive integer."""
+
+    with pytest.raises(pydantic.ValidationError):
+        parameters_class(targetOutput="latency", pilotSize=pilot_size)
+
+
 @pytest.mark.parametrize(
     ("selector_class", "parameters_class"),
     [
@@ -279,7 +310,7 @@ def test_selectors_expose_and_load_their_parameter_models(
             moduleName=selector_class.__module__,
             moduleClass=selector_class.__name__,
         ),
-        parameters={"targetOutput": "latency", "nJobs": 1},
+        parameters={"targetOutput": "latency", "nJobs": 1, "pilotSize": 2},
     )
 
     selector = configuration.sampler()
@@ -291,6 +322,16 @@ def test_selectors_expose_and_load_their_parameter_models(
     assert isinstance(selector, selector_class)
     assert isinstance(restored, selector_class)
     assert isinstance(restored.params, parameters_class)
+    assert restored.params.pilotSize == 2
+
+    discovery_space, _, _, _ = _adaptive_test_space()
+    _, _, state = restored._initial_state(discovery_space)
+    assert state.pilot_size == 2
+    pilot = state.query_one()
+    assert not state._forest_fitted
+    state.update(pilot, 2.0)
+    state.query_one()
+    assert state._forest_fitted
 
 
 def test_target_resolution_requires_one_observed_property() -> None:
@@ -430,13 +471,13 @@ def _complete_queries(
     ],
     ids=["pkh", "flora"],
 )
-def test_unlabelled_pool_uses_one_deterministic_pilot_before_fitting(
+def test_unlabelled_pool_uses_five_random_pilot_points_before_fitting(
     state_class: type[_PKHSelectionState] | type[_FLORASelectionState],
     additional_arguments: dict[str, int],
 ) -> None:
-    """Verify an unlabelled pool yields a deterministic pilot before fitting."""
+    """Verify the default pilot reveals five distinct labels before fitting."""
 
-    features = np.arange(8, dtype=float).reshape(-1, 1)
+    features = np.arange(20, dtype=float).reshape(-1, 1)
     labels = np.square(features[:, 0])
     state = state_class(
         features,
@@ -449,13 +490,162 @@ def test_unlabelled_pool_uses_one_deterministic_pilot_before_fitting(
         **additional_arguments,
     )
 
-    pilot = state.query_one()
+    pilot = []
+    for _ in range(5):
+        index = state.query_one()
+        assert not state._forest_fitted
+        state.update(index, labels[index])
+        pilot.append(index)
 
-    assert pilot == 0
-    assert not state._forest_fitted
-    state.update(pilot, labels[pilot])
+    assert len(set(pilot)) == 5
+    expected_pilot = np.random.default_rng(5).choice(
+        len(features), size=5, replace=False
+    )
+    np.testing.assert_array_equal(pilot, expected_pilot)
     state.query_one()
     assert state._forest_fitted
+
+
+@pytest.mark.parametrize(
+    ("state_class", "additional_arguments"),
+    [(_PKHSelectionState, {"epoch_length": 3}), (_FLORASelectionState, {})],
+    ids=["pkh", "flora"],
+)
+def test_partial_pilot_retains_random_acquisition_order(
+    state_class: type[_PKHSelectionState] | type[_FLORASelectionState],
+    additional_arguments: dict[str, int],
+) -> None:
+    """Verify stopping during a pool-sized pilot retains random prefixes."""
+
+    features = np.arange(10, dtype=float).reshape(-1, 1)
+    labels = np.square(features[:, 0])
+    prefixes = []
+    for seed in (1, 42, 99):
+        state = state_class(
+            features,
+            np.array([], dtype=int),
+            np.array([], dtype=float),
+            pilot_size=len(features),
+            seed=seed,
+            **additional_arguments,
+        )
+
+        prefixes.append(_complete_queries(state, labels, count=2))
+        assert not state._forest_fitted
+        assert state.has_candidates
+
+    assert len(set(prefixes)) == 3
+
+
+@pytest.mark.parametrize(
+    ("state_class", "additional_arguments"),
+    [(_PKHSelectionState, {"epoch_length": 3}), (_FLORASelectionState, {})],
+    ids=["pkh", "flora"],
+)
+@pytest.mark.parametrize(
+    ("pilot_size", "initial_count"),
+    [(1, 0), (3, 0), (7, 2), (5, 5), (3, 5)],
+)
+def test_custom_pilot_counts_existing_labels_before_fitting(
+    state_class: type[_PKHSelectionState] | type[_FLORASelectionState],
+    additional_arguments: dict[str, int],
+    pilot_size: int,
+    initial_count: int,
+) -> None:
+    """Verify known labels count toward the configurable pilot threshold."""
+
+    features = np.arange(12, dtype=float).reshape(-1, 1)
+    labels = np.square(features[:, 0])
+    initial_indices = np.arange(initial_count)
+    state = state_class(
+        features,
+        initial_indices,
+        labels[initial_indices],
+        pilot_size=pilot_size,
+        n_estimators=5,
+        min_samples_leaf=1,
+        n_jobs=1,
+        **additional_arguments,
+    )
+
+    for _ in range(max(0, pilot_size - initial_count)):
+        index = state.query_one()
+        assert index not in initial_indices
+        assert not state._forest_fitted
+        state.update(index, labels[index])
+
+    state.query_one()
+    assert state._forest_fitted
+
+
+@pytest.mark.parametrize(
+    ("state_class", "additional_arguments"),
+    [(_PKHSelectionState, {"epoch_length": 3}), (_FLORASelectionState, {})],
+    ids=["pkh", "flora"],
+)
+def test_pilot_is_seeded_and_honors_candidate_subsets(
+    state_class: type[_PKHSelectionState] | type[_FLORASelectionState],
+    additional_arguments: dict[str, int],
+) -> None:
+    """Verify reproducible random pilots respect the eligible candidate set."""
+
+    features = np.arange(30, dtype=float).reshape(-1, 1)
+    labels = np.square(features[:, 0])
+    eligible = np.arange(1, 30, 2)
+    sequences = []
+    for seed in (5, 5, 19):
+        state = state_class(
+            features,
+            np.array([], dtype=int),
+            np.array([], dtype=float),
+            pilot_size=7,
+            seed=seed,
+            **additional_arguments,
+        )
+        available = eligible.copy()
+        selected = []
+        for _ in range(7):
+            index = state.query_one(available[::-1])
+            assert index in available
+            assert not state._forest_fitted
+            state.update(index, labels[index])
+            available = available[available != index]
+            selected.append(index)
+        sequences.append(selected)
+
+    assert sequences[0] == sequences[1]
+    assert sequences[0] != sequences[2]
+    assert len(set(sequences[0])) == 7
+
+
+@pytest.mark.parametrize(
+    ("state_class", "additional_arguments"),
+    [(_PKHSelectionState, {"epoch_length": 3}), (_FLORASelectionState, {})],
+    ids=["pkh", "flora"],
+)
+def test_pool_smaller_than_pilot_exhausts_without_fitting(
+    state_class: type[_PKHSelectionState] | type[_FLORASelectionState],
+    additional_arguments: dict[str, int],
+) -> None:
+    """Verify a pilot larger than the pool selects each remaining point once."""
+
+    features = np.arange(4, dtype=float).reshape(-1, 1)
+    labels = np.square(features[:, 0])
+    state = state_class(
+        features,
+        np.array([2]),
+        labels[[2]],
+        pilot_size=100,
+        **additional_arguments,
+    )
+
+    selected = _complete_queries(state, labels, count=3)
+
+    assert set(selected) == {0, 1, 3}
+    assert not state.has_candidates
+    assert not state._forest_fitted
+    with pytest.raises(ValueError, match="no unqueried candidates remain"):
+        state.query_one()
 
 
 @pytest.mark.parametrize(
@@ -525,3 +715,133 @@ def test_encode_features_handles_categories_deterministically() -> None:
         encoded,
         _encode_features(frame, categorical_columns=["accelerator", "region"]),
     )
+
+
+@pytest.mark.parametrize("parameters_class", [PKHParameters, FLORAParameters])
+@pytest.mark.parametrize("max_features", ["sqrt", "log2", 1, 3, 0.5, 1.0, None])
+def test_feature_subsampling_parameter_round_trip(
+    parameters_class: type[PKHParameters] | type[FLORAParameters],
+    max_features: str | float | None,
+) -> None:
+    """Preserve feature counts and fractions through configuration serialization."""
+
+    parameters = parameters_class(targetOutput="latency", maxFeatures=max_features)
+    restored = parameters_class.model_validate_json(parameters.model_dump_json())
+
+    assert restored == parameters
+    assert restored.maxFeatures == max_features
+    assert type(restored.maxFeatures) is type(max_features)
+
+
+@pytest.mark.parametrize("parameters_class", [PKHParameters, FLORAParameters])
+@pytest.mark.parametrize(
+    "max_features",
+    [True, False, 0, -1, 0.0, -0.5, 1.1, "auto", "1", float("nan"), float("inf")],
+)
+def test_parameter_models_reject_invalid_feature_subsampling(
+    parameters_class: type[PKHParameters] | type[FLORAParameters],
+    max_features: str | float | bool,
+) -> None:
+    """Reject invalid counts, fractions, modes, and boolean feature limits."""
+
+    with pytest.raises(pydantic.ValidationError):
+        parameters_class(targetOutput="latency", maxFeatures=max_features)
+
+
+@pytest.mark.parametrize(
+    ("selector_class", "parameters_class"),
+    [(PKHSampleSelector, PKHParameters), (FLORASampleSelector, FLORAParameters)],
+    ids=["pkh", "flora"],
+)
+@pytest.mark.parametrize(
+    ("feature_parameters", "expected_features"),
+    [
+        ({}, 3),
+        ({"maxFeatures": "sqrt"}, 3),
+        ({"maxFeatures": "log2"}, 3),
+        ({"maxFeatures": 1}, 1),
+        ({"maxFeatures": 2}, 2),
+        ({"maxFeatures": 0.5}, 4),
+        ({"maxFeatures": 1.0}, 9),
+        ({"maxFeatures": None}, 9),
+    ],
+    ids=[
+        "default",
+        "sqrt",
+        "log2",
+        "one-feature",
+        "two-features",
+        "half",
+        "all-fraction",
+        "all-none",
+    ],
+)
+def test_feature_subsampling_reaches_every_forest_refit(
+    selector_class: type[PKHSampleSelector] | type[FLORASampleSelector],
+    parameters_class: type[PKHParameters] | type[FLORAParameters],
+    feature_parameters: dict[str, str | int | float | None],
+    expected_features: int,
+) -> None:
+    """Fit actual forests using the configured feature budget across refits."""
+
+    configuration = CustomSamplerConfiguration(
+        module=SamplerModuleConf(
+            moduleName=selector_class.__module__,
+            moduleClass=selector_class.__name__,
+        ),
+        parameters={
+            "targetOutput": "latency",
+            "nEstimators": 5,
+            "minSamplesLeaf": 1,
+            "nJobs": 1,
+            **feature_parameters,
+        },
+    )
+    selector = CustomSamplerConfiguration.model_validate(
+        configuration.model_dump()
+    ).sampler()
+    assert isinstance(selector.params, parameters_class)
+    frame = pd.DataFrame(np.random.default_rng(21).normal(size=(40, 9)))
+    features = _encode_features(frame)
+    labels = features[:, 0] ** 2 + features[:, 3]
+    initial_indices = np.arange(7)
+    state = selector._selection_state(
+        features, initial_indices, labels[initial_indices]
+    )
+    forests = []
+
+    for _ in range(15):
+        index = state.query_one()
+        forest = state.forest_
+        if not forests or forest is not forests[-1]:
+            forests.append(forest)
+        assert forest.n_features_in_ == 9
+        assert all(
+            tree.max_features_ == expected_features for tree in forest.estimators_
+        )
+        state.update(index, float(labels[index]))
+
+    assert len(forests) >= 2
+
+
+@pytest.mark.parametrize("state_class", [_PKHSelectionState, _FLORASelectionState])
+def test_selection_states_default_to_sqrt_feature_subsampling(
+    state_class: type[_PKHSelectionState] | type[_FLORASelectionState],
+) -> None:
+    """Direct state construction uses square-root feature sampling by default."""
+
+    features = np.random.default_rng(21).normal(size=(20, 9))
+    labels = features[:, 0] ** 2
+    initial_indices = np.arange(7)
+    state = state_class(
+        features,
+        initial_indices,
+        labels[initial_indices],
+        n_estimators=5,
+        min_samples_leaf=1,
+        n_jobs=1,
+    )
+
+    state.query_one()
+
+    assert all(tree.max_features_ == 3 for tree in state.forest_.estimators_)

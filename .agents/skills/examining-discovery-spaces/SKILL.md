@@ -20,18 +20,13 @@ covered its entity space is, and what data has been collected.
   `document` resource in the active ado metastore context (see
   [Producing a report](#producing-a-report)).
 
-**Related skills**:
+**Basic skills**:
 
-- For CLI verification and command spelling, see
-  [using-ado-cli](../using-ado-cli/SKILL.md).
-- For metastore filtering and schemas, see
-  [query-ado-data](../query-ado-data/SKILL.md).
-- For creating document resources that store reports, see
-  [resource-yaml-creation — Document](../resource-yaml-creation/SKILL.md#document).
-- For examining operations run on a space, see
-  [examining-ado-operations](../examining-ado-operations/SKILL.md).
-- For a project/context wide view (all spaces and operations), see
-  [examining-ado-project](../examining-ado-project/SKILL.md).
+Read the following basic skills first:
+
+- [using-ado-cli](../using-ado-cli/SKILL.md).
+- [query-ado-data](../query-ado-data/SKILL.md).
+- [resource-yaml-creation — Document](../resource-yaml-creation/SKILL.md#document).
 
 ## Context
 
@@ -67,8 +62,8 @@ Why is it useful to work with matching data?
      sampled spaced to analyze it. You can perform analysis on existing data
      even though no operation has been run on the new discoveryspace.
 2. Memoization: You can understand if there are memoization opportunities that
-   would speed up an operation on the space. When `MATCHING_ENTITIES` is
-   significantly larger than `MEASURED_ENTITIES`, data from other operations
+   would speed up an operation on the space. When `MATCHING_COMPLETE` is
+   significantly larger than `SAMPLED_COMPLETE`, data from other operations
    sharing the same sample store could be replayed.
 
    > The explanation above is sufficient for assessing memoization opportunities.
@@ -95,6 +90,10 @@ uv run ado show related space --use-latest
 `ado get … -o yaml` writes YAML to stdout by default. Prefer
 `--output-file PATH` (with the same `-o yaml`) to save it once and reuse the
 file instead of calling `ado get` repeatedly for the same resource.
+
+Table listings (`ado get … --details`) should also use `--output-file`. Tool
+stdout capture can drops long tables. See
+[using-ado-cli](../using-ado-cli/SKILL.md).
 
 ### Large output files
 
@@ -137,14 +136,22 @@ coverage columns, use:
 uv run ado show stats discoveryspace SPACE_ID
 ```
 
-This outputs the base table columns plus full entity-space coverage columns:
-`SIZE_OF_ENTITY_SPACE`, `UNMEASURED_ENTITIES`, `MATCHING_ENTITIES`,
-`MATCHING_WITH_MEASUREMENTS`, `ENTITIES_WITH_ALL_MEASUREMENTS`,
-`ENTITIES_WITH_PARTIAL_MEASUREMENTS`, `MATCHING_ENTITIES_WITH_ALL_MEASUREMENTS`.
+This outputs the base table columns plus all stats columns: `EXPERIMENTS`,
+`OPERATIONS`, `EXPLORE_OPS`, `ENTITY_SPACE_SIZE`, `UNSAMPLED`,
+`SAMPLED_COMPLETE`, `SAMPLED_PARTIAL`, `SAMPLED_FAILED`, `MATCHING_COMPLETE`,
+`MATCHING_PARTIAL`, `MATCHING_FAILED`.
 
-Compare `MEASURED_ENTITIES` vs `SIZE_OF_ENTITY_SPACE` to understand exploration
-progress. Compare `MEASURED_ENTITIES` vs `MATCHING_ENTITIES` to understand
-memoization opportunities — a large gap signals other overlapping spaces exist.
+Compare `SAMPLED_COMPLETE + SAMPLED_PARTIAL + SAMPLED_FAILED`
+vs `ENTITY_SPACE_SIZE` to understand exploration progress.
+
+- `SAMPLED_COMPLETE`: entities with valid results for all experiments in the space.
+- `SAMPLED_PARTIAL`: entities with valid results for some but not all experiments.
+- `SAMPLED_FAILED`: entities with at least one invalid result and zero
+  valid results for experiments in the measurement space.
+
+Compare `SAMPLED_COMPLETE` vs `MATCHING_COMPLETE`
+to understand memoization opportunities — a large gap signals other overlapping
+spaces exist that could be replayed.
 
 For related resources (operations and stores linked to this space), execute:
 
@@ -179,12 +186,28 @@ uv run ado show related space SPACE_ID
 
 ### Step 4: Find Similar spaces
 
-`ado get space --matching-space-id SPACE_ID --details` finds spaces with the
-same entity structure. Use this to understand research progression and why this
-space was created.
+`ado get space --matching-space-id SPACE_ID --details` finds spaces with related
+entity and experiment spaces. The output includes four columns:
+
+- `ENTITY_SPACE_MATCH`: relationship between the entity spaces (`= IDENTICAL`,
+  `⊃ SUPERSPACE`, `⊂ SUBSPACE`, `∩ OVERLAPPING`).
+- `BASE_EXPERIMENT_MATCH`: relationship between the sets of base experiment
+  identifiers (`= IDENTICAL`, `⊃ SUPERSPACE`, `⊂ SUBSPACE`, `∩ OVERLAPPING`).
+- `VERSION_MATCH`: whether paired experiments share the same version (`=
+  IDENTICAL`) or only the same major version (`≈ MAJOR_ONLY`).
+- `PARAMETERIZATION_MATCH`: whether paired experiments have identical
+  parameterization (`= IDENTICAL`), differing values (`≠ DIFFERENT`), or no
+  parameterization on either side (`N/A`).
+
+See the metastore docs ([source](../../../docs/resources/metastore.md) /
+[website](https://ibm.github.io/ado/latest/resources/metastore/)) for the full pairing
+rules, aggregation semantics, and memoization conditions.
+
+Use this to understand research progression and why this space was created.
 
 ```bash
-uv run ado get space --matching-space-id SPACE_ID --details
+uv run ado get space --matching-space-id SPACE_ID --details \
+  --output-file /tmp/ado-matching-spaces.txt
 ```
 
 ### Step 5: Export Measurement Data

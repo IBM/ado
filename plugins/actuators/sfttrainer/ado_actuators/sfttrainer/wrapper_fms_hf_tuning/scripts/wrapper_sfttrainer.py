@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import dataclasses
-import datetime
+import datetime as dt
 import os
 import sys
 import typing
@@ -212,9 +212,9 @@ class CustomAimCallback(AimCallback):
         self._aim_metadata = aim_metadata or {}
 
         self._stop_after_seconds = stop_after_seconds
-        self._time_started: datetime.datetime | None = None
+        self._time_started: dt.datetime | None = None
 
-        self._optimization_step_started: datetime.datetime | None = None
+        self._optimization_step_started: dt.datetime | None = None
 
         # VV: When auto_stop_method = WARMUP_60S_STABLE_120S_OR_10_STEPS, this ivar will (eventually) be the
         # index of the first optimization step that follows the WARMUP phase.
@@ -240,7 +240,7 @@ class CustomAimCallback(AimCallback):
     ) -> None:
         super().on_train_begin(args, state, control, model, **kwargs)
 
-        self._time_started = datetime.datetime.now()
+        self._time_started = dt.datetime.now()
 
         if state.is_local_process_zero:
             run: aim.Run = self.experiment
@@ -260,7 +260,7 @@ class CustomAimCallback(AimCallback):
         control: TrainerControl,
         **kwargs: Any,  # noqa: ANN401
     ) -> None:
-        self._optimization_step_started = datetime.datetime.now()
+        self._optimization_step_started = dt.datetime.now()
 
     def on_step_end(
         self,
@@ -273,12 +273,12 @@ class CustomAimCallback(AimCallback):
 
         CustomAimCallback.training_steps += 1
 
-        now = datetime.datetime.now()
-        dt = (now - self._optimization_step_started).total_seconds()
+        now = dt.datetime.now()
+        elapsed = (now - self._optimization_step_started).total_seconds()
         running_for = (now - self._time_started).total_seconds()
 
         if state.is_world_process_zero:
-            self.experiment.track(value=dt, name="optimization_step_duration")
+            self.experiment.track(value=elapsed, name="optimization_step_duration")
 
         if (
             state.is_local_process_zero
@@ -362,7 +362,7 @@ class CustomAimCallback(AimCallback):
         try:
             if self._aim_info_path and state.is_local_process_zero:
                 format_time = "%d%m%y-%H%M%S"
-                train_time_stop = datetime.datetime.now().strftime(format_time)
+                train_time_stop = dt.datetime.now().strftime(format_time)
 
                 run: aim.Run = self.experiment
 

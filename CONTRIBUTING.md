@@ -93,16 +93,16 @@ file.
 ## Testing
 
 We use [Tox](https://github.com/tox-dev/tox) to run unit tests for our code. To
-run tests for Python 3.10 on MacOS using locked dependencies, you can run the
+run tests for Python 3.11 on MacOS using locked dependencies, you can run the
 following command:
 
 ```commandline
-export TOX_ENV=py310-locked-macos
+export TOX_ENV=py311-locked-macos
 tox --colored yes --stderr-color RESET -r -e "$TOX_ENV" -vvv
 ```
 
-Similarly, you can test different Python versions by changing `py310` to `py311`
-or `py312`. You can also use standard pip resolution instead of locked
+Similarly, you can test different Python versions by changing `py311` to `py312`,
+`py313`, or `py314`. You can also use standard pip resolution instead of locked
 dependencies by using `nonlocked`.
 
 ## Commit and PR title guidelines

@@ -130,13 +130,26 @@ def get_resource(
             show_default=True,
         ),
     ] = False,
+    include_properties: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--include-properties",
+            "-p",
+            help=(
+                "Include discovery-space properties. Specify constitutive, parameterized, "
+                "optional, all, or one or more property identifiers."
+            ),
+            rich_help_panel=DISCOVERY_SPACE_ONLY_OPTIONS,
+            show_default=False,
+        ),
+    ] = None,
     output_format: Annotated[
         AdoGetSupportedOutputFormats,
         typer.Option(
             "--output",
             "-o",
             rich_help_panel=OUTPUT_CONFIGURATION_OPTIONS,
-            help="Output information in a different format. The 'json', 'raw', and 'yaml' formats will output the entire resource. The 'name' format outputs only resource identifiers (similar to kubectl get -o name). The 'stats' format augments the default table with statistics columns: for operations (TOTAL_RESULTS, SUCCESSFUL_RESULTS, FAILED_RESULTS, MEASURED_ENTITIES), for discovery spaces (EXPERIMENTS, OPERATIONS, EXPLORE_OPERATIONS, MEASURED_ENTITIES), for sample stores (ENTITIES, RESULTS, EXPERIMENTS), and for data containers (TABLES, LOCATIONS, KEY_VALUES, DATA_BYTES). MEASURED_ENTITIES counts entities with at least one measurement, whether successful, failed, or both. Not all formats may be supported by all resources.",
+            help="Output information in a different format. The 'json', 'raw', and 'yaml' formats will output the entire resource. The 'name' format outputs only resource identifiers (similar to kubectl get -o name). The 'stats' format augments the default table with statistics columns: for operations (TOTAL_MEASUREMENTS, SUCCESSFUL_MEASUREMENTS, FAILED_MEASUREMENTS, SAMPLED_ENTITIES), for discovery spaces (EXPERIMENTS, OPERATIONS, EXPLORE_OPS, SAMPLED_ENTITIES), for sample stores (ENTITIES, RESULTS, EXPERIMENTS), and for data containers (TABLES, LOCATIONS, KEY_VALUES, DATA_BYTES). SAMPLED_ENTITIES counts entities with at least one measurement, whether successful, failed, or both. Not all formats may be supported by all resources.",
         ),
     ] = AdoGetSupportedOutputFormats.TABLE.value,
     exclude_default: Annotated[
@@ -242,9 +255,8 @@ def get_resource(
             help="""
             Provide a space YAML file as a reference to find matching spaces. Only for spaces.
 
-            A space matches if it has exactly the same base experiments as the reference
-            and its entity space is in a hierarchical relationship with the reference
-            (subspace, equal, or superspace).
+            A space matches if it shares at least one experiment with the reference
+            and its entity space overlaps with or is hierarchically related to the reference.
 
             If set, disregards --filter and --label, and uses the table output format.
             """,
@@ -262,9 +274,8 @@ def get_resource(
             Provide an existing space ID as a reference to find matching spaces. Only for spaces.
             Takes precedence over --matching-space.
 
-            A space matches if it has exactly the same base experiments as the reference
-            and its entity space is in a hierarchical relationship with the reference
-            (subspace, equal, or superspace).
+            A space matches if it shares at least one experiment with the reference
+            and its entity space overlaps with or is hierarchically related to the reference.
 
             If set, disregards --filter and --label, and uses the table output format.
             """,
@@ -452,6 +463,7 @@ def get_resource(
         exclude_none=exclude_none,
         exclude_unset=exclude_unset,
         field_selectors=filter_conditions,
+        include_properties=include_properties,
         matching_point=matching_point,
         matching_space_id=matching_space_id,
         matching_space=matching_space,

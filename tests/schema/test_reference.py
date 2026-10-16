@@ -272,3 +272,55 @@ def test_experiment_reference_equality_non_reference() -> None:
 
     ref = ExperimentReference(experimentIdentifier="test", actuatorIdentifier="test")
     assert ref != "test.test"
+
+
+def test_reference_parameterization_order_is_irrelevant(
+    mock_parameterizable_experiment: Experiment,
+    customParameterization: list[ConstitutivePropertyValue],
+) -> None:
+
+    ref = ExperimentReference(
+        actuatorIdentifier=mock_parameterizable_experiment.actuatorIdentifier,
+        experimentIdentifier=mock_parameterizable_experiment.identifier,
+        experimentVersion="1.2.3",
+        parameterization=customParameterization,
+    )
+    reversed_ref = ExperimentReference(
+        actuatorIdentifier=mock_parameterizable_experiment.actuatorIdentifier,
+        experimentIdentifier=mock_parameterizable_experiment.identifier,
+        experimentVersion="1.2.3",
+        parameterization=list(reversed(customParameterization)),
+    )
+
+    assert ref == reversed_ref
+    assert hash(ref) == hash(reversed_ref)
+    assert len({ref, reversed_ref}) == 1
+    assert (
+        ref.major_version_parameterized_experiment_identifier
+        == reversed_ref.major_version_parameterized_experiment_identifier
+    )
+    assert (
+        ref.fully_qualified_parameterized_experiment_identifier
+        == reversed_ref.fully_qualified_parameterized_experiment_identifier
+    )
+    assert str(ref) == str(reversed_ref)
+    assert reversed_ref.parameterization == sorted(
+        customParameterization, key=lambda v: v.property.identifier
+    )
+
+
+def test_reference_reversed_parameterization_lifecycle(
+    mock_parameterizable_experiment: Experiment,
+    customParameterization: list[ConstitutivePropertyValue],
+) -> None:
+
+    ref = ExperimentReference(
+        actuatorIdentifier=mock_parameterizable_experiment.actuatorIdentifier,
+        experimentIdentifier=mock_parameterizable_experiment.identifier,
+        parameterization=list(reversed(customParameterization)),
+    )
+
+    dumped = ref.model_dump()
+
+    assert ExperimentReference.model_validate(dumped) == ref
+    assert ExperimentReference.model_validate_json(ref.model_dump_json()) == ref

@@ -3,9 +3,11 @@
 
 import enum
 import logging
+import numbers
 import typing
-from typing import Annotated
+from typing import Annotated, Any
 
+import numpy as np
 import pydantic
 from pydantic import WithJsonSchema
 
@@ -15,11 +17,12 @@ from ado.schema.property import (
     Property,
     PropertyDescriptor,
 )
+from ado.utilities.output import format_elided_list
 
 logger = logging.getLogger("property_value")
 
 
-class ValueTypeEnum(str, enum.Enum):
+class ValueTypeEnum(enum.StrEnum):
     NUMERIC_VALUE_TYPE = "NUMERIC_VALUE_TYPE"  # the value is a bool,int, float etc.
     VECTOR_VALUE_TYPE = "VECTOR_VALUE_TYPE"  # the value is a 1-D list or vector, possible of mixed other value types
     STRING_VALUE_TYPE = "STRING_VALUE_TYPE"  # the value is a string
@@ -72,6 +75,48 @@ class PropertyValue(pydantic.BaseModel):
             description="The uncertainty in the measured value. Can be None"
         ),
     ] = None
+
+    @pydantic.model_validator(mode="before")
+    @classmethod
+    def validate_value_type_supported(
+        cls,
+        data: Any,  # noqa: ANN401
+    ) -> Any:  # noqa: ANN401
+        """Validate that the value type is supported.
+
+        Args:
+            data: The raw model input data.
+
+        Returns:
+            The data unchanged when the value type is supported.
+
+        Raises:
+            ValueError: When ``value`` is not one of the supported types
+                (``int``, ``float``, ``str``, ``list``, ``bytes``, or ``None``).
+        """
+        if not isinstance(data, dict):
+            return data
+
+        raw_value = data.get("value")
+        if not isinstance(
+            raw_value, (numbers.Real, np.bool_, list, str, bytes, type(None))
+        ):
+            raw_property = data.get("property")
+            property_identifier = getattr(raw_property, "identifier", None) or (
+                raw_property.get("identifier")
+                if isinstance(raw_property, dict)
+                else None
+            )
+
+            property_error_prefix = (
+                f"Property '{property_identifier}': " if property_identifier else ""
+            )
+            raise ValueError(
+                f"{property_error_prefix}unsupported value type '{type(raw_value).__name__}'. "
+                f"Accepted types: int, float, str, list, bytes, None."
+            )
+
+        return data
 
     @pydantic.field_validator("property", mode="before")
     def convert_property_to_descriptor(
@@ -161,6 +206,30 @@ class PropertyValue(pydantic.BaseModel):
     def isUncertain(self) -> bool:
 
         return self.uncertainty is not None
+
+    def compact_representation(self, max_items: int | None = None) -> str:
+        """Return a compact string representation of this property value.
+
+        Args:
+            max_items: Maximum number of items to show for vector values before
+                truncating with a ``(+N more)`` suffix.  Pass ``None`` to
+                disable truncation.
+
+        Returns:
+            A compact string such as ``3600``, ``some_file.mst``,
+            ``[0, 1, 2]``, ``[0, 1, ..., 7] (+5 more)``, or
+            ``<blob 42 bytes>``.
+        """
+        if self.valueType == ValueTypeEnum.BLOB_VALUE_TYPE:
+            n = len(self.value) if self.value is not None else 0
+            return f"<blob {n} bytes>"
+
+        if self.valueType == ValueTypeEnum.VECTOR_VALUE_TYPE:
+            items: list = self.value if self.value is not None else []
+            return format_elided_list(items, max_items)
+
+        # NUMERIC_VALUE_TYPE and STRING_VALUE_TYPE — scalar
+        return str(self.value)
 
 
 class ConstitutivePropertyValue(PropertyValue):

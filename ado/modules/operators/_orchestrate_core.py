@@ -1,7 +1,9 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
+import json
 import logging
+import os
 import sys
 import time
 import typing
@@ -15,11 +17,11 @@ from ado.core.discoveryspace.space import DiscoverySpace
 from ado.core.operation.config import (
     FunctionOperationInfo,
     OperatorMetadata,
-    OperatorReference,
 )
 from ado.core.operation.operation import OperationException, OperationOutput
 from ado.core.operation.resource import (
     OperationExitStateEnum,
+    OperationProvenanceInfo,
     OperationResourceEventEnum,
     OperationResourceStatus,
 )
@@ -67,12 +69,62 @@ def log_space_details(discovery_space: "DiscoverySpace") -> None:
     console.print(discovery_space)
 
 
+def _record_ray_job_metadata(operation_resource: OperationResource) -> None:
+    """Record Ray job and submission IDs on the operation resource if available.
+
+    ``ray_job_id`` is the Ray Core driver ID (hex), available whenever Ray is
+    initialized. ``ray_submission_id`` is the Jobs API submission ID
+    (``raysubmit_...``), available only when this process is a Ray Jobs API
+    driver. The submission ID is the identifier used by ``ray job status``,
+    ``ray job stop``, and ``ray job logs``.
+
+    Args:
+        operation_resource: Operation whose metadata should be updated in place.
+    """
+    if not ray.is_initialized():
+        moduleLog.info("Operation is not running as a Ray job - no ray_job_id set")
+        return
+
+    try:
+        operation_resource.metadata["ray_job_id"] = (
+            ray.get_runtime_context().get_job_id()
+        )
+    except Exception:
+        moduleLog.info(
+            "Could not retrieve Ray job ID - operation will proceed without it"
+        )
+
+    job_config_json = os.environ.get("RAY_JOB_CONFIG_JSON_ENV_VAR")
+    if not job_config_json:
+        return
+
+    try:
+        job_config = json.loads(job_config_json)
+    except Exception:
+        moduleLog.info(
+            "Could not retrieve Ray submission ID - operation will proceed without it"
+        )
+        return
+
+    metadata = job_config.get("metadata", {}) if isinstance(job_config, dict) else {}
+    submission_id = metadata.get("job_submission_id")
+
+    if submission_id:
+        operation_resource.metadata["ray_submission_id"] = submission_id
+    else:
+        moduleLog.info(
+            "Ray job config present but no job_submission_id - "
+            "ray_submission_id will not be set"
+        )
+
+
 def _run_operation_harness(
     run_closure: typing.Callable[[], OperationOutput],
     discovery_space: DiscoverySpace,
     operator_metadata: OperatorMetadata,
     operation_parameters: dict,
     operation_info: FunctionOperationInfo,
+    provenance: OperationProvenanceInfo,
     operation_identifier: str | None = None,
     finalize_callback: typing.Callable[[OperationResource], None] | None = None,
 ) -> OperationOutput:
@@ -88,6 +140,7 @@ def _run_operation_harness(
         operator_metadata: Metadata for the registered operator.
         operation_parameters: Dictionary of parameters for the operation
         operation_info: Information about the operation including metadata and actuator configs
+        provenance: Package provenance for the operation, built by the caller
         operation_identifier: Optional pre-existing identifier for the operation resource
         finalize_callback: Optional callback to execute on the operation resource after
             completion, before final status update
@@ -104,30 +157,17 @@ def _run_operation_harness(
     # Create and add OperationResource to metastore
     #
 
-    operator_reference = OperatorReference(
-        operatorName=operator_metadata.name,
-        operationType=operator_metadata.type,
-        operatorVersion=operator_metadata.version,
-    )
     operation_resource = create_operation_and_add_to_metastore(
-        discovery_space=discovery_space,
-        operator_module=operator_reference,
+        space_identifier=discovery_space.uri,
+        operator_module=operator_metadata.reference,
         operation_parameters=operation_parameters,
         metastore=discovery_space.metadataStore,
         operation_info=operation_info,
+        provenance=provenance,
         operation_identifier=operation_identifier,
     )
 
-    if ray.is_initialized():
-        try:
-            ray_job_id = ray.get_runtime_context().get_job_id()
-            operation_resource.metadata["ray_job_id"] = ray_job_id
-        except Exception:
-            moduleLog.info(
-                "Could not retrieve Ray job ID - operation will proceed without it"
-            )
-    else:
-        moduleLog.info("Operation is not running as a Ray job - no ray_job_id set")
+    _record_ray_job_metadata(operation_resource)
 
     #
     # START THE OPERATION

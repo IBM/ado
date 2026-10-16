@@ -26,7 +26,7 @@ def delete_operation(parameters: AdoDeleteCommandParameters) -> None:
 
     Raises:
         ResourceDoesNotExistError: If the operation does not exist.
-        ResourceHasChildrenError: If the operation has dependent resources.
+        ResourceHasChildrenError: If the operation has non-DataContainer dependent resources.
         NotSupportedOnSQLiteError: If running-operations check is not supported on SQLite.
         RunningOperationsPreventingDeletionError: If running operations are using the same
             sample store.
@@ -47,12 +47,17 @@ def delete_operation(parameters: AdoDeleteCommandParameters) -> None:
         children_resources = sql.getRelatedObjectResourceIdentifiers(
             identifier=resource_id
         )
-        if not children_resources.empty:
+        # DataContainer children are handled atomically inside the metastore
+        # transaction; only block on non-DataContainer children here.
+        non_data_container_children = children_resources[
+            children_resources["TYPE"] != CoreResourceKinds.DATACONTAINER.value
+        ]
+        if not non_data_container_children.empty:
             status.stop()
             raise ResourceHasChildrenError(
                 resource_id=resource_id,
                 kind=CoreResourceKinds.OPERATION,
-                children_resources=children_resources,
+                children_resources=non_data_container_children,
             )
 
         status.update(ADO_SPINNER_DELETING_FROM_DB)

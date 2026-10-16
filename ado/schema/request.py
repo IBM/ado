@@ -1,7 +1,7 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-import datetime
+import datetime as dt
 import enum
 import typing
 import uuid
@@ -23,16 +23,16 @@ if typing.TYPE_CHECKING:  # pragma: nocover
     from pydantic import ValidatorFunctionWrapHandler
 
 
-class MeasurementRequestStateEnum(str, enum.Enum):
+class MeasurementRequestStateEnum(enum.StrEnum):
     UNKNOWN = "Unknown"
     SUCCESS = "Success"
     FAILED = "Failed"
 
 
-def timestamp() -> datetime.datetime:
+def timestamp() -> dt.datetime:
     """For use in MeasurementRequest timestamp creation"""
 
-    return datetime.datetime.now(tzlocal())
+    return dt.datetime.now(tzlocal())
 
 
 class MeasurementRequest(pydantic.BaseModel, validate_assignment=True):
@@ -83,7 +83,7 @@ class MeasurementRequest(pydantic.BaseModel, validate_assignment=True):
         MeasurementRequestStateEnum,
         pydantic.Field(description="The status of the measurement"),
     ] = MeasurementRequestStateEnum.UNKNOWN
-    timestamp: Annotated[datetime.datetime, pydantic.Field(default_factory=timestamp)]
+    timestamp: Annotated[dt.datetime, pydantic.Field(default_factory=timestamp)]
 
     measurements: Annotated[
         tuple[MeasurementResultType, ...] | None,

@@ -1,10 +1,53 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
+import math
 import typing
 
 import pydantic
 import yaml
+
+try:
+    from yaml import CSafeDumper as SafeDumper
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:  # pragma: nocover
+    from yaml import SafeDumper, SafeLoader  # type: ignore[assignment]
+
+
+def format_elided_list(items: list, max_items: int | None) -> str:
+    """Format a list, optionally truncating in the middle with an omission count.
+
+    When truncation is needed the first ``ceil(max_items / 2)`` and last
+    ``floor(max_items / 2)`` items are shown with the omitted count reported in
+    the middle, e.g. ``['A', 'B', ..., 'Y', 'Z'] (+10 more)``.
+
+    Args:
+        items: The list of items to format.
+        max_items: Maximum number of items to show (head + tail combined).
+            Must be at least 2 when provided. Pass ``None`` to disable
+            truncation.
+
+    Returns:
+        Formatted string representation of the list.
+
+    Raises:
+        ValueError: If max_items is less than 2.
+    """
+    if max_items is not None and max_items < 2:
+        raise ValueError("max_items must be at least 2")
+
+    if max_items is None or len(items) <= max_items:
+        return "[" + ", ".join(f"{v!r}" for v in items) + "]"
+
+    omitted = len(items) - max_items
+    items_at_start = math.ceil(max_items / 2)
+    items_at_end = max_items - items_at_start
+    parts = (
+        [f"{v!r}" for v in items[:items_at_start]]
+        + ["..."]
+        + [f"{v!r}" for v in items[-items_at_end:]]
+    )
+    return "[" + ", ".join(parts) + f"] (+{omitted} more)"
 
 
 def printable_pydantic_model(
@@ -31,14 +74,16 @@ def pydantic_model_as_yaml(
 ) -> str:
 
     model = printable_pydantic_model(model)
-    return yaml.safe_dump(
-        yaml.safe_load(
+    return yaml.dump(
+        yaml.load(
             model.model_dump_json(
                 exclude_unset=exclude_unset,
                 exclude_defaults=exclude_defaults,
                 exclude_none=exclude_none,
                 indent=indent,
                 context=context,
-            )
-        )
+            ),
+            Loader=SafeLoader,
+        ),
+        Dumper=SafeDumper,
     )

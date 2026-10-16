@@ -22,6 +22,7 @@ def test_pkh_uses_the_hand_computed_leaf_distribution_deficit() -> None:
         np.array([0.0, 1.0]),
         n_estimators=2,
         min_samples_leaf=1,
+        pilot_size=1,
         epoch_length=20,
         seed=7,
         n_jobs=1,

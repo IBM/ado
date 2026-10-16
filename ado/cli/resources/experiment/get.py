@@ -67,6 +67,9 @@ def get_experiment(parameters: AdoGetCommandParameters) -> None:
             columns.append("SUPPORTED")
 
         if parameters.resource_id:
+            # Lookup errors print via a separate Console; stop the spinner first
+            # so they are not written onto the live Status line.
+            spinner.stop()
             matched_experiment = _ado_lookup_cli_experiment(
                 parameters.resource_id,
                 registry=registry,

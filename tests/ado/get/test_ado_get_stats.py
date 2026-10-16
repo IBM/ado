@@ -1,6 +1,6 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
-import datetime
+import datetime as dt
 import os
 import pathlib
 import typing
@@ -8,7 +8,6 @@ from collections.abc import Callable
 
 import pandas as pd
 import pytest
-import rich.box
 from testcontainers.community.mysql import MySqlContainer
 from typer.testing import CliRunner
 
@@ -18,16 +17,14 @@ from ado.core.discoveryspace.space import DiscoverySpace
 from ado.core.samplestore.sql import SQLSampleStore
 from ado.metastore.project import ProjectContext
 from ado.schema.request import MeasurementRequest
-from ado.utilities.rich import dataframe_to_rich_table, render_to_string
 from tests.conftest import requires_sqlite_3_38
+from tests.utilities.cli_rendering import render_dataframe_to_cli_output
 
 if typing.TYPE_CHECKING:
     from ado.core import DataContainerResource
 
 # A past timestamp far enough from "now" that AGE is stable across a test run.
-_CREATED_7_DAYS_AGO = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(
-    days=7
-)
+_CREATED_7_DAYS_AGO = dt.datetime.now(dt.UTC) - dt.timedelta(days=7)
 _EXPECTED_AGE = "7d0h"
 
 
@@ -100,10 +97,10 @@ def test_ado_get_operations_stats_columns_present(
     assert result.exit_code == 0, result.output
     if os.environ.get("CI", "false") != "true":
         for col in [
-            "TOTAL_RESULTS",
-            "SUCCESSFUL_RESULTS",
-            "FAILED_RESULTS",
-            "MEASURED_ENTITIES",
+            "TOTAL_MEASUREMENTS",
+            "SUCCESSFUL_MEASUREMENTS",
+            "FAILED_MEASUREMENTS",
+            "SAMPLED_ENTITIES",
         ]:
             assert col in result.output, f"Column {col!r} missing from output"
 
@@ -118,7 +115,7 @@ def test_ado_get_operations_stats_values(
     ],
     ml_multi_cloud_space: DiscoverySpace,
     simulate_ml_multi_cloud_random_walk_operation: Callable[
-        [int, int, int, str | None, datetime.datetime | None],
+        [int, int, int, str | None, dt.datetime | None],
         tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
     ],
 ) -> None:
@@ -129,7 +126,7 @@ def test_ado_get_operations_stats_values(
     )
 
     number_entities = 3
-    # Use 1 request so MEASURED_ENTITIES == number_entities (entities are sampled per-request)
+    # Use 1 request so SAMPLED_ENTITIES == number_entities (entities are sampled per-request)
     number_requests = 1
     operation_id = "op-stats-test-abc123"
 
@@ -163,22 +160,15 @@ def test_ado_get_operations_stats_values(
                 "STATUS": "added",
                 "EXIT_STATE": "N/A",
                 "AGE": _EXPECTED_AGE,
-                "TOTAL_RESULTS": number_requests * number_entities,
-                "SUCCESSFUL_RESULTS": number_requests * number_entities,
-                "FAILED_RESULTS": 0,
-                "MEASURED_ENTITIES": number_entities,
+                "TOTAL_MEASUREMENTS": number_requests * number_entities,
+                "SUCCESSFUL_MEASUREMENTS": number_requests * number_entities,
+                "FAILED_MEASUREMENTS": 0,
+                "SAMPLED_ENTITIES": number_entities,
             },
             index=pd.Index([0]),
         )
-        rendered_output = render_to_string(
-            dataframe_to_rich_table(
-                expected_output,
-                show_index=True,
-                show_edge=True,
-                box=rich.box.SQUARE,
-                do_not_truncate_columns=True,
-            ),
-            auto_width=True,
+        rendered_output = render_dataframe_to_cli_output(
+            expected_output, do_not_truncate_columns=True
         )
         assert rendered_output in result.output, (
             f"Expected output:\n{rendered_output}\nnot found in:\n{result.output}"
@@ -195,7 +185,7 @@ def test_ado_get_operation_stats_single_resource(
     ],
     ml_multi_cloud_space: DiscoverySpace,
     simulate_ml_multi_cloud_random_walk_operation: Callable[
-        [int, int, int, str | None, datetime.datetime | None],
+        [int, int, int, str | None, dt.datetime | None],
         tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
     ],
 ) -> None:
@@ -206,7 +196,7 @@ def test_ado_get_operation_stats_single_resource(
     )
 
     number_entities = 2
-    # Use 1 request so MEASURED_ENTITIES == number_entities (entities are sampled per-request)
+    # Use 1 request so SAMPLED_ENTITIES == number_entities (entities are sampled per-request)
     number_requests = 1
     operation_id = "op-stats-single-xyz789"
 
@@ -240,22 +230,15 @@ def test_ado_get_operation_stats_single_resource(
                 "STATUS": "added",
                 "EXIT_STATE": "N/A",
                 "AGE": _EXPECTED_AGE,
-                "TOTAL_RESULTS": number_requests * number_entities,
-                "SUCCESSFUL_RESULTS": number_requests * number_entities,
-                "FAILED_RESULTS": 0,
-                "MEASURED_ENTITIES": number_entities,
+                "TOTAL_MEASUREMENTS": number_requests * number_entities,
+                "SUCCESSFUL_MEASUREMENTS": number_requests * number_entities,
+                "FAILED_MEASUREMENTS": 0,
+                "SAMPLED_ENTITIES": number_entities,
             },
             index=pd.Index([0]),
         )
-        rendered_output = render_to_string(
-            dataframe_to_rich_table(
-                expected_output,
-                show_index=True,
-                show_edge=True,
-                box=rich.box.SQUARE,
-                do_not_truncate_columns=True,
-            ),
-            auto_width=True,
+        rendered_output = render_dataframe_to_cli_output(
+            expected_output, do_not_truncate_columns=True
         )
         assert rendered_output in result.output, (
             f"Expected output:\n{rendered_output}\nnot found in:\n{result.output}"
@@ -271,7 +254,7 @@ def test_ado_get_spaces_stats_values(
         [CliRunner, pathlib.Path, ProjectContext], None
     ],
     ml_multi_cloud_space: DiscoverySpace,
-    backdate_resource: Callable[[str, CoreResourceKinds, datetime.datetime], None],
+    backdate_resource: Callable[[str, CoreResourceKinds, dt.datetime], None],
     simulate_ml_multi_cloud_random_walk_operation: Callable[
         [int, int, int, str | None],
         tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
@@ -284,7 +267,7 @@ def test_ado_get_spaces_stats_values(
     )
 
     number_entities = 3
-    # Use 1 request so MEASURED_ENTITIES == number_entities (entities are sampled per-request)
+    # Use 1 request so SAMPLED_ENTITIES == number_entities (entities are sampled per-request)
     number_requests = 1
     operation_id = "op-space-stats-abc123"
 
@@ -318,20 +301,13 @@ def test_ado_get_spaces_stats_values(
                 "AGE": _EXPECTED_AGE,
                 "EXPERIMENTS": 1,
                 "OPERATIONS": 1,
-                "EXPLORE_OPERATIONS": 1,
-                "MEASURED_ENTITIES": number_entities,
+                "EXPLORE_OPS": 1,
+                "SAMPLED_ENTITIES": number_entities,
             },
             index=pd.Index([0]),
         )
-        rendered_output = render_to_string(
-            dataframe_to_rich_table(
-                expected_output,
-                show_index=True,
-                show_edge=True,
-                box=rich.box.SQUARE,
-                do_not_truncate_columns=True,
-            ),
-            auto_width=True,
+        rendered_output = render_dataframe_to_cli_output(
+            expected_output, do_not_truncate_columns=True
         )
         assert rendered_output in result.output, (
             f"Expected output:\n{rendered_output}\nnot found in:\n{result.output}"
@@ -347,7 +323,7 @@ def test_ado_get_space_stats_single_resource(
         [CliRunner, pathlib.Path, ProjectContext], None
     ],
     ml_multi_cloud_space: DiscoverySpace,
-    backdate_resource: Callable[[str, CoreResourceKinds, datetime.datetime], None],
+    backdate_resource: Callable[[str, CoreResourceKinds, dt.datetime], None],
     simulate_ml_multi_cloud_random_walk_operation: Callable[
         [int, int, int, str | None],
         tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
@@ -360,7 +336,7 @@ def test_ado_get_space_stats_single_resource(
     )
 
     number_entities = 2
-    # Use 1 request so MEASURED_ENTITIES == number_entities (entities are sampled per-request)
+    # Use 1 request so SAMPLED_ENTITIES == number_entities (entities are sampled per-request)
     number_requests = 1
     operation_id = "op-space-stats-single-xyz789"
 
@@ -394,20 +370,13 @@ def test_ado_get_space_stats_single_resource(
                 "AGE": _EXPECTED_AGE,
                 "EXPERIMENTS": 1,
                 "OPERATIONS": 1,
-                "EXPLORE_OPERATIONS": 1,
-                "MEASURED_ENTITIES": number_entities,
+                "EXPLORE_OPS": 1,
+                "SAMPLED_ENTITIES": number_entities,
             },
             index=pd.Index([0]),
         )
-        rendered_output = render_to_string(
-            dataframe_to_rich_table(
-                expected_output,
-                show_index=True,
-                show_edge=True,
-                box=rich.box.SQUARE,
-                do_not_truncate_columns=True,
-            ),
-            auto_width=True,
+        rendered_output = render_dataframe_to_cli_output(
+            expected_output, do_not_truncate_columns=True
         )
         assert rendered_output in result.output, (
             f"Expected output:\n{rendered_output}\nnot found in:\n{result.output}"
@@ -456,7 +425,7 @@ def test_ado_get_samplestores_stats_values(
         [CliRunner, pathlib.Path, ProjectContext], None
     ],
     ml_multi_cloud_sample_store: SQLSampleStore,
-    backdate_resource: Callable[[str, CoreResourceKinds, datetime.datetime], None],
+    backdate_resource: Callable[[str, CoreResourceKinds, dt.datetime], None],
     simulate_ml_multi_cloud_random_walk_operation: Callable[
         [int, int, int, str | None],
         tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
@@ -505,15 +474,8 @@ def test_ado_get_samplestores_stats_values(
             },
             index=pd.Index([0]),
         )
-        rendered_output = render_to_string(
-            dataframe_to_rich_table(
-                expected_output,
-                show_index=True,
-                show_edge=True,
-                box=rich.box.SQUARE,
-                do_not_truncate_columns=True,
-            ),
-            auto_width=True,
+        rendered_output = render_dataframe_to_cli_output(
+            expected_output, do_not_truncate_columns=True
         )
         assert rendered_output in result.output, (
             f"Expected output:\n{rendered_output}\nnot found in:\n{result.output}"
@@ -566,7 +528,7 @@ def test_ado_get_datacontainers_stats_values(
     ],
     data_container_resource: "DataContainerResource",
     create_resources: Callable,
-    backdate_resource: Callable[[str, CoreResourceKinds, "datetime.datetime"], None],
+    backdate_resource: Callable[[str, CoreResourceKinds, "dt.datetime"], None],
 ) -> None:
     """Stats values for a known datacontainer match expected counts in the rendered table."""
     from ado.metastore.sqlstore import SQLStore
@@ -616,15 +578,8 @@ def test_ado_get_datacontainers_stats_values(
             },
             index=pd.Index([0]),
         )
-        rendered_output = render_to_string(
-            dataframe_to_rich_table(
-                expected_output,
-                show_index=True,
-                show_edge=True,
-                box=rich.box.SQUARE,
-                do_not_truncate_columns=True,
-            ),
-            auto_width=True,
+        rendered_output = render_dataframe_to_cli_output(
+            expected_output, do_not_truncate_columns=True
         )
         assert rendered_output in result.output, (
             f"Expected output:\n{rendered_output}\nnot found in:\n{result.output}"
@@ -640,7 +595,7 @@ def test_ado_get_operation_stats_details_columns(
         [CliRunner, pathlib.Path, ProjectContext], None
     ],
     simulate_ml_multi_cloud_random_walk_operation: Callable[
-        [int, int, int, str | None, datetime.datetime | None],
+        [int, int, int, str | None, dt.datetime | None],
         tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
     ],
 ) -> None:

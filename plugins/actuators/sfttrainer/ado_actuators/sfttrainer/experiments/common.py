@@ -150,7 +150,7 @@ semvers = [x for x in map(parse_semver, FMS_HF_TUNING_VERSION) if x is not None]
 # VV: We use these to instantiate Optional Parameters for all experiments (values are the defaults of the params)
 
 
-class WeightsFormat(str, enum.Enum):
+class WeightsFormat(enum.StrEnum):
     Vanilla = "Vanilla"
     GPTQQuantized = "GPTQ-Quantized"
 
@@ -158,7 +158,7 @@ class WeightsFormat(str, enum.Enum):
         return self.value
 
 
-class ExperimentPurpose(str, enum.Enum):
+class ExperimentPurpose(enum.StrEnum):
     Performance = "Performance"
     Stability = "Stability"
 

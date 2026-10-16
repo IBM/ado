@@ -10,9 +10,11 @@ description: |
 
 # Creating ado Resource YAML Files
 
-For CLI command syntax, see [using-ado-cli](../using-ado-cli/SKILL.md). For full
-problem formulation workflow, see
-[define-experiment-campaign](../define-experiment-campaign/SKILL.md).
+## Basic Skill Requirements
+
+Ensure you read the following basic skills first:
+
+- [using-ado-cli](../using-ado-cli/SKILL.md)
 
 ## Metadata Fields
 
@@ -71,10 +73,11 @@ uv run ado create operation -f operation.yaml --use-latest space
 
 ### --with
 
-Creates a dependency inline and injects its ID automatically.
+`--with KIND=VALUE` supplies a dependency. `KIND=FILE.yaml` **creates** that
+resource; `KIND=RESOURCE_ID` only injects an existing id.
 
 ```bash
-# Create space + actuatorconfiguration + operation in one command
+# One-liner: create space + actuatorconfiguration, then start the operation
 # Note: You cannot use --with store=store.yaml or store_id here
 # The space must use default store or have a valid store_id in the YAML
 uv run ado create operation -f operation.yaml \
@@ -82,12 +85,15 @@ uv run ado create operation -f operation.yaml \
   --with actuatorconfiguration=config.yaml
 ```
 
-Note: Can also specify resources ids to --with
-
 ```bash
+# Inject an existing space (creates nothing extra)
 uv run ado create operation -f operation.yaml \
   --with space=space-abcd-1234
 ```
+
+Do not combine `--dry-run` with `--with KIND=FILE.yaml`. `--dry-run` skips
+only the `-f` resource; the `--with` file is still created. See
+[using-ado-cli](../using-ado-cli/SKILL.md) (`--with` and iterative development).
 
 ### --set
 
@@ -98,21 +104,35 @@ file. Useful for environment-specific values or quick one-off changes.
 # Override the sample store identifier
 uv run ado create space -f space.yaml --set sampleStoreIdentifier=my_store
 
-# Override a nested field using dot notation
-uv run ado create operation -f operation.yaml --set parameters.budget=100
+# Override a nested field
+uv run ado create operation -f operation.yaml --set operation.parameters.tuneConfig.num_samples=50
 ```
 
-`--set` takes `path=JSON_document` pairs and can be used multiple times.
+`--set` takes `JSON_path=JSON_document` pairs and can be used multiple times.
 
 ## Validation
 
-Always validate before creating:
+Dry-run **each** YAML on its own. `--dry-run` does not create the `-f`
+resource.
 
 ```bash
-uv run ado create RESOURCETYPE -f FILE --dry-run
+uv run ado create space -f space.yaml --dry-run
+uv run ado create operation -f operation.yaml --dry-run
 ```
 
-`--dry-run` validates the YAML without creating the resource.
+`--dry-run` does **not** apply to `--with KIND=FILE.yaml`. That file is created
+for real. Never use `--dry-run --with space=space.yaml` (or
+`--with actuatorconfiguration=config.yaml`) — repeating it creates duplicate
+spaces.
+
+After the space exists, dry-run the operation against it:
+
+```bash
+uv run ado create space -f space.yaml
+uv run ado create operation -f operation.yaml --dry-run --use-latest space
+```
+
+CLI details: [using-ado-cli](../using-ado-cli/SKILL.md).
 
 ## Templates
 
@@ -144,13 +164,16 @@ exists:
 
 ```bash
 # Match by space config (entity space + experiments)
-uv run ado get spaces --matching-space space.yaml
+uv run ado get spaces --matching-space space.yaml --details \
+  --output-file /tmp/ado-matching-spaces.txt
 
 # Match by space ID
-uv run ado get spaces --matching-space-id space-abc123
+uv run ado get spaces --matching-space-id space-abc123 --details \
+  --output-file /tmp/ado-matching-spaces.txt
 
 # Filter by label
-uv run ado get spaces --label project=my_project --details
+uv run ado get spaces --label project=my_project --details \
+  --output-file /tmp/ado-spaces-by-label.txt
 ```
 
 Reuse an existing space rather than creating a new one — it means the new
@@ -193,8 +216,10 @@ uv run ado create space -f space.yaml --new-sample-store
 **Before creating**, check if a compatible configuration already exists:
 
 ```bash
-uv run ado get actuatorconfigurations --details
-uv run ado get actuatorconfigurations --label actuator=my_actuator
+uv run ado get actuatorconfigurations --details \
+  --output-file /tmp/ado-actuatorconfigurations-details.txt
+uv run ado get actuatorconfigurations --label actuator=my_actuator --details \
+  --output-file /tmp/ado-actuatorconfigurations-by-label.txt
 ```
 
 Reuse an existing actuator configuration when appropriate rather than creating
@@ -267,7 +292,6 @@ replacement, if the skill's replace policy says so).
 
 ## Related Resources
 
-- [using-ado-cli](../using-ado-cli/SKILL.md) — CLI command syntax and shortcuts
 - [define-experiment-campaign](../define-experiment-campaign/SKILL.md) — full
   problem formulation workflow
 - [AGENTS.md](../../../AGENTS.md) — YAML testing and linting guidance

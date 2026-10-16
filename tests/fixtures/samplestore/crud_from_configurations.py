@@ -14,6 +14,12 @@ import ado.core.samplestore.config
 import ado.metastore.project
 from ado.core import ActuatorConfigurationResource
 from ado.core.discoveryspace.space import DiscoverySpace
+from ado.core.operation.config import (
+    DiscoveryOperationConfiguration,
+    DiscoveryOperationEnum,
+    DiscoveryOperationResourceConfiguration,
+)
+from ado.core.operation.resource import OperationResource
 from ado.core.samplestore.base import ActiveSampleStore
 from ado.core.samplestore.config import SampleStoreConfiguration
 from ado.metastore.project import ProjectContext
@@ -77,6 +83,38 @@ def create_space(
         return space
 
     return _create_space
+
+
+@pytest.fixture
+def create_operation(
+    sql_store: SQLStore,
+) -> Callable[[DiscoverySpace], OperationResource]:
+    """Factory fixture that creates an OperationResource linked to a DiscoverySpace.
+
+    Args:
+        sql_store: The SQL metastore to persist the operation in.
+
+    Returns:
+        A callable that accepts a DiscoverySpace and returns the persisted
+        OperationResource.
+    """
+
+    def _create_operation(space: DiscoverySpace) -> OperationResource:
+        operation = OperationResource(
+            config=DiscoveryOperationResourceConfiguration(
+                spaces=[space.uri],
+                operation=DiscoveryOperationConfiguration(),
+            ),
+            operationType=DiscoveryOperationEnum.EXPLORE,
+            operatorIdentifier="test-op",
+        )
+        sql_store.addResourceWithRelationships(
+            operation,
+            relatedIdentifiers=[space.uri],
+        )
+        return operation
+
+    return _create_operation
 
 
 @pytest.fixture

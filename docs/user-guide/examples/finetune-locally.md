@@ -50,7 +50,7 @@ ado context local
 
 > [!WARNING]
 >
-> The SFTTrainer actuator currently **supports only Python 3.10, 3.11, 3.12**.
+> The SFTTrainer actuator currently **supports only Python 3.11, 3.12**.
 
 === "Install the SFTTrainer Actuator plugin from PyPi"
 
@@ -89,7 +89,6 @@ ado context local
     ├────────────────────┼─────────────┤
     │ SFTTrainer         │ 5           │
     │ custom_experiments │ 6           │
-    │ mock               │ 2           │
     │ replay             │ 0           │
     │ robotic_lab        │ 1           │
     └────────────────────┴─────────────┘

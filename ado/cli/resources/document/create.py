@@ -19,6 +19,7 @@ from ado.cli.utils.output.prints import (
 from ado.cli.utils.pydantic.updaters import override_values_in_pydantic_model
 from ado.core.document.config import DocumentConfiguration
 from ado.core.document.resource import DocumentResource
+from ado.metastore.base import ResourcesDoNotExistError
 
 
 def create_document(parameters: AdoCreateCommandParameters) -> str | None:
@@ -49,18 +50,17 @@ def create_document(parameters: AdoCreateCommandParameters) -> str | None:
 
     sql = get_sql_store(project_context=parameters.ado_configuration.project_context)
 
-    missing_related = [
-        related.id
-        for related in document_configuration.relatedResources
-        if not sql.containsResourceWithIdentifier(identifier=related.id)
-    ]
-    if missing_related:
-        console_print(
-            f"{ERROR}Unknown related resource identifier(s): "
-            f"{', '.join(missing_related)}",
-            stderr=True,
-        )
-        raise typer.Exit(1)
+    if document_configuration.relatedResources:
+        related_ids = [r.id for r in document_configuration.relatedResources]
+        try:
+            sql.has_resources_with_identifiers(related_ids, raise_if_missing=True)
+        except ResourcesDoNotExistError as e:
+            console_print(
+                f"{ERROR}Unknown related resource identifier(s): "
+                f"{', '.join(sorted(e.missing_ids))}",
+                stderr=True,
+            )
+            raise typer.Exit(1) from e
 
     with Status(ADO_SPINNER_SAVING_TO_DB):
         sql.addResource(resource_to_be_created)

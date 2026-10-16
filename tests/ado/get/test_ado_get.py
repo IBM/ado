@@ -3,10 +3,12 @@
 import importlib.metadata
 import os
 import pathlib
+import sys
 from collections.abc import Callable
+from datetime import UTC, datetime
 
 import pandas as pd
-import rich.box
+import pytest
 import yaml
 from testcontainers.community.mysql import MySqlContainer
 from typer.testing import CliRunner
@@ -20,10 +22,11 @@ from ado.core import (
 from ado.core.discoveryspace.space import DiscoverySpace
 from ado.metastore.project import ProjectContext
 from ado.metastore.sqlstore import SQLStore
-from ado.utilities.rich import dataframe_to_rich_table, render_to_string
+from ado.modules.actuators.catalog import ExperimentCatalog
 from tests.conftest import requires_sqlite_3_38
 from tests.utilities.cli_rendering import (
     render_ado_resources_to_cli_output,
+    render_dataframe_to_cli_output,
 )
 
 
@@ -50,6 +53,102 @@ def test_space_exists(
         assert pfas_space.uri in result.output
 
 
+@requires_sqlite_3_38
+def test_get_space_includes_requested_constitutive_properties(
+    tmp_path: pathlib.Path,
+    mysql_test_instance: MySqlContainer,
+    sql_store: SQLStore,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+) -> None:
+    """ado get space -p constitutive displays constitutive property domains."""
+    from ado.core import DiscoverySpaceResource
+
+    runner = CliRunner()
+    create_active_ado_context(
+        runner=runner, path=tmp_path, project_context=valid_ado_project_context
+    )
+    space = DiscoverySpaceResource.model_validate(
+        yaml.safe_load(
+            pathlib.Path(
+                "tests/resources/space/discoveryspace_resource.json"
+            ).read_text()
+        )
+    )
+    sql_store.addResource(space)
+
+    result = runner.invoke(
+        ado, ["get", "space", space.identifier, "-p", "constitutive", "--no-trunc"]
+    )
+
+    assert result.exit_code == 0
+    assert "provider" in result.output
+    assert "['A', 'B', 'C']" in result.output
+
+
+@requires_sqlite_3_38
+def test_get_space_includes_optional_and_parameterized_properties(
+    tmp_path: pathlib.Path,
+    mysql_test_instance: MySqlContainer,
+    sql_store: SQLStore,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+) -> None:
+    """Requested optional and parameterized properties use their configured values."""
+    from ado.core import DiscoverySpaceResource
+
+    runner = CliRunner()
+    create_active_ado_context(
+        runner=runner, path=tmp_path, project_context=valid_ado_project_context
+    )
+    space_data = yaml.safe_load(
+        pathlib.Path("tests/resources/space/discoveryspace_resource.json").read_text()
+    )
+    experiment = space_data["config"]["experiments"]["experiments"][0]
+    experiment["optionalProperties"] = [
+        {
+            "identifier": "warm_start_file",
+            "propertyType": "CONSTITUTIVE_PROPERTY_TYPE",
+            "propertyDomain": {
+                "values": ["default.mst", "custom.mst"],
+                "variableType": "CATEGORICAL_VARIABLE_TYPE",
+            },
+        }
+    ]
+    experiment["defaultParameterization"] = [
+        {
+            "property": {"identifier": "warm_start_file"},
+            "value": "default.mst",
+        }
+    ]
+    experiment["parameterization"] = [
+        {
+            "property": {"identifier": "warm_start_file"},
+            "value": "custom.mst",
+        }
+    ]
+    space = DiscoverySpaceResource.model_validate(space_data)
+    sql_store.addResource(space)
+
+    optional = runner.invoke(
+        ado, ["get", "space", space.identifier, "-p", "optional", "--no-trunc"]
+    )
+    parameterized = runner.invoke(
+        ado, ["get", "space", space.identifier, "-p", "parameterized", "--no-trunc"]
+    )
+
+    assert optional.exit_code == 0
+    assert parameterized.exit_code == 0
+    assert "warm_start_file" in optional.output
+    assert "custom.mst" in optional.output
+    assert "warm_start_file" in parameterized.output
+    assert "custom.mst" in parameterized.output
+
+
 def test_get_robotic_lab_actuator() -> None:
 
     runner = CliRunner()
@@ -71,14 +170,14 @@ def test_get_robotic_lab_actuator() -> None:
             },
             index=pd.Index([0]),
         )
-        rendered_output = render_to_string(
-            dataframe_to_rich_table(
-                expected_output, show_index=True, show_edge=True, box=rich.box.SQUARE
-            )
-        )
+        rendered_output = render_dataframe_to_cli_output(expected_output)
         assert rendered_output in result.output
 
 
+@pytest.mark.skipif(
+    sys.version_info < (3, 11),
+    reason="ado-vllm-performance requires Python >= 3.11",
+)
 def test_get_vllm_performance_actuator_details() -> None:
     runner = CliRunner()
     result = runner.invoke(ado, ["get", "actuators", "vllm_performance", "--details"])
@@ -96,6 +195,7 @@ def test_field_filtering(
         [CliRunner, pathlib.Path, ProjectContext], None
     ],
     sample_store_resource: SampleStoreResource,
+    test_actuator_catalog: ExperimentCatalog,
 ) -> None:
 
     runner = CliRunner()
@@ -135,7 +235,7 @@ def test_field_filtering(
     actuator_config_with_underscores = ActuatorConfigurationResource.model_validate(
         yaml.safe_load(
             pathlib.Path(
-                "tests/resources/actuatorconfiguration/mock-ac-with-snake-case.yaml"
+                "tests/resources/actuatorconfiguration/test-ac-with-snake-case.yaml"
             ).read_text()
         )
     )
@@ -436,8 +536,6 @@ def test_get_space_with_use_latest(
     )
 
     # Create two spaces explicitly
-    from datetime import datetime, timezone
-
     # Load file content once
     space_data = yaml.safe_load(
         pathlib.Path("tests/resources/space/discoveryspace_resource.json").read_text()
@@ -446,13 +544,13 @@ def test_get_space_with_use_latest(
     # Create first space
     space_1 = DiscoverySpaceResource.model_validate(space_data)
     space_1.identifier = "space-test-older"
-    space_1.created = datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+    space_1.created = datetime(2024, 1, 1, 0, 0, 0, tzinfo=UTC)
     sql_store.addResource(space_1)
 
     # Create second space
     space_2 = DiscoverySpaceResource.model_validate(space_data)
     space_2.identifier = "space-test-latest"
-    space_2.created = datetime(2024, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
+    space_2.created = datetime(2024, 12, 31, 23, 59, 59, tzinfo=UTC)
     sql_store.addResource(space_2)
 
     # Test with YAML output format
@@ -494,7 +592,6 @@ def test_get_operation_with_use_latest(
     )
 
     # Create two operations with different identifiers
-    from datetime import datetime, timezone
 
     # Load file content once
     operation_data = yaml.safe_load(
@@ -506,13 +603,13 @@ def test_get_operation_with_use_latest(
     # Create first operation
     operation_1 = OperationResource.model_validate(operation_data)
     operation_1.identifier = "operation-test-older"
-    operation_1.created = datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+    operation_1.created = datetime(2024, 1, 1, 0, 0, 0, tzinfo=UTC)
     sql_store.addResource(operation_1)
 
     # Create second operation
     operation_2 = OperationResource.model_validate(operation_data)
     operation_2.identifier = "operation-test-latest"
-    operation_2.created = datetime(2024, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
+    operation_2.created = datetime(2024, 12, 31, 23, 59, 59, tzinfo=UTC)
     sql_store.addResource(operation_2)
 
     # Test with YAML output format
@@ -555,7 +652,6 @@ def test_get_with_use_latest_and_explicit_id(
     )
 
     # Create two spaces with different identifiers
-    from datetime import datetime, timezone
 
     # Load file content once
     space_data = yaml.safe_load(
@@ -565,13 +661,13 @@ def test_get_with_use_latest_and_explicit_id(
     # Create first space
     space_1 = DiscoverySpaceResource.model_validate(space_data)
     space_1.identifier = "space-test-older"
-    space_1.created = datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+    space_1.created = datetime(2024, 1, 1, 0, 0, 0, tzinfo=UTC)
     sql_store.addResource(space_1)
 
     # Create second space
     space_2 = DiscoverySpaceResource.model_validate(space_data)
     space_2.identifier = "space-test-latest"
-    space_2.created = datetime(2024, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
+    space_2.created = datetime(2024, 12, 31, 23, 59, 59, tzinfo=UTC)
     sql_store.addResource(space_2)
 
     # Test with both explicit ID and --use-latest
@@ -617,7 +713,6 @@ def test_get_with_use_latest_table_format(
     )
 
     # Create two spaces with different identifiers
-    from datetime import datetime, timezone
 
     # Load file content once
     space_data = yaml.safe_load(
@@ -627,13 +722,13 @@ def test_get_with_use_latest_table_format(
     # Create first space
     space_1 = DiscoverySpaceResource.model_validate(space_data)
     space_1.identifier = "space-test-older"
-    space_1.created = datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+    space_1.created = datetime(2024, 1, 1, 0, 0, 0, tzinfo=UTC)
     sql_store.addResource(space_1)
 
     # Create second space
     space_2 = DiscoverySpaceResource.model_validate(space_data)
     space_2.identifier = "space-test-latest"
-    space_2.created = datetime(2024, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
+    space_2.created = datetime(2024, 12, 31, 23, 59, 59, tzinfo=UTC)
     sql_store.addResource(space_2)
 
     # Test with table format (default)
@@ -665,7 +760,6 @@ def test_get_with_use_latest_name_format(
     )
 
     # Create two spaces with different identifiers
-    from datetime import datetime, timezone
 
     # Load file content once
     space_data = yaml.safe_load(
@@ -675,13 +769,13 @@ def test_get_with_use_latest_name_format(
     # Create first space
     space_1 = DiscoverySpaceResource.model_validate(space_data)
     space_1.identifier = "space-test-older"
-    space_1.created = datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+    space_1.created = datetime(2024, 1, 1, 0, 0, 0, tzinfo=UTC)
     sql_store.addResource(space_1)
 
     # Create second space
     space_2 = DiscoverySpaceResource.model_validate(space_data)
     space_2.identifier = "space-test-latest"
-    space_2.created = datetime(2024, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
+    space_2.created = datetime(2024, 12, 31, 23, 59, 59, tzinfo=UTC)
     sql_store.addResource(space_2)
 
     # Test with name format

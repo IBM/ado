@@ -3,10 +3,10 @@
 # SPDX-License-Identifier: MIT
 
 import functools
-import importlib.resources
 import logging
 import math
 import traceback
+from pathlib import Path
 from typing import NamedTuple
 
 from autogluon.tabular import TabularPredictor
@@ -14,6 +14,11 @@ from autogluon.tabular import TabularPredictor
 from ado.modules.actuators.custom_experiments import custom_experiment
 from ado.schema.domain import PropertyDomain, VariableTypeEnum
 from ado.schema.property import ConstitutiveProperty
+from autoconf.model_paths import (
+    DEFAULT_MODEL_ROOT,
+    MODEL_VERSION,
+    model_path,
+)
 from autoconf.utils.pydantic_models import JobConfig
 from autoconf.utils.recommender import (
     NoRecommendationError,
@@ -23,49 +28,83 @@ from autoconf.utils.recommender import (
 
 moduleLog = logging.getLogger()
 
-MODEL_LATEST_VERSION = "3.1.0"
-
 
 class GPUsAndWorkers(NamedTuple):
     gpus: int
     workers: int
 
 
-@functools.cache
-def load_model(model_version: str) -> TabularPredictor:
-    """Loads the model
+def _train_autogluon_on_demand(model_root: Path | None) -> None:
+    """Warn the user and train the AutoGluon model synchronously.
+
+    Called by load_model() when autogluon is installed but no trained
+    model directory is present.
 
     Args:
-        model_version:
-            The version of the Autogluon model to use e.g. 1.0.0
+        model_root: Optional model root override passed to build_model().
+    """
+    import warnings
+
+    from autoconf.utils.autoconf_build.ml_classifier import build_model
+
+    warnings.warn(
+        "AutoConf AutoGluon model not found. "
+        "Training on the fly using the default dataset from HuggingFace. "
+        "This may take several minutes. "
+        "To avoid this delay, pre-train with: autoconf_build_model",
+        stacklevel=4,
+    )
+    moduleLog.warning(
+        "AutoGluon model absent — training on demand. "
+        "Pre-train with 'autoconf_build_model' to avoid this delay."
+    )
+    build_model(model_root=model_root or DEFAULT_MODEL_ROOT)
+
+
+@functools.cache
+def load_model(model_version: str, model_root: Path | None = None) -> TabularPredictor:
+    """Load the AutoConf AutoGluon classifier.
+
+    If the model directory is absent and autogluon is installed, the model
+    is trained on demand from the HuggingFace dataset before loading.
+
+    Args:
+        model_version: Must equal the current MODEL_VERSION.
+        model_root: Optional local model root override.
 
     Returns:
-        The predictor
+        The loaded TabularPredictor.
+
+    Raises:
+        ValueError: If model_version is not recognised.
+        FileNotFoundError: If the model is absent and autogluon is not
+            installed. The error message points to autoconf_build_model.
     """
+    if model_version != MODEL_VERSION:
+        raise ValueError(f"Unknown model_version: {model_version}")
 
-    if model_version == "3.0.0":
-        path_weights: str = str(
-            object=importlib.resources.files(package="autoconf")
-            / "AutoGluonModels"
-            / "v3-0-0_ag-20260113_144447-clone-opt-train_frac_1"
-        )
-    elif model_version == "3.1.0":
-        path_weights = str(
-            importlib.resources.files("autoconf")
-            / "AutoGluonModels"
-            / "v3-1-0_ag-20260113_144232-refit-clone-opt-train_frac_1"
-        )
-    else:
-        raise ValueError("Unknown model_version", model_version)
+    path_weights = model_path(model_root)
 
-    return TabularPredictor.load(path_weights, require_py_version_match=False)
+    if not path_weights.is_dir():
+        # Train on demand if autogluon is available.
+        try:
+            import autogluon.tabular  # noqa: F401 — availability probe only
+        except ImportError:
+            raise FileNotFoundError(
+                f"AutoConf model {model_version} was not found at {path_weights}. "
+                "Generate it in this environment with: autoconf_build_model"
+            ) from None
+        _train_autogluon_on_demand(model_root)
+        # Fall through — path_weights now exists after training.
+
+    return TabularPredictor.load(str(path_weights), require_py_version_match=False)
 
 
 ModelVersion = ConstitutiveProperty(
     identifier="model_version",
     propertyDomain=PropertyDomain(
         variableType=VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE,
-        values=["3.0.0", "3.1.0"],
+        values=[MODEL_VERSION],
     ),
 )
 
@@ -298,10 +337,9 @@ def avoid_oom_recommender(
     number_gpus: int,
     gpus_per_worker: int = 8,
     max_gpus: int = 64,
-    model_version: str = "3.1.0",
+    model_version: str = MODEL_VERSION,
 ) -> dict[str, int | bool]:
-
-    result = {
+    result: dict[str, int | bool] = {
         "can_recommend": False,
         "gpus": -1,
         "workers": -1,

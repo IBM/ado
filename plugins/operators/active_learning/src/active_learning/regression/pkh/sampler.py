@@ -12,6 +12,7 @@ from sklearn.ensemble import RandomForestRegressor
 
 from active_learning.regression._shared import (
     ForestCriterion,
+    ForestMaxFeatures,
     _encode_leaf_signature,
     _PredictiveSampleSelector,
     _SequentialSelectionState,
@@ -33,6 +34,8 @@ class _PKHSelectionState(_SequentialSelectionState):
         *,
         n_estimators: int = 100,
         min_samples_leaf: int = 2,
+        max_features: ForestMaxFeatures = "sqrt",
+        pilot_size: int = 5,
         epoch_length: int = 10,
         seed: int = 42,
         criterion: ForestCriterion = "squared_error",
@@ -48,6 +51,8 @@ class _PKHSelectionState(_SequentialSelectionState):
             initial_labels,
             n_estimators=n_estimators,
             min_samples_leaf=min_samples_leaf,
+            max_features=max_features,
+            pilot_size=pilot_size,
             seed=seed,
             criterion=criterion,
             n_jobs=n_jobs,
@@ -62,6 +67,7 @@ class _PKHSelectionState(_SequentialSelectionState):
         forest = RandomForestRegressor(
             n_estimators=self.n_estimators,
             min_samples_leaf=self.min_samples_leaf,
+            max_features=self.max_features,
             criterion=self.criterion,
             random_state=self.seed,
             n_jobs=self.n_jobs,
@@ -134,8 +140,8 @@ class PKHSampleSelector(_PredictiveSampleSelector):
     References
     ----------
     .. [1] E. Aydar, C. Pinto, S. Venugopal, and D. Chatzopoulos, "Sampling
-           Where It Matters: Predicting LLM Serving Performance with
-           Predictive Kernel Herding," in Proceedings of the Sixth European
+           Where It Matters: Predicting LLM Serving Performance."
+           in Proceedings of the Sixth European
            Workshop on Machine Learning and Systems (EuroMLSys '26), ACM,
            2026, pp. 13-22. doi: 10.1145/3805621.3807633.
     """
@@ -166,6 +172,8 @@ class PKHSampleSelector(_PredictiveSampleSelector):
             initial_labels,
             n_estimators=self.params.nEstimators,
             min_samples_leaf=self.params.minSamplesLeaf,
+            max_features=self.params.maxFeatures,
+            pilot_size=self.params.pilotSize,
             epoch_length=self.params.epochLength,
             seed=self.params.seed,
             criterion=self.params.criterion,

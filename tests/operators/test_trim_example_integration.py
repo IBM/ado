@@ -30,9 +30,9 @@ from ado.modules.operators.collections import characterize
 
 pytest.importorskip("autogluon")
 
-from trim.samplers.no_priors_parameters import NoPriorsParametersInternal
 from trim.trim_pydantic import (
     AutoGluonArgs,
+    NoPriorsParametersInternal,
     SamplingBudget,
     StoppingCriterion,
     TrimParameters,
@@ -136,6 +136,10 @@ def test_trim_example_operation_succeeds(
     )
 
     assert output.operation is not None
+    assert output.operation.provenance.operators
+    assert output.operation.operatorIdentifier in output.operation.provenance.operators
+    assert output.operation.provenance.experiments == []
+    assert output.operation.provenance.actuators == {}
     assert output.exitStatus is not None
     assert output.exitStatus.exit_state == OperationExitStateEnum.SUCCESS
     assert output.exitStatus.event == OperationResourceEventEnum.FINISHED
@@ -148,11 +152,12 @@ def test_trim_example_operation_succeeds(
     if max_points > min_points:
         iterative_operation = output.resources[-1]
         assert (
-            iterative_operation.config.operation.parameters.numberEntities
-            # VV: TRIM configure random_walk (i.e.numberEntitise above) to measure 1 point
-            # more than what the user actually specified. This enables the TRIM Sampler to
-            # know that it has exhausted its budget and thus finalize the model
-            == (max_points - min_points) + 1
+            iterative_operation.metadata["entities_submitted"]
+            == max_points - min_points
+        )
+        assert (
+            iterative_operation.metadata["experiments_requested"]
+            == max_points - min_points
         )
         assert any(
             status.event == OperationResourceEventEnum.FINISHED

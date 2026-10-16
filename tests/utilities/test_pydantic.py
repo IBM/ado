@@ -1,6 +1,6 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
-import datetime
+import datetime as dt
 import enum
 import json
 import uuid
@@ -8,16 +8,18 @@ import uuid
 import pydantic
 import pytest
 
-from ado.utilities.pydantic import pydantic_aware_json_serializer
+from ado.schema.property import AbstractPropertyDescriptor
+from ado.schema.property_value import ConstitutivePropertyValue
+from ado.utilities.pydantic import pydantic_aware_json_serializer, sort_by_identifier
 
 
-class _Color(str, enum.Enum):
+class _Color(enum.StrEnum):
     RED = "red"
 
 
 class _Inner(pydantic.BaseModel):
     value: float
-    when: datetime.datetime
+    when: dt.datetime
 
 
 class _Outer(pydantic.BaseModel):
@@ -34,9 +36,7 @@ class _Outer(pydantic.BaseModel):
 
 def test_pydantic_model_returns_json_string() -> None:
     """A Pydantic model is serialised to a JSON string."""
-    model = _Inner(
-        value=1.5, when=datetime.datetime(2024, 1, 1, tzinfo=datetime.timezone.utc)
-    )
+    model = _Inner(value=1.5, when=dt.datetime(2024, 1, 1, tzinfo=dt.UTC))
     result = pydantic_aware_json_serializer(model)
     assert isinstance(result, str)
     parsed = json.loads(result)
@@ -53,7 +53,7 @@ def test_pydantic_nested_model_is_fully_serialised() -> None:
         color=_Color.RED,
         inner=_Inner(
             value=3.14,
-            when=datetime.datetime(2024, 6, 1, tzinfo=datetime.timezone.utc),
+            when=dt.datetime(2024, 6, 1, tzinfo=dt.UTC),
         ),
     )
     result = pydantic_aware_json_serializer(model)
@@ -68,7 +68,7 @@ def test_pydantic_model_round_trip() -> None:
     """Serialising then re-parsing a model produces an equal instance with correct field values."""
     original = _Inner(
         value=2.718,
-        when=datetime.datetime(2024, 3, 15, 12, 0, tzinfo=datetime.timezone.utc),
+        when=dt.datetime(2024, 3, 15, 12, 0, tzinfo=dt.UTC),
     )
     result = pydantic_aware_json_serializer(original)
     recovered = _Inner.model_validate_json(result)
@@ -86,7 +86,7 @@ def test_pydantic_nested_model_round_trip() -> None:
         color=_Color.RED,
         inner=_Inner(
             value=1.41,
-            when=datetime.datetime(2025, 1, 1, tzinfo=datetime.timezone.utc),
+            when=dt.datetime(2025, 1, 1, tzinfo=dt.UTC),
         ),
     )
     result = pydantic_aware_json_serializer(original)
@@ -137,3 +137,53 @@ def test_non_serialisable_raises() -> None:
     """Non-serialisable objects raise TypeError."""
     with pytest.raises(TypeError):
         pydantic_aware_json_serializer(object())
+
+
+# ---------------------------------------------------------------------------
+# sort_by_identifier
+# ---------------------------------------------------------------------------
+
+
+def test_sort_by_identifier_returns_none_for_none() -> None:
+    """None input produces None output."""
+    assert sort_by_identifier(None) is None
+
+
+def test_sort_by_identifier_preserves_container_type() -> None:
+    """List input returns a list; tuple input returns a tuple."""
+    props = [
+        AbstractPropertyDescriptor(identifier="b"),
+        AbstractPropertyDescriptor(identifier="a"),
+    ]
+    assert isinstance(sort_by_identifier(props), list)
+    assert isinstance(sort_by_identifier(tuple(props)), tuple)
+
+
+def test_sort_by_identifier_sorts_by_identifier() -> None:
+    """Items with .identifier are sorted alphabetically."""
+    props = [
+        AbstractPropertyDescriptor(identifier="c"),
+        AbstractPropertyDescriptor(identifier="a"),
+        AbstractPropertyDescriptor(identifier="b"),
+    ]
+    result = sort_by_identifier(props)
+    assert [v.identifier for v in result] == ["a", "b", "c"]
+
+
+def test_sort_by_identifier_sorts_by_property_identifier() -> None:
+    """Items with .property.identifier (PropertyValue subtypes) are sorted by that key."""
+    from ado.schema.property import ConstitutivePropertyDescriptor
+
+    values = [
+        ConstitutivePropertyValue(
+            value=1, property=ConstitutivePropertyDescriptor(identifier="c")
+        ),
+        ConstitutivePropertyValue(
+            value=2, property=ConstitutivePropertyDescriptor(identifier="a")
+        ),
+        ConstitutivePropertyValue(
+            value=3, property=ConstitutivePropertyDescriptor(identifier="b")
+        ),
+    ]
+    result = sort_by_identifier(values)
+    assert [v.property.identifier for v in result] == ["a", "b", "c"]

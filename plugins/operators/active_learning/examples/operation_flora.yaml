@@ -9,8 +9,10 @@ operation:
   parameters:
     numberEntities: 20
     targetOutput: density
+    pilotSize: 5
     nEstimators: 100
     minSamplesLeaf: 2
+    maxFeatures: sqrt
     seed: 42
     criterion: squared_error
     nJobs: -1

@@ -41,18 +41,43 @@ For `ado get` and `ado show` subcommands:
   `csv`, `json`, or `stats`; allowed values depend on the command — use
   `--help`).
 - `--output-file PATH` writes formatted output to **PATH** instead of stdout.
+  Note: automatically expands table cells that appear clipped we sent to terminal.
+- `--no-trunc` expands clipped **table cells**. Note: It does not prevent a long
+  listing from being cut off in tool stdout capture.
 
-Shell redirects (`>`) work for simple cases. Prefer `--output-file` when:
+### Complete listings (required for agents)
 
-- **Pre-flight checks**: ado validates the path is writable before fetching,
-  avoiding failure after a long data fetch.
-- **Stdout pollution**: `--output-file` writes only formatted output to the
-  file; logs stay on stderr. A redirect captures both.
-- **Table truncation**: terminal-width column truncation applies to redirected
-  output but not to `--output-file`.
+`ado get … --details` tables are often large. Agent/tool **stdout capture
+can truncate output**
+even when the command succeeded. `--no-trunc` does not fix this.
+
+Write every listing or dump you will read to a file, then read that file:
 
 ```bash
-uv run ado get space SPACE_ID -o yaml > space.yaml
+uv run ado get operations --details --output-file /tmp/ado-operations-details.txt
+uv run ado get spaces -l study=$ID --details --output-file /tmp/ado-study-spaces.txt
+uv run ado get operations -o stats --output-file /tmp/ado-operations-stats.txt
+```
+
+Tip: Narrow listings with `-l`/`--filter` when you
+only need a subset — see
+[query-ado-data](../query-ado-data/SKILL.md#fast-querying).
+
+Prefer `/tmp/ado-*.txt` (or another path outside the repo) so listings are not
+left as untracked files.
+
+`--output-file` also:
+
+- validates the path is writable **before** fetching
+- writes only formatted output to the file (logs stay on stderr)
+- writes full cell text (no terminal-width clipping)
+
+A shell redirect (`>`) still clips table cells to terminal width and mixes logs
+into the file. Do not use `>` or `--no-trunc` as a substitute for
+`--output-file`.
+
+```bash
+uv run ado get space SPACE_ID -o yaml --output-file space.yaml
 uv run ado show measurements operation OPERATION_ID -o csv --output-file measurements.csv
 ```
 
@@ -79,20 +104,17 @@ operation in a single command. There is no separate "run" step.
 Lists resources of a given type and gets resource YAML
 
 ```bash
-# List all spaces
-uv run ado get spaces
+# List all spaces (write to a file; stdout capture of long tables is incomplete)
+uv run ado get spaces --details --output-file /tmp/ado-spaces-details.txt
 
-# Get the YAML for a space (console)
-uv run ado get space SPACE_ID -o yaml
-
-# Or write the same YAML to a file
+# Get the YAML for a space
 uv run ado get space SPACE_ID -o yaml --output-file space.yaml
 
 # Get the latest space as YAML
-uv run ado get space --use-latest -o yaml
+uv run ado get space --use-latest -o yaml --output-file latest-space.yaml
 
 # Get the latest operation as YAML
-uv run ado get operation --use-latest -o yaml
+uv run ado get operation --use-latest -o yaml --output-file latest-operation.yaml
 
 # Get measurement statistics for all operations
 uv run ado get operations -o stats --output-file operations-stats.txt
@@ -101,6 +123,10 @@ uv run ado get operation OPERATION_ID -o stats --no-trunc
 # Get statistics for all discovery spaces
 uv run ado get spaces -o stats --output-file spaces-stats.txt
 uv run ado get space SPACE_ID -o stats --no-trunc
+
+# Include property domains in space table listing (-p / --include-properties)
+uv run ado get spaces -p constitutive --no-trunc --output-file /tmp/ado-spaces-properties.txt
+uv run ado get space SPACE_ID -p all --no-trunc --output-file /tmp/ado-space-properties.txt
 
 # Get statistics for all sample stores
 uv run ado get samplestores -o stats --output-file samplestores-stats.txt
@@ -111,9 +137,12 @@ uv run ado get datacontainers -o stats --output-file datacontainers-stats.txt
 uv run ado get datacontainer DATACONTAINER_ID -o stats --no-trunc
 
 # Get all resources of a type related to a source resource (--related-to)
-uv run ado get operations --related-to samplestore=STORE_ID
-uv run ado get spaces --related-to samplestore=STORE_ID -o name
-uv run ado get operations --related-to discoveryspace=SPACE_ID --filter config.metadata.name=OP_NAME
+uv run ado get operations --related-to samplestore=STORE_ID \
+  --output-file /tmp/ado-ops-related.txt
+uv run ado get spaces --related-to samplestore=STORE_ID -o name \
+  --output-file /tmp/ado-spaces-related.txt
+uv run ado get operations --related-to discoveryspace=SPACE_ID \
+  --filter config.metadata.name=OP_NAME --output-file /tmp/ado-ops-related.txt
 ```
 
 `--related-to` filters results to resources related to the given source resource
@@ -125,10 +154,10 @@ Can be combined with `--filter`, `--label`, `--matching-point`,
 
 `-o stats` extends the table with statistics columns:
 
-- **Operations**: `TOTAL_RESULTS`, `SUCCESSFUL_RESULTS`, `FAILED_RESULTS`,
-  `MEASURED_ENTITIES`.
-- **Discovery Spaces**: `EXPERIMENTS`, `OPERATIONS`, `EXPLORE_OPERATIONS`,
-  `MEASURED_ENTITIES`.
+- **Operations**: `TOTAL_MEASUREMENTS`, `SUCCESSFUL_MEASUREMENTS`, `FAILED_MEASUREMENTS`,
+  `SAMPLED_ENTITIES`.
+- **Discovery Spaces**: `EXPERIMENTS`, `OPERATIONS`, `EXPLORE_OPS`,
+  `SAMPLED_ENTITIES`.
 - **Sample Stores**: `ENTITIES`, `RESULTS`, `EXPERIMENTS`.
 - **Data Containers**: `TABLES`, `LOCATIONS`, `KEY_VALUES`, `DATA_BYTES`.
 
@@ -160,10 +189,18 @@ uv run ado edit space SPACE_ID -p "labels: { team: research }"
 
 # Or merge from a file
 uv run ado edit space SPACE_ID --patch-file meta.yaml
+
+# Bulk patch: apply the same patch to multiple resources in one atomic write
+uv run ado edit space SPACE_ID_1 SPACE_ID_2 -p "labels: { team: research }"
+uv run ado edit operation OP_ID_1 OP_ID_2 --patch-file meta.yaml
 ```
 
-Always prefer a non-interative edit with `-p` / `--patch` or `--patch-file`. Use
-`uv run ado edit --help` for current options.
+Multiple IDs require `--patch` or `--patch-file` — interactive mode supports
+only a single resource at a time. All IDs are validated to exist before any
+write is performed; the transaction is all-or-nothing.
+
+Always prefer a non-interactive edit with `-p` / `--patch` or `--patch-file`.
+Use `uv run ado edit --help` for current options.
 
 ### ado show
 
@@ -275,14 +312,18 @@ The `--use-latest` flag automatically fills in the latest space ID.
 ### --set
 
 Overrides individual fields in a resource YAML at creation time without editing
-the file. Takes `path=JSON_document` pairs; can be used multiple times.
+the file. Takes `JSON_path=JSON_document` pairs; can be used multiple times.
+The path must already exist in the resource configuration.
 
 ```bash
 # Override the sample store used by a space
 uv run ado create space -f space.yaml --set sampleStoreIdentifier=my_store
 
 # Override a nested operation parameter
-uv run ado create operation -f operation.yaml --set parameters.budget=100
+uv run ado create operation -f operation.yaml --set operation.parameters.tuneConfig.num_samples=50
+
+# Override a list item
+uv run ado create operation -f operation.yaml --set "spaces[0]=space-abc123"
 ```
 
 ### --with
@@ -329,13 +370,13 @@ When writing documentation with ado commands:
 
 ```bash
 # List all operations
-uv run ado get operations
+uv run ado get operations --details --output-file /tmp/ado-operations-details.txt
 
 # Get details on a specific operation (YAML to a file)
 uv run ado get operation op-123 -o yaml --output-file op-123.yaml
 
 # Get the entities and measurements
-uv run ado show measurements operation op-123
+uv run ado show measurements operation op-123 -o csv --output-file op-123-entities.csv
 ```
 
 ### Create with dependencies

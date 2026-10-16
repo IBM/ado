@@ -25,6 +25,7 @@ from ado.cli.utils.output.prints import (
     cyan,
     magenta,
 )
+from ado.cli.utils.resources.experiments import parse_cli_from_experiment
 from ado.core.discoveryspace.config import DiscoverySpaceConfiguration
 from ado.core.discoveryspace.space import DiscoverySpace
 from ado.core.resources import CoreResourceKinds
@@ -113,6 +114,18 @@ def show_discovery_space_measurements(
         # for the prints
         parameters.resource_id = f"from_file_{parameters.resource_configuration.stem}"
 
+    experiment_references = None
+    if parameters.from_experiment is not None and (
+        parameters.measurements_type
+        in (
+            AdoShowMeasurementsSupportedEntityTypes.MEASURED,
+            AdoShowMeasurementsSupportedEntityTypes.MATCHING,
+        )
+    ):
+        experiment_references = parse_cli_from_experiment(
+            from_experiment=parameters.from_experiment,
+        )
+
     with Status(ADO_SPINNER_INITIALIZING_DISCOVERY_SPACE) as status:
         space = DiscoverySpace.from_configuration(
             conf=configuration,
@@ -139,6 +152,7 @@ def show_discovery_space_measurements(
                 property_type=parameters.measurements_property_format.value,
                 aggregationMethod=parameters.aggregation_method,
                 virtualPropertyIdentifiers=virtual_property_ids,
+                experimentReferences=experiment_references,
             )
         elif (
             parameters.measurements_type
@@ -148,6 +162,7 @@ def show_discovery_space_measurements(
                 property_type=parameters.measurements_property_format.value,
                 aggregationMethod=parameters.aggregation_method,
                 virtualPropertyIdentifiers=virtual_property_ids,
+                experimentReferences=experiment_references,
             )
         elif (
             parameters.measurements_type
@@ -163,13 +178,21 @@ def show_discovery_space_measurements(
             output_df = entities_to_dataframe(missing_entities)
 
     if output_df.empty:
-        console_print(
-            f"{INFO}Nothing was returned for "
-            f"[i]entity type {magenta(parameters.measurements_type.value)}[/i] and "
-            f"[i]property format {magenta(parameters.measurements_property_format.value)}[/i] "
-            f"in [i]space {magenta(parameters.resource_id)}[/i].",
-            stderr=True,
-        )
+        if experiment_references is not None and parameters.from_experiment is not None:
+            console_print(
+                f"{INFO}No entities with measurements from experiments "
+                f"{magenta(', '.join(r.fully_qualified_parameterized_experiment_identifier for r in experiment_references))} "
+                f"were found in [i]space {magenta(parameters.resource_id)}[/i].",
+                stderr=True,
+            )
+        else:
+            console_print(
+                f"{INFO}Nothing was returned for "
+                f"[i]entity type {magenta(parameters.measurements_type.value)}[/i] and "
+                f"[i]property format {magenta(parameters.measurements_property_format.value)}[/i] "
+                f"in [i]space {magenta(parameters.resource_id)}[/i].",
+                stderr=True,
+            )
         return
 
     if (

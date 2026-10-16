@@ -15,12 +15,45 @@ from ado.schema.reference import ExperimentReference
 
 
 class SpaceHierarchy(enum.Enum):
-    SUB_SPACE = "subspace"
-    SUPER_SPACE = "superspace"
-    EQUAL_SPACE = "equal"
-    OVERLAPPING = "overlapping"
-    DISJOINT = "disjoint"
-    UNDEFINED = "undefined"
+    SUB_SPACE = "⊂ SUBSPACE"
+    SUPER_SPACE = "⊃ SUPERSPACE"
+    EQUAL_SPACE = "= IDENTICAL"
+    OVERLAPPING = "∩ OVERLAPPING"
+    DISJOINT = "∅ DISJOINT"
+    UNDEFINED = "? UNDEFINED"
+
+
+class VersionMatch(enum.Enum):
+    IDENTICAL = "= IDENTICAL"
+    MAJOR_ONLY = "≈ MAJOR_ONLY"
+
+
+class ParameterizationMatch(enum.Enum):
+    IDENTICAL = "= IDENTICAL"
+    DIFFERENT = "≠ DIFFERENT"
+    NOT_APPLICABLE = "N/A"
+
+
+class MeasurementSpaceComparisonResult(pydantic.BaseModel):
+    base_experiment_match: Annotated[
+        SpaceHierarchy,
+        pydantic.Field(
+            description="How the sets of experiments relate",
+        ),
+    ]
+    version_match: Annotated[
+        VersionMatch | None,
+        pydantic.Field(
+            description="Version match for the overlapping experiments",
+        ),
+    ] = None
+    parameterization_match: Annotated[
+        ParameterizationMatch | None,
+        pydantic.Field(
+            description="Parameterization match for the overlapping experiments",
+        ),
+    ] = None
+    model_config = ConfigDict(extra="forbid")
 
 
 def ms_config_type_discriminator(
@@ -255,13 +288,14 @@ class DiscoverySpaceConfiguration(pydantic.BaseModel):
             for property_id in shared_property_ids
         )
 
-    def compare_space_hierarchy(
+    def compare_entity_space(
         self, reference_space: "DiscoverySpaceConfiguration"
     ) -> SpaceHierarchy:
-        """Compares the space hierarchy between self and reference_space.
+        """Compares the entity space hierarchy between self and reference_space.
 
         Parameters:
             reference_space: The reference DiscoverySpaceConfiguration
+
         Returns:
             A SpaceHierarchy enum value describing the relationship
         """
@@ -282,6 +316,117 @@ class DiscoverySpaceConfiguration(pydantic.BaseModel):
         if self.overlaps(reference_space):
             return SpaceHierarchy.OVERLAPPING
         return SpaceHierarchy.DISJOINT
+
+    def compare_measurement_space(
+        self, reference_space: "DiscoverySpaceConfiguration"
+    ) -> MeasurementSpaceComparisonResult:
+        """Compares the measurement space between self (candidate) and reference_space.
+
+        Parameters:
+            reference_space: The reference DiscoverySpaceConfiguration.
+
+        Returns:
+            A MeasurementSpaceComparisonResult describing how the measurement spaces relate,
+            along with version and parameterization matching across shared experiments.
+        """
+        candidate_converted = self.convert_experiments_to_reference_list()
+        reference_converted = reference_space.convert_experiments_to_reference_list()
+
+        candidate_experiment_references = candidate_converted.experiments or []
+        reference_experiment_references = reference_converted.experiments or []
+
+        candidate_experiments_by_key = {
+            (
+                experiment_reference.actuatorIdentifier,
+                experiment_reference.major_version_experiment_identifier,
+            ): experiment_reference
+            for experiment_reference in candidate_experiment_references
+        }
+        reference_experiments_by_key = {
+            (
+                experiment_reference.actuatorIdentifier,
+                experiment_reference.major_version_experiment_identifier,
+            ): experiment_reference
+            for experiment_reference in reference_experiment_references
+        }
+
+        candidate_keys = set(candidate_experiments_by_key.keys())
+        reference_keys = set(reference_experiments_by_key.keys())
+
+        if not candidate_keys or not reference_keys:
+            return MeasurementSpaceComparisonResult(
+                base_experiment_match=SpaceHierarchy.DISJOINT,
+            )
+
+        if candidate_keys.isdisjoint(reference_keys):
+            return MeasurementSpaceComparisonResult(
+                base_experiment_match=SpaceHierarchy.DISJOINT,
+            )
+
+        if candidate_keys == reference_keys:
+            base_experiment_match = SpaceHierarchy.EQUAL_SPACE
+        elif candidate_keys.issuperset(reference_keys):
+            base_experiment_match = SpaceHierarchy.SUPER_SPACE
+        elif candidate_keys.issubset(reference_keys):
+            base_experiment_match = SpaceHierarchy.SUB_SPACE
+        else:
+            base_experiment_match = SpaceHierarchy.OVERLAPPING
+
+        # Compute version match across all shared experiment pairs
+        # Report least powerful outcome: one MAJOR_ONLY makes it MAJOR_ONLY
+        common_keys = candidate_keys.intersection(reference_keys)
+        has_major_only = False
+        for key in common_keys:
+            candidate_experiment = candidate_experiments_by_key[key]
+            reference_experiment = reference_experiments_by_key[key]
+            if (
+                candidate_experiment.fully_qualified_experiment_identifier
+                != reference_experiment.fully_qualified_experiment_identifier
+            ):
+                has_major_only = True
+                break
+
+        version_match = (
+            VersionMatch.MAJOR_ONLY if has_major_only else VersionMatch.IDENTICAL
+        )
+
+        # Compute parameterization match across all shared experiment pairs
+        # Report least powerful outcome:
+        # If any pair is DIFFERENT -> DIFFERENT
+        # Else if any pair is IDENTICAL -> IDENTICAL
+        # Else (all N/A) -> NOT_APPLICABLE
+        has_different = False
+        has_identical = False
+        for key in common_keys:
+            candidate_experiment = candidate_experiments_by_key[key]
+            reference_experiment = reference_experiments_by_key[key]
+            if (
+                not candidate_experiment.parameterization
+                and not reference_experiment.parameterization
+            ):
+                continue
+
+            if (
+                candidate_experiment.major_version_parameterized_experiment_identifier
+                == reference_experiment.major_version_parameterized_experiment_identifier
+            ):
+                has_identical = True
+            else:
+                has_different = True
+                break
+
+        if has_different:
+            parameterization_match = ParameterizationMatch.DIFFERENT
+        elif has_identical:
+            parameterization_match = ParameterizationMatch.IDENTICAL
+        else:
+            parameterization_match = ParameterizationMatch.NOT_APPLICABLE
+
+        return MeasurementSpaceComparisonResult(
+            base_experiment_match=base_experiment_match,
+            version_match=version_match,
+            parameterization_match=parameterization_match,
+        )
 
     def validate_entity_space_against_measurement_space(self) -> None:
         """Validates the entity space against the measurement space.

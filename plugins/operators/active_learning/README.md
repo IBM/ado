@@ -13,6 +13,22 @@ next.
 
 ## How it Works
 
+Both operators start with a random pilot of `pilotSize` labelled entities
+(default `5`). Set `pilotSize` to any positive integer in the operation
+parameters. Existing target labels count toward this total; additional pilot
+entities are sampled uniformly without replacement using `seed`, then measured
+in random draw order. The first forest is fitted once all pilot labels are
+available. A smaller pool or measurement budget can end the operation during
+the pilot. Pilot measurements count toward `numberEntities`; existing labels
+do not.
+
+Forest feature subsampling is controlled by `maxFeatures` (default `sqrt`).
+At each split, `sqrt` considers the square root of the number of encoded
+features, rounded down to at least one. Other options are `log2`, a positive
+integer feature count, a fraction in `(0, 1]`, or `null` for all features.
+For example, `maxFeatures: 1.0` considers all features, while `maxFeatures: 1`
+considers one. Scikit-learn may inspect more features to find a valid split.
+
 Both operators run the same loop: pick an entity, wait for ADO to record its
 target value, then use that new label - together with every prior label - to
 choose the next entity. They differ in how they use the forest to make that
@@ -46,6 +62,12 @@ more label, a score that grows with a leaf's disagreement and pool share and
 shrinks the more that leaf is already labelled. The forest is refit on a
 near-geometric schedule, so refits become less frequent as the labelled
 sample grows.
+
+FLORA follows the legacy-v7 randomization scheme: `seed` initializes separate
+random streams for forest refits and tie-breaking. Each stream is reproducible,
+and extra tie-breaking leaves the sequence of forest seeds unchanged. Pilot
+sampling uses its own random generator.
+
 FLORA's objective is predictive accuracy, not distributional coverage: it is
 the right choice when the goal is a low-error predictive model. When the
 goal is instead a labelled sample that represents the full entity pool's

@@ -141,7 +141,7 @@ def test_explore_operator_function_conf_identifier_matches_registered_name() -> 
             operationType=ado.core.operation.config.DiscoveryOperationEnum.EXPLORE,
         )
         # The identifier must start with the registered function name, not the
-        # class name (e.g. "random_walk@2.0.0", not "RandomWalk@...")
+        # class name (e.g. "random_walk@2.1.0", not "RandomWalk@...")
         identifier = conf.operatorIdentifier
         assert identifier.startswith(f"{name}@"), (
             f"Expected identifier to start with '{name}@', got '{identifier}'"
@@ -459,7 +459,8 @@ def test_run_random_walk_operation(
         operationOutput.operation.metadata["experiments_requested"] == 74
     )  # There are multiple measuremenst for some entities
 
-    # ray_job_id should be recorded because Ray is initialised for the test session
+    # ray_job_id should be recorded because Ray is initialised for the test session.
+    # ray_submission_id is only set for Jobs API drivers (ray job submit).
     import ray
 
     assert "ray_job_id" in operationOutput.operation.metadata
@@ -467,6 +468,13 @@ def test_run_random_walk_operation(
         operationOutput.operation.metadata["ray_job_id"]
         == ray.get_runtime_context().get_job_id()
     )
+    assert "ray_submission_id" not in operationOutput.operation.metadata
+
+    # Explore operations record operator, experiment, and actuator provenance
+    assert operation.provenance.operators
+    assert operation.operatorIdentifier in operation.provenance.operators
+    assert operation.provenance.experiments
+    assert operation.provenance.actuators
 
 
 def test_random_walk_fail_invalid_config(

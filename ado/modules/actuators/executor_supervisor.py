@@ -62,7 +62,7 @@ def _verify_supervisor_ray_states_supported() -> None:
 _verify_supervisor_ray_states_supported()
 
 
-class ExperimentExecutorState(str, enum.Enum):
+class ExperimentExecutorState(enum.StrEnum):
     """Defines state used by experiment executor supervisor
 
     Ray's State API exposes many lifecycle states; the supervisor collapses them

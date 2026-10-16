@@ -17,6 +17,11 @@ from urllib.parse import urlparse
 import yaml
 from rich.status import Status
 
+try:
+    from yaml import CSafeDumper as SafeDumper
+except ImportError:  # pragma: nocover
+    from yaml import SafeDumper  # type: ignore[assignment]
+
 from ado.cli.models.remote_submission import (
     SUBMISSION_FILE_COPY_FLAGS,
     SUBMISSION_STRIP_FLAGS,
@@ -507,7 +512,7 @@ def _write_runtime_env(
             "eager_install": remote_context.runtimeEnv.eagerInstall,
         }
 
-    dest.write_text(yaml.dump(runtime_env, default_flow_style=False))
+    dest.write_text(yaml.dump(runtime_env, default_flow_style=False, Dumper=SafeDumper))
     log.debug("Wrote runtime_env.yaml to %s", dest)
 
 
@@ -599,7 +604,11 @@ def _dispatch_to_cluster(
         context_filename = f"{project_context.project}.yaml"
         context_file_path = working_dir / context_filename
         context_file_path.write_text(
-            yaml.dump(project_context.model_dump(), default_flow_style=False)
+            yaml.dump(
+                project_context.model_dump(),
+                default_flow_style=False,
+                Dumper=SafeDumper,
+            )
         )
 
         # 2. Copy any -f / --with files into the working directory and rewrite paths

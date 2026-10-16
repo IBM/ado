@@ -51,7 +51,7 @@ drive it for you using built-in agent skills.
 
 === "Path A — Direct CLI"
 
-    Make sure you are on **Python 3.10 – 3.14** (`python --version`), and work
+    Make sure you are on **Python 3.11 – 3.14** (`python --version`), and work
     inside a virtual environment to avoid dependency conflicts:
 
     ```shell
@@ -70,7 +70,22 @@ drive it for you using built-in agent skills.
 
 === "Path B — AI-assisted"
 
-    Clone the repository and set up the full environment:
+    **Option 1: install via library-skills (recommended)**
+
+    Add `ado-core` to your project dependencies (version 2.1.0 or later), then run
+    [library-skills](https://library-skills.io/use/) from your project directory:
+
+    ```shell
+    uv add "ado-core>=2.1.0"
+    uvx library-skills install --all -y
+    ```
+
+    The tool scans your project dependencies and installs bundled skills into
+    your workspace for your agent-enabled IDE to use automatically.
+
+    **Option 2: clone the repository**
+
+    Clone the repository and set up the environment:
 
     ```shell
     git clone https://github.com/IBM/ado.git

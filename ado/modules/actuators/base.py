@@ -14,7 +14,6 @@ from ado.modules.actuators.measurement_queue import MeasurementQueue, NullQueue
 from ado.schema.entity import (
     Entity,
 )
-from ado.schema.measurementspace import MeasurementSpace
 from ado.schema.reference import ExperimentReference
 
 moduleLog = logging.getLogger("actuatorsbase")
@@ -46,7 +45,6 @@ class ActuatorBase(abc.ABC):
         self.log = logging.getLogger("actuator")
         self._stateUpdateQueue = queue
         self._parameters = params if params is not None else {}
-        self._measurementSpace = None  # type: typing.Optional[MeasurementSpace]
 
     def ready(self) -> bool:
         """This method is used to determine if the Actuator died on init"""
@@ -115,14 +113,6 @@ class ActuatorBase(abc.ABC):
         """
 
         return CatalogConfigurationRequirementEnum.NOT_REQUIRED
-
-    def setMeasurementSpace(self, measurementSpace: MeasurementSpace) -> None:
-        """Add a measurement space to the receiver to give it access to experiments beyond its catalog.
-
-        It is Actuator implementation specific whether it uses the MeasurementSpace or not
-        """
-
-        self._measurementSpace = measurementSpace
 
     @classmethod
     def default_parameters(cls, is_template: bool = False) -> GenericActuatorParameters:

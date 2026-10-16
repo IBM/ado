@@ -22,12 +22,17 @@ from ado.core.datacontainer.resource import DataContainerResource
 from ado.core.discoveryspace.resource import DiscoverySpaceResource
 from ado.core.document.config import DocumentConfiguration
 from ado.core.document.resource import DocumentResource
-from ado.core.operation.config import DiscoveryOperationResourceConfiguration
-from ado.core.operation.resource import OperationResource
+from ado.core.metadata import PackageProvenance
+from ado.core.operation.config import (
+    DiscoveryOperationResourceConfiguration,
+    FunctionOperationInfo,
+)
+from ado.core.operation.resource import OperationProvenanceInfo, OperationResource
 from ado.core.resources import (
     ADOResourceEventEnum,
     CoreResourceKinds,
 )
+from ado.metastore.base import ResourcesDoNotExistError
 from ado.metastore.project import ProjectContext
 from ado.metastore.sqlstore import SQLStore
 from tests.conftest import requires_sqlite_3_38
@@ -94,23 +99,17 @@ def test_get_resources_sorted_by_created_ascending(
     create_resources: Callable[[list[ado.core.resources.ADOResource], SQLStore], None],
 ) -> None:
     """Test that getResources returns resources sorted by created timestamp in ascending order (oldest first)."""
-    import datetime
+    import datetime as dt
 
     # Create multiple resources from file with explicit created timestamps
     space1 = random_space_resource_from_file()
-    space1.created = datetime.datetime(
-        2024, 1, 1, 12, 0, 0, tzinfo=datetime.timezone.utc
-    )
+    space1.created = dt.datetime(2024, 1, 1, 12, 0, 0, tzinfo=dt.UTC)
 
     space2 = random_space_resource_from_file()
-    space2.created = datetime.datetime(
-        2024, 1, 2, 12, 0, 0, tzinfo=datetime.timezone.utc
-    )
+    space2.created = dt.datetime(2024, 1, 2, 12, 0, 0, tzinfo=dt.UTC)
 
     space3 = random_space_resource_from_file()
-    space3.created = datetime.datetime(
-        2024, 1, 3, 12, 0, 0, tzinfo=datetime.timezone.utc
-    )
+    space3.created = dt.datetime(2024, 1, 3, 12, 0, 0, tzinfo=dt.UTC)
 
     # Add resources to database using create_resources fixture
     create_resources([space1, space2, space3])
@@ -336,7 +335,7 @@ def test_add_update_and_delete_operation_related_to_discovery_space(
 
 
 @requires_sqlite_3_38
-def test_add_operation_and_output(
+def test_create_operation_and_add_output(
     random_space_resource_from_db: Callable[[str | None], DiscoverySpaceResource],
     sql_store: SQLStore,
     random_walk_multicloud_operation_configuration: DiscoveryOperationResourceConfiguration,
@@ -345,15 +344,48 @@ def test_add_operation_and_output(
 
     space_resource = random_space_resource_from_db()
     space_identifier = space_resource.identifier
-    random_walk_multicloud_operation_configuration.spaces = [space_identifier]
+    operation_parameters = (
+        random_walk_multicloud_operation_configuration.operation.parameters
+    )
+    if hasattr(operation_parameters, "model_dump"):
+        operation_parameters = operation_parameters.model_dump()
 
-    op_resource = ado.modules.operators.base.add_operation_and_output_to_metastore(
-        operation_resource_configuration=random_walk_multicloud_operation_configuration,
+    provenance = OperationProvenanceInfo(
+        operators={
+            random_walk_multicloud_operation_configuration.operation.module.operatorIdentifier: PackageProvenance(
+                distributionName="ado-core",
+                distributionVersion="1.2.3",
+            )
+        }
+    )
+    op_resource = ado.modules.operators.base.create_operation_and_add_to_metastore(
+        space_identifier=space_identifier,
+        operator_module=random_walk_multicloud_operation_configuration.operation.module,
+        operation_parameters=operation_parameters,
+        operation_info=FunctionOperationInfo(
+            metadata=random_walk_multicloud_operation_configuration.metadata,
+            actuatorConfigurationIdentifiers=(
+                random_walk_multicloud_operation_configuration.actuatorConfigurationIdentifiers
+            ),
+        ),
         metastore=sql_store,
+        provenance=provenance,
+    )
+    ado.modules.operators.base.add_operation_output_to_metastore(
+        operation=op_resource,
         output=ado.modules.operators.base.OperationOutput(
             resources=[data_container_resource]
         ),
+        metastore=sql_store,
     )
+
+    assert op_resource.config.spaces == [space_identifier]
+    loaded = sql_store.getResource(
+        identifier=op_resource.identifier, kind=CoreResourceKinds.OPERATION
+    )
+    assert loaded.provenance.operators == provenance.operators
+    assert loaded.provenance.experiments == []
+    assert loaded.provenance.actuators == {}
 
     # Test we can get the datacontainer
     dcs = sql_store.get_resources_by_relationship(
@@ -443,6 +475,59 @@ def test_delete_unknown_resource_raise_exception(resource_store: SQLStore) -> No
         ),
     ):
         resource_store.deleteResource(identifier=fake_identifier)
+
+
+def test_update_resource_overwrites_stored_data(
+    sql_store: SQLStore,
+    random_space_resource_from_db: Callable[[str | None], DiscoverySpaceResource],
+) -> None:
+    """updateResource stores the new payload for an existing identifier.
+
+    After calling updateResource, the retrieved resource reflects the change
+    and its status log contains the UPDATED event.
+    """
+    space = random_space_resource_from_db(None)
+
+    space.metadata["tag"] = "overwritten"
+    sql_store.updateResource(space)
+
+    reloaded = sql_store.getResource(
+        space.identifier, kind=CoreResourceKinds.DISCOVERYSPACE
+    )
+    assert reloaded is not None
+    assert reloaded.metadata["tag"] == "overwritten"
+    events = [s.event for s in reloaded.status]
+    assert ADOResourceEventEnum.UPDATED in events
+
+
+def test_delete_object_relationships_removes_subject_object_links(
+    sql_store: SQLStore,
+    random_space_resource_from_db: Callable[[str | None], DiscoverySpaceResource],
+    operation_resource: OperationResource,
+) -> None:
+    """deleteObjectRelationships removes all relationships where identifier is the object.
+
+    After deletion, getRelatedSubjectResourceIdentifiers returns an empty
+    DataFrame for that identifier. The resources themselves remain in the store.
+    """
+    space = random_space_resource_from_db(None)
+    sql_store.addResourceWithRelationships(
+        operation_resource, relatedIdentifiers=[space.identifier]
+    )
+
+    subjects = sql_store.getRelatedSubjectResourceIdentifiers(
+        operation_resource.identifier
+    )
+    assert space.identifier in subjects["IDENTIFIER"].values
+
+    sql_store.deleteObjectRelationships(identifier=operation_resource.identifier)
+
+    subjects_after = sql_store.getRelatedSubjectResourceIdentifiers(
+        operation_resource.identifier
+    )
+    assert subjects_after.empty
+    assert sql_store.containsResourceWithIdentifier(space.identifier)
+    assert sql_store.containsResourceWithIdentifier(operation_resource.identifier)
 
 
 ### Custom Serializations
@@ -1986,3 +2071,239 @@ def test_both_from_document_returns_both_operations(
     assert CoreResourceKinds.OPERATION in result
     assert h["op_a_id"] in result[CoreResourceKinds.OPERATION]
     assert h["op_b_id"] in result[CoreResourceKinds.OPERATION]
+
+
+def test_table_reflection_is_cached_across_instances(
+    valid_ado_project_context: ProjectContext,
+) -> None:
+    """Reflected table objects are shared across store instances with the same engine URL."""
+    from ado.metastore.sqlstore import SQLResourceStore, _reflected_metadata_cache
+
+    store_a = SQLResourceStore(project_context=valid_ado_project_context)
+    store_b = SQLResourceStore(project_context=valid_ado_project_context)
+
+    assert store_a._resources_table is store_b._resources_table
+    assert store_a._relationships_table is store_b._relationships_table
+    assert str(store_a.engine.url) in _reflected_metadata_cache
+
+
+# ---------------------------------------------------------------------------
+# has_resources_with_identifiers
+# ---------------------------------------------------------------------------
+
+
+@requires_sqlite_3_38
+def test_has_resources_with_identifiers_all_present(
+    sql_store: SQLStore,
+    random_space_resource_from_file: Callable[[str | None], DiscoverySpaceResource],
+    create_resources: Callable[[list[ado.core.resources.ADOResource], SQLStore], None],
+) -> None:
+    """All identifiers exist -> all True, no exception."""
+    space1 = random_space_resource_from_file()
+    space2 = random_space_resource_from_file()
+    create_resources([space1, space2])
+
+    result = sql_store.has_resources_with_identifiers(
+        [space1.identifier, space2.identifier]
+    )
+    assert result == {space1.identifier: True, space2.identifier: True}
+
+
+@requires_sqlite_3_38
+def test_has_resources_with_identifiers_some_missing_no_raise(
+    sql_store: SQLStore,
+    random_space_resource_from_file: Callable[[str | None], DiscoverySpaceResource],
+    create_resources: Callable[[list[ado.core.resources.ADOResource], SQLStore], None],
+) -> None:
+    """Some identifiers absent, raise_if_missing=False -> returns mixed dict, no exception."""
+    space1 = random_space_resource_from_file()
+    create_resources([space1])
+    missing_id = "non-existent-id-123"
+
+    result = sql_store.has_resources_with_identifiers(
+        [space1.identifier, missing_id], raise_if_missing=False
+    )
+    assert result == {space1.identifier: True, missing_id: False}
+
+
+@requires_sqlite_3_38
+def test_has_resources_with_identifiers_some_missing_raises(
+    sql_store: SQLStore,
+    random_space_resource_from_file: Callable[[str | None], DiscoverySpaceResource],
+    create_resources: Callable[[list[ado.core.resources.ADOResource], SQLStore], None],
+) -> None:
+    """Some identifiers absent, raise_if_missing=True (default) -> ResourcesDoNotExistError raised."""
+    space1 = random_space_resource_from_file()
+    create_resources([space1])
+    missing_id1 = "non-existent-id-1"
+    missing_id2 = "non-existent-id-2"
+
+    with pytest.raises(ResourcesDoNotExistError) as exc_info:
+        sql_store.has_resources_with_identifiers(
+            [space1.identifier, missing_id1, missing_id2]
+        )
+
+    assert exc_info.value.missing_ids == {missing_id1, missing_id2}
+    assert exc_info.value.kind is None
+
+
+@requires_sqlite_3_38
+def test_has_resources_with_identifiers_kind_filter(
+    sql_store: SQLStore,
+    random_space_resource_from_file: Callable[[str | None], DiscoverySpaceResource],
+    create_resources: Callable[[list[ado.core.resources.ADOResource], SQLStore], None],
+) -> None:
+    """Identifier exists under one kind but query uses a different kind -> treated as missing."""
+    space1 = random_space_resource_from_file()
+    create_resources([space1])
+
+    # Present when filtered by its correct kind
+    result_correct = sql_store.has_resources_with_identifiers(
+        [space1.identifier],
+        kind=CoreResourceKinds.DISCOVERYSPACE,
+        raise_if_missing=False,
+    )
+    assert result_correct == {space1.identifier: True}
+
+    # Missing when filtered by another kind
+    result_wrong = sql_store.has_resources_with_identifiers(
+        [space1.identifier], kind=CoreResourceKinds.OPERATION, raise_if_missing=False
+    )
+    assert result_wrong == {space1.identifier: False}
+
+    with pytest.raises(ResourcesDoNotExistError) as exc_info:
+        sql_store.has_resources_with_identifiers(
+            [space1.identifier], kind=CoreResourceKinds.OPERATION, raise_if_missing=True
+        )
+    assert exc_info.value.missing_ids == {space1.identifier}
+    assert exc_info.value.kind == CoreResourceKinds.OPERATION
+
+
+@requires_sqlite_3_38
+def test_has_resources_with_identifiers_empty_input(
+    sql_store: SQLStore,
+) -> None:
+    """Empty list/set -> returns {} with no exception."""
+    assert sql_store.has_resources_with_identifiers([]) == {}
+    assert sql_store.has_resources_with_identifiers(set()) == {}
+
+
+###############################################################################
+# update_resources
+###############################################################################
+
+
+def test_update_resources_updates_all(
+    sql_store: SQLStore,
+    random_space_resource_from_db: Callable[[str | None], DiscoverySpaceResource],
+) -> None:
+    """update_resources applies changes to all supplied resources and marks each UPDATED."""
+
+    space1 = random_space_resource_from_db()
+    space2 = random_space_resource_from_db()
+
+    space1.metadata = {"updated": "yes", "index": 1}
+    space2.metadata = {"updated": "yes", "index": 2}
+
+    sql_store.update_resources([space1, space2])
+
+    loaded1 = sql_store.getResource(
+        identifier=space1.identifier, kind=CoreResourceKinds.DISCOVERYSPACE
+    )
+    loaded2 = sql_store.getResource(
+        identifier=space2.identifier, kind=CoreResourceKinds.DISCOVERYSPACE
+    )
+
+    assert loaded1.metadata == {"updated": "yes", "index": 1}
+    assert loaded2.metadata == {"updated": "yes", "index": 2}
+    assert loaded1.status[-1].event == ADOResourceEventEnum.UPDATED
+    assert loaded2.status[-1].event == ADOResourceEventEnum.UPDATED
+
+
+def test_update_resources_is_atomic(
+    sql_store: SQLStore,
+    random_space_resource_from_db: Callable[[str | None], DiscoverySpaceResource],
+) -> None:
+    """update_resources rolls back all changes when the SQL statement fails.
+
+    The entire batch is sent as a single SQL statement inside one
+    ``engine.begin()`` transaction.  If that statement raises, the context
+    manager rolls back and neither row should be visible in the database.
+    """
+    import unittest.mock
+
+    import sqlalchemy.exc
+
+    space1 = random_space_resource_from_db()
+    space2 = random_space_resource_from_db()
+
+    original_status_len1 = len(space1.status)
+    original_status_len2 = len(space2.status)
+
+    space1.metadata = {"should_not": "land1"}
+    space2.metadata = {"should_not": "land2"}
+
+    # Patch connectable.execute inside engine.begin() to raise, simulating a
+    # mid-transaction DB failure so the context manager triggers a rollback.
+    real_begin = sql_store.engine.begin
+
+    class _FailingConn:
+        def __enter__(self_inner) -> "_FailingConn":  # noqa: N805, ANN204, PYI034
+            self_inner._conn = real_begin().__enter__()
+            return self_inner
+
+        def __exit__(self_inner, *args: object) -> bool | None:  # noqa: N805
+            # Always roll back by propagating the exception
+            return self_inner._conn.__exit__(*args)
+
+        def execute(self_inner, *args: object, **kwargs: object) -> None:  # noqa: N805
+            raise sqlalchemy.exc.OperationalError(
+                "simulated DB failure", params=None, orig=None
+            )
+
+    with (
+        unittest.mock.patch.object(sql_store.engine, "begin", _FailingConn),
+        pytest.raises(sqlalchemy.exc.OperationalError),
+    ):
+        sql_store.update_resources([space1, space2])
+
+    # Neither resource should have been updated in the store
+    loaded1 = sql_store.getResource(
+        identifier=space1.identifier, kind=CoreResourceKinds.DISCOVERYSPACE
+    )
+    loaded2 = sql_store.getResource(
+        identifier=space2.identifier, kind=CoreResourceKinds.DISCOVERYSPACE
+    )
+
+    assert loaded1.metadata != {"should_not": "land1"}
+    assert loaded2.metadata != {"should_not": "land2"}
+    # Status list must not have grown (no UPDATED event was committed)
+    assert len(loaded1.status) == original_status_len1
+    assert len(loaded2.status) == original_status_len2
+
+
+def test_update_resources_unknown_id_raises_and_does_not_modify(
+    sql_store: SQLStore,
+    random_space_resource_from_db: Callable[[str | None], DiscoverySpaceResource],
+) -> None:
+    """update_resources raises ResourcesDoNotExistError for an unknown ID and
+    leaves the existing resource unmodified (all-or-nothing)."""
+    space = random_space_resource_from_db()
+    original_metadata = dict(space.metadata) if space.metadata else {}
+
+    # Build a ghost resource that was never persisted
+    ghost = DiscoverySpaceResource(
+        identifier="ghost-id-that-does-not-exist",
+        config=space.config,
+    )
+
+    space.metadata = {"should_not": "appear"}
+
+    with pytest.raises(ResourcesDoNotExistError):
+        sql_store.update_resources([space, ghost])
+
+    # The persisted space must not have changed
+    loaded = sql_store.getResource(
+        identifier=space.identifier, kind=CoreResourceKinds.DISCOVERYSPACE
+    )
+    assert loaded.metadata == original_metadata

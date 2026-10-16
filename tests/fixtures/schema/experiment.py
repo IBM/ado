@@ -26,7 +26,7 @@ def experiment_identifier() -> str:
 
 @pytest.fixture
 def actuator_identifier() -> str:
-    return "mock"
+    return "test"
 
 
 @pytest.fixture
@@ -146,7 +146,7 @@ def mock_parameterizable_experiment(
     """A parameterizable experiment that has required and optional properties"""
 
     return Experiment(
-        actuatorIdentifier="mock",
+        actuatorIdentifier="test",
         identifier="test_parameterizable_experiment",
         requiredProperties=tuple(requiredProperties),
         optionalProperties=tuple(optionalProperties),
@@ -164,7 +164,7 @@ def mock_parameterizable_experiment_no_required(
     """A parameterizable experiment that has no required properties"""
 
     return Experiment(
-        actuatorIdentifier="mock",
+        actuatorIdentifier="test",
         identifier="test_parameterizable_experiment_two",
         optionalProperties=tuple(optionalProperties),
         defaultParameterization=tuple(defaultParameterization),
@@ -187,7 +187,7 @@ def mock_parameterizable_experiment_with_required_observed(
 
     # leave out description so we have one test experiment without it
     return Experiment(
-        actuatorIdentifier="mock",
+        actuatorIdentifier="test",
         identifier="test_parameterizable_experiment_three",
         requiredProperties=(*requiredProperties, op),
         optionalProperties=tuple(optionalProperties),

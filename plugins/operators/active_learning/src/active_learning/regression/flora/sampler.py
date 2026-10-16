@@ -13,6 +13,7 @@ from sklearn.ensemble import RandomForestRegressor
 
 from active_learning.regression._shared import (
     ForestCriterion,
+    ForestMaxFeatures,
     _encode_leaf_signature,
     _PredictiveSampleSelector,
     _SequentialSelectionState,
@@ -21,6 +22,18 @@ from active_learning.regression.flora.parameters import FLORAParameters
 
 if typing.TYPE_CHECKING:
     import pydantic
+
+
+_FOREST_STREAM_TAG = 0x464F5245  # "FORE"
+_TIE_STREAM_TAG = 0x54494553  # "TIES"
+
+
+def _flora_rng(seed: int, stream_tag: int) -> np.random.Generator:
+    """Create a purpose-specific stream using FLORA's legacy-v7 seed derivation."""
+
+    return np.random.default_rng(
+        np.random.SeedSequence([int(seed) & 0xFFFFFFFF, int(stream_tag) & 0xFFFFFFFF])
+    )
 
 
 def _flora_leaf_gain(
@@ -85,6 +98,8 @@ class _FLORASelectionState(_SequentialSelectionState):
         *,
         n_estimators: int = 100,
         min_samples_leaf: int = 2,
+        max_features: ForestMaxFeatures = "sqrt",
+        pilot_size: int = 5,
         seed: int = 42,
         criterion: ForestCriterion = "squared_error",
         n_jobs: int = 1,
@@ -97,11 +112,14 @@ class _FLORASelectionState(_SequentialSelectionState):
             initial_labels,
             n_estimators=n_estimators,
             min_samples_leaf=min_samples_leaf,
+            max_features=max_features,
+            pilot_size=pilot_size,
             seed=seed,
             criterion=criterion,
             n_jobs=n_jobs,
         )
-        self._rng = np.random.default_rng(self.seed)
+        self._forest_rng = _flora_rng(self.seed, _FOREST_STREAM_TAG)
+        self._tie_rng = _flora_rng(self.seed, _TIE_STREAM_TAG)
         self._forest_fitted = False
         self._next_refit_at = np.iinfo(np.int64).max
 
@@ -117,10 +135,11 @@ class _FLORASelectionState(_SequentialSelectionState):
     def _fit_epoch(self) -> None:
         """Fit the forest and compile pointwise disagreement by leaf."""
 
-        forest_seed = int(self._rng.integers(np.iinfo(np.int32).max))
+        forest_seed = int(self._forest_rng.integers(np.iinfo(np.int32).max))
         forest = RandomForestRegressor(
             n_estimators=self.n_estimators,
             min_samples_leaf=self.min_samples_leaf,
+            max_features=self.max_features,
             criterion=self.criterion,
             bootstrap=True,
             random_state=forest_seed,
@@ -194,7 +213,7 @@ class _FLORASelectionState(_SequentialSelectionState):
 
         if maximisers.size == 1:
             return int(maximisers[0])
-        return int(maximisers[self._rng.integers(maximisers.size)])
+        return int(maximisers[self._tie_rng.integers(maximisers.size)])
 
     def _on_update(self, index: int) -> None:
         """Count the newly labelled point in every forest leaf it occupies."""
@@ -238,6 +257,8 @@ class FLORASampleSelector(_PredictiveSampleSelector):
             initial_labels,
             n_estimators=self.params.nEstimators,
             min_samples_leaf=self.params.minSamplesLeaf,
+            max_features=self.params.maxFeatures,
+            pilot_size=self.params.pilotSize,
             seed=self.params.seed,
             criterion=self.params.criterion,
             n_jobs=self.params.nJobs,

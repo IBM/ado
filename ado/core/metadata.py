@@ -2,11 +2,10 @@
 # SPDX-License-Identifier: MIT
 
 
-from typing import Annotated
+from typing import Annotated, Self
 
 import pydantic
 from pydantic import ConfigDict
-from typing_extensions import Self
 
 from ado.utilities.pydantic import Pep440VersionStr
 

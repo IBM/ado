@@ -19,19 +19,23 @@ description: >-
 
 ### Step 1: Delete marked resources
 
-Query every deletable type for existing marks:
+Query every deletable type for existing marks. Write listings to files and
+read them; do not rely on stdout. See
+[using-ado-cli](../using-ado-cli/SKILL.md).
 
    ```bash
-   uv run ado get operation -l for_deletion=true --details
-   uv run ado get discoveryspace -l for_deletion=true --details
-   uv run ado get datacontainer -l for_deletion=true --details
-   uv run ado get document -l for_deletion=true --details
-   uv run ado get samplestore -l for_deletion=true --details
+   uv run ado get operation -l for_deletion=true --details --output-file /tmp/ado-for-deletion-operations.txt
+   uv run ado get discoveryspace -l for_deletion=true --details --output-file /tmp/ado-for-deletion-spaces.txt
+   uv run ado get datacontainer -l for_deletion=true --details --output-file /tmp/ado-for-deletion-dcrs.txt
+   uv run ado get document -l for_deletion=true --details --output-file /tmp/ado-for-deletion-docs.txt
+   uv run ado get samplestore -l for_deletion=true --details --output-file /tmp/ado-for-deletion-stores.txt
    ```
 
 If nothing is marked, move on to Step 2.
 
-Delete children before parents. You cannot delete resources that have children.
+Delete children before parents. You cannot delete resources that have children
+(except for operations, which automatically cascade-delete their child
+`datacontainer` resources unless those data containers have further children).
 
 Order:
    `datacontainer` → `operation` → `discoveryspace`  → `samplestore`
@@ -116,8 +120,10 @@ Three labels make up the maintenance scheme.
    uv run ado show stats discoveryspace -o csv --output-file spaces-stats.csv
    ```
 
-   Filter rows where `MEASURED_ENTITIES == 0`. Use the `AGE` column
-   (for example `7d0h` or greater) to keep only spaces older than a week.
+   Filter rows where `SAMPLED_COMPLETE == 0` and `SAMPLED_PARTIAL == 0` and
+   `SAMPLED_FAILED == 0` (no entities sampled under any outcome). Use the
+   `AGE` column (for example `7d0h` or greater) to keep only spaces older
+   than a week.
 
    Deletion Reason: `empty-space-stale`.
 
@@ -143,7 +149,7 @@ Three labels make up the maintenance scheme.
      -o csv --output-file operations-error-stats.csv
    ```
 
-   Filter rows where `MEASURED_ENTITIES == 0`.
+   Filter rows where `SAMPLED_ENTITIES == 0`.
 
    Deletion Reason: `error-no-entities`.
 
@@ -181,7 +187,8 @@ Three labels make up the maintenance scheme.
    related to the same space or operation.
 
    ```bash
-   uv run ado get document -q 'config.relatedResources=RESOURCE_ID' --details
+   uv run ado get document -q 'config.relatedResources=RESOURCE_ID' --details \
+     --output-file /tmp/ado-related-docs.txt
    ```
 
    Keep the newest by `created`, mark the rest (mirrors the replace-report
@@ -195,7 +202,8 @@ Three labels make up the maintenance scheme.
    `metadata.name: project_report`.
 
    ```bash
-   uv run ado get document -q 'config.metadata.name=project_report' --details
+   uv run ado get document -q 'config.metadata.name=project_report' --details \
+     --output-file /tmp/ado-project-report-docs.txt
    ```
 
    Keep the newest, mark the rest
@@ -217,7 +225,7 @@ Three labels make up the maintenance scheme.
    ```
 
    Filter the `STATUS` column for rows where `STATUS == started`, `AGE`
-   is a week or more, and `MEASURED_ENTITIES == 0`.
+   is a week or more, and `SAMPLED_ENTITIES == 0`.
 
    Deletion Reason: `started-and-crashed-no-entities`.
 

@@ -251,6 +251,10 @@ version: v1
 Deleting an operation is a destructive action that also removes associated data.
 The deletion process follows this logic:
 
+- Child `datacontainer` resources belonging to the operation are automatically
+  deleted in a cascade, provided they do not have dependent children of their own.
+  If an operation has non-datacontainer children or a child datacontainer has
+  grandchildren, deletion will be blocked.
 - Requests associated with the operation are deleted if their results are not
   referenced by other operations
 - Results are deleted **only if they are no longer referenced by any remaining

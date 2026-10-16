@@ -190,9 +190,9 @@ def remote_execution_closure(
 
         is_completed = False
         request = None
-        import datetime
+        import datetime as dt
 
-        start_time = datetime.datetime.now()
+        start_time = dt.datetime.now()
         while not is_completed:
             time.sleep(2)
             logger.debug(f"Polling for request {request_id}")
@@ -206,7 +206,7 @@ def remote_execution_closure(
                 request = MeasurementRequest.model_validate(response.json())
                 is_completed = True
             else:
-                elapsed = (datetime.datetime.now() - start_time).total_seconds()
+                elapsed = (dt.datetime.now() - start_time).total_seconds()
                 logger.debug(f"Waiting - {elapsed:.1f} seconds elapsed")
                 if elapsed > experiment_timeout:
                     raise Exception(

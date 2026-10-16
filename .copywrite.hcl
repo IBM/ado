@@ -5,21 +5,52 @@ project {
   copyright_year = 2025
   copyright_holder = "IBM Corporation"
 
-  # (OPTIONAL) A list of globs that should not have copyright/license headers.
-  # Supports doublestar glob patterns for more flexibility in defining which
-  # files or folders should be ignored
+  # Globs for paths that should not have copyright/license headers.
+  # A directory and the files inside it are different paths, so each directory
+  # is listed twice. A leading **/ makes the pattern match at any depth.
   header_ignore = [
-    ".cra/**",
-    ".eggs/**",
-    ".git/**",
-    ".github/**",
-    ".idea/**",
-    ".pre-commit-config.yaml",
-    ".tox/**",
-    ".venv/**",
-    ".vscode/**",
+    # Directories
+    "**/.cra",
+    "**/.eggs",
+    "**/.git",
+    "**/.github",
+    "**/.idea",
+    "**/.pytest_cache",
+    "**/.ruff_cache",
+    "**/.tox",
+    "**/.venv",
+    "**/.vscode",
+    "**/__pycache__",
+    "**/build",
+    "**/dist",
+    "**/node_modules",
+    "**/toxenv",
+
+    # Contents of those directories
+    "**/.cra/**",
+    "**/.eggs/**",
+    "**/.git/**",
+    "**/.github/**",
+    "**/.idea/**",
+    "**/.pytest_cache/**",
+    "**/.ruff_cache/**",
+    "**/.tox/**",
+    "**/.venv/**",
+    "**/.vscode/**",
+    "**/__pycache__/**",
     "**build/lib/**",
-    "dist/**",
-    "toxenv/**",
+    "**/build/**",
+    "**/dist/**",
+    "**/node_modules/**",
+    "**/toxenv/**",
+
+    # Individual files and non-source data
+    ".pre-commit-config.yaml",
+    "**/*.lp",
+    "**/*.log",
+    "**/*.mp4",
+    "**/*.mps",
+    "**/*.mps.gz",
+    "**/*.mst",
   ]
 }

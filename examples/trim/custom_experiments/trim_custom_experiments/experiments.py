@@ -150,3 +150,24 @@ def calculate_pressure_gas(
     pressure = (n * R * T) / (V - n * b) - a * (n / V) ** 2
 
     return {"pressure": pressure}
+
+
+# ---------------------------
+# Controlled error experiment (for testing missingTargetMeasurements)
+# ---------------------------
+
+
+@custom_experiment(output_property_identifiers=["bar"])
+def controlled_error(foo: int) -> dict[str, float]:
+    """Custom experiment with deterministic error / missing-output regions.
+
+    Input property ``foo`` drives three deterministic outcome regions:
+    - foo <= 10       → raises ValueError          (invalid measurement)
+    - 10 < foo <= 20  → returns {}                 (missing targetOutput "bar")
+    - foo > 20        → returns {"bar": foo}        (valid measurement)
+    """
+    if foo <= 10:
+        raise ValueError("This is an error")
+    if 10 < foo <= 20:
+        return {}
+    return {"bar": foo}

@@ -48,6 +48,12 @@ ForestCriterion = Literal[
     "friedman_mse",
     "poisson",
 ]
+ForestMaxFeatures = (
+    Literal["sqrt", "log2"]
+    | Annotated[int, pydantic.Field(ge=1, strict=True)]
+    | Annotated[float, pydantic.Field(gt=0.0, le=1.0, strict=True)]
+    | None
+)
 
 
 class _PredictiveParameters(pydantic.BaseModel):
@@ -60,6 +66,18 @@ class _PredictiveParameters(pydantic.BaseModel):
             description="Scalar target property used to fit the random forest.",
         ),
     ]
+    pilotSize: Annotated[
+        int,
+        pydantic.Field(
+            ge=1,
+            strict=True,
+            description=(
+                "Number of labelled entities required before adaptive selection. "
+                "Existing target labels count toward this total; additional "
+                "pilot entities are sampled randomly without replacement."
+            ),
+        ),
+    ] = 5
     nEstimators: Annotated[
         int,
         pydantic.Field(
@@ -74,9 +92,20 @@ class _PredictiveParameters(pydantic.BaseModel):
             description="Minimum number of labelled samples in a tree leaf.",
         ),
     ] = 2
+    maxFeatures: Annotated[
+        ForestMaxFeatures,
+        pydantic.Field(
+            description=(
+                "Features considered at each split after encoding: sqrt, log2, "
+                "a positive integer count, a fraction in (0, 1], or null for all."
+            ),
+        ),
+    ] = "sqrt"
     seed: Annotated[
         int,
-        pydantic.Field(description="Seed controlling reproducible forest fitting."),
+        pydantic.Field(
+            description="Seed controlling reproducible pilot sampling and forest fitting."
+        ),
     ] = 42
     criterion: Annotated[
         ForestCriterion,
@@ -220,6 +249,8 @@ class _SequentialSelectionState(abc.ABC):
         n_estimators: int,
         min_samples_leaf: int,
         seed: int,
+        pilot_size: int = 5,
+        max_features: ForestMaxFeatures = "sqrt",
         criterion: ForestCriterion = "squared_error",
         n_jobs: int = 1,
     ) -> None:
@@ -238,6 +269,12 @@ class _SequentialSelectionState(abc.ABC):
             raise ValueError("min_samples_leaf must be positive")
         if n_jobs == 0:
             raise ValueError("n_jobs cannot be zero")
+        if (
+            isinstance(pilot_size, (bool, np.bool_))
+            or not isinstance(pilot_size, (int, np.integer))
+            or pilot_size < 1
+        ):
+            raise ValueError("pilot_size must be a positive integer")
 
         indices = np.asarray(initial_indices, dtype=np.int64).reshape(-1)
         labels = np.asarray(initial_labels, dtype=float).reshape(-1)
@@ -255,7 +292,11 @@ class _SequentialSelectionState(abc.ABC):
         self.features_ = features
         self.n_estimators = int(n_estimators)
         self.min_samples_leaf = int(min_samples_leaf)
+        self.max_features = max_features
         self.seed = int(seed)
+        self.pilot_size = int(pilot_size)
+        self._pilot_rng = np.random.default_rng(self.seed)
+        self._pilot_indices = np.array([], dtype=np.int64)
         self.criterion = criterion
         self.n_jobs = int(n_jobs)
         self._selected = [int(index) for index in indices]
@@ -320,8 +361,19 @@ class _SequentialSelectionState(abc.ABC):
         if self._pending_index is not None:
             raise RuntimeError("the preceding query must be updated first")
         candidates = self._candidate_indices(candidate_indices)
-        if not self._selected:
-            choice = int(candidates[0])
+        if len(self._selected) < self.pilot_size:
+            pilot_candidates = self._pilot_indices[
+                np.isin(self._pilot_indices, candidates)
+            ]
+            if pilot_candidates.size == 0:
+                pilot_count = min(
+                    self.pilot_size - len(self._selected), candidates.size
+                )
+                self._pilot_indices = self._pilot_rng.choice(
+                    candidates, size=pilot_count, replace=False
+                )
+                pilot_candidates = self._pilot_indices
+            choice = int(pilot_candidates[0])
         else:
             choice = self._choose_candidate(candidates)
         self._remaining_mask[choice] = False
@@ -783,27 +835,38 @@ def _run_predictive_operator(
     number_entities: int,
     sampler_class: type[_PredictiveSampleSelector],
 ) -> OperationOutput:
-    """Run RandomWalk with a plugin-local sequential adaptive sampler."""
+    """Run predictive acquisition with sequential measurement scheduling."""
 
     # Lazy import avoids a circular import while ADO loads operator plugins.
+    from active_learning.regression._sequential import _SequentialPredictiveWalk
     from ado.modules.operators.collections import explore
+    from ado.modules.operators.orchestrate import orchestrate_explore_operation
 
     random_walk_parameters = _random_walk_parameters(
         parameters,
         number_entities=number_entities,
         sampler_class=sampler_class,
     )
-    random_walk = explore.operators["random_walk"].function
+    random_walk_metadata = explore.operators["random_walk"].model_copy(
+        update={"cls": _SequentialPredictiveWalk}
+    )
     nested_operation_info = FunctionOperationInfo(
+        metadata={
+            "implementation": (
+                f"{_SequentialPredictiveWalk.__module__}."
+                f"{_SequentialPredictiveWalk.__name__}"
+            )
+        },
         actuatorConfigurationIdentifiers=list(
             operation_info.actuatorConfigurationIdentifiers
             if operation_info is not None
             else []
-        )
+        ),
     )
-    nested_output = random_walk(
-        discoverySpace=discovery_space,
-        operationInfo=nested_operation_info,
-        **random_walk_parameters.model_dump(),
+    nested_output = orchestrate_explore_operation(
+        operator_metadata=random_walk_metadata,
+        discovery_space=discovery_space,
+        operation_info=nested_operation_info,
+        parameters=random_walk_parameters.model_dump(),
     )
     return _outer_operation_output(nested_output)

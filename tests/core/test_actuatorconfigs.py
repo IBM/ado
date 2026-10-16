@@ -152,7 +152,7 @@ def test_ml_multi_cloud_operation_invalid(
     with pytest.raises(
         ValueError,
         match=re.escape(
-            "Actuator Identifiers {'mock'} must appear in the experiments of its space"
+            "Actuator Identifiers {'test'} must appear in the experiments of its space"
         ),
     ):
         operation_configuration.validate_actuatorconfigurations(

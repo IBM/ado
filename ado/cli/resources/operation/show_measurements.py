@@ -8,7 +8,11 @@ from ado.cli.utils.generic.wrappers import get_sql_store
 from ado.cli.utils.output.dataframes import df_to_output
 from ado.cli.utils.output.prints import (
     ADO_SPINNER_QUERYING_DB,
+    INFO,
+    console_print,
+    magenta,
 )
+from ado.cli.utils.resources.experiments import parse_cli_from_experiment
 from ado.core.discoveryspace.space import DiscoverySpace
 from ado.metastore.base import (
     NoRelatedResourcesError,
@@ -19,6 +23,12 @@ from ado.metastore.base import (
 def show_operation_measurements(
     parameters: AdoShowMeasurementsCommandParameters,
 ) -> None:
+    """Show measurements for all entities in an operation.
+
+    Args:
+        parameters: The command parameters including the operation identifier,
+            output format, property format, and optional filters.
+    """
     sql_store = get_sql_store(
         project_context=parameters.ado_configuration.project_context
     )
@@ -41,6 +51,31 @@ def show_operation_measurements(
             limit_to_properties=parameters.properties,
             aggregation_method=parameters.aggregation_method,
         )
+
+    if parameters.from_experiment is not None and not output_df.empty:
+        requested_experiment_references = parse_cli_from_experiment(
+            from_experiment=parameters.from_experiment,
+        )
+        entity_identifiers_matching_experiments = {
+            e.identifier
+            for e in space.sampledEntities()
+            if len(e.observedPropertyValues) > 0
+            and any(
+                r in e.experimentReferences for r in requested_experiment_references
+            )
+        }
+        output_df = output_df[
+            output_df["identifier"].isin(entity_identifiers_matching_experiments)
+        ]
+
+        if output_df.empty:
+            console_print(
+                f"{INFO}No entities with measurements from experiments "
+                f"{magenta(', '.join(r.fully_qualified_parameterized_experiment_identifier for r in requested_experiment_references))} "
+                f"were found in [i]operation {magenta(parameters.resource_id)}[/i].",
+                stderr=True,
+            )
+            return
 
     df_to_output(
         df=output_df,

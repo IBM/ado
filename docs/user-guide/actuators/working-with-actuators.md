@@ -39,10 +39,9 @@ Below is an example of the output:
 ├───────┼────────────────────┼─────────────┼────────────────────────────────────────────────────┼─────────┤
 │ 0     │ custom_experiments │ 2           │ Actuator for applying user supplied custom         │ 2.0.0   │
 │       │                    │             │ experiments                                        │         │
-│ 1     │ mock               │ 2           │ A actuator class for testing                       │ 2.0.0   │
-│ 2     │ replay             │ 0           │ Special actuator for handling externally defined   │ 2.0.0   │
+│ 1     │ replay             │ 0           │ Special actuator for handling externally defined   │ 2.0.0   │
 │       │                    │             │ experiments (experiments we don't have code for)   │         │
-│ 3     │ vllm_performance   │ 25          │ VLLM performance testing actuator for ado          │ 1.13.1  │
+│ 2     │ vllm_performance   │ 25          │ VLLM performance testing actuator for ado          │ 1.13.1  │
 └───────┴────────────────────┴─────────────┴────────────────────────────────────────────────────┴─────────┘
 ```
 

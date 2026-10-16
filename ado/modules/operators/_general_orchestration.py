@@ -18,6 +18,7 @@ from ado.modules.operators._orchestrate_core import (
     log_space_details,
 )
 from ado.modules.operators.base import OperatorFunction
+from ado.modules.operators.provenance import operation_provenance
 
 moduleLog = logging.getLogger("general_orchestration")
 
@@ -142,4 +143,5 @@ def orchestrate_general_operation(
         operator_metadata=operator_metadata,
         operation_parameters=operation_parameters,
         operation_info=operation_info,
+        provenance=operation_provenance(operator_metadata.reference),
     )

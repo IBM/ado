@@ -65,7 +65,7 @@ To explore this space, you will:
 
 > [!WARNING]
 >
-> The SFTTrainer actuator currently **supports only Python 3.10, 3.11, 3.12**.
+> The SFTTrainer actuator currently **supports only Python 3.11, 3.12**.
 
 ### Install the SFTTrainer actuator
 
@@ -100,7 +100,6 @@ To explore this space, you will:
     ├────────────────────┼─────────────┤
     │ SFTTrainer         │ 5           │
     │ custom_experiments │ 6           │
-    │ mock               │ 2           │
     │ replay             │ 0           │
     │ robotic_lab        │ 1           │
     └────────────────────┴─────────────┘

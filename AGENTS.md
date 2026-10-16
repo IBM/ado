@@ -8,9 +8,10 @@ description:
 
 These guidelines apply to all code development in the ado codebase.
 
-## Code Structure
+## Project Structure
 
 - **ado**: main Python package
+  - **api**: REST API and Ray Serve deployment
   - **schema**: pydantic models for properties, entities, experiments, and
     measurement results
   - **core**: pydantic models and associated code for the core resource types
@@ -31,7 +32,7 @@ These guidelines apply to all code development in the ado codebase.
     stores core resource types
 - **tests**: unit and integration tests (pytest)
 - **plugins**: actuator, operator, and custom_experiment plugins
-- **website**: mkdocs website and documentation
+- **docs**: mkdocs website and documentation
 - **examples**: examples of using ado
 
 ### Structure Guidelines
@@ -41,14 +42,31 @@ These guidelines apply to all code development in the ado codebase.
 
 ---
 
-## Code Style
+## Development Guidelines
+
+### Test-Driven Development
+
+- For changes to existing code: first search for tests that call this code and
+  update them so the new behaviour is tested.
+- For new functionality: write tests first.
+- Run pytest: confirm tests fail.
+- Implement the code to be tested.
+- Run pytest: check tests pass.
+- Iterate until tests pass.
+
+### Writing Code
+
+#### General Conventions
 
 - Use PEP8 naming conventions for new code.
 - **Exception**: use camelCase for fields of pydantic models.
 - Do not modify existing names unless explicitly asked, even if they do not
   follow PEP8.
 - Use type annotations on all functions and methods, including return types.
-- Add docstrings to all functions and methods.
+- Add docstrings to all functions and methods. Use Google style for docstrings.
+
+#### Pydantic
+
 - Use the pydantic annotated form for pydantic fields (see
   `ado/schema/entity.py`). Assign the default value to the Annotated
   variable, not inside pydantic.Field. For any mutable default values such as
@@ -60,166 +78,152 @@ These guidelines apply to all code development in the ado codebase.
   fields that:
   - accept `None`, but
   - are always defaulted to a different type.
+
+#### Imports and Serialization
+
 - Use absolute imports within the repository unless the file already uses
   relative imports.
 - Use `ado.utilities.output.pydantic_model_as_yaml` for serializing
   pydantic models to YAML.
-- Use Google style for docstrings.
 
----
+#### Linting
 
-## Developer Tools
+- After making changes, run `uv run pre-commit run -a` and fix any issues
+  it reports.
 
-- All development tools (ruff, pytest, etc.) are available in the
-  project's **uv-managed virtual environment**.
-- Do not install tools globally.
-- Use the following pattern to execute tools:
+### Writing Documentation and Comments
 
-  uv run TOOLNAME
-
----
-
-## Code Development
-
-Use Test Driven Development
-
-- For changes to existing code: First search for tests
-  that call this code and update them so the new behaviour is tested
-- For new functionality: Write tests first
-- Run pytest: confirm tests fail
-- Implement the code to be tested
-- Run pytest: check tests
-- Iterate until tests pass
+- Describe only what a module, function, or section does. Do not describe what
+  it does not do, what it is not responsible for, or what is out of its scope.
+- Describe functions in terms of their own inputs, outputs, and immediate
+  behavior. Do not reference how other functions use them or explain their
+  existence in terms of another component's needs.
+- Do not add comments that narrate the TDD process, such as "written before
+  implementation" or "this test is expected to fail". Tests are code; write
+  them without process annotations.
 
 ### Writing Tests
 
 - Check for existing fixtures before creating new ones:
   - `tests/fixtures/`
 - Do not mock by default; prefer integration tests.
-  - Search for existing fixtures that provide same functionality
-  - If you really feel a mock is correct, confirm with the user before implementing
+  - Search for existing fixtures that provide the same functionality.
+  - If you really feel a mock is correct, confirm with the user before
+    implementing.
 - Test the full lifecycle for pydantic models:
-    create → dump → create from dump
+  create → dump → create from dump.
 
-### Code Linting
+### Writing Agent Skills
 
-- Linting must be run after any code changes and must pass before running tests.
-- Run **ruff format** after changes:
-
-  uv run ruff format $DIR
-
-- Run **ruff check** after changes:
-
-  uv run ruff check --fix $DIR
-
-- Fix any issues reported by ruff that it could not fix automatically.
-- Run ruff format and ruff check at directory level for efficiency (e.g. `ado/`,
-  `plugins/`, `tests/`).
-- Run the mkdocs linter on markdown files (\*.md) that have added or modified:
-
-  uv run markdownlint-cli2 NEW_OR_CHANGED_MARKDOWN_FILE --fix
-
-- Run if YAML changed or added
-
-  pre-commit run yamlfmt
-
-- Run if TOML changed or added
-
-  uv run tombi fmt
+- Be brief and to the point.
+- Avoid ambiguous statements.
+- Skills should be instructions on how to perform a specific task.
+- Avoid duplication — before writing, check the following sources and link
+  existing relevant data:
+  - all skills under `.agents/skills/`
+  - the examples under `examples/`
+  - the documentation under `docs/`
+- After writing a new skill:
+  - review if any information is more appropriate in an existing skill or
+    `AGENTS.md`; if so, move it there.
+  - verify all file and directory paths referenced exist in the repo.
+  - check each section is within the scope declared in the skill's description
+    field.
+- When creating YAML or code examples, prefer:
+  - using an external file
+  - linking it or including its contents in SKILL.md
+  - writing tests for such files
+- Ensure the metadata of the skill is sufficient so it triggers when likely to
+  be required.
 
 ---
 
-## Code Installation & Execution
+## Setup
+
+All development tools (ruff, pytest, etc.) are available in the project's
+**uv-managed virtual environment**. Do not install tools globally. Use
+`uv run TOOLNAME` to execute tools. **Exception: for linting and formatting,
+always use `uv run pre-commit run -a`** rather than invoking individual tools
+directly.
 
 The project has a top-level virtual environment managed by uv. Plugins and
-examples within the repo are also uv managed and may have venvs.
+examples within the repo are also uv managed and may have their own venvs.
+When installing packages or executing code with uv (including pip), always
+run from the top level of this repo to avoid accidentally using a local
+plugin or example venv.
 
-When installing packages, install into the top-level virtual environment.
-When executing code with uv, including pip, execute
-from the top level of this repo.
-This is to avoid accidentally using the local uv environments of plugins and examples
-within the repo.
+Ensure the virtual environment is set up before running tests:
+
+```sh
+uv sync --reinstall --group test --group dev
+```
 
 ---
 
-## Testing
+## Running Tests
 
-### Code Testing
+### Running Code Tests
 
-- Each subpackage has a corresponding test directory under `tests/`, for example:
+- Each subpackage has a corresponding test directory under `tests/`, for
+  example:
   - `tests/schema/`
   - `tests/core/`
   - `tests/actuators/`
   - `tests/operators/`
   - `tests/metastore/`
   - `tests/cli/`
+  - `tests/ado/`
+  - `tests/samplestore/`
+  - `tests/utilities/`
+  - `tests/resources/`
 - Test files are often named after the **class or concept** being tested.
-  For example, `MeasurementResult` (defined in `result.py`) is
-  tested in `test_measurement_result.py`. When changing a class, look for
-  a test file whose name matches the class name before grepping.
+  For example, `MeasurementResult` (defined in `result.py`) is tested in
+  `test_measurement_result.py`. When changing a class, look for a test file
+  whose name matches the class name before grepping.
 - To find all tests relevant to a change, search by the name of each modified
-  function, method, or field
-- As a final validation step after a change, run tests for all impacted subpackages.
+  function, method, or field.
+- As a final validation step after a change, run tests for all impacted
+  subpackages.
 - All tests must pass before submitting changes.
-- Ensure the virtual environment is correctly set up before running tests:
+- Run tests in parallel (pytest-xdist) for quicker execution:
 
-  uv sync --reinstall --group test --group dev
-
-- Run tests in parallel (pytest-xdist) for quicker execution e.g.
-
+  ```sh
   uv run pytest -n auto tests/
+  ```
 
-### YAML Testing
+### Testing YAML Resources
 
-- Test any new or modified ado resource YAML using:
+Test any new or modified ado resource YAML using:
 
-  uv run ado create RESOURCETYPE -f FILE --dry-run
+```sh
+uv run ado create RESOURCETYPE -f FILE --dry-run
+```
 
-### ado CLI command-line construction and testing
+### Testing ado CLI Commands
 
-- Confirm all ado CLI commands and options written in documentation are correct
+- Confirm all ado CLI commands and options written in documentation are
+  correct:
 
-  uv run ado [COMMAND] --help uv run ado [COMMAND] [SUBCOMMAND1] ... --help
+  ```sh
+  uv run ado [COMMAND] --help
+  uv run ado [COMMAND] [SUBCOMMAND1] ... --help
+  ```
 
-- Leverage the --use-latest ado CLI command arg when writing documentation if an
-  "ado create" or "ado show" command requires the identifier of a previously
-  created resource
-
----
-
-## Agent Skills
-
-When writing agent skills:
-
-- Be brief and to the point
-- Avoid ambiguous statements
-- Skills should be instructions on how to perform a specific task
-- Avoid duplication - before writing check the following sources and link
-  existing relevant data
-  - all skills under .agents/skills/
-  - the examples under examples/
-  - the documentation under docs/
-- After writing a new skill:
-  - review if any information is more appropriate in an existing skill or
-    AGENTS.md, if so move it there
-  - verify all file and directory paths referenced, exist in the repo
-  - check each section is within the scope declared in the skill's description
-    field
-- When creating YAML or code examples, prefer:
-  - using an external file
-  - linking it or including its contents in SKILL.md
-  - write tests for such files
-- Ensure the metadata of the skill is sufficient so it triggers when likely to
-  be required
+- Leverage the `--use-latest` ado CLI argument when writing documentation if
+  an `ado create` or `ado show` command requires the identifier of a
+  previously created resource.
 
 ---
 
 ## Links
 
 - For plugin development, see
-  [plugin-development](.agents/skills/plugin-development/)
+  [plugin-development](.agents/skills/plugin-development/SKILL.md)
 - For formulating problems with ado, see
-  [define experiment campaign](.agents/skills/define-experiment-campaign/)
-- For using the ado CLI, see [using the ado CLI](.agents/skills/using-ado-cli/)
+  [define-experiment-campaign](.agents/skills/define-experiment-campaign/SKILL.md)
+- For using the ado CLI, see
+  [using-ado-cli](.agents/skills/using-ado-cli/SKILL.md)
 - For creating resource YAML files, see
-  [resource-yaml-creation](.agents/skills/resource-yaml-creation/)
+  [resource-yaml-creation](.agents/skills/resource-yaml-creation/SKILL.md)
+- For querying catalog and measurement data, see
+  [query-ado-data](.agents/skills/query-ado-data/SKILL.md)

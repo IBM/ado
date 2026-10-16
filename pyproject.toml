@@ -5,7 +5,7 @@ It can be easily extended with new experiments or new analysis tools. It allows 
 researchers and engineers to collaborate on projects, execute experiments, and share data.
 """
 readme = "README.md"
-requires-python = ">=3.10,<3.15"
+requires-python = ">=3.11,<3.15"
 license-files = ["AUTHORS.md", "LICEN[CS]E*", "vendored/licenses/*.txt"]
 authors = [{ name = "Michael A. Johnston", email = "michaelj@ie.ibm.com" }]
 maintainers = [{ name = "Michael A. Johnston", email = "michaelj@ie.ibm.com" }]
@@ -13,7 +13,6 @@ keywords = ["discovery", "exploration", "optimization", "orchestration", "ray"]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Intended Audience :: Developers",
-  "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
@@ -88,10 +87,7 @@ test = [
   "ado-active-learning",
   "ado-anomalous-series",
   "ado-autoconf ; python_full_version < '3.14'",
-  # AP 11/09/26:
-  # Temporarily removing ado-profile-space due to:
-  # https://github.com/IBM/ado/pull/1414#discussion_r3988436934
-  # "ado-profile-space ; python_full_version < '3.14'",
+  "ado-profile-space",
   "ado-ray-tune",
   "ado-sfttrainer ; python_full_version < '3.13'",
   "ado-trim ; python_full_version < '3.14'",
@@ -142,10 +138,10 @@ members = [
   # "plugins/custom_experiments/autoconf",  # Excluded: incompatible with Python 3.14+ (fastai requires spacy with wheels only on GitHub)
   "plugins/operators/active_learning",
   "plugins/operators/anomalous_series",
-  # "plugins/operators/profile_space",  # Excluded: incompatible with Python 3.14+ (fg-data-profiling requires numba<0.63)
+  "plugins/operators/profile_space",
   "plugins/operators/ray_tune",
   # "plugins/actuators/sfttrainer",  # Excluded: incompatible with Python 3.13+ (aim dependency)
-  # "plugins/operators/trim",  # Excluded: incompatible with Python 3.14+ (autogluon==1.5.0 requires pyarrow==20.0.0)
+  # "plugins/operators/trim",  # Excluded: AutoGluon does not support Python 3.14+
 ]
 
 [tool.uv.sources]
@@ -159,7 +155,7 @@ ado-anomalous-series = { workspace = true }
 density-test = { workspace = true }
 optimization-test-functions = { workspace = true }
 pfas-custom-functions = { workspace = true }
-ado-profile-space = { path = "plugins/operators/profile_space", editable = true }
+ado-profile-space = { workspace = true }
 robotic-lab = { workspace = true }
 trim-custom-experiments = { workspace = true }
 detect-secrets = { git = "https://github.com/ibm/detect-secrets.git", rev = "master" }

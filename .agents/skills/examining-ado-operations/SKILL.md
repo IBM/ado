@@ -20,16 +20,13 @@ on, and whether measurements and results look healthy.
   `document` resource in the active ado metastore context (see
   [Producing a report](#producing-a-report)).
 
-**Related skills**:
+**Basic skills**:
 
-- For CLI verification and command spelling, see
-  [using-ado-cli](../using-ado-cli/SKILL.md).
-- For metastore filtering, schemas see
-  [query-ado-data](../query-ado-data/SKILL.md).
-- For creating document resources that store reports, see
-  [resource-yaml-creation — Document](../resource-yaml-creation/SKILL.md#document).
-- For a project/context wide view (all spaces and operations), see
-  [examining-ado-project](../examining-ado-project/SKILL.md).
+Read the following basic skills first:
+
+- [using-ado-cli](../using-ado-cli/SKILL.md).
+- [query-ado-data](../query-ado-data/SKILL.md).
+- [resource-yaml-creation — Document](../resource-yaml-creation/SKILL.md#document).
 
 ## Key Concepts
 
@@ -110,6 +107,10 @@ context.
 `ado get … -o yaml` (or `json`) writes to stdout by default. Prefer
 `--output-file PATH` with the same format flag, then work from that file to
 avoid repeated `ado get` calls for the same resource.
+
+Table listings (`ado get … --details`) should also use `--output-file`. Tool
+stdout capture can drops long tables. See
+[using-ado-cli](../using-ado-cli/SKILL.md).
 
 In particular `ado get datacontainer … -o yaml` or `-o json` can be large; use
 `--output-file` and load the file with Python (or another tool) instead of
@@ -281,8 +282,8 @@ trace, use:
 uv run ado show stats operation $OPERATION_ID
 ```
 
-This outputs the base table columns output by ado get plus `TOTAL_RESULTS`,
-`SUCCESSFUL_RESULTS`, `FAILED_RESULTS`, `MEASURED_ENTITIES`, `TOTAL_REQUESTS`,
+This outputs the base table columns output by ado get plus `TOTAL_MEASUREMENTS`,
+`SUCCESSFUL_MEASUREMENTS`, `FAILED_MEASUREMENTS`, `SAMPLED_ENTITIES`, `TOTAL_REQUESTS`,
 `FAILED_REQUESTS`, `SUCCESSFUL_REQUESTS`.
 
 Compare this with the number of samples requested in the operator parameters.
@@ -335,6 +336,10 @@ To get the data on measurements execute (noting the
 uv run ado show measurements operation OPERATION_ID \
   -o csv --output-file OPERATION_ID_entities.csv
 ```
+
+If only some metrics are needed, add `--property` for each metric and input
+property to keep the file and data fetched from database small — see
+[query-ado-data](../query-ado-data/SKILL.md#show-entities).
 
 ### Step 4: Analyze the Measurement data
 

@@ -53,8 +53,8 @@ We will:
     !!! danger "Python version compatibility"
 
         The `trim` operator is not available on Python 3.14 due to a dependency
-        on `autogluon==1.5.0`, which requires `pyarrow==20.0.0` (incompatible
-        with Python 3.14). Use Python 3.10–3.13.
+        on `autogluon==1.6.3` (incompatible with Python 3.14).
+        Use Python 3.11–3.13.
 
     All commands in this walkthrough are run from the **repository root**
     (`ado/`).
@@ -95,7 +95,7 @@ Available operators by type:
 ┌───────┬─────────────┬─────────┬────────────┐
 │ INDEX │ OPERATOR    │ VERSION │ TYPE       │
 ├───────┼─────────────┼─────────┼────────────┤
-│ 0     │ random_walk │ 2.0.0   │ explore    │
+│ 0     │ random_walk │ 2.1.0   │ explore    │
 │ 1     │ ray_tune    │ 2.0.0   │ explore    │
 │ 2     │ rifferla    │ 2.0.0   │ modify     │
 │ 3     │ trim        │ 2.0.3   │ characterize│

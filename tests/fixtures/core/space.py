@@ -17,7 +17,9 @@ from ado.core.discoveryspace.config import (
 from ado.core.discoveryspace.resource import DiscoverySpaceResource
 from ado.metastore.sqlstore import SQLStore
 from ado.schema.domain import PropertyDomain
+from ado.schema.measurementspace import MeasurementSpaceConfiguration
 from ado.schema.property import ConstitutiveProperty
+from ado.schema.reference import ExperimentReference
 
 
 @pytest.fixture
@@ -28,7 +30,7 @@ def random_space_resource_from_file(
     def _random_space_resource_from_file(
         sample_store_id: str | None = None,
     ) -> DiscoverySpaceResource:
-        import datetime
+        import datetime as dt
 
         file = pathlib.Path("tests/resources/space/discoveryspace_resource.json")
         random_resource_id = random_identifier()
@@ -41,7 +43,7 @@ def random_space_resource_from_file(
         # Final touch-ups
         space.identifier = random_resource_id
         space.config.sampleStoreIdentifier = sample_store_id
-        space.created = datetime.datetime.now(datetime.timezone.utc)
+        space.created = dt.datetime.now(dt.UTC)
         return space
 
     return _random_space_resource_from_file
@@ -154,9 +156,7 @@ def discovery_space_resource_from_file() -> DiscoverySpaceResource:
 
 
 @pytest.fixture
-def make_continuous_space_configuration() -> Callable[
-    [list[float], str], DiscoverySpaceConfiguration
-]:
+def make_continuous_space_configuration() -> Callable[..., DiscoverySpaceConfiguration]:
     """Factory: build a DiscoverySpaceConfiguration with a single continuous property over a given domainRange.
 
     Usage::
@@ -168,6 +168,9 @@ def make_continuous_space_configuration() -> Callable[
     def _make(
         domain_range: list[float],
         identifier: str = "x",
+        experiments: list[ExperimentReference]
+        | MeasurementSpaceConfiguration
+        | None = None,
     ) -> DiscoverySpaceConfiguration:
         return DiscoverySpaceConfiguration(
             entitySpace=[
@@ -175,8 +178,36 @@ def make_continuous_space_configuration() -> Callable[
                     identifier=identifier,
                     propertyDomain=PropertyDomain(domainRange=domain_range),
                 )
-            ]
+            ],
+            experiments=experiments,
         )
+
+    return _make
+
+
+@pytest.fixture
+def make_continuous_space_resource(
+    make_continuous_space_configuration: Callable[..., DiscoverySpaceConfiguration],
+) -> Callable[..., DiscoverySpaceResource]:
+    """Factory: build a DiscoverySpaceResource with a continuous entity space."""
+
+    def _make(
+        identifier: str,
+        domain_range: list[float],
+        experiments: list[ExperimentReference]
+        | MeasurementSpaceConfiguration
+        | None = None,
+        name: str = "",
+        property_identifier: str = "x",
+    ) -> DiscoverySpaceResource:
+        config = make_continuous_space_configuration(
+            domain_range=domain_range,
+            identifier=property_identifier,
+            experiments=experiments,
+        )
+        if name:
+            config.metadata.name = name
+        return DiscoverySpaceResource(identifier=identifier, config=config)
 
     return _make
 

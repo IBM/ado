@@ -91,7 +91,7 @@ Available operators by type:
 ┌───────┬─────────────┬─────────┬─────────┐
 │ INDEX │ OPERATOR    │ VERSION │ TYPE    │
 ├───────┼─────────────┼─────────┼─────────┤
-│ 0     │ random_walk │ 2.0.0   │ explore │
+│ 0     │ random_walk │ 2.1.0   │ explore │
 │ 1     │ ray_tune    │ 2.0.3   │ explore │
 │ 2     │ rifferla    │ 2.0.3   │ modify  │
 └───────┴─────────────┴─────────┴─────────┘
@@ -118,13 +118,11 @@ ado get experiments --details
 <!-- markdownlint-disable line-length -->
 
 ```text
-┌───────┬────────────────────┬─────────────────────┬─────────┬─────────────┐
-│ INDEX │ ACTUATOR ID        │ EXPERIMENT ID       │ VERSION │ DESCRIPTION │
-├───────┼────────────────────┼─────────────────────┼─────────┼─────────────┤
-│ 0     │ custom_experiments │ ml-multicloud-cost  │ 1.0.0   │             │
-│ 1     │ mock               │ test-experiment     │ None    │             │
-│ 2     │ mock               │ test-experiment-two │ None    │             │
-└───────┴────────────────────┴─────────────────────┴─────────┴─────────────┘
+┌───────┬────────────────────┬────────────────────────┬─────────┬─────────────┐
+│ INDEX │ ACTUATOR ID        │ EXPERIMENT ID          │ VERSION │ DESCRIPTION │
+├───────┼────────────────────┼────────────────────────┼─────────┼─────────────┤
+│ 0     │ custom_experiments │ ml-multicloud-cost     │ 1.0.0   │             │
+└───────┴────────────────────┴────────────────────────┴─────────┴─────────────┘
 ```
 
 <!-- markdownlint-enable line-length -->

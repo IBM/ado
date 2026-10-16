@@ -25,10 +25,6 @@ from ado.modules.operators.base import (
     validate_operator_function_signature,
 )
 from ado.modules.operators.errors import OperatorVersionMismatchError
-from ado.modules.operators.orchestrate import (
-    orchestrate_explore_operation,
-    orchestrate_general_operation,
-)
 
 moduleLog = logging.getLogger("operation_collections")
 
@@ -147,6 +143,10 @@ def characterize_operation(
             operationInfo: FunctionOperationInfo | None = None,
             **kwargs: object,
         ) -> OperationOutput:
+            from ado.modules.operators.orchestrate import (
+                orchestrate_general_operation,
+            )
+
             return orchestrate_general_operation(
                 operator_metadata=characterize.operators[name],
                 operation_parameters=kwargs,
@@ -248,6 +248,10 @@ def explore_operation(
         operationInfo: FunctionOperationInfo | None = None,
         **kwargs: object,
     ) -> OperationOutput:
+        from ado.modules.operators.orchestrate import (
+            orchestrate_explore_operation,
+        )
+
         return orchestrate_explore_operation(
             operator_metadata=explore.operators[op_name],
             discovery_space=discoverySpace,
@@ -297,6 +301,10 @@ def modify_operation(
             operationInfo: FunctionOperationInfo | None = None,
             **kwargs: object,
         ) -> OperationOutput:
+            from ado.modules.operators.orchestrate import (
+                orchestrate_general_operation,
+            )
+
             return orchestrate_general_operation(
                 operator_metadata=modify.operators[name],
                 operation_parameters=kwargs,
@@ -349,6 +357,10 @@ def export_operation(
             operationInfo: FunctionOperationInfo | None = None,
             **kwargs: object,
         ) -> OperationOutput:
+            from ado.modules.operators.orchestrate import (
+                orchestrate_general_operation,
+            )
+
             return orchestrate_general_operation(
                 operator_metadata=export.operators[name],
                 operation_parameters=kwargs,
@@ -432,32 +444,6 @@ def resolve_operator_reference(ref: OperatorReference) -> OperatorReference:
         )
 
     return ref
-
-
-def provenance_for_operator(
-    name: str, op_type: DiscoveryOperationEnum
-) -> PackageProvenance | None:
-    """Return the package provenance for a registered operator.
-
-    Looks up the operator in the collection for ``op_type`` and returns the
-    :class:`~ado.core.metadata.PackageProvenance` recorded on its
-    registry metadata at registration time.
-
-    Args:
-        name: Canonical operator name.
-        op_type: The discovery operation type the operator belongs to.
-
-    Returns:
-        A :class:`~ado.core.metadata.PackageProvenance` instance,
-        or ``None`` if provenance is unavailable.
-    """
-    collection = operationCollectionMap.get(op_type)
-    if collection is None:
-        return None
-    metadata = collection.operators.get(name)
-    if metadata is None:
-        return None
-    return metadata.provenance
 
 
 def load_operators() -> None:

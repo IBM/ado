@@ -3,8 +3,12 @@
 
 import os
 import pathlib
+import re
+import sys
 from collections.abc import Callable
+from datetime import UTC, datetime
 
+import pytest
 from testcontainers.community.mysql import MySqlContainer
 from typer.testing import CliRunner
 
@@ -73,6 +77,93 @@ def test_describe_peptide_mineralization_experiment() -> None:
     assert "Measures adsorption of peptide lanthanide combinations" in result.output
 
 
+def test_describe_nonexistent_experiment() -> None:
+    """Describe of an unknown experiment exits with a clear error."""
+    runner = CliRunner()
+    result = runner.invoke(ado, ["describe", "experiment", "solve_mip"])
+    assert result.exit_code == 1
+    if os.environ.get("CI", "false") != "true":
+        assert "does not exist" in result.output
+        assert "solve_mip" in result.output
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="requires a Unix PTY")
+def test_describe_nonexistent_experiment_error_not_on_spinner_line(
+    tmp_path: pathlib.Path,
+) -> None:
+    """A missing experiment must not print ERROR on the Status spinner line.
+
+    Rich Status occupies the current terminal line. Printing the lookup error
+    while that spinner is still live concatenates the two, e.g.
+    ``Initializing Actuator RegistryERROR:  Experiment solve_mip does not exist``.
+    """
+    import pty
+    import select
+    import subprocess
+    import time
+
+    ado_bin = pathlib.Path(sys.executable).parent / "ado"
+    master_fd, slave_fd = pty.openpty()
+    try:
+        proc = subprocess.Popen(  # noqa: S603
+            [
+                str(ado_bin),
+                "--override-ado-app-dir",
+                str(tmp_path),
+                "describe",
+                "experiment",
+                "solve_mip",
+            ],
+            stdin=slave_fd,
+            stdout=slave_fd,
+            stderr=subprocess.STDOUT,
+            close_fds=True,
+            env={
+                **os.environ,
+                "TERM": "xterm-256color",
+                "COLUMNS": "120",
+            },
+        )
+        os.close(slave_fd)
+        slave_fd = -1
+        chunks: list[bytes] = []
+        deadline = time.time() + 60
+        while time.time() < deadline:
+            ready, _, _ = select.select([master_fd], [], [], 0.2)
+            if ready:
+                try:
+                    data = os.read(master_fd, 4096)
+                except OSError:
+                    break
+                if not data:
+                    break
+                chunks.append(data)
+            elif proc.poll() is not None:
+                while True:
+                    drained, _, _ = select.select([master_fd], [], [], 0.05)
+                    if not drained:
+                        break
+                    try:
+                        data = os.read(master_fd, 4096)
+                    except OSError:
+                        data = b""
+                    if not data:
+                        break
+                    chunks.append(data)
+                break
+        proc.wait(timeout=5)
+    finally:
+        if slave_fd >= 0:
+            os.close(slave_fd)
+        os.close(master_fd)
+
+    output = b"".join(chunks).decode("utf-8", errors="replace")
+    stripped = re.sub(r"\x1b\[[0-9;?]*[A-Za-z]", "", output)
+    assert proc.returncode == 1, output
+    assert "does not exist" in stripped, output
+    assert "Initializing Actuator RegistryERROR" not in stripped, output
+
+
 def test_describe_calculate_density_experiment() -> None:
     runner = CliRunner()
     result = runner.invoke(ado, ["describe", "experiment", "calculate_density"])
@@ -80,6 +171,10 @@ def test_describe_calculate_density_experiment() -> None:
     assert "calculate_density" in result.output
 
 
+@pytest.mark.skipif(
+    sys.version_info < (3, 11),
+    reason="ado-vllm-performance requires Python >= 3.11",
+)
 def test_describe_vllm_bench_deployment_experiment() -> None:
     runner = CliRunner()
     result = runner.invoke(ado, ["describe", "experiment", "vllm-bench-deployment"])
@@ -98,8 +193,6 @@ def test_describe_datacontainer_with_use_latest(
     ],
 ) -> None:
     """Test that ado describe datacontainer --use-latest resolves the latest datacontainer."""
-    from datetime import datetime, timezone
-
     runner = CliRunner()
     create_active_ado_context(
         runner=runner, path=tmp_path, project_context=valid_ado_project_context
@@ -108,12 +201,12 @@ def test_describe_datacontainer_with_use_latest(
     # Create two datacontainer resources with different identifiers and timestamps
     dc_1 = DataContainerResource(config=DataContainer(data={"key": "value1"}))
     dc_1.identifier = "dc-test-older"
-    dc_1.created = datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+    dc_1.created = datetime(2024, 1, 1, 0, 0, 0, tzinfo=UTC)
     sql_store.addResource(dc_1)
 
     dc_2 = DataContainerResource(config=DataContainer(data={"key": "value2"}))
     dc_2.identifier = "dc-test-latest"
-    dc_2.created = datetime(2024, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
+    dc_2.created = datetime(2024, 12, 31, 23, 59, 59, tzinfo=UTC)
     sql_store.addResource(dc_2)
 
     result = runner.invoke(ado, ["describe", "datacontainer", "--use-latest"])

@@ -6,6 +6,7 @@ from typing import Any
 import pydantic
 import pytest
 
+from ado.modules.actuators.catalog import ExperimentCatalog
 from ado.modules.actuators.registry import (
     ActuatorRegistry,
 )
@@ -20,6 +21,7 @@ from ado.schema.observed_property import (
 )
 from ado.schema.property import (
     AbstractProperty,
+    AbstractPropertyDescriptor,
     ConstitutiveProperty,
     ConstitutivePropertyDescriptor,
     MeasuredPropertyTypeEnum,
@@ -41,16 +43,6 @@ from ado.utilities.support import get_experiment_input_values
 # test alternate routes in set_parameterized_identifier validator
 #  - Test an invalid parameteriation
 #
-
-
-def test_property_values_from_entity_multiple_required() -> None:
-
-    pass
-
-
-def test_property_values_from_entity_missing_required_constitutive() -> None:
-
-    pass
 
 
 def experiment_equality_non_experiment(experiment: Experiment) -> None:
@@ -82,7 +74,7 @@ def experiment_is_hashable(experiment: Experiment) -> None:
 
 
 def test_parameterizable_experiment_equality_experiment_same_id_different_actuator(
-    parameterizable_experiment: Experiment, global_registry: ActuatorRegistry
+    parameterizable_experiment: Experiment,
 ) -> None:
 
     cp = parameterizable_experiment.model_copy(
@@ -93,7 +85,7 @@ def test_parameterizable_experiment_equality_experiment_same_id_different_actuat
 
 
 def test_parameterized_experiment_equality_experiment_same_id_different_actuator(
-    parameterized_experiment: ParameterizedExperiment, global_registry: ActuatorRegistry
+    parameterized_experiment: ParameterizedExperiment,
 ) -> None:
 
     assert parameterized_experiment != parameterized_experiment.model_copy(
@@ -102,14 +94,14 @@ def test_parameterized_experiment_equality_experiment_same_id_different_actuator
 
 
 def test_parameterizable_experiment_equality_non_experiment(
-    parameterizable_experiment: Experiment, global_registry: ActuatorRegistry
+    parameterizable_experiment: Experiment,
 ) -> None:
 
     experiment_equality_non_experiment(parameterizable_experiment)
 
 
 def test_parameterized_experiment_equality_non_experiment(
-    parameterized_experiment: ParameterizedExperiment, global_registry: ActuatorRegistry
+    parameterized_experiment: ParameterizedExperiment,
 ) -> None:
 
     experiment_equality_non_experiment(parameterized_experiment)
@@ -174,16 +166,6 @@ def test_parameterized_experiment_base_equality_methods(
 
     assert parameterized_experiment.has_same_base_as_experiment(base_exp)
     assert base_exp.has_same_base_as_experiment(parameterized_experiment)
-
-
-def test_parameterizable_experiment_rich_print(
-    parameterized_experiment: ParameterizedExperiment, global_registry: ActuatorRegistry
-) -> None:
-
-    from rich.console import Console
-
-    # Requesting global_registry fixture to ensure the experiments are added to the registry for testing
-    Console().print(parameterized_experiment)
 
 
 def test_parameterized_experiment_rich_print(
@@ -405,9 +387,11 @@ def test_get_experiment_optional_parameter_value(
 def test_is_valid_experiment_parameterization(
     experimentWithOptions: Experiment,
     defaultParameterization: list[ConstitutivePropertyValue],
+    customParameterization: list[ConstitutivePropertyValue],
 ) -> None:
 
     assert experimentWithOptions.isValidParameterization(defaultParameterization)
+    assert experimentWithOptions.isValidParameterization(customParameterization)
 
     values = [
         ConstitutivePropertyValue(
@@ -421,8 +405,7 @@ def test_is_valid_experiment_parameterization(
         ),
     ]
 
-    # THis value is not in the domain of test_opt1 optional property so it should cause failure
-
+    # This value is not in the domain of test_opt1 optional property so it should cause failure
     assert not experimentWithOptions.isValidParameterization(values)
 
     # Remove a parameterization
@@ -434,14 +417,6 @@ def test_is_valid_experiment_parameterization(
     )
 
     assert not experimentWithOptions.isValidParameterization(values)
-
-
-def test_custom_experiment_parameterization_is_valid(
-    experimentWithOptions: Experiment,
-    customParameterization: list[ConstitutivePropertyValue],
-) -> None:
-
-    assert experimentWithOptions.isValidParameterization(customParameterization)
 
 
 def test_experiment_rich_print(experiment: Experiment) -> None:
@@ -594,6 +569,33 @@ def test_create_parameterized_experiment(
         )
 
 
+def test_parameterized_experiment_parameterization_order_is_irrelevant(
+    experimentWithOptions: Experiment,
+    customParameterization: list[ConstitutivePropertyValue],
+) -> None:
+
+    p = ParameterizedExperiment(
+        **experimentWithOptions.model_dump(), parameterization=customParameterization
+    )
+    reversed_p = ParameterizedExperiment(
+        **experimentWithOptions.model_dump(),
+        parameterization=list(reversed(customParameterization)),
+    )
+
+    assert p == reversed_p
+    assert hash(p) == hash(reversed_p)
+    assert str(p) == str(reversed_p)
+    assert (
+        p.major_version_parameterized_identifier
+        == reversed_p.major_version_parameterized_identifier
+    )
+    assert p.reference == reversed_p.reference
+    assert str(p.reference) == str(reversed_p.reference)
+    assert reversed_p.parameterization == sorted(
+        customParameterization, key=lambda v: v.property.identifier
+    )
+
+
 # Missing:
 # - Test a ValueError is raised if the experiment has a required observed property and
 #   the Entity doesn't have a value for it
@@ -706,18 +708,20 @@ def test_experiment_property_values_from_entity(
             exp.propertyValuesFromEntity(entity_copy)
 
 
-def test_parameterized_experiment_reference_validation_detects_invalid_cases() -> None:
+def test_parameterized_experiment_reference_validation_detects_invalid_cases(
+    test_actuator_catalog: ExperimentCatalog,
+) -> None:
 
     # Test creating a parameterized reference for an experiment that doesn't exist
     with pytest.raises(
         ValueError,
         match=re.escape(
-            "Failed validating parameterization. Cannot find experiment test from actuator mock in catalog"
+            "Failed validating parameterization. Cannot find experiment nonexistent from actuator test in catalog"
         ),
     ):
         ExperimentReference(
-            experimentIdentifier="test",
-            actuatorIdentifier="mock",
+            experimentIdentifier="nonexistent",
+            actuatorIdentifier="test",
             parameterization=[
                 ConstitutivePropertyValue(
                     value=3, property=ConstitutivePropertyDescriptor(identifier="test")
@@ -726,16 +730,24 @@ def test_parameterized_experiment_reference_validation_detects_invalid_cases() -
         ).validate_parameterization()
 
     # Test trying to parameterize a non-parameterizable experiment
+    # Register a bare experiment with only targetProperties (no parameterizable properties)
+    bare_exp = Experiment(
+        actuatorIdentifier="test",
+        identifier="bare-experiment",
+        targetProperties=[AbstractPropertyDescriptor(identifier="score")],
+    )
+    test_actuator_catalog.addExperiment(bare_exp)
+
     with pytest.raises(
         ValueError,
         match=re.escape(
-            "Experiment reference mock.test-experiment-test.3 specifies custom parameterization "
+            "Experiment reference test.bare-experiment-test.3 specifies custom parameterization "
             "but the referenced experiment has no parameterizable properties."
         ),
     ):
         ExperimentReference(
-            experimentIdentifier="test-experiment",
-            actuatorIdentifier="mock",
+            experimentIdentifier="bare-experiment",
+            actuatorIdentifier="test",
             parameterization=[
                 ConstitutivePropertyValue(
                     value=3, property=ConstitutivePropertyDescriptor(identifier="test")

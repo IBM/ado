@@ -20,6 +20,47 @@ from tests.conftest import requires_sqlite_3_38
 
 
 @requires_sqlite_3_38
+def test_show_trace_operation_single_operation(
+    tmp_path: pathlib.Path,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+    ml_multi_cloud_benchmark_performance_experiment: Experiment,
+    simulate_ml_multi_cloud_random_walk_operation: Callable[
+        [int, int, int, str | None],
+        tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
+    ],
+) -> None:
+    """show trace operation: exit 0 and no Operation ID column."""
+    assert ml_multi_cloud_benchmark_performance_experiment is not None
+    runner = CliRunner()
+    create_active_ado_context(
+        runner=runner, path=tmp_path, project_context=valid_ado_project_context
+    )
+
+    _, requests, _ = simulate_ml_multi_cloud_random_walk_operation(
+        number_entities=2,
+        number_requests=2,
+        measurements_per_result=1,
+    )
+    operation_id = requests[0].operation_id
+
+    result = runner.invoke(
+        ado,
+        [
+            "show",
+            "trace",
+            "operation",
+            operation_id,
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert REQUEST_COLUMN.OPERATION_ID.value not in result.output
+
+
+@requires_sqlite_3_38
 def test_show_trace_discoveryspace_single_operation(
     tmp_path: pathlib.Path,
     valid_ado_project_context: ProjectContext,
@@ -33,7 +74,7 @@ def test_show_trace_discoveryspace_single_operation(
     ],
     ml_multi_cloud_space: DiscoverySpace,
 ) -> None:
-    """Single operation: exit 0 and no Operation ID column."""
+    """show trace discoveryspace with single operation: Operation ID column always present."""
     assert ml_multi_cloud_benchmark_performance_experiment is not None
     runner = CliRunner()
     create_active_ado_context(
@@ -53,11 +94,12 @@ def test_show_trace_discoveryspace_single_operation(
             "trace",
             "discoveryspace",
             ml_multi_cloud_space.uri,
+            "--no-trunc",
         ],
     )
 
     assert result.exit_code == 0, result.output
-    assert REQUEST_COLUMN.OPERATION_ID.value not in result.output
+    assert REQUEST_COLUMN.OPERATION_ID.value in result.output
 
 
 @requires_sqlite_3_38
@@ -104,8 +146,7 @@ def test_show_trace_discoveryspace_multi_operation(
             "trace",
             "discoveryspace",
             ml_multi_cloud_space.uri,
-            "--output",
-            "csv",
+            "--no-trunc",
         ],
     )
 

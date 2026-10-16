@@ -37,7 +37,10 @@ features.
 <!-- markdownlint-disable-next-line no-duplicate-heading -->
 ### Requirements
 
-The SFTTrainer actuator currently **supports only Python 3.10, 3.11, 3.12**.
+The SFTTrainer actuator currently **supports only Python 3.11, 3.12**.
+
+You must use an `fms-hf-tuning` version **greater than `2.8.2`**. Earlier
+versions are not supported.
 
 [fms-hf-tuning](https://github.com/foundation-model-stack/fms-hf-tuning) imports
 packages like `flash-attn` and `mamba-ssm`, which import `torch` during their
@@ -45,14 +48,8 @@ build phase. This means the base virtual environment of your Ray workers must
 already include the appropriate version of `torch`:
 
 <!-- markdownlint-disable line-length -->
-- **`fms-hf-tuning <= 2.8.2`**
-  - Install `torch==2.4.1`
-  - For RayClusters on Kubernetes, use: `quay.io/ado/ado:1.0.1-py310-cu121-ofed2410v1140`
-
-- **`fms-hf-tuning > 2.8.2`**
-  - Install `torch==2.6.0`
-    - Requires Python 3.11
-  - For RayClusters on Kubernetes, use: `quay.io/ado/ado:c6ba952ad79a2d86d1174fd9aaebddd8953c78cf-py311-cu121-ofed2410v1140`
+- Install `torch==2.6.0`
+- For RayClusters on Kubernetes, use: `quay.io/ado/ado:c6ba952ad79a2d86d1174fd9aaebddd8953c78cf-py311-cu121-ofed2410v1140`
 <!-- markdownlint-enable line-length -->
 
 ## Full Fine-Tuning Experiments

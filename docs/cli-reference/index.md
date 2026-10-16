@@ -287,6 +287,9 @@ Where:
 - `RESOURCE_ID` is the unique identifier of the resource to delete. Multiple
   resource IDs can be provided to delete multiple resources of the same type in
   a single command.
+  Deleting an operation automatically cascades to delete all child data container
+  resources associated with it (provided those data containers do not have
+  dependent children of their own).
 - `--force` enables forced deletion of resources in the following cases:
 
     <!-- prettier-ignore-start -->
@@ -399,8 +402,8 @@ you can create. The fastest way to update these metadata is to use the
 The complete syntax of the `ado edit` command is as follows:
 
 ```shell
-ado edit RESOURCE_TYPE RESOURCE_ID [-p | --patch <YAML>] \
-    [--patch-file <FILE>] [--editor <NAME>]
+ado edit RESOURCE_TYPE RESOURCE_ID [RESOURCE_ID ...] \
+    [-p | --patch <YAML>] [--patch-file <FILE>] [--editor <NAME>]
 ```
 
 Where:
@@ -420,7 +423,9 @@ Where:
 
     <!-- prettier-ignore-end -->
 
-- `RESOURCE_ID` is the unique identifier of the resource to edit.
+- `RESOURCE_ID` is the unique identifier of one or more resources to edit.
+  When multiple IDs are provided, `--patch` or `--patch-file` is required —
+  interactive editor mode supports only a single resource at a time.
 - `-p` / `--patch` is an optional inline YAML/JSON string for non-interactive
   editing (similar to `oc` / `kubectl patch -p`). It is **merged** into the
   resource's existing stored metadata using a one-level strategic update:
@@ -477,6 +482,18 @@ ado edit space space-abc123-456def -p "labels: { team: front }"
 ado edit space space-abc123-456def --patch-file extra-metadata.yaml
 ```
 
+#### Bulk patching multiple resources (non-interactive)
+
+Apply the same metadata patch to several resources at once:
+
+```shell
+ado edit space space-abc123 space-def456 -p "labels: { team: front }"
+```
+
+```shell
+ado edit operation op-abc123 op-def456 --patch-file shared-metadata.yaml
+```
+
 ## ado get
 
 **ado** allows getting resources in a similar way to `kubectl`. Users can choose
@@ -494,7 +511,9 @@ ado get RESOURCE_TYPE [RESOURCE_ID] [--output | -o <default | yaml | json | conf
                                     [--exclude-default | --no-exclude-default] \
                                     [--exclude-unset | --no-exclude-unset ] \
                                     [--exclude-none | --no-exclude-none ] \
-                                    [--minimize] \
+                                    [--minimize-output] \
+                                    [--no-trunc] \
+                                    [--include-properties | -p <properties>] \
                                     [--filter | -q <path=value>] \
                                     [--label | -l <key=value>] \
                                     [--details] [--show-deprecated] \
@@ -548,12 +567,12 @@ Where:
       performing no validation.
     - The `stats` format augments the default `table` output with additional
       statistics columns. Supported resource types and their columns are:
-        - **Operations**: `TOTAL_RESULTS`, `SUCCESSFUL_RESULTS`,
-          `FAILED_RESULTS`, `MEASURED_ENTITIES` (entities with at least one
+        - **Operations**: `TOTAL_MEASUREMENTS`, `SUCCESSFUL_MEASUREMENTS`,
+          `FAILED_MEASUREMENTS`, `SAMPLED_ENTITIES` (entities with at least one
           measurement, whether successful, failed, or both).
-        - **Discovery Spaces**: `EXPERIMENTS`, `OPERATIONS`,
-          `EXPLORE_OPERATIONS`, `MEASURED_ENTITIES` (entities with at least one
-          measurement, whether successful, failed, or both).
+        - **Discovery Spaces**: `EXPERIMENTS`, `OPERATIONS`, `EXPLORE_OPS`,
+          `SAMPLED_ENTITIES` (entities with at least one measurement, whether
+          successful, failed, or both).
         - **Sample Stores**: `ENTITIES`, `RESULTS`, `EXPERIMENTS`.
         - **Data Containers**: `TABLES`, `LOCATIONS`, `KEY_VALUES`,
           `DATA_BYTES`.
@@ -577,10 +596,18 @@ Where:
   <https://github.com/h2non/jsonpath-ng?tab=readme-ov-file#jsonpath-syntax>.
   This flag is only supported when using the `yaml`, `json`, or `config` output
   format.
-- `--minimize` minimizes the output. This might entail applying transformations
-  on the model, changing it from the original. If set, it implies
-  `--exclude-default`, `--exclude-unset`, and `--exclude-none`. This option is
-  ignored when the output type is `table` or `raw`.
+- `--minimize-output` makes an attempt to minimize the output produced. This
+  might entail applying transformations on the model, changing it from the
+  original. If set, it implies `--exclude-default`, `--exclude-unset`, and
+  `--exclude-none`. This option is ignored when the output type is `table` or `raw`.
+- `--no-trunc` prevents truncation of table content. When enabled, columns are
+  sized to fit all content without truncation. Only applies to the default
+  (`table`) output format.
+- By using (optionally multiple times) the `--include-properties` (or `-p`) flag
+  (**only supported for discovery spaces**), users can include columns with compact
+  string representations of discovery-space properties in table output. You can
+  specify `constitutive`, `parameterized`, `optional`, `all`, or a comma-separated
+  list of specific property identifiers.
 - When using the `--details` flag with the `table` output format, additional
   columns with the _description_ and the _labels_ of the matching resources are
   printed.
@@ -618,8 +645,11 @@ for detailed information on the following options, including syntax.
 - The `--matching-space` option allows searching for `discoveryspaces` which
   match a given
   [configuration YAML](../resources/discovery-spaces.md#structure-of-the-discoveryspace-yaml-configuration).
+  Displays `ENTITY_SPACE_MATCH`, `BASE_EXPERIMENT_MATCH`, `VERSION_MATCH`, and
+  `PARAMETERIZATION_MATCH` columns describing how candidate spaces relate to
+  the reference.
 - The `--matching-space-id` option works in the same way as `--matching-space`
-  but allows the user to provide a space id instead of a configuration
+  but allows the user to provide a space id instead of a configuration.
 
 ### Examples
 
@@ -633,6 +663,18 @@ ado get spaces
 
 ```shell
 ado get spaces --details
+```
+
+#### Getting Discovery Spaces with constitutive properties included
+
+```shell
+ado get spaces -p constitutive --no-trunc
+```
+
+#### Getting Discovery Spaces with specific properties included
+
+```shell
+ado get spaces -p batch_size,learning_rate
 ```
 
 <!-- markdownlint-disable line-length -->
@@ -850,7 +892,8 @@ ado show measurements RESOURCE_TYPE [RESOURCE_ID] [--use-latest] [--file | -f <f
                       [--output-file <path>] \
                       [--property <property-name>] \
                       [--include {sampled | matching | missing | unsampled}] \
-                      [--aggregate {mean | median | variance | std | min | max}]
+                      [--aggregate {mean | median | variance | std | min | max}]\
+                      [--from-experiment <experiment-id-or-file>]
 ```
 
 Where:
@@ -933,6 +976,20 @@ Where:
 
     <!-- prettier-ignore-end -->
 
+- `--from-experiment` (can be specified multiple times) filters the output to
+  only include entities that have at least one measurement from any of the
+  specified experiments (OR semantics). Accepts either:
+
+    <!-- prettier-ignore-start -->
+
+    - An experiment identifier string qualified by actuator name, such as
+      `actuator.my_exp`, `actuator.my_exp@v1`, or `actuator.my_exp@1.0.0`
+    - A path to a YAML file containing an `ExperimentReference` object with
+      fields `experimentIdentifier`, `actuatorIdentifier`, and optionally
+      `experimentVersion` and `parameterization`
+
+    <!-- prettier-ignore-end -->
+
 #### Examples
 
 <!-- markdownlint-disable line-length -->
@@ -986,6 +1043,23 @@ ado show measurements samplestore store-abc123-456def
 
 ```shell
 ado show measurements samplestore store-abc123-456def -o csv --output-file entities.csv
+```
+
+##### Show only measurements from a specific experiment in a samplestore
+
+```shell
+ado show measurements samplestore store-abc123-456def \
+    --from-experiment replay.benchmark_performance
+```
+
+<!-- markdownlint-disable line-length -->
+
+##### Filter measurements in a samplestore using a parameterized ExperimentReference YAML file
+
+<!-- markdownlint-enable line-length -->
+
+```shell
+ado show measurements samplestore store-abc123-456def --from-experiment experiment_ref.yaml
 ```
 
 ### ado show trace
@@ -1271,16 +1345,13 @@ The statistics columns produced per resource type are:
 
 <!-- prettier-ignore-start -->
 
-- **Operations**: `TOTAL_RESULTS`, `SUCCESSFUL_RESULTS`, `FAILED_RESULTS`,
-  `MEASURED_ENTITIES` (entities with at least one measurement, whether
+- **Operations**: `TOTAL_MEASUREMENTS`, `SUCCESSFUL_MEASUREMENTS`, `FAILED_MEASUREMENTS`,
+  `SAMPLED_ENTITIES` (entities with at least one measurement, whether
   successful, failed, or both), `TOTAL_REQUESTS`, `FAILED_REQUESTS`,
   `SUCCESSFUL_REQUESTS`.
-- **Discovery Spaces**: `EXPERIMENTS`, `OPERATIONS`, `EXPLORE_OPERATIONS`,
-  `MEASURED_ENTITIES` (entities with at least one measurement, whether
-  successful, failed, or both), `SIZE_OF_ENTITY_SPACE`, `UNMEASURED_ENTITIES`,
-  `MATCHING_ENTITIES`, `MATCHING_WITH_MEASUREMENTS`,
-  `ENTITIES_WITH_ALL_MEASUREMENTS`, `ENTITIES_WITH_PARTIAL_MEASUREMENTS`,
-  `MATCHING_ENTITIES_WITH_ALL_MEASUREMENTS`.
+- **Discovery Spaces**: `EXPERIMENTS`, `OPERATIONS`, `EXPLORE_OPS`,
+  `ENTITY_SPACE_SIZE`, `UNSAMPLED`, `SAMPLED_COMPLETE`, `SAMPLED_PARTIAL`,
+  `SAMPLED_FAILED`, `MATCHING_COMPLETE`, `MATCHING_PARTIAL`, `MATCHING_FAILED`.
 - **Sample Stores**: `ENTITIES`, `RESULTS`, `EXPERIMENTS`.
 - **Data Containers**: `TABLES`, `LOCATIONS`, `KEY_VALUES`, `DATA_BYTES`.
 
@@ -1289,9 +1360,10 @@ The statistics columns produced per resource type are:
 !!! note
 
     `ado show stats discoveryspace` computes full entity-space coverage
-    statistics including the heavy columns (`SIZE_OF_ENTITY_SPACE`,
-    `UNMEASURED_ENTITIES`, `MATCHING_ENTITIES`, etc.). This is slower than
-    `ado get spaces -o stats` because it instantiates each
+    statistics including the heavy columns (`ENTITY_SPACE_SIZE`, `UNSAMPLED`,
+    `SAMPLED_COMPLETE`, `SAMPLED_PARTIAL`, `SAMPLED_FAILED`, `MATCHING_COMPLETE`,
+    `MATCHING_PARTIAL`, `MATCHING_FAILED`).
+    This is slower than `ado get spaces -o stats` because it instantiates each
     `DiscoverySpace` and queries the sample store. Use `ado get -o stats` for
     quick overviews.
 

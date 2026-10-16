@@ -20,6 +20,7 @@ from ado.schema.property import (
     ConstitutivePropertyDescriptor,
 )
 from ado.schema.property_value import ConstitutivePropertyValue
+from ado.schema.reference import ExperimentReference
 from ado.schema.request import MeasurementRequest
 
 if typing.TYPE_CHECKING:
@@ -31,7 +32,6 @@ if typing.TYPE_CHECKING:
     )
     from ado.core.samplestore.resource import SampleStoreResource
     from ado.schema.observed_property import ObservedProperty
-    from ado.schema.reference import ExperimentReference
 
 
 class SampleStore(abc.ABC):
@@ -628,21 +628,43 @@ class ActiveSampleStore(SampleStore, ABC):
         """
 
     @abc.abstractmethod
-    def entity_experiment_references(
+    def experiment_references_by_entity(
         self, entity_identifiers: set[str]
-    ) -> "dict[str, set[ExperimentReference]]":
-        """Return the experiment references covered by valid measurements per entity.
+    ) -> "dict[str, ExperimentReferencesByMeasurementValidity]":
+        """Return the experiment references per entity, split by measurement validity.
 
         Args:
             entity_identifiers: Set of entity identifier strings to query.  An empty
                 set returns an empty dict without issuing any query.
 
         Returns:
-            ``dict`` mapping each entity identifier to the set of
-            :class:`~ado.schema.reference.ExperimentReference` objects for which it
-            has at least one valid measurement result.  Entity identifiers with no
-            valid results are omitted from the returned dict.
+            ``dict`` mapping each entity identifier to an
+            :class:`ExperimentReferencesByMeasurementValidity` instance containing
+            the experiment references for which the entity has at least one valid
+            measurement (:attr:`with_valid_measurements`) or at least one invalid
+            measurement (:attr:`with_invalid_measurements`).
+            Entity identifiers with no measurement results at all are omitted from
+            the returned dict.
         """
+
+
+class ExperimentReferencesByMeasurementValidity(pydantic.BaseModel):
+    """Experiment references of one entity, split by measurement validity."""
+
+    with_valid_measurements: Annotated[
+        set[ExperimentReference],
+        pydantic.Field(
+            default_factory=set,
+            description="References for which the entity has >= 1 valid measurement.",
+        ),
+    ]
+    with_invalid_measurements: Annotated[
+        set[ExperimentReference],
+        pydantic.Field(
+            default_factory=set,
+            description="References for which the entity has >= 1 invalid measurement.",
+        ),
+    ]
 
 
 class MockParams(pydantic.BaseModel):

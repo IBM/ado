@@ -12,6 +12,21 @@ to choose, one entity at a time, which unmeasured entity to measure next.
 
 ## How it Works
 
+PKH starts with a random pilot of `pilotSize` labelled entities (default `5`).
+Set `pilotSize` to any positive integer in the operation parameters. Existing
+target labels count toward this total; additional pilot entities are sampled
+uniformly without replacement using `seed`, then measured in random draw order.
+The first forest is fitted once all pilot labels are available. A smaller pool
+or measurement budget can end the operation during the pilot. Pilot measurements
+count toward `numberEntities`; existing labels do not.
+
+Forest feature subsampling is controlled by `maxFeatures` (default `sqrt`).
+At each split, `sqrt` considers the square root of the number of encoded
+features, rounded down to at least one. Other options are `log2`, a positive
+integer feature count, a fraction in `(0, 1]`, or `null` for all features.
+For example, `maxFeatures: 1.0` considers all features, while `maxFeatures: 1`
+considers one. Scikit-learn may inspect more features to find a valid split.
+
 PKH picks an entity, waits for ADO to record its target value, then uses
 that new label - together with every prior label - to choose the next
 entity.

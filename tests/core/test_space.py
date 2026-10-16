@@ -1,7 +1,7 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-import datetime
+import datetime as dt
 import pathlib
 import re
 from collections.abc import Callable
@@ -30,6 +30,7 @@ from ado.core.samplestore.config import (
     SampleStoreSpecification,
 )
 from ado.metastore.project import ProjectContext
+from ado.modules.actuators.catalog import ExperimentCatalog
 from ado.modules.actuators.registry import ActuatorRegistry
 from ado.schema.entityspace import EntitySpaceRepresentation
 from ado.schema.measurementspace import (
@@ -189,9 +190,7 @@ def test_discovery_space_resource(
         == ado.core.resources.CoreResourceKinds.DISCOVERYSPACE
     )
 
-    assert discovery_space_resource.created < datetime.datetime.now(
-        datetime.timezone.utc
-    )
+    assert discovery_space_resource.created < dt.datetime.now(dt.UTC)
     assert isinstance(discovery_space_resource.metadata, dict)
     assert discovery_space_resource.config is not None
     assert isinstance(discovery_space_resource.config, DiscoverySpaceConfiguration)
@@ -288,7 +287,7 @@ def test_convert_experiments_to_reference_list_preserves_version() -> None:
     from ado.schema.property import AbstractPropertyDescriptor
 
     experiment = Experiment(
-        actuatorIdentifier="mock",
+        actuatorIdentifier="test",
         identifier="versioned_exp",
         targetProperties=[AbstractPropertyDescriptor(identifier="output")],
         version="1.0.0",
@@ -304,6 +303,7 @@ def test_convert_experiments_to_reference_list_preserves_version() -> None:
 
 
 def test_convert_experiments_to_measurement_space_config_version_mismatch(
+    test_actuator_catalog: ExperimentCatalog,
     global_registry: ActuatorRegistry,
 ) -> None:
     """convert_experiments_to_measurement_space_config fails on FQ version mismatch."""
@@ -314,12 +314,11 @@ def test_convert_experiments_to_measurement_space_config_version_mismatch(
     from ado.schema.property import AbstractPropertyDescriptor
     from ado.schema.reference import ExperimentReference
 
-    catalog = global_registry.catalogForActuatorIdentifier("mock")
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", DeprecationWarning)
-        catalog.addExperiment(
+        test_actuator_catalog.addExperiment(
             Experiment(
-                actuatorIdentifier="mock",
+                actuatorIdentifier="test",
                 identifier="fq_config_exp",
                 targetProperties=[AbstractPropertyDescriptor(identifier="output")],
                 version="1.0.0",
@@ -330,7 +329,7 @@ def test_convert_experiments_to_measurement_space_config_version_mismatch(
         experiments=[
             ExperimentReference(
                 experimentIdentifier="fq_config_exp",
-                actuatorIdentifier="mock",
+                actuatorIdentifier="test",
                 experimentVersion="1.1.0",
             )
         ],
@@ -415,6 +414,50 @@ def test_matching_entities_table_virtual_property_with_multiple_values(
     assert virtual_id in df_with_vp.columns
     # Aggregated values should be scalar (not lists or None)
     assert df_with_vp[virtual_id].dropna().apply(lambda x: np.isscalar(x)).all()
+
+
+def test_matching_entities_table_experiment_references_filter_known(
+    ml_multi_cloud_space: DiscoverySpace,
+) -> None:
+    """experimentReferences matching the data returns the same rows as no filter."""
+    ref = ExperimentReference(
+        actuatorIdentifier="replay",
+        experimentIdentifier="benchmark_performance",
+    )
+    df_filtered = ml_multi_cloud_space.matchingEntitiesTable(experimentReferences=[ref])
+    df_unfiltered = ml_multi_cloud_space.matchingEntitiesTable()
+    assert df_filtered.shape[0] == df_unfiltered.shape[0]
+
+
+def test_matching_entities_table_experiment_references_filter_no_match(
+    ml_multi_cloud_space: DiscoverySpace,
+) -> None:
+    """experimentReferences that match no entity return an empty DataFrame."""
+    ref = ExperimentReference(
+        actuatorIdentifier="no_such_actuator",
+        experimentIdentifier="no_such_experiment",
+    )
+    df = ml_multi_cloud_space.matchingEntitiesTable(experimentReferences=[ref])
+    assert df.empty
+
+
+def test_matching_entities_table_experiment_references_filter_or_semantics(
+    ml_multi_cloud_space: DiscoverySpace,
+) -> None:
+    """A list with one matching and one non-matching reference returns the same rows as the matching one alone."""
+    known = ExperimentReference(
+        actuatorIdentifier="replay",
+        experimentIdentifier="benchmark_performance",
+    )
+    unknown = ExperimentReference(
+        actuatorIdentifier="no_such_actuator",
+        experimentIdentifier="no_such_experiment",
+    )
+    df_one = ml_multi_cloud_space.matchingEntitiesTable(experimentReferences=[known])
+    df_two = ml_multi_cloud_space.matchingEntitiesTable(
+        experimentReferences=[known, unknown]
+    )
+    assert df_one.shape[0] == df_two.shape[0]
 
 
 def _operation_lifecycle_statuses(

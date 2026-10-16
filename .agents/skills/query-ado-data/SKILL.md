@@ -36,6 +36,9 @@ DOs:
 - IMPORTANT Before deciding on what to query check the resource schema to
   confirm what is available in metadata - ado template RESOURCETYPE
   --include-schema
+- Write lists for reading to `--output-file`, then read the file.
+  Stdout capture of `ado get --details` can be truncated by agent harness. See
+  [using-ado-cli](../using-ado-cli/SKILL.md) (Output Format and File Handling).
 - Use Server side filtering
   - prefer --filter or --matching to fetching metadata and filtering on client
     side
@@ -86,11 +89,11 @@ Replace `DiscoverySpaceResource` with any class from the table above.
 Get a general overview of what's present:
 
 ```bash
-uv run ado get $RESOURCETYPE --details
+uv run ado get $RESOURCETYPE --details --output-file /tmp/ado-$RESOURCETYPE-details.txt
 ```
 
 Returns an age-sorted list (most recent last) of resources of the specified
-type.
+type. Read the file; do not treat stdout as complete.
 
 **Resource types**: `operations` (`op`), `discoveryspaces` (`space`),
 `samplestores` (`store`), `datacontainers` (`dcr`), `actuatorconfigurations`
@@ -110,6 +113,10 @@ uv run ado get operation OPERATION_ID -o stats --no-trunc
 # Discovery Spaces
 uv run ado get spaces -o stats --output-file spaces-stats.txt
 uv run ado get space SPACE_ID -o stats --no-trunc
+# Include property domains in space table output
+# (constitutive, parameterized, optional, all, or specific IDs)
+uv run ado get spaces -p constitutive --no-trunc --output-file /tmp/ado-spaces-properties.txt
+uv run ado get space SPACE_ID -p all --no-trunc --output-file /tmp/ado-space-properties.txt
 
 # Sample Stores
 uv run ado get samplestores -o stats --output-file samplestores-stats.txt
@@ -120,13 +127,13 @@ uv run ado get datacontainers -o stats --output-file datacontainers-stats.txt
 uv run ado get datacontainer DATACONTAINER_ID -o stats --no-trunc
 ```
 
-**Operations** extra columns: `TOTAL_RESULTS`, `SUCCESSFUL_RESULTS`,
-`FAILED_RESULTS`, `MEASURED_ENTITIES` (entities with at least one measurement,
+**Operations** extra columns: `TOTAL_MEASUREMENTS`, `SUCCESSFUL_MEASUREMENTS`,
+`FAILED_MEASUREMENTS`, `SAMPLED_ENTITIES` (entities with at least one measurement,
 whether successful, failed, or both).
 
-**Discovery Spaces** extra columns: `EXPERIMENTS`, `OPERATIONS`,
-`EXPLORE_OPERATIONS`, `MEASURED_ENTITIES` (entities with at least one
-measurement, whether successful, failed, or both).
+**Discovery Spaces** extra columns: `EXPERIMENTS`, `OPERATIONS`, `EXPLORE_OPS`,
+`SAMPLED_ENTITIES` (entities with at least one measurement, whether successful,
+failed, or both).
 
 **Sample Stores** extra columns: `ENTITIES`, `RESULTS`, `EXPERIMENTS`.
 
@@ -190,13 +197,16 @@ Find spaces matching a point or another space:
 
 ```bash
 # Match spaces containing a specific entity point
-uv run ado get space --matching-point point.yaml
+uv run ado get space --matching-point point.yaml --details \
+  --output-file /tmp/ado-matching-point.txt
 
 # Match spaces similar to another space (by ID)
-uv run ado get space --matching-space-id space-abc123-456def
+uv run ado get space --matching-space-id space-abc123-456def --details \
+  --output-file /tmp/ado-matching-spaces.txt
 
 # Match spaces similar to a space configuration (without creating it)
-uv run ado get space --matching-space space.yaml
+uv run ado get space --matching-space space.yaml --details \
+  --output-file /tmp/ado-matching-spaces.txt
 ```
 
 **Note**: `--matching-point`, `--matching-space`, and `--matching-space-id` are
@@ -282,7 +292,9 @@ uv run ado show measurements RESOURCE_TYPE [RESOURCE_ID] \
 - `--output` (or `-o`): `csv`, `json`, or `table`
 - `--output-file` specifies a file path to write the output to. If not provided,
   output is written to stdout.
-- `--property`: Filter specific properties (can specify multiple times)
+- `--property`: Filter specific properties (can specify multiple times).
+  Output keeps `identifier` and the listed columns only; also list any input
+  (constitutive) properties you need.
 - `--aggregate`: Aggregate multiple values
 
 **Examples:**

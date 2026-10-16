@@ -102,7 +102,12 @@ def create_operation(
     def _create_operation(space: DiscoverySpace) -> OperationResource:
         operation = OperationResource(
             config=DiscoveryOperationResourceConfiguration(
-                spaces=[space.uri],
+                inputs={
+                    "discoverySpace": ado.core.resources.ADOResourceReference(
+                        kind=ado.core.resources.CoreResourceKinds.DISCOVERYSPACE,
+                        identifier=space.uri,
+                    )
+                },
                 operation=DiscoveryOperationConfiguration(),
             ),
             operationType=DiscoveryOperationEnum.EXPLORE,

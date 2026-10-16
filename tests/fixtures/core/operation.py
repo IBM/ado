@@ -15,6 +15,7 @@ from ado.core.operation.config import (
     DiscoveryOperationResourceConfiguration,
 )
 from ado.core.operation.resource import OperationResource
+from ado.core.resources import ADOResourceReference, CoreResourceKinds
 from ado.metastore.sqlstore import SQLStore
 
 
@@ -29,7 +30,12 @@ def ml_multi_cloud_operation_resource(
     ) -> OperationResource:
 
         if space_id:
-            ml_multi_cloud_operation_configuration.spaces = [space_id]
+            ml_multi_cloud_operation_configuration.inputs["discoverySpace"] = (
+                ADOResourceReference(
+                    identifier=space_id,
+                    kind=CoreResourceKinds.DISCOVERYSPACE,
+                )
+            )
 
         return OperationResource(
             operationType=DiscoveryOperationEnum.EXPLORE,
@@ -92,7 +98,10 @@ def operation_resource(
     test_space_identifier: str,
 ) -> OperationResource:
 
-    operation_configuration.spaces = [test_space_identifier]
+    operation_configuration.inputs["discoverySpace"] = ADOResourceReference(
+        identifier=test_space_identifier,
+        kind=CoreResourceKinds.DISCOVERYSPACE,
+    )
 
     # Create a random operation resource
     return OperationResource(
@@ -116,6 +125,6 @@ def random_walk_multicloud_operation_configuration() -> (
     with open("examples/ml-multi-cloud/randomwalk_ml_multicloud_operation.yaml") as f:
         conf = DiscoveryOperationResourceConfiguration.model_validate(yaml.safe_load(f))
 
-    # Remove values for the spaces
-    conf.spaces = []
+    # Clear all resource inputs
+    conf.inputs = {}
     return conf

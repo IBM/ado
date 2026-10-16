@@ -10,6 +10,7 @@ from ado.core.operation.config import (
     DiscoveryOperationConfiguration,
     DiscoveryOperationEnum,
     DiscoveryOperationResourceConfiguration,
+    GenericOperatorParameters,
     OperatorMetadata,
     OperatorReference,
 )
@@ -20,7 +21,7 @@ from ado.modules.operators.collections import (
 from ado.modules.operators.errors import OperatorVersionMismatchError
 
 
-class _ExampleConfig(pydantic.BaseModel):
+class _ExampleConfig(GenericOperatorParameters):
     value: int = 1
 
 

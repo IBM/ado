@@ -169,8 +169,9 @@ When examining a study, add `-l study=$ID` (the study's label) to the
    uv run ado get operations -o stats --output-file operations-stats.txt
    ```
 
-   Adds `TOTAL_RESULTS`, `SUCCESSFUL_RESULTS`, `FAILED_RESULTS`, and
-   `SAMPLED_ENTITIES` columns. For explore operations, compare
+   Adds `TOTAL_MEASUREMENTS`, `SUCCESSFUL_MEASUREMENTS`,
+   `FAILED_MEASUREMENTS`, and `SAMPLED_ENTITIES` columns. For explore operations,
+   compare
    `SAMPLED_ENTITIES` against the operator's `numberEntities` to check sampling
    completeness.
 

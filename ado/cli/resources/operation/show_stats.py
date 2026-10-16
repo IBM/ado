@@ -26,8 +26,8 @@ def show_operation_stats(parameters: AdoShowStatsCommandParameters) -> None:
     """Show statistics for one or more operations.
 
     Outputs all standard ``ado get`` table columns (IDENTIFIER, NAME, AGE,
-    SPACE, STATUS, EXIT_STATE) plus result-level stats columns
-    (TOTAL_RESULTS, SUCCESSFUL_RESULTS, FAILED_RESULTS, SAMPLED_ENTITIES
+    SPACE, STATUS, EXIT_STATE) plus measurement-level stats columns
+    (TOTAL_MEASUREMENTS, SUCCESSFUL_MEASUREMENTS, FAILED_MEASUREMENTS, SAMPLED_ENTITIES
     — entities with at least one measurement, whether successful, failed,
     or both) and request-level stats columns (TOTAL_REQUESTS, FAILED_REQUESTS,
     SUCCESSFUL_REQUESTS).

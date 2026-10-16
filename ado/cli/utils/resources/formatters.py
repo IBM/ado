@@ -339,12 +339,12 @@ def format_ado_get_stats_for_operations(
         include_request_columns: When ``True``, also append
             ``TOTAL_REQUESTS``, ``FAILED_REQUESTS``, and
             ``SUCCESSFUL_REQUESTS`` columns in addition to the default
-            result-level columns. Defaults to ``False``.
+            measurement-level columns. Defaults to ``False``.
 
     Returns:
         The same DataFrame with extra columns appended.
-        Always appended: ``TOTAL_RESULTS``, ``SUCCESSFUL_RESULTS``,
-        ``FAILED_RESULTS``, ``SAMPLED_ENTITIES`` (entities with at least one
+        Always appended: ``TOTAL_MEASUREMENTS``, ``SUCCESSFUL_MEASUREMENTS``,
+        ``FAILED_MEASUREMENTS``, ``SAMPLED_ENTITIES`` (entities with at least one
         measurement, whether successful, failed, or both).
         Appended when *include_request_columns* is ``True``:
         ``TOTAL_REQUESTS``, ``FAILED_REQUESTS``, ``SUCCESSFUL_REQUESTS``.
@@ -355,10 +355,10 @@ def format_ado_get_stats_for_operations(
     from ado.core.resources import CoreResourceKinds
     from ado.core.samplestore.base import SampleStore
 
-    _RESULT_COLUMNS = [
-        "TOTAL_RESULTS",
-        "SUCCESSFUL_RESULTS",
-        "FAILED_RESULTS",
+    _MEASUREMENT_COLUMNS = [
+        "TOTAL_MEASUREMENTS",
+        "SUCCESSFUL_MEASUREMENTS",
+        "FAILED_MEASUREMENTS",
         "SAMPLED_ENTITIES",
     ]
     _REQUEST_COLUMNS = [
@@ -414,20 +414,20 @@ def format_ado_get_stats_for_operations(
             operation_ids=operation_ids_in_store
         ):
             stats_lookup[stat.operation_id] = {
-                "TOTAL_RESULTS": stat.total_results,
-                "SUCCESSFUL_RESULTS": stat.successful_results,
-                "FAILED_RESULTS": stat.failed_results,
+                "TOTAL_MEASUREMENTS": stat.total_results,
+                "SUCCESSFUL_MEASUREMENTS": stat.successful_results,
+                "FAILED_MEASUREMENTS": stat.failed_results,
                 "SAMPLED_ENTITIES": stat.measured_entities,
                 "TOTAL_REQUESTS": stat.total_requests,
                 "FAILED_REQUESTS": stat.failed_requests,
                 "SUCCESSFUL_REQUESTS": stat.successful_requests,
             }
 
-    # Attach result-level stats columns; operations with no samplestore mapping show 0.
-    all_columns = _RESULT_COLUMNS + (
+    # Attach measurement-level stats columns; operations with no samplestore mapping show 0.
+    all_columns = _MEASUREMENT_COLUMNS + (
         _REQUEST_COLUMNS if include_request_columns else []
     )
-    zeros = dict.fromkeys(_RESULT_COLUMNS + _REQUEST_COLUMNS, 0)
+    zeros = dict.fromkeys(_MEASUREMENT_COLUMNS + _REQUEST_COLUMNS, 0)
     for col in all_columns:
         df[col] = df["IDENTIFIER"].apply(
             lambda operation_id, c=col: stats_lookup.get(operation_id, zeros)[c]

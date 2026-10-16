@@ -400,7 +400,7 @@ def _handle_stats_format(
     """Handle STATS output format - TABLE columns plus measurement/space stats columns.
 
     Supported for:
-    - operations (columns: TOTAL_RESULTS, SUCCESSFUL_RESULTS, FAILED_RESULTS,
+    - operations (columns: TOTAL_MEASUREMENTS, SUCCESSFUL_MEASUREMENTS, FAILED_MEASUREMENTS,
       SAMPLED_ENTITIES — entities with at least one measurement, whether
       successful, failed, or both)
     - discovery spaces (columns: EXPERIMENTS, OPERATIONS, EXPLORE_OPS,

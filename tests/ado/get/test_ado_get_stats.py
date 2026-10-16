@@ -97,9 +97,9 @@ def test_ado_get_operations_stats_columns_present(
     assert result.exit_code == 0, result.output
     if os.environ.get("CI", "false") != "true":
         for col in [
-            "TOTAL_RESULTS",
-            "SUCCESSFUL_RESULTS",
-            "FAILED_RESULTS",
+            "TOTAL_MEASUREMENTS",
+            "SUCCESSFUL_MEASUREMENTS",
+            "FAILED_MEASUREMENTS",
             "SAMPLED_ENTITIES",
         ]:
             assert col in result.output, f"Column {col!r} missing from output"
@@ -160,9 +160,9 @@ def test_ado_get_operations_stats_values(
                 "STATUS": "added",
                 "EXIT_STATE": "N/A",
                 "AGE": _EXPECTED_AGE,
-                "TOTAL_RESULTS": number_requests * number_entities,
-                "SUCCESSFUL_RESULTS": number_requests * number_entities,
-                "FAILED_RESULTS": 0,
+                "TOTAL_MEASUREMENTS": number_requests * number_entities,
+                "SUCCESSFUL_MEASUREMENTS": number_requests * number_entities,
+                "FAILED_MEASUREMENTS": 0,
                 "SAMPLED_ENTITIES": number_entities,
             },
             index=pd.Index([0]),
@@ -230,9 +230,9 @@ def test_ado_get_operation_stats_single_resource(
                 "STATUS": "added",
                 "EXIT_STATE": "N/A",
                 "AGE": _EXPECTED_AGE,
-                "TOTAL_RESULTS": number_requests * number_entities,
-                "SUCCESSFUL_RESULTS": number_requests * number_entities,
-                "FAILED_RESULTS": 0,
+                "TOTAL_MEASUREMENTS": number_requests * number_entities,
+                "SUCCESSFUL_MEASUREMENTS": number_requests * number_entities,
+                "FAILED_MEASUREMENTS": 0,
                 "SAMPLED_ENTITIES": number_entities,
             },
             index=pd.Index([0]),

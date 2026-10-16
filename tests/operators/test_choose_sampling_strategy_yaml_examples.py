@@ -29,24 +29,13 @@ RAY_TUNE_YAMLS = {
 }
 
 
-def _load_operation(yaml_name: str) -> DiscoveryOperationResourceConfiguration:
-    """Load and validate an example operation YAML.
-
-    Args:
-        yaml_name: File name of the example without the .yaml suffix.
-
-    Returns:
-        The validated operation configuration.
-    """
-    path = YAML_EXAMPLES_DIR / f"{yaml_name}.yaml"
-    data = yaml.safe_load(path.read_text())
-    return DiscoveryOperationResourceConfiguration.model_validate(data)
-
-
 @pytest.mark.parametrize("yaml_name", RANDOM_WALK_YAMLS, ids=RANDOM_WALK_YAMLS)
 def test_random_walk_yaml_examples(yaml_name: str) -> None:
     """Each random_walk example validates as RandomWalkParameters."""
-    config = _load_operation(yaml_name)
+    path = YAML_EXAMPLES_DIR / f"{yaml_name}.yaml"
+    config = DiscoveryOperationResourceConfiguration.model_validate(
+        yaml.safe_load(path.read_text())
+    )
     assert config.operation.module.operatorName == "random_walk"
     params = RandomWalkParameters.model_validate(config.operation.parameters)
     dumped = params.model_dump(mode="json")
@@ -62,7 +51,10 @@ def test_ray_tune_yaml_examples(yaml_name: str, optimizer_package: str) -> None:
     """Each ray_tune example validates as RayTuneConfiguration and builds its optimizer."""
     ray_tune_config = pytest.importorskip("ado_ray_tune.config")
     pytest.importorskip(optimizer_package)
-    config = _load_operation(yaml_name)
+    path = YAML_EXAMPLES_DIR / f"{yaml_name}.yaml"
+    config = DiscoveryOperationResourceConfiguration.model_validate(
+        yaml.safe_load(path.read_text())
+    )
     assert config.operation.module.operatorName == "ray_tune"
     params = ray_tune_config.RayTuneConfiguration.model_validate(
         config.operation.parameters

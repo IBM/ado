@@ -1,0 +1,27 @@
+# Copyright IBM Corporation 2025, 2026
+# SPDX-License-Identifier: MIT
+# Nevergrad NGOpt: a meta-optimizer that picks an algorithm from the budget,
+# number of workers and dimension types. budget and num_workers only take
+# effect inside optimizer_kwargs.
+spaces:
+  - space-abc123
+operation:
+  module:
+    operatorName: ray_tune
+    operationType: explore
+  parameters:
+    tuneConfig:
+      metric: function_value
+      mode: min
+      num_samples: 200
+      max_concurrent_trials: 4
+      search_alg:
+        name: nevergrad
+        params:
+          optimizer: NGOpt
+          optimizer_kwargs:
+            budget: 200 # match num_samples
+            num_workers: 4 # match max_concurrent_trials
+metadata:
+  name: ngopt-function-min
+  description: Minimise function_value with Nevergrad NGOpt

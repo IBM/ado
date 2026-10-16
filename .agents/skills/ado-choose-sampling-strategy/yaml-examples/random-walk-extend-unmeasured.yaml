@@ -1,0 +1,21 @@
+# Copyright IBM Corporation 2025, 2026
+# SPDX-License-Identifier: MIT
+# Add 50 NEW random entities to a space that already has measurements.
+# Entities rejected by the filter do not count towards numberEntities.
+spaces:
+  - space-abc123
+operation:
+  module:
+    operatorName: random_walk
+    operationType: explore
+  parameters:
+    numberEntities: 50
+    batchSize: 2
+    samplerConfig:
+      samplerType: generator
+      mode: random
+    filter:
+      filterMode: unmeasured
+metadata:
+  name: random-extension-50
+  description: Extend the random sample of the space by 50 unmeasured entities

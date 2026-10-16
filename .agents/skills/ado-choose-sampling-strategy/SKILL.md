@@ -1,5 +1,5 @@
 ---
-name: choose-sampling-strategy
+name: ado-choose-sampling-strategy
 description: >-
   Describes how how to configure sampling of a discoveryspace in ado: which operator
   (random_walk, ray_tune, trim), which sampler or optimizer (grid, random,

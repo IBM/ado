@@ -1,7 +1,7 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-"""Tests that choose-sampling-strategy YAML examples validate and build their samplers."""
+"""Tests that ado-choose-sampling-strategy YAML examples validate and build their samplers."""
 
 import pathlib
 
@@ -13,7 +13,7 @@ from ado.modules.operators.randomwalk import RandomWalkParameters
 
 YAML_EXAMPLES_DIR = (
     pathlib.Path(__file__).resolve().parent.parent.parent
-    / ".agents/skills/choose-sampling-strategy/yaml-examples"
+    / ".agents/skills/ado-choose-sampling-strategy/yaml-examples"
 )
 
 RANDOM_WALK_YAMLS = [

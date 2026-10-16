@@ -31,7 +31,7 @@ from ado.modules.operators.randomwalk import (
     CustomSamplerConfiguration,
     SamplerModuleConf,
 )
-from ado.schema.domain import PropertyDomain
+from ado.schema.domain import PropertyDomain, VariableTypeEnum
 from ado.schema.entity import Entity
 from ado.schema.entityspace import EntitySpaceRepresentation
 from ado.schema.experiment import Experiment
@@ -209,6 +209,7 @@ def _adaptive_test_space() -> tuple[
                 "minSamplesLeaf": 2,
                 "maxFeatures": "sqrt",
                 "pilotSize": 5,
+                "pilotStrategy": "random",
                 "epochLength": 10,
                 "seed": 42,
                 "criterion": "squared_error",
@@ -278,9 +279,11 @@ def test_parameter_models_reject_invalid_pilot_sizes(
     ],
     ids=["pkh"],
 )
+@pytest.mark.parametrize("pilot_strategy", ["random", "clhs", "sobol"])
 def test_selectors_expose_and_load_their_parameter_models(
     selector_class: type[PKHSampleSelector],
     parameters_class: type[PKHParameters],
+    pilot_strategy: str,
 ) -> None:
     """Verify ADO loads each selector with its concrete parameter model."""
 
@@ -289,7 +292,12 @@ def test_selectors_expose_and_load_their_parameter_models(
             moduleName=selector_class.__module__,
             moduleClass=selector_class.__name__,
         ),
-        parameters={"targetOutput": "latency", "nJobs": 1, "pilotSize": 2},
+        parameters={
+            "targetOutput": "latency",
+            "nJobs": 1,
+            "pilotSize": 2,
+            "pilotStrategy": pilot_strategy,
+        },
     )
 
     selector = configuration.sampler()
@@ -302,6 +310,7 @@ def test_selectors_expose_and_load_their_parameter_models(
     assert isinstance(restored, selector_class)
     assert isinstance(restored.params, parameters_class)
     assert restored.params.pilotSize == 2
+    assert restored.params.pilotStrategy == pilot_strategy
 
     discovery_space, _, _, _ = _adaptive_test_space()
     _, _, state = restored._initial_state(discovery_space)
@@ -311,6 +320,82 @@ def test_selectors_expose_and_load_their_parameter_models(
     state.update(pilot, 2.0)
     state.query_one()
     assert state._forest_fitted
+
+
+@pytest.mark.parametrize(
+    ("selector_class", "parameters_class"),
+    [(PKHSampleSelector, PKHParameters)],
+)
+def test_clhs_selector_uses_original_categorical_dimensions(
+    selector_class: type,
+    parameters_class: type,
+) -> None:
+    """The public selector maps a categorical CLHS pilot to real pool entities."""
+
+    entity_space = EntitySpaceRepresentation(
+        constitutiveProperties=[
+            ConstitutiveProperty(
+                identifier="size",
+                propertyDomain=PropertyDomain(values=[2.0, 10.0, 25.0, 100.0]),
+            ),
+            ConstitutiveProperty(
+                identifier="colour",
+                propertyDomain=PropertyDomain(values=["red", "blue", "green"]),
+            ),
+        ]
+    )
+    space = SimpleNamespace(
+        entitySpace=entity_space,
+        measurementSpace=_measurement_space("benchmark"),
+        sample_store=_MutableSampleStore([]),
+    )
+    selector = selector_class(
+        parameters_class(
+            targetOutput="latency",
+            pilotSize=6,
+            pilotStrategy="clhs",
+            nJobs=1,
+        )
+    )
+    pool, _, state = selector._initial_state(space)
+    assert pool.pilot_features.shape == (12, 2)
+    assert pool.features.shape[1] > 2
+    selected = []
+    for _ in range(6):
+        index = state.query_one()
+        selected.append(index)
+        state.update(index, float(index))
+    assert selected == [0, 11, 4, 8, 10, 3]
+    assert not state._forest_fitted
+
+
+def test_pilot_pool_preserves_large_integer_category_values() -> None:
+    """Mixed numeric dimensions preserve distinct integer categorical levels."""
+
+    levels = [2**53, 2**53 + 1]
+    entity_space = EntitySpaceRepresentation(
+        constitutiveProperties=[
+            ConstitutiveProperty(
+                identifier="fraction",
+                propertyDomain=PropertyDomain(values=[0.5]),
+            ),
+            ConstitutiveProperty(
+                identifier="category",
+                propertyDomain=PropertyDomain(
+                    values=levels,
+                    variableType=VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE,
+                ),
+            ),
+        ]
+    )
+    space = SimpleNamespace(
+        entitySpace=entity_space,
+        measurementSpace=_measurement_space("benchmark"),
+        sample_store=_MutableSampleStore([]),
+    )
+    pool = _finite_pool(space)
+    assert pool.pilot_features[:, 1].tolist() == levels
+    assert pool.pilot_features[0, 1] != pool.pilot_features[1, 1]
 
 
 def test_target_resolution_requires_one_observed_property() -> None:

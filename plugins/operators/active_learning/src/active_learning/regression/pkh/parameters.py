@@ -7,7 +7,10 @@ from typing import Annotated
 
 import pydantic
 
-from active_learning.regression._shared import _PredictiveParameters
+from active_learning.regression._shared import (
+    _PredictiveOperatorParameters,
+    _PredictiveParameters,
+)
 
 
 class PKHParameters(_PredictiveParameters):
@@ -22,7 +25,7 @@ class PKHParameters(_PredictiveParameters):
     ] = 10
 
 
-class PKHOperatorParameters(PKHParameters):
+class PKHOperatorParameters(PKHParameters, _PredictiveOperatorParameters):
     """Configuration exposed by the PKH characterization operator."""
 
     numberEntities: Annotated[
@@ -32,6 +35,16 @@ class PKHOperatorParameters(PKHParameters):
             description="Number of entities to select and measure.",
         ),
     ]
+    outputDirectory: Annotated[
+        str,
+        pydantic.StringConstraints(strip_whitespace=True, min_length=1),
+        pydantic.Field(
+            description=(
+                "Base path for the saved predictor. The final model is written "
+                "to {outputDirectory}_finalized; that directory must not exist."
+            ),
+        ),
+    ] = "pkh_models"
 
     @classmethod
     def example_configuration(cls) -> "PKHOperatorParameters":

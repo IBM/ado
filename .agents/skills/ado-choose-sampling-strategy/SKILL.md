@@ -1,7 +1,7 @@
 ---
 name: ado-choose-sampling-strategy
 description: >-
-  Describes how how to configure sampling of a discoveryspace in ado: which operator
+  Describes how to configure sampling of a discoveryspace in ado: which operator
   (random_walk, ray_tune, trim), which sampler or optimizer (grid, random,
   selector, Latin hypercube, Sobol, Optuna TPE, Bayesian optimization,
   Nevergrad), which stoppers, and how to stage multiple sampling campaigns on

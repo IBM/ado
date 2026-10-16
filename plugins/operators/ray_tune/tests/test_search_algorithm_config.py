@@ -64,3 +64,16 @@ def test_nevergrad_optimizer_name_is_resolved() -> None:
 
     assert ray_tune_parameters["optimizer"] is nevergrad.optimizers.registry["NGOpt"]
     assert ray_tune_parameters["optimizer_kwargs"] == {"budget": 10}
+
+
+def test_open_categorical_dimension_is_rejected() -> None:
+    """ray_tune cannot build a search space from an open categorical dimension."""
+    from ado_ray_tune.operator import property_domain_to_ray_distribution
+
+    from ado.schema.domain import PropertyDomain, VariableTypeEnum
+
+    domain = PropertyDomain(
+        variableType=VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE
+    )
+    with pytest.raises(ValueError, match="open categorical"):
+        property_domain_to_ray_distribution(domain)

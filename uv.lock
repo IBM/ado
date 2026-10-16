@@ -26,6 +26,7 @@ required-markers = [
 
 [manifest]
 members = [
+    "ado-active-learning",
     "ado-anomalous-series",
     "ado-core",
     "ado-profile-space",
@@ -36,6 +37,25 @@ members = [
     "pfas-custom-functions",
     "robotic-lab",
     "trim-custom-experiments",
+]
+
+[[package]]
+name = "ado-active-learning"
+source = { editable = "plugins/operators/active_learning" }
+dependencies = [
+    { name = "ado-core" },
+    { name = "numpy", version = "2.3.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.13'" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.13'" },
+    { name = "pandas" },
+    { name = "scikit-learn" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "ado-core", editable = "." },
+    { name = "numpy" },
+    { name = "pandas", specifier = ">=2.2.0" },
+    { name = "scikit-learn", specifier = ">=1.6" },
 ]
 
 [[package]]
@@ -132,6 +152,7 @@ docs = [
     { name = "pymdown-extensions" },
 ]
 test = [
+    { name = "ado-active-learning" },
     { name = "ado-anomalous-series" },
     { name = "ado-autoconf", marker = "python_full_version < '3.14'" },
     { name = "ado-profile-space" },
@@ -196,6 +217,7 @@ docs = [
     { name = "pymdown-extensions", specifier = ">=10.15" },
 ]
 test = [
+    { name = "ado-active-learning", editable = "plugins/operators/active_learning" },
     { name = "ado-anomalous-series", editable = "plugins/operators/anomalous_series" },
     { name = "ado-autoconf", marker = "python_full_version < '3.14'", editable = "plugins/custom_experiments/autoconf" },
     { name = "ado-profile-space", editable = "plugins/operators/profile_space" },

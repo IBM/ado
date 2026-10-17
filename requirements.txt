@@ -662,9 +662,9 @@ idna==3.20 \
     #   anyio
     #   requests
     #   yarl
-jsonpath-ng==1.10.0 \
-    --hash=sha256:e5fd041a757778dd5b75375a5d92237589cfd3b681c154654c3998ea37a09e64 \
-    --hash=sha256:e7456c4649e63c0f71b5c1724fcf2dee33caac024fb00cf9c8f65aaade6e138f
+jsonpath-ng==1.11.0 \
+    --hash=sha256:84b325f791e43ae40810ff4059f50744b4c22fe53066b0884a659f0191c0b308 \
+    --hash=sha256:938b9c8d02f625c079c884f2b76241d0ac54ee7d1c8f10a502c42d8e31ff0c4b
     # via ado-core
 jsonschema==4.26.0 \
     --hash=sha256:0c26707e2efad8aa1bfc5b7ce170f3fccc2e4918ff85989ba9ffa9facb2be326 \

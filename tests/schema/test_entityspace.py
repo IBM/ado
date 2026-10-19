@@ -400,7 +400,10 @@ def test_entity_space_keeps_open_categorical_property_without_values() -> None:
         _ = es.size
     assert es.isPointInSpace({"uid": "generated-uid-1"})
     assert es.isPointInSpace({"uid": "generated-uid-2"})
-    with pytest.raises(ValueError, match="open categorical"):
+    with pytest.raises(
+        ValueError,
+        match="Cannot return dimension_values for a space with continuous, unknown, or open categorical dimensions",
+    ):
         es.dimension_values()
     assert (
         ExplicitEntitySpaceGridSampleGenerator.samplerCompatibleWithEntitySpace(es)

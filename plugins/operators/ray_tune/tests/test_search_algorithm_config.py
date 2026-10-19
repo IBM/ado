@@ -48,7 +48,10 @@ def test_optuna_sampler_parameters_without_sampler_raises() -> None:
         name="optuna", params={"sampler_parameters": {"seed": 1}}
     )
 
-    with pytest.raises(ValueError, match="no sampler specified"):
+    with pytest.raises(
+        ValueError,
+        match="Optuna sampler parameters specified but no sampler specified",
+    ):
         search_alg.parameters_for_ray_tune()
 
 
@@ -75,5 +78,11 @@ def test_open_categorical_dimension_is_rejected() -> None:
     domain = PropertyDomain(
         variableType=VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE
     )
-    with pytest.raises(ValueError, match="open categorical"):
+    with pytest.raises(
+        ValueError,
+        match=(
+            "ray_tune cannot sample an open categorical dimension. "
+            "List its values to close it, or use a random_walk selector."
+        ),
+    ):
         property_domain_to_ray_distribution(domain)

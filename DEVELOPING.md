@@ -17,7 +17,8 @@ repository's pre-commit hooks and lockfile format.
 **macOS is the recommended operating system for ado development.** Linux also
 supports the core and plugin test suites, subject to plugin Python requirements.
 
-Native Windows x64 supports core development with the pinned Python 3.11.
+Native Windows x64 supports core development on Python 3.11–3.13; the repository
+defaults to Python 3.11.
 AutoConf, TRIM, and the vLLM client are included; SFTTrainer is excluded because
 `aimrocks` has no Windows distribution. The optional vLLM runtime requires Linux.
 
@@ -75,6 +76,7 @@ uv run tox -e py311-locked-windows
 ```
 
 Tox runs `tests/` with two workers; append `-- -n 1 tests/` to reduce concurrency.
+Use `py312-locked-windows` or `py313-locked-windows` to test Python 3.12 or 3.13.
 Testcontainers manages the temporary MySQL containers automatically.
 
 ### Windows with WSL2

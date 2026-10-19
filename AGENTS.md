@@ -158,7 +158,7 @@ Ensure the virtual environment is set up before running tests:
 uv sync --locked --reinstall --group test --group dev
 ```
 
-On native Windows x64, use Python 3.11 and follow
+On native Windows x64, use Python 3.11–3.13 (3.11 is the default) and follow
 [the PowerShell setup](DEVELOPING.md#native-windows-setup-powershell), including
 verification of all committed symlinks before running hooks. The test group
 excludes SFTTrainer on Windows because `aimrocks` has no Windows distribution.
@@ -202,8 +202,9 @@ connectivity before running the full core suite.
   ```
 
 - On native Windows, the locked core Tox target is
-  `uv run tox -e py311-locked-windows`. It uses two workers. Run the Docker-free
-  subset with
+  `uv run tox -e py311-locked-windows`; use `py312-locked-windows` or
+  `py313-locked-windows` for Python 3.12 or 3.13. These targets use two workers.
+  Run the Docker-free subset with
   `uv run --group test pytest -n 2 tests/schema tests/utilities`.
 - Run SFTTrainer tests and the full plugin test matrix on Linux or macOS,
   subject to the plugins' Python version requirements.

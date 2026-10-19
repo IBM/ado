@@ -105,11 +105,14 @@ Similarly, you can test different Python versions by changing `py311` to `py312`
 `py313`, or `py314`. You can also use standard pip resolution instead of locked
 dependencies by using `nonlocked`.
 
-For native Windows x64 with Python 3.11, use the locked core test environment:
+For native Windows x64 with Python 3.11–3.13, use the locked core test environment
+(Python 3.11 is the default):
 
 ```powershell
 uv run tox -e py311-locked-windows
 ```
+
+Use `py312-locked-windows` or `py313-locked-windows` for Python 3.12 or 3.13.
 
 Docker Desktop with Linux containers is required for the Markdownlint hook and
 MySQL integration tests.

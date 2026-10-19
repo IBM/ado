@@ -40,7 +40,7 @@ framework itself.
 
 ## Setting up
 
-On native Windows x64, use Python 3.11 and follow the
+On native Windows x64, use Python 3.11–3.13 (3.11 is the default) and follow the
 [PowerShell setup](./developing.md#native-windows-setup-powershell), including
 the symlink verification before running hooks. The Windows environment supports
 core development and excludes SFTTrainer. Docker Desktop with Linux containers

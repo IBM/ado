@@ -9,9 +9,176 @@ for project and dependency management.
 
 To install `uv`, refer to the
 [official installation documentation](https://docs.astral.sh/uv/getting-started/installation/#installing-uv)
-and choose your preferred method.
+and choose your preferred method. Use uv 0.13.0 or newer to match the
+repository's pre-commit hooks and lockfile format.
+
+### Supported development platforms
+
+Linux and macOS support the core and plugin test suites, subject to each
+plugin's Python version requirements. Native Windows x64 supports core
+development with Python 3.11, selected by `.python-version`. The Windows test
+environment includes AutoConf and TRIM, and excludes SFTTrainer because its
+`aimrocks` dependency has no Windows distribution.
+The vLLM actuator client is included; its optional vLLM runtime runs on Linux.
+
+[Ray's Windows support is in beta](https://docs.ray.io/en/latest/ray-overview/installation.html#windows-support).
+Use a local Ray instance for native development. Use Linux for multi-node
+clusters and the full plugin test matrix.
+
+### Native Windows setup (PowerShell)
+
+Install Git for Windows, uv 0.13.0 or newer, and a recent version of
+[Node.js](https://nodejs.org/en/download/). Enable
+[Windows Developer Mode](https://learn.microsoft.com/en-us/windows/apps/get-started/enable-your-device-for-development)
+or obtain equivalent symlink privileges **before cloning**. The repository
+contains symbolic links used by documentation and agent configuration.
+
+Clone into the Windows filesystem with symlink support:
+
+```powershell
+git clone -c core.symlinks=true https://github.com/IBM/ado.git
+cd ado
+git config --get core.symlinks
+```
+
+The last command should print `true`. Verify every committed symlink resolves
+before installing or running hooks:
+
+```powershell
+git ls-files --stage | ForEach-Object {
+    if ($_ -match '^120000 \S+ \d+\t(.+)$') {
+        $linkPath = $Matches[1]
+        $link = Get-Item -LiteralPath $linkPath -Force
+        if ($link.LinkType -ne 'SymbolicLink' -or
+            -not (Test-Path -LiteralPath $linkPath)) {
+            throw "Expected a working symbolic link: $linkPath"
+        }
+    }
+}
+```
+
+For example, `(Get-Item docs/MAINTAINERS.md).LinkType` should report
+`SymbolicLink`. If an existing checkout contains ordinary files holding link
+targets, preserve your local changes and make a fresh clone after enabling
+symlink support. Changing `core.symlinks` alone does not recreate those links.
+
+Install the development environment and hooks from the repository root:
+
+```powershell
+uv sync --locked --reinstall --group test --group dev
+uv run pre-commit install --install-hooks
+uv run pre-commit run -a
+```
+
+`uv` installs the selected Python version when needed. Use `uv run` to execute
+tools in the environment; shell activation is optional. Markdownlint uses
+Node.js through pre-commit. Docker is required for the MySQL integration tests.
+
+Run the schema and utility tests without Docker:
+
+```powershell
+uv run --group test pytest -n 2 tests/schema tests/utilities
+```
+
+#### Docker prerequisites for integration tests
+
+Install and start
+[Docker Desktop for Windows](https://docs.docker.com/desktop/setup/install/windows-install/)
+with Linux containers enabled. Its WSL 2 backend requires hardware
+virtualization and a supported WSL installation; follow Docker's installation
+guide for the current system requirements. Run `ado` and pytest from Windows
+PowerShell in the repository's Windows checkout.
+
+Open a new PowerShell terminal after installing Docker Desktop so the Docker
+CLI is available on `PATH`. Verify both the client and engine before testing:
+
+```powershell
+Get-Command docker
+docker version
+docker info --format '{{.OSType}}'
+docker system info
+```
+
+`docker version` should show both Client and Server sections, and the operating
+system check should print `linux`. Wait for Docker Desktop's engine to start
+before continuing. Docker Desktop's integrated terminal is optional.
+
+If `Get-Command docker` cannot find the CLI, add the `resources/bin` directory
+under your Docker Desktop installation to the current terminal's `PATH`. For
+the default per-user installation:
+
+```powershell
+$dockerBin = Join-Path $env:LOCALAPPDATA 'Programs/DockerDesktop/resources/bin'
+$env:PATH = "$dockerBin;$env:PATH"
+docker system info
+```
+
+For an all-users installation, the default CLI directory is
+`C:/Program Files/Docker/Docker/resources/bin`.
+
+The tests use Testcontainers to start and remove temporary MySQL containers
+from `mirror.gcr.io/mysql:8`. Allow access to the Docker engine and image
+registry. Docker maps MySQL to an available host port, so a separately installed
+MySQL server is optional. Confirm the Python Docker client can reach the engine:
+
+```powershell
+uv run --group test python -c "import docker; print(docker.from_env().ping())"
+```
+
+This should print `True`. Run the full core suite with Docker Desktop running.
+Use two workers to limit concurrent Ray and MySQL instances:
+
+```powershell
+uv run --group test pytest -n 2 tests/
+```
+
+The equivalent isolated Tox environment runs the core suite with locked
+dependencies:
+
+```powershell
+uv run tox -e py311-locked-windows
+```
+
+The Windows Tox target defaults to two workers. Each worker starts a Ray
+instance and may start a MySQL container. Use fewer workers to limit memory
+usage, for example:
+
+```powershell
+uv run tox -e py311-locked-windows -- -n 1 tests/
+```
+
+To run just the Docker-free subset through Tox:
+
+```powershell
+uv run tox -e py311-locked-windows -- tests/schema tests/utilities
+```
+
+SFTTrainer tests and the full Linux/macOS plugin test matrix run on Linux or
+macOS. The native Windows Tox target runs `tests/`.
+
+### Windows with WSL2
+
+WSL2 provides the Linux workflow for Windows contributors who need the full
+plugin test matrix. Install a Linux distribution and enable Docker Desktop's
+integration for that distribution, or provide another Docker-compatible runtime.
+Clone inside the Linux filesystem, for example under `~/src/ado`.
+
+Run these commands in the Linux shell, with Node.js available:
+
+```shell
+git clone https://github.com/IBM/ado.git ~/src/ado
+cd ~/src/ado
+uv sync --locked --reinstall --group test --group dev
+uv run pre-commit install --install-hooks
+docker system info
+uv run pre-commit run -a
+uv run tox -e py311-locked-linux
+```
 
 ### Creating a development virtual environment
+
+On native Windows, follow [Native Windows setup](#native-windows-setup-powershell).
+The shell activation commands below are for Linux, macOS, and WSL2.
 
 Create a development virtual environment by executing the following commands in
 the top-level of the `ado` repository:
@@ -25,7 +192,7 @@ the top-level of the `ado` repository:
 > section for instructions on how to do this.
 
 ```commandline
-uv sync --group test --reinstall
+uv sync --locked --group test --group dev --reinstall
 source .venv/bin/activate
 ```
 
@@ -285,17 +452,15 @@ the provided pre-commit hooks.
 >   - On MacOS we suggest
 >     [installing it via brew](https://formulae.brew.sh/formula/node) for ease
 >     of use
-> - [Copywrite](https://github.com/hashicorp/copywrite) installed
->   - On MacOS we suggest
->     [installing it via brew](https://github.com/hashicorp/copywrite#getting-started)
->     for ease of use.
 
 ```commandline
-pre-commit install
+uv run pre-commit install --install-hooks
 ```
 
 This command will configure pre-commit to run automatically before each commit,
 highlighting any issues and preventing the commit if problems are found.
+Run all checks manually with `uv run pre-commit run -a`. The Markdownlint hook
+uses Node.js; Docker is required for MySQL integration tests.
 
 ### Handling pre-commit failures
 

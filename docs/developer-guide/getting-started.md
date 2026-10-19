@@ -40,6 +40,17 @@ framework itself.
 
 ## Setting up
 
+On native Windows x64, use Python 3.11 and follow the
+[PowerShell setup](./developing.md#native-windows-setup-powershell), including
+the symlink verification before running hooks. The Windows environment supports
+core development and excludes SFTTrainer. Docker Desktop with Linux containers
+is required for MySQL integration tests; schema and utility tests run without
+Docker. For the full Linux plugin workflow, see
+[Windows with WSL2](./developing.md#windows-with-wsl2).
+
+The shell commands below are for Linux, macOS, and WSL2. They require the
+[pre-commit prerequisites](./developing.md#installing-the-hooks).
+
 === "Path A — Plugin Development"
 
     Install `ado-core` from PyPI to develop an out-of-tree plugin:
@@ -54,8 +65,7 @@ framework itself.
     ```shell
     git clone https://github.com/IBM/ado.git
     cd ado
-    uv sync --group test --reinstall
-    source .venv/bin/activate
+    uv sync --locked --group test --group dev --reinstall
     ```
 
 === "Path B — Core Development"
@@ -65,14 +75,13 @@ framework itself.
     ```shell
     git clone https://github.com/IBM/ado.git
     cd ado
-    uv sync --group test --reinstall
-    source .venv/bin/activate
+    uv sync --locked --group test --group dev --reinstall
     ```
 
     Install pre-commit hooks right after setup:
 
     ```shell
-    pre-commit install
+    uv run pre-commit install --install-hooks
     ```
 
     This automates checks for formatting, secrets, headers, and conventional

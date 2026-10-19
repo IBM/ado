@@ -105,6 +105,28 @@ Similarly, you can test different Python versions by changing `py311` to `py312`
 `py313`, or `py314`. You can also use standard pip resolution instead of locked
 dependencies by using `nonlocked`.
 
+For native Windows x64 with Python 3.11, use the locked core test environment:
+
+```powershell
+uv run tox -e py311-locked-windows
+```
+
+This requires Docker Desktop with Linux containers for MySQL integration tests.
+Follow the
+[Docker prerequisites](https://ibm.github.io/ado/latest/developer-guide/developing/#docker-prerequisites-for-integration-tests)
+and verify `docker system info` and Python Docker client connectivity first.
+Run the schema and utility subset without Docker with:
+
+```powershell
+uv run --group test pytest -n 2 tests/schema tests/utilities
+```
+
+Follow the
+[native Windows setup](https://ibm.github.io/ado/latest/developer-guide/developing/#native-windows-setup-powershell)
+for prerequisites and symlink verification. SFTTrainer is excluded from the
+Windows test environment. The Linux and macOS environments run the full plugin
+test matrix for their supported Python versions.
+
 ## Commit and PR title guidelines
 
 We require commits and PR titles to conform to the

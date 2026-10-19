@@ -4,6 +4,7 @@
 
 import os
 import pathlib
+import time
 from collections.abc import Callable, Generator
 
 import pytest
@@ -103,7 +104,13 @@ def valid_ado_mysql_context_yaml(
 
 
 @pytest.fixture
-def valid_ado_sqlite_context_yaml(random_identifier: Callable[[], str]) -> str:
+def valid_ado_sqlite_context_yaml(
+    random_identifier: Callable[[], str],
+) -> Generator[str, None, None]:
+    """Yield a SQLite context, then close its pool and remove its database."""
+    from ado.metastore.sql.utils import _engine_cache
+    from ado.metastore.sqlstore import _reflected_metadata_cache
+
     # AP: adding a string before random_identifier as it would
     # otherwise fail validation if it's only numbers
     project_id = f"sqlite-{random_identifier()}"
@@ -115,7 +122,23 @@ def valid_ado_sqlite_context_yaml(random_identifier: Callable[[], str]) -> str:
           sslVerify: false
         project: {project_id}
     """
-    pathlib.Path(f"{project_id}.db").unlink(missing_ok=True)
+    db_url = f"sqlite:///{project_id}.db"
+    _reflected_metadata_cache.pop(db_url, None)
+    engine = _engine_cache.pop(db_url, None)
+    if engine is not None:
+        engine.dispose()
+    database_path = pathlib.Path(f"{project_id}.db")
+    # Ray actor termination releases Windows file handles asynchronously.
+    deadline = time.monotonic() + 10
+    while True:
+        try:
+            database_path.unlink(missing_ok=True)
+        except PermissionError as error:
+            if getattr(error, "winerror", None) != 32 or time.monotonic() >= deadline:
+                raise
+            time.sleep(0.1)
+        else:
+            break
 
 
 @pytest.fixture

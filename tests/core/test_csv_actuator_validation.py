@@ -725,6 +725,7 @@ class TestCSVActuatorValidation:
     ) -> None:
         """Test that SQLSampleStore.from_csv() properly passes through actuatorIdentifier and propertyFormat"""
         from ado.core.samplestore.sql import SQLSampleStore
+        from ado.metastore.sql.utils import _engine_cache
         from ado.utilities.location import SQLiteStoreConfiguration
 
         # Create a CSV file
@@ -808,6 +809,9 @@ class TestCSVActuatorValidation:
 
         finally:
             # Clean up CSV file and database file
+            engine = _engine_cache.pop(f"sqlite:///{db_path}", None)
+            if engine is not None:
+                engine.dispose()
             if os.path.exists(csv_path):
                 os.unlink(csv_path)
             if os.path.exists(db_path):

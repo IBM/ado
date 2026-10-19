@@ -328,29 +328,29 @@ uv run ado create operation -f operation.yaml --set "spaces[0]=space-abc123"
 
 ### --with
 
-Creates a resource from YAML inline and uses it in the current command.
+`--with KIND=VALUE` supplies a dependency of the resource being created.
 
-**Without --with**:
-
-```bash
-# Create actuator configuration separately
-uv run ado create actuatorconfiguration -f actuator.yaml
-
-# Edit operation.yaml to reference the actuator config ID
-uv run ado create operation -f operation.yaml
-```
-
-**With --with**:
+- `KIND=RESOURCE_ID` — inject that existing identifier. Creates nothing extra.
+- `KIND=FILE.yaml` — **create** that resource from the file, then inject its
+  new identifier.
 
 ```bash
-# Create both in one command
-uv run ado create operation -f operation.yaml \
-  --with space=space.yaml \
-  --with actuatorconfiguration=actuator.yaml
+# One-liner: create the space, then create and start the operation
+uv run ado create operation -f operation.yaml --with space=space.yaml
 ```
 
-This creates the space and actuator configuration, then automatically references
-them when creating the operation.
+`--dry-run` applies only to the resource in `-f`. `--with KIND=FILE.yaml` still
+**creates** that file's resource. Repeating the same dry-run creates duplicate
+spaces (or actuator configurations).
+
+Do **not** combine `--dry-run` with `--with KIND=FILE.yaml`.
+
+To validate an operation against an existing space (ID injection only):
+
+```bash
+uv run ado create operation -f operation.yaml --dry-run --use-latest space
+uv run ado create operation -f operation.yaml --dry-run --with space=space-abc123
+```
 
 ## Documentation Best Practices
 
@@ -359,8 +359,9 @@ When writing documentation with ado commands:
 1. **Always verify** the command syntax with `--help`
 2. **Use realistic IDs** in examples (e.g., `space-abc123` not `SPACE_ID` in
    code blocks where actual output is shown)
-3. **Prefer shortcuts** (`--use-latest`, `--with`) in tutorials to reduce
-   friction
+3. **Prefer shortcuts** (`--use-latest`, `--with KIND=ID`) in tutorials to
+   reduce friction. `--with KIND=FILE.yaml` creates that resource — do not use
+   it on `--dry-run`.
 4. **Explain terminology** the first time: "entities (the inputs and their
    measurements)"
 
@@ -379,10 +380,11 @@ uv run ado get operation op-123 -o yaml --output-file op-123.yaml
 uv run ado show measurements operation op-123 -o csv --output-file op-123-entities.csv
 ```
 
-### Create with dependencies
+### Create space and operation together
+
+When both YAMLs are already valid and you want one command (not a dry-run):
 
 ```bash
-# Create everything in one command
 uv run ado create operation -f operation.yaml \
   --with space=space.yaml \
   --with actuatorconfiguration=config.yaml
@@ -390,20 +392,21 @@ uv run ado create operation -f operation.yaml \
 
 ### Iterative development
 
+Validate each YAML on its own, then create the space, then the operation.
+`--use-latest space` on dry-run requires the space to already exist.
+
 ```bash
-# Create space
+uv run ado create space -f space.yaml --dry-run
+uv run ado create operation -f operation.yaml --dry-run
+
 uv run ado create space -f space.yaml
-
-# Validate with dry-run
 uv run ado create operation -f operation.yaml --dry-run --use-latest space
-
-# If dry-run fails: check error message, fix the YAML, re-run dry-run
-# Common issues: missing experiment references, invalid parameter types,
-# unresolvable --use-latest (no resource of that type exists yet)
-
-# Once dry-run passes, actually create it
 uv run ado create operation -f operation.yaml --use-latest space
 ```
+
+If dry-run fails: check the error, fix the YAML, re-run dry-run. Common issues:
+missing experiment references, invalid parameter types, unresolvable
+`--use-latest` (no resource of that type exists yet).
 
 ## Related Resources
 

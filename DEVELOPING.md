@@ -302,7 +302,8 @@ We require copyright and SPDX license headers to be added to the source code.
 This can be automated by using Hashicorp's Copywrite tool:
 <https://github.com/hashicorp/copywrite>
 
-Once installed, run
+The pre-commit hook installs Copywrite in an isolated Go environment. For manual
+use, install Copywrite and run:
 
 ```shell
 copywrite headers
@@ -359,10 +360,8 @@ the provided pre-commit hooks.
 >
 > - A developer virtual environment
 >   [created with uv](#creating-a-development-virtual-environment)
-> - A recent version of [NodeJS](https://nodejs.org/en/download/)
->   - On MacOS we suggest
->     [installing it via brew](https://formulae.brew.sh/formula/node) for ease
->     of use
+> - A running Docker engine with Linux containers, for Markdownlint. On Windows,
+>   follow the [Docker prerequisites](#docker-prerequisites-for-hooks-and-integration-tests).
 
 ```commandline
 uv run pre-commit install --install-hooks

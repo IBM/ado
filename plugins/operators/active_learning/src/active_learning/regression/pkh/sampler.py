@@ -22,6 +22,11 @@ from active_learning.regression.pkh.parameters import PKHParameters
 if typing.TYPE_CHECKING:
     import pydantic
 
+    from active_learning.regression._pilot import PilotStrategy
+
+
+_TIE_STREAM_TAG = 0x504B4854  # "PKHT"
+
 
 class _PKHSelectionState(_SequentialSelectionState):
     """Exact random-forest leaf-histogram state for PKH."""
@@ -36,6 +41,8 @@ class _PKHSelectionState(_SequentialSelectionState):
         min_samples_leaf: int = 2,
         max_features: ForestMaxFeatures = "sqrt",
         pilot_size: int = 5,
+        pilot_strategy: PilotStrategy = "random",
+        pilot_features: np.ndarray | None = None,
         epoch_length: int = 10,
         seed: int = 42,
         criterion: ForestCriterion = "squared_error",
@@ -53,6 +60,8 @@ class _PKHSelectionState(_SequentialSelectionState):
             min_samples_leaf=min_samples_leaf,
             max_features=max_features,
             pilot_size=pilot_size,
+            pilot_strategy=pilot_strategy,
+            pilot_features=pilot_features,
             seed=seed,
             criterion=criterion,
             n_jobs=n_jobs,
@@ -60,6 +69,9 @@ class _PKHSelectionState(_SequentialSelectionState):
         self.epoch_length = int(epoch_length)
         self._forest_fitted = False
         self._steps_since_refit = 0
+        self._tie_rng = np.random.default_rng(
+            np.random.SeedSequence([self.seed, _TIE_STREAM_TAG])
+        )
 
     def _fit_epoch(self) -> None:
         """Fit the forest and rebuild the current leaf histograms."""
@@ -118,7 +130,9 @@ class _PKHSelectionState(_SequentialSelectionState):
         )
         scores = np.mean(deficits, axis=1)
         maximisers = candidates[scores == np.max(scores)]
-        return int(np.min(maximisers))
+        if maximisers.size == 1:
+            return int(maximisers[0])
+        return int(maximisers[self._tie_rng.integers(maximisers.size)])
 
     def _on_update(self, index: int) -> None:
         """Count the newly labelled point in every forest leaf it occupies."""
@@ -163,6 +177,8 @@ class PKHSampleSelector(_PredictiveSampleSelector):
         features: np.ndarray,
         initial_indices: np.ndarray,
         initial_labels: np.ndarray,
+        *,
+        pilot_features: np.ndarray | None = None,
     ) -> _PKHSelectionState:
         """Create PKH state for the encoded discovery-space pool."""
 
@@ -174,6 +190,8 @@ class PKHSampleSelector(_PredictiveSampleSelector):
             min_samples_leaf=self.params.minSamplesLeaf,
             max_features=self.params.maxFeatures,
             pilot_size=self.params.pilotSize,
+            pilot_strategy=self.params.pilotStrategy,
+            pilot_features=pilot_features,
             epoch_length=self.params.epochLength,
             seed=self.params.seed,
             criterion=self.params.criterion,

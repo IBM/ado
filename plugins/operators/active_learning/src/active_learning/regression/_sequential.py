@@ -43,6 +43,15 @@ class _SequentialPredictiveWalk(RandomWalk):
             params=params,
         )
 
+    async def run(self) -> None:
+        """Run measurements and propagate critical infrastructure failures."""
+
+        await super().run()
+        if self.criticalError:
+            raise RuntimeError(
+                "measurement operation stopped after a critical infrastructure error"
+            )
+
     def _processCompletedMeasurement(
         self,
         measurementRequest: MeasurementRequest,

@@ -26,6 +26,8 @@ import pandas as pd
 import pydantic
 import ray
 
+from active_learning.regression._pilot import PilotStrategy, _StructuredPilot
+from active_learning.regression._predictor import _FinalPredictorParameters
 from ado.core.discoveryspace.samplers import BaseSampler
 from ado.core.operation.config import FunctionOperationInfo
 from ado.core.operation.operation import OperationOutput
@@ -74,10 +76,16 @@ class _PredictiveParameters(pydantic.BaseModel):
             description=(
                 "Number of labelled entities required before adaptive selection. "
                 "Existing target labels count toward this total; additional "
-                "pilot entities are sampled randomly without replacement."
+                "pilot entities follow pilotStrategy without replacement."
             ),
         ),
     ] = 5
+    pilotStrategy: Annotated[
+        PilotStrategy,
+        pydantic.Field(
+            description="Initial sampling strategy: random, CLHS, or scrambled Sobol."
+        ),
+    ] = "random"
     nEstimators: Annotated[
         int,
         pydantic.Field(
@@ -104,7 +112,10 @@ class _PredictiveParameters(pydantic.BaseModel):
     seed: Annotated[
         int,
         pydantic.Field(
-            description="Seed controlling reproducible pilot sampling and forest fitting."
+            description=(
+                "Seed controlling reproducible pilot sampling, forest fitting, "
+                "and tie-breaking."
+            )
         ),
     ] = 42
     criterion: Annotated[
@@ -155,6 +166,10 @@ class _PredictiveParameters(pydantic.BaseModel):
         if value == 0:
             raise ValueError("nJobs cannot be zero")
         return value
+
+
+class _PredictiveOperatorParameters(_PredictiveParameters, _FinalPredictorParameters):
+    """Acquisition and final-predictor settings exposed by regression operators."""
 
 
 def _encode_features(
@@ -250,6 +265,8 @@ class _SequentialSelectionState(abc.ABC):
         min_samples_leaf: int,
         seed: int,
         pilot_size: int = 5,
+        pilot_strategy: PilotStrategy = "random",
+        pilot_features: np.ndarray | None = None,
         max_features: ForestMaxFeatures = "sqrt",
         criterion: ForestCriterion = "squared_error",
         n_jobs: int = 1,
@@ -263,6 +280,19 @@ class _SequentialSelectionState(abc.ABC):
             raise ValueError("features must contain at least one column")
         if not np.all(np.isfinite(features)):
             raise ValueError("features contain a non-finite value")
+        if pilot_strategy not in ("random", "clhs", "sobol"):
+            raise ValueError("pilot_strategy must be random, clhs, or sobol")
+        raw_features = (
+            features if pilot_features is None else np.asarray(pilot_features)
+        )
+        if (
+            raw_features.ndim != 2
+            or raw_features.shape[0] != features.shape[0]
+            or raw_features.shape[1] == 0
+        ):
+            raise ValueError(
+                "pilot_features must have one nonempty row per pool entity"
+            )
         if n_estimators <= 0:
             raise ValueError("n_estimators must be positive")
         if min_samples_leaf <= 0:
@@ -295,8 +325,14 @@ class _SequentialSelectionState(abc.ABC):
         self.max_features = max_features
         self.seed = int(seed)
         self.pilot_size = int(pilot_size)
+        self.pilot_strategy = pilot_strategy
         self._pilot_rng = np.random.default_rng(self.seed)
         self._pilot_indices = np.array([], dtype=np.int64)
+        self._structured_pilot = (
+            _StructuredPilot(raw_features, pilot_strategy, self.seed)
+            if pilot_strategy != "random"
+            else None
+        )
         self.criterion = criterion
         self.n_jobs = int(n_jobs)
         self._selected = [int(index) for index in indices]
@@ -369,9 +405,14 @@ class _SequentialSelectionState(abc.ABC):
                 pilot_count = min(
                     self.pilot_size - len(self._selected), candidates.size
                 )
-                self._pilot_indices = self._pilot_rng.choice(
-                    candidates, size=pilot_count, replace=False
-                )
+                if self._structured_pilot is None:
+                    self._pilot_indices = self._pilot_rng.choice(
+                        candidates, size=pilot_count, replace=False
+                    )
+                else:
+                    self._pilot_indices = self._structured_pilot.sample(
+                        candidates, pilot_count
+                    )
                 pilot_candidates = self._pilot_indices
             choice = int(pilot_candidates[0])
         else:
@@ -427,6 +468,7 @@ class _FinitePool:
     features: np.ndarray
     entities: tuple[Entity, ...]
     index_by_identifier: dict[str, int]
+    pilot_features: np.ndarray | None = None
 
 
 def _resolve_target(
@@ -471,7 +513,9 @@ def _resolve_target(
     return matches[0]
 
 
-def _finite_pool(discovery_space: DiscoverySpace) -> _FinitePool:
+def _finite_pool(
+    discovery_space: DiscoverySpace, *, refresh: bool = False
+) -> _FinitePool:
     """Enumerate and encode an explicit finite discovery space."""
 
     entity_space = discovery_space.entitySpace
@@ -499,6 +543,7 @@ def _finite_pool(discovery_space: DiscoverySpace) -> _FinitePool:
     stored_by_generated_identifier: dict[str, Entity] = {}
     stored_entities = discovery_space.sample_store.get_entities(
         require_measurements=False,
+        refresh=refresh,
     )
     for stored_entity in stored_entities:
         if not entity_space.isEntityInSpace(stored_entity):
@@ -539,14 +584,16 @@ def _finite_pool(discovery_space: DiscoverySpace) -> _FinitePool:
         points.append(point)
         entities.append(entity)
 
+    frame = pd.DataFrame(points, columns=property_names)
     features = _encode_features(
-        pd.DataFrame(points, columns=property_names),
+        frame,
         categorical_columns=categorical_columns,
     )
     return _FinitePool(
         features=features,
         entities=tuple(entities),
         index_by_identifier=identifiers,
+        pilot_features=frame.to_numpy(dtype=object),
     )
 
 
@@ -644,6 +691,8 @@ class _PredictiveSampleSelector(BaseSampler, abc.ABC):
         features: np.ndarray,
         initial_indices: np.ndarray,
         initial_labels: np.ndarray,
+        *,
+        pilot_features: np.ndarray | None = None,
     ) -> _SequentialSelectionState:
         """Create the algorithm-specific state."""
 
@@ -665,7 +714,9 @@ class _PredictiveSampleSelector(BaseSampler, abc.ABC):
         )
         indices = np.asarray(sorted(labels), dtype=np.int64)
         initial_labels = np.asarray([labels[index] for index in indices])
-        state = self._selection_state(pool.features, indices, initial_labels)
+        state = self._selection_state(
+            pool.features, indices, initial_labels, pilot_features=pool.pilot_features
+        )
         return pool, target_property, state
 
     def _update_pending(
@@ -806,7 +857,9 @@ def _random_walk_parameters(
             moduleClass=sampler_class.__name__,
             moduleName=sampler_class.__module__,
         ),
-        parameters=parameters.model_dump(exclude={"numberEntities"}),
+        parameters=parameters.model_dump(
+            include=set(sampler_class.parameters_model().model_fields)
+        ),
     )
     return RandomWalkParameters(
         samplerConfig=sampler_configuration,
@@ -817,13 +870,18 @@ def _random_walk_parameters(
     )
 
 
-def _outer_operation_output(nested_output: OperationOutput) -> OperationOutput:
+def _outer_operation_output(
+    nested_output: OperationOutput,
+    *,
+    final_model: dict[str, typing.Any] | None = None,
+) -> OperationOutput:
     """Expose a nested RandomWalk operation as a resource of the outer one."""
 
     return OperationOutput(
         other=[],
         resources=[nested_output.operation] if nested_output.operation else [],
-        metadata={},
+        metadata={"finalModel": final_model} if final_model is not None else {},
+        exitStatus=nested_output.exitStatus,
     )
 
 
@@ -831,17 +889,32 @@ def _run_predictive_operator(
     *,
     discovery_space: DiscoverySpace,
     operation_info: FunctionOperationInfo | None,
-    parameters: _PredictiveParameters,
+    parameters: _PredictiveOperatorParameters,
     number_entities: int,
     sampler_class: type[_PredictiveSampleSelector],
+    output_directory: str,
 ) -> OperationOutput:
     """Run predictive acquisition with sequential measurement scheduling."""
 
     # Lazy import avoids a circular import while ADO loads operator plugins.
+    from active_learning.regression._finalize import (
+        _expected_training_count,
+        _final_model_directory,
+        _finalize_predictive_model,
+    )
+    from active_learning.regression._predictor import _validate_final_predictor
     from active_learning.regression._sequential import _SequentialPredictiveWalk
+    from ado.core.operation.resource import OperationExitStateEnum
     from ado.modules.operators.collections import explore
     from ado.modules.operators.orchestrate import orchestrate_explore_operation
 
+    directory = _final_model_directory(output_directory)
+    expected_training_count = _expected_training_count(
+        discovery_space, parameters=parameters, number_entities=number_entities
+    )
+    _validate_final_predictor(
+        parameters, expected_training_count=expected_training_count
+    )
     random_walk_parameters = _random_walk_parameters(
         parameters,
         number_entities=number_entities,
@@ -869,4 +942,15 @@ def _run_predictive_operator(
         operation_info=nested_operation_info,
         parameters=random_walk_parameters.model_dump(),
     )
-    return _outer_operation_output(nested_output)
+    if (
+        nested_output.exitStatus is None
+        or nested_output.exitStatus.exit_state != OperationExitStateEnum.SUCCESS
+    ):
+        raise RuntimeError("measurement operation did not complete successfully")
+    final_model = _finalize_predictive_model(
+        discovery_space,
+        parameters=parameters,
+        directory=directory,
+        minimum_training_count=expected_training_count,
+    )
+    return _outer_operation_output(nested_output, final_model=final_model)

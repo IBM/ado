@@ -8,6 +8,7 @@ operation:
     operatorName: flora
   parameters:
     numberEntities: 20
+    finalPredictor: random_forest
     targetOutput: density
     pilotSize: 5
     nEstimators: 100

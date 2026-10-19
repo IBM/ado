@@ -38,4 +38,5 @@ def flora(
         parameters=parameters,
         number_entities=parameters.numberEntities,
         sampler_class=FLORASampleSelector,
+        output_directory=parameters.outputDirectory,
     )

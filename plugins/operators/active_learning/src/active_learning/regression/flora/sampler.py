@@ -23,6 +23,8 @@ from active_learning.regression.flora.parameters import FLORAParameters
 if typing.TYPE_CHECKING:
     import pydantic
 
+    from active_learning.regression._pilot import PilotStrategy
+
 
 _FOREST_STREAM_TAG = 0x464F5245  # "FORE"
 _TIE_STREAM_TAG = 0x54494553  # "TIES"
@@ -100,6 +102,8 @@ class _FLORASelectionState(_SequentialSelectionState):
         min_samples_leaf: int = 2,
         max_features: ForestMaxFeatures = "sqrt",
         pilot_size: int = 5,
+        pilot_strategy: PilotStrategy = "random",
+        pilot_features: np.ndarray | None = None,
         seed: int = 42,
         criterion: ForestCriterion = "squared_error",
         n_jobs: int = 1,
@@ -114,6 +118,8 @@ class _FLORASelectionState(_SequentialSelectionState):
             min_samples_leaf=min_samples_leaf,
             max_features=max_features,
             pilot_size=pilot_size,
+            pilot_strategy=pilot_strategy,
+            pilot_features=pilot_features,
             seed=seed,
             criterion=criterion,
             n_jobs=n_jobs,
@@ -248,6 +254,8 @@ class FLORASampleSelector(_PredictiveSampleSelector):
         features: np.ndarray,
         initial_indices: np.ndarray,
         initial_labels: np.ndarray,
+        *,
+        pilot_features: np.ndarray | None = None,
     ) -> _FLORASelectionState:
         """Create FLORA state for the encoded discovery-space pool."""
 
@@ -259,6 +267,8 @@ class FLORASampleSelector(_PredictiveSampleSelector):
             min_samples_leaf=self.params.minSamplesLeaf,
             max_features=self.params.maxFeatures,
             pilot_size=self.params.pilotSize,
+            pilot_strategy=self.params.pilotStrategy,
+            pilot_features=pilot_features,
             seed=self.params.seed,
             criterion=self.params.criterion,
             n_jobs=self.params.nJobs,

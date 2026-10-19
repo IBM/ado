@@ -6,74 +6,70 @@ providing two regression-based active-learning operators for finite Discovery
 Spaces: **PKH** and **FLORA**.
 
 Both are designed for scenarios where measuring an entity's target property is
-slow or costly. Instead of measuring entities in a fixed or random order, each
-operator trains a Random Forest regressor on the labels collected so far and
-uses it to choose, one entity at a time, which unmeasured entity to measure
-next.
+slow or costly. Each operator trains a Random Forest regressor on the labels
+collected so far and uses it to choose, one entity at a time, which unmeasured
+entity to measure next.
 
 ## How it Works
 
-Both operators start with a random pilot of `pilotSize` labelled entities
-(default `5`). Set `pilotSize` to any positive integer in the operation
-parameters. Existing target labels count toward this total; additional pilot
-entities are sampled uniformly without replacement using `seed`, then measured
-in random draw order. The first forest is fitted once all pilot labels are
-available. A smaller pool or measurement budget can end the operation during
-the pilot. Pilot measurements count toward `numberEntities`; existing labels
-do not.
+Both operators start with a pilot of `pilotSize` labelled entities (default `5`).
+Set `pilotStrategy` to `random` (default), `clhs` (concatenated Latin hypercube
+sampling), or `sobol`. Each strategy selects distinct entities from the finite
+pool using `seed`; CLHS and Sobol use the original input dimensions.
+Existing target labels count toward `pilotSize`. Adaptive selection starts
+once all pilot labels are available. A smaller pool or measurement budget can
+end the operation during the pilot. New pilot measurements count toward
+`numberEntities`; existing labels do not.
 
-Forest feature subsampling is controlled by `maxFeatures` (default `sqrt`).
-At each split, `sqrt` considers the square root of the number of encoded
-features, rounded down to at least one. Other options are `log2`, a positive
-integer feature count, a fraction in `(0, 1]`, or `null` for all features.
-For example, `maxFeatures: 1.0` considers all features, while `maxFeatures: 1`
-considers one. Scikit-learn may inspect more features to find a valid split.
+Both operators select one entity, wait for ADO to record its target value, and
+update the labelled counts in the forest leaves. They incorporate the collected
+target values when the forest is next refitted. Measurements are sequential;
+`nJobs` controls parallel workers within the forest.
 
-Both operators run the same loop: pick an entity, wait for ADO to record its
-target value, then use that new label - together with every prior label - to
-choose the next entity. They differ in how they use the forest to make that
-choice.
+At completion, each operator builds a final predictor from the available target
+measurements, including prior measurements and the final selected entity. Set
+`finalPredictor` to `random_forest` (default) or `autogluon`. This model can
+predict the target for unmeasured configurations; acquisition uses the operator's
+Random Forest with either final predictor.
 
 ### PKH (Predictive Kernel Herding)
 
 PKH treats forest leaves as a coarse summary of the entity pool's
 distribution. After fitting, it builds two histograms per tree: how much of
 the *full pool* falls in each leaf, and how much of the *labelled sample*
-falls in each leaf. At each step, PKH selects the entity sitting in the leaf
-with the largest deficit - where the pool is most over-represented relative to
-what has been labelled so far, averaged across trees. This pulls the labelled
-sample's distribution toward the full pool's distribution, the same
+falls in each leaf. At each step, PKH selects the entity with the largest mean
+leaf deficit across trees, where pool coverage exceeds labelled coverage.
+This pulls the labelled sample's distribution toward the full pool's
+distribution, the same
 discrepancy-minimization idea behind kernel herding. The forest is refit every
-`epochLength` selections, and leaf counts are updated cheaply in between.
-PKH's objective is representativeness, not predictive accuracy: it is the
-right choice when what you need is a labelled sample whose distribution
-mirrors the full entity pool. When the goal is instead a model with the
-lowest possible predictive error across the entire entity pool,
-use FLORA, whose acquisition targets predictive risk directly.
+`epochLength` selections (default `10`), and leaf counts are updated in between.
+Equal maximum scores are resolved uniformly at random using a dedicated stream
+initialized by `seed`, independently of pilot sampling and forest fitting.
 
 ### FLORA
 
-FLORA uses the forest to track predictive disagreement instead of population
-coverage. For every pool entity it computes the variance across the individual
-trees' predictions — a proxy for how uncertain the forest is there — and
+FLORA uses the forest to track predictive disagreement. For every pool entity
+it computes the variance across the individual trees' predictions — a proxy
+for how uncertain the forest is there — and
 averages that disagreement within each leaf. At each step, FLORA selects the
-entity whose leaf maximizes the expected reduction in predictive risk from one
-more label, a score that grows with a leaf's disagreement and pool share and
-shrinks the more that leaf is already labelled. The forest is refit on a
-near-geometric schedule, so refits become less frequent as the labelled
+entity with the highest average leaf gain across trees. This score estimates
+risk reduction using leaf disagreement, pool size and labelled counts. The
+forest is refit on a log-tempered schedule, with longer intervals as the labelled
 sample grows.
 
-FLORA follows the legacy-v7 randomization scheme: `seed` initializes separate
-random streams for forest refits and tie-breaking. Each stream is reproducible,
-and extra tie-breaking leaves the sequence of forest seeds unchanged. Pilot
+For FLORA, `seed` initializes separate random streams for forest refits and
+tie-breaking. Each stream is reproducible, and extra tie-breaking leaves the
+sequence of forest seeds unchanged. Pilot
 sampling uses its own random generator.
 
-FLORA's objective is predictive accuracy, not distributional coverage: it is
-the right choice when the goal is a low-error predictive model. When the
-goal is instead a labelled sample that represents the full entity pool's
-distribution, use PKH, whose acquisition targets that discrepancy directly.
+Prediction accuracy depends on the experiment, measurement budget and final
+predictor. The acquisition scores describe how each method chooses measurements;
+they do not guarantee a particular prediction error or ranking between methods.
 
 ## Installation
+
+Run these commands from the ADO repository root in the Python environment where
+ADO is installed:
 
 ```bash
 uv pip install -e plugins/operators/active_learning
@@ -106,4 +102,81 @@ ado create operation \
   --use-latest space
 ```
 
-Swap in `operation_flora.yaml` to try FLORA instead.
+For an independent FLORA run, create a fresh space with `--new-sample-store`,
+then use `operation_flora.yaml`.
+
+The ideal-gas walkthroughs cover installation, sampling and prediction:
+
+- [Build a surrogate model with PKH](examples/ideal_gas/PKH.md)
+- [Build a surrogate model with FLORA](examples/ideal_gas/FLORA.md)
+
+## Configure the final predictor
+
+The default `finalPredictor: random_forest` fits on every available target
+measurement and uses the operation's forest settings.
+
+For AutoGluon, install the optional extra in a Python 3.11–3.13 environment:
+
+```bash
+python -m pip install -e 'plugins/operators/active_learning[autogluon]'
+```
+
+Set these fields under `operation.parameters` for either operator:
+
+```yaml
+finalPredictor: autogluon
+autoGluon:
+  presets: medium_quality
+  timeLimit: 60
+  numCpus: 1
+```
+
+These are the default AutoGluon fit settings. `timeLimit` is an approximate
+training budget in seconds; `numCpus` controls CPU use. Supported `presets`
+are `medium_quality`, `good_quality`, `high_quality`, and `best_quality`.
+An optional `autoGluon.hyperparameters` configuration selects the candidate
+models; see the [AutoGluon fit options][autogluon-fit] for details.
+The operation's `seed` also controls the final learner.
+
+AutoGluon requires at least four usable target measurements. The default
+`medium_quality` preset reserves part of the measured data for internal
+validation. Bagging presets use cross-validation and may refit on all supplied
+rows. The saved `metadata.json` records `n_training_samples` (supplied labels),
+`n_fit_samples`, and `n_validation_samples`. Predictions for the remaining
+pool use the saved final predictor.
+
+## Saved models and predictions
+
+Each operation writes `model.pkl` and `metadata.json` to
+`{outputDirectory}_finalized`. The defaults are `pkh_models_finalized/` and
+`flora_models_finalized/`. AutoGluon artifacts also contain an `autogluon/`
+subdirectory. Keep the entire finalized directory together. Set a new
+`outputDirectory` in the operation YAML before another run; an existing
+finalized directory is rejected.
+
+Export the unmeasured configurations from the space:
+
+```bash
+ado show measurements space --use-latest --include unmeasured -o csv \
+  --output-file unmeasured.csv
+```
+
+Load either final predictor from a PKH run and predict its target on those
+configurations:
+
+```python
+import pandas as pd
+
+from active_learning.regression import load_predictor
+
+model = load_predictor("pkh_models_finalized")
+unmeasured = pd.read_csv("unmeasured.csv", index_col=0)
+unmeasured[f"predicted_{model.target_output}"] = model.predict(unmeasured)
+unmeasured.to_csv("predictions.csv", index=False)
+```
+
+Use `flora_models_finalized` to load a FLORA model. Provide the original feature
+names and values; the saved predictor applies the feature encoding. Predictions
+are estimates and are exported separately from ADO's measured values.
+
+[autogluon-fit]: https://auto.gluon.ai/stable/api/autogluon.tabular.TabularPredictor.fit.html

@@ -8,12 +8,18 @@ dependencies = [
   "numpy",
   "pandas>=2.2.0",
   "scikit-learn>=1.6",
+  "scipy>=1.15",
 ]
 dynamic = ["version"]
 
 [project.entry-points."ado.operators"]
 pkh = "active_learning.regression.pkh.operator"
 flora = "active_learning.regression.flora.operator"
+
+[project.optional-dependencies]
+autogluon = [
+  "autogluon-tabular[catboost,lightgbm,xgboost]==1.6.3 ; python_full_version < '3.14'",
+]
 
 [build-system]
 requires = ["hatchling", "uv-dynamic-versioning>=0.7.0"]

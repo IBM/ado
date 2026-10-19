@@ -38,4 +38,5 @@ def pkh(
         parameters=parameters,
         number_entities=parameters.numberEntities,
         sampler_class=PKHSampleSelector,
+        output_directory=parameters.outputDirectory,
     )

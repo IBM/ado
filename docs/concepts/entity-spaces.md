@@ -90,8 +90,5 @@ in each dimension:
 
 Each Property Domain constrains one dimension. The categorical properties list
 their allowed values explicitly; the discrete properties specify a range and a
-set of values within it. An open categorical dimension with no listed values
-stays open: any category label is in the space, and the space has no finite
-size. Setting `values` closes that dimension to a categorical domain of those
-values. For the full list of domain types see
+set of values within it. For the full list of domain types see
 [Properties and Domains](properties-and-domains.md).

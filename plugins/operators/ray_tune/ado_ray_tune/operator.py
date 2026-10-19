@@ -1005,13 +1005,19 @@ class RayTune(Explore):
         """Returns operator metadata for the ray_tune explore operator."""
         return OperatorMetadata(
             name="ray_tune",
-            version="2.0.11",
+            version="2.1.0",
             description=cls.description(),
             configuration_model=RayTuneConfiguration,
             example_configuration=RayTuneConfiguration(
                 tuneConfig=OrchTuneConfig(
                     metric="wallclock_time",
-                    search_alg=OrchSearchAlgorithm(name="bayesopt"),
+                    search_alg=OrchSearchAlgorithm(
+                        name="optuna",
+                        params={
+                            "sampler": "TPESampler",
+                            "sampler_parameters": {"multivariate": True},
+                        },
+                    ),
                 ),
                 runtimeConfig=OrchRunConfig(),
             ),

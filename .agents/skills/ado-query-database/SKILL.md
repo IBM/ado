@@ -1,5 +1,5 @@
 ---
-name: query-ado-data
+name: ado-query-database
 description: >-
   Covers how to query ado catalog listings (available experiments and operators), the ado
   metastores (resource metadata queries) and ado samplestores (measurement data queries).
@@ -38,7 +38,7 @@ DOs:
   --include-schema
 - Write lists for reading to `--output-file`, then read the file.
   Stdout capture of `ado get --details` can be truncated by agent harness. See
-  [using-ado-cli](../using-ado-cli/SKILL.md) (Output Format and File Handling).
+  [ado-use-cli](../ado-use-cli/SKILL.md) (Output Format and File Handling).
 - Use Server side filtering
   - prefer --filter or --matching to fetching metadata and filtering on client
     side
@@ -422,5 +422,5 @@ implementation.
 When modifying or creating code while using this skill, follow:
 
 - [AGENTS.md](../../../AGENTS.md)
-- [plugin-development](../plugin-development/SKILL.md) (if working with
+- [ado-develop-plugin](../ado-develop-plugin/SKILL.md) (if working with
   plugins)

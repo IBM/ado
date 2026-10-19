@@ -15,7 +15,7 @@ description: >-
 
 This skill covers choosing which strategy to use. For writing and validating the
 operation YAML see
-[define-experiment-campaign](../define-experiment-campaign/SKILL.md).
+[ado-define-experiment-campaign](../ado-define-experiment-campaign/SKILL.md).
 
 Operator reference. Read the file under `docs/user-guide/operators/` if the
 source repo is available; otherwise use the website.
@@ -35,7 +35,7 @@ source repo is available; otherwise use the website.
 1. **Goal**: see the table below.
 2. **Space**: dimension types, whether it is finite, its size, and existing
    measurements (see
-   [examining-discovery-spaces](../examining-discovery-spaces/SKILL.md)).
+   [ado-examine-space](../ado-examine-space/SKILL.md)).
 3. **Budget**: affordable measurements, cost per measurement, concurrency.
 4. **Installed operators**: `uv run ado get operators`. `random_walk` comes
    from `ado-core`; `ray_tune` and the `rifferla` modify operator come from

@@ -1,5 +1,5 @@
 ---
-name: review
+name: ado-review-branch
 description: >-
   Review committed changes in the current branch. Use when the user asks to
   review, audit, or critique a branch — covers code quality, skill quality,
@@ -25,7 +25,7 @@ metadata:
 
 When evaluating changes to code evaluate against the guidelines in
 [AGENTS.md](../../AGENTS.md) and
-[plugin-development](../plugin-development/SKILL.md)
+[ado-develop-plugin](../ado-develop-plugin/SKILL.md)
 
 ### Plugin versioning
 
@@ -65,7 +65,7 @@ skill:
 2. **Related existing documentation** - a bullet list outlining related skills,
    examples and website docs, with a note on why they are related
 3. **New information** — bullet list of genuinely new content not already in
-   other skills, AGENTS.md, plugin-development, or linked docs. **Before
+   other skills, AGENTS.md, ado-develop-plugin, or linked docs. **Before
    assessing this:**
    - Read every file listed in the skill's References section
    - Check descriptions of all skills and identify any whose scope overlaps with
@@ -82,7 +82,7 @@ skill:
        `description` field
      - It could also be content that is does not match the objective of a skill
      - state where it should be moved to (another skill, AGENTS.md,
-       plugin-development, etc.)
+       ado-develop-plugin, etc.)
 5. **Medium Issues**
    - In this section include issues like the following:
      - Inline code that should link to an existing example file instead

@@ -218,12 +218,12 @@ uv run ado create RESOURCETYPE -f FILE --dry-run
 ## Links
 
 - For plugin development, see
-  [plugin-development](.agents/skills/plugin-development/SKILL.md)
+  [ado-develop-plugin](.agents/skills/ado-develop-plugin/SKILL.md)
 - For formulating problems with ado, see
-  [define-experiment-campaign](.agents/skills/define-experiment-campaign/SKILL.md)
+  [ado-define-experiment-campaign](.agents/skills/ado-define-experiment-campaign/SKILL.md)
 - For using the ado CLI, see
-  [using-ado-cli](.agents/skills/using-ado-cli/SKILL.md)
+  [ado-use-cli](.agents/skills/ado-use-cli/SKILL.md)
 - For creating resource YAML files, see
-  [resource-yaml-creation](.agents/skills/resource-yaml-creation/SKILL.md)
+  [ado-create-resource-yaml](.agents/skills/ado-create-resource-yaml/SKILL.md)
 - For querying catalog and measurement data, see
-  [query-ado-data](.agents/skills/query-ado-data/SKILL.md)
+  [ado-query-database](.agents/skills/ado-query-database/SKILL.md)

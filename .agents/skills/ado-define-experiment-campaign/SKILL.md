@@ -1,5 +1,5 @@
 ---
-name: define-experiment-campaign
+name: ado-define-experiment-campaign
 description: >-
   Describes how to create experiment campaigns for addressing primary research
   questions using ado (creating ado discoveryspace and operation YAML). Guides
@@ -16,8 +16,8 @@ description: >-
 
 Ensure you read the following skills first
 
-- [using-ado-cli](../using-ado-cli/SKILL.md)
-- [resource-yaml-creation](../resource-yaml-creation/SKILL.md)
+- [ado-use-cli](../ado-use-cli/SKILL.md)
+- [ado-create-resource-yaml](../ado-create-resource-yaml/SKILL.md)
 
 ## Context
 
@@ -66,7 +66,7 @@ sampling and measuring entities, searching for entities that meet objectives, or
 benchmarking configurations (including research and benchmarking studies).
 
 Execution and analysis of results happen after resources are created — see
-[conduct-empirical-study](../conduct-empirical-study/SKILL.md) for the full
+[ado-conduct-empirical-study](../ado-conduct-empirical-study/SKILL.md) for the full
 workflow.
 
 ## Tips
@@ -80,7 +80,7 @@ workflow.
 one already exists
 - If this work belongs to a named study, apply the study labels to new spaces
   and operations and ensure a study document exists — see
-  [create-research-study-document](../create-research-study-document/SKILL.md)
+  [ado-create-study-document](../ado-create-study-document/SKILL.md)
 
 ## Workflow
 
@@ -122,7 +122,7 @@ Copy `VERSION` into the experiment reference's `experimentVersion` field. Omit
 #### What to do if no experiment matching task available
 
 1. Learn how to extend ado:
-   [plugin-development](../plugin-development/SKILL.md)
+   [ado-develop-plugin](../ado-develop-plugin/SKILL.md)
 2. Propose a custom experiment or actuator to user that would provide missing
    functionality
 3. Wait for user input
@@ -211,7 +211,7 @@ uv run ado create operation -f operation.yaml --dry-run
 
 Do not add `--with space=space.yaml` here. `--dry-run` still **creates** that
 space. After the space exists, dry-run with `--use-latest space`. See
-[using-ado-cli](../using-ado-cli/SKILL.md) (`--with` and `--dry-run`).
+[ado-use-cli](../ado-use-cli/SKILL.md) (`--with` and `--dry-run`).
 
 ### Step 2e: Iterate Until Valid
 
@@ -320,12 +320,12 @@ Before finalizing, verify:
   <https://ibm.github.io/ado/latest/resources/discovery-spaces/>
 - For Pydantic model details when writing code, see the resource model table and
   schema-inspection snippet in
-  [query-ado-data — Using Resource models](../query-ado-data/SKILL.md#using-resource-models)
+  [ado-query-database — Using Resource models](../ado-query-database/SKILL.md#using-resource-models)
 
 ## References
 
 When modifying or creating code while using this skill, follow:
 
 - [AGENTS.md](../../../AGENTS.md)
-- [plugin-development](../plugin-development/SKILL.md) (if working with
+- [ado-develop-plugin](../ado-develop-plugin/SKILL.md) (if working with
   plugins)

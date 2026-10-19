@@ -1,5 +1,5 @@
 ---
-name: plugin-development
+name: ado-develop-plugin
 description: >-
   Guidelines for developing ado plugins (actuators, operators, and custom
   experiments). Covers package structure, versioning, entry points, custom
@@ -243,7 +243,7 @@ and confirm the plugin is installed
 
 - **Experiment execution**: Use the `run_experiment` tool to verify
   custom_experiment or actuator experiments can execute successfully — see
-  [run-experiment](../run-experiment/SKILL.md)
+  [ado-run-experiment](../ado-run-experiment/SKILL.md)
 
 For example:
 

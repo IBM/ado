@@ -9,6 +9,20 @@ from ado_ray_tune.config import OrchSearchAlgorithm
 optuna_samplers = pytest.importorskip("optuna.samplers")
 
 
+def test_example_configuration_uses_optuna_tpe() -> None:
+    """The ray_tune operation template uses Optuna TPE with multivariate sampling."""
+    from ado_ray_tune.operator import RayTune
+
+    search_alg = RayTune.operator_metadata().example_configuration.tuneConfig.search_alg
+
+    assert search_alg.name == "optuna"
+    assert search_alg.params["sampler"] == "TPESampler"
+    assert search_alg.params["sampler_parameters"]["multivariate"] is True
+    ray_tune_parameters = search_alg.parameters_for_ray_tune()
+    assert isinstance(ray_tune_parameters["sampler"], optuna_samplers.TPESampler)
+    assert ray_tune_parameters["sampler"]._multivariate is True
+
+
 @pytest.mark.parametrize(
     "params",
     [

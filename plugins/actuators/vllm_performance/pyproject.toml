@@ -41,7 +41,7 @@ vllm = [
   # potentially malicious. While we think it's a false positive,
   # we use the <5 qualifier to prevent the major OpenCV bump.
   "opencv-python-headless<5",
-  "vllm>=0.27.0 ; sys_platform != 'darwin'",
+  "vllm>=0.27.0 ; sys_platform != 'darwin' and sys_platform != 'win32'",
 ]
 
 [build-system]

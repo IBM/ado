@@ -162,11 +162,11 @@ On native Windows x64, use Python 3.11 and follow
 [the PowerShell setup](DEVELOPING.md#native-windows-setup-powershell), including
 verification of all committed symlinks before running hooks. The test group
 excludes SFTTrainer on Windows because `aimrocks` has no Windows distribution.
-Markdownlint uses Node.js through pre-commit. MySQL integration tests require
+Markdownlint's pre-commit hook and MySQL integration tests require
 Docker Desktop with Linux containers and a successful `docker system info`.
-Follow the [Docker prerequisites](DEVELOPING.md#docker-prerequisites-for-integration-tests)
-to verify CLI availability and Python Docker client connectivity before running
-the full core suite.
+Follow the [Docker prerequisites](DEVELOPING.md#docker-prerequisites-for-hooks-and-integration-tests)
+to verify CLI availability before running hooks and Python Docker client
+connectivity before running the full core suite.
 
 ---
 

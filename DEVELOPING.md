@@ -27,8 +27,7 @@ clusters and the full plugin test matrix.
 
 ### Native Windows setup (PowerShell)
 
-Install Git for Windows, uv 0.13.0 or newer, and a recent version of
-[Node.js](https://nodejs.org/en/download/). Enable
+Install Git for Windows and uv 0.13.0 or newer. Enable
 [Windows Developer Mode](https://learn.microsoft.com/en-us/windows/apps/get-started/enable-your-device-for-development)
 or obtain equivalent symlink privileges **before cloning**. The repository
 contains symbolic links used by documentation and agent configuration.
@@ -62,17 +61,15 @@ For example, `(Get-Item docs/MAINTAINERS.md).LinkType` should report
 targets, preserve your local changes and make a fresh clone after enabling
 symlink support. Changing `core.symlinks` alone does not recreate those links.
 
-Install the development environment and hooks from the repository root:
+Install the development environment from the repository root:
 
 ```powershell
 uv sync --locked --reinstall --group test --group dev
-uv run pre-commit install --install-hooks
-uv run pre-commit run -a
 ```
 
 `uv` installs the selected Python version when needed. Use `uv run` to execute
-tools in the environment; shell activation is optional. Markdownlint uses
-Node.js through pre-commit. Docker is required for the MySQL integration tests.
+tools in the environment; shell activation is optional. Complete the Docker
+setup below before running the repository's hooks or MySQL integration tests.
 
 Run the schema and utility tests without Docker:
 
@@ -80,7 +77,7 @@ Run the schema and utility tests without Docker:
 uv run --group test pytest -n 2 tests/schema tests/utilities
 ```
 
-#### Docker prerequisites for integration tests
+#### Docker prerequisites for hooks and integration tests
 
 Install and start
 [Docker Desktop for Windows](https://docs.docker.com/desktop/setup/install/windows-install/)
@@ -90,7 +87,8 @@ guide for the current system requirements. Run `ado` and pytest from Windows
 PowerShell in the repository's Windows checkout.
 
 Open a new PowerShell terminal after installing Docker Desktop so the Docker
-CLI is available on `PATH`. Verify both the client and engine before testing:
+CLI is available on `PATH`. Verify both the client and engine before linting
+or testing:
 
 ```powershell
 Get-Command docker
@@ -115,6 +113,15 @@ docker system info
 
 For an all-users installation, the default CLI directory is
 `C:/Program Files/Docker/Docker/resources/bin`.
+
+The Markdownlint hook runs in a Linux container and mounts the checkout.
+Allow Docker Desktop access to the checkout directory and the image registry.
+Install and run the hooks after the Docker checks succeed:
+
+```powershell
+uv run pre-commit install --install-hooks
+uv run pre-commit run -a
+```
 
 The tests use Testcontainers to start and remove temporary MySQL containers
 from `mirror.gcr.io/mysql:8`. Allow access to the Docker engine and image
@@ -163,14 +170,14 @@ plugin test matrix. Install a Linux distribution and enable Docker Desktop's
 integration for that distribution, or provide another Docker-compatible runtime.
 Clone inside the Linux filesystem, for example under `~/src/ado`.
 
-Run these commands in the Linux shell, with Node.js available:
+Run these commands in the Linux shell, with the Docker engine available:
 
 ```shell
 git clone https://github.com/IBM/ado.git ~/src/ado
 cd ~/src/ado
 uv sync --locked --reinstall --group test --group dev
-uv run pre-commit install --install-hooks
 docker system info
+uv run pre-commit install --install-hooks
 uv run pre-commit run -a
 uv run tox -e py311-locked-linux
 ```
@@ -460,7 +467,7 @@ uv run pre-commit install --install-hooks
 This command will configure pre-commit to run automatically before each commit,
 highlighting any issues and preventing the commit if problems are found.
 Run all checks manually with `uv run pre-commit run -a`. The Markdownlint hook
-uses Node.js; Docker is required for MySQL integration tests.
+runs in Docker. Docker is also required for MySQL integration tests.
 
 ### Handling pre-commit failures
 

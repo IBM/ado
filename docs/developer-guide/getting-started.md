@@ -44,8 +44,8 @@ On native Windows x64, use Python 3.11 and follow the
 [PowerShell setup](./developing.md#native-windows-setup-powershell), including
 the symlink verification before running hooks. The Windows environment supports
 core development and excludes SFTTrainer. Docker Desktop with Linux containers
-is required for MySQL integration tests; schema and utility tests run without
-Docker. For the full Linux plugin workflow, see
+is required for the Markdownlint hook and MySQL integration tests; schema and
+utility tests run without Docker. For the full Linux plugin workflow, see
 [Windows with WSL2](./developing.md#windows-with-wsl2).
 
 The shell commands below are for Linux, macOS, and WSL2. They require the

@@ -111,9 +111,10 @@ For native Windows x64 with Python 3.11, use the locked core test environment:
 uv run tox -e py311-locked-windows
 ```
 
-This requires Docker Desktop with Linux containers for MySQL integration tests.
+Docker Desktop with Linux containers is required for the Markdownlint hook and
+MySQL integration tests.
 Follow the
-[Docker prerequisites](https://ibm.github.io/ado/latest/developer-guide/developing/#docker-prerequisites-for-integration-tests)
+[Docker prerequisites](https://ibm.github.io/ado/latest/developer-guide/developing/#docker-prerequisites-for-hooks-and-integration-tests)
 and verify `docker system info` and Python Docker client connectivity first.
 Run the schema and utility subset without Docker with:
 

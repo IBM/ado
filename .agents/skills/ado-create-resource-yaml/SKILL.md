@@ -1,5 +1,5 @@
 ---
-name: resource-yaml-creation
+name: ado-create-resource-yaml
 description: |
   Guidance for creating ado resource YAML files (discoveryspace, operation,
   actuatorconfiguration, samplestore, document). Covers metadata conventions,
@@ -14,7 +14,7 @@ description: |
 
 Ensure you read the following basic skills first:
 
-- [using-ado-cli](../using-ado-cli/SKILL.md)
+- [ado-use-cli](../ado-use-cli/SKILL.md)
 
 ## Metadata Fields
 
@@ -93,7 +93,7 @@ uv run ado create operation -f operation.yaml \
 
 Do not combine `--dry-run` with `--with KIND=FILE.yaml`. `--dry-run` skips
 only the `-f` resource; the `--with` file is still created. See
-[using-ado-cli](../using-ado-cli/SKILL.md) (`--with` and iterative development).
+[ado-use-cli](../ado-use-cli/SKILL.md) (`--with` and iterative development).
 
 ### --set
 
@@ -132,7 +132,7 @@ uv run ado create space -f space.yaml
 uv run ado create operation -f operation.yaml --dry-run --use-latest space
 ```
 
-CLI details: [using-ado-cli](../using-ado-cli/SKILL.md).
+CLI details: [ado-use-cli](../ado-use-cli/SKILL.md).
 
 ## Templates
 
@@ -156,8 +156,9 @@ uv run ado template actuatorconfiguration --actuator-identifier my_actuator
 
 ### DiscoverySpace
 
-See [define-experiment-campaign](../define-experiment-campaign/SKILL.md) for
-further details on creating discovery spaces.
+See
+[ado-define-experiment-campaign](../ado-define-experiment-campaign/SKILL.md)
+for further details on creating discovery spaces.
 
 **Before creating** (ado create space), check if a matching space already
 exists:
@@ -273,7 +274,7 @@ uv run ado delete document DOCUMENT_ID
 Validate with `uv run ado create document -f FILE --dry-run` before creating.
 
 **Querying existing documents** (paths are under `config.`; string candidates
-must be single-quoted — see [query-ado-data](../query-ado-data/SKILL.md)):
+must be single-quoted — see [ado-query-database](../ado-query-database/SKILL.md)):
 
 ```bash
 # By related resource id
@@ -292,6 +293,6 @@ replacement, if the skill's replace policy says so).
 
 ## Related Resources
 
-- [define-experiment-campaign](../define-experiment-campaign/SKILL.md) — full
-  problem formulation workflow
+- [ado-define-experiment-campaign](../ado-define-experiment-campaign/SKILL.md)
+  — full problem formulation workflow
 - [AGENTS.md](../../../AGENTS.md) — YAML testing and linting guidance

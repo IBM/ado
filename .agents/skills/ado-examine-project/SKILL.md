@@ -1,5 +1,5 @@
 ---
-name: examining-ado-project
+name: ado-examine-project
 description: >-
   Understand the work done in an ado project/context: recent activity, research
   underway, study documents, spaces and operations over time, experiments and
@@ -27,9 +27,9 @@ related metadata in the ado project associated to the active context.
 
 Read the following basic skills first:
 
-- [using-ado-cli](../using-ado-cli/SKILL.md).
-- [query-ado-data](../query-ado-data/SKILL.md).
-- [resource-yaml-creation — Document](../resource-yaml-creation/SKILL.md#document).
+- [ado-use-cli](../ado-use-cli/SKILL.md).
+- [ado-query-database](../ado-query-database/SKILL.md).
+- [ado-create-resource-yaml — Document](../ado-create-resource-yaml/SKILL.md#document).
 
 ## Tips
 
@@ -37,11 +37,11 @@ Read the following basic skills first:
   pulls.
 - Write `ado get --details` listings with `--output-file` and read the file.
 - For study documents (`study-$ID`), see
-  [create-research-study-document](../create-research-study-document/SKILL.md).
+  [ado-create-study-document](../ado-create-study-document/SKILL.md).
 - For examining one space in depth:
-  [examining-discovery-spaces](../examining-discovery-spaces/SKILL.md).
+  [ado-examine-space](../ado-examine-space/SKILL.md).
 - For examining one operation in depth:
-  [examining-ado-operations](../examining-ado-operations/SKILL.md).
+  [ado-examine-operation](../ado-examine-operation/SKILL.md).
 
 ## Pre-requisites
 
@@ -240,7 +240,7 @@ uv run ado get operations -o yaml --output-file operations.yaml
 
 On **large metastores**, these files can be very large—prefer
 `uv run ado get … -q …` filters, scripts, or the SQL store API (see
-[query-ado-data](../query-ado-data/SKILL.md)) before dumping everything.
+[ado-query-database](../ado-query-database/SKILL.md)) before dumping everything.
 
 When interpreting YAML fields, confirm paths against resource schemas:
 
@@ -311,7 +311,7 @@ uv run ado show related space SPACE_ID
 
 Write a concise markdown report. Store it as the `content` field of a
 `document` resource (see
-[resource-yaml-creation — Document](../resource-yaml-creation/SKILL.md#document)).
+[ado-create-resource-yaml — Document](../ado-create-resource-yaml/SKILL.md#document)).
 
 - Set `metadata.name` to `project_report`.
 - Set `metadata.description` to include today's date, e.g.

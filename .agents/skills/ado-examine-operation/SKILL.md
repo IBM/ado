@@ -1,5 +1,5 @@
 ---
-name: examining-ado-operations
+name: ado-examine-operation
 description: >-
   End-to-end workflow to examine and summarize an ado operation — fetch
   operation and space YAML, summarise configuration, export
@@ -24,9 +24,9 @@ on, and whether measurements and results look healthy.
 
 Read the following basic skills first:
 
-- [using-ado-cli](../using-ado-cli/SKILL.md).
-- [query-ado-data](../query-ado-data/SKILL.md).
-- [resource-yaml-creation — Document](../resource-yaml-creation/SKILL.md#document).
+- [ado-use-cli](../ado-use-cli/SKILL.md).
+- [ado-query-database](../ado-query-database/SKILL.md).
+- [ado-create-resource-yaml — Document](../ado-create-resource-yaml/SKILL.md#document).
 
 ## Key Concepts
 
@@ -110,7 +110,7 @@ avoid repeated `ado get` calls for the same resource.
 
 Table listings (`ado get … --details`) should also use `--output-file`. Tool
 stdout capture can drops long tables. See
-[using-ado-cli](../using-ado-cli/SKILL.md).
+[ado-use-cli](../ado-use-cli/SKILL.md).
 
 In particular `ado get datacontainer … -o yaml` or `-o json` can be large; use
 `--output-file` and load the file with Python (or another tool) instead of
@@ -339,7 +339,7 @@ uv run ado show measurements operation OPERATION_ID \
 
 If only some metrics are needed, add `--property` for each metric and input
 property to keep the file and data fetched from database small — see
-[query-ado-data](../query-ado-data/SKILL.md#show-entities).
+[ado-query-database](../ado-query-database/SKILL.md#show-entities).
 
 ### Step 4: Analyze the Measurement data
 
@@ -380,7 +380,7 @@ Structure the report as:
 5. **Next Steps**: A plan for the next research steps to take using ado.
 
 Store the report as a document resource (see
-[resource-yaml-creation — Document](../resource-yaml-creation/SKILL.md#document)).
+[ado-create-resource-yaml — Document](../ado-create-resource-yaml/SKILL.md#document)).
 Set `relatedResources` to the operation id and the input space ids from step 1.
 
 ## Troubleshooting

@@ -1,13 +1,13 @@
 ---
-name: using-ado-cli
+name: ado-use-cli
 description: >-
   Reference for ado CLI command syntax, flags, and usage patterns — get, create,
   edit, show, describe, output flags (-o, --output-file), convenience flags
   (--use-latest KIND, --set, --with), and debugging with -l. Use when writing,
   verifying, or debugging ado CLI commands; looking up correct command syntax or
   flags; or when unsure which ado command or flag to use. For listing catalogs
-  or answering data questions, use the query-ado-data skill. For running a
-  single experiment on one point, use the run-experiment skill.
+  or answering data questions, use the ado-query-database skill. For running a
+  single experiment on one point, use the ado-run-experiment skill.
 ---
 
 # Using the ado CLI
@@ -61,7 +61,7 @@ uv run ado get operations -o stats --output-file /tmp/ado-operations-stats.txt
 
 Tip: Narrow listings with `-l`/`--filter` when you
 only need a subset — see
-[query-ado-data](../query-ado-data/SKILL.md#fast-querying).
+[ado-query-database](../ado-query-database/SKILL.md#fast-querying).
 
 Prefer `/tmp/ado-*.txt` (or another path outside the repo) so listings are not
 left as untracked files.
@@ -411,9 +411,9 @@ missing experiment references, invalid parameter types, unresolvable
 ## Related Resources
 
 - For creating and structuring resource YAML files, see
-  [resource-yaml-creation](../resource-yaml-creation/)
+  [ado-create-resource-yaml](../ado-create-resource-yaml/)
 - For creating discoveryspace and operation YAML files, see
-  [define-experiment-campaign](../define-experiment-campaign/)
+  [ado-define-experiment-campaign](../ado-define-experiment-campaign/)
 - For running a single point through an experiment with the separate
-  `run_experiment` tool, see [run-experiment](../run-experiment/SKILL.md)
+  `run_experiment` tool, see [ado-run-experiment](../ado-run-experiment/SKILL.md)
 - For general development guidelines, see [AGENTS.md](../../../AGENTS.md)

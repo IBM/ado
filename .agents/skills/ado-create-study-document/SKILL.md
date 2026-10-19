@@ -1,5 +1,5 @@
 ---
-name: create-research-study-document
+name: ado-create-study-document
 description: >
   Describes how to create documents (document resources) that track an
   in-progress research study: motivation, question, objectives, materials, study labels,
@@ -14,8 +14,8 @@ A **research study document** describes a research study to perform, or that is
 already underway. It is stored as a `document` resource in the metastore.
 
 For generic document create/query, see
-[resource-yaml-creation — Document](../resource-yaml-creation/SKILL.md#document).
-For CLI syntax, see [using-ado-cli](../using-ado-cli/SKILL.md).
+[ado-create-resource-yaml — Document](../ado-create-resource-yaml/SKILL.md#document).
+For CLI syntax, see [ado-use-cli](../ado-use-cli/SKILL.md).
 
 ## Naming and metadata
 
@@ -96,7 +96,7 @@ uv run ado create document -f study-cplex-mip_document.yaml
 ```
 
 Apply the study labels to every space and operation created for the study
-(see [resource-yaml-creation](../resource-yaml-creation/SKILL.md) metadata).
+(see [ado-create-resource-yaml](../ado-create-resource-yaml/SKILL.md) metadata).
 
 ## Query
 

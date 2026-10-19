@@ -8,6 +8,7 @@ from ado_ray_tune.stoppers import (
     BayesianMetricDifferenceStopper,
     InformationGainStopper,
     MaxSamplesStopper,
+    RepeatedSampleStopper,
     SimpleStopper,
     flatten_stoppers,
     format_stopper_run_report,
@@ -278,3 +279,33 @@ class TestSimpleAndBayesianStopperStatus:
         assert message
         assert "BayesianMetricDifferenceStopper" in message
         assert "not stopping" in message
+
+
+class TestRepeatedSampleStopper:
+    """RepeatedSampleStopper stops when one config is sampled max_repeats times."""
+
+    def test_stops_on_fifth_repeat_of_same_config(self) -> None:
+        """The fifth trial of the same config triggers a stop; earlier ones do not."""
+        stopper = RepeatedSampleStopper()
+        stopper.set_config(max_repeats=5)
+        config = {"n_threads": 1, "mip_emphasis": 3}
+        other = {"n_threads": 8, "mip_emphasis": 0}
+
+        for i in range(4):
+            assert stopper(f"same-{i}", {"config": config}) is False
+        assert stopper("other-0", {"config": other}) is False
+        assert stopper.did_trigger() is False
+
+        assert stopper("same-4", {"config": config}) is True
+        assert stopper.did_trigger() is True
+        assert "stopping" in stopper.progress_message()
+
+    def test_duplicate_trial_id_is_not_counted_twice(self) -> None:
+        """Ray Tune may call the stopper twice per trial; that must not count as two samples."""
+        stopper = RepeatedSampleStopper()
+        stopper.set_config(max_repeats=2)
+        result = {"config": {"x": 1}}
+        assert stopper("t1", result) is False
+        assert stopper("t1", result) is False
+        assert stopper.did_trigger() is False
+        assert stopper("t2", result) is True

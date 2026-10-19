@@ -457,6 +457,8 @@ stopper, cannot currently be used with `ado`.
   than a threshold for N steps
 - **MaxSamplesStopper**: Stops when a certain number of samples have been drawn.
   It is less ambiguous than `tuneConfig.num_samples`
+- **RepeatedSampleStopper**: Stops when the same configuration has been sampled
+  N times
 - **InformationGainStopper**: Stops when samples are no longer providing
   significant additional information on how the constitutive properties of the
   entity space are related to the target property.
@@ -745,6 +747,26 @@ are required.
 name: MaxSamplesStopper
 keywordParams:
   max_samples: 10 # Will stop the optimization when this number of samples have been measured. Required
+```
+
+<!-- markdownlint-enable line-length -->
+
+### RepeatedSampleStopper
+
+Stops an optimization when any one configuration has been sampled N times.
+Optuna TPE samples with replacement; on a flat metric this stopper ends the
+run once the searcher is stuck resampling the same point.
+
+The following YAML describes the stopper's parameters. Parameters without values
+are required.
+
+<!-- markdownlint-disable line-length -->
+
+```yaml
+name: RepeatedSampleStopper
+keywordParams:
+  max_repeats: 5 # Stop when one configuration has been sampled this many times. Required
+  experiment_key: config # Trial-result key that holds the sampled configuration.
 ```
 
 <!-- markdownlint-enable line-length -->

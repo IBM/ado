@@ -298,6 +298,7 @@ class OrchRunConfig(pydantic.BaseModel):
                     "SimpleStopper",
                     "GrowthStopper",
                     "MaxSamplesStopper",
+                    "RepeatedSampleStopper",
                     "InformationGainStopper",
                     "BayesianMetricDifferenceStopper",
                 ]:
@@ -317,6 +318,7 @@ class OrchRunConfig(pydantic.BaseModel):
                     "SimpleStopper",
                     "GrowthStopper",
                     "MaxSamplesStopper",
+                    "RepeatedSampleStopper",
                     "InformationGainStopper",
                     "BayesianMetricDifferenceStopper",
                 ]:

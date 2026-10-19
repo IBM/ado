@@ -209,6 +209,10 @@ for an example structure.
 uv run ado create operation -f operation.yaml --dry-run
 ```
 
+Do not add `--with space=space.yaml` here. `--dry-run` still **creates** that
+space. After the space exists, dry-run with `--use-latest space`. See
+[using-ado-cli](../using-ado-cli/SKILL.md) (`--with` and `--dry-run`).
+
 ### Step 2e: Iterate Until Valid
 
 Fix validation errors and repeat validation until successful.

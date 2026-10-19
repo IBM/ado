@@ -99,8 +99,9 @@ In addition, `ado` also provides an
 ### Installing an optimizer
 
 Each optimizer is its own python package and RayTune does not install them by
-default. `ado` installs `bayesian-optimization` and `nevergrad` but if you want
-to use any of the others you must install their corresponding python package.
+default. `ado` installs `optuna` and `nevergrad` but
+if you want to use any of the others you must install their corresponding
+python package.
 For example to use `bohb` run:
 
 ```commandline
@@ -143,11 +144,20 @@ tuneConfig:
   metric: wallclock_time # The target property identifier to optimize w.r.t
   mode: min # Whether to search for min or max of the target property
   search_alg:
-    name: bayesopt # The name of the optimization algorithm to use
-    params: {} # The parameters for the optimizer
+    name: optuna # The name of the optimization algorithm to use
+    params:
+      sampler: TPESampler
+      sampler_parameters:
+        multivariate: true
 ```
 
 <!-- markdownlint-enable line-length -->
+
+!!! warning end
+
+    `bayesopt` only supports continuous dimensions.
+    Choose a different optimizer if the `entityspace` has discrete or
+    categorical dimensions. The operation template uses Optuna `TPESampler`.
 
 The following sections describe each of these parameter sets in more detail. As
 you go through these sections, it is worth referring to the
@@ -320,6 +330,21 @@ check the keys of the nevergrad registry, with:
 import nevergrad
 
 print(list(nevergrad.optimizers.registry.keys()))
+```
+
+Arguments for the nevergrad optimizer class, for example `budget` and
+`num_workers`, are given in the `optimizer_kwargs` dictionary. Nevergrad
+optimizer arguments set directly in `params` are not passed to the optimizer.
+
+```yaml
+tuneConfig:
+  search_alg:
+    name: nevergrad
+    params:
+      optimizer: NGOpt
+      optimizer_kwargs:
+        budget: 200
+        num_workers: 4
 ```
 
 #### optuna parameters

@@ -2,12 +2,12 @@
 name = "ado-ray-tune"
 dependencies = [
   "ado-core>=2.0.0",
-  "bayesian-optimization>=1.4.0",
   "nevergrad>=1.0.12",
   # Numba added support for Python 3.14 only in
   # version 0.63.0. By adding this requirement explicitly
   # we help uv perform a forked resolution for the lockfile.
   "numba>=0.63.0 ; python_full_version >= '3.14'",
+  "optuna>=4.0.0",
   "pandas<3",
   "paretoset>=1.2.4",
   # botocore → urllib3 → OpenSSL.SSL import chain fails with AttributeError

@@ -121,7 +121,7 @@ default-groups = ["dev", "docs"]
 required-environments = [
   "sys_platform == 'darwin' and platform_machine == 'arm64'",
   "sys_platform == 'linux' and platform_machine == 'x86_64'",
-  "sys_platform == 'win32' and platform_machine == 'AMD64' and python_version == '3.11'",
+  "sys_platform == 'win32' and platform_machine == 'AMD64' and python_version >= '3.11' and python_version < '3.14'",
 ]
 
 # Having our plugins in the workspace section makes it so

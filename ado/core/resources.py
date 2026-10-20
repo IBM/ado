@@ -39,7 +39,7 @@ class ADOResourceReference(pydantic.BaseModel):
         CoreResourceKinds | None,
         pydantic.Field(
             default=None,
-            description=("Resource kind",),
+            description="Resource kind",
         ),
     ] = None
 

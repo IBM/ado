@@ -339,18 +339,24 @@ uv run ado create operation -f operation.yaml --set "spaces[0]=space-abc123"
 uv run ado create operation -f operation.yaml --with space=space.yaml
 ```
 
-`--dry-run` applies only to the resource in `-f`. `--with KIND=FILE.yaml` still
-**creates** that file's resource. Repeating the same dry-run creates duplicate
-spaces (or actuator configurations).
-
-Do **not** combine `--dry-run` with `--with KIND=FILE.yaml`.
-
-To validate an operation against an existing space (ID injection only):
+`--dry-run` also propagates to nested resources supplied via
+`--with KIND=FILE.yaml` and `--new-sample-store`, validating them without
+creating any resources in the metastore.
 
 ```bash
+# Validate both the operation and the referenced space without writing to the metastore
+uv run ado create operation -f operation.yaml --with space=space.yaml --dry-run
+
+# Validate an operation against an existing space (ID injection only)
 uv run ado create operation -f operation.yaml --dry-run --use-latest space
 uv run ado create operation -f operation.yaml --dry-run --with space=space-abc123
 ```
+
+> **Note:** `--dry-run` checks syntactic and schema validity for each resource
+> file. Because nested resources (such as actuator configurations and spaces)
+> are not persisted to the metastore during a dry-run, cross-resource metastore
+> checks (such as validating actuator configurations against the space) cannot
+> be performed and are skipped until actual creation.
 
 ## Documentation Best Practices
 
@@ -360,8 +366,7 @@ When writing documentation with ado commands:
 2. **Use realistic IDs** in examples (e.g., `space-abc123` not `SPACE_ID` in
    code blocks where actual output is shown)
 3. **Prefer shortcuts** (`--use-latest`, `--with KIND=ID`) in tutorials to
-   reduce friction. `--with KIND=FILE.yaml` creates that resource — do not use
-   it on `--dry-run`.
+   reduce friction.
 4. **Explain terminology** the first time: "entities (the inputs and their
    measurements)"
 
@@ -382,7 +387,7 @@ uv run ado show measurements operation op-123 -o csv --output-file op-123-entiti
 
 ### Create space and operation together
 
-When both YAMLs are already valid and you want one command (not a dry-run):
+When you want to create them in one command:
 
 ```bash
 uv run ado create operation -f operation.yaml \

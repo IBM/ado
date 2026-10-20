@@ -74,23 +74,25 @@ def create_operation(parameters: AdoCreateCommandParameters) -> str | None:
                     parameters.with_resources[CoreResourceKinds.ACTUATORCONFIGURATION]
                 ]
             else:
-                op_resource_configuration.actuatorConfigurationIdentifiers = [
-                    create_actuator_configuration(
-                        AdoCreateCommandParameters(
-                            ado_configuration=parameters.ado_configuration,
-                            dry_run=False,
-                            new_sample_store=False,
-                            override_values=[],
-                            resource_configuration_file=parameters.with_resources[
-                                CoreResourceKinds.ACTUATORCONFIGURATION
-                            ],
-                            resource_type=AdoCreateSupportedResourceTypes.ACTUATOR_CONFIGURATION,
-                            use_default_sample_store=False,
-                            with_resources={},
-                            use_latest=[],
-                        )
+                actuator_configuration_identifier = create_actuator_configuration(
+                    AdoCreateCommandParameters(
+                        ado_configuration=parameters.ado_configuration,
+                        dry_run=parameters.dry_run,
+                        new_sample_store=False,
+                        override_values=[],
+                        resource_configuration_file=parameters.with_resources[
+                            CoreResourceKinds.ACTUATORCONFIGURATION
+                        ],
+                        resource_type=AdoCreateSupportedResourceTypes.ACTUATOR_CONFIGURATION,
+                        use_default_sample_store=False,
+                        with_resources={},
+                        use_latest=[],
                     )
-                ]
+                )
+                if actuator_configuration_identifier is not None:
+                    op_resource_configuration.actuatorConfigurationIdentifiers = [
+                        actuator_configuration_identifier
+                    ]
 
         if CoreResourceKinds.DISCOVERYSPACE in parameters.with_resources:
             if isinstance(
@@ -100,23 +102,23 @@ def create_operation(parameters: AdoCreateCommandParameters) -> str | None:
                     parameters.with_resources[CoreResourceKinds.DISCOVERYSPACE]
                 ]
             else:
-                op_resource_configuration.spaces = [
-                    create_discovery_space(
-                        AdoCreateCommandParameters(
-                            ado_configuration=parameters.ado_configuration,
-                            dry_run=False,
-                            new_sample_store=False,
-                            override_values=[],
-                            resource_configuration_file=parameters.with_resources[
-                                CoreResourceKinds.DISCOVERYSPACE
-                            ],
-                            resource_type=AdoCreateSupportedResourceTypes.DISCOVERY_SPACE,
-                            use_default_sample_store=False,
-                            with_resources={},
-                            use_latest=[],
-                        )
+                space_identifier = create_discovery_space(
+                    AdoCreateCommandParameters(
+                        ado_configuration=parameters.ado_configuration,
+                        dry_run=parameters.dry_run,
+                        new_sample_store=False,
+                        override_values=[],
+                        resource_configuration_file=parameters.with_resources[
+                            CoreResourceKinds.DISCOVERYSPACE
+                        ],
+                        resource_type=AdoCreateSupportedResourceTypes.DISCOVERY_SPACE,
+                        use_default_sample_store=False,
+                        with_resources={},
+                        use_latest=[],
                     )
-                ]
+                )
+                if space_identifier is not None:
+                    op_resource_configuration.spaces = [space_identifier]
 
     elif parameters.use_latest:
         reuse_requested_latest_identifiers(
@@ -132,7 +134,10 @@ def create_operation(parameters: AdoCreateCommandParameters) -> str | None:
     if parameters.dry_run:
         console_print(f"{INFO}The operation YAML is syntactically valid.", stderr=True)
 
-    if op_resource_configuration.actuatorConfigurationIdentifiers:
+    if (
+        not parameters.dry_run
+        and op_resource_configuration.actuatorConfigurationIdentifiers
+    ):
         with Status("Validating actuator configurations for operation") as status:
             try:
                 op_resource_configuration.validate_actuatorconfigurations(

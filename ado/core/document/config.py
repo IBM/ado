@@ -74,7 +74,9 @@ class DocumentConfiguration(pydantic.BaseModel):
             parts.append(Text.assemble(("Name: ", "bold"), (self.metadata.name,)))
         if self.metadata.description:
             parts.append(
-                Text.assemble(("Description: ", "bold"), (self.metadata.description,))
+                Text.assemble(
+                    ("Description: ", "bold"), (self.metadata.description.rstrip(),)
+                )
             )
         if self.relatedResources:
             related_summary = ", ".join(

@@ -85,19 +85,45 @@ class RstrippedRenderable:
         """
         current: list[Segment] = []
         for seg in console.render(self._renderable, options):
-            if seg.text == "\n":
-                if current:
-                    *rest, last = current
-                    yield from rest
-                    yield Segment(last.text.rstrip(), last.style, last.control)
-                    current = []
-                yield Segment("\n")
-            else:
+            if seg.control or "\n" not in seg.text:
                 current.append(seg)
-        if current:
-            *rest, last = current
-            yield from rest
-            yield Segment(last.text.rstrip(), last.style, last.control)
+                continue
+            *lines, remainder = seg.text.split("\n")
+            for text in lines:
+                current.append(Segment(text, seg.style))
+                yield from self._rstrip_line(current)
+                current = []
+                yield Segment("\n")
+            if remainder:
+                current.append(Segment(remainder, seg.style))
+        yield from self._rstrip_line(current)
+
+    @staticmethod
+    def _rstrip_line(line: list[Segment]) -> list[Segment]:
+        """Remove trailing whitespace from a line, spanning multiple segments.
+
+        Args:
+            line: The segments making up a single output line.
+
+        Returns:
+            The segments with trailing whitespace removed. Trailing segments
+            that are entirely whitespace are dropped, and control segments
+            are preserved.
+        """
+        result = list(line)
+        index = len(result) - 1
+        while index >= 0:
+            seg = result[index]
+            if seg.control:
+                index -= 1
+                continue
+            stripped = seg.text.rstrip()
+            if stripped:
+                result[index] = Segment(stripped, seg.style, seg.control)
+                break
+            del result[index]
+            index -= 1
+        return result
 
 
 def get_rich_repr(obj: typing.Any) -> "RenderableType":  # noqa: ANN401

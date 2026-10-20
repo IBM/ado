@@ -10,6 +10,7 @@ from ado.core.operation.config import (
     DiscoveryOperationConfiguration,
     DiscoveryOperationEnum,
     DiscoveryOperationResourceConfiguration,
+    GenericOperatorParameters,
     OperatorMetadata,
     OperatorReference,
 )
@@ -20,8 +21,14 @@ from ado.modules.operators.collections import (
 from ado.modules.operators.errors import OperatorVersionMismatchError
 
 
-class _ExampleConfig(pydantic.BaseModel):
+class _ExampleConfig(GenericOperatorParameters):
     value: int = 1
+
+
+def test_generic_operator_parameters_reject_unknown_fields() -> None:
+    """Operator parameter models reject fields that are not declared."""
+    with pytest.raises(pydantic.ValidationError):
+        _ExampleConfig.model_validate({"value": 1, "unknown": True})
 
 
 def test_operator_metadata_reference() -> None:

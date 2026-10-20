@@ -8,6 +8,8 @@ from typing import Annotated, Literal
 import pydantic
 from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, model_validator
 
+from ado.core.operation.config import GenericOperatorParameters
+
 
 class MissingTargetMeasurementMode(enum.StrEnum):
     Error = "Error"
@@ -169,7 +171,7 @@ class AutoGluonArgs(BaseModel):
     ]
 
 
-class TrimParameters(BaseModel):
+class TrimParameters(GenericOperatorParameters):
     model_config = ConfigDict(extra="forbid")
 
     autoGluonArgs: Annotated[

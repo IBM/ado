@@ -611,14 +611,13 @@ def test_operator_default_and_validate(
 
 def test_operator_metadata_identifier_property() -> None:
     """OperatorMetadata.operatorIdentifier returns '{name}@{version}'."""
-    import pydantic
 
     from ado.core.operation.config import (
         DiscoveryOperationEnum,
         OperatorMetadata,
     )
 
-    class _P(pydantic.BaseModel):
+    class _P(ado.core.operation.config.GenericOperatorParameters):
         pass
 
     meta = OperatorMetadata(
@@ -633,14 +632,13 @@ def test_operator_metadata_identifier_property() -> None:
 
 def test_operator_metadata_identifier_default_version() -> None:
     """OperatorMetadata.operatorIdentifier uses '2.0.0' when version is not supplied."""
-    import pydantic
 
     from ado.core.operation.config import (
         DiscoveryOperationEnum,
         OperatorMetadata,
     )
 
-    class _P(pydantic.BaseModel):
+    class _P(ado.core.operation.config.GenericOperatorParameters):
         pass
 
     meta = OperatorMetadata(
@@ -654,14 +652,13 @@ def test_operator_metadata_identifier_default_version() -> None:
 
 def test_operator_metadata_version_valid_semver() -> None:
     """OperatorMetadata accepts valid strict SemVer version strings."""
-    import pydantic
 
     from ado.core.operation.config import (
         DiscoveryOperationEnum,
         OperatorMetadata,
     )
 
-    class _P(pydantic.BaseModel):
+    class _P(ado.core.operation.config.GenericOperatorParameters):
         pass
 
     valid_versions = [
@@ -690,7 +687,7 @@ def test_operator_metadata_version_invalid_semver() -> None:
         OperatorMetadata,
     )
 
-    class _P(pydantic.BaseModel):
+    class _P(ado.core.operation.config.GenericOperatorParameters):
         pass
 
     invalid_versions = [
@@ -733,8 +730,6 @@ def test_explore_operation_class_decorator_registers_function() -> None:
     """@explore_operation returns the class unchanged and stores the OperatorFunction in the collection."""
     import inspect
 
-    import pydantic
-
     from ado.core.operation.config import (
         DiscoveryOperationEnum,
         OperatorMetadata,
@@ -742,7 +737,7 @@ def test_explore_operation_class_decorator_registers_function() -> None:
     from ado.modules.operators.base import Explore
     from ado.modules.operators.collections import explore, explore_operation
 
-    class _Params(pydantic.BaseModel):
+    class _Params(ado.core.operation.config.GenericOperatorParameters):
         pass
 
     @explore_operation
@@ -780,7 +775,6 @@ def test_explore_operation_class_decorator_registers_function() -> None:
 
 def test_explore_operation_class_decorator_cls_stored() -> None:
     """explore.operators[name].cls is the unwrapped class after class decoration."""
-    import pydantic
 
     from ado.core.operation.config import (
         DiscoveryOperationEnum,
@@ -789,7 +783,7 @@ def test_explore_operation_class_decorator_cls_stored() -> None:
     from ado.modules.operators.base import Explore
     from ado.modules.operators.collections import explore, explore_operation
 
-    class _ParamsCls(pydantic.BaseModel):
+    class _ParamsCls(ado.core.operation.config.GenericOperatorParameters):
         pass
 
     @explore_operation
@@ -814,7 +808,6 @@ def test_explore_operation_class_decorator_cls_stored() -> None:
 
 def test_explore_operation_class_decorator_metadata_from_class() -> None:
     """All OperatorMetadata fields come from the class's operator_metadata()."""
-    import pydantic
 
     from ado.core.operation.config import (
         DiscoveryOperationEnum,
@@ -823,7 +816,7 @@ def test_explore_operation_class_decorator_metadata_from_class() -> None:
     from ado.modules.operators.base import Explore
     from ado.modules.operators.collections import explore, explore_operation
 
-    class _Params2(pydantic.BaseModel):
+    class _Params2(ado.core.operation.config.GenericOperatorParameters):
         x: int = 42
 
     @explore_operation
@@ -899,7 +892,7 @@ def test_warn_if_operator_name_reused_logs_for_duplicate(
     )
     from ado.modules.operators.collections import _warn_if_operator_name_reused
 
-    class _Cfg(pydantic.BaseModel):
+    class _Cfg(ado.core.operation.config.GenericOperatorParameters):
         pass
 
     placeholder = OperatorMetadata(

@@ -173,7 +173,7 @@ def setup_actuators(
 
 def setup_operator(
     operator_metadata: OperatorMetadata,
-    parameters: dict,
+    parameters: dict | pydantic.BaseModel,
     discovery_space: DiscoverySpace,
     namespace: str,
     discovery_space_manager: "DiscoverySpaceManagerActor",
@@ -186,7 +186,8 @@ def setup_operator(
     Params:
         operator_metadata: Registered metadata for the operator, carrying the class
             and canonical name.
-        parameters: Dictionary of parameters to pass to the operator
+        parameters: Operation parameters as a dict or pydantic model (models are
+            dumped to a dict before actor construction).
         discovery_space: The discovery space the operator will operate on
         namespace: Ray namespace to create the operator actor in
         discovery_space_manager: DiscoverySpaceManager actor handle
@@ -214,6 +215,10 @@ def setup_operator(
 
     base_class = operator_metadata.cls
     actor_name = operator_metadata.name
+
+    # Explore actors historically expect a plain dict (``Config(**params)``).
+    if isinstance(parameters, pydantic.BaseModel):
+        parameters = parameters.model_dump()
 
     operator = (
         ray.remote(base_class)

@@ -13,6 +13,7 @@ from ado.core.discoveryspace.config import EntityFilter
 from ado.core.discoveryspace.space import DiscoverySpace
 from ado.core.operation.config import (
     FunctionOperationInfo,
+    GenericOperatorParameters,
 )
 from ado.core.operation.operation import OperationOutput
 from ado.core.samplestore.sql import SQLSampleStore
@@ -26,7 +27,7 @@ from ado.schema.property import (
 from ado.schema.reference import ExperimentReference
 
 
-class RifferlaParameters(pydantic.BaseModel):
+class RifferlaParameters(GenericOperatorParameters):
     model_config = ConfigDict(extra="forbid")
 
     failed_metric: Annotated[

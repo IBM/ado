@@ -15,6 +15,7 @@ from ado.core.operation.config import (
     GenericOperatorParameters,
     OperatorMetadata,
 )
+from ado.core.operation.inputs import OperatorInputType
 from ado.core.operation.operation import OperationOutput
 from ado.modules.actuators.measurement_queue import MeasurementQueue
 from ado.modules.operators import _cleanup
@@ -166,9 +167,32 @@ def run_explore_operation_core_closure(
     return _run_explore_operation_core
 
 
+def _check_and_extract_discovery_space(
+    inputs: dict[str, OperatorInputType],
+) -> DiscoverySpace:
+    """Return the single discovery space in *inputs*.
+
+    Args:
+        inputs: Mapping of parameter name to rich operator input.
+
+    Returns:
+        The single DiscoverySpace instance in inputs.
+
+    Raises:
+        ValueError: If *inputs* does not contain exactly one DiscoverySpace.
+    """
+    spaces = [value for value in inputs.values() if isinstance(value, DiscoverySpace)]
+    if len(spaces) != 1:
+        raise ValueError(
+            "Explore operations require exactly one discovery space input; "
+            f"found {len(spaces)}."
+        )
+    return spaces[0]
+
+
 def orchestrate_explore_operation(
     operator_metadata: OperatorMetadata,
-    discovery_space: DiscoverySpace,
+    inputs: dict[str, OperatorInputType],
     parameters: GenericOperatorParameters,
     operation_info: FunctionOperationInfo,
 ) -> OperationOutput:
@@ -188,7 +212,8 @@ def orchestrate_explore_operation(
     Params:
         operator_metadata: Registered metadata for the operator, carrying the class,
             configuration model, name, and type.
-        discovery_space: The discovery space to operate on
+        inputs: Mapping of parameter name to rich operator input. Exactly one
+            value must be a DiscoverySpace.
         parameters: Validated parameters model for the operation
         operation_info: Information about the operation including metadata, actuator
             configuration identifiers, and namespace
@@ -209,6 +234,8 @@ def orchestrate_explore_operation(
 
     import ado.modules.operators.setup
 
+    discovery_space = _check_and_extract_discovery_space(inputs)
+
     if not operation_info.ray_namespace:
         operation_info.ray_namespace = (
             f"{operator_metadata.name}-namespace-{str(uuid.uuid4())[:8]}"
@@ -224,9 +251,7 @@ def orchestrate_explore_operation(
 
     log_space_details(discovery_space)
 
-    provenance = explore_operation_provenance(
-        operator_metadata.reference, discovery_space.measurementSpace
-    )
+    provenance = explore_operation_provenance(operator_metadata, [discovery_space])
 
     # create cleaner for this namespace
     initialize_ray_resource_cleaner(namespace=operation_info.ray_namespace)
@@ -332,10 +357,11 @@ def orchestrate_explore_operation(
     try:
         operation_output = _run_operation_harness(
             run_closure=explore_run_closure,
-            discovery_space=discovery_space,
+            inputs=inputs,
             operator_metadata=operator_metadata,
             operation_parameters=parameters,
             operation_info=operation_info,
+            metastore=discovery_space.metadataStore,
             provenance=provenance,
             operation_identifier=identifier,
             finalize_callback=finalize_callback_closure(operator),

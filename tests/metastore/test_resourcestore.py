@@ -360,7 +360,12 @@ def test_create_operation_and_add_output(
         }
     )
     op_resource = ado.modules.operators.base.create_operation_and_add_to_metastore(
-        space_identifier=space_identifier,
+        inputs={
+            "discoverySpace": ADOResourceReference(
+                identifier=space_identifier,
+                kind=CoreResourceKinds.DISCOVERYSPACE,
+            )
+        },
         operator_module=random_walk_multicloud_operation_configuration.operation.module,
         operation_parameters=operation_parameters,
         operation_info=FunctionOperationInfo(

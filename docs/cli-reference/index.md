@@ -567,12 +567,12 @@ Where:
       performing no validation.
     - The `stats` format augments the default `table` output with additional
       statistics columns. Supported resource types and their columns are:
-        - **Operations**: `TOTAL_RESULTS`, `SUCCESSFUL_RESULTS`,
-          `FAILED_RESULTS`, `MEASURED_ENTITIES` (entities with at least one
+        - **Operations**: `TOTAL_MEASUREMENTS`, `SUCCESSFUL_MEASUREMENTS`,
+          `FAILED_MEASUREMENTS`, `SAMPLED_ENTITIES` (entities with at least one
           measurement, whether successful, failed, or both).
-        - **Discovery Spaces**: `EXPERIMENTS`, `OPERATIONS`,
-          `EXPLORE_OPERATIONS`, `MEASURED_ENTITIES` (entities with at least one
-          measurement, whether successful, failed, or both).
+        - **Discovery Spaces**: `EXPERIMENTS`, `OPERATIONS`, `EXPLORE_OPS`,
+          `SAMPLED_ENTITIES` (entities with at least one measurement, whether
+          successful, failed, or both).
         - **Sample Stores**: `ENTITIES`, `RESULTS`, `EXPERIMENTS`.
         - **Data Containers**: `TABLES`, `LOCATIONS`, `KEY_VALUES`,
           `DATA_BYTES`.
@@ -645,8 +645,11 @@ for detailed information on the following options, including syntax.
 - The `--matching-space` option allows searching for `discoveryspaces` which
   match a given
   [configuration YAML](../resources/discovery-spaces.md#structure-of-the-discoveryspace-yaml-configuration).
+  Displays `ENTITY_SPACE_MATCH`, `BASE_EXPERIMENT_MATCH`, `VERSION_MATCH`, and
+  `PARAMETERIZATION_MATCH` columns describing how candidate spaces relate to
+  the reference.
 - The `--matching-space-id` option works in the same way as `--matching-space`
-  but allows the user to provide a space id instead of a configuration
+  but allows the user to provide a space id instead of a configuration.
 
 ### Examples
 
@@ -1342,16 +1345,13 @@ The statistics columns produced per resource type are:
 
 <!-- prettier-ignore-start -->
 
-- **Operations**: `TOTAL_RESULTS`, `SUCCESSFUL_RESULTS`, `FAILED_RESULTS`,
-  `MEASURED_ENTITIES` (entities with at least one measurement, whether
+- **Operations**: `TOTAL_MEASUREMENTS`, `SUCCESSFUL_MEASUREMENTS`, `FAILED_MEASUREMENTS`,
+  `SAMPLED_ENTITIES` (entities with at least one measurement, whether
   successful, failed, or both), `TOTAL_REQUESTS`, `FAILED_REQUESTS`,
   `SUCCESSFUL_REQUESTS`.
-- **Discovery Spaces**: `EXPERIMENTS`, `OPERATIONS`, `EXPLORE_OPERATIONS`,
-  `MEASURED_ENTITIES` (entities with at least one measurement, whether
-  successful, failed, or both), `SIZE_OF_ENTITY_SPACE`, `UNMEASURED_ENTITIES`,
-  `MATCHING_ENTITIES`, `MATCHING_WITH_MEASUREMENTS`,
-  `ENTITIES_WITH_ALL_MEASUREMENTS`, `ENTITIES_WITH_PARTIAL_MEASUREMENTS`,
-  `MATCHING_ENTITIES_WITH_ALL_MEASUREMENTS`.
+- **Discovery Spaces**: `EXPERIMENTS`, `OPERATIONS`, `EXPLORE_OPS`,
+  `ENTITY_SPACE_SIZE`, `UNSAMPLED`, `SAMPLED_COMPLETE`, `SAMPLED_PARTIAL`,
+  `SAMPLED_FAILED`, `MATCHING_COMPLETE`, `MATCHING_PARTIAL`, `MATCHING_FAILED`.
 - **Sample Stores**: `ENTITIES`, `RESULTS`, `EXPERIMENTS`.
 - **Data Containers**: `TABLES`, `LOCATIONS`, `KEY_VALUES`, `DATA_BYTES`.
 
@@ -1360,9 +1360,10 @@ The statistics columns produced per resource type are:
 !!! note
 
     `ado show stats discoveryspace` computes full entity-space coverage
-    statistics including the heavy columns (`SIZE_OF_ENTITY_SPACE`,
-    `UNMEASURED_ENTITIES`, `MATCHING_ENTITIES`, etc.). This is slower than
-    `ado get spaces -o stats` because it instantiates each
+    statistics including the heavy columns (`ENTITY_SPACE_SIZE`, `UNSAMPLED`,
+    `SAMPLED_COMPLETE`, `SAMPLED_PARTIAL`, `SAMPLED_FAILED`, `MATCHING_COMPLETE`,
+    `MATCHING_PARTIAL`, `MATCHING_FAILED`).
+    This is slower than `ado get spaces -o stats` because it instantiates each
     `DiscoverySpace` and queries the sample store. Use `ado get -o stats` for
     quick overviews.
 

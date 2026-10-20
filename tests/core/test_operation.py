@@ -62,7 +62,7 @@ def test_operation_resource(operation_resource: OperationResource) -> None:
         len(operation_resource.identifier)
         == len("operation") + len("test_operator") + 2 + 8
     )
-    assert operation_resource.created < dt.datetime.now(dt.timezone.utc)
+    assert operation_resource.created < dt.datetime.now(dt.UTC)
     assert isinstance(operation_resource.metadata, dict)
     assert operation_resource.config is not None
     assert isinstance(

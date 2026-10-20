@@ -14,7 +14,7 @@ if typing.TYPE_CHECKING:
     from rich.console import RenderableType
 
 
-class MeasuredPropertyTypeEnum(str, enum.Enum):
+class MeasuredPropertyTypeEnum(enum.StrEnum):
     REPRESENTATION_PROPERTY_TYPE = "REPRESENTATION_PROPERTY_TYPE"  # These are a numerical representation of the entity they are associated with
     PHYSICAL_PROPERTY_TYPE = (
         "PHYSICAL_PROPERTY_TYPE"  # These are physical properties of a physical entity
@@ -24,7 +24,7 @@ class MeasuredPropertyTypeEnum(str, enum.Enum):
     OBJECTIVE_FUNCTION_PROPERTY_TYPE = "OBJECTIVE_FUNCTION_PROPERTY_TYPE"  # Properties calculated from other properties with the purpose of providing a value w.r.t to some objective
 
 
-class NonMeasuredPropertyTypeEnum(str, enum.Enum):
+class NonMeasuredPropertyTypeEnum(enum.StrEnum):
     # Properties whose values don't require a measurement of the entity
     # Usually they are directly defined in the entities definition i.e. once have a uniquely specified the entity
     # you know these property value

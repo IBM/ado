@@ -23,7 +23,7 @@ if typing.TYPE_CHECKING:  # pragma: nocover
     from pydantic import ValidatorFunctionWrapHandler
 
 
-class MeasurementRequestStateEnum(str, enum.Enum):
+class MeasurementRequestStateEnum(enum.StrEnum):
     UNKNOWN = "Unknown"
     SUCCESS = "Success"
     FAILED = "Failed"

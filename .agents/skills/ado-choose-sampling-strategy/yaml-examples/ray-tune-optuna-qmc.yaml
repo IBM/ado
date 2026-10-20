@@ -1,0 +1,28 @@
+# Copyright IBM Corporation 2025, 2026
+# SPDX-License-Identifier: MIT
+# Quasi-random (Sobol) space-filling sample of a space with continuous
+# dimensions, where lhu_sampler and random_walk generators cannot be used.
+# metric/mode are required by ray_tune but do not steer QMC sampling.
+spaces:
+  - space-abc123
+operation:
+  module:
+    operatorName: ray_tune
+    operationType: explore
+  parameters:
+    tuneConfig:
+      metric: wallclock_time
+      mode: min
+      num_samples: 64 # use a power of 2 for balanced Sobol sequences
+      max_concurrent_trials: 4
+      search_alg:
+        name: optuna
+        params:
+          sampler: QMCSampler
+          sampler_parameters:
+            qmc_type: sobol
+            scramble: true
+            seed: 42
+metadata:
+  name: sobol-characterisation
+  description: Space-filling Sobol sample of a continuous space

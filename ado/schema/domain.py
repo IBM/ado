@@ -18,7 +18,7 @@ if typing.TYPE_CHECKING:
     from rich.console import RenderableType
 
 
-class VariableTypeEnum(str, enum.Enum):
+class VariableTypeEnum(enum.StrEnum):
     """Used to denote if the values of a property are discrete, continuous etc."""
 
     CONTINUOUS_VARIABLE_TYPE = (
@@ -36,7 +36,7 @@ class VariableTypeEnum(str, enum.Enum):
     IDENTIFIER_VARIABLE_TYPE = "IDENTIFIER_VARIABLE_TYPE"  # the value is some type of, possible unique, identifier
 
 
-class ProbabilityFunctionsEnum(str, enum.Enum):
+class ProbabilityFunctionsEnum(enum.StrEnum):
     UNIFORM = "uniform"  # A uniform distribution
     NORMAL = "normal"  # A normal distribution
     # Can easily add more

@@ -22,7 +22,7 @@ if typing.TYPE_CHECKING:  # pragma: nocover
     import pandas as pd
 
 
-class MeasurementResultStateEnum(str, enum.Enum):
+class MeasurementResultStateEnum(enum.StrEnum):
     VALID = "Valid"
     INVALID = "Invalid"
 

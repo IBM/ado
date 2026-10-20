@@ -12,7 +12,9 @@ from typer.testing import CliRunner
 from ado.cli.core.cli import app as ado
 from ado.core.discoveryspace.space import DiscoverySpace
 from ado.core.operation.config import DiscoveryOperationResourceConfiguration
+from ado.core.resources import CoreResourceKinds
 from ado.metastore.project import ProjectContext
+from ado.metastore.sqlstore import SQLStore
 from ado.utilities.output import pydantic_model_as_yaml
 from tests.conftest import requires_sqlite_3_38
 
@@ -198,6 +200,86 @@ def test_create_operation_success_with_discovery_space(
         ],
     )
     assert result.exit_code == 0, result.output
+
+
+def test_create_operation_dry_run_with_discovery_space(
+    tmp_path: pathlib.Path,
+    mysql_test_instance: MySqlContainer,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+    sql_store: SQLStore,
+) -> None:
+    runner = CliRunner()
+    create_active_ado_context(
+        runner=runner, path=tmp_path, project_context=valid_ado_project_context
+    )
+
+    space_configuration_file = pathlib.Path(
+        "examples/optimization_test_functions/space.yaml"
+    )
+    operation_configuration_file = pathlib.Path(
+        "examples/optimization_test_functions/operation_bayesopt.yaml"
+    )
+
+    result = runner.invoke(
+        ado,
+        [
+            "create",
+            "operation",
+            "-f",
+            str(operation_configuration_file),
+            "--with",
+            f"space={space_configuration_file}",
+            "--dry-run",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    spaces = sql_store.getResourceIdentifiersOfKind(
+        kind=CoreResourceKinds.DISCOVERYSPACE
+    )
+    assert spaces.empty
+
+
+def test_create_operation_dry_run_with_actuator_configuration(
+    tmp_path: pathlib.Path,
+    mysql_test_instance: MySqlContainer,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+    sql_store: SQLStore,
+) -> None:
+    runner = CliRunner()
+    create_active_ado_context(
+        runner=runner, path=tmp_path, project_context=valid_ado_project_context
+    )
+
+    actuator_configuration_file = pathlib.Path(
+        "tests/resources/actuatorconfiguration/robotic_lab.yaml"
+    )
+    operation_configuration_file = pathlib.Path(
+        "examples/optimization_test_functions/operation_bayesopt.yaml"
+    )
+
+    result = runner.invoke(
+        ado,
+        [
+            "create",
+            "operation",
+            "-f",
+            str(operation_configuration_file),
+            "--with",
+            f"actuatorconfiguration={actuator_configuration_file}",
+            "--dry-run",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    actuator_configurations = sql_store.getResourceIdentifiersOfKind(
+        kind=CoreResourceKinds.ACTUATORCONFIGURATION
+    )
+    assert actuator_configurations.empty
 
 
 @requires_sqlite_3_38

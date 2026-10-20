@@ -206,12 +206,11 @@ for an example structure.
 ### Step 2d: Validate Operation YAML
 
 ```bash
-uv run ado create operation -f operation.yaml --dry-run
+uv run ado create operation -f operation.yaml --with space=space.yaml --dry-run
 ```
 
-Do not add `--with space=space.yaml` here. `--dry-run` still **creates** that
-space. After the space exists, dry-run with `--use-latest space`. See
-[ado-use-cli](../ado-use-cli/SKILL.md) (`--with` and `--dry-run`).
+`--dry-run` validates both the operation and the discovery space YAMLs without
+creating any resources in the metastore.
 
 ### Step 2e: Iterate Until Valid
 

@@ -10,8 +10,10 @@ from typer.testing import CliRunner
 
 from ado.cli.core.cli import app as ado
 from ado.core.discoveryspace.config import DiscoverySpaceConfiguration
+from ado.core.resources import CoreResourceKinds
 from ado.core.samplestore.sql import SQLSampleStore
 from ado.metastore.project import ProjectContext
+from ado.metastore.sqlstore import SQLStore
 from ado.modules.actuators.registry import ActuatorRegistry
 from ado.utilities.output import pydantic_model_as_yaml
 from tests.conftest import requires_sqlite_3_38
@@ -239,6 +241,77 @@ def test_create_discovery_space_success_with_latest_samplestore(
         "        Sample Stores referenced in the space definition will be ignored and replaced with"
     )
     assert result.output.startswith(expected_output)
+
+
+def test_create_discovery_space_dry_run_with_sample_store_file(
+    tmp_path: pathlib.Path,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+    ml_multi_cloud_sample_store_configuration_file: pathlib.Path,
+    sql_store: SQLStore,
+) -> None:
+    runner = CliRunner()
+    create_active_ado_context(
+        runner=runner, path=tmp_path, project_context=valid_ado_project_context
+    )
+
+    space_configuration_file = pathlib.Path(
+        "examples/optimization_test_functions/space.yaml"
+    )
+
+    result = runner.invoke(
+        ado,
+        [
+            "create",
+            "space",
+            "-f",
+            str(space_configuration_file),
+            "--with",
+            f"store={ml_multi_cloud_sample_store_configuration_file}",
+            "--dry-run",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    sample_stores = sql_store.getResourceIdentifiersOfKind(
+        kind=CoreResourceKinds.SAMPLESTORE
+    )
+    assert sample_stores.empty
+
+
+def test_create_discovery_space_dry_run_new_sample_store(
+    tmp_path: pathlib.Path,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+    sql_store: SQLStore,
+) -> None:
+    space_configuration_file = pathlib.Path(
+        "plugins/actuators/example_actuator/yamls/discoveryspace.yaml"
+    )
+    runner = CliRunner()
+    create_active_ado_context(
+        runner=runner, path=tmp_path, project_context=valid_ado_project_context
+    )
+
+    result = runner.invoke(
+        ado,
+        [
+            "create",
+            "space",
+            "-f",
+            str(space_configuration_file),
+            "--new-sample-store",
+            "--dry-run",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    sample_stores = sql_store.getResourceIdentifiersOfKind(
+        kind=CoreResourceKinds.SAMPLESTORE
+    )
+    assert sample_stores.empty
 
 
 def test_create_discovery_space_fail_new_sample_store_with_replay(

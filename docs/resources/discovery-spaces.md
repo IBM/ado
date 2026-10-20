@@ -175,7 +175,7 @@ structure
 ```yaml
 identifier: model_name # The name of the property
 propertyDomain: # The domain describes the values the property can take
-  variableType:# The type of the variable: CATEGORICAL_VARIABLE_TYPE, DISCRETE_VARIABLE_TYPE, CONTINUOUS_VARIABLE_TYPE or UNKNOWN_VARIABLE_TYPE
+  variableType: # The type of the variables
     # The type defines what values the next fields can take.
   values: # If the variable is CATEGORICAL_VARIABLE_TYPE this is a list of the categories
     -  # If the variable is DISCRETE_VARIABLE_TYPE this can be a list of discrete float or integer values it can take
@@ -189,9 +189,17 @@ propertyDomain: # The domain describes the values the property can take
 
 <!-- markdownlint-enable line-length -->
 
-As long as all constitutive properties are not "UNKNOWN_VARIABLE_TYPE" there is
-sufficient information to sample new entities from the `entityspace`
-description.
+>[!NOTE] Closing open domains
+>
+> For entity space properties which are OPEN_CATEGORICAL_VARIABLE_TYPE, if the
+> values field is not empty
+> ado converts them to CATEGORICAL_VARIABLE_TYPE (closes the domain).
+> This makes the entity spaces finite meaning it can be sampled by a wide
+> variety of samplers.
+>
+> If the values field is empty ado does not do this conversion - the domain
+> remains OPEN_CATEGORICAL_VARIABLE_TYPE, and the space is infinite.
+> This can be sampled in certain cases e.g. random_walk selectors.
 
 For more on property types, domains and probability functions see
 [properties and domains](../concepts/properties-and-domains.md).
@@ -816,25 +824,25 @@ ado show stats space space-047b6a-f60613 -o yaml
 ```terminaloutput
 space-047b6a-f60613:
   AGE: 367d7h
-  ENTITY_SPACE_SIZE: 79
+  ENTITIES_WITH_ALL_MEASUREMENTS: 28
+  ENTITIES_WITH_PARTIAL_MEASUREMENTS: 12
   EXPERIMENTS: 1
-  EXPLORE_OPS: 1
-  MATCHING_COMPLETE: 79
-  MATCHING_FAILED: 0
-  MATCHING_PARTIAL: 0
+  EXPLORE_OPERATIONS: 1
+  MATCHING_ENTITIES: 148
+  MATCHING_ENTITIES_WITH_ALL_MEASUREMENTS: 148
+  MATCHING_WITH_MEASUREMENTS: 148
+  MEASURED_ENTITIES: 40
   NAME: rosenbrock_3d
   OPERATIONS: 1
-  SAMPLED_COMPLETE: 79
-  SAMPLED_FAILED: 0
-  SAMPLED_PARTIAL: 0
-  UNSAMPLED: 0
+  SIZE_OF_ENTITY_SPACE: null
+  UNMEASURED_ENTITIES: .inf
 ```
 
-The `SAMPLED_*` counts come from operations on this space, while the
+The `MEASURED_ENTITIES` counts come from operations on this space, while the
 `MATCHING_*` counts cover every entity in the `samplestore` that matches the
 space - the two filters described in
 [shared samplestores](#discoveryspaces-and-shared-samplestores).
-`ENTITY_SPACE_SIZE` and `UNSAMPLED` have values for finite spaces.
+`SIZE_OF_ENTITY_SPACE` and `UNMEASURED_ENTITIES` have values for finite spaces.
 
 For a human-readable view of the `entityspace`, the `measurementspace` and the
 `samplestore` a space uses:

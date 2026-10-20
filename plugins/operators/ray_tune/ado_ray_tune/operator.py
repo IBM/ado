@@ -659,6 +659,11 @@ def property_domain_to_ray_distribution(
 
     from ado.schema.domain import ProbabilityFunctionsEnum, VariableTypeEnum
 
+    if domain.variableType == VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE:
+        raise ValueError(
+            "ray_tune cannot sample an open categorical dimension. "
+            "List its values to close it, or use a random_walk selector."
+        )
     if domain.variableType == VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE:
         # Categorical values always return choice - currently no method to describe a non-uniform distribution
         retval = ray.tune.choice(domain.values)

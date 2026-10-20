@@ -1,3 +1,54 @@
+## [2.3.0](https://github.com/ibm/ado/compare/159e9617ddceeb0a80c0134c990746cd9ca8b0a4..2.3.0) - 2026-10-20
+#### Features
+- (**autoconf**) add throughput recommender (#1477) - ([9ea5cee](https://github.com/ibm/ado/commit/9ea5cee34b2711a5b8ffbeda2b373a548bc0addf)) - Daniele Lotito
+- (**cli**) display measurement space comparison in --matching-space (#1529) - ([acca41b](https://github.com/ibm/ado/commit/acca41bfeafa6b6b824b605e074ed9c3f2058c40)) - Alessandro Pomponio
+- (**cli**) handle SpaceInconsistencyError gracefully (#1498) - ([413a0cc](https://github.com/ibm/ado/commit/413a0cc9161149b8e868eb06c2d0fd9109d5e1f0)) - Alessandro Pomponio
+- (**cli**) add bulk patching to edit command (#1491) - ([4105270](https://github.com/ibm/ado/commit/4105270bf7f90ed6e8a6018dbbc1e4ac6d555858)) - Alessandro Pomponio
+- (**core**) improve error clarity for wrong value type in PropertyValue (#1503) - ([8507244](https://github.com/ibm/ado/commit/8507244ab928091fa0bbe2c8523f6c8a611e22f2)) - Alessandro Pomponio
+- (**core**) add bulk update method to resource store (#1490) - ([02da550](https://github.com/ibm/ado/commit/02da550cfa199f24e44cc99c0741769a1ccbc3b3)) - Alessandro Pomponio
+- (**core**) add bulk identifier existence check on resource store (#1488) - ([a28b067](https://github.com/ibm/ado/commit/a28b067d942b42779b6289c88279715a8a16c52f)) - Alessandro Pomponio
+- (**ray-tune**) add repeated sample stopper (#1557) - ([d6c94ff](https://github.com/ibm/ado/commit/d6c94ff4998e90af5afbede31505529d110141cd)) - Michael Johnston
+#### Bug Fixes
+- (**cli**) ensure space statistics are correct and have clear names (#1506) - ([bddc1eb](https://github.com/ibm/ado/commit/bddc1ebe33e6945eb9091c3164fd3d69e839842b)) - Alessandro Pomponio
+- (**core**) correctly apply ray_options when dispatching custom experiment remote tasks (#1534) - ([bcb80b8](https://github.com/ibm/ado/commit/bcb80b8a7e2f931a9ff4c25ff4c6e829b9072384)) - Michael Johnston
+- (**core**) raise error when randomwalk selector has insufficient entities (#1504) - ([9f92561](https://github.com/ibm/ado/commit/9f92561f0cbda98b2075db2c66215abbc4fab9cc)) - Michael Johnston
+- (**core**) sort properties collections by identifier (#1516) - ([350623f](https://github.com/ibm/ado/commit/350623f769ddf0d29757c4102af86abd1609ef77)) - Alessandro Pomponio
+#### Documentation
+- (**agents**) rename skills to follow ado-{verb}-{name} pattern (#1559) - ([8ba6441](https://github.com/ibm/ado/commit/8ba64413de681acd1f20d65b834befe401edc4bf)) - Alessandro Pomponio
+- (**agents**) add skill for choosing sampling strategy (#1544) - ([c0f7676](https://github.com/ibm/ado/commit/c0f7676305e38d3ccfada48e7a8bc25845a1c91d)) - Michael Johnston
+- (**agents**) autodetect remote ray version in remote-execution (#1500) - ([01a945e](https://github.com/ibm/ado/commit/01a945e1b6ca284bfd300583389d4654c5d5f25b)) - Alessandro Pomponio
+- (**agents**) ensure loading of basic skills and clarifications (#1495) - ([7f6106b](https://github.com/ibm/ado/commit/7f6106b6c60801b336bfd792e23feb5b7f11a6b3)) - Michael Johnston
+- (**changelog**) add release notes for 2.2.0 (#1476) - ([159e961](https://github.com/ibm/ado/commit/159e9617ddceeb0a80c0134c990746cd9ca8b0a4)) - DRL-NextGen
+- update security policy (#1480) - ([79b90d0](https://github.com/ibm/ado/commit/79b90d08d272ec1be45ef7ed902f24ba7e218be6)) - Alessandro Pomponio
+#### Build system
+- (**autoconf**) drop support for Python 3.10 (#1528) - ([a0a329b](https://github.com/ibm/ado/commit/a0a329bc1780beb63d933fcaae39d81d000b4550)) - Alessandro Pomponio
+- (**core**) drop support for Python 3.10 (#1535) - ([dd6a4ce](https://github.com/ibm/ado/commit/dd6a4cef879ddfdc778a16c093c54691538ab450)) - Alessandro Pomponio
+- (**cplex-mip**) drop support for Python 3.10 (#1531) - ([5f97473](https://github.com/ibm/ado/commit/5f974732587efcc5a0f3812a782e1f3a81a25ea0)) - Alessandro Pomponio
+- (**deps**) update dependencies (#1553) - ([3b76572](https://github.com/ibm/ado/commit/3b76572f1eccfff21a52adb09f76d7ccadc6708d)) - DRL-NextGen
+- (**deps**) update dependencies (#1507) - ([c92a20d](https://github.com/ibm/ado/commit/c92a20d3468f84fbb16ae4691b0e09502e12bbe2)) - DRL-NextGen
+- (**deps**) update dependencies (#1492) - ([36694eb](https://github.com/ibm/ado/commit/36694ebde5f2344e039049740162a2acdb68d47c)) - DRL-NextGen
+- (**hooks**) update pre-commit hooks (#1554) - ([08be86b](https://github.com/ibm/ado/commit/08be86bc51259a51b165571067e67c0beb06985c)) - DRL-NextGen
+- (**hooks**) update pre-commit hooks (#1508) - ([71680bc](https://github.com/ibm/ado/commit/71680bcb0497e147eba25f8ff2c33f8bf1ee9e3d)) - DRL-NextGen
+- (**hooks**) add more ignore globs for copywrite (#1496) - ([c48ddff](https://github.com/ibm/ado/commit/c48ddff9cadd8602944428cdc3c24d6267d71757)) - Michael Johnston
+- (**hooks**) update pre-commit hooks (#1493) - ([21baa3e](https://github.com/ibm/ado/commit/21baa3e49de17e93c9c40cf46ac106d69cb87a77)) - DRL-NextGen
+- (**profile-space**) drop support for Python 3.10 (#1533) - ([2ca8409](https://github.com/ibm/ado/commit/2ca8409ec594a7ed23c7c0576843d00eb03227a6)) - Alessandro Pomponio
+- (**sfttrainer**) drop support for Python 3.10 (#1519) - ([e09828a](https://github.com/ibm/ado/commit/e09828a9a32bea75cd42a8df289e85f5926294dc)) - Alessandro Pomponio
+- (**trim**) drop support for Python 3.10 (#1525) - ([5a4ccb4](https://github.com/ibm/ado/commit/5a4ccb4d4e807f51a7fdc1765927db20a7560cd7)) - Alessandro Pomponio
+- (**vllm-performance**) drop support for Python 3.10 (#1521) - ([4c02f25](https://github.com/ibm/ado/commit/4c02f25e98e98bc4eb8d9d75b4cdb04fc364dbe4)) - Alessandro Pomponio
+- update autogluon to 1.6.3 (#1510) - ([678e77c](https://github.com/ibm/ado/commit/678e77ca48cbf3f00a1a86ca620f2ac696086d0b)) - Alessandro Pomponio
+#### Continuous Integration
+- remove Mend UA-related files (#1481) - ([9c60a99](https://github.com/ibm/ado/commit/9c60a99a88d249206ec3c8f3bec73a051ab0ef83)) - Alessandro Pomponio
+#### Refactoring
+- (**cli**) rename RESULTS stats columns to MEASUREMENTS (#1540) - ([fc3958e](https://github.com/ibm/ado/commit/fc3958eca76586bc46b03511f0736c2152f029db)) - Alessandro Pomponio
+- (**core**) use sqlalchemy orm and table reflection in sql resource store (#1485) - ([7058fc1](https://github.com/ibm/ado/commit/7058fc175c13f996704413b1a9884b809cfb4424)) - Alessandro Pomponio
+- (**core**) only record appropriate provenance information based on operation type (#1478) - ([80f9ca4](https://github.com/ibm/ado/commit/80f9ca4108bdc52bfc2ce66a12747b9c7d60795d)) - Michael Johnston
+- (**ray-tune**) change default sampler to Optuna TPE (#1545) - ([4c04b35](https://github.com/ibm/ado/commit/4c04b35119b74a93cf6386d4a0f84854d29303b4)) - Michael Johnston
+- remove mock actuator and replace with test actuator (#1479) - ([1359ff3](https://github.com/ibm/ado/commit/1359ff366d94e1affbbb75fd1deddd0bc90475ce)) - Alessandro Pomponio
+#### Miscellaneous Chores
+- remove test file (#1499) - ([8bf8167](https://github.com/ibm/ado/commit/8bf8167ba284fa4b554003861766760e73ddeecd)) - Alessandro Pomponio
+
+- - -
+
 ## [2.2.0](https://github.com/ibm/ado/compare/822bf2e67e925a88c995011912ed3ae2354e0bc8..2.2.0) - 2026-09-28
 #### Features
 - (**cli**) add --from-experiment filter to show measurements command (#1462) - ([e059552](https://github.com/ibm/ado/commit/e05955236dcd1830cebf5aa436392543775e5c85)) - Alessandro Pomponio

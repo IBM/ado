@@ -21,6 +21,7 @@ import ado.schema.reference
 from ado.core.discoveryspace.space import DiscoverySpace
 from ado.core.operation.config import (
     FunctionOperationInfo,
+    GenericOperatorParameters,
     OperatorModuleConf,
     OperatorReference,
 )
@@ -52,22 +53,18 @@ class OperatorFunction(Protocol):
         self,
         discoverySpace: DiscoverySpace,
         operationInfo: FunctionOperationInfo | None = None,
-        **kwargs: object,
+        *,
+        parameters: GenericOperatorParameters,
     ) -> OperationOutput: ...
 
 
 def validate_operator_function_signature(fn: typing.Callable) -> None:
     """Validate that *fn* conforms to the :class:`OperatorFunction` Protocol.
 
-    Validates the positional parameter count against the Protocol, then
-    checks that every positional parameter and the return value carry a type
-    annotation whose type matches the Protocol.  Type hints are mandatory:
-    an operator function without them cannot be verified to be correct, so
-    a ``ValueError`` is raised rather than silently skipping the check.
-
-    If ``inspect.signature`` cannot be obtained for *fn* a ``ValueError`` is
-    raised, because conformance cannot be confirmed.  A failure to inspect the
-    Protocol itself propagates as-is (it indicates a framework bug).
+    The callable must take ``discoverySpace`` and ``operationInfo``, then a
+    keyword-only ``parameters`` argument typed as a
+    :class:`~ado.core.operation.config.GenericOperatorParameters` subclass.
+    ``*args`` and ``**kwargs`` are rejected.
 
     Args:
         fn: The callable to validate.
@@ -84,8 +81,6 @@ def validate_operator_function_signature(fn: typing.Callable) -> None:
         "and the return value to pass validation."
     )
 
-    proto_sig = inspect.signature(OperatorFunction.__call__)
-
     try:
         sig = inspect.signature(fn)
     except (TypeError, ValueError) as exc:
@@ -94,39 +89,36 @@ def validate_operator_function_signature(fn: typing.Callable) -> None:
             f"be inspected ({exc})."
         ) from exc
 
-    proto_positional = [
-        p
-        for p in proto_sig.parameters.values()
-        if p.name != "self"
-        and p.kind
-        in (
-            inspect.Parameter.POSITIONAL_OR_KEYWORD,
-            inspect.Parameter.POSITIONAL_ONLY,
+    params = list(sig.parameters.values())
+    if any(p.kind == inspect.Parameter.VAR_POSITIONAL for p in params):
+        raise ValueError("Operator function must not declare *args.")
+    if any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params):
+        raise ValueError(
+            "Operator function must not declare **kwargs; pass operation "
+            "parameters as a keyword-only 'parameters' argument."
         )
-    ]
-    actual_positional = [
+
+    positional = [
         p
-        for p in sig.parameters.values()
+        for p in params
         if p.kind
         in (
             inspect.Parameter.POSITIONAL_OR_KEYWORD,
             inspect.Parameter.POSITIONAL_ONLY,
         )
+        and p.name != "self"
     ]
-    if len(actual_positional) < len(proto_positional):
-        missing = [p.name for p in proto_positional[len(actual_positional) :]]
+    keyword_only = [p for p in params if p.kind == inspect.Parameter.KEYWORD_ONLY]
+    if [p.name for p in positional] != ["discoverySpace", "operationInfo"]:
         raise ValueError(
-            f"Operator function is missing required positional parameter(s): "
-            f"{missing!r}."
+            "Operator function positional parameters must be "
+            f"'discoverySpace' and 'operationInfo'; got {[p.name for p in positional]!r}."
         )
-    if len(actual_positional) > len(proto_positional):
-        extra = [p.name for p in actual_positional[len(proto_positional) :]]
+    if [p.name for p in keyword_only] != ["parameters"]:
         raise ValueError(
-            f"Operator function has extra positional parameter(s) not in the "
-            f"Protocol: {extra!r}."
+            "Operator function must declare a keyword-only 'parameters' "
+            f"argument; got {[p.name for p in keyword_only]!r}."
         )
-
-    proto_hints = typing.get_type_hints(OperatorFunction.__call__)
 
     try:
         hints = typing.get_type_hints(fn)
@@ -136,8 +128,9 @@ def validate_operator_function_signature(fn: typing.Callable) -> None:
             f"or unresolvable ({exc}). {_HINTS_MISSING_HINT}"
         ) from exc
 
-    missing_hints: list[str] = [
-        f"parameter {p.name!r}" for p in actual_positional if p.name not in hints
+    expected_names = ["discoverySpace", "operationInfo", "parameters"]
+    missing_hints = [
+        f"parameter {name!r}" for name in expected_names if name not in hints
     ]
     if "return" not in hints:
         missing_hints.append("return type")
@@ -147,25 +140,31 @@ def validate_operator_function_signature(fn: typing.Callable) -> None:
             f"for {missing_hints}. {_HINTS_MISSING_HINT}"
         )
 
-    expected_return = proto_hints.get("return")
-    actual_return = hints["return"]
-    if expected_return is not None and actual_return != expected_return:
+    if hints["return"] != OperationOutput:
         raise ValueError(
-            f"Operator function return type must be {expected_return!r}, "
-            f"got {actual_return!r}."
+            f"Operator function return type must be {OperationOutput!r}, "
+            f"got {hints['return']!r}."
         )
-
-    for idx, (proto_param, actual_param) in enumerate(
-        zip(proto_positional, actual_positional, strict=True), start=1
+    if hints["discoverySpace"] != DiscoverySpace:
+        raise ValueError(
+            f"Operator function parameter 'discoverySpace' must be {DiscoverySpace!r}, "
+            f"got {hints['discoverySpace']!r}."
+        )
+    expected_operation_info = FunctionOperationInfo | None
+    if hints["operationInfo"] != expected_operation_info:
+        raise ValueError(
+            f"Operator function parameter 'operationInfo' must be "
+            f"{expected_operation_info!r}, got {hints['operationInfo']!r}."
+        )
+    parameters_type = hints["parameters"]
+    if not (
+        isinstance(parameters_type, type)
+        and issubclass(parameters_type, GenericOperatorParameters)
     ):
-        expected_type = proto_hints.get(proto_param.name)
-        actual_type = hints[actual_param.name]
-        if expected_type is not None and actual_type != expected_type:
-            raise ValueError(
-                f"Operator function parameter {actual_param.name!r} "
-                f"(position {idx}) must be {expected_type!r}, "
-                f"got {actual_type!r}."
-            )
+        raise ValueError(
+            "Operator function parameter 'parameters' must be a "
+            f"GenericOperatorParameters subclass, got {parameters_type!r}."
+        )
 
 
 # Some operations are RayActors: These operations use Actuators and StateUpdateQueue and require Ray

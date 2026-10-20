@@ -155,8 +155,18 @@ plugin or example venv.
 Ensure the virtual environment is set up before running tests:
 
 ```sh
-uv sync --reinstall --group test --group dev
+uv sync --locked --reinstall --group test --group dev
 ```
+
+On native Windows x64, use Python 3.11–3.13 (3.11 is the default) and follow
+[the PowerShell setup](DEVELOPING.md#native-windows-setup-powershell), including
+verification of all committed symlinks before running hooks. The test group
+excludes SFTTrainer on Windows because `aimrocks` has no Windows distribution.
+Markdownlint's pre-commit hook and MySQL integration tests require
+Docker Desktop with Linux containers and a successful `docker system info`.
+Follow the [Docker prerequisites](DEVELOPING.md#docker-prerequisites-for-hooks-and-integration-tests)
+to verify CLI availability before running hooks and Python Docker client
+connectivity before running the full core suite.
 
 ---
 
@@ -190,6 +200,14 @@ uv sync --reinstall --group test --group dev
   ```sh
   uv run pytest -n auto tests/
   ```
+
+- On native Windows, the locked core Tox target is
+  `uv run tox -e py311-locked-windows`; use `py312-locked-windows` or
+  `py313-locked-windows` for Python 3.12 or 3.13. These targets use two workers.
+  Run the Docker-free subset with
+  `uv run --group test pytest -n 2 tests/schema tests/utilities`.
+- Run SFTTrainer tests and the full plugin test matrix on Linux or macOS,
+  subject to the plugins' Python version requirements.
 
 ### Testing YAML Resources
 

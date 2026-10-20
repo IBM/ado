@@ -100,7 +100,7 @@ class VLLMPerformanceTest(ActuatorBase):
 
             logger.debug(f"Loading experiments from {exp_file.name}")
             try:
-                file_data = exp_file.read_text()
+                file_data = exp_file.read_text(encoding="utf-8")
                 data = yaml.safe_load(file_data)
             except yaml.YAMLError as error:
                 error_message = f"File {exp_file.name} is a malformed YAML"

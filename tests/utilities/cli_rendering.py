@@ -5,6 +5,7 @@
 import pandas as pd
 import rich.box
 
+from ado.cli.utils.output.prints import stdout_console
 from ado.cli.utils.resources.formatters import (
     format_default_ado_get_single_resource,
 )
@@ -38,7 +39,7 @@ def render_dataframe_to_cli_output(
         show_index=show_index,
         do_not_truncate_columns=do_not_truncate_columns,
     )
-    return render_to_string(table, auto_width=True)
+    return render_to_string(table, width=stdout_console.width, auto_width=True)
 
 
 def render_ado_resources_to_cli_output(

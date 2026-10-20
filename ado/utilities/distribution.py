@@ -12,6 +12,8 @@ import importlib
 import importlib.metadata as im
 import json
 from pathlib import Path
+from urllib.parse import urlparse
+from urllib.request import url2pathname
 
 
 def distribution_from_module(module_name: str) -> str | None:
@@ -52,7 +54,9 @@ def distribution_from_module(module_name: str) -> str | None:
             if direct_url:
                 data = json.loads(direct_url)
                 if "dir_info" in data:
-                    source_root = Path(data["url"].replace("file://", "")).resolve()
+                    source_root = Path(
+                        url2pathname(urlparse(data["url"]).path)
+                    ).resolve()
                     if module_path.is_relative_to(source_root):
                         return dist.metadata["Name"]
         except Exception:  # noqa: S110
@@ -73,7 +77,9 @@ def distribution_from_module(module_name: str) -> str | None:
             if direct_url:
                 data = json.loads(direct_url)
                 if "dir_info" in data:
-                    source_root = Path(data["url"].replace("file://", "")).resolve()
+                    source_root = Path(
+                        url2pathname(urlparse(data["url"]).path)
+                    ).resolve()
                     if module_path.is_relative_to(source_root) and (
                         most_specific_source_root is None
                         or len(source_root.parts) > len(most_specific_source_root.parts)

@@ -142,7 +142,7 @@ def test_sample_store_resource(sample_store_resource: SampleStoreResource) -> No
         sample_store_resource.kind == ado.core.resources.CoreResourceKinds.SAMPLESTORE
     )
 
-    assert sample_store_resource.created < dt.datetime.now(dt.UTC)
+    assert sample_store_resource.created <= dt.datetime.now(dt.UTC)
     assert isinstance(sample_store_resource.metadata, dict)
     assert sample_store_resource.config is not None
     assert isinstance(sample_store_resource.config, SampleStoreConfiguration)

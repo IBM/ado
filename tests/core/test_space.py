@@ -190,7 +190,7 @@ def test_discovery_space_resource(
         == ado.core.resources.CoreResourceKinds.DISCOVERYSPACE
     )
 
-    assert discovery_space_resource.created < dt.datetime.now(dt.UTC)
+    assert discovery_space_resource.created <= dt.datetime.now(dt.UTC)
     assert isinstance(discovery_space_resource.metadata, dict)
     assert discovery_space_resource.config is not None
     assert isinstance(discovery_space_resource.config, DiscoverySpaceConfiguration)

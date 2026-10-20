@@ -88,7 +88,7 @@ test = [
   "ado-autoconf ; python_full_version < '3.14'",
   "ado-profile-space",
   "ado-ray-tune",
-  "ado-sfttrainer ; python_full_version < '3.13'",
+  "ado-sfttrainer ; python_full_version < '3.13' and sys_platform != 'win32'",
   "ado-trim ; python_full_version < '3.14'",
   "ado-vllm-performance",
   "cloudpickle>=3.1.2",
@@ -118,7 +118,11 @@ RAY_ENABLE_UV_RUN_RUNTIME_ENV = "0"
 
 [tool.uv]
 default-groups = ["dev", "docs"]
-required-environments = ["sys_platform == 'darwin' and platform_machine == 'arm64'", "sys_platform == 'linux' and platform_machine == 'x86_64'"]
+required-environments = [
+  "sys_platform == 'darwin' and platform_machine == 'arm64'",
+  "sys_platform == 'linux' and platform_machine == 'x86_64'",
+  "sys_platform == 'win32' and platform_machine == 'AMD64' and python_version >= '3.11' and python_version < '3.14'",
+]
 
 # Having our plugins in the workspace section makes it so
 # that dependencies are resolved considering them as well.

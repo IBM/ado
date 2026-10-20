@@ -170,7 +170,9 @@ def test_get_robotic_lab_actuator() -> None:
             },
             index=pd.Index([0]),
         )
-        rendered_output = render_dataframe_to_cli_output(expected_output)
+        rendered_output = render_dataframe_to_cli_output(
+            expected_output, do_not_truncate_columns=["ACTUATOR ID"]
+        )
         assert rendered_output in result.output
 
 

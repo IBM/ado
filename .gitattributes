@@ -1,0 +1,3 @@
+# Keep YAML formatting consistent across Windows, Linux, and macOS.
+*.yaml text eol=lf
+*.yml text eol=lf

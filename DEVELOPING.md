@@ -9,9 +9,87 @@ for project and dependency management.
 
 To install `uv`, refer to the
 [official installation documentation](https://docs.astral.sh/uv/getting-started/installation/#installing-uv)
-and choose your preferred method.
+and choose your preferred method. Use uv 0.13.0 or newer to match the
+repository's pre-commit hooks and lockfile format.
+
+### Supported development platforms
+
+**macOS is the recommended operating system for ado development.** Linux also
+supports the core and plugin test suites, subject to plugin Python requirements.
+
+Native Windows x64 supports core development on Python 3.11–3.13; the repository
+defaults to Python 3.11.
+AutoConf, TRIM, and the vLLM client are included; SFTTrainer is excluded because
+`aimrocks` has no Windows distribution. The optional vLLM runtime requires Linux.
+
+[Ray's Windows support is in beta](https://docs.ray.io/en/latest/ray-overview/installation.html#windows-support).
+Use local Ray on Windows; use Linux for multi-node clusters.
+
+### Native Windows setup (PowerShell)
+
+Install Git for Windows and uv 0.13.0 or newer. Enable
+[Windows Developer Mode](https://learn.microsoft.com/en-us/windows/apps/get-started/enable-your-device-for-development)
+or obtain equivalent symlink privileges **before cloning**. The repository
+uses symlinks for documentation and agent configuration. If an existing checkout
+contains link pointer files, preserve local changes and make a fresh clone.
+Clone and verify every committed symlink before running hooks:
+
+```powershell
+git clone -c core.symlinks=true https://github.com/IBM/ado.git
+cd ado
+git ls-files --stage | ForEach-Object {
+    if ($_ -match '^120000 \S+ \d+\t(.+)$') {
+        $linkPath = $Matches[1]
+        $link = Get-Item -LiteralPath $linkPath -Force
+        if ($link.LinkType -ne 'SymbolicLink' -or
+            -not (Test-Path -LiteralPath $linkPath)) {
+            throw "Expected a working symbolic link: $linkPath"
+        }
+    }
+}
+uv sync --locked --reinstall --group test --group dev
+```
+
+Run the Docker-free subset from the repository root:
+
+```powershell
+uv run --group test pytest -n 2 tests/schema tests/utilities
+```
+
+#### Docker prerequisites for hooks and integration tests
+
+Install and start
+[Docker Desktop for Windows](https://docs.docker.com/desktop/setup/install/windows-install/)
+with Linux containers enabled, following its WSL and virtualization requirements.
+Open a new PowerShell terminal and ensure Docker's `resources/bin` directory is
+on `PATH`. Allow access to the checkout and image registries. Before running
+hooks or MySQL integration tests, verify the engine reports `linux` and the
+Python client prints `True`:
+
+```powershell
+docker system info
+docker info --format '{{.OSType}}'
+uv run --group test python -c "import docker; print(docker.from_env().ping())"
+uv run pre-commit install --install-hooks
+uv run pre-commit run -a
+uv run tox -e py311-locked-windows
+```
+
+Tox runs `tests/` with two workers; append `-- -n 1 tests/` to reduce concurrency.
+Use `py312-locked-windows` or `py313-locked-windows` to test Python 3.12 or 3.13.
+Testcontainers manages the temporary MySQL containers automatically.
+
+### Windows with WSL2
+
+For the full Linux plugin workflow, use WSL2 with Docker Desktop integration and
+clone inside the Linux filesystem (for example, `~/src/ado`). Follow the
+[standard setup](#creating-a-development-virtual-environment) below, then run
+`uv run tox -e py311-locked-linux`.
 
 ### Creating a development virtual environment
+
+On native Windows, follow [Native Windows setup](#native-windows-setup-powershell).
+The shell activation commands below are for Linux, macOS, and WSL2.
 
 Create a development virtual environment by executing the following commands in
 the top-level of the `ado` repository:
@@ -25,7 +103,7 @@ the top-level of the `ado` repository:
 > section for instructions on how to do this.
 
 ```commandline
-uv sync --group test --reinstall
+uv sync --locked --group test --group dev --reinstall
 source .venv/bin/activate
 ```
 
@@ -224,7 +302,8 @@ We require copyright and SPDX license headers to be added to the source code.
 This can be automated by using Hashicorp's Copywrite tool:
 <https://github.com/hashicorp/copywrite>
 
-Once installed, run
+The pre-commit hook installs Copywrite in an isolated Go environment. For manual
+use, install Copywrite and run:
 
 ```shell
 copywrite headers
@@ -281,21 +360,17 @@ the provided pre-commit hooks.
 >
 > - A developer virtual environment
 >   [created with uv](#creating-a-development-virtual-environment)
-> - A recent version of [NodeJS](https://nodejs.org/en/download/)
->   - On MacOS we suggest
->     [installing it via brew](https://formulae.brew.sh/formula/node) for ease
->     of use
-> - [Copywrite](https://github.com/hashicorp/copywrite) installed
->   - On MacOS we suggest
->     [installing it via brew](https://github.com/hashicorp/copywrite#getting-started)
->     for ease of use.
+> - A running Docker engine with Linux containers, for Markdownlint. On Windows,
+>   follow the [Docker prerequisites](#docker-prerequisites-for-hooks-and-integration-tests).
 
 ```commandline
-pre-commit install
+uv run pre-commit install --install-hooks
 ```
 
 This command will configure pre-commit to run automatically before each commit,
 highlighting any issues and preventing the commit if problems are found.
+Run all checks manually with `uv run pre-commit run -a`. The Markdownlint hook
+runs in Docker. Docker is also required for MySQL integration tests.
 
 ### Handling pre-commit failures
 

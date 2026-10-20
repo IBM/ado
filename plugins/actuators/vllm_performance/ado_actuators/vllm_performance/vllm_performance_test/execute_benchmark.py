@@ -249,8 +249,9 @@ def execute_vllm_benchmark(
             "--prefix-repetition-output-len": prefix_repetition_output_len,
         }
         if ignore_eos:
-            # A valueless flag: execute_benchmark appends the key alone when the
-            # value is falsy.
+            # --ignore-eos takes no argument. execute_benchmark always appends the
+            # key and only appends the value if it is truthy, so None emits the
+            # bare flag.
             custom_args["--ignore-eos"] = None
     else:
         # We should never get here but we keep this just in case because the dataset field

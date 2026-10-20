@@ -24,7 +24,11 @@ from ado.core.operation.resource import (
     OperationResourceEventEnum,
     OperationResourceStatus,
 )
-from ado.core.resources import ADOResourceEventEnum, CoreResourceKinds
+from ado.core.resources import (
+    ADOResourceEventEnum,
+    ADOResourceReference,
+    CoreResourceKinds,
+)
 from ado.modules.module import load_module_class_or_function
 
 
@@ -171,6 +175,27 @@ def test_set_manual_operation_identifier(
     assert test.identifier == "test-xxxdd3"
 
 
+def test_legacy_spaces_populate_discovery_space_input() -> None:
+    """A legacy spaces list becomes the discoverySpace input, with kind filled in."""
+    from ado.core.operation.config import OperatorReference
+
+    configuration = DiscoveryOperationResourceConfiguration(
+        spaces=["space-test123"],
+        operation=DiscoveryOperationConfiguration(
+            module=OperatorReference(
+                operatorName="random_walk",
+                operationType=DiscoveryOperationEnum.EXPLORE,
+            ),
+            parameters={"numberEntities": 1, "batchSize": 1},
+        ),
+    )
+    assert configuration.spaces == ["space-test123"]
+    assert configuration.inputs["discoverySpace"].identifier == "space-test123"
+    assert (
+        configuration.inputs["discoverySpace"].kind == CoreResourceKinds.DISCOVERYSPACE
+    )
+
+
 def test_setting_space_id(
     operation_configuration: DiscoveryOperationResourceConfiguration,
 ) -> None:
@@ -215,7 +240,12 @@ def test_script_operator_conf_round_trip() -> None:
 
     resource_configuration = DiscoveryOperationResourceConfiguration(
         operation=operation_configuration,
-        spaces=["space-test123"],
+        inputs={
+            "discoverySpace": ADOResourceReference(
+                identifier="space-test123",
+                kind=CoreResourceKinds.DISCOVERYSPACE,
+            )
+        },
     )
 
     dumped = resource_configuration.model_dump()
@@ -235,7 +265,12 @@ def test_script_operation_resource_identifier() -> None:
     )
     operation_configuration = DiscoveryOperationResourceConfiguration(
         operation=DiscoveryOperationConfiguration(module=script_module),
-        spaces=["space-test123"],
+        inputs={
+            "discoverySpace": ADOResourceReference(
+                identifier="space-test123",
+                kind=CoreResourceKinds.DISCOVERYSPACE,
+            )
+        },
     )
     operation = OperationResource(
         operationType=script_module.operationType,

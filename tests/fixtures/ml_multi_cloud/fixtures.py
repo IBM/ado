@@ -28,6 +28,7 @@ from ado.core.operation.config import (
     DiscoveryOperationEnum,
     DiscoveryOperationResourceConfiguration,
 )
+from ado.core.resources import ADOResourceReference
 from ado.core.samplestore.base import ActiveSampleStore
 from ado.core.samplestore.config import (
     SampleStoreConfiguration,
@@ -150,7 +151,12 @@ def ml_multi_cloud_operation_configuration(
             Loader=SafeLoader,
         )
     )
-    operation_configuration.spaces = [ml_multi_cloud_space.uri]
+    operation_configuration.inputs = {
+        "discoverySpace": ADOResourceReference(
+            identifier=ml_multi_cloud_space.uri,
+            kind=CoreResourceKinds.DISCOVERYSPACE,
+        )
+    }
     return operation_configuration
 
 

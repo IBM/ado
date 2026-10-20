@@ -402,7 +402,12 @@ def test_run_random_walk_operation(
 
     assert discoverySpace is not None
     assert randomWalkConf is not None
-    randomWalkConf.spaces[0] = ml_multi_cloud_space.uri
+    from ado.core.resources import ADOResourceReference, CoreResourceKinds
+
+    randomWalkConf.inputs["discoverySpace"] = ADOResourceReference(
+        identifier=ml_multi_cloud_space.uri,
+        kind=CoreResourceKinds.DISCOVERYSPACE,
+    )
     assert RandomWalkParameters.model_validate(randomWalkConf.operation.parameters)
 
     random_walk_fn = ado.modules.operators.collections.explore.operators[

@@ -159,7 +159,7 @@ def test_create_operation_success_set_spaces(
             "-f",
             operation_configuration_file,
             "--set",
-            f'spaces=["{ml_multi_cloud_space.uri}"]',
+            f"inputs.discoverySpace.identifier={ml_multi_cloud_space.uri}",
         ],
     )
     assert result.exit_code == 0, result.output

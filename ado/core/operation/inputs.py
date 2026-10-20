@@ -9,11 +9,18 @@ Python object an operator function receives.
 
 from __future__ import annotations
 
+import inspect
+import typing
 from typing import TYPE_CHECKING
 
 from ado.core.datacontainer.resource import DataContainerResource
 from ado.core.discoveryspace.space import DiscoverySpace
-from ado.core.resources import ADOResourceReference, CoreResourceKinds
+from ado.core.resources import (
+    ADOResourcePropertyDescriptor,
+    ADOResourceReference,
+    CoreResourceKinds,
+)
+from ado.utilities.annotations import _unwrap_annotated
 
 if TYPE_CHECKING:
     from collections.abc import Callable

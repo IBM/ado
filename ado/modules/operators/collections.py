@@ -18,6 +18,7 @@ from ado.core.operation.config import (
     OperatorMetadata,
     OperatorReference,
 )
+from ado.metastore.sqlstore import SQLStore
 from ado.modules.operators.base import (
     DiscoveryOperationBase,
     DiscoverySpaceSubscribingDiscoveryOperation,
@@ -28,6 +29,28 @@ from ado.modules.operators.base import (
 from ado.modules.operators.errors import OperatorVersionMismatchError
 
 moduleLog = logging.getLogger("operation_collections")
+
+
+def _discovery_space_operation_inputs(
+    discovery_space: DiscoverySpace,
+    operation_info: FunctionOperationInfo | None,
+) -> tuple[dict[str, DiscoverySpace], FunctionOperationInfo, SQLStore]:
+    """Build the single discovery-space input map and confirm it is stored.
+
+    Args:
+        discovery_space: The discovery space the operator was called with.
+        operation_info: Optional operation info supplied by the caller.
+
+    Returns:
+        The input map, the operation info, and the metastore that contains the
+        discovery space.
+    """
+    from ado.core.operation.context import metastore_for_operation_inputs
+
+    inputs = {"discoverySpace": discovery_space}
+    info = operation_info or FunctionOperationInfo()
+    metastore: SQLStore = metastore_for_operation_inputs(info, inputs)
+    return inputs, info, metastore
 
 
 def _warn_if_operator_name_reused(
@@ -149,11 +172,15 @@ def characterize_operation(
                 orchestrate_general_operation,
             )
 
+            inputs, info, metastore = _discovery_space_operation_inputs(
+                discoverySpace, operationInfo
+            )
             return orchestrate_general_operation(
                 operator_metadata=characterize.operators[name],
                 operation_parameters=configuration_model.model_validate(parameters),
-                discovery_space=discoverySpace,
-                operation_info=operationInfo or FunctionOperationInfo(),
+                inputs=inputs,
+                operation_info=info,
+                metastore=metastore,
             )
 
         validate_operator_function_signature(wrapper)
@@ -257,11 +284,14 @@ def explore_operation(
             orchestrate_explore_operation,
         )
 
+        inputs, info, _metastore = _discovery_space_operation_inputs(
+            discoverySpace, operationInfo
+        )
         return orchestrate_explore_operation(
             operator_metadata=explore.operators[op_name],
-            discovery_space=discoverySpace,
+            inputs=inputs,
             parameters=configuration_model.model_validate(parameters),
-            operation_info=operationInfo or FunctionOperationInfo(),
+            operation_info=info,
         )
 
     _generated.__annotations__["parameters"] = configuration_model
@@ -312,11 +342,15 @@ def modify_operation(
                 orchestrate_general_operation,
             )
 
+            inputs, info, metastore = _discovery_space_operation_inputs(
+                discoverySpace, operationInfo
+            )
             return orchestrate_general_operation(
                 operator_metadata=modify.operators[name],
                 operation_parameters=configuration_model.model_validate(parameters),
-                discovery_space=discoverySpace,
-                operation_info=operationInfo or FunctionOperationInfo(),
+                inputs=inputs,
+                operation_info=info,
+                metastore=metastore,
             )
 
         validate_operator_function_signature(wrapper)
@@ -369,11 +403,15 @@ def export_operation(
                 orchestrate_general_operation,
             )
 
+            inputs, info, metastore = _discovery_space_operation_inputs(
+                discoverySpace, operationInfo
+            )
             return orchestrate_general_operation(
                 operator_metadata=export.operators[name],
                 operation_parameters=configuration_model.model_validate(parameters),
-                discovery_space=discoverySpace,
-                operation_info=operationInfo or FunctionOperationInfo(),
+                inputs=inputs,
+                operation_info=info,
+                metastore=metastore,
             )
 
         validate_operator_function_signature(wrapper)

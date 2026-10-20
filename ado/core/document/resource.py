@@ -32,10 +32,10 @@ class DocumentResource(ADOResource):
     def __rich__(self) -> "RenderableType":
         """Render this document resource using rich."""
         from rich.console import Group
-        from rich.padding import Padding
         from rich.text import Text
 
         return Group(
             Text.assemble(("Identifier: ", "bold"), (self.identifier, "bold green")),
-            Padding(self.config, (1, 0, 0, 0)),
+            "",
+            self.config,
         )

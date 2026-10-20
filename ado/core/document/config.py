@@ -67,12 +67,16 @@ class DocumentConfiguration(pydantic.BaseModel):
         from rich.markdown import Markdown
         from rich.text import Text
 
+        from ado.utilities.rich import ConsoleWidthRenderable, RstrippedRenderable
+
         parts: list[typing.Any] = []
         if self.metadata.name:
             parts.append(Text.assemble(("Name: ", "bold"), (self.metadata.name,)))
         if self.metadata.description:
             parts.append(
-                Text.assemble(("Description: ", "bold"), (self.metadata.description,))
+                Text.assemble(
+                    ("Description: ", "bold"), (self.metadata.description.rstrip(),)
+                )
             )
         if self.relatedResources:
             related_summary = ", ".join(
@@ -89,4 +93,4 @@ class DocumentConfiguration(pydantic.BaseModel):
         else:
             parts.append(Markdown(self.content))
 
-        return Group(*parts)
+        return RstrippedRenderable(ConsoleWidthRenderable(Group(*parts)))

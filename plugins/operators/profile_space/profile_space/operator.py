@@ -26,7 +26,8 @@ class ProfileParameters(GenericOperatorParameters):
 def profile(
     discoverySpace: DiscoverySpace,
     operationInfo: FunctionOperationInfo | None = None,
-    **kwargs: dict,
+    *,
+    parameters: ProfileParameters,
 ) -> OperationOutput:
     import data_profiling
 

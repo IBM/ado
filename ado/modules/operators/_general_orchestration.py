@@ -8,6 +8,7 @@ import typing
 from ado.core.discoveryspace.space import DiscoverySpace
 from ado.core.operation.config import (
     FunctionOperationInfo,
+    GenericOperatorParameters,
     OperatorMetadata,
     get_actuator_configurations,
     validate_actuator_configurations_against_space_configuration,
@@ -45,19 +46,23 @@ def run_general_operation_core_closure(
     operation_function: OperatorFunction,
     discovery_space: DiscoverySpace,
     operationInfo: FunctionOperationInfo,
-    operation_parameters: dict,
+    operation_parameters: GenericOperatorParameters,
 ) -> typing.Callable[[], OperationOutput | None]:
 
     def _run_general_operation_core() -> OperationOutput | None:
         implementation = _operator_callable_for_harness(operation_function)
-        return implementation(discovery_space, operationInfo, **operation_parameters)
+        return implementation(
+            discovery_space,
+            operationInfo,
+            parameters=operation_parameters,
+        )
 
     return _run_general_operation_core
 
 
 def orchestrate_general_operation(
     operator_metadata: OperatorMetadata,
-    operation_parameters: dict,
+    operation_parameters: GenericOperatorParameters,
     discovery_space: DiscoverySpace,
     operation_info: FunctionOperationInfo,
 ) -> OperationOutput:
@@ -76,7 +81,7 @@ def orchestrate_general_operation(
     Params:
         operator_metadata: Registered metadata for the operator, carrying the callable,
             configuration model, operation type, and name.
-        operation_parameters: Dictionary of parameters to pass to the operator function
+        operation_parameters: Validated parameters model to pass to the operator function
         discovery_space: The discovery space to operate on
         operation_info: Information about the operation including metadata, actuator
             configuration identifiers, and namespace

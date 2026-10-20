@@ -66,7 +66,8 @@ from ado.modules.operators.collections import (
 def detect_anomalous_series(
     discoverySpace: DiscoverySpace,
     operationInfo: FunctionOperationInfo | None = None,
-    **parameters: typing.Any,
+    *,
+    parameters: DetectAnomalousSeries,
 ) -> OperationOutput:
     # Your operation logic - can also call other Python modules etc.
     ...
@@ -97,8 +98,8 @@ The decorator parameters are the same for all operator/operation types.
 
 ### Operator function parameters
 
-All operator functions take one or more `discoveryspaces` along with a
-dictionary containing the inputs for the operation.
+All operator functions take a discovery space and a `parameters` argument
+typed as the operator's configuration model.
 
 If your operation type is `explore`, `characterize`, `learn` or `modify`, your
 function should have a parameter `discoverySpace` i.e.
@@ -110,7 +111,8 @@ import typing
 def detect_anomalous_series(
     discoverySpace: DiscoverySpace,
     operationInfo: FunctionOperationInfo | None = None,
-    **parameters: typing.Any,
+    *,
+    parameters: DetectAnomalousSeries,
 ) -> OperationOutput: ...
 ```
 
@@ -124,7 +126,8 @@ import typing
 def detect_anomalous_series(
     discoverySpaces: list[DiscoverySpace],
     operationInfo: FunctionOperationInfo | None = None,
-    **parameters: typing.Any,
+    *,
+    parameters: DetectAnomalousSeries,
 ) -> OperationOutput: ...
 ```
 

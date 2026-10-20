@@ -416,7 +416,8 @@ def test_run_random_walk_operation(
     assert random_walk_fn is not None
 
     operationOutput = random_walk_fn(
-        discoverySpace, **randomWalkConf.operation.parameters.model_dump()
+        discoverySpace,
+        parameters=randomWalkConf.operation.parameters,
     )
 
     assert isinstance(operationOutput, ado.core.operation.operation.OperationOutput)
@@ -503,7 +504,8 @@ def test_random_walk_fail_invalid_config(
 
     try:
         random_walk_fn(
-            discoverySpace, **invalidRandomWalkConf.operation.parameters.model_dump()
+            discoverySpace,
+            parameters=invalidRandomWalkConf.operation.parameters,
         )
     except ado.core.operation.operation.OperationException as error:
         operation = error.operation
@@ -556,7 +558,8 @@ def test_run_ray_tune_operation(
     assert ray_tune_fn is not None
 
     operationOutput = ray_tune_fn(
-        discoverySpace, **raytuneConf.operation.parameters.model_dump()
+        discoverySpace,
+        parameters=raytuneConf.operation.parameters,
     )
 
     assert isinstance(operationOutput, ado.core.operation.operation.OperationOutput)

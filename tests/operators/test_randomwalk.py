@@ -277,11 +277,11 @@ def test_random_walk_selector_raises_when_count_exceeds_matching_entities(
     with pytest.raises(OperationException) as exc_info:
         function(
             ml_multi_cloud_space,
-            **_configure_selector(
+            parameters=_configure_selector(
                 ml_multi_cloud_operation_configuration,
                 number_entities=requested,
                 filter_mode=FilterModeEnum.noFilter,
-            ).operation.parameters.model_dump(),
+            ).operation.parameters,
         )
 
     finished = [
@@ -311,11 +311,11 @@ def test_random_walk_selector_filter_succeeds_when_fewer_entities_pass(
 
     operation_output = function(
         ml_multi_cloud_space,
-        **_configure_selector(
+        parameters=_configure_selector(
             ml_multi_cloud_operation_configuration,
             number_entities=matching + 1,
             filter_mode=FilterModeEnum.partial,
-        ).operation.parameters.model_dump(),
+        ).operation.parameters,
     )
 
     assert operation_output.exitStatus.exit_state == OperationExitStateEnum.SUCCESS

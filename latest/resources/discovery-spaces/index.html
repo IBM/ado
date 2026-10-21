@@ -337,7 +337,7 @@ Outputs:
 │ 1     │ space-047b6a-f60613  │ rosenbrock_3d                       │ 367d7h  │
 │ 2     │ space-ab21b4-f60613  │ test_vllm_performance_space         │ 366d0h  │
 └───────┴──────────────────────┴─────────────────────────────────────┴─────────┘
-</code></pre></div> <p>Add <code>--details</code> to include the <code>DESCRIPTION</code> and <code>LABELS</code> of each space. <code>--filter</code> and <code>--label</code> narrow the list, and <code>--related-to</code> restricts it to spaces related to another resource.</p> <p>To retrieve the stored configuration of a space:</p> <div class=highlight><pre><span></span><code>ado get space space-047b6a-f60613 -o yaml
+</code></pre></div> <p><code>--details</code> adds <code>DESCRIPTION</code> and <code>LABELS</code> columns to the table. <code>--filter</code> and <code>--label</code> narrow the list, and <code>--related-to</code> restricts it to spaces related to another resource.</p> <p>To retrieve the stored configuration of a space:</p> <div class=highlight><pre><span></span><code>ado get space space-047b6a-f60613 -o yaml
 </code></pre></div> <p><code>ado show stats space</code> reports what the space contains, counting the results of the operations run on it:</p> <div class=highlight><pre><span></span><code>ado show stats space space-047b6a-f60613 -o yaml
 </code></pre></div> <div class=highlight><pre><span></span><code>space-047b6a-f60613:
   AGE: 367d7h

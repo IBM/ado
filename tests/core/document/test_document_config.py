@@ -7,7 +7,12 @@ import pydantic
 import pytest
 import yaml
 
-from ado.core.document.config import DocumentConfiguration, RelatedResource
+from ado.core.document.config import (
+    DocumentConfiguration,
+    RelatedResource,
+    StudyDocumentMetadata,
+)
+from ado.core.metadata import ConfigurationMetadata
 from ado.utilities.output import pydantic_model_as_yaml
 
 
@@ -88,7 +93,11 @@ def test_document_configuration_rich_markdown() -> None:
         relatedResources=[
             RelatedResource(id="operation-abc-12345678", role="parent"),
         ],
-        metadata={"name": "Test report", "description": "A description"},
+        metadata={
+            "name": "Test report",
+            "description": "A description",
+            "todo": ["Run baseline", "Analyse results"],
+        },
     )
     console = Console()
     with console.capture() as capture:
@@ -100,6 +109,38 @@ def test_document_configuration_rich_markdown() -> None:
     assert "Report" in output
     assert "# Report" not in output
     assert "Body" in output
+    assert "Todo:" in output
+    assert "Run baseline" in output
+    assert "Analyse results" in output
+
+
+def test_document_metadata_without_todo_is_configuration_metadata() -> None:
+    """Metadata without todo uses ConfigurationMetadata and keeps extra entries."""
+    config = DocumentConfiguration(
+        content="Body", metadata={"name": "Report", "owner": "alice"}
+    )
+    assert type(config.metadata) is ConfigurationMetadata
+    assert config.metadata.model_extra == {"owner": "alice"}
+    restored = DocumentConfiguration.model_validate(
+        yaml.safe_load(pydantic_model_as_yaml(config))
+    )
+    assert restored == config
+
+
+def test_study_document_metadata_round_trip_yaml() -> None:
+    """Metadata with todo uses StudyDocumentMetadata, keeps extras, and round-trips."""
+    config = DocumentConfiguration(
+        content="Body",
+        metadata={"name": "study-x", "todo": ["Run baseline"], "owner": "alice"},
+    )
+    assert isinstance(config.metadata, StudyDocumentMetadata)
+    assert config.metadata.todo == ["Run baseline"]
+    assert config.metadata.model_extra == {"owner": "alice"}
+    restored = DocumentConfiguration.model_validate(
+        yaml.safe_load(pydantic_model_as_yaml(config))
+    )
+    assert restored == config
+    assert isinstance(restored.metadata, StudyDocumentMetadata)
 
 
 def test_document_configuration_rich_html() -> None:

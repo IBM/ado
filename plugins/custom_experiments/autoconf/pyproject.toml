@@ -9,7 +9,7 @@ dependencies = [
   "huggingface_hub>=0.23",
   "pandas<3.0.0",
   "pydantic",
-  "ray>=2.43.0,<2.59.0",
+  "ray>=2.59.0,<2.60.0",
   "torch",
 ]
 dynamic = ["version"]

@@ -44,7 +44,7 @@ _MEMBERSHIP_OPERATORS = frozenset({ComparisonOperator.in_, ComparisonOperator.no
 
 
 class PropertyOperand(pydantic.BaseModel):
-    """An operand that reads the current value of a property."""
+    """An operand that reads the value of the property referenced by the identifier"""
 
     property: Annotated[
         str,
@@ -109,11 +109,11 @@ class ValuesOperand(pydantic.BaseModel):
         return set()
 
 
-def _operand_tag(operand: dict[str, object]) -> str:
+def _operand_tag(operand_mapping: dict[str, object]) -> str:
     """Return the operand tag for a mapping, requiring exactly one operand field.
 
     Args:
-        operand: A mapping of operand fields.
+        operand_mapping: A mapping of operand field names to their values.
 
     Returns:
         The tag ``property``, ``value``, or ``values``.
@@ -122,12 +122,12 @@ def _operand_tag(operand: dict[str, object]) -> str:
         ValueError: If the mapping does not set exactly one of those fields.
     """
 
-    present = [key for key in ("property", "value", "values") if key in operand]
-    if len(present) == 1:
-        return present[0]
-    raise ValueError(
-        "A comparison operand must set exactly one of property, value, or values"
-    )
+    operand_fields_set = {"property", "value", "values"}.intersection(operand_mapping)
+    if len(operand_fields_set) != 1:
+        raise ValueError(
+            "A comparison operand must set exactly one of property, value, or values"
+        )
+    return next(iter(operand_fields_set))
 
 
 def _require_single_operand_field(
@@ -218,12 +218,11 @@ class Comparison(pydantic.BaseModel):
                 kinds do not match the operator.
         """
 
-        if not isinstance(self.left, PropertyOperand) and not isinstance(
-            self.right, PropertyOperand
+        if not (
+            isinstance(self.left, PropertyOperand)
+            or isinstance(self.right, PropertyOperand)
         ):
-            raise ValueError(
-                "A comparison must reference a property on the left, the right, or both"
-            )
+            raise ValueError("At least one side of a comparison must be a property")
 
         if self.operator in _MEMBERSHIP_OPERATORS:
             if isinstance(self.left, ValuesOperand):

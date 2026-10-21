@@ -85,6 +85,9 @@ def list_contexts(
     # List available context names only
     ado contexts -o name
 
+    # Get contexts as CSV
+    ado contexts -o csv
+
     # Get contexts as YAML
     ado contexts -o yaml
 

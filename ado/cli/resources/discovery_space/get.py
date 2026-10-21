@@ -51,8 +51,11 @@ def get_discovery_space(parameters: AdoGetCommandParameters) -> None:
 
         matching_spaces = _find_spaces_matching_point(parameters)
 
-        # For TABLE format, use DataFrame
-        if parameters.output_format == AdoGetSupportedOutputFormats.TABLE:
+        # For TABLE and CSV formats, use DataFrame
+        if parameters.output_format in {
+            AdoGetSupportedOutputFormats.TABLE,
+            AdoGetSupportedOutputFormats.CSV,
+        }:
             output_df = format_default_ado_get_multiple_resources(
                 resources=build_resource_listing_dataframe(
                     resources={space.identifier: space for space in matching_spaces},

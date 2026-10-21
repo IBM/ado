@@ -132,6 +132,23 @@ def _render_dataframe_table_output(
     _write_or_print_output(table, parameters.output_file)
 
 
+def _render_dataframe_csv_output(
+    df: "pd.DataFrame", parameters: "AdoGetCommandParameters"
+) -> None:
+    """Render a DataFrame as CSV or print the empty-data message to stderr.
+
+    Args:
+        df: DataFrame to render.
+        parameters: Command parameters; uses output_file to determine the
+            output destination.
+    """
+    if df.empty:
+        console_print(ADO_INFO_EMPTY_DATAFRAME, stderr=True)
+        return
+
+    _write_or_print_output(df.to_csv(index=False), parameters.output_file, raw=True)
+
+
 def _build_dataframe_from_resources(
     parameters: "AdoGetCommandParameters",
     resources: "list[ADOResource] | ADOResource",
@@ -265,6 +282,8 @@ def handle_ado_get(
             _handle_name_format(parameters, resource_type, dataframe, resources)
         case AdoGetSupportedOutputFormats.TABLE:
             _handle_table_format(parameters, resource_type, dataframe, resources)
+        case AdoGetSupportedOutputFormats.CSV:
+            _handle_csv_format(parameters, resource_type, dataframe, resources)
         case AdoGetSupportedOutputFormats.RAW:
             _handle_raw_format(parameters, resource_type)
         case (
@@ -379,13 +398,25 @@ def _handle_name_format(
             _write_or_print_output(output, parameters.output_file)
 
 
-def _handle_table_format(
+def _build_output_dataframe_with_stats(
     parameters: "AdoGetCommandParameters",
     resource_type: "CoreResourceKinds | None",
     dataframe: "pd.DataFrame | None",
     resources: "list[ADOResource] | ADOResource | None",
-) -> None:
-    """Handle TABLE output format - render DataFrame as table."""
+) -> "pd.DataFrame":
+    """Build the DataFrame for table-like output formats.
+
+    Args:
+        parameters: Command parameters, including show_stats and filter options.
+        resource_type: Type of resource being listed; required when dataframe
+            and resources are both None.
+        dataframe: Pre-built DataFrame to use directly, if provided.
+        resources: Pre-fetched resources to build a DataFrame from, if provided.
+
+    Returns:
+        DataFrame with base columns and, when show_stats is set, additional
+        statistics columns appended.
+    """
     output_df = _build_table_output_dataframe(
         parameters=parameters,
         resource_type=resource_type,
@@ -398,7 +429,39 @@ def _handle_table_format(
             parameters=parameters,
             resource_type=resource_type,
         )
+    return output_df
+
+
+def _handle_table_format(
+    parameters: "AdoGetCommandParameters",
+    resource_type: "CoreResourceKinds | None",
+    dataframe: "pd.DataFrame | None",
+    resources: "list[ADOResource] | ADOResource | None",
+) -> None:
+    """Handle TABLE output format - render DataFrame as table."""
+    output_df = _build_output_dataframe_with_stats(
+        parameters=parameters,
+        resource_type=resource_type,
+        dataframe=dataframe,
+        resources=resources,
+    )
     return _render_dataframe_table_output(output_df, parameters)
+
+
+def _handle_csv_format(
+    parameters: "AdoGetCommandParameters",
+    resource_type: "CoreResourceKinds | None",
+    dataframe: "pd.DataFrame | None",
+    resources: "list[ADOResource] | ADOResource | None",
+) -> None:
+    """Handle CSV output format - render the table DataFrame as CSV."""
+    output_df = _build_output_dataframe_with_stats(
+        parameters=parameters,
+        resource_type=resource_type,
+        dataframe=dataframe,
+        resources=resources,
+    )
+    return _render_dataframe_csv_output(output_df, parameters)
 
 
 def _add_stats_columns(
@@ -575,14 +638,20 @@ def _handle_structured_formats(
 
 
 def _write_or_print_output(
-    content: str | RenderableType, output_file: pathlib.Path | None
+    content: str | RenderableType,
+    output_file: pathlib.Path | None,
+    raw: bool = False,
 ) -> None:
     """Helper to write to file or print to console.
 
     Args:
         content: String content or rich renderable to output
         output_file: Optional file path. If provided, content is written to file.
+        raw: If True, string content is written verbatim to stdout, bypassing
+            rich processing (markup, highlighting, trailing newline).
     """
+    import sys
+
     if output_file:
         # Convert to string if it's a rich renderable
         if not isinstance(content, str):
@@ -591,6 +660,9 @@ def _write_or_print_output(
             content = render_to_string(content, auto_width=True)
         output_file.write_text(content)
         console_print(f"{SUCCESS}Output written to {output_file}", stderr=True)
+    elif raw:
+        sys.stdout.write(str(content))
+        sys.stdout.flush()
     else:
         console_print(content)
 

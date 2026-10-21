@@ -41,11 +41,15 @@ def get_experiment(parameters: AdoGetCommandParameters) -> None:
     with Status(ADO_SPINNER_INITIALIZING_ACTUATOR_REGISTRY) as spinner:
         registry = ado.modules.actuators.registry.ActuatorRegistry.globalRegistry()
 
-        if parameters.output_format != AdoGetSupportedOutputFormats.TABLE:
+        if parameters.output_format not in {
+            AdoGetSupportedOutputFormats.TABLE,
+            AdoGetSupportedOutputFormats.CSV,
+        }:
             spinner.stop()
             console_print(
-                f"{ERROR}Only the {AdoGetSupportedOutputFormats.TABLE.value} output format "
-                "is supported by this command.",
+                f"{ERROR}Only the {AdoGetSupportedOutputFormats.TABLE.value} and "
+                f"{AdoGetSupportedOutputFormats.CSV.value} output formats "
+                "are supported by this command.",
                 stderr=True,
             )
             raise typer.Exit(1)

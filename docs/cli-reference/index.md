@@ -111,6 +111,9 @@ It's also possible to output this information in multiple formats via the
 # List context names only
 ado contexts -o name
 
+# Export contexts as CSV (ACTIVE is True/False)
+ado contexts -o csv
+
 # Export contexts as YAML
 ado contexts -o yaml
 
@@ -509,7 +512,7 @@ The complete syntax of the `ado get` command is as follows:
 <!-- markdownlint-disable line-length -->
 
 ```shell
-ado get RESOURCE_TYPE [RESOURCE_ID] [--output | -o <default | yaml | json | config | raw>] \
+ado get RESOURCE_TYPE [RESOURCE_ID] [--output | -o <default | csv | yaml | json | config | raw>] \
                                     [--stats] \
                                     [--output-file <path>] \
                                     [--use-latest] \
@@ -565,6 +568,10 @@ Where:
       the matching resources.
     - The `name` format outputs only the resource identifiers, one per line
       (similar to `kubectl get -o name`).
+    - The `csv` format outputs the same data as the `table` format (including
+      `--details`, `--stats`, `--include-properties`, `--filter`, `--label`,
+      `--related-to` and `--matching-*`) as CSV. For `ado get contexts`, the
+      `ACTIVE` column is `True` or `False`.
     - The `yaml` format displays the full YAML document of the matching resources.
     - The `json` format displays the full JSON document of the matching resources.
     - The `config` format displays the `config` field of the matching resources.
@@ -574,7 +581,8 @@ Where:
 
     <!-- prettier-ignore-end -->
 
-- `--stats` adds statistics columns to the default `table` output. Supported
+- `--stats` adds statistics columns to the default `table` and to the `csv`
+  output. Supported
   resource types and their columns are:
     - **Operations**: `TOTAL_MEASUREMENTS`, `SUCCESSFUL_MEASUREMENTS`,
       `FAILED_MEASUREMENTS`, `SAMPLED_ENTITIES` (entities with at least one
@@ -614,7 +622,8 @@ Where:
   string representations of discovery-space properties in table output. You can
   specify `constitutive`, `parameterized`, `optional`, `all`, or a comma-separated
   list of specific property identifiers.
-- `--details` adds `DESCRIPTION` and `LABELS` columns to the `table` output.
+- `--details` adds `DESCRIPTION` and `LABELS` columns to the `table` and `csv`
+  output.
 - The `--show-deprecated` flag is available **only for `ado get experiments`**
   and allows displaying experiments that have been deprecated. They are
   otherwise hidden by default.
@@ -795,6 +804,12 @@ ado get operations -o json --output-file operations.json
 
 ```shell
 ado get spaces -o name --output-file space-ids.txt
+```
+
+#### Saving all operations as CSV
+
+```shell
+ado get operations --details --stats -o csv --output-file operations.csv
 ```
 
 #### Saving table output to a file

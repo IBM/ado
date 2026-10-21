@@ -139,7 +139,12 @@ def create_operation(parameters: AdoCreateCommandParameters) -> str | None:
                     )
                 )
 
-            op_resource_configuration.inputs = _discovery_space_inputs(space_identifier)
+            # A dry-run of a new discovery space validates the file and returns
+            # no identifier, because the space is not stored.
+            if space_identifier is not None:
+                op_resource_configuration.inputs = _discovery_space_inputs(
+                    space_identifier
+                )
 
     elif parameters.use_latest:
         reuse_requested_latest_identifiers(

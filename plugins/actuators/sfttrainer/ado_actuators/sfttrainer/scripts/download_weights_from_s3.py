@@ -7,6 +7,11 @@ import os.path
 import ray
 import yaml
 
+try:
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:  # pragma: nocover
+    from yaml import SafeLoader  # type: ignore[assignment]
+
 
 @ray.remote
 def patch_weights() -> None:
@@ -104,14 +109,14 @@ ask Vassilis Vassiliadis or Alessandro Pomponio to grant you access"""
 
     try:
         with open("fm-openshift_credentials.yaml") as f:
-            fm_openshift_credentials = yaml.safe_load(f)
+            fm_openshift_credentials = yaml.load(f, Loader=SafeLoader)
     except Exception:
         print(warning.format(path="fm-openshift_credentials.yaml"))
         raise
 
     try:
         with open("fmas-integration-tests-credentials.yaml") as f:
-            fmas_integration_tests_credentials = yaml.safe_load(f)
+            fmas_integration_tests_credentials = yaml.load(f, Loader=SafeLoader)
     except Exception:
         print(warning.format(path="fmas-integration-tests-credentials.yaml"))
         raise

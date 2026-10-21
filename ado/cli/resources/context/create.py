@@ -7,6 +7,11 @@ import pydantic
 import typer
 import yaml
 
+try:
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:  # pragma: nocover
+    from yaml import SafeLoader  # type: ignore[assignment]
+
 from ado.cli.models.parameters import AdoCreateCommandParameters
 from ado.cli.utils.output.prints import (
     ADO_CREATE_DRY_RUN_CONFIG_VALID,
@@ -27,7 +32,9 @@ def create_context(parameters: AdoCreateCommandParameters) -> str | None:
 
     try:
         context_configuration = ProjectContext.model_validate(
-            yaml.safe_load(parameters.resource_configuration_file.read_text())
+            yaml.load(
+                parameters.resource_configuration_file.read_text(), Loader=SafeLoader
+            )
         )
     except pydantic.ValidationError as e:
         console_print(f"{ERROR}The context provided was not valid:\n{e}", stderr=True)

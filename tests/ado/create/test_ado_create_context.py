@@ -4,6 +4,11 @@
 import pathlib
 
 import yaml
+
+try:
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:  # pragma: nocover
+    from yaml import SafeLoader  # type: ignore[assignment]
 from typer.testing import CliRunner
 
 from ado.cli.core.cli import app as ado
@@ -43,7 +48,7 @@ def test_create_context_dry_run_failure(
 
     # Changing the project name will make the context file invalid
     invalid_project_context = ProjectContext.model_validate(
-        yaml.safe_load(valid_ado_sqlite_context_yaml)
+        yaml.load(valid_ado_sqlite_context_yaml, Loader=SafeLoader)
     )
     invalid_project_context.project = "something-else"
     context_file = tmp_path / "temp_context.yaml"

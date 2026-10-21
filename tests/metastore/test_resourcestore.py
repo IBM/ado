@@ -741,6 +741,11 @@ def resource_hierarchy(
 
     import yaml
 
+    try:
+        from yaml import CSafeLoader as SafeLoader
+    except ImportError:  # pragma: nocover
+        from yaml import SafeLoader  # type: ignore[assignment]
+
     from ado.core import ActuatorConfigurationResource, SampleStoreResource
     from ado.core.samplestore.config import (
         SampleStoreConfiguration,
@@ -782,10 +787,11 @@ def resource_hierarchy(
     #    relatedIdentifiers=[..., actconf_id]).
     ac_config = (
         ado.core.actuatorconfiguration.config.ActuatorConfiguration.model_validate(
-            yaml.safe_load(
+            yaml.load(
                 pathlib.Path(
                     "tests/resources/replay_actuatorconfiguration.yaml"
-                ).read_text()
+                ).read_text(),
+                Loader=SafeLoader,
             )
         )
     )

@@ -8,6 +8,11 @@ import pydantic
 import pytest
 import yaml
 
+try:
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:  # pragma: nocover
+    from yaml import SafeLoader  # type: ignore[assignment]
+
 from ado.core import ActuatorConfigurationResource
 from ado.core.actuatorconfiguration.config import ActuatorConfiguration
 from ado.core.discoveryspace.space import DiscoverySpace
@@ -31,7 +36,7 @@ def test_nonexistent_actuatorconfig_raises_error() -> None:
         match=re.escape("Actuator nonexistent is not available in the registry"),
     ):
         ActuatorConfiguration.model_validate(
-            yaml.safe_load(pathlib.Path(configuration).read_text())
+            yaml.load(pathlib.Path(configuration).read_text(), Loader=SafeLoader)
         )
 
 
@@ -69,10 +74,11 @@ def test_operation_get_resource_without_plugin_validation(
 ) -> None:
     """Stored operations can be read without operator plugin validation on get."""
     operation_configuration = DiscoveryOperationResourceConfiguration.model_validate(
-        yaml.safe_load(
+        yaml.load(
             pathlib.Path(
                 "examples/ml-multi-cloud/randomwalk_ml_multicloud_operation.yaml"
-            ).read_text()
+            ).read_text(),
+            Loader=SafeLoader,
         ),
         context=ignore_plugin_validation_context,
     )
@@ -94,10 +100,11 @@ def test_operation_get_resource_without_plugin_validation(
 def test_operation_structural_parse_without_operator_validation() -> None:
     """Metastore read path: operation config parses without validating operator params."""
     operation_configuration = DiscoveryOperationResourceConfiguration.model_validate(
-        yaml.safe_load(
+        yaml.load(
             pathlib.Path(
                 "examples/ml-multi-cloud/randomwalk_ml_multicloud_operation.yaml"
-            ).read_text()
+            ).read_text(),
+            Loader=SafeLoader,
         ),
         context=ignore_plugin_validation_context,
     )
@@ -111,10 +118,11 @@ def test_ml_multi_cloud_operation_valid(
 ) -> None:
 
     operation_configuration = DiscoveryOperationResourceConfiguration.model_validate(
-        yaml.safe_load(
+        yaml.load(
             pathlib.Path(
                 "examples/ml-multi-cloud/randomwalk_ml_multicloud_operation.yaml"
-            ).read_text()
+            ).read_text(),
+            Loader=SafeLoader,
         )
     )
 
@@ -136,10 +144,11 @@ def test_ml_multi_cloud_operation_invalid(
 ) -> None:
 
     operation_configuration = DiscoveryOperationResourceConfiguration.model_validate(
-        yaml.safe_load(
+        yaml.load(
             pathlib.Path(
                 "examples/ml-multi-cloud/randomwalk_ml_multicloud_operation.yaml"
-            ).read_text()
+            ).read_text(),
+            Loader=SafeLoader,
         )
     )
 
@@ -167,10 +176,11 @@ def test_ml_multi_cloud_operation_base_get(
 ) -> None:
     """Tests directly that BaseOperationRunConfiguration works"""
     operation_configuration = DiscoveryOperationResourceConfiguration.model_validate(
-        yaml.safe_load(
+        yaml.load(
             pathlib.Path(
                 "examples/ml-multi-cloud/randomwalk_ml_multicloud_operation.yaml"
-            ).read_text()
+            ).read_text(),
+            Loader=SafeLoader,
         )
     )
 

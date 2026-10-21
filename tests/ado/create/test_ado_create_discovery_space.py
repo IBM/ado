@@ -6,6 +6,11 @@ from collections.abc import Callable
 
 import pytest
 import yaml
+
+try:
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:  # pragma: nocover
+    from yaml import SafeLoader  # type: ignore[assignment]
 from typer.testing import CliRunner
 
 from ado.cli.core.cli import app as ado
@@ -141,8 +146,11 @@ def test_create_discovery_space_success(
 
     space_configuration_file = tmp_path / "space_configuration.yaml"
     space_configuration = DiscoverySpaceConfiguration.model_validate(
-        yaml.safe_load(
-            pathlib.Path("examples/ml-multi-cloud/ml_multicloud_space.yaml").read_text()
+        yaml.load(
+            pathlib.Path(
+                "examples/ml-multi-cloud/ml_multicloud_space.yaml"
+            ).read_text(),
+            Loader=SafeLoader,
         )
     )
     space_configuration.sampleStoreIdentifier = ml_multi_cloud_sample_store.identifier

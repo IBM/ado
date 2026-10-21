@@ -7,6 +7,11 @@ import pydantic
 import pytest
 import yaml
 
+try:
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:  # pragma: nocover
+    from yaml import SafeLoader  # type: ignore[assignment]
+
 from ado.core.operation.config import (
     DiscoveryOperationConfiguration,
     DiscoveryOperationEnum,
@@ -139,7 +144,7 @@ def test_operation_config_file_valid(valid_operation_config_file: str) -> None:
         content = f.read()
 
     op_cfg = DiscoveryOperationResourceConfiguration.model_validate(
-        yaml.safe_load(content)
+        yaml.load(content, Loader=SafeLoader)
     )
 
     try:

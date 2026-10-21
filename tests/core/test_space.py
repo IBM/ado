@@ -10,6 +10,11 @@ import pydantic
 import pytest
 import yaml
 
+try:
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:  # pragma: nocover
+    from yaml import SafeLoader  # type: ignore[assignment]
+
 import ado.core
 from ado.core import DiscoverySpaceResource
 from ado.core.discoveryspace.config import DiscoverySpaceConfiguration
@@ -205,7 +210,7 @@ def test_discovery_space_config_file_valid(
 
     valid_discovery_space_config_file = pathlib.Path(valid_discovery_space_config_file)
     ado.core.discoveryspace.config.DiscoverySpaceConfiguration.model_validate(
-        yaml.safe_load(valid_discovery_space_config_file.read_text())
+        yaml.load(valid_discovery_space_config_file.read_text(), Loader=SafeLoader)
     )
 
 
@@ -347,8 +352,11 @@ def test_from_configuration_load_experiment_catalog_false_does_not_reregister(
     Re-loading a space for stats must not call ``updateCatalogs`` again.
     """
     space_configuration = DiscoverySpaceConfiguration.model_validate(
-        yaml.safe_load(
-            pathlib.Path("examples/ml-multi-cloud/ml_multicloud_space.yaml").read_text()
+        yaml.load(
+            pathlib.Path(
+                "examples/ml-multi-cloud/ml_multicloud_space.yaml"
+            ).read_text(),
+            Loader=SafeLoader,
         )
     )
     space_configuration.sampleStoreIdentifier = (

@@ -7,6 +7,11 @@ from collections.abc import Callable
 
 import pytest
 import yaml
+
+try:
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:  # pragma: nocover
+    from yaml import SafeLoader  # type: ignore[assignment]
 from typer.testing import CliRunner
 
 from ado.cli.core.cli import app as ado
@@ -31,7 +36,7 @@ def test_template_space(
     assert f"Success! File saved as {file_name}" in result.output
 
     space_configuration = DiscoverySpaceConfiguration.model_validate(
-        yaml.safe_load(file_name.read_text())
+        yaml.load(file_name.read_text(), Loader=SafeLoader)
     )
     assert space_configuration.sampleStoreIdentifier == "default"
 
@@ -56,7 +61,7 @@ def test_template_space_from_experiment(
     assert f"Success! File saved as {file_name}" in result.output
 
     space_configuration = DiscoverySpaceConfiguration.model_validate(
-        yaml.safe_load(file_name.read_text())
+        yaml.load(file_name.read_text(), Loader=SafeLoader)
     )
     assert (
         space_configuration.experiments[0].experimentIdentifier
@@ -90,7 +95,7 @@ def test_template_space_from_vllm_experiment(
     )
     assert result.exit_code == 0, result.output
     space_configuration = DiscoverySpaceConfiguration.model_validate(
-        yaml.safe_load(file_name.read_text())
+        yaml.load(file_name.read_text(), Loader=SafeLoader)
     )
     assert (
         space_configuration.experiments[0].experimentIdentifier
@@ -122,7 +127,7 @@ def test_template_space_from_experiment_with_actuator_prefix(
     assert f"Success! File saved as {file_name}" in result.output
 
     space_configuration = DiscoverySpaceConfiguration.model_validate(
-        yaml.safe_load(file_name.read_text())
+        yaml.load(file_name.read_text(), Loader=SafeLoader)
     )
     assert (
         space_configuration.experiments[0].experimentIdentifier
@@ -151,7 +156,7 @@ def test_template_space_from_experiment_minified_domains(
     )
     assert result.exit_code == 0
 
-    raw = yaml.safe_load(file_name.read_text())
+    raw = yaml.load(file_name.read_text(), Loader=SafeLoader)
     for prop_entry in raw.get("entitySpace", []):
         prop_name = prop_entry.get("identifier", "<unknown>")
         domain_dict = prop_entry.get("propertyDomain", {})

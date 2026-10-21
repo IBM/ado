@@ -20,6 +20,11 @@ import pydantic.fields
 import pydantic_core
 import yaml
 
+try:
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:  # pragma: nocover
+    from yaml import SafeLoader  # type: ignore[assignment]
+
 import ado.schema.domain
 import ado.schema.property_value
 from ado.schema.domain import PropertyDomain, VariableTypeEnum
@@ -47,7 +52,7 @@ PACKAGES_DIR = f"{os.path.dirname(__file__)}/../packages"
 CONFIG_DIR = f"{os.path.dirname(__file__)}/../config"
 
 with open(os.path.join(CONFIG_DIR, "map_version_to_commit.yaml")) as f:
-    FMS_HF_TUNING_COMMIT = yaml.safe_load(f)
+    FMS_HF_TUNING_COMMIT = yaml.load(f, Loader=SafeLoader)
 
 FMS_HF_TUNING_VERSION = {
     version: f"{FMS_HF_TUNING_REPOSITORY}/tree/{commit}"
@@ -170,8 +175,9 @@ class ExperimentPurpose(enum.StrEnum):
 def load_model_map() -> dict[str, dict[WeightsFormat, str]]:
     from importlib.resources import files
 
-    return yaml.safe_load(
-        files("ado_actuators.sfttrainer.config").joinpath("models.yaml").read_text()
+    return yaml.load(
+        files("ado_actuators.sfttrainer.config").joinpath("models.yaml").read_text(),
+        Loader=SafeLoader,
     )
 
 

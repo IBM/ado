@@ -7,6 +7,11 @@ from typing import Any
 import pytest
 import yaml
 
+try:
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:  # pragma: nocover
+    from yaml import SafeLoader  # type: ignore[assignment]
+
 import ado.metastore.project
 import ado.modules.actuators.base
 import ado.modules.actuators.catalog
@@ -30,7 +35,7 @@ def objectiveFunctionConfigurationYAML() -> dict[str, Any]:
 actuatorIdentifier: "custom_experiments"
     """
 
-    return yaml.safe_load(y)
+    return yaml.load(y, Loader=SafeLoader)
 
 
 @pytest.fixture
@@ -49,7 +54,7 @@ def actuatorCatalogExtensionConfigurationYAML() -> dict[str, Any]:
     location: 'examples/pfas-generative-models/'
     """
 
-    return yaml.safe_load(y)
+    return yaml.load(y, Loader=SafeLoader)
 
 
 @pytest.fixture

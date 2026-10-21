@@ -15,6 +15,11 @@ def constitutive_property_configuration_general_yaml(
 
     import yaml
 
+    try:
+        from yaml import CSafeLoader as SafeLoader
+    except ImportError:  # pragma: nocover
+        from yaml import SafeLoader  # type: ignore[assignment]
+
     confs = {
         "discrete": """
           - identifier: "AcceleratorType"
@@ -42,7 +47,7 @@ def constitutive_property_configuration_general_yaml(
               domainRange: [1, 500]""",
     }
 
-    return yaml.safe_load(confs[request.param])
+    return yaml.load(confs[request.param], Loader=SafeLoader)
 
 
 @pytest.fixture

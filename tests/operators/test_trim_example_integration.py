@@ -9,6 +9,11 @@ from collections.abc import Callable
 import pytest
 import trim_custom_experiments.experiments  # noqa: F401 — registers ideal-gas experiment
 import yaml
+
+try:
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:  # pragma: nocover
+    from yaml import SafeLoader  # type: ignore[assignment]
 from testcontainers.community.mysql import MySqlContainer
 
 import ado.modules.operators.randomwalk  # noqa: F401
@@ -48,8 +53,9 @@ def trim_minimal_discovery_space(
 ) -> DiscoverySpace:
     """Discovery space with ideal-gas experiment (empty sample store — trim may run no-priors)."""
     space_conf = DiscoverySpaceConfiguration.model_validate(
-        yaml.safe_load(
-            pathlib.Path("tests/resources/trim/space_minimal.yaml").read_text()
+        yaml.load(
+            pathlib.Path("tests/resources/trim/space_minimal.yaml").read_text(),
+            Loader=SafeLoader,
         )
     )
     sample_store = create_sample_store(

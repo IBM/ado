@@ -10,6 +10,11 @@ from typing import Any
 
 import ray
 import yaml
+
+try:
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:  # pragma: nocover
+    from yaml import SafeLoader  # type: ignore[assignment]
 from ado_actuators.vllm_performance.actuator_parameters import (
     VLLMPerformanceTestParameters,
 )
@@ -101,7 +106,7 @@ class VLLMPerformanceTest(ActuatorBase):
             logger.debug(f"Loading experiments from {exp_file.name}")
             try:
                 file_data = exp_file.read_text()
-                data = yaml.safe_load(file_data)
+                data = yaml.load(file_data, Loader=SafeLoader)
             except yaml.YAMLError as error:
                 error_message = f"File {exp_file.name} is a malformed YAML"
                 logger.error(error_message)

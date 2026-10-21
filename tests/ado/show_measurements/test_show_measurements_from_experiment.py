@@ -8,6 +8,11 @@ import typing
 from collections.abc import Callable
 
 import yaml
+
+try:
+    from yaml import CSafeDumper as SafeDumper
+except ImportError:  # pragma: nocover
+    from yaml import SafeDumper  # type: ignore[assignment]
 from typer.testing import CliRunner
 
 from ado.cli.core.cli import app as ado
@@ -268,7 +273,7 @@ def test_from_experiment_samplestore_invalid_yaml_file(
     )
 
     bad_ref_file = tmp_path / "bad_experiment_ref.yaml"
-    bad_ref_file.write_text(yaml.dump({"notAField": "badValue"}))
+    bad_ref_file.write_text(yaml.dump({"notAField": "badValue"}, Dumper=SafeDumper))
 
     result = runner.invoke(
         ado,

@@ -3,6 +3,12 @@
 
 import typer
 import yaml
+
+try:
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:  # pragma: nocover
+    from yaml import SafeLoader  # type: ignore[assignment]
+
 from rich.status import Status
 
 from ado.cli.models.parameters import AdoDescribeCommandParameters
@@ -38,7 +44,9 @@ def describe_discovery_space(parameters: AdoDescribeCommandParameters) -> None:
     else:
         try:
             configuration = DiscoverySpaceConfiguration.model_validate(
-                yaml.safe_load(parameters.resource_configuration.read_text())
+                yaml.load(
+                    parameters.resource_configuration.read_text(), Loader=SafeLoader
+                )
             )
         except ValueError as e:
             console_print(

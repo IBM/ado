@@ -8,6 +8,12 @@ import pydantic
 import rich.rule
 import typer
 import yaml
+
+try:
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:  # pragma: nocover
+    from yaml import SafeLoader  # type: ignore[assignment]
+
 from rich.console import RenderableType
 from rich.status import Status
 
@@ -677,7 +683,7 @@ def apply_patch_to_resources(
     try:
         raw = yaml.load(
             metadata_patch if metadata_patch is not None else metadata_path.read_text(),  # type: ignore[union-attr]
-            Loader=yaml.CSafeLoader,
+            Loader=SafeLoader,
         )
         if raw is not None and not isinstance(raw, dict):
             console_print(
@@ -779,7 +785,7 @@ def interactively_edit_resource_metadata(
             console_print(f"{ERROR}The editor exited with an error: {e}", stderr=True)
             raise typer.Exit(1) from e
 
-        new_metadata = yaml.load(file.read_text(), Loader=yaml.CSafeLoader)
+        new_metadata = yaml.load(file.read_text(), Loader=SafeLoader)
 
     try:
         resource.config.metadata = ConfigurationMetadata.model_validate(new_metadata)

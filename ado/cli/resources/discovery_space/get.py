@@ -5,6 +5,12 @@ import typing
 import pydantic
 import typer
 import yaml
+
+try:
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:  # pragma: nocover
+    from yaml import SafeLoader  # type: ignore[assignment]
+
 from rich.status import Status
 
 from ado.cli.models.parameters import AdoGetCommandParameters
@@ -94,7 +100,7 @@ def _find_spaces_matching_point(
 
     try:
         target_point = SpacePoint.model_validate(
-            yaml.safe_load(parameters.matching_point.read_text())
+            yaml.load(parameters.matching_point.read_text(), Loader=SafeLoader)
         )
     except pydantic.ValidationError:
         raise
@@ -154,7 +160,7 @@ def _find_spaces_matching_space(
         with Status("Validating input") as spinner:
             try:
                 space_configuration = DiscoverySpaceConfiguration.model_validate(
-                    yaml.safe_load(parameters.matching_space.read_text())
+                    yaml.load(parameters.matching_space.read_text(), Loader=SafeLoader)
                 )
             except pydantic.ValidationError as error:
                 spinner.stop()

@@ -7,6 +7,11 @@ import pydantic
 import pytest
 import yaml
 
+try:
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:  # pragma: nocover
+    from yaml import SafeLoader  # type: ignore[assignment]
+
 from ado.core.document.config import (
     DocumentConfiguration,
     RelatedResource,
@@ -39,7 +44,9 @@ def test_document_configuration_round_trip_yaml() -> None:
         metadata={"name": "Test report"},
     )
     yaml_text = pydantic_model_as_yaml(config)
-    restored = DocumentConfiguration.model_validate(yaml.safe_load(yaml_text))
+    restored = DocumentConfiguration.model_validate(
+        yaml.load(yaml_text, Loader=SafeLoader)
+    )
     assert restored == config
 
 
@@ -54,7 +61,9 @@ def test_document_configuration_html_round_trip_yaml() -> None:
         metadata={"name": "HTML report"},
     )
     yaml_text = pydantic_model_as_yaml(config)
-    restored = DocumentConfiguration.model_validate(yaml.safe_load(yaml_text))
+    restored = DocumentConfiguration.model_validate(
+        yaml.load(yaml_text, Loader=SafeLoader)
+    )
     assert restored == config
     assert restored.contentType == "html"
 
@@ -64,7 +73,7 @@ def test_document_configuration_from_fixture(
 ) -> None:
     """Document fixture validates as DocumentConfiguration."""
     config = DocumentConfiguration.model_validate(
-        yaml.safe_load(document_configuration_file.read_text())
+        yaml.load(document_configuration_file.read_text(), Loader=SafeLoader)
     )
     assert config.content.startswith("# Operation report")
     assert config.relatedResources == [
@@ -78,7 +87,7 @@ def test_document_configuration_from_html_fixture(
 ) -> None:
     """HTML document fixture validates as DocumentConfiguration."""
     config = DocumentConfiguration.model_validate(
-        yaml.safe_load(document_html_configuration_file.read_text())
+        yaml.load(document_html_configuration_file.read_text(), Loader=SafeLoader)
     )
     assert config.contentType == "html"
     assert "<h1>Operation report</h1>" in config.content
@@ -122,7 +131,7 @@ def test_document_metadata_without_todo_is_configuration_metadata() -> None:
     assert type(config.metadata) is ConfigurationMetadata
     assert config.metadata.model_extra == {"owner": "alice"}
     restored = DocumentConfiguration.model_validate(
-        yaml.safe_load(pydantic_model_as_yaml(config))
+        yaml.load(pydantic_model_as_yaml(config), Loader=SafeLoader)
     )
     assert restored == config
 
@@ -137,7 +146,7 @@ def test_study_document_metadata_round_trip_yaml() -> None:
     assert config.metadata.todo == ["Run baseline"]
     assert config.metadata.model_extra == {"owner": "alice"}
     restored = DocumentConfiguration.model_validate(
-        yaml.safe_load(pydantic_model_as_yaml(config))
+        yaml.load(pydantic_model_as_yaml(config), Loader=SafeLoader)
     )
     assert restored == config
     assert isinstance(restored.metadata, StudyDocumentMetadata)

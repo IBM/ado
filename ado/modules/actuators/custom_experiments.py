@@ -473,6 +473,11 @@ def load_custom_experiments_from_catalog_extensions(identifier: str) -> None:
 
     import yaml
 
+    try:
+        from yaml import CSafeLoader as SafeLoader
+    except ImportError:  # pragma: nocover
+        from yaml import SafeLoader  # type: ignore[assignment]
+
     from ado.modules.actuators.catalog import ActuatorCatalogExtension
     from ado.modules.actuators.registry import (
         CATALOG_EXTENSIONS_CONFIGURATION_FILE_NAME,
@@ -502,7 +507,9 @@ def load_custom_experiments_from_catalog_extensions(identifier: str) -> None:
 
             try:
                 catalog_extension = ActuatorCatalogExtension.model_validate(
-                    yaml.safe_load(experiments_configuration_file.read_text())
+                    yaml.load(
+                        experiments_configuration_file.read_text(), Loader=SafeLoader
+                    )
                 )
             except pydantic.ValidationError:
                 logger.exception(

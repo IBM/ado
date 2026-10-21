@@ -56,7 +56,7 @@ Write every listing or dump you will read to a file, then read that file:
 ```bash
 uv run ado get operations --details --output-file /tmp/ado-operations-details.txt
 uv run ado get spaces -l study=$ID --details --output-file /tmp/ado-study-spaces.txt
-uv run ado get operations -o stats --output-file /tmp/ado-operations-stats.txt
+uv run ado get operations --stats --output-file /tmp/ado-operations-stats.txt
 ```
 
 Tip: Narrow listings with `-l`/`--filter` when you
@@ -117,24 +117,24 @@ uv run ado get space --use-latest -o yaml --output-file latest-space.yaml
 uv run ado get operation --use-latest -o yaml --output-file latest-operation.yaml
 
 # Get measurement statistics for all operations
-uv run ado get operations -o stats --output-file operations-stats.txt
-uv run ado get operation OPERATION_ID -o stats --no-trunc
+uv run ado get operations --stats --output-file operations-stats.txt
+uv run ado get operation OPERATION_ID --stats --no-trunc
 
 # Get statistics for all discovery spaces
-uv run ado get spaces -o stats --output-file spaces-stats.txt
-uv run ado get space SPACE_ID -o stats --no-trunc
+uv run ado get spaces --stats --output-file spaces-stats.txt
+uv run ado get space SPACE_ID --stats --no-trunc
 
 # Include property domains in space table listing (-p / --include-properties)
 uv run ado get spaces -p constitutive --no-trunc --output-file /tmp/ado-spaces-properties.txt
 uv run ado get space SPACE_ID -p all --no-trunc --output-file /tmp/ado-space-properties.txt
 
 # Get statistics for all sample stores
-uv run ado get samplestores -o stats --output-file samplestores-stats.txt
-uv run ado get samplestore SAMPLESTORE_ID -o stats --no-trunc
+uv run ado get samplestores --stats --output-file samplestores-stats.txt
+uv run ado get samplestore SAMPLESTORE_ID --stats --no-trunc
 
 # Get statistics for all data containers
-uv run ado get datacontainers -o stats --output-file datacontainers-stats.txt
-uv run ado get datacontainer DATACONTAINER_ID -o stats --no-trunc
+uv run ado get datacontainers --stats --output-file datacontainers-stats.txt
+uv run ado get datacontainer DATACONTAINER_ID --stats --no-trunc
 
 # Get all resources of a type related to a source resource (--related-to)
 uv run ado get operations --related-to samplestore=STORE_ID \
@@ -152,7 +152,7 @@ or `context`. Cannot be combined with a direct resource ID or `--use-latest`.
 Can be combined with `--filter`, `--label`, `--matching-point`,
 `--matching-space`, and `--matching-space-id`.
 
-`-o stats` extends the table with statistics columns:
+`--stats` adds statistics columns to the table:
 
 - **Operations**: `TOTAL_MEASUREMENTS`, `SUCCESSFUL_MEASUREMENTS`, `FAILED_MEASUREMENTS`,
   `SAMPLED_ENTITIES`.
@@ -215,7 +215,7 @@ uv run ado show measurements space SPACE_ID
 uv run ado show measurements operation OPERATION_ID
 uv run ado show measurements samplestore SAMPLESTORE_ID
 
-# Show in-depth statistics (more columns than ado get -o stats)
+# Show in-depth statistics (more columns than ado get --stats)
 # No IDs = all resources of that type
 uv run ado show stats operation
 uv run ado show stats operation --use-latest -o json

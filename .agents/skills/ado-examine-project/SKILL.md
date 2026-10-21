@@ -100,7 +100,7 @@ was written:
    3. If there are, there has been recent activity in describing the motivations
       and scope of project
 2. Operation Activity
-   1. Run `uv run ado get operations --details -o stats --output-file /tmp/ado-operations-details-stats.txt`
+   1. Run `uv run ado get operations --details --stats --output-file /tmp/ado-operations-details-stats.txt`
    2. Find all the operations that were created after the last report was written
    3. Filter these for ones that are finished AND, if explore operations, that
       measured entities
@@ -166,7 +166,7 @@ When examining a study, add `-l study=$ID` (the study's label) to the
 3. **Operations (with measurement statistics)**
 
    ```bash
-   uv run ado get operations -o stats --output-file operations-stats.txt
+   uv run ado get operations --stats --output-file operations-stats.txt
    ```
 
    Adds `TOTAL_MEASUREMENTS`, `SUCCESSFUL_MEASUREMENTS`,
@@ -185,7 +185,7 @@ When examining a study, add `-l study=$ID` (the study's label) to the
 4. **Discovery Spaces (with statistics)**
 
    ```bash
-   uv run ado get spaces -o stats --output-file spaces-stats.txt
+   uv run ado get spaces --stats --output-file spaces-stats.txt
    ```
 
    Adds `EXPERIMENTS`, `OPERATIONS`, `EXPLORE_OPS`, and `SAMPLED_ENTITIES`
@@ -200,13 +200,13 @@ When examining a study, add `-l study=$ID` (the study's label) to the
    ```
 
    > **Performance note**: `ado show stats discoveryspace` is slower than
-   > `ado get spaces -o stats` as it instantiates each `DiscoverySpace`.
-   > Prefer `ado get -o stats` for a quick overview across many spaces.
+   > `ado get spaces --stats` as it instantiates each `DiscoverySpace`.
+   > Prefer `ado get --stats` for a quick overview across many spaces.
 
 5. **Sample Stores (with statistics)**
 
    ```bash
-   uv run ado get samplestores -o stats --output-file samplestores-stats.txt
+   uv run ado get samplestores --stats --output-file samplestores-stats.txt
    ```
 
    Adds `ENTITIES`, `RESULTS`, and `EXPERIMENTS` columns.
@@ -214,7 +214,7 @@ When examining a study, add `-l study=$ID` (the study's label) to the
 6. **Data Containers (with statistics)**
 
    ```bash
-   uv run ado get datacontainers -o stats --output-file datacontainers-stats.txt
+   uv run ado get datacontainers --stats --output-file datacontainers-stats.txt
    ```
 
    Adds `TABLES`, `LOCATIONS`, `KEY_VALUES`, and `DATA_BYTES` columns.

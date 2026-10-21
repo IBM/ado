@@ -112,6 +112,7 @@ def list_contexts(
         resource_type=AdoGetSupportedResourceTypes.CONTEXT,
         show_deprecated=False,
         show_details=False,
+        show_stats=False,
         use_latest=False,
     )
 

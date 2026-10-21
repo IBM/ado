@@ -55,10 +55,18 @@ def get_discovery_space(parameters: AdoGetCommandParameters) -> None:
                 ),
                 resource_kind=CoreResourceKinds.DISCOVERYSPACE,
             )
-            handle_ado_get(parameters=parameters, dataframe=output_df)
+            handle_ado_get(
+                parameters=parameters,
+                dataframe=output_df,
+                resource_type=CoreResourceKinds.DISCOVERYSPACE,
+            )
         else:
             # For structured formats, use resources
-            handle_ado_get(parameters=parameters, resources=matching_spaces)
+            handle_ado_get(
+                parameters=parameters,
+                resources=matching_spaces,
+                resource_type=CoreResourceKinds.DISCOVERYSPACE,
+            )
 
         return
 
@@ -67,7 +75,11 @@ def get_discovery_space(parameters: AdoGetCommandParameters) -> None:
 
         matching_spaces = _find_spaces_matching_space(parameters)
         # Use DataFrame for rendering
-        handle_ado_get(parameters=parameters, dataframe=matching_spaces)
+        handle_ado_get(
+            parameters=parameters,
+            dataframe=matching_spaces,
+            resource_type=CoreResourceKinds.DISCOVERYSPACE,
+        )
         return
 
     # Standard case: use unified handler with resource_type

@@ -259,8 +259,6 @@ def handle_ado_get(
             _handle_name_format(parameters, resource_type, dataframe, resources)
         case AdoGetSupportedOutputFormats.TABLE:
             _handle_table_format(parameters, resource_type, dataframe, resources)
-        case AdoGetSupportedOutputFormats.STATS:
-            _handle_stats_format(parameters, resource_type, dataframe, resources)
         case AdoGetSupportedOutputFormats.RAW:
             _handle_raw_format(parameters, resource_type)
         case (
@@ -388,16 +386,21 @@ def _handle_table_format(
         dataframe=dataframe,
         resources=resources,
     )
+    if parameters.show_stats:
+        output_df = _add_stats_columns(
+            base_df=output_df,
+            parameters=parameters,
+            resource_type=resource_type,
+        )
     return _render_dataframe_table_output(output_df, parameters)
 
 
-def _handle_stats_format(
+def _add_stats_columns(
+    base_df: "pd.DataFrame",
     parameters: "AdoGetCommandParameters",
     resource_type: "CoreResourceKinds | None",
-    dataframe: "pd.DataFrame | None",
-    resources: "list[ADOResource] | ADOResource | None",
-) -> None:
-    """Handle STATS output format - TABLE columns plus measurement/space stats columns.
+) -> "pd.DataFrame":
+    """Add measurement/space/store/container statistics columns to the base table DataFrame.
 
     Supported for:
     - operations (columns: TOTAL_MEASUREMENTS, SUCCESSFUL_MEASUREMENTS, FAILED_MEASUREMENTS,
@@ -419,56 +422,48 @@ def _handle_stats_format(
         CoreResourceKinds.SAMPLESTORE,
         CoreResourceKinds.DATACONTAINER,
     }
-    if resource_type is not None and resource_type not in _SUPPORTED:
+    if resource_type not in _SUPPORTED:
         console_print(
-            f"{ERROR}The 'stats' output format is only supported for operations, "
+            f"{ERROR}The '--stats' flag is only supported for operations, "
             f"discovery spaces, sample stores, and data containers.",
             stderr=True,
         )
         raise typer.Exit(1)
 
-    base_df = _build_table_output_dataframe(
-        parameters=parameters,
-        resource_type=resource_type,
-        dataframe=dataframe,
-        resources=resources,
-    )
-
     if base_df.empty:
-        _render_dataframe_table_output(base_df, parameters)
-        return
+        return base_df
 
-    # Append stats columns.
+    # Add stats columns.
     sql_store_for_stats = get_sql_store(
         project_context=parameters.ado_configuration.project_context
     )
     with Status(ADO_SPINNER_GETTING_OUTPUT_READY) as status:
         if resource_type == CoreResourceKinds.DISCOVERYSPACE:
-            enriched_df = format_ado_get_stats_for_spaces(
+            output_df = format_ado_get_stats_for_spaces(
                 base_df,
                 sql_store_for_stats,
                 spinner=status,
             )
         elif resource_type == CoreResourceKinds.SAMPLESTORE:
-            enriched_df = format_ado_get_stats_for_samplestores(
+            output_df = format_ado_get_stats_for_samplestores(
                 base_df,
                 sql_store_for_stats,
                 spinner=status,
             )
         elif resource_type == CoreResourceKinds.DATACONTAINER:
-            enriched_df = format_ado_get_stats_for_datacontainers(
+            output_df = format_ado_get_stats_for_datacontainers(
                 base_df,
                 sql_store_for_stats,
                 spinner=status,
             )
         else:
-            enriched_df = format_ado_get_stats_for_operations(
+            output_df = format_ado_get_stats_for_operations(
                 base_df,
                 sql_store_for_stats,
                 spinner=status,
             )
 
-    _render_dataframe_table_output(enriched_df, parameters)
+    return output_df
 
 
 def _handle_raw_format(

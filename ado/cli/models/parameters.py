@@ -43,6 +43,7 @@ class AdoGetCommandParameters(pydantic.BaseModel):
     resource_type: AdoGetSupportedResourceTypes
     show_deprecated: bool
     show_details: bool
+    show_stats: bool
     use_latest: bool
 
 

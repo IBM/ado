@@ -509,7 +509,8 @@ The complete syntax of the `ado get` command is as follows:
 <!-- markdownlint-disable line-length -->
 
 ```shell
-ado get RESOURCE_TYPE [RESOURCE_ID] [--output | -o <default | yaml | json | config | raw | stats>] \
+ado get RESOURCE_TYPE [RESOURCE_ID] [--output | -o <default | yaml | json | config | raw>] \
+                                    [--stats] \
                                     [--output-file <path>] \
                                     [--use-latest] \
                                     [--exclude-default | --no-exclude-default] \
@@ -569,20 +570,21 @@ Where:
     - The `config` format displays the `config` field of the matching resources.
     - The `raw` format displays the raw resource as stored in the database,
       performing no validation.
-    - The `stats` format augments the default `table` output with additional
-      statistics columns. Supported resource types and their columns are:
-        - **Operations**: `TOTAL_MEASUREMENTS`, `SUCCESSFUL_MEASUREMENTS`,
-          `FAILED_MEASUREMENTS`, `SAMPLED_ENTITIES` (entities with at least one
-          measurement, whether successful, failed, or both).
-        - **Discovery Spaces**: `EXPERIMENTS`, `OPERATIONS`, `EXPLORE_OPS`,
-          `SAMPLED_ENTITIES` (entities with at least one measurement, whether
-          successful, failed, or both).
-        - **Sample Stores**: `ENTITIES`, `RESULTS`, `EXPERIMENTS`.
-        - **Data Containers**: `TABLES`, `LOCATIONS`, `KEY_VALUES`,
-          `DATA_BYTES`.
+    - The `stats` format is deprecated (use `--stats` instead).
 
     <!-- prettier-ignore-end -->
 
+- `--stats` adds statistics columns to the default `table` output. Supported
+  resource types and their columns are:
+    - **Operations**: `TOTAL_MEASUREMENTS`, `SUCCESSFUL_MEASUREMENTS`,
+      `FAILED_MEASUREMENTS`, `SAMPLED_ENTITIES` (entities with at least one
+      measurement, whether successful, failed, or both).
+    - **Discovery Spaces**: `EXPERIMENTS`, `OPERATIONS`, `EXPLORE_OPS`,
+      `SAMPLED_ENTITIES` (entities with at least one measurement, whether
+      successful, failed, or both).
+    - **Sample Stores**: `ENTITIES`, `RESULTS`, `EXPERIMENTS`.
+    - **Data Containers**: `TABLES`, `LOCATIONS`, `KEY_VALUES`,
+      `DATA_BYTES`.
 - `--output-file` allows writing the output to a specified file instead of
   stdout. Avoids truncating columns when used with the `table` format.
 - `--exclude-default` (set by default) allows excluding fields that use default
@@ -612,9 +614,7 @@ Where:
   string representations of discovery-space properties in table output. You can
   specify `constitutive`, `parameterized`, `optional`, `all`, or a comma-separated
   list of specific property identifiers.
-- When using the `--details` flag with the `table` output format, additional
-  columns with the _description_ and the _labels_ of the matching resources are
-  printed.
+- `--details` adds `DESCRIPTION` and `LABELS` columns to the `table` output.
 - The `--show-deprecated` flag is available **only for `ado get experiments`**
   and allows displaying experiments that have been deprecated. They are
   otherwise hidden by default.
@@ -806,49 +806,49 @@ ado get spaces --output-file spaces-table.txt
 #### Getting measurement statistics for all Operations
 
 ```shell
-ado get operations -o stats
+ado get operations --stats
 ```
 
 #### Getting measurement statistics for a single Operation
 
 ```shell
-ado get operation randomwalk-0.5.0-123abc -o stats
+ado get operation randomwalk-0.5.0-123abc --stats
 ```
 
 #### Getting statistics for all Discovery Spaces
 
 ```shell
-ado get spaces -o stats
+ado get spaces --stats
 ```
 
 #### Getting statistics for a single Discovery Space
 
 ```shell
-ado get space --use-latest -o stats
+ado get space --use-latest --stats
 ```
 
 #### Getting statistics for all Sample Stores
 
 ```shell
-ado get samplestores -o stats
+ado get samplestores --stats
 ```
 
 #### Getting statistics for a single Sample Store
 
 ```shell
-ado get samplestore --use-latest -o stats
+ado get samplestore --use-latest --stats
 ```
 
 #### Getting statistics for all Data Containers
 
 ```shell
-ado get datacontainers -o stats
+ado get datacontainers --stats
 ```
 
 #### Getting statistics for a single Data Container
 
 ```shell
-ado get datacontainer --use-latest -o stats
+ado get datacontainer --use-latest --stats
 ```
 
 #### Getting all operations related to a sample store
@@ -1284,7 +1284,7 @@ ado show related space space-abc123-456def --max-hops 1
 _show stats_ supports displaying in-depth statistics for one or more resources.
 It always outputs the same base columns as the corresponding `ado get` table
 (e.g. `IDENTIFIER`, `NAME`, `AGE`) plus a richer set of statistics columns than
-the `ado get -o stats` view. For operations, it also includes request-level
+the `ado get --stats` view. For operations, it also includes request-level
 columns; for discovery spaces, it also includes full entity-space coverage
 columns.
 
@@ -1327,8 +1327,8 @@ Where:
 - `--filter` (or `-q`) and `--label` (or `-l`) filter which resources are
   included (same semantics as `ado get`). Cannot be used together with explicit
   IDs.
-- `--details` appends `DESCRIPTION` and `LABELS` columns to the output,
-  mirroring the behaviour of `ado get --details`.
+- `--details` adds `DESCRIPTION` and `LABELS` columns to the output, mirroring
+  the behaviour of `ado get --details`.
 - `--output` (or `-o`) selects the output format:
 
     <!-- prettier-ignore-start -->
@@ -1367,8 +1367,8 @@ The statistics columns produced per resource type are:
     statistics including the heavy columns (`ENTITY_SPACE_SIZE`, `UNSAMPLED`,
     `SAMPLED_COMPLETE`, `SAMPLED_PARTIAL`, `SAMPLED_FAILED`, `MATCHING_COMPLETE`,
     `MATCHING_PARTIAL`, `MATCHING_FAILED`).
-    This is slower than `ado get spaces -o stats` because it instantiates each
-    `DiscoverySpace` and queries the sample store. Use `ado get -o stats` for
+    This is slower than `ado get spaces --stats` because it instantiates each
+    `DiscoverySpace` and queries the sample store. Use `ado get --stats` for
     quick overviews.
 
 #### Examples

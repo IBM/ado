@@ -101,30 +101,30 @@ type. Read the file; do not treat stdout as complete.
 
 ### Resource Statistics
 
-`-o stats` adds statistics columns to the table without fetching full resource
+`--stats` adds statistics columns to the table without fetching full resource
 data. Supported for **operations**, **discovery spaces**, **sample stores**, and
 **data containers**.
 
 ```bash
 # Operations
-uv run ado get operations -o stats --output-file operations-stats.txt
-uv run ado get operation OPERATION_ID -o stats --no-trunc
+uv run ado get operations --stats --output-file operations-stats.txt
+uv run ado get operation OPERATION_ID --stats --no-trunc
 
 # Discovery Spaces
-uv run ado get spaces -o stats --output-file spaces-stats.txt
-uv run ado get space SPACE_ID -o stats --no-trunc
+uv run ado get spaces --stats --output-file spaces-stats.txt
+uv run ado get space SPACE_ID --stats --no-trunc
 # Include property domains in space table output
 # (constitutive, parameterized, optional, all, or specific IDs)
 uv run ado get spaces -p constitutive --no-trunc --output-file /tmp/ado-spaces-properties.txt
 uv run ado get space SPACE_ID -p all --no-trunc --output-file /tmp/ado-space-properties.txt
 
 # Sample Stores
-uv run ado get samplestores -o stats --output-file samplestores-stats.txt
-uv run ado get samplestore SAMPLESTORE_ID -o stats --no-trunc
+uv run ado get samplestores --stats --output-file samplestores-stats.txt
+uv run ado get samplestore SAMPLESTORE_ID --stats --no-trunc
 
 # Data Containers
-uv run ado get datacontainers -o stats --output-file datacontainers-stats.txt
-uv run ado get datacontainer DATACONTAINER_ID -o stats --no-trunc
+uv run ado get datacontainers --stats --output-file datacontainers-stats.txt
+uv run ado get datacontainer DATACONTAINER_ID --stats --no-trunc
 ```
 
 **Operations** extra columns: `TOTAL_MEASUREMENTS`, `SUCCESSFUL_MEASUREMENTS`,

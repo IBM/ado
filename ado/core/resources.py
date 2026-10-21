@@ -231,3 +231,28 @@ class ADOResourcePropertyDescriptor(PropertyDescriptor):
         CoreResourceKinds,
         pydantic.Field(description="ADO resource kind"),
     ]
+
+    def __eq__(self, other: object) -> bool:
+        """Return whether this descriptor equals another resource property descriptor.
+
+        Two resource property descriptors are equal when they share an identifier
+        and a kind. Comparison with any other type is left to that type.
+
+        Args:
+            other: Value to compare against.
+
+        Returns:
+            True when both are resource property descriptors with the same
+            identifier and kind. NotImplemented for any other type.
+        """
+        if not isinstance(other, ADOResourcePropertyDescriptor):
+            return NotImplemented
+        return self.identifier == other.identifier and self.kind == other.kind
+
+    def __hash__(self) -> int:
+        """Return a hash of the identifier and kind.
+
+        Returns:
+            Hash of the identifier and kind.
+        """
+        return hash((self.identifier, self.kind))

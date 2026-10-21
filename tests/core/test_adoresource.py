@@ -1,6 +1,9 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
+import pydantic
+import pytest
+
 from ado.core import DiscoverySpaceResource, SampleStoreResource
 from ado.core.operation.resource import (
     OperationExitStateEnum,
@@ -8,7 +11,13 @@ from ado.core.operation.resource import (
     OperationResourceEventEnum,
     OperationResourceStatus,
 )
-from ado.core.resources import ADOResourceEventEnum, ADOResourceStatus
+from ado.core.resources import (
+    ADOResourceEventEnum,
+    ADOResourcePropertyDescriptor,
+    ADOResourceReference,
+    ADOResourceStatus,
+    CoreResourceKinds,
+)
 
 
 def test_ado_resource_status() -> None:
@@ -95,3 +104,86 @@ def test_resource_provenance_ser_deser(
     dump = resource.model_dump()
     deser = SampleStoreResource.model_validate(dump)
     assert deser.provenance.ado == ado
+
+
+def test_ado_resource_reference_round_trip() -> None:
+    """ADOResourceReference survives model_dump → model_validate."""
+    original = ADOResourceReference(
+        identifier="space-abc123",
+        kind=CoreResourceKinds.DISCOVERYSPACE,
+    )
+    restored = ADOResourceReference.model_validate(original.model_dump())
+    assert restored == original
+
+    without_kind = ADOResourceReference(identifier="space-abc123")
+    restored_without_kind = ADOResourceReference.model_validate(
+        without_kind.model_dump()
+    )
+    assert restored_without_kind.kind is None
+
+
+def test_ado_resource_reference_rejects_unknown_fields() -> None:
+    """ADOResourceReference rejects fields other than identifier and kind."""
+    with pytest.raises(pydantic.ValidationError):
+        ADOResourceReference.model_validate(
+            {"identifier": "space-abc123", "unknown": "value"}
+        )
+
+
+def test_ado_resource_reference(
+    sample_store_resource: SampleStoreResource,
+    discovery_space_resource: DiscoverySpaceResource,
+    operation_resource: OperationResource,
+) -> None:
+    """ADOResource.reference returns an ADOResourceReference for the resource."""
+    for resource, kind in (
+        (sample_store_resource, CoreResourceKinds.SAMPLESTORE),
+        (discovery_space_resource, CoreResourceKinds.DISCOVERYSPACE),
+        (operation_resource, CoreResourceKinds.OPERATION),
+    ):
+        ref = resource.reference
+        assert isinstance(ref, ADOResourceReference)
+        assert ref.identifier == resource.identifier
+        assert ref.kind == kind
+
+
+def test_ado_resource_property_descriptor_basics() -> None:
+    """ADOResourcePropertyDescriptor carries identifier and kind."""
+    descriptor = ADOResourcePropertyDescriptor(
+        identifier="discoverySpace", kind=CoreResourceKinds.DISCOVERYSPACE
+    )
+    assert descriptor.identifier == "discoverySpace"
+    assert descriptor.kind == CoreResourceKinds.DISCOVERYSPACE
+
+
+def test_ado_resource_property_descriptor_round_trip() -> None:
+    """ADOResourcePropertyDescriptor survives model_dump → model_validate."""
+    original = ADOResourcePropertyDescriptor(
+        identifier="candidate", kind=CoreResourceKinds.OPERATION
+    )
+    restored = ADOResourcePropertyDescriptor.model_validate(original.model_dump())
+    assert restored.identifier == original.identifier
+    assert restored.kind == original.kind
+
+
+def test_ado_resource_property_descriptor_extra_fields_forbidden() -> None:
+    """ADOResourcePropertyDescriptor rejects unknown fields."""
+    with pytest.raises(pydantic.ValidationError):
+        ADOResourcePropertyDescriptor.model_validate(
+            {"identifier": "x", "kind": "discoveryspace", "unknown": 1}
+        )
+
+
+def test_ado_resource_property_descriptor_is_a_property_descriptor() -> None:
+    """ADOResourcePropertyDescriptor is a PropertyDescriptor and compares by identifier."""
+    from ado.schema.property import PropertyDescriptor
+
+    descriptor = ADOResourcePropertyDescriptor(
+        identifier="baseline", kind=CoreResourceKinds.DATACONTAINER
+    )
+    assert isinstance(descriptor, PropertyDescriptor)
+    # PropertyDescriptor equality is identifier-based, ignoring kind.
+    other = ADOResourcePropertyDescriptor(
+        identifier="baseline", kind=CoreResourceKinds.OPERATION
+    )
+    assert descriptor == other

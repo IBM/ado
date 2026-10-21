@@ -269,7 +269,16 @@ class TrimParameters(GenericOperatorParameters):
 
     @model_validator(mode="after")
     def set_final_model_args(self) -> "TrimParameters":
-        if self.finalModelAutoGluonArgs == AutoGluonArgs():
+        """Copy the iterative AutoGluon arguments into the final-model arguments.
+
+        The copy is made when the final-model arguments are still the default,
+        and when both fields hold the same AutoGluonArgs instance. Each stage
+        then owns its own argument dictionaries.
+        """
+        if (
+            self.finalModelAutoGluonArgs is self.autoGluonArgs
+            or self.finalModelAutoGluonArgs == AutoGluonArgs()
+        ):
             self.finalModelAutoGluonArgs = self.autoGluonArgs.model_copy(deep=True)
         return self
 

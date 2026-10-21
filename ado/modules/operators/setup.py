@@ -10,6 +10,7 @@ import pydantic
 from ado.core.discoveryspace.space import DiscoverySpace
 from ado.core.operation.config import (
     DiscoveryOperationConfiguration,
+    GenericOperatorParameters,
     OperatorMetadata,
     OperatorReference,
     get_actuator_configurations,
@@ -173,7 +174,7 @@ def setup_actuators(
 
 def setup_operator(
     operator_metadata: OperatorMetadata,
-    parameters: dict | pydantic.BaseModel,
+    parameters: dict | GenericOperatorParameters,
     discovery_space: DiscoverySpace,
     namespace: str,
     discovery_space_manager: "DiscoverySpaceManagerActor",
@@ -186,8 +187,8 @@ def setup_operator(
     Params:
         operator_metadata: Registered metadata for the operator, carrying the class
             and canonical name.
-        parameters: Operation parameters as a dict or pydantic model (models are
-            dumped to a dict before actor construction).
+        parameters: Operation parameters as a dict or GenericOperatorParameters
+            instance. A model is dumped to a dict before actor construction.
         discovery_space: The discovery space the operator will operate on
         namespace: Ray namespace to create the operator actor in
         discovery_space_manager: DiscoverySpaceManager actor handle
@@ -217,7 +218,7 @@ def setup_operator(
     actor_name = operator_metadata.name
 
     # Explore actors historically expect a plain dict (``Config(**params)``).
-    if isinstance(parameters, pydantic.BaseModel):
+    if isinstance(parameters, GenericOperatorParameters):
         parameters = parameters.model_dump()
 
     operator = (

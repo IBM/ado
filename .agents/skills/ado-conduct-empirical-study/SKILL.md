@@ -1,5 +1,5 @@
 ---
-name: conduct-empirical-study
+name: ado-conduct-empirical-study
 description: >-
   End-to-end workflow for using ado to conduct an empirical study — systematic exploration
   of entity spaces/configuration spaces via experiment campaigns and analysis
@@ -17,15 +17,15 @@ of entities: executing experiments to answer research questions, benchmarking, o
 any task where data must be collected across a parameter space.
 
 For measuring **one** entity/point (functional check), use
-`run_experiment` — see [run-experiment](../run-experiment/SKILL.md) — not this
-workflow.
+`run_experiment` — see
+[ado-run-experiment](../ado-run-experiment/SKILL.md) — not this workflow.
 
 ## Basic Skill Requirements
 
 Ensure you read the following basic skills first:
 
-- [using-ado-cli](../using-ado-cli/SKILL.md)
-- [Querying ado data](../query-ado-data)
+- [ado-use-cli](../ado-use-cli/SKILL.md)
+- [Querying ado data](../ado-query-database)
 
 ## Workflow Overview
 
@@ -44,7 +44,7 @@ Six sequential steps. Steps 3 is optional.
 
 To perform this step read:
 
-- [Create Research Study Document](../create-research-study-document)
+- [Create Research Study Document](../ado-create-study-document)
 
 List existing study documents
 
@@ -59,7 +59,7 @@ ado get document $DOCUMENTID -o yaml --output-file $ID.yaml
 ```
 
 Find the relevant study labels and then query for resources that have those labels.
-[See the examples](../create-research-study-document/SKILL.md#query).
+[See the examples](../ado-create-study-document/SKILL.md#query).
 
 Form a picture of the current study state. In particular:
 
@@ -73,7 +73,7 @@ Form a picture of the current study state. In particular:
 
 At the start of a named study (and when objectives or next steps change), create
 or refresh a study document and apply its study labels to spaces/operations —
-see [create-research-study-document](../create-research-study-document/SKILL.md).
+see [ado-create-study-document](../ado-create-study-document/SKILL.md).
 
 Decide if this constitutes a new study or is an extension of an existing
 one (matches the scope of an existing study).
@@ -88,12 +88,12 @@ If it constitutes a new study write a study document for it.
 
 ## Step 3: (Optional) Implementation Phase
 
-Read [define-experiment-campaign](../define-experiment-campaign/SKILL.md)
+Read [ado-define-experiment-campaign](../ado-define-experiment-campaign/SKILL.md)
 
 Decide if any new experiments or analysis operators are required for the
 study.
 
-Follow [plugin-development](../plugin-development/SKILL.md) to implement
+Follow [ado-develop-plugin](../ado-develop-plugin/SKILL.md) to implement
 the needed components.
 
 Gather user input on implementation details:
@@ -107,7 +107,7 @@ Gather user input on implementation details:
 
 ## Step 4: Define Experiment Campaign
 
-Define an initial experiment campaign following [define-experiment-campaign](../define-experiment-campaign/SKILL.md).
+Define an initial experiment campaign following [ado-define-experiment-campaign](../ado-define-experiment-campaign/SKILL.md).
 
 ---
 
@@ -123,7 +123,7 @@ uv run ado create space -f space.yaml
 uv run ado create operation -f operation.yaml --use-latest space
 ```
 
-**Remote execution**: follow [remote-execution](../remote-execution/SKILL.md).
+**Remote execution**: follow [ado-run-operation-remote](../ado-run-operation-remote/SKILL.md).
 
 Prefer remote execution when the study requires:
 
@@ -143,9 +143,9 @@ Gather user input on execution details:
 
 After the operation has produced data, use:
 
-- [examining-ado-operations](../examining-ado-operations/SKILL.md), to
+- [ado-examine-operation](../ado-examine-operation/SKILL.md), to
 examine the data produced
-- [examining-discovery-spaces](../examining-discovery-spaces/SKILL.md),
+- [ado-examine-space](../ado-examine-space/SKILL.md),
 to inspect the space operated on, especially when the space
 has been explored by multiple operations e.g.
   - between phases of a multi-step study

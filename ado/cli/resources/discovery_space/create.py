@@ -84,7 +84,7 @@ def create_discovery_space(parameters: AdoCreateCommandParameters) -> str | None
             space_configuration.sampleStoreIdentifier = create_sample_store(
                 AdoCreateCommandParameters(
                     ado_configuration=parameters.ado_configuration,
-                    dry_run=False,
+                    dry_run=parameters.dry_run,
                     new_sample_store=False,
                     override_values=[],
                     resource_configuration_file=parameters.with_resources[
@@ -166,15 +166,16 @@ def create_discovery_space(parameters: AdoCreateCommandParameters) -> str | None
                 storageLocation=parameters.ado_configuration.project_context.metadataStore,
             )
         )
-        sql_store = get_sql_store(
-            project_context=parameters.ado_configuration.project_context
-        )
-        with Status("Creating your sample store"):
-            sample_store_resource, _ = create_sample_store_resource(
-                configuration=sample_store_configuration, resource_store=sql_store
+        if not parameters.dry_run:
+            sql_store = get_sql_store(
+                project_context=parameters.ado_configuration.project_context
             )
+            with Status("Creating your sample store"):
+                sample_store_resource, _ = create_sample_store_resource(
+                    configuration=sample_store_configuration, resource_store=sql_store
+                )
 
-        space_configuration.sampleStoreIdentifier = sample_store_resource.identifier
+            space_configuration.sampleStoreIdentifier = sample_store_resource.identifier
 
     elif parameters.use_default_sample_store:
         space_configuration.sampleStoreIdentifier = "default"

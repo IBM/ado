@@ -1,5 +1,5 @@
 ---
-name: remote-execution
+name: ado-run-operation-remote
 description:
   Run ado operations on remote Ray clusters using --remote execution context
   files. Use when the user wants to create an operation, asks about remote
@@ -14,8 +14,8 @@ description:
 
 Ensure you read the following basic skills first:
 
-- [using-ado-cli](../using-ado-cli/SKILL.md)
-- [resource-yaml-creation](../resource-yaml-creation/SKILL.md)
+- [ado-use-cli](../ado-use-cli/SKILL.md)
+- [ado-create-resource-yaml](../ado-create-resource-yaml/SKILL.md)
 
 ## Execution context files
 
@@ -238,7 +238,7 @@ the git node and a build-time UTC timestamp to every dirty or dev build (e.g.
 produces a unique version string even when the underlying commit has not changed.
 If you are still seeing stale wheels, confirm the plugin's `pyproject.toml`
 has the `format-jinja` block from the
-[plugin-development](../plugin-development/SKILL.md) skill.
+[ado-develop-plugin](../ado-develop-plugin/SKILL.md) skill.
 
 ### Handling Version Control Source (VCS) Dependencies
 

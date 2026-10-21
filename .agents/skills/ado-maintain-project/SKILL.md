@@ -1,5 +1,5 @@
 ---
-name: ado-project-maintenance
+name: ado-maintain-project
 description: >-
   Describes how to maintain an ado project including how to identify
   resources that are candidates for deletion, and how to label testing
@@ -21,7 +21,7 @@ description: >-
 
 Query every deletable type for existing marks. Write listings to files and
 read them; do not rely on stdout. See
-[using-ado-cli](../using-ado-cli/SKILL.md).
+[ado-use-cli](../ado-use-cli/SKILL.md).
 
    ```bash
    uv run ado get operation -l for_deletion=true --details --output-file /tmp/ado-for-deletion-operations.txt
@@ -193,8 +193,8 @@ Three labels make up the maintenance scheme.
 
    Keep the newest by `created`, mark the rest (mirrors the replace-report
    pattern in
-   [examining-ado-operations](../examining-ado-operations/SKILL.md) and
-   [examining-discovery-spaces](../examining-discovery-spaces/SKILL.md)).
+   [ado-examine-operation](../ado-examine-operation/SKILL.md) and
+   [ado-examine-space](../ado-examine-space/SKILL.md)).
 
    Deletion Reason: `superseded-report`.
 
@@ -231,9 +231,9 @@ Three labels make up the maintenance scheme.
 
 ## Related Skills
 
-- [resource-yaml-creation](../resource-yaml-creation/SKILL.md) — `provisional`
+- [ado-create-resource-yaml](../ado-create-resource-yaml/SKILL.md) — `provisional`
   label definition and general metadata guidance
-- [query-ado-data](../query-ado-data/SKILL.md) — `--filter`/`--label` syntax
+- [ado-query-database](../ado-query-database/SKILL.md) — `--filter`/`--label` syntax
   and resource statistics
-- [using-ado-cli](../using-ado-cli/SKILL.md) — CLI command syntax and
+- [ado-use-cli](../ado-use-cli/SKILL.md) — CLI command syntax and
   shortcuts

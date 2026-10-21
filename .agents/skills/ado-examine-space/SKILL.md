@@ -1,5 +1,5 @@
 ---
-name: examining-discovery-spaces
+name: ado-examine-space
 description: >-
   End-to-end workflow to examine and summarise an ado discoveryspace — fetch
   space YAML, describe entity and measurement space structure, assess sampling
@@ -24,9 +24,9 @@ covered its entity space is, and what data has been collected.
 
 Read the following basic skills first:
 
-- [using-ado-cli](../using-ado-cli/SKILL.md).
-- [query-ado-data](../query-ado-data/SKILL.md).
-- [resource-yaml-creation — Document](../resource-yaml-creation/SKILL.md#document).
+- [ado-use-cli](../ado-use-cli/SKILL.md).
+- [ado-query-database](../ado-query-database/SKILL.md).
+- [ado-create-resource-yaml — Document](../ado-create-resource-yaml/SKILL.md#document).
 
 ## Context
 
@@ -93,7 +93,7 @@ file instead of calling `ado get` repeatedly for the same resource.
 
 Table listings (`ado get … --details`) should also use `--output-file`. Tool
 stdout capture can drops long tables. See
-[using-ado-cli](../using-ado-cli/SKILL.md).
+[ado-use-cli](../ado-use-cli/SKILL.md).
 
 ### Large output files
 
@@ -235,7 +235,7 @@ the experiment and meaning of metrics when looking for patterns.
 ### Step 6: Examine Related Operations
 
 For each related operation (output in step 2), use the
-[examining-ado-operations](../examining-ado-operations/SKILL.md) skill to
+[ado-examine-operation](../ado-examine-operation/SKILL.md) skill to
 understand what each operation did and what it produced.
 
 Note: Do not analyze the data in the operations, or do detailed diagnoses. Just

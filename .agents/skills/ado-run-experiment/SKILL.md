@@ -1,13 +1,13 @@
 ---
-name: run-experiment
+name: ado-run-experiment
 description: >-
   Use the run_experiment tool to execute one experiment on a single point
   (entity) without creating a discoveryspace or operation. Use when smoke
   testing or functionally validating an actuator, custom experiment, or actuator
   configuration; debugging experiment execution or entity validation; or when a
   single measurement is wanted without ado metastore tracking. For campaigns
-  over many entities, see define-experiment-campaign; for the ado CLI itself,
-  see using-ado-cli.
+  over many entities, see ado-define-experiment-campaign; for the ado CLI itself,
+  see ado-use-cli.
 ---
 
 # Running an experiment on a single point
@@ -24,7 +24,7 @@ Use it for:
 
 For measuring multiple entities, create a `discoveryspace` and an
 `operation` instead — see
-[define-experiment-campaign](../define-experiment-campaign/SKILL.md).
+[ado-define-experiment-campaign](../ado-define-experiment-campaign/SKILL.md).
 
 ## Usage
 
@@ -98,11 +98,11 @@ properties.
 
 ## Related Resources
 
-- [define-experiment-campaign](../define-experiment-campaign/SKILL.md) — running
-  experiments over many entities with a discoveryspace and operation
-- [using-ado-cli](../using-ado-cli/SKILL.md) — the `ado` CLI: syntax, flags, and
+- [ado-define-experiment-campaign](../ado-define-experiment-campaign/SKILL.md)
+  — running experiments over many entities with a discoveryspace and operation
+- [ado-use-cli](../ado-use-cli/SKILL.md) — the `ado` CLI: syntax, flags, and
   shortcuts
-- [plugin-development](../plugin-development/SKILL.md) — plugin testing
+- [ado-develop-plugin](../ado-develop-plugin/SKILL.md) — plugin testing
   checklist, where `run_experiment` is the experiment execution check
 - [docs/user-guide/advanced/run-experiment.md](../../../docs/user-guide/advanced/run-experiment.md)
   — user documentation for this tool

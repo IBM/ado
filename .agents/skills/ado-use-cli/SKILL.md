@@ -1,13 +1,13 @@
 ---
-name: using-ado-cli
+name: ado-use-cli
 description: >-
   Reference for ado CLI command syntax, flags, and usage patterns — get, create,
   edit, show, describe, output flags (-o, --output-file), convenience flags
   (--use-latest KIND, --set, --with), and debugging with -l. Use when writing,
   verifying, or debugging ado CLI commands; looking up correct command syntax or
   flags; or when unsure which ado command or flag to use. For listing catalogs
-  or answering data questions, use the query-ado-data skill. For running a
-  single experiment on one point, use the run-experiment skill.
+  or answering data questions, use the ado-query-database skill. For running a
+  single experiment on one point, use the ado-run-experiment skill.
 ---
 
 # Using the ado CLI
@@ -61,7 +61,7 @@ uv run ado get operations -o stats --output-file /tmp/ado-operations-stats.txt
 
 Tip: Narrow listings with `-l`/`--filter` when you
 only need a subset — see
-[query-ado-data](../query-ado-data/SKILL.md#fast-querying).
+[ado-query-database](../ado-query-database/SKILL.md#fast-querying).
 
 Prefer `/tmp/ado-*.txt` (or another path outside the repo) so listings are not
 left as untracked files.
@@ -339,18 +339,24 @@ uv run ado create operation -f operation.yaml --set "spaces[0]=space-abc123"
 uv run ado create operation -f operation.yaml --with space=space.yaml
 ```
 
-`--dry-run` applies only to the resource in `-f`. `--with KIND=FILE.yaml` still
-**creates** that file's resource. Repeating the same dry-run creates duplicate
-spaces (or actuator configurations).
-
-Do **not** combine `--dry-run` with `--with KIND=FILE.yaml`.
-
-To validate an operation against an existing space (ID injection only):
+`--dry-run` also propagates to nested resources supplied via
+`--with KIND=FILE.yaml` and `--new-sample-store`, validating them without
+creating any resources in the metastore.
 
 ```bash
+# Validate both the operation and the referenced space without writing to the metastore
+uv run ado create operation -f operation.yaml --with space=space.yaml --dry-run
+
+# Validate an operation against an existing space (ID injection only)
 uv run ado create operation -f operation.yaml --dry-run --use-latest space
 uv run ado create operation -f operation.yaml --dry-run --with space=space-abc123
 ```
+
+> **Note:** `--dry-run` checks syntactic and schema validity for each resource
+> file. Because nested resources (such as actuator configurations and spaces)
+> are not persisted to the metastore during a dry-run, cross-resource metastore
+> checks (such as validating actuator configurations against the space) cannot
+> be performed and are skipped until actual creation.
 
 ## Documentation Best Practices
 
@@ -360,8 +366,7 @@ When writing documentation with ado commands:
 2. **Use realistic IDs** in examples (e.g., `space-abc123` not `SPACE_ID` in
    code blocks where actual output is shown)
 3. **Prefer shortcuts** (`--use-latest`, `--with KIND=ID`) in tutorials to
-   reduce friction. `--with KIND=FILE.yaml` creates that resource — do not use
-   it on `--dry-run`.
+   reduce friction.
 4. **Explain terminology** the first time: "entities (the inputs and their
    measurements)"
 
@@ -382,7 +387,7 @@ uv run ado show measurements operation op-123 -o csv --output-file op-123-entiti
 
 ### Create space and operation together
 
-When both YAMLs are already valid and you want one command (not a dry-run):
+When you want to create them in one command:
 
 ```bash
 uv run ado create operation -f operation.yaml \
@@ -411,9 +416,9 @@ missing experiment references, invalid parameter types, unresolvable
 ## Related Resources
 
 - For creating and structuring resource YAML files, see
-  [resource-yaml-creation](../resource-yaml-creation/)
+  [ado-create-resource-yaml](../ado-create-resource-yaml/)
 - For creating discoveryspace and operation YAML files, see
-  [define-experiment-campaign](../define-experiment-campaign/)
+  [ado-define-experiment-campaign](../ado-define-experiment-campaign/)
 - For running a single point through an experiment with the separate
-  `run_experiment` tool, see [run-experiment](../run-experiment/SKILL.md)
+  `run_experiment` tool, see [ado-run-experiment](../ado-run-experiment/SKILL.md)
 - For general development guidelines, see [AGENTS.md](../../../AGENTS.md)

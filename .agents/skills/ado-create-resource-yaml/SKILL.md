@@ -1,5 +1,5 @@
 ---
-name: resource-yaml-creation
+name: ado-create-resource-yaml
 description: |
   Guidance for creating ado resource YAML files (discoveryspace, operation,
   actuatorconfiguration, samplestore, document). Covers metadata conventions,
@@ -14,7 +14,7 @@ description: |
 
 Ensure you read the following basic skills first:
 
-- [using-ado-cli](../using-ado-cli/SKILL.md)
+- [ado-use-cli](../ado-use-cli/SKILL.md)
 
 ## Metadata Fields
 
@@ -91,9 +91,9 @@ uv run ado create operation -f operation.yaml \
   --with space=space-abcd-1234
 ```
 
-Do not combine `--dry-run` with `--with KIND=FILE.yaml`. `--dry-run` skips
-only the `-f` resource; the `--with` file is still created. See
-[using-ado-cli](../using-ado-cli/SKILL.md) (`--with` and iterative development).
+`--dry-run` propagates to nested resources passed via `--with KIND=FILE.yaml`
+and `--new-sample-store`, validating them without creating anything in the metastore.
+See [ado-use-cli](../ado-use-cli/SKILL.md) (`--with` and iterative development).
 
 ### --set
 
@@ -112,27 +112,27 @@ uv run ado create operation -f operation.yaml --set operation.parameters.tuneCon
 
 ## Validation
 
-Dry-run **each** YAML on its own. `--dry-run` does not create the `-f`
-resource.
+Dry-run YAML files to validate their structure without writing to the metastore:
 
 ```bash
+# Validate individual resource YAMLs
 uv run ado create space -f space.yaml --dry-run
 uv run ado create operation -f operation.yaml --dry-run
-```
 
-`--dry-run` does **not** apply to `--with KIND=FILE.yaml`. That file is created
-for real. Never use `--dry-run --with space=space.yaml` (or
-`--with actuatorconfiguration=config.yaml`) — repeating it creates duplicate
-spaces.
+# Validate an operation together with its referenced space/config
+uv run ado create operation -f operation.yaml --with space=space.yaml --dry-run
 
-After the space exists, dry-run the operation against it:
-
-```bash
-uv run ado create space -f space.yaml
+# Or validate against an already-created space
 uv run ado create operation -f operation.yaml --dry-run --use-latest space
 ```
 
-CLI details: [using-ado-cli](../using-ado-cli/SKILL.md).
+> **Note:** `--dry-run` performs syntactic and schema validation of each
+> resource YAML independently. Because referenced or nested resources are not
+> written to the metastore during a dry-run, cross-resource compatibility
+> (such as validating actuator configurations against the discovery space)
+> cannot be checked against the metastore until actual creation.
+
+CLI details: [ado-use-cli](../ado-use-cli/SKILL.md).
 
 ## Templates
 
@@ -156,8 +156,9 @@ uv run ado template actuatorconfiguration --actuator-identifier my_actuator
 
 ### DiscoverySpace
 
-See [define-experiment-campaign](../define-experiment-campaign/SKILL.md) for
-further details on creating discovery spaces.
+See
+[ado-define-experiment-campaign](../ado-define-experiment-campaign/SKILL.md)
+for further details on creating discovery spaces.
 
 **Before creating** (ado create space), check if a matching space already
 exists:
@@ -273,7 +274,7 @@ uv run ado delete document DOCUMENT_ID
 Validate with `uv run ado create document -f FILE --dry-run` before creating.
 
 **Querying existing documents** (paths are under `config.`; string candidates
-must be single-quoted — see [query-ado-data](../query-ado-data/SKILL.md)):
+must be single-quoted — see [ado-query-database](../ado-query-database/SKILL.md)):
 
 ```bash
 # By related resource id
@@ -292,6 +293,6 @@ replacement, if the skill's replace policy says so).
 
 ## Related Resources
 
-- [define-experiment-campaign](../define-experiment-campaign/SKILL.md) — full
-  problem formulation workflow
+- [ado-define-experiment-campaign](../ado-define-experiment-campaign/SKILL.md)
+  — full problem formulation workflow
 - [AGENTS.md](../../../AGENTS.md) — YAML testing and linting guidance

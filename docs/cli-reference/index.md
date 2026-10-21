@@ -185,7 +185,11 @@ Where:
   `--set sampleStoreIdentifier=default`. It is ignored if --with, --use-latest,
   or --new-sample-store are used.
 - `--dry-run` is an **optional** flag to only validate the resource
-  configuration file provided and not actually creating the resource.
+  configuration file provided (and any nested resources specified with `--with`
+  or `--new-sample-store`) without actually creating any resources in the metastore.
+  Note that because nested resources are not persisted during dry-run,
+  cross-resource metastore validation (such as checking actuator configuration
+  compatibility against the discovery space) is skipped until actual creation.
 
 ### Examples
 

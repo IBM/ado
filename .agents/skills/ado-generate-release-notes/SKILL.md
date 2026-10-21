@@ -1,5 +1,5 @@
 ---
-name: generate-release-notes
+name: ado-generate-release-notes
 description: >-
   Generate a structured changelog for GitHub release notes from changes since
   the last release. Use when the user asks to generate release notes, a

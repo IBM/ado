@@ -224,7 +224,7 @@ def warn_deprecated_resource_model_in_use(
 class ADOResourcePropertyDescriptor(PropertyDescriptor):
     """PropertyDescriptor for ADOResources.
 
-    Model declaring that a property identifier (string) has given ADOResource kind.
+    Model declaring that a property identifier (string) has a given ADOResource kind.
     """
 
     kind: Annotated[

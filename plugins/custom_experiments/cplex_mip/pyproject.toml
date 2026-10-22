@@ -1,7 +1,7 @@
 [project]
 name = "ado-cplex-mip"
 description = "ado custom experiment for benchmarking CPLEX MIP solver performance across parameter configurations"
-requires-python = ">=3.11,<3.15"
+requires-python = ">=3.15,<3.16"
 dependencies = [
   "ado-core>=2.0.0",
   "cplex",

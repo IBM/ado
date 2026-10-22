@@ -2,6 +2,12 @@
 # SPDX-License-Identifier: MIT
 
 import yaml
+
+try:
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:  # pragma: nocover
+    from yaml import SafeLoader  # type: ignore[assignment]
+
 from rich.prompt import Confirm
 
 from ado.cli.models.parameters import AdoDeleteCommandParameters
@@ -31,7 +37,7 @@ def delete_context(parameters: AdoDeleteCommandParameters) -> None:
     configuration_file = parameters.ado_configuration.project_context_path_for_context(
         resource_id
     )
-    context_dict = yaml.safe_load(configuration_file.read_text())
+    context_dict = yaml.load(configuration_file.read_text(), Loader=SafeLoader)
 
     # AP: the db might not exist if the user has never used the local context
     if (

@@ -15,6 +15,11 @@ from typing import Annotated, Any
 
 import numpy as np
 import yaml
+
+try:
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:  # pragma: nocover
+    from yaml import SafeLoader  # type: ignore[assignment]
 from pydantic import Field
 
 from ado.core.actuatorconfiguration.config import GenericActuatorParameters
@@ -84,7 +89,7 @@ class RoboticLab(StandardActuator):
             os.path.dirname(os.path.abspath(__file__)), "experiments.yaml"
         )
         with open(path) as f:
-            data = yaml.safe_load(f)
+            data = yaml.load(f, Loader=SafeLoader)
         experiments = [Experiment(**data[e]) for e in data]
         return ExperimentCatalog(
             catalogIdentifier=cls.identifier,

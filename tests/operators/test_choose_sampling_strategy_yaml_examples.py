@@ -8,6 +8,11 @@ import pathlib
 import pytest
 import yaml
 
+try:
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:  # pragma: nocover
+    from yaml import SafeLoader  # type: ignore[assignment]
+
 from ado.core.operation.config import DiscoveryOperationResourceConfiguration
 from ado.modules.operators.randomwalk import RandomWalkParameters
 
@@ -34,7 +39,7 @@ def test_random_walk_yaml_examples(yaml_name: str) -> None:
     """Each random_walk example validates as RandomWalkParameters."""
     path = YAML_EXAMPLES_DIR / f"{yaml_name}.yaml"
     config = DiscoveryOperationResourceConfiguration.model_validate(
-        yaml.safe_load(path.read_text())
+        yaml.load(path.read_text(), Loader=SafeLoader)
     )
     assert config.operation.module.operatorName == "random_walk"
     params = RandomWalkParameters.model_validate(config.operation.parameters)
@@ -53,7 +58,7 @@ def test_ray_tune_yaml_examples(yaml_name: str, optimizer_package: str) -> None:
     pytest.importorskip(optimizer_package)
     path = YAML_EXAMPLES_DIR / f"{yaml_name}.yaml"
     config = DiscoveryOperationResourceConfiguration.model_validate(
-        yaml.safe_load(path.read_text())
+        yaml.load(path.read_text(), Loader=SafeLoader)
     )
     assert config.operation.module.operatorName == "ray_tune"
     params = ray_tune_config.RayTuneConfiguration.model_validate(

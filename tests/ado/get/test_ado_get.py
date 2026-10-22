@@ -10,6 +10,11 @@ from datetime import UTC, datetime
 import pandas as pd
 import pytest
 import yaml
+
+try:
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:  # pragma: nocover
+    from yaml import SafeLoader  # type: ignore[assignment]
 from testcontainers.community.mysql import MySqlContainer
 from typer.testing import CliRunner
 
@@ -71,10 +76,11 @@ def test_get_space_includes_requested_constitutive_properties(
         runner=runner, path=tmp_path, project_context=valid_ado_project_context
     )
     space = DiscoverySpaceResource.model_validate(
-        yaml.safe_load(
+        yaml.load(
             pathlib.Path(
                 "tests/resources/space/discoveryspace_resource.json"
-            ).read_text()
+            ).read_text(),
+            Loader=SafeLoader,
         )
     )
     sql_store.addResource(space)
@@ -105,8 +111,9 @@ def test_get_space_includes_optional_and_parameterized_properties(
     create_active_ado_context(
         runner=runner, path=tmp_path, project_context=valid_ado_project_context
     )
-    space_data = yaml.safe_load(
-        pathlib.Path("tests/resources/space/discoveryspace_resource.json").read_text()
+    space_data = yaml.load(
+        pathlib.Path("tests/resources/space/discoveryspace_resource.json").read_text(),
+        Loader=SafeLoader,
     )
     experiment = space_data["config"]["experiments"]["experiments"][0]
     experiment["optionalProperties"] = [
@@ -204,28 +211,31 @@ def test_field_filtering(
     )
 
     operation_d5c036 = OperationResource.model_validate(
-        yaml.safe_load(
+        yaml.load(
             pathlib.Path(
                 "tests/resources/operation/randomwalk-1.0.2.dev17+5e50632.dirty-d5c036.yaml"
-            ).read_text()
+            ).read_text(),
+            Loader=SafeLoader,
         )
     )
     sql_store.addResource(operation_d5c036)
 
     operation_43dfdf = OperationResource.model_validate(
-        yaml.safe_load(
+        yaml.load(
             pathlib.Path(
                 "tests/resources/operation/randomwalk-1.0.2.dev39+7f0c421.dirty-43dfdf.yaml"
-            ).read_text()
+            ).read_text(),
+            Loader=SafeLoader,
         )
     )
     sql_store.addResource(operation_43dfdf)
 
     sample_store_07c0fa = SampleStoreResource.model_validate(
-        yaml.safe_load(
+        yaml.load(
             pathlib.Path(
                 "tests/resources/samplestore/sample_store_07c0fa.yaml"
-            ).read_text()
+            ).read_text(),
+            Loader=SafeLoader,
         )
     )
 
@@ -233,10 +243,11 @@ def test_field_filtering(
     sql_store.addResource(sample_store_resource)
 
     actuator_config_with_underscores = ActuatorConfigurationResource.model_validate(
-        yaml.safe_load(
+        yaml.load(
             pathlib.Path(
                 "tests/resources/actuatorconfiguration/test-ac-with-snake-case.yaml"
-            ).read_text()
+            ).read_text(),
+            Loader=SafeLoader,
         )
     )
     sql_store.addResource(actuator_config_with_underscores)
@@ -537,8 +548,9 @@ def test_get_space_with_use_latest(
 
     # Create two spaces explicitly
     # Load file content once
-    space_data = yaml.safe_load(
-        pathlib.Path("tests/resources/space/discoveryspace_resource.json").read_text()
+    space_data = yaml.load(
+        pathlib.Path("tests/resources/space/discoveryspace_resource.json").read_text(),
+        Loader=SafeLoader,
     )
 
     # Create first space
@@ -594,10 +606,11 @@ def test_get_operation_with_use_latest(
     # Create two operations with different identifiers
 
     # Load file content once
-    operation_data = yaml.safe_load(
+    operation_data = yaml.load(
         pathlib.Path(
             "tests/resources/operation/randomwalk-1.0.2.dev17+5e50632.dirty-d5c036.yaml"
-        ).read_text()
+        ).read_text(),
+        Loader=SafeLoader,
     )
 
     # Create first operation
@@ -654,8 +667,9 @@ def test_get_with_use_latest_and_explicit_id(
     # Create two spaces with different identifiers
 
     # Load file content once
-    space_data = yaml.safe_load(
-        pathlib.Path("tests/resources/space/discoveryspace_resource.json").read_text()
+    space_data = yaml.load(
+        pathlib.Path("tests/resources/space/discoveryspace_resource.json").read_text(),
+        Loader=SafeLoader,
     )
 
     # Create first space
@@ -715,8 +729,9 @@ def test_get_with_use_latest_table_format(
     # Create two spaces with different identifiers
 
     # Load file content once
-    space_data = yaml.safe_load(
-        pathlib.Path("tests/resources/space/discoveryspace_resource.json").read_text()
+    space_data = yaml.load(
+        pathlib.Path("tests/resources/space/discoveryspace_resource.json").read_text(),
+        Loader=SafeLoader,
     )
 
     # Create first space
@@ -762,8 +777,9 @@ def test_get_with_use_latest_name_format(
     # Create two spaces with different identifiers
 
     # Load file content once
-    space_data = yaml.safe_load(
-        pathlib.Path("tests/resources/space/discoveryspace_resource.json").read_text()
+    space_data = yaml.load(
+        pathlib.Path("tests/resources/space/discoveryspace_resource.json").read_text(),
+        Loader=SafeLoader,
     )
 
     # Create first space

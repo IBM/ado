@@ -11,6 +11,12 @@ from typing import Any
 import pydantic
 import yaml
 
+try:
+    from yaml import CSafeDumper as SafeDumper
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:  # pragma: nocover
+    from yaml import SafeDumper, SafeLoader  # type: ignore[assignment]
+
 PVC_MOUNT_PATH = "/dev/cache"
 PVC_NAME = "vllm-support"
 logger = logging.getLogger(__name__)
@@ -151,7 +157,7 @@ class ComponentsYaml:
 
         try:
             template_data = template_file.read_text()
-            deployment_yaml = yaml.safe_load(template_data)
+            deployment_yaml = yaml.load(template_data, Loader=SafeLoader)
         except Exception as exception:
             error_string = f"Exception reading deployment yaml template {exception}"
             logger.error(error_string)
@@ -308,7 +314,7 @@ class ComponentsYaml:
 
         try:
             template_data = template_file.read_text()
-            service_yaml = yaml.safe_load(template_data)
+            service_yaml = yaml.load(template_data, Loader=SafeLoader)
         except Exception as exception:
             error_string = f"Exception reading service yaml template {exception}"
             logger.error(error_string)
@@ -341,7 +347,7 @@ class ComponentsYaml:
 
         try:
             template_data = template_file.read_text()
-            pvc_yaml = yaml.safe_load(template_data)
+            pvc_yaml = yaml.load(template_data, Loader=SafeLoader)
         except Exception as exception:
             error_string = f"Exception reading pvc yaml template {exception}"
             logger.error(error_string)
@@ -362,8 +368,8 @@ if __name__ == "__main__":
         node_selector={"kubernetes.io/hostname": "cpu16"},
         image="quay.io/dataprep1/data-prep-kit/vllm_image:0.1",
     )
-    print(f"Deployment YAML: \n{yaml.dump(deployment)}")
+    print(f"Deployment YAML: \n{yaml.dump(deployment, Dumper=SafeDumper)}")
     service = ComponentsYaml.service_yaml(k8s_name=t_k8s_name)
-    print(f"Service YAML: \n{yaml.dump(service)}")
+    print(f"Service YAML: \n{yaml.dump(service, Dumper=SafeDumper)}")
     pvc = ComponentsYaml.pvc_yaml(pvc_name="vllm-pvc")
-    print(f"PVC YAML: \n{yaml.dump(pvc)}")
+    print(f"PVC YAML: \n{yaml.dump(pvc, Dumper=SafeDumper)}")

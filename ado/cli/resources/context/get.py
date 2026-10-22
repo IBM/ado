@@ -6,6 +6,11 @@ import pydantic
 import typer
 import yaml
 
+try:
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:  # pragma: nocover
+    from yaml import SafeLoader  # type: ignore[assignment]
+
 from ado.cli.models.parameters import AdoGetCommandParameters
 from ado.cli.models.types import AdoGetSupportedOutputFormats
 from ado.cli.utils.output.prints import (
@@ -78,10 +83,11 @@ def get_context(
         for ctx in available_contexts:
             to_print.append(
                 ProjectContext.model_validate(
-                    yaml.safe_load(
+                    yaml.load(
                         parameters.ado_configuration.project_context_path_for_context(
                             ctx
-                        ).read_text()
+                        ).read_text(),
+                        Loader=SafeLoader,
                     )
                 )
             )

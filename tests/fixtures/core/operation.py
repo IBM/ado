@@ -6,6 +6,11 @@ from collections.abc import Callable
 import pytest
 import yaml
 
+try:
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:  # pragma: nocover
+    from yaml import SafeLoader  # type: ignore[assignment]
+
 import ado.core
 import ado.core.operation.resource
 from ado.core import ADOResource
@@ -114,7 +119,9 @@ def random_walk_multicloud_operation_configuration() -> (
 ):
 
     with open("examples/ml-multi-cloud/randomwalk_ml_multicloud_operation.yaml") as f:
-        conf = DiscoveryOperationResourceConfiguration.model_validate(yaml.safe_load(f))
+        conf = DiscoveryOperationResourceConfiguration.model_validate(
+            yaml.load(f, Loader=SafeLoader)
+        )
 
     # Remove values for the spaces
     conf.spaces = []

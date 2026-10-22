@@ -25,6 +25,11 @@ import ray.util
 import ray.util.placement_group
 import ray.util.state
 import yaml
+
+try:
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:  # pragma: nocover
+    from yaml import SafeLoader  # type: ignore[assignment]
 from ado_actuators.sfttrainer.experiments import (
     full_finetune,
     gptq_lora,
@@ -571,7 +576,7 @@ class SFTTrainer(ActuatorBase):
 
                 self.log.info(f"Loading actuator parameters from {path}")
                 with open(path, encoding="utf-8") as f:
-                    params = yaml.safe_load(f)
+                    params = yaml.load(f, Loader=SafeLoader)
                 params = self.parameters_class.model_validate(params)
 
             # VV: Layer model_map parameters over the default ones.

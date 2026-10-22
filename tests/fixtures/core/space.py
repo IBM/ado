@@ -10,6 +10,11 @@ from typing import Any
 import pytest
 import yaml
 
+try:
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:  # pragma: nocover
+    from yaml import SafeLoader  # type: ignore[assignment]
+
 from ado.core import ADOResource
 from ado.core.discoveryspace.config import (
     DiscoverySpaceConfiguration,
@@ -75,7 +80,7 @@ def constitutive_property_configuration_smiles_yaml(
           - identifier: "smiles"
           """
 
-    return yaml.safe_load(confs)
+    return yaml.load(confs, Loader=SafeLoader)
 
 
 valid_discovery_space_configs = [
@@ -97,7 +102,7 @@ def valid_discovery_space_config_file(request: pytest.FixtureRequest) -> str:
 def discovery_space_configuration() -> DiscoverySpaceConfiguration:
 
     with open("examples/ml-multi-cloud/ml_multicloud_space.yaml") as f:
-        d = yaml.safe_load(f)
+        d = yaml.load(f, Loader=SafeLoader)
 
     return DiscoverySpaceConfiguration.model_validate(d)
 
@@ -107,7 +112,7 @@ def discovery_space_configuration_no_replay() -> DiscoverySpaceConfiguration:
     """Returns a discovery space that doesn't use replayed experiment"""
 
     with open("examples/optimization_test_functions/space.yaml") as f:
-        d = yaml.safe_load(f)
+        d = yaml.load(f, Loader=SafeLoader)
 
     return DiscoverySpaceConfiguration.model_validate(d)
 
@@ -150,7 +155,7 @@ def discovery_space_resource_from_file() -> DiscoverySpaceResource:
     For use with inactive resource-stores where read is not possible"""
 
     with open("examples/ml-multi-cloud/ml_multicloud_space.yaml") as f:
-        conf = DiscoverySpaceConfiguration(**yaml.safe_load(f))
+        conf = DiscoverySpaceConfiguration(**yaml.load(f, Loader=SafeLoader))
 
     return DiscoverySpaceResource(config=conf)
 

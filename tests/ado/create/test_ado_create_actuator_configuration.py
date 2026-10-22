@@ -5,6 +5,12 @@ import pathlib
 from collections.abc import Callable
 
 import yaml
+
+try:
+    from yaml import CSafeDumper as SafeDumper
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:  # pragma: nocover
+    from yaml import SafeDumper, SafeLoader  # type: ignore[assignment]
 from typer.testing import CliRunner
 
 from ado.cli.core.cli import app as ado
@@ -40,10 +46,12 @@ def test_create_actuator_configuration_dry_run_failure(tmp_path: pathlib.Path) -
     )
 
     invalid_actuator_configuration_file = tmp_path / "invalid.yaml"
-    actuator_configuration = yaml.safe_load(actuator_configuration_file.read_text())
+    actuator_configuration = yaml.load(
+        actuator_configuration_file.read_text(), Loader=SafeLoader
+    )
     actuator_configuration["actuatorIdentifier"] = "robotic-lab-fake"
     invalid_actuator_configuration_file.write_text(
-        yaml.safe_dump(actuator_configuration)
+        yaml.dump(actuator_configuration, Dumper=SafeDumper)
     )
 
     runner = CliRunner()

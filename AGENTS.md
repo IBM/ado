@@ -85,6 +85,19 @@ These guidelines apply to all code development in the ado codebase.
   relative imports.
 - Use `ado.utilities.output.pydantic_model_as_yaml` for serializing
   pydantic models to YAML.
+- Never call `yaml.safe_load(...)` or `yaml.safe_dump(...)` directly — these
+  always use the pure-Python path. Instead, import the C-backed loader/dumper
+  with a pure-Python fallback and pass them explicitly:
+
+  ```python
+  try:
+      from yaml import CSafeLoader as SafeLoader, CSafeDumper as SafeDumper
+  except ImportError:  # pragma: nocover
+      from yaml import SafeLoader, SafeDumper  # type: ignore[assignment]
+  ```
+
+  Then call `yaml.load(stream, Loader=SafeLoader)` and
+  `yaml.dump(data, Dumper=SafeDumper)`.
 
 #### Linting
 

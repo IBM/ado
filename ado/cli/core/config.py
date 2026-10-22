@@ -8,6 +8,11 @@ import pydantic
 import typer
 import yaml
 
+try:
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:  # pragma: nocover
+    from yaml import SafeLoader  # type: ignore[assignment]
+
 import ado.metastore.project
 from ado.cli.utils.output.prints import (
     ERROR,
@@ -101,7 +106,7 @@ class AdoConfiguration(pydantic.BaseModel):
         if context_path and context_path.is_file():
             try:
                 project_context = ProjectContext.model_validate(
-                    yaml.safe_load(context_path.read_text())
+                    yaml.load(context_path.read_text(), Loader=SafeLoader)
                 )
             except pydantic.ValidationError as e:
                 console_print(
@@ -268,8 +273,9 @@ class AdoConfiguration(pydantic.BaseModel):
             raise ValueError(f"No context file exists for context {context_name}")
 
         return ado.metastore.project.ProjectContext.model_validate(
-            yaml.safe_load(
-                self.project_context_path_for_context(context_name).read_text()
+            yaml.load(
+                self.project_context_path_for_context(context_name).read_text(),
+                Loader=SafeLoader,
             )
         )
 

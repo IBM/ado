@@ -10,6 +10,12 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 import yaml
+
+try:
+    from yaml import CSafeDumper as SafeDumper
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:  # pragma: nocover
+    from yaml import SafeDumper, SafeLoader  # type: ignore[assignment]
 from typer.testing import CliRunner
 
 from ado.cli.core.cli import app as ado
@@ -92,7 +98,7 @@ def mysql_context_yaml_file(tmp_path: pathlib.Path) -> pathlib.Path:
         },
     }
     path = tmp_path / "mysql_context.yaml"
-    path.write_text(yaml.dump(content))
+    path.write_text(yaml.dump(content, Dumper=SafeDumper))
     return path
 
 
@@ -100,7 +106,7 @@ def mysql_context_yaml_file(tmp_path: pathlib.Path) -> pathlib.Path:
 def mysql_project_context(mysql_context_yaml_file: pathlib.Path) -> ProjectContext:
     """Load a ProjectContext instance from the MySQL context YAML file."""
     return ProjectContext.model_validate(
-        yaml.safe_load(mysql_context_yaml_file.read_text())
+        yaml.load(mysql_context_yaml_file.read_text(), Loader=SafeLoader)
     )
 
 
@@ -117,7 +123,7 @@ def sqlite_context_yaml_file(tmp_path: pathlib.Path) -> pathlib.Path:
         },
     }
     path = tmp_path / "sqlite_context.yaml"
-    path.write_text(yaml.dump(content))
+    path.write_text(yaml.dump(content, Dumper=SafeDumper))
     return path
 
 
@@ -561,7 +567,7 @@ def test_write_runtime_env_pypi_only(
     working_dir.mkdir()
     _write_runtime_env(cluster_remote_context, [], dest, tmp_path, working_dir, set())
 
-    loaded = yaml.safe_load(dest.read_text())
+    loaded = yaml.load(dest.read_text(), Loader=SafeLoader)
     assert loaded["uv"] == ["ado-core"]
     assert loaded["env_vars"] == {"PYTHONUNBUFFERED": "x"}
 
@@ -581,7 +587,7 @@ def test_write_runtime_env_with_wheels(
         ctx, ["my_plugin-1.0-py3-none-any.whl"], dest, tmp_path, working_dir, set()
     )
 
-    loaded = yaml.safe_load(dest.read_text())
+    loaded = yaml.load(dest.read_text(), Loader=SafeLoader)
     assert "ado-core" in loaded["uv"]
     assert any("my_plugin" in p for p in loaded["uv"])
     assert (
@@ -599,7 +605,7 @@ def test_write_runtime_env_no_packages(tmp_path: pathlib.Path) -> None:
     working_dir.mkdir()
     _write_runtime_env(ctx, [], dest, tmp_path, working_dir, set())
 
-    loaded = yaml.safe_load(dest.read_text())
+    loaded = yaml.load(dest.read_text(), Loader=SafeLoader)
     # No uv key when there are no packages
     assert "uv" not in loaded
     assert "env_vars" not in loaded
@@ -615,7 +621,7 @@ def test_write_runtime_env_env_vars_only(tmp_path: pathlib.Path) -> None:
     working_dir.mkdir()
     _write_runtime_env(ctx, [], dest, tmp_path, working_dir, set())
 
-    loaded = yaml.safe_load(dest.read_text())
+    loaded = yaml.load(dest.read_text(), Loader=SafeLoader)
     assert "uv" not in loaded
     assert loaded["env_vars"] == {"MY_VAR": "1"}
 
@@ -635,7 +641,7 @@ def test_write_runtime_env_local_wheel_in_pypi(tmp_path: pathlib.Path) -> None:
     _write_runtime_env(ctx, [], dest, tmp_path, working_dir, set())
 
     assert (working_dir / local_whl.name).exists()
-    loaded = yaml.safe_load(dest.read_text())
+    loaded = yaml.load(dest.read_text(), Loader=SafeLoader)
     assert "ado-core" in loaded["uv"]
     assert f"${{RAY_RUNTIME_ENV_CREATE_WORKING_DIR}}/{local_whl.name}" in loaded["uv"]
     assert str(local_whl) not in loaded["uv"]
@@ -656,7 +662,7 @@ def test_write_runtime_env_with_ray_config(tmp_path: pathlib.Path) -> None:
     working_dir.mkdir()
     _write_runtime_env(ctx, [], dest, tmp_path, working_dir, set())
 
-    loaded = yaml.safe_load(dest.read_text())
+    loaded = yaml.load(dest.read_text(), Loader=SafeLoader)
     assert loaded["config"]["setup_timeout_seconds"] == 1200
     assert loaded["config"]["eager_install"] is False
 
@@ -672,7 +678,7 @@ def test_write_runtime_env_ray_defaults(tmp_path: pathlib.Path) -> None:
     working_dir.mkdir()
     _write_runtime_env(ctx, [], dest, tmp_path, working_dir, set())
 
-    loaded = yaml.safe_load(dest.read_text())
+    loaded = yaml.load(dest.read_text(), Loader=SafeLoader)
     assert loaded["config"]["setup_timeout_seconds"] == 600
     assert loaded["config"]["eager_install"] is True
 
@@ -689,7 +695,7 @@ def test_write_runtime_env_omits_config_when_runtime_env_unset(
     working_dir.mkdir()
     _write_runtime_env(ctx, [], dest, tmp_path, working_dir, set())
 
-    loaded = yaml.safe_load(dest.read_text())
+    loaded = yaml.load(dest.read_text(), Loader=SafeLoader)
     assert "config" not in loaded
 
 
@@ -970,7 +976,9 @@ def test_dispatcher_runtime_env_contents(
     def fake_run(cmd: list[str], **kwargs: object) -> MagicMock:
         idx = cmd.index("--runtime-env")
         runtime_env_path = pathlib.Path(cmd[idx + 1])
-        inspected_runtime_env.append(yaml.safe_load(runtime_env_path.read_text()))
+        inspected_runtime_env.append(
+            yaml.load(runtime_env_path.read_text(), Loader=SafeLoader)
+        )
         return MagicMock(returncode=0)
 
     with patch("subprocess.run", side_effect=fake_run):

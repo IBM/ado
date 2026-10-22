@@ -9,6 +9,11 @@ from collections.abc import Callable
 import pandas as pd
 import pytest
 import yaml
+
+try:
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:  # pragma: nocover
+    from yaml import SafeLoader  # type: ignore[assignment]
 from testcontainers.community.mysql import MySqlContainer
 from typer.testing import CliRunner
 
@@ -17,7 +22,9 @@ from ado.core import CoreResourceKinds
 from ado.core.discoveryspace.space import DiscoverySpace
 from ado.core.samplestore.sql import SQLSampleStore
 from ado.metastore.project import ProjectContext
+from ado.schema.point import SpacePoint
 from ado.schema.request import MeasurementRequest
+from ado.utilities.output import pydantic_model_as_yaml
 from tests.conftest import requires_sqlite_3_38
 from tests.utilities.cli_rendering import render_dataframe_to_cli_output
 
@@ -381,6 +388,7 @@ def test_ado_get_space_stats_single_resource(
 
 @requires_sqlite_3_38
 @pytest.mark.parametrize("resource_kind", ["actuatorconfigurations"])
+@pytest.mark.parametrize("output_args", [[], ["-o", "yaml"]])
 def test_ado_get_stats_unsupported_resource_type_exits_1(
     tmp_path: pathlib.Path,
     mysql_test_instance: MySqlContainer,
@@ -389,6 +397,7 @@ def test_ado_get_stats_unsupported_resource_type_exits_1(
         [CliRunner, pathlib.Path, ProjectContext], None
     ],
     resource_kind: str,
+    output_args: list[str],
 ) -> None:
     """ado get <unsupported-resource> --stats exits 1 with an error message."""
     runner = CliRunner()
@@ -402,6 +411,7 @@ def test_ado_get_stats_unsupported_resource_type_exits_1(
             "get",
             resource_kind,
             "--stats",
+            *output_args,
         ],
     )
 
@@ -707,8 +717,198 @@ def test_ado_get_stats_deprecated_output_format_warns_and_shows_stats(
     assert "TOTAL_MEASUREMENTS" in result.output
 
 
+_OPERATION_STATS_KEYS = {
+    "total_measurements",
+    "successful_measurements",
+    "failed_measurements",
+    "sampled_entities",
+}
+_SPACE_STATS_KEYS = {"experiments", "operations", "explore_ops", "sampled_entities"}
+_SAMPLESTORE_STATS_KEYS = {"entities", "results", "experiments"}
+_DATACONTAINER_STATS_KEYS = {"tables", "locations", "key_values", "data_bytes"}
+
+
 @requires_sqlite_3_38
-def test_ado_get_stats_ignored_with_non_table_format(
+@pytest.mark.parametrize(
+    ("resource_kind", "expected_keys", "output_format"),
+    [
+        ("operations", _OPERATION_STATS_KEYS, "yaml"),
+        ("operations", _OPERATION_STATS_KEYS, "json"),
+        ("spaces", _SPACE_STATS_KEYS, "yaml"),
+        ("samplestores", _SAMPLESTORE_STATS_KEYS, "yaml"),
+    ],
+)
+def test_ado_get_stats_structured_output(
+    tmp_path: pathlib.Path,
+    mysql_test_instance: MySqlContainer,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+    simulate_ml_multi_cloud_random_walk_operation: Callable[
+        [int, int, int, str | None],
+        tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
+    ],
+    resource_kind: str,
+    expected_keys: set[str],
+    output_format: str,
+) -> None:
+    """--stats with -o yaml/json adds metadata.stats to every listed resource."""
+    runner = CliRunner()
+    create_active_ado_context(
+        runner=runner, path=tmp_path, project_context=valid_ado_project_context
+    )
+    simulate_ml_multi_cloud_random_walk_operation(
+        number_entities=2, number_requests=1, measurements_per_result=1
+    )
+
+    result = runner.invoke(ado, ["get", resource_kind, "--stats", "-o", output_format])
+
+    assert result.exit_code == 0, result.stderr
+    assert "ignored" not in result.stderr.lower()
+    resources = yaml.load(result.stdout, Loader=SafeLoader)
+    assert len(resources) == 1
+    assert set(resources[0]["metadata"]["stats"]) == expected_keys
+
+
+@requires_sqlite_3_38
+def test_ado_get_datacontainers_stats_structured_output(
+    tmp_path: pathlib.Path,
+    mysql_test_instance: MySqlContainer,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+    data_container_resource: "DataContainerResource",
+    create_resources: Callable,
+) -> None:
+    """--stats with -o yaml adds metadata.stats to data containers."""
+    runner = CliRunner()
+    create_active_ado_context(
+        runner=runner, path=tmp_path, project_context=valid_ado_project_context
+    )
+    create_resources([data_container_resource])
+
+    result = runner.invoke(ado, ["get", "datacontainers", "--stats", "-o", "yaml"])
+
+    assert result.exit_code == 0, result.stderr
+    resources = yaml.load(result.stdout, Loader=SafeLoader)
+    assert len(resources) == 1
+    assert set(resources[0]["metadata"]["stats"]) == _DATACONTAINER_STATS_KEYS
+
+
+@requires_sqlite_3_38
+def test_ado_get_operation_stats_yaml_single_resource_values(
+    tmp_path: pathlib.Path,
+    mysql_test_instance: MySqlContainer,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+    simulate_ml_multi_cloud_random_walk_operation: Callable[
+        [int, int, int, str | None],
+        tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
+    ],
+) -> None:
+    """ado get operation <id> --stats -o yaml has the expected metadata.stats values."""
+    runner = CliRunner()
+    create_active_ado_context(
+        runner=runner, path=tmp_path, project_context=valid_ado_project_context
+    )
+    number_entities = 3
+    operation_id = "op-stats-yaml-single-123"
+    simulate_ml_multi_cloud_random_walk_operation(
+        number_entities=number_entities,
+        number_requests=1,
+        measurements_per_result=1,
+        operation_id=operation_id,
+    )
+
+    result = runner.invoke(
+        ado, ["get", "operation", operation_id, "--stats", "-o", "yaml"]
+    )
+
+    assert result.exit_code == 0, result.stderr
+    resource = yaml.load(result.stdout, Loader=SafeLoader)
+    assert resource["identifier"] == operation_id
+    assert resource["metadata"]["stats"] == {
+        "total_measurements": number_entities,
+        "successful_measurements": number_entities,
+        "failed_measurements": 0,
+        "sampled_entities": number_entities,
+    }
+
+
+@requires_sqlite_3_38
+def test_ado_get_operations_no_stats_yaml(
+    tmp_path: pathlib.Path,
+    mysql_test_instance: MySqlContainer,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+    simulate_ml_multi_cloud_random_walk_operation: Callable[
+        [int, int, int, str | None],
+        tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
+    ],
+) -> None:
+    """Without --stats the yaml output has no metadata.stats."""
+    runner = CliRunner()
+    create_active_ado_context(
+        runner=runner, path=tmp_path, project_context=valid_ado_project_context
+    )
+    simulate_ml_multi_cloud_random_walk_operation(
+        number_entities=1, number_requests=1, measurements_per_result=1
+    )
+
+    result = runner.invoke(ado, ["get", "operations", "-o", "yaml"])
+
+    assert result.exit_code == 0, result.stderr
+    resources = yaml.load(result.stdout, Loader=SafeLoader)
+    assert len(resources) == 1
+    assert "stats" not in resources[0].get("metadata", {})
+
+
+@requires_sqlite_3_38
+@pytest.mark.parametrize("output_format", ["name", "raw", "config"])
+def test_ado_get_stats_ignored_with_unsupported_format(
+    tmp_path: pathlib.Path,
+    mysql_test_instance: MySqlContainer,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+    simulate_ml_multi_cloud_random_walk_operation: Callable[
+        [int, int, int, str | None],
+        tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
+    ],
+    output_format: str,
+) -> None:
+    """--stats is ignored with name/raw/config output and prints an INFO message."""
+    runner = CliRunner()
+    create_active_ado_context(
+        runner=runner, path=tmp_path, project_context=valid_ado_project_context
+    )
+    operation_id = "op-stats-ignored-456"
+    simulate_ml_multi_cloud_random_walk_operation(
+        number_entities=1,
+        number_requests=1,
+        measurements_per_result=1,
+        operation_id=operation_id,
+    )
+
+    result = runner.invoke(
+        ado, ["get", "operation", operation_id, "--stats", "-o", output_format]
+    )
+
+    assert result.exit_code == 0, result.stderr
+    assert "--stats" in result.stderr
+    assert "ignored" in result.stderr.lower()
+    assert "total_measurements" not in result.stdout
+
+
+@requires_sqlite_3_38
+def test_ado_get_stats_structured_output_empty_listing(
     tmp_path: pathlib.Path,
     mysql_test_instance: MySqlContainer,
     valid_ado_project_context: ProjectContext,
@@ -716,7 +916,7 @@ def test_ado_get_stats_ignored_with_non_table_format(
         [CliRunner, pathlib.Path, ProjectContext], None
     ],
 ) -> None:
-    """--stats is ignored with a non-table output format and prints an INFO message."""
+    """--stats with -o yaml on a project without matching resources prints an empty list."""
     runner = CliRunner()
     create_active_ado_context(
         runner=runner, path=tmp_path, project_context=valid_ado_project_context
@@ -724,9 +924,48 @@ def test_ado_get_stats_ignored_with_non_table_format(
 
     result = runner.invoke(ado, ["get", "spaces", "--stats", "-o", "yaml"])
 
-    assert result.exit_code == 0, result.output
-    assert "--stats" in result.output
-    assert "ignored" in result.output.lower()
+    assert result.exit_code == 0, result.stderr
+    assert "ignored" not in result.stderr.lower()
+    assert yaml.load(result.stdout, Loader=SafeLoader) == []
+
+
+@requires_sqlite_3_38
+def test_ado_get_spaces_stats_matching_point_structured_output(
+    tmp_path: pathlib.Path,
+    mysql_test_instance: MySqlContainer,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+    ml_multi_cloud_space: DiscoverySpace,
+    ml_multi_cloud_matching_point: SpacePoint,
+) -> None:
+    """ado get spaces --stats --matching-point -o yaml adds metadata.stats to the matching spaces."""
+    runner = CliRunner()
+    create_active_ado_context(
+        runner=runner, path=tmp_path, project_context=valid_ado_project_context
+    )
+    point_file = tmp_path / "point.yaml"
+    point_file.write_text(pydantic_model_as_yaml(ml_multi_cloud_matching_point))
+
+    result = runner.invoke(
+        ado,
+        [
+            "get",
+            "spaces",
+            "--stats",
+            "--matching-point",
+            str(point_file),
+            "-o",
+            "yaml",
+        ],
+    )
+
+    assert result.exit_code == 0, result.stderr
+    resources = yaml.load(result.stdout, Loader=SafeLoader)
+    assert len(resources) == 1
+    assert resources[0]["identifier"] == ml_multi_cloud_space.uri
+    assert set(resources[0]["metadata"]["stats"]) == _SPACE_STATS_KEYS
 
 
 @requires_sqlite_3_38
@@ -738,6 +977,7 @@ def test_ado_get_spaces_stats_matching_point(
         [CliRunner, pathlib.Path, ProjectContext], None
     ],
     ml_multi_cloud_space: DiscoverySpace,
+    ml_multi_cloud_matching_point: SpacePoint,
 ) -> None:
     """ado get spaces --stats --matching-point yields space stats columns, not operation stats."""
     runner = CliRunner()
@@ -746,21 +986,7 @@ def test_ado_get_spaces_stats_matching_point(
     )
 
     point_file = tmp_path / "point.yaml"
-    point_data = {
-        "entity": {
-            "provider": "A",
-            "cpu_family": 0,
-            "vcpu_size": 0,
-            "nodes": 2,
-        },
-        "experiments": [
-            {
-                "experimentIdentifier": "benchmark_performance",
-                "actuatorIdentifier": "replay",
-            }
-        ],
-    }
-    point_file.write_text(yaml.safe_dump(point_data))
+    point_file.write_text(pydantic_model_as_yaml(ml_multi_cloud_matching_point))
 
     result = runner.invoke(
         ado,

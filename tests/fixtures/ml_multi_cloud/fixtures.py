@@ -45,6 +45,7 @@ from ado.schema.observed_property import (
     ObservedProperty,
     ObservedPropertyValue,
 )
+from ado.schema.point import SpacePoint
 from ado.schema.property import AbstractPropertyDescriptor
 from ado.schema.reference import ExperimentReference
 from ado.schema.request import (
@@ -442,3 +443,22 @@ def backdate_resource(
         sql.updateResource(resource)
 
     return _backdate_resource
+
+
+@pytest.fixture
+def ml_multi_cloud_matching_point() -> SpacePoint:
+    """A SpacePoint that matches the ml_multi_cloud discoveryspace."""
+    return SpacePoint(
+        entity={
+            "provider": "A",
+            "cpu_family": 0,
+            "vcpu_size": 0,
+            "nodes": 2,
+        },
+        experiments=[
+            ExperimentReference(
+                experimentIdentifier="benchmark_performance",
+                actuatorIdentifier="replay",
+            )
+        ],
+    )

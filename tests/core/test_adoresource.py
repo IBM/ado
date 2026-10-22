@@ -175,15 +175,31 @@ def test_ado_resource_property_descriptor_extra_fields_forbidden() -> None:
 
 
 def test_ado_resource_property_descriptor_is_a_property_descriptor() -> None:
-    """ADOResourcePropertyDescriptor is a PropertyDescriptor and compares by identifier."""
+    """ADOResourcePropertyDescriptor is a PropertyDescriptor.
+
+    Equality with a PropertyDescriptor uses the identifier. Equality with
+    another ADOResourcePropertyDescriptor also requires the same kind.
+    """
     from ado.schema.property import PropertyDescriptor
 
     descriptor = ADOResourcePropertyDescriptor(
         identifier="baseline", kind=CoreResourceKinds.DATACONTAINER
     )
-    assert isinstance(descriptor, PropertyDescriptor)
-    # PropertyDescriptor equality is identifier-based, ignoring kind.
-    other = ADOResourcePropertyDescriptor(
+    same = ADOResourcePropertyDescriptor(
+        identifier="baseline", kind=CoreResourceKinds.DATACONTAINER
+    )
+    different_kind = ADOResourcePropertyDescriptor(
         identifier="baseline", kind=CoreResourceKinds.OPERATION
     )
-    assert descriptor == other
+    different_identifier = ADOResourcePropertyDescriptor(
+        identifier="candidate", kind=CoreResourceKinds.DATACONTAINER
+    )
+
+    assert isinstance(descriptor, PropertyDescriptor)
+    assert descriptor == same
+    assert hash(descriptor) == hash(same)
+    assert descriptor != different_kind
+    assert descriptor != different_identifier
+    assert {descriptor, same, different_kind} == {descriptor, different_kind}
+    assert descriptor == PropertyDescriptor(identifier="baseline")
+    assert descriptor != PropertyDescriptor(identifier="candidate")

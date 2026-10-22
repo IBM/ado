@@ -14,7 +14,7 @@ from ado.core import DataContainerResource
 from ado.core.datacontainer.resource import DataContainer, TabularData
 from ado.core.discoveryspace.config import EntityFilter
 from ado.core.discoveryspace.space import DiscoverySpace
-from ado.core.operation.config import FunctionOperationInfo
+from ado.core.operation.config import FunctionOperationInfo, GenericOperatorParameters
 from ado.core.operation.operation import OperationOutput
 from ado.modules.operators.collections import characterize_operation
 
@@ -41,7 +41,7 @@ class PropertyTypeEnum(enum.Enum):
     observed = "observed"
 
 
-class DetectAnomalousSeries(pydantic.BaseModel):
+class DetectAnomalousSeries(GenericOperatorParameters):
     model_config = ConfigDict(extra="forbid")
 
     entity_filter: Annotated[

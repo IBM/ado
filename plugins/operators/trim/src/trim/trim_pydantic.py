@@ -8,6 +8,8 @@ from typing import Annotated, Literal
 import pydantic
 from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, model_validator
 
+from ado.core.operation.config import GenericOperatorParameters
+
 
 class MissingTargetMeasurementMode(enum.StrEnum):
     Error = "Error"
@@ -169,7 +171,7 @@ class AutoGluonArgs(BaseModel):
     ]
 
 
-class TrimParameters(BaseModel):
+class TrimParameters(GenericOperatorParameters):
     model_config = ConfigDict(extra="forbid")
 
     autoGluonArgs: Annotated[
@@ -267,7 +269,16 @@ class TrimParameters(BaseModel):
 
     @model_validator(mode="after")
     def set_final_model_args(self) -> "TrimParameters":
-        if self.finalModelAutoGluonArgs == AutoGluonArgs():
+        """Copy the iterative AutoGluon arguments into the final-model arguments.
+
+        The copy is made when the final-model arguments are still the default,
+        and when both fields hold the same AutoGluonArgs instance. Each stage
+        then owns its own argument dictionaries.
+        """
+        if (
+            self.finalModelAutoGluonArgs is self.autoGluonArgs
+            or self.finalModelAutoGluonArgs == AutoGluonArgs()
+        ):
             self.finalModelAutoGluonArgs = self.autoGluonArgs.model_copy(deep=True)
         return self
 

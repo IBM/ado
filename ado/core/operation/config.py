@@ -48,6 +48,16 @@ class DiscoveryOperationEnum(enum.Enum):
         return None
 
 
+class GenericOperatorParameters(pydantic.BaseModel):
+    """Base class for operator parameter (configuration) models.
+
+    Operator-specific parameter classes should subclass this. Schemas are
+    closed: unknown fields are rejected (``extra="forbid"``).
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+
 def get_actuator_configurations(
     project_context: ProjectContext, actuator_configuration_identifiers: list[str]
 ) -> list[ActuatorConfiguration]:
@@ -255,13 +265,13 @@ class OperatorMetadata(pydantic.BaseModel):
         ),
     ] = None
     configuration_model: Annotated[
-        type[pydantic.BaseModel],
+        type[GenericOperatorParameters],
         pydantic.Field(
             description="Pydantic model class used to validate operation parameters.",
         ),
     ]
     example_configuration: Annotated[
-        pydantic.BaseModel,
+        GenericOperatorParameters,
         pydantic.Field(
             description="Default instance of the configuration model.",
         ),

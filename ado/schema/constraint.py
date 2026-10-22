@@ -346,14 +346,22 @@ def _predicate_tag(predicate: dict[str, object]) -> str:
         ValueError: If the mapping mixes predicate forms or is not a predicate.
     """
 
-    combinators = [key for key in ("allOf", "anyOf", "not") if key in predicate]
-    comparison_keys = [key for key in ("left", "operator", "right") if key in predicate]
+    combinators = {"allOf", "anyOf", "not"}.intersection(predicate)
+    comparison_keys = {"left", "operator", "right"}.intersection(predicate)
+
+    if combinators and comparison_keys:
+        raise ValueError(
+            f"A predicate must be a comparison or a combinator, not both; "
+            f"got combinators {sorted(combinators)!r} and comparison keys {sorted(comparison_keys)!r}"
+        )
+    if len(combinators) > 1:
+        raise ValueError(
+            f"A predicate must use exactly one combinator (allOf, anyOf, or not); "
+            f"got {sorted(combinators)!r}"
+        )
+
     if combinators:
-        if len(combinators) != 1 or comparison_keys:
-            raise ValueError(
-                "A predicate must be a comparison or exactly one of allOf, anyOf, or not"
-            )
-        return combinators[0]
+        return next(iter(combinators))
     if comparison_keys:
         return "comparison"
     raise ValueError(f"Unable to determine predicate type for {predicate!r}")

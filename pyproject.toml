@@ -5,7 +5,7 @@ It can be easily extended with new experiments or new analysis tools. It allows 
 researchers and engineers to collaborate on projects, execute experiments, and share data.
 """
 readme = "README.md"
-requires-python = ">=3.11,<3.15"
+requires-python = ">=3.15,<3.16"
 license-files = ["AUTHORS.md", "LICEN[CS]E*", "vendored/licenses/*.txt"]
 authors = [{ name = "Michael A. Johnston", email = "michaelj@ie.ibm.com" }]
 maintainers = [{ name = "Michael A. Johnston", email = "michaelj@ie.ibm.com" }]

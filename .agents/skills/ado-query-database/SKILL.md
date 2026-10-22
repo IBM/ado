@@ -36,7 +36,7 @@ DOs:
 - IMPORTANT Before deciding on what to query check the resource schema to
   confirm what is available in metadata - ado template RESOURCETYPE
   --include-schema
-- Write lists for reading to `--output-file`, then read the file.
+- Write lists for reading with `-o csv --output-file`, then read the file.
   Stdout capture of `ado get --details` can be truncated by agent harness. See
   [ado-use-cli](../ado-use-cli/SKILL.md) (Output Format and File Handling).
 - Use Server side filtering
@@ -89,7 +89,7 @@ Replace `DiscoverySpaceResource` with any class from the table above.
 Get a general overview of what's present:
 
 ```bash
-uv run ado get $RESOURCETYPE --details --output-file /tmp/ado-$RESOURCETYPE-details.txt
+uv run ado get $RESOURCETYPE --details -o csv --output-file /tmp/ado-$RESOURCETYPE-details.csv
 ```
 
 Returns an age-sorted list (most recent last) of resources of the specified
@@ -107,23 +107,23 @@ data. Supported for **operations**, **discovery spaces**, **sample stores**, and
 
 ```bash
 # Operations
-uv run ado get operations --stats --output-file operations-stats.txt
+uv run ado get operations --stats -o csv --output-file operations-stats.csv
 uv run ado get operation OPERATION_ID --stats --no-trunc
 
 # Discovery Spaces
-uv run ado get spaces --stats --output-file spaces-stats.txt
+uv run ado get spaces --stats -o csv --output-file spaces-stats.csv
 uv run ado get space SPACE_ID --stats --no-trunc
 # Include property domains in space table output
 # (constitutive, parameterized, optional, all, or specific IDs)
-uv run ado get spaces -p constitutive --no-trunc --output-file /tmp/ado-spaces-properties.txt
-uv run ado get space SPACE_ID -p all --no-trunc --output-file /tmp/ado-space-properties.txt
+uv run ado get spaces -p constitutive -o csv --output-file /tmp/ado-spaces-properties.csv
+uv run ado get space SPACE_ID -p all -o csv --output-file /tmp/ado-space-properties.csv
 
 # Sample Stores
-uv run ado get samplestores --stats --output-file samplestores-stats.txt
+uv run ado get samplestores --stats -o csv --output-file samplestores-stats.csv
 uv run ado get samplestore SAMPLESTORE_ID --stats --no-trunc
 
 # Data Containers
-uv run ado get datacontainers --stats --output-file datacontainers-stats.txt
+uv run ado get datacontainers --stats -o csv --output-file datacontainers-stats.csv
 uv run ado get datacontainer DATACONTAINER_ID --stats --no-trunc
 ```
 
@@ -198,15 +198,15 @@ Find spaces matching a point or another space:
 ```bash
 # Match spaces containing a specific entity point
 uv run ado get space --matching-point point.yaml --details \
-  --output-file /tmp/ado-matching-point.txt
+  -o csv --output-file /tmp/ado-matching-point.csv
 
 # Match spaces similar to another space (by ID)
 uv run ado get space --matching-space-id space-abc123-456def --details \
-  --output-file /tmp/ado-matching-spaces.txt
+  -o csv --output-file /tmp/ado-matching-spaces.csv
 
 # Match spaces similar to a space configuration (without creating it)
 uv run ado get space --matching-space space.yaml --details \
-  --output-file /tmp/ado-matching-spaces.txt
+  -o csv --output-file /tmp/ado-matching-spaces.csv
 ```
 
 **Note**: `--matching-point`, `--matching-space`, and `--matching-space-id` are

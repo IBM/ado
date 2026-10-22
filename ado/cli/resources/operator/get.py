@@ -32,11 +32,13 @@ def get_operator(parameters: AdoGetCommandParameters) -> None:
     # Validate output format
     if parameters.output_format not in {
         AdoGetSupportedOutputFormats.TABLE,
+        AdoGetSupportedOutputFormats.CSV,
         AdoGetSupportedOutputFormats.NAME,
     }:
         console_print(
             f"{WARN}{cyan('ado get operators')} only supports the "
-            f"{AdoGetSupportedOutputFormats.TABLE.value} and "
+            f"{AdoGetSupportedOutputFormats.TABLE.value}, "
+            f"{AdoGetSupportedOutputFormats.CSV.value} and "
             f"{AdoGetSupportedOutputFormats.NAME.value} output formats",
             stderr=True,
         )
@@ -99,7 +101,10 @@ def get_operator(parameters: AdoGetCommandParameters) -> None:
             )
             raise typer.Exit(1)
     else:
-        console_print("Available operators by type:")
+        console_print(
+            "Available operators by type:",
+            stderr=parameters.output_format == AdoGetSupportedOutputFormats.CSV,
+        )
 
     operators = operators.sort_values(by=["TYPE", "OPERATOR"]).reset_index(drop=True)
 

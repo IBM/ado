@@ -44,6 +44,8 @@ For `ado get` and `ado show` subcommands:
   Note: automatically expands table cells that appear clipped we sent to terminal.
 - `--no-trunc` expands clipped **table cells**. Note: It does not prevent a long
   listing from being cut off in tool stdout capture.
+- `ado get -o csv` outputs the same columns as the table, as CSV. Prefer it when
+  output is read programmatically.
 
 ### Complete listings (required for agents)
 
@@ -51,19 +53,20 @@ For `ado get` and `ado show` subcommands:
 can truncate output**
 even when the command succeeded. `--no-trunc` does not fix this.
 
-Write every listing or dump you will read to a file, then read that file:
+Write every listing or dump you will read to a file (as CSV for `ado get`), then
+read that file:
 
 ```bash
-uv run ado get operations --details --output-file /tmp/ado-operations-details.txt
-uv run ado get spaces -l study=$ID --details --output-file /tmp/ado-study-spaces.txt
-uv run ado get operations --stats --output-file /tmp/ado-operations-stats.txt
+uv run ado get operations --details -o csv --output-file /tmp/ado-operations-details.csv
+uv run ado get spaces -l study=$ID --details -o csv --output-file /tmp/ado-study-spaces.csv
+uv run ado get operations --stats -o csv --output-file /tmp/ado-operations-stats.csv
 ```
 
 Tip: Narrow listings with `-l`/`--filter` when you
 only need a subset — see
 [ado-query-database](../ado-query-database/SKILL.md#fast-querying).
 
-Prefer `/tmp/ado-*.txt` (or another path outside the repo) so listings are not
+Prefer `/tmp/ado-*.csv` (or another path outside the repo) so listings are not
 left as untracked files.
 
 `--output-file` also:
@@ -105,7 +108,7 @@ Lists resources of a given type and gets resource YAML
 
 ```bash
 # List all spaces (write to a file; stdout capture of long tables is incomplete)
-uv run ado get spaces --details --output-file /tmp/ado-spaces-details.txt
+uv run ado get spaces --details -o csv --output-file /tmp/ado-spaces-details.csv
 
 # Get the YAML for a space
 uv run ado get space SPACE_ID -o yaml --output-file space.yaml
@@ -117,32 +120,32 @@ uv run ado get space --use-latest -o yaml --output-file latest-space.yaml
 uv run ado get operation --use-latest -o yaml --output-file latest-operation.yaml
 
 # Get measurement statistics for all operations
-uv run ado get operations --stats --output-file operations-stats.txt
+uv run ado get operations --stats -o csv --output-file operations-stats.csv
 uv run ado get operation OPERATION_ID --stats --no-trunc
 
 # Get statistics for all discovery spaces
-uv run ado get spaces --stats --output-file spaces-stats.txt
+uv run ado get spaces --stats -o csv --output-file spaces-stats.csv
 uv run ado get space SPACE_ID --stats --no-trunc
 
 # Include property domains in space table listing (-p / --include-properties)
-uv run ado get spaces -p constitutive --no-trunc --output-file /tmp/ado-spaces-properties.txt
-uv run ado get space SPACE_ID -p all --no-trunc --output-file /tmp/ado-space-properties.txt
+uv run ado get spaces -p constitutive -o csv --output-file /tmp/ado-spaces-properties.csv
+uv run ado get space SPACE_ID -p all -o csv --output-file /tmp/ado-space-properties.csv
 
 # Get statistics for all sample stores
-uv run ado get samplestores --stats --output-file samplestores-stats.txt
+uv run ado get samplestores --stats -o csv --output-file samplestores-stats.csv
 uv run ado get samplestore SAMPLESTORE_ID --stats --no-trunc
 
 # Get statistics for all data containers
-uv run ado get datacontainers --stats --output-file datacontainers-stats.txt
+uv run ado get datacontainers --stats -o csv --output-file datacontainers-stats.csv
 uv run ado get datacontainer DATACONTAINER_ID --stats --no-trunc
 
 # Get all resources of a type related to a source resource (--related-to)
 uv run ado get operations --related-to samplestore=STORE_ID \
-  --output-file /tmp/ado-ops-related.txt
+  -o csv --output-file /tmp/ado-ops-related.csv
 uv run ado get spaces --related-to samplestore=STORE_ID -o name \
   --output-file /tmp/ado-spaces-related.txt
 uv run ado get operations --related-to discoveryspace=SPACE_ID \
-  --filter config.metadata.name=OP_NAME --output-file /tmp/ado-ops-related.txt
+  --filter config.metadata.name=OP_NAME -o csv --output-file /tmp/ado-ops-related.csv
 ```
 
 `--related-to` filters results to resources related to the given source resource
@@ -376,7 +379,7 @@ When writing documentation with ado commands:
 
 ```bash
 # List all operations
-uv run ado get operations --details --output-file /tmp/ado-operations-details.txt
+uv run ado get operations --details -o csv --output-file /tmp/ado-operations-details.csv
 
 # Get details on a specific operation (YAML to a file)
 uv run ado get operation op-123 -o yaml --output-file op-123.yaml

@@ -35,7 +35,8 @@ Read the following basic skills first:
 
 - Prefer metastore listing and YAML dumps before heavy `uv run ado show` data
   pulls.
-- Write `ado get --details` listings with `--output-file` and read the file.
+- Write `ado get --details` listings with `-o csv --output-file` and read the
+  file.
 - For study documents (`study-$ID`), see
   [ado-create-study-document](../ado-create-study-document/SKILL.md).
 - For examining one space in depth:
@@ -70,7 +71,7 @@ Query the metastore:
 
 ```bash
 uv run ado get document -q 'config.metadata.name=project_report' --details \
-  --output-file /tmp/ado-project-report-docs.txt
+  -o csv --output-file /tmp/ado-project-report-docs.csv
 ```
 
 There **may** be zero, one, or
@@ -95,12 +96,12 @@ Here we check whether there has been meaningful activity since the current repor
 was written:
 
 1. Contextualizing Activity
-   1. Run `uv run ado get docs --details --output-file /tmp/ado-docs-details.txt`
+   1. Run `uv run ado get docs --details -o csv --output-file /tmp/ado-docs-details.csv`
    2. Find any study docs that were created after the last project report was written
    3. If there are, there has been recent activity in describing the motivations
       and scope of project
 2. Operation Activity
-   1. Run `uv run ado get operations --details --stats --output-file /tmp/ado-operations-details-stats.txt`
+   1. Run `uv run ado get operations --details --stats -o csv --output-file /tmp/ado-operations-details-stats.csv`
    2. Find all the operations that were created after the last report was written
    3. Filter these for ones that are finished AND, if explore operations, that
       measured entities
@@ -118,7 +119,7 @@ First check if there are study documents outlining
 the research underway in the project
 
 ```bash
-uv run ado get document --details --output-file /tmp/ado-documents-details.txt
+uv run ado get document --details -o csv --output-file /tmp/ado-documents-details.csv
 ```
 
 Then search that file for names matching `study-`.
@@ -144,7 +145,7 @@ When examining a study, add `-l study=$ID` (the study's label) to the
 1. **Spaces (tabular, with metadata)**
 
    ```bash
-   uv run ado get spaces --details --output-file /tmp/ado-spaces-details.txt
+   uv run ado get spaces --details -o csv --output-file /tmp/ado-spaces-details.csv
    ```
 
    Use **age** (list is age-sorted, most recent last), **name**,
@@ -153,7 +154,7 @@ When examining a study, add `-l study=$ID` (the study's label) to the
 2. **Operations (tabular, with metadata)**
 
    ```bash
-   uv run ado get operations --details --output-file /tmp/ado-operations-details.txt
+   uv run ado get operations --details -o csv --output-file /tmp/ado-operations-details.csv
    ```
 
    Relates operations to target spaces; age and labels summarize recent work.
@@ -166,7 +167,7 @@ When examining a study, add `-l study=$ID` (the study's label) to the
 3. **Operations (with measurement statistics)**
 
    ```bash
-   uv run ado get operations --stats --output-file operations-stats.txt
+   uv run ado get operations --stats -o csv --output-file operations-stats.csv
    ```
 
    Adds `TOTAL_MEASUREMENTS`, `SUCCESSFUL_MEASUREMENTS`,
@@ -185,7 +186,7 @@ When examining a study, add `-l study=$ID` (the study's label) to the
 4. **Discovery Spaces (with statistics)**
 
    ```bash
-   uv run ado get spaces --stats --output-file spaces-stats.txt
+   uv run ado get spaces --stats -o csv --output-file spaces-stats.csv
    ```
 
    Adds `EXPERIMENTS`, `OPERATIONS`, `EXPLORE_OPS`, and `SAMPLED_ENTITIES`
@@ -206,7 +207,7 @@ When examining a study, add `-l study=$ID` (the study's label) to the
 5. **Sample Stores (with statistics)**
 
    ```bash
-   uv run ado get samplestores --stats --output-file samplestores-stats.txt
+   uv run ado get samplestores --stats -o csv --output-file samplestores-stats.csv
    ```
 
    Adds `ENTITIES`, `RESULTS`, and `EXPERIMENTS` columns.
@@ -214,7 +215,7 @@ When examining a study, add `-l study=$ID` (the study's label) to the
 6. **Data Containers (with statistics)**
 
    ```bash
-   uv run ado get datacontainers --stats --output-file datacontainers-stats.txt
+   uv run ado get datacontainers --stats -o csv --output-file datacontainers-stats.csv
    ```
 
    Adds `TABLES`, `LOCATIONS`, `KEY_VALUES`, and `DATA_BYTES` columns.
@@ -256,9 +257,9 @@ Gain further information on the experiments using
 
 ```bash
 # Outputs description of actuators used
-uv run ado get actuators --details --output-file /tmp/ado-actuators-details.txt
+uv run ado get actuators --details -o csv --output-file /tmp/ado-actuators-details.csv
 # Outputs description of experiments used
-uv run ado get experiments --details --output-file /tmp/ado-experiments-details.txt
+uv run ado get experiments --details -o csv --output-file /tmp/ado-experiments-details.csv
 # Outputs detailed information on an experiment
 # Use to drill down into most used experiments
 uv run ado describe experiment $EXPERIMENT_ID
@@ -288,7 +289,7 @@ configurations)
 
 ```bash
 uv run ado get spaces --matching-space-id SPACE_ID --details \
-  --output-file /tmp/ado-matching-spaces.txt
+  -o csv --output-file /tmp/ado-matching-spaces.csv
 ```
 
 Use the output to

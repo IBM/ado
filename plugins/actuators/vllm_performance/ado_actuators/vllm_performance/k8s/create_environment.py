@@ -25,7 +25,7 @@ def create_test_environment(
     pvc_name: str,
     in_cluster: bool = True,
     verify_ssl: bool = False,
-    image: str = "vllm/vllm-openai:v0.6.3",
+    image: str = "vllm/vllm-openai:v0.32.0",
     image_pull_secret_name: str = "",
     deployment_template: str | None = None,
     service_template: str | None = None,

@@ -20,8 +20,10 @@ spec:
     spec:
       containers:
         - name: vllm
-          image: "vllm/vllm-openai:v0.13.0"
+          image: "vllm/vllm-openai:v0.32.0"
           imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
           ports:
             - name: http
               containerPort: 8000

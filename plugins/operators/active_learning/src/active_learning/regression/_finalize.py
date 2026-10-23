@@ -81,14 +81,19 @@ def _finalize_predictive_model(
     labels = _measured_labels(discovery_space, pool, target)
     if not labels:
         raise ValueError(
-            f"cannot fit a final predictor: no target measurements for {target.identifier!r}"
+            f"cannot fit a final predictor: no target measurements for {target.identifier!r}; "
+            f"expected at least {minimum_training_count}, collected 0"
         )
     if len(labels) < minimum_training_count:
         raise ValueError(
             f"cannot fit a final predictor: expected at least {minimum_training_count} "
             f"target measurements for {target.identifier!r}, found {len(labels)}"
         )
-    _validate_final_predictor(parameters, expected_training_count=len(labels))
+    _validate_final_predictor(
+        parameters,
+        expected_training_count=minimum_training_count,
+        collected_training_count=len(labels),
+    )
 
     measured_indices = sorted(labels)
     measured_labels = pd.Series(

@@ -6,14 +6,22 @@
 
 from pathlib import Path
 
+import numpy as np
+import pandas as pd
 import pytest
+from active_learning.regression import load_predictor
 from active_learning.regression._finalize import (
     _final_model_directory,
     _finalize_predictive_model,
 )
+from active_learning.regression._shared import _finite_pool, _measured_labels
 from active_learning.regression.model import RandomForestPredictor
 from active_learning.regression.pkh.parameters import PKHOperatorParameters
 from test_samplers import _adaptive_test_space, _entity_with_label
+
+from ado.schema.domain import PropertyDomain, VariableTypeEnum
+from ado.schema.entityspace import EntitySpaceRepresentation
+from ado.schema.property import ConstitutiveProperty
 
 
 def test_final_model_includes_existing_and_latest_measurements(tmp_path: Path) -> None:
@@ -42,6 +50,96 @@ def test_final_model_includes_existing_and_latest_measurements(tmp_path: Path) -
     assert metadata["modelPath"] == str(directory / "model.pkl")
     assert all(tree.tree_.weighted_n_node_samples[0] == 3 for tree in predictor.forest_)
     assert (None, False, True) in store.reads
+
+
+@pytest.mark.parametrize("backend", ["random_forest", "autogluon"])
+def test_final_model_preserves_pool_schema_and_label_alignment(
+    tmp_path: Path, backend: str
+) -> None:
+    """Saved predictors retain raw numeric features, categories, and measured rows."""
+
+    if backend == "autogluon":
+        pytest.importorskip("autogluon.tabular")
+    space, store, target, _ = _adaptive_test_space()
+    category_values = [2**53, 2**53 + 1]
+    domains = {
+        "workers": PropertyDomain(values=[1, 2, 3]),
+        "fraction": PropertyDomain(values=[0.5, 1.5]),
+        "material": PropertyDomain(values=["a", "b"]),
+        "code": PropertyDomain(
+            values=category_values,
+            variableType=VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE,
+        ),
+    }
+    space.entitySpace = EntitySpaceRepresentation(
+        constitutiveProperties=[
+            ConstitutiveProperty(identifier=name, propertyDomain=domain)
+            for name, domain in domains.items()
+        ]
+    )
+    store.entities.clear()
+    pool = _finite_pool(space)
+    labels = pd.Series([11.0, 22.0, 33.0, 44.0], index=[1, 6, 13, 22])
+    for index, label in labels.items():
+        entity = pool.entities[index]
+        if index == 13:
+            entity = entity.model_copy(update={"identifier": "external-measured-row"})
+        entity = _entity_with_label(entity, target, label)
+        store.entities[entity.identifier] = entity
+    pool = _finite_pool(space, refresh=True)
+    assert pool.feature_frame.columns.tolist() == list(domains)
+    assert pool.categorical_columns == ("material", "code")
+    assert _measured_labels(space, pool, target) == labels.to_dict()
+    assert pool.entities[13].identifier == "external-measured-row"
+
+    forest_parameters = {
+        "n_estimators": 8,
+        "min_samples_leaf": 1,
+        "max_features": 1.0,
+        "random_state": 42,
+        "n_jobs": 1,
+    }
+    directory = tmp_path / backend
+    metadata = _finalize_predictive_model(
+        space,
+        parameters=PKHOperatorParameters(
+            targetOutput="latency",
+            numberEntities=4,
+            nEstimators=8,
+            minSamplesLeaf=1,
+            maxFeatures=1.0,
+            seed=42,
+            nJobs=1,
+            finalPredictor=backend,
+            autoGluon={"numCpus": 1, "hyperparameters": {"RF": {"n_estimators": 8}}},
+        ),
+        directory=directory,
+        minimum_training_count=4,
+    )
+    predictor = load_predictor(directory)
+    assert predictor.feature_names_in_.tolist() == list(domains)
+    assert predictor._categorical_columns == ("material", "code")
+    assert predictor._category_dtypes["code"].categories.tolist() == category_values
+    assert predictor.n_training_samples_ == metadata["trainingEntityCount"] == 4
+    assert metadata["fitEntityCount"] + metadata["validationEntityCount"] == 4
+    assert metadata["trainingEntityIdentifiers"] == [
+        pool.entities[index].identifier for index in labels.index
+    ]
+    probe = pool.feature_frame.iloc[[1]].copy()
+    probe["workers"] = 4
+    probe["fraction"] = 2.5
+    assert np.isfinite(predictor.predict(probe).to_numpy()).all()
+    if backend == "random_forest":
+        expected = RandomForestPredictor.fit(
+            pool.feature_frame,
+            labels,
+            target_output="latency",
+            categorical_columns=pool.categorical_columns,
+            forest_parameters=forest_parameters,
+        )
+        np.testing.assert_array_equal(
+            predictor.predict(pool.feature_frame), expected.predict(pool.feature_frame)
+        )
 
 
 def test_final_model_requires_target_measurements(tmp_path: Path) -> None:

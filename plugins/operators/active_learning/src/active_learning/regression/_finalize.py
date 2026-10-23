@@ -18,7 +18,6 @@ from active_learning.regression._shared import (
     _resolve_target,
 )
 from active_learning.regression.model import RandomForestPredictor
-from ado.schema.domain import VariableTypeEnum
 
 if typing.TYPE_CHECKING:
     from active_learning.regression._shared import (
@@ -91,27 +90,6 @@ def _finalize_predictive_model(
         )
     _validate_final_predictor(parameters, expected_training_count=len(labels))
 
-    properties = discovery_space.entitySpace.constitutiveProperties
-    feature_names = [prop.identifier for prop in properties]
-    frame = pd.DataFrame(
-        [
-            {
-                value.property.identifier: value.value
-                for value in entity.constitutive_property_values
-            }
-            for entity in pool.entities
-        ],
-        columns=feature_names,
-    )
-    categorical_types = {
-        VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE,
-        VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE,
-    }
-    categorical_columns = [
-        prop.identifier
-        for prop in properties
-        if prop.propertyDomain.variableType in categorical_types
-    ]
     measured_indices = sorted(labels)
     measured_labels = pd.Series(
         {index: labels[index] for index in measured_indices}, dtype=float
@@ -120,10 +98,10 @@ def _finalize_predictive_model(
         from active_learning.regression.autogluon_model import AutoGluonPredictor
 
         predictor = AutoGluonPredictor.fit(
-            frame,
+            pool.feature_frame,
             measured_labels,
             target_output=parameters.targetOutput,
-            categorical_columns=categorical_columns,
+            categorical_columns=pool.categorical_columns,
             fit_parameters=parameters.autoGluon.fit_parameters(),
             random_state=parameters.seed,
         )
@@ -131,10 +109,10 @@ def _finalize_predictive_model(
         validation_count = predictor.n_validation_samples_
     else:
         predictor = RandomForestPredictor.fit(
-            frame,
+            pool.feature_frame,
             measured_labels,
             target_output=parameters.targetOutput,
-            categorical_columns=categorical_columns,
+            categorical_columns=pool.categorical_columns,
             forest_parameters={
                 "n_estimators": parameters.nEstimators,
                 "min_samples_leaf": parameters.minSamplesLeaf,

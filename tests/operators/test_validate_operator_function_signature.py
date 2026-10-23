@@ -5,33 +5,42 @@
 import pytest
 
 from ado.core.discoveryspace.space import DiscoverySpace
-from ado.core.operation.config import FunctionOperationInfo
+from ado.core.operation.config import FunctionOperationInfo, GenericOperatorParameters
 from ado.core.operation.operation import OperationOutput
 from ado.modules.operators.base import validate_operator_function_signature
+
+
+class _Params(GenericOperatorParameters):
+    value: int = 1
 
 
 def valid_op(
     discoverySpace: DiscoverySpace,
     operationInfo: FunctionOperationInfo | None = None,
-    **kwargs: object,
+    *,
+    parameters: _Params,
 ) -> OperationOutput: ...
 
 
-def valid_op_no_kwargs(
+def valid_op_with_kwargs(
     discoverySpace: DiscoverySpace,
     operationInfo: FunctionOperationInfo | None = None,
+    **kwargs: object,
 ) -> OperationOutput: ...
 
 
 def no_annotations(
     discoverySpace,  # noqa: ANN001
     operationInfo=None,  # noqa: ANN001
+    *,
+    parameters: _Params,
 ) -> OperationOutput: ...
 
 
 def missing_operation_info(
     discoverySpace: DiscoverySpace,
-    **kwargs: object,
+    *,
+    parameters: _Params,
 ) -> OperationOutput: ...
 
 
@@ -39,35 +48,52 @@ def extra_positional(
     discoverySpace: DiscoverySpace,
     operationInfo: FunctionOperationInfo | None = None,
     extra: int = 0,
+    *,
+    parameters: _Params,
 ) -> OperationOutput: ...
 
 
 def wrong_first_param_type(
     discoverySpace: int,
     operationInfo: FunctionOperationInfo | None = None,
+    *,
+    parameters: _Params,
 ) -> OperationOutput: ...
 
 
 def wrong_second_param_type(
     discoverySpace: DiscoverySpace,
     operationInfo: int = 0,
+    *,
+    parameters: _Params,
+) -> OperationOutput: ...
+
+
+def wrong_parameters_type(
+    discoverySpace: DiscoverySpace,
+    operationInfo: FunctionOperationInfo | None = None,
+    *,
+    parameters: int,
 ) -> OperationOutput: ...
 
 
 def wrong_return_type(
     discoverySpace: DiscoverySpace,
     operationInfo: FunctionOperationInfo | None = None,
+    *,
+    parameters: _Params,
 ) -> int: ...
 
 
 class TestValidSignatures:
-    def test_valid_with_kwargs(self) -> None:
-        """Full protocol-matching signature passes."""
+    def test_valid_parameters_model(self) -> None:
+        """A discoverySpace, operationInfo, and parameters model passes."""
         validate_operator_function_signature(valid_op)
 
-    def test_valid_without_kwargs(self) -> None:
-        """Omitting **kwargs is allowed."""
-        validate_operator_function_signature(valid_op_no_kwargs)
+    def test_kwargs_rejected(self) -> None:
+        """**kwargs is rejected in favour of a parameters model."""
+        with pytest.raises(ValueError, match="kwargs"):
+            validate_operator_function_signature(valid_op_with_kwargs)
 
 
 class TestHintIntrospectionFailure:
@@ -83,6 +109,8 @@ class TestHintIntrospectionFailure:
         def bad_hints(
             discoverySpace: "UnresolvableType",  # noqa: F821
             operationInfo: FunctionOperationInfo | None = None,
+            *,
+            parameters: _Params,
         ) -> OperationOutput: ...
 
         with pytest.raises(ValueError, match="type hints are missing or unresolvable"):
@@ -137,6 +165,11 @@ class TestInvalidSignatures:
         """Wrong type on the second positional parameter is rejected."""
         with pytest.raises(ValueError, match="operationInfo"):
             validate_operator_function_signature(wrong_second_param_type)
+
+    def test_wrong_parameters_type(self) -> None:
+        """parameters must be a GenericOperatorParameters subclass."""
+        with pytest.raises(ValueError, match="parameters"):
+            validate_operator_function_signature(wrong_parameters_type)
 
     def test_wrong_return_type(self) -> None:
         """Wrong return type is rejected."""

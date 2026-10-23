@@ -8,6 +8,7 @@ import sys
 import time
 import typing
 
+import pydantic
 import ray
 from ray.exceptions import RayTaskError
 
@@ -16,6 +17,7 @@ from ado.core import OperationResource
 from ado.core.discoveryspace.space import DiscoverySpace
 from ado.core.operation.config import (
     FunctionOperationInfo,
+    GenericOperatorParameters,
     OperatorMetadata,
 )
 from ado.core.operation.operation import OperationException, OperationOutput
@@ -122,7 +124,7 @@ def _run_operation_harness(
     run_closure: typing.Callable[[], OperationOutput],
     discovery_space: DiscoverySpace,
     operator_metadata: OperatorMetadata,
-    operation_parameters: dict,
+    operation_parameters: GenericOperatorParameters,
     operation_info: FunctionOperationInfo,
     provenance: OperationProvenanceInfo,
     operation_identifier: str | None = None,
@@ -138,7 +140,7 @@ def _run_operation_harness(
         run_closure: Callable that executes the operation and returns OperationOutput
         discovery_space: The discovery space the operation is running on
         operator_metadata: Metadata for the registered operator.
-        operation_parameters: Dictionary of parameters for the operation
+        operation_parameters: Validated parameters model for the operation
         operation_info: Information about the operation including metadata and actuator configs
         provenance: Package provenance for the operation, built by the caller
         operation_identifier: Optional pre-existing identifier for the operation resource
@@ -157,10 +159,15 @@ def _run_operation_harness(
     # Create and add OperationResource to metastore
     #
 
+    stored_parameters = (
+        operation_parameters.model_dump()
+        if isinstance(operation_parameters, pydantic.BaseModel)
+        else operation_parameters
+    )
     operation_resource = create_operation_and_add_to_metastore(
         space_identifier=discovery_space.uri,
         operator_module=operator_metadata.reference,
-        operation_parameters=operation_parameters,
+        operation_parameters=stored_parameters,
         metastore=discovery_space.metadataStore,
         operation_info=operation_info,
         provenance=provenance,

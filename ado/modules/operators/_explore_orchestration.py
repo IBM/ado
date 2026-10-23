@@ -12,6 +12,7 @@ from ado.core import OperationResource
 from ado.core.discoveryspace.space import DiscoverySpace
 from ado.core.operation.config import (
     FunctionOperationInfo,
+    GenericOperatorParameters,
     OperatorMetadata,
 )
 from ado.core.operation.operation import OperationOutput
@@ -168,7 +169,7 @@ def run_explore_operation_core_closure(
 def orchestrate_explore_operation(
     operator_metadata: OperatorMetadata,
     discovery_space: DiscoverySpace,
-    parameters: dict,
+    parameters: GenericOperatorParameters,
     operation_info: FunctionOperationInfo,
 ) -> OperationOutput:
     """Orchestrates an explore operation.
@@ -188,7 +189,7 @@ def orchestrate_explore_operation(
         operator_metadata: Registered metadata for the operator, carrying the class,
             configuration model, name, and type.
         discovery_space: The discovery space to operate on
-        parameters: Dictionary of parameters for the operation
+        parameters: Validated parameters model for the operation
         operation_info: Information about the operation including metadata, actuator
             configuration identifiers, and namespace
 

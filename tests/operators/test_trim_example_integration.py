@@ -138,7 +138,7 @@ def test_trim_example_operation_succeeds(
 
     output = trim_fn(
         trim_minimal_discovery_space,
-        **params.model_dump(),
+        parameters=params,
     )
 
     assert output.operation is not None

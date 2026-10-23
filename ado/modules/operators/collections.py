@@ -142,7 +142,8 @@ def characterize_operation(
         def wrapper(
             discoverySpace: DiscoverySpace,
             operationInfo: FunctionOperationInfo | None = None,
-            **kwargs: object,
+            *,
+            parameters: GenericOperatorParameters,
         ) -> OperationOutput:
             from ado.modules.operators.orchestrate import (
                 orchestrate_general_operation,
@@ -150,7 +151,7 @@ def characterize_operation(
 
             return orchestrate_general_operation(
                 operator_metadata=characterize.operators[name],
-                operation_parameters=kwargs,
+                operation_parameters=configuration_model.model_validate(parameters),
                 discovery_space=discoverySpace,
                 operation_info=operationInfo or FunctionOperationInfo(),
             )
@@ -244,10 +245,13 @@ def explore_operation(
     _validate_explore_cls(cls, metadata)
     op_name = metadata.name
 
+    configuration_model = metadata.configuration_model
+
     def _generated(
         discoverySpace: DiscoverySpace,
         operationInfo: FunctionOperationInfo | None = None,
-        **kwargs: object,
+        *,
+        parameters: GenericOperatorParameters,
     ) -> OperationOutput:
         from ado.modules.operators.orchestrate import (
             orchestrate_explore_operation,
@@ -256,10 +260,11 @@ def explore_operation(
         return orchestrate_explore_operation(
             operator_metadata=explore.operators[op_name],
             discovery_space=discoverySpace,
-            parameters=kwargs,
+            parameters=configuration_model.model_validate(parameters),
             operation_info=operationInfo or FunctionOperationInfo(),
         )
 
+    _generated.__annotations__["parameters"] = configuration_model
     _generated.__name__ = op_name
     _generated.__qualname__ = op_name
     validate_operator_function_signature(_generated)
@@ -300,7 +305,8 @@ def modify_operation(
         def wrapper(
             discoverySpace: DiscoverySpace,
             operationInfo: FunctionOperationInfo | None = None,
-            **kwargs: object,
+            *,
+            parameters: GenericOperatorParameters,
         ) -> OperationOutput:
             from ado.modules.operators.orchestrate import (
                 orchestrate_general_operation,
@@ -308,7 +314,7 @@ def modify_operation(
 
             return orchestrate_general_operation(
                 operator_metadata=modify.operators[name],
-                operation_parameters=kwargs,
+                operation_parameters=configuration_model.model_validate(parameters),
                 discovery_space=discoverySpace,
                 operation_info=operationInfo or FunctionOperationInfo(),
             )
@@ -356,7 +362,8 @@ def export_operation(
         def wrapper(
             discoverySpace: DiscoverySpace,
             operationInfo: FunctionOperationInfo | None = None,
-            **kwargs: object,
+            *,
+            parameters: GenericOperatorParameters,
         ) -> OperationOutput:
             from ado.modules.operators.orchestrate import (
                 orchestrate_general_operation,
@@ -364,7 +371,7 @@ def export_operation(
 
             return orchestrate_general_operation(
                 operator_metadata=export.operators[name],
-                operation_parameters=kwargs,
+                operation_parameters=configuration_model.model_validate(parameters),
                 discovery_space=discoverySpace,
                 operation_info=operationInfo or FunctionOperationInfo(),
             )

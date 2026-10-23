@@ -82,7 +82,7 @@ class ComponentsYaml:
         model: str,
         gpu_type: str = "NVIDIA-A100-80GB-PCIe",
         node_selector: dict[str, str] | None = None,
-        image: str = "vllm/vllm-openai:v0.6.3",
+        image: str = "vllm/vllm-openai:v0.32.0",
         image_pull_secret_name: str = "",
         n_gpus: int = 1,
         n_cpus: int = 8,

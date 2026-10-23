@@ -181,7 +181,7 @@ class TestBuildEntityEnv:
         """Return a minimal valid values dict with all required deployment parameters set."""
         return {
             "model": "test-model",
-            "image": "vllm/vllm-openai:v0.14.0",
+            "image": "vllm/vllm-openai:v0.32.0",
             "n_gpus": 1,
             "gpu_type": "NVIDIA-A100-80GB-PCIe",
             "n_cpus": 4,

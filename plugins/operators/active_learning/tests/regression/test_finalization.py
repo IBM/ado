@@ -11,6 +11,7 @@ import pandas as pd
 import pytest
 from active_learning.regression import load_predictor
 from active_learning.regression._finalize import (
+    _expected_training_count,
     _final_model_directory,
     _finalize_predictive_model,
 )
@@ -142,35 +143,85 @@ def test_final_model_preserves_pool_schema_and_label_alignment(
         )
 
 
-def test_final_model_requires_target_measurements(tmp_path: Path) -> None:
+@pytest.mark.parametrize("backend", ["random_forest", "autogluon"])
+def test_final_model_requires_target_measurements(tmp_path: Path, backend: str) -> None:
     """An empty training set cannot produce a saved predictor."""
 
-    space, store, _, _ = _adaptive_test_space()
+    space, store, target, _ = _adaptive_test_space()
     store.entities.clear()
     directory = tmp_path / "finalized"
 
-    with pytest.raises(ValueError, match="no target measurements"):
+    with pytest.raises(ValueError, match="no target measurements") as caught:
         _finalize_predictive_model(
             space,
-            parameters=PKHOperatorParameters(targetOutput="latency", numberEntities=2),
+            parameters=PKHOperatorParameters(
+                targetOutput="latency", numberEntities=5, finalPredictor=backend
+            ),
             directory=directory,
+            minimum_training_count=5,
         )
+    assert str(caught.value) == (
+        f"cannot fit a final predictor: no target measurements for {target.identifier!r}; "
+        "expected at least 5, collected 0"
+    )
     assert not directory.exists()
 
 
-def test_final_model_rejects_an_incomplete_target_set(tmp_path: Path) -> None:
+@pytest.mark.parametrize("backend", ["random_forest", "autogluon"])
+@pytest.mark.parametrize("collected", [1, 3, 4])
+def test_final_model_rejects_an_incomplete_target_set(
+    tmp_path: Path, backend: str, collected: int
+) -> None:
     """A missing final target cannot silently produce a partial training set."""
 
-    space, _, _, _ = _adaptive_test_space()
+    space, store, target, entities = _adaptive_test_space()
+    store.entities = {
+        entity.identifier: _entity_with_label(entity, target, float(index))
+        for index, entity in enumerate(entities[:collected])
+    }
     directory = tmp_path / "finalized"
 
-    with pytest.raises(ValueError, match="expected at least 2 target measurements"):
+    with pytest.raises(ValueError, match="expected at least 5") as caught:
         _finalize_predictive_model(
             space,
-            parameters=PKHOperatorParameters(targetOutput="latency", numberEntities=1),
+            parameters=PKHOperatorParameters(
+                targetOutput="latency", numberEntities=5, finalPredictor=backend
+            ),
             directory=directory,
-            minimum_training_count=2,
+            minimum_training_count=5,
         )
+    assert str(caught.value) == (
+        "cannot fit a final predictor: expected at least 5 "
+        f"target measurements for {target.identifier!r}, found {collected}"
+    )
+    assert not directory.exists()
+
+
+@pytest.mark.parametrize("collected", [1, 3])
+def test_autogluon_reports_collected_labels_below_training_minimum(
+    tmp_path: Path, collected: int
+) -> None:
+    """Finalization reports actual labels when the campaign minimum is satisfied."""
+
+    space, store, target, entities = _adaptive_test_space()
+    store.entities = {
+        entity.identifier: _entity_with_label(entity, target, float(index))
+        for index, entity in enumerate(entities[:collected])
+    }
+    directory = tmp_path / "finalized"
+    with pytest.raises(ValueError, match="available") as caught:
+        _finalize_predictive_model(
+            space,
+            parameters=PKHOperatorParameters(
+                targetOutput="latency", numberEntities=1, finalPredictor="autogluon"
+            ),
+            directory=directory,
+        )
+    assert str(caught.value) == (
+        "Cannot train the final AutoGluon model: at least 4 labelled entities "
+        f"are required, but only {collected} "
+        f"{'is' if collected == 1 else 'are'} available."
+    )
     assert not directory.exists()
 
 
@@ -189,7 +240,10 @@ def test_final_model_directory_preserves_existing_artifacts(tmp_path: Path) -> N
     assert marker.read_text() == "retained"
 
 
-def test_autogluon_requires_enough_labels_before_measurement(tmp_path: Path) -> None:
+@pytest.mark.parametrize("number_entities", [1, 2])
+def test_autogluon_requires_enough_labels_before_measurement(
+    tmp_path: Path, number_entities: int
+) -> None:
     """A campaign too small for AutoGluon's validation split fails before sampling."""
 
     from active_learning.regression._shared import _run_predictive_operator
@@ -198,19 +252,35 @@ def test_autogluon_requires_enough_labels_before_measurement(tmp_path: Path) -> 
     space, store, _, _ = _adaptive_test_space()
     before = dict(store.entities)
     parameters = PKHOperatorParameters(
-        targetOutput="latency", numberEntities=1, finalPredictor="autogluon"
+        targetOutput="latency",
+        numberEntities=number_entities,
+        finalPredictor="autogluon",
     )
-    with pytest.raises(ValueError, match="at least 4"):
+    with pytest.raises(ValueError, match="this campaign would provide") as caught:
         _run_predictive_operator(
             discovery_space=space,
             operation_info=None,
             parameters=parameters,
-            number_entities=1,
+            number_entities=number_entities,
             sampler_class=PKHSampleSelector,
             output_directory=str(tmp_path / "model"),
         )
+    assert str(caught.value) == (
+        "AutoGluon requires at least 4 labelled entities, "
+        f"but this campaign would provide only {number_entities + 1} in total."
+    )
     assert store.entities == before
     assert not (tmp_path / "model_finalized").exists()
+
+
+def test_expected_training_count_is_capped_by_the_finite_pool() -> None:
+    """Existing labels and a large measurement budget cannot exceed pool size."""
+
+    space, _, _, _ = _adaptive_test_space()
+    parameters = PKHOperatorParameters(targetOutput="latency", numberEntities=100)
+    assert (
+        _expected_training_count(space, parameters=parameters, number_entities=100) == 5
+    )
 
 
 def test_generic_loader_reads_existing_random_forest_artifacts(tmp_path: Path) -> None:

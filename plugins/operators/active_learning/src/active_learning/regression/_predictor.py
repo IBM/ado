@@ -77,14 +77,37 @@ class _FinalPredictorParameters(pydantic.BaseModel):
 
 
 def _validate_final_predictor(
-    parameters: _FinalPredictorParameters, *, expected_training_count: int
+    parameters: _FinalPredictorParameters,
+    *,
+    expected_training_count: int,
+    collected_training_count: int | None = None,
 ) -> None:
-    """Validate final-predictor prerequisites for the expected measured dataset."""
+    """Validate backend availability and expected or collected target counts.
+
+    Args:
+        parameters: Final-predictor backend and training settings.
+        expected_training_count: Projected count before measurement, or required
+            minimum when a collected count is supplied.
+        collected_training_count: Available target count after measurement, if known.
+    """
 
     if parameters.finalPredictor == "autogluon":
-        if expected_training_count < 4:
+        training_count = (
+            expected_training_count
+            if collected_training_count is None
+            else collected_training_count
+        )
+        if training_count < 4:
+            if collected_training_count is None:
+                raise ValueError(
+                    "AutoGluon requires at least 4 labelled entities, "
+                    f"but this campaign would provide only {expected_training_count} "
+                    "in total."
+                )
             raise ValueError(
-                "the final AutoGluon predictor requires at least 4 target measurements"
+                "Cannot train the final AutoGluon model: at least 4 labelled entities "
+                f"are required, but only {collected_training_count} "
+                f"{'is' if collected_training_count == 1 else 'are'} available."
             )
         from active_learning.regression.autogluon_model import _require_autogluon
 

@@ -272,6 +272,43 @@ def test_parameterization_match_reordered_is_identical(
     assert comparison_result.parameterization_match == ParameterizationMatch.IDENTICAL
 
 
+def test_parameterization_match_equal_values_of_different_type_is_identical(
+    experiment_reference: ExperimentReference,
+    customParameterization: list[ConstitutivePropertyValue],
+) -> None:
+    """Test that parameterizations with equal values of different types report IDENTICAL."""
+    int_valued = [
+        v.model_copy(update={"value": -1})
+        if v.property.identifier == "test_opt2"
+        else v
+        for v in customParameterization
+    ]
+    float_valued = [
+        v.model_copy(update={"value": -1.0})
+        if v.property.identifier == "test_opt2"
+        else v
+        for v in customParameterization
+    ]
+    candidate_ref = ExperimentReference(
+        experimentIdentifier=experiment_reference.experimentIdentifier,
+        actuatorIdentifier=experiment_reference.actuatorIdentifier,
+        experimentVersion="1.0.0",
+        parameterization=int_valued,
+    )
+    reference_ref = ExperimentReference(
+        experimentIdentifier=experiment_reference.experimentIdentifier,
+        actuatorIdentifier=experiment_reference.actuatorIdentifier,
+        experimentVersion="1.0.0",
+        parameterization=float_valued,
+    )
+
+    candidate = DiscoverySpaceConfiguration(experiments=[candidate_ref])
+    reference = DiscoverySpaceConfiguration(experiments=[reference_ref])
+
+    comparison_result = candidate.compare_measurement_space(reference)
+    assert comparison_result.parameterization_match == ParameterizationMatch.IDENTICAL
+
+
 def test_parameterization_match_different(
     experiment_reference: ExperimentReference,
     customParameterization: list[ConstitutivePropertyValue],

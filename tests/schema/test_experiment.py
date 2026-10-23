@@ -596,6 +596,82 @@ def test_parameterized_experiment_parameterization_order_is_irrelevant(
     )
 
 
+def test_parameterized_experiment_equality_uses_values_not_string_encoding(
+    experimentWithOptions: Experiment,
+    customParameterization: list[ConstitutivePropertyValue],
+) -> None:
+    """Test that parameterizations with equal values of different Python types compare equal."""
+
+    int_valued = [
+        v.model_copy(update={"value": -1})
+        if v.property.identifier == "test_opt2"
+        else v
+        for v in customParameterization
+    ]
+    float_valued = [
+        v.model_copy(update={"value": -1.0})
+        if v.property.identifier == "test_opt2"
+        else v
+        for v in customParameterization
+    ]
+
+    p_int = ParameterizedExperiment(
+        **experimentWithOptions.model_dump(), parameterization=int_valued
+    )
+    p_float = ParameterizedExperiment(
+        **experimentWithOptions.model_dump(), parameterization=float_valued
+    )
+
+    assert p_int == p_float
+    assert hash(p_int) == hash(p_float)
+    assert len({p_int, p_float}) == 1
+
+
+def test_parameterized_experiment_different_values_are_not_equal(
+    experimentWithOptions: Experiment,
+    customParameterization: list[ConstitutivePropertyValue],
+) -> None:
+    """Test that parameterizations with different values compare unequal and remain distinct in sets."""
+
+    other = [
+        v.model_copy(update={"value": 1}) if v.property.identifier == "test_opt2" else v
+        for v in customParameterization
+    ]
+    p = ParameterizedExperiment(
+        **experimentWithOptions.model_dump(), parameterization=customParameterization
+    )
+    p_other = ParameterizedExperiment(
+        **experimentWithOptions.model_dump(), parameterization=other
+    )
+
+    assert p != p_other
+    assert len({p, p_other}) == 2
+
+
+def test_parameterized_experiment_minor_version_is_irrelevant_major_is_not(
+    experimentWithOptions: Experiment,
+    customParameterization: list[ConstitutivePropertyValue],
+) -> None:
+    """Test equality and hashing of parameterized experiments across same and different major versions."""
+
+    base = experimentWithOptions.model_dump()
+    base["version"] = "1.0.0"
+    same_major = {**base, "version": "1.2.3"}
+    different_major = {**base, "version": "2.0.0"}
+
+    p = ParameterizedExperiment(**base, parameterization=customParameterization)
+    p_same_major = ParameterizedExperiment(
+        **same_major, parameterization=customParameterization
+    )
+    p_different_major = ParameterizedExperiment(
+        **different_major, parameterization=customParameterization
+    )
+
+    assert p == p_same_major
+    assert hash(p) == hash(p_same_major)
+    assert p != p_different_major
+
+
 # Missing:
 # - Test a ValueError is raised if the experiment has a required observed property and
 #   the Entity doesn't have a value for it

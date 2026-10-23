@@ -345,3 +345,79 @@ def test_observed_property_value_lifecycle(
     assert reloaded == observed_property_value, (
         f"Round-trip mismatch for value {value!r}"
     )
+
+
+@pytest.mark.parametrize(
+    "value", [42, 3.14, "hello", [1, 2], [1, [2, 3]], b"bytes", None]
+)
+def test_constitutive_property_value_is_hashable(
+    value: object,
+    constitutive_property_descriptor: ConstitutivePropertyDescriptor,
+) -> None:
+    """Test that ConstitutivePropertyValue produces an integer hash for supported value types."""
+    constitutive_property_value = ConstitutivePropertyValue(
+        value=value, property=constitutive_property_descriptor
+    )
+    assert isinstance(hash(constitutive_property_value), int)
+
+
+def test_constitutive_property_value_equal_values_have_equal_hash(
+    constitutive_property_descriptor: ConstitutivePropertyDescriptor,
+) -> None:
+    """Test that equal ConstitutivePropertyValues produce equal hashes."""
+    first = ConstitutivePropertyValue(
+        value=1, property=constitutive_property_descriptor
+    )
+    second = ConstitutivePropertyValue(
+        value=1.0, property=constitutive_property_descriptor, uncertainty=0.1
+    )
+    assert first == second
+    assert hash(first) == hash(second)
+
+    first_list = ConstitutivePropertyValue(
+        value=[1, [2, 3]], property=constitutive_property_descriptor
+    )
+    second_list = ConstitutivePropertyValue(
+        value=[1.0, [2, 3.0]], property=constitutive_property_descriptor
+    )
+    assert first_list == second_list
+    assert hash(first_list) == hash(second_list)
+
+
+def test_constitutive_property_value_different_values_in_set(
+    constitutive_property_descriptor: ConstitutivePropertyDescriptor,
+) -> None:
+    """Test that distinct ConstitutivePropertyValues remain separate entries in a set."""
+    other_descriptor = ConstitutivePropertyDescriptor(identifier="other")
+    values = [
+        ConstitutivePropertyValue(value=1, property=constitutive_property_descriptor),
+        ConstitutivePropertyValue(value=1.0, property=constitutive_property_descriptor),
+        ConstitutivePropertyValue(value=2, property=constitutive_property_descriptor),
+        ConstitutivePropertyValue(value=1, property=other_descriptor),
+        ConstitutivePropertyValue(value=[1], property=constitutive_property_descriptor),
+    ]
+    assert len(set(values)) == 4
+
+
+def test_constitutive_property_value_set_equality_is_order_independent(
+    constitutive_property_descriptor: ConstitutivePropertyDescriptor,
+) -> None:
+    """Test that sets of ConstitutivePropertyValues compare equal regardless of order."""
+    other_descriptor = ConstitutivePropertyDescriptor(identifier="other")
+    first = ConstitutivePropertyValue(
+        value=[1, 2], property=constitutive_property_descriptor
+    )
+    second = ConstitutivePropertyValue(value="a", property=other_descriptor)
+    assert {first, second} == {second, first}
+
+
+def test_constitutive_property_value_hash_lifecycle(
+    constitutive_property_descriptor: ConstitutivePropertyDescriptor,
+) -> None:
+    """Test that hash and equality are preserved across serialization round-trip."""
+    original = ConstitutivePropertyValue(
+        value=[1, [2, 3]], property=constitutive_property_descriptor
+    )
+    reloaded = ConstitutivePropertyValue.model_validate(original.model_dump())
+    assert reloaded == original
+    assert hash(reloaded) == hash(original)

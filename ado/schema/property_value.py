@@ -232,11 +232,33 @@ class PropertyValue(pydantic.BaseModel):
         return str(self.value)
 
 
+def _hashable_value(value: object) -> object:
+    """Convert a property value into a hashable equivalent.
+
+    Args:
+        value: A property value; lists (including nested lists) are converted to tuples.
+
+    Returns:
+        The value with all lists recursively replaced by tuples.
+    """
+    if isinstance(value, list):
+        return tuple(_hashable_value(item) for item in value)
+    return value
+
+
 class ConstitutivePropertyValue(PropertyValue):
     property: Annotated[
         ConstitutivePropertyDescriptor,
         pydantic.Field(description="The ConstitutiveProperty with the value"),
     ]
+
+    def __hash__(self) -> int:
+        """Compute the hash based on property identifier and value.
+
+        Returns:
+            The integer hash value.
+        """
+        return hash((self.property.identifier, _hashable_value(self.value)))
 
 
 def constitutive_property_values_from_point(

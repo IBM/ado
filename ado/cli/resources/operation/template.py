@@ -26,7 +26,7 @@ from ado.core.operation.config import (
 from ado.core.resources import ADOResourceReference, CoreResourceKinds
 
 
-def _placeholder_operation_inputs(
+def _operation_inputs_template(
     operator: object | None,
 ) -> dict[str, ADOResourceReference]:
     """Build template ``inputs`` from recorded resource inputs, or one space."""
@@ -77,7 +77,7 @@ def template_operation(parameters: AdoTemplateCommandParameters) -> None:
     # Exit early on generic template
     if not parameters.operator_name:
         model_instance = DiscoveryOperationResourceConfiguration(
-            inputs=_placeholder_operation_inputs(None),
+            inputs=_operation_inputs_template(None),
             operation=DiscoveryOperationConfiguration(),
         )
 
@@ -152,7 +152,7 @@ def template_operation(parameters: AdoTemplateCommandParameters) -> None:
     )
 
     model_instance = DiscoveryOperationResourceConfiguration(
-        inputs=_placeholder_operation_inputs(operator),
+        inputs=_operation_inputs_template(operator),
         operation=default_operation_configuration,
     )
 

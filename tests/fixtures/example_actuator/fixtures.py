@@ -15,6 +15,7 @@ except ImportError:  # pragma: nocover
 from ado.core.discoveryspace.config import DiscoverySpaceConfiguration
 from ado.core.discoveryspace.space import DiscoverySpace
 from ado.core.operation.config import DiscoveryOperationResourceConfiguration
+from ado.core.resources import ADOResourceReference, CoreResourceKinds
 from ado.core.samplestore.sql import SQLSampleStore
 
 
@@ -50,5 +51,10 @@ def peptide_mineralization_basic_operation_configuration(
             Loader=SafeLoader,
         )
     )
-    operation_configuration.spaces = [peptide_mineralization_basic_space.uri]
+    operation_configuration.inputs = {
+        "discoverySpace": ADOResourceReference(
+            identifier=peptide_mineralization_basic_space.uri,
+            kind=CoreResourceKinds.DISCOVERYSPACE,
+        )
+    }
     return operation_configuration

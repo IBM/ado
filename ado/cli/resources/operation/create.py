@@ -39,7 +39,19 @@ from ado.core.operation.operation import OperationException, OperationOutput
 from ado.core.operation.resource import (
     OperationExitStateEnum,
 )
+from ado.core.resources import ADOResourceReference
 from ado.modules.operators.errors import OperatorVersionMismatchError
+
+
+def _discovery_space_inputs(identifier: str) -> dict[str, ADOResourceReference]:
+    """Return the single ``discoverySpace`` input used by current operators."""
+
+    return {
+        "discoverySpace": ADOResourceReference(
+            identifier=identifier,
+            kind=CoreResourceKinds.DISCOVERYSPACE,
+        )
+    }
 
 
 def create_operation(parameters: AdoCreateCommandParameters) -> str | None:
@@ -107,8 +119,8 @@ def create_operation(parameters: AdoCreateCommandParameters) -> str | None:
             if isinstance(
                 parameters.with_resources[CoreResourceKinds.DISCOVERYSPACE], str
             ):
-                op_resource_configuration.spaces = [
-                    parameters.with_resources[CoreResourceKinds.DISCOVERYSPACE]
+                space_identifier = parameters.with_resources[
+                    CoreResourceKinds.DISCOVERYSPACE
                 ]
             else:
                 space_identifier = create_discovery_space(
@@ -126,8 +138,13 @@ def create_operation(parameters: AdoCreateCommandParameters) -> str | None:
                         use_latest=[],
                     )
                 )
-                if space_identifier is not None:
-                    op_resource_configuration.spaces = [space_identifier]
+
+            # A dry-run of a new discovery space validates the file and returns
+            # no identifier, because the space is not stored.
+            if space_identifier is not None:
+                op_resource_configuration.inputs = _discovery_space_inputs(
+                    space_identifier
+                )
 
     elif parameters.use_latest:
         reuse_requested_latest_identifiers(
@@ -222,12 +239,14 @@ def reuse_requested_latest_identifiers(
     # Map resource kinds to their configuration fields
     resource_field_mapping = {
         CoreResourceKinds.ACTUATORCONFIGURATION: "actuatorConfigurationIdentifiers",
-        CoreResourceKinds.DISCOVERYSPACE: "spaces",
     }
 
     # Handle each requested resource kind
     for resource_kind in parameters.use_latest:
-        if resource_kind not in resource_field_mapping:
+        if (
+            resource_kind not in resource_field_mapping
+            and resource_kind != CoreResourceKinds.DISCOVERYSPACE
+        ):
             continue
 
         latest_id = latest_ids.get(resource_kind)
@@ -238,9 +257,11 @@ def reuse_requested_latest_identifiers(
             )
             raise typer.Exit(1)
 
-        # Set the appropriate field on the configuration
-        field_name = resource_field_mapping[resource_kind]
-        setattr(resource_configuration, field_name, [latest_id])
+        if resource_kind == CoreResourceKinds.DISCOVERYSPACE:
+            resource_configuration.inputs = _discovery_space_inputs(latest_id)
+        else:
+            field_name = resource_field_mapping[resource_kind]
+            setattr(resource_configuration, field_name, [latest_id])
 
         console_print(
             value_in_configuration_replaced_with_latest_identifier_for_resource(

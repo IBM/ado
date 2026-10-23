@@ -23,6 +23,29 @@ from ado.core.operation.config import (
     DiscoveryOperationResourceConfiguration,
     OperatorReference,
 )
+from ado.core.resources import ADOResourceReference, CoreResourceKinds
+
+
+def _operation_inputs_template(
+    operator: object | None,
+) -> dict[str, ADOResourceReference]:
+    """Build template ``inputs`` from recorded resource inputs, or one space."""
+
+    required_resource_inputs = getattr(operator, "required_resource_inputs", None)
+    if required_resource_inputs:
+        return {
+            descriptor.identifier: ADOResourceReference(
+                identifier=f"your-{descriptor.kind.value}-id",
+                kind=descriptor.kind,
+            )
+            for descriptor in required_resource_inputs
+        }
+    return {
+        "discoverySpace": ADOResourceReference(
+            identifier="your-discoveryspace-id",
+            kind=CoreResourceKinds.DISCOVERYSPACE,
+        )
+    }
 
 
 def template_operation(parameters: AdoTemplateCommandParameters) -> None:
@@ -54,7 +77,7 @@ def template_operation(parameters: AdoTemplateCommandParameters) -> None:
     # Exit early on generic template
     if not parameters.operator_name:
         model_instance = DiscoveryOperationResourceConfiguration(
-            spaces=["your-spaces"],
+            inputs=_operation_inputs_template(None),
             operation=DiscoveryOperationConfiguration(),
         )
 
@@ -129,7 +152,7 @@ def template_operation(parameters: AdoTemplateCommandParameters) -> None:
     )
 
     model_instance = DiscoveryOperationResourceConfiguration(
-        spaces=["your-spaces"],
+        inputs=_operation_inputs_template(operator),
         operation=default_operation_configuration,
     )
 

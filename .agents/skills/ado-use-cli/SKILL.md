@@ -326,7 +326,7 @@ uv run ado create space -f space.yaml --set sampleStoreIdentifier=my_store
 uv run ado create operation -f operation.yaml --set operation.parameters.tuneConfig.num_samples=50
 
 # Override a list item
-uv run ado create operation -f operation.yaml --set "spaces[0]=space-abc123"
+uv run ado create operation -f operation.yaml --set "inputs.discoverySpace.identifier=space-abc123"
 ```
 
 ### --with

@@ -17,6 +17,11 @@ import pandas as pd
 import pytest
 import yaml
 
+try:
+    from yaml import CSafeDumper as SafeDumper
+except ImportError:  # pragma: nocover
+    from yaml import SafeDumper  # type: ignore[assignment]
+
 from ado.metastore.project import ProjectContext
 from ado.utilities.location import SQLiteStoreConfiguration
 from ado.utilities.output import pydantic_model_as_yaml
@@ -27,7 +32,8 @@ def _run_cli(
     config_directory: Path,
     context_path: Path,
     *arguments: str,
-) -> None:
+    expected_returncode: int = 0,
+) -> subprocess.CompletedProcess[str]:
     """Execute the installed CLI with isolated configuration and capture failures."""
 
     environment = os.environ.copy()
@@ -48,10 +54,12 @@ def _run_cli(
         timeout=180,
         check=False,
     )
-    assert result.returncode == 0, (
-        f"ado {' '.join(arguments)} failed with exit code {result.returncode}\n"
+    assert result.returncode == expected_returncode, (
+        f"ado {' '.join(arguments)} returned exit code {result.returncode} "
+        f"(expected {expected_returncode})\n"
         f"{result.stdout}\n{result.stderr}"
     )
+    return result
 
 
 @pytest.mark.timeout(300)
@@ -311,3 +319,151 @@ def test_cli_saves_final_model_trained_on_every_measurement(
     last_identifiers = trace.iloc[-1]["Entity IDs"]
     assert len(last_identifiers) == 1
     assert last_identifiers[0] in final_model["trainingEntityIdentifiers"]
+
+
+@pytest.mark.timeout(300)
+@pytest.mark.parametrize("algorithm", ["pkh", "flora"])
+@pytest.mark.parametrize("budget", [1, 2], ids=["final-entity", "remaining-budget"])
+def test_cli_records_terminal_measurement_failure(
+    tmp_path: Path, algorithm: str, budget: int
+) -> None:
+    """Failed measurements stop sampling and preserve both operation error records."""
+
+    repository = Path(__file__).resolve().parents[5]
+    config_directory = tmp_path / "config"
+    config_directory.mkdir()
+    context = ProjectContext(
+        project="measurement_failure_test",
+        metadataStore=SQLiteStoreConfiguration(
+            database="measurement_failure_test",
+            path=str(tmp_path / "measurement_failure_test.db"),
+        ),
+    )
+    context_path = tmp_path / "context.yaml"
+    context_path.write_text(pydantic_model_as_yaml(context))
+    space_path = tmp_path / "space.yaml"
+    space_path.write_text(
+        yaml.dump(
+            {
+                "entitySpace": [
+                    {
+                        "identifier": "foo",
+                        "propertyDomain": {"domainRange": [1, 3], "interval": 1},
+                    }
+                ],
+                "experiments": [
+                    {
+                        "actuatorIdentifier": "custom_experiments",
+                        "experimentIdentifier": "controlled_error",
+                    }
+                ],
+            },
+            Dumper=SafeDumper,
+        )
+    )
+    output_base = tmp_path / f"{algorithm}_models"
+    operation_path = tmp_path / "operation.yaml"
+    operation_path.write_text(
+        yaml.dump(
+            {
+                "spaces": ["replace-with-a-space-identifier"],
+                "operation": {
+                    "module": {
+                        "operationType": "characterize",
+                        "operatorName": algorithm,
+                    },
+                    "parameters": {
+                        "numberEntities": budget,
+                        "targetOutput": "bar",
+                        "nEstimators": 3,
+                        "nJobs": 1,
+                        "seed": 42,
+                        "outputDirectory": str(output_base),
+                    },
+                },
+            },
+            Dumper=SafeDumper,
+        )
+    )
+    _run_cli(
+        repository,
+        config_directory,
+        context_path,
+        "create",
+        "space",
+        "-f",
+        str(space_path),
+        "--new-sample-store",
+    )
+    failed = _run_cli(
+        repository,
+        config_directory,
+        context_path,
+        "create",
+        "operation",
+        "-f",
+        str(operation_path),
+        "--use-latest",
+        "space",
+        expected_returncode=1,
+    )
+    diagnostic = "exhausted its retry limit"
+    assert diagnostic in " ".join((failed.stdout + failed.stderr).split())
+    assert not output_base.exists()
+    assert not Path(f"{output_base}_finalized").exists()
+
+    operations_path = tmp_path / "operations.json"
+    _run_cli(
+        repository,
+        config_directory,
+        context_path,
+        "get",
+        "operations",
+        "-o",
+        "json",
+        "--output-file",
+        str(operations_path),
+    )
+    operations = json.loads(operations_path.read_text())
+    assert len(operations) == 2
+    by_operator = {
+        operation["config"]["operation"]["module"]["operatorName"]: operation
+        for operation in operations
+    }
+    assert set(by_operator) == {algorithm, "random_walk"}
+    for operation in operations:
+        finished = [
+            status for status in operation["status"] if status.get("exit_state")
+        ]
+        assert len(finished) == 1
+        assert finished[0]["exit_state"] == "error"
+        assert "finalModel" not in operation["metadata"]
+    nested = by_operator["random_walk"]
+    assert any(
+        diagnostic in (status.get("message") or "") for status in nested["status"]
+    )
+    expected_attempts = nested["config"]["operation"]["parameters"]["maxRetries"] + 1
+    assert nested["metadata"]["entities_submitted"] == 1
+    assert nested["metadata"]["experiments_requested"] == expected_attempts
+
+    trace_path = tmp_path / "trace.json"
+    _run_cli(
+        repository,
+        config_directory,
+        context_path,
+        "show",
+        "trace",
+        "space",
+        "--use-latest",
+        "-o",
+        "json",
+        "--output-file",
+        str(trace_path),
+    )
+    trace = pd.read_json(trace_path)
+    assert len(trace) == expected_attempts
+    assert set(trace["Status"]) == {"Failed"}
+    assert set(trace["Request Index"]) == {0}
+    assert set(trace["Operation ID"]) == {nested["identifier"]}
+    assert all(len(identifiers) == 1 for identifiers in trace["Entity IDs"])
+    assert len(set(itertools.chain.from_iterable(trace["Entity IDs"]))) == 1

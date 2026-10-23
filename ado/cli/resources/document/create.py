@@ -4,6 +4,12 @@
 import pydantic
 import typer
 import yaml
+
+try:
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:  # pragma: nocover
+    from yaml import SafeLoader  # type: ignore[assignment]
+
 from rich.status import Status
 
 from ado.cli.models.parameters import AdoCreateCommandParameters
@@ -26,7 +32,9 @@ def create_document(parameters: AdoCreateCommandParameters) -> str | None:
     """Create a document resource from a YAML configuration file."""
     try:
         document_configuration = DocumentConfiguration.model_validate(
-            yaml.safe_load(parameters.resource_configuration_file.read_text())
+            yaml.load(
+                parameters.resource_configuration_file.read_text(), Loader=SafeLoader
+            )
         )
     except pydantic.ValidationError as error:
         console_print(

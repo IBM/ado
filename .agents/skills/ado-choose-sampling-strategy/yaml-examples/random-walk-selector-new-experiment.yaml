@@ -1,0 +1,23 @@
+# Copyright IBM Corporation 2025, 2026
+# SPDX-License-Identifier: MIT
+# Apply the experiments of THIS space to entities that already exist in the
+# sample store (e.g. measured by another space, or imported from CSV).
+# The selector draws stored entities that match the entity space; the
+# filter keeps only those with no measurements from this space's experiments.
+spaces:
+  - space-with-new-experiment
+operation:
+  module:
+    operatorName: random_walk
+    operationType: explore
+  parameters:
+    numberEntities: all # = number of matching entities in the sample store
+    batchSize: 4
+    samplerConfig:
+      samplerType: selector
+      mode: random
+    filter:
+      filterMode: unmeasured
+metadata:
+  name: apply-new-experiment-to-existing-entities
+  description: Measure existing entities with the new experiment only

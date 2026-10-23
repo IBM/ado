@@ -7,9 +7,15 @@ from collections.abc import Callable
 import pytest
 import yaml
 
+try:
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:  # pragma: nocover
+    from yaml import SafeLoader  # type: ignore[assignment]
+
 from ado.core.discoveryspace.config import DiscoverySpaceConfiguration
 from ado.core.discoveryspace.space import DiscoverySpace
 from ado.core.operation.config import DiscoveryOperationResourceConfiguration
+from ado.core.resources import ADOResourceReference, CoreResourceKinds
 from ado.core.samplestore.sql import SQLSampleStore
 
 
@@ -22,10 +28,11 @@ def peptide_mineralization_basic_space(
     ],
 ) -> DiscoverySpace:
     space_configuration = DiscoverySpaceConfiguration.model_validate(
-        yaml.safe_load(
+        yaml.load(
             pathlib.Path(
                 "plugins/actuators/example_actuator/yamls/discoveryspace.yaml"
-            ).read_text()
+            ).read_text(),
+            Loader=SafeLoader,
         )
     )
     return create_space(space_configuration, empty_sample_store.identifier)
@@ -37,11 +44,17 @@ def peptide_mineralization_basic_operation_configuration(
 ) -> DiscoveryOperationResourceConfiguration:
 
     operation_configuration = DiscoveryOperationResourceConfiguration.model_validate(
-        yaml.safe_load(
+        yaml.load(
             pathlib.Path(
                 "plugins/actuators/example_actuator/yamls/random_walk_operation.yaml"
-            ).read_text()
+            ).read_text(),
+            Loader=SafeLoader,
         )
     )
-    operation_configuration.spaces = [peptide_mineralization_basic_space.uri]
+    operation_configuration.inputs = {
+        "discoverySpace": ADOResourceReference(
+            identifier=peptide_mineralization_basic_space.uri,
+            kind=CoreResourceKinds.DISCOVERYSPACE,
+        )
+    }
     return operation_configuration

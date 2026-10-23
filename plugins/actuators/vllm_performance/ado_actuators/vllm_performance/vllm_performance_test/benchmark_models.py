@@ -40,6 +40,7 @@ class BenchmarkParameters(pydantic.BaseModel):
     prefix_repetition_suffix_len: Annotated[int, pydantic.Field(gt=0)] = 128
     prefix_repetition_num_prefixes: Annotated[int, pydantic.Field(gt=0)] = 10
     prefix_repetition_output_len: Annotated[int, pydantic.Field(gt=0)] = 128
+    ignore_eos: Annotated[bool, pydantic.Field()] = False
     burstiness: Annotated[float, pydantic.Field()] = 1.0
     dataset: Annotated[str | None, pydantic.Field()] = "random"
     bfcl_categories: Annotated[str, pydantic.Field()] = "simple,live_simple,multiple"

@@ -620,6 +620,7 @@ def run_resource_and_workload_experiment(
                     prefix_repetition_suffix_len=benchmark_parameters.prefix_repetition_suffix_len,
                     prefix_repetition_num_prefixes=benchmark_parameters.prefix_repetition_num_prefixes,
                     prefix_repetition_output_len=benchmark_parameters.prefix_repetition_output_len,
+                    ignore_eos=benchmark_parameters.ignore_eos,
                     burstiness=benchmark_parameters.burstiness,
                     dataset=benchmark_parameters.dataset,
                 )
@@ -813,6 +814,7 @@ def run_workload_experiment(
                     prefix_repetition_suffix_len=benchmark_parameters.prefix_repetition_suffix_len,
                     prefix_repetition_num_prefixes=benchmark_parameters.prefix_repetition_num_prefixes,
                     prefix_repetition_output_len=benchmark_parameters.prefix_repetition_output_len,
+                    ignore_eos=benchmark_parameters.ignore_eos,
                     burstiness=benchmark_parameters.burstiness,
                     dataset=benchmark_parameters.dataset,
                 )

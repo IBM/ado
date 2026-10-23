@@ -5,6 +5,11 @@ from collections.abc import Callable
 import pytest
 import yaml
 
+try:
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:  # pragma: nocover
+    from yaml import SafeLoader  # type: ignore[assignment]
+
 from ado.core.discoveryspace.config import DiscoverySpaceConfiguration
 from ado.core.discoveryspace.space import DiscoverySpace
 from ado.core.samplestore.base import ActiveSampleStore
@@ -61,7 +66,7 @@ def pfas_sample_store(
     create_sample_store: Callable[[SampleStoreConfiguration], ActiveSampleStore],
 ) -> SQLSampleStore:
     sample_store_configuration = SampleStoreConfiguration.model_validate(
-        yaml.safe_load(pfas_sample_store_configuration_str)
+        yaml.load(pfas_sample_store_configuration_str, Loader=SafeLoader)
     )
     return create_sample_store(sample_store_configuration)
 
@@ -73,7 +78,7 @@ def pfas_space_configuration(
     create_space: Callable[[DiscoverySpaceConfiguration, str], DiscoverySpace],
 ) -> DiscoverySpaceConfiguration:
     space_configuration = DiscoverySpaceConfiguration.model_validate(
-        yaml.safe_load(pfas_space_configuration_str)
+        yaml.load(pfas_space_configuration_str, Loader=SafeLoader)
     )
     space_configuration.sampleStoreIdentifier = pfas_sample_store.identifier
     return space_configuration

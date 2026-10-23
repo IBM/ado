@@ -14,6 +14,7 @@ from ado.core.metadata import PackageProvenance
 from ado.core.operation.config import (
     DiscoveryOperationEnum,
     FunctionOperationInfo,
+    GenericOperatorParameters,
     OperatorMetadata,
     OperatorReference,
 )
@@ -119,8 +120,8 @@ operationCollectionMap = {
 def characterize_operation(
     name: str,
     version: str,
-    configuration_model: type[pydantic.BaseModel],
-    example_configuration: pydantic.BaseModel,
+    configuration_model: type[GenericOperatorParameters],
+    example_configuration: GenericOperatorParameters,
     description: str | None = None,
 ) -> typing.Callable[[OperatorFunction], OperatorFunction]:
     """Decorator that registers a function as a characterize operation.
@@ -277,8 +278,8 @@ def explore_operation(
 def modify_operation(
     name: str,
     version: str,
-    configuration_model: type[pydantic.BaseModel],
-    example_configuration: pydantic.BaseModel,
+    configuration_model: type[GenericOperatorParameters],
+    example_configuration: GenericOperatorParameters,
     description: str | None = None,
 ) -> typing.Callable[[OperatorFunction], OperatorFunction]:
     """Decorator that registers a function as a modify operation.
@@ -333,8 +334,8 @@ def modify_operation(
 def export_operation(
     name: str,
     version: str,
-    configuration_model: type[pydantic.BaseModel],
-    example_configuration: pydantic.BaseModel,
+    configuration_model: type[GenericOperatorParameters],
+    example_configuration: GenericOperatorParameters,
     description: str | None = None,
 ) -> typing.Callable[[OperatorFunction], OperatorFunction]:
     """Decorator that registers a function as an export operation.

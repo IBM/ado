@@ -11,6 +11,11 @@ from typing import Any
 import pytest
 import yaml
 
+try:
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:  # pragma: nocover
+    from yaml import SafeLoader  # type: ignore[assignment]
+
 import ado.core
 import ado.core.samplestore.resource
 import ado.modules
@@ -197,7 +202,7 @@ def sample_store_configuration_smiles_yaml() -> dict[str, Any]:  # noqa: ANN401
             constitutivePropertyMap: [smiles]
     """
 
-    return yaml.safe_load(y)
+    return yaml.load(y, Loader=SafeLoader)
 
 
 @pytest.fixture
@@ -242,12 +247,12 @@ def sample_store_test_data(
     c = None
     if request.param == "sql":
         c = (
-            yaml.safe_load(sqlConfig),
+            yaml.load(sqlConfig, Loader=SafeLoader),
             ado.utilities.location.SQLStoreConfiguration,
         )
     elif request.param == "csv":
         c = (
-            yaml.safe_load(csvConfig),
+            yaml.load(csvConfig, Loader=SafeLoader),
             ado.utilities.location.FilePathLocation,
         )
 
@@ -329,7 +334,7 @@ def ado_sql_sample_store_with_storagelocation() -> (
     """
 
     return ado.core.samplestore.config.SampleStoreConfiguration.model_validate(
-        yaml.safe_load(y)
+        yaml.load(y, Loader=SafeLoader)
     )
 
 

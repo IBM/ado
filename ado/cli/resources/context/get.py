@@ -6,6 +6,11 @@ import pydantic
 import typer
 import yaml
 
+try:
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:  # pragma: nocover
+    from yaml import SafeLoader  # type: ignore[assignment]
+
 from ado.cli.models.parameters import AdoGetCommandParameters
 from ado.cli.models.types import AdoGetSupportedOutputFormats
 from ado.cli.utils.output.prints import (
@@ -57,14 +62,17 @@ def get_context(
     # AP: we always want to dump default values for contexts
     parameters.exclude_default = False
 
-    # For NAME and TABLE formats, use DataFrame
+    # For NAME, TABLE and CSV formats, use DataFrame
     if parameters.output_format in {
         AdoGetSupportedOutputFormats.NAME,
         AdoGetSupportedOutputFormats.TABLE,
+        AdoGetSupportedOutputFormats.CSV,
     }:
         contexts_df = _prepare_context_dataframe(
             contexts=available_contexts,
             active_context=parameters.ado_configuration.active_context,
+            use_emoji_for_active=parameters.output_format
+            != AdoGetSupportedOutputFormats.CSV,
         )
 
         from ado.cli.utils.resources.handlers import handle_ado_get
@@ -78,10 +86,11 @@ def get_context(
         for ctx in available_contexts:
             to_print.append(
                 ProjectContext.model_validate(
-                    yaml.safe_load(
+                    yaml.load(
                         parameters.ado_configuration.project_context_path_for_context(
                             ctx
-                        ).read_text()
+                        ).read_text(),
+                        Loader=SafeLoader,
                     )
                 )
             )
@@ -105,14 +114,30 @@ def get_context(
 
 
 def _prepare_context_dataframe(
-    contexts: list[str], active_context: str | None
+    contexts: list[str],
+    active_context: str | None,
+    use_emoji_for_active: bool = True,
 ) -> "pd.DataFrame":
+    """Build the contexts DataFrame.
+
+    Args:
+        contexts: Names of the contexts to include.
+        active_context: Name of the active context, if any.
+        use_emoji_for_active: When True, the ACTIVE column marks the active
+            context with an emoji code; when False, it holds booleans.
+
+    Returns:
+        A DataFrame with CONTEXT and ACTIVE columns, sorted by CONTEXT.
+    """
     import pandas as pd
 
-    active_context_column = [
-        ":white_check_mark:" if ctx == active_context else "" for ctx in contexts
-    ]
-    output_df = pd.DataFrame({"CONTEXT": contexts, "ACTIVE": active_context_column})
+    output_df = pd.DataFrame(
+        {"CONTEXT": contexts, "ACTIVE": [ctx == active_context for ctx in contexts]}
+    )
+    if use_emoji_for_active:
+        output_df["ACTIVE"] = output_df["ACTIVE"].map(
+            lambda is_active: ":white_check_mark:" if is_active else ""
+        )
 
     # Sort contexts by name
     output_df = output_df.sort_values(by=["CONTEXT"], axis="rows")

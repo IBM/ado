@@ -85,6 +85,19 @@ These guidelines apply to all code development in the ado codebase.
   relative imports.
 - Use `ado.utilities.output.pydantic_model_as_yaml` for serializing
   pydantic models to YAML.
+- Never call `yaml.safe_load(...)` or `yaml.safe_dump(...)` directly — these
+  always use the pure-Python path. Instead, import the C-backed loader/dumper
+  with a pure-Python fallback and pass them explicitly:
+
+  ```python
+  try:
+      from yaml import CSafeLoader as SafeLoader, CSafeDumper as SafeDumper
+  except ImportError:  # pragma: nocover
+      from yaml import SafeLoader, SafeDumper  # type: ignore[assignment]
+  ```
+
+  Then call `yaml.load(stream, Loader=SafeLoader)` and
+  `yaml.dump(data, Dumper=SafeDumper)`.
 
 #### Linting
 
@@ -218,12 +231,12 @@ uv run ado create RESOURCETYPE -f FILE --dry-run
 ## Links
 
 - For plugin development, see
-  [plugin-development](.agents/skills/plugin-development/SKILL.md)
+  [ado-develop-plugin](.agents/skills/ado-develop-plugin/SKILL.md)
 - For formulating problems with ado, see
-  [define-experiment-campaign](.agents/skills/define-experiment-campaign/SKILL.md)
+  [ado-define-experiment-campaign](.agents/skills/ado-define-experiment-campaign/SKILL.md)
 - For using the ado CLI, see
-  [using-ado-cli](.agents/skills/using-ado-cli/SKILL.md)
+  [ado-use-cli](.agents/skills/ado-use-cli/SKILL.md)
 - For creating resource YAML files, see
-  [resource-yaml-creation](.agents/skills/resource-yaml-creation/SKILL.md)
+  [ado-create-resource-yaml](.agents/skills/ado-create-resource-yaml/SKILL.md)
 - For querying catalog and measurement data, see
-  [query-ado-data](.agents/skills/query-ado-data/SKILL.md)
+  [ado-query-database](.agents/skills/ado-query-database/SKILL.md)

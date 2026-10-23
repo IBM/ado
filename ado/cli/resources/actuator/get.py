@@ -29,10 +29,12 @@ def get_actuator(parameters: AdoGetCommandParameters) -> None:
     # Validate output format early
     if parameters.output_format not in {
         AdoGetSupportedOutputFormats.TABLE,
+        AdoGetSupportedOutputFormats.CSV,
         AdoGetSupportedOutputFormats.NAME,
     }:
         console_print(
-            f"{ERROR}Only the {AdoGetSupportedOutputFormats.TABLE.value} and "
+            f"{ERROR}Only the {AdoGetSupportedOutputFormats.TABLE.value}, "
+            f"{AdoGetSupportedOutputFormats.CSV.value} and "
             f"{AdoGetSupportedOutputFormats.NAME.value} output formats "
             "are supported by this command.",
             stderr=True,

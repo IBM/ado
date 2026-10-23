@@ -29,7 +29,7 @@ import ray
 from active_learning.regression._pilot import PilotStrategy, _StructuredPilot
 from active_learning.regression._predictor import _FinalPredictorParameters
 from ado.core.discoveryspace.samplers import BaseSampler
-from ado.core.operation.config import FunctionOperationInfo
+from ado.core.operation.config import FunctionOperationInfo, GenericOperatorParameters
 from ado.core.operation.operation import OperationOutput
 from ado.schema.domain import VariableTypeEnum
 from ado.schema.entityspace import EntitySpaceRepresentation
@@ -168,7 +168,9 @@ class _PredictiveParameters(pydantic.BaseModel):
         return value
 
 
-class _PredictiveOperatorParameters(_PredictiveParameters, _FinalPredictorParameters):
+class _PredictiveOperatorParameters(
+    _PredictiveParameters, _FinalPredictorParameters, GenericOperatorParameters
+):
     """Acquisition and final-predictor settings exposed by regression operators."""
 
 

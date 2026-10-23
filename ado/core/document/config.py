@@ -30,6 +30,29 @@ class RelatedResource(pydantic.BaseModel):
     ]
 
 
+class StudyDocumentMetadata(ConfigurationMetadata):
+    """Metadata for a document that tracks a study."""
+
+    todo: Annotated[
+        list[str] | None,
+        pydantic.Field(description="Optional list of outstanding todo items"),
+    ] = None
+
+
+def _document_metadata_discriminator(value: typing.Any) -> str:  # noqa: ANN401
+    """Select the metadata model: study metadata if and only if todo is present.
+
+    Args:
+        value: Raw metadata (mapping or model instance) being validated.
+
+    Returns:
+        The tag of the metadata model to validate against.
+    """
+    if isinstance(value, dict):
+        return "study" if "todo" in value else "default"
+    return "study" if isinstance(value, StudyDocumentMetadata) else "default"
+
+
 class DocumentConfiguration(pydantic.BaseModel):
     """Configuration for a document resource."""
 
@@ -54,10 +77,13 @@ class DocumentConfiguration(pydantic.BaseModel):
         ),
     ]
     metadata: Annotated[
-        ConfigurationMetadata,
+        Annotated[ConfigurationMetadata, pydantic.Tag("default")]
+        | Annotated[StudyDocumentMetadata, pydantic.Tag("study")],
+        pydantic.Discriminator(_document_metadata_discriminator),
         pydantic.Field(
             description="Metadata about the document including optional name, "
-            "description, labels for filtering, and any additional custom fields"
+            "description, labels for filtering, and any additional custom fields. "
+            "Study documents additionally support a todo list"
         ),
     ] = ConfigurationMetadata()
 
@@ -67,12 +93,16 @@ class DocumentConfiguration(pydantic.BaseModel):
         from rich.markdown import Markdown
         from rich.text import Text
 
+        from ado.utilities.rich import ConsoleWidthRenderable, RstrippedRenderable
+
         parts: list[typing.Any] = []
         if self.metadata.name:
             parts.append(Text.assemble(("Name: ", "bold"), (self.metadata.name,)))
         if self.metadata.description:
             parts.append(
-                Text.assemble(("Description: ", "bold"), (self.metadata.description,))
+                Text.assemble(
+                    ("Description: ", "bold"), (self.metadata.description.rstrip(),)
+                )
             )
         if self.relatedResources:
             related_summary = ", ".join(
@@ -81,6 +111,9 @@ class DocumentConfiguration(pydantic.BaseModel):
             parts.append(
                 Text.assemble(("Related resources: ", "bold"), (related_summary,))
             )
+        if isinstance(self.metadata, StudyDocumentMetadata) and self.metadata.todo:
+            todo_lines = "\n".join(f"  - {item}" for item in self.metadata.todo)
+            parts.append(Text.assemble(("Todo:", "bold"), (f"\n{todo_lines}", "")))
         if parts:
             parts.append("")
 
@@ -89,4 +122,4 @@ class DocumentConfiguration(pydantic.BaseModel):
         else:
             parts.append(Markdown(self.content))
 
-        return Group(*parts)
+        return RstrippedRenderable(ConsoleWidthRenderable(Group(*parts)))

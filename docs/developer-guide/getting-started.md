@@ -91,7 +91,7 @@ The agent will automatically find all necessary rules and skills in `.agents/`.
 
 For core contributors, you can ask the agent to review your work before creating
 a pull request using the template in
-[`.agents/skills/review/`](https://github.com/IBM/ado/blob/main/.agents/skills/review/).
+[`.agents/skills/ado-review-branch/`](https://github.com/IBM/ado/blob/main/.agents/skills/ado-review-branch/).
 
 ---
 

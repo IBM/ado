@@ -5,6 +5,12 @@ import typing
 import pydantic
 import typer
 import yaml
+
+try:
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:  # pragma: nocover
+    from yaml import SafeLoader  # type: ignore[assignment]
+
 from rich.status import Status
 
 from ado.cli.models.parameters import AdoGetCommandParameters
@@ -45,8 +51,11 @@ def get_discovery_space(parameters: AdoGetCommandParameters) -> None:
 
         matching_spaces = _find_spaces_matching_point(parameters)
 
-        # For TABLE format, use DataFrame
-        if parameters.output_format == AdoGetSupportedOutputFormats.TABLE:
+        # For TABLE and CSV formats, use DataFrame
+        if parameters.output_format in {
+            AdoGetSupportedOutputFormats.TABLE,
+            AdoGetSupportedOutputFormats.CSV,
+        }:
             output_df = format_default_ado_get_multiple_resources(
                 resources=build_resource_listing_dataframe(
                     resources={space.identifier: space for space in matching_spaces},
@@ -55,10 +64,18 @@ def get_discovery_space(parameters: AdoGetCommandParameters) -> None:
                 ),
                 resource_kind=CoreResourceKinds.DISCOVERYSPACE,
             )
-            handle_ado_get(parameters=parameters, dataframe=output_df)
+            handle_ado_get(
+                parameters=parameters,
+                dataframe=output_df,
+                resource_type=CoreResourceKinds.DISCOVERYSPACE,
+            )
         else:
             # For structured formats, use resources
-            handle_ado_get(parameters=parameters, resources=matching_spaces)
+            handle_ado_get(
+                parameters=parameters,
+                resources=matching_spaces,
+                resource_type=CoreResourceKinds.DISCOVERYSPACE,
+            )
 
         return
 
@@ -67,7 +84,11 @@ def get_discovery_space(parameters: AdoGetCommandParameters) -> None:
 
         matching_spaces = _find_spaces_matching_space(parameters)
         # Use DataFrame for rendering
-        handle_ado_get(parameters=parameters, dataframe=matching_spaces)
+        handle_ado_get(
+            parameters=parameters,
+            dataframe=matching_spaces,
+            resource_type=CoreResourceKinds.DISCOVERYSPACE,
+        )
         return
 
     # Standard case: use unified handler with resource_type
@@ -94,7 +115,7 @@ def _find_spaces_matching_point(
 
     try:
         target_point = SpacePoint.model_validate(
-            yaml.safe_load(parameters.matching_point.read_text())
+            yaml.load(parameters.matching_point.read_text(), Loader=SafeLoader)
         )
     except pydantic.ValidationError:
         raise
@@ -154,7 +175,7 @@ def _find_spaces_matching_space(
         with Status("Validating input") as spinner:
             try:
                 space_configuration = DiscoverySpaceConfiguration.model_validate(
-                    yaml.safe_load(parameters.matching_space.read_text())
+                    yaml.load(parameters.matching_space.read_text(), Loader=SafeLoader)
                 )
             except pydantic.ValidationError as error:
                 spinner.stop()

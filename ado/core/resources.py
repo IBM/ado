@@ -13,6 +13,7 @@ from typing import Annotated
 import pydantic
 
 from ado.core.metadata import ProvenanceInfo
+from ado.schema.property import PropertyDescriptor
 from ado.utilities.pydantic import Defaultable
 
 
@@ -23,6 +24,23 @@ class CoreResourceKinds(enum.StrEnum):
     SAMPLESTORE = "samplestore"
     DATACONTAINER = "datacontainer"
     DOCUMENT = "document"
+
+
+class ADOResourceReference(pydantic.BaseModel):
+    """A reference to a resource stored in the metastore."""
+
+    model_config = pydantic.ConfigDict(extra="forbid")
+
+    identifier: Annotated[
+        str,
+        pydantic.Field(description="Resource identifier (e.g. 'space-abc123')."),
+    ]
+    kind: Annotated[
+        CoreResourceKinds | None,
+        pydantic.Field(
+            description="Resource kind",
+        ),
+    ] = None
 
 
 def VersionIsGreaterThan(v1: str, v2: str) -> bool:
@@ -111,6 +129,12 @@ class ADOResource(pydantic.BaseModel):
 
     model_config = pydantic.ConfigDict(extra="forbid")
 
+    @property
+    def reference(self) -> ADOResourceReference:
+        """Return a metastore reference for this resource."""
+
+        return ADOResourceReference(identifier=self.identifier, kind=self.kind)
+
     @pydantic.model_validator(mode="before")
     @classmethod
     def check_if_ado_provenance_should_be_populated(
@@ -195,3 +219,40 @@ def warn_deprecated_resource_model_in_use(
         overflow="ignore",
         crop=False,
     )
+
+
+class ADOResourcePropertyDescriptor(PropertyDescriptor):
+    """PropertyDescriptor for ADOResources.
+
+    Model declaring that a property identifier (string) has a given ADOResource kind.
+    """
+
+    kind: Annotated[
+        CoreResourceKinds,
+        pydantic.Field(description="ADO resource kind"),
+    ]
+
+    def __eq__(self, other: object) -> bool:
+        """Return whether this descriptor equals another resource property descriptor.
+
+        Two resource property descriptors are equal when they share an identifier
+        and a kind. Comparison with any other type is left to that type.
+
+        Args:
+            other: Value to compare against.
+
+        Returns:
+            True when both are resource property descriptors with the same
+            identifier and kind. NotImplemented for any other type.
+        """
+        if not isinstance(other, ADOResourcePropertyDescriptor):
+            return NotImplemented
+        return self.identifier == other.identifier and self.kind == other.kind
+
+    def __hash__(self) -> int:
+        """Return a hash of the identifier and kind.
+
+        Returns:
+            Hash of the identifier and kind.
+        """
+        return hash((self.identifier, self.kind))

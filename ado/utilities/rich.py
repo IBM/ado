@@ -4,13 +4,126 @@ import typing
 
 import rich.box
 import rich.style
-from rich.console import Console
+from rich.console import Console, ConsoleOptions, RenderResult
 from rich.pretty import Pretty
+from rich.segment import Segment
 from rich.table import Table
 
 if typing.TYPE_CHECKING:
     import pandas as pd
     from rich.console import OverflowMethod, RenderableType
+
+
+class ConsoleWidthRenderable:
+    """Wraps a renderable to enforce wrapping at the console width.
+
+    When Console.print is called with overflow="ignore", wrapping is suppressed
+    for all content. This wrapper overrides that by rendering its content with
+    overflow="fold" and no_wrap=False, so lines always wrap at the console width
+    regardless of the outer print call's overflow setting.
+
+    Args:
+        renderable: Any rich-renderable object.
+    """
+
+    def __init__(self, renderable: "RenderableType") -> None:
+        """Initialise with the renderable to wrap.
+
+        Args:
+            renderable: The rich-renderable to wrap.
+        """
+        self._renderable = renderable
+
+    def __rich_console__(
+        self, console: Console, options: ConsoleOptions
+    ) -> RenderResult:
+        """Yield segments rendered with wrapping enabled at the console width.
+
+        Args:
+            console: The rich Console instance.
+            options: Rendering options provided by the console.
+
+        Yields:
+            Segments from the inner renderable, rendered with overflow="fold"
+            and no_wrap=False to enforce wrapping at the console width.
+        """
+        inner_options = options.update(overflow="fold", no_wrap=False)
+        yield from console.render(self._renderable, inner_options)
+
+
+class RstrippedRenderable:
+    """Wraps a renderable and strips trailing whitespace from each output line.
+
+    Rich renderables such as Markdown pad every line to the full console width.
+    This wrapper removes that padding so that terminal emulators do not reflow
+    lines unexpectedly when the window is resized after output is printed.
+
+    Args:
+        renderable: Any rich-renderable object.
+    """
+
+    def __init__(self, renderable: "RenderableType") -> None:
+        """Initialise with the renderable to wrap.
+
+        Args:
+            renderable: The rich-renderable to wrap.
+        """
+        self._renderable = renderable
+
+    def __rich_console__(
+        self, console: Console, options: ConsoleOptions
+    ) -> RenderResult:
+        """Yield segments with trailing whitespace stripped from each line.
+
+        Args:
+            console: The rich Console instance.
+            options: Rendering options provided by the console.
+
+        Yields:
+            Segments with trailing whitespace stripped from the last segment
+            of each line.
+        """
+        current: list[Segment] = []
+        for seg in console.render(self._renderable, options):
+            if seg.control or "\n" not in seg.text:
+                current.append(seg)
+                continue
+            *lines, remainder = seg.text.split("\n")
+            for text in lines:
+                current.append(Segment(text, seg.style))
+                yield from self._rstrip_line(current)
+                current = []
+                yield Segment("\n")
+            if remainder:
+                current.append(Segment(remainder, seg.style))
+        yield from self._rstrip_line(current)
+
+    @staticmethod
+    def _rstrip_line(line: list[Segment]) -> list[Segment]:
+        """Remove trailing whitespace from a line, spanning multiple segments.
+
+        Args:
+            line: The segments making up a single output line.
+
+        Returns:
+            The segments with trailing whitespace removed. Trailing segments
+            that are entirely whitespace are dropped, and control segments
+            are preserved.
+        """
+        result = list(line)
+        index = len(result) - 1
+        while index >= 0:
+            seg = result[index]
+            if seg.control:
+                index -= 1
+                continue
+            stripped = seg.text.rstrip()
+            if stripped:
+                result[index] = Segment(stripped, seg.style, seg.control)
+                break
+            del result[index]
+            index -= 1
+        return result
 
 
 def get_rich_repr(obj: typing.Any) -> "RenderableType":  # noqa: ANN401

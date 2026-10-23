@@ -30,6 +30,7 @@ from ado.core.operation.config import (
 from ado.core.operation.resource import OperationProvenanceInfo, OperationResource
 from ado.core.resources import (
     ADOResourceEventEnum,
+    ADOResourceReference,
     CoreResourceKinds,
 )
 from ado.metastore.base import ResourcesDoNotExistError
@@ -741,6 +742,11 @@ def resource_hierarchy(
 
     import yaml
 
+    try:
+        from yaml import CSafeLoader as SafeLoader
+    except ImportError:  # pragma: nocover
+        from yaml import SafeLoader  # type: ignore[assignment]
+
     from ado.core import ActuatorConfigurationResource, SampleStoreResource
     from ado.core.samplestore.config import (
         SampleStoreConfiguration,
@@ -766,7 +772,12 @@ def resource_hierarchy(
     sql_store.addResourceWithRelationships(ds, relatedIdentifiers=[ss.identifier])
 
     # 3. operation (child of discoveryspace)
-    operation_resource.config.spaces = [ds.identifier]
+    operation_resource.config.inputs = {
+        "discoverySpace": ADOResourceReference(
+            identifier=ds.identifier,
+            kind=CoreResourceKinds.DISCOVERYSPACE,
+        )
+    }
     sql_store.addResourceWithRelationships(
         operation_resource, relatedIdentifiers=[ds.identifier]
     )
@@ -782,10 +793,11 @@ def resource_hierarchy(
     #    relatedIdentifiers=[..., actconf_id]).
     ac_config = (
         ado.core.actuatorconfiguration.config.ActuatorConfiguration.model_validate(
-            yaml.safe_load(
+            yaml.load(
                 pathlib.Path(
                     "tests/resources/replay_actuatorconfiguration.yaml"
-                ).read_text()
+                ).read_text(),
+                Loader=SafeLoader,
             )
         )
     )
@@ -1768,7 +1780,12 @@ def resource_hierarchy_with_child_operation(
     space1 = random_space_resource_from_file(sample_store_id=ss1.identifier)
     sql_store.addResourceWithRelationships(space1, relatedIdentifiers=[ss1.identifier])
 
-    operation_resource.config.spaces = [space1.identifier]
+    operation_resource.config.inputs = {
+        "discoverySpace": ADOResourceReference(
+            identifier=space1.identifier,
+            kind=CoreResourceKinds.DISCOVERYSPACE,
+        )
+    }
     sql_store.addResourceWithRelationships(
         operation_resource, relatedIdentifiers=[space1.identifier]
     )

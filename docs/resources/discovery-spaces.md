@@ -796,7 +796,7 @@ ado get spaces
 └───────┴──────────────────────┴─────────────────────────────────────┴─────────┘
 ```
 
-Add `--details` to include the `DESCRIPTION` and `LABELS` of each space.
+`--details` adds `DESCRIPTION` and `LABELS` columns to the table.
 `--filter` and `--label` narrow the list, and `--related-to` restricts it to
 spaces related to another resource.
 

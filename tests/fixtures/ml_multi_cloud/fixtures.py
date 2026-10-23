@@ -9,6 +9,11 @@ from collections.abc import Callable
 import pytest
 import yaml
 
+try:
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:  # pragma: nocover
+    from yaml import SafeLoader  # type: ignore[assignment]
+
 import ado.core.actuatorconfiguration.config
 import ado.core.discoveryspace.config
 import ado.core.samplestore.csv
@@ -23,6 +28,7 @@ from ado.core.operation.config import (
     DiscoveryOperationEnum,
     DiscoveryOperationResourceConfiguration,
 )
+from ado.core.resources import ADOResourceReference
 from ado.core.samplestore.base import ActiveSampleStore
 from ado.core.samplestore.config import (
     SampleStoreConfiguration,
@@ -60,10 +66,11 @@ from ado.utilities.output import pydantic_model_as_yaml
 def ml_multi_cloud_sample_store_configuration() -> SampleStoreConfiguration:
 
     # The file in the examples assumes ml_export.csv is in the same directory
-    raw_sample_store_configuration = yaml.safe_load(
+    raw_sample_store_configuration = yaml.load(
         pathlib.Path(
             "examples/ml-multi-cloud/ml_multicloud_sample_store.yaml"
-        ).read_text()
+        ).read_text(),
+        Loader=SafeLoader,
     )
 
     raw_sample_store_configuration["copyFrom"][0]["storageLocation"]["path"] = (
@@ -120,10 +127,11 @@ def ml_multi_cloud_space(
 ) -> DiscoverySpace:
     space_configuration = (
         ado.core.discoveryspace.config.DiscoverySpaceConfiguration.model_validate(
-            yaml.safe_load(
+            yaml.load(
                 pathlib.Path(
                     "examples/ml-multi-cloud/ml_multicloud_space.yaml"
-                ).read_text()
+                ).read_text(),
+                Loader=SafeLoader,
             )
         )
     )
@@ -136,13 +144,19 @@ def ml_multi_cloud_operation_configuration(
 ) -> DiscoveryOperationResourceConfiguration:
 
     operation_configuration = DiscoveryOperationResourceConfiguration.model_validate(
-        yaml.safe_load(
+        yaml.load(
             pathlib.Path(
                 "examples/ml-multi-cloud/randomwalk_ml_multicloud_operation.yaml"
-            ).read_text()
+            ).read_text(),
+            Loader=SafeLoader,
         )
     )
-    operation_configuration.spaces = [ml_multi_cloud_space.uri]
+    operation_configuration.inputs = {
+        "discoverySpace": ADOResourceReference(
+            identifier=ml_multi_cloud_space.uri,
+            kind=CoreResourceKinds.DISCOVERYSPACE,
+        )
+    }
     return operation_configuration
 
 
@@ -155,10 +169,11 @@ def ml_multi_cloud_correct_actuatorconfiguration(
 ) -> ActuatorConfigurationResource:
     actuator_configuration = (
         ado.core.actuatorconfiguration.config.ActuatorConfiguration.model_validate(
-            yaml.safe_load(
+            yaml.load(
                 pathlib.Path(
                     "tests/resources/replay_actuatorconfiguration.yaml"
-                ).read_text()
+                ).read_text(),
+                Loader=SafeLoader,
             )
         )
     )

@@ -9,6 +9,7 @@ import itertools
 import numpy as np
 import pandas as pd
 import pytest
+from active_learning.regression._pilot import _StructuredPilot
 from active_learning.regression._shared import _encode_features
 from active_learning.regression.pkh.sampler import _PKHSelectionState
 from scipy.stats import qmc
@@ -161,6 +162,40 @@ def test_structured_pilot_is_reproducible(strategy: str) -> None:
     second = _draw(_state(raw, strategy, pilot_size=9), 9)
     assert first == second
     assert set(first) == set(range(9))
+
+
+@pytest.mark.parametrize("strategy", ["clhs", "sobol"])
+@pytest.mark.parametrize(
+    ("raw", "candidates", "count"),
+    [
+        (np.arange(3).reshape(-1, 1), np.arange(3), 4),
+        (
+            np.column_stack((np.arange(50), np.arange(50))),
+            np.asarray([2, 4, 6, 8]),
+            5,
+        ),
+    ],
+    ids=["exhausted-pool", "insufficient-sparse-pool"],
+)
+def test_structured_pilot_rejects_oversized_requests(
+    strategy: str, raw: np.ndarray, candidates: np.ndarray, count: int
+) -> None:
+    """Oversized requests report the requested and available candidate counts."""
+
+    pilot = _StructuredPilot(raw, strategy, seed=42)
+    message = (
+        f"structured pilot requested {count} candidates; "
+        f"only {candidates.size} available"
+    )
+    with pytest.raises(ValueError, match=message):
+        pilot.sample(candidates, count)
+
+    expected = _StructuredPilot(raw, strategy, seed=42).sample(
+        candidates, candidates.size
+    )
+    actual = pilot.sample(candidates, candidates.size)
+    np.testing.assert_array_equal(actual, expected)
+    assert set(actual) == set(candidates)
 
 
 def test_invalid_pilot_strategy_is_rejected_by_state() -> None:

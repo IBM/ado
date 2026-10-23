@@ -8,6 +8,7 @@ from collections.abc import Callable
 
 import pandas as pd
 import pytest
+import yaml
 from testcontainers.community.mysql import MySqlContainer
 from typer.testing import CliRunner
 
@@ -70,7 +71,7 @@ def test_ado_get_operations_stats_columns_present(
         tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
     ],
 ) -> None:
-    """ado get operations -o stats exits 0 and shows result stats column headers."""
+    """ado get operations --stats exits 0 and shows result stats column headers."""
     runner = CliRunner()
     create_active_ado_context(
         runner=runner, path=tmp_path, project_context=valid_ado_project_context
@@ -88,8 +89,7 @@ def test_ado_get_operations_stats_columns_present(
         [
             "get",
             "operations",
-            "-o",
-            "stats",
+            "--stats",
             "--no-trunc",
         ],
     )
@@ -144,8 +144,7 @@ def test_ado_get_operations_stats_values(
             "get",
             "operation",
             operation_id,
-            "-o",
-            "stats",
+            "--stats",
             "--no-trunc",
         ],
     )
@@ -189,7 +188,7 @@ def test_ado_get_operation_stats_single_resource(
         tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
     ],
 ) -> None:
-    """ado get operation <id> -o stats renders a table with the correct operation stats."""
+    """ado get operation <id> --stats renders a table with the correct operation stats."""
     runner = CliRunner()
     create_active_ado_context(
         runner=runner, path=tmp_path, project_context=valid_ado_project_context
@@ -214,8 +213,7 @@ def test_ado_get_operation_stats_single_resource(
             "get",
             "operation",
             operation_id,
-            "-o",
-            "stats",
+            "--stats",
             "--no-trunc",
         ],
     )
@@ -286,8 +284,7 @@ def test_ado_get_spaces_stats_values(
             "get",
             "space",
             space_id,
-            "-o",
-            "stats",
+            "--stats",
             "--no-trunc",
         ],
     )
@@ -329,7 +326,7 @@ def test_ado_get_space_stats_single_resource(
         tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
     ],
 ) -> None:
-    """ado get space <id> -o stats renders a table with the correct space stats."""
+    """ado get space <id> --stats renders a table with the correct space stats."""
     runner = CliRunner()
     create_active_ado_context(
         runner=runner, path=tmp_path, project_context=valid_ado_project_context
@@ -355,8 +352,7 @@ def test_ado_get_space_stats_single_resource(
             "get",
             "space",
             space_id,
-            "-o",
-            "stats",
+            "--stats",
             "--no-trunc",
         ],
     )
@@ -394,7 +390,7 @@ def test_ado_get_stats_unsupported_resource_type_exits_1(
     ],
     resource_kind: str,
 ) -> None:
-    """ado get <unsupported-resource> -o stats exits 1 with an error message."""
+    """ado get <unsupported-resource> --stats exits 1 with an error message."""
     runner = CliRunner()
     create_active_ado_context(
         runner=runner, path=tmp_path, project_context=valid_ado_project_context
@@ -405,14 +401,13 @@ def test_ado_get_stats_unsupported_resource_type_exits_1(
         [
             "get",
             resource_kind,
-            "-o",
-            "stats",
+            "--stats",
         ],
     )
 
     assert result.exit_code == 1
     if os.environ.get("CI", "false") != "true":
-        assert "stats" in result.output.lower()
+        assert "--stats" in result.output.lower()
         assert "operation" in result.output.lower()
 
 
@@ -455,8 +450,7 @@ def test_ado_get_samplestores_stats_values(
         [
             "get",
             "samplestores",
-            "-o",
-            "stats",
+            "--stats",
             "--no-trunc",
         ],
     )
@@ -493,7 +487,7 @@ def test_ado_get_datacontainers_stats_columns_present(
     data_container_resource: "DataContainerResource",
     create_resources: Callable,
 ) -> None:
-    """ado get datacontainers -o stats exits 0 and shows all four stats column headers."""
+    """ado get datacontainers --stats exits 0 and shows all four stats column headers."""
     runner = CliRunner()
     create_active_ado_context(
         runner=runner, path=tmp_path, project_context=valid_ado_project_context
@@ -506,8 +500,7 @@ def test_ado_get_datacontainers_stats_columns_present(
         [
             "get",
             "datacontainers",
-            "-o",
-            "stats",
+            "--stats",
             "--no-trunc",
         ],
     )
@@ -556,8 +549,7 @@ def test_ado_get_datacontainers_stats_values(
         [
             "get",
             "datacontainers",
-            "-o",
-            "stats",
+            "--stats",
             "--no-trunc",
         ],
     )
@@ -599,7 +591,7 @@ def test_ado_get_operation_stats_details_columns(
         tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
     ],
 ) -> None:
-    """ado get operation <id> -o stats --details adds DESCRIPTION and LABELS columns.
+    """ado get operation <id> --stats --details adds DESCRIPTION and LABELS columns.
 
     The operation config (randomwalk_ml_multicloud_operation.yaml) carries the
     description 'Perform a random walk on all points in a space', so that string
@@ -625,8 +617,7 @@ def test_ado_get_operation_stats_details_columns(
             "get",
             "operation",
             operation_id,
-            "-o",
-            "stats",
+            "--stats",
             "--details",
             "--no-trunc",
         ],
@@ -651,7 +642,7 @@ def test_ado_get_space_stats_details_columns(
     ],
     ml_multi_cloud_space: DiscoverySpace,
 ) -> None:
-    """ado get space <id> -o stats --details adds DESCRIPTION and LABELS columns.
+    """ado get space <id> --stats --details adds DESCRIPTION and LABELS columns.
 
     The ml_multicloud_basic space YAML carries no description or labels, so the
     DESCRIPTION column must be present but empty, and LABELS must be present as
@@ -668,8 +659,7 @@ def test_ado_get_space_stats_details_columns(
             "get",
             "space",
             ml_multi_cloud_space.uri,
-            "-o",
-            "stats",
+            "--stats",
             "--details",
             "--no-trunc",
         ],
@@ -679,3 +669,115 @@ def test_ado_get_space_stats_details_columns(
     if os.environ.get("CI", "false") != "true":
         assert "DESCRIPTION" in result.output, "DESCRIPTION column missing from output"
         assert "LABELS" in result.output, "LABELS column missing from output"
+
+
+@requires_sqlite_3_38
+def test_ado_get_stats_deprecated_output_format_warns_and_shows_stats(
+    tmp_path: pathlib.Path,
+    mysql_test_instance: MySqlContainer,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+    simulate_ml_multi_cloud_random_walk_operation: Callable[
+        [int, int, int, str | None],
+        tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
+    ],
+) -> None:
+    """ado get operations -o stats emits a deprecation warning and still shows stats columns."""
+    runner = CliRunner()
+    create_active_ado_context(
+        runner=runner, path=tmp_path, project_context=valid_ado_project_context
+    )
+
+    simulate_ml_multi_cloud_random_walk_operation(
+        number_entities=2,
+        number_requests=2,
+        measurements_per_result=1,
+    )
+
+    result = runner.invoke(
+        ado,
+        ["get", "operations", "-o", "stats", "--no-trunc"],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert "deprecated" in result.output.lower()
+    assert "--stats" in result.output
+    assert "TOTAL_MEASUREMENTS" in result.output
+
+
+@requires_sqlite_3_38
+def test_ado_get_stats_ignored_with_non_table_format(
+    tmp_path: pathlib.Path,
+    mysql_test_instance: MySqlContainer,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+) -> None:
+    """--stats is ignored with a non-table output format and prints an INFO message."""
+    runner = CliRunner()
+    create_active_ado_context(
+        runner=runner, path=tmp_path, project_context=valid_ado_project_context
+    )
+
+    result = runner.invoke(ado, ["get", "spaces", "--stats", "-o", "yaml"])
+
+    assert result.exit_code == 0, result.output
+    assert "--stats" in result.output
+    assert "ignored" in result.output.lower()
+
+
+@requires_sqlite_3_38
+def test_ado_get_spaces_stats_matching_point(
+    tmp_path: pathlib.Path,
+    mysql_test_instance: MySqlContainer,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+    ml_multi_cloud_space: DiscoverySpace,
+) -> None:
+    """ado get spaces --stats --matching-point yields space stats columns, not operation stats."""
+    runner = CliRunner()
+    create_active_ado_context(
+        runner=runner, path=tmp_path, project_context=valid_ado_project_context
+    )
+
+    point_file = tmp_path / "point.yaml"
+    point_data = {
+        "entity": {
+            "provider": "A",
+            "cpu_family": 0,
+            "vcpu_size": 0,
+            "nodes": 2,
+        },
+        "experiments": [
+            {
+                "experimentIdentifier": "benchmark_performance",
+                "actuatorIdentifier": "replay",
+            }
+        ],
+    }
+    point_file.write_text(yaml.safe_dump(point_data))
+
+    result = runner.invoke(
+        ado,
+        [
+            "get",
+            "spaces",
+            "--stats",
+            "--matching-point",
+            str(point_file),
+            "--no-trunc",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    if os.environ.get("CI", "false") != "true":
+        for col in ("EXPERIMENTS", "OPERATIONS", "EXPLORE_OPS", "SAMPLED_ENTITIES"):
+            assert col in result.output, (
+                f"Space stats column {col!r} missing from output"
+            )
+        assert "TOTAL_MEASUREMENTS" not in result.output

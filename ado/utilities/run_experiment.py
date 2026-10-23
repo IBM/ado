@@ -18,6 +18,11 @@ import requests
 import typer
 import yaml
 
+try:
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:  # pragma: nocover
+    from yaml import SafeLoader  # type: ignore[assignment]
+
 from ado.cli.utils.output.prints import (
     ERROR,
     WARN,
@@ -283,7 +288,9 @@ def run(
 
     logging.getLogger().setLevel(os.environ.get("LOGLEVEL", 40))
 
-    point = SpacePoint.model_validate(yaml.safe_load(point_file.read_text()))
+    point = SpacePoint.model_validate(
+        yaml.load(point_file.read_text(), Loader=SafeLoader)
+    )
 
     entity = point.to_entity()
     console_print(f"Point: {point.entity}")

@@ -5,6 +5,11 @@ import sys
 
 import pytest
 import yaml
+
+try:
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:  # pragma: nocover
+    from yaml import SafeLoader  # type: ignore[assignment]
 from ado_ray_tune.operator import RayTune
 
 import ado.core
@@ -55,7 +60,7 @@ def randomWalkConf(
     import yaml
 
     with open("examples/ml-multi-cloud/randomwalk_ml_multicloud_operation.yaml") as f:
-        d = yaml.safe_load(f)
+        d = yaml.load(f, Loader=SafeLoader)
         config = DiscoveryOperationResourceConfiguration.model_validate(d)
 
     if request.param == "all":
@@ -68,10 +73,11 @@ def randomWalkConf(
 def invalidRandomWalkConf() -> DiscoveryOperationResourceConfiguration:
 
     config = DiscoveryOperationResourceConfiguration.model_validate(
-        yaml.safe_load(
+        yaml.load(
             pathlib.Path(
                 "examples/ml-multi-cloud/randomwalk_ml_multicloud_operation.yaml"
-            ).read_text()
+            ).read_text(),
+            Loader=SafeLoader,
         )
     )
 
@@ -86,7 +92,7 @@ def raytuneConf() -> DiscoveryOperationResourceConfiguration:
     import yaml
 
     with open("examples/ml-multi-cloud/raytune_ml_multicloud_operation.yaml") as f:
-        d = yaml.safe_load(f)
+        d = yaml.load(f, Loader=SafeLoader)
         return DiscoveryOperationResourceConfiguration(**d)
 
 

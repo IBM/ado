@@ -19,6 +19,11 @@ import pydantic
 import typer
 import yaml
 
+try:
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:  # pragma: nocover
+    from yaml import SafeLoader  # type: ignore[assignment]
+
 from ado.cli.commands.context import (
     register_context_command,
     register_contexts_command,
@@ -267,7 +272,7 @@ def _handle_remote_dispatch(
     # Load the remote execution context
     try:
         remote_context = RemoteExecutionContext.model_validate(
-            yaml.safe_load(remote_context_file.read_text())
+            yaml.load(remote_context_file.read_text(), Loader=SafeLoader)
         )
     except pydantic.ValidationError as e:
         console_print(

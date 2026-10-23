@@ -1,6 +1,8 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
+import json
 import logging
+from collections import Counter
 from typing import TYPE_CHECKING, Any, NamedTuple
 
 import numpy as np
@@ -411,6 +413,84 @@ class MaxSamplesStopper(AdoStopperMixin, ray.tune.Stopper):
         self.trials_num += 1
         if self.trials_num >= self.max_samples:
             self.log.info(f"maximum trials {self.trials_num} reached, stopping...")
+            self.should_stop = True
+            return True
+        self.log.info(self.progress_message())
+        return False
+
+    def stop_all(self) -> bool:
+        return self.should_stop
+
+
+class RepeatedSampleStopper(AdoStopperMixin, ray.tune.Stopper):
+    """Stop when any sampled configuration has been measured ``max_repeats`` times."""
+
+    def __init__(self) -> None:
+        self.max_repeats: int | None = None
+        self.experiment_key = "config"
+        self.should_stop = False
+        self.seen_trial_ids: list[str] = []
+        self.counts: Counter[str] = Counter()
+        self.log = logging.getLogger("RepeatedSampleStopper")
+
+    def set_config(
+        self,
+        max_repeats: int = 5,
+        experiment_key: str = "config",
+    ) -> None:
+        """Configure the repeat threshold and which trial-result key holds the config.
+
+        Args:
+            max_repeats: Stop when one configuration has been sampled this many times.
+            experiment_key: Key in the trial result dict that holds the sampled config.
+        """
+        if int(max_repeats) < 1:
+            raise ValueError(f"max_repeats must be >= 1 (was {max_repeats})")
+        self.max_repeats = int(max_repeats)
+        self.experiment_key = experiment_key
+        self.should_stop = False
+        self.seen_trial_ids = []
+        self.counts = Counter()
+        self.log.debug(
+            f"configured: max_repeats {self.max_repeats}; "
+            f"experiment_key {self.experiment_key}"
+        )
+
+    def __str__(self) -> str:
+        return f"RepeatedSampleStopper(max_repeats={self.max_repeats})"
+
+    def _config_key(self, result: dict[str, Any]) -> str:
+        """Return a stable string key for the sampled configuration."""
+        config = result.get(self.experiment_key, result)
+        return json.dumps(config, sort_keys=True, default=str)
+
+    def progress_message(self) -> str:
+        """Return a one-line description of RepeatedSampleStopper progress."""
+        most = self.counts.most_common(1)
+        top_n = most[0][1] if most else 0
+        if self.should_stop:
+            return (
+                f"RepeatedSampleStopper: stopping after a configuration was "
+                f"sampled {top_n} times (max_repeats={self.max_repeats})."
+            )
+        return (
+            f"RepeatedSampleStopper: not stopping: most-repeated configuration "
+            f"seen {top_n}/{self.max_repeats} times."
+        )
+
+    def __call__(self, trial_id: str, result: dict[str, Any]) -> bool:
+        if trial_id in self.seen_trial_ids:
+            self.log.debug(f"already seen this trial {trial_id}...")
+            return False
+        self.seen_trial_ids.append(trial_id)
+        key = self._config_key(result)
+        self.counts[key] += 1
+        n = self.counts[key]
+        if self.max_repeats is not None and n >= self.max_repeats:
+            self.log.info(
+                f"configuration sampled {n} times (max_repeats={self.max_repeats}), "
+                "stopping..."
+            )
             self.should_stop = True
             return True
         self.log.info(self.progress_message())

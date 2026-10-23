@@ -98,6 +98,7 @@ class AdoEditSupportedResourceTypes(Enum):
 #################### ado get ####################
 class AdoGetSupportedOutputFormats(Enum):
     CONFIG = _CONFIG
+    CSV = _CSV
     JSON = _JSON
     NAME = _NAME
     RAW = _RAW

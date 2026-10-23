@@ -126,8 +126,23 @@ def get_resource(
         bool,
         typer.Option(
             "--details",
-            help="Output additional information on each object, such as names and descriptions.",
+            help="Add DESCRIPTION and LABELS columns to table and csv output.",
             show_default=True,
+        ),
+    ] = False,
+    show_stats: Annotated[
+        bool,
+        typer.Option(
+            "--stats",
+            help=(
+                "Add statistics columns to table and csv output: for operations "
+                "(TOTAL_MEASUREMENTS, SUCCESSFUL_MEASUREMENTS, FAILED_MEASUREMENTS, SAMPLED_ENTITIES), "
+                "for discovery spaces (EXPERIMENTS, OPERATIONS, EXPLORE_OPS, SAMPLED_ENTITIES), "
+                "for sample stores (ENTITIES, RESULTS, EXPERIMENTS), and for data containers "
+                "(TABLES, LOCATIONS, KEY_VALUES, DATA_BYTES). SAMPLED_ENTITIES counts entities with at "
+                "least one measurement, whether successful, failed, or both."
+            ),
+            show_default=False,
         ),
     ] = False,
     include_properties: Annotated[
@@ -149,7 +164,7 @@ def get_resource(
             "--output",
             "-o",
             rich_help_panel=OUTPUT_CONFIGURATION_OPTIONS,
-            help="Output information in a different format. The 'json', 'raw', and 'yaml' formats will output the entire resource. The 'name' format outputs only resource identifiers (similar to kubectl get -o name). The 'stats' format augments the default table with statistics columns: for operations (TOTAL_MEASUREMENTS, SUCCESSFUL_MEASUREMENTS, FAILED_MEASUREMENTS, SAMPLED_ENTITIES), for discovery spaces (EXPERIMENTS, OPERATIONS, EXPLORE_OPS, SAMPLED_ENTITIES), for sample stores (ENTITIES, RESULTS, EXPERIMENTS), and for data containers (TABLES, LOCATIONS, KEY_VALUES, DATA_BYTES). SAMPLED_ENTITIES counts entities with at least one measurement, whether successful, failed, or both. Not all formats may be supported by all resources.",
+            help="Output information in a different format. The 'json', 'raw', and 'yaml' formats will output the entire resource. The 'name' format outputs only resource identifiers (similar to kubectl get -o name). The 'csv' format outputs the same data as the table, as CSV. The 'stats' format is deprecated, use --stats instead. Not all formats may be supported by all resources.",
         ),
     ] = AdoGetSupportedOutputFormats.TABLE.value,
     exclude_default: Annotated[
@@ -258,7 +273,8 @@ def get_resource(
             A space matches if it shares at least one experiment with the reference
             and its entity space overlaps with or is hierarchically related to the reference.
 
-            If set, disregards --filter and --label, and uses the table output format.
+            If set, disregards --filter and --label, and uses the table output format
+            (or csv if requested).
             """,
             file_okay=True,
             dir_okay=False,
@@ -277,7 +293,8 @@ def get_resource(
             A space matches if it shares at least one experiment with the reference
             and its entity space overlaps with or is hierarchically related to the reference.
 
-            If set, disregards --filter and --label, and uses the table output format.
+            If set, disregards --filter and --label, and uses the table output format
+            (or csv if requested).
             """,
             show_default=False,
             rich_help_panel=DISCOVERY_SPACE_ONLY_OPTIONS,
@@ -310,6 +327,9 @@ def get_resource(
 
     # Save the configuration of a discovery space as YAML
     ado get space <space-id> -o yaml > space.yaml
+
+    # Save the list of operations as CSV
+    ado get operations -o csv --output-file operations.csv
 
     # Get the latest space as YAML
     ado get space --use-latest -o yaml
@@ -418,15 +438,37 @@ def get_resource(
         )
         matching_space = None
 
-    if (
-        matching_space or matching_space_id
-    ) and output_format != AdoGetSupportedOutputFormats.TABLE:
+    if (matching_space or matching_space_id) and output_format not in {
+        AdoGetSupportedOutputFormats.TABLE,
+        AdoGetSupportedOutputFormats.CSV,
+    }:
         console_print(
             f"{WARN}--matching-space and --matching-space-id only support "
-            f"the {AdoGetSupportedOutputFormats.TABLE.value} output format.",
+            f"the {AdoGetSupportedOutputFormats.TABLE.value} and "
+            f"{AdoGetSupportedOutputFormats.CSV.value} output formats.",
             stderr=True,
         )
         output_format = AdoGetSupportedOutputFormats.TABLE
+
+    if output_format == AdoGetSupportedOutputFormats.STATS:
+        console_print(
+            f"{WARN}The '{AdoGetSupportedOutputFormats.STATS.value}' output format is deprecated. "
+            "Use '--stats' instead.",
+            stderr=True,
+        )
+        output_format = AdoGetSupportedOutputFormats.TABLE
+        show_stats = True
+
+    if show_stats and output_format not in {
+        AdoGetSupportedOutputFormats.TABLE,
+        AdoGetSupportedOutputFormats.CSV,
+    }:
+        console_print(
+            f"{INFO}The {output_format.value} output format does not support statistics. "
+            "--stats will be ignored.",
+            stderr=True,
+        )
+        show_stats = False
 
     if exclude_fields and output_format not in {
         AdoGetSupportedOutputFormats.JSON,
@@ -476,6 +518,7 @@ def get_resource(
         resource_type=resource_type,
         show_deprecated=show_deprecated,
         show_details=show_details,
+        show_stats=show_stats,
         use_latest=use_latest,
     )
 

@@ -8,6 +8,11 @@ from typing import Annotated
 import typer
 import yaml
 
+try:
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:  # pragma: nocover
+    from yaml import SafeLoader  # type: ignore[assignment]
+
 app = typer.Typer(rich_markup_mode="markdown")
 
 
@@ -60,7 +65,7 @@ def main(
     """
 
     with open(path_to_models) as f:
-        model_map: dict[str, dict[str, str]] = yaml.safe_load(f)
+        model_map: dict[str, dict[str, str]] = yaml.load(f, Loader=SafeLoader)
 
     for _model_name, items in model_map.items():  # noqa: PERF102
         for _model_type, model_path in items.items():  # noqa: PERF102

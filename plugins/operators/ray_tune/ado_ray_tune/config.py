@@ -9,6 +9,7 @@ import pydantic
 import ray
 from pydantic import ConfigDict
 
+from ado.core.operation.config import GenericOperatorParameters
 from ado.modules.module import (
     ModuleConf,
     ModuleTypeEnum,
@@ -138,7 +139,7 @@ class OrchSearchAlgorithm(pydantic.BaseModel):
                 "Optuna sampler parameters specified but no sampler specified"
             )
 
-        if optuna_sampler and sampler_parameters:
+        if optuna_sampler:
             try:
                 import optuna.samplers
 
@@ -298,6 +299,7 @@ class OrchRunConfig(pydantic.BaseModel):
                     "SimpleStopper",
                     "GrowthStopper",
                     "MaxSamplesStopper",
+                    "RepeatedSampleStopper",
                     "InformationGainStopper",
                     "BayesianMetricDifferenceStopper",
                 ]:
@@ -317,6 +319,7 @@ class OrchRunConfig(pydantic.BaseModel):
                     "SimpleStopper",
                     "GrowthStopper",
                     "MaxSamplesStopper",
+                    "RepeatedSampleStopper",
                     "InformationGainStopper",
                     "BayesianMetricDifferenceStopper",
                 ]:
@@ -345,7 +348,7 @@ class OrchRunConfig(pydantic.BaseModel):
         )
 
 
-class RayTuneConfiguration(pydantic.BaseModel):
+class RayTuneConfiguration(GenericOperatorParameters):
     """Model for options related to using ray tune"""
 
     tuneConfig: Annotated[

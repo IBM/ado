@@ -7,6 +7,11 @@ import re
 import typer
 import yaml
 
+try:
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:  # pragma: nocover
+    from yaml import SafeLoader  # type: ignore[assignment]
+
 from ado.cli.utils.output.prints import ERROR, console_print, magenta
 from ado.modules.actuators.errors import (
     AmbiguousExperimentIdentifierError,
@@ -175,7 +180,9 @@ def parse_cli_from_experiment(
         if path.exists():
             try:
                 resolved_references.append(
-                    ExperimentReference.model_validate(yaml.safe_load(path.read_text()))
+                    ExperimentReference.model_validate(
+                        yaml.load(path.read_text(), Loader=SafeLoader)
+                    )
                 )
                 continue
             except (OSError, yaml.YAMLError) as error:

@@ -14,7 +14,11 @@ from ado.core.discoveryspace.config import (
     DiscoverySpaceConfiguration,
 )
 from ado.core.metadata import ConfigurationMetadata, PackageProvenance
-from ado.core.resources import CoreResourceKinds
+from ado.core.resources import (
+    ADOResourcePropertyDescriptor,
+    ADOResourceReference,
+    CoreResourceKinds,
+)
 from ado.metastore.project import ProjectContext
 from ado.modules.module import (
     ModuleConf,
@@ -46,6 +50,26 @@ class DiscoveryOperationEnum(enum.Enum):
         if value == "search":
             return cls.EXPLORE
         return None
+
+
+# Parameter name required by function operators created before multi-input
+# operators existed: ``discoverySpace: DiscoverySpace``.
+_REQUIRED_INPUT_PROPERTY_FOR_ORIGINAL_FUNCTION_OPERATORS = (
+    ADOResourcePropertyDescriptor(
+        identifier="discoverySpace",
+        kind=CoreResourceKinds.DISCOVERYSPACE,
+    )
+)
+
+
+class GenericOperatorParameters(pydantic.BaseModel):
+    """Base class for operator parameter (configuration) models.
+
+    Operator-specific parameter classes should subclass this. Schemas are
+    closed: unknown fields are rejected (``extra="forbid"``).
+    """
+
+    model_config = ConfigDict(extra="forbid")
 
 
 def get_actuator_configurations(
@@ -255,13 +279,13 @@ class OperatorMetadata(pydantic.BaseModel):
         ),
     ] = None
     configuration_model: Annotated[
-        type[pydantic.BaseModel],
+        type[GenericOperatorParameters],
         pydantic.Field(
             description="Pydantic model class used to validate operation parameters.",
         ),
     ]
     example_configuration: Annotated[
-        pydantic.BaseModel,
+        GenericOperatorParameters,
         pydantic.Field(
             description="Default instance of the configuration model.",
         ),
@@ -291,6 +315,18 @@ class OperatorMetadata(pydantic.BaseModel):
                 "Python distribution that provides this operator, resolved from the "
                 "installed environment at registration time. None when the operator "
                 "module is not installed as a distribution package."
+            ),
+        ),
+    ]
+    required_resource_inputs: Annotated[
+        tuple[ADOResourcePropertyDescriptor, ...],
+        pydantic.Field(
+            default_factory=tuple,
+            description=(
+                "Ordered list describing each operator parameter whose type is an "
+                "ADO resource. Empty until operator registration records the "
+                "signature. Empty metadata is treated as a single "
+                "discoverySpace input."
             ),
         ),
     ]
@@ -568,13 +604,14 @@ class DiscoveryOperationResourceConfiguration(pydantic.BaseModel):
     actuatorConfigurationIdentifiers: Annotated[
         list[str], pydantic.Field(default_factory=list)
     ]
-    spaces: Annotated[
-        list[str],
+    inputs: Annotated[
+        dict[str, ADOResourceReference],
         pydantic.Field(
-            description="List of ids of the spaces the operation will be applied to. "
-            "Currently, only one identifier is supported.",
-            min_length=1,
-            max_length=1,
+            default_factory=dict,
+            description=(
+                "Details the resources in the metastore that will be passed as "
+                "values to the given operator parameters"
+            ),
         ),
     ]
     model_config = ConfigDict(
@@ -583,6 +620,193 @@ class DiscoveryOperationResourceConfiguration(pydantic.BaseModel):
             "version": importlib.metadata.version(distribution_name="ado-core")
         },
     )
+
+    @pydantic.computed_field  # type: ignore[prop-decorator]
+    @property
+    def spaces(self) -> list[str]:
+        """Derived list of discoveryspace identifiers from ``inputs``.
+
+        Returns all input identifiers whose ``kind`` is
+        :attr:`~ado.core.resources.CoreResourceKinds.DISCOVERYSPACE`. When
+        ``kind`` is ``None`` (for example during dry-run with plugin validation
+        disabled), falls back to checking the identifier prefix ``"space-"``.
+
+        Returns:
+            List of discoveryspace resource identifiers in insertion order.
+        """
+        return [
+            entry.identifier
+            for entry in self.inputs.values()
+            if entry.kind == CoreResourceKinds.DISCOVERYSPACE
+            or (entry.kind is None and entry.identifier.startswith("space-"))
+        ]
+
+    @pydantic.model_validator(mode="before")
+    @classmethod
+    def upgrade_legacy_spaces(cls, data: object) -> object:
+        """Upgrade legacy ``spaces:`` YAML to the new ``inputs:`` format.
+
+        Strips the ``spaces`` key from raw input data before pydantic
+        validates it and converts the first space identifier to an ``inputs``
+        entry using the conventional name ``"discoverySpace"``.
+
+        Rules applied:
+
+        1. ``spaces`` present, ``inputs`` absent: convert the first space to
+           ``inputs: {discoverySpace: {identifier: <id>}}``.
+        2. ``spaces`` present, ``inputs`` also present: discard ``spaces``.
+        3. ``spaces`` absent: no-op.
+
+        Args:
+            data: Raw model input data.
+
+        Returns:
+            Possibly modified data dict.
+        """
+        if not isinstance(data, dict):
+            return data
+        if "spaces" not in data:
+            return data
+        data = dict(data)
+        # Remove spaces: a computed field cannot also be supplied under extra="forbid".
+        spaces = data.pop("spaces")
+        if "inputs" not in data and spaces:
+            data["inputs"] = {"discoverySpace": {"identifier": spaces[0]}}
+        return data
+
+    def _validate_script_operator_inputs(self) -> None:
+        """Check that a script operator has exactly one discoveryspace input.
+
+        The input's ``kind`` must be set and equal
+        :attr:`~ado.core.resources.CoreResourceKinds.DISCOVERYSPACE`.
+
+        Raises:
+            ValueError: If ``inputs`` is empty, has more than one entry, or an
+                entry's kind is missing or is not a discoveryspace.
+        """
+        if not self.inputs:
+            raise ValueError(
+                "ScriptOperatorConf operations require exactly one input "
+                "(the discovery space); 'inputs' is empty."
+            )
+        if len(self.inputs) > 1:
+            raise ValueError(
+                "ScriptOperatorConf operations support exactly one input "
+                f"(the discovery space); found: {list(self.inputs)}."
+            )
+        for name, entry in self.inputs.items():
+            if entry.kind is None:
+                raise ValueError(
+                    f"Input '{name}' has no kind. ScriptOperatorConf "
+                    "operations must be created via "
+                    "DiscoverySpace.operation_context(), which always "
+                    "provides an explicit kind."
+                )
+            if entry.kind != CoreResourceKinds.DISCOVERYSPACE:
+                raise ValueError(
+                    f"Input '{name}' has kind {entry.kind.value!r}; "
+                    "ScriptOperatorConf only supports discoveryspace inputs."
+                )
+
+    @pydantic.model_validator(mode="after")
+    def validate_inputs(self, info: pydantic.ValidationInfo) -> Self:
+        """Validate and populate ``kind`` on all input entries.
+
+        For :class:`OperatorModuleConf` and :class:`OperatorReference`
+        operators, loads the operator's ``required_resource_inputs`` and:
+
+        * fills ``kind=None`` entries from the descriptor map,
+        * checks every entry's (explicit or filled) kind matches the
+          descriptor's declared kind, and
+        * checks all required inputs are present (``inputs`` must be
+          non-empty).
+
+        For :class:`ScriptOperatorConf` operators:
+
+        * exactly one input is expected,
+        * ``kind`` must be explicitly set, and
+        * ``kind`` must be :attr:`~ado.core.resources.CoreResourceKinds.DISCOVERYSPACE`.
+
+        Skipped when plugin validation is disabled via
+        :func:`~ado.utilities.pydantic.ignore_plugin_validation`.
+
+        Args:
+            info: Pydantic validation info carrying optional context.
+
+        Returns:
+            self after validation and kind population.
+
+        Raises:
+            ValueError: If ``inputs`` is empty, an input name is undeclared, a
+                kind mismatches its binding, a required input is missing, or a
+                script input has a missing or wrong kind.
+        """
+        if ignore_plugin_validation(info):
+            return self
+
+        module = self.operation.module
+
+        if isinstance(module, ScriptOperatorConf):
+            self._validate_script_operator_inputs()
+            return self
+
+        if isinstance(module, OperatorModuleConf):
+            import importlib
+
+            operator_class = getattr(
+                importlib.import_module(module.moduleName), module.moduleClass
+            )
+            operator_metadata = operator_class.operator_metadata()
+        else:
+            from ado.modules.operators.collections import (
+                operator_metadata_for_reference,
+            )
+
+            operator_metadata = operator_metadata_for_reference(module)
+
+        # Empty when registration has not recorded resource inputs yet.
+        # Existing operators use the name discoverySpace.
+        required_resource_inputs = operator_metadata.required_resource_inputs or (
+            _REQUIRED_INPUT_PROPERTY_FOR_ORIGINAL_FUNCTION_OPERATORS,
+        )
+        input_map = {
+            descriptor.identifier: descriptor.kind
+            for descriptor in required_resource_inputs
+        }
+
+        if not self.inputs:
+            required_names = [
+                descriptor.identifier for descriptor in required_resource_inputs
+            ]
+            raise ValueError(
+                "Operation 'inputs' must not be empty. Required input(s): "
+                f"{required_names}."
+            )
+
+        for name, entry in self.inputs.items():
+            expected_kind = input_map.get(name)
+            if expected_kind is None:
+                raise ValueError(
+                    f"Input '{name}' is not declared in the operator's "
+                    "required_resource_inputs."
+                )
+            if entry.kind is None:
+                entry.kind = expected_kind
+            elif entry.kind != expected_kind:
+                raise ValueError(
+                    f"Input '{name}' declares kind {entry.kind.value!r} but "
+                    f"the operator input expects {expected_kind.value!r}."
+                )
+
+        for descriptor in required_resource_inputs:
+            if descriptor.identifier not in self.inputs:
+                raise ValueError(
+                    f"Required input '{descriptor.identifier}' "
+                    f"(kind={descriptor.kind.value}) "
+                    "is missing from the operation's 'inputs' field."
+                )
+
+        return self
 
     def get_actuatorconfigurations(
         self, project_context: ProjectContext

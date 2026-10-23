@@ -4,6 +4,12 @@
 import pydantic
 import typer
 import yaml
+
+try:
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:  # pragma: nocover
+    from yaml import SafeLoader  # type: ignore[assignment]
+
 from rich.status import Status
 
 from ado.cli.models.parameters import AdoCreateCommandParameters
@@ -26,7 +32,7 @@ from ado.core.samplestore.config import (
 )
 
 
-def create_sample_store(parameters: AdoCreateCommandParameters) -> str:
+def create_sample_store(parameters: AdoCreateCommandParameters) -> str | None:
 
     if parameters.new_sample_store:
         console_print(f"{INFO}A new SQLSampleStore was requested.")
@@ -42,7 +48,10 @@ def create_sample_store(parameters: AdoCreateCommandParameters) -> str:
     else:
         try:
             sample_store_configuration = SampleStoreConfiguration.model_validate(
-                yaml.safe_load(parameters.resource_configuration_file.read_text())
+                yaml.load(
+                    parameters.resource_configuration_file.read_text(),
+                    Loader=SafeLoader,
+                )
             )
         except pydantic.ValidationError as error:
             console_print(

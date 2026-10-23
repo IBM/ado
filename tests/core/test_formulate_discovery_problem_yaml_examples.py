@@ -1,19 +1,24 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-"""Tests that define-experiment-campaign YAML examples parse via ado pydantic models."""
+"""Tests that ado-define-experiment-campaign YAML examples parse via ado pydantic models."""
 
 import pathlib
 
 import pytest
 import yaml
 
+try:
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:  # pragma: nocover
+    from yaml import SafeLoader  # type: ignore[assignment]
+
 from ado.core.actuatorconfiguration.config import ActuatorConfiguration
 from ado.core.discoveryspace.config import DiscoverySpaceConfiguration
 from ado.core.operation.config import DiscoveryOperationResourceConfiguration
 
 YAML_EXAMPLES_DIR = pathlib.Path(
-    ".agents/skills/define-experiment-campaign/yaml-examples"
+    ".agents/skills/ado-define-experiment-campaign/yaml-examples"
 )
 
 # Space YAML files: DiscoverySpaceConfiguration structure
@@ -54,12 +59,12 @@ ACTUATOR_CONFIG_YAML_PATTERNS = [
     ids=SPACE_YAML_PATTERNS,
 )
 def test_agent_space_yaml_examples(yaml_name: str) -> None:
-    """Each define-experiment-campaign space YAML parses as DiscoverySpaceConfiguration."""
+    """Each ado-define-experiment-campaign space YAML parses as DiscoverySpaceConfiguration."""
     base = pathlib.Path(__file__).resolve().parent.parent.parent / YAML_EXAMPLES_DIR
     path = base / f"{yaml_name}.yaml"
     if not path.exists():
         pytest.skip(f"YAML file not found: {path}")
-    data = yaml.safe_load(path.read_text())
+    data = yaml.load(path.read_text(), Loader=SafeLoader)
     config = DiscoverySpaceConfiguration.model_validate(data)
     assert config is not None
 
@@ -70,12 +75,12 @@ def test_agent_space_yaml_examples(yaml_name: str) -> None:
     ids=OPERATION_YAML_PATTERNS,
 )
 def test_agent_operation_yaml_examples(yaml_name: str) -> None:
-    """Each define-experiment-campaign operation YAML parses as DiscoveryOperationResourceConfiguration."""
+    """Each ado-define-experiment-campaign operation YAML parses as DiscoveryOperationResourceConfiguration."""
     base = pathlib.Path(__file__).resolve().parent.parent.parent / YAML_EXAMPLES_DIR
     path = base / f"{yaml_name}.yaml"
     if not path.exists():
         pytest.skip(f"YAML file not found: {path}")
-    data = yaml.safe_load(path.read_text())
+    data = yaml.load(path.read_text(), Loader=SafeLoader)
     config = DiscoveryOperationResourceConfiguration.model_validate(data)
     assert config is not None
 
@@ -86,11 +91,11 @@ def test_agent_operation_yaml_examples(yaml_name: str) -> None:
     ids=ACTUATOR_CONFIG_YAML_PATTERNS,
 )
 def test_agent_actuator_config_yaml_examples(yaml_name: str) -> None:
-    """Each define-experiment-campaign actuator config YAML parses as ActuatorConfiguration."""
+    """Each ado-define-experiment-campaign actuator config YAML parses as ActuatorConfiguration."""
     base = pathlib.Path(__file__).resolve().parent.parent.parent / YAML_EXAMPLES_DIR
     path = base / f"{yaml_name}.yaml"
     if not path.exists():
         pytest.skip(f"YAML file not found: {path}")
-    data = yaml.safe_load(path.read_text())
+    data = yaml.load(path.read_text(), Loader=SafeLoader)
     config = ActuatorConfiguration.model_validate(data)
     assert config is not None

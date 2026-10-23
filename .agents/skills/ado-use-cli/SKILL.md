@@ -1,0 +1,427 @@
+---
+name: ado-use-cli
+description: >-
+  Reference for ado CLI command syntax, flags, and usage patterns — get, create,
+  edit, show, describe, output flags (-o, --output-file), convenience flags
+  (--use-latest KIND, --set, --with), and debugging with -l. Use when writing,
+  verifying, or debugging ado CLI commands; looking up correct command syntax or
+  flags; or when unsure which ado command or flag to use. For listing catalogs
+  or answering data questions, use the ado-query-database skill. For running a
+  single experiment on one point, use the ado-run-experiment skill.
+---
+
+# Using the ado CLI
+
+## Command Verification
+
+Always run `--help` before writing any ado command in documentation, comments,
+or code. Do not rely on memory or analogy to other CLIs.
+
+```bash
+# Verify top-level command
+uv run ado [COMMAND] --help
+
+# Verify subcommands
+uv run ado [COMMAND] [SUBCOMMAND] --help
+uv run ado [COMMAND] [SUBCOMMAND1] [SUBCOMMAND2] --help
+```
+
+**Check**:
+
+- Command and subcommand names are correct
+- Options are spelled correctly (e.g., `--use-latest` not `--latest`)
+- Required arguments are included
+- Optional flags match actual CLI behavior
+
+## Output Format and File Handling
+
+For `ado get` and `ado show` subcommands:
+
+- `-o` / `--output` selects the **output format** (for example `yaml`, `table`,
+  `csv`, `json`, or `stats`; allowed values depend on the command — use
+  `--help`).
+- `--output-file PATH` writes formatted output to **PATH** instead of stdout.
+  Note: automatically expands table cells that appear clipped we sent to terminal.
+- `--no-trunc` expands clipped **table cells**. Note: It does not prevent a long
+  listing from being cut off in tool stdout capture.
+- `ado get -o csv` outputs the same columns as the table, as CSV. Prefer it when
+  output is read programmatically.
+
+### Complete listings (required for agents)
+
+`ado get … --details` tables are often large. Agent/tool **stdout capture
+can truncate output**
+even when the command succeeded. `--no-trunc` does not fix this.
+
+Write every listing or dump you will read to a file (as CSV for `ado get`), then
+read that file:
+
+```bash
+uv run ado get operations --details -o csv --output-file /tmp/ado-operations-details.csv
+uv run ado get spaces -l study=$ID --details -o csv --output-file /tmp/ado-study-spaces.csv
+uv run ado get operations --stats -o csv --output-file /tmp/ado-operations-stats.csv
+```
+
+Tip: Narrow listings with `-l`/`--filter` when you
+only need a subset — see
+[ado-query-database](../ado-query-database/SKILL.md#fast-querying).
+
+Prefer `/tmp/ado-*.csv` (or another path outside the repo) so listings are not
+left as untracked files.
+
+`--output-file` also:
+
+- validates the path is writable **before** fetching
+- writes only formatted output to the file (logs stay on stderr)
+- writes full cell text (no terminal-width clipping)
+
+A shell redirect (`>`) still clips table cells to terminal width and mixes logs
+into the file. Do not use `>` or `--no-trunc` as a substitute for
+`--output-file`.
+
+```bash
+uv run ado get space SPACE_ID -o yaml --output-file space.yaml
+uv run ado show measurements operation OPERATION_ID -o csv --output-file measurements.csv
+```
+
+## Commands That do not exist
+
+These plausible-sounding commands do not exist in ado. Do not write them:
+
+| ❌ Does not exist | ✅ Correct equivalent                    |
+| ----------------- | ---------------------------------------- |
+| `ado run`         | `ado create operation -f op.yaml`        |
+| `ado start`       | `ado create operation -f op.yaml`        |
+| `ado execute`     | `ado create operation -f op.yaml`        |
+| `ado launch`      | `ado create operation -f op.yaml`        |
+| `ado list`        | `ado get spaces` / `ado get operations`  |
+| `ado status`      | `ado show stats discoveryspace SPACE_ID` |
+
+**Key principle**: `ado create operation` both _defines_ and _starts_ the
+operation in a single command. There is no separate "run" step.
+
+## Core Commands
+
+### ado get
+
+Lists resources of a given type and gets resource YAML
+
+```bash
+# List all spaces (write to a file; stdout capture of long tables is incomplete)
+uv run ado get spaces --details -o csv --output-file /tmp/ado-spaces-details.csv
+
+# Get the YAML for a space
+uv run ado get space SPACE_ID -o yaml --output-file space.yaml
+
+# Get the latest space as YAML
+uv run ado get space --use-latest -o yaml --output-file latest-space.yaml
+
+# Get the latest operation as YAML
+uv run ado get operation --use-latest -o yaml --output-file latest-operation.yaml
+
+# Get measurement statistics for all operations
+uv run ado get operations --stats -o csv --output-file operations-stats.csv
+uv run ado get operation OPERATION_ID --stats --no-trunc
+
+# Get statistics for all discovery spaces
+uv run ado get spaces --stats -o csv --output-file spaces-stats.csv
+uv run ado get space SPACE_ID --stats --no-trunc
+
+# Include property domains in space table listing (-p / --include-properties)
+uv run ado get spaces -p constitutive -o csv --output-file /tmp/ado-spaces-properties.csv
+uv run ado get space SPACE_ID -p all -o csv --output-file /tmp/ado-space-properties.csv
+
+# Get statistics for all sample stores
+uv run ado get samplestores --stats -o csv --output-file samplestores-stats.csv
+uv run ado get samplestore SAMPLESTORE_ID --stats --no-trunc
+
+# Get statistics for all data containers
+uv run ado get datacontainers --stats -o csv --output-file datacontainers-stats.csv
+uv run ado get datacontainer DATACONTAINER_ID --stats --no-trunc
+
+# Get all resources of a type related to a source resource (--related-to)
+uv run ado get operations --related-to samplestore=STORE_ID \
+  -o csv --output-file /tmp/ado-ops-related.csv
+uv run ado get spaces --related-to samplestore=STORE_ID -o name \
+  --output-file /tmp/ado-spaces-related.txt
+uv run ado get operations --related-to discoveryspace=SPACE_ID \
+  --filter config.metadata.name=OP_NAME -o csv --output-file /tmp/ado-ops-related.csv
+```
+
+`--related-to` filters results to resources related to the given source resource
+(`kind=id`), including through multi-hop relationships. Shorthand aliases work
+(e.g. `store=STORE_ID`). Not supported for `actuator`, `experiment`, `operator`,
+or `context`. Cannot be combined with a direct resource ID or `--use-latest`.
+Can be combined with `--filter`, `--label`, `--matching-point`,
+`--matching-space`, and `--matching-space-id`.
+
+`--stats` adds statistics columns to the table:
+
+- **Operations**: `TOTAL_MEASUREMENTS`, `SUCCESSFUL_MEASUREMENTS`, `FAILED_MEASUREMENTS`,
+  `SAMPLED_ENTITIES`.
+- **Discovery Spaces**: `EXPERIMENTS`, `OPERATIONS`, `EXPLORE_OPS`,
+  `SAMPLED_ENTITIES`.
+- **Sample Stores**: `ENTITIES`, `RESULTS`, `EXPERIMENTS`.
+- **Data Containers**: `TABLES`, `LOCATIONS`, `KEY_VALUES`, `DATA_BYTES`.
+
+### ado create
+
+Creates resources and starts operations.
+
+```bash
+# Create a discoveryspace
+uv run ado create space -f space.yaml
+
+# Create and start an operation
+uv run ado create operation -f operation.yaml
+```
+
+**Key point**: `ado create` both defines AND initiates resources.
+
+### ado edit
+
+Updates **metadata** (name, description, labels, etc.) for metastore resources.
+
+```bash
+# Interactive (default editor: nano, or $ADO_EDITOR)
+uv run ado edit space SPACE_ID
+
+# Non-interactive: default is an inline YAML or JSON patch (-p / --patch),
+# like oc
+uv run ado edit space SPACE_ID -p "labels: { team: research }"
+
+# Or merge from a file
+uv run ado edit space SPACE_ID --patch-file meta.yaml
+
+# Bulk patch: apply the same patch to multiple resources in one atomic write
+uv run ado edit space SPACE_ID_1 SPACE_ID_2 -p "labels: { team: research }"
+uv run ado edit operation OP_ID_1 OP_ID_2 --patch-file meta.yaml
+```
+
+Multiple IDs require `--patch` or `--patch-file` — interactive mode supports
+only a single resource at a time. All IDs are validated to exist before any
+write is performed; the transaction is all-or-nothing.
+
+Always prefer a non-interactive edit with `-p` / `--patch` or `--patch-file`.
+Use `uv run ado edit --help` for current options.
+
+### ado show
+
+Retrieves details and data from resources.
+
+```bash
+# Inspect the trace of measurement requests for an operation
+uv run ado show trace operation OPERATION_ID
+
+# Get entities and measurements
+uv run ado show measurements space SPACE_ID
+uv run ado show measurements operation OPERATION_ID
+uv run ado show measurements samplestore SAMPLESTORE_ID
+
+# Show in-depth statistics (more columns than ado get --stats)
+# No IDs = all resources of that type
+uv run ado show stats operation
+uv run ado show stats operation --use-latest -o json
+uv run ado show stats discoveryspace SPACE_ID
+uv run ado show stats samplestore -l key=value
+# Include DESCRIPTION and LABELS columns
+uv run ado show stats operation --details
+```
+
+### ado describe
+
+Outputs a human readable description
+
+```bash
+# Output a description of a space
+# Dimensions, values, experiments
+uv run ado describe space SPACE_ID
+
+#Output a description of an experiment
+# (input params, output params etc.)
+uv run ado describe experiment EXPERIMENT_ID
+```
+
+## Debugging
+
+If commands are not given expected output use the -l flag to activate different
+log levels
+
+e.g. for debug level logs
+
+```bash
+uv run ado -lDEBUG [COMMAND]
+```
+
+## show Commands Quick Reference
+
+Entities are points in the discovery space — constitutive properties (inputs)
+plus measured properties (outputs).
+
+<!-- markdownlint-disable line-length -->
+
+| Command                          | What It Shows                                                                                                            |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `show measurements operation`    | Entities (inputs) and their measurements (outputs) from this operation                                                   |
+| `show measurements space`        | All entities and measurements collected in this space                                                                    |
+| `show measurements samplestore`  | All measured entities in a samplestore; only `--include measured` is supported (space-relative modes are rejected)       |
+| `show trace operation`           | The trace of measurement requests made during an explore operation. Optionally can show per entity measurement metadata  |
+| `show stats operation`           | In-depth stats: results (total/successful/failed), measured entities, plus request-level counts. No IDs = all operations |
+| `show stats discoveryspace`      | In-depth stats: experiments, operations, measured entities, plus full entity-space coverage columns. No IDs = all spaces |
+| `show stats samplestore`         | In-depth stats: entities, results, and experiments counts. No IDs = all sample stores                                    |
+| `show stats datacontainer`       | In-depth stats: tables, locations, key-values, and data bytes. No IDs = all data containers                              |
+
+<!-- markdownlint-enable line-length -->
+
+```bash
+# Measurement data
+uv run ado show measurements operation op-123
+
+# Inspect the trace of measurement requests for an operation
+uv run ado show trace operation op-123
+```
+
+## Command-Line Shortcuts
+
+### --use-latest
+
+Queries the current context's metastore to find the most recently created
+resource of the given type.
+
+**Without --use-latest**:
+
+```bash
+# Step 1: Create space, note the ID from output
+uv run ado create space -f space.yaml
+# Output: Created space: space-abc123
+
+# Step 2: Edit operation.yaml to add space-abc123
+# Step 3: Create operation
+uv run ado create operation -f operation.yaml
+```
+
+**With --use-latest**:
+
+```bash
+# Step 1: Create space
+uv run ado create space -f space.yaml
+
+# Step 2: Create operation using that space automatically
+uv run ado create operation -f operation.yaml --use-latest space
+```
+
+The `--use-latest` flag automatically fills in the latest space ID.
+
+### --set
+
+Overrides individual fields in a resource YAML at creation time without editing
+the file. Takes `JSON_path=JSON_document` pairs; can be used multiple times.
+The path must already exist in the resource configuration.
+
+```bash
+# Override the sample store used by a space
+uv run ado create space -f space.yaml --set sampleStoreIdentifier=my_store
+
+# Override a nested operation parameter
+uv run ado create operation -f operation.yaml --set operation.parameters.tuneConfig.num_samples=50
+
+# Override a list item
+uv run ado create operation -f operation.yaml --set "inputs.discoverySpace.identifier=space-abc123"
+```
+
+### --with
+
+`--with KIND=VALUE` supplies a dependency of the resource being created.
+
+- `KIND=RESOURCE_ID` — inject that existing identifier. Creates nothing extra.
+- `KIND=FILE.yaml` — **create** that resource from the file, then inject its
+  new identifier.
+
+```bash
+# One-liner: create the space, then create and start the operation
+uv run ado create operation -f operation.yaml --with space=space.yaml
+```
+
+`--dry-run` also propagates to nested resources supplied via
+`--with KIND=FILE.yaml` and `--new-sample-store`, validating them without
+creating any resources in the metastore.
+
+```bash
+# Validate both the operation and the referenced space without writing to the metastore
+uv run ado create operation -f operation.yaml --with space=space.yaml --dry-run
+
+# Validate an operation against an existing space (ID injection only)
+uv run ado create operation -f operation.yaml --dry-run --use-latest space
+uv run ado create operation -f operation.yaml --dry-run --with space=space-abc123
+```
+
+> **Note:** `--dry-run` checks syntactic and schema validity for each resource
+> file. Because nested resources (such as actuator configurations and spaces)
+> are not persisted to the metastore during a dry-run, cross-resource metastore
+> checks (such as validating actuator configurations against the space) cannot
+> be performed and are skipped until actual creation.
+
+## Documentation Best Practices
+
+When writing documentation with ado commands:
+
+1. **Always verify** the command syntax with `--help`
+2. **Use realistic IDs** in examples (e.g., `space-abc123` not `SPACE_ID` in
+   code blocks where actual output is shown)
+3. **Prefer shortcuts** (`--use-latest`, `--with KIND=ID`) in tutorials to
+   reduce friction.
+4. **Explain terminology** the first time: "entities (the inputs and their
+   measurements)"
+
+## Common Patterns
+
+### Query workflow
+
+```bash
+# List all operations
+uv run ado get operations --details -o csv --output-file /tmp/ado-operations-details.csv
+
+# Get details on a specific operation (YAML to a file)
+uv run ado get operation op-123 -o yaml --output-file op-123.yaml
+
+# Get the entities and measurements
+uv run ado show measurements operation op-123 -o csv --output-file op-123-entities.csv
+```
+
+### Create space and operation together
+
+When you want to create them in one command:
+
+```bash
+uv run ado create operation -f operation.yaml \
+  --with space=space.yaml \
+  --with actuatorconfiguration=config.yaml
+```
+
+### Iterative development
+
+Validate each YAML on its own, then create the space, then the operation.
+`--use-latest space` on dry-run requires the space to already exist.
+
+```bash
+uv run ado create space -f space.yaml --dry-run
+uv run ado create operation -f operation.yaml --dry-run
+
+uv run ado create space -f space.yaml
+uv run ado create operation -f operation.yaml --dry-run --use-latest space
+uv run ado create operation -f operation.yaml --use-latest space
+```
+
+If dry-run fails: check the error, fix the YAML, re-run dry-run. Common issues:
+missing experiment references, invalid parameter types, unresolvable
+`--use-latest` (no resource of that type exists yet).
+
+## Related Resources
+
+- For creating and structuring resource YAML files, see
+  [ado-create-resource-yaml](../ado-create-resource-yaml/)
+- For creating discoveryspace and operation YAML files, see
+  [ado-define-experiment-campaign](../ado-define-experiment-campaign/)
+- For running a single point through an experiment with the separate
+  `run_experiment` tool, see [ado-run-experiment](../ado-run-experiment/SKILL.md)
+- For general development guidelines, see [AGENTS.md](../../../AGENTS.md)

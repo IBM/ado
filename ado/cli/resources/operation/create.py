@@ -4,6 +4,12 @@
 import pydantic
 import typer
 import yaml
+
+try:
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:  # pragma: nocover
+    from yaml import SafeLoader  # type: ignore[assignment]
+
 from rich.status import Status
 
 from ado.cli.models.parameters import AdoCreateCommandParameters
@@ -33,7 +39,19 @@ from ado.core.operation.operation import OperationException, OperationOutput
 from ado.core.operation.resource import (
     OperationExitStateEnum,
 )
+from ado.core.resources import ADOResourceReference
 from ado.modules.operators.errors import OperatorVersionMismatchError
+
+
+def _discovery_space_inputs(identifier: str) -> dict[str, ADOResourceReference]:
+    """Return the single ``discoverySpace`` input used by current operators."""
+
+    return {
+        "discoverySpace": ADOResourceReference(
+            identifier=identifier,
+            kind=CoreResourceKinds.DISCOVERYSPACE,
+        )
+    }
 
 
 def create_operation(parameters: AdoCreateCommandParameters) -> str | None:
@@ -44,7 +62,10 @@ def create_operation(parameters: AdoCreateCommandParameters) -> str | None:
     try:
         op_resource_configuration: DiscoveryOperationResourceConfiguration = (
             DiscoveryOperationResourceConfiguration.model_validate(
-                yaml.safe_load(parameters.resource_configuration_file.read_text())
+                yaml.load(
+                    parameters.resource_configuration_file.read_text(),
+                    Loader=SafeLoader,
+                )
             )
         )
     except (pydantic.ValidationError, ValueError) as e:
@@ -74,49 +95,56 @@ def create_operation(parameters: AdoCreateCommandParameters) -> str | None:
                     parameters.with_resources[CoreResourceKinds.ACTUATORCONFIGURATION]
                 ]
             else:
-                op_resource_configuration.actuatorConfigurationIdentifiers = [
-                    create_actuator_configuration(
-                        AdoCreateCommandParameters(
-                            ado_configuration=parameters.ado_configuration,
-                            dry_run=False,
-                            new_sample_store=False,
-                            override_values=[],
-                            resource_configuration_file=parameters.with_resources[
-                                CoreResourceKinds.ACTUATORCONFIGURATION
-                            ],
-                            resource_type=AdoCreateSupportedResourceTypes.ACTUATOR_CONFIGURATION,
-                            use_default_sample_store=False,
-                            with_resources={},
-                            use_latest=[],
-                        )
+                actuator_configuration_identifier = create_actuator_configuration(
+                    AdoCreateCommandParameters(
+                        ado_configuration=parameters.ado_configuration,
+                        dry_run=parameters.dry_run,
+                        new_sample_store=False,
+                        override_values=[],
+                        resource_configuration_file=parameters.with_resources[
+                            CoreResourceKinds.ACTUATORCONFIGURATION
+                        ],
+                        resource_type=AdoCreateSupportedResourceTypes.ACTUATOR_CONFIGURATION,
+                        use_default_sample_store=False,
+                        with_resources={},
+                        use_latest=[],
                     )
-                ]
+                )
+                if actuator_configuration_identifier is not None:
+                    op_resource_configuration.actuatorConfigurationIdentifiers = [
+                        actuator_configuration_identifier
+                    ]
 
         if CoreResourceKinds.DISCOVERYSPACE in parameters.with_resources:
             if isinstance(
                 parameters.with_resources[CoreResourceKinds.DISCOVERYSPACE], str
             ):
-                op_resource_configuration.spaces = [
-                    parameters.with_resources[CoreResourceKinds.DISCOVERYSPACE]
+                space_identifier = parameters.with_resources[
+                    CoreResourceKinds.DISCOVERYSPACE
                 ]
             else:
-                op_resource_configuration.spaces = [
-                    create_discovery_space(
-                        AdoCreateCommandParameters(
-                            ado_configuration=parameters.ado_configuration,
-                            dry_run=False,
-                            new_sample_store=False,
-                            override_values=[],
-                            resource_configuration_file=parameters.with_resources[
-                                CoreResourceKinds.DISCOVERYSPACE
-                            ],
-                            resource_type=AdoCreateSupportedResourceTypes.DISCOVERY_SPACE,
-                            use_default_sample_store=False,
-                            with_resources={},
-                            use_latest=[],
-                        )
+                space_identifier = create_discovery_space(
+                    AdoCreateCommandParameters(
+                        ado_configuration=parameters.ado_configuration,
+                        dry_run=parameters.dry_run,
+                        new_sample_store=False,
+                        override_values=[],
+                        resource_configuration_file=parameters.with_resources[
+                            CoreResourceKinds.DISCOVERYSPACE
+                        ],
+                        resource_type=AdoCreateSupportedResourceTypes.DISCOVERY_SPACE,
+                        use_default_sample_store=False,
+                        with_resources={},
+                        use_latest=[],
                     )
-                ]
+                )
+
+            # A dry-run of a new discovery space validates the file and returns
+            # no identifier, because the space is not stored.
+            if space_identifier is not None:
+                op_resource_configuration.inputs = _discovery_space_inputs(
+                    space_identifier
+                )
 
     elif parameters.use_latest:
         reuse_requested_latest_identifiers(
@@ -132,7 +160,10 @@ def create_operation(parameters: AdoCreateCommandParameters) -> str | None:
     if parameters.dry_run:
         console_print(f"{INFO}The operation YAML is syntactically valid.", stderr=True)
 
-    if op_resource_configuration.actuatorConfigurationIdentifiers:
+    if (
+        not parameters.dry_run
+        and op_resource_configuration.actuatorConfigurationIdentifiers
+    ):
         with Status("Validating actuator configurations for operation") as status:
             try:
                 op_resource_configuration.validate_actuatorconfigurations(
@@ -208,12 +239,14 @@ def reuse_requested_latest_identifiers(
     # Map resource kinds to their configuration fields
     resource_field_mapping = {
         CoreResourceKinds.ACTUATORCONFIGURATION: "actuatorConfigurationIdentifiers",
-        CoreResourceKinds.DISCOVERYSPACE: "spaces",
     }
 
     # Handle each requested resource kind
     for resource_kind in parameters.use_latest:
-        if resource_kind not in resource_field_mapping:
+        if (
+            resource_kind not in resource_field_mapping
+            and resource_kind != CoreResourceKinds.DISCOVERYSPACE
+        ):
             continue
 
         latest_id = latest_ids.get(resource_kind)
@@ -224,9 +257,11 @@ def reuse_requested_latest_identifiers(
             )
             raise typer.Exit(1)
 
-        # Set the appropriate field on the configuration
-        field_name = resource_field_mapping[resource_kind]
-        setattr(resource_configuration, field_name, [latest_id])
+        if resource_kind == CoreResourceKinds.DISCOVERYSPACE:
+            resource_configuration.inputs = _discovery_space_inputs(latest_id)
+        else:
+            field_name = resource_field_mapping[resource_kind]
+            setattr(resource_configuration, field_name, [latest_id])
 
         console_print(
             value_in_configuration_replaced_with_latest_identifier_for_resource(

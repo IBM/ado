@@ -23,6 +23,7 @@ from ado.core.operation.config import (
     DiscoveryOperationConfiguration,
     DiscoveryOperationEnum,
     DiscoveryOperationResourceConfiguration,
+    GenericOperatorParameters,
 )
 from ado.core.operation.operation import OperationOutput
 from ado.core.operation.resource import OperationResource
@@ -53,6 +54,8 @@ def test_import_registers_operator_metadata(
     assert metadata.version == "0.1.0"
     assert metadata.function is function
     assert metadata.configuration_model is configuration_model
+    assert issubclass(metadata.configuration_model, GenericOperatorParameters)
+    assert isinstance(metadata.example_configuration, GenericOperatorParameters)
     assert metadata.example_configuration == configuration_model.example_configuration()
 
 
@@ -88,6 +91,7 @@ def test_operator_parameter_models_round_trip(
     )
 
     assert restored == parameters
+    assert isinstance(restored, GenericOperatorParameters)
     assert restored.numberEntities == 7
     assert restored.outputDirectory == "saved-model"
     assert sampler_parameters.targetOutput == "benchmark.latency"

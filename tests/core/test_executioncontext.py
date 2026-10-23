@@ -5,6 +5,11 @@ import pydantic
 import pytest
 import yaml
 
+try:
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:  # pragma: nocover
+    from yaml import SafeLoader  # type: ignore[assignment]
+
 from ado.core.remotecontext.config import (
     ClusterExecutionType,
     JobExecutionType,
@@ -262,7 +267,9 @@ def test_remote_execution_context_runtime_env_yaml_round_trip() -> None:
         ),
     )
     yaml_str = pydantic_model_as_yaml(ctx)
-    reloaded = RemoteExecutionContext.model_validate(yaml.safe_load(yaml_str))
+    reloaded = RemoteExecutionContext.model_validate(
+        yaml.load(yaml_str, Loader=SafeLoader)
+    )
     assert reloaded.runtimeEnv is not None
     assert reloaded.runtimeEnv.setupTimeoutSeconds == 1200
     assert reloaded.runtimeEnv.eagerInstall is False
@@ -285,7 +292,9 @@ def test_remote_execution_context_yaml_round_trip() -> None:
         envVars={"PYTHONUNBUFFERED": "x"},
     )
     yaml_str = pydantic_model_as_yaml(ctx)
-    reloaded = RemoteExecutionContext.model_validate(yaml.safe_load(yaml_str))
+    reloaded = RemoteExecutionContext.model_validate(
+        yaml.load(yaml_str, Loader=SafeLoader)
+    )
     assert reloaded == ctx
 
 

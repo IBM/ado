@@ -85,6 +85,9 @@ def list_contexts(
     # List available context names only
     ado contexts -o name
 
+    # Get contexts as CSV
+    ado contexts -o csv
+
     # Get contexts as YAML
     ado contexts -o yaml
 
@@ -112,6 +115,7 @@ def list_contexts(
         resource_type=AdoGetSupportedResourceTypes.CONTEXT,
         show_deprecated=False,
         show_details=False,
+        show_stats=False,
         use_latest=False,
     )
 

@@ -8,6 +8,12 @@ import pydantic
 import rich.rule
 import typer
 import yaml
+
+try:
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:  # pragma: nocover
+    from yaml import SafeLoader  # type: ignore[assignment]
+
 from rich.console import RenderableType
 from rich.status import Status
 
@@ -124,6 +130,23 @@ def _render_dataframe_table_output(
         do_not_truncate_columns=do_not_truncate,
     )
     _write_or_print_output(table, parameters.output_file)
+
+
+def _render_dataframe_csv_output(
+    df: "pd.DataFrame", parameters: "AdoGetCommandParameters"
+) -> None:
+    """Render a DataFrame as CSV or print the empty-data message to stderr.
+
+    Args:
+        df: DataFrame to render.
+        parameters: Command parameters; uses output_file to determine the
+            output destination.
+    """
+    if df.empty:
+        console_print(ADO_INFO_EMPTY_DATAFRAME, stderr=True)
+        return
+
+    _write_or_print_output(df.to_csv(index=False), parameters.output_file, raw=True)
 
 
 def _build_dataframe_from_resources(
@@ -259,8 +282,8 @@ def handle_ado_get(
             _handle_name_format(parameters, resource_type, dataframe, resources)
         case AdoGetSupportedOutputFormats.TABLE:
             _handle_table_format(parameters, resource_type, dataframe, resources)
-        case AdoGetSupportedOutputFormats.STATS:
-            _handle_stats_format(parameters, resource_type, dataframe, resources)
+        case AdoGetSupportedOutputFormats.CSV:
+            _handle_csv_format(parameters, resource_type, dataframe, resources)
         case AdoGetSupportedOutputFormats.RAW:
             _handle_raw_format(parameters, resource_type)
         case (
@@ -375,6 +398,40 @@ def _handle_name_format(
             _write_or_print_output(output, parameters.output_file)
 
 
+def _build_output_dataframe_with_stats(
+    parameters: "AdoGetCommandParameters",
+    resource_type: "CoreResourceKinds | None",
+    dataframe: "pd.DataFrame | None",
+    resources: "list[ADOResource] | ADOResource | None",
+) -> "pd.DataFrame":
+    """Build the DataFrame for table-like output formats.
+
+    Args:
+        parameters: Command parameters, including show_stats and filter options.
+        resource_type: Type of resource being listed; required when dataframe
+            and resources are both None.
+        dataframe: Pre-built DataFrame to use directly, if provided.
+        resources: Pre-fetched resources to build a DataFrame from, if provided.
+
+    Returns:
+        DataFrame with base columns and, when show_stats is set, additional
+        statistics columns appended.
+    """
+    output_df = _build_table_output_dataframe(
+        parameters=parameters,
+        resource_type=resource_type,
+        dataframe=dataframe,
+        resources=resources,
+    )
+    if parameters.show_stats:
+        output_df = _add_stats_columns(
+            base_df=output_df,
+            parameters=parameters,
+            resource_type=resource_type,
+        )
+    return output_df
+
+
 def _handle_table_format(
     parameters: "AdoGetCommandParameters",
     resource_type: "CoreResourceKinds | None",
@@ -382,7 +439,7 @@ def _handle_table_format(
     resources: "list[ADOResource] | ADOResource | None",
 ) -> None:
     """Handle TABLE output format - render DataFrame as table."""
-    output_df = _build_table_output_dataframe(
+    output_df = _build_output_dataframe_with_stats(
         parameters=parameters,
         resource_type=resource_type,
         dataframe=dataframe,
@@ -391,13 +448,28 @@ def _handle_table_format(
     return _render_dataframe_table_output(output_df, parameters)
 
 
-def _handle_stats_format(
+def _handle_csv_format(
     parameters: "AdoGetCommandParameters",
     resource_type: "CoreResourceKinds | None",
     dataframe: "pd.DataFrame | None",
     resources: "list[ADOResource] | ADOResource | None",
 ) -> None:
-    """Handle STATS output format - TABLE columns plus measurement/space stats columns.
+    """Handle CSV output format - render the table DataFrame as CSV."""
+    output_df = _build_output_dataframe_with_stats(
+        parameters=parameters,
+        resource_type=resource_type,
+        dataframe=dataframe,
+        resources=resources,
+    )
+    return _render_dataframe_csv_output(output_df, parameters)
+
+
+def _add_stats_columns(
+    base_df: "pd.DataFrame",
+    parameters: "AdoGetCommandParameters",
+    resource_type: "CoreResourceKinds | None",
+) -> "pd.DataFrame":
+    """Add measurement/space/store/container statistics columns to the base table DataFrame.
 
     Supported for:
     - operations (columns: TOTAL_MEASUREMENTS, SUCCESSFUL_MEASUREMENTS, FAILED_MEASUREMENTS,
@@ -419,56 +491,48 @@ def _handle_stats_format(
         CoreResourceKinds.SAMPLESTORE,
         CoreResourceKinds.DATACONTAINER,
     }
-    if resource_type is not None and resource_type not in _SUPPORTED:
+    if resource_type not in _SUPPORTED:
         console_print(
-            f"{ERROR}The 'stats' output format is only supported for operations, "
+            f"{ERROR}The '--stats' flag is only supported for operations, "
             f"discovery spaces, sample stores, and data containers.",
             stderr=True,
         )
         raise typer.Exit(1)
 
-    base_df = _build_table_output_dataframe(
-        parameters=parameters,
-        resource_type=resource_type,
-        dataframe=dataframe,
-        resources=resources,
-    )
-
     if base_df.empty:
-        _render_dataframe_table_output(base_df, parameters)
-        return
+        return base_df
 
-    # Append stats columns.
+    # Add stats columns.
     sql_store_for_stats = get_sql_store(
         project_context=parameters.ado_configuration.project_context
     )
     with Status(ADO_SPINNER_GETTING_OUTPUT_READY) as status:
         if resource_type == CoreResourceKinds.DISCOVERYSPACE:
-            enriched_df = format_ado_get_stats_for_spaces(
+            output_df = format_ado_get_stats_for_spaces(
                 base_df,
                 sql_store_for_stats,
                 spinner=status,
             )
         elif resource_type == CoreResourceKinds.SAMPLESTORE:
-            enriched_df = format_ado_get_stats_for_samplestores(
+            output_df = format_ado_get_stats_for_samplestores(
                 base_df,
                 sql_store_for_stats,
                 spinner=status,
             )
         elif resource_type == CoreResourceKinds.DATACONTAINER:
-            enriched_df = format_ado_get_stats_for_datacontainers(
+            output_df = format_ado_get_stats_for_datacontainers(
                 base_df,
                 sql_store_for_stats,
                 spinner=status,
             )
         else:
-            enriched_df = format_ado_get_stats_for_operations(
+            output_df = format_ado_get_stats_for_operations(
                 base_df,
                 sql_store_for_stats,
                 spinner=status,
             )
 
-    _render_dataframe_table_output(enriched_df, parameters)
+    return output_df
 
 
 def _handle_raw_format(
@@ -574,14 +638,20 @@ def _handle_structured_formats(
 
 
 def _write_or_print_output(
-    content: str | RenderableType, output_file: pathlib.Path | None
+    content: str | RenderableType,
+    output_file: pathlib.Path | None,
+    raw: bool = False,
 ) -> None:
     """Helper to write to file or print to console.
 
     Args:
         content: String content or rich renderable to output
         output_file: Optional file path. If provided, content is written to file.
+        raw: If True, string content is written verbatim to stdout, bypassing
+            rich processing (markup, highlighting, trailing newline).
     """
+    import sys
+
     if output_file:
         # Convert to string if it's a rich renderable
         if not isinstance(content, str):
@@ -590,6 +660,9 @@ def _write_or_print_output(
             content = render_to_string(content, auto_width=True)
         output_file.write_text(content)
         console_print(f"{SUCCESS}Output written to {output_file}", stderr=True)
+    elif raw:
+        sys.stdout.write(str(content))
+        sys.stdout.flush()
     else:
         console_print(content)
 
@@ -677,7 +750,7 @@ def apply_patch_to_resources(
     try:
         raw = yaml.load(
             metadata_patch if metadata_patch is not None else metadata_path.read_text(),  # type: ignore[union-attr]
-            Loader=yaml.CSafeLoader,
+            Loader=SafeLoader,
         )
         if raw is not None and not isinstance(raw, dict):
             console_print(
@@ -779,7 +852,7 @@ def interactively_edit_resource_metadata(
             console_print(f"{ERROR}The editor exited with an error: {e}", stderr=True)
             raise typer.Exit(1) from e
 
-        new_metadata = yaml.load(file.read_text(), Loader=yaml.CSafeLoader)
+        new_metadata = yaml.load(file.read_text(), Loader=SafeLoader)
 
     try:
         resource.config.metadata = ConfigurationMetadata.model_validate(new_metadata)

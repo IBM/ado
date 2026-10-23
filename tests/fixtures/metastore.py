@@ -10,6 +10,11 @@ import pytest
 import sqlalchemy
 import testcontainers.community.mysql as testcontainers_mysql
 import yaml
+
+try:
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:  # pragma: nocover
+    from yaml import SafeLoader  # type: ignore[assignment]
 from sqlalchemy.pool import NullPool
 from typer.testing import CliRunner
 
@@ -141,7 +146,7 @@ def valid_ado_mysql_project_context(
     from ado.metastore.sqlstore import _reflected_metadata_cache
 
     context = ado.metastore.project.ProjectContext.model_validate(
-        yaml.safe_load(valid_ado_mysql_context_yaml)
+        yaml.load(valid_ado_mysql_context_yaml, Loader=SafeLoader)
     )
     yield context
 
@@ -161,7 +166,7 @@ def valid_ado_sqlite_project_context(
 ) -> ado.metastore.project.ProjectContext:
     """Fixture that provides SQLite project context"""
     return ado.metastore.project.ProjectContext.model_validate(
-        yaml.safe_load(valid_ado_sqlite_context_yaml)
+        yaml.load(valid_ado_sqlite_context_yaml, Loader=SafeLoader)
     )
 
 
@@ -232,7 +237,7 @@ def ado_test_file_project_context(request: pytest.FixtureRequest) -> ProjectCont
         path = "tests/mysql_test_context.yaml"
 
     with open(path) as f:
-        return ProjectContext.model_validate(yaml.safe_load(f))
+        return ProjectContext.model_validate(yaml.load(f, Loader=SafeLoader))
 
 
 @pytest.fixture

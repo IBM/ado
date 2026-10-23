@@ -5,6 +5,11 @@
 import pytest
 import yaml
 
+try:
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:  # pragma: nocover
+    from yaml import SafeLoader  # type: ignore[assignment]
+
 import ado.schema
 from ado.core.discoveryspace.config import DiscoverySpaceConfiguration
 from ado.core.samplestore.sql import SQLSampleStore
@@ -49,7 +54,7 @@ def measurement_space_from_discovery_configuration(
 ) -> MeasurementSpace:
 
     space_configuration = DiscoverySpaceConfiguration.model_validate(
-        yaml.safe_load(pfas_space_configuration_str)
+        yaml.load(pfas_space_configuration_str, Loader=SafeLoader)
     )
     space_configuration.sampleStoreIdentifier = pfas_sample_store.identifier
 
@@ -127,7 +132,7 @@ def measurement_space_configuration_smiles_yaml() -> dict[str, str]:
         actuatorIdentifier: 'replay'
     """
 
-    return yaml.safe_load(y)
+    return yaml.load(y, Loader=SafeLoader)
 
 
 @pytest.fixture

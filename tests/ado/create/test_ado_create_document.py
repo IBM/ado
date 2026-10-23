@@ -5,6 +5,12 @@ import pathlib
 from collections.abc import Callable
 
 import yaml
+
+try:
+    from yaml import CSafeDumper as SafeDumper
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:  # pragma: nocover
+    from yaml import SafeDumper, SafeLoader  # type: ignore[assignment]
 from typer.testing import CliRunner
 
 from ado.cli.core.cli import app as ado
@@ -41,9 +47,11 @@ def test_create_document_dry_run_failure(tmp_path: pathlib.Path) -> None:
     """Dry-run rejects an invalid document configuration."""
     document_file = pathlib.Path("tests/fixtures/document.yaml")
     invalid_document_file = tmp_path / "invalid.yaml"
-    document_configuration = yaml.safe_load(document_file.read_text())
+    document_configuration = yaml.load(document_file.read_text(), Loader=SafeLoader)
     del document_configuration["content"]
-    invalid_document_file.write_text(yaml.safe_dump(document_configuration))
+    invalid_document_file.write_text(
+        yaml.dump(document_configuration, Dumper=SafeDumper)
+    )
 
     runner = CliRunner()
     result = runner.invoke(
@@ -240,7 +248,9 @@ def test_get_document_config_round_trip(
 ) -> None:
     """Get document -o config returns the stored configuration."""
     config = DocumentConfiguration.model_validate(
-        yaml.safe_load(pathlib.Path("tests/fixtures/document.yaml").read_text())
+        yaml.load(
+            pathlib.Path("tests/fixtures/document.yaml").read_text(), Loader=SafeLoader
+        )
     )
     resource = DocumentResource(config=config)
     sql_store.addResource(resource)
@@ -263,7 +273,9 @@ def test_get_document_config_round_trip(
     )
 
     assert result.exit_code == 0
-    restored = DocumentConfiguration.model_validate(yaml.safe_load(result.output))
+    restored = DocumentConfiguration.model_validate(
+        yaml.load(result.output, Loader=SafeLoader)
+    )
     assert restored.content == config.content
     assert restored.relatedResources == [
         RelatedResource(id="operation-test-12345678", role="parent"),

@@ -14,6 +14,11 @@ from collections.abc import Callable
 import pytest
 import trim_custom_experiments.experiments  # noqa: F401 — registers controlled_error and other experiments
 import yaml
+
+try:
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:  # pragma: nocover
+    from yaml import SafeLoader  # type: ignore[assignment]
 from testcontainers.community.mysql import MySqlContainer
 
 import ado.modules.operators.randomwalk  # noqa: F401
@@ -84,7 +89,9 @@ def controlled_error_space(
     create_space: Callable[[DiscoverySpaceConfiguration, str], DiscoverySpace],
 ) -> DiscoverySpace:
     """Discovery space backed by the controlled_error custom experiment."""
-    space_conf = DiscoverySpaceConfiguration.model_validate(yaml.safe_load(_SPACE_YAML))
+    space_conf = DiscoverySpaceConfiguration.model_validate(
+        yaml.load(_SPACE_YAML, Loader=SafeLoader)
+    )
     sample_store = create_sample_store(
         SampleStoreConfiguration(
             specification=SampleStoreSpecification(

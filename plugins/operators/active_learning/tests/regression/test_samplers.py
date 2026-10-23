@@ -358,6 +358,13 @@ def test_clhs_selector_uses_original_categorical_dimensions(
         )
     )
     pool, _, state = selector._initial_state(space)
+    assert pool.feature_frame.columns.tolist() == ["size", "colour"]
+    assert pd.api.types.is_numeric_dtype(pool.feature_frame["size"])
+    assert pool.categorical_columns == ("colour",)
+    np.testing.assert_array_equal(
+        pool.features,
+        _encode_features(pool.feature_frame, pool.categorical_columns),
+    )
     assert pool.pilot_features.shape == (12, 2)
     assert pool.features.shape[1] > 2
     selected = []
@@ -394,6 +401,10 @@ def test_pilot_pool_preserves_large_integer_category_values() -> None:
         sample_store=_MutableSampleStore([]),
     )
     pool = _finite_pool(space)
+    assert pool.feature_frame["category"].tolist() == levels
+    assert pd.api.types.is_integer_dtype(pool.feature_frame["category"])
+    assert pd.api.types.is_float_dtype(pool.feature_frame["fraction"])
+    assert pool.categorical_columns == ("category",)
     assert pool.pilot_features[:, 1].tolist() == levels
     assert pool.pilot_features[0, 1] != pool.pilot_features[1, 1]
 
@@ -422,6 +433,8 @@ def test_measured_labels_use_refreshable_sample_store_api() -> None:
         features=np.array([[0.0]]),
         entities=(entity,),
         index_by_identifier={"point-0": 0},
+        feature_frame=pd.DataFrame({"feature": [0.0]}),
+        categorical_columns=(),
     )
 
     labels = _measured_labels(discovery_space, pool, target_property)

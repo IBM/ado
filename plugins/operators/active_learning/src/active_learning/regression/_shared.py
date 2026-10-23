@@ -465,12 +465,19 @@ class _SequentialSelectionState(abc.ABC):
 
 @dataclass(frozen=True)
 class _FinitePool:
-    """Encoded entities and lookup data for one finite discovery space."""
+    """Raw and encoded features, entities, and schema for a finite discovery space."""
 
     features: np.ndarray
     entities: tuple[Entity, ...]
     index_by_identifier: dict[str, int]
-    pilot_features: np.ndarray | None = None
+    feature_frame: pd.DataFrame
+    categorical_columns: tuple[str, ...]
+
+    @property
+    def pilot_features(self) -> np.ndarray:
+        """Return original feature values with exact numeric categorical levels."""
+
+        return self.feature_frame.to_numpy(dtype=object)
 
 
 def _resolve_target(
@@ -595,7 +602,8 @@ def _finite_pool(
         features=features,
         entities=tuple(entities),
         index_by_identifier=identifiers,
-        pilot_features=frame.to_numpy(dtype=object),
+        feature_frame=frame,
+        categorical_columns=tuple(categorical_columns),
     )
 
 

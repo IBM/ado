@@ -69,7 +69,16 @@ class _StructuredPilot:
         Proposals for unavailable coordinates are skipped. After a bounded
         number of attempts, remaining rows are drawn uniformly without
         replacement from the eligible candidates.
+
+        Raises:
+            ValueError: If count exceeds the number of eligible candidates.
         """
+
+        if count > candidates.size:
+            raise ValueError(
+                f"structured pilot requested {count} candidates; "
+                f"only {candidates.size} available"
+            )
 
         available: dict[tuple[int, ...], list[int]] = {}
         for index in candidates:

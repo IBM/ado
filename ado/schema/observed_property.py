@@ -58,12 +58,29 @@ class ObservedProperty(pydantic.BaseModel):
         return value
 
     def __eq__(self, other: object) -> bool:  # noqa: ANN401
-        """Two properties are considered the same if they have the same identifier"""
+        """Check equality with another object based on experiment reference and target property.
 
-        return self.identifier == other.identifier
+        Args:
+            other: The object to compare with.
+
+        Returns:
+            True if other is an ObservedProperty with matching experimentReference
+            and targetProperty identifier.
+        """
+        if not isinstance(other, ObservedProperty):
+            return False
+        return (
+            self.experimentReference == other.experimentReference
+            and self.targetProperty.identifier == other.targetProperty.identifier
+        )
 
     def __hash__(self) -> int:
-        return hash(str(self))
+        """Compute the hash based on experiment reference and target property identifier.
+
+        Returns:
+            The integer hash value.
+        """
+        return hash((hash(self.experimentReference), self.targetProperty.identifier))
 
     @property
     def identifier(self) -> str:

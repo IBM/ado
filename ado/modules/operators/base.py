@@ -398,7 +398,7 @@ def add_operation_output_to_metastore(
 
 
 def create_operation_and_add_to_metastore(
-    space_identifier: str,
+    inputs: dict[str, ado.core.resources.ADOResourceReference],
     operator_module: OperatorModuleConf | OperatorReference,
     operation_parameters: dict,
     operation_info: FunctionOperationInfo,
@@ -406,25 +406,25 @@ def create_operation_and_add_to_metastore(
     provenance: OperationProvenanceInfo,
     operation_identifier: str | None = None,
 ) -> OperationResource:
-    """Creates an operation resource and adds it to the metastore
+    """Create an operation resource and add it to the metastore.
 
-    This function creates an OperationResource from the provided operator module,
-    parameters, and operation info, then adds it to the metastore with relationships
-    to the discovery space and any actuator configurations.
+    The operation is related to every resource in *inputs* and to any actuator
+    configurations named on *operation_info*.
 
-    Params:
-        space_identifier: Identifier of the discovery space the operation will operate on
-        operator_module: Configuration for the operator (either module or function-based)
-        operation_parameters: Dictionary of parameters for the operation
-        operation_info: Information about the operation including metadata and actuator
-            configuration identifiers
-        metastore: The SQL store to add the operation resource to
-        provenance: Package provenance for the operation, built by the caller
-        operation_identifier: Optional pre-existing identifier for the operation resource.
-            If not provided, a new identifier will be generated
+    Args:
+        inputs: Mapping of operator parameter name to the resource reference
+            the operation worked on.
+        operator_module: Configuration for the operator (module or function-based).
+        operation_parameters: Dictionary of parameters for the operation.
+        operation_info: Information about the operation including metadata and
+            actuator configuration identifiers.
+        metastore: The SQL store to add the operation resource to.
+        provenance: Package provenance for the operation, built by the caller.
+        operation_identifier: Optional pre-existing identifier for the operation
+            resource. If not provided, a new identifier will be generated.
 
     Returns:
-        OperationResource instance that was created and added to the metastore
+        OperationResource instance that was created and added to the metastore.
     """
 
     from ado.core.operation.config import (
@@ -439,7 +439,7 @@ def create_operation_and_add_to_metastore(
         ),
         metadata=operation_info.metadata,
         actuatorConfigurationIdentifiers=operation_info.actuatorConfigurationIdentifiers,
-        spaces=[space_identifier],
+        inputs=inputs,
     )
 
     op_module = operation_resource_configuration.operation.module
@@ -452,7 +452,7 @@ def create_operation_and_add_to_metastore(
     )
 
     related_identifiers = [
-        operation_resource_configuration.spaces[0],
+        *[entry.identifier for entry in inputs.values()],
         *operation_resource_configuration.actuatorConfigurationIdentifiers,
     ]
 

@@ -11,7 +11,7 @@ from ado.modules.operators.collections import characterize_operation
 from trim.samplers.no_priors_utils import get_source_and_target
 from trim.trim_pydantic import (
     NoPriorsParametersInternal,
-    TrimParameters,
+    TrimOperatorParameters,
     TrimSamplerParameters,
     TrimSamplerParametersInternal,
 )  # Importing this way works when the package is installed
@@ -24,9 +24,9 @@ logger_trim = logging.getLogger(__name__)
 
 
 def validate_targetOutput(
-    params: "TrimParameters",
+    params: "TrimOperatorParameters",
     discoverySpace: DiscoverySpace,
-) -> "TrimParameters":
+) -> "TrimOperatorParameters":
     """Resolve and validate ``params.targetOutput`` against the measurement space.
 
     ``targetOutput`` must be the bare *target property identifier* (e.g.
@@ -94,8 +94,8 @@ def validate_targetOutput(
 
 @characterize_operation(
     name="trim",
-    configuration_model=TrimParameters,
-    example_configuration=TrimParameters.example_configuration(),
+    configuration_model=TrimOperatorParameters,
+    example_configuration=TrimOperatorParameters.example_configuration(),
     description="""
                 Trim is used to characterise a Discovery space.
                 In its first implementation it starts from a space,
@@ -108,7 +108,7 @@ def trim(
     discoverySpace: DiscoverySpace,
     operationInfo: FunctionOperationInfo | None = None,
     *,
-    parameters: TrimParameters,
+    parameters: TrimOperatorParameters,
 ) -> OperationOutput:
     """
     Execute the TRIM (Transfer Refined Iterative Modeling) operation on a discovery space.

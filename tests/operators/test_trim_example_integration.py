@@ -40,7 +40,7 @@ from trim.trim_pydantic import (
     NoPriorsParametersInternal,
     SamplingBudget,
     StoppingCriterion,
-    TrimParameters,
+    TrimOperatorParameters,
 )
 
 
@@ -114,7 +114,7 @@ def test_trim_example_operation_succeeds(
             "verbosity": 0,
         },
     )
-    params = TrimParameters(
+    params = TrimOperatorParameters(
         targetOutput="pressure",
         samplingBudget=SamplingBudget(
             minPoints=min_points,

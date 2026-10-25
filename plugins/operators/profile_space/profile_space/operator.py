@@ -9,7 +9,7 @@ from ado.core.operation.operation import OperationOutput
 from ado.modules.operators.collections import characterize_operation
 
 
-class ProfileParameters(GenericOperatorParameters):
+class ProfileSpaceOperatorParameters(GenericOperatorParameters):
     """Parameters for the profile operator (no configurable options)."""
 
 
@@ -18,8 +18,8 @@ class ProfileParameters(GenericOperatorParameters):
 @characterize_operation(
     name="profile",
     version="2.0.4",
-    configuration_model=ProfileParameters,
-    example_configuration=ProfileParameters(),
+    configuration_model=ProfileSpaceOperatorParameters,
+    example_configuration=ProfileSpaceOperatorParameters(),
     description="Returns a data_profiling ProfileReport for the space",
 )
 # operator function can have any name but have similar parameters - see https://ibm.github.io/ado/latest/developer-guide/creating-operators/#operator-function-parameters
@@ -27,7 +27,7 @@ def profile(
     discoverySpace: DiscoverySpace,
     operationInfo: FunctionOperationInfo | None = None,
     *,
-    parameters: ProfileParameters,
+    parameters: ProfileSpaceOperatorParameters,
 ) -> OperationOutput:
     import data_profiling
 

@@ -59,7 +59,7 @@ from ado.modules.operators.collections import (
     The entities in the discovery space can be divided into groups based on a user supplied set of constitutive
     properties, other than the selected independent property.
     """,
-    configuration_model=DetectAnomalousSeries,
+    configuration_model=DetectAnomalousSeriesOperatorParameters,
     example_configuration=DetectAnomalousSeries.example_configuration(),
     version="1.0.5",
 )
@@ -67,7 +67,7 @@ def detect_anomalous_series(
     discoverySpace: DiscoverySpace,
     operationInfo: FunctionOperationInfo | None = None,
     *,
-    parameters: DetectAnomalousSeries,
+    parameters: DetectAnomalousSeriesOperatorParameters,
 ) -> OperationOutput:
     # Your operation logic - can also call other Python modules etc.
     ...
@@ -78,7 +78,8 @@ def detect_anomalous_series(
 
 ### Operator Type
 
-The first thing you need to do is decide what type of operator you are creating.
+The first thing you need to do is decide what type of operator you
+are creating.
 The choices are
 [explore, characterize, learn, modify, fuse, export, or compare](../user-guide/operators/working-with-operators.md).
 You then import the decorator for this operator type from

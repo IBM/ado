@@ -668,26 +668,26 @@ class DiscoveryOperationResourceConfiguration(pydantic.BaseModel):
         if "spaces" not in data:
             return data
 
-        from ado.core.resources import (
-            CoreResourceKinds,
-            warn_deprecated_resource_model_in_use,
-        )
-
-        warn_deprecated_resource_model_in_use(
-            affected_resource=CoreResourceKinds.OPERATION,
-            deprecated_from_ado_version="2.3.0",
-            removed_from_ado_version="3.0.0",
-            deprecated_fields="spaces",
-            latest_format_documentation_url=(
-                "https://ibm.github.io/ado/latest/resources/operation/"
-            ),
-        )
-
         data = dict(data)
         # Remove spaces: a computed field cannot also be supplied under extra="forbid".
         spaces = data.pop("spaces")
-        if "inputs" not in data and spaces:
-            data["inputs"] = {"discoverySpace": {"identifier": spaces[0]}}
+        if "inputs" not in data:
+            from ado.core.resources import (
+                CoreResourceKinds,
+                warn_deprecated_resource_model_in_use,
+            )
+
+            warn_deprecated_resource_model_in_use(
+                affected_resource=CoreResourceKinds.OPERATION,
+                deprecated_from_ado_version="2.3.0",
+                removed_from_ado_version="3.0.0",
+                deprecated_fields="spaces",
+                latest_format_documentation_url=(
+                    "https://ibm.github.io/ado/latest/resources/operation/"
+                ),
+            )
+            if spaces:
+                data["inputs"] = {"discoverySpace": {"identifier": spaces[0]}}
         return data
 
     def _validate_script_operator_inputs(self) -> None:

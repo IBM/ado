@@ -209,6 +209,42 @@ def test_legacy_spaces_populate_discovery_space_input(
     )
 
 
+def test_legacy_spaces_with_inputs_present_does_not_warn(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Redundant ``spaces`` alongside ``inputs`` is stripped without a deprecation warning."""
+    warned: list[str] = []
+
+    def _record_warning(**kwargs: object) -> None:
+        warned.append(str(kwargs.get("deprecated_fields")))
+
+    monkeypatch.setattr(
+        "ado.core.resources.warn_deprecated_resource_model_in_use",
+        _record_warning,
+    )
+
+    configuration = DiscoveryOperationResourceConfiguration.model_validate(
+        {
+            "spaces": ["space-test123"],
+            "inputs": {
+                "discoverySpace": {
+                    "identifier": "space-test123",
+                    "kind": CoreResourceKinds.DISCOVERYSPACE,
+                }
+            },
+            "operation": {
+                "module": {
+                    "operatorName": "random_walk",
+                    "operationType": DiscoveryOperationEnum.EXPLORE.value,
+                },
+                "parameters": {"numberEntities": 1, "batchSize": 1},
+            },
+        }
+    )
+    assert warned == []
+    assert configuration.spaces == ["space-test123"]
+
+
 def test_setting_space_id(
     operation_configuration: DiscoveryOperationResourceConfiguration,
 ) -> None:

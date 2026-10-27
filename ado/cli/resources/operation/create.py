@@ -4,12 +4,6 @@
 import pydantic
 import typer
 import yaml
-
-try:
-    from yaml import CSafeLoader as SafeLoader
-except ImportError:  # pragma: nocover
-    from yaml import SafeLoader  # type: ignore[assignment]
-
 from rich.status import Status
 
 from ado.cli.models.parameters import AdoCreateCommandParameters
@@ -40,25 +34,25 @@ from ado.core.operation.operation import OperationException, OperationOutput
 from ado.core.operation.resource import (
     OperationExitStateEnum,
 )
-from ado.core.resources import ADOResourceReference
+from ado.core.resources import ADOResourcePropertyDescriptor, ADOResourceReference
 from ado.modules.operators.errors import OperatorVersionMismatchError
 
 
-def _operator_input_name_for_kind(
+def _operator_input_descriptor_for_kind(
     raw_operation_configuration: dict,
     kind: CoreResourceKinds,
-) -> str:
-    """Resolve the operator input parameter name for a resource *kind*.
+) -> ADOResourcePropertyDescriptor:
+    """Resolve the operator input descriptor for a resource *kind*.
 
     Uses the operator's ``required_resource_inputs``. When several inputs share
-    *kind*, prefers an input that is not yet present.
+    *kind*, prefers a unique list input, then an input that is not yet present.
 
     Args:
         raw_operation_configuration: Raw operation resource configuration dict.
         kind: Resource kind to bind.
 
     Returns:
-        The input parameter identifier to set.
+        The resource-input descriptor to set.
 
     Raises:
         ValueError: If the operator has no matching input, or multiple matching
@@ -89,11 +83,15 @@ def _operator_input_name_for_kind(
             f"Operator {metadata.name!r} has no resource input of kind {kind.value!r}."
         )
     if len(inputs_of_kind) == 1:
-        return inputs_of_kind[0].identifier
+        return inputs_of_kind[0]
+
+    list_inputs = [descriptor for descriptor in inputs_of_kind if descriptor.isList]
+    if len(list_inputs) == 1:
+        return list_inputs[0]
 
     present_inputs = raw_operation_configuration.get("inputs", {})
     missing_inputs = [
-        descriptor.identifier
+        descriptor
         for descriptor in inputs_of_kind
         if descriptor.identifier not in present_inputs
     ]
@@ -122,14 +120,24 @@ def _add_operation_input_for_reference(
     """
     if reference.kind is None:
         raise ValueError("Operation input references must include a resource kind.")
-    input_name = _operator_input_name_for_kind(
+    descriptor = _operator_input_descriptor_for_kind(
         raw_operation_configuration, reference.kind
     )
-    inputs = raw_operation_configuration.setdefault("inputs", {})
-    inputs[input_name] = {
+    payload = {
         "identifier": reference.identifier,
         "kind": reference.kind.value,
     }
+    inputs = raw_operation_configuration.setdefault("inputs", {})
+    if descriptor.isList:
+        existing = inputs.get(descriptor.identifier)
+        if isinstance(existing, list):
+            existing.append(payload)
+        elif existing is None:
+            inputs[descriptor.identifier] = [payload]
+        else:
+            inputs[descriptor.identifier] = [existing, payload]
+    else:
+        inputs[descriptor.identifier] = payload
     if reference.kind == CoreResourceKinds.DISCOVERYSPACE:
         raw_operation_configuration.pop("spaces", None)
 

@@ -27,6 +27,10 @@ from ado.core.operation.config import (
     OperatorModuleConf,
     OperatorReference,
 )
+from ado.core.operation.inputs import (
+    OperationResourceInput,
+    iter_resource_references,
+)
 from ado.core.operation.operation import OperationOutput
 from ado.core.operation.resource import (
     OperationProvenanceInfo,
@@ -454,7 +458,7 @@ def add_operation_output_to_metastore(
 
 
 def create_operation_and_add_to_metastore(
-    inputs: dict[str, ado.core.resources.ADOResourceReference],
+    inputs: dict[str, OperationResourceInput],
     operator_module: OperatorModuleConf | OperatorReference,
     operation_parameters: dict,
     operation_info: FunctionOperationInfo,
@@ -469,7 +473,7 @@ def create_operation_and_add_to_metastore(
 
     Args:
         inputs: Mapping of operator parameter name to the resource reference
-            the operation worked on.
+            the operation worked on. A value may be a list of references.
         operator_module: Configuration for the operator (module or function-based).
         operation_parameters: Dictionary of parameters for the operation.
         operation_info: Information about the operation including metadata and
@@ -508,7 +512,11 @@ def create_operation_and_add_to_metastore(
     )
 
     related_identifiers = [
-        *[entry.identifier for entry in inputs.values()],
+        *[
+            reference.identifier
+            for entry in inputs.values()
+            for reference in iter_resource_references(entry)
+        ],
         *operation_resource_configuration.actuatorConfigurationIdentifiers,
     ]
 

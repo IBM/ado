@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: MIT
 """Tests for operator signature deduction and call-shape validation."""
 
+from typing import Annotated
+
 import pytest
 
 from ado.core.datacontainer.resource import DataContainerResource
@@ -226,3 +228,183 @@ class TestInvalidSignatures:
         """Wrong return type is rejected."""
         with pytest.raises(ValueError, match="return"):
             _validate(wrong_return_type)
+
+
+class TestListResourceInputs:
+    def test_list_discovery_space_is_deduced(self) -> None:
+        """A list[DiscoverySpace] parameter becomes an isList discoveryspace input."""
+
+        def summarize_spaces(
+            spaces: list[DiscoverySpace],
+            operationInfo: FunctionOperationInfo | None = None,
+            *,
+            parameters: _Params,
+        ) -> OperationOutput: ...
+
+        descriptors = resource_inputs_from_operator_function(summarize_spaces)
+        assert len(descriptors) == 1
+        assert descriptors[0].identifier == "spaces"
+        assert descriptors[0].kind == CoreResourceKinds.DISCOVERYSPACE
+        assert descriptors[0].isList is True
+
+    def test_list_data_container_and_scalar_baseline_are_deduced(self) -> None:
+        """List and scalar resource parameters are recorded together."""
+
+        def summarize_containers(
+            containers: list[DataContainerResource],
+            baseline: DataContainerResource,
+            operationInfo: FunctionOperationInfo | None = None,
+            *,
+            parameters: _Params,
+        ) -> OperationOutput: ...
+
+        descriptors = resource_inputs_from_operator_function(summarize_containers)
+        assert [descriptor.identifier for descriptor in descriptors] == [
+            "containers",
+            "baseline",
+        ]
+        assert descriptors[0].kind == CoreResourceKinds.DATACONTAINER
+        assert descriptors[0].isList is True
+        assert descriptors[1].kind == CoreResourceKinds.DATACONTAINER
+        assert descriptors[1].isList is False
+
+    def test_annotated_list_discovery_space_is_deduced(self) -> None:
+        """Annotated[list[DiscoverySpace], ...] unwraps to a list input."""
+
+        def summarize_spaces(
+            spaces: Annotated[list[DiscoverySpace], "batch"],
+            operationInfo: FunctionOperationInfo | None = None,
+            *,
+            parameters: _Params,
+        ) -> OperationOutput: ...
+
+        descriptors = resource_inputs_from_operator_function(summarize_spaces)
+        assert descriptors[0].isList is True
+        assert descriptors[0].kind == CoreResourceKinds.DISCOVERYSPACE
+
+    def test_list_of_unsupported_type_is_rejected(self) -> None:
+        """list[int] is not a valid resource input annotation."""
+
+        def bad_list(
+            values: list[int],
+            operationInfo: FunctionOperationInfo | None = None,
+            *,
+            parameters: _Params,
+        ) -> OperationOutput: ...
+
+        with pytest.raises(ValueError, match="values"):
+            resource_inputs_from_operator_function(bad_list)
+
+    def test_mixed_union_list_is_rejected(self) -> None:
+        """A list whose element type is a union of resource types is rejected."""
+
+        def mixed_list(
+            resources: list[DiscoverySpace | DataContainerResource],
+            operationInfo: FunctionOperationInfo | None = None,
+            *,
+            parameters: _Params,
+        ) -> OperationOutput: ...
+
+        with pytest.raises(ValueError, match="resources"):
+            resource_inputs_from_operator_function(mixed_list)
+
+    def test_nested_list_is_rejected(self) -> None:
+        """Nested list resource annotations are rejected."""
+
+        def nested_list(
+            spaces: list[list[DiscoverySpace]],
+            operationInfo: FunctionOperationInfo | None = None,
+            *,
+            parameters: _Params,
+        ) -> OperationOutput: ...
+
+        with pytest.raises(ValueError, match="spaces"):
+            resource_inputs_from_operator_function(nested_list)
+
+    def test_characterize_rejects_list_resource_inputs(self) -> None:
+        """Non-summarize operators may not declare list resource parameters."""
+
+        def list_op(
+            spaces: list[DiscoverySpace],
+            operationInfo: FunctionOperationInfo | None = None,
+            *,
+            parameters: _Params,
+        ) -> OperationOutput: ...
+
+        descriptors = resource_inputs_from_operator_function(list_op)
+        with pytest.raises(ValueError, match="list resource"):
+            validate_operator_registration(
+                list_op,
+                descriptors,
+                DiscoveryOperationEnum.CHARACTERIZE,
+                configuration_model=_Params,
+            )
+
+    def test_fuse_rejects_list_resource_inputs(self) -> None:
+        """Fuse operators keep named scalar parameters, not lists."""
+
+        def list_op(
+            spaces: list[DiscoverySpace],
+            operationInfo: FunctionOperationInfo | None = None,
+            *,
+            parameters: _Params,
+        ) -> OperationOutput: ...
+
+        descriptors = resource_inputs_from_operator_function(list_op)
+        with pytest.raises(ValueError, match="list resource"):
+            validate_operator_registration(
+                list_op,
+                descriptors,
+                DiscoveryOperationEnum.FUSE,
+                configuration_model=_Params,
+            )
+
+    def test_compare_rejects_list_resource_inputs(self) -> None:
+        """Compare operators keep named scalar parameters, not lists."""
+
+        def list_op(
+            left: list[DiscoverySpace],
+            right: DiscoverySpace,
+            operationInfo: FunctionOperationInfo | None = None,
+            *,
+            parameters: _Params,
+        ) -> OperationOutput: ...
+
+        descriptors = resource_inputs_from_operator_function(list_op)
+        with pytest.raises(ValueError, match="list resource"):
+            validate_operator_registration(
+                list_op,
+                descriptors,
+                DiscoveryOperationEnum.COMPARE,
+                configuration_model=_Params,
+            )
+
+    def test_summarize_accepts_list_and_scalar_baseline(self) -> None:
+        """A summarize operator may take a list plus a scalar baseline."""
+
+        def summarize_containers(
+            containers: list[DataContainerResource],
+            baseline: DataContainerResource,
+            operationInfo: FunctionOperationInfo | None = None,
+            *,
+            parameters: _Params,
+        ) -> OperationOutput: ...
+
+        descriptors = resource_inputs_from_operator_function(summarize_containers)
+        validate_operator_registration(
+            summarize_containers,
+            descriptors,
+            DiscoveryOperationEnum.SUMMARIZE,
+            configuration_model=_Params,
+        )
+
+    def test_summarize_rejects_scalar_only_inputs(self) -> None:
+        """A summarize operator must declare at least one list resource input."""
+        descriptors = resource_inputs_from_operator_function(valid_op)
+        with pytest.raises(ValueError, match="at least one list"):
+            validate_operator_registration(
+                valid_op,
+                descriptors,
+                DiscoveryOperationEnum.SUMMARIZE,
+                configuration_model=_Params,
+            )

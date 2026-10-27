@@ -28,18 +28,21 @@ from ado.core.resources import ADOResourceReference, CoreResourceKinds
 
 def _operation_inputs_template(
     operator: object | None,
-) -> dict[str, ADOResourceReference]:
+) -> dict[str, ADOResourceReference | list[ADOResourceReference]]:
     """Build template ``inputs`` from recorded resource inputs, or one space."""
 
     required_resource_inputs = getattr(operator, "required_resource_inputs", None)
     if required_resource_inputs:
-        return {
-            descriptor.identifier: ADOResourceReference(
+        template: dict[str, ADOResourceReference | list[ADOResourceReference]] = {}
+        for descriptor in required_resource_inputs:
+            reference = ADOResourceReference(
                 identifier=f"your-{descriptor.kind.value}-id",
                 kind=descriptor.kind,
             )
-            for descriptor in required_resource_inputs
-        }
+            template[descriptor.identifier] = (
+                [reference] if descriptor.isList else reference
+            )
+        return template
     return {
         "discoverySpace": ADOResourceReference(
             identifier="your-discoveryspace-id",

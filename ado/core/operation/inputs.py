@@ -29,12 +29,6 @@ if TYPE_CHECKING:
 # Python types an operator function may receive for a resolved resource input.
 OperatorInputType = DiscoverySpace | DataContainerResource
 
-# Maps a declared resource kind to the rich type an operator receives for it.
-OPERATOR_INPUT_TYPE_FOR_KIND: dict[CoreResourceKinds, type] = {
-    CoreResourceKinds.DISCOVERYSPACE: DiscoverySpace,
-    CoreResourceKinds.DATACONTAINER: DataContainerResource,
-}
-
 
 def project_contexts_from_inputs(
     inputs: dict[str, OperatorInputType],

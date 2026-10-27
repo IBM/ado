@@ -27,7 +27,7 @@ from ado.schema.property import (
 from ado.schema.reference import ExperimentReference
 
 
-class RifferlaParameters(GenericOperatorParameters):
+class RifferlaOperatorParameters(GenericOperatorParameters):
     model_config = ConfigDict(extra="forbid")
 
     failed_metric: Annotated[
@@ -78,7 +78,7 @@ class RifferlaParameters(GenericOperatorParameters):
     ] = EntityFilter.SAMPLED
 
     @classmethod
-    def example_configuration(cls) -> "RifferlaParameters":
+    def example_configuration(cls) -> "RifferlaOperatorParameters":
         return cls(
             failed_metric="is_valid",
             failed_value=1,
@@ -89,24 +89,25 @@ class RifferlaParameters(GenericOperatorParameters):
 
 @modify_operation(
     name="rifferla",
-    configuration_model=RifferlaParameters,
+    configuration_model=RifferlaOperatorParameters,
     description="Refines a space to produce one that is denser in entities that have min/max of a given observed property."
     "It does this by identifying which entity space dimensions should be fixed to set values, which explored, and setting range limits for those dimensions. "
     "The method leverages Mutual Information to identify dimensions correlated with the desired observed property.",
-    example_configuration=RifferlaParameters.example_configuration(),
+    example_configuration=RifferlaOperatorParameters.example_configuration(),
     version="2.0.6",
 )
 def rifferla(
     discoverySpace: DiscoverySpace,
     operationInfo: FunctionOperationInfo | None = None,
-    **parameters: object,
+    *,
+    parameters: RifferlaOperatorParameters,
 ) -> OperationOutput:
     """
     This function assumes the given space *was* already sampled using LHU_sampler. This operation then analyzes the result
     and returns the new space and also the values for the non-selected dimensions.
     """
 
-    config = RifferlaParameters.model_validate(parameters)
+    config = parameters
 
     import pandas as pd
 

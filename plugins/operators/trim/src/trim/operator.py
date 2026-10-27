@@ -11,7 +11,7 @@ from ado.modules.operators.collections import characterize_operation
 from trim.samplers.no_priors_utils import get_source_and_target
 from trim.trim_pydantic import (
     NoPriorsParametersInternal,
-    TrimParameters,
+    TrimOperatorParameters,
     TrimSamplerParameters,
     TrimSamplerParametersInternal,
 )  # Importing this way works when the package is installed
@@ -24,9 +24,9 @@ logger_trim = logging.getLogger(__name__)
 
 
 def validate_targetOutput(
-    params: "TrimParameters",
+    params: "TrimOperatorParameters",
     discoverySpace: DiscoverySpace,
-) -> "TrimParameters":
+) -> "TrimOperatorParameters":
     """Resolve and validate ``params.targetOutput`` against the measurement space.
 
     ``targetOutput`` must be the bare *target property identifier* (e.g.
@@ -39,7 +39,7 @@ def validate_targetOutput(
     rewrites ``params.targetOutput`` to the bare form.
 
     Args:
-        params: Validated ``TrimParameters`` as parsed from kwargs.
+        params: Validated ``TrimParameters``.
         discoverySpace: The discovery space being characterised.
 
     Returns:
@@ -94,8 +94,8 @@ def validate_targetOutput(
 
 @characterize_operation(
     name="trim",
-    configuration_model=TrimParameters,
-    example_configuration=TrimParameters.example_configuration(),
+    configuration_model=TrimOperatorParameters,
+    example_configuration=TrimOperatorParameters.example_configuration(),
     description="""
                 Trim is used to characterise a Discovery space.
                 In its first implementation it starts from a space,
@@ -105,9 +105,10 @@ def validate_targetOutput(
     version="2.2.0",
 )
 def trim(
-    discoverySpace: DiscoverySpace = None,  # type: ignore[name-defined]
+    discoverySpace: DiscoverySpace,
     operationInfo: FunctionOperationInfo | None = None,
-    **kwargs: object,
+    *,
+    parameters: TrimOperatorParameters,
 ) -> OperationOutput:
     """
     Execute the TRIM (Transfer Refined Iterative Modeling) operation on a discovery space.
@@ -119,7 +120,7 @@ def trim(
     Args:
         discoverySpace: The discovery space to characterize
         operationInfo: Optional operation metadata
-        **kwargs: Additional parameters validated against TrimParameters model
+        parameters: TrimParameters for this operation
 
     Returns:
         OperationOutput containing the operation resources and metadata
@@ -142,7 +143,7 @@ def trim(
     if random_walk is None:
         raise RuntimeError("The random_walk operator has no registered function")
 
-    params = TrimParameters.model_validate(kwargs)
+    params = parameters
 
     if params.noPriorParameters.batchSize != 1:
         raise ValueError(
@@ -246,7 +247,7 @@ def trim(
                     ),
                 }
             ),
-            **no_priors_rwparams.model_dump(),
+            parameters=no_priors_rwparams,
         )
 
         source_df, target_df = get_source_and_target(
@@ -340,7 +341,7 @@ def trim(
                 ),
             }
         ),
-        **trim_rwparams.model_dump(),
+        parameters=trim_rwparams,
     )
 
     logger_trim.info(

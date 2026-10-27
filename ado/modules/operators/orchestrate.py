@@ -164,8 +164,6 @@ def orchestrate(
     )
 
     operation_parameters = operation_resource_configuration.operation.parameters
-    if isinstance(operation_parameters, pydantic.BaseModel):
-        operation_parameters = operation_parameters.model_dump()
 
     try:
         _check_if_using_unsupported_operator_module_conf(
@@ -178,7 +176,7 @@ def orchestrate(
         output: OperationOutput = operator_fn(
             discovery_space,
             operationInfo=operation_info,
-            **operation_parameters,
+            parameters=operation_parameters,
         )
     except KeyboardInterrupt:
         moduleLog.warning("Caught keyboard interrupt - initiating graceful shutdown")

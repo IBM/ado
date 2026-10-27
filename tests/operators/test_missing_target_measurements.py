@@ -42,7 +42,7 @@ from trim.trim_pydantic import (  # noqa: E402
     MissingTargetMeasurements,
     SamplingBudget,
     StoppingCriterion,
-    TrimParameters,
+    TrimOperatorParameters,
 )
 
 # ---------------------------------------------------------------------------
@@ -118,7 +118,7 @@ def test_trim_skips_missing_target_measurements(
     tmp_path: pathlib.Path,
 ) -> None:
     """TRIM with mode=Skip should succeed despite missing-target measurements."""
-    params = TrimParameters(
+    params = TrimOperatorParameters(
         targetOutput="bar",
         missingTargetMeasurements=MissingTargetMeasurements(
             mode=MissingTargetMeasurementMode.Skip
@@ -137,7 +137,7 @@ def test_trim_skips_missing_target_measurements(
 
     output = trim_fn(
         controlled_error_space,
-        **params.model_dump(),
+        parameters=params,
     )
 
     assert output.exitStatus is not None

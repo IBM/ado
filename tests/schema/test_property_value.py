@@ -1,6 +1,8 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
+import base64
+import json
 import typing
 
 import pydantic
@@ -153,12 +155,6 @@ def test_property_value_checks_value_type(
                 ConstitutivePropertyValue(
                     value=test_value, property=prop.descriptor(), valueType=example_type
                 )
-        elif type(test_value) is str and example_type is ValueTypeEnum.BLOB_VALUE_TYPE:
-            # strings with BLOB_VALUE_TYPE are ALLOWED to be converted to bytes
-            # i.e. this is not the same case as previous two
-            ConstitutivePropertyValue(
-                value=test_value, property=prop.descriptor(), valueType=example_type
-            )
         else:
             with pytest.raises(pydantic.ValidationError):
                 ConstitutivePropertyValue(
@@ -170,18 +166,65 @@ def test_property_value_checks_value_type(
         )
 
 
-def test_string_with_bytes_type_converted_to_blob() -> None:
+def test_base64_string_with_blob_type_converted_to_bytes() -> None:
 
     prop = ConstitutiveProperty(identifier="cons_prop")
+    raw = b"PNG\r89\n\x1a\n\x00\x00"
     val = ConstitutivePropertyValue(
-        value="PNG\r89\n\x1a\n\x00\x00",
+        value=base64.b64encode(raw).decode("ascii"),
         property=prop.descriptor(),
         valueType=ValueTypeEnum.BLOB_VALUE_TYPE,
     )
 
-    assert val.value == b"PNG\r89\n\x1a\n\x00\x00", (
-        "String value with type BLOB_VALUE_TYPE was not converted to bytes as expected"
+    assert val.value == raw, (
+        "Base64 string value with type BLOB_VALUE_TYPE was not decoded to bytes"
     )
+
+
+def test_non_base64_string_with_blob_type_is_rejected() -> None:
+
+    prop = ConstitutiveProperty(identifier="cons_prop")
+    with pytest.raises(pydantic.ValidationError):
+        ConstitutivePropertyValue(
+            value="not base64!",
+            property=prop.descriptor(),
+            valueType=ValueTypeEnum.BLOB_VALUE_TYPE,
+        )
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [
+        b"hello",
+        b"a\\nb",
+        b"\xff\xfe\x00\x01",
+        b"",
+        bytes(range(256)),
+    ],
+    ids=["ascii", "backslash", "non-utf8", "empty", "all-byte-values"],
+)
+def test_blob_value_json_roundtrip(raw: bytes) -> None:
+    """Arbitrary bytes survive JSON serialization, including non-UTF-8 bytes"""
+
+    prop = ConstitutiveProperty(identifier="cons_prop")
+    val = ConstitutivePropertyValue(value=raw, property=prop.descriptor())
+
+    dumped_json = val.model_dump_json()
+    assert json.loads(dumped_json)["value"] == base64.b64encode(raw).decode("ascii")
+    assert ConstitutivePropertyValue.model_validate_json(dumped_json).value == raw
+
+    dumped_json_mode = val.model_dump(mode="json")
+    restored = ConstitutivePropertyValue.model_validate(dumped_json_mode)
+    assert restored.value == raw
+    assert restored.valueType == ValueTypeEnum.BLOB_VALUE_TYPE
+
+
+def test_blob_value_python_dump_keeps_bytes() -> None:
+
+    prop = ConstitutiveProperty(identifier="cons_prop")
+    val = ConstitutivePropertyValue(value=b"\xff\x00", property=prop.descriptor())
+
+    assert val.model_dump()["value"] == b"\xff\x00"
 
 
 def test_type_detection(property_value: tuple[PropertyValue, type]) -> None:

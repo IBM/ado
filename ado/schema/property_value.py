@@ -1,6 +1,8 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
+import base64
+import binascii
 import enum
 import logging
 import numbers
@@ -9,7 +11,7 @@ from typing import Annotated, Any
 
 import numpy as np
 import pydantic
-from pydantic import WithJsonSchema
+from pydantic import PlainSerializer, WithJsonSchema
 
 from ado.schema.property import (
     ConstitutiveProperty,
@@ -42,12 +44,19 @@ valueTypesDisplayNames = {
 # However these methods do not support fields with "binary" value types in schema
 # which is what fields using "bytes" type will be annotated with
 # Using this annotated type for a model field will cause its json schema not
-# to use binary, but instead specify it is a base64 string
+# to use binary, but instead specify it is a base64 string.
+# Bytes are serialized to base64 strings in JSON mode so that arbitrary
+# (non UTF-8) bytes can be dumped.
 CustomBytes = Annotated[
     bytes,
     WithJsonSchema(
         # keep it as a plain string; add an optional hint for consumers
         {"type": "string", "contentEncoding": "base64"},
+    ),
+    PlainSerializer(
+        lambda value: base64.b64encode(value).decode("ascii"),
+        return_type=str,
+        when_used="json",
     ),
 ]
 
@@ -148,16 +157,18 @@ class PropertyValue(pydantic.BaseModel):
                         f"ValueType was string but Value was of type {type(value)}"
                     )
             elif valueType == ValueTypeEnum.BLOB_VALUE_TYPE:
-                # If type is BLOB but value is string we need to convert to bytes
-                # This is because bytes are serialized in JSON as strings and if we
+                # If type is BLOB but value is string we need to decode it from base64.
+                # This is because bytes are serialized in JSON as base64 strings and if we
                 # dump a byte value to JSON and then try to read it, it will fail validation unless we do this
                 # Why not use pydantic.Base64Bytes as byte type as this has a build in decoder?
                 # Because value is a union with string, pydantic can't tell if a string is encoded bytes or a string
-                # The only impact of using Base64Bytes here would be we could use base64.b64decode
                 if isinstance(value, str):
-                    value = (
-                        bytes(value, "utf-8").decode("unicode_escape").encode("latin1")
-                    )
+                    try:
+                        value = base64.b64decode(value, validate=True)
+                    except (binascii.Error, ValueError) as error:
+                        raise ValueError(
+                            "ValueType was Blob but Value was a string that is not valid base64"
+                        ) from error
                 else:
                     if not isinstance(value, bytes):
                         raise ValueError(

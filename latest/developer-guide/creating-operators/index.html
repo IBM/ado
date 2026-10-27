@@ -19,14 +19,15 @@
 <span class=s2>    The entities in the discovery space can be divided into groups based on a user supplied set of constitutive</span>
 <span class=s2>    properties, other than the selected independent property.</span>
 <span class=s2>    """</span><span class=p>,</span>
-    <span class=n>configuration_model</span><span class=o>=</span><span class=n>DetectAnomalousSeries</span><span class=p>,</span>
+    <span class=n>configuration_model</span><span class=o>=</span><span class=n>DetectAnomalousSeriesOperatorParameters</span><span class=p>,</span>
     <span class=n>example_configuration</span><span class=o>=</span><span class=n>DetectAnomalousSeries</span><span class=o>.</span><span class=n>example_configuration</span><span class=p>(),</span>
     <span class=n>version</span><span class=o>=</span><span class=s2>"1.0.5"</span><span class=p>,</span>
 <span class=p>)</span>
 <span class=k>def</span><span class=w> </span><span class=nf>detect_anomalous_series</span><span class=p>(</span>
     <span class=n>discoverySpace</span><span class=p>:</span> <span class=n>DiscoverySpace</span><span class=p>,</span>
     <span class=n>operationInfo</span><span class=p>:</span> <span class=n>FunctionOperationInfo</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
-    <span class=o>**</span><span class=n>parameters</span><span class=p>:</span> <span class=n>typing</span><span class=o>.</span><span class=n>Any</span><span class=p>,</span>
+    <span class=o>*</span><span class=p>,</span>
+    <span class=n>parameters</span><span class=p>:</span> <span class=n>DetectAnomalousSeriesOperatorParameters</span><span class=p>,</span>
 <span class=p>)</span> <span class=o>-&gt;</span> <span class=n>OperationOutput</span><span class=p>:</span>
     <span class=c1># Your operation logic - can also call other Python modules etc.</span>
     <span class=o>...</span>
@@ -35,13 +36,14 @@
 
 <span class=nd>@compare_operation</span><span class=p>(</span><span class=o>...</span><span class=p>)</span>
 <span class=k>def</span><span class=w> </span><span class=nf>my_comparison_operation</span><span class=p>():</span>
-</code></pre></div> <p>The decorator parameters are the same for all operator/operation types.</p> <h3 id=operator-function-parameters>Operator function parameters<a class=headerlink href=#operator-function-parameters title="Permanent link">&para;</a></h3> <p>All operator functions take one or more <code>discoveryspaces</code> along with a dictionary containing the inputs for the operation.</p> <p>If your operation type is <code>explore</code>, <code>characterize</code>, <code>learn</code> or <code>modify</code>, your function should have a parameter <code>discoverySpace</code> i.e.</p> <div class=highlight><pre><span></span><code><span class=kn>import</span><span class=w> </span><span class=nn>typing</span>
+</code></pre></div> <p>The decorator parameters are the same for all operator/operation types.</p> <h3 id=operator-function-parameters>Operator function parameters<a class=headerlink href=#operator-function-parameters title="Permanent link">&para;</a></h3> <p>All operator functions take a discovery space and a <code>parameters</code> argument typed as the operator's configuration model.</p> <p>If your operation type is <code>explore</code>, <code>characterize</code>, <code>learn</code> or <code>modify</code>, your function should have a parameter <code>discoverySpace</code> i.e.</p> <div class=highlight><pre><span></span><code><span class=kn>import</span><span class=w> </span><span class=nn>typing</span>
 
 
 <span class=k>def</span><span class=w> </span><span class=nf>detect_anomalous_series</span><span class=p>(</span>
     <span class=n>discoverySpace</span><span class=p>:</span> <span class=n>DiscoverySpace</span><span class=p>,</span>
     <span class=n>operationInfo</span><span class=p>:</span> <span class=n>FunctionOperationInfo</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
-    <span class=o>**</span><span class=n>parameters</span><span class=p>:</span> <span class=n>typing</span><span class=o>.</span><span class=n>Any</span><span class=p>,</span>
+    <span class=o>*</span><span class=p>,</span>
+    <span class=n>parameters</span><span class=p>:</span> <span class=n>DetectAnomalousSeries</span><span class=p>,</span>
 <span class=p>)</span> <span class=o>-&gt;</span> <span class=n>OperationOutput</span><span class=p>:</span> <span class=o>...</span>
 </code></pre></div> <p>If it is <code>fuse</code> or <code>compare</code> your function should have a parameter <code>discoverySpaces</code> which is a list of <code>discoveryspaces</code> i.e.</p> <div class=highlight><pre><span></span><code><span class=kn>import</span><span class=w> </span><span class=nn>typing</span>
 
@@ -49,7 +51,8 @@
 <span class=k>def</span><span class=w> </span><span class=nf>detect_anomalous_series</span><span class=p>(</span>
     <span class=n>discoverySpaces</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=n>DiscoverySpace</span><span class=p>],</span>
     <span class=n>operationInfo</span><span class=p>:</span> <span class=n>FunctionOperationInfo</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
-    <span class=o>**</span><span class=n>parameters</span><span class=p>:</span> <span class=n>typing</span><span class=o>.</span><span class=n>Any</span><span class=p>,</span>
+    <span class=o>*</span><span class=p>,</span>
+    <span class=n>parameters</span><span class=p>:</span> <span class=n>DetectAnomalousSeries</span><span class=p>,</span>
 <span class=p>)</span> <span class=o>-&gt;</span> <span class=n>OperationOutput</span><span class=p>:</span> <span class=o>...</span>
 </code></pre></div> <p>Operator functions also take an optional third parameter, <code>operationInfo</code>, that holds information for <code>ado</code>. You do not have to interact with the parameter unless you are writing an <a href=#creating-explore-operators>explore operator</a>.</p> <h2 id=describing-your-operation-input-parameters>Describing your operation input parameters<a class=headerlink href=#describing-your-operation-input-parameters title="Permanent link">&para;</a></h2> <p>From the previous section, the <code>parameters</code> variable will contain the parameters values that should be used for a specific operation. However, how does <code>ado</code> know what the valid input parameters are for your operator so the contents of this variable will make sense?</p> <p>The answer is that the input parameters to your operator are described by a pydantic model that you give to the function decorator. Here's the example from the previous section with the relevant fields called out:</p> <div class=highlight><pre><span></span><code><span class=nd>@characterize_operation</span><span class=p>(</span>
     <span class=n>name</span><span class=o>=</span><span class=s2>"my_operator"</span><span class=p>,</span>

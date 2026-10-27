@@ -33,6 +33,10 @@ from ado.cli.utils.pydantic.constants import (
     event_importance_order,
     minimize_output_context,
 )
+from ado.cli.utils.resources.properties import (
+    resolve_experiment_properties,
+    resolve_requested_property_identifiers,
+)
 from ado.core import (
     ADOResource,
     CoreResourceKinds,
@@ -47,12 +51,6 @@ from ado.core.operation.resource import (
 )
 from ado.core.resources import ADOResourceEventEnum, ADOResourceStatus
 from ado.schema.domain import VariableTypeEnum
-from ado.schema.experiment import Experiment, ParameterizedExperiment
-from ado.schema.measurementspace import (
-    MeasurementSpace,
-    MeasurementSpaceConfiguration,
-)
-from ado.schema.reference import ExperimentReference
 from ado.utilities.output import (
     printable_pydantic_model,
 )
@@ -178,66 +176,33 @@ def format_discovery_space_properties(
 ) -> dict[str, str]:
     """Return requested discovery-space property representations by identifier."""
     max_items = None if no_trunc else 4
-    constitutive = {
-        property.identifier: property.propertyDomain.compact_representation(max_items)
-        for property in resource.config.entitySpace or []
+    constitutive_properties = {
+        constitutive_property.identifier: constitutive_property.propertyDomain
+        for constitutive_property in resource.config.entitySpace or []
     }
-    parameterized: dict[str, str] = {}
-    optional: dict[str, str] = {}
-    experiments = resource.config.experiments
+    (
+        optional_properties,
+        parameterized_properties,
+    ) = resolve_experiment_properties(resource.config.experiments)
 
-    if experiments is not None:
-        experiment_values: list[
-            Experiment | ParameterizedExperiment | ExperimentReference
-        ] = []
-        if isinstance(experiments, MeasurementSpaceConfiguration):
-            experiment_values = experiments.experiments
-        elif isinstance(experiments, list):
-            try:
-                ms = MeasurementSpace.measurementSpaceFromExperimentReferences(
-                    experiments
-                )
-                experiment_values = ms.experiments
-            except Exception:
-                experiment_values = experiments
-
-        for experiment in experiment_values:
-            if isinstance(experiment, Experiment):
-                for default_value in experiment.defaultParameterization:
-                    optional[default_value.property.identifier] = (
-                        default_value.compact_representation(max_items)
-                    )
-
-            if isinstance(experiment, (ParameterizedExperiment, ExperimentReference)):
-                for custom_value in experiment.parameterization or []:
-                    parameterized[custom_value.property.identifier] = (
-                        custom_value.compact_representation(max_items)
-                    )
-                    optional[custom_value.property.identifier] = (
-                        custom_value.compact_representation(max_items)
-                    )
-
-    available = {**constitutive, **optional, **parameterized}
-    property_identifiers: list[str] = []
-    for requested in include_properties:
-        for value in requested.split(","):
-            match value.lower():
-                case "constitutive":
-                    identifiers = constitutive
-                case "parameterized":
-                    identifiers = parameterized
-                case "optional":
-                    identifiers = optional
-                case "all":
-                    identifiers = available
-                case _:
-                    identifiers = {value: available.get(value, "—")}
-            for identifier in identifiers:
-                if identifier not in property_identifiers:
-                    property_identifiers.append(identifier)
+    available_properties = {
+        **constitutive_properties,
+        **optional_properties,
+        **parameterized_properties,
+    }
+    property_identifiers = resolve_requested_property_identifiers(
+        include_properties=include_properties,
+        constitutive_identifiers=constitutive_properties.keys(),
+        parameterized_identifiers=parameterized_properties.keys(),
+        optional_identifiers=optional_properties.keys(),
+    )
 
     return {
-        identifier: available.get(identifier, "—")
+        identifier: (
+            available_properties[identifier].compact_representation(max_items)
+            if identifier in available_properties
+            else "—"
+        )
         for identifier in property_identifiers
     }
 
@@ -265,7 +230,7 @@ def build_resource_listing_dataframe(
 
     Returns:
         A ``pd.DataFrame`` with columns ``IDENTIFIER``, ``NAME``, ``AGE``
-        (as ``datetime.timedelta``) and, for operations, additionally
+        (as ``dt.timedelta``) and, for operations, additionally
         ``STATUS`` (JSON string) and ``SPACE``. When ``show_details`` is
         ``True`` the columns also include ``DESCRIPTION`` and ``LABELS``.
         The DataFrame is compatible with
@@ -339,12 +304,12 @@ def format_ado_get_stats_for_operations(
         include_request_columns: When ``True``, also append
             ``TOTAL_REQUESTS``, ``FAILED_REQUESTS``, and
             ``SUCCESSFUL_REQUESTS`` columns in addition to the default
-            measurement-level columns. Defaults to ``False``.
+            result-level columns. Defaults to ``False``.
 
     Returns:
         The same DataFrame with extra columns appended.
-        Always appended: ``TOTAL_MEASUREMENTS``, ``SUCCESSFUL_MEASUREMENTS``,
-        ``FAILED_MEASUREMENTS``, ``SAMPLED_ENTITIES`` (entities with at least one
+        Always appended: ``TOTAL_RESULTS``, ``SUCCESSFUL_RESULTS``,
+        ``FAILED_RESULTS``, ``MEASURED_ENTITIES`` (entities with at least one
         measurement, whether successful, failed, or both).
         Appended when *include_request_columns* is ``True``:
         ``TOTAL_REQUESTS``, ``FAILED_REQUESTS``, ``SUCCESSFUL_REQUESTS``.
@@ -355,11 +320,11 @@ def format_ado_get_stats_for_operations(
     from ado.core.resources import CoreResourceKinds
     from ado.core.samplestore.base import SampleStore
 
-    _MEASUREMENT_COLUMNS = [
-        "TOTAL_MEASUREMENTS",
-        "SUCCESSFUL_MEASUREMENTS",
-        "FAILED_MEASUREMENTS",
-        "SAMPLED_ENTITIES",
+    _RESULT_COLUMNS = [
+        "TOTAL_RESULTS",
+        "SUCCESSFUL_RESULTS",
+        "FAILED_RESULTS",
+        "MEASURED_ENTITIES",
     ]
     _REQUEST_COLUMNS = [
         "TOTAL_REQUESTS",
@@ -414,20 +379,20 @@ def format_ado_get_stats_for_operations(
             operation_ids=operation_ids_in_store
         ):
             stats_lookup[stat.operation_id] = {
-                "TOTAL_MEASUREMENTS": stat.total_results,
-                "SUCCESSFUL_MEASUREMENTS": stat.successful_results,
-                "FAILED_MEASUREMENTS": stat.failed_results,
-                "SAMPLED_ENTITIES": stat.measured_entities,
+                "TOTAL_RESULTS": stat.total_results,
+                "SUCCESSFUL_RESULTS": stat.successful_results,
+                "FAILED_RESULTS": stat.failed_results,
+                "MEASURED_ENTITIES": stat.measured_entities,
                 "TOTAL_REQUESTS": stat.total_requests,
                 "FAILED_REQUESTS": stat.failed_requests,
                 "SUCCESSFUL_REQUESTS": stat.successful_requests,
             }
 
-    # Attach measurement-level stats columns; operations with no samplestore mapping show 0.
-    all_columns = _MEASUREMENT_COLUMNS + (
+    # Attach result-level stats columns; operations with no samplestore mapping show 0.
+    all_columns = _RESULT_COLUMNS + (
         _REQUEST_COLUMNS if include_request_columns else []
     )
-    zeros = dict.fromkeys(_MEASUREMENT_COLUMNS + _REQUEST_COLUMNS, 0)
+    zeros = dict.fromkeys(_RESULT_COLUMNS + _REQUEST_COLUMNS, 0)
     for col in all_columns:
         df[col] = df["IDENTIFIER"].apply(
             lambda operation_id, c=col: stats_lookup.get(operation_id, zeros)[c]
@@ -466,9 +431,11 @@ def format_ado_get_stats_for_spaces(
         sql_store: The ``SQLStore`` to use for relationship and stats queries.
         spinner: Optional rich status spinner to update with progress messages.
         include_heavy: When ``True`` also compute and append the heavy stats
-            columns (``ENTITY_SPACE_SIZE``, ``UNSAMPLED``,
-            ``SAMPLED_COMPLETE``, ``SAMPLED_PARTIAL``, ``SAMPLED_FAILED``,
-            ``MATCHING_COMPLETE``, ``MATCHING_PARTIAL``, ``MATCHING_FAILED``).
+            columns (``SIZE_OF_ENTITY_SPACE``, ``UNMEASURED_ENTITIES``,
+            ``MATCHING_ENTITIES``, ``MATCHING_WITH_MEASUREMENTS``,
+            ``ENTITIES_WITH_ALL_MEASUREMENTS``,
+            ``ENTITIES_WITH_PARTIAL_MEASUREMENTS``,
+            ``MATCHING_ENTITIES_WITH_ALL_MEASUREMENTS``).
             Requires ``space_resources`` and ``project_context``.
         space_resources: Mapping of space identifier → hydrated
             :class:`~ado.core.resources.ADOResource`.  Required when
@@ -479,13 +446,15 @@ def format_ado_get_stats_for_spaces(
 
     Returns:
         The same DataFrame with extra columns appended.
-        Lightweight columns (``include_heavy=False``): ``EXPERIMENTS``,
-        ``OPERATIONS``, ``EXPLORE_OPS``, ``SAMPLED_ENTITIES`` (entities with
-        at least one measurement, whether successful, failed, or both).
-        Heavy columns (``include_heavy=True``): ``EXPERIMENTS``,
-        ``OPERATIONS``, ``EXPLORE_OPS``, ``ENTITY_SPACE_SIZE``, ``UNSAMPLED``,
-        ``SAMPLED_COMPLETE``, ``SAMPLED_PARTIAL``, ``SAMPLED_FAILED``,
-        ``MATCHING_COMPLETE``, ``MATCHING_PARTIAL``, ``MATCHING_FAILED``.
+        Lightweight columns: ``EXPERIMENTS``, ``OPERATIONS``,
+        ``EXPLORE_OPERATIONS``, ``MEASURED_ENTITIES`` (entities with at least
+        one measurement, whether successful, failed, or both).
+        Heavy columns (only when ``include_heavy=True``):
+        ``SIZE_OF_ENTITY_SPACE``, ``UNMEASURED_ENTITIES``,
+        ``MATCHING_ENTITIES``, ``MATCHING_WITH_MEASUREMENTS``,
+        ``ENTITIES_WITH_ALL_MEASUREMENTS``,
+        ``ENTITIES_WITH_PARTIAL_MEASUREMENTS``,
+        ``MATCHING_ENTITIES_WITH_ALL_MEASUREMENTS``.
         Spaces with no recorded operations or sample store show ``0`` in all
         lightweight stats columns; heavy columns show ``None`` for spaces
         where the value cannot be determined.
@@ -632,33 +601,29 @@ def format_ado_get_stats_for_spaces(
             all_stats[space_id].number_of_operations if space_id in all_stats else 0
         )
     )
-    df["EXPLORE_OPS"] = df["IDENTIFIER"].apply(
+    df["EXPLORE_OPERATIONS"] = df["IDENTIFIER"].apply(
         lambda space_id: (
             all_stats[space_id].number_of_explore_operations
             if space_id in all_stats
             else 0
         )
     )
-    if not include_heavy:
-        df["SAMPLED_ENTITIES"] = df["IDENTIFIER"].apply(
-            lambda space_id: (
-                all_stats[space_id].number_measured_entities
-                if space_id in all_stats
-                else 0
-            )
+    df["MEASURED_ENTITIES"] = df["IDENTIFIER"].apply(
+        lambda space_id: (
+            all_stats[space_id].number_measured_entities if space_id in all_stats else 0
         )
+    )
 
     # Attach heavy columns only when requested.
     if include_heavy:
         _heavy_field_map = {
-            "ENTITY_SPACE_SIZE": "size_of_entity_space",
-            "UNSAMPLED": "number_unmeasured_entities",
-            "SAMPLED_COMPLETE": "sampled_complete",
-            "SAMPLED_PARTIAL": "sampled_partial",
-            "SAMPLED_FAILED": "sampled_failed",
-            "MATCHING_COMPLETE": "matching_complete",
-            "MATCHING_PARTIAL": "matching_partial",
-            "MATCHING_FAILED": "matching_failed",
+            "SIZE_OF_ENTITY_SPACE": "size_of_entity_space",
+            "UNMEASURED_ENTITIES": "number_unmeasured_entities",
+            "MATCHING_ENTITIES": "number_matching_entities",
+            "MATCHING_WITH_MEASUREMENTS": "number_matching_entities_with_measurements",
+            "ENTITIES_WITH_ALL_MEASUREMENTS": "entities_with_all_measurements",
+            "ENTITIES_WITH_PARTIAL_MEASUREMENTS": "entities_with_partial_measurements",
+            "MATCHING_ENTITIES_WITH_ALL_MEASUREMENTS": "matching_entities_with_all_measurements",
         }
         for col, field in _heavy_field_map.items():
             df[col] = df["IDENTIFIER"].apply(
@@ -669,15 +634,15 @@ def format_ado_get_stats_for_spaces(
                 )
             )
 
-        # Coerce ENTITY_SPACE_SIZE and UNSAMPLED to int where the value is
-        # finite (i.e. not inf/nan/None).  Pandas stores mixed
+        # Coerce SIZE_OF_ENTITY_SPACE and UNMEASURED_ENTITIES to int where the
+        # value is finite (i.e. not inf/nan/None).  Pandas stores mixed
         # int/float/None columns as float64, which renders integers as "45.0".
         def _coerce_to_int_if_finite(v: object) -> object:
             if isinstance(v, float) and math.isfinite(v):
                 return int(v)
             return v
 
-        for col in ("ENTITY_SPACE_SIZE", "UNSAMPLED"):
+        for col in ("SIZE_OF_ENTITY_SPACE", "UNMEASURED_ENTITIES"):
             if col in df.columns:
                 df[col] = df[col].apply(_coerce_to_int_if_finite)
 

@@ -18,6 +18,23 @@ from ado.metastore.sqlstore import SQLStore
 from ado.utilities.output import pydantic_model_as_yaml
 from tests.conftest import requires_sqlite_3_38
 
+try:
+    from yaml import CSafeDumper as SafeDumper
+except ImportError:  # pragma: nocover
+    from yaml import SafeDumper  # type: ignore[assignment]
+
+
+def _operation_configuration_as_yaml(
+    configuration: DiscoveryOperationResourceConfiguration,
+) -> str:
+    """Serialize an operation configuration without derived ``spaces``."""
+    import yaml
+
+    return yaml.dump(
+        configuration.model_dump(mode="json", exclude={"spaces"}),
+        Dumper=SafeDumper,
+    )
+
 
 @pytest.fixture(
     params=[
@@ -47,7 +64,7 @@ def test_create_operation_dry_run_success(
 
     operation_configuration_file = tmp_path / "operation.yaml"
     operation_configuration_file.write_text(
-        pydantic_model_as_yaml(operations_to_be_run)
+        _operation_configuration_as_yaml(operations_to_be_run)
     )
 
     result = runner.invoke(
@@ -84,7 +101,7 @@ def test_create_operation_dry_run_failure(
 
     invalid_operation_configuration_file = tmp_path / "invalid_operation.yaml"
     invalid_operation_configuration_file.write_text(
-        pydantic_model_as_yaml(ml_multi_cloud_operation_configuration)
+        _operation_configuration_as_yaml(ml_multi_cloud_operation_configuration)
         + "\nnonexistent-key: hello"
     )
 

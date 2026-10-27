@@ -5,7 +5,6 @@ import inspect
 import logging
 import typing
 
-from ado.core.discoveryspace.space import DiscoverySpace
 from ado.core.operation.config import (
     FunctionOperationInfo,
     GenericOperatorParameters,
@@ -13,7 +12,10 @@ from ado.core.operation.config import (
     get_actuator_configurations,
     validate_actuator_configurations_against_space_configuration,
 )
-from ado.core.operation.inputs import OperatorInputType
+from ado.core.operation.inputs import (
+    ResolvedOperatorInput,
+    discovery_spaces_from_inputs,
+)
 from ado.core.operation.operation import OperationOutput
 from ado.metastore.sqlstore import SQLStore
 from ado.modules.operators._orchestrate_core import (
@@ -45,7 +47,7 @@ def _operator_callable_for_harness(registered: typing.Callable) -> typing.Callab
 
 def run_general_operation_core_closure(
     operation_function: typing.Callable,
-    inputs: dict[str, OperatorInputType],
+    inputs: dict[str, ResolvedOperatorInput],
     operationInfo: FunctionOperationInfo,
     operation_parameters: GenericOperatorParameters,
 ) -> typing.Callable[[], OperationOutput | None]:
@@ -76,7 +78,7 @@ def run_general_operation_core_closure(
 def orchestrate_general_operation(
     operator_metadata: OperatorMetadata,
     operation_parameters: GenericOperatorParameters,
-    inputs: dict[str, OperatorInputType],
+    inputs: dict[str, ResolvedOperatorInput],
     operation_info: FunctionOperationInfo,
     metastore: SQLStore,
 ) -> OperationOutput:
@@ -104,7 +106,7 @@ def orchestrate_general_operation(
 
     import uuid
 
-    spaces = [value for value in inputs.values() if isinstance(value, DiscoverySpace)]
+    spaces = discovery_spaces_from_inputs(inputs)
 
     if operator_metadata.function is None:
         raise ValueError(

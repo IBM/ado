@@ -13,13 +13,16 @@ from ray.exceptions import RayTaskError
 
 import ado.utilities.output
 from ado.core import OperationResource
-from ado.core.discoveryspace.space import DiscoverySpace
 from ado.core.operation.config import (
     FunctionOperationInfo,
     GenericOperatorParameters,
     OperatorMetadata,
 )
-from ado.core.operation.inputs import OperatorInputType
+from ado.core.operation.inputs import (
+    ResolvedOperatorInput,
+    discovery_spaces_from_inputs,
+    resource_references_from_resolved_inputs,
+)
 from ado.core.operation.operation import OperationException, OperationOutput
 from ado.core.operation.resource import (
     OperationExitStateEnum,
@@ -34,6 +37,9 @@ from ado.modules.operators.base import (
     add_operation_output_to_metastore,
     create_operation_and_add_to_metastore,
 )
+
+if typing.TYPE_CHECKING:
+    from ado.core.discoveryspace.space import DiscoverySpace
 
 # Global variable to track if graceful shutdown was called
 moduleLog = logging.getLogger("orchestrate_core")
@@ -127,7 +133,7 @@ def _run_operation_harness(
     operation_parameters: GenericOperatorParameters,
     operation_info: FunctionOperationInfo,
     metastore: SQLStore,
-    inputs: dict[str, OperatorInputType],
+    inputs: dict[str, ResolvedOperatorInput],
     provenance: OperationProvenanceInfo,
     operation_identifier: str | None = None,
     finalize_callback: typing.Callable[[OperationResource], None] | None = None,
@@ -144,8 +150,9 @@ def _run_operation_harness(
         operation_info: Information about the operation including metadata and
             actuator configs.
         metastore: Metastore used to persist the operation resource.
-        inputs: Mapping of parameter name to rich resource. References stored on
-            the operation are taken from each value's ``reference`` property.
+        inputs: Mapping of parameter name to rich resource or list of resources.
+            References stored on the operation are taken from each value's
+            ``reference`` property.
         provenance: Package provenance for the operation, built by the caller.
         operation_identifier: Optional pre-existing identifier for the operation resource.
         finalize_callback: Optional callback to execute on the operation resource after
@@ -158,8 +165,8 @@ def _run_operation_harness(
         OperationException: If there is an error during the operation execution.
     """
 
-    references = {name: value.reference for name, value in inputs.items()}
-    spaces = [value for value in inputs.values() if isinstance(value, DiscoverySpace)]
+    references = resource_references_from_resolved_inputs(inputs)
+    spaces = discovery_spaces_from_inputs(inputs)
 
     #
     # OPERATION RESOURCE

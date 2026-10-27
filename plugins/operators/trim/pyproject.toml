@@ -8,7 +8,7 @@ dependencies = [
   "autogluon-tabular[catboost,xgboost]==1.6.3 ; python_full_version < '3.14'",
   "numpy",
   "pandas>=2.2.0",
-  "ray>=2.43.0,<2.59.0",
+  "ray>=2.59.0,<2.60.0",
   "scikit-learn",
 ]
 dynamic = ["version"]

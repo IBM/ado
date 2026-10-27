@@ -152,14 +152,16 @@ def project_contexts_from_inputs(
         ``(name, ProjectContext)`` pairs in input iteration order. Empty when
         no input carries a project context.
     """
-
-    # At the moment only DiscoverySpace carries context.
-    # This may change with addition of new operator input types
-    return [
-        (name, resource.project_context)
-        for name, resource in inputs.items()
-        if isinstance(resource, DiscoverySpace)
-    ]
+    result: list[tuple[str, ProjectContext]] = []
+    for name, value in inputs.items():
+        # At the moment only DiscoverySpace carries context.
+        # This may change with addition of new operator input types
+        result.extend(
+            (name, resource.project_context)
+            for resource in iter_resolved_inputs(value)
+            if isinstance(resource, DiscoverySpace)
+        )
+    return result
 
 
 def _resolve_discoveryspace(
@@ -192,6 +194,7 @@ _RESOLVERS: dict[
     CoreResourceKinds.DATACONTAINER: _resolve_datacontainer,
 }
 
+
 def _resolve_one_reference(
     name: str,
     reference: ADOResourceReference,
@@ -210,6 +213,7 @@ def _resolve_one_reference(
         )
 
     return resolver(reference, metastore)
+
 
 def resolve_operation_project_context(
     operation_info: FunctionOperationInfo | None,

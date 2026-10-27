@@ -167,29 +167,6 @@ def run_explore_operation_core_closure(
     return _run_explore_operation_core
 
 
-def _check_and_extract_discovery_space(
-    inputs: dict[str, OperatorInputType],
-) -> DiscoverySpace:
-    """Return the single discovery space in *inputs*.
-
-    Args:
-        inputs: Mapping of parameter name to rich operator input.
-
-    Returns:
-        The single DiscoverySpace instance in inputs.
-
-    Raises:
-        ValueError: If *inputs* does not contain exactly one DiscoverySpace.
-    """
-    spaces = [value for value in inputs.values() if isinstance(value, DiscoverySpace)]
-    if len(spaces) != 1:
-        raise ValueError(
-            "Explore operations require exactly one discovery space input; "
-            f"found {len(spaces)}."
-        )
-    return spaces[0]
-
-
 def orchestrate_explore_operation(
     operator_metadata: OperatorMetadata,
     inputs: dict[str, OperatorInputType],
@@ -234,7 +211,13 @@ def orchestrate_explore_operation(
 
     import ado.modules.operators.setup
 
-    discovery_space = _check_and_extract_discovery_space(inputs)
+    spaces = [value for value in inputs.values() if isinstance(value, DiscoverySpace)]
+    if len(spaces) != 1:
+        raise ValueError(
+            "Explore operations require exactly one discovery space input; "
+            f"found {len(spaces)}."
+        )
+    discovery_space = spaces[0]
 
     if not operation_info.ray_namespace:
         operation_info.ray_namespace = (

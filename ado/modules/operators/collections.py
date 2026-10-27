@@ -18,7 +18,6 @@ from ado.core.operation.config import (
     OperatorMetadata,
     OperatorReference,
 )
-from ado.metastore.sqlstore import SQLStore
 from ado.modules.operators.base import (
     DiscoveryOperationBase,
     DiscoverySpaceSubscribingDiscoveryOperation,
@@ -31,26 +30,22 @@ from ado.modules.operators.errors import OperatorVersionMismatchError
 moduleLog = logging.getLogger("operation_collections")
 
 
-def _discovery_space_operation_inputs(
+def _build_discovery_space_inputs(
     discovery_space: DiscoverySpace,
     operation_info: FunctionOperationInfo | None,
-) -> tuple[dict[str, DiscoverySpace], FunctionOperationInfo, SQLStore]:
-    """Build the single discovery-space input map and confirm it is stored.
+) -> tuple[dict[str, DiscoverySpace], FunctionOperationInfo]:
+    """Build the single-space input dict and default *operation_info*.
 
     Args:
         discovery_space: The discovery space the operator was called with.
         operation_info: Optional operation info supplied by the caller.
 
     Returns:
-        The input map, the operation info, and the metastore that contains the
-        discovery space.
+        The input map and the operation info (defaulted if *None* was passed).
     """
-    from ado.core.operation.context import metastore_for_operation_inputs
-
     inputs = {"discoverySpace": discovery_space}
     info = operation_info or FunctionOperationInfo()
-    metastore: SQLStore = metastore_for_operation_inputs(info, inputs)
-    return inputs, info, metastore
+    return inputs, info
 
 
 def _warn_if_operator_name_reused(
@@ -168,13 +163,13 @@ def characterize_operation(
             *,
             parameters: GenericOperatorParameters,
         ) -> OperationOutput:
+            from ado.core.operation.inputs import metastore_for_operation_inputs
             from ado.modules.operators.orchestrate import (
                 orchestrate_general_operation,
             )
 
-            inputs, info, metastore = _discovery_space_operation_inputs(
-                discoverySpace, operationInfo
-            )
+            inputs, info = _build_discovery_space_inputs(discoverySpace, operationInfo)
+            metastore = metastore_for_operation_inputs(info, inputs)
             return orchestrate_general_operation(
                 operator_metadata=characterize.operators[name],
                 operation_parameters=configuration_model.model_validate(parameters),
@@ -284,9 +279,7 @@ def explore_operation(
             orchestrate_explore_operation,
         )
 
-        inputs, info, _metastore = _discovery_space_operation_inputs(
-            discoverySpace, operationInfo
-        )
+        inputs, info = _build_discovery_space_inputs(discoverySpace, operationInfo)
         return orchestrate_explore_operation(
             operator_metadata=explore.operators[op_name],
             inputs=inputs,
@@ -338,13 +331,13 @@ def modify_operation(
             *,
             parameters: GenericOperatorParameters,
         ) -> OperationOutput:
+            from ado.core.operation.inputs import metastore_for_operation_inputs
             from ado.modules.operators.orchestrate import (
                 orchestrate_general_operation,
             )
 
-            inputs, info, metastore = _discovery_space_operation_inputs(
-                discoverySpace, operationInfo
-            )
+            inputs, info = _build_discovery_space_inputs(discoverySpace, operationInfo)
+            metastore = metastore_for_operation_inputs(info, inputs)
             return orchestrate_general_operation(
                 operator_metadata=modify.operators[name],
                 operation_parameters=configuration_model.model_validate(parameters),
@@ -399,13 +392,13 @@ def export_operation(
             *,
             parameters: GenericOperatorParameters,
         ) -> OperationOutput:
+            from ado.core.operation.inputs import metastore_for_operation_inputs
             from ado.modules.operators.orchestrate import (
                 orchestrate_general_operation,
             )
 
-            inputs, info, metastore = _discovery_space_operation_inputs(
-                discoverySpace, operationInfo
-            )
+            inputs, info = _build_discovery_space_inputs(discoverySpace, operationInfo)
+            metastore = metastore_for_operation_inputs(info, inputs)
             return orchestrate_general_operation(
                 operator_metadata=export.operators[name],
                 operation_parameters=configuration_model.model_validate(parameters),

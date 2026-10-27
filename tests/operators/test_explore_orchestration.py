@@ -1,38 +1,42 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
+from collections.abc import Callable
+
 import pytest
 
 import ado.modules.operators.randomwalk  # noqa: F401 — loads operator plugins
-from ado.core.discoveryspace.space import DiscoverySpace
+from ado.core.operation.config import FunctionOperationInfo, GenericOperatorParameters
 from ado.core.operation.resource import OperationProvenanceInfo
-from ado.modules.operators._explore_orchestration import (
-    _check_and_extract_discovery_space,
-)
+from ado.modules.operators._explore_orchestration import orchestrate_explore_operation
 from ado.modules.operators.collections import explore
 from ado.modules.operators.provenance import explore_operation_provenance
 
 
-class _Space(DiscoverySpace):
-    """Discovery space stand-in that skips full construction."""
-
-    def __init__(self) -> None:
-        """Skip parent initialization."""
-
-
-def test_single_discovery_space_returns_the_only_space() -> None:
-    """A one-space input dict yields that space, under any parameter name."""
-    space = _Space()
-    assert _check_and_extract_discovery_space({"measuredSpace": space}) is space
-
-
-def test_single_discovery_space_rejects_zero_or_many_spaces() -> None:
-    """Explore operations must be given exactly one discovery space."""
-    space = _Space()
+def test_orchestrate_explore_rejects_zero_discovery_spaces() -> None:
+    """Explore operations require exactly one discovery space; zero raises ValueError."""
+    metadata = explore.operators["random_walk"]
     with pytest.raises(ValueError, match="found 0"):
-        _check_and_extract_discovery_space({})
+        orchestrate_explore_operation(
+            operator_metadata=metadata,
+            inputs={},
+            parameters=GenericOperatorParameters(),
+            operation_info=FunctionOperationInfo(),
+        )
+
+
+def test_orchestrate_explore_rejects_multiple_discovery_spaces(
+    make_stub_discovery_space: Callable,
+) -> None:
+    """Explore operations require exactly one discovery space; two raises ValueError."""
+    metadata = explore.operators["random_walk"]
     with pytest.raises(ValueError, match="found 2"):
-        _check_and_extract_discovery_space({"a": space, "b": _Space()})
+        orchestrate_explore_operation(
+            operator_metadata=metadata,
+            inputs={"a": make_stub_discovery_space(), "b": make_stub_discovery_space()},
+            parameters=GenericOperatorParameters(),
+            operation_info=FunctionOperationInfo(),
+        )
 
 
 def test_explore_provenance_empty_when_no_spaces() -> None:

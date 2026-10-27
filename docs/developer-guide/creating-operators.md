@@ -60,7 +60,7 @@ from ado.modules.operators.collections import (
     properties, other than the selected independent property.
     """,
     configuration_model=DetectAnomalousSeriesOperatorParameters,
-    example_configuration=DetectAnomalousSeries.example_configuration(),
+    example_configuration=DetectAnomalousSeriesOperatorParameters.example_configuration(),
     version="1.0.5",
 )
 def detect_anomalous_series(
@@ -106,14 +106,11 @@ If your operation type is `explore`, `characterize`, `learn` or `modify`, your
 function should have a parameter `discoverySpace` i.e.
 
 ```python
-import typing
-
-
 def detect_anomalous_series(
     discoverySpace: DiscoverySpace,
     operationInfo: FunctionOperationInfo | None = None,
     *,
-    parameters: DetectAnomalousSeries,
+    parameters: DetectAnomalousSeriesOperatorParameters,
 ) -> OperationOutput: ...
 ```
 
@@ -121,14 +118,11 @@ If it is `fuse` or `compare` your function should have a parameter
 `discoverySpaces` which is a list of `discoveryspaces` i.e.
 
 ```python
-import typing
-
-
 def detect_anomalous_series(
     discoverySpaces: list[DiscoverySpace],
     operationInfo: FunctionOperationInfo | None = None,
     *,
-    parameters: DetectAnomalousSeries,
+    parameters: DetectAnomalousSeriesOperatorParameters,
 ) -> OperationOutput: ...
 ```
 

@@ -1511,6 +1511,7 @@ Where:
     - `study`
     - `fuse`
     - `learn`
+    - `summarize`
 
     <!-- prettier-ignore-end -->
 

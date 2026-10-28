@@ -140,8 +140,8 @@ def create_operation(parameters: AdoCreateCommandParameters) -> str | None:
     from ado.modules.operators.base import InterruptedOperationError
 
     try:
-        raw_operation_configuration = yaml.safe_load(
-            parameters.resource_configuration_file.read_text()
+        raw_operation_configuration = yaml.load(
+            parameters.resource_configuration_file.read_text(), Loader=SafeLoader
         )
         if not isinstance(raw_operation_configuration, dict):
             raise ValueError("Operation configuration must be a YAML mapping.")
@@ -186,71 +186,6 @@ def create_operation(parameters: AdoCreateCommandParameters) -> str | None:
     if parameters.override_values:
         op_resource_configuration = override_values_in_pydantic_model(
             model=op_resource_configuration, override_values=parameters.override_values
-        )
-
-    if parameters.with_resources:
-        if CoreResourceKinds.ACTUATORCONFIGURATION in parameters.with_resources:
-            if isinstance(
-                parameters.with_resources[CoreResourceKinds.ACTUATORCONFIGURATION], str
-            ):
-                op_resource_configuration.actuatorConfigurationIdentifiers = [
-                    parameters.with_resources[CoreResourceKinds.ACTUATORCONFIGURATION]
-                ]
-            else:
-                actuator_configuration_identifier = create_actuator_configuration(
-                    AdoCreateCommandParameters(
-                        ado_configuration=parameters.ado_configuration,
-                        dry_run=parameters.dry_run,
-                        new_sample_store=False,
-                        override_values=[],
-                        resource_configuration_file=parameters.with_resources[
-                            CoreResourceKinds.ACTUATORCONFIGURATION
-                        ],
-                        resource_type=AdoCreateSupportedResourceTypes.ACTUATOR_CONFIGURATION,
-                        use_default_sample_store=False,
-                        with_resources={},
-                        use_latest=[],
-                    )
-                )
-                if actuator_configuration_identifier is not None:
-                    op_resource_configuration.actuatorConfigurationIdentifiers = [
-                        actuator_configuration_identifier
-                    ]
-
-        if CoreResourceKinds.DISCOVERYSPACE in parameters.with_resources:
-            if isinstance(
-                parameters.with_resources[CoreResourceKinds.DISCOVERYSPACE], str
-            ):
-                space_identifier = parameters.with_resources[
-                    CoreResourceKinds.DISCOVERYSPACE
-                ]
-            else:
-                space_identifier = create_discovery_space(
-                    AdoCreateCommandParameters(
-                        ado_configuration=parameters.ado_configuration,
-                        dry_run=parameters.dry_run,
-                        new_sample_store=False,
-                        override_values=[],
-                        resource_configuration_file=parameters.with_resources[
-                            CoreResourceKinds.DISCOVERYSPACE
-                        ],
-                        resource_type=AdoCreateSupportedResourceTypes.DISCOVERY_SPACE,
-                        use_default_sample_store=False,
-                        with_resources={},
-                        use_latest=[],
-                    )
-                )
-
-            # A dry-run of a new discovery space validates the file and returns
-            # no identifier, because the space is not stored.
-            if space_identifier is not None:
-                op_resource_configuration.inputs = _discovery_space_inputs(
-                    space_identifier
-                )
-
-    elif parameters.use_latest:
-        reuse_requested_latest_identifiers(
-            resource_configuration=op_resource_configuration, parameters=parameters
         )
 
     if len(op_resource_configuration.spaces) > 1:
@@ -341,23 +276,26 @@ def _apply_with_resources(
                 parameters.with_resources[CoreResourceKinds.ACTUATORCONFIGURATION]
             ]
         else:
-            operation_data["actuatorConfigurationIdentifiers"] = [
-                create_actuator_configuration(
-                    AdoCreateCommandParameters(
-                        ado_configuration=parameters.ado_configuration,
-                        dry_run=False,
-                        new_sample_store=False,
-                        override_values=[],
-                        resource_configuration_file=parameters.with_resources[
-                            CoreResourceKinds.ACTUATORCONFIGURATION
-                        ],
-                        resource_type=AdoCreateSupportedResourceTypes.ACTUATOR_CONFIGURATION,
-                        use_default_sample_store=False,
-                        with_resources={},
-                        use_latest=[],
-                    )
+            actuator_configuration_identifier = create_actuator_configuration(
+                AdoCreateCommandParameters(
+                    ado_configuration=parameters.ado_configuration,
+                    dry_run=parameters.dry_run,
+                    new_sample_store=False,
+                    override_values=[],
+                    resource_configuration_file=parameters.with_resources[
+                        CoreResourceKinds.ACTUATORCONFIGURATION
+                    ],
+                    resource_type=AdoCreateSupportedResourceTypes.ACTUATOR_CONFIGURATION,
+                    use_default_sample_store=False,
+                    with_resources={},
+                    use_latest=[],
                 )
-            ]
+            )
+            # A dry-run of a new actuator configuration returns no identifier.
+            if actuator_configuration_identifier is not None:
+                operation_data["actuatorConfigurationIdentifiers"] = [
+                    actuator_configuration_identifier
+                ]
 
     if CoreResourceKinds.DISCOVERYSPACE in parameters.with_resources:
         if isinstance(parameters.with_resources[CoreResourceKinds.DISCOVERYSPACE], str):
@@ -366,7 +304,7 @@ def _apply_with_resources(
             space_id = create_discovery_space(
                 AdoCreateCommandParameters(
                     ado_configuration=parameters.ado_configuration,
-                    dry_run=False,
+                    dry_run=parameters.dry_run,
                     new_sample_store=False,
                     override_values=[],
                     resource_configuration_file=parameters.with_resources[
@@ -378,12 +316,14 @@ def _apply_with_resources(
                     use_latest=[],
                 )
             )
-        _add_operation_input_for_reference(
-            operation_data,
-            ADOResourceReference(
-                kind=CoreResourceKinds.DISCOVERYSPACE, identifier=space_id
-            ),
-        )
+        # A dry-run of a new discovery space returns no identifier.
+        if space_id is not None:
+            _add_operation_input_for_reference(
+                operation_data,
+                ADOResourceReference(
+                    kind=CoreResourceKinds.DISCOVERYSPACE, identifier=space_id
+                ),
+            )
 
     if CoreResourceKinds.DATACONTAINER in parameters.with_resources:
         dcr_identifier = parameters.with_resources[CoreResourceKinds.DATACONTAINER]

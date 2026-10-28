@@ -2,12 +2,77 @@
 # SPDX-License-Identifier: MIT
 
 import inspect
+from collections.abc import Callable
 
 import pytest
 
 import ado.modules.operators.randomwalk  # noqa: F401 — loads operator plugins
+from ado.core.operation.config import OperatorModuleConf
+from ado.core.operation.inputs import resolve_operation_project_context
+from ado.metastore.project import ProjectContext
 from ado.modules.operators._general_orchestration import _operator_callable_for_harness
-from ado.modules.operators.collections import characterize
+from ado.modules.operators.collections import characterize, explore
+from ado.modules.operators.provenance import operation_provenance
+from ado.utilities.location import SQLiteStoreConfiguration
+
+
+def test_resolve_project_context_from_input_when_operation_info_omits_it(
+    make_stub_discovery_space: Callable,
+) -> None:
+    """Inputs supply project context when operation info does not set one."""
+    context = ProjectContext()
+    resolved = resolve_operation_project_context(
+        None, {"measuredSpace": make_stub_discovery_space(context)}
+    )
+    assert resolved == context
+
+
+def test_resolve_project_context_rejects_disagreeing_inputs(
+    make_stub_discovery_space: Callable,
+) -> None:
+    """Inputs that carry different project contexts are rejected."""
+    first = ProjectContext()
+    second = ProjectContext(
+        project="other",
+        metadataStore=SQLiteStoreConfiguration(path="other.db"),
+    )
+    with pytest.raises(ValueError, match="disagree on project context"):
+        resolve_operation_project_context(
+            None,
+            {
+                "a": make_stub_discovery_space(first),
+                "b": make_stub_discovery_space(second),
+            },
+        )
+
+
+def test_resolve_project_context_requires_context_without_carrying_inputs() -> None:
+    """Data-container-only calls must set projectContext explicitly."""
+    with pytest.raises(ValueError, match="projectContext is required"):
+        resolve_operation_project_context(None, {})
+
+
+def test_operation_provenance_uses_package_provenance() -> None:
+    """Registered operators record their package under the operator identifier."""
+    metadata = explore.operators["random_walk"]
+    provenance = operation_provenance(metadata.reference)
+
+    assert set(provenance.operators) == {metadata.operatorIdentifier}
+    assert provenance.operators[metadata.operatorIdentifier].distributionName == (
+        "ado-core"
+    )
+    assert provenance.experiments == []
+    assert provenance.actuators == {}
+
+
+def test_operation_provenance_empty_for_module_conf() -> None:
+    """Non-reference operator modules record no operator provenance."""
+    provenance = operation_provenance(
+        OperatorModuleConf.model_construct(moduleClass="X", moduleName="x.y")
+    )
+    assert provenance.operators == {}
+    assert provenance.experiments == []
+    assert provenance.actuators == {}
 
 
 @pytest.mark.parametrize(

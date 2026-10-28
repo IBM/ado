@@ -30,6 +30,7 @@ from ado.utilities.pydantic import StrictSemVerStr, ignore_plugin_validation
 
 if typing.TYPE_CHECKING:
     import ado.modules.operators.base
+    from ado.metastore.sqlstore import SQLStore
 
 
 class DiscoveryOperationEnum(enum.Enum):
@@ -73,7 +74,8 @@ class GenericOperatorParameters(pydantic.BaseModel):
 
 
 def get_actuator_configurations(
-    project_context: ProjectContext, actuator_configuration_identifiers: list[str]
+    actuator_configuration_identifiers: list[str],
+    metastore: "SQLStore",
 ) -> list[ActuatorConfiguration]:
     """Retrieves and validates actuator configurations from the metastore for use.
 
@@ -82,25 +84,23 @@ def get_actuator_configurations(
     each actuator has at most one configuration. This is the use-path fetch;
     ``ado get`` and ``getResource`` do not call this function.
 
-    Params:
-        project_context: Project context for connecting to the metastore
+    Args:
         actuator_configuration_identifiers: List of identifiers for actuator
-            configuration resources to retrieve
+            configuration resources to retrieve.
+        metastore: Metastore to read from.
 
     Returns:
-        List of ActuatorConfiguration instances validated for use
+        List of ActuatorConfiguration instances validated for use.
 
     Raises:
-        ValueError: If more than one ActuatorConfiguration references the same actuator,
-            or if actuator plugin validation fails
-        ResourceDoesNotExistError: If any of the identifiers is not found in the project.
+        ValueError: If more than one ActuatorConfiguration references the same
+            actuator, or if actuator plugin validation fails.
+        ResourceDoesNotExistError: If any of the identifiers is not found in the
+            project.
     """
-    import ado.metastore.sqlstore
-
-    sql = ado.metastore.sqlstore.SQLStore(project_context=project_context)
 
     actuator_configurations = [
-        sql.getResource(
+        metastore.getResource(
             identifier=identifier,
             kind=CoreResourceKinds.ACTUATORCONFIGURATION,
             raise_error_if_no_resource=True,
@@ -197,8 +197,8 @@ def validate_actuator_configuration_ids_against_space_ids(
     ]
 
     actuator_configurations = get_actuator_configurations(
-        project_context=project_context,
         actuator_configuration_identifiers=actuator_configuration_identifiers,
+        metastore=sql,
     )
 
     for config in space_configurations:
@@ -845,9 +845,11 @@ class DiscoveryOperationResourceConfiguration(pydantic.BaseModel):
         if not self.actuatorConfigurationIdentifiers:
             return []
 
+        import ado.metastore.sqlstore
+
         return get_actuator_configurations(
-            project_context=project_context,
             actuator_configuration_identifiers=self.actuatorConfigurationIdentifiers,
+            metastore=ado.metastore.sqlstore.SQLStore(project_context=project_context),
         )
 
     def validate_actuatorconfigurations(
@@ -892,5 +894,12 @@ class FunctionOperationInfo(pydantic.BaseModel):
         str | None,
         pydantic.Field(
             description="The namespace the operation should create ray workers/actors in"
+        ),
+    ] = None
+    projectContext: Annotated[
+        ProjectContext | None,
+        pydantic.Field(
+            description="Project this operation runs in.",
+            exclude=True,
         ),
     ] = None

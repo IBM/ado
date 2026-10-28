@@ -932,6 +932,7 @@ ado show measurements RESOURCE_TYPE [RESOURCE_ID] [--use-latest] [--file | -f <f
                       [--output | -o {table | csv | json}] \
                       [--output-file <path>] \
                       [--property <property-name>] \
+                      [--include-properties | -p <properties>] \
                       [--include {sampled | matching | missing | unsampled}] \
                       [--aggregate {mean | median | variance | std | min | max}]\
                       [--from-experiment <experiment-id-or-file>]
@@ -987,6 +988,11 @@ Where:
 
 - `--property` (can be specified multiple times) is used to filter what measured
   properties need to be output.
+- By using (optionally multiple times) the `--include-properties` (or `-p`) flag,
+  users can include columns with experiment properties in the measurements
+  table. You can specify `constitutive`, `parameterized`, `optional`, `all`,
+  or a comma-separated list of specific property identifiers. This flag cannot
+  be combined with `--property`.
 - `--include` (**only supported for spaces**; ignored for operations and
   samplestores) determines what type of entities to include. One of:
 
@@ -1064,6 +1070,17 @@ Or to write CSV to stdout for piping:
 ado show measurements operation randomwalk-0.5.0-123abc -o json \
                                                         --property my-property-1 \
                                                         --property my-property-2
+```
+
+<!-- markdownlint-enable line-length -->
+
+<!-- markdownlint-disable line-length -->
+
+##### Include experiment properties in measurements table
+
+```shell
+ado show measurements space space-abc123-456def -p constitutive,parameterized
+ado show measurements operation randomwalk-0.5.0-123abc -p all -o csv --output-file measurements.csv
 ```
 
 <!-- markdownlint-enable line-length -->

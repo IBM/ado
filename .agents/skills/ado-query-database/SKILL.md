@@ -275,6 +275,7 @@ uv run ado show measurements RESOURCE_TYPE [RESOURCE_ID] \
                   [--output | -o {csv | json | table}] \
                   [--output-file <path>] \
                   [--property <property-name>] \
+                  [--include-properties | -p <properties>] \
                   [--include {sampled | matching | missing | \
                               unsampled | measured}] \
                   [--aggregate {mean | median | variance | std | min | max}]
@@ -296,6 +297,9 @@ uv run ado show measurements RESOURCE_TYPE [RESOURCE_ID] \
 - `--property`: Filter specific properties (can specify multiple times).
   Output keeps `identifier` and the listed columns only; also list any input
   (constitutive) properties you need.
+- `--include-properties` (or `-p`): Include experiment properties (`constitutive`,
+  `parameterized`, `optional`, `all`, or comma-separated property names). Cannot
+  be combined with `--property`.
 - `--aggregate`: Aggregate multiple values
 
 **Examples:**
@@ -311,6 +315,11 @@ uv run ado show measurements operation randomwalk-0.5.0-123abc \
                   --property my-property-1 \
                   --property my-property-2 \
                   -o csv --output-file randomwalk-0.5.0-123abc.csv
+
+# Show measurements with experiment properties included
+uv run ado show measurements space space-abc123-456def -p constitutive,parameterized
+uv run ado show measurements operation randomwalk-0.5.0-123abc -p all -o csv \
+  --output-file op-measurements.csv
 
 # Show all measured entities in a samplestore
 uv run ado show measurements samplestore store-abc123-456def

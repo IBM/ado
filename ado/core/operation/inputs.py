@@ -35,9 +35,6 @@ def project_contexts_from_inputs(
 ) -> list[tuple[str, ProjectContext]]:
     """Return ``(input_name, project_context)`` for context-carrying inputs.
 
-    Only ``DiscoverySpace`` inputs carry a project context; ``DataContainerResource``
-    inputs do not.
-
     Args:
         inputs: Mapping of parameter name to rich operator input.
 
@@ -45,11 +42,14 @@ def project_contexts_from_inputs(
         ``(name, ProjectContext)`` pairs in input iteration order. Empty when
         no input carries a project context.
     """
-    result: list[tuple[str, ProjectContext]] = []
-    for name, resource in inputs.items():
-        if isinstance(resource, DiscoverySpace):
-            result.append((name, resource.project_context))
-    return result
+
+    # At the moment only DiscoverySpace carries context.
+    # This may change with addition of new operator input types
+    return [
+        (name, resource.project_context)
+        for name, resource in inputs.items()
+        if isinstance(resource, DiscoverySpace)
+    ]
 
 
 def _resolve_discoveryspace(

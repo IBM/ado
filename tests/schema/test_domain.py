@@ -4,6 +4,7 @@ import json
 import math
 
 import numpy as np
+import pydantic
 import pytest
 
 from ado.schema.domain import (
@@ -1677,3 +1678,25 @@ def test_internal_range_values_mixed_int_float_uses_float_path() -> None:
     for v in values:
         assert type(v) is float, f"Expected float, got {type(v)}"
     assert values == pytest.approx([0.0, 0.5])
+
+
+@pytest.mark.parametrize("invalid_interval", [0, -1, 0.0, -0.5])
+def test_property_domain_rejects_non_positive_interval(
+    invalid_interval: float,
+) -> None:
+    """Test that PropertyDomain rejects zero and negative interval values."""
+    with pytest.raises(pydantic.ValidationError):
+        PropertyDomain(domainRange=[0, 10], interval=invalid_interval)
+
+    with pytest.raises(pydantic.ValidationError):
+        PropertyDomain(interval=invalid_interval)
+
+
+@pytest.mark.parametrize("valid_interval", [1, 2, 0.5, 0.1])
+def test_property_domain_accepts_positive_interval(valid_interval: float) -> None:
+    """Test that PropertyDomain accepts positive integer and float intervals."""
+    domain = PropertyDomain(domainRange=[0, 10], interval=valid_interval)
+    assert domain.interval == valid_interval
+
+    domain_no_range = PropertyDomain(interval=valid_interval)
+    assert domain_no_range.interval == valid_interval

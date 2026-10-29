@@ -562,7 +562,8 @@ class PropertyDomain(pydantic.BaseModel):
     interval: Annotated[
         int | float | None,
         pydantic.Field(
-            description="The interval between discrete values variables. Do not set if values is set"
+            gt=0,
+            description="The interval between discrete values variables. Do not set if values is set",
         ),
     ] = None  # Only makes sense for discrete variables.
     domainRange: Annotated[

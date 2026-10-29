@@ -3,6 +3,8 @@
 
 """Tests for converting OrchSearchAlgorithm parameters to RayTune parameters."""
 
+import re
+
 import pytest
 from ado_ray_tune.config import OrchSearchAlgorithm
 
@@ -80,7 +82,7 @@ def test_open_categorical_dimension_is_rejected() -> None:
     )
     with pytest.raises(
         ValueError,
-        match=(
+        match=re.escape(
             "ray_tune cannot sample an open categorical dimension. "
             "List its values to close it, or use a random_walk selector."
         ),

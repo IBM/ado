@@ -1141,6 +1141,8 @@ def test_is_value_in_internal_range_values_matches_internal_range_values() -> No
         (0.1, 0.4, 0.1),
         (-1.5, 1.5, 0.5),
         (0.0, 1.0, 0.33),
+        (-10 / 7, -10 / 7 + 0.5, 0.1),
+        (-1 / 3, -1 / 3 + 0.4, 0.1),
     ]
 
     test_values = [
@@ -1201,6 +1203,33 @@ def test_is_value_in_internal_range_values_matches_internal_range_values() -> No
                 f"Range ({lo}, {hi}, {step}) with value {v!r}: "
                 f"expected {expected}, got {actual}"
             )
+
+
+def test_domain_range_rejects_high_precision_float_bounds() -> None:
+    """Test that domainRange bounds with more than 10 decimal places are rejected."""
+    with pytest.raises(ValueError, match="10 decimal places"):
+        PropertyDomain(domainRange=[-1 / 7, -1 / 7 + 0.5])
+
+
+def test_interval_rejects_high_precision_float_interval() -> None:
+    """Test that an interval with more than 10 decimal places is rejected."""
+    with pytest.raises(ValueError, match="10 decimal places"):
+        PropertyDomain(domainRange=[0, 1], interval=1 / 3)
+
+
+def test_domain_accepts_float_values_within_supported_decimal_precision() -> None:
+    """Test that float bounds and intervals with at most 10 decimal places are accepted."""
+    domain = PropertyDomain(domainRange=[-0.1428571429, 0.3571428571], interval=0.1)
+    assert domain.domainRange == [-0.1428571429, 0.3571428571]
+    assert domain.interval == 0.1
+
+
+def test_valueinDomain_accepts_all_domain_values_float_range() -> None:
+    """Test that valueInDomain accepts every element of domain_values for a non-round float range."""
+    domain = PropertyDomain(domainRange=[-1.4285714286, -0.9285714286], interval=0.1)
+    assert len(domain.domain_values) > 0
+    for v in domain.domain_values:
+        assert domain.valueInDomain(v) is True
 
 
 def test_discrete_variable_large_range_value_in_domain_performance() -> None:

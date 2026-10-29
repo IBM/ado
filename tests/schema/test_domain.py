@@ -1700,3 +1700,27 @@ def test_property_domain_accepts_positive_interval(valid_interval: float) -> Non
 
     domain_no_range = PropertyDomain(interval=valid_interval)
     assert domain_no_range.interval == valid_interval
+
+
+@pytest.mark.parametrize("invalid_interval", [0, -1, 0.0, -0.5])
+def test_internal_range_values_rejects_non_positive_interval(
+    invalid_interval: float,
+) -> None:
+    """Test that _internal_range_values raises ValueError for non-positive intervals."""
+    with pytest.raises(ValueError, match="interval must be greater than 0"):
+        _internal_range_values(0, 10, invalid_interval)
+
+
+@pytest.mark.parametrize("invalid_interval", [0, -1, 0.0, -0.5])
+def test_is_value_in_internal_range_values_rejects_non_positive_interval(
+    invalid_interval: float,
+) -> None:
+    """Test that _is_value_in_internal_range_values raises ValueError for non-positive intervals."""
+    from ado.schema.domain import _is_value_in_internal_range_values
+
+    with pytest.raises(ValueError, match="interval must be greater than 0"):
+        _is_value_in_internal_range_values(3, 0, 10, invalid_interval)
+
+    # Raised even when an early return would otherwise apply
+    with pytest.raises(ValueError, match="interval must be greater than 0"):
+        _is_value_in_internal_range_values("not a number", 0, 10, invalid_interval)

@@ -1724,3 +1724,16 @@ def test_is_value_in_internal_range_values_rejects_non_positive_interval(
     # Raised even when an early return would otherwise apply
     with pytest.raises(ValueError, match="interval must be greater than 0"):
         _is_value_in_internal_range_values("not a number", 0, 10, invalid_interval)
+
+
+def test_internal_range_values_float_upper_bound_excluded_one_ulp_above() -> None:
+    """All returned values are strictly less than upper when accumulated float arithmetic lands one ULP above it."""
+    lower = -2.0
+    upper = np.nextafter(-0.5, -1.0)  # one ULP below -0.5
+    interval = 0.1
+
+    result = _internal_range_values(float(lower), float(upper), interval)
+    assert all(v < upper for v in result), (
+        f"All values must be strictly less than upper={upper!r}, "
+        f"but last element was {result[-1]!r}"
+    )

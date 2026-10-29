@@ -81,7 +81,7 @@ def _internal_range_values(lower: float, upper: float, interval: float) -> list:
 
     num = int(np.floor((upper - lower) / interval)) + 1
     values = [lower + i * interval for i in range(num)]
-    if values[-1] == upper:
+    if values[-1] >= upper:
         values = values[:-1]
 
     return np.round(values, 10).tolist()

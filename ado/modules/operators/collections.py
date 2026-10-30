@@ -50,7 +50,7 @@ class OperatorCollection(pydantic.BaseModel):
     """A registry of operators of a single discovery operation type.
 
     Operators are added via the decorator functions (e.g. ``characterize_operation``,
-    ``explore_operation``).  Each registered name maps to an
+    ``explore_operation``, ``summarize_operation``).  Each registered name maps to an
     :class:`~ado.core.operation.config.OperatorMetadata` instance that
     carries the function, version, description, configuration model,
     example configuration, and optional actor class.
@@ -105,6 +105,9 @@ compare = OperatorCollection(
 fuse = OperatorCollection(type=ado.core.operation.config.DiscoveryOperationEnum.FUSE)
 study = OperatorCollection(type=ado.core.operation.config.DiscoveryOperationEnum.STUDY)
 learn = OperatorCollection(type=ado.core.operation.config.DiscoveryOperationEnum.LEARN)
+summarize = OperatorCollection(
+    type=ado.core.operation.config.DiscoveryOperationEnum.SUMMARIZE
+)
 operationCollectionMap = {
     ado.core.operation.config.DiscoveryOperationEnum.CHARACTERIZE: characterize,
     ado.core.operation.config.DiscoveryOperationEnum.EXPLORE: explore,
@@ -114,6 +117,7 @@ operationCollectionMap = {
     ado.core.operation.config.DiscoveryOperationEnum.STUDY: study,
     ado.core.operation.config.DiscoveryOperationEnum.LEARN: learn,
     ado.core.operation.config.DiscoveryOperationEnum.FUSE: fuse,
+    ado.core.operation.config.DiscoveryOperationEnum.SUMMARIZE: summarize,
 }
 
 #
@@ -557,6 +561,47 @@ def fuse_operation(
             collection=fuse,
             collection_label="fuse",
             operation_type=DiscoveryOperationEnum.FUSE,
+            name=name,
+            version=version,
+            configuration_model=configuration_model,
+            example_configuration=example_configuration,
+            description=description,
+            func=func,
+        )
+
+        return _register
+
+
+def summarize_operation(
+    name: str,
+    version: str,
+    configuration_model: type[GenericOperatorParameters],
+    example_configuration: GenericOperatorParameters,
+    description: str | None = None,
+) -> typing.Callable[[OperatorFunction], OperatorFunction]:
+    """Decorator that registers a function as a summarize operation.
+
+    A summarize operator takes at least one list of discovery-space or
+    data-container inputs, and may take additional scalar resource inputs
+    such as a baseline. Resource inputs are deduced from the decorated
+    function.
+
+    Args:
+        name: Canonical operator name used in the registry.
+        version: Version string included in the operator identifier.
+        configuration_model: Pydantic model used to validate operation parameters.
+        example_configuration: Example parameter model instance for templating.
+        description: Human-readable description shown in the registry.
+
+    Returns:
+        A decorator that wraps and registers the decorated function under ``name``.
+    """
+
+    def _register(func: OperatorFunction) -> OperatorFunction:
+        return _register_general_operator(
+            collection=summarize,
+            collection_label="summarize",
+            operation_type=DiscoveryOperationEnum.SUMMARIZE,
             name=name,
             version=version,
             configuration_model=configuration_model,

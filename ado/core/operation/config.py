@@ -44,6 +44,7 @@ class DiscoveryOperationEnum(enum.Enum):
     QUERY = "query"
     EXPORT = "export"
     SCRIPT = "script"
+    SUMMARIZE = "summarize"
 
     @classmethod
     def _missing_(cls, value: object) -> "DiscoveryOperationEnum | None":
@@ -605,12 +606,14 @@ class DiscoveryOperationResourceConfiguration(pydantic.BaseModel):
         list[str], pydantic.Field(default_factory=list)
     ]
     inputs: Annotated[
-        dict[str, ADOResourceReference],
+        dict[str, ADOResourceReference | list[ADOResourceReference]],
         pydantic.Field(
             default_factory=dict,
             description=(
                 "Details the resources in the metastore that will be passed as "
-                "values to the given operator parameters"
+                "values to the given operator parameters. A value is a single "
+                "resource reference, or a list of references when the operator "
+                "parameter is a list."
             ),
         ),
     ]
@@ -634,12 +637,18 @@ class DiscoveryOperationResourceConfiguration(pydantic.BaseModel):
         Returns:
             List of discoveryspace resource identifiers in insertion order.
         """
-        return [
-            entry.identifier
-            for entry in self.inputs.values()
-            if entry.kind == CoreResourceKinds.DISCOVERYSPACE
-            or (entry.kind is None and entry.identifier.startswith("space-"))
-        ]
+        spaces: list[str] = []
+        for entry in self.inputs.values():
+            references = entry if isinstance(entry, list) else [entry]
+            spaces.extend(
+                reference.identifier
+                for reference in references
+                if reference.kind == CoreResourceKinds.DISCOVERYSPACE
+                or (
+                    reference.kind is None and reference.identifier.startswith("space-")
+                )
+            )
+        return spaces
 
     @pydantic.model_validator(mode="before")
     @classmethod
@@ -711,6 +720,11 @@ class DiscoveryOperationResourceConfiguration(pydantic.BaseModel):
                 f"(the discovery space); found: {list(self.inputs)}."
             )
         for name, entry in self.inputs.items():
+            if isinstance(entry, list):
+                raise ValueError(
+                    f"Input '{name}' is a list; ScriptOperatorConf operations "
+                    "support exactly one discoveryspace input."
+                )
             if entry.kind is None:
                 raise ValueError(
                     f"Input '{name}' has no kind. ScriptOperatorConf "
@@ -733,7 +747,10 @@ class DiscoveryOperationResourceConfiguration(pydantic.BaseModel):
 
         * fills ``kind=None`` entries from the descriptor map,
         * checks every entry's (explicit or filled) kind matches the
-          descriptor's declared kind, and
+          descriptor's declared kind,
+        * coerces a single reference to a one-element list for ``isList``
+          parameters and rejects empty lists or lists for scalar parameters,
+          and
         * checks all required inputs are present (``inputs`` must be
           non-empty).
 
@@ -785,9 +802,8 @@ class DiscoveryOperationResourceConfiguration(pydantic.BaseModel):
         required_resource_inputs = operator_metadata.required_resource_inputs or (
             _REQUIRED_INPUT_PROPERTY_FOR_ORIGINAL_FUNCTION_OPERATORS,
         )
-        input_map = {
-            descriptor.identifier: descriptor.kind
-            for descriptor in required_resource_inputs
+        descriptor_by_identifier = {
+            descriptor.identifier: descriptor for descriptor in required_resource_inputs
         }
 
         if not self.inputs:
@@ -799,20 +815,40 @@ class DiscoveryOperationResourceConfiguration(pydantic.BaseModel):
                 f"{required_names}."
             )
 
-        for name, entry in self.inputs.items():
-            expected_kind = input_map.get(name)
-            if expected_kind is None:
+        for name, entry in list(self.inputs.items()):
+            descriptor = descriptor_by_identifier.get(name)
+            if descriptor is None:
                 raise ValueError(
                     f"Input '{name}' is not declared in the operator's "
                     "required_resource_inputs."
                 )
-            if entry.kind is None:
-                entry.kind = expected_kind
-            elif entry.kind != expected_kind:
-                raise ValueError(
-                    f"Input '{name}' declares kind {entry.kind.value!r} but "
-                    f"the operator input expects {expected_kind.value!r}."
-                )
+            if descriptor.isList:
+                if isinstance(entry, list):
+                    if not entry:
+                        raise ValueError(
+                            f"Input '{name}' is empty; list resource inputs "
+                            "must contain at least one reference."
+                        )
+                    references = entry
+                else:
+                    references = [entry]
+                    self.inputs[name] = references
+            else:
+                if isinstance(entry, list):
+                    raise ValueError(
+                        f"Input '{name}' is a list but the operator "
+                        "parameter is a scalar resource."
+                    )
+                references = [entry]
+            for reference in references:
+                if reference.kind is None:
+                    reference.kind = descriptor.kind
+                elif reference.kind != descriptor.kind:
+                    raise ValueError(
+                        f"Input '{name}' declares kind "
+                        f"{reference.kind.value!r} but the operator input "
+                        f"expects {descriptor.kind.value!r}."
+                    )
 
         for descriptor in required_resource_inputs:
             if descriptor.identifier not in self.inputs:

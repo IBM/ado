@@ -11,7 +11,6 @@ import pydantic
 import ray
 import ray.util.queue
 
-from ado.core.discoveryspace.space import DiscoverySpace
 from ado.core.operation.config import (
     DiscoveryOperationResourceConfiguration,
     FunctionOperationInfo,
@@ -103,7 +102,10 @@ def orchestrate(
     """
 
     import ado.modules.operators.setup  # noqa: F401 — side-effect: registers Ray actors
-    from ado.core.operation.inputs import resource_references_to_rich_types
+    from ado.core.operation.inputs import (
+        discovery_spaces_from_inputs,
+        resource_references_to_rich_types,
+    )
     from ado.metastore.sqlstore import SQLStore
 
     #
@@ -152,11 +154,8 @@ def orchestrate(
         metastore=metastore,
     )
 
-    for resource in inputs.values():
-        if (
-            isinstance(resource, DiscoverySpace)
-            and not resource.measurementSpace.isConsistent
-        ):
+    for space in discovery_spaces_from_inputs(inputs):
+        if not space.measurementSpace.isConsistent:
             moduleLog.critical("The measurement space is inconsistent - aborting")
             raise ValueError("The measurement space is inconsistent")
 

@@ -141,25 +141,27 @@ def resource_inputs_from_operator_function(
 
 
 def project_contexts_from_inputs(
-    inputs: dict[str, OperatorInputType],
+    inputs: dict[str, ResolvedOperatorInput],
 ) -> list[tuple[str, ProjectContext]]:
     """Return ``(input_name, project_context)`` for context-carrying inputs.
 
     Args:
-        inputs: Mapping of parameter name to rich operator input.
+        inputs: Mapping of parameter name to resolved operator input.
 
     Returns:
         ``(name, ProjectContext)`` pairs in input iteration order. Empty when
         no input carries a project context.
     """
-
-    # At the moment only DiscoverySpace carries context.
-    # This may change with addition of new operator input types
-    return [
-        (name, resource.project_context)
-        for name, resource in inputs.items()
-        if isinstance(resource, DiscoverySpace)
-    ]
+    result: list[tuple[str, ProjectContext]] = []
+    for name, value in inputs.items():
+        # At the moment only DiscoverySpace carries context.
+        # This may change with addition of new operator input types
+        result.extend(
+            (name, resource.project_context)
+            for resource in iter_resolved_inputs(value)
+            if isinstance(resource, DiscoverySpace)
+        )
+    return result
 
 
 def _resolve_discoveryspace(
@@ -191,6 +193,26 @@ _RESOLVERS: dict[
     CoreResourceKinds.DISCOVERYSPACE: _resolve_discoveryspace,
     CoreResourceKinds.DATACONTAINER: _resolve_datacontainer,
 }
+
+
+def _resolve_one_reference(
+    name: str,
+    reference: ADOResourceReference,
+    metastore: SQLStore,
+) -> OperatorInputType:
+    """Resolve a single named resource reference to a rich operator-input object."""
+    if reference.kind is None:
+        raise ValueError(f"Input '{name}' has no kind set")
+
+    resolver = _RESOLVERS.get(reference.kind)
+    if resolver is None:
+        raise ValueError(
+            f"Unsupported input kind {reference.kind.value!r} for "
+            f"input '{name}'.  Supported kinds: "
+            f"{[k.value for k in _RESOLVERS]}."
+        )
+
+    return resolver(reference, metastore)
 
 
 def resolve_operation_project_context(
@@ -300,18 +322,19 @@ def metastore_for_operation_inputs(
 
 
 def resource_references_to_rich_types(
-    resource_references: dict[str, ADOResourceReference],
+    resource_references: dict[str, OperationResourceInput],
     metastore: SQLStore,
-) -> dict[str, OperatorInputType]:
+) -> dict[str, ResolvedOperatorInput]:
     """Resolve named resource references to rich operator-input objects.
 
     Args:
         resource_references: Named references. Each reference must have
-            ``kind`` set.
+            ``kind`` set. A value may be a single reference or a list of
+            references.
         metastore: Metastore used to load the referenced resources.
 
     Returns:
-        Mapping of name to rich input object.
+        Mapping of name to a rich input object or a list of rich input objects.
 
     Raises:
         ValueError: If a reference has no ``kind`` set, or if an unsupported
@@ -319,20 +342,15 @@ def resource_references_to_rich_types(
         ResourceDoesNotExistError: If an identifier does not exist in the
             project's metastore.
     """
-    resolved: dict[str, OperatorInputType] = {}
+    resolved: dict[str, ResolvedOperatorInput] = {}
 
-    for name, reference in resource_references.items():
-        if reference.kind is None:
-            raise ValueError(f"Input '{name}' has no kind set")
-
-        resolver = _RESOLVERS.get(reference.kind)
-        if resolver is None:
-            raise ValueError(
-                f"Unsupported input kind {reference.kind.value!r} for "
-                f"input '{name}'.  Supported kinds: "
-                f"{[k.value for k in _RESOLVERS]}."
-            )
-
-        resolved[name] = resolver(reference, metastore)
+    for name, value in resource_references.items():
+        if isinstance(value, list):
+            resolved[name] = [
+                _resolve_one_reference(name, reference, metastore)
+                for reference in value
+            ]
+        else:
+            resolved[name] = _resolve_one_reference(name, value, metastore)
 
     return resolved

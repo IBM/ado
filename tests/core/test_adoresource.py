@@ -148,12 +148,30 @@ def test_ado_resource_reference(
 
 
 def test_ado_resource_property_descriptor_basics() -> None:
-    """ADOResourcePropertyDescriptor carries identifier and kind."""
+    """ADOResourcePropertyDescriptor carries identifier, kind, and isList."""
     descriptor = ADOResourcePropertyDescriptor(
         identifier="discoverySpace", kind=CoreResourceKinds.DISCOVERYSPACE
     )
     assert descriptor.identifier == "discoverySpace"
     assert descriptor.kind == CoreResourceKinds.DISCOVERYSPACE
+    assert descriptor.isList is False
+
+
+def test_ado_resource_property_descriptor_is_list_round_trip() -> None:
+    """isList survives model_dump → model_validate and defaults when omitted."""
+    original = ADOResourcePropertyDescriptor(
+        identifier="containers",
+        kind=CoreResourceKinds.DATACONTAINER,
+        isList=True,
+    )
+    restored = ADOResourcePropertyDescriptor.model_validate(original.model_dump())
+    assert restored.isList is True
+    assert restored == original
+
+    without_is_list = ADOResourcePropertyDescriptor.model_validate(
+        {"identifier": "containers", "kind": "datacontainer"}
+    )
+    assert without_is_list.isList is False
 
 
 def test_ado_resource_property_descriptor_round_trip() -> None:
@@ -194,12 +212,19 @@ def test_ado_resource_property_descriptor_is_a_property_descriptor() -> None:
     different_identifier = ADOResourcePropertyDescriptor(
         identifier="candidate", kind=CoreResourceKinds.DATACONTAINER
     )
+    list_descriptor = ADOResourcePropertyDescriptor(
+        identifier="baseline",
+        kind=CoreResourceKinds.DATACONTAINER,
+        isList=True,
+    )
 
     assert isinstance(descriptor, PropertyDescriptor)
     assert descriptor == same
     assert hash(descriptor) == hash(same)
     assert descriptor != different_kind
     assert descriptor != different_identifier
+    assert descriptor != list_descriptor
+    assert hash(descriptor) != hash(list_descriptor)
     assert {descriptor, same, different_kind} == {descriptor, different_kind}
     assert descriptor == PropertyDescriptor(identifier="baseline")
     assert descriptor != PropertyDescriptor(identifier="candidate")

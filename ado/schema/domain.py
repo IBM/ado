@@ -6,6 +6,7 @@ import logging
 import math
 import numbers
 import typing
+from decimal import Decimal
 from typing import Annotated
 
 import numpy as np
@@ -215,9 +216,15 @@ def is_subdomain_of_discrete_domain(
     if testDomain.variableType == VariableTypeEnum.DISCRETE_VARIABLE_TYPE:
         if discreteDomain.interval:
             if testDomain.interval:
-                # We both have  an interval
-                # Our interval must be divisible by domain interval
-                if testDomain.interval % discreteDomain.interval == 0:
+                # Both intervals must be divisible. Scale to integer units of
+                # 1e-10 to avoid float modulo precision errors (e.g. 0.3 % 0.1 != 0).
+                test_interval_scaled = int(
+                    Decimal(repr(testDomain.interval)).scaleb(10)
+                )
+                enclosing_interval_scaled = int(
+                    Decimal(repr(discreteDomain.interval)).scaleb(10)
+                )
+                if test_interval_scaled % enclosing_interval_scaled == 0:
                     # Now we have to check the ranges
                     if testDomain.domainRange and discreteDomain.domainRange:
                         # Both have ranges - values must be subsets of each other

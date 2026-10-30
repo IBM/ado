@@ -247,19 +247,27 @@ def is_subdomain_of_discrete_domain(
                         retval = True
                 else:
                     retval = False
+            elif discreteDomain.size == math.inf:
+                # Any bounded set of values is contained in an unbounded domain
+                retval = True
             else:
                 # The test domain has values (no interval), so compare them
                 # against the values of the discrete domain
                 retval = set(testDomain.domain_values).issubset(
                     discreteDomain.domain_values
                 )
+        elif testDomain.size == math.inf:
+            # An unbounded domain is not contained in a domain with explicit values
+            retval = False
         else:
             retval = set(testDomain.domain_values).issubset(
                 discreteDomain.domain_values
             )
         return retval
     if testDomain.variableType == VariableTypeEnum.BINARY_VARIABLE_TYPE:
-        return all(x in discreteDomain.domain_values for x in [0, 1])
+        return discreteDomain.size == math.inf or all(
+            x in discreteDomain.domain_values for x in [0, 1]
+        )
 
     # All other domains are false (CONTINUOUS, OPEN_CATEGORICAL, UNKNOWN and CATEGORICAL
     return False
@@ -936,6 +944,11 @@ class PropertyDomain(pydantic.BaseModel):
 
         if self.values:
             return self.values
+
+        if self.domainRange is None:
+            raise ValueError(
+                "Cannot generate domain values for an unbounded discrete domain"
+            )
 
         return _internal_range_values(
             lower=min(self.domainRange),

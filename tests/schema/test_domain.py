@@ -806,6 +806,109 @@ def test_float_behaviour_discrete_variable_sub_domain() -> None:
     )
 
 
+def test_float_interval_exact_multiple_is_subdomain() -> None:
+    """A tested float interval that is a whole multiple of the enclosing
+    interval must be recognised as a subdomain when its values are.
+
+    Regression for https://github.com/IBM/ado/issues/1623: the divisibility
+    pre-check used ``test_interval % base_interval == 0``, which is not exact
+    for floats (``0.3 % 0.1`` is ``0.09999999999999998``).  That rejected the
+    domain before the (correct) subset comparison could run.
+    """
+
+    # The exact repro from the issue: {0.0, 0.3} is a subset of the 0.1 grid.
+    tested = PropertyDomain(domainRange=[0.0, 0.6], interval=0.3)
+    enclosing = PropertyDomain(domainRange=[0.0, 1.0], interval=0.1)
+    assert set(tested.domain_values) <= set(enclosing.domain_values)
+    assert tested.isSubDomain(enclosing), (
+        "Expected {0.0, 0.3} to be a subdomain of the 0.1 grid [0.0, 1.0)"
+    )
+
+    # The other exact-multiple pairs from the issue report.
+    for tested_interval, enclosing_interval in [(0.6, 0.2), (0.7, 0.1), (0.3, 0.1)]:
+        t = PropertyDomain(
+            domainRange=[0.0, tested_interval * 2], interval=tested_interval
+        )
+        e = PropertyDomain(domainRange=[0.0, 2.0], interval=enclosing_interval)
+        assert set(t.domain_values) <= set(e.domain_values)
+        assert t.isSubDomain(e), (
+            f"Expected interval {tested_interval} to be a subdomain of "
+            f"interval {enclosing_interval}"
+        )
+
+    # A tested interval that is NOT a whole multiple of the enclosing
+    # interval must still be rejected (no false positives from the fix).
+    not_multiple = PropertyDomain(domainRange=[0.0, 1.0], interval=0.25)
+    base_grid = PropertyDomain(domainRange=[0.0, 1.0], interval=0.1)
+    assert not not_multiple.isSubDomain(base_grid), (
+        "Expected interval 0.25 to not be a subdomain of the 0.1 grid"
+    )
+
+
+def test_float_interval_exact_multiple_helper() -> None:
+    """Unit checks for the exact-multiple helper used by isSubDomain."""
+    from ado.schema.domain import _interval_is_exact_multiple_of
+
+    # Exact multiples that plain float modulo gets wrong.
+    assert _interval_is_exact_multiple_of(0.3, 0.1)
+    assert _interval_is_exact_multiple_of(0.6, 0.2)
+    assert _interval_is_exact_multiple_of(0.7, 0.1)
+    # Non-multiples.
+    assert not _interval_is_exact_multiple_of(0.25, 0.1)
+    assert not _interval_is_exact_multiple_of(0.3, 0.2)
+    # Integer behaviour is preserved.
+    assert _interval_is_exact_multiple_of(4, 2)
+    assert not _interval_is_exact_multiple_of(3, 2)
+    # One-elem tested domain (interval equal to enclosing) is a multiple.
+    assert _interval_is_exact_multiple_of(0.1, 0.1)
+
+
+@pytest.mark.parametrize(
+    (
+        "tested_lower",
+        "tested_upper",
+        "tested_interval",
+        "base_lower",
+        "base_upper",
+        "base_interval",
+        "expected",
+    ),
+    [
+        # (lower, upper, interval, base_lower, base_upper, base_interval, expected)
+        (0.0, 0.6, 0.3, 0.0, 1.0, 0.1, True),
+        (0.0, 0.6, 0.3, 0.0, 0.5, 0.1, True),
+        # tested last value 0.6 exceeds base last value 0.5 -> not a subset
+        (0.0, 0.7, 0.3, 0.0, 0.6, 0.1, False),
+        # tested values fall on the base grid
+        (0.0, 1.0, 0.5, 0.0, 1.0, 0.1, True),
+        # tested values do not fall on the base grid (offset)
+        (0.05, 1.0, 0.3, 0.0, 1.0, 0.1, False),
+    ],
+)
+def test_float_interval_subdomain_matches_set_containment(
+    tested_lower,
+    tested_upper,
+    tested_interval,
+    base_lower,
+    base_upper,
+    base_interval,
+    expected,
+) -> None:
+    """isSubDomain must agree with exact set containment for bounded float
+    discrete domains (the real correctness definition)."""
+    tested = PropertyDomain(
+        domainRange=[tested_lower, tested_upper], interval=tested_interval
+    )
+    base = PropertyDomain(domainRange=[base_lower, base_upper], interval=base_interval)
+    ground_truth = set(tested.domain_values) <= set(base.domain_values)
+    assert ground_truth == expected, (
+        f"Test case itself inconsistent: {tested.domain_values} vs {base.domain_values}"
+    )
+    assert tested.isSubDomain(base) == expected, (
+        f"isSubDomain({tested}, {base}) = {tested.isSubDomain(base)}, expected {expected}"
+    )
+
+
 def test_float_behaviour_discrete_variable_value_in_domain() -> None:
 
     d1 = PropertyDomain(values=[0.1, 0.2, 0.3])

@@ -6,6 +6,7 @@ import logging
 import math
 import numbers
 import typing
+from decimal import Decimal, InvalidOperation
 from typing import Annotated
 
 import numpy as np
@@ -49,6 +50,38 @@ def is_float_range(
     "Returns True if an on interval or domain range is a float"
 
     return any(isinstance(x, float) for x in [interval, *domain_range])
+
+
+def _interval_is_exact_multiple_of(test_interval: float, base_interval: float) -> bool:
+    """Return True if ``test_interval`` is an exact whole multiple of
+    ``base_interval``.
+
+    Plain ``test_interval % base_interval == 0`` is not reliable for floats:
+    ``0.3 % 0.1`` is ``0.09999999999999998`` rather than ``0``.  The domain
+    values themselves are generated rounded to 10 decimal places (see
+    ``_internal_range_values``), so any bounds or interval with more than 10
+    decimal places fall back to the original (float) behaviour.  For values
+    with at most 10 decimal places we scale both by ``1e10`` to exact
+    integers and test divisibility with integer arithmetic.
+    """
+    if not is_float_range(interval=test_interval, domain_range=[base_interval]):
+        # Integer / mixed path: the original modulo check is already exact.
+        return test_interval % base_interval == 0
+
+    try:
+        test_int = int(Decimal(repr(test_interval)).scaleb(10))
+        base_int = int(Decimal(repr(base_interval)).scaleb(10))
+    except InvalidOperation:
+        return test_interval % base_interval == 0
+
+    if test_int / 10**10 != test_interval or base_int / 10**10 != base_interval:
+        # One of the values had more than 10 decimal places; keep the
+        # original behaviour for those.
+        return test_interval % base_interval == 0
+
+    if base_int == 0:
+        return False
+    return test_int % base_int == 0
 
 
 def _internal_range_values(lower: float, upper: float, interval: float) -> list:
@@ -195,7 +228,10 @@ def is_subdomain_of_discrete_domain(
             if testDomain.interval:
                 # We both have  an interval
                 # Our interval must be divisible by domain interval
-                if testDomain.interval % discreteDomain.interval == 0:
+                # (floats need exact integer-scaled comparison: 0.3 % 0.1 != 0)
+                if _interval_is_exact_multiple_of(
+                    testDomain.interval, discreteDomain.interval
+                ):
                     # Now we have to check the ranges
                     if testDomain.domainRange and discreteDomain.domainRange:
                         # Both have ranges - values must be subsets of each other

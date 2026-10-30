@@ -6,6 +6,7 @@ import logging
 import math
 import numbers
 import typing
+from decimal import Decimal
 from typing import Annotated
 
 import numpy as np
@@ -215,27 +216,148 @@ def is_subdomain_of_discrete_domain(
     if testDomain.variableType == VariableTypeEnum.DISCRETE_VARIABLE_TYPE:
         if discreteDomain.interval:
             if testDomain.interval:
-                # We both have  an interval
-                # Our interval must be divisible by domain interval
-                if testDomain.interval % discreteDomain.interval == 0:
-                    # Now we have to check the ranges
-                    if testDomain.domainRange and discreteDomain.domainRange:
-                        # Both have ranges - values must be subsets of each other
-                        retval = set(testDomain.domain_values).issubset(
-                            discreteDomain.domain_values
+                if testDomain.domainRange and discreteDomain.domainRange:
+                    # Both have ranges and intervals: use layered O(1)/O(n) checks
+                    # that avoid materialising either domain.
+                    test_domain_lower_bound = min(testDomain.domainRange)
+                    test_domain_upper_bound = max(testDomain.domainRange)
+                    test_interval = testDomain.interval
+                    discrete_domain_lower_bound = min(discreteDomain.domainRange)
+                    discrete_domain_upper_bound = max(discreteDomain.domainRange)
+                    discrete_interval = discreteDomain.interval
+
+                    # Step 1 — Bounds check (O(1))
+                    if (
+                        test_domain_lower_bound < discrete_domain_lower_bound
+                        or test_domain_upper_bound > discrete_domain_upper_bound
+                    ):
+                        return False
+
+                    # Step 2 — Compute the discrete window (O(1))
+                    discrete_intervals_to_test_domain_lower_bound = int(
+                        np.floor(
+                            (test_domain_lower_bound - discrete_domain_lower_bound)
+                            / discrete_interval
                         )
-                    elif (
-                        testDomain.domainRange and not discreteDomain.domainRange
-                    ) or (not testDomain.domainRange and discreteDomain.domainRange):
-                        # If we have a range and the other doesn't, it's a subdomain; if we don't have a range and the other does, it's not a subdomain
-                        retval = (
-                            testDomain.domainRange and not discreteDomain.domainRange
+                    )
+                    discrete_domain_window_start = float(
+                        np.round(
+                            discrete_domain_lower_bound
+                            + discrete_intervals_to_test_domain_lower_bound
+                            * discrete_interval,
+                            10,
                         )
+                    )
+                    if discrete_domain_window_start < test_domain_lower_bound:
+                        discrete_domain_window_start = float(
+                            np.round(
+                                discrete_domain_window_start + discrete_interval, 10
+                            )
+                        )
+
+                    discrete_intervals_to_test_domain_upper_bound = int(
+                        np.floor(
+                            (test_domain_upper_bound - discrete_domain_lower_bound)
+                            / discrete_interval
+                        )
+                    )
+                    discrete_domain_window_end = float(
+                        np.round(
+                            discrete_domain_lower_bound
+                            + discrete_intervals_to_test_domain_upper_bound
+                            * discrete_interval,
+                            10,
+                        )
+                    )
+                    if discrete_domain_window_end >= test_domain_upper_bound:
+                        discrete_domain_window_end = float(
+                            np.round(discrete_domain_window_end - discrete_interval, 10)
+                        )
+
+                    if discrete_domain_window_start > discrete_domain_window_end:
+                        return False
+
+                    # Step 3 — Size guard (O(1))
+                    size_test_domain = (
+                        int(
+                            np.floor(
+                                (test_domain_upper_bound - test_domain_lower_bound)
+                                / test_interval
+                            )
+                        )
+                        + 1
+                    )
+                    last_test_domain_value = (
+                        test_domain_lower_bound + (size_test_domain - 1) * test_interval
+                    )
+                    if (
+                        float(np.round(last_test_domain_value, 10))
+                        >= test_domain_upper_bound
+                    ):
+                        size_test_domain -= 1
+
+                    size_discrete_domain_window = (
+                        int(
+                            np.floor(
+                                (
+                                    discrete_domain_window_end
+                                    - discrete_domain_window_start
+                                )
+                                / discrete_interval
+                            )
+                        )
+                        + 1
+                    )
+                    if size_test_domain > size_discrete_domain_window:
+                        return False
+
+                    # Step 4 — Per-value membership check (O(|testDomain|), O(1) memory)
+                    discrete_domain_lower_bound_scaled = int(
+                        Decimal(repr(discrete_domain_lower_bound)).scaleb(10)
+                    )
+                    discrete_domain_interval_scaled = int(
+                        Decimal(repr(discrete_interval)).scaleb(10)
+                    )
+
+                    if is_float_range(
+                        interval=test_interval,
+                        domain_range=[
+                            test_domain_lower_bound,
+                            test_domain_upper_bound,
+                        ],
+                    ):
+                        for i in range(size_test_domain):
+                            test_domain_value = float(
+                                np.round(
+                                    test_domain_lower_bound + i * test_interval, 10
+                                )
+                            )
+                            test_domain_value_scaled = int(
+                                Decimal(repr(test_domain_value)).scaleb(10)
+                            )
+                            if (
+                                test_domain_value_scaled
+                                - discrete_domain_lower_bound_scaled
+                            ) % discrete_domain_interval_scaled != 0:
+                                return False
                     else:
-                        # Neither have ranges
-                        retval = True
+                        for i in range(size_test_domain):
+                            test_domain_value = (
+                                test_domain_lower_bound + i * test_interval
+                            )
+                            if (
+                                test_domain_value - int(discrete_domain_lower_bound)
+                            ) % int(discrete_interval) != 0:
+                                return False
+                    retval = True
+                elif (testDomain.domainRange and not discreteDomain.domainRange) or (
+                    not testDomain.domainRange and discreteDomain.domainRange
+                ):
+                    # If we have a range and the other doesn't, it's a subdomain; if we don't have a range and the other does, it's not a subdomain
+                    retval = testDomain.domainRange and not discreteDomain.domainRange
                 else:
-                    retval = False
+                    # Neither have ranges
+                    retval = True
             else:
                 # they have a domain range and interval we have values
                 # convert their domain range to values

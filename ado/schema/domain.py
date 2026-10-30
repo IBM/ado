@@ -354,7 +354,9 @@ def is_subdomain_of_discrete_domain(
                     not testDomain.domainRange and discreteDomain.domainRange
                 ):
                     # If we have a range and the other doesn't, it's a subdomain; if we don't have a range and the other does, it's not a subdomain
-                    retval = testDomain.domainRange and not discreteDomain.domainRange
+                    retval = bool(
+                        testDomain.domainRange and not discreteDomain.domainRange
+                    )
                 else:
                     # Neither have ranges
                     retval = True

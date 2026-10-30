@@ -379,7 +379,8 @@ def test_discrete_property_is_subdomain_for_domain_range() -> None:
 
     # Test against unbounded domain
 
-    assert not discretePropertyDomainNoRange.isSubDomain(discretePropertyDomain)
+    assert discretePropertyDomainNoRange.isSubDomain(discretePropertyDomain) is False
+    assert discretePropertyDomain.isSubDomain(discretePropertyDomainNoRange) is True
 
     # Test  subdomains
     # We can test detection of non subdomain by inverting the tests

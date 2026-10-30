@@ -115,13 +115,13 @@ NThreads = ConstitutiveProperty(
     metadata={
         "description": (
             "Number of parallel threads for CPLEX B&B (CPX_PARAM_THREADS). "
-            "1=single-threaded (fully deterministic), 2/4/8=parallel. "
+            "1=single-threaded (fully deterministic), 2/4/8/16=parallel. "
             "With n_threads>1 results may vary across runs even with the same seed."
         )
     },
     propertyDomain=PropertyDomain(
         variableType=VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
-        values=[1, 2, 4, 8],
+        values=[1, 2, 4, 8, 16],
     ),
 )
 

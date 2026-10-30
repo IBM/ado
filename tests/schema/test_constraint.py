@@ -379,7 +379,10 @@ def test_json_schema_builds() -> None:
 def test_comparison_requires_a_property() -> None:
     """Test a comparison of two literals is rejected."""
 
-    with pytest.raises(pydantic.ValidationError, match="must reference a property"):
+    with pytest.raises(
+        pydantic.ValidationError,
+        match="At least one side of a comparison must be a property",
+    ):
         Comparison.model_validate(
             {
                 "left": {"value": 1},

@@ -413,6 +413,108 @@ def test_discrete_property_is_subdomain_for_domain_range() -> None:
     assert not discretePropertySubDomain.isSubDomain(discretePropertyDomain)
 
 
+@pytest.mark.parametrize(
+    ("test_domain", "outer_domain", "expected"),
+    [
+        # Float interval that is an exact multiple of the enclosing step —
+        # the primary regression case: 0.3 % 0.1 != 0 in float arithmetic.
+        (
+            PropertyDomain(interval=0.3, domainRange=[0.0, 0.6]),
+            PropertyDomain(interval=0.1, domainRange=[0.0, 1.0]),
+            True,
+        ),
+        # Equal float intervals — identity case.
+        (
+            PropertyDomain(interval=0.1, domainRange=[0.0, 0.5]),
+            PropertyDomain(interval=0.1, domainRange=[0.0, 1.0]),
+            True,
+        ),
+        # Tested step is not a multiple of enclosing step.
+        (
+            PropertyDomain(interval=0.25, domainRange=[0.0, 1.0]),
+            PropertyDomain(interval=0.1, domainRange=[0.0, 2.0]),
+            False,
+        ),
+        # Tested step is smaller than enclosing step.
+        (
+            PropertyDomain(interval=0.05, domainRange=[0.0, 1.0]),
+            PropertyDomain(interval=0.1, domainRange=[0.0, 2.0]),
+            False,
+        ),
+        # Divisibility passes but lower bounds are misaligned, so values do not
+        # form a subset of the enclosing grid.
+        (
+            PropertyDomain(interval=0.3, domainRange=[0.05, 0.65]),
+            PropertyDomain(interval=0.1, domainRange=[0.0, 1.0]),
+            False,
+        ),
+        # Mixed int/float: int step is a multiple of float step.
+        (
+            PropertyDomain(interval=1, domainRange=[0.0, 3.0]),
+            PropertyDomain(interval=0.5, domainRange=[0.0, 4.0]),
+            True,
+        ),
+        # Mixed int/float: float step is not a multiple of int step.
+        (
+            PropertyDomain(interval=0.5, domainRange=[0.0, 3.0]),
+            PropertyDomain(interval=1, domainRange=[0.0, 4.0]),
+            False,
+        ),
+    ],
+)
+def test_float_discrete_subdomain_divisibility(
+    test_domain: PropertyDomain,
+    outer_domain: PropertyDomain,
+    expected: bool,
+) -> None:
+    """Tests isSubDomain for float discrete range domains where subdomain
+    correctness depends on exact interval divisibility."""
+    assert test_domain.isSubDomain(outer_domain) == expected
+
+
+@pytest.mark.parametrize(
+    ("test_domain", "outer_domain", "expected"),
+    [
+        # Single-element integer domain {4} whose value lands on the enclosing grid
+        # {0,2,4,6,8}: subset even though the intervals are not multiples of each other.
+        (
+            PropertyDomain(interval=3, domainRange=[4, 5]),
+            PropertyDomain(interval=2, domainRange=[0, 10]),
+            True,
+        ),
+        # Single-element float domain {0.4} whose value lands on the enclosing grid
+        # {0.0,0.1,...,0.9}: subset even though the intervals are not multiples of each other.
+        (
+            PropertyDomain(interval=0.3, domainRange=[0.4, 0.7]),
+            PropertyDomain(interval=0.1, domainRange=[0.0, 1.0]),
+            True,
+        ),
+        # Multi-element domain {0,3,6} where some values fall between enclosing grid
+        # points {0,2,4,6,8}: not a subset.
+        (
+            PropertyDomain(interval=3, domainRange=[0, 9]),
+            PropertyDomain(interval=2, domainRange=[0, 10]),
+            False,
+        ),
+        # Domain {-10,-7,...,8} whose values are offset from the enclosing grid
+        # {-10,-8,...,8}: not a subset.
+        (
+            PropertyDomain(interval=3, domainRange=[-10, 10]),
+            PropertyDomain(interval=2, domainRange=[-10, 10]),
+            False,
+        ),
+    ],
+)
+def test_discrete_subdomain_non_divisible_but_values_align(
+    test_domain: PropertyDomain,
+    outer_domain: PropertyDomain,
+    expected: bool,
+) -> None:
+    """Tests isSubDomain for discrete range domains where the intervals are not
+    multiples of each other but the test domain values align with the enclosing grid."""
+    assert test_domain.isSubDomain(outer_domain) == expected
+
+
 def test_discrete_property_is_subdomain_for_values() -> None:
     """Tests the issubdomain method of PropertyDomain works
     for discrete properties where otherDomain is defined with values and interval"""

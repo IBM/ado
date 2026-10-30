@@ -1,13 +1,29 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
-"""Tests for validate_operator_function_signature."""
+"""Tests for operator signature deduction and call-shape validation."""
 
 import pytest
 
+from ado.core.datacontainer.resource import DataContainerResource
 from ado.core.discoveryspace.space import DiscoverySpace
-from ado.core.operation.config import FunctionOperationInfo, GenericOperatorParameters
+from ado.core.operation.config import (
+    DiscoveryOperationEnum,
+    FunctionOperationInfo,
+    GenericOperatorParameters,
+)
+from ado.core.operation.inputs import resource_inputs_from_operator_function
 from ado.core.operation.operation import OperationOutput
-from ado.modules.operators.base import validate_operator_function_signature
+from ado.core.resources import CoreResourceKinds
+from ado.modules.operators.base import (
+    validate_operator_call_shape,
+    validate_operator_registration,
+)
+
+
+def _validate(fn: object) -> None:
+    """Deduce resource inputs and check the call shape."""
+    inputs = resource_inputs_from_operator_function(fn)  # type: ignore[arg-type]
+    validate_operator_call_shape(fn, inputs, configuration_model=_Params)  # type: ignore[arg-type]
 
 
 class _Params(GenericOperatorParameters):
@@ -88,12 +104,12 @@ def wrong_return_type(
 class TestValidSignatures:
     def test_valid_parameters_model(self) -> None:
         """A discoverySpace, operationInfo, and parameters model passes."""
-        validate_operator_function_signature(valid_op)
+        _validate(valid_op)
 
     def test_kwargs_rejected(self) -> None:
         """**kwargs is rejected in favour of a parameters model."""
         with pytest.raises(ValueError, match="kwargs"):
-            validate_operator_function_signature(valid_op_with_kwargs)
+            _validate(valid_op_with_kwargs)
 
 
 class TestHintIntrospectionFailure:
@@ -114,7 +130,7 @@ class TestHintIntrospectionFailure:
         ) -> OperationOutput: ...
 
         with pytest.raises(ValueError, match="type hints are missing or unresolvable"):
-            validate_operator_function_signature(bad_hints)
+            _validate(bad_hints)
 
     def test_uninspectable_fn_raises(self) -> None:
         """A callable whose signature cannot be inspected must raise ValueError.
@@ -137,41 +153,76 @@ class TestHintIntrospectionFailure:
             mock.patch("inspect.signature", side_effect=patched_signature),
             pytest.raises(ValueError, match="signature could not be inspected"),
         ):
-            validate_operator_function_signature(fn)
+            _validate(fn)
 
 
 class TestInvalidSignatures:
     def test_missing_param_annotations_rejected(self) -> None:
         """A function with unannotated parameters is rejected."""
-        with pytest.raises(ValueError, match="type hints are missing"):
-            validate_operator_function_signature(no_annotations)
+        with pytest.raises(ValueError, match="missing"):
+            _validate(no_annotations)
 
     def test_missing_operation_info(self) -> None:
         """Function with only one positional parameter is rejected."""
         with pytest.raises(ValueError, match="operationInfo"):
-            validate_operator_function_signature(missing_operation_info)
+            _validate(missing_operation_info)
 
     def test_extra_positional_parameter(self) -> None:
         """Function with more positional parameters than the protocol is rejected."""
         with pytest.raises(ValueError, match="extra"):
-            validate_operator_function_signature(extra_positional)
+            _validate(extra_positional)
 
     def test_wrong_first_param_type(self) -> None:
         """Wrong type on the first positional parameter is rejected."""
         with pytest.raises(ValueError, match="discoverySpace"):
-            validate_operator_function_signature(wrong_first_param_type)
+            _validate(wrong_first_param_type)
 
     def test_wrong_second_param_type(self) -> None:
         """Wrong type on the second positional parameter is rejected."""
         with pytest.raises(ValueError, match="operationInfo"):
-            validate_operator_function_signature(wrong_second_param_type)
+            _validate(wrong_second_param_type)
 
     def test_wrong_parameters_type(self) -> None:
         """parameters must be a GenericOperatorParameters subclass."""
         with pytest.raises(ValueError, match="parameters"):
-            validate_operator_function_signature(wrong_parameters_type)
+            _validate(wrong_parameters_type)
+
+    def test_compare_inputs_are_deduced_from_the_signature(self) -> None:
+        """Leading resource parameters become the operator's required inputs."""
+
+        def compare_spaces(
+            left: DiscoverySpace,
+            right: DataContainerResource,
+            operationInfo: FunctionOperationInfo | None = None,
+            *,
+            parameters: _Params,
+        ) -> OperationOutput: ...
+
+        descriptors = resource_inputs_from_operator_function(compare_spaces)
+        assert [descriptor.identifier for descriptor in descriptors] == [
+            "left",
+            "right",
+        ]
+        assert descriptors[1].kind == CoreResourceKinds.DATACONTAINER
+        validate_operator_registration(
+            compare_spaces,
+            descriptors,
+            DiscoveryOperationEnum.COMPARE,
+            configuration_model=_Params,
+        )
+
+    def test_fuse_requires_two_discovery_spaces(self) -> None:
+        """A fuse operator with one discovery space is rejected."""
+        descriptors = resource_inputs_from_operator_function(valid_op)
+        with pytest.raises(ValueError, match="at least 2"):
+            validate_operator_registration(
+                valid_op,
+                descriptors,
+                DiscoveryOperationEnum.FUSE,
+                configuration_model=_Params,
+            )
 
     def test_wrong_return_type(self) -> None:
         """Wrong return type is rejected."""
         with pytest.raises(ValueError, match="return"):
-            validate_operator_function_signature(wrong_return_type)
+            _validate(wrong_return_type)

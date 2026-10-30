@@ -115,13 +115,13 @@ NThreads = ConstitutiveProperty(
     metadata={
         "description": (
             "Number of parallel threads for CPLEX B&B (CPX_PARAM_THREADS). "
-            "1=single-threaded (fully deterministic), 2/4/8=parallel. "
+            "1=single-threaded (fully deterministic), 2/4/8/16=parallel. "
             "With n_threads>1 results may vary across runs even with the same seed."
         )
     },
     propertyDomain=PropertyDomain(
         variableType=VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
-        values=[1, 2, 4, 8],
+        values=[1, 2, 4, 8, 16],
     ),
 )
 
@@ -184,6 +184,21 @@ MipEmphasis = ConstitutiveProperty(
     propertyDomain=PropertyDomain(
         variableType=VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
         values=[0, 1, 2, 3, 4, 5],
+    ),
+)
+
+Qtolin = ConstitutiveProperty(
+    identifier="qtolin",
+    metadata={
+        "description": (
+            "Linearization of quadratic terms in the objective by preprocessing "
+            "(CPX_PARAM_QTOLIN / `set preprocessing qtolin`): -1=automatic, "
+            "0=keep quadratic terms, 1=linearize quadratic terms."
+        )
+    },
+    propertyDomain=PropertyDomain(
+        variableType=VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
+        values=[-1, 0, 1],
     ),
 )
 
@@ -716,6 +731,7 @@ def _run_single_seed(
     cut_passes: int,
     cut_passes_all: CutPassesAllLevel = "cplex_default",
     mip_emphasis: int = 0,
+    qtolin: int = -1,
     progress_interval_s: float = 0,
     workmem_mb: int = 0,
     warm_start_file: str = "",
@@ -736,6 +752,8 @@ def _run_single_seed(
             per family, or ``cplex_default`` to leave CPLEX defaults unchanged.
         mip_emphasis: MIP emphasis (CPX_PARAM_MIPEMPHASIS): 0-5, see property
             metadata; default 0 matches CPLEX balanced emphasis.
+        qtolin: Quadratic-term linearization (CPX_PARAM_QTOLIN): -1 automatic,
+            0 keep quadratic terms, 1 linearize.
         progress_interval_s: If > 0, capture progress at this interval (seconds).
         workmem_mb: When > 0, sets CPLEX WorkMem (CPX_PARAM_WORKMEM) to this
             value in MB and enables compressed on-disk node files
@@ -789,6 +807,7 @@ def _run_single_seed(
     model.parameters.mip.strategy.heuristicfreq.set(heuristic_frequency)
     model.parameters.mip.strategy.rinsheur.set(rins_frequency)
     model.parameters.mip.limits.cutpasses.set(cut_passes)
+    model.parameters.preprocessing.qtolin.set(qtolin)
     model.parameters.timelimit.set(time_limit_s)
     model.parameters.mip.display.set(4)
     model.parameters.mip.interval.set(100)
@@ -814,7 +833,8 @@ def _run_single_seed(
     logger.debug(
         "Solving %s with seed=%d, n_threads=%d, node_selection=%d, "
         "variable_selection=%d, heuristic_frequency=%d, rins_frequency=%d, "
-        "cut_passes=%d, cut_passes_all=%r, mip_emphasis=%d, time_limit_s=%.1g",
+        "cut_passes=%d, cut_passes_all=%r, mip_emphasis=%d, qtolin=%d, "
+        "time_limit_s=%.1g",
         mps_file,
         seed,
         n_threads,
@@ -825,6 +845,7 @@ def _run_single_seed(
         cut_passes,
         cut_passes_all,
         mip_emphasis,
+        qtolin,
         time_limit_s,
     )
 
@@ -942,6 +963,7 @@ def _run_single_seed(
         CutPasses,
         CutPassesAll,
         MipEmphasis,
+        Qtolin,
         Parallel,
         ProgressInterval,
         WarmStartFile,
@@ -985,6 +1007,7 @@ def solve_mip(
     cut_passes: int = 0,
     cut_passes_all: CutPassesAllLevel = "cplex_default",
     mip_emphasis: int = 0,
+    qtolin: int = -1,
     parallel: bool = True,
     progress_interval_s: float = 0,
     warm_start_file: str = "",
@@ -1000,7 +1023,8 @@ def solve_mip(
         heuristic_frequency: CPLEX heuristic frequency (CPX_PARAM_HEURFREQ).
         time_limit_s: CPLEX time limit per seed run in seconds. Default 1e75 means
             no practical limit; CPLEX runs until the optimal solution is found.
-        n_threads: Number of parallel B&B threads (CPX_PARAM_THREADS). Default 1
+        n_threads: Number of parallel B&B threads (CPX_PARAM_THREADS). Default 1.
+            Allowed values are 1, 2, 4, 8, and 16.
             ensures fully deterministic execution.
         rins_frequency: RINS heuristic frequency (CPX_PARAM_RINSHEUR). -1=disabled,
             0=automatic, n=apply every n nodes.
@@ -1009,6 +1033,8 @@ def solve_mip(
         cut_passes_all: Same aggressiveness for all ``mip.cuts`` families, capped
             per family; ``cplex_default`` leaves CPLEX defaults unchanged.
         mip_emphasis: CPLEX MIP emphasis (0=balanced through 5=heuristic); default 0.
+        qtolin: CPLEX quadratic-term linearization (CPX_PARAM_QTOLIN): -1 automatic
+            (default), 0 keep quadratic terms, 1 linearize.
         parallel: If True, run each seed as a Ray remote task (requires ray_remote).
             If False, run seeds in serial. With parallel=True, Ray task failures on
             individual seeds are recorded as ``ray_task_failed: ...`` in
@@ -1061,6 +1087,7 @@ def solve_mip(
             cut_passes=cut_passes,
             cut_passes_all=cut_passes_all,
             mip_emphasis=mip_emphasis,
+            qtolin=qtolin,
             progress_interval_s=progress_interval_s,
             warm_start_file=warm_start_file,
             export_solution=export_solution,

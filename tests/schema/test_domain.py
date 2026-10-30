@@ -973,6 +973,40 @@ def test_domain_values() -> None:
     assert d.domain_values == [0]
 
 
+def test_domain_values_raises_for_unbounded_discrete_domain() -> None:
+    with pytest.raises(ValueError, match="unbounded discrete"):
+        _ = PropertyDomain(interval=1).domain_values
+
+
+def test_is_subdomain_of_unbounded_discrete_domain() -> None:
+    binary = PropertyDomain(variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE)
+
+    # Crash sites: unbounded discrete domains have no domainRange
+    assert PropertyDomain(values=[1]).isSubDomain(PropertyDomain(interval=1)) is True
+    assert (
+        PropertyDomain(interval=1).isSubDomain(PropertyDomain(values=[1, 2])) is False
+    )
+    assert binary.isSubDomain(PropertyDomain(interval=1)) is True
+
+    # Neighbouring combinations that must not change
+    assert PropertyDomain(values=[1]).isSubDomain(PropertyDomain(values=[1, 2])) is True
+    assert binary.isSubDomain(PropertyDomain(values=[0, 1])) is True
+    assert (
+        PropertyDomain(domainRange=[0, 5], interval=1).isSubDomain(
+            PropertyDomain(interval=1)
+        )
+        is True
+    )
+    assert PropertyDomain(interval=2).isSubDomain(PropertyDomain(interval=1)) is True
+    assert (
+        PropertyDomain(interval=1).isSubDomain(
+            PropertyDomain(domainRange=[0, 5], interval=1)
+        )
+        is False
+    )
+    assert PropertyDomain(interval=1).isSubDomain(binary) is False
+
+
 def test_open_categorical_variable_type_property_domain() -> None:
     import math
 

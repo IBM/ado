@@ -51,6 +51,18 @@ def is_float_range(
     return any(isinstance(x, float) for x in [interval, *domain_range])
 
 
+def _exceeds_supported_decimal_precision(v: float) -> bool:
+    """Returns True if v has more than 10 decimal places.
+
+    Args:
+        v: The value to check.
+
+    Returns:
+        True if float(np.round(v, 10)) != v, False otherwise.
+    """
+    return float(np.round(v, 10)) != v
+
+
 def _internal_range_values(lower: float, upper: float, interval: float) -> list:
     """Returns the values in the half-open [lower, upper) range.
 
@@ -627,11 +639,33 @@ class PropertyDomain(pydantic.BaseModel):
     def interval_requires_no_values(
         cls, interval: float | None, values: "pydantic.FieldValidationInfo"
     ) -> int | float | None:
+        """Validates the interval of the domain.
+
+        Args:
+            interval: The interval between discrete values, or None.
+            values: Validation info holding the fields validated so far.
+
+        Returns:
+            The unchanged interval.
+
+        Raises:
+            ValueError: If values is also set, or if interval is a float with
+                more than 10 decimal places.
+        """
 
         if interval is not None and values.data.get("values") is not None:
             raise ValueError(
                 "Cannot specify both interval and values in a PropertyDomain. "
                 f"Values were: {values.data.get('values')}. Interval was: {interval}"
+            )
+
+        if isinstance(interval, float) and _exceeds_supported_decimal_precision(
+            interval
+        ):
+            raise ValueError(
+                f"interval value {interval} exceeds the maximum supported "
+                "precision of 10 decimal places. Provide a value with at "
+                "most 10 decimal places."
             )
 
         return interval
@@ -642,6 +676,20 @@ class PropertyDomain(pydantic.BaseModel):
         passed_range: list[int | float] | None,
         otherFields: "pydantic.FieldValidationInfo",
     ) -> list[int | float] | None:
+        """Validates the range of the domain.
+
+        Args:
+            passed_range: The lower (inclusive) and upper (exclusive) bounds, or None.
+            otherFields: Validation info holding the fields validated so far.
+
+        Returns:
+            The passed range, or None if values is set and the range is compatible
+            with it.
+
+        Raises:
+            ValueError: If the range is incompatible with values, or if a float
+                bound has more than 10 decimal places.
+        """
 
         values = otherFields.data.get("values")
         if passed_range is not None and values:
@@ -655,6 +703,14 @@ class PropertyDomain(pydantic.BaseModel):
                 )
             # Forget the passed range
             passed_range = None
+
+        for bound in passed_range or []:
+            if isinstance(bound, float) and _exceeds_supported_decimal_precision(bound):
+                raise ValueError(
+                    f"domainRange value {bound} exceeds the maximum supported "
+                    "precision of 10 decimal places. Provide a value with at "
+                    "most 10 decimal places."
+                )
 
         return passed_range
 

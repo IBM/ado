@@ -213,42 +213,75 @@ def is_subdomain_of_discrete_domain(
         True if the testDomain is a subdomain of the discreteDomain
     """
     if testDomain.variableType == VariableTypeEnum.DISCRETE_VARIABLE_TYPE:
+        # Get domain_values for both domains, handling unbounded cases
+        test_domain_values = testDomain.domain_values
+        disc_domain_values = discreteDomain.domain_values
+
         if discreteDomain.interval:
             if testDomain.interval:
-                # We both have  an interval
+                # We both have an interval
                 # Our interval must be divisible by domain interval
                 if testDomain.interval % discreteDomain.interval == 0:
-                    # Now we have to check the ranges
-                    if testDomain.domainRange and discreteDomain.domainRange:
-                        # Both have ranges - values must be subsets of each other
-                        retval = set(testDomain.domain_values).issubset(
-                            discreteDomain.domain_values
-                        )
-                    elif (
-                        testDomain.domainRange and not discreteDomain.domainRange
-                    ) or (not testDomain.domainRange and discreteDomain.domainRange):
-                        # If we have a range and the other doesn't, it's a subdomain; if we don't have a range and the other does, it's not a subdomain
-                        retval = (
-                            testDomain.domainRange and not discreteDomain.domainRange
-                        )
-                    else:
-                        # Neither have ranges
+                    # Now we have to check the values/ranges
+                    if test_domain_values is not None and disc_domain_values is not None:
+                        # Both have concrete values - check subset
+                        retval = set(test_domain_values).issubset(disc_domain_values)
+                    elif test_domain_values is None and disc_domain_values is None:
+                        # Both are unbounded (no values, no range) - subdomain
                         retval = True
+                    elif test_domain_values is None:
+                        # Tested is unbounded, enclosing has values
+                        # Unbounded should not be subset of finite set
+                        retval = False
+                    elif disc_domain_values is None:
+                        # Enclosing is unbounded, tested has values
+                        # Finite values should be subset of unbounded
+                        retval = True
+                    else:
+                        # One has values, other doesn't (but both have domainRange)
+                        # This case is handled by the existing domainRange logic below
+                        retval = set(test_domain_values).issubset(disc_domain_values) if test_domain_values and disc_domain_values else False
                 else:
                     retval = False
             else:
                 # they have a domain range and interval we have values
                 # convert their domain range to values
-                retval = set(testDomain.domain_values).issubset(
-                    discreteDomain.domain_values
-                )
+                if test_domain_values is not None and disc_domain_values is not None:
+                    retval = set(test_domain_values).issubset(disc_domain_values)
+                elif test_domain_values is None and disc_domain_values is None:
+                    retval = True
+                elif test_domain_values is None:
+                    # Tested is unbounded (no range, has interval), enclosing has values
+                    retval = False
+                elif disc_domain_values is None:
+                    # Enclosing is unbounded (no range, has interval), tested has values
+                    retval = True
+                else:
+                    # Both have domain values (concrete lists)
+                    retval = set(test_domain_values).issubset(disc_domain_values)
         else:
-            retval = set(testDomain.domain_values).issubset(
-                discreteDomain.domain_values
-            )
+            # discreteDomain has no interval - use domain_values directly
+            if test_domain_values is not None and disc_domain_values is not None:
+                retval = set(test_domain_values).issubset(disc_domain_values)
+            elif test_domain_values is None and disc_domain_values is None:
+                retval = True
+            elif test_domain_values is None:
+                # Tested is unbounded (no range, has interval), enclosing has values
+                retval = False
+            elif disc_domain_values is None:
+                # Enclosing is unbounded (no range, has interval), tested has values
+                retval = True
+            else:
+                # Both have concrete domain_values
+                retval = set(test_domain_values).issubset(disc_domain_values)
         return retval
     if testDomain.variableType == VariableTypeEnum.BINARY_VARIABLE_TYPE:
-        return all(x in discreteDomain.domain_values for x in [0, 1])
+        # BINARY tested against discrete domain
+        # Check if 0 and 1 are in the discrete domain's values
+        if disc_domain_values is None:
+            # Unbounded discrete domain - accepts 0 and 1
+            return True
+        return all(x in disc_domain_values for x in [0, 1])
 
     # All other domains are false (CONTINUOUS, OPEN_CATEGORICAL, UNKNOWN and CATEGORICAL
     return False
@@ -910,7 +943,7 @@ class PropertyDomain(pydantic.BaseModel):
         return iseq
 
     @property
-    def domain_values(self) -> list:
+    def domain_values(self) -> list | None:
 
         if self.variableType in {
             VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE,
@@ -925,6 +958,10 @@ class PropertyDomain(pydantic.BaseModel):
 
         if self.values:
             return self.values
+
+        if self.domainRange is None:
+            # Unbounded discrete domain with no values or range - return None
+            # to indicate "all values" (unbounded)\r\n            return None
 
         return _internal_range_values(
             lower=min(self.domainRange),

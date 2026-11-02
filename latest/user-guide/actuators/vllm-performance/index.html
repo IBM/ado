@@ -6,8 +6,10 @@
 <span class="p p-Indicator">-</span><span class=w> </span><span class=nt>image</span><span class=p>:</span><span class=w> </span><span class="p p-Indicator">[</span><span class=s>"quay.io/mgazzetti/vllm-performance/vllm:v0.18.0-tt.v1.2.5"</span><span class="p p-Indicator">,</span><span class=w> </span><span class=s>"0.18.0"</span><span class="p p-Indicator">]</span>
 <span class=w>  </span><span class=nt>renderer_num_workers</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">0</span><span class=w>  </span><span class=c1># Explicitly disable threadpool</span>
 
-<span class=c1># Test v0.20.1 with threadpool</span>
-<span class="p p-Indicator">-</span><span class=w> </span><span class=nt>image</span><span class=p>:</span><span class=w> </span><span class="p p-Indicator">[</span><span class=s>"quay.io/mgazzetti/vllm-performance/vllm:vllm.v0.20.1-tt.v1.2.7"</span><span class="p p-Indicator">,</span><span class=w> </span><span class=s>"0.20.1"</span><span class="p p-Indicator">]</span>
+<span class=c1># Test v0.31.0 with threadpool</span>
+<span class="p p-Indicator">-</span><span class=w> </span><span class=nt>image</span><span class=p>:</span>
+<span class=w>    </span><span class="p p-Indicator">-</span><span class=w> </span><span class=s>"quay.io/mgazzetti/vllm-performance/vllm:vllm-0-31-terratorch-1-2-13"</span>
+<span class=w>    </span><span class="p p-Indicator">-</span><span class=w> </span><span class=s>"0.31.0"</span>
 <span class=w>  </span><span class=nt>renderer_num_workers</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">64</span><span class=w>  </span><span class=c1># Enable threadpool with 64 workers</span>
 </code></pre></div> <p><strong>Image Format:</strong> To enable version validation, specify the image as a list with the image name and version:</p> <div class=highlight><pre><span></span><code><span class=nt>image</span><span class=p>:</span>
 <span class=w>  </span><span class="p p-Indicator">-</span><span class=w> </span><span class="p p-Indicator">[</span><span class=s>"your-registry/vllm:v0.20.1-custom"</span><span class="p p-Indicator">,</span><span class=w> </span><span class=s>"0.20.1"</span><span class="p p-Indicator">]</span>

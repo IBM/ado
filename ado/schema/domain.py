@@ -6,6 +6,7 @@ import logging
 import math
 import numbers
 import typing
+from decimal import Decimal
 from typing import Annotated
 
 import numpy as np
@@ -215,30 +216,40 @@ def is_subdomain_of_discrete_domain(
     if testDomain.variableType == VariableTypeEnum.DISCRETE_VARIABLE_TYPE:
         if discreteDomain.interval:
             if testDomain.interval:
-                # We both have  an interval
-                # Our interval must be divisible by domain interval
-                if testDomain.interval % discreteDomain.interval == 0:
-                    # Now we have to check the ranges
+                # Both domains have an interval
+                if testDomain.size == 1:
+                    # A single-valued domain is a subdomain if its value is in
+                    # the discrete domain, whatever its interval
+                    retval = discreteDomain.valueInDomain(testDomain.domain_values[0])
+                # The test domain interval must be divisible by the discrete domain interval.
+                # Both intervals are scaled to integers at 10 decimal places so the
+                # modulo is exact for decimal intervals such as 0.3 and 0.1.
+                elif (
+                    int(Decimal(str(testDomain.interval)).scaleb(10))
+                    % int(Decimal(str(discreteDomain.interval)).scaleb(10))
+                    == 0
+                ):
+                    # Now check the ranges
                     if testDomain.domainRange and discreteDomain.domainRange:
-                        # Both have ranges - values must be subsets of each other
+                        # Both domains have ranges - the test domain values must be a subset of the discrete domain values
                         retval = set(testDomain.domain_values).issubset(
                             discreteDomain.domain_values
                         )
                     elif (
                         testDomain.domainRange and not discreteDomain.domainRange
                     ) or (not testDomain.domainRange and discreteDomain.domainRange):
-                        # If we have a range and the other doesn't, it's a subdomain; if we don't have a range and the other does, it's not a subdomain
+                        # If only the test domain has a range, it is a subdomain; if only the discrete domain has a range, it is not
                         retval = (
                             testDomain.domainRange and not discreteDomain.domainRange
                         )
                     else:
-                        # Neither have ranges
+                        # Neither domain has a range
                         retval = True
                 else:
                     retval = False
             else:
-                # they have a domain range and interval we have values
-                # convert their domain range to values
+                # The test domain has values (no interval), so compare them
+                # against the values of the discrete domain
                 retval = set(testDomain.domain_values).issubset(
                     discreteDomain.domain_values
                 )

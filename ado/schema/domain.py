@@ -151,25 +151,6 @@ def _is_value_in_internal_range_values(
     )
 
 
-def _is_interval_multiple(interval: float, base_interval: float) -> bool:
-    """Returns True if interval is an exact multiple of base_interval.
-
-    Scales both values to integers at 10 decimal places and compares them
-    with integer arithmetic, so decimal intervals such as 0.3 and 0.1 are
-    compared exactly.
-
-    Args:
-        interval: The interval to test.
-        base_interval: The interval it must be a multiple of.
-
-    Returns:
-        True if interval is divisible by base_interval.
-    """
-    scaled_interval = int(Decimal(str(interval)).scaleb(10))
-    scaled_base_interval = int(Decimal(str(base_interval)).scaleb(10))
-    return scaled_interval % scaled_base_interval == 0
-
-
 def is_subdomain_of_unknown_domain(
     unknownDomain: "PropertyDomain", testDomain: "PropertyDomain"
 ) -> bool:
@@ -240,10 +221,13 @@ def is_subdomain_of_discrete_domain(
                     # A single-valued domain is a subdomain if its value is in
                     # the discrete domain, whatever its interval
                     retval = discreteDomain.valueInDomain(testDomain.domain_values[0])
-                # The test domain interval must be divisible by the discrete domain interval
-                elif _is_interval_multiple(
-                    interval=testDomain.interval,
-                    base_interval=discreteDomain.interval,
+                # The test domain interval must be divisible by the discrete domain interval.
+                # Both intervals are scaled to integers at 10 decimal places so the
+                # modulo is exact for decimal intervals such as 0.3 and 0.1.
+                elif (
+                    int(Decimal(str(testDomain.interval)).scaleb(10))
+                    % int(Decimal(str(discreteDomain.interval)).scaleb(10))
+                    == 0
                 ):
                     # Now check the ranges
                     if testDomain.domainRange and discreteDomain.domainRange:

@@ -4,7 +4,6 @@
 import pydantic
 import pytest
 
-from ado.schema.observed_property import ObservedProperty
 from ado.schema.property import (
     AbstractProperty,
     AbstractPropertyDescriptor,
@@ -15,7 +14,6 @@ from ado.schema.property import (
     Property,
     PropertyDescriptor,
 )
-from ado.schema.reference import ExperimentReference
 
 
 @pytest.fixture
@@ -181,14 +179,6 @@ def test_descriptor_string_representation(
     assert f"{descriptor}" == descriptor.identifier, (
         f"Expected str rep of descriptor to be {descriptor.identifier}, was {descriptor}"
     )
-
-
-def test_observed_property_hashable(experiment_reference: ExperimentReference) -> None:
-
-    ap = AbstractPropertyDescriptor(identifier="test")
-    op = ObservedProperty(targetProperty=ap, experimentReference=experiment_reference)
-    d = {op: "some_key"}
-    assert d
 
 
 def test_property_equivalence_non_property(

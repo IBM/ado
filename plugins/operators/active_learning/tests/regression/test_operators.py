@@ -4,7 +4,9 @@
 
 """Tests for the distinct PKH and FLORA operator registrations."""
 
+import inspect
 from collections.abc import Callable
+from typing import get_type_hints
 
 import pydantic
 import pytest
@@ -64,6 +66,9 @@ def test_import_registers_two_distinct_operators(
     assert issubclass(metadata.configuration_model, GenericOperatorParameters)
     assert isinstance(metadata.example_configuration, GenericOperatorParameters)
     assert metadata.example_configuration == configuration_model.example_configuration()
+    parameter = inspect.signature(function).parameters["parameters"]
+    assert parameter.kind is inspect.Parameter.KEYWORD_ONLY
+    assert get_type_hints(function)["parameters"] is configuration_model
 
 
 @pytest.mark.parametrize(

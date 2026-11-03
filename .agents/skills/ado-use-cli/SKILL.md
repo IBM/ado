@@ -155,7 +155,9 @@ or `context`. Cannot be combined with a direct resource ID or `--use-latest`.
 Can be combined with `--filter`, `--label`, `--matching-point`,
 `--matching-space`, and `--matching-space-id`.
 
-`--stats` adds statistics columns to the table:
+`--stats` adds statistics columns to the table and csv output. With `-o yaml`
+or `-o json` the statistics are added under `metadata.stats` using lowercase
+keys (e.g. `total_measurements`):
 
 - **Operations**: `TOTAL_MEASUREMENTS`, `SUCCESSFUL_MEASUREMENTS`, `FAILED_MEASUREMENTS`,
   `SAMPLED_ENTITIES`.

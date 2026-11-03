@@ -1,15 +1,10 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-"""Machinery shared by the regression-based active-learning strategies.
+"""Shared configuration and execution for ADO active-learning operators.
 
-PKH and FLORA both fit a random-forest regressor to a finite, explicit
-discovery-space pool and select one entity at a time based on that forest.
-This module holds everything the two strategies share: parameter defaults,
-finite-pool encoding, the sequential-selection state machine, and the ADO
-operator/RandomWalk wiring. ``active_learning.regression.pkh`` and
-``active_learning.regression.flora`` each add only the acquisition logic that
-is specific to their strategy.
+Build finite feature pools, collect labels, and coordinate sequential sampling
+and final model training.
 """
 
 from __future__ import annotations
@@ -611,12 +606,12 @@ def _entity_target_values(
     entity: Entity,
     target_property: ObservedProperty,
 ) -> list[float]:
-    """Extract finite scalar values matching a target or observed identifier."""
+    """Extract finite scalar values matching the observed property's identity."""
 
     values: list[float] = []
     for property_value in entity.observedPropertyValues:
         prop = property_value.property
-        if prop.identifier != target_property.identifier:
+        if prop != target_property:
             continue
         try:
             value = np.asarray(property_value.value, dtype=float)
@@ -948,9 +943,9 @@ def _run_predictive_operator(
     )
     nested_output = orchestrate_explore_operation(
         operator_metadata=random_walk_metadata,
-        discovery_space=discovery_space,
+        inputs={"discoverySpace": discovery_space},
         operation_info=nested_operation_info,
-        parameters=random_walk_parameters.model_dump(),
+        parameters=random_walk_parameters,
     )
     if (
         nested_output.exitStatus is None

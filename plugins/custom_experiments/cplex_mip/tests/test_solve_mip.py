@@ -61,7 +61,7 @@ class TestRequiredProperties:
 
 class TestOptionalProperties:
     def test_all_optional_properties_present(self, experiment: Experiment) -> None:
-        """All fourteen optional properties must be defined."""
+        """All fifteen optional properties must be defined."""
         optional_ids = {p.identifier for p in experiment.optionalProperties}
         expected = {
             "n_seeds",
@@ -78,6 +78,7 @@ class TestOptionalProperties:
             "progress_interval_s",
             "warm_start_file",
             "export_solution",
+            "qtolin",
         }
         assert expected == optional_ids
 
@@ -141,6 +142,13 @@ class TestOptionalProperties:
         )
         assert sorted(prop.propertyDomain.values) == [0, 1, 2, 3, 4, 5]
 
+    def test_qtolin_domain_values(self, experiment: Experiment) -> None:
+        """qtolin domain must be [-1, 0, 1]."""
+        prop = next(
+            p for p in experiment.optionalProperties if p.identifier == "qtolin"
+        )
+        assert sorted(prop.propertyDomain.values) == [-1, 0, 1]
+
     def test_time_limit_domain_type(self, experiment: Experiment) -> None:
         """time_limit_s must be continuous with a nonnegative range including 1e75."""
         prop = next(
@@ -155,11 +163,11 @@ class TestOptionalProperties:
         assert prop.propertyDomain.domainRange == [0, 1e76]
 
     def test_n_threads_domain_values(self, experiment: Experiment) -> None:
-        """n_threads domain must contain exactly [1, 2, 4, 8]."""
+        """n_threads domain must contain exactly [1, 2, 4, 8, 16]."""
         prop = next(
             p for p in experiment.optionalProperties if p.identifier == "n_threads"
         )
-        assert sorted(prop.propertyDomain.values) == [1, 2, 4, 8]
+        assert sorted(prop.propertyDomain.values) == [1, 2, 4, 8, 16]
 
     def test_rins_frequency_domain_values(self, experiment: Experiment) -> None:
         """rins_frequency domain must contain exactly [-1, 0, 5, 25, 100]."""
@@ -247,6 +255,13 @@ class TestDefaultParameterization:
             p.property.identifier: p.value for p in experiment.defaultParameterization
         }
         assert param_map["mip_emphasis"] == 0
+
+    def test_qtolin_default(self, experiment: Experiment) -> None:
+        """Default qtolin must be -1 (CPLEX automatic)."""
+        param_map = {
+            p.property.identifier: p.value for p in experiment.defaultParameterization
+        }
+        assert param_map["qtolin"] == -1
 
     def test_parallel_default(self, experiment: Experiment) -> None:
         """Default parallel must be True (Ray remote execution)."""

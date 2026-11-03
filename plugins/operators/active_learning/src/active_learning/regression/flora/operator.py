@@ -27,11 +27,11 @@ from ado.modules.operators.collections import characterize_operation
 def flora(
     discoverySpace: DiscoverySpace,
     operationInfo: FunctionOperationInfo | None = None,
-    **kwargs: object,
+    *,
+    parameters: FLORAOperatorParameters,
 ) -> OperationOutput:
     """Characterize a finite discovery space with FLORA acquisition."""
 
-    parameters = FLORAOperatorParameters.model_validate(kwargs)
     return _run_predictive_operator(
         discovery_space=discoverySpace,
         operation_info=operationInfo,

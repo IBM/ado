@@ -406,9 +406,8 @@ class DiscoverySpaceConfiguration(pydantic.BaseModel):
             ):
                 continue
 
-            if (
-                candidate_experiment.major_version_parameterized_experiment_identifier
-                == reference_experiment.major_version_parameterized_experiment_identifier
+            if set(candidate_experiment.parameterization or ()) == set(
+                reference_experiment.parameterization or ()
             ):
                 has_identical = True
             else:

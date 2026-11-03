@@ -140,8 +140,10 @@ The `vllm_performance` actuator implements twelve experiments:
 > - image: ["quay.io/mgazzetti/vllm-performance/vllm:v0.18.0-tt.v1.2.5", "0.18.0"]
 >   renderer_num_workers: 0  # Explicitly disable threadpool
 >
-> # Test v0.20.1 with threadpool
-> - image: ["quay.io/mgazzetti/vllm-performance/vllm:vllm.v0.20.1-tt.v1.2.7", "0.20.1"]
+> # Test v0.31.0 with threadpool
+> - image:
+>     - "quay.io/mgazzetti/vllm-performance/vllm:vllm-0-31-terratorch-1-2-13"
+>     - "0.31.0"
 >   renderer_num_workers: 64  # Enable threadpool with 64 workers
 > ```
 >

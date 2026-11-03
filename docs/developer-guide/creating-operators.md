@@ -59,14 +59,15 @@ from ado.modules.operators.collections import (
     The entities in the discovery space can be divided into groups based on a user supplied set of constitutive
     properties, other than the selected independent property.
     """,
-    configuration_model=DetectAnomalousSeries,
-    example_configuration=DetectAnomalousSeries.example_configuration(),
+    configuration_model=DetectAnomalousSeriesOperatorParameters,
+    example_configuration=DetectAnomalousSeriesOperatorParameters.example_configuration(),
     version="1.0.5",
 )
 def detect_anomalous_series(
     discoverySpace: DiscoverySpace,
     operationInfo: FunctionOperationInfo | None = None,
-    **parameters: typing.Any,
+    *,
+    parameters: DetectAnomalousSeriesOperatorParameters,
 ) -> OperationOutput:
     # Your operation logic - can also call other Python modules etc.
     ...
@@ -77,7 +78,8 @@ def detect_anomalous_series(
 
 ### Operator Type
 
-The first thing you need to do is decide what type of operator you are creating.
+The first thing you need to do is decide what type of operator you
+are creating.
 The choices are
 [explore, characterize, learn, modify, fuse, export, or compare](../user-guide/operators/working-with-operators.md).
 You then import the decorator for this operator type from
@@ -97,20 +99,18 @@ The decorator parameters are the same for all operator/operation types.
 
 ### Operator function parameters
 
-All operator functions take one or more `discoveryspaces` along with a
-dictionary containing the inputs for the operation.
+All operator functions take a discovery space and a `parameters` argument
+typed as the operator's configuration model.
 
 If your operation type is `explore`, `characterize`, `learn` or `modify`, your
 function should have a parameter `discoverySpace` i.e.
 
 ```python
-import typing
-
-
 def detect_anomalous_series(
     discoverySpace: DiscoverySpace,
     operationInfo: FunctionOperationInfo | None = None,
-    **parameters: typing.Any,
+    *,
+    parameters: DetectAnomalousSeriesOperatorParameters,
 ) -> OperationOutput: ...
 ```
 
@@ -118,13 +118,11 @@ If it is `fuse` or `compare` your function should have a parameter
 `discoverySpaces` which is a list of `discoveryspaces` i.e.
 
 ```python
-import typing
-
-
 def detect_anomalous_series(
     discoverySpaces: list[DiscoverySpace],
     operationInfo: FunctionOperationInfo | None = None,
-    **parameters: typing.Any,
+    *,
+    parameters: DetectAnomalousSeriesOperatorParameters,
 ) -> OperationOutput: ...
 ```
 

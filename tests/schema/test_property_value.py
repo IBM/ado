@@ -1,6 +1,8 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
+import base64
+import json
 import typing
 
 import pydantic
@@ -153,12 +155,6 @@ def test_property_value_checks_value_type(
                 ConstitutivePropertyValue(
                     value=test_value, property=prop.descriptor(), valueType=example_type
                 )
-        elif type(test_value) is str and example_type is ValueTypeEnum.BLOB_VALUE_TYPE:
-            # strings with BLOB_VALUE_TYPE are ALLOWED to be converted to bytes
-            # i.e. this is not the same case as previous two
-            ConstitutivePropertyValue(
-                value=test_value, property=prop.descriptor(), valueType=example_type
-            )
         else:
             with pytest.raises(pydantic.ValidationError):
                 ConstitutivePropertyValue(
@@ -170,18 +166,65 @@ def test_property_value_checks_value_type(
         )
 
 
-def test_string_with_bytes_type_converted_to_blob() -> None:
+def test_base64_string_with_blob_type_converted_to_bytes() -> None:
 
     prop = ConstitutiveProperty(identifier="cons_prop")
+    raw = b"PNG\r89\n\x1a\n\x00\x00"
     val = ConstitutivePropertyValue(
-        value="PNG\r89\n\x1a\n\x00\x00",
+        value=base64.b64encode(raw).decode("ascii"),
         property=prop.descriptor(),
         valueType=ValueTypeEnum.BLOB_VALUE_TYPE,
     )
 
-    assert val.value == b"PNG\r89\n\x1a\n\x00\x00", (
-        "String value with type BLOB_VALUE_TYPE was not converted to bytes as expected"
+    assert val.value == raw, (
+        "Base64 string value with type BLOB_VALUE_TYPE was not decoded to bytes"
     )
+
+
+def test_non_base64_string_with_blob_type_is_rejected() -> None:
+
+    prop = ConstitutiveProperty(identifier="cons_prop")
+    with pytest.raises(pydantic.ValidationError):
+        ConstitutivePropertyValue(
+            value="not base64!",
+            property=prop.descriptor(),
+            valueType=ValueTypeEnum.BLOB_VALUE_TYPE,
+        )
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [
+        b"hello",
+        b"a\\nb",
+        b"\xff\xfe\x00\x01",
+        b"",
+        bytes(range(256)),
+    ],
+    ids=["ascii", "backslash", "non-utf8", "empty", "all-byte-values"],
+)
+def test_blob_value_json_roundtrip(raw: bytes) -> None:
+    """Arbitrary bytes survive JSON serialization, including non-UTF-8 bytes"""
+
+    prop = ConstitutiveProperty(identifier="cons_prop")
+    val = ConstitutivePropertyValue(value=raw, property=prop.descriptor())
+
+    dumped_json = val.model_dump_json()
+    assert json.loads(dumped_json)["value"] == base64.b64encode(raw).decode("ascii")
+    assert ConstitutivePropertyValue.model_validate_json(dumped_json).value == raw
+
+    dumped_json_mode = val.model_dump(mode="json")
+    restored = ConstitutivePropertyValue.model_validate(dumped_json_mode)
+    assert restored.value == raw
+    assert restored.valueType == ValueTypeEnum.BLOB_VALUE_TYPE
+
+
+def test_blob_value_python_dump_keeps_bytes() -> None:
+
+    prop = ConstitutiveProperty(identifier="cons_prop")
+    val = ConstitutivePropertyValue(value=b"\xff\x00", property=prop.descriptor())
+
+    assert val.model_dump()["value"] == b"\xff\x00"
 
 
 def test_type_detection(property_value: tuple[PropertyValue, type]) -> None:
@@ -345,3 +388,79 @@ def test_observed_property_value_lifecycle(
     assert reloaded == observed_property_value, (
         f"Round-trip mismatch for value {value!r}"
     )
+
+
+@pytest.mark.parametrize(
+    "value", [42, 3.14, "hello", [1, 2], [1, [2, 3]], b"bytes", None]
+)
+def test_constitutive_property_value_is_hashable(
+    value: object,
+    constitutive_property_descriptor: ConstitutivePropertyDescriptor,
+) -> None:
+    """Test that ConstitutivePropertyValue produces an integer hash for supported value types."""
+    constitutive_property_value = ConstitutivePropertyValue(
+        value=value, property=constitutive_property_descriptor
+    )
+    assert isinstance(hash(constitutive_property_value), int)
+
+
+def test_constitutive_property_value_equal_values_have_equal_hash(
+    constitutive_property_descriptor: ConstitutivePropertyDescriptor,
+) -> None:
+    """Test that equal ConstitutivePropertyValues produce equal hashes."""
+    first = ConstitutivePropertyValue(
+        value=1, property=constitutive_property_descriptor
+    )
+    second = ConstitutivePropertyValue(
+        value=1.0, property=constitutive_property_descriptor, uncertainty=0.1
+    )
+    assert first == second
+    assert hash(first) == hash(second)
+
+    first_list = ConstitutivePropertyValue(
+        value=[1, [2, 3]], property=constitutive_property_descriptor
+    )
+    second_list = ConstitutivePropertyValue(
+        value=[1.0, [2, 3.0]], property=constitutive_property_descriptor
+    )
+    assert first_list == second_list
+    assert hash(first_list) == hash(second_list)
+
+
+def test_constitutive_property_value_different_values_in_set(
+    constitutive_property_descriptor: ConstitutivePropertyDescriptor,
+) -> None:
+    """Test that distinct ConstitutivePropertyValues remain separate entries in a set."""
+    other_descriptor = ConstitutivePropertyDescriptor(identifier="other")
+    values = [
+        ConstitutivePropertyValue(value=1, property=constitutive_property_descriptor),
+        ConstitutivePropertyValue(value=1.0, property=constitutive_property_descriptor),
+        ConstitutivePropertyValue(value=2, property=constitutive_property_descriptor),
+        ConstitutivePropertyValue(value=1, property=other_descriptor),
+        ConstitutivePropertyValue(value=[1], property=constitutive_property_descriptor),
+    ]
+    assert len(set(values)) == 4
+
+
+def test_constitutive_property_value_set_equality_is_order_independent(
+    constitutive_property_descriptor: ConstitutivePropertyDescriptor,
+) -> None:
+    """Test that sets of ConstitutivePropertyValues compare equal regardless of order."""
+    other_descriptor = ConstitutivePropertyDescriptor(identifier="other")
+    first = ConstitutivePropertyValue(
+        value=[1, 2], property=constitutive_property_descriptor
+    )
+    second = ConstitutivePropertyValue(value="a", property=other_descriptor)
+    assert {first, second} == {second, first}
+
+
+def test_constitutive_property_value_hash_lifecycle(
+    constitutive_property_descriptor: ConstitutivePropertyDescriptor,
+) -> None:
+    """Test that hash and equality are preserved across serialization round-trip."""
+    original = ConstitutivePropertyValue(
+        value=[1, [2, 3]], property=constitutive_property_descriptor
+    )
+    reloaded = ConstitutivePropertyValue.model_validate(original.model_dump())
+    assert reloaded == original
+    assert hash(reloaded) == hash(original)

@@ -4,6 +4,7 @@ import json
 import math
 
 import numpy as np
+import pydantic
 import pytest
 
 from ado.schema.domain import (
@@ -378,7 +379,8 @@ def test_discrete_property_is_subdomain_for_domain_range() -> None:
 
     # Test against unbounded domain
 
-    assert not discretePropertyDomainNoRange.isSubDomain(discretePropertyDomain)
+    assert discretePropertyDomainNoRange.isSubDomain(discretePropertyDomain) is False
+    assert discretePropertyDomain.isSubDomain(discretePropertyDomainNoRange) is True
 
     # Test  subdomains
     # We can test detection of non subdomain by inverting the tests
@@ -410,6 +412,108 @@ def test_discrete_property_is_subdomain_for_domain_range() -> None:
 
     discretePropertySubDomain = PropertyDomain(interval=3, domainRange=[-10, 10])
     assert not discretePropertySubDomain.isSubDomain(discretePropertyDomain)
+
+
+@pytest.mark.parametrize(
+    ("test_domain", "outer_domain", "expected"),
+    [
+        # Float interval that is an exact multiple of the enclosing step —
+        # the primary regression case: 0.3 % 0.1 != 0 in float arithmetic.
+        (
+            PropertyDomain(interval=0.3, domainRange=[0.0, 0.6]),
+            PropertyDomain(interval=0.1, domainRange=[0.0, 1.0]),
+            True,
+        ),
+        # Equal float intervals — identity case.
+        (
+            PropertyDomain(interval=0.1, domainRange=[0.0, 0.5]),
+            PropertyDomain(interval=0.1, domainRange=[0.0, 1.0]),
+            True,
+        ),
+        # Tested step is not a multiple of enclosing step.
+        (
+            PropertyDomain(interval=0.25, domainRange=[0.0, 1.0]),
+            PropertyDomain(interval=0.1, domainRange=[0.0, 2.0]),
+            False,
+        ),
+        # Tested step is smaller than enclosing step.
+        (
+            PropertyDomain(interval=0.05, domainRange=[0.0, 1.0]),
+            PropertyDomain(interval=0.1, domainRange=[0.0, 2.0]),
+            False,
+        ),
+        # Divisibility passes but lower bounds are misaligned, so values do not
+        # form a subset of the enclosing grid.
+        (
+            PropertyDomain(interval=0.3, domainRange=[0.05, 0.65]),
+            PropertyDomain(interval=0.1, domainRange=[0.0, 1.0]),
+            False,
+        ),
+        # Mixed int/float: int step is a multiple of float step.
+        (
+            PropertyDomain(interval=1, domainRange=[0.0, 3.0]),
+            PropertyDomain(interval=0.5, domainRange=[0.0, 4.0]),
+            True,
+        ),
+        # Mixed int/float: float step is not a multiple of int step.
+        (
+            PropertyDomain(interval=0.5, domainRange=[0.0, 3.0]),
+            PropertyDomain(interval=1, domainRange=[0.0, 4.0]),
+            False,
+        ),
+    ],
+)
+def test_float_discrete_subdomain_divisibility(
+    test_domain: PropertyDomain,
+    outer_domain: PropertyDomain,
+    expected: bool,
+) -> None:
+    """Tests isSubDomain for float discrete range domains where subdomain
+    correctness depends on exact interval divisibility."""
+    assert test_domain.isSubDomain(outer_domain) == expected
+
+
+@pytest.mark.parametrize(
+    ("test_domain", "outer_domain", "expected"),
+    [
+        # Single-element integer domain {4} whose value lands on the enclosing grid
+        # {0,2,4,6,8}: subset even though the intervals are not multiples of each other.
+        (
+            PropertyDomain(interval=3, domainRange=[4, 5]),
+            PropertyDomain(interval=2, domainRange=[0, 10]),
+            True,
+        ),
+        # Single-element float domain {0.4} whose value lands on the enclosing grid
+        # {0.0,0.1,...,0.9}: subset even though the intervals are not multiples of each other.
+        (
+            PropertyDomain(interval=0.3, domainRange=[0.4, 0.7]),
+            PropertyDomain(interval=0.1, domainRange=[0.0, 1.0]),
+            True,
+        ),
+        # Multi-element domain {0,3,6} where some values fall between enclosing grid
+        # points {0,2,4,6,8}: not a subset.
+        (
+            PropertyDomain(interval=3, domainRange=[0, 9]),
+            PropertyDomain(interval=2, domainRange=[0, 10]),
+            False,
+        ),
+        # Domain {-10,-7,...,8} whose values are offset from the enclosing grid
+        # {-10,-8,...,8}: not a subset.
+        (
+            PropertyDomain(interval=3, domainRange=[-10, 10]),
+            PropertyDomain(interval=2, domainRange=[-10, 10]),
+            False,
+        ),
+    ],
+)
+def test_discrete_subdomain_non_divisible_but_values_align(
+    test_domain: PropertyDomain,
+    outer_domain: PropertyDomain,
+    expected: bool,
+) -> None:
+    """Tests isSubDomain for discrete range domains where the intervals are not
+    multiples of each other but the test domain values align with the enclosing grid."""
+    assert test_domain.isSubDomain(outer_domain) == expected
 
 
 def test_discrete_property_is_subdomain_for_values() -> None:
@@ -1140,6 +1244,8 @@ def test_is_value_in_internal_range_values_matches_internal_range_values() -> No
         (0.1, 0.4, 0.1),
         (-1.5, 1.5, 0.5),
         (0.0, 1.0, 0.33),
+        (-10 / 7, -10 / 7 + 0.5, 0.1),
+        (-1 / 3, -1 / 3 + 0.4, 0.1),
     ]
 
     test_values = [
@@ -1200,6 +1306,33 @@ def test_is_value_in_internal_range_values_matches_internal_range_values() -> No
                 f"Range ({lo}, {hi}, {step}) with value {v!r}: "
                 f"expected {expected}, got {actual}"
             )
+
+
+def test_domain_range_rejects_high_precision_float_bounds() -> None:
+    """Test that domainRange bounds with more than 10 decimal places are rejected."""
+    with pytest.raises(ValueError, match="10 decimal places"):
+        PropertyDomain(domainRange=[-1 / 7, -1 / 7 + 0.5])
+
+
+def test_interval_rejects_high_precision_float_interval() -> None:
+    """Test that an interval with more than 10 decimal places is rejected."""
+    with pytest.raises(ValueError, match="10 decimal places"):
+        PropertyDomain(domainRange=[0, 1], interval=1 / 3)
+
+
+def test_domain_accepts_float_values_within_supported_decimal_precision() -> None:
+    """Test that float bounds and intervals with at most 10 decimal places are accepted."""
+    domain = PropertyDomain(domainRange=[-0.1428571429, 0.3571428571], interval=0.1)
+    assert domain.domainRange == [-0.1428571429, 0.3571428571]
+    assert domain.interval == 0.1
+
+
+def test_valueinDomain_accepts_all_domain_values_float_range() -> None:
+    """Test that valueInDomain accepts every element of domain_values for a non-round float range."""
+    domain = PropertyDomain(domainRange=[-1.4285714286, -0.9285714286], interval=0.1)
+    assert len(domain.domain_values) > 0
+    for v in domain.domain_values:
+        assert domain.valueInDomain(v) is True
 
 
 def test_discrete_variable_large_range_value_in_domain_performance() -> None:
@@ -1677,3 +1810,62 @@ def test_internal_range_values_mixed_int_float_uses_float_path() -> None:
     for v in values:
         assert type(v) is float, f"Expected float, got {type(v)}"
     assert values == pytest.approx([0.0, 0.5])
+
+
+@pytest.mark.parametrize("invalid_interval", [0, -1, 0.0, -0.5])
+def test_property_domain_rejects_non_positive_interval(
+    invalid_interval: float,
+) -> None:
+    """Test that PropertyDomain rejects zero and negative interval values."""
+    with pytest.raises(pydantic.ValidationError):
+        PropertyDomain(domainRange=[0, 10], interval=invalid_interval)
+
+    with pytest.raises(pydantic.ValidationError):
+        PropertyDomain(interval=invalid_interval)
+
+
+@pytest.mark.parametrize("valid_interval", [1, 2, 0.5, 0.1])
+def test_property_domain_accepts_positive_interval(valid_interval: float) -> None:
+    """Test that PropertyDomain accepts positive integer and float intervals."""
+    domain = PropertyDomain(domainRange=[0, 10], interval=valid_interval)
+    assert domain.interval == valid_interval
+
+    domain_no_range = PropertyDomain(interval=valid_interval)
+    assert domain_no_range.interval == valid_interval
+
+
+@pytest.mark.parametrize("invalid_interval", [0, -1, 0.0, -0.5])
+def test_internal_range_values_rejects_non_positive_interval(
+    invalid_interval: float,
+) -> None:
+    """Test that _internal_range_values raises ValueError for non-positive intervals."""
+    with pytest.raises(ValueError, match="interval must be greater than 0"):
+        _internal_range_values(0, 10, invalid_interval)
+
+
+@pytest.mark.parametrize("invalid_interval", [0, -1, 0.0, -0.5])
+def test_is_value_in_internal_range_values_rejects_non_positive_interval(
+    invalid_interval: float,
+) -> None:
+    """Test that _is_value_in_internal_range_values raises ValueError for non-positive intervals."""
+    from ado.schema.domain import _is_value_in_internal_range_values
+
+    with pytest.raises(ValueError, match="interval must be greater than 0"):
+        _is_value_in_internal_range_values(3, 0, 10, invalid_interval)
+
+    # Raised even when an early return would otherwise apply
+    with pytest.raises(ValueError, match="interval must be greater than 0"):
+        _is_value_in_internal_range_values("not a number", 0, 10, invalid_interval)
+
+
+def test_internal_range_values_float_upper_bound_excluded_one_ulp_above() -> None:
+    """All returned values are strictly less than upper when accumulated float arithmetic lands one ULP above it."""
+    lower = -2.0
+    upper = np.nextafter(-0.5, -1.0)  # one ULP below -0.5
+    interval = 0.1
+
+    result = _internal_range_values(float(lower), float(upper), interval)
+    assert all(v < upper for v in result), (
+        f"All values must be strictly less than upper={upper!r}, "
+        f"but last element was {result[-1]!r}"
+    )

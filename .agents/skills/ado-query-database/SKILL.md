@@ -103,7 +103,8 @@ type. Read the file; do not treat stdout as complete.
 
 `--stats` adds statistics columns to the table without fetching full resource
 data. Supported for **operations**, **discovery spaces**, **sample stores**, and
-**data containers**.
+**data containers**. With `-o yaml` or `-o json` the statistics are added under
+`metadata.stats` using lowercase keys (e.g. `total_measurements`).
 
 ```bash
 # Operations

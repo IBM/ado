@@ -970,19 +970,21 @@ class ParameterizedExperiment(Experiment):
         )
 
     def __eq__(self, other: object) -> bool:  # noqa: ANN401
-        """ParameterizedExperiments are equal when they share the same major_version_parameterized_identifier.
+        """Check equality with another object based on actuator, major version, and parameterization.
 
-        A ParameterizedExperiment can only be equal to another
-        ParameterizedExperiment; it is never equal to its parent Experiment.
+        Args:
+            other: The object to compare with.
 
         Returns:
-            True if both share the same actuator and parameterized identifier.
+            True if other is a ParameterizedExperiment with matching actuatorIdentifier,
+            major_version_identifier, and parameterization set.
         """
         retval = False
         if isinstance(other, ParameterizedExperiment):
-            retval = (self.actuatorIdentifier == other.actuatorIdentifier) and (
-                self.major_version_parameterized_identifier
-                == other.major_version_parameterized_identifier
+            retval = (
+                self.actuatorIdentifier == other.actuatorIdentifier
+                and self.major_version_identifier == other.major_version_identifier
+                and set(self.parameterization) == set(other.parameterization)
             )
 
         return retval
@@ -995,8 +997,18 @@ class ParameterizedExperiment(Experiment):
         )
 
     def __hash__(self) -> int:
+        """Compute the hash based on actuator, major version, and parameterization.
 
-        return hash(str(self))
+        Returns:
+            The integer hash value.
+        """
+        return hash(
+            (
+                self.actuatorIdentifier,
+                self.major_version_identifier,
+                frozenset(self.parameterization),
+            )
+        )
 
     def __rich__(self) -> "RenderableType":
         """Render this parameterized experiment using rich."""

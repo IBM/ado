@@ -535,6 +535,38 @@ def _add_stats_columns(
     return output_df
 
 
+def _inject_stats_into_resources(
+    resources: "list[ADOResource] | ADOResource",
+    resource_type: "CoreResourceKinds | None",
+    parameters: "AdoGetCommandParameters",
+) -> None:
+    """Set ``metadata['stats']`` on each of the given resources.
+
+    The statistics are computed in a single bulk query. Their keys are the
+    lower-cased statistics column names (e.g. ``total_measurements``).
+
+    Args:
+        resources: A resource or a list of resources to add statistics to.
+        resource_type: The kind of the resources. For kinds without statistics
+            an error is printed and the command exits with code 1.
+        parameters: Command parameters, used to locate the metastore.
+    """
+    import pandas as pd
+
+    resource_list = resources if isinstance(resources, list) else [resources]
+
+    stats_df = _add_stats_columns(
+        base_df=pd.DataFrame({"IDENTIFIER": [r.identifier for r in resource_list]}),
+        parameters=parameters,
+        resource_type=resource_type,
+    )
+    stats = stats_df.drop(columns="IDENTIFIER").rename(columns=str.lower)
+    for resource, resource_stats in zip(
+        resource_list, stats.to_dict(orient="records"), strict=True
+    ):
+        resource.metadata["stats"] = resource_stats
+
+
 def _handle_raw_format(
     parameters: "AdoGetCommandParameters",
     resource_type: "CoreResourceKinds | None",
@@ -584,6 +616,12 @@ def _handle_structured_formats(
 
     # If resources provided, use them
     if resources is not None:
+        if parameters.show_stats:
+            _inject_stats_into_resources(
+                resources=resources,
+                resource_type=resource_type,
+                parameters=parameters,
+            )
         output_content = format_resource_for_ado_get_custom_format(
             to_print=resources, parameters=parameters
         )
@@ -629,6 +667,13 @@ def _handle_structured_formats(
                 ]
             else:
                 fetched_resources = list(all_resources.values())
+
+    if parameters.show_stats:
+        _inject_stats_into_resources(
+            resources=fetched_resources,
+            resource_type=resource_type,
+            parameters=parameters,
+        )
 
     output_content = format_resource_for_ado_get_custom_format(
         to_print=fetched_resources, parameters=parameters

@@ -324,3 +324,89 @@ def test_reference_reversed_parameterization_lifecycle(
 
     assert ExperimentReference.model_validate(dumped) == ref
     assert ExperimentReference.model_validate_json(ref.model_dump_json()) == ref
+
+
+def test_reference_none_and_empty_parameterization_are_equal() -> None:
+    """Test that references with None and empty parameterization compare equal and produce equal hashes."""
+    none_ref = ExperimentReference(
+        actuatorIdentifier="test", experimentIdentifier="exp", parameterization=None
+    )
+    empty_ref = ExperimentReference(
+        actuatorIdentifier="test", experimentIdentifier="exp", parameterization=[]
+    )
+
+    assert none_ref == empty_ref
+    assert hash(none_ref) == hash(empty_ref)
+    assert len({none_ref, empty_ref}) == 1
+
+
+def test_reference_equality_uses_values_not_string_encoding(
+    customParameterization: list[ConstitutivePropertyValue],
+) -> None:
+    """Test that references with equal parameterization values of different types compare equal."""
+    int_valued = [
+        v.model_copy(update={"value": -1})
+        if v.property.identifier == "test_opt2"
+        else v
+        for v in customParameterization
+    ]
+    float_valued = [
+        v.model_copy(update={"value": -1.0})
+        if v.property.identifier == "test_opt2"
+        else v
+        for v in customParameterization
+    ]
+    ref_int = ExperimentReference(
+        actuatorIdentifier="test",
+        experimentIdentifier="exp",
+        parameterization=int_valued,
+    )
+    ref_float = ExperimentReference(
+        actuatorIdentifier="test",
+        experimentIdentifier="exp",
+        parameterization=float_valued,
+    )
+
+    assert ref_int == ref_float
+    assert hash(ref_int) == hash(ref_float)
+    assert len({ref_int, ref_float}) == 1
+
+
+def test_reference_equality_list_valued_and_colliding_string_values() -> None:
+    """Test reference equality and hashing with list values and distinct strings."""
+    descriptor = ConstitutivePropertyDescriptor(identifier="p")
+
+    def reference_with(value: object) -> ExperimentReference:
+        """Create an ExperimentReference with a single parameterized property value."""
+        return ExperimentReference(
+            actuatorIdentifier="test",
+            experimentIdentifier="exp",
+            parameterization=[
+                ConstitutivePropertyValue(value=value, property=descriptor)
+            ],
+        )
+
+    assert reference_with([1, 2]) == reference_with([1, 2])
+    assert hash(reference_with([1, 2])) == hash(reference_with([1, 2]))
+    assert reference_with([1, 2]) != reference_with([2, 1])
+    assert reference_with("a-b.c") != reference_with("a.b-c")
+    assert len({reference_with("a-b.c"), reference_with("a.b-c")}) == 2
+
+
+def test_reference_different_minor_equal_different_major_not_equal(
+    customParameterization: list[ConstitutivePropertyValue],
+) -> None:
+    """Test reference equality and hashing across same and different major versions."""
+
+    def reference_with(version: str) -> ExperimentReference:
+        """Create an ExperimentReference with the specified experiment version."""
+        return ExperimentReference(
+            actuatorIdentifier="test",
+            experimentIdentifier="exp",
+            experimentVersion=version,
+            parameterization=customParameterization,
+        )
+
+    assert reference_with("1.0.0") == reference_with("1.2.3")
+    assert hash(reference_with("1.0.0")) == hash(reference_with("1.2.3"))
+    assert reference_with("1.0.0") != reference_with("2.0.0")

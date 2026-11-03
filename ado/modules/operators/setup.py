@@ -108,9 +108,11 @@ def setup_actuators(
             f"The space was originally created with {space_experiment.fully_qualified_identifier}"
         )
 
+    from ado.metastore.sqlstore import SQLStore
+
     actuator_configurations = get_actuator_configurations(
         actuator_configuration_identifiers=actuator_configuration_identifiers,
-        project_context=discovery_space.project_context,
+        metastore=SQLStore(project_context=discovery_space.project_context),
     )
 
     validate_actuator_configurations_against_space_configuration(

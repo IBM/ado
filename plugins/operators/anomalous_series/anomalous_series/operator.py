@@ -3,7 +3,6 @@
 
 import enum
 import itertools
-import typing
 from typing import Annotated
 
 import pandas as pd
@@ -41,7 +40,7 @@ class PropertyTypeEnum(enum.Enum):
     observed = "observed"
 
 
-class DetectAnomalousSeries(GenericOperatorParameters):
+class DetectAnomalousSeriesOperatorParameters(GenericOperatorParameters):
     model_config = ConfigDict(extra="forbid")
 
     entity_filter: Annotated[
@@ -90,7 +89,7 @@ class DetectAnomalousSeries(GenericOperatorParameters):
     ] = True
 
     @classmethod
-    def example_configuration(cls) -> "DetectAnomalousSeries":
+    def example_configuration(cls) -> "DetectAnomalousSeriesOperatorParameters":
         return cls(
             groupby_properties=[
                 "model_name",
@@ -121,14 +120,15 @@ class DetectAnomalousSeries(GenericOperatorParameters):
     The entities in the discovery space can be divided into groups based on a user supplied set of constitutive
     properties, other than the selected independent property.
     """,
-    configuration_model=DetectAnomalousSeries,
-    example_configuration=DetectAnomalousSeries.example_configuration(),
+    configuration_model=DetectAnomalousSeriesOperatorParameters,
+    example_configuration=DetectAnomalousSeriesOperatorParameters.example_configuration(),
     version="1.0.5",
 )
 def detect_anomalous_series(
     discoverySpace: DiscoverySpace,
     operationInfo: FunctionOperationInfo | None = None,
-    **parameters: typing.Any,  # noqa: ANN401
+    *,
+    parameters: DetectAnomalousSeriesOperatorParameters,
 ) -> OperationOutput:
     """
     This function checks if the behaviour of an observed property versus
@@ -147,7 +147,7 @@ def detect_anomalous_series(
     def monotonically_decreasing(samples: pd.Series) -> bool:
         return all(x > y for x, y in itertools.pairwise(samples))
 
-    config = DetectAnomalousSeries.model_validate(parameters)
+    config = parameters
 
     if config.entity_filter == EntityFilter.SAMPLED:
         if config.test_property_type == PropertyTypeEnum.target:

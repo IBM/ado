@@ -27,11 +27,11 @@ from ado.modules.operators.collections import characterize_operation
 def pkh(
     discoverySpace: DiscoverySpace,
     operationInfo: FunctionOperationInfo | None = None,
-    **kwargs: object,
+    *,
+    parameters: PKHOperatorParameters,
 ) -> OperationOutput:
     """Characterize a finite discovery space with PKH acquisition."""
 
-    parameters = PKHOperatorParameters.model_validate(kwargs)
     return _run_predictive_operator(
         discovery_space=discoverySpace,
         operation_info=operationInfo,

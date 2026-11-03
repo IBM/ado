@@ -118,33 +118,38 @@ class ExperimentReference(pydantic.BaseModel):
         )
 
     def __eq__(self, other: object) -> bool:  # noqa: ANN401
-        """Two references are equal when they have the same major_version_parameterized_experiment_identifier.
+        """Check equality with another object based on actuator, major version, and parameterization.
 
-        Equality is based on the major version parameterized identifier, so references
-        with the same base name, same major version, and same parameterization are
-        equal regardless of minor/patch version differences.
-
-        Note: when the references have no parameterization this is equivalent to
-        comparing the major version experiment identifier.
+        Args:
+            other: The object to compare with.
 
         Returns:
-            True if both references are for the same actuator and have the same
-            parameterized experiment identifier.
+            True if other is an ExperimentReference with matching actuatorIdentifier,
+            major_version_experiment_identifier, and parameterization set.
         """
         retval = False
         if isinstance(other, ExperimentReference):
-            retval = (self.actuatorIdentifier == other.actuatorIdentifier) and (
-                self.major_version_parameterized_experiment_identifier
-                == other.major_version_parameterized_experiment_identifier
+            retval = (
+                self.actuatorIdentifier == other.actuatorIdentifier
+                and self.major_version_experiment_identifier
+                == other.major_version_experiment_identifier
+                and set(self.parameterization or ())
+                == set(other.parameterization or ())
             )
 
         return retval
 
     def __hash__(self) -> int:
+        """Compute the hash based on actuator, major version, and parameterization.
+
+        Returns:
+            The integer hash value.
+        """
         return hash(
             (
                 self.actuatorIdentifier,
-                self.major_version_parameterized_experiment_identifier,
+                self.major_version_experiment_identifier,
+                frozenset(self.parameterization or ()),
             )
         )
 

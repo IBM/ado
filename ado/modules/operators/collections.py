@@ -30,6 +30,24 @@ from ado.modules.operators.errors import OperatorVersionMismatchError
 moduleLog = logging.getLogger("operation_collections")
 
 
+def _build_discovery_space_inputs(
+    discovery_space: DiscoverySpace,
+    operation_info: FunctionOperationInfo | None,
+) -> tuple[dict[str, DiscoverySpace], FunctionOperationInfo]:
+    """Build the single-space input dict and default *operation_info*.
+
+    Args:
+        discovery_space: The discovery space the operator was called with.
+        operation_info: Optional operation info supplied by the caller.
+
+    Returns:
+        The input map and the operation info (defaulted if *None* was passed).
+    """
+    inputs = {"discoverySpace": discovery_space}
+    info = operation_info or FunctionOperationInfo()
+    return inputs, info
+
+
 def _warn_if_operator_name_reused(
     collection_label: str, name: str, operators: dict[str, OperatorMetadata]
 ) -> None:
@@ -142,17 +160,22 @@ def characterize_operation(
         def wrapper(
             discoverySpace: DiscoverySpace,
             operationInfo: FunctionOperationInfo | None = None,
-            **kwargs: object,
+            *,
+            parameters: GenericOperatorParameters,
         ) -> OperationOutput:
+            from ado.core.operation.inputs import metastore_for_operation_inputs
             from ado.modules.operators.orchestrate import (
                 orchestrate_general_operation,
             )
 
+            inputs, info = _build_discovery_space_inputs(discoverySpace, operationInfo)
+            metastore = metastore_for_operation_inputs(info, inputs)
             return orchestrate_general_operation(
                 operator_metadata=characterize.operators[name],
-                operation_parameters=kwargs,
-                discovery_space=discoverySpace,
-                operation_info=operationInfo or FunctionOperationInfo(),
+                operation_parameters=configuration_model.model_validate(parameters),
+                inputs=inputs,
+                operation_info=info,
+                metastore=metastore,
             )
 
         validate_operator_function_signature(wrapper)
@@ -244,22 +267,27 @@ def explore_operation(
     _validate_explore_cls(cls, metadata)
     op_name = metadata.name
 
+    configuration_model = metadata.configuration_model
+
     def _generated(
         discoverySpace: DiscoverySpace,
         operationInfo: FunctionOperationInfo | None = None,
-        **kwargs: object,
+        *,
+        parameters: GenericOperatorParameters,
     ) -> OperationOutput:
         from ado.modules.operators.orchestrate import (
             orchestrate_explore_operation,
         )
 
+        inputs, info = _build_discovery_space_inputs(discoverySpace, operationInfo)
         return orchestrate_explore_operation(
             operator_metadata=explore.operators[op_name],
-            discovery_space=discoverySpace,
-            parameters=kwargs,
-            operation_info=operationInfo or FunctionOperationInfo(),
+            inputs=inputs,
+            parameters=configuration_model.model_validate(parameters),
+            operation_info=info,
         )
 
+    _generated.__annotations__["parameters"] = configuration_model
     _generated.__name__ = op_name
     _generated.__qualname__ = op_name
     validate_operator_function_signature(_generated)
@@ -300,17 +328,22 @@ def modify_operation(
         def wrapper(
             discoverySpace: DiscoverySpace,
             operationInfo: FunctionOperationInfo | None = None,
-            **kwargs: object,
+            *,
+            parameters: GenericOperatorParameters,
         ) -> OperationOutput:
+            from ado.core.operation.inputs import metastore_for_operation_inputs
             from ado.modules.operators.orchestrate import (
                 orchestrate_general_operation,
             )
 
+            inputs, info = _build_discovery_space_inputs(discoverySpace, operationInfo)
+            metastore = metastore_for_operation_inputs(info, inputs)
             return orchestrate_general_operation(
                 operator_metadata=modify.operators[name],
-                operation_parameters=kwargs,
-                discovery_space=discoverySpace,
-                operation_info=operationInfo or FunctionOperationInfo(),
+                operation_parameters=configuration_model.model_validate(parameters),
+                inputs=inputs,
+                operation_info=info,
+                metastore=metastore,
             )
 
         validate_operator_function_signature(wrapper)
@@ -356,17 +389,22 @@ def export_operation(
         def wrapper(
             discoverySpace: DiscoverySpace,
             operationInfo: FunctionOperationInfo | None = None,
-            **kwargs: object,
+            *,
+            parameters: GenericOperatorParameters,
         ) -> OperationOutput:
+            from ado.core.operation.inputs import metastore_for_operation_inputs
             from ado.modules.operators.orchestrate import (
                 orchestrate_general_operation,
             )
 
+            inputs, info = _build_discovery_space_inputs(discoverySpace, operationInfo)
+            metastore = metastore_for_operation_inputs(info, inputs)
             return orchestrate_general_operation(
                 operator_metadata=export.operators[name],
-                operation_parameters=kwargs,
-                discovery_space=discoverySpace,
-                operation_info=operationInfo or FunctionOperationInfo(),
+                operation_parameters=configuration_model.model_validate(parameters),
+                inputs=inputs,
+                operation_info=info,
+                metastore=metastore,
             )
 
         validate_operator_function_signature(wrapper)

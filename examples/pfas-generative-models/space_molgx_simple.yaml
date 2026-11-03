@@ -3,6 +3,8 @@
 sampleStoreIdentifier: '174914' # Replace with id from creating gen_models_molgx_test_sample_store
 entitySpace:
   - identifier: 'smiles'
+    propertyDomain:
+      variableType: OPEN_CATEGORICAL_VARIABLE_TYPE
 experiments:
   - experimentIdentifier: 'molgx-toxicity-inference-experiment'
     actuatorIdentifier: 'replay'

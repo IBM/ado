@@ -186,7 +186,6 @@ def create_operation(parameters: AdoCreateCommandParameters) -> str | None:
         operation_output = ado.modules.operators.orchestrate.orchestrate(
             operation_resource_configuration=op_resource_configuration,
             project_context=parameters.ado_configuration.project_context,
-            discovery_space_identifier=op_resource_configuration.spaces[0],
         )
     except ValueError as e:
         console_print(f"{ERROR}Failed to create operation:\n\t{e}", stderr=True)

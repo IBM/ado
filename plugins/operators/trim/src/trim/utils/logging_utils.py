@@ -8,7 +8,7 @@ from typing import NoReturn
 import pandas as pd
 
 from ado.core.discoveryspace.space import DiscoverySpace
-from trim.trim_pydantic import TrimParameters
+from trim.trim_pydantic import TrimOperatorParameters
 from trim.utils.exceptions import InsufficientDataError
 from trim.utils.rowsring import RowsRing
 
@@ -62,7 +62,7 @@ def log_after_first_holdout_creation(
     current_holdout_df: pd.DataFrame,
     yielded_rows: RowsRing,
     iter_index: int,
-    params: TrimParameters,
+    params: TrimOperatorParameters,
 ) -> None:
     logger.debug(
         f"First holdout set created, it contains the following {len(current_holdout_df)} rows:"

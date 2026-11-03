@@ -135,12 +135,14 @@ def get_resource(
         typer.Option(
             "--stats",
             help=(
-                "Add statistics columns to table and csv output: for operations "
+                "Add statistics to table, csv, yaml and json output: for operations "
                 "(TOTAL_MEASUREMENTS, SUCCESSFUL_MEASUREMENTS, FAILED_MEASUREMENTS, SAMPLED_ENTITIES), "
                 "for discovery spaces (EXPERIMENTS, OPERATIONS, EXPLORE_OPS, SAMPLED_ENTITIES), "
                 "for sample stores (ENTITIES, RESULTS, EXPERIMENTS), and for data containers "
                 "(TABLES, LOCATIONS, KEY_VALUES, DATA_BYTES). SAMPLED_ENTITIES counts entities with at "
-                "least one measurement, whether successful, failed, or both."
+                "least one measurement, whether successful, failed, or both. "
+                "In yaml and json output the statistics are placed under metadata.stats "
+                "with lowercase keys (e.g. total_measurements)."
             ),
             show_default=False,
         ),
@@ -462,6 +464,8 @@ def get_resource(
     if show_stats and output_format not in {
         AdoGetSupportedOutputFormats.TABLE,
         AdoGetSupportedOutputFormats.CSV,
+        AdoGetSupportedOutputFormats.YAML,
+        AdoGetSupportedOutputFormats.JSON,
     }:
         console_print(
             f"{INFO}The {output_format.value} output format does not support statistics. "

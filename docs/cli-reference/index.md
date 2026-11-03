@@ -582,7 +582,10 @@ Where:
     <!-- prettier-ignore-end -->
 
 - `--stats` adds statistics columns to the default `table` and to the `csv`
-  output. Supported
+  output. With the `yaml` and `json` formats, the statistics are added to each
+  resource under `metadata.stats`, using the lowercase column names as keys
+  (for example `total_measurements`). With the `name`, `raw` and `config`
+  formats `--stats` is ignored. Supported
   resource types and their columns are:
     - **Operations**: `TOTAL_MEASUREMENTS`, `SUCCESSFUL_MEASUREMENTS`,
       `FAILED_MEASUREMENTS`, `SAMPLED_ENTITIES` (entities with at least one
@@ -864,6 +867,25 @@ ado get datacontainers --stats
 
 ```shell
 ado get datacontainer --use-latest --stats
+```
+
+#### Getting statistics in YAML or JSON output
+
+```shell
+ado get operation --use-latest --stats -o yaml
+```
+
+The statistics are added under `metadata.stats`:
+
+```yaml
+kind: operation
+identifier: randomwalk-0.5.0-123abc
+metadata:
+  stats:
+    total_measurements: 12
+    successful_measurements: 12
+    failed_measurements: 0
+    sampled_entities: 12
 ```
 
 #### Getting all operations related to a sample store

@@ -18,6 +18,7 @@ import pydantic
 import pytest
 from active_learning.regression._shared import (
     _encode_features,
+    _entity_target_values,
     _finite_pool,
     _FinitePool,
     _measured_labels,
@@ -34,13 +35,14 @@ from ado.modules.operators.randomwalk import (
 from ado.schema.domain import PropertyDomain, VariableTypeEnum
 from ado.schema.entity import Entity
 from ado.schema.entityspace import EntitySpaceRepresentation
-from ado.schema.experiment import Experiment
+from ado.schema.experiment import Experiment, ParameterizedExperiment
 from ado.schema.measurementspace import (
     MeasurementSpace,
     MeasurementSpaceConfiguration,
 )
 from ado.schema.observed_property import ObservedProperty, ObservedPropertyValue
 from ado.schema.property import AbstractPropertyDescriptor, ConstitutiveProperty
+from ado.schema.property_value import ConstitutivePropertyValue
 from ado.schema.result import ValidMeasurementResult
 
 
@@ -419,6 +421,94 @@ def test_target_resolution_requires_one_observed_property() -> None:
 
     expected = measurement_space.observedProperties[0]
     assert _resolve_target(measurement_space, expected.identifier) == expected
+
+
+@pytest.mark.parametrize(
+    (
+        "actuator",
+        "experiment_name",
+        "version",
+        "setting",
+        "target_name",
+        "expected",
+    ),
+    [
+        pytest.param("test", "benchmark", "1.0.0", 1, "latency", [3.5], id="same"),
+        pytest.param(
+            "test", "benchmark", "1.0.0", 1.0, "latency", [3.5], id="equal-float"
+        ),
+        pytest.param(
+            "other", "benchmark", "1.0.0", 1, "latency", [], id="different-actuator"
+        ),
+        pytest.param(
+            "test", "other", "1.0.0", 1, "latency", [], id="different-experiment"
+        ),
+        pytest.param(
+            "test", "benchmark", "2.0.0", 1, "latency", [], id="different-major"
+        ),
+        pytest.param(
+            "test", "benchmark", "1.2.0", 1, "latency", [3.5], id="same-major-minor"
+        ),
+        pytest.param(
+            "test", "benchmark", "1.0.3", 1, "latency", [3.5], id="same-major-patch"
+        ),
+        pytest.param(
+            "test", "benchmark", "1.0.0", 2, "latency", [], id="different-parameter"
+        ),
+        pytest.param(
+            "test", "benchmark", "1.0.0", 1, "throughput", [], id="different-target"
+        ),
+    ],
+)
+def test_entity_target_values_match_experiment_semantics(
+    actuator: str,
+    experiment_name: str,
+    version: str,
+    setting: float,
+    target_name: str,
+    expected: list[float],
+) -> None:
+    """Target labels follow experiment identity, version, and parameter values."""
+
+    option = ConstitutiveProperty(
+        identifier="setting", propertyDomain=PropertyDomain(domainRange=[0, 10])
+    )
+    base = Experiment(
+        actuatorIdentifier="test",
+        identifier="benchmark",
+        version="1.0.0",
+        targetProperties=[AbstractPropertyDescriptor(identifier="latency")],
+        optionalProperties=[option],
+        defaultParameterization=[ConstitutivePropertyValue(property=option, value=0)],
+    )
+    stored_experiment = ParameterizedExperiment(
+        **base.model_dump(),
+        parameterization=[ConstitutivePropertyValue(property=option, value=1)],
+    )
+    requested_experiment = ParameterizedExperiment(
+        **{
+            **base.model_dump(),
+            "actuatorIdentifier": actuator,
+            "identifier": experiment_name,
+            "version": version,
+            "targetProperties": [AbstractPropertyDescriptor(identifier=target_name)],
+        },
+        parameterization=[ConstitutivePropertyValue(property=option, value=setting)],
+    )
+    requested_experiment = ParameterizedExperiment.model_validate_json(
+        requested_experiment.model_dump_json()
+    )
+    entity = _entity_with_label(
+        Entity(identifier="point-0", constitutive_property_values=()),
+        stored_experiment.observedProperties[0],
+        3.5,
+    )
+    entity = Entity.model_validate_json(entity.model_dump_json())
+
+    assert (
+        _entity_target_values(entity, requested_experiment.observedProperties[0])
+        == expected
+    )
 
 
 def test_measured_labels_use_refreshable_sample_store_api() -> None:

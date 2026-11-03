@@ -171,7 +171,7 @@ class AutoGluonArgs(BaseModel):
     ]
 
 
-class TrimParameters(GenericOperatorParameters):
+class TrimOperatorParameters(GenericOperatorParameters):
     model_config = ConfigDict(extra="forbid")
 
     autoGluonArgs: Annotated[
@@ -264,11 +264,11 @@ class TrimParameters(GenericOperatorParameters):
     # ] = False
 
     @classmethod
-    def example_configuration(cls) -> "TrimParameters":
+    def example_configuration(cls) -> "TrimOperatorParameters":
         return cls(targetOutput="TO_BE_SET")
 
     @model_validator(mode="after")
-    def set_final_model_args(self) -> "TrimParameters":
+    def set_final_model_args(self) -> "TrimOperatorParameters":
         """Copy the iterative AutoGluon arguments into the final-model arguments.
 
         The copy is made when the final-model arguments are still the default,
@@ -283,7 +283,7 @@ class TrimParameters(GenericOperatorParameters):
         return self
 
     @model_validator(mode="after")
-    def set_holdout_size(self) -> "TrimParameters":
+    def set_holdout_size(self) -> "TrimOperatorParameters":
         if not self.holdoutSize:
             self.holdoutSize = self.iterationSize
         if self.holdoutSize != self.iterationSize:
@@ -295,7 +295,7 @@ class TrimParameters(GenericOperatorParameters):
         return self
 
     @model_validator(mode="after")
-    def set_no_priors_sample(self) -> "TrimParameters":
+    def set_no_priors_sample(self) -> "TrimOperatorParameters":
         if self.samplingBudget.minPoints != self.noPriorParameters.samples:
             logging.info(
                 "Overwriting the 'samples' field of the no-priors characterization.\n"
@@ -307,7 +307,7 @@ class TrimParameters(GenericOperatorParameters):
         return self
 
 
-class TrimSamplerParameters(TrimParameters):
+class TrimSamplerParameters(TrimOperatorParameters):
     """Runtime extension of TrimParameters used only by TrimSampleSelector.
 
     These fields are NOT on TrimParameters because
@@ -344,8 +344,8 @@ class TrimSamplerParametersInternal(TrimSamplerParameters):
 
 if __name__ == "__main__":
     # Test with required targetOutput parameter
-    params = TrimParameters.model_validate(
-        TrimParameters(
+    params = TrimOperatorParameters.model_validate(
+        TrimOperatorParameters(
             targetOutput="test",
             samplingBudget=SamplingBudget(minPoints=10),
             noPriorParameters=NoPriorsParameters(samples=2),

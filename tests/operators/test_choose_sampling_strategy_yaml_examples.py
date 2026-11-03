@@ -16,10 +16,7 @@ except ImportError:  # pragma: nocover
 from ado.core.operation.config import DiscoveryOperationResourceConfiguration
 from ado.modules.operators.randomwalk import RandomWalkParameters
 
-YAML_EXAMPLES_DIR = (
-    pathlib.Path(__file__).resolve().parent.parent.parent
-    / ".agents/skills/ado-choose-sampling-strategy/assets"
-)
+YAML_EXAMPLES_SUBDIR = pathlib.Path("skills/ado-choose-sampling-strategy/assets")
 
 RANDOM_WALK_YAMLS = [
     "random-walk-grid",
@@ -35,9 +32,9 @@ RAY_TUNE_YAMLS = {
 
 
 @pytest.mark.parametrize("yaml_name", RANDOM_WALK_YAMLS, ids=RANDOM_WALK_YAMLS)
-def test_random_walk_yaml_examples(yaml_name: str) -> None:
+def test_random_walk_yaml_examples(agents_dir: pathlib.Path, yaml_name: str) -> None:
     """Each random_walk example validates as RandomWalkParameters."""
-    path = YAML_EXAMPLES_DIR / f"{yaml_name}.yaml"
+    path = agents_dir / YAML_EXAMPLES_SUBDIR / f"{yaml_name}.yaml"
     config = DiscoveryOperationResourceConfiguration.model_validate(
         yaml.load(path.read_text(), Loader=SafeLoader)
     )
@@ -52,11 +49,13 @@ def test_random_walk_yaml_examples(yaml_name: str) -> None:
     RAY_TUNE_YAMLS.items(),
     ids=RAY_TUNE_YAMLS.keys(),
 )
-def test_ray_tune_yaml_examples(yaml_name: str, optimizer_package: str) -> None:
+def test_ray_tune_yaml_examples(
+    agents_dir: pathlib.Path, yaml_name: str, optimizer_package: str
+) -> None:
     """Each ray_tune example validates as RayTuneConfiguration and builds its optimizer."""
     ray_tune_config = pytest.importorskip("ado_ray_tune.config")
     pytest.importorskip(optimizer_package)
-    path = YAML_EXAMPLES_DIR / f"{yaml_name}.yaml"
+    path = agents_dir / YAML_EXAMPLES_SUBDIR / f"{yaml_name}.yaml"
     config = DiscoveryOperationResourceConfiguration.model_validate(
         yaml.load(path.read_text(), Loader=SafeLoader)
     )

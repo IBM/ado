@@ -17,7 +17,7 @@ from ado.core.actuatorconfiguration.config import ActuatorConfiguration
 from ado.core.discoveryspace.config import DiscoverySpaceConfiguration
 from ado.core.operation.config import DiscoveryOperationResourceConfiguration
 
-YAML_EXAMPLES_DIR = pathlib.Path(".agents/skills/ado-define-experiment-campaign/assets")
+YAML_EXAMPLES_SUBDIR = pathlib.Path("skills/ado-define-experiment-campaign/assets")
 
 # Space YAML files: DiscoverySpaceConfiguration structure
 # (sampleStoreIdentifier, entitySpace, experiments, metadata)
@@ -56,10 +56,9 @@ ACTUATOR_CONFIG_YAML_PATTERNS = [
     SPACE_YAML_PATTERNS,
     ids=SPACE_YAML_PATTERNS,
 )
-def test_agent_space_yaml_examples(yaml_name: str) -> None:
+def test_agent_space_yaml_examples(agents_dir: pathlib.Path, yaml_name: str) -> None:
     """Each ado-define-experiment-campaign space YAML parses as DiscoverySpaceConfiguration."""
-    base = pathlib.Path(__file__).resolve().parent.parent.parent / YAML_EXAMPLES_DIR
-    path = base / f"{yaml_name}.yaml"
+    path = agents_dir / YAML_EXAMPLES_SUBDIR / f"{yaml_name}.yaml"
     if not path.exists():
         pytest.skip(f"YAML file not found: {path}")
     data = yaml.load(path.read_text(), Loader=SafeLoader)
@@ -72,10 +71,11 @@ def test_agent_space_yaml_examples(yaml_name: str) -> None:
     OPERATION_YAML_PATTERNS,
     ids=OPERATION_YAML_PATTERNS,
 )
-def test_agent_operation_yaml_examples(yaml_name: str) -> None:
+def test_agent_operation_yaml_examples(
+    agents_dir: pathlib.Path, yaml_name: str
+) -> None:
     """Each ado-define-experiment-campaign operation YAML parses as DiscoveryOperationResourceConfiguration."""
-    base = pathlib.Path(__file__).resolve().parent.parent.parent / YAML_EXAMPLES_DIR
-    path = base / f"{yaml_name}.yaml"
+    path = agents_dir / YAML_EXAMPLES_SUBDIR / f"{yaml_name}.yaml"
     if not path.exists():
         pytest.skip(f"YAML file not found: {path}")
     data = yaml.load(path.read_text(), Loader=SafeLoader)
@@ -88,10 +88,11 @@ def test_agent_operation_yaml_examples(yaml_name: str) -> None:
     ACTUATOR_CONFIG_YAML_PATTERNS,
     ids=ACTUATOR_CONFIG_YAML_PATTERNS,
 )
-def test_agent_actuator_config_yaml_examples(yaml_name: str) -> None:
+def test_agent_actuator_config_yaml_examples(
+    agents_dir: pathlib.Path, yaml_name: str
+) -> None:
     """Each ado-define-experiment-campaign actuator config YAML parses as ActuatorConfiguration."""
-    base = pathlib.Path(__file__).resolve().parent.parent.parent / YAML_EXAMPLES_DIR
-    path = base / f"{yaml_name}.yaml"
+    path = agents_dir / YAML_EXAMPLES_SUBDIR / f"{yaml_name}.yaml"
     if not path.exists():
         pytest.skip(f"YAML file not found: {path}")
     data = yaml.load(path.read_text(), Loader=SafeLoader)

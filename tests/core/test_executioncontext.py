@@ -1,6 +1,8 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
+import pathlib
+
 import pydantic
 import pytest
 import yaml
@@ -309,3 +311,28 @@ def test_remote_execution_context_rejects_extra_fields() -> None:
                 "unexpectedField": "value",
             }
         )
+
+
+REMOTE_SKILL_ASSETS_SUBDIR = pathlib.Path("skills/ado-run-operation-remote/assets")
+
+
+@pytest.mark.parametrize(
+    "asset_name",
+    [
+        "minimal-cluster-execution",
+        "port-forward-cluster-execution",
+        "full-execution-context",
+    ],
+)
+def test_remote_skill_asset_validates(
+    agents_dir: pathlib.Path, asset_name: str
+) -> None:
+    """Each execution context asset validates and survives a dump/load round trip."""
+    path = agents_dir / REMOTE_SKILL_ASSETS_SUBDIR / f"{asset_name}.yaml"
+    ctx = RemoteExecutionContext.model_validate(
+        yaml.load(path.read_text(), Loader=SafeLoader)
+    )
+    reloaded = RemoteExecutionContext.model_validate(
+        yaml.load(pydantic_model_as_yaml(ctx), Loader=SafeLoader)
+    )
+    assert reloaded == ctx

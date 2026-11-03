@@ -151,6 +151,52 @@ def _is_value_in_internal_range_values(
     )
 
 
+def _is_multiple_of_discrete_domain_interval(
+    value: typing.Any,  # noqa: ANN401
+    interval: float,
+) -> bool:
+    """Returns True if value is a finite number and an exact multiple of interval.
+
+    Values and intervals are scaled to integers at 10 decimal places so that
+    the modulo is exact for decimal values.
+
+    Args:
+        value: Candidate value to test.
+        interval: Step size of the grid.
+
+    Returns:
+        True if value is an exact multiple of interval, False otherwise.
+
+    Raises:
+        ValueError: If interval is not greater than 0.
+    """
+    if interval <= 0:
+        raise ValueError(f"interval must be greater than 0. Got: {interval}")
+
+    if not isinstance(value, (numbers.Number, np.generic)):
+        return False
+
+    if np.isnan(value) or np.isinf(value):
+        return False
+
+    if isinstance(value, np.generic):
+        value = value.item()
+
+    if isinstance(value, bool):
+        value = int(value)
+
+    if not isinstance(value, (int, float)):
+        return False
+
+    if isinstance(value, float) and _exceeds_supported_decimal_precision(value):
+        return False
+
+    scaled_value = Decimal(str(value)).scaleb(10)
+    scaled_interval = Decimal(str(interval)).scaleb(10)
+
+    return int(scaled_value) % int(scaled_interval) == 0
+
+
 def is_subdomain_of_unknown_domain(
     unknownDomain: "PropertyDomain", testDomain: "PropertyDomain"
 ) -> bool:
@@ -978,8 +1024,10 @@ class PropertyDomain(pydantic.BaseModel):
                         interval=self.interval,
                     )
                 else:
-                    # The domain has no range or values which means we just accept the value
-                    retval = True
+                    retval = _is_multiple_of_discrete_domain_interval(
+                        value=value,
+                        interval=self.interval,
+                    )
         elif self.variableType == VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE:
             retval = value in self.values
         elif self.variableType in [

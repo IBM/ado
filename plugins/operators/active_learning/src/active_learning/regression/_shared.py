@@ -1,11 +1,7 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-"""Shared configuration and execution for ADO active-learning operators.
-
-Build finite feature pools, collect labels, and coordinate sequential sampling
-and final model training.
-"""
+"""Predictive sampling parameters, finite feature pools, and label collection."""
 
 from __future__ import annotations
 
@@ -24,8 +20,7 @@ import ray
 from active_learning.regression._pilot import PilotStrategy, _StructuredPilot
 from active_learning.regression._predictor import _FinalPredictorParameters
 from ado.core.discoveryspace.samplers import BaseSampler
-from ado.core.operation.config import FunctionOperationInfo, GenericOperatorParameters
-from ado.core.operation.operation import OperationOutput
+from ado.core.operation.config import GenericOperatorParameters
 from ado.schema.domain import VariableTypeEnum
 from ado.schema.entityspace import EntitySpaceRepresentation
 
@@ -34,7 +29,6 @@ if typing.TYPE_CHECKING:
 
     from ado.core.discoveryspace.space import DiscoverySpace
     from ado.modules.operators.discovery_space_manager import DiscoverySpaceManager
-    from ado.modules.operators.randomwalk import RandomWalkParameters
     from ado.schema.entity import Entity
     from ado.schema.measurementspace import MeasurementSpace
     from ado.schema.observed_property import ObservedProperty
@@ -839,123 +833,3 @@ class _PredictiveSampleSelector(BaseSampler, abc.ABC):
             raise ValueError("predictive selectors require batchsize=1")
         discovery_space = await remoteDiscoverySpace.discoverySpace.remote()
         return self._async_iterator(discovery_space)
-
-
-def _random_walk_parameters(
-    parameters: _PredictiveParameters,
-    *,
-    number_entities: int,
-    sampler_class: type[_PredictiveSampleSelector],
-) -> RandomWalkParameters:
-    """Build the fixed sequential RandomWalk configuration for a selector."""
-
-    from ado.modules.operators.randomwalk import (
-        CustomSamplerConfiguration,
-        EntityFilter,
-        FilterModeEnum,
-        RandomWalkParameters,
-        SamplerModuleConf,
-    )
-
-    sampler_configuration = CustomSamplerConfiguration(
-        module=SamplerModuleConf(
-            moduleClass=sampler_class.__name__,
-            moduleName=sampler_class.__module__,
-        ),
-        parameters=parameters.model_dump(
-            include=set(sampler_class.parameters_model().model_fields)
-        ),
-    )
-    return RandomWalkParameters(
-        samplerConfig=sampler_configuration,
-        numberEntities=number_entities,
-        batchSize=1,
-        singleMeasurement=True,
-        filter=EntityFilter(filterMode=FilterModeEnum.noFilter),
-    )
-
-
-def _outer_operation_output(
-    nested_output: OperationOutput,
-    *,
-    final_model: dict[str, typing.Any] | None = None,
-) -> OperationOutput:
-    """Expose a nested RandomWalk operation as a resource of the outer one."""
-
-    return OperationOutput(
-        other=[],
-        resources=[nested_output.operation] if nested_output.operation else [],
-        metadata={"finalModel": final_model} if final_model is not None else {},
-        exitStatus=nested_output.exitStatus,
-    )
-
-
-def _run_predictive_operator(
-    *,
-    discovery_space: DiscoverySpace,
-    operation_info: FunctionOperationInfo | None,
-    parameters: _PredictiveOperatorParameters,
-    number_entities: int,
-    sampler_class: type[_PredictiveSampleSelector],
-    output_directory: str,
-) -> OperationOutput:
-    """Run predictive acquisition with sequential measurement scheduling."""
-
-    # Lazy import avoids a circular import while ADO loads operator plugins.
-    from active_learning.regression._finalize import (
-        _expected_training_count,
-        _final_model_directory,
-        _finalize_predictive_model,
-    )
-    from active_learning.regression._predictor import _validate_final_predictor
-    from active_learning.regression._sequential import _SequentialPredictiveWalk
-    from ado.core.operation.resource import OperationExitStateEnum
-    from ado.modules.operators.collections import explore
-    from ado.modules.operators.orchestrate import orchestrate_explore_operation
-
-    directory = _final_model_directory(output_directory)
-    expected_training_count = _expected_training_count(
-        discovery_space, parameters=parameters, number_entities=number_entities
-    )
-    _validate_final_predictor(
-        parameters, expected_training_count=expected_training_count
-    )
-    random_walk_parameters = _random_walk_parameters(
-        parameters,
-        number_entities=number_entities,
-        sampler_class=sampler_class,
-    )
-    random_walk_metadata = explore.operators["random_walk"].model_copy(
-        update={"cls": _SequentialPredictiveWalk}
-    )
-    nested_operation_info = FunctionOperationInfo(
-        metadata={
-            "implementation": (
-                f"{_SequentialPredictiveWalk.__module__}."
-                f"{_SequentialPredictiveWalk.__name__}"
-            )
-        },
-        actuatorConfigurationIdentifiers=list(
-            operation_info.actuatorConfigurationIdentifiers
-            if operation_info is not None
-            else []
-        ),
-    )
-    nested_output = orchestrate_explore_operation(
-        operator_metadata=random_walk_metadata,
-        inputs={"discoverySpace": discovery_space},
-        operation_info=nested_operation_info,
-        parameters=random_walk_parameters,
-    )
-    if (
-        nested_output.exitStatus is None
-        or nested_output.exitStatus.exit_state != OperationExitStateEnum.SUCCESS
-    ):
-        raise RuntimeError("measurement operation did not complete successfully")
-    final_model = _finalize_predictive_model(
-        discovery_space,
-        parameters=parameters,
-        directory=directory,
-        minimum_training_count=expected_training_count,
-    )
-    return _outer_operation_output(nested_output, final_model=final_model)

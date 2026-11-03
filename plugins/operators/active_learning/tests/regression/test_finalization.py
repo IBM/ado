@@ -246,7 +246,7 @@ def test_autogluon_requires_enough_labels_before_measurement(
 ) -> None:
     """A campaign too small for AutoGluon's validation split fails before sampling."""
 
-    from active_learning.regression._shared import _run_predictive_operator
+    from active_learning.regression._sequential import _run_predictive_operator
     from active_learning.regression.pkh.sampler import PKHSampleSelector
 
     space, store, _, _ = _adaptive_test_space()

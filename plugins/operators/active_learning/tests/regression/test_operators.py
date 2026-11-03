@@ -5,12 +5,14 @@
 """Tests for the PKH operator registration."""
 
 import inspect
+import subprocess
+import sys
 from collections.abc import Callable
 from typing import get_type_hints
 
 import pydantic
 import pytest
-from active_learning.regression._shared import (
+from active_learning.regression._sequential import (
     _outer_operation_output,
     _random_walk_parameters,
 )
@@ -35,6 +37,39 @@ from ado.modules.operators.randomwalk import (
     FilterModeEnum,
     SamplerModuleConf,
 )
+
+
+@pytest.mark.parametrize(
+    "first_module",
+    ["ado.modules.operators.randomwalk", "active_learning.regression"],
+    ids=["randomwalk-first", "plugin-first"],
+)
+def test_cold_import_registers_operator(first_module: str) -> None:
+    """Both import orders register the predictive and RandomWalk operators."""
+
+    script = """
+import importlib
+import sys
+
+importlib.import_module(sys.argv[1])
+from ado.modules.operators.collections import characterize, explore
+assert characterize.operators['pkh'].function.__name__ == 'pkh'
+assert explore.operators['random_walk'].cls.__name__ == 'RandomWalk'
+"""
+    result = subprocess.run(  # noqa: S603
+        [
+            sys.executable,
+            "-c",
+            script,
+            first_module,
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+
+    assert result.returncode == 0, result.stderr
 
 
 @pytest.mark.parametrize(

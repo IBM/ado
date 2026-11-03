@@ -207,13 +207,14 @@ def common_options(
             raise typer.Exit(1)
 
     # AP 27/05/2025:
-    # If the user is running ado context/contexts we must not fail
+    # If the user is running ado context/ctx/contexts we must not fail
     # as it would create a situation where the user is softlocked,
     # unable to activate a context which is required everywhere else.
     # We also disable it for ado create, delegating stricter validation
     # to ado create itself.
     do_not_fail_on_available_contexts = ctx.invoked_subcommand in (
         "context",
+        "ctx",
         "contexts",
         "create",
     )

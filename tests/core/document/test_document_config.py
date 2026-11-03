@@ -168,3 +168,15 @@ def test_document_configuration_rich_html() -> None:
     output = capture.get()
     assert "HTML report" in output
     assert html_body in output
+
+
+def test_study_document_template_asset_validates() -> None:
+    """The study document template asset validates as a DocumentConfiguration."""
+    template_path = (
+        pathlib.Path(__file__).resolve().parent.parent.parent.parent
+        / ".agents/skills/ado-create-study-document/assets/study-document-template.yaml"
+    )
+    data = yaml.load(template_path.read_text(), Loader=SafeLoader)
+    config = DocumentConfiguration.model_validate(data)
+    assert isinstance(config.metadata, StudyDocumentMetadata)
+    assert config.metadata.name == "study-cplex-mip"

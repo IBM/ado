@@ -6,8 +6,8 @@ description: >-
   experiment selection, parameterization, entity-space design, validation, and
   operator selection. Use when the user wants to create or configure an
   experiment campaign (choosing points to explore, experiments to use, sampling
-  method), write discoveryspace or operation YAML to address a
-   a research, benchmarking, or search problem.
+  method), write discoveryspace or operation YAML to address a research,
+  benchmarking, or search problem.
 ---
 
 # Formulating Problems for ado Execution

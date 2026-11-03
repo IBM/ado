@@ -5,7 +5,6 @@
 
 from __future__ import annotations
 
-from active_learning.regression._shared import _run_predictive_operator
 from active_learning.regression.pkh.parameters import PKHOperatorParameters
 from active_learning.regression.pkh.sampler import PKHSampleSelector
 from ado.core.discoveryspace.space import DiscoverySpace  # noqa: TC001
@@ -31,6 +30,9 @@ def pkh(
     parameters: PKHOperatorParameters,
 ) -> OperationOutput:
     """Characterize a finite discovery space with PKH acquisition."""
+
+    # Defer the RandomWalk import until ADO has registered its plugins.
+    from active_learning.regression._sequential import _run_predictive_operator
 
     return _run_predictive_operator(
         discovery_space=discoverySpace,

@@ -37,7 +37,7 @@ Add `experimentVersion` when the catalog `VERSION` is not `None` (a
 `experimentIdentifier`.
 
 See
-[reference-experiment-format.yaml](yaml-examples/reference-experiment-format.yaml).
+[reference-experiment-format.yaml](../assets/reference-experiment-format.yaml).
 
 For version matching, memoization keys, and the errors raised when the field is
 missing or wrong, see `docs/resources/discovery-spaces.md` (section "Setting
@@ -49,7 +49,7 @@ the experiment version") if the source repo is available, otherwise
 ### ConstitutiveProperty Structure
 
 See
-[reference-property-domain.yaml](yaml-examples/reference-property-domain.yaml).
+[reference-property-domain.yaml](../assets/reference-property-domain.yaml).
 
 ### Domain range bounds (numeric)
 
@@ -139,7 +139,7 @@ inferred and must always be declared explicitly.
 ### Core Structure
 
 See
-[reference-operation-structure.yaml](yaml-examples/reference-operation-structure.yaml).
+[reference-operation-structure.yaml](../assets/reference-operation-structure.yaml).
 
 ### Operation Types
 
@@ -243,22 +243,22 @@ ado validates:
 ### Pattern 1: Single Experiment, Simple Space
 
 See
-[reference-pattern1-simple-space.yaml](yaml-examples/reference-pattern1-simple-space.yaml).
+[reference-pattern1-simple-space.yaml](../assets/reference-pattern1-simple-space.yaml).
 
 ### Pattern 2: Multiple Experiments with Dependencies
 
 See
-[reference-pattern2-multiple-experiments.yaml](yaml-examples/reference-pattern2-multiple-experiments.yaml).
+[reference-pattern2-multiple-experiments.yaml](../assets/reference-pattern2-multiple-experiments.yaml).
 
 ### Pattern 3: Parameterized Experiment
 
 See
-[reference-pattern3-parameterized.yaml](yaml-examples/reference-pattern3-parameterized.yaml).
+[reference-pattern3-parameterized.yaml](../assets/reference-pattern3-parameterized.yaml).
 
 ### Pattern 4: Optional Property in Entity Space
 
 See
-[reference-pattern4-optional-property.yaml](yaml-examples/reference-pattern4-optional-property.yaml).
+[reference-pattern4-optional-property.yaml](../assets/reference-pattern4-optional-property.yaml).
 
 ## Validation Commands Reference
 

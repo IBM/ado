@@ -17,9 +17,7 @@ from ado.core.actuatorconfiguration.config import ActuatorConfiguration
 from ado.core.discoveryspace.config import DiscoverySpaceConfiguration
 from ado.core.operation.config import DiscoveryOperationResourceConfiguration
 
-YAML_EXAMPLES_DIR = pathlib.Path(
-    ".agents/skills/ado-define-experiment-campaign/yaml-examples"
-)
+YAML_EXAMPLES_DIR = pathlib.Path(".agents/skills/ado-define-experiment-campaign/assets")
 
 # Space YAML files: DiscoverySpaceConfiguration structure
 # (sampleStoreIdentifier, entitySpace, experiments, metadata)

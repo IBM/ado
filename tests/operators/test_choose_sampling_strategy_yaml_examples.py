@@ -18,7 +18,7 @@ from ado.modules.operators.randomwalk import RandomWalkParameters
 
 YAML_EXAMPLES_DIR = (
     pathlib.Path(__file__).resolve().parent.parent.parent
-    / ".agents/skills/ado-choose-sampling-strategy/yaml-examples"
+    / ".agents/skills/ado-choose-sampling-strategy/assets"
 )
 
 RANDOM_WALK_YAMLS = [

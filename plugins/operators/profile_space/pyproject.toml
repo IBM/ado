@@ -1,6 +1,6 @@
 [project]
 name = "ado-profile-space"
-requires-python = ">=3.11,<3.15"
+requires-python = ">=3.15,<3.16"
 dependencies = [
   "ado-core>=2.0.0",
   "fg-data-profiling>=4.19.1",

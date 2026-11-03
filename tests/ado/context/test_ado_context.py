@@ -219,6 +219,51 @@ def test_ado_switches_to_local_when_active_context_becomes_invalid(
     assert check_context_result.output.strip() == "local"
 
 
+# ado ctx (hidden alias of ado context)
+def test_ado_ctx_does_not_fail_when_no_context_is_active(tmp_path: Path) -> None:
+    """
+    We expect ado ctx to behave like ado context when contexts exist but none
+    is active: it reports that there is no active context instead of failing
+    because no default context is set.
+    """
+    ado_configuration = AdoConfiguration.load(
+        do_not_fail_on_available_contexts=True, _override_config_dir=tmp_path
+    )
+    ado_configuration.config_file.unlink()
+
+    runner = CliRunner()
+    args = ["--override-ado-app-dir", str(tmp_path)]
+    context_result = runner.invoke(ado, [*args, "context"])
+    ctx_result = runner.invoke(ado, [*args, "ctx"])
+
+    assert ctx_result.exit_code == context_result.exit_code == 1
+    assert ctx_result.output == context_result.output
+    assert "There is no active context." in ctx_result.output
+
+
+def test_ado_ctx_is_hidden_from_help() -> None:
+    """
+    We expect ado ctx to be absent from ado --help while ado context is listed,
+    and ado ctx --help to behave like ado context --help.
+    """
+    runner = CliRunner()
+    help_result = runner.invoke(ado, ["--help"])
+    assert help_result.exit_code == 0
+
+    command_names = [
+        line.split()[1]
+        for line in help_result.output.splitlines()
+        if line.startswith("│ ") and len(line.split()) > 1
+    ]
+    assert "context" in command_names
+    assert "ctx" not in command_names
+
+    ctx_help_result = runner.invoke(ado, ["ctx", "--help"])
+    assert ctx_help_result.exit_code == 0
+    assert "View or set the active context." in ctx_help_result.output
+    assert "context_name" in ctx_help_result.output
+
+
 # ado contexts
 def test_ado_contexts_list_contexts(tmp_path: Path) -> None:
     """

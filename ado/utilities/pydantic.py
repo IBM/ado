@@ -70,7 +70,7 @@ def sort_by_identifier(
 
     first = next(iter(items))
     if hasattr(first, "property"):
-        key = lambda v: v.property.identifier  # noqa: E731
+        key = lambda v: v.propertyIdentifier.identifier  # noqa: E731
     else:
         key = lambda v: v.identifier  # noqa: E731
 

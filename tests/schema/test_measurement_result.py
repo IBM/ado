@@ -428,7 +428,7 @@ def test_serialization_deserialization_roundtrip(
         assert orig_m.valueType == deser_m.valueType
         assert (
             orig_m.property.targetProperty.identifier
-            == deser_m.property.targetProperty.identifier
+            == deser_m.propertyIdentifier.targetProperty.identifier
         )
 
 

@@ -13,8 +13,8 @@ from ado.schema.constraint import (
     Not,
     PropertyConstraint,
     PropertyOperand,
-    ValueOperand,
-    ValuesOperand,
+    SingleValueOperand,
+    MultipleValuesOperand,
 )
 from ado.utilities.output import pydantic_model_as_yaml
 
@@ -189,12 +189,12 @@ def test_construct_constraint_from_objects() -> None:
         when=Comparison(
             left=PropertyOperand(property="model"),
             operator=ComparisonOperator.eq,
-            right=ValueOperand(value="llama-70b"),
+            right=SingleValueOperand(value="llama-70b"),
         ),
         require=Comparison(
             left=PropertyOperand(property="num_gpus"),
             operator=ComparisonOperator.ge,
-            right=ValueOperand(value=4),
+            right=SingleValueOperand(value=4),
         ),
     )
     _assert_round_trip(constraint)
@@ -215,7 +215,7 @@ def test_bool_literal_is_preserved() -> None:
 
     constraint = PropertyConstraint.model_validate(_FLASH_ATTENTION_UNSUPPORTED)
     assert isinstance(constraint.when, Comparison)
-    assert isinstance(constraint.when.right, ValueOperand)
+    assert isinstance(constraint.when.right, SingleValueOperand)
     assert constraint.when.right.value is True
     assert type(constraint.when.right.value) is bool
 
@@ -225,7 +225,7 @@ def test_membership_values_stay_a_sequence_of_strings() -> None:
 
     constraint = PropertyConstraint.model_validate(_FLASH_ATTENTION_UNSUPPORTED)
     assert isinstance(constraint.require, Comparison)
-    assert isinstance(constraint.require.right, ValuesOperand)
+    assert isinstance(constraint.require.right, MultipleValuesOperand)
     assert constraint.require.right.values == ("v100", "t4")
     assert constraint.require.operator is ComparisonOperator.notIn
 
@@ -249,10 +249,10 @@ def test_single_value_operators_round_trip(
     comparison = Comparison(
         left=PropertyOperand(property="x"),
         operator=operator,
-        right=ValueOperand(value=value),
+        right=SingleValueOperand(value=value),
     )
     _assert_round_trip(comparison)
-    assert isinstance(comparison.right, ValueOperand)
+    assert isinstance(comparison.right, SingleValueOperand)
     assert comparison.right.value == value
     assert type(comparison.right.value) is type(value)
 
@@ -276,7 +276,7 @@ def test_literal_on_the_left_and_property_on_the_right() -> None:
     """Test a comparison that places the literal on the left."""
 
     comparison = Comparison(
-        left=ValueOperand(value=4),
+        left=SingleValueOperand(value=4),
         operator=ComparisonOperator.le,
         right=PropertyOperand(property="num_gpus"),
     )
@@ -307,12 +307,12 @@ def test_nested_predicates_round_trip() -> None:
                         Comparison(
                             left=PropertyOperand(property="precision"),
                             operator=ComparisonOperator.eq,
-                            right=ValueOperand(value="fp16"),
+                            right=SingleValueOperand(value="fp16"),
                         ),
                         Comparison(
                             left=PropertyOperand(property="num_gpus"),
                             operator=ComparisonOperator.ge,
-                            right=ValueOperand(value=4),
+                            right=SingleValueOperand(value=4),
                         ),
                     )
                 )
@@ -320,7 +320,7 @@ def test_nested_predicates_round_trip() -> None:
             Comparison(
                 left=PropertyOperand(property="optimizer"),
                 operator=ComparisonOperator.ne,
-                right=ValueOperand(value="adafactor"),
+                right=SingleValueOperand(value="adafactor"),
             ),
         )
     )
@@ -435,14 +435,14 @@ def test_value_rejects_a_list() -> None:
     """Test a list literal belongs in values."""
 
     with pytest.raises(pydantic.ValidationError):
-        ValueOperand.model_validate({"value": ["llama-70b", "qwen-28b"]})
+        SingleValueOperand.model_validate({"value": ["llama-70b", "qwen-28b"]})
 
 
 def test_empty_values_rejected() -> None:
     """Test a membership set contains at least one value."""
 
     with pytest.raises(pydantic.ValidationError):
-        ValuesOperand(values=())
+        MultipleValuesOperand(values=())
 
 
 def test_empty_all_of_rejected() -> None:
@@ -560,9 +560,9 @@ def test_integer_is_not_coerced_to_string() -> None:
     comparison = Comparison(
         left=PropertyOperand(property="num_gpus"),
         operator=ComparisonOperator.eq,
-        right=ValueOperand(value=4),
+        right=SingleValueOperand(value=4),
     )
-    assert isinstance(comparison.right, ValueOperand)
+    assert isinstance(comparison.right, SingleValueOperand)
     assert comparison.right.value == 4
     assert type(comparison.right.value) is int
 
@@ -570,6 +570,6 @@ def test_integer_is_not_coerced_to_string() -> None:
 def test_string_is_not_coerced_to_number() -> None:
     """Test a numeric string stays a string."""
 
-    operand = ValueOperand.model_validate({"value": "4"})
+    operand = SingleValueOperand.model_validate({"value": "4"})
     assert operand.value == "4"
     assert type(operand.value) is str

@@ -249,7 +249,7 @@ def test_execute_produces_correct_measured_value() -> None:
     assert result.status == MeasurementRequestStateEnum.SUCCESS
     observed = result.measurements[0].measurements
     assert len(observed) == 1
-    assert observed[0].property.targetProperty.identifier == "result"
+    assert observed[0].propertyIdentifier.targetProperty.identifier == "result"
     assert observed[0].value == pytest.approx(10.0)
 
 

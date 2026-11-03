@@ -46,7 +46,7 @@ _MEMBERSHIP_OPERATORS = frozenset({ComparisonOperator.in_, ComparisonOperator.no
 class PropertyOperand(pydantic.BaseModel):
     """An operand that reads the value of the property referenced by the identifier"""
 
-    property: Annotated[
+    propertyIdentifier: Annotated[
         str,
         pydantic.Field(
             min_length=1,
@@ -62,10 +62,10 @@ class PropertyOperand(pydantic.BaseModel):
             A set containing this operand's property identifier.
         """
 
-        return {self.property}
+        return {self.propertyIdentifier}
 
 
-class ValueOperand(pydantic.BaseModel):
+class SingleValueOperand(pydantic.BaseModel):
     """An operand that is one literal value."""
 
     value: Annotated[
@@ -84,7 +84,7 @@ class ValueOperand(pydantic.BaseModel):
         return set()
 
 
-class ValuesOperand(pydantic.BaseModel):
+class MultipleValuesOperand(pydantic.BaseModel):
     """An operand that is a set of literal values.
 
     Used as the right operand of ``in`` and ``notIn``.
@@ -131,8 +131,8 @@ def _operand_tag(operand_mapping: dict[str, object]) -> str:
 
 
 def _require_single_operand_field(
-    operand: PropertyOperand | ValueOperand | ValuesOperand | dict[str, object],
-) -> PropertyOperand | ValueOperand | ValuesOperand | dict[str, object]:
+    operand: PropertyOperand | SingleValueOperand | MultipleValuesOperand | dict[str, object],
+) -> PropertyOperand | SingleValueOperand | MultipleValuesOperand | dict[str, object]:
     """Reject mappings that do not set exactly one operand field.
 
     Args:
@@ -151,7 +151,7 @@ def _require_single_operand_field(
 
 
 def _comparison_operand_discriminator(
-    operand: PropertyOperand | ValueOperand | ValuesOperand | dict[str, object],
+    operand: PropertyOperand | SingleValueOperand | MultipleValuesOperand | dict[str, object],
 ) -> str:
     """Return the operand variant tag for a value.
 
@@ -167,9 +167,9 @@ def _comparison_operand_discriminator(
 
     if isinstance(operand, PropertyOperand):
         return "property"
-    if isinstance(operand, ValueOperand):
+    if isinstance(operand, SingleValueOperand):
         return "value"
-    if isinstance(operand, ValuesOperand):
+    if isinstance(operand, MultipleValuesOperand):
         return "values"
     if isinstance(operand, dict):
         return _operand_tag(operand)
@@ -178,8 +178,8 @@ def _comparison_operand_discriminator(
 
 ComparisonOperand = Annotated[
     Annotated[PropertyOperand, pydantic.Tag("property")]
-    | Annotated[ValueOperand, pydantic.Tag("value")]
-    | Annotated[ValuesOperand, pydantic.Tag("values")],
+    | Annotated[SingleValueOperand, pydantic.Tag("value")]
+    | Annotated[MultipleValuesOperand, pydantic.Tag("values")],
     pydantic.Discriminator(_comparison_operand_discriminator),
     pydantic.BeforeValidator(_require_single_operand_field),
 ]
@@ -225,20 +225,20 @@ class Comparison(pydantic.BaseModel):
             raise ValueError("At least one side of a comparison must be a property")
 
         if self.operator in _MEMBERSHIP_OPERATORS:
-            if isinstance(self.left, ValuesOperand):
+            if isinstance(self.left, MultipleValuesOperand):
                 raise ValueError(
                     f"The left operand of {self.operator.value} is the value being tested. "
                     "Put the set on the right."
                 )
-            if isinstance(self.right, ValueOperand):
+            if isinstance(self.right, SingleValueOperand):
                 raise ValueError(
                     f"The right operand of {self.operator.value} is the set. "
                     "Use values for a literal set."
                 )
             return self
 
-        if isinstance(self.left, ValuesOperand) or isinstance(
-            self.right, ValuesOperand
+        if isinstance(self.left, MultipleValuesOperand) or isinstance(
+            self.right, MultipleValuesOperand
         ):
             raise ValueError(
                 f"Operator {self.operator.value} compares single values. "

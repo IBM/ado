@@ -206,9 +206,9 @@ def detect_anomalous_series(
 
     print("Checking all test properties are present: ... ")
     for prop in config.test_properties:
-        if prop.property not in df.columns:
+        if prop.propertyIdentifier not in df.columns:
             raise ValueError(
-                f"Test property {prop.property} not found in {df.columns} - "
+                f"Test property {prop.propertyIdentifier} not found in {df.columns} - "
                 f"check the property names you are using match the value of the test_property_type field. "
                 f"Current setting: {config.test_property_type}"
             )
@@ -242,7 +242,7 @@ def detect_anomalous_series(
             print(f"\tTesting series {name}")
             for test_prop in config.test_properties:
                 print(
-                    f"\t\tChecking if the behaviour of property '{test_prop.property}'  is '{test_prop.behaviour.value}' "
+                    f"\t\tChecking if the behaviour of property '{test_prop.propertyIdentifier}'  is '{test_prop.behaviour.value}' "
                 )
                 g = g.sort_values(prop)
 
@@ -257,8 +257,8 @@ def detect_anomalous_series(
                     test_group = g
 
                 if test_prop.behaviour == SeriesBehaviourEnum.TRUE:
-                    if not np.all(test_group[test_prop.property].values):
-                        s = test_group[test_prop.property]
+                    if not np.all(test_group[test_prop.propertyIdentifier].values):
+                        s = test_group[test_prop.propertyIdentifier]
                         hole = test_group.loc[s.values == 0]
                         print("\t\tTEST FAILED.\n\t\tFailing entities are:")
                         print(f"\t{test_group.loc[hole.index]['identifier']}")
@@ -268,7 +268,7 @@ def detect_anomalous_series(
                                 group_vars,
                                 name,
                                 prop,
-                                test_prop.property,
+                                test_prop.propertyIdentifier,
                                 test_prop.behaviour.value,
                                 False,
                             ]
@@ -279,24 +279,24 @@ def detect_anomalous_series(
                                 group_vars,
                                 name,
                                 prop,
-                                test_prop.property,
+                                test_prop.propertyIdentifier,
                                 test_prop.behaviour.value,
                                 True,
                             ]
                         )
                         print("\t\tTEST PASSED")
                 elif test_prop.behaviour == SeriesBehaviourEnum.MONOTONIC_INCREASE:
-                    samples = test_group[test_prop.property]
+                    samples = test_group[test_prop.propertyIdentifier]
                     if not monotonically_increasing(samples):
                         print("\t\tTEST FAILED.\n\t\tThe series is")
-                        print(f"\t\t{test_group[['identifier', test_prop.property]]}")
+                        print(f"\t\t{test_group[['identifier', test_prop.propertyIdentifier]]}")
                         print("\n")
                         results.append(
                             [
                                 group_vars,
                                 name,
                                 prop,
-                                test_prop.property,
+                                test_prop.propertyIdentifier,
                                 test_prop.behaviour.value,
                                 False,
                             ]
@@ -309,24 +309,24 @@ def detect_anomalous_series(
                                 group_vars,
                                 name,
                                 prop,
-                                test_prop.property,
+                                test_prop.propertyIdentifier,
                                 test_prop.behaviour.value,
                                 True,
                             ]
                         )
 
                 elif test_prop.behaviour == SeriesBehaviourEnum.MONOTONIC_DECREASE:
-                    samples = test_group[test_prop.property]
+                    samples = test_group[test_prop.propertyIdentifier]
                     if not monotonically_decreasing(samples):
                         print("\tTEST FAILED.\n\t\tThe series is:")
-                        print(f"\t\t{test_group[['identifier', test_prop.property]]}")
+                        print(f"\t\t{test_group[['identifier', test_prop.propertyIdentifier]]}")
                         print("\n")
                         results.append(
                             [
                                 group_vars,
                                 name,
                                 prop,
-                                test_prop.property,
+                                test_prop.propertyIdentifier,
                                 test_prop.behaviour.value,
                                 False,
                             ]
@@ -339,20 +339,20 @@ def detect_anomalous_series(
                                 group_vars,
                                 name,
                                 prop,
-                                test_prop.property,
+                                test_prop.propertyIdentifier,
                                 test_prop.behaviour.value,
                                 True,
                             ]
                         )
 
                 elif test_prop.behaviour == SeriesBehaviourEnum.CONSTANT:
-                    if len(test_group[test_prop.property].values.unique()) > 0:
-                        s = test_group[test_prop.property]
+                    if len(test_group[test_prop.propertyIdentifier].values.unique()) > 0:
+                        s = test_group[test_prop.propertyIdentifier]
                         print("\t\tTEST FAILED.\n\t\tThe series is:")
-                        print(f"\t\t{test_group[['identifier', test_prop.property]]}")
+                        print(f"\t\t{test_group[['identifier', test_prop.propertyIdentifier]]}")
                         print("\n")
                         print(
-                            f"\t\tThe series contains the following values for {test_prop.property}:\n\t\t{s.values.unique()}"
+                            f"\t\tThe series contains the following values for {test_prop.propertyIdentifier}:\n\t\t{s.values.unique()}"
                         )
                         print("\n")
                         results.append(
@@ -360,7 +360,7 @@ def detect_anomalous_series(
                                 group_vars,
                                 name,
                                 prop,
-                                test_prop.property,
+                                test_prop.propertyIdentifier,
                                 test_prop.behaviour.value,
                                 False,
                             ]
@@ -373,7 +373,7 @@ def detect_anomalous_series(
                                 group_vars,
                                 name,
                                 prop,
-                                test_prop.property,
+                                test_prop.propertyIdentifier,
                                 test_prop.behaviour.value,
                                 True,
                             ]

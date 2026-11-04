@@ -2166,3 +2166,18 @@ def test_internal_range_values_float_upper_bound_excluded_one_ulp_above() -> Non
         f"All values must be strictly less than upper={upper!r}, "
         f"but last element was {result[-1]!r}"
     )
+
+
+def test_internal_range_values_float_rounding_excludes_upper_bound() -> None:
+    """Test that float values rounding to the upper bound are excluded from range values."""
+    negative_range_values = _internal_range_values(-1.3, -0.7, 0.6)
+    assert negative_range_values == [-1.3]
+    assert -0.7 not in negative_range_values
+
+    negative_range_domain = PropertyDomain(domainRange=[-1.3, -0.7], interval=0.6)
+    assert negative_range_domain.domain_values == [-1.3]
+    assert negative_range_domain.size == 1
+
+    positive_range_values = _internal_range_values(0.0, 3.6, 0.6)
+    assert positive_range_values == pytest.approx([0.0, 0.6, 1.2, 1.8, 2.4, 3.0])
+    assert 3.6 not in positive_range_values

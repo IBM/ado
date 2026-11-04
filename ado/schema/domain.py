@@ -92,12 +92,14 @@ def _internal_range_values(lower: float, upper: float, interval: float) -> list:
     if not is_float_range(interval=interval, domain_range=[lower, upper]):
         return np.arange(lower, upper, interval).tolist()
 
-    num = int(np.floor((upper - lower) / interval)) + 1
-    values = [lower + i * interval for i in range(num)]
-    if values[-1] >= upper:
-        values = values[:-1]
+    step_count = int(np.floor((upper - lower) / interval)) + 1
+    values = np.round(
+        [lower + step_index * interval for step_index in range(step_count)], 10
+    ).tolist()
+    while values and values[-1] >= upper:
+        values.pop()
 
-    return np.round(values, 10).tolist()
+    return values
 
 
 def _is_value_in_internal_range_values(

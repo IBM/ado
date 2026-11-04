@@ -168,13 +168,14 @@ def _is_multiple_of_discrete_domain_interval(
         True if value is an exact multiple of interval, False otherwise.
 
     Raises:
-        ValueError: If interval is not greater than 0.
+        ValueError: If interval is not greater than 0, or if value is not a
+            number or numpy scalar.
     """
     if interval <= 0:
         raise ValueError(f"interval must be greater than 0. Got: {interval}")
 
     if not isinstance(value, (numbers.Number, np.generic)):
-        return False
+        raise ValueError(f"value must be a number. Got: {value!r}")
 
     if np.isnan(value) or np.isinf(value):
         return False
@@ -1024,7 +1025,9 @@ class PropertyDomain(pydantic.BaseModel):
                         interval=self.interval,
                     )
                 else:
-                    retval = _is_multiple_of_discrete_domain_interval(
+                    retval = isinstance(
+                        value, (numbers.Number, np.generic)
+                    ) and _is_multiple_of_discrete_domain_interval(
                         value=value,
                         interval=self.interval,
                     )

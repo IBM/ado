@@ -1012,6 +1012,17 @@ def test_unbounded_discrete_domain_value_in_domain(
     assert domain.valueInDomain(value) is expected
 
 
+@pytest.mark.parametrize("value", ["a", "3", None, [1, 2], {"a": 1}, object()])
+def test_is_multiple_of_discrete_domain_interval_rejects_non_numeric_value(
+    value: object,
+) -> None:
+    """Test that _is_multiple_of_discrete_domain_interval raises ValueError for non-number-like values."""
+    from ado.schema.domain import _is_multiple_of_discrete_domain_interval
+
+    with pytest.raises(ValueError, match="value must be a number"):
+        _is_multiple_of_discrete_domain_interval(value, 1)
+
+
 def test_domain_values_raises_for_unbounded_discrete_domain() -> None:
     with pytest.raises(ValueError, match="unbounded discrete"):
         _ = PropertyDomain(interval=1).domain_values

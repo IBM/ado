@@ -191,8 +191,8 @@ def _is_multiple_of_discrete_domain_interval(
     if isinstance(value, float) and _exceeds_supported_decimal_precision(value):
         return False
 
-    scaled_value = Decimal(str(value)).scaleb(10)
-    scaled_interval = Decimal(str(interval)).scaleb(10)
+    scaled_value = Decimal(repr(value)).scaleb(10)
+    scaled_interval = Decimal(repr(interval)).scaleb(10)
 
     return int(scaled_value) % int(scaled_interval) == 0
 
@@ -271,8 +271,8 @@ def is_subdomain_of_discrete_domain(
                 # Both intervals are scaled to integers at 10 decimal places so the
                 # modulo is exact for decimal intervals such as 0.3 and 0.1.
                 elif (
-                    int(Decimal(str(testDomain.interval)).scaleb(10))
-                    % int(Decimal(str(discreteDomain.interval)).scaleb(10))
+                    int(Decimal(repr(testDomain.interval)).scaleb(10))
+                    % int(Decimal(repr(discreteDomain.interval)).scaleb(10))
                     == 0
                 ):
                     # Now check the ranges

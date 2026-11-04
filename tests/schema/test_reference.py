@@ -305,7 +305,7 @@ def test_reference_parameterization_order_is_irrelevant(
     )
     assert str(ref) == str(reversed_ref)
     assert reversed_ref.parameterization == sorted(
-        customParameterization, key=lambda v: v.propertyIdentifier.identifier
+        customParameterization, key=lambda v: v.property.identifier
     )
 
 

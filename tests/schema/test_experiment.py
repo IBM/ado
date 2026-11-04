@@ -592,7 +592,7 @@ def test_parameterized_experiment_parameterization_order_is_irrelevant(
     assert p.reference == reversed_p.reference
     assert str(p.reference) == str(reversed_p.reference)
     assert reversed_p.parameterization == sorted(
-        customParameterization, key=lambda v: v.propertyIdentifier.identifier
+        customParameterization, key=lambda v: v.property.identifier
     )
 
 
@@ -675,7 +675,7 @@ def test_experiment_property_values_from_entity(
             )
         )
         params = exp.propertyValuesFromEntity(entity)
-        assert len(params[pv.propertyIdentifier.identifier]) == 2
+        assert len(params[pv.property.identifier]) == 2
 
     ## Test some error cases
     if len(exp.requiredObservedProperties) > 0:

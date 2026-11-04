@@ -10,32 +10,32 @@ from ado.schema.constraint import (
     AnyOf,
     Comparison,
     ComparisonOperator,
+    MultipleValuesOperand,
     Not,
     PropertyConstraint,
     PropertyOperand,
     SingleValueOperand,
-    MultipleValuesOperand,
 )
 from ado.utilities.output import pydantic_model_as_yaml
 
 _AT_LEAST_ONE_SAMPLE_PER_GPU = {
     "name": "at_least_one_sample_per_gpu",
     "require": {
-        "left": {"property": "effective_batch_size"},
+        "left": {"propertyIdentifier": "effective_batch_size"},
         "operator": "ge",
-        "right": {"property": "num_gpus"},
+        "right": {"propertyIdentifier": "num_gpus"},
     },
 }
 
 _LARGE_MODEL_NEEDS_MULTIPLE_GPUS = {
     "name": "large_model_needs_multiple_gpus",
     "when": {
-        "left": {"property": "model"},
+        "left": {"propertyIdentifier": "model"},
         "operator": "eq",
         "right": {"value": "llama-70b"},
     },
     "require": {
-        "left": {"property": "num_gpus"},
+        "left": {"propertyIdentifier": "num_gpus"},
         "operator": "ge",
         "right": {"value": 4},
     },
@@ -44,12 +44,12 @@ _LARGE_MODEL_NEEDS_MULTIPLE_GPUS = {
 _FLASH_ATTENTION_UNSUPPORTED = {
     "name": "flash_attention_unsupported_on_older_gpus",
     "when": {
-        "left": {"property": "use_flash_attention"},
+        "left": {"propertyIdentifier": "use_flash_attention"},
         "operator": "eq",
         "right": {"value": True},
     },
     "require": {
-        "left": {"property": "gpu_type"},
+        "left": {"propertyIdentifier": "gpu_type"},
         "operator": "notIn",
         "right": {"values": ["v100", "t4"]},
     },
@@ -60,19 +60,19 @@ _ADAFACTOR_UNSTABLE = {
     "when": {
         "allOf": [
             {
-                "left": {"property": "precision"},
+                "left": {"propertyIdentifier": "precision"},
                 "operator": "eq",
                 "right": {"value": "fp16"},
             },
             {
-                "left": {"property": "use_flash_attention"},
+                "left": {"propertyIdentifier": "use_flash_attention"},
                 "operator": "eq",
                 "right": {"value": True},
             },
         ]
     },
     "require": {
-        "left": {"property": "optimizer"},
+        "left": {"propertyIdentifier": "optimizer"},
         "operator": "ne",
         "right": {"value": "adafactor"},
     },
@@ -81,19 +81,19 @@ _ADAFACTOR_UNSTABLE = {
 _LARGE_DATASET_NEEDS_CAPACITY = {
     "name": "large_dataset_needs_capacity_or_low_precision",
     "when": {
-        "left": {"property": "dataset"},
+        "left": {"propertyIdentifier": "dataset"},
         "operator": "eq",
         "right": {"value": "large"},
     },
     "require": {
         "anyOf": [
             {
-                "left": {"property": "num_gpus"},
+                "left": {"propertyIdentifier": "num_gpus"},
                 "operator": "ge",
                 "right": {"value": 8},
             },
             {
-                "left": {"property": "precision"},
+                "left": {"propertyIdentifier": "precision"},
                 "operator": "eq",
                 "right": {"value": "fp8"},
             },
@@ -105,13 +105,13 @@ _WARMUP_ONLY_FOR_COSINE = {
     "name": "warmup_only_meaningful_for_cosine",
     "when": {
         "not": {
-            "left": {"property": "lr_schedule"},
+            "left": {"propertyIdentifier": "lr_schedule"},
             "operator": "eq",
             "right": {"value": "cosine"},
         }
     },
     "require": {
-        "left": {"property": "warmup_steps"},
+        "left": {"propertyIdentifier": "warmup_steps"},
         "operator": "eq",
         "right": {"value": 0},
     },
@@ -123,13 +123,13 @@ _LARGE_MODEL_AS_REQUIRE_ONLY = {
         "anyOf": [
             {
                 "not": {
-                    "left": {"property": "model"},
+                    "left": {"propertyIdentifier": "model"},
                     "operator": "eq",
                     "right": {"value": "llama-70b"},
                 }
             },
             {
-                "left": {"property": "num_gpus"},
+                "left": {"propertyIdentifier": "num_gpus"},
                 "operator": "ge",
                 "right": {"value": 4},
             },
@@ -187,12 +187,12 @@ def test_construct_constraint_from_objects() -> None:
     constraint = PropertyConstraint(
         name="large_model_needs_multiple_gpus",
         when=Comparison(
-            left=PropertyOperand(property="model"),
+            left=PropertyOperand(propertyIdentifier="model"),
             operator=ComparisonOperator.eq,
             right=SingleValueOperand(value="llama-70b"),
         ),
         require=Comparison(
-            left=PropertyOperand(property="num_gpus"),
+            left=PropertyOperand(propertyIdentifier="num_gpus"),
             operator=ComparisonOperator.ge,
             right=SingleValueOperand(value=4),
         ),
@@ -247,7 +247,7 @@ def test_single_value_operators_round_trip(
     """Test ordering and equality comparisons against a literal value."""
 
     comparison = Comparison(
-        left=PropertyOperand(property="x"),
+        left=PropertyOperand(propertyIdentifier="x"),
         operator=operator,
         right=SingleValueOperand(value=value),
     )
@@ -262,7 +262,7 @@ def test_in_operator_with_literal_set() -> None:
 
     comparison = Comparison.model_validate(
         {
-            "left": {"property": "model"},
+            "left": {"propertyIdentifier": "model"},
             "operator": "in",
             "right": {"values": ["llama-70b", "qwen-28b"]},
         }
@@ -278,7 +278,7 @@ def test_literal_on_the_left_and_property_on_the_right() -> None:
     comparison = Comparison(
         left=SingleValueOperand(value=4),
         operator=ComparisonOperator.le,
-        right=PropertyOperand(property="num_gpus"),
+        right=PropertyOperand(propertyIdentifier="num_gpus"),
     )
     _assert_round_trip(comparison)
     assert comparison.property_identifiers() == {"num_gpus"}
@@ -288,9 +288,9 @@ def test_property_to_property_membership() -> None:
     """Test in when both operands are properties."""
 
     comparison = Comparison(
-        left=PropertyOperand(property="gpu_type"),
+        left=PropertyOperand(propertyIdentifier="gpu_type"),
         operator=ComparisonOperator.in_,
-        right=PropertyOperand(property="allowed_gpus"),
+        right=PropertyOperand(propertyIdentifier="allowed_gpus"),
     )
     _assert_round_trip(comparison)
     assert comparison.property_identifiers() == {"gpu_type", "allowed_gpus"}
@@ -305,12 +305,12 @@ def test_nested_predicates_round_trip() -> None:
                 not_=AnyOf(
                     anyOf=(
                         Comparison(
-                            left=PropertyOperand(property="precision"),
+                            left=PropertyOperand(propertyIdentifier="precision"),
                             operator=ComparisonOperator.eq,
                             right=SingleValueOperand(value="fp16"),
                         ),
                         Comparison(
-                            left=PropertyOperand(property="num_gpus"),
+                            left=PropertyOperand(propertyIdentifier="num_gpus"),
                             operator=ComparisonOperator.ge,
                             right=SingleValueOperand(value=4),
                         ),
@@ -318,7 +318,7 @@ def test_nested_predicates_round_trip() -> None:
                 )
             ),
             Comparison(
-                left=PropertyOperand(property="optimizer"),
+                left=PropertyOperand(propertyIdentifier="optimizer"),
                 operator=ComparisonOperator.ne,
                 right=SingleValueOperand(value="adafactor"),
             ),
@@ -354,7 +354,7 @@ def test_not_serializes_with_not_key() -> None:
     constraint = PropertyConstraint.model_validate(_WARMUP_ONLY_FOR_COSINE)
     dumped = constraint.model_dump(mode="json", exclude_none=True)
     assert set(dumped["when"]) == {"not"}
-    assert dumped["when"]["not"]["left"] == {"property": "lr_schedule"}
+    assert dumped["when"]["not"]["left"] == {"propertyIdentifier": "lr_schedule"}
 
 
 def test_list_of_constraints_round_trip() -> None:
@@ -398,7 +398,7 @@ def test_membership_rejects_a_scalar_set() -> None:
     with pytest.raises(pydantic.ValidationError, match="literal set"):
         Comparison.model_validate(
             {
-                "left": {"property": "model"},
+                "left": {"propertyIdentifier": "model"},
                 "operator": "in",
                 "right": {"value": "llama-70b"},
             }
@@ -413,7 +413,7 @@ def test_membership_rejects_a_set_on_the_left() -> None:
             {
                 "left": {"values": ["a", "b"]},
                 "operator": "notIn",
-                "right": {"property": "gpu_type"},
+                "right": {"propertyIdentifier": "gpu_type"},
             }
         )
 
@@ -424,7 +424,7 @@ def test_single_value_operator_rejects_values() -> None:
     with pytest.raises(pydantic.ValidationError, match="single values"):
         Comparison.model_validate(
             {
-                "left": {"property": "model"},
+                "left": {"propertyIdentifier": "model"},
                 "operator": "eq",
                 "right": {"values": ["llama-70b"]},
             }
@@ -460,14 +460,14 @@ def test_empty_any_of_rejected() -> None:
 
 
 def test_operand_rejects_multiple_fields() -> None:
-    """Test an operand sets exactly one of property, value, or values."""
+    """Test an operand sets exactly one of propertyIdentifier, value, or values."""
 
     with pytest.raises(pydantic.ValidationError, match="exactly one"):
         Comparison.model_validate(
             {
-                "left": {"property": "model", "value": "llama-70b"},
+                "left": {"propertyIdentifier": "model", "value": "llama-70b"},
                 "operator": "eq",
-                "right": {"property": "num_gpus"},
+                "right": {"propertyIdentifier": "num_gpus"},
             }
         )
 
@@ -480,7 +480,7 @@ def test_operand_rejects_an_empty_object() -> None:
             {
                 "left": {},
                 "operator": "eq",
-                "right": {"property": "model"},
+                "right": {"propertyIdentifier": "model"},
             }
         )
 
@@ -507,7 +507,7 @@ def test_unknown_operator_rejected() -> None:
     with pytest.raises(pydantic.ValidationError):
         Comparison.model_validate(
             {
-                "left": {"property": "model"},
+                "left": {"propertyIdentifier": "model"},
                 "operator": "contains",
                 "right": {"value": "llama"},
             }
@@ -523,7 +523,7 @@ def test_extra_fields_rejected() -> None:
                 "name": "example",
                 "note": "nope",
                 "require": {
-                    "left": {"property": "x"},
+                    "left": {"propertyIdentifier": "x"},
                     "operator": "eq",
                     "right": {"value": 1},
                 },
@@ -539,7 +539,7 @@ def test_empty_name_rejected() -> None:
             {
                 "name": "",
                 "require": {
-                    "left": {"property": "x"},
+                    "left": {"propertyIdentifier": "x"},
                     "operator": "eq",
                     "right": {"value": 1},
                 },
@@ -551,14 +551,14 @@ def test_empty_property_identifier_rejected() -> None:
     """Test a property operand names a non-empty identifier."""
 
     with pytest.raises(pydantic.ValidationError):
-        PropertyOperand(property="")
+        PropertyOperand(propertyIdentifier="")
 
 
 def test_integer_is_not_coerced_to_string() -> None:
     """Test a numeric literal stays numeric."""
 
     comparison = Comparison(
-        left=PropertyOperand(property="num_gpus"),
+        left=PropertyOperand(propertyIdentifier="num_gpus"),
         operator=ComparisonOperator.eq,
         right=SingleValueOperand(value=4),
     )

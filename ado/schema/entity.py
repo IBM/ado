@@ -147,7 +147,7 @@ class Entity(pydantic.BaseModel):
                 if (
                     identifier := measurement.property.identifier
                 ) not in known_property_identifiers:
-                    unique_properties.append(measurement.propertyIdentifier)
+                    unique_properties.append(measurement.property)
                     known_property_identifiers.add(identifier)
 
         return unique_properties + self.constitutiveProperties
@@ -333,7 +333,7 @@ class Entity(pydantic.BaseModel):
                 identifier := constitutive_property.property.identifier
                 not in known_property_identifiers
             ):
-                unique_properties.append(constitutive_property.propertyIdentifier)
+                unique_properties.append(constitutive_property.property)
                 known_property_identifiers.add(identifier)
 
         return unique_properties
@@ -442,7 +442,7 @@ class Entity(pydantic.BaseModel):
         else:
             check = list(
                 filter(
-                    lambda x: x.propertyIdentifier.identifier == property.identifier,
+                    lambda x: x.property.identifier == property.identifier,
                     self.propertyValues,
                 )
             )
@@ -476,7 +476,7 @@ class Entity(pydantic.BaseModel):
         return list(
             filter(
                 lambda x: (
-                        x.propertyIdentifier.targetProperty.identifier == targetProperty.identifier
+                    x.property.targetProperty.identifier == targetProperty.identifier
                 ),
                 self.observedPropertyValues,
             )
@@ -489,7 +489,7 @@ class Entity(pydantic.BaseModel):
 
         check = list(
             filter(
-                lambda x: x.propertyIdentifier.identifier == identifier,
+                lambda x: x.property.identifier == identifier,
                 self.constitutive_property_values,
             )
         )
@@ -502,7 +502,7 @@ class Entity(pydantic.BaseModel):
 
         return list(
             filter(
-                lambda x: x.propertyIdentifier.identifier == identifier,
+                lambda x: x.property.identifier == identifier,
                 self.observedPropertyValues,
             )
         )

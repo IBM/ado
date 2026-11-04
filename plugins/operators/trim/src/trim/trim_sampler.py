@@ -159,7 +159,7 @@ class TrimSampleSelector(BaseSampler):
                 continue
             entity = entities[0]
             row = {
-                cpv.propertyIdentifier.identifier: cpv.value
+                cpv.property.identifier: cpv.value
                 for cpv in entity.constitutive_property_values
             }
             row[self.params.targetOutput] = (

@@ -116,22 +116,27 @@ def _operand_tag(operand_mapping: dict[str, object]) -> str:
         operand_mapping: A mapping of operand field names to their values.
 
     Returns:
-        The tag ``property``, ``value``, or ``values``.
+        The tag ``propertyIdentifier``, ``value``, or ``values``.
 
     Raises:
         ValueError: If the mapping does not set exactly one of those fields.
     """
 
-    operand_fields_set = {"property", "value", "values"}.intersection(operand_mapping)
+    operand_fields_set = {"propertyIdentifier", "value", "values"}.intersection(
+        operand_mapping
+    )
     if len(operand_fields_set) != 1:
         raise ValueError(
-            "A comparison operand must set exactly one of property, value, or values"
+            "A comparison operand must set exactly one of propertyIdentifier, value, or values"
         )
     return next(iter(operand_fields_set))
 
 
 def _require_single_operand_field(
-    operand: PropertyOperand | SingleValueOperand | MultipleValuesOperand | dict[str, object],
+    operand: PropertyOperand
+    | SingleValueOperand
+    | MultipleValuesOperand
+    | dict[str, object],
 ) -> PropertyOperand | SingleValueOperand | MultipleValuesOperand | dict[str, object]:
     """Reject mappings that do not set exactly one operand field.
 
@@ -151,7 +156,10 @@ def _require_single_operand_field(
 
 
 def _comparison_operand_discriminator(
-    operand: PropertyOperand | SingleValueOperand | MultipleValuesOperand | dict[str, object],
+    operand: PropertyOperand
+    | SingleValueOperand
+    | MultipleValuesOperand
+    | dict[str, object],
 ) -> str:
     """Return the operand variant tag for a value.
 
@@ -159,14 +167,14 @@ def _comparison_operand_discriminator(
         operand: An operand model or a mapping of its fields.
 
     Returns:
-        The tag ``property``, ``value``, or ``values``.
+        The tag ``propertyIdentifier``, ``value``, or ``values``.
 
     Raises:
         ValueError: If the operand does not set exactly one of those fields.
     """
 
     if isinstance(operand, PropertyOperand):
-        return "property"
+        return "propertyIdentifier"
     if isinstance(operand, SingleValueOperand):
         return "value"
     if isinstance(operand, MultipleValuesOperand):
@@ -177,7 +185,7 @@ def _comparison_operand_discriminator(
 
 
 ComparisonOperand = Annotated[
-    Annotated[PropertyOperand, pydantic.Tag("property")]
+    Annotated[PropertyOperand, pydantic.Tag("propertyIdentifier")]
     | Annotated[SingleValueOperand, pydantic.Tag("value")]
     | Annotated[MultipleValuesOperand, pydantic.Tag("values")],
     pydantic.Discriminator(_comparison_operand_discriminator),

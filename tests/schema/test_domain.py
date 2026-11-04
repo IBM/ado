@@ -1038,6 +1038,81 @@ def test_is_subdomain_of_unbounded_discrete_domain() -> None:
     )
     assert binary.isSubDomain(PropertyDomain(interval=1)) is True
 
+    # interval=2 cases
+    assert (
+        PropertyDomain(domainRange=[-1, 3], interval=2).isSubDomain(
+            PropertyDomain(interval=2)
+        )
+        is False
+    )
+    assert (
+        PropertyDomain(domainRange=[0, 6], interval=2).isSubDomain(
+            PropertyDomain(interval=2)
+        )
+        is True
+    )
+    assert (
+        PropertyDomain(domainRange=[1, 2], interval=3).isSubDomain(
+            PropertyDomain(interval=2)
+        )
+        is False
+    )
+    assert (
+        PropertyDomain(domainRange=[2, 3], interval=3).isSubDomain(
+            PropertyDomain(interval=2)
+        )
+        is True
+    )
+    assert (
+        PropertyDomain(values=[-1, 1]).isSubDomain(PropertyDomain(interval=2)) is False
+    )
+    assert PropertyDomain(values=[2, 4]).isSubDomain(PropertyDomain(interval=2)) is True
+    assert binary.isSubDomain(PropertyDomain(interval=2)) is False
+
+    # interval=0.5 cases
+    assert (
+        PropertyDomain(domainRange=[-1.5, 2.0], interval=0.5).isSubDomain(
+            PropertyDomain(interval=0.5)
+        )
+        is True
+    )
+    assert (
+        PropertyDomain(domainRange=[-1.2, 2.0], interval=0.5).isSubDomain(
+            PropertyDomain(interval=0.5)
+        )
+        is False
+    )
+    assert (
+        PropertyDomain(values=[-0.5, 1.0, 1.5]).isSubDomain(
+            PropertyDomain(interval=0.5)
+        )
+        is True
+    )
+    assert (
+        PropertyDomain(values=[-0.5, 1.2]).isSubDomain(PropertyDomain(interval=0.5))
+        is False
+    )
+
+    # decimal interval cases
+    assert (
+        PropertyDomain(interval=0.3).isSubDomain(PropertyDomain(interval=0.1)) is True
+    )
+    assert (
+        PropertyDomain(interval=0.35).isSubDomain(PropertyDomain(interval=0.1)) is False
+    )
+    assert (
+        PropertyDomain(domainRange=[0.0, 0.6], interval=0.3).isSubDomain(
+            PropertyDomain(interval=0.1)
+        )
+        is True
+    )
+    assert (
+        PropertyDomain(domainRange=[0.05, 0.65], interval=0.3).isSubDomain(
+            PropertyDomain(interval=0.1)
+        )
+        is False
+    )
+
     # Neighbouring combinations that must not change
     assert PropertyDomain(values=[1]).isSubDomain(PropertyDomain(values=[1, 2])) is True
     assert binary.isSubDomain(PropertyDomain(values=[0, 1])) is True
@@ -1055,6 +1130,144 @@ def test_is_subdomain_of_unbounded_discrete_domain() -> None:
         is False
     )
     assert PropertyDomain(interval=1).isSubDomain(binary) is False
+
+
+@pytest.mark.parametrize(
+    ("test_domain", "outer_domain", "expected"),
+    [
+        # values: every value is a multiple of k
+        (PropertyDomain(values=[2, 4, 6]), PropertyDomain(interval=2), True),
+        (PropertyDomain(values=[2, 3, 6]), PropertyDomain(interval=2), False),
+        (PropertyDomain(values=[-4, 0, 8]), PropertyDomain(interval=2), True),
+        (PropertyDomain(values=[-1, 1]), PropertyDomain(interval=2), False),
+        (PropertyDomain(values=[0.2, 0.4]), PropertyDomain(interval=0.2), True),
+        (PropertyDomain(values=[0.2, 0.5]), PropertyDomain(interval=0.2), False),
+        # range with more than one value: lower bound and interval are both multiples of k
+        (
+            PropertyDomain(domainRange=[0, 6], interval=2),
+            PropertyDomain(interval=2),
+            True,
+        ),
+        (
+            PropertyDomain(domainRange=[-1, 3], interval=2),
+            PropertyDomain(interval=2),
+            False,
+        ),
+        (
+            PropertyDomain(domainRange=[2, 10], interval=4),
+            PropertyDomain(interval=2),
+            True,
+        ),
+        (
+            PropertyDomain(domainRange=[2, 10], interval=3),
+            PropertyDomain(interval=2),
+            False,
+        ),
+        (
+            PropertyDomain(domainRange=[1, 9], interval=4),
+            PropertyDomain(interval=2),
+            False,
+        ),
+        (
+            PropertyDomain(domainRange=[0.0, 0.6], interval=0.3),
+            PropertyDomain(interval=0.1),
+            True,
+        ),
+        (
+            PropertyDomain(domainRange=[0.05, 0.65], interval=0.3),
+            PropertyDomain(interval=0.1),
+            False,
+        ),
+        # range with a single value: that value is a multiple of k
+        (
+            PropertyDomain(domainRange=[2, 3], interval=3),
+            PropertyDomain(interval=2),
+            True,
+        ),
+        (
+            PropertyDomain(domainRange=[1, 2], interval=3),
+            PropertyDomain(interval=2),
+            False,
+        ),
+        (
+            PropertyDomain(domainRange=[0.4, 0.7], interval=0.3),
+            PropertyDomain(interval=0.1),
+            True,
+        ),
+        (
+            PropertyDomain(domainRange=[0.35, 0.6], interval=0.3),
+            PropertyDomain(interval=0.1),
+            False,
+        ),
+        # unbounded interval=i: i is a multiple of k
+        (PropertyDomain(interval=4), PropertyDomain(interval=2), True),
+        (PropertyDomain(interval=3), PropertyDomain(interval=2), False),
+        (PropertyDomain(interval=1), PropertyDomain(interval=2), False),
+        (PropertyDomain(interval=0.3), PropertyDomain(interval=0.1), True),
+        (PropertyDomain(interval=0.35), PropertyDomain(interval=0.1), False),
+        # BINARY: 0 and 1 are multiples of k (i.e. 1 is a multiple of k)
+        (
+            PropertyDomain(variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE),
+            PropertyDomain(interval=1),
+            True,
+        ),
+        (
+            PropertyDomain(variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE),
+            PropertyDomain(interval=2),
+            False,
+        ),
+        (
+            PropertyDomain(variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE),
+            PropertyDomain(interval=0.5),
+            True,
+        ),
+        (
+            PropertyDomain(variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE),
+            PropertyDomain(interval=0.3),
+            False,
+        ),
+        # Non-discrete / non-binary types against unbounded discrete domain
+        (
+            PropertyDomain(domainRange=[0.0, 1.0]),
+            PropertyDomain(interval=1),
+            False,
+        ),
+        (
+            PropertyDomain(values=["a", "b"]),
+            PropertyDomain(interval=1),
+            False,
+        ),
+        (
+            PropertyDomain(
+                variableType=VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
+                values=["a", 2],
+            ),
+            PropertyDomain(interval=1),
+            False,
+        ),
+        (
+            PropertyDomain(
+                variableType=VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
+                values=["a"],
+            ),
+            PropertyDomain(interval=1),
+            False,
+        ),
+    ],
+)
+def test_is_subdomain_of_unbounded_discrete_domain_rules(
+    test_domain: PropertyDomain,
+    outer_domain: PropertyDomain,
+    expected: bool,
+) -> None:
+    """Checks isSubDomain against an enclosing unbounded discrete domain.
+
+    Args:
+        test_domain: The domain whose containment is tested.
+        outer_domain: The enclosing unbounded discrete domain.
+        expected: The expected result of test_domain.isSubDomain(outer_domain).
+    """
+    assert test_domain.isSubDomain(outer_domain) == expected
 
 
 def test_open_categorical_variable_type_property_domain() -> None:

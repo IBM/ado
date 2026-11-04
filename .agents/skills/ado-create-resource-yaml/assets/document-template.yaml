@@ -1,0 +1,11 @@
+# Copyright IBM Corporation 2025, 2026
+# SPDX-License-Identifier: MIT
+metadata:
+  name: "<descriptive name>"
+  description: "<one-line summary>"
+contentType: markdown # or html
+content: |
+  <full report text>
+relatedResources:
+  - id: <related resource id>
+    role: parent

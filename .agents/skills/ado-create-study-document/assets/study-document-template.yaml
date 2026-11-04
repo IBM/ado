@@ -1,0 +1,30 @@
+# Copyright IBM Corporation 2025, 2026
+# SPDX-License-Identifier: MIT
+metadata:
+  name: study-cplex-mip
+  description: Compare TPE vs LHS for CPLEX MIP gap on bab6
+  todo:
+    - Run TPE baseline (60m, 200 trials)
+    - Analyse mip-gap histograms
+content: |
+  ## Motivation
+
+  Establish a well-tuned classical baseline for this problem class.
+
+  ## Study question
+
+  Which sampler finds better MIP gaps faster on bab6?
+
+  ## Study objective
+
+  Run comparable TPE and LHS campaigns; compare mip-gap and solve-time
+  distributions.
+
+  ## Materials
+
+  - Instance: bab6.mps (MIPLIB 2017)
+  - Paths: examples/cplex_mip_bab6/
+
+  ## Study labels
+
+  - study: cplex-mip

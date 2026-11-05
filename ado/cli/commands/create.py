@@ -12,7 +12,10 @@ from ado.cli.exceptions.handlers import (
     handle_resource_does_not_exist,
     handle_unknown_experiment_error,
 )
-from ado.cli.models.parameters import AdoCreateCommandParameters
+from ado.cli.models.parameters import (
+    AdoCreateCommandParameters,
+    OperationInputResourceOption,
+)
 from ado.cli.models.types import (
     AdoCreateSupportedResourceTypes,
     AdoCreateWithResourceSupportedResourceTypes,
@@ -27,9 +30,10 @@ from ado.cli.resources.operation.create import create_operation
 from ado.cli.resources.sample_store.create import create_sample_store
 from ado.cli.utils.input.parsers import (
     enum_choice_with_plural_parser,
-    enum_choice_with_shorthand_parser,
     parse_key_value_pairs,
+    resource_kind_with_input_parser,
     resource_shorthands_to_full_names,
+    split_input_qualifier,
 )
 from ado.cli.utils.output.prints import (
     ERROR,
@@ -39,6 +43,7 @@ from ado.cli.utils.output.prints import (
     magenta,
 )
 from ado.core import CoreResourceKinds
+from ado.core.operation.inputs import KIND_FOR_OPERATOR_INPUT_TYPE
 from ado.metastore.base import (
     NoRelatedResourcesError,
     ResourceDoesNotExistError,
@@ -139,22 +144,29 @@ def create_resource(
         list[str] | None,
         typer.Option(
             "--with",
-            help="""Specify additional resources to use or create via key=value pairs,
-            where the key is a resource type and the value is a resource ID or a resource configuration file.
+            help="""Specify additional resources to use or create via KIND=VALUE pairs,
+            where VALUE is a resource ID or a resource configuration file.
 
-            Supports creating spaces with sample stores and operations with spaces and actuator configurations.""",
+            Supports creating spaces with sample stores and operations with
+            spaces, data containers, and actuator configurations.
+
+            For operations, use KIND:INPUT=VALUE to set the operation input
+            named INPUT, e.g. space:reference=space-abc.""",
         ),
     ] = None,
     use_latest: Annotated[
-        list[CoreResourceKinds] | None,
+        list[str] | None,
         typer.Option(
             show_default=False,
-            parser=enum_choice_with_shorthand_parser(CoreResourceKinds),
-            metavar=f"[{'|'.join(m.value for m in CoreResourceKinds)}]",
+            parser=resource_kind_with_input_parser(CoreResourceKinds),
+            metavar=f"[{'|'.join(m.value for m in CoreResourceKinds)}][:INPUT]",
             help="""
             Reuse the latest identifier of a resource kind. Can be used multiple times.
 
-            Only supported for spaces and operations. Ignored if --with is used.""",
+            For operations, use KIND:INPUT to set the operation input named INPUT,
+            e.g. space:reference.
+
+            Only supported for spaces and operations.""",
         ),
     ] = None,
     use_default_sample_store: Annotated[
@@ -222,7 +234,18 @@ def create_resource(
 
     ado_configuration: AdoConfiguration = ctx.obj
     override_values = parse_key_value_pairs(set_values)
-    with_resources = parse_with_resource_options(with_resources)
+    with_resources, with_inputs = parse_with_resource_options(with_resources)
+    use_latest_kinds, use_latest_inputs = parse_use_latest_options(use_latest)
+
+    if (with_inputs or use_latest_inputs) and (
+        resource_type != AdoCreateSupportedResourceTypes.OPERATION
+    ):
+        console_print(
+            f"{ERROR}KIND:INPUT qualifiers for {magenta('--with')} and "
+            f"{magenta('--use-latest')} are only supported when creating operations.",
+            stderr=True,
+        )
+        raise typer.Exit(1)
 
     parameters = AdoCreateCommandParameters(
         ado_configuration=ado_configuration,
@@ -232,8 +255,10 @@ def create_resource(
         resource_configuration_file=resource_configuration,
         resource_type=resource_type,
         use_default_sample_store=use_default_sample_store,
-        use_latest=use_latest,
+        use_latest=use_latest_kinds,
         with_resources=with_resources,
+        useLatestInputs=use_latest_inputs,
+        withInputs=with_inputs,
     )
 
     method_mapping = {
@@ -268,60 +293,148 @@ def register_create_command(app: typer.Typer) -> None:
     )(create_resource)
 
 
+def _resolve_with_value(value: str) -> pathlib.Path | str:
+    """Interpret a ``--with`` value as a configuration file path or an identifier.
+
+    A value containing a dot or a path separator must be an existing file.
+
+    Args:
+        value: The value part of a ``--with`` option.
+
+    Returns:
+        The file path when *value* names an existing file, otherwise *value*.
+
+    Raises:
+        typer.Exit: If *value* looks like a path but is not an existing file.
+    """
+    value_as_path = pathlib.Path(value)
+    if value_as_path.exists() and value_as_path.is_file():
+        return value_as_path
+    if "." in value or os.sep in value:
+        console_print(f"{ERROR}{value} does not exist or is not a file.", stderr=True)
+        raise typer.Exit(1)
+    return value
+
+
 def parse_with_resource_options(
     user_provided_options: list[str] | None,
-) -> dict[CoreResourceKinds, pathlib.Path | str]:
+) -> tuple[
+    dict[CoreResourceKinds, pathlib.Path | str], list[OperationInputResourceOption]
+]:
+    """Parse ``--with`` options into kind-keyed values and named operation inputs.
 
-    parsed_options = {}
+    ``KIND=VALUE`` options are keyed by kind. ``KIND:INPUT=VALUE`` options
+    become named operation inputs. ``KIND`` may be a shorthand.
+
+    Args:
+        user_provided_options: Raw ``--with`` option values.
+
+    Returns:
+        The kind-keyed values and the named operation inputs, in option order.
+
+    Raises:
+        typer.Exit: If a kind is unsupported, a kind is given twice without a
+            qualifier, a qualifier is invalid, or a path value does not exist.
+    """
+    parsed_options: dict[CoreResourceKinds, pathlib.Path | str] = {}
+    named_inputs: list[OperationInputResourceOption] = []
     if not user_provided_options:
-        return parsed_options
+        return parsed_options, named_inputs
 
-    # To simplify checking whether the resource type is supported
     supported_resource_types = {
         v.value for v in AdoCreateWithResourceSupportedResourceTypes
     }
+    supported_input_kinds = set(KIND_FOR_OPERATOR_INPUT_TYPE.values())
 
     for with_option in parse_key_value_pairs(user_provided_options):
-        for resource_type, value in with_option.items():
+        for key, value in with_option.items():
+            try:
+                resource_type, input_name = split_input_qualifier(key)
+            except ValueError as error:
+                console_print(f"{ERROR}{error}", stderr=True)
+                raise typer.Exit(1) from error
+
             resource_type = resource_shorthands_to_full_names(resource_type)
             if resource_type not in supported_resource_types:
                 console_print(
                     f"{ERROR}{bold(resource_type)} is not a supported resource type "
                     f"for the {magenta('--with')} option.\n"
                     f"{HINT}The only supported resource types are "
-                    f"[b cyan]{', '.join(supported_resource_types)}[/b cyan] and their shorthands.",
+                    f"[b cyan]{', '.join(sorted(supported_resource_types))}[/b cyan] "
+                    "and their shorthands.",
                     stderr=True,
                 )
                 raise typer.Exit(1)
 
-            # Now we know the resource_type can be parsed as a CoreResourceKinds
-            resource_type = CoreResourceKinds(resource_type)
+            kind = CoreResourceKinds(resource_type)
 
-            # Since we are dealing with a dictionary, we can only support one --with option per resource type
-            if resource_type in parsed_options:
+            if input_name is not None:
+                if kind not in supported_input_kinds:
+                    console_print(
+                        f"{ERROR}{bold(kind.value)} cannot be used as an operation "
+                        "input. Supported input kinds are "
+                        f"[b cyan]{', '.join(sorted(k.value for k in supported_input_kinds))}"
+                        "[/b cyan].",
+                        stderr=True,
+                    )
+                    raise typer.Exit(1)
+                named_inputs.append(
+                    OperationInputResourceOption(
+                        inputName=input_name,
+                        kind=kind,
+                        value=_resolve_with_value(value),
+                    )
+                )
+                continue
+
+            if kind in parsed_options:
                 console_print(
-                    f"{ERROR}The {resource_type.value} resource type was specified more than once.",
+                    f"{ERROR}The {kind.value} resource type was specified more than once.\n"
+                    f"{HINT}Use {kind.value}:INPUT=VALUE to set several "
+                    "operation inputs of the same kind.",
                     stderr=True,
                 )
                 raise typer.Exit(1)
 
-            # We allow users to provide either paths to a resource configuration file or a resource identifier.
-            # In this function we only check whether it's one or the other (with validation on the path). Both
-            # schema validation for configuration files and resource retrieval for ids will be performed in the
-            # resource-specific create functions.
-            #
-            # If a dot or a path separator character is present in the value, we assume it must be a path and
-            # fail if it doesn't exist, or it's not a file.
-            value_must_be_path = "." in value or os.sep in value
-            value_as_path = pathlib.Path(value)
-            if value_as_path.exists() and value_as_path.is_file():
-                parsed_options[resource_type] = value_as_path
-            elif value_must_be_path:
-                console_print(
-                    f"{ERROR}{value} does not exist or is not a file.", stderr=True
-                )
-                raise typer.Exit(1)
-            else:
-                parsed_options[resource_type] = value
+            parsed_options[kind] = _resolve_with_value(value)
 
-    return parsed_options
+    return parsed_options, named_inputs
+
+
+def parse_use_latest_options(
+    user_provided_options: list[str] | None,
+) -> tuple[list[CoreResourceKinds], list[tuple[str, CoreResourceKinds]]]:
+    """Parse ``--use-latest`` values into kinds and named operation inputs.
+
+    Args:
+        user_provided_options: ``KIND`` or ``KIND:INPUT`` values with the kind
+            already resolved to its full name.
+
+    Returns:
+        The unqualified kinds and the ``(input name, kind)`` pairs, in option order.
+
+    Raises:
+        typer.Exit: If a qualified kind cannot be an operation input.
+    """
+    kinds: list[CoreResourceKinds] = []
+    named_inputs: list[tuple[str, CoreResourceKinds]] = []
+    supported_input_kinds = set(KIND_FOR_OPERATOR_INPUT_TYPE.values())
+
+    for option in user_provided_options or []:
+        kind_value, input_name = split_input_qualifier(option)
+        kind = CoreResourceKinds(kind_value)
+        if input_name is None:
+            kinds.append(kind)
+            continue
+        if kind not in supported_input_kinds:
+            console_print(
+                f"{ERROR}{bold(kind.value)} cannot be used as an operation input. "
+                "Supported input kinds are "
+                f"[b cyan]{', '.join(sorted(k.value for k in supported_input_kinds))}"
+                "[/b cyan].",
+                stderr=True,
+            )
+            raise typer.Exit(1)
+        named_inputs.append((input_name, kind))
+
+    return kinds, named_inputs

@@ -11,12 +11,12 @@ from ado.core.operation.config import (
     DiscoveryOperationEnum,
     DiscoveryOperationResourceConfiguration,
 )
-from ado.core.operation.context import resolve_operation_project_context
 from ado.core.operation.inputs import (
     discovery_spaces_from_inputs,
     iter_resolved_inputs,
     iter_resource_references,
     project_contexts_from_inputs,
+    resolve_operation_project_context,
     resource_references_from_resolved_inputs,
     resource_references_to_rich_types,
 )

@@ -6,7 +6,13 @@ from collections.abc import Iterator
 
 import pytest
 
-from ado.cli.resources.operation.create import _add_operation_input_for_reference
+from ado.cli.core.config import AdoConfiguration
+from ado.cli.models.parameters import (
+    AdoCreateCommandParameters,
+    OperationInputResourceOption,
+)
+from ado.cli.models.types import AdoCreateSupportedResourceTypes
+from ado.cli.resources.operation.create import apply_resource_flags
 from ado.cli.resources.operation.template import _operation_inputs_template
 from ado.core.datacontainer.resource import DataContainerResource
 from ado.core.operation.config import (
@@ -166,30 +172,51 @@ def test_operation_inputs_template_emits_list_placeholder() -> None:
     assert not isinstance(template["baseline"], list)
 
 
-def test_add_operation_input_writes_one_element_list(
-    summarize_dummy_operator: None,
-) -> None:
-    """--with for a list parameter stores a one-element list."""
-    raw = {
+def _with_parameters(
+    with_resources: dict | None = None,
+    with_inputs: list[OperationInputResourceOption] | None = None,
+) -> AdoCreateCommandParameters:
+    """Build create parameters carrying only --with values."""
+    return AdoCreateCommandParameters(
+        ado_configuration=AdoConfiguration(),
+        dry_run=True,
+        new_sample_store=False,
+        override_values=[],
+        resource_configuration_file=None,
+        resource_type=AdoCreateSupportedResourceTypes.OPERATION,
+        use_default_sample_store=False,
+        use_latest=[],
+        with_resources=with_resources or {},
+        withInputs=with_inputs or [],
+    )
+
+
+def _raw_summarize_operation(inputs: dict) -> dict:
+    """Return a raw operation configuration for the dummy summarize operator."""
+    return {
         "operation": {
             "module": {
                 "operatorName": _OPERATOR_NAME,
                 "operationType": DiscoveryOperationEnum.SUMMARIZE.value,
             }
         },
-        "inputs": {
-            "baseline": {
-                "identifier": "datacontainer-baseline",
-                "kind": "datacontainer",
-            }
-        },
+        "inputs": inputs,
     }
-    _add_operation_input_for_reference(
+
+
+def test_with_kind_writes_one_element_list(
+    summarize_dummy_operator: None,
+) -> None:
+    """An unqualified --with binds to the list input and stores a one-element list."""
+    raw = _raw_summarize_operation(
+        {"baseline": {"identifier": "datacontainer-baseline", "kind": "datacontainer"}}
+    )
+    apply_resource_flags(
         raw,
-        ADOResourceReference(
-            identifier="datacontainer-aaa",
-            kind=CoreResourceKinds.DATACONTAINER,
+        _with_parameters(
+            with_resources={CoreResourceKinds.DATACONTAINER: "datacontainer-aaa"}
         ),
+        latest_identifiers={},
     )
     assert raw["inputs"]["containers"] == [
         {"identifier": "datacontainer-aaa", "kind": "datacontainer"}
@@ -197,33 +224,34 @@ def test_add_operation_input_writes_one_element_list(
     assert raw["inputs"]["baseline"]["identifier"] == "datacontainer-baseline"
 
 
-def test_add_operation_input_appends_to_existing_list(
+def test_with_named_list_input_replaces_file_value_then_appends(
     summarize_dummy_operator: None,
 ) -> None:
-    """A second --with for a list parameter appends to the existing list."""
-    raw = {
-        "operation": {
-            "module": {
-                "operatorName": _OPERATOR_NAME,
-                "operationType": DiscoveryOperationEnum.SUMMARIZE.value,
-            }
-        },
-        "inputs": {
+    """Repeated --with for a list input replace the file's list and then append."""
+    raw = _raw_summarize_operation(
+        {
             "containers": [
-                {"identifier": "datacontainer-aaa", "kind": "datacontainer"}
+                {"identifier": "datacontainer-from-file", "kind": "datacontainer"}
             ],
             "baseline": {
                 "identifier": "datacontainer-baseline",
                 "kind": "datacontainer",
             },
-        },
-    }
-    _add_operation_input_for_reference(
+        }
+    )
+    apply_resource_flags(
         raw,
-        ADOResourceReference(
-            identifier="datacontainer-bbb",
-            kind=CoreResourceKinds.DATACONTAINER,
+        _with_parameters(
+            with_inputs=[
+                OperationInputResourceOption(
+                    inputName="containers",
+                    kind=CoreResourceKinds.DATACONTAINER,
+                    value=identifier,
+                )
+                for identifier in ("datacontainer-aaa", "datacontainer-bbb")
+            ]
         ),
+        latest_identifiers={},
     )
     assert raw["inputs"]["containers"] == [
         {"identifier": "datacontainer-aaa", "kind": "datacontainer"},

@@ -138,6 +138,67 @@ def enum_choice_with_shorthand_parser(
     return enum_choice_parser(enum_type, case_sensitive, resolve_shorthands=True)
 
 
+INPUT_QUALIFIER_SEPARATOR = ":"
+
+
+def split_input_qualifier(value: str) -> tuple[str, str | None]:
+    """Split a ``KIND[:INPUT]`` string into its kind and optional input name.
+
+    Args:
+        value: The string to split.
+
+    Returns:
+        The kind part and the input name, or ``None`` when no qualifier is given.
+
+    Raises:
+        ValueError: If the value has more than one separator, or the input name
+            is not a valid Python identifier.
+    """
+    if INPUT_QUALIFIER_SEPARATOR not in value:
+        return value, None
+    parts = value.split(INPUT_QUALIFIER_SEPARATOR)
+    if len(parts) != 2:  # noqa: PLR2004
+        raise ValueError(
+            f"'{value}' must have the form KIND or KIND{INPUT_QUALIFIER_SEPARATOR}INPUT"
+        )
+    kind, input_name = parts
+    if not input_name.isidentifier():
+        raise ValueError(
+            f"'{input_name}' in '{value}' is not a valid operation input name"
+        )
+    return kind, input_name
+
+
+def resource_kind_with_input_parser(
+    enum_type: type[T], case_sensitive: bool = True
+) -> Callable[[str], str]:
+    """Create a parser for ``KIND`` or ``KIND:INPUT`` values.
+
+    The kind part may be a shorthand and is resolved to its full name. The
+    input name is kept unchanged.
+
+    Args:
+        enum_type: The enum class whose values are the valid kinds.
+        case_sensitive: Whether kind matching is case sensitive.
+
+    Returns:
+        A parser returning ``KIND`` or ``KIND:INPUT`` with the kind resolved.
+    """
+    kind_parser = enum_choice_with_shorthand_parser(enum_type, case_sensitive)
+
+    def parser(value: str) -> str:
+        try:
+            kind, input_name = split_input_qualifier(value)
+        except ValueError as error:
+            raise typer.BadParameter(str(error)) from error
+        resolved_kind = kind_parser(kind)
+        if input_name is None:
+            return resolved_kind
+        return f"{resolved_kind}{INPUT_QUALIFIER_SEPARATOR}{input_name}"
+
+    return parser
+
+
 def enum_choice_with_plural_parser(
     enum_type: type[T], case_sensitive: bool = True
 ) -> Callable[[str], T]:

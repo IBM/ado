@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING
 
 from ado.core.datacontainer.resource import DataContainerResource
 from ado.core.discoveryspace.space import DiscoverySpace
+from ado.core.operation.context import resolve_operation_project_context
 from ado.core.resources import (
     ADOResourcePropertyDescriptor,
     ADOResourceReference,
@@ -23,7 +24,7 @@ from ado.core.resources import (
 from ado.utilities.annotations import _unwrap_annotated
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Iterator
 
     from ado.core.operation.config import FunctionOperationInfo
     from ado.metastore.project import ProjectContext
@@ -36,11 +37,164 @@ if TYPE_CHECKING:
 # Python types an operator function may receive for a resolved resource input.
 OperatorInputType = DiscoverySpace | DataContainerResource
 
+# A stored operation input: one resource reference, or a list of them.
+OperationResourceInput = ADOResourceReference | list[ADOResourceReference]
+
+# The rich object, or list of rich objects, passed to an operator parameter.
+ResolvedOperatorInput = OperatorInputType | list[OperatorInputType]
+
 # For mapping types in function signatures to
 KIND_FOR_OPERATOR_INPUT_TYPE: dict[type, CoreResourceKinds] = {
     DiscoverySpace: CoreResourceKinds.DISCOVERYSPACE,
     DataContainerResource: CoreResourceKinds.DATACONTAINER,
 }
+
+
+def iter_resource_references(
+    value: OperationResourceInput,
+) -> list[ADOResourceReference]:
+    """Return the resource references stored in one operation input.
+
+    Args:
+        value: A single resource reference, or a list of references.
+
+    Returns:
+        The references. A scalar reference is wrapped in a one-element list.
+    """
+    if isinstance(value, list):
+        return value
+    return [value]
+
+
+def iter_resolved_inputs(
+    value: ResolvedOperatorInput,
+) -> Iterator[OperatorInputType]:
+    """Yield each rich object in a resolved operator input.
+
+    Args:
+        value: A single rich operator input, or a list of them.
+
+    Yields:
+        Each rich operator input. A scalar value is yielded once.
+    """
+    if isinstance(value, list):
+        yield from value
+    else:
+        yield value
+
+
+def discovery_spaces_from_inputs(
+    inputs: dict[str, ResolvedOperatorInput],
+) -> list[DiscoverySpace]:
+    """Collect discovery spaces from resolved operator inputs.
+
+    List parameters are flattened. Other resource types are skipped.
+
+    Args:
+        inputs: Mapping of parameter name to a rich operator input or a list
+            of rich operator inputs.
+
+    Returns:
+        Discovery spaces in input iteration order.
+    """
+    spaces: list[DiscoverySpace] = []
+    for value in inputs.values():
+        spaces.extend(
+            resource
+            for resource in iter_resolved_inputs(value)
+            if isinstance(resource, DiscoverySpace)
+        )
+    return spaces
+
+
+def _reference_for_operator_input(resource: OperatorInputType) -> ADOResourceReference:
+    """Return the metastore reference for one resolved operator input.
+
+    Args:
+        resource: A discovery space or data container.
+
+    Returns:
+        The resource's metastore reference.
+
+    Raises:
+        ValueError: If *resource* is not a supported operator input type.
+    """
+    if isinstance(resource, DiscoverySpace):
+        return resource.reference
+    if isinstance(resource, DataContainerResource):
+        return resource.reference
+    raise ValueError(
+        f"Resolved input has unsupported type {type(resource)!r}; "
+        "expected DiscoverySpace or DataContainerResource."
+    )
+
+
+def resource_references_from_resolved_inputs(
+    inputs: dict[str, ResolvedOperatorInput],
+) -> dict[str, OperationResourceInput]:
+    """Dump resolved operator inputs back to resource references.
+
+    List parameters stay lists. Scalar parameters stay scalars.
+
+    Args:
+        inputs: Mapping of parameter name to a rich operator input or a list
+            of rich operator inputs.
+
+    Returns:
+        Mapping of parameter name to the corresponding resource reference or
+        list of references.
+
+    Raises:
+        ValueError: If an input has an unsupported type.
+    """
+    dumped: dict[str, OperationResourceInput] = {}
+    for name, value in inputs.items():
+        if isinstance(value, list):
+            dumped[name] = [_reference_for_operator_input(item) for item in value]
+        else:
+            dumped[name] = _reference_for_operator_input(value)
+    return dumped
+
+
+def _resource_input_from_annotation(
+    hint: object, param_name: str
+) -> tuple[CoreResourceKinds, bool]:
+    """Return the resource kind and list flag for a parameter annotation.
+
+    Args:
+        hint: Resolved type annotation, possibly wrapped in ``Annotated``.
+        param_name: Parameter name, used in error messages.
+
+    Returns:
+        The resource kind and whether the annotation is a list of that kind.
+
+    Raises:
+        ValueError: If the annotation is not a supported resource type, or a
+            list of exactly one supported resource type.
+    """
+    unwrapped = _unwrap_annotated(hint)
+    is_list = False
+    if typing.get_origin(unwrapped) is list:
+        element_args = typing.get_args(unwrapped)
+        element = _unwrap_annotated(element_args[0]) if len(element_args) == 1 else None
+        if element is None or typing.get_origin(element) is not None:
+            supported = sorted(t.__name__ for t in KIND_FOR_OPERATOR_INPUT_TYPE)
+            raise ValueError(
+                f"Operator function parameter {param_name!r} must be annotated "
+                f"with one of {supported}, or a list of one of those types, "
+                f"got {unwrapped!r}."
+            )
+        unwrapped = element
+        is_list = True
+
+    kind = KIND_FOR_OPERATOR_INPUT_TYPE.get(unwrapped)  # type: ignore[arg-type]
+    if kind is None:
+        supported = sorted(t.__name__ for t in KIND_FOR_OPERATOR_INPUT_TYPE)
+        raise ValueError(
+            f"Operator function parameter {param_name!r} must be annotated "
+            f"with one of {supported}, got {unwrapped!r}."
+        )
+    return kind, is_list
 
 
 def resource_inputs_from_operator_function(
@@ -50,8 +204,9 @@ def resource_inputs_from_operator_function(
 
     Leading parameters, everything before ``operationInfo`` and ``parameters``,
     must be annotated with a type registered in
-    ``KIND_FOR_OPERATOR_INPUT_TYPE``. Parameter names become input identifiers
-    and annotations become resource kinds.
+    ``KIND_FOR_OPERATOR_INPUT_TYPE``, or with a list of one such type. Parameter
+    names become input identifiers and annotations become resource kinds. A list
+    annotation sets ``isList`` on the descriptor.
 
     Args:
         fn: Operator callable to inspect.
@@ -119,22 +274,17 @@ def resource_inputs_from_operator_function(
         ) from exc
 
     descriptors: list[ADOResourcePropertyDescriptor] = []
-    supported = sorted({t.__name__ for t in KIND_FOR_OPERATOR_INPUT_TYPE})
     for param in resource_params:
         if param.name not in hints:
             raise ValueError(
                 f"Operator function parameter {param.name!r} is missing a "
                 "resolvable type annotation."
             )
-        hint = _unwrap_annotated(hints[param.name])
-        kind = KIND_FOR_OPERATOR_INPUT_TYPE.get(hint)  # type: ignore[arg-type]
-        if kind is None:
-            raise ValueError(
-                f"Operator function parameter {param.name!r} must be annotated "
-                f"with one of {supported}, got {hint!r}."
-            )
+        kind, is_list = _resource_input_from_annotation(hints[param.name], param.name)
         descriptors.append(
-            ADOResourcePropertyDescriptor(identifier=param.name, kind=kind)
+            ADOResourcePropertyDescriptor(
+                identifier=param.name, kind=kind, isList=is_list
+            )
         )
 
     return descriptors
@@ -215,91 +365,54 @@ def _resolve_one_reference(
     return resolver(reference, metastore)
 
 
-def resolve_operation_project_context(
-    operation_info: FunctionOperationInfo | None,
-    inputs: dict[str, OperatorInputType],
-) -> ProjectContext:
-    """Resolve the project context for an operation invocation.
-
-    Prefers ``FunctionOperationInfo.projectContext`` when set. Otherwise
-    extracts project context from operator inputs that carry one. When no
-    input carries context, callers must set ``projectContext`` explicitly.
-
-    Args:
-        operation_info: Optional operation info that may carry a project context.
-        inputs: Mapping of parameter name to rich operator input.
-
-    Returns:
-        The resolved project context.
-
-    Raises:
-        ValueError: If ``projectContext`` is unset and no input carries a
-            project context, or if context-carrying inputs disagree on the
-            project.
-    """
-    if operation_info is not None and operation_info.projectContext is not None:
-        return operation_info.projectContext
-
-    carried = project_contexts_from_inputs(inputs)
-    if not carried:
-        raise ValueError(
-            "FunctionOperationInfo.projectContext is required when no operator "
-            "input carries a project context (e.g. DataContainer-only inputs)."
-        )
-
-    reference = carried[0][1]
-    if any(ctx != reference for _, ctx in carried):
-        details = ", ".join(
-            f"{name!r}→project={ctx.project!r}" for name, ctx in carried
-        )
-        raise ValueError(f"Operator inputs disagree on project context: {details}.")
-
-    return reference
-
-
 def verify_inputs_exist_in_metastore(
-    inputs: dict[str, OperatorInputType],
+    inputs: dict[str, ResolvedOperatorInput],
     metastore: SQLStore,
 ) -> None:
     """Assert that every operator input resource belongs to *metastore*.
 
+    List inputs are checked item by item.
+
     Args:
-        inputs: Mapping of parameter name to rich operator input.
+        inputs: Mapping of parameter name to a rich operator input or a list
+            of rich operator inputs.
         metastore: The store that must contain all inputs.
 
     Raises:
         ValueError: If an input does not belong to *metastore*, or has an
             unsupported type.
     """
-    for name, resource in inputs.items():
-        if isinstance(resource, DiscoverySpace):
-            kind = CoreResourceKinds.DISCOVERYSPACE
-            identifier = resource.uri
-        elif isinstance(resource, DataContainerResource):
-            kind = CoreResourceKinds.DATACONTAINER
-            identifier = resource.identifier
-        else:
-            raise ValueError(
-                f"Input {name!r} has unsupported type {type(resource)!r}; "
-                "expected DiscoverySpace or DataContainerResource."
-            )
+    for name, value in inputs.items():
+        for resource in iter_resolved_inputs(value):
+            if isinstance(resource, DiscoverySpace):
+                kind = CoreResourceKinds.DISCOVERYSPACE
+                identifier = resource.uri
+            elif isinstance(resource, DataContainerResource):
+                kind = CoreResourceKinds.DATACONTAINER
+                identifier = resource.identifier
+            else:
+                raise ValueError(
+                    f"Input {name!r} has unsupported type {type(resource)!r}; "
+                    "expected DiscoverySpace or DataContainerResource."
+                )
 
-        if not metastore.containsResourceWithIdentifier(identifier, kind=kind):
-            raise ValueError(
-                f"Input {name!r} ({kind.value} {identifier!r}) is not in the "
-                f"active metastore (project {metastore.project_context.project!r})."
-            )
+            if not metastore.containsResourceWithIdentifier(identifier, kind=kind):
+                raise ValueError(
+                    f"Input {name!r} ({kind.value} {identifier!r}) is not in the "
+                    f"active metastore (project {metastore.project_context.project!r})."
+                )
 
 
 def metastore_for_operation_inputs(
     operation_info: FunctionOperationInfo | None,
-    inputs: dict[str, OperatorInputType],
+    inputs: dict[str, ResolvedOperatorInput],
 ) -> SQLStore:
     """Open the metastore for *inputs* and check that each input is stored there.
 
     Args:
         operation_info: Optional operation info that may carry a project context.
-        inputs: Mapping of parameter name to rich operator input.
+        inputs: Mapping of parameter name to a rich operator input or a list
+            of rich operator inputs.
 
     Returns:
         A metastore for the resolved project context.

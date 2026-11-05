@@ -155,17 +155,18 @@ def _is_multiple_of_discrete_domain_interval(
     value: typing.Any,  # noqa: ANN401
     interval: float,
 ) -> bool:
-    """Returns True if value is a finite number and an exact multiple of interval.
+    """Returns True if value is an exact multiple of interval.
 
     Values and intervals are scaled to integers at 10 decimal places so that
     the modulo is exact for decimal values.
 
     Args:
-        value: Candidate value to test.
+        value: Candidate value to test. Must be a number or numpy scalar.
         interval: Step size of the grid.
 
     Returns:
-        True if value is an exact multiple of interval, False otherwise.
+        True if value is finite and an exact multiple of interval, False
+        otherwise.
 
     Raises:
         ValueError: If interval is not greater than 0, or if value is not a
@@ -250,74 +251,115 @@ def is_subdomain_of_continuous_domain(
     )
 
 
+def _is_subdomain_of_unbounded_discrete_domain(
+    discreteDomain: "PropertyDomain", testDomain: "PropertyDomain"
+) -> bool:
+    """Returns True if testDomain is a subdomain of an unbounded discrete domain.
+
+    An unbounded discrete domain has interval=k and no domainRange or values.
+    testDomain is a subdomain if and only if every value it can take is a
+    multiple of k. Non-numeric values are never multiples of k.
+
+    Args:
+        discreteDomain: An unbounded PropertyDomain with variableType
+            DISCRETE_VARIABLE_TYPE.
+        testDomain: A PropertyDomain with any variableType.
+
+    Returns:
+        True if testDomain is a subdomain of discreteDomain, False otherwise.
+    """
+    k = discreteDomain.interval
+    if k is None:
+        return False
+
+    if testDomain.variableType == VariableTypeEnum.BINARY_VARIABLE_TYPE:
+        return all(_is_multiple_of_discrete_domain_interval(x, k) for x in (0, 1))
+
+    if testDomain.variableType != VariableTypeEnum.DISCRETE_VARIABLE_TYPE:
+        return False
+
+    if testDomain.values is not None:
+        # valueInDomain returns False for non-numeric values
+        return all(discreteDomain.valueInDomain(v) for v in testDomain.values)
+
+    if testDomain.size == 1:
+        return _is_multiple_of_discrete_domain_interval(testDomain.domain_values[0], k)
+
+    if testDomain.interval is None:
+        return False
+
+    if testDomain.size == math.inf:
+        return _is_multiple_of_discrete_domain_interval(testDomain.interval, k)
+
+    # A range with several values: the first value and the step are both
+    # multiples of k.
+    if testDomain.domainRange is None:
+        return False
+    return _is_multiple_of_discrete_domain_interval(
+        min(testDomain.domainRange), k
+    ) and _is_multiple_of_discrete_domain_interval(testDomain.interval, k)
+
+
+def _is_subdomain_of_bounded_discrete_domain(
+    discreteDomain: "PropertyDomain", testDomain: "PropertyDomain"
+) -> bool:
+    """Returns True if testDomain is a subdomain of a bounded discrete domain.
+
+    A bounded discrete domain has a finite set of values, given either
+    explicitly or by a domainRange and interval. testDomain is a subdomain if
+    the values it can take are contained in that set.
+
+    Args:
+        discreteDomain: A bounded PropertyDomain with variableType
+            DISCRETE_VARIABLE_TYPE.
+        testDomain: A PropertyDomain with any variableType.
+
+    Returns:
+        True if testDomain is a subdomain of discreteDomain, False otherwise.
+    """
+    if testDomain.variableType == VariableTypeEnum.BINARY_VARIABLE_TYPE:
+        return all(x in discreteDomain.domain_values for x in [0, 1])
+
+    if testDomain.variableType != VariableTypeEnum.DISCRETE_VARIABLE_TYPE:
+        return False
+
+    # An unbounded domain is not contained in a bounded one
+    if testDomain.size == math.inf:
+        return False
+
+    if discreteDomain.interval is not None and testDomain.interval is not None:
+        if testDomain.size == 1:
+            # A single-valued domain is a subdomain if its value is in
+            # the discrete domain, whatever its interval
+            return discreteDomain.valueInDomain(testDomain.domain_values[0])
+
+        # The test domain interval must be a multiple of the discrete domain interval
+        if not _is_multiple_of_discrete_domain_interval(
+            testDomain.interval, discreteDomain.interval
+        ):
+            return False
+
+        if not (testDomain.domainRange and discreteDomain.domainRange):
+            return False
+
+    return set(testDomain.domain_values).issubset(discreteDomain.domain_values)
+
+
 def is_subdomain_of_discrete_domain(
     discreteDomain: "PropertyDomain", testDomain: "PropertyDomain"
 ) -> bool:
-    """Returns True if the testDomain is a subdomain of the discreteDomain
-    Parameters:
-        discreteDomain: A PropertyDomain with variableType DISCRETE_VARIABLE_TYPE
-        testDomain: A PropertyDomain with any variableType
-    Returns:
-        True if the testDomain is a subdomain of the discreteDomain
-    """
-    if testDomain.variableType == VariableTypeEnum.DISCRETE_VARIABLE_TYPE:
-        if discreteDomain.interval:
-            if testDomain.interval:
-                # Both domains have an interval
-                if testDomain.size == 1:
-                    # A single-valued domain is a subdomain if its value is in
-                    # the discrete domain, whatever its interval
-                    retval = discreteDomain.valueInDomain(testDomain.domain_values[0])
-                # The test domain interval must be divisible by the discrete domain interval.
-                # Both intervals are scaled to integers at 10 decimal places so the
-                # modulo is exact for decimal intervals such as 0.3 and 0.1.
-                elif (
-                    int(Decimal(repr(testDomain.interval)).scaleb(10))
-                    % int(Decimal(repr(discreteDomain.interval)).scaleb(10))
-                    == 0
-                ):
-                    # Now check the ranges
-                    if testDomain.domainRange and discreteDomain.domainRange:
-                        # Both domains have ranges - the test domain values must be a subset of the discrete domain values
-                        retval = set(testDomain.domain_values).issubset(
-                            discreteDomain.domain_values
-                        )
-                    elif (
-                        testDomain.domainRange and not discreteDomain.domainRange
-                    ) or (not testDomain.domainRange and discreteDomain.domainRange):
-                        # If only the test domain has a range, it is a subdomain; if only the discrete domain has a range, it is not
-                        retval = bool(
-                            testDomain.domainRange and not discreteDomain.domainRange
-                        )
-                    else:
-                        # Neither domain has a range
-                        retval = True
-                else:
-                    retval = False
-            elif discreteDomain.size == math.inf:
-                # Any bounded set of values is contained in an unbounded domain
-                retval = True
-            else:
-                # The test domain has values (no interval), so compare them
-                # against the values of the discrete domain
-                retval = set(testDomain.domain_values).issubset(
-                    discreteDomain.domain_values
-                )
-        elif testDomain.size == math.inf:
-            # An unbounded domain is not contained in a domain with explicit values
-            retval = False
-        else:
-            retval = set(testDomain.domain_values).issubset(
-                discreteDomain.domain_values
-            )
-        return retval
-    if testDomain.variableType == VariableTypeEnum.BINARY_VARIABLE_TYPE:
-        return discreteDomain.size == math.inf or all(
-            x in discreteDomain.domain_values for x in [0, 1]
-        )
+    """Returns True if testDomain is a subdomain of discreteDomain.
 
-    # All other domains are false (CONTINUOUS, OPEN_CATEGORICAL, UNKNOWN and CATEGORICAL
-    return False
+    Args:
+        discreteDomain: A PropertyDomain with variableType DISCRETE_VARIABLE_TYPE.
+        testDomain: A PropertyDomain with any variableType.
+
+    Returns:
+        True if testDomain is a subdomain of discreteDomain, False otherwise.
+    """
+    if discreteDomain.size == math.inf:
+        return _is_subdomain_of_unbounded_discrete_domain(discreteDomain, testDomain)
+    return _is_subdomain_of_bounded_discrete_domain(discreteDomain, testDomain)
 
 
 def is_subdomain_of_categorical_domain(

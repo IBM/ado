@@ -148,7 +148,7 @@ def test_valid_property_domains() -> None:
     assert discretePropertyDomainNoRange.valueInDomain(-110) is True
     assert discretePropertyDomainNoRange.valueInDomain(-10) is True
     assert discretePropertyDomainNoRange.valueInDomain(1) is True
-    # For discrete variables with an interval we need at least one part of range to anchor the interval!
+    # An unbounded discrete domain is a zero-anchored grid
     assert discretePropertyDomainNoRange.valueInDomain(100) is True
     assert discretePropertyDomainFloatRange.valueInDomain(0.0) is True
     assert discretePropertyDomainFloatRange.valueInDomain(0.2) is True
@@ -971,6 +971,56 @@ def test_domain_values() -> None:
     # Test 0 is in domain values of discrete var of range [0,1]
     d = PropertyDomain(domainRange=[0, 1], interval=1)
     assert d.domain_values == [0]
+
+
+@pytest.mark.parametrize(
+    ("interval", "value", "expected"),
+    [
+        (2, 4, True),
+        (2, -4, True),
+        (2, 0, True),
+        (2, 4.0, True),
+        (2, 1, False),
+        (2, 3.0, False),
+        (2, True, False),
+        (2, False, True),
+        (2, np.bool_(True), False),
+        (2, np.bool_(False), True),
+        (1, 0, True),
+        (1, 1, True),
+        (1, -10, True),
+        (1, 1.5, False),
+        (1, "a", False),
+        (1, float("nan"), False),
+        (1, float("inf"), False),
+        (1, float("-inf"), False),
+        (1, True, True),
+        (1, False, True),
+        (1, np.bool_(True), True),
+        (1, np.bool_(False), True),
+        (0.1, 0.3, True),
+        (0.1, 0.35, False),
+        (0.5, 1.5, True),
+        (0.5, 1.2, False),
+        (0.5, -1.5, True),
+    ],
+)
+def test_unbounded_discrete_domain_value_in_domain(
+    interval: float, value: object, expected: bool
+) -> None:
+    domain = PropertyDomain(interval=interval)
+    assert domain.valueInDomain(value) is expected
+
+
+@pytest.mark.parametrize("value", ["a", "3", None, [1, 2], {"a": 1}, object()])
+def test_is_multiple_of_discrete_domain_interval_rejects_non_numeric_value(
+    value: object,
+) -> None:
+    """Test that _is_multiple_of_discrete_domain_interval raises ValueError for non-number-like values."""
+    from ado.schema.domain import _is_multiple_of_discrete_domain_interval
+
+    with pytest.raises(ValueError, match="value must be a number"):
+        _is_multiple_of_discrete_domain_interval(value, 1)
 
 
 def test_domain_values_raises_for_unbounded_discrete_domain() -> None:

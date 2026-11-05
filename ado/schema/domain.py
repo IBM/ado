@@ -151,6 +151,53 @@ def _is_value_in_internal_range_values(
     )
 
 
+def _is_multiple_of_discrete_domain_interval(
+    value: typing.Any,  # noqa: ANN401
+    interval: float,
+) -> bool:
+    """Returns True if value is a finite number and an exact multiple of interval.
+
+    Values and intervals are scaled to integers at 10 decimal places so that
+    the modulo is exact for decimal values.
+
+    Args:
+        value: Candidate value to test.
+        interval: Step size of the grid.
+
+    Returns:
+        True if value is an exact multiple of interval, False otherwise.
+
+    Raises:
+        ValueError: If interval is not greater than 0, or if value is not a
+            number or numpy scalar.
+    """
+    if interval <= 0:
+        raise ValueError(f"interval must be greater than 0. Got: {interval}")
+
+    if not isinstance(value, (numbers.Number, np.generic)):
+        raise ValueError(f"value must be a number. Got: {value!r}")
+
+    if np.isnan(value) or np.isinf(value):
+        return False
+
+    if isinstance(value, np.generic):
+        value = value.item()
+
+    if isinstance(value, bool):
+        value = int(value)
+
+    if not isinstance(value, (int, float)):
+        return False
+
+    if isinstance(value, float) and _exceeds_supported_decimal_precision(value):
+        return False
+
+    scaled_value = Decimal(repr(value)).scaleb(10)
+    scaled_interval = Decimal(repr(interval)).scaleb(10)
+
+    return int(scaled_value) % int(scaled_interval) == 0
+
+
 def is_subdomain_of_unknown_domain(
     unknownDomain: "PropertyDomain", testDomain: "PropertyDomain"
 ) -> bool:
@@ -225,8 +272,8 @@ def is_subdomain_of_discrete_domain(
                 # Both intervals are scaled to integers at 10 decimal places so the
                 # modulo is exact for decimal intervals such as 0.3 and 0.1.
                 elif (
-                    int(Decimal(str(testDomain.interval)).scaleb(10))
-                    % int(Decimal(str(discreteDomain.interval)).scaleb(10))
+                    int(Decimal(repr(testDomain.interval)).scaleb(10))
+                    % int(Decimal(repr(discreteDomain.interval)).scaleb(10))
                     == 0
                 ):
                     # Now check the ranges
@@ -978,8 +1025,12 @@ class PropertyDomain(pydantic.BaseModel):
                         interval=self.interval,
                     )
                 else:
-                    # The domain has no range or values which means we just accept the value
-                    retval = True
+                    retval = isinstance(
+                        value, (numbers.Number, np.generic)
+                    ) and _is_multiple_of_discrete_domain_interval(
+                        value=value,
+                        interval=self.interval,
+                    )
         elif self.variableType == VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE:
             retval = value in self.values
         elif self.variableType in [

@@ -4,6 +4,12 @@
 import pydantic
 import typer
 import yaml
+
+try:
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:  # pragma: nocover
+    from yaml import SafeLoader  # type: ignore[assignment]
+
 from rich.status import Status
 
 from ado.cli.models.parameters import AdoCreateCommandParameters

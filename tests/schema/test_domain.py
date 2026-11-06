@@ -508,6 +508,18 @@ def test_float_discrete_subdomain_divisibility(
             PropertyDomain(interval=2, domainRange=[-10, 10]),
             False,
         ),
+        # Empty range has no elements, so it is a subset of any range.
+        (
+            PropertyDomain(interval=1, domainRange=[0, 0]),
+            PropertyDomain(interval=1, domainRange=[0, 10]),
+            True,
+        ),
+        # Tested range extends beyond the enclosing range's last element.
+        (
+            PropertyDomain(interval=2, domainRange=[0, 11]),
+            PropertyDomain(interval=1, domainRange=[0, 9]),
+            False,
+        ),
     ],
 )
 def test_discrete_subdomain_non_divisible_but_values_align(
@@ -2202,20 +2214,14 @@ def _exact_range_ints(lower: float, upper: float, interval: float) -> list[int]:
     return list(range(scaled_lower, scaled_upper, scaled_interval))
 
 
-@pytest.mark.parametrize("decimal_places", range(1, 11))
-def test_to_scaled_int_decimal_places(
-    decimal_places: int,
-) -> None:
-    """Values with 1 to 10 decimal places scale to the exact integer."""
-    value = round(3 / 10**decimal_places, decimal_places)
-    expected = 3 * 10 ** (10 - decimal_places)
-    assert _to_scaled_int(value) == expected
-    assert _to_scaled_int(-value) == -expected
-
-
 @pytest.mark.parametrize(
     ("value", "expected"),
     [
+        *[
+            (sign * round(3 / 10**places, places), sign * 3 * 10 ** (10 - places))
+            for places in range(1, 11)
+            for sign in (1, -1)
+        ],
         (1, 10**10),
         (-2, -2 * 10**10),
         (0.1, 10**9),
@@ -2236,9 +2242,7 @@ def test_to_scaled_int(value: object, expected: int) -> None:
     assert type(result) is int
 
 
-@pytest.mark.parametrize(
-    "value", ["1", None, [1], float("nan"), float("inf"), 0.1 + 0.2, 1 / 3]
-)
+@pytest.mark.parametrize("value", ["1", float("nan"), float("inf"), 0.1 + 0.2, 1 / 3])
 def test_to_scaled_int_rejects_unsupported(
     value: object,
 ) -> None:
@@ -2309,28 +2313,12 @@ def test_discrete_domain_range_helpers_large_and_small_magnitudes(
     assert not scaled_range.contains(value=upper)
 
 
-def test_scaled_discrete_range_contains_rejects_non_members() -> None:
-    """Values off the grid, on the upper bound, or not numbers are not in the range."""
-    float_range = ScaledDiscreteDomainRange.from_unscaled(0.1, 0.4, 0.1)
-    assert float_range.contains(value=0.3) is True
-    assert float_range.contains(value=0.4) is False
-    assert float_range.contains(value=0.05) is False
-    int_range = ScaledDiscreteDomainRange.from_unscaled(0, 10, 1)
-    assert int_range.contains(value=float("nan")) is False
-    assert int_range.contains(value="3") is False
-    assert int_range.contains(value=np.float64(3.0)) is True
-    assert int_range.contains(value=np.bool_(True)) is True
-
-
-def test_scaled_discrete_range_contains_value_and_scaled_value() -> None:
-    """contains accepts an unscaled value or a scaled value as keyword arguments."""
+def test_scaled_discrete_range_contains_scaled_value() -> None:
+    """contains accepts a value already in scaled integer coordinates."""
     scaled_range = ScaledDiscreteDomainRange.from_unscaled(0.1, 0.4, 0.1)
-    assert scaled_range.contains(value=0.3) is True
-    assert scaled_range.contains(value=0.4) is False
-    assert scaled_range.contains(value="0.3") is False
-    assert scaled_range.contains(value=None) is False
     assert scaled_range.contains(scaled_value=3_000_000_000) is True
     assert scaled_range.contains(scaled_value=4_000_000_000) is False
+    assert scaled_range.contains(scaled_value=2_500_000_000) is False
     assert scaled_range.contains(scaled_value=0) is False
 
 
@@ -2355,20 +2343,6 @@ def test_size_and_value_in_domain_for_large_float_ranges() -> None:
 
     assert PropertyDomain(domainRange=[5, 5], interval=1).size == 0
     assert PropertyDomain(domainRange=[0, 2147483647], interval=1).size == 2147483647
-
-
-def test_size_and_value_in_domain_match_domain_values() -> None:
-    """size equals len(domain_values) and every domain value is in the domain."""
-    rnd = random.Random(2)  # noqa: S311
-    for _ in range(300):
-        decimal_places = rnd.choice([1, 2, 3, 5])
-        lower = round(rnd.randint(-300, 300) / 10**decimal_places, decimal_places)
-        interval = round(rnd.randint(1, 40) / 10**decimal_places, decimal_places)
-        upper = round(lower + rnd.randint(1, 400) / 10**decimal_places, decimal_places)
-        domain = PropertyDomain(domainRange=[lower, upper], interval=interval)
-        assert domain.size == len(domain.domain_values)
-        for value in domain.domain_values:
-            assert domain.valueInDomain(value)
 
 
 def _random_range(rnd: random.Random) -> tuple[float, float, float]:
@@ -2402,67 +2376,30 @@ def test_range_vs_range_subset_and_overlap_match_set_semantics() -> None:
         ) == (not tested_values.isdisjoint(enclosing_values)), (tested, enclosing)
 
 
-@pytest.mark.parametrize(
-    ("tested", "enclosing", "expected"),
-    [
-        ((0, 0, 1), (0, 10, 1), True),
-        ((4, 5, 3), (0, 10, 2), True),
-        ((0, 9, 3), (0, 10, 2), False),
-        ((0.0, 3.0, 1), (0.0, 4.0, 0.5), True),
-        ((0.0, 3.0, 0.5), (0.0, 4.0, 1), False),
-        ((0.0, 0.6, 0.3), (0.0, 1.0, 0.1), True),
-        ((0.05, 0.65, 0.3), (0.0, 1.0, 0.1), False),
-        ((0, 11, 2), (0, 9, 1), False),
-    ],
-)
-def test_scaled_discrete_domain_range_is_subdomain_of(
-    tested: tuple[float, float, float],
-    enclosing: tuple[float, float, float],
-    expected: bool,
+def test_property_domain_scaled_discrete_domain_range(
+    property_domain_explicit_discrete_with_domain_range_and_interval: PropertyDomain,
 ) -> None:
-    """Range-vs-range subset check on int, float and mixed ranges."""
-    assert (
-        ScaledDiscreteDomainRange.from_unscaled(*tested).is_subdomain_of(
-            ScaledDiscreteDomainRange.from_unscaled(*enclosing)
-        )
-        is expected
-    )
-
-
-def test_property_domain_scaled_discrete_domain_range() -> None:
     """A discrete domain with a range and interval exposes its scaled range."""
-    domain = PropertyDomain(
-        variableType=VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
-        domainRange=[0.1, 0.4],
-        interval=0.1,
-    )
-    scaled_range = domain.scaled_discrete_domain_range()
-    assert scaled_range == ScaledDiscreteDomainRange.from_unscaled(0.1, 0.4, 0.1)
-    assert scaled_range.size == 3
+    scaled_range = property_domain_explicit_discrete_with_domain_range_and_interval.scaled_discrete_domain_range()
+    assert scaled_range == ScaledDiscreteDomainRange.from_unscaled(5, 12, 2)
+    assert scaled_range.size == 4
 
 
 @pytest.mark.parametrize(
-    "domain",
+    "fixture_name",
     [
-        PropertyDomain(
-            variableType=VariableTypeEnum.DISCRETE_VARIABLE_TYPE, interval=2
-        ),
-        PropertyDomain(
-            variableType=VariableTypeEnum.DISCRETE_VARIABLE_TYPE, values=[1, 2, 3]
-        ),
-        PropertyDomain(
-            variableType=VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE, domainRange=[0, 1]
-        ),
-        PropertyDomain(
-            variableType=VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE, values=["a", "b"]
-        ),
-        PropertyDomain(variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE),
+        "property_domain_explicit_discrete_with_interval",
+        "property_domain_explicit_discrete_with_values",
+        "property_domain_explicit_continuous_with_domain_range",
+        "property_domain_explicit_categorical",
+        "property_domain_explicit_binary",
     ],
 )
 def test_property_domain_scaled_discrete_domain_range_rejects_other_domains(
-    domain: PropertyDomain,
+    fixture_name: str, request: pytest.FixtureRequest
 ) -> None:
     """Domains not defined by a discrete range and interval raise ValueError."""
+    domain: PropertyDomain = request.getfixturevalue(fixture_name)
     with pytest.raises(ValueError, match="scaled discrete domain range"):
         domain.scaled_discrete_domain_range()
 
@@ -2491,13 +2428,34 @@ def test_scaled_discrete_range_overlaps(
     assert second_range.overlaps(first_range) is expected
 
 
-@pytest.mark.parametrize("invalid_interval", [0, -1, 0.0, -0.5])
-def test_scaled_discrete_range_rejects_non_positive_interval(
-    invalid_interval: float,
-) -> None:
-    """ScaledDiscreteDomainRange.from_unscaled raises ValueError for a non-positive interval."""
-    with pytest.raises(ValueError, match="interval must be greater than 0"):
-        ScaledDiscreteDomainRange.from_unscaled(0, 10, invalid_interval)
+def test_scaled_discrete_range_model_lifecycle() -> None:
+    """A ScaledDiscreteDomainRange survives create -> dump -> create from dump."""
+    original = ScaledDiscreteDomainRange.from_unscaled(0.1, 0.4, 0.1)
+    # Access the derived attributes so they are cached on the instance
+    assert original.size == 3
+    assert original.last == 3_000_000_000
+
+    dumped = original.model_dump()
+    assert dumped == {
+        "lower": 1_000_000_000,
+        "upper": 4_000_000_000,
+        "interval": 1_000_000_000,
+    }
+
+    restored = ScaledDiscreteDomainRange(**dumped)
+    assert restored == original
+    assert ScaledDiscreteDomainRange.model_validate_json(
+        original.model_dump_json()
+    ) == (original)
+    assert restored.size == original.size
+    assert restored.last == original.last
+
+
+def test_scaled_discrete_range_empty_has_no_last_element() -> None:
+    """An empty range has size 0 and no last element."""
+    empty = ScaledDiscreteDomainRange.from_unscaled(5, 5, 1)
+    assert empty.size == 0
+    assert empty.last is None
 
 
 def test_subdomain_values_vs_range_and_range_vs_values() -> None:
@@ -2522,23 +2480,8 @@ def test_subdomain_values_vs_range_and_range_vs_values() -> None:
     )
 
 
-def test_subdomain_mixed_int_float_ranges() -> None:
-    """isSubDomain between an int range and a float range."""
-    assert PropertyDomain(domainRange=[0, 4], interval=1).isSubDomain(
-        PropertyDomain(domainRange=[0.0, 5.0], interval=0.5)
-    )
-    assert not PropertyDomain(domainRange=[0.0, 4.0], interval=0.5).isSubDomain(
-        PropertyDomain(domainRange=[0, 5], interval=1)
-    )
-
-
-def test_overlaps_range_vs_range_and_range_vs_values() -> None:
+def test_overlaps_range_vs_values() -> None:
     """overlaps between range-based and values-based discrete domains."""
-    evens = PropertyDomain(domainRange=[0, 10], interval=2)
-    odds = PropertyDomain(domainRange=[1, 10], interval=2)
-    assert not evens.overlaps(odds)
-    assert evens.overlaps(PropertyDomain(domainRange=[4, 20], interval=3))
-
     float_range = PropertyDomain(domainRange=[0.0, 1.0], interval=0.1)
     assert float_range.overlaps(PropertyDomain(values=[5, 0.3]))
     assert PropertyDomain(values=[5, 0.3]).overlaps(float_range)

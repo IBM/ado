@@ -156,10 +156,10 @@ _UNSET: typing.Any = object()
 
 
 class ScaledDiscreteDomainRange(pydantic.BaseModel):
-    """Represents a discrete domain range scaled to exact integer coordinates.
+    """Represents a discrete domain range in scaled integer coordinates.
 
-    Coordinates are scaled by 10**10 to preserve decimal precision without
-    floating-point arithmetic drift.
+    Coordinates are the original values multiplied by _DISCRETE_DOMAIN_SCALE_FACTOR,
+    so range arithmetic is exact and free of floating-point error.
     """
 
     lower: Annotated[
@@ -266,11 +266,6 @@ class ScaledDiscreteDomainRange(pydantic.BaseModel):
 
     def overlaps(self, other: "ScaledDiscreteDomainRange") -> bool:
         """Returns True if this range and the other share at least one element.
-
-        Finds the smallest value that is an element of the infinite progressions
-        of both ranges and above both lower bounds, by solving the congruence
-        self.lower + a * self.interval == other.lower + b * other.interval.
-        The ranges overlap if that value is not above both last elements.
 
         Args:
             other: The range to compare against.

@@ -726,13 +726,12 @@ def overlaps_with_discrete_domain(
                 return any(discreteDomain.valueInDomain(v) for v in testDomain.values)
             if test_domain_is_defined_by_range:
                 return any(testDomain.valueInDomain(v) for v in discreteDomain.values)
-            return set(discreteDomain.values).isdisjoint(testDomain.values) is False
+            return not set(discreteDomain.values).isdisjoint(testDomain.values)
         case VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE:
             if discreteDomain.size == math.inf:
                 return True
-            return (
-                set(discreteDomain.domain_values).isdisjoint(testDomain.domain_values)
-                is False
+            return not set(discreteDomain.domain_values).isdisjoint(
+                testDomain.domain_values
             )
         case _:
             # BINARY: check if 0 or 1 is in the discrete domain
@@ -761,15 +760,12 @@ def overlaps_with_categorical_domain(
         case VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE:
             return False
         case VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE:
-            return set(categoricalDomain.values).isdisjoint(testDomain.values) is False
+            return not set(categoricalDomain.values).isdisjoint(testDomain.values)
         case VariableTypeEnum.DISCRETE_VARIABLE_TYPE:
             if testDomain.size == math.inf:
                 return True
-            return (
-                set(categoricalDomain.domain_values).isdisjoint(
-                    testDomain.domain_values
-                )
-                is False
+            return not set(categoricalDomain.domain_values).isdisjoint(
+                testDomain.domain_values
             )
         case _:
             # BINARY: check if 0 or 1 appears in the categorical values

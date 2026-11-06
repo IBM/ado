@@ -16,7 +16,7 @@ from ado.schema.domain import (
     ScaledDiscreteDomainRange,
     VariableTypeEnum,
     _internal_range_values,
-    _scale_discrete_domain_value_to_exact_int,
+    _to_scaled_int,
 )
 
 
@@ -2203,14 +2203,14 @@ def _exact_range_ints(lower: float, upper: float, interval: float) -> list[int]:
 
 
 @pytest.mark.parametrize("decimal_places", range(1, 11))
-def test_scale_discrete_domain_value_to_exact_int_decimal_places(
+def test_to_scaled_int_decimal_places(
     decimal_places: int,
 ) -> None:
     """Values with 1 to 10 decimal places scale to the exact integer."""
     value = round(3 / 10**decimal_places, decimal_places)
     expected = 3 * 10 ** (10 - decimal_places)
-    assert _scale_discrete_domain_value_to_exact_int(value) == expected
-    assert _scale_discrete_domain_value_to_exact_int(-value) == -expected
+    assert _to_scaled_int(value) == expected
+    assert _to_scaled_int(-value) == -expected
 
 
 @pytest.mark.parametrize(
@@ -2229,9 +2229,9 @@ def test_scale_discrete_domain_value_to_exact_int_decimal_places(
         (np.float64(0.25), 25 * 10**8),
     ],
 )
-def test_scale_discrete_domain_value_to_exact_int(value: object, expected: int) -> None:
+def test_to_scaled_int(value: object, expected: int) -> None:
     """Ints, floats, booleans and NumPy scalars scale to a native int."""
-    result = _scale_discrete_domain_value_to_exact_int(value)
+    result = _to_scaled_int(value)
     assert result == expected
     assert type(result) is int
 
@@ -2239,12 +2239,12 @@ def test_scale_discrete_domain_value_to_exact_int(value: object, expected: int) 
 @pytest.mark.parametrize(
     "value", ["1", None, [1], float("nan"), float("inf"), 0.1 + 0.2, 1 / 3]
 )
-def test_scale_discrete_domain_value_to_exact_int_rejects_unsupported(
+def test_to_scaled_int_rejects_unsupported(
     value: object,
 ) -> None:
     """Non-numbers, non-finite floats and floats beyond 10 decimal places raise ValueError."""
     with pytest.raises(ValueError):  # noqa: PT011
-        _scale_discrete_domain_value_to_exact_int(value)
+        _to_scaled_int(value)
 
 
 @pytest.mark.parametrize(
@@ -2290,7 +2290,7 @@ def test_discrete_domain_range_helpers_match_exact_enumeration() -> None:
         members = set(expected)
         for raw in (lower, upper, lower + interval, upper - interval):
             candidate = round(raw, decimal_places)
-            scaled = _scale_discrete_domain_value_to_exact_int(candidate)
+            scaled = _to_scaled_int(candidate)
             assert ScaledDiscreteDomainRange.from_unscaled(
                 lower, upper, interval
             ).contains(value=candidate) == (scaled in members)

@@ -109,22 +109,23 @@ def _internal_range_values(lower: float, upper: float, interval: float) -> list:
     return values
 
 
-def _scale_discrete_domain_value_to_exact_int(
+def _to_scaled_int(
     value: typing.Any,  # noqa: ANN401
 ) -> int:
-    """Multiplies a number by 10**10 and returns the exact integer result.
+    """Multiplies value by a scale factor that turns it into an exact integer.
 
-    NumPy scalars are unwrapped and booleans are converted to integers.
+    The scale factor is 10**_DISCRETE_DOMAIN_DECIMAL_PLACES (currently 10**10).
 
     Args:
-        value: An int, float, bool or NumPy scalar with at most 10 decimal places.
+        value: An int, float, bool or NumPy scalar with at most
+            _DISCRETE_DOMAIN_DECIMAL_PLACES decimal places.
 
     Returns:
-        The value multiplied by 10**10.
+        value * _DISCRETE_DOMAIN_SCALE_FACTOR.
 
     Raises:
         ValueError: If value is not an int or float, is not finite, or has more
-            than 10 decimal places.
+            than _DISCRETE_DOMAIN_DECIMAL_PLACES decimal places.
     """
     if isinstance(value, np.generic):
         value = value.item()
@@ -223,9 +224,9 @@ class ScaledDiscreteDomainRange(pydantic.BaseModel):
             raise ValueError(f"interval must be greater than 0. Got: {interval}")
 
         return cls(
-            lower=_scale_discrete_domain_value_to_exact_int(lower),
-            upper=_scale_discrete_domain_value_to_exact_int(upper),
-            interval=_scale_discrete_domain_value_to_exact_int(interval),
+            lower=_to_scaled_int(lower),
+            upper=_to_scaled_int(upper),
+            interval=_to_scaled_int(interval),
         )
 
     def contains(
@@ -254,7 +255,7 @@ class ScaledDiscreteDomainRange(pydantic.BaseModel):
 
         if scaled_value is None:
             try:
-                scaled_value = _scale_discrete_domain_value_to_exact_int(value)
+                scaled_value = _to_scaled_int(value)
             except ValueError:
                 return False
 
@@ -385,11 +386,11 @@ def _is_multiple_of_discrete_domain_interval(
         return False
 
     try:
-        scaled_value = _scale_discrete_domain_value_to_exact_int(value)
+        scaled_value = _to_scaled_int(value)
     except ValueError:
         return False
 
-    return scaled_value % _scale_discrete_domain_value_to_exact_int(interval) == 0
+    return scaled_value % _to_scaled_int(interval) == 0
 
 
 def is_subdomain_of_unknown_domain(

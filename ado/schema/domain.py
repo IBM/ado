@@ -98,9 +98,9 @@ def _internal_range_values(lower: float, upper: float, interval: float) -> list:
     if not is_float_range(interval=interval, domain_range=[lower, upper]):
         return np.arange(lower, upper, interval).tolist()
 
-    first_range_step_index = int(np.floor((upper - lower) / interval)) + 1
+    step_count = int(np.floor((upper - lower) / interval)) + 1
     values = np.round(
-        [lower + step_index * interval for step_index in range(first_range_step_index)],
+        [lower + step_index * interval for step_index in range(step_count)],
         _DISCRETE_DOMAIN_DECIMAL_PLACES,
     ).tolist()
     while values and values[-1] >= upper:

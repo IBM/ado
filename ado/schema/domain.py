@@ -184,7 +184,6 @@ class ScaledDiscreteDomainRange(pydantic.BaseModel):
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    @pydantic.computed_field  # type: ignore[prop-decorator]
     @functools.cached_property
     def size(self) -> int:
         """Returns the number of elements in the range."""
@@ -194,7 +193,6 @@ class ScaledDiscreteDomainRange(pydantic.BaseModel):
         # Exact integer ceiling division ceil(span / interval) without floating-point drift
         return (span + self.interval - 1) // self.interval
 
-    @pydantic.computed_field  # type: ignore[prop-decorator]
     @functools.cached_property
     def last(self) -> int | None:
         """Returns the last element in the range, or None if the range is empty."""

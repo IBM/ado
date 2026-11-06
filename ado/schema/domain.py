@@ -216,7 +216,7 @@ class ScaledDiscreteDomainRange(pydantic.BaseModel):
 
         Raises:
             ValueError: If interval is not greater than 0, or a value has more
-                than 10 decimal places.
+                than _DISCRETE_DOMAIN_DECIMAL_PLACES decimal places.
         """
         if interval <= 0:
             raise ValueError(f"interval must be greater than 0. Got: {interval}")
@@ -243,7 +243,8 @@ class ScaledDiscreteDomainRange(pydantic.BaseModel):
 
         Returns:
             True if the value lies within the bounds and is on the grid. False
-            if value is not a finite number with at most 10 decimal places.
+            if value is not a finite number with at most
+            _DISCRETE_DOMAIN_DECIMAL_PLACES decimal places.
 
         Raises:
             ValueError: If both or neither of value and scaled_value are provided.
@@ -567,11 +568,13 @@ def is_subdomain_of_categorical_domain(
     if testDomain.variableType == VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE:
         return all(x in categoricalDomain.values for x in testDomain.values)
     if testDomain.variableType == VariableTypeEnum.BINARY_VARIABLE_TYPE:
-        return all(x in categoricalDomain.domain_values for x in [0, 1])
+        return all(x in categoricalDomain.values for x in (0, 1))
     if testDomain.variableType == VariableTypeEnum.DISCRETE_VARIABLE_TYPE:
-        return testDomain.size != math.inf and all(
-            x in categoricalDomain.domain_values for x in testDomain.domain_values
-        )
+        if testDomain.size == math.inf or testDomain.size > len(
+            categoricalDomain.values
+        ):
+            return False
+        return all(x in categoricalDomain.values for x in testDomain.domain_values)
 
     # All other domains are false: OPEN_CATEGORICAL, UNKNOWN, CONTINUOUS
     return False
@@ -728,14 +731,14 @@ def overlaps_with_discrete_domain(
         case VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE:
             if discreteDomain.size == math.inf:
                 return True
-            return not set(discreteDomain.domain_values).isdisjoint(
-                testDomain.domain_values
-            )
+            if discreteDomain.interval is not None:
+                return any(discreteDomain.valueInDomain(v) for v in testDomain.values)
+            return not set(discreteDomain.values).isdisjoint(testDomain.values)
         case _:
             # BINARY: check if 0 or 1 is in the discrete domain
             if discreteDomain.size == math.inf:
                 return True
-            return any(v in discreteDomain.domain_values for v in [0, 1])
+            return any(discreteDomain.valueInDomain(v) for v in (0, 1))
 
 
 def overlaps_with_categorical_domain(
@@ -762,12 +765,14 @@ def overlaps_with_categorical_domain(
         case VariableTypeEnum.DISCRETE_VARIABLE_TYPE:
             if testDomain.size == math.inf:
                 return True
-            return not set(categoricalDomain.domain_values).isdisjoint(
-                testDomain.domain_values
-            )
+            if testDomain.interval is not None:
+                return any(
+                    testDomain.valueInDomain(v) for v in categoricalDomain.values
+                )
+            return not set(categoricalDomain.values).isdisjoint(testDomain.values)
         case _:
             # BINARY: check if 0 or 1 appears in the categorical values
-            return any(v in categoricalDomain.domain_values for v in [0, 1])
+            return any(v in categoricalDomain.values for v in (0, 1))
 
 
 def overlaps_with_binary_domain(
@@ -795,10 +800,10 @@ def overlaps_with_binary_domain(
         case VariableTypeEnum.DISCRETE_VARIABLE_TYPE:
             if testDomain.size == math.inf:
                 return True
-            return any(v in testDomain.domain_values for v in [0, 1])
+            return any(testDomain.valueInDomain(v) for v in (0, 1))
         case _:
             # CATEGORICAL
-            return any(v in testDomain.domain_values for v in [0, 1])
+            return any(v in testDomain.values for v in (0, 1))
 
 
 def overlaps_with_unknown_domain(

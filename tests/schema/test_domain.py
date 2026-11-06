@@ -2487,3 +2487,36 @@ def test_overlaps_range_vs_values() -> None:
     assert PropertyDomain(values=[5, 0.3]).overlaps(float_range)
     assert not float_range.overlaps(PropertyDomain(values=[1.0, 0.35]))
     assert not PropertyDomain(values=[1.0, 0.35]).overlaps(float_range)
+
+
+def test_overlaps_and_subdomain_range_vs_binary_and_categorical() -> None:
+    """overlaps and isSubDomain for range-defined discrete against binary and categorical."""
+    large_range = PropertyDomain(domainRange=[0.0, 1000.0], interval=0.0001)
+    binary_domain = PropertyDomain(
+        variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE,
+    )
+    assert large_range.overlaps(binary_domain)
+    assert binary_domain.overlaps(large_range)
+
+    non_overlapping_range = PropertyDomain(domainRange=[2.0, 10.0], interval=1.0)
+    assert not non_overlapping_range.overlaps(binary_domain)
+    assert not binary_domain.overlaps(non_overlapping_range)
+
+    cat_domain = PropertyDomain(
+        variableType=VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE,
+        values=[0.5, "red", "blue"],
+    )
+    assert large_range.overlaps(cat_domain)
+    assert cat_domain.overlaps(large_range)
+
+    non_overlapping_cat = PropertyDomain(
+        variableType=VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE,
+        values=[0.00005, "red", "blue"],
+    )
+    assert not large_range.overlaps(non_overlapping_cat)
+    assert not non_overlapping_cat.overlaps(large_range)
+
+    # Large range is not a subdomain of categorical
+    assert not large_range.isSubDomain(cat_domain)
+    # Small range that is a subset
+    assert PropertyDomain(domainRange=[0.5, 0.6], interval=0.1).isSubDomain(cat_domain)

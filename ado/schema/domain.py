@@ -368,8 +368,9 @@ def _is_multiple_of_discrete_domain_interval(
         otherwise.
 
     Raises:
-        ValueError: If interval is not greater than 0, or if value is not a
-            number or numpy scalar.
+        ValueError: If interval is not greater than 0, if value is not a
+            number or numpy scalar, or if interval is not finite or has more
+            than _DISCRETE_DOMAIN_DECIMAL_PLACES decimal places.
     """
     if interval <= 0:
         raise ValueError(f"interval must be greater than 0. Got: {interval}")

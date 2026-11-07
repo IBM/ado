@@ -45,6 +45,9 @@ a configuration space after, or instead of, exhaustive measurement.
   intelligently sample just enough points to train an accurate `AutoGluon`
   surrogate model, stopping once the model quality plateaus. The resulting model
   can be used for prediction at unmeasured points.
+- **[Build a surrogate model with PKH](pkh.md)** — Sample configurations that are
+  underrepresented in the current sample, then use the saved predictor
+  to predict unmeasured points.
 
 ## Fine-tuning
 

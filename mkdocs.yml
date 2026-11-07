@@ -193,6 +193,7 @@ nav:
       - Analysis:
           - Identify the important dimensions of a space: user-guide/examples/lhu.md
           - Quickly building a predictive model: user-guide/examples/trim.md
+          - Build a surrogate model with PKH: user-guide/examples/pkh.md
       - Fine-tuning:
           - Measure fine-tuning throughput locally: user-guide/examples/finetune-locally.md
           - Measure fine-tuning throughput on a RayCluster: user-guide/examples/finetune-remotely.md

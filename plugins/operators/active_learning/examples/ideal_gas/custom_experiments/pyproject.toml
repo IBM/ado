@@ -1,0 +1,19 @@
+# Copyright IBM Corporation 2025, 2026
+# SPDX-License-Identifier: MIT
+
+[project]
+name = "ado-active-learning-ideal-gas"
+version = "0.1.0"
+description = "Ideal-gas custom experiment for the PKH example."
+requires-python = ">=3.10,<3.15"
+dependencies = ["ado-core>=2.1.0"]
+
+[project.entry-points."ado.custom_experiments"]
+active_learning_ideal_gas = "active_learning_ideal_gas"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["active_learning_ideal_gas"]

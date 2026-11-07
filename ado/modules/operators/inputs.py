@@ -28,6 +28,12 @@ _ALLOWED_KINDS: dict[DiscoveryOperationEnum, frozenset[CoreResourceKinds]] = {
             CoreResourceKinds.DATACONTAINER,
         ]
     ),
+    DiscoveryOperationEnum.SUMMARIZE: frozenset(
+        [
+            CoreResourceKinds.DISCOVERYSPACE,
+            CoreResourceKinds.DATACONTAINER,
+        ]
+    ),
 }
 
 # Minimum required resource-input count per operation type.
@@ -38,6 +44,7 @@ _MIN_REQUIRED: dict[DiscoveryOperationEnum, int] = {
     DiscoveryOperationEnum.EXPORT: 1,
     DiscoveryOperationEnum.CHARACTERIZE: 1,
     DiscoveryOperationEnum.COMPARE: 2,
+    DiscoveryOperationEnum.SUMMARIZE: 1,
 }
 
 # Exact required count. Operation types absent from this map have no exact count.
@@ -73,6 +80,23 @@ def validate_resource_inputs_for_operation_type(
         raise ValueError(
             f"Operator of type {operation_type.value!r} must declare at least "
             "one resource input."
+        )
+
+    list_inputs = [
+        descriptor.identifier
+        for descriptor in required_resource_inputs
+        if descriptor.isList
+    ]
+    if operation_type != DiscoveryOperationEnum.SUMMARIZE:
+        if list_inputs:
+            raise ValueError(
+                f"Operator of type {operation_type.value!r} does not allow "
+                f"list resource inputs; found: {list_inputs}. List resource "
+                "inputs are only supported for summarize operators."
+            )
+    elif not list_inputs:
+        raise ValueError(
+            "Operator of type 'summarize' requires at least one list resource input."
         )
 
     allowed = _ALLOWED_KINDS.get(operation_type)

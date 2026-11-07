@@ -231,28 +231,40 @@ class ADOResourcePropertyDescriptor(PropertyDescriptor):
         CoreResourceKinds,
         pydantic.Field(description="ADO resource kind"),
     ]
+    isList: Annotated[
+        bool,
+        pydantic.Field(
+            description=(
+                "True when the operator parameter is a list of this resource kind"
+            ),
+        ),
+    ] = False
 
     def __eq__(self, other: object) -> bool:
         """Return whether this descriptor equals another resource property descriptor.
 
-        Two resource property descriptors are equal when they share an identifier
-        and a kind. Comparison with any other type is left to that type.
+        Two resource property descriptors are equal when they share an identifier,
+        a kind, and list-ness. Comparison with any other type is left to that type.
 
         Args:
             other: Value to compare against.
 
         Returns:
             True when both are resource property descriptors with the same
-            identifier and kind. NotImplemented for any other type.
+            identifier, kind, and isList. NotImplemented for any other type.
         """
         if not isinstance(other, ADOResourcePropertyDescriptor):
             return NotImplemented
-        return self.identifier == other.identifier and self.kind == other.kind
+        return (
+            self.identifier == other.identifier
+            and self.kind == other.kind
+            and self.isList == other.isList
+        )
 
     def __hash__(self) -> int:
-        """Return a hash of the identifier and kind.
+        """Return a hash of the identifier, kind, and isList.
 
         Returns:
-            Hash of the identifier and kind.
+            Hash of the identifier, kind, and isList.
         """
-        return hash((self.identifier, self.kind))
+        return hash((self.identifier, self.kind, self.isList))

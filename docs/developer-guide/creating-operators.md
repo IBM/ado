@@ -114,15 +114,17 @@ def detect_anomalous_series(
 ) -> OperationOutput: ...
 ```
 
-If it is `fuse` or `compare` your function should have a parameter
-`discoverySpaces` which is a list of `discoveryspaces` i.e.
+If it is `fuse` or `compare`, declare one parameter per resource. A fuse
+operation takes at least two discovery spaces. A compare operation takes at
+least two discovery spaces and/or data containers.
 
 ```python
-def detect_anomalous_series(
-    discoverySpaces: list[DiscoverySpace],
+def merge_spaces(
+    left: DiscoverySpace,
+    right: DiscoverySpace,
     operationInfo: FunctionOperationInfo | None = None,
     *,
-    parameters: DetectAnomalousSeriesOperatorParameters,
+    parameters: FuseParameters,
 ) -> OperationOutput: ...
 ```
 

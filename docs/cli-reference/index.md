@@ -142,7 +142,8 @@ The complete syntax of the `ado create` command is as follows:
 ```shell
 ado create RESOURCE_TYPE [--file | -f <FILE.yaml>] \
                          [--set <jsonpath=json-value>] \
-                         [--with <resource=value>] \
+                         [--with <kind[:input]=value>] \
+                         [--use-latest <kind[:input]>] \
                          [--new-sample-store] \
                          [--use-default-sample-store] [--dry-run]
 ```
@@ -174,10 +175,15 @@ Where:
   depend on, or to reference existing resource identifiers during creation. For
   example, you can create a space along with a sample store definition, or
   create an operation together with an actuator configuration and a space
-  definition. See the Examples section for more details.
+  definition. It takes `KIND=VALUE`, where `VALUE` is a resource identifier or
+  a resource configuration file. For operations, `KIND:INPUT=VALUE` sets the
+  operation input named `INPUT`. See
+  [Setting operation inputs](#setting-operation-inputs).
 - `--use-latest` allows reusing the latest identifier of a certain resource kind
   from the current context's metastore. It is only supported for spaces and
-  operations during `ado create`. Ignored if `--with` is used.
+  operations during `ado create`. For operations, `KIND:INPUT` sets the
+  operation input named `INPUT`. It can be combined with `--with` as long as
+  the two flags do not name the same kind without an input qualifier.
 - `--new-sample-store` creates a new sample store. Only available when running
   `ado create` on `space` and `samplestore`. If running
   `ado create space --new-sample-store`, the `sampleStoreIdentifier` contained
@@ -253,6 +259,36 @@ ado create space -f ds.yaml --with store=store_definition.yaml
 ```shell
 ado create space -f ds.yaml --use-latest samplestore
 ```
+
+#### Setting operation inputs
+
+An operator declares named resource inputs, each with a kind such as
+`discoveryspace` or `datacontainer`. Use `ado template operation` to see the
+inputs of an operator, e.g. `ado template operation --operator-name ray_tune`.
+
+When an operator has a single input of a kind, give only the kind. The input it
+targets is deduced:
+
+```shell
+ado create operation -f operation.yaml --with space=space-abc123
+ado create operation -f operation.yaml --use-latest space
+```
+
+When an operator has several inputs of the same kind, name the input with
+`KIND:INPUT`. For an operator with `reference` and `candidate` space inputs and
+a `data` data container input:
+
+```shell
+ado create operation -f operation.yaml \
+    --with space:reference=space-abc123 \
+    --with space:candidate=space-def456 \
+    --use-latest dcr:data
+```
+
+An unqualified kind fills the one input of that kind not set by a qualified
+flag, so `--with space:reference=space-abc123 --use-latest space` sets
+`candidate` to the latest space. Values given for a list input are collected
+into a list, replacing any list in the operation file.
 
 #### Create a space renaming a property identifier in the space
 

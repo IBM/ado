@@ -32,6 +32,7 @@ from ado.cli.utils.output.prints import (
     magenta,
 )
 from ado.cli.utils.resources.experiments import parse_cli_from_experiment
+from ado.cli.utils.resources.properties import add_properties_to_dataframe
 from ado.core.discoveryspace.config import DiscoverySpaceConfiguration
 from ado.core.discoveryspace.space import DiscoverySpace
 from ado.core.resources import CoreResourceKinds
@@ -234,6 +235,18 @@ def show_discovery_space_measurements(
         # AP: always include identifier
         parameters.properties.insert(0, "identifier")
         output_df = output_df[parameters.properties]
+
+    if parameters.include_properties is not None:
+        constitutive_property_identifiers = [
+            constitutive_property.identifier
+            for constitutive_property in space.entitySpace.constitutiveProperties
+        ]
+        output_df = add_properties_to_dataframe(
+            df=output_df,
+            include_properties=parameters.include_properties,
+            experiments=space.measurementSpace.experiments,
+            constitutive_property_identifiers=constitutive_property_identifiers,
+        )
 
     df_to_output(
         df=output_df,

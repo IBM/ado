@@ -33,6 +33,10 @@ from ado.cli.utils.pydantic.constants import (
     event_importance_order,
     minimize_output_context,
 )
+from ado.cli.utils.resources.properties import (
+    resolve_experiment_properties,
+    resolve_requested_property_identifiers,
+)
 from ado.core import (
     ADOResource,
     CoreResourceKinds,
@@ -47,12 +51,6 @@ from ado.core.operation.resource import (
 )
 from ado.core.resources import ADOResourceEventEnum, ADOResourceStatus
 from ado.schema.domain import VariableTypeEnum
-from ado.schema.experiment import Experiment, ParameterizedExperiment
-from ado.schema.measurementspace import (
-    MeasurementSpace,
-    MeasurementSpaceConfiguration,
-)
-from ado.schema.reference import ExperimentReference
 from ado.utilities.output import (
     printable_pydantic_model,
 )
@@ -178,66 +176,33 @@ def format_discovery_space_properties(
 ) -> dict[str, str]:
     """Return requested discovery-space property representations by identifier."""
     max_items = None if no_trunc else 4
-    constitutive = {
-        property.identifier: property.propertyDomain.compact_representation(max_items)
-        for property in resource.config.entitySpace or []
+    constitutive_properties = {
+        constitutive_property.identifier: constitutive_property.propertyDomain
+        for constitutive_property in resource.config.entitySpace or []
     }
-    parameterized: dict[str, str] = {}
-    optional: dict[str, str] = {}
-    experiments = resource.config.experiments
+    (
+        optional_properties,
+        parameterized_properties,
+    ) = resolve_experiment_properties(resource.config.experiments)
 
-    if experiments is not None:
-        experiment_values: list[
-            Experiment | ParameterizedExperiment | ExperimentReference
-        ] = []
-        if isinstance(experiments, MeasurementSpaceConfiguration):
-            experiment_values = experiments.experiments
-        elif isinstance(experiments, list):
-            try:
-                ms = MeasurementSpace.measurementSpaceFromExperimentReferences(
-                    experiments
-                )
-                experiment_values = ms.experiments
-            except Exception:
-                experiment_values = experiments
-
-        for experiment in experiment_values:
-            if isinstance(experiment, Experiment):
-                for default_value in experiment.defaultParameterization:
-                    optional[default_value.property.identifier] = (
-                        default_value.compact_representation(max_items)
-                    )
-
-            if isinstance(experiment, (ParameterizedExperiment, ExperimentReference)):
-                for custom_value in experiment.parameterization or []:
-                    parameterized[custom_value.property.identifier] = (
-                        custom_value.compact_representation(max_items)
-                    )
-                    optional[custom_value.property.identifier] = (
-                        custom_value.compact_representation(max_items)
-                    )
-
-    available = {**constitutive, **optional, **parameterized}
-    property_identifiers: list[str] = []
-    for requested in include_properties:
-        for value in requested.split(","):
-            match value.lower():
-                case "constitutive":
-                    identifiers = constitutive
-                case "parameterized":
-                    identifiers = parameterized
-                case "optional":
-                    identifiers = optional
-                case "all":
-                    identifiers = available
-                case _:
-                    identifiers = {value: available.get(value, "—")}
-            for identifier in identifiers:
-                if identifier not in property_identifiers:
-                    property_identifiers.append(identifier)
+    available_properties = {
+        **constitutive_properties,
+        **optional_properties,
+        **parameterized_properties,
+    }
+    property_identifiers = resolve_requested_property_identifiers(
+        include_properties=include_properties,
+        constitutive_identifiers=constitutive_properties.keys(),
+        parameterized_identifiers=parameterized_properties.keys(),
+        optional_identifiers=optional_properties.keys(),
+    )
 
     return {
-        identifier: available.get(identifier, "—")
+        identifier: (
+            available_properties[identifier].compact_representation(max_items)
+            if identifier in available_properties
+            else "—"
+        )
         for identifier in property_identifiers
     }
 
@@ -265,7 +230,7 @@ def build_resource_listing_dataframe(
 
     Returns:
         A ``pd.DataFrame`` with columns ``IDENTIFIER``, ``NAME``, ``AGE``
-        (as ``datetime.timedelta``) and, for operations, additionally
+        (as ``dt.timedelta``) and, for operations, additionally
         ``STATUS`` (JSON string) and ``SPACE``. When ``show_details`` is
         ``True`` the columns also include ``DESCRIPTION`` and ``LABELS``.
         The DataFrame is compatible with

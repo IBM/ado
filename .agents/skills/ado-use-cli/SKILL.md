@@ -219,6 +219,10 @@ uv run ado show trace operation OPERATION_ID
 uv run ado show measurements space SPACE_ID
 uv run ado show measurements operation OPERATION_ID
 uv run ado show measurements samplestore SAMPLESTORE_ID
+# Include experiment properties in measurements table (-p / --include-properties)
+uv run ado show measurements space SPACE_ID -p constitutive,parameterized
+uv run ado show measurements operation OPERATION_ID -p all -o csv \
+  --output-file measurements.csv
 
 # Show in-depth statistics (more columns than ado get --stats)
 # No IDs = all resources of that type

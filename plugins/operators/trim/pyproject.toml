@@ -2,7 +2,7 @@
 name = "ado-trim"
 description = "TRIM (Transfer Refined Iterative Modeling) builds an accurate predictive model from a small dataset by iteratively sampling a Discovery Space."
 readme = "README.md"
-requires-python = ">=3.11,<3.14"
+requires-python = ">=3.15,<3.16"
 dependencies = [
   "ado-core>=2.0.0",
   "autogluon-tabular[catboost,xgboost]==1.6.3 ; python_full_version < '3.14'",

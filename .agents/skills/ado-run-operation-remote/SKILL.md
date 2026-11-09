@@ -1,6 +1,6 @@
 ---
 name: ado-run-operation-remote
-description:
+description: >-
   Run ado operations on remote Ray clusters using --remote execution context
   files. Use when the user wants to create an operation, asks about remote
   clusters, wants to ship local plugins or data files to a cluster, or asks
@@ -264,97 +264,35 @@ packages. The process is:
 
 ## Execution Context YAML Reference
 
-This section is self-contained — use it without reading any external file.
 Only go to the source for topics not covered here: read
 `docs/user-guide/advanced/remote-execution.md` if the source repo is available,
 otherwise see <https://ibm.github.io/ado/latest/user-guide/advanced/remote-execution/>.
 
-### Minimal — direct cluster URL
+For full templates, see:
 
-```yaml
-executionType:
-  type: cluster
-  clusterUrl: "http://ray-cluster.my-namespace.svc.cluster.local:8265"
-packages:
-  fromPyPI:
-    - ado-core
-    - ado-ray-tune  # add any other plugins required
-envVars:
-  PYTHONUNBUFFERED: "x"
-  OMP_NUM_THREADS: "1"
-wait: false  # true = stay attached until the job finishes
-```
+- [assets/minimal-cluster-execution.yaml](assets/minimal-cluster-execution.yaml):
+  minimal configuration with direct cluster URL.
+- [assets/port-forward-cluster-execution.yaml](assets/port-forward-cluster-execution.yaml):
+  port-forward configuration for OpenShift / Kubernetes.
+- [assets/full-execution-context.yaml](assets/full-execution-context.yaml):
+  comprehensive example showing all available blocks (`packages`,
+  `additionalFiles`, `runtimeEnv`, `envVars`).
 
-### Port-forward cluster (OpenShift / Kubernetes)
+### Configuration Blocks Summary
 
-```yaml
-executionType:
-  type: cluster
-  clusterUrl: "http://localhost:8265"  # must match localPort below
-  portForward:
-    namespace: my-namespace
-    serviceName: my-ray-cluster-head-svc
-    localPort: 8265
-packages:
-  fromPyPI:
-    - ado-core
-    - ado-ray-tune
-envVars:
-  PYTHONUNBUFFERED: "x"
-wait: false
-```
-
-### `packages` block
-
-- Use `fromSource` for any package whose source is available locally.
-- Use `fromPyPI` for public PyPI packages and pre-built wheels.
-  Entries in `fromPyPI` that resolve to an existing `.whl` file on the
-  machine running `ado --remote` will be transferred to the
-  remote cluster.
-
-```yaml
-packages:
-  fromPyPI:
-    - ado-core
-    - ado-ray-tune
-    - ray==2.52.1                         # pin to match cluster version if needed
-    - /remote/path/to/package.whl         # path to a wheel already on the cluster
-  fromSource:
-    - plugins/actuators/my_plugin  # relative to where ado --remote is run
-```
-
-If there are any `git+ssh://` dependencies then you must clone them and
-include them under `fromSource`.
-
-### `additionalFiles` — ship local files to the cluster
-
-```yaml
-additionalFiles:
-  - /absolute/local/path/to/data_file.csv
-  - path/to/my_data_dir/   # directories also supported
-```
-
-Use bare filenames (no path) in space/operation YAML; ray copies
-`additionalFiles` entries into the Ray working directory. Do not
-use `additionalFiles` to ship wheels for installation. Instead, use
-`packages.fromSource` if the source is available, or specify the path to the
-pre-built `.whl` in `packages.fromPyPI`.
-
-### `runtimeEnv` block
-
-```yaml
-runtimeEnv:
-  setupTimeoutSeconds: 1200  # default 600; -1 to disable
-  eagerInstall: false        # default true
-```
-
-### `envVars` block
-
-```yaml
-envVars:
-  PYTHONUNBUFFERED: "x"
-  OMP_NUM_THREADS: "1"
-  OPENBLAS_NUM_THREADS: "1"
-  RAY_AIR_NEW_PERSISTENCE_MODE: "0"
-  MY_SECRET: "value"
-```
+- **`packages`**:
+  - `fromSource`: paths to locally available plugin packages.
+  - `fromPyPI`: PyPI package names, pinned versions (e.g. `ray==2.52.1`), or
+    paths to `.whl` files.
+- **`additionalFiles`**:
+  - List of local files/directories shipped and symlinked into the Ray working
+    directory.
+  - Space and operation YAMLs should reference these using bare filenames (no
+    local paths).
+- **`runtimeEnv`**:
+  - `setupTimeoutSeconds` (e.g. `1200`) and `eagerInstall` (`true`/`false`).
+- **`envVars`**:
+  - Environment variables forwarded to cluster workers (e.g.
+    `PYTHONUNBUFFERED`, `OMP_NUM_THREADS`).
+- **`wait`**:
+  - Set `false` for long-running operations; `true` for short queries.

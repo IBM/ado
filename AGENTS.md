@@ -128,26 +128,39 @@ These guidelines apply to all code development in the ado codebase.
 
 ### Writing Agent Skills
 
-- Be brief and to the point.
-- Avoid ambiguous statements.
-- Skills should be instructions on how to perform a specific task.
-- Avoid duplication — before writing, check the following sources and link
-  existing relevant data:
-  - all skills under `.agents/skills/`
-  - the examples under `examples/`
-  - the documentation under `docs/`
-- After writing a new skill:
-  - review if any information is more appropriate in an existing skill or
-    `AGENTS.md`; if so, move it there.
-  - verify all file and directory paths referenced exist in the repo.
-  - check each section is within the scope declared in the skill's description
-    field.
-- When creating YAML or code examples, prefer:
-  - using an external file
-  - linking it or including its contents in SKILL.md
-  - writing tests for such files
-- Ensure the metadata of the skill is sufficient so it triggers when likely to
-  be required.
+Agent skills in `.agents/skills/` must conform to the
+[Agent Skills Specification](https://agentskills.io/home) (see also
+[upstream documentation](https://github.com/agentskills/agentskills/tree/main/docs/skill-creation)):
+
+- **Directory Layout**:
+  - `SKILL.md` (required): metadata frontmatter and concise instructions
+    (< 500 lines / ~5,000 tokens).
+  - `references/` (optional): on-demand reference documentation, secondary
+    guides, and deep schemas.
+  - `assets/` (optional): static resources, configuration templates, and YAML
+    example manifests.
+  - `scripts/` (optional): executable helper scripts.
+- **Frontmatter**:
+  - `name` (required): 1–64 characters, lowercase alphanumeric and hyphens
+    only, matching the parent directory name exactly.
+  - `description` (required): non-empty, maximum 1024 characters. Must use
+    imperative phrasing ("Use when...") specifying clear activation
+    conditions, intent, and domain context.
+- **Progressive Disclosure**:
+  - Keep `SKILL.md` focused on core workflows, decision rules, and high-value
+    gotchas.
+  - Move extended reference guides into `references/` and link them with
+    explicit loading triggers.
+  - Store reusable YAML manifests, templates, and example files in `assets/`
+    and link them using relative paths (e.g. `assets/my-example.yaml`).
+  - Write automated tests under `tests/` for all YAML examples and templates
+    stored in `assets/`.
+- **Quality & Scope**:
+  - Be brief and to the point; avoid ambiguous statements.
+  - Avoid duplication — check existing skills under `.agents/skills/`,
+    examples under `examples/`, and documentation under `docs/`.
+  - After writing or editing a skill, verify that all referenced file and
+    directory paths exist.
 
 ---
 

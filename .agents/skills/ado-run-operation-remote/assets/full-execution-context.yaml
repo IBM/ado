@@ -1,0 +1,27 @@
+# Copyright IBM Corporation 2025, 2026
+# SPDX-License-Identifier: MIT
+executionType:
+  type: cluster
+  clusterUrl: "http://localhost:8265"
+  portForward:
+    namespace: my-namespace
+    serviceName: my-ray-cluster-head-svc
+    localPort: 8265
+packages:
+  fromPyPI:
+    - ado-core
+    - ado-ray-tune
+    - ray==2.52.1
+  fromSource:
+    - plugins/actuators/my_plugin
+additionalFiles:
+  - /absolute/local/path/to/data_file.csv
+runtimeEnv:
+  setupTimeoutSeconds: 1200
+  eagerInstall: false
+envVars:
+  PYTHONUNBUFFERED: "x"
+  OMP_NUM_THREADS: "1"
+  OPENBLAS_NUM_THREADS: "1"
+  RAY_AIR_NEW_PERSISTENCE_MODE: "0"
+wait: false

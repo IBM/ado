@@ -171,11 +171,11 @@ def _make_general_orchestration_wrapper(
             )
 
         inputs: dict[str, OperatorInputType] = {
-            input_id: typing.cast(OperatorInputType, arguments.pop(input_id))
+            input_id: typing.cast("OperatorInputType", arguments.pop(input_id))
             for input_id in input_ids
         }
         raw_operation_info = typing.cast(
-            FunctionOperationInfo | None,
+            "FunctionOperationInfo | None",
             arguments.pop("operationInfo", None),
         )
         raw_parameters = arguments.pop("parameters", None)

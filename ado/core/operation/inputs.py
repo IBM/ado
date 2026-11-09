@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import inspect
 import typing
-from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 from ado.core.datacontainer.resource import DataContainerResource
@@ -24,6 +23,8 @@ from ado.core.resources import (
 from ado.utilities.annotations import unwrap_annotated
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from ado.core.operation.config import FunctionOperationInfo
     from ado.metastore.project import ProjectContext
     from ado.metastore.sqlstore import SQLStore

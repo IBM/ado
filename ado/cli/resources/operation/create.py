@@ -33,9 +33,9 @@ from ado.cli.utils.pydantic.updaters import override_values_in_pydantic_model
 from ado.cli.utils.resources.formatters import most_important_status_update
 from ado.core import CoreResourceKinds
 from ado.core.operation.config import (
+    _REQUIRED_INPUT_PROPERTY_FOR_ORIGINAL_FUNCTION_OPERATORS,
     DiscoveryOperationResourceConfiguration,
     OperatorReference,
-    _REQUIRED_INPUT_PROPERTY_FOR_ORIGINAL_FUNCTION_OPERATORS,
 )
 from ado.core.operation.operation import OperationException, OperationOutput
 from ado.core.operation.resource import (
@@ -98,13 +98,13 @@ def _resource_inputs_for_module(
         metadata = operator_class.operator_metadata()
         recorded = tuple(metadata.required_resource_inputs)
         if not recorded:
-            recorded = _REQUIRED_INPUT_PROPERTY_FOR_ORIGINAL_FUNCTION_OPERATORS
+            recorded = (_REQUIRED_INPUT_PROPERTY_FOR_ORIGINAL_FUNCTION_OPERATORS,)
         return metadata.name, recorded
 
     if "name" in module:
         return (
             str(module["name"]),
-            _REQUIRED_INPUT_PROPERTY_FOR_ORIGINAL_FUNCTION_OPERATORS,
+            (_REQUIRED_INPUT_PROPERTY_FOR_ORIGINAL_FUNCTION_OPERATORS,),
         )
 
     raise ValueError(

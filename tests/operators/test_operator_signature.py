@@ -107,7 +107,7 @@ def wrong_return_type(
 def positional_parameters(
     discoverySpace: DiscoverySpace,
     operationInfo: FunctionOperationInfo | None = None,
-    parameters: _Params,
+    parameters: _Params | None = None,
 ) -> OperationOutput: ...
 
 

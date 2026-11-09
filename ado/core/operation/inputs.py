@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import inspect
 import typing
+from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 from ado.core.datacontainer.resource import DataContainerResource
@@ -23,8 +24,6 @@ from ado.core.resources import (
 from ado.utilities.annotations import unwrap_annotated
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
-
     from ado.core.operation.config import FunctionOperationInfo
     from ado.metastore.project import ProjectContext
     from ado.metastore.sqlstore import SQLStore
@@ -43,35 +42,33 @@ KIND_FOR_OPERATOR_INPUT_TYPE: dict[type, CoreResourceKinds] = {
 }
 
 
-def resource_inputs_from_operator_function(
-    fn: typing.Callable,
-) -> list[ADOResourcePropertyDescriptor]:
-    """Deduce resource inputs from an operator function signature.
+def inspect_operator_function(
+    fn: Callable[..., object],
+) -> tuple[list[inspect.Parameter], dict[str, typing.Any]]:
+    """Inspect an operator function's named parameters and type hints.
 
-    Leading parameters, everything before ``operationInfo`` and ``parameters``,
-    must be annotated with a type registered in
-    ``KIND_FOR_OPERATOR_INPUT_TYPE``. Parameter names become input identifiers
-    and annotations become resource kinds.
+    Rejects ``*args``, ``**kwargs``, and positional-only parameters.
+    ``parameters`` must be the only keyword-only parameter.
 
     Args:
         fn: Operator callable to inspect.
 
     Returns:
-        Ordered resource-input descriptors.
+        The named parameters, in declaration order, and the function's type
+        hints including ``Annotated`` metadata.
 
     Raises:
-        ValueError: If the signature cannot be inspected, lacks the trailing
-            ``operationInfo`` and ``parameters`` parameters, has no resource
-            inputs, uses ``*args``, ``**kwargs``, or positional-only
-            parameters, or annotates a leading parameter with an unsupported
-            type.
+        ValueError: If the signature cannot be inspected, uses ``*args``,
+            ``**kwargs``, or positional-only parameters, does not keep
+            ``parameters`` as its only keyword-only parameter, or has
+            unresolvable type hints.
     """
     try:
         sig = inspect.signature(fn)
     except (TypeError, ValueError) as exc:
         raise ValueError(
-            f"Cannot deduce resource inputs for operator function {fn!r}: "
-            f"signature could not be inspected ({exc})."
+            f"Cannot inspect operator function {fn!r}: signature could not "
+            f"be inspected ({exc})."
         ) from exc
 
     params = list(sig.parameters.values())
@@ -101,6 +98,50 @@ def resource_inputs_from_operator_function(
             inspect.Parameter.KEYWORD_ONLY,
         )
     ]
+    keyword_only_names = [
+        p.name for p in named if p.kind == inspect.Parameter.KEYWORD_ONLY
+    ]
+    if keyword_only_names != ["parameters"]:
+        raise ValueError(
+            "Operator function parameter 'parameters' must be keyword-only, "
+            "and it must be the only keyword-only parameter."
+        )
+
+    try:
+        hints = typing.get_type_hints(fn, include_extras=True)
+    except Exception as exc:
+        raise ValueError(
+            f"Operator function type hints are missing or unresolvable ({exc})."
+        ) from exc
+
+    return named, hints
+
+
+def resource_inputs_from_operator_function(
+    fn: Callable[..., object],
+) -> list[ADOResourcePropertyDescriptor]:
+    """Deduce resource inputs from an operator function signature.
+
+    Leading parameters, everything before ``operationInfo`` and ``parameters``,
+    must be annotated with a type registered in
+    ``KIND_FOR_OPERATOR_INPUT_TYPE``. Parameter names become input identifiers
+    and annotations become resource kinds. ``parameters`` must be keyword-only.
+
+    Args:
+        fn: Operator callable to inspect.
+
+    Returns:
+        Ordered resource-input descriptors.
+
+    Raises:
+        ValueError: If the signature cannot be inspected, lacks the trailing
+            ``operationInfo`` and ``parameters`` parameters, has no resource
+            inputs, uses ``*args``, ``**kwargs``, positional-only parameters,
+            or a ``parameters`` argument that is not the only keyword-only
+            parameter, or annotates a leading parameter with an unsupported
+            type.
+    """
+    named, hints = inspect_operator_function(fn)
     if len(named) < 2 or (
         named[-2].name != "operationInfo" or named[-1].name != "parameters"
     ):
@@ -115,14 +156,6 @@ def resource_inputs_from_operator_function(
             "Operator function must declare at least one resource input "
             "parameter before 'operationInfo' and 'parameters'."
         )
-
-    try:
-        hints = typing.get_type_hints(fn, include_extras=True)
-    except Exception as exc:  # noqa: BLE001
-        raise ValueError(
-            f"Cannot deduce resource inputs for operator function {fn!r}: "
-            f"type hints are missing or unresolvable ({exc})."
-        ) from exc
 
     descriptors: list[ADOResourcePropertyDescriptor] = []
     supported = sorted({t.__name__ for t in KIND_FOR_OPERATOR_INPUT_TYPE})
@@ -278,26 +311,33 @@ def verify_inputs_exist_in_metastore(
 def metastore_for_operation_inputs(
     operation_info: FunctionOperationInfo | None,
     inputs: dict[str, OperatorInputType],
-) -> SQLStore:
-    """Open the metastore for *inputs* and check that each input is stored there.
+) -> tuple[SQLStore, FunctionOperationInfo]:
+    """Open the metastore for *inputs* and attach the resolved project context.
 
     Args:
         operation_info: Optional operation info that may carry a project context.
         inputs: Mapping of parameter name to rich operator input.
 
     Returns:
-        A metastore for the resolved project context.
+        The metastore for the resolved project context, and operation info
+        whose ``projectContext`` is that context.
 
     Raises:
         ValueError: If the project context cannot be resolved or an input is
             missing from the metastore.
     """
+    from ado.core.operation.config import FunctionOperationInfo
     from ado.metastore.sqlstore import SQLStore
 
     project_context = resolve_operation_project_context(operation_info, inputs)
+    resolved_info = operation_info or FunctionOperationInfo()
+    if resolved_info.projectContext is None:
+        resolved_info = resolved_info.model_copy(
+            update={"projectContext": project_context}
+        )
     metastore = SQLStore(project_context=project_context)
     verify_inputs_exist_in_metastore(inputs, metastore)
-    return metastore
+    return metastore, resolved_info
 
 
 # ---------------------------------------------------------------------------

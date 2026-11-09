@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: MIT
 """Tests for operator signature deduction and call-shape validation."""
 
+from collections.abc import Callable
+
 import pytest
 
 from ado.core.datacontainer.resource import DataContainerResource
@@ -13,17 +15,18 @@ from ado.core.operation.config import (
 )
 from ado.core.operation.inputs import resource_inputs_from_operator_function
 from ado.core.operation.operation import OperationOutput
-from ado.core.resources import CoreResourceKinds
+from ado.core.resources import ADOResourcePropertyDescriptor, CoreResourceKinds
 from ado.modules.operators.base import (
     validate_operator_call_shape,
     validate_operator_registration,
 )
+from ado.modules.operators.inputs import validate_resource_inputs_for_operation_type
 
 
-def _validate(fn: object) -> None:
+def _validate(fn: Callable[..., object]) -> None:
     """Deduce resource inputs and check the call shape."""
-    inputs = resource_inputs_from_operator_function(fn)  # type: ignore[arg-type]
-    validate_operator_call_shape(fn, inputs, configuration_model=_Params)  # type: ignore[arg-type]
+    inputs = resource_inputs_from_operator_function(fn)
+    validate_operator_call_shape(fn, inputs, configuration_model=_Params)
 
 
 class _Params(GenericOperatorParameters):
@@ -101,6 +104,13 @@ def wrong_return_type(
 ) -> int: ...
 
 
+def positional_parameters(
+    discoverySpace: DiscoverySpace,
+    operationInfo: FunctionOperationInfo | None = None,
+    parameters: _Params,
+) -> OperationOutput: ...
+
+
 def positional_only(
     discoverySpace: DiscoverySpace,
     /,
@@ -168,11 +178,11 @@ class TestHintIntrospectionFailure:
 class TestInvalidSignatures:
     def test_missing_param_annotations_rejected(self) -> None:
         """A function with unannotated parameters is rejected."""
-        with pytest.raises(ValueError, match="missing"):
+        with pytest.raises(ValueError, match="missing a resolvable type annotation"):
             _validate(no_annotations)
 
     def test_missing_operation_info(self) -> None:
-        """Function with only one positional parameter is rejected."""
+        """A function that omits operationInfo is rejected."""
         with pytest.raises(ValueError, match="operationInfo"):
             _validate(missing_operation_info)
 
@@ -267,6 +277,17 @@ class TestInvalidSignatures:
 
         _validate(annotated_hints)
 
+    def test_parameters_must_be_keyword_only(self) -> None:
+        """parameters must be the only keyword-only parameter."""
+        with pytest.raises(ValueError, match="keyword-only"):
+            resource_inputs_from_operator_function(positional_parameters)
+        with pytest.raises(ValueError, match="keyword-only"):
+            validate_operator_call_shape(
+                positional_parameters,
+                [],
+                configuration_model=_Params,
+            )
+
     def test_positional_only_rejected(self) -> None:
         """Positional-only parameters cannot be passed as keywords."""
         with pytest.raises(ValueError, match="positional-only"):
@@ -296,4 +317,58 @@ class TestInvalidSignatures:
                 descriptors,
                 DiscoveryOperationEnum.FUSE,
                 configuration_model=_Params,
+            )
+
+
+def _space(identifier: str) -> ADOResourcePropertyDescriptor:
+    """Return a discovery-space resource input named *identifier*."""
+    return ADOResourcePropertyDescriptor(
+        identifier=identifier,
+        kind=CoreResourceKinds.DISCOVERYSPACE,
+    )
+
+
+class TestResourceInputRules:
+    def test_empty_inputs_rejected(self) -> None:
+        """An operator must declare at least one resource input."""
+        with pytest.raises(ValueError, match="at least"):
+            validate_resource_inputs_for_operation_type(
+                [], DiscoveryOperationEnum.CHARACTERIZE
+            )
+
+    def test_explore_rejects_a_second_input(self) -> None:
+        """Explore operators take exactly one resource input."""
+        with pytest.raises(ValueError, match="exactly"):
+            validate_resource_inputs_for_operation_type(
+                [_space("left"), _space("right")],
+                DiscoveryOperationEnum.EXPLORE,
+            )
+
+    def test_export_rejects_a_second_input(self) -> None:
+        """Export operators take exactly one resource input."""
+        with pytest.raises(ValueError, match="exactly"):
+            validate_resource_inputs_for_operation_type(
+                [_space("left"), _space("right")],
+                DiscoveryOperationEnum.EXPORT,
+            )
+
+    def test_disallowed_kind_rejected(self) -> None:
+        """A kind outside the collection's allow-list is rejected."""
+        with pytest.raises(ValueError, match="does not allow"):
+            validate_resource_inputs_for_operation_type(
+                [
+                    ADOResourcePropertyDescriptor(
+                        identifier="store",
+                        kind=CoreResourceKinds.SAMPLESTORE,
+                    )
+                ],
+                DiscoveryOperationEnum.CHARACTERIZE,
+            )
+
+    def test_duplicate_identifiers_rejected(self) -> None:
+        """Two resource inputs cannot share an identifier."""
+        with pytest.raises(ValueError, match="Duplicate"):
+            validate_resource_inputs_for_operation_type(
+                [_space("space"), _space("space")],
+                DiscoveryOperationEnum.FUSE,
             )

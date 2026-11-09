@@ -22,7 +22,6 @@ from ado.core.operation.config import (
 )
 from ado.core.operation.inputs import resource_inputs_from_operator_function
 from ado.core.resources import ADOResourcePropertyDescriptor
-from ado.metastore.sqlstore import SQLStore
 from ado.modules.operators.base import (
     DiscoveryOperationBase,
     DiscoverySpaceSubscribingDiscoveryOperation,
@@ -152,13 +151,14 @@ def _make_general_orchestration_wrapper(
 
     @functools.wraps(user_fn)
     def wrapper(*args: object, **kwargs: object) -> OperationOutput:
+        """Bind the operator call and run it through general orchestration."""
         bound = user_sig.bind(*args, **kwargs)
         bound.apply_defaults()
         arguments = dict(bound.arguments)
 
         from ado.core.operation.inputs import (
-            resolve_operation_project_context,
-            verify_inputs_exist_in_metastore,
+            OperatorInputType,
+            metastore_for_operation_inputs,
         )
         from ado.modules.operators._general_orchestration import (
             orchestrate_general_operation,
@@ -170,8 +170,14 @@ def _make_general_orchestration_wrapper(
                 f"Operator {name!r} missing required resource input(s): {missing!r}."
             )
 
-        inputs = {input_id: arguments.pop(input_id) for input_id in input_ids}
-        operation_info = arguments.pop("operationInfo", None) or FunctionOperationInfo()
+        inputs: dict[str, OperatorInputType] = {
+            input_id: typing.cast(OperatorInputType, arguments.pop(input_id))
+            for input_id in input_ids
+        }
+        raw_operation_info = typing.cast(
+            FunctionOperationInfo | None,
+            arguments.pop("operationInfo", None),
+        )
         raw_parameters = arguments.pop("parameters", None)
         if arguments:
             raise ValueError(
@@ -179,16 +185,12 @@ def _make_general_orchestration_wrapper(
             )
 
         parameters = configuration_model.model_validate(raw_parameters)
-        project_context = resolve_operation_project_context(operation_info, inputs)  # type: ignore[arg-type]
-        if operation_info.projectContext is None:
-            operation_info = operation_info.model_copy(
-                update={"projectContext": project_context}
-            )
-        metastore = SQLStore(project_context=project_context)
-        verify_inputs_exist_in_metastore(inputs, metastore)  # type: ignore[arg-type]
+        metastore, operation_info = metastore_for_operation_inputs(
+            raw_operation_info, inputs
+        )
         return orchestrate_general_operation(
             operator_metadata=collection.operators[name],
-            inputs=inputs,  # type: ignore[arg-type]
+            inputs=inputs,
             operation_parameters=parameters,
             operation_info=operation_info,
             metastore=metastore,
@@ -240,7 +242,6 @@ def _register_general_operator(
         required_resource_inputs=required_resource_inputs,
         operation_type=operation_type,
         configuration_model=configuration_model,
-        stored_fn=wrapper,
     )
     _warn_if_operator_name_reused(collection_label, name, collection.operators)
     collection.operators[name] = OperatorMetadata(
@@ -376,23 +377,15 @@ def explore_operation(
         *,
         parameters: GenericOperatorParameters,
     ) -> OperationOutput:
-        from ado.core.operation.inputs import (
-            resolve_operation_project_context,
-            verify_inputs_exist_in_metastore,
-        )
+        from ado.core.operation.inputs import metastore_for_operation_inputs
         from ado.modules.operators.orchestrate import (
             orchestrate_explore_operation,
         )
 
         inputs = {"discoverySpace": discoverySpace}
-        operation_info = operationInfo or FunctionOperationInfo()
-        project_context = resolve_operation_project_context(operation_info, inputs)
-        if operation_info.projectContext is None:
-            operation_info = operation_info.model_copy(
-                update={"projectContext": project_context}
-            )
-        metastore = SQLStore(project_context=project_context)
-        verify_inputs_exist_in_metastore(inputs, metastore)
+        _metastore, operation_info = metastore_for_operation_inputs(
+            operationInfo, inputs
+        )
         return orchestrate_explore_operation(
             operator_metadata=explore.operators[op_name],
             inputs=inputs,

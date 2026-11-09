@@ -81,7 +81,7 @@ def detect_anomalous_series(
 The first thing you need to do is decide what type of operator you
 are creating.
 The choices are
-[explore, characterize, learn, modify, fuse, export, or compare](../user-guide/operators/working-with-operators.md).
+[explore, characterize, modify, fuse, export, or compare](../user-guide/operators/working-with-operators.md).
 You then import the decorator for this operator type from
 `ado.modules.operators.collections` and use it to decorate your
 operator function.
@@ -159,6 +159,12 @@ Declare `operationInfo` after the resource parameters as
 operators. When nesting, pass a copy of `operationInfo` to the nested
 operator. You can change the `metadata` field on the copy to describe the
 sub-operation, and keep the other fields.
+
+`validate_operator_function_signature` and
+`ado.modules.operators.collections._build_discovery_space_inputs` have been
+removed. Register operators with the collection decorators, which call
+`validate_operator_registration`. Resource inputs are deduced by
+`resource_inputs_from_operator_function`.
 
 ## Describing your operation input parameters
 
@@ -493,10 +499,10 @@ operators via the relevant collection in
 operator
 
 ```python
-from ado.modules.operators.collections import explore
+from ado.modules.operators.collections import characterize_operation, explore
 
-@learn_operation(...)
-def my_learning_operation(...):
+@characterize_operation(...)
+def my_characterization(...):
     ...
     #Note: The name of the function called (here random_walk() ) is the operator name
     random_walk_output = explore.random_walk(...Args...)

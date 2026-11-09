@@ -11,6 +11,8 @@ from ado.core.operation.config import DiscoveryOperationEnum
 from ado.core.resources import ADOResourcePropertyDescriptor, CoreResourceKinds
 
 # Allowed input kinds per operation type.
+# study, learn, and query are absent: those collections have no decorator yet,
+# so an operator of one of those types accepts any resource kind.
 _ALLOWED_KINDS: dict[DiscoveryOperationEnum, frozenset[CoreResourceKinds]] = {
     DiscoveryOperationEnum.EXPLORE: frozenset([CoreResourceKinds.DISCOVERYSPACE]),
     DiscoveryOperationEnum.MODIFY: frozenset([CoreResourceKinds.DISCOVERYSPACE]),
@@ -30,13 +32,9 @@ _ALLOWED_KINDS: dict[DiscoveryOperationEnum, frozenset[CoreResourceKinds]] = {
     ),
 }
 
-# Minimum required resource-input count per operation type.
+# Minimum count where the type needs more than the one input already required.
 _MIN_REQUIRED: dict[DiscoveryOperationEnum, int] = {
-    DiscoveryOperationEnum.EXPLORE: 1,
-    DiscoveryOperationEnum.MODIFY: 1,
     DiscoveryOperationEnum.FUSE: 2,
-    DiscoveryOperationEnum.EXPORT: 1,
-    DiscoveryOperationEnum.CHARACTERIZE: 1,
     DiscoveryOperationEnum.COMPARE: 2,
 }
 
@@ -44,14 +42,6 @@ _MIN_REQUIRED: dict[DiscoveryOperationEnum, int] = {
 _EXACT_COUNT: dict[DiscoveryOperationEnum, int] = {
     DiscoveryOperationEnum.EXPLORE: 1,
     DiscoveryOperationEnum.EXPORT: 1,
-}
-
-# Kinds that must appear at least once.
-_REQUIRED_PRIMARY_KINDS: dict[DiscoveryOperationEnum, CoreResourceKinds] = {
-    DiscoveryOperationEnum.EXPLORE: CoreResourceKinds.DISCOVERYSPACE,
-    DiscoveryOperationEnum.EXPORT: CoreResourceKinds.DISCOVERYSPACE,
-    DiscoveryOperationEnum.MODIFY: CoreResourceKinds.DISCOVERYSPACE,
-    DiscoveryOperationEnum.FUSE: CoreResourceKinds.DISCOVERYSPACE,
 }
 
 
@@ -77,16 +67,17 @@ def validate_resource_inputs_for_operation_type(
 
     allowed = _ALLOWED_KINDS.get(operation_type)
     if allowed is not None:
+        allowed_names = sorted(kind.value for kind in allowed)
         for descriptor in required_resource_inputs:
             if descriptor.kind not in allowed:
                 raise ValueError(
                     f"Operator of type {operation_type.value!r} does not allow "
                     f"resource input kind {descriptor.kind.value!r}.  "
-                    f"Allowed kinds: {[k.value for k in sorted(allowed, key=lambda k: k.value)]}."
+                    f"Allowed kinds: {allowed_names}."
                 )
 
-    min_req = _MIN_REQUIRED.get(operation_type, 1)
-    if len(required_resource_inputs) < min_req:
+    min_req = _MIN_REQUIRED.get(operation_type)
+    if min_req is not None and len(required_resource_inputs) < min_req:
         raise ValueError(
             f"Operator of type {operation_type.value!r} requires at least "
             f"{min_req} resource input(s); found {len(required_resource_inputs)}."
@@ -97,15 +88,6 @@ def validate_resource_inputs_for_operation_type(
         raise ValueError(
             f"Operator of type {operation_type.value!r} requires exactly "
             f"{exact} resource input(s); found {len(required_resource_inputs)}."
-        )
-
-    primary_kind = _REQUIRED_PRIMARY_KINDS.get(operation_type)
-    if primary_kind is not None and not any(
-        descriptor.kind == primary_kind for descriptor in required_resource_inputs
-    ):
-        raise ValueError(
-            f"Operator of type {operation_type.value!r} requires at least one "
-            f"{primary_kind.value!r} resource input."
         )
 
     identifiers = [descriptor.identifier for descriptor in required_resource_inputs]

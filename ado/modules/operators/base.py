@@ -73,9 +73,9 @@ def validate_operator_call_shape(
     """Validate that *fn* matches the operator call-shape convention.
 
     Named parameters must be the resource input identifiers, in declaration
-    order, followed by ``operationInfo`` and then ``parameters``. Parameters
-    must be passable as keywords. The return type must be
-    :class:`~ado.core.operation.operation.OperationOutput`.
+    order, followed by ``operationInfo`` and then keyword-only ``parameters``.
+    ``parameters`` must be the only keyword-only parameter. The return type
+    must be :class:`~ado.core.operation.operation.OperationOutput`.
 
     Args:
         fn: The callable to validate.
@@ -86,48 +86,14 @@ def validate_operator_call_shape(
     Raises:
         ValueError: If *fn* does not match the call-shape convention.
     """
-    import inspect
+    from ado.core.operation.inputs import inspect_operator_function
 
     _HINTS_MISSING_HINT = (
         "Operator functions must declare the correct types for all parameters "
         "and the return value to pass validation."
     )
 
-    try:
-        sig = inspect.signature(fn)
-    except (TypeError, ValueError) as exc:
-        raise ValueError(
-            f"Cannot validate operator function {fn!r}: signature could not "
-            f"be inspected ({exc})."
-        ) from exc
-
-    params = list(sig.parameters.values())
-    if any(p.kind == inspect.Parameter.VAR_POSITIONAL for p in params):
-        raise ValueError(
-            "Operator function must not declare *args; resource inputs must be "
-            "explicit named parameters."
-        )
-    if any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params):
-        raise ValueError(
-            "Operator function must not declare **kwargs; operation parameters "
-            "must be a single 'parameters' argument typed as the configuration model."
-        )
-    if any(p.kind == inspect.Parameter.POSITIONAL_ONLY for p in params):
-        raise ValueError(
-            "Operator function must not declare positional-only parameters; "
-            "orchestration passes resource inputs, operationInfo, and parameters "
-            "as keyword arguments."
-        )
-
-    named = [
-        p
-        for p in params
-        if p.kind
-        in (
-            inspect.Parameter.POSITIONAL_OR_KEYWORD,
-            inspect.Parameter.KEYWORD_ONLY,
-        )
-    ]
+    named, hints = inspect_operator_function(fn)
     expected_names = [d.identifier for d in required_resource_inputs] + [
         "operationInfo",
         "parameters",
@@ -139,14 +105,6 @@ def validate_operator_call_shape(
             f"resource inputs {[d.identifier for d in required_resource_inputs]!r} "
             f"followed by 'operationInfo' and 'parameters'; got {actual_names!r}."
         )
-
-    try:
-        hints = typing.get_type_hints(fn, include_extras=True)
-    except Exception as exc:  # noqa: BLE001
-        raise ValueError(
-            f"Operator function has valid structure but type hints are missing "
-            f"or unresolvable ({exc}). {_HINTS_MISSING_HINT}"
-        ) from exc
 
     missing_hints = [
         f"parameter {name!r}" for name in expected_names if name not in hints
@@ -195,7 +153,6 @@ def validate_operator_registration(
     required_resource_inputs: list[ADOResourcePropertyDescriptor],
     operation_type: DiscoveryOperationEnum,
     configuration_model: type | None = None,
-    stored_fn: typing.Callable | None = None,
 ) -> None:
     """Run registration-time checks for an operator callable.
 
@@ -208,14 +165,10 @@ def validate_operator_registration(
         required_resource_inputs: Resource inputs deduced from *user_fn*.
         operation_type: Collection the operator is registered into.
         configuration_model: The operator's parameter model class.
-        stored_fn: Optional stored callable. When it does not unwrap to
-            *user_fn*, its call shape is checked as well.
 
     Raises:
         ValueError: If any validation check fails.
     """
-    import inspect
-
     from ado.modules.operators.inputs import (
         validate_resource_inputs_for_operation_type,
     )
@@ -226,13 +179,6 @@ def validate_operator_registration(
     validate_operator_call_shape(
         user_fn, required_resource_inputs, configuration_model=configuration_model
     )
-
-    if stored_fn is not None and inspect.unwrap(stored_fn) is not user_fn:
-        validate_operator_call_shape(
-            stored_fn,
-            required_resource_inputs,
-            configuration_model=configuration_model,
-        )
 
 
 # Some operations are RayActors: These operations use Actuators and StateUpdateQueue and require Ray

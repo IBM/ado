@@ -78,6 +78,15 @@ Using an operator involves the following steps:
 
 These steps are covered in detail in [operations](../../resources/operation.md).
 
+The keys under `inputs` in an operation YAML file are the operator function's
+resource parameter names. A parameter `discoverySpace: DiscoverySpace` is set
+as `inputs.discoverySpace`.
+
+`ado create operation --with` and `--use-latest` can supply a discovery space,
+data container, or actuator configuration. This can fill a single
+unset input of that kind. When several inputs of the same kind are unset, set
+them in the operation YAML.
+
 ## What's next
 
 <!-- markdownlint-disable line-length -->

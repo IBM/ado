@@ -1,14 +1,13 @@
 ---
 name: ado-query-database
 description: >-
-  Covers how to query ado catalog listings (available experiments and operators), the ado
-  metastores (resource metadata queries) and ado samplestores (measurement data queries).
-  via the ado CLI tool. Use when: the
-  user asks what experiments, actuators or operators are available;
-  to list projects or context or check the active context or project; to list or find ado
-  resources like spaces, operations or datacontainers; to get ado resource schemas;
-  to filter resources by their metadata or labels; or to retrieve/export entities and
-  measurement data.
+  Covers how to query ado catalog listings (available experiments and operators),
+  ado metastores (resource metadata queries), and ado samplestores (measurement
+  data queries) via the ado CLI tool. Use when the user asks what experiments,
+  actuators, or operators are available; to list projects or contexts or check the
+  active context or project; to list or find ado resources like spaces, operations,
+  or datacontainers; to get ado resource schemas; to filter resources by metadata or
+  labels; or to retrieve/export entities and measurement data.
 ---
 
 # Query ado Data

@@ -185,17 +185,17 @@ with several seeds, or give each strategy its own sample store.
 
 Validated by `tests/operators/test_choose_sampling_strategy_yaml_examples.py`.
 
-* [random-walk-grid.yaml](yaml-examples/random-walk-grid.yaml): full sweep,
+* [random-walk-grid.yaml](assets/random-walk-grid.yaml): full sweep,
   resumable
-* [random-walk-extend-unmeasured.yaml](yaml-examples/random-walk-extend-unmeasured.yaml):
+* [random-walk-extend-unmeasured.yaml](assets/random-walk-extend-unmeasured.yaml):
   add N new random entities
-* [random-walk-selector-new-experiment.yaml](yaml-examples/random-walk-selector-new-experiment.yaml):
+* [random-walk-selector-new-experiment.yaml](assets/random-walk-selector-new-experiment.yaml):
   measure existing entities with new experiments
-* [ray-tune-optuna-tpe.yaml](yaml-examples/ray-tune-optuna-tpe.yaml): TPE
+* [ray-tune-optuna-tpe.yaml](assets/ray-tune-optuna-tpe.yaml): TPE
   with stoppers
-* [ray-tune-optuna-qmc.yaml](yaml-examples/ray-tune-optuna-qmc.yaml): Sobol
+* [ray-tune-optuna-qmc.yaml](assets/ray-tune-optuna-qmc.yaml): Sobol
   sample of a continuous space
-* [ray-tune-nevergrad-ngopt.yaml](yaml-examples/ray-tune-nevergrad-ngopt.yaml):
+* [ray-tune-nevergrad-ngopt.yaml](assets/ray-tune-nevergrad-ngopt.yaml):
   Nevergrad NGOpt with budget and workers
 * [operation_optuna_multi.yaml](../../../plugins/actuators/vllm_performance/yamls/operation_optuna_multi.yaml):
   multi-objective Optuna

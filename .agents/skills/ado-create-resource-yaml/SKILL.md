@@ -1,6 +1,6 @@
 ---
 name: ado-create-resource-yaml
-description: |
+description: >-
   Guidance for creating ado resource YAML files (discoveryspace, operation,
   actuatorconfiguration, samplestore, document). Covers metadata conventions,
   dynamic reference resolution with --use-latest/--with/--set, space design
@@ -251,20 +251,8 @@ Set `contentType` to `markdown` (default) or `html`. See the
 Examining skills store their reports this way: put the body in `content`,
 optionally set `contentType`, and list related resources in
 `relatedResources` with `id` and `role` (`parent` = report is about that
-resource; `child` = resource created in response to the document).
-
-```yaml
-# <descriptive>_document.yaml  (temp file, not committed)
-metadata:
-  name: "<descriptive name>"
-  description: "<one-line summary>"
-contentType: markdown  # or html
-content: |
-  <full report text>
-relatedResources:
-  - id: <related resource id>
-    role: parent
-```
+resource; `child` = resource created in response to the document). See
+[assets/document-template.yaml](assets/document-template.yaml) for a template manifest.
 
 ```bash
 uv run ado create document -f <descriptive>_document.yaml

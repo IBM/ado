@@ -10,90 +10,85 @@ metadata:
   disable-model-invocation: true
 ---
 
-# review
+# Review a branch
 
 ## General Rules
 
 - Review the committed changes in the current branch
-- Be picky
-- Write review to md file when finished
-- Link review comments to the specific file and line the comment pertains to
-  - this includes references to website pages
-  - for website pages create markdown links, not just plain section names
+- Be picky: report every deviation from the guidelines, including minor ones
+- Be concise
+  - report only problems; do not describe code that is correct
+  - report each issue once, under one heading
+  - limit each finding to three sentences: the problem, why it matters if not
+    obvious, and the fix
+  - drop any finding that cannot be tied to a location and a fix
+- Write the review to a markdown file when finished
+- Anchor each review comment to the file and line it refers to
+  - give the location once per comment as a single markdown link to the
+    primary file and line
+  - refer to any further locations in that comment as plain `path:line` text
+  - for pages under `docs/`, use a markdown link to the page, not a plain
+    section name
+- Keep formatting light
+  - use code formatting only for file paths, commands, and identifiers that
+    would be ambiguous in prose; write other terms as plain text
+  - do not add fenced code blocks unless a short snippet is the clearest way to
+    show a proposed fix
+  - do not link or code-format the same name more than once per comment
 
 ## Code Review
 
-When evaluating changes to code evaluate against the guidelines in
-[AGENTS.md](../../AGENTS.md) and
-[ado-develop-plugin](../ado-develop-plugin/SKILL.md)
+Evaluate changes to code against the guidelines in
+[AGENTS.md](../../../AGENTS.md) and
+[ado-develop-plugin](../ado-develop-plugin/SKILL.md).
 
 ### Plugin versioning
 
-For any PR that touches a plugin directory (`plugins/`):
+For any change under `plugins/`, check the versioning rules in
+[ado-develop-plugin](../ado-develop-plugin/SKILL.md#plugin-versioning) and
+report violations with these severities:
 
-- If the change is a bug fix, new feature, or breaking change, verify `VERSION`
-  was bumped (patch / minor / major respectively per semver). Report it as a
-  medium issue if it was not.
-- If the plugin has a `version=` argument in a `@characterize_operation` (or
-  equivalent) decorator, verify it matches `VERSION`. Report a critical issue if
-  it does not.
+- `VERSION` not bumped for a bug fix, new feature, or breaking change: medium
+- `version=` argument in `@characterize_operation` (or equivalent) differs from
+  `VERSION`: critical
 
-- Format the review report with these sections (omit if not relevant):
-  - Overview: What is changed
-  - Bugs: Any potential bugs
-  - Skill Reviews: One subsection per changed/new skill using the structure
-    above
-  - Code Critical Issues: Critical problems with code implementation or
-    structure
-  - Code Medium Issues
-  - Linting Issues: Issues raised by ruff format, ruff check, or
-    markdownlint-cli2 (these block commits)
+### Linting
+
+Run `uv run pre-commit run -a` and report each failure as a finding tagged
+`lint`. These issues block commits.
 
 ## Skill Review
 
-Agent skills are text documents under `.agents/skills/`.
+If the branch adds or changes anything under `.agents/skills/`, read
+[references/skill-review.md](references/skill-review.md) and follow it for each
+new or modified skill.
 
-- Evaluate based on [Agent Skills Guidelines](../../AGENTS.md#agent-skills).
-- For each skill (new or modified) ensure you check the following for related
-  content
-  - `.agents/skills/`, `examples/`, `docs/`, `AGENTS.md`
+## Report Format
 
-When evaluating new or modified skills (new or changes) use this structure per
-skill:
+Write the report with these sections, omitting any that are empty:
 
-1. **What the skill adds** — one/two sentence summary
-2. **Related existing documentation** - a bullet list outlining related skills,
-   examples and website docs, with a note on why they are related
-3. **New information** — bullet list of genuinely new content not already in
-   other skills, AGENTS.md, ado-develop-plugin, or linked docs. **Before
-   assessing this:**
-   - Read every file listed in the skill's References section
-   - Check descriptions of all skills and identify any whose scope overlaps with
-     the skill under review
-4. **Critical Issues**
-   - Subdivide this section into "Duplications" and "Misplacements"
-   - For additions that duplicate existing content:
-     - name the section
-     - state what it duplicates
-     - give the exact link or section to replace it with
-       - or state "remove — covered via general link to X")
-   - For new information that is misplaced:
-     - This can be content that is outside the scope of the skill's
-       `description` field
-     - It could also be content that is does not match the objective of a skill
-     - state where it should be moved to (another skill, AGENTS.md,
-       ado-develop-plugin, etc.)
-5. **Medium Issues**
-   - In this section include issues like the following:
-     - Inline code that should link to an existing example file instead
-     - Formatting problems, structural issues, or misleading text
-     - Mistakes in code examples
-     - Inconsistencies with other skill files or agent files
-     - File or directory paths referenced in the skill that do not exist in the
-       repo
-6. **Summary**
-   - Summarize the review.
-   - Be clear if the skill should be (a) largely kept as is; (b) requires major
-     changes (c) is not required
-   - If major changes are required provide a sketch of what should be in the
-     revised skill
+1. **Header** (2-4 lines)
+   - scope: the commits reviewed and the size of the diff
+   - checks that were not run, and why
+   - one or two sentences on what the change does, only if the commit messages
+     do not already say it
+2. **Findings** — a single list ordered by severity under the headings
+   Critical, Medium, and Minor
+   - number findings continuously (1, 2, 3, ...) so they can be referenced
+   - start each finding with a short title and a tag: `bug`, `design`, `test`,
+     `docs`, or `lint`
+   - test gaps and documentation gaps are findings with the matching tag, not
+     separate sections
+3. **Skill Reviews** — one subsection per new or modified skill, using the
+   per-skill structure in [references/skill-review.md](references/skill-review.md)
+4. **Verdict** (1-2 lines) — merge as is, merge after the Critical findings are
+   fixed, or do not merge; do not restate the findings
+
+Example finding:
+
+```markdown
+3. **Exit swallowed by broad except** `bug` —
+   [create.py:160](ado/cli/resources/operation/create.py:160) catches
+   Exception, which includes typer.Exit, so the specific error is followed by a
+   generic failure message. Re-raise typer.Exit before the except clause.
+```

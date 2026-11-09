@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: MIT
 import json
 import math
+import random
+from decimal import Decimal
 
 import numpy as np
 import pydantic
@@ -11,8 +13,10 @@ from ado.schema.domain import (
     ProbabilityFunction,
     ProbabilityFunctionsEnum,
     PropertyDomain,
+    ScaledDiscreteDomainRange,
     VariableTypeEnum,
     _internal_range_values,
+    _to_scaled_int,
 )
 
 
@@ -148,7 +152,7 @@ def test_valid_property_domains() -> None:
     assert discretePropertyDomainNoRange.valueInDomain(-110) is True
     assert discretePropertyDomainNoRange.valueInDomain(-10) is True
     assert discretePropertyDomainNoRange.valueInDomain(1) is True
-    # For discrete variables with an interval we need at least one part of range to anchor the interval!
+    # An unbounded discrete domain is a zero-anchored grid
     assert discretePropertyDomainNoRange.valueInDomain(100) is True
     assert discretePropertyDomainFloatRange.valueInDomain(0.0) is True
     assert discretePropertyDomainFloatRange.valueInDomain(0.2) is True
@@ -502,6 +506,18 @@ def test_float_discrete_subdomain_divisibility(
         (
             PropertyDomain(interval=3, domainRange=[-10, 10]),
             PropertyDomain(interval=2, domainRange=[-10, 10]),
+            False,
+        ),
+        # Empty range has no elements, so it is a subset of any range.
+        (
+            PropertyDomain(interval=1, domainRange=[0, 0]),
+            PropertyDomain(interval=1, domainRange=[0, 10]),
+            True,
+        ),
+        # Tested range extends beyond the enclosing range's last element.
+        (
+            PropertyDomain(interval=2, domainRange=[0, 11]),
+            PropertyDomain(interval=1, domainRange=[0, 9]),
             False,
         ),
     ],
@@ -973,6 +989,303 @@ def test_domain_values() -> None:
     assert d.domain_values == [0]
 
 
+@pytest.mark.parametrize(
+    ("interval", "value", "expected"),
+    [
+        (2, 4, True),
+        (2, -4, True),
+        (2, 0, True),
+        (2, 4.0, True),
+        (2, 1, False),
+        (2, 3.0, False),
+        (2, True, False),
+        (2, False, True),
+        (2, np.bool_(True), False),
+        (2, np.bool_(False), True),
+        (1, 0, True),
+        (1, 1, True),
+        (1, -10, True),
+        (1, 1.5, False),
+        (1, "a", False),
+        (1, float("nan"), False),
+        (1, float("inf"), False),
+        (1, float("-inf"), False),
+        (1, True, True),
+        (1, False, True),
+        (1, np.bool_(True), True),
+        (1, np.bool_(False), True),
+        (0.1, 0.3, True),
+        (0.1, 0.35, False),
+        (0.5, 1.5, True),
+        (0.5, 1.2, False),
+        (0.5, -1.5, True),
+    ],
+)
+def test_unbounded_discrete_domain_value_in_domain(
+    interval: float, value: object, expected: bool
+) -> None:
+    domain = PropertyDomain(interval=interval)
+    assert domain.valueInDomain(value) is expected
+
+
+@pytest.mark.parametrize("value", ["a", "3", None, [1, 2], {"a": 1}, object()])
+def test_is_multiple_of_discrete_domain_interval_rejects_non_numeric_value(
+    value: object,
+) -> None:
+    """Test that _is_multiple_of_discrete_domain_interval raises ValueError for non-number-like values."""
+    from ado.schema.domain import _is_multiple_of_discrete_domain_interval
+
+    with pytest.raises(ValueError, match="value must be a number"):
+        _is_multiple_of_discrete_domain_interval(value, 1)
+
+
+def test_domain_values_raises_for_unbounded_discrete_domain() -> None:
+    with pytest.raises(ValueError, match="unbounded discrete"):
+        _ = PropertyDomain(interval=1).domain_values
+
+
+def test_is_subdomain_of_unbounded_discrete_domain() -> None:
+    binary = PropertyDomain(variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE)
+
+    # Crash sites: unbounded discrete domains have no domainRange
+    assert PropertyDomain(values=[1]).isSubDomain(PropertyDomain(interval=1)) is True
+    assert (
+        PropertyDomain(interval=1).isSubDomain(PropertyDomain(values=[1, 2])) is False
+    )
+    assert binary.isSubDomain(PropertyDomain(interval=1)) is True
+
+    # interval=2 cases
+    assert (
+        PropertyDomain(domainRange=[-1, 3], interval=2).isSubDomain(
+            PropertyDomain(interval=2)
+        )
+        is False
+    )
+    assert (
+        PropertyDomain(domainRange=[0, 6], interval=2).isSubDomain(
+            PropertyDomain(interval=2)
+        )
+        is True
+    )
+    assert (
+        PropertyDomain(domainRange=[1, 2], interval=3).isSubDomain(
+            PropertyDomain(interval=2)
+        )
+        is False
+    )
+    assert (
+        PropertyDomain(domainRange=[2, 3], interval=3).isSubDomain(
+            PropertyDomain(interval=2)
+        )
+        is True
+    )
+    assert (
+        PropertyDomain(values=[-1, 1]).isSubDomain(PropertyDomain(interval=2)) is False
+    )
+    assert PropertyDomain(values=[2, 4]).isSubDomain(PropertyDomain(interval=2)) is True
+    assert binary.isSubDomain(PropertyDomain(interval=2)) is False
+
+    # interval=0.5 cases
+    assert (
+        PropertyDomain(domainRange=[-1.5, 2.0], interval=0.5).isSubDomain(
+            PropertyDomain(interval=0.5)
+        )
+        is True
+    )
+    assert (
+        PropertyDomain(domainRange=[-1.2, 2.0], interval=0.5).isSubDomain(
+            PropertyDomain(interval=0.5)
+        )
+        is False
+    )
+    assert (
+        PropertyDomain(values=[-0.5, 1.0, 1.5]).isSubDomain(
+            PropertyDomain(interval=0.5)
+        )
+        is True
+    )
+    assert (
+        PropertyDomain(values=[-0.5, 1.2]).isSubDomain(PropertyDomain(interval=0.5))
+        is False
+    )
+
+    # decimal interval cases
+    assert (
+        PropertyDomain(interval=0.3).isSubDomain(PropertyDomain(interval=0.1)) is True
+    )
+    assert (
+        PropertyDomain(interval=0.35).isSubDomain(PropertyDomain(interval=0.1)) is False
+    )
+    assert (
+        PropertyDomain(domainRange=[0.0, 0.6], interval=0.3).isSubDomain(
+            PropertyDomain(interval=0.1)
+        )
+        is True
+    )
+    assert (
+        PropertyDomain(domainRange=[0.05, 0.65], interval=0.3).isSubDomain(
+            PropertyDomain(interval=0.1)
+        )
+        is False
+    )
+
+    # Neighbouring combinations that must not change
+    assert PropertyDomain(values=[1]).isSubDomain(PropertyDomain(values=[1, 2])) is True
+    assert binary.isSubDomain(PropertyDomain(values=[0, 1])) is True
+    assert (
+        PropertyDomain(domainRange=[0, 5], interval=1).isSubDomain(
+            PropertyDomain(interval=1)
+        )
+        is True
+    )
+    assert PropertyDomain(interval=2).isSubDomain(PropertyDomain(interval=1)) is True
+    assert (
+        PropertyDomain(interval=1).isSubDomain(
+            PropertyDomain(domainRange=[0, 5], interval=1)
+        )
+        is False
+    )
+    assert PropertyDomain(interval=1).isSubDomain(binary) is False
+
+
+@pytest.mark.parametrize(
+    ("test_domain", "outer_domain", "expected"),
+    [
+        # values: every value is a multiple of k
+        (PropertyDomain(values=[2, 4, 6]), PropertyDomain(interval=2), True),
+        (PropertyDomain(values=[2, 3, 6]), PropertyDomain(interval=2), False),
+        (PropertyDomain(values=[-4, 0, 8]), PropertyDomain(interval=2), True),
+        (PropertyDomain(values=[-1, 1]), PropertyDomain(interval=2), False),
+        (PropertyDomain(values=[0.2, 0.4]), PropertyDomain(interval=0.2), True),
+        (PropertyDomain(values=[0.2, 0.5]), PropertyDomain(interval=0.2), False),
+        # range with more than one value: lower bound and interval are both multiples of k
+        (
+            PropertyDomain(domainRange=[0, 6], interval=2),
+            PropertyDomain(interval=2),
+            True,
+        ),
+        (
+            PropertyDomain(domainRange=[-1, 3], interval=2),
+            PropertyDomain(interval=2),
+            False,
+        ),
+        (
+            PropertyDomain(domainRange=[2, 10], interval=4),
+            PropertyDomain(interval=2),
+            True,
+        ),
+        (
+            PropertyDomain(domainRange=[2, 10], interval=3),
+            PropertyDomain(interval=2),
+            False,
+        ),
+        (
+            PropertyDomain(domainRange=[1, 9], interval=4),
+            PropertyDomain(interval=2),
+            False,
+        ),
+        (
+            PropertyDomain(domainRange=[0.0, 0.6], interval=0.3),
+            PropertyDomain(interval=0.1),
+            True,
+        ),
+        (
+            PropertyDomain(domainRange=[0.05, 0.65], interval=0.3),
+            PropertyDomain(interval=0.1),
+            False,
+        ),
+        # range with a single value: that value is a multiple of k
+        (
+            PropertyDomain(domainRange=[2, 3], interval=3),
+            PropertyDomain(interval=2),
+            True,
+        ),
+        (
+            PropertyDomain(domainRange=[1, 2], interval=3),
+            PropertyDomain(interval=2),
+            False,
+        ),
+        (
+            PropertyDomain(domainRange=[0.4, 0.7], interval=0.3),
+            PropertyDomain(interval=0.1),
+            True,
+        ),
+        (
+            PropertyDomain(domainRange=[0.35, 0.6], interval=0.3),
+            PropertyDomain(interval=0.1),
+            False,
+        ),
+        # unbounded interval=i: i is a multiple of k
+        (PropertyDomain(interval=4), PropertyDomain(interval=2), True),
+        (PropertyDomain(interval=3), PropertyDomain(interval=2), False),
+        (PropertyDomain(interval=1), PropertyDomain(interval=2), False),
+        (PropertyDomain(interval=0.3), PropertyDomain(interval=0.1), True),
+        (PropertyDomain(interval=0.35), PropertyDomain(interval=0.1), False),
+        # BINARY: 0 and 1 are multiples of k (i.e. 1 is a multiple of k)
+        (
+            PropertyDomain(variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE),
+            PropertyDomain(interval=1),
+            True,
+        ),
+        (
+            PropertyDomain(variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE),
+            PropertyDomain(interval=2),
+            False,
+        ),
+        (
+            PropertyDomain(variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE),
+            PropertyDomain(interval=0.5),
+            True,
+        ),
+        (
+            PropertyDomain(variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE),
+            PropertyDomain(interval=0.3),
+            False,
+        ),
+        # Non-discrete / non-binary types against unbounded discrete domain
+        (
+            PropertyDomain(domainRange=[0.0, 1.0]),
+            PropertyDomain(interval=1),
+            False,
+        ),
+        (
+            PropertyDomain(values=["a", "b"]),
+            PropertyDomain(interval=1),
+            False,
+        ),
+        (
+            PropertyDomain(
+                variableType=VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
+                values=["a", 2],
+            ),
+            PropertyDomain(interval=1),
+            False,
+        ),
+        (
+            PropertyDomain(
+                variableType=VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
+                values=["a"],
+            ),
+            PropertyDomain(interval=1),
+            False,
+        ),
+    ],
+)
+def test_is_subdomain_of_unbounded_discrete_domain_rules(
+    test_domain: PropertyDomain,
+    outer_domain: PropertyDomain,
+    expected: bool,
+) -> None:
+    """Checks isSubDomain against an enclosing unbounded discrete domain.
+
+    Args:
+        test_domain: The domain whose containment is tested.
+        outer_domain: The enclosing unbounded discrete domain.
+        expected: The expected result of test_domain.isSubDomain(outer_domain).
+    """
+    assert test_domain.isSubDomain(outer_domain) == expected
+
+
 def test_open_categorical_variable_type_property_domain() -> None:
     import math
 
@@ -1227,12 +1540,8 @@ def test_binary_variable_type_error_message_suggests_discrete() -> None:
         )
 
 
-def test_is_value_in_internal_range_values_matches_internal_range_values() -> None:
-    """Test that _is_value_in_internal_range_values exactly matches list membership in _internal_range_values."""
-    from ado.schema.domain import (
-        _internal_range_values,
-        _is_value_in_internal_range_values,
-    )
+def test_scaled_discrete_range_contains_matches_internal_range_values() -> None:
+    """Test that ScaledDiscreteDomainRange.contains exactly matches list membership in _internal_range_values."""
 
     test_ranges = [
         (0, 10, 1),
@@ -1244,8 +1553,8 @@ def test_is_value_in_internal_range_values_matches_internal_range_values() -> No
         (0.1, 0.4, 0.1),
         (-1.5, 1.5, 0.5),
         (0.0, 1.0, 0.33),
-        (-10 / 7, -10 / 7 + 0.5, 0.1),
-        (-1 / 3, -1 / 3 + 0.4, 0.1),
+        (-1.4285714286, -0.9285714286, 0.1),
+        (-0.3333333333, 0.0666666667, 0.1),
     ]
 
     test_values = [
@@ -1301,7 +1610,9 @@ def test_is_value_in_internal_range_values_matches_internal_range_values() -> No
         ref = _internal_range_values(lo, hi, step)
         for v in test_values:
             expected = v in ref
-            actual = _is_value_in_internal_range_values(v, lo, hi, step)
+            actual = ScaledDiscreteDomainRange.from_unscaled(lo, hi, step).contains(
+                value=v
+            )
             assert actual == expected, (
                 f"Range ({lo}, {hi}, {step}) with value {v!r}: "
                 f"expected {expected}, got {actual}"
@@ -1844,18 +2155,22 @@ def test_internal_range_values_rejects_non_positive_interval(
 
 
 @pytest.mark.parametrize("invalid_interval", [0, -1, 0.0, -0.5])
-def test_is_value_in_internal_range_values_rejects_non_positive_interval(
+def test_value_in_domain_rejects_non_positive_interval(
     invalid_interval: float,
 ) -> None:
-    """Test that _is_value_in_internal_range_values raises ValueError for non-positive intervals."""
-    from ado.schema.domain import _is_value_in_internal_range_values
+    """Test that valueInDomain raises ValueError for non-positive intervals."""
+    domain = PropertyDomain.model_construct(
+        variableType=VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
+        domainRange=[0, 10],
+        interval=invalid_interval,
+    )
 
     with pytest.raises(ValueError, match="interval must be greater than 0"):
-        _is_value_in_internal_range_values(3, 0, 10, invalid_interval)
+        domain.valueInDomain(3)
 
     # Raised even when an early return would otherwise apply
     with pytest.raises(ValueError, match="interval must be greater than 0"):
-        _is_value_in_internal_range_values("not a number", 0, 10, invalid_interval)
+        domain.valueInDomain("not a number")
 
 
 def test_internal_range_values_float_upper_bound_excluded_one_ulp_above() -> None:
@@ -1869,3 +2184,339 @@ def test_internal_range_values_float_upper_bound_excluded_one_ulp_above() -> Non
         f"All values must be strictly less than upper={upper!r}, "
         f"but last element was {result[-1]!r}"
     )
+
+
+def test_internal_range_values_float_rounding_excludes_upper_bound() -> None:
+    """Test that float values rounding to the upper bound are excluded from range values."""
+    negative_range_values = _internal_range_values(-1.3, -0.7, 0.6)
+    assert negative_range_values == [-1.3]
+    assert -0.7 not in negative_range_values
+
+    negative_range_domain = PropertyDomain(domainRange=[-1.3, -0.7], interval=0.6)
+    assert negative_range_domain.domain_values == [-1.3]
+    assert negative_range_domain.size == 1
+
+    positive_range_values = _internal_range_values(0.0, 3.6, 0.6)
+    assert positive_range_values == pytest.approx([0.0, 0.6, 1.2, 1.8, 2.4, 3.0])
+    assert 3.6 not in positive_range_values
+
+
+# ---------------------------------------------------------------------------
+# Tests for the exact scaled-integer discrete domain helpers
+# ---------------------------------------------------------------------------
+
+
+def _exact_range_ints(lower: float, upper: float, interval: float) -> list[int]:
+    """Enumerates the scaled integer elements of [lower, upper) one by one."""
+    scaled_lower, scaled_upper, scaled_interval = (
+        int(Decimal(repr(x)).scaleb(10)) for x in (lower, upper, interval)
+    )
+    return list(range(scaled_lower, scaled_upper, scaled_interval))
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        *[
+            (sign * round(3 / 10**places, places), sign * 3 * 10 ** (10 - places))
+            for places in range(1, 11)
+            for sign in (1, -1)
+        ],
+        (1, 10**10),
+        (-2, -2 * 10**10),
+        (0.1, 10**9),
+        (1e-8, 100),
+        (1e12, 10**22),
+        (123456.7890123456, 1234567890123456),
+        (True, 10**10),
+        (False, 0),
+        (np.bool_(True), 10**10),
+        (np.int64(3), 3 * 10**10),
+        (np.float64(0.25), 25 * 10**8),
+    ],
+)
+def test_to_scaled_int(value: object, expected: int) -> None:
+    """Ints, floats, booleans and NumPy scalars scale to a native int."""
+    result = _to_scaled_int(value)
+    assert result == expected
+    assert type(result) is int
+
+
+@pytest.mark.parametrize("value", ["1", float("nan"), float("inf"), 0.1 + 0.2, 1 / 3])
+def test_to_scaled_int_rejects_unsupported(
+    value: object,
+) -> None:
+    """Non-numbers, non-finite floats and floats beyond 10 decimal places raise ValueError."""
+    with pytest.raises(ValueError):  # noqa: PT011
+        _to_scaled_int(value)
+
+
+@pytest.mark.parametrize(
+    ("lower", "upper", "interval", "size"),
+    [
+        (0, 10, 1, 10),
+        (0, 10, 3, 4),
+        (5, 5, 1, 0),
+        (6, 5, 1, 0),
+        (0, 5, 10, 1),
+        (-3, 3, 1, 6),
+        (0.1, 0.4, 0.1, 3),
+        (-1.3, -0.7, 0.6, 1),
+        (0.0, 3.6, 0.6, 6),
+        (0, 1, 0.5, 2),
+        (0.0, 1e-8, 1e-9, 10),
+    ],
+)
+def test_scaled_discrete_range_size(
+    lower: float,
+    upper: float,
+    interval: float,
+    size: int,
+) -> None:
+    """Size calculation is exact, and 0 for empty ranges."""
+    assert ScaledDiscreteDomainRange.from_unscaled(lower, upper, interval).size == size
+
+
+def test_discrete_domain_range_helpers_match_exact_enumeration() -> None:
+    """The helpers agree with enumerating the scaled range element by element."""
+    rnd = random.Random(1)  # noqa: S311
+    for _ in range(3000):
+        decimal_places = rnd.choice([1, 2, 3, 5, 10])
+        lower = round(rnd.randint(-3000, 3000) / 10**decimal_places, decimal_places)
+        interval = round(rnd.randint(1, 400) / 10**decimal_places, decimal_places)
+        upper = round(
+            lower + rnd.randint(-100, 4000) / 10**decimal_places, decimal_places
+        )
+        expected = _exact_range_ints(lower, upper, interval)
+        assert ScaledDiscreteDomainRange.from_unscaled(
+            lower, upper, interval
+        ).size == len(expected)
+        members = set(expected)
+        for raw in (lower, upper, lower + interval, upper - interval):
+            candidate = round(raw, decimal_places)
+            scaled = _to_scaled_int(candidate)
+            assert ScaledDiscreteDomainRange.from_unscaled(
+                lower, upper, interval
+            ).contains(value=candidate) == (scaled in members)
+
+
+@pytest.mark.parametrize("magnitude", [1e-8, 1e-3, 1.0, 1e5, 1e7, 1e9, 1e12])
+def test_discrete_domain_range_helpers_large_and_small_magnitudes(
+    magnitude: float,
+) -> None:
+    """The helpers are exact for magnitudes from 1e-8 to 1e12."""
+    lower = interval = magnitude
+    upper = lower + 5 * interval
+    assert ScaledDiscreteDomainRange.from_unscaled(lower, upper, interval).size == 5
+    scaled_range = ScaledDiscreteDomainRange.from_unscaled(lower, upper, interval)
+    assert scaled_range.contains(value=round(3 * magnitude, 10))
+    assert not scaled_range.contains(value=upper)
+
+
+def test_scaled_discrete_range_contains_scaled_value() -> None:
+    """contains accepts a value already in scaled integer coordinates."""
+    scaled_range = ScaledDiscreteDomainRange.from_unscaled(0.1, 0.4, 0.1)
+    assert scaled_range.contains(scaled_value=3_000_000_000) is True
+    assert scaled_range.contains(scaled_value=4_000_000_000) is False
+    assert scaled_range.contains(scaled_value=2_500_000_000) is False
+    assert scaled_range.contains(scaled_value=0) is False
+
+
+def test_scaled_discrete_range_contains_requires_exactly_one_argument() -> None:
+    """contains raises ValueError unless exactly one keyword argument is given."""
+    scaled_range = ScaledDiscreteDomainRange.from_unscaled(0, 10, 1)
+    with pytest.raises(ValueError, match="Exactly one of value and scaled_value"):
+        scaled_range.contains()
+    with pytest.raises(ValueError, match="Exactly one of value and scaled_value"):
+        scaled_range.contains(value=1, scaled_value=10_000_000_000)
+    with pytest.raises(TypeError):
+        scaled_range.contains(1)  # type: ignore[misc]
+
+
+def test_size_and_value_in_domain_for_large_float_ranges() -> None:
+    """size and valueInDomain handle ranges too large to materialise."""
+    domain = PropertyDomain(domainRange=[0.0, 1000.0], interval=0.0001)
+    assert domain.size == 10_000_000
+    assert domain.valueInDomain(999.9999) is True
+    assert domain.valueInDomain(1000.0) is False
+    assert domain.valueInDomain(0.00005) is False
+
+    assert PropertyDomain(domainRange=[5, 5], interval=1).size == 0
+    assert PropertyDomain(domainRange=[0, 2147483647], interval=1).size == 2147483647
+
+
+def _random_range(rnd: random.Random) -> tuple[float, float, float]:
+    """Returns a random (lower, upper, interval) with at most 3 decimal places."""
+    decimal_places = rnd.choice([1, 1, 2, 3])
+    interval = round(rnd.randint(1, 30) / 10**decimal_places, decimal_places)
+    lower = round(rnd.randint(-300, 300) / 10**decimal_places, decimal_places)
+    upper = round(lower + rnd.randint(1, 400) / 10**decimal_places, decimal_places)
+    return (lower, upper, interval)
+
+
+def test_range_vs_range_subset_and_overlap_match_set_semantics() -> None:
+    """Range-vs-range subset and overlap agree with set operations on the generated values."""
+    rnd = random.Random(3)  # noqa: S311
+    for _ in range(3000):
+        tested, enclosing = _random_range(rnd), _random_range(rnd)
+        if rnd.random() < 0.5:
+            start = round(enclosing[0] + rnd.randint(0, 20) * enclosing[2], 3)
+            step = round(enclosing[2] * rnd.randint(1, 4), 3)
+            end = round(start + rnd.randint(1, 200) * enclosing[2] / 3, 3)
+            tested = (start, end, step)
+        if tested[1] <= tested[0]:
+            continue
+        tested_values = set(_internal_range_values(*tested))
+        enclosing_values = set(_internal_range_values(*enclosing))
+        assert ScaledDiscreteDomainRange.from_unscaled(*tested).is_subdomain_of(
+            ScaledDiscreteDomainRange.from_unscaled(*enclosing)
+        ) == (tested_values <= enclosing_values), (tested, enclosing)
+        assert ScaledDiscreteDomainRange.from_unscaled(*tested).overlaps(
+            ScaledDiscreteDomainRange.from_unscaled(*enclosing)
+        ) == (not tested_values.isdisjoint(enclosing_values)), (tested, enclosing)
+
+
+def test_property_domain_scaled_discrete_domain_range(
+    property_domain_explicit_discrete_with_domain_range_and_interval: PropertyDomain,
+) -> None:
+    """A discrete domain with a range and interval exposes its scaled range."""
+    scaled_range = property_domain_explicit_discrete_with_domain_range_and_interval.scaled_discrete_domain_range()
+    assert scaled_range == ScaledDiscreteDomainRange.from_unscaled(5, 12, 2)
+    assert scaled_range.size == 4
+
+
+@pytest.mark.parametrize(
+    "fixture_name",
+    [
+        "property_domain_explicit_discrete_with_interval",
+        "property_domain_explicit_discrete_with_values",
+        "property_domain_explicit_continuous_with_domain_range",
+        "property_domain_explicit_categorical",
+        "property_domain_explicit_binary",
+    ],
+)
+def test_property_domain_scaled_discrete_domain_range_rejects_other_domains(
+    fixture_name: str, request: pytest.FixtureRequest
+) -> None:
+    """Domains not defined by a discrete range and interval raise ValueError."""
+    domain: PropertyDomain = request.getfixturevalue(fixture_name)
+    with pytest.raises(ValueError, match="scaled discrete domain range"):
+        domain.scaled_discrete_domain_range()
+
+
+@pytest.mark.parametrize(
+    ("first", "second", "expected"),
+    [
+        ((0, 10, 2), (1, 10, 2), False),
+        ((0, 10, 2), (4, 20, 3), True),
+        ((0, 4, 2), (4, 20, 3), False),
+        ((0, 0, 1), (0, 10, 1), False),
+        ((0.0, 1.0, 0.2), (0.1, 1.0, 0.3), True),
+        ((0.0, 1.0, 0.25), (0.1, 1.0, 0.25), False),
+        ((0, 10, 3), (0.5, 10, 0.5), True),
+    ],
+)
+def test_scaled_discrete_range_overlaps(
+    first: tuple[float, float, float],
+    second: tuple[float, float, float],
+    expected: bool,
+) -> None:
+    """ScaledDiscreteDomainRange.overlaps is symmetric on int, float and mixed ranges."""
+    first_range = ScaledDiscreteDomainRange.from_unscaled(*first)
+    second_range = ScaledDiscreteDomainRange.from_unscaled(*second)
+    assert first_range.overlaps(second_range) is expected
+    assert second_range.overlaps(first_range) is expected
+
+
+def test_scaled_discrete_range_model_lifecycle() -> None:
+    """A ScaledDiscreteDomainRange survives create -> dump -> create from dump."""
+    original = ScaledDiscreteDomainRange.from_unscaled(0.1, 0.4, 0.1)
+    # Access the derived attributes so they are cached on the instance
+    assert original.size == 3
+    assert original.last == 3_000_000_000
+
+    dumped = original.model_dump()
+    assert dumped == {
+        "lower": 1_000_000_000,
+        "upper": 4_000_000_000,
+        "interval": 1_000_000_000,
+    }
+
+    restored = ScaledDiscreteDomainRange(**dumped)
+    assert restored == original
+    assert ScaledDiscreteDomainRange.model_validate_json(
+        original.model_dump_json()
+    ) == (original)
+    assert restored.size == original.size
+    assert restored.last == original.last
+
+
+def test_scaled_discrete_range_empty_has_no_last_element() -> None:
+    """An empty range has size 0 and no last element."""
+    empty = ScaledDiscreteDomainRange.from_unscaled(5, 5, 1)
+    assert empty.size == 0
+    assert empty.last is None
+
+
+def test_subdomain_values_vs_range_and_range_vs_values() -> None:
+    """isSubDomain between values-based and range-based domains."""
+    float_range = PropertyDomain(domainRange=[0.0, 1.0], interval=0.1)
+    assert PropertyDomain(values=[0.1, 0.3, 0.9]).isSubDomain(float_range)
+    assert not PropertyDomain(values=[0.1, 0.35]).isSubDomain(float_range)
+    assert not PropertyDomain(values=[0.1, 1.0]).isSubDomain(float_range)
+
+    values_domain = PropertyDomain(values=[0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2])
+    assert PropertyDomain(domainRange=[0.0, 1.0], interval=0.2).isSubDomain(
+        values_domain
+    )
+    assert not PropertyDomain(domainRange=[0.0, 1.0], interval=0.1).isSubDomain(
+        values_domain
+    )
+    assert PropertyDomain(domainRange=[1.0, 1.0], interval=0.1).isSubDomain(
+        values_domain
+    )
+    assert not PropertyDomain(domainRange=[0.0, 5.0], interval=0.1).isSubDomain(
+        PropertyDomain(values=[0.0])
+    )
+
+
+def test_overlaps_range_vs_values() -> None:
+    """overlaps between range-based and values-based discrete domains."""
+    float_range = PropertyDomain(domainRange=[0.0, 1.0], interval=0.1)
+    assert float_range.overlaps(PropertyDomain(values=[5, 0.3]))
+    assert PropertyDomain(values=[5, 0.3]).overlaps(float_range)
+    assert not float_range.overlaps(PropertyDomain(values=[1.0, 0.35]))
+    assert not PropertyDomain(values=[1.0, 0.35]).overlaps(float_range)
+
+
+def test_overlaps_and_subdomain_range_vs_binary_and_categorical() -> None:
+    """overlaps and isSubDomain for range-defined discrete against binary and categorical."""
+    large_range = PropertyDomain(domainRange=[0.0, 1000.0], interval=0.0001)
+    binary_domain = PropertyDomain(
+        variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE,
+    )
+    assert large_range.overlaps(binary_domain)
+    assert binary_domain.overlaps(large_range)
+
+    non_overlapping_range = PropertyDomain(domainRange=[2.0, 10.0], interval=1.0)
+    assert not non_overlapping_range.overlaps(binary_domain)
+    assert not binary_domain.overlaps(non_overlapping_range)
+
+    cat_domain = PropertyDomain(
+        variableType=VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE,
+        values=[0.5, "red", "blue"],
+    )
+    assert large_range.overlaps(cat_domain)
+    assert cat_domain.overlaps(large_range)
+
+    non_overlapping_cat = PropertyDomain(
+        variableType=VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE,
+        values=[0.00005, "red", "blue"],
+    )
+    assert not large_range.overlaps(non_overlapping_cat)
+    assert not non_overlapping_cat.overlaps(large_range)
+
+    # Large range is not a subdomain of categorical
+    assert not large_range.isSubDomain(cat_domain)
+    # Small range that is a subset
+    assert PropertyDomain(domainRange=[0.5, 0.6], interval=0.1).isSubDomain(cat_domain)

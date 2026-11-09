@@ -155,7 +155,13 @@ def create_resource(
             help="""
             Reuse the latest identifier of a resource kind. Can be used multiple times.
 
-            Only supported for spaces and operations. Ignored if --with is used.""",
+            When creating a space, samplestore is supported. When creating an
+            operation, space, datacontainer, and actuatorconfiguration are
+            supported. One value fills the single unset operation input of that
+            kind. When several inputs of the same kind are unset, set them in
+            the operation YAML.
+
+            Ignored if --with is used.""",
         ),
     ] = None,
     use_default_sample_store: Annotated[

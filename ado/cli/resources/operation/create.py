@@ -35,13 +35,82 @@ from ado.core import CoreResourceKinds
 from ado.core.operation.config import (
     DiscoveryOperationResourceConfiguration,
     OperatorReference,
+    _REQUIRED_INPUT_PROPERTY_FOR_ORIGINAL_FUNCTION_OPERATORS,
 )
 from ado.core.operation.operation import OperationException, OperationOutput
 from ado.core.operation.resource import (
     OperationExitStateEnum,
 )
-from ado.core.resources import ADOResourceReference
+from ado.core.resources import ADOResourcePropertyDescriptor, ADOResourceReference
 from ado.modules.operators.errors import OperatorVersionMismatchError
+
+# Kinds create operation can fill from --use-latest.
+_OPERATION_USE_LATEST_KINDS = frozenset(
+    {
+        CoreResourceKinds.ACTUATORCONFIGURATION,
+        CoreResourceKinds.DISCOVERYSPACE,
+        CoreResourceKinds.DATACONTAINER,
+    }
+)
+
+
+def _resource_inputs_for_module(
+    module: dict,
+) -> tuple[str, tuple[ADOResourcePropertyDescriptor, ...]]:
+    """Return an operator label and its resource-input descriptors.
+
+    Operator references use registry metadata. Class modules
+    (``moduleName`` / ``moduleClass``) use ``operator_metadata()``, and an
+    empty recording falls back to ``discoverySpace``. Script modules bind
+    ``discoverySpace``.
+
+    Args:
+        module: Raw ``operation.module`` mapping.
+
+    Returns:
+        The operator label and its resource-input descriptors.
+
+    Raises:
+        ValueError: If *module* is not an operator reference, class module, or
+            script, or a class module omits ``moduleName`` or ``moduleClass``.
+    """
+    if "operatorName" in module and "operationType" in module:
+        from ado.modules.operators.collections import operator_metadata_for_reference
+
+        metadata = operator_metadata_for_reference(
+            OperatorReference(
+                operatorName=module["operatorName"],
+                operationType=module["operationType"],
+            )
+        )
+        return metadata.name, tuple(metadata.required_resource_inputs)
+
+    if "moduleName" in module or "moduleClass" in module:
+        import importlib
+
+        module_name = module.get("moduleName")
+        module_class = module.get("moduleClass")
+        if not module_name or not module_class:
+            raise ValueError(
+                "operation.module with moduleName/moduleClass must set both fields."
+            )
+        operator_class = getattr(importlib.import_module(module_name), module_class)
+        metadata = operator_class.operator_metadata()
+        recorded = tuple(metadata.required_resource_inputs)
+        if not recorded:
+            recorded = _REQUIRED_INPUT_PROPERTY_FOR_ORIGINAL_FUNCTION_OPERATORS
+        return metadata.name, recorded
+
+    if "name" in module:
+        return (
+            str(module["name"]),
+            _REQUIRED_INPUT_PROPERTY_FOR_ORIGINAL_FUNCTION_OPERATORS,
+        )
+
+    raise ValueError(
+        "Cannot resolve operation input names: operation.module must be an "
+        "operator reference, a moduleName/moduleClass configuration, or a script."
+    )
 
 
 def _operator_input_name_for_kind(
@@ -50,7 +119,8 @@ def _operator_input_name_for_kind(
 ) -> str:
     """Resolve the operator input parameter name for a resource *kind*.
 
-    Uses the operator's ``required_resource_inputs``. When several inputs share
+    Uses the operator's resource inputs. Class modules with no recorded inputs
+    and script modules use ``discoverySpace``. When several inputs share
     *kind*, prefers an input that is not yet present.
 
     Args:
@@ -61,32 +131,17 @@ def _operator_input_name_for_kind(
         The input parameter identifier to set.
 
     Raises:
-        ValueError: If the operator has no matching input, or multiple matching
-            inputs are unset.
+        ValueError: If the module shape is unrecognized, the operator has no
+            matching input, or multiple matching inputs are unset.
     """
-    from ado.modules.operators.collections import operator_metadata_for_reference
-
     module = raw_operation_configuration.get("operation", {}).get("module", {})
-    if "operatorName" not in module or "operationType" not in module:
-        raise ValueError(
-            "Cannot resolve input name for "
-            f"{kind.value!r}: operation.module must use operatorName/operationType."
-        )
-
-    metadata = operator_metadata_for_reference(
-        OperatorReference(
-            operatorName=module["operatorName"],
-            operationType=module["operationType"],
-        )
-    )
+    operator_label, required_resource_inputs = _resource_inputs_for_module(module)
     inputs_of_kind = [
-        descriptor
-        for descriptor in metadata.required_resource_inputs
-        if descriptor.kind == kind
+        descriptor for descriptor in required_resource_inputs if descriptor.kind == kind
     ]
     if not inputs_of_kind:
         raise ValueError(
-            f"Operator {metadata.name!r} has no resource input of kind {kind.value!r}."
+            f"Operator {operator_label!r} has no resource input of kind {kind.value!r}."
         )
     if len(inputs_of_kind) == 1:
         return inputs_of_kind[0].identifier
@@ -101,7 +156,7 @@ def _operator_input_name_for_kind(
         return missing_inputs[0]
     input_identifiers_of_kind = [descriptor.identifier for descriptor in inputs_of_kind]
     raise ValueError(
-        f"Operator {metadata.name!r} has multiple {kind.value!r} inputs "
+        f"Operator {operator_label!r} has multiple {kind.value!r} inputs "
         f"{input_identifiers_of_kind}; set them explicitly in the operation YAML."
     )
 
@@ -157,6 +212,8 @@ def create_operation(parameters: AdoCreateCommandParameters) -> str | None:
             _apply_with_resources(raw_operation_configuration, parameters)
         elif parameters.use_latest:
             _apply_use_latest(raw_operation_configuration, parameters)
+    except typer.Exit:
+        raise
     except Exception as e:
         console_print(
             f"{ERROR}Failed to apply --with/--use-latest to operation inputs:\n{e}",
@@ -348,12 +405,19 @@ def _apply_use_latest(
     """
     from ado.cli.utils.generic.wrappers import get_sql_store
 
+    requested_kinds = parameters.use_latest
+    if not requested_kinds:
+        return
+
     sql_store = get_sql_store(parameters.ado_configuration.project_context)
     latest_ids = sql_store.get_latest_resource_identifiers_of_kinds(
-        kinds=parameters.use_latest
+        kinds=requested_kinds
     )
 
-    for resource_kind in parameters.use_latest:
+    for resource_kind in requested_kinds:
+        if resource_kind not in _OPERATION_USE_LATEST_KINDS:
+            continue
+
         latest_id = latest_ids.get(resource_kind)
         if not latest_id:
             console_print(
@@ -364,16 +428,11 @@ def _apply_use_latest(
 
         if resource_kind == CoreResourceKinds.ACTUATORCONFIGURATION:
             operation_data["actuatorConfigurationIdentifiers"] = [latest_id]
-        elif resource_kind in (
-            CoreResourceKinds.DISCOVERYSPACE,
-            CoreResourceKinds.DATACONTAINER,
-        ):
+        else:
             _add_operation_input_for_reference(
                 operation_data,
                 ADOResourceReference(kind=resource_kind, identifier=latest_id),
             )
-        else:
-            continue
 
         console_print(
             value_in_configuration_replaced_with_latest_identifier_for_resource(

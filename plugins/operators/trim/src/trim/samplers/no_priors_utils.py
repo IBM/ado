@@ -22,6 +22,7 @@ import pandas as pd
 from scipy.stats.qmc import Sobol
 
 from ado.core.discoveryspace.space import DiscoverySpace
+from ado.schema.entity import entity_identifier_from_properties_and_values
 from ado.schema.virtual_property import PropertyAggregationMethodEnum
 
 if TYPE_CHECKING:
@@ -598,15 +599,14 @@ def get_df_all_entities_no_measurements(
     entity_space = space.entitySpace
     cp_ids = [cp.identifier for cp in entity_space.constitutiveProperties]
 
-    list_of_dicts_to_convert = []
+    rows = []
     for point_values in entity_space.sequential_point_iterator():
-        point_dict = dict(zip(cp_ids, point_values, strict=True))
-        entity = entity_space.entity_for_point(point_dict)
-        ed = {"identifier": entity.identifier}
-        ed.update(point_dict)
-        list_of_dicts_to_convert.append(ed)
+        point = dict(zip(cp_ids, point_values, strict=True))
+        rows.append(
+            {"identifier": entity_identifier_from_properties_and_values(point), **point}
+        )
 
-    return pd.DataFrame(list_of_dicts_to_convert)
+    return pd.DataFrame(rows, columns=["identifier", *cp_ids])
 
 
 def get_df_at_least_one_measured_value(
@@ -627,12 +627,16 @@ def get_df_at_least_one_measured_value(
     if add_measurement_id:
         col_list = ["identifier", *col_list]
 
-    discoverySpace.sample_store.refresh()
+    # SQL sample stores cache entities; refresh picks up measurements added
+    # since the last query.
+    if hasattr(space.sample_store, "refresh"):
+        space.sample_store.refresh()
 
+    aggregation_method = PropertyAggregationMethodEnum.mean
     df = pd.DataFrame(
         space.matchingEntitiesTable(
             property_type="target",
-            aggregationMethod=PropertyAggregationMethodEnum.mean,
+            aggregationMethod=aggregation_method,
         )
     )
 
@@ -642,28 +646,17 @@ def get_df_at_least_one_measured_value(
         )
         return df
 
-    all_df_cols = list(df.columns)
+    # Aggregated targets are named "<target>-<method>" by matchingEntitiesTable;
+    # a bare "<target>" column appears when the values cannot be aggregated.
     valid_targetOutput_list = []
     for el in targetOutput_list:
-        if el in all_df_cols:
+        aggregated_column = f"{el}-{aggregation_method.value}"
+        if aggregated_column in df.columns:
+            df = df.drop(columns=[el], errors="ignore").rename(
+                columns={aggregated_column: el}
+            )
+        if el in df.columns:
             valid_targetOutput_list.append(el)
-        elif f"{el}-mean" in all_df_cols and el not in all_df_cols:
-            logger.warning(
-                f"Column named '{el}-mean' (instead of '{el}', which is not present) "
-                "found in the DataFrame obtained through matchingEntitiesTable. "
-                f"Renaming it to '{el}'."
-            )
-            df.rename(columns={f"{el}-mean": el}, inplace=True)
-            valid_targetOutput_list += [el]
-        elif f"{el}-mean" in all_df_cols and el in all_df_cols:
-            logger.warning(
-                f"Columns named '{el}-mean' and '{el}' "
-                "found in the DataFrame obtained through matchingEntitiesTable. "
-                f"Renaming it to '{el}'."
-            )
-            logger.error("Unexpected behavior can happen!")
-            df.rename(columns={f"{el}-mean": el}, inplace=True)
-            valid_targetOutput_list += [el]
     col_list += valid_targetOutput_list
 
     if valid_targetOutput_list != targetOutput_list:
@@ -726,39 +719,28 @@ def get_source_and_target(
 
     df = dfu.merge(dfm, on=keys, how="left")
 
-    if targetOutput not in list(df.columns):
+    if targetOutput not in df.columns:
         logger.info(
-            f"""The target output was not present in the columns of the measured+unmeasured DataFrame,' \
-                        meaning that '{targetOutput}' has never been measured in this space.
-                        dfm.empty = {df.empty}. Adding an empty column to the DataFrame.
-                    """
+            f"'{targetOutput}' has never been measured in this space. "
+            "Adding an empty column to the DataFrame."
         )
-        logger.debug("Adding an empty column to the DataFrame.")
         df[targetOutput] = pd.NA
 
-    if targetOutput in list(df.columns):
-        df_measured_drop_na = df.dropna(subset=[targetOutput])
-        df_unmeasured_drop_na = df[df[targetOutput].isna()].drop(columns=[targetOutput])
-        n_rows_dropped = len(df) - len(df_measured_drop_na)
-        logger.debug(
-            f"Dropped {n_rows_dropped} rows. Function called with log_string={log_string}"
-        )
-        if df_measured_drop_na.empty:
-            logger.warning(
-                f"Empty source after dropping rows that contain Nan in {targetOutput} column"
-            )
-        if df_unmeasured_drop_na.empty:
-            logger.warning(
-                f"Empty target after filtering rows that contain Nan in {targetOutput} column"
-            )
-        return df_measured_drop_na, df_unmeasured_drop_na
-
-    save_path = "df_with_no_targetOutput_columns.csv"
-    logger.error(
-        f"'{targetOutput}' column is missing, saving df in {save_path}, returning unmerged DataFrames"
+    df_measured = df.dropna(subset=[targetOutput])
+    df_unmeasured = df[df[targetOutput].isna()].drop(columns=[targetOutput])
+    logger.debug(
+        f"Dropped {len(df) - len(df_measured)} rows. "
+        f"Function called with log_string={log_string}"
     )
-    df.to_csv(save_path)
-    return dfm, dfu
+    if df_measured.empty:
+        logger.warning(
+            f"Empty source after dropping rows that contain Nan in {targetOutput} column"
+        )
+    if df_unmeasured.empty:
+        logger.warning(
+            f"Empty target after filtering rows that contain Nan in {targetOutput} column"
+        )
+    return df_measured, df_unmeasured
 
 
 # ============================================================================

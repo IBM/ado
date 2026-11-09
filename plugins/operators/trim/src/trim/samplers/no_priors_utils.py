@@ -38,6 +38,43 @@ logger = logging.getLogger(__name__)
 # ============================================================================
 
 
+def _select_least_dense_index(
+    occupancy: np.ndarray,
+    length_segment: int,
+    max_half_width: int,
+) -> int:
+    """Return the unsampled index lying in the least densely sampled neighbourhood.
+
+    For each unsampled index ``i`` in ``[0, length_segment)`` the density at
+    half-width ``d`` is the fraction of sampled positions in the window
+    ``[i - d, i + d]`` clipped to ``[0, len(occupancy) - 1]``. Candidates are
+    narrowed to those of minimal density for ``d = 1, 2, ...`` until one
+    candidate is left or ``d`` reaches ``max_half_width``; the smallest
+    remaining index is returned.
+
+    Args:
+        occupancy: Array with 1 at sampled positions and 0 elsewhere.
+        length_segment: Number of positions eligible for selection.
+        max_half_width: Largest window half-width considered.
+
+    Returns:
+        The selected index.
+    """
+    last = len(occupancy) - 1
+    prefix = np.concatenate(([0], np.cumsum(occupancy)))
+    candidates = np.flatnonzero(occupancy[:length_segment] == 0)
+
+    d = 1
+    while True:
+        left = np.maximum(candidates - d, 0)
+        right = np.minimum(candidates + d, last)
+        density = (prefix[right + 1] - prefix[left]) / (right - left + 1)
+        candidates = candidates[density == density.min()]
+        if len(candidates) == 1 or d >= max_half_width:
+            return int(candidates[0])
+        d += 1
+
+
 def get_index_list_van_der_corput(
     length_segment: int,
     tot_points_to_sample: int,
@@ -98,91 +135,23 @@ def get_index_list_van_der_corput(
             if len(index_list) == tot_points_to_sample:
                 return sorted(index_list)
 
-    def build_prefix_and_len(index_list: list[int]) -> tuple[list[int], int]:
-        if not index_list:
-            return [0], 0
-
-        M = max(index_list) + 1
-        sampled_set = set(index_list)
-        prefix = [0] * (M + 1)
-        s = 0
-
-        for i in range(M):
-            s += 1 if i in sampled_set else 0
-            prefix[i + 1] = s
-
-        return prefix, M
-
-    def get_list_min_weight(
-        prefix: list[int], M: int, d: int, selectable_indices: list[int]
-    ) -> list[int]:
-        vals = {}
-        for i in selectable_indices:
-            if i >= M:
-                break
-            left = max(0, i - d)
-            right = min(M - 1, i + d)
-            total = prefix[right + 1] - prefix[left]
-            denom = right - left + 1
-            mean = total / denom
-            vals[i] = mean
-
-        if not vals:
-            return []
-
-        min_val = min(vals.values())
-        out = []
-        for i in selectable_indices:
-            if i >= M:
-                break
-            if vals.get(i) == min_val:
-                out.append(i)
-        return out
-
-    def get_selectable_indices() -> list[int]:
-        return [i for i in range(length_segment) if i not in sampled_set]
-
-    max_d = length_segment
+    # Both extremities are sampled here, so the occupancy array spans at least
+    # the whole segment; it also covers any out-of-segment sampled index.
+    occupancy_length = max(index_list) + 1
+    occupancy = np.zeros(occupancy_length, dtype=np.int64)
+    occupancy[[i for i in sampled_set if 0 <= i < occupancy_length]] = 1
 
     while len(index_list) < tot_points_to_sample:
-        selection = 0
-        selectable_indices = get_selectable_indices()
-        prefix, M = build_prefix_and_len(index_list=index_list)
-        d = 1
-        previous_set = selectable_indices
-
-        while selection == 0:
-            indices = get_list_min_weight(prefix, M, d, selectable_indices)
-
-            if not indices:
-                if not previous_set:
-                    raise ValueError(
-                        "Previous candidate set should not be empty or None"
-                    )
-                if verbose:
-                    logger.info(
-                        f"No intersection found with d={d}. Using the previous set "
-                        f"Appending to {index_list} the first element of {previous_set}"
-                    )
-                chosen = previous_set[0]
-                index_list.append(chosen)
-                sampled_set.add(chosen)
-                selection = 1
-            else:
-                previous_set = selectable_indices
-                selectable_indices = indices
-
-                if len(selectable_indices) == 1 or d == max_d:
-                    if verbose:
-                        logger.info(
-                            f"Appending to {index_list} the first element of {selectable_indices}"
-                        )
-                    chosen = selectable_indices[0]
-                    index_list.append(chosen)
-                    sampled_set.add(chosen)
-                    selection = 1
-
-            d += 1
+        chosen = _select_least_dense_index(
+            occupancy=occupancy,
+            length_segment=length_segment,
+            max_half_width=length_segment,
+        )
+        if verbose:
+            logger.info(f"Appending {chosen} to {index_list}")
+        index_list.append(chosen)
+        sampled_set.add(chosen)
+        occupancy[chosen] = 1
 
     if sort:
         return sorted(index_list)

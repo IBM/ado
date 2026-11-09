@@ -33,3 +33,35 @@ def test_get_index_list_nn_full_sampling() -> None:
 def test_get_index_list_nn_sorted_sampling(points: int, expected: list[int]) -> None:
     """Should return sorted sampling for segment of length 17."""
     assert get_index_list_van_der_corput(17, points, sort=True) == expected
+
+
+@pytest.mark.parametrize(
+    ("length", "points", "sampled_indices", "expected"),
+    [
+        (5, 3, [0, 4], [0, 4, 2]),
+        (10, 4, [0, 4, 9], [0, 4, 9, 6]),
+        (14, 8, None, [0, 13, 6, 9, 3, 11, 5, 2]),
+        (12, 12, [3, 7], [3, 7, 0, 11, 5, 9, 2, 8, 4, 10, 1, 6]),
+    ],
+)
+def test_get_index_list_van_der_corput_with_sampled_indices(
+    length: int,
+    points: int,
+    sampled_indices: list[int] | None,
+    expected: list[int],
+) -> None:
+    """Should extend already-sampled indices in least-dense-neighbourhood order."""
+    assert (
+        get_index_list_van_der_corput(length, points, sampled_indices=sampled_indices)
+        == expected
+    )
+
+
+@pytest.mark.parametrize("length", [1, 2, 3, 16, 33, 100])
+def test_get_index_list_van_der_corput_full_sampling_is_permutation(
+    length: int,
+) -> None:
+    """Should return each index of the segment exactly once, extremities first."""
+    order = get_index_list_van_der_corput(length, length)
+    assert sorted(order) == list(range(length))
+    assert order[: min(2, length)] == [0, length - 1][: min(2, length)]

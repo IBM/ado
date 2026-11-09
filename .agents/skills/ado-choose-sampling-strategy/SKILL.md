@@ -62,8 +62,11 @@ source repo is available; otherwise use the website.
 Breaking these causes a validation error or a misconfigured operation.
 
 * `random_walk` generator, `lhu_sampler` and `NoPriorsSampleSelector` require
-  every dimension to be discrete or categorical, and bounded. For continuous
-  dimensions use a `random_walk` selector or a `ray_tune` optimizer.
+  every dimension to be discrete or categorical, and bounded.
+* `ray_tune` optimizers can handle continuous and unbounded numerical dimensions
+* A `random_walk` selector can handle spaces with continuous, unbounded, numerical
+and open categorical dimensions. The entities matching the space must already
+be in the samplestore.
 * `numberEntities` larger than the space (generator) or than the matching
   entities (selector with `filterMode: noFilter`) raises a ValueError. Use
   `numberEntities: all`.
@@ -97,8 +100,8 @@ Use a `selector` when:
 
 * New experiments were added (in a new space on the same sample store) and
   should be applied only to entities that already exist.
-* The space has continuous or unbounded dimensions, but relevant entities are
-  already in the sample store.
+* The space has continuous, unbounded, or open categorical dimensions, but
+  relevant entities are already in the sample store.
 * Re-measuring for noise or repeatability: `filterMode: measured` +
   `singleMeasurement: false`.
 * Completing partially measured entities: `filterMode: partial`.
@@ -182,17 +185,17 @@ with several seeds, or give each strategy its own sample store.
 
 Validated by `tests/operators/test_choose_sampling_strategy_yaml_examples.py`.
 
-* [random-walk-grid.yaml](yaml-examples/random-walk-grid.yaml): full sweep,
+* [random-walk-grid.yaml](assets/random-walk-grid.yaml): full sweep,
   resumable
-* [random-walk-extend-unmeasured.yaml](yaml-examples/random-walk-extend-unmeasured.yaml):
+* [random-walk-extend-unmeasured.yaml](assets/random-walk-extend-unmeasured.yaml):
   add N new random entities
-* [random-walk-selector-new-experiment.yaml](yaml-examples/random-walk-selector-new-experiment.yaml):
+* [random-walk-selector-new-experiment.yaml](assets/random-walk-selector-new-experiment.yaml):
   measure existing entities with new experiments
-* [ray-tune-optuna-tpe.yaml](yaml-examples/ray-tune-optuna-tpe.yaml): TPE
+* [ray-tune-optuna-tpe.yaml](assets/ray-tune-optuna-tpe.yaml): TPE
   with stoppers
-* [ray-tune-optuna-qmc.yaml](yaml-examples/ray-tune-optuna-qmc.yaml): Sobol
+* [ray-tune-optuna-qmc.yaml](assets/ray-tune-optuna-qmc.yaml): Sobol
   sample of a continuous space
-* [ray-tune-nevergrad-ngopt.yaml](yaml-examples/ray-tune-nevergrad-ngopt.yaml):
+* [ray-tune-nevergrad-ngopt.yaml](assets/ray-tune-nevergrad-ngopt.yaml):
   Nevergrad NGOpt with budget and workers
 * [operation_optuna_multi.yaml](../../../plugins/actuators/vllm_performance/yamls/operation_optuna_multi.yaml):
   multi-objective Optuna

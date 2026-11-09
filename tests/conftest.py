@@ -9,6 +9,7 @@ import pytest
 import ray
 
 from .fixtures.ado_cli_isolation import *
+from .fixtures.agents import *
 from .fixtures.core.datacontainer import *
 from .fixtures.core.samplestore import *
 from .fixtures.core.generators import *

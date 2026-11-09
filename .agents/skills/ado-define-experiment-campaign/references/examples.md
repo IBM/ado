@@ -24,7 +24,7 @@ uv run ado describe experiment TrainerActuator.train_model
 
 ### Step 2: Create DiscoverySpace YAML
 
-See [example1-space.yaml](yaml-examples/example1-space.yaml).
+See [example1-space.yaml](../assets/example1-space.yaml).
 
 **Explanation:**
 
@@ -40,7 +40,7 @@ uv run ado create space -f space.yaml --dry-run
 
 ### Step 4: Create Operation YAML
 
-See [example1-operation.yaml](yaml-examples/example1-operation.yaml).
+See [example1-operation.yaml](../assets/example1-operation.yaml).
 
 ### Step 5: Validate Operation
 
@@ -68,7 +68,7 @@ uv run ado describe experiment EvaluatorActuator.evaluate_model
 
 ### Example 2 Step 2: Create DiscoverySpace YAML
 
-See [example2-space.yaml](yaml-examples/example2-space.yaml).
+See [example2-space.yaml](../assets/example2-space.yaml).
 
 **Explanation:**
 
@@ -99,7 +99,7 @@ uv run ado describe experiment TrainerActuator.train_model
 
 ### Example 3 Step 2: Create DiscoverySpace YAML
 
-See [example3-space.yaml](yaml-examples/example3-space.yaml).
+See [example3-space.yaml](../assets/example3-space.yaml).
 
 **Explanation:**
 
@@ -129,7 +129,7 @@ uv run ado describe experiment TrainerActuator.train_model
 
 ### Example 4 Step 2: Create DiscoverySpace YAML
 
-See [example4-space.yaml](yaml-examples/example4-space.yaml).
+See [example4-space.yaml](../assets/example4-space.yaml).
 
 **Explanation:**
 
@@ -158,7 +158,7 @@ uv run ado describe experiment TrainerActuator.train_model
 
 ### Example 5 Step 2: Create DiscoverySpace YAML
 
-See [example5-space.yaml](yaml-examples/example5-space.yaml).
+See [example5-space.yaml](../assets/example5-space.yaml).
 
 **Explanation:**
 
@@ -182,7 +182,7 @@ uv run ado create space -f space.yaml --dry-run
 ### Step 2: Create Actuator Configuration
 
 See
-[example6-actuator-config.yaml](yaml-examples/example6-actuator-config.yaml).
+[example6-actuator-config.yaml](../assets/example6-actuator-config.yaml).
 
 ```bash
 uv run ado create actuatorconfiguration -f gpu_config.yaml
@@ -191,7 +191,7 @@ uv run ado create actuatorconfiguration -f gpu_config.yaml
 
 ### Step 3: Create Operation YAML
 
-See [example6-operation.yaml](yaml-examples/example6-operation.yaml).
+See [example6-operation.yaml](../assets/example6-operation.yaml).
 
 **Explanation:**
 
@@ -217,7 +217,7 @@ entity space: batch_size
 
 **Fix:** Add missing property to entity space:
 
-See [error-fix-batch-size.yaml](yaml-examples/error-fix-batch-size.yaml).
+See [error-fix-batch-size.yaml](../assets/error-fix-batch-size.yaml).
 
 ### Error: "domain incompatible"
 

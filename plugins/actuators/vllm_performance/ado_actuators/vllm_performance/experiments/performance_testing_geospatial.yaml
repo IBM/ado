@@ -132,7 +132,7 @@ performance_testing-geospatial-full:
         description: "(deployment) Docker image to use to create vllm deployments"
       propertyDomain:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
-        values: ["quay.io/mgazzetti/vllm-performance/vllm:vllm.v0.20.1-tt.v1.2.7"]
+        values: ["quay.io/mgazzetti/vllm-performance/vllm:vllm-0-31-terratorch-1-2-13"]
     - identifier: n_cpus
       metadata:
         description: "(deployment) the number of CPUs to use"
@@ -219,7 +219,7 @@ performance_testing-geospatial-full:
   defaultParameterization:
     - property:
         identifier: 'image'
-      value: "quay.io/mgazzetti/vllm-performance/vllm:vllm.v0.20.1-tt.v1.2.7"
+      value: "quay.io/mgazzetti/vllm-performance/vllm:vllm-0-31-terratorch-1-2-13"
     - property:
         identifier: n_cpus
       value: 8
@@ -338,7 +338,7 @@ performance_testing-geospatial-full-custom-dataset:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
         values:
           - ["quay.io/mgazzetti/vllm-performance/vllm:v0.18.0-tt.v1.2.5", "0.18.0"]
-          - ["quay.io/mgazzetti/vllm-performance/vllm:vllm.v0.20.1-tt.v1.2.7", "0.20.1"]
+          - ["quay.io/mgazzetti/vllm-performance/vllm:vllm-0-31-terratorch-1-2-13", "0.31.0"]
     - identifier: n_cpus
       metadata:
         description: "(deployment) the number of CPUs to use"
@@ -425,7 +425,7 @@ performance_testing-geospatial-full-custom-dataset:
   defaultParameterization:
     - property:
         identifier: 'image'
-      value: "quay.io/mgazzetti/vllm-performance/vllm:vllm.v0.20.1-tt.v1.2.7"
+      value: "quay.io/mgazzetti/vllm-performance/vllm:vllm-0-31-terratorch-1-2-13"
     - property:
         identifier: n_cpus
       value: 8
@@ -691,7 +691,7 @@ performance_testing-geospatial-full-guidellm:
         description: "(deployment) Docker image to use to create vllm deployments"
       propertyDomain:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
-        values: ["quay.io/mgazzetti/vllm-performance/vllm:vllm.v0.20.1-tt.v1.2.7"]
+        values: ["quay.io/mgazzetti/vllm-performance/vllm:vllm-0-31-terratorch-1-2-13"]
     - identifier: n_cpus
       metadata:
         description: "(deployment) the number of CPUs to use"
@@ -778,7 +778,7 @@ performance_testing-geospatial-full-guidellm:
   defaultParameterization:
     - property:
         identifier: 'image'
-      value: "quay.io/mgazzetti/vllm-performance/vllm:vllm.v0.20.1-tt.v1.2.7"
+      value: "quay.io/mgazzetti/vllm-performance/vllm:vllm-0-31-terratorch-1-2-13"
     - property:
         identifier: n_cpus
       value: 8
@@ -893,7 +893,7 @@ performance_testing-geospatial-guidellm-deployment-custom-dataset:
         description: "(deployment) Docker image to use to create vllm deployments"
       propertyDomain:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
-        values: ["quay.io/mgazzetti/vllm-performance/vllm:vllm.v0.20.1-tt.v1.2.7"]
+        values: ["quay.io/mgazzetti/vllm-performance/vllm:vllm-0-31-terratorch-1-2-13"]
     - identifier: n_cpus
       metadata:
         description: "(deployment) the number of CPUs to use"
@@ -982,7 +982,7 @@ performance_testing-geospatial-guidellm-deployment-custom-dataset:
   defaultParameterization:
     - property:
         identifier: 'image'
-      value: "quay.io/mgazzetti/vllm-performance/vllm:vllm.v0.20.1-tt.v1.2.7"
+      value: "quay.io/mgazzetti/vllm-performance/vllm:vllm-0-31-terratorch-1-2-13"
     - property:
         identifier: n_cpus
       value: 8
@@ -1248,7 +1248,7 @@ geospatial-vllm-bench-deployment:
         description: "(deployment) Docker image to use to create vllm deployments"
       propertyDomain:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
-        values: ["quay.io/mgazzetti/vllm-performance/vllm:vllm.v0.20.1-tt.v1.2.7"]
+        values: ["quay.io/mgazzetti/vllm-performance/vllm:vllm-0-31-terratorch-1-2-13"]
     - identifier: n_cpus
       metadata:
         description: "(deployment) the number of CPUs to use"
@@ -1335,7 +1335,7 @@ geospatial-vllm-bench-deployment:
   defaultParameterization:
     - property:
         identifier: 'image'
-      value: "quay.io/mgazzetti/vllm-performance/vllm:vllm.v0.20.1-tt.v1.2.7"
+      value: "quay.io/mgazzetti/vllm-performance/vllm:vllm-0-31-terratorch-1-2-13"
     - property:
         identifier: n_cpus
       value: 8
@@ -1454,7 +1454,7 @@ geospatial-vllm-bench-deployment-custom-dataset:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
         values:
           - ["quay.io/mgazzetti/vllm-performance/vllm:v0.18.0-tt.v1.2.5", "0.18.0"]
-          - ["quay.io/mgazzetti/vllm-performance/vllm:vllm.v0.20.1-tt.v1.2.7", "0.20.1"]
+          - ["quay.io/mgazzetti/vllm-performance/vllm:vllm-0-31-terratorch-1-2-13", "0.31.0"]
     - identifier: n_cpus
       metadata:
         description: "(deployment) the number of CPUs to use"
@@ -1541,7 +1541,7 @@ geospatial-vllm-bench-deployment-custom-dataset:
   defaultParameterization:
     - property:
         identifier: 'image'
-      value: "quay.io/mgazzetti/vllm-performance/vllm:vllm.v0.20.1-tt.v1.2.7"
+      value: "quay.io/mgazzetti/vllm-performance/vllm:vllm-0-31-terratorch-1-2-13"
     - property:
         identifier: n_cpus
       value: 8
@@ -1807,7 +1807,7 @@ geospatial-guidellm-bench-deployment:
         description: "(deployment) Docker image to use to create vllm deployments"
       propertyDomain:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
-        values: ["quay.io/mgazzetti/vllm-performance/vllm:vllm.v0.20.1-tt.v1.2.7"]
+        values: ["quay.io/mgazzetti/vllm-performance/vllm:vllm-0-31-terratorch-1-2-13"]
     - identifier: n_cpus
       metadata:
         description: "(deployment) the number of CPUs to use"
@@ -1894,7 +1894,7 @@ geospatial-guidellm-bench-deployment:
   defaultParameterization:
     - property:
         identifier: 'image'
-      value: "quay.io/mgazzetti/vllm-performance/vllm:vllm.v0.20.1-tt.v1.2.7"
+      value: "quay.io/mgazzetti/vllm-performance/vllm:vllm-0-31-terratorch-1-2-13"
     - property:
         identifier: n_cpus
       value: 8
@@ -2009,7 +2009,7 @@ geospatial-guidellm-bench-deployment-custom-dataset:
         description: "(deployment) Docker image to use to create vllm deployments"
       propertyDomain:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
-        values: ["quay.io/mgazzetti/vllm-performance/vllm:vllm.v0.20.1-tt.v1.2.7"]
+        values: ["quay.io/mgazzetti/vllm-performance/vllm:vllm-0-31-terratorch-1-2-13"]
     - identifier: n_cpus
       metadata:
         description: "(deployment) the number of CPUs to use"
@@ -2098,7 +2098,7 @@ geospatial-guidellm-bench-deployment-custom-dataset:
   defaultParameterization:
     - property:
         identifier: 'image'
-      value: "quay.io/mgazzetti/vllm-performance/vllm:vllm.v0.20.1-tt.v1.2.7"
+      value: "quay.io/mgazzetti/vllm-performance/vllm:vllm-0-31-terratorch-1-2-13"
     - property:
         identifier: n_cpus
       value: 8

@@ -53,10 +53,20 @@ For any PR that touches a plugin directory (`plugins/`):
 
 Agent skills are text documents under `.agents/skills/`.
 
-- Evaluate based on [Agent Skills Guidelines](../../AGENTS.md#agent-skills).
+- Evaluate based on
+  [Writing Agent Skills](../../AGENTS.md#writing-agent-skills).
 - For each skill (new or modified) ensure you check the following for related
   content
   - `.agents/skills/`, `examples/`, `docs/`, `AGENTS.md`
+- For each skill (new or modified) verify specification conformance:
+  - `name` matches the parent directory and uses lowercase alphanumerics and
+    hyphens (max 64 characters)
+  - `description` is at most 1024 characters and uses imperative phrasing
+    ("Use when...")
+  - `SKILL.md` is under 500 lines
+  - supplementary docs are in `references/`, templates and example manifests
+    in `assets/`, helper scripts in `scripts/`
+  - every YAML file in `assets/` is covered by a test under `tests/`
 
 When evaluating new or modified skills (new or changes) use this structure per
 skill:
@@ -85,7 +95,11 @@ skill:
        ado-develop-plugin, etc.)
 5. **Medium Issues**
    - In this section include issues like the following:
-     - Inline code that should link to an existing example file instead
+     - Inline YAML or code that should be moved to `assets/` (or link to an
+       existing example file) instead
+     - Assets in `assets/` without a test
+     - Files in `references/` or `assets/` not linked from `SKILL.md` with a
+       clear loading trigger
      - Formatting problems, structural issues, or misleading text
      - Mistakes in code examples
      - Inconsistencies with other skill files or agent files

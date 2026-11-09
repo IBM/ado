@@ -168,3 +168,28 @@ def test_document_configuration_rich_html() -> None:
     output = capture.get()
     assert "HTML report" in output
     assert html_body in output
+
+
+def test_study_document_template_asset_validates(agents_dir: pathlib.Path) -> None:
+    """The study document template asset validates as a DocumentConfiguration."""
+    template_path = (
+        agents_dir
+        / "skills/ado-create-study-document/assets/study-document-template.yaml"
+    )
+    data = yaml.load(template_path.read_text(), Loader=SafeLoader)
+    config = DocumentConfiguration.model_validate(data)
+    assert isinstance(config.metadata, StudyDocumentMetadata)
+    assert config.metadata.name == "study-cplex-mip"
+
+
+def test_resource_yaml_document_template_asset_validates(
+    agents_dir: pathlib.Path,
+) -> None:
+    """The document template asset validates as a DocumentConfiguration."""
+    template_path = (
+        agents_dir / "skills/ado-create-resource-yaml/assets/document-template.yaml"
+    )
+    data = yaml.load(template_path.read_text(), Loader=SafeLoader)
+    config = DocumentConfiguration.model_validate(data)
+    assert config.contentType == "markdown"
+    assert len(config.relatedResources) == 1

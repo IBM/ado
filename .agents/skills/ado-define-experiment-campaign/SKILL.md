@@ -6,8 +6,8 @@ description: >-
   experiment selection, parameterization, entity-space design, validation, and
   operator selection. Use when the user wants to create or configure an
   experiment campaign (choosing points to explore, experiments to use, sampling
-  method), write discoveryspace or operation YAML to address a
-   a research, benchmarking, or search problem.
+  method), write discoveryspace or operation YAML to address a research,
+  benchmarking, or search problem.
 ---
 
 # Formulating Problems for ado Execution
@@ -142,7 +142,7 @@ Note: this initial YAML will not include any optional properties.
 
 **Write initial DiscoverySpace YAML manually:**
 
-See [skill-manual-structure.yaml](yaml-examples/skill-manual-structure.yaml) for
+See [skill-manual-structure.yaml](assets/skill-manual-structure.yaml) for
 an example of the structure of the YAML
 
 Note, ensure the `experimentVersion` field is set to the correct value.
@@ -200,7 +200,7 @@ Review the template and configure parameters based on:
 **Structure:**
 
 See
-[skill-operation-structure.yaml](yaml-examples/skill-operation-structure.yaml)
+[skill-operation-structure.yaml](assets/skill-operation-structure.yaml)
 for an example structure.
 
 ### Step 2d: Validate Operation YAML
@@ -246,17 +246,17 @@ Fix validation errors and repeat validation until successful.
 **Discrete (categorical):**
 
 See
-[skill-property-domain-discrete-categorical.yaml](yaml-examples/skill-property-domain-discrete-categorical.yaml).
+[skill-property-domain-discrete-categorical.yaml](assets/skill-property-domain-discrete-categorical.yaml).
 
 **Discrete (numeric):**
 
 See
-[skill-property-domain-discrete-numeric.yaml](yaml-examples/skill-property-domain-discrete-numeric.yaml).
+[skill-property-domain-discrete-numeric.yaml](assets/skill-property-domain-discrete-numeric.yaml).
 
 **Continuous:**
 
 See
-[skill-property-domain-continuous.yaml](yaml-examples/skill-property-domain-continuous.yaml).
+[skill-property-domain-continuous.yaml](assets/skill-property-domain-continuous.yaml).
 
 ## Validation Checklist
 
@@ -311,8 +311,8 @@ Before finalizing, verify:
 
 ## Additional Resources
 
-- For detailed schema information, see [reference.md](reference.md)
-- For example workflows, see [examples.md](examples.md)
+- For detailed schema information, see [references/reference.md](references/reference.md)
+- For example workflows, see [references/examples.md](references/examples.md)
 - For experiment versioning and memoization, see
   `docs/resources/discovery-spaces.md` (section "Setting the experiment
   version") if the source repo is available, otherwise

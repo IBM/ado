@@ -136,6 +136,14 @@ def register_context_command(app: typer.Typer) -> None:
         options_metavar="",
     )(manage_contexts)
 
+    # NOTE: "ctx" is a hidden alias of "context" (manage_contexts),
+    # NOT of "contexts" (list_contexts).
+    app.command(
+        name="ctx",
+        options_metavar="",
+        hidden=True,
+    )(manage_contexts)
+
 
 def register_contexts_command(app: typer.Typer) -> None:
     app.command(

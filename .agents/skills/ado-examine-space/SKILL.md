@@ -258,18 +258,9 @@ Structure the report as:
    outliers, correlations
 5. **Related operations** – which operations ran on this space and their status
 
-Store the report by creating a document resource:
-
-```yaml
-metadata:
-  name: "<descriptive name>"
-  description: "<one-line summary>"
-content: |
-  <full markdown report text>
-relatedResources:
-  - id: <space id>
-    role: parent
-```
+Store the report by creating a document resource, based on
+[document-template.yaml](../ado-create-resource-yaml/assets/document-template.yaml)
+with the space id as the `parent` related resource:
 
 ```bash
 uv run ado create document -f <SPACE_ID>_<YYYY-MM-DD>_document.yaml

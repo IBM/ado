@@ -1,6 +1,6 @@
 ---
 name: ado-create-study-document
-description: >
+description: >-
   Describes how to create documents (document resources) that track an
   in-progress research study: motivation, question, objectives, materials, study labels,
   and a todo list of next steps. Use when starting a study, creating a study
@@ -56,37 +56,8 @@ Study objective.
 
 ## Template
 
-```yaml
-# study-$ID_document.yaml  (temp file, not committed)
-metadata:
-  name: study-cplex-mip
-  description: Compare TPE vs LHS for CPLEX MIP gap on bab6
-  todo:
-    - Run TPE baseline (60m, 200 trials)
-    - Analyse mip-gap histograms
-content: |
-  ## Motivation
-
-  Establish a well-tuned classical baseline for this problem class.
-
-  ## Study question
-
-  Which sampler finds better MIP gaps faster on bab6?
-
-  ## Study objective
-
-  Run comparable TPE and LHS campaigns; compare mip-gap and solve-time
-  distributions.
-
-  ## Materials
-
-  - Instance: bab6.mps (MIPLIB 2017)
-  - Paths: examples/cplex_mip_bab6/
-
-  ## Study labels
-
-  - study: cplex-mip
-```
+See [assets/study-document-template.yaml](assets/study-document-template.yaml)
+for a complete study document template.
 
 Omit Motivation and/or Materials when they add nothing.
 

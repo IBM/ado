@@ -4,6 +4,7 @@ import json
 import math
 
 import numpy as np
+import pydantic
 import pytest
 
 from ado.schema.domain import (
@@ -147,7 +148,7 @@ def test_valid_property_domains() -> None:
     assert discretePropertyDomainNoRange.valueInDomain(-110) is True
     assert discretePropertyDomainNoRange.valueInDomain(-10) is True
     assert discretePropertyDomainNoRange.valueInDomain(1) is True
-    # For discrete variables with an interval we need at least one part of range to anchor the interval!
+    # An unbounded discrete domain is a zero-anchored grid
     assert discretePropertyDomainNoRange.valueInDomain(100) is True
     assert discretePropertyDomainFloatRange.valueInDomain(0.0) is True
     assert discretePropertyDomainFloatRange.valueInDomain(0.2) is True
@@ -378,7 +379,8 @@ def test_discrete_property_is_subdomain_for_domain_range() -> None:
 
     # Test against unbounded domain
 
-    assert not discretePropertyDomainNoRange.isSubDomain(discretePropertyDomain)
+    assert discretePropertyDomainNoRange.isSubDomain(discretePropertyDomain) is False
+    assert discretePropertyDomain.isSubDomain(discretePropertyDomainNoRange) is True
 
     # Test  subdomains
     # We can test detection of non subdomain by inverting the tests
@@ -410,6 +412,108 @@ def test_discrete_property_is_subdomain_for_domain_range() -> None:
 
     discretePropertySubDomain = PropertyDomain(interval=3, domainRange=[-10, 10])
     assert not discretePropertySubDomain.isSubDomain(discretePropertyDomain)
+
+
+@pytest.mark.parametrize(
+    ("test_domain", "outer_domain", "expected"),
+    [
+        # Float interval that is an exact multiple of the enclosing step —
+        # the primary regression case: 0.3 % 0.1 != 0 in float arithmetic.
+        (
+            PropertyDomain(interval=0.3, domainRange=[0.0, 0.6]),
+            PropertyDomain(interval=0.1, domainRange=[0.0, 1.0]),
+            True,
+        ),
+        # Equal float intervals — identity case.
+        (
+            PropertyDomain(interval=0.1, domainRange=[0.0, 0.5]),
+            PropertyDomain(interval=0.1, domainRange=[0.0, 1.0]),
+            True,
+        ),
+        # Tested step is not a multiple of enclosing step.
+        (
+            PropertyDomain(interval=0.25, domainRange=[0.0, 1.0]),
+            PropertyDomain(interval=0.1, domainRange=[0.0, 2.0]),
+            False,
+        ),
+        # Tested step is smaller than enclosing step.
+        (
+            PropertyDomain(interval=0.05, domainRange=[0.0, 1.0]),
+            PropertyDomain(interval=0.1, domainRange=[0.0, 2.0]),
+            False,
+        ),
+        # Divisibility passes but lower bounds are misaligned, so values do not
+        # form a subset of the enclosing grid.
+        (
+            PropertyDomain(interval=0.3, domainRange=[0.05, 0.65]),
+            PropertyDomain(interval=0.1, domainRange=[0.0, 1.0]),
+            False,
+        ),
+        # Mixed int/float: int step is a multiple of float step.
+        (
+            PropertyDomain(interval=1, domainRange=[0.0, 3.0]),
+            PropertyDomain(interval=0.5, domainRange=[0.0, 4.0]),
+            True,
+        ),
+        # Mixed int/float: float step is not a multiple of int step.
+        (
+            PropertyDomain(interval=0.5, domainRange=[0.0, 3.0]),
+            PropertyDomain(interval=1, domainRange=[0.0, 4.0]),
+            False,
+        ),
+    ],
+)
+def test_float_discrete_subdomain_divisibility(
+    test_domain: PropertyDomain,
+    outer_domain: PropertyDomain,
+    expected: bool,
+) -> None:
+    """Tests isSubDomain for float discrete range domains where subdomain
+    correctness depends on exact interval divisibility."""
+    assert test_domain.isSubDomain(outer_domain) == expected
+
+
+@pytest.mark.parametrize(
+    ("test_domain", "outer_domain", "expected"),
+    [
+        # Single-element integer domain {4} whose value lands on the enclosing grid
+        # {0,2,4,6,8}: subset even though the intervals are not multiples of each other.
+        (
+            PropertyDomain(interval=3, domainRange=[4, 5]),
+            PropertyDomain(interval=2, domainRange=[0, 10]),
+            True,
+        ),
+        # Single-element float domain {0.4} whose value lands on the enclosing grid
+        # {0.0,0.1,...,0.9}: subset even though the intervals are not multiples of each other.
+        (
+            PropertyDomain(interval=0.3, domainRange=[0.4, 0.7]),
+            PropertyDomain(interval=0.1, domainRange=[0.0, 1.0]),
+            True,
+        ),
+        # Multi-element domain {0,3,6} where some values fall between enclosing grid
+        # points {0,2,4,6,8}: not a subset.
+        (
+            PropertyDomain(interval=3, domainRange=[0, 9]),
+            PropertyDomain(interval=2, domainRange=[0, 10]),
+            False,
+        ),
+        # Domain {-10,-7,...,8} whose values are offset from the enclosing grid
+        # {-10,-8,...,8}: not a subset.
+        (
+            PropertyDomain(interval=3, domainRange=[-10, 10]),
+            PropertyDomain(interval=2, domainRange=[-10, 10]),
+            False,
+        ),
+    ],
+)
+def test_discrete_subdomain_non_divisible_but_values_align(
+    test_domain: PropertyDomain,
+    outer_domain: PropertyDomain,
+    expected: bool,
+) -> None:
+    """Tests isSubDomain for discrete range domains where the intervals are not
+    multiples of each other but the test domain values align with the enclosing grid."""
+    assert test_domain.isSubDomain(outer_domain) == expected
 
 
 def test_discrete_property_is_subdomain_for_values() -> None:
@@ -869,6 +973,303 @@ def test_domain_values() -> None:
     assert d.domain_values == [0]
 
 
+@pytest.mark.parametrize(
+    ("interval", "value", "expected"),
+    [
+        (2, 4, True),
+        (2, -4, True),
+        (2, 0, True),
+        (2, 4.0, True),
+        (2, 1, False),
+        (2, 3.0, False),
+        (2, True, False),
+        (2, False, True),
+        (2, np.bool_(True), False),
+        (2, np.bool_(False), True),
+        (1, 0, True),
+        (1, 1, True),
+        (1, -10, True),
+        (1, 1.5, False),
+        (1, "a", False),
+        (1, float("nan"), False),
+        (1, float("inf"), False),
+        (1, float("-inf"), False),
+        (1, True, True),
+        (1, False, True),
+        (1, np.bool_(True), True),
+        (1, np.bool_(False), True),
+        (0.1, 0.3, True),
+        (0.1, 0.35, False),
+        (0.5, 1.5, True),
+        (0.5, 1.2, False),
+        (0.5, -1.5, True),
+    ],
+)
+def test_unbounded_discrete_domain_value_in_domain(
+    interval: float, value: object, expected: bool
+) -> None:
+    domain = PropertyDomain(interval=interval)
+    assert domain.valueInDomain(value) is expected
+
+
+@pytest.mark.parametrize("value", ["a", "3", None, [1, 2], {"a": 1}, object()])
+def test_is_multiple_of_discrete_domain_interval_rejects_non_numeric_value(
+    value: object,
+) -> None:
+    """Test that _is_multiple_of_discrete_domain_interval raises ValueError for non-number-like values."""
+    from ado.schema.domain import _is_multiple_of_discrete_domain_interval
+
+    with pytest.raises(ValueError, match="value must be a number"):
+        _is_multiple_of_discrete_domain_interval(value, 1)
+
+
+def test_domain_values_raises_for_unbounded_discrete_domain() -> None:
+    with pytest.raises(ValueError, match="unbounded discrete"):
+        _ = PropertyDomain(interval=1).domain_values
+
+
+def test_is_subdomain_of_unbounded_discrete_domain() -> None:
+    binary = PropertyDomain(variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE)
+
+    # Crash sites: unbounded discrete domains have no domainRange
+    assert PropertyDomain(values=[1]).isSubDomain(PropertyDomain(interval=1)) is True
+    assert (
+        PropertyDomain(interval=1).isSubDomain(PropertyDomain(values=[1, 2])) is False
+    )
+    assert binary.isSubDomain(PropertyDomain(interval=1)) is True
+
+    # interval=2 cases
+    assert (
+        PropertyDomain(domainRange=[-1, 3], interval=2).isSubDomain(
+            PropertyDomain(interval=2)
+        )
+        is False
+    )
+    assert (
+        PropertyDomain(domainRange=[0, 6], interval=2).isSubDomain(
+            PropertyDomain(interval=2)
+        )
+        is True
+    )
+    assert (
+        PropertyDomain(domainRange=[1, 2], interval=3).isSubDomain(
+            PropertyDomain(interval=2)
+        )
+        is False
+    )
+    assert (
+        PropertyDomain(domainRange=[2, 3], interval=3).isSubDomain(
+            PropertyDomain(interval=2)
+        )
+        is True
+    )
+    assert (
+        PropertyDomain(values=[-1, 1]).isSubDomain(PropertyDomain(interval=2)) is False
+    )
+    assert PropertyDomain(values=[2, 4]).isSubDomain(PropertyDomain(interval=2)) is True
+    assert binary.isSubDomain(PropertyDomain(interval=2)) is False
+
+    # interval=0.5 cases
+    assert (
+        PropertyDomain(domainRange=[-1.5, 2.0], interval=0.5).isSubDomain(
+            PropertyDomain(interval=0.5)
+        )
+        is True
+    )
+    assert (
+        PropertyDomain(domainRange=[-1.2, 2.0], interval=0.5).isSubDomain(
+            PropertyDomain(interval=0.5)
+        )
+        is False
+    )
+    assert (
+        PropertyDomain(values=[-0.5, 1.0, 1.5]).isSubDomain(
+            PropertyDomain(interval=0.5)
+        )
+        is True
+    )
+    assert (
+        PropertyDomain(values=[-0.5, 1.2]).isSubDomain(PropertyDomain(interval=0.5))
+        is False
+    )
+
+    # decimal interval cases
+    assert (
+        PropertyDomain(interval=0.3).isSubDomain(PropertyDomain(interval=0.1)) is True
+    )
+    assert (
+        PropertyDomain(interval=0.35).isSubDomain(PropertyDomain(interval=0.1)) is False
+    )
+    assert (
+        PropertyDomain(domainRange=[0.0, 0.6], interval=0.3).isSubDomain(
+            PropertyDomain(interval=0.1)
+        )
+        is True
+    )
+    assert (
+        PropertyDomain(domainRange=[0.05, 0.65], interval=0.3).isSubDomain(
+            PropertyDomain(interval=0.1)
+        )
+        is False
+    )
+
+    # Neighbouring combinations that must not change
+    assert PropertyDomain(values=[1]).isSubDomain(PropertyDomain(values=[1, 2])) is True
+    assert binary.isSubDomain(PropertyDomain(values=[0, 1])) is True
+    assert (
+        PropertyDomain(domainRange=[0, 5], interval=1).isSubDomain(
+            PropertyDomain(interval=1)
+        )
+        is True
+    )
+    assert PropertyDomain(interval=2).isSubDomain(PropertyDomain(interval=1)) is True
+    assert (
+        PropertyDomain(interval=1).isSubDomain(
+            PropertyDomain(domainRange=[0, 5], interval=1)
+        )
+        is False
+    )
+    assert PropertyDomain(interval=1).isSubDomain(binary) is False
+
+
+@pytest.mark.parametrize(
+    ("test_domain", "outer_domain", "expected"),
+    [
+        # values: every value is a multiple of k
+        (PropertyDomain(values=[2, 4, 6]), PropertyDomain(interval=2), True),
+        (PropertyDomain(values=[2, 3, 6]), PropertyDomain(interval=2), False),
+        (PropertyDomain(values=[-4, 0, 8]), PropertyDomain(interval=2), True),
+        (PropertyDomain(values=[-1, 1]), PropertyDomain(interval=2), False),
+        (PropertyDomain(values=[0.2, 0.4]), PropertyDomain(interval=0.2), True),
+        (PropertyDomain(values=[0.2, 0.5]), PropertyDomain(interval=0.2), False),
+        # range with more than one value: lower bound and interval are both multiples of k
+        (
+            PropertyDomain(domainRange=[0, 6], interval=2),
+            PropertyDomain(interval=2),
+            True,
+        ),
+        (
+            PropertyDomain(domainRange=[-1, 3], interval=2),
+            PropertyDomain(interval=2),
+            False,
+        ),
+        (
+            PropertyDomain(domainRange=[2, 10], interval=4),
+            PropertyDomain(interval=2),
+            True,
+        ),
+        (
+            PropertyDomain(domainRange=[2, 10], interval=3),
+            PropertyDomain(interval=2),
+            False,
+        ),
+        (
+            PropertyDomain(domainRange=[1, 9], interval=4),
+            PropertyDomain(interval=2),
+            False,
+        ),
+        (
+            PropertyDomain(domainRange=[0.0, 0.6], interval=0.3),
+            PropertyDomain(interval=0.1),
+            True,
+        ),
+        (
+            PropertyDomain(domainRange=[0.05, 0.65], interval=0.3),
+            PropertyDomain(interval=0.1),
+            False,
+        ),
+        # range with a single value: that value is a multiple of k
+        (
+            PropertyDomain(domainRange=[2, 3], interval=3),
+            PropertyDomain(interval=2),
+            True,
+        ),
+        (
+            PropertyDomain(domainRange=[1, 2], interval=3),
+            PropertyDomain(interval=2),
+            False,
+        ),
+        (
+            PropertyDomain(domainRange=[0.4, 0.7], interval=0.3),
+            PropertyDomain(interval=0.1),
+            True,
+        ),
+        (
+            PropertyDomain(domainRange=[0.35, 0.6], interval=0.3),
+            PropertyDomain(interval=0.1),
+            False,
+        ),
+        # unbounded interval=i: i is a multiple of k
+        (PropertyDomain(interval=4), PropertyDomain(interval=2), True),
+        (PropertyDomain(interval=3), PropertyDomain(interval=2), False),
+        (PropertyDomain(interval=1), PropertyDomain(interval=2), False),
+        (PropertyDomain(interval=0.3), PropertyDomain(interval=0.1), True),
+        (PropertyDomain(interval=0.35), PropertyDomain(interval=0.1), False),
+        # BINARY: 0 and 1 are multiples of k (i.e. 1 is a multiple of k)
+        (
+            PropertyDomain(variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE),
+            PropertyDomain(interval=1),
+            True,
+        ),
+        (
+            PropertyDomain(variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE),
+            PropertyDomain(interval=2),
+            False,
+        ),
+        (
+            PropertyDomain(variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE),
+            PropertyDomain(interval=0.5),
+            True,
+        ),
+        (
+            PropertyDomain(variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE),
+            PropertyDomain(interval=0.3),
+            False,
+        ),
+        # Non-discrete / non-binary types against unbounded discrete domain
+        (
+            PropertyDomain(domainRange=[0.0, 1.0]),
+            PropertyDomain(interval=1),
+            False,
+        ),
+        (
+            PropertyDomain(values=["a", "b"]),
+            PropertyDomain(interval=1),
+            False,
+        ),
+        (
+            PropertyDomain(
+                variableType=VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
+                values=["a", 2],
+            ),
+            PropertyDomain(interval=1),
+            False,
+        ),
+        (
+            PropertyDomain(
+                variableType=VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
+                values=["a"],
+            ),
+            PropertyDomain(interval=1),
+            False,
+        ),
+    ],
+)
+def test_is_subdomain_of_unbounded_discrete_domain_rules(
+    test_domain: PropertyDomain,
+    outer_domain: PropertyDomain,
+    expected: bool,
+) -> None:
+    """Checks isSubDomain against an enclosing unbounded discrete domain.
+
+    Args:
+        test_domain: The domain whose containment is tested.
+        outer_domain: The enclosing unbounded discrete domain.
+        expected: The expected result of test_domain.isSubDomain(outer_domain).
+    """
+    assert test_domain.isSubDomain(outer_domain) == expected
+
+
 def test_open_categorical_variable_type_property_domain() -> None:
     import math
 
@@ -1140,6 +1541,8 @@ def test_is_value_in_internal_range_values_matches_internal_range_values() -> No
         (0.1, 0.4, 0.1),
         (-1.5, 1.5, 0.5),
         (0.0, 1.0, 0.33),
+        (-10 / 7, -10 / 7 + 0.5, 0.1),
+        (-1 / 3, -1 / 3 + 0.4, 0.1),
     ]
 
     test_values = [
@@ -1200,6 +1603,33 @@ def test_is_value_in_internal_range_values_matches_internal_range_values() -> No
                 f"Range ({lo}, {hi}, {step}) with value {v!r}: "
                 f"expected {expected}, got {actual}"
             )
+
+
+def test_domain_range_rejects_high_precision_float_bounds() -> None:
+    """Test that domainRange bounds with more than 10 decimal places are rejected."""
+    with pytest.raises(ValueError, match="10 decimal places"):
+        PropertyDomain(domainRange=[-1 / 7, -1 / 7 + 0.5])
+
+
+def test_interval_rejects_high_precision_float_interval() -> None:
+    """Test that an interval with more than 10 decimal places is rejected."""
+    with pytest.raises(ValueError, match="10 decimal places"):
+        PropertyDomain(domainRange=[0, 1], interval=1 / 3)
+
+
+def test_domain_accepts_float_values_within_supported_decimal_precision() -> None:
+    """Test that float bounds and intervals with at most 10 decimal places are accepted."""
+    domain = PropertyDomain(domainRange=[-0.1428571429, 0.3571428571], interval=0.1)
+    assert domain.domainRange == [-0.1428571429, 0.3571428571]
+    assert domain.interval == 0.1
+
+
+def test_valueinDomain_accepts_all_domain_values_float_range() -> None:
+    """Test that valueInDomain accepts every element of domain_values for a non-round float range."""
+    domain = PropertyDomain(domainRange=[-1.4285714286, -0.9285714286], interval=0.1)
+    assert len(domain.domain_values) > 0
+    for v in domain.domain_values:
+        assert domain.valueInDomain(v) is True
 
 
 def test_discrete_variable_large_range_value_in_domain_performance() -> None:
@@ -1677,3 +2107,77 @@ def test_internal_range_values_mixed_int_float_uses_float_path() -> None:
     for v in values:
         assert type(v) is float, f"Expected float, got {type(v)}"
     assert values == pytest.approx([0.0, 0.5])
+
+
+@pytest.mark.parametrize("invalid_interval", [0, -1, 0.0, -0.5])
+def test_property_domain_rejects_non_positive_interval(
+    invalid_interval: float,
+) -> None:
+    """Test that PropertyDomain rejects zero and negative interval values."""
+    with pytest.raises(pydantic.ValidationError):
+        PropertyDomain(domainRange=[0, 10], interval=invalid_interval)
+
+    with pytest.raises(pydantic.ValidationError):
+        PropertyDomain(interval=invalid_interval)
+
+
+@pytest.mark.parametrize("valid_interval", [1, 2, 0.5, 0.1])
+def test_property_domain_accepts_positive_interval(valid_interval: float) -> None:
+    """Test that PropertyDomain accepts positive integer and float intervals."""
+    domain = PropertyDomain(domainRange=[0, 10], interval=valid_interval)
+    assert domain.interval == valid_interval
+
+    domain_no_range = PropertyDomain(interval=valid_interval)
+    assert domain_no_range.interval == valid_interval
+
+
+@pytest.mark.parametrize("invalid_interval", [0, -1, 0.0, -0.5])
+def test_internal_range_values_rejects_non_positive_interval(
+    invalid_interval: float,
+) -> None:
+    """Test that _internal_range_values raises ValueError for non-positive intervals."""
+    with pytest.raises(ValueError, match="interval must be greater than 0"):
+        _internal_range_values(0, 10, invalid_interval)
+
+
+@pytest.mark.parametrize("invalid_interval", [0, -1, 0.0, -0.5])
+def test_is_value_in_internal_range_values_rejects_non_positive_interval(
+    invalid_interval: float,
+) -> None:
+    """Test that _is_value_in_internal_range_values raises ValueError for non-positive intervals."""
+    from ado.schema.domain import _is_value_in_internal_range_values
+
+    with pytest.raises(ValueError, match="interval must be greater than 0"):
+        _is_value_in_internal_range_values(3, 0, 10, invalid_interval)
+
+    # Raised even when an early return would otherwise apply
+    with pytest.raises(ValueError, match="interval must be greater than 0"):
+        _is_value_in_internal_range_values("not a number", 0, 10, invalid_interval)
+
+
+def test_internal_range_values_float_upper_bound_excluded_one_ulp_above() -> None:
+    """All returned values are strictly less than upper when accumulated float arithmetic lands one ULP above it."""
+    lower = -2.0
+    upper = np.nextafter(-0.5, -1.0)  # one ULP below -0.5
+    interval = 0.1
+
+    result = _internal_range_values(float(lower), float(upper), interval)
+    assert all(v < upper for v in result), (
+        f"All values must be strictly less than upper={upper!r}, "
+        f"but last element was {result[-1]!r}"
+    )
+
+
+def test_internal_range_values_float_rounding_excludes_upper_bound() -> None:
+    """Test that float values rounding to the upper bound are excluded from range values."""
+    negative_range_values = _internal_range_values(-1.3, -0.7, 0.6)
+    assert negative_range_values == [-1.3]
+    assert -0.7 not in negative_range_values
+
+    negative_range_domain = PropertyDomain(domainRange=[-1.3, -0.7], interval=0.6)
+    assert negative_range_domain.domain_values == [-1.3]
+    assert negative_range_domain.size == 1
+
+    positive_range_values = _internal_range_values(0.0, 3.6, 0.6)
+    assert positive_range_values == pytest.approx([0.0, 0.6, 1.2, 1.8, 2.4, 3.0])
+    assert 3.6 not in positive_range_values

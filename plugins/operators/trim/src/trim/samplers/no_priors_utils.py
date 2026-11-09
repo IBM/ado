@@ -627,10 +627,9 @@ def get_df_at_least_one_measured_value(
     if add_measurement_id:
         col_list = ["identifier", *col_list]
 
-    # SQL sample stores cache entities; refresh picks up measurements added
+    # The sample store caches entities; refresh picks up measurements added
     # since the last query.
-    if hasattr(space.sample_store, "refresh"):
-        space.sample_store.refresh()
+    space.sample_store.refresh()
 
     aggregation_method = PropertyAggregationMethodEnum.mean
     df = pd.DataFrame(

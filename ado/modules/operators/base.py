@@ -7,7 +7,8 @@ import abc
 import contextlib
 import logging
 import typing
-from typing import Protocol
+from collections.abc import Callable
+from typing import TypeAlias
 
 import pydantic
 import ray
@@ -19,7 +20,6 @@ import ado.metastore.project
 import ado.modules
 import ado.modules.actuators.replay
 import ado.schema.reference
-from ado.core.discoveryspace.space import DiscoverySpace
 from ado.core.operation.config import (
     DiscoveryOperationEnum,
     FunctionOperationInfo,
@@ -40,6 +40,7 @@ from ado.modules.operators.discovery_space_manager import (
 )
 from ado.schema.entity import Entity
 from ado.schema.reference import ExperimentReference
+from ado.utilities.annotations import unwrap_annotated
 
 if typing.TYPE_CHECKING:
     from ado.core.resources import ADOResource
@@ -51,14 +52,17 @@ if typing.TYPE_CHECKING:
 moduleLog = logging.getLogger("operation_base")
 
 
-class OperatorFunction(Protocol):
-    def __call__(
-        self,
-        discoverySpace: DiscoverySpace,
-        operationInfo: FunctionOperationInfo | None = None,
-        *,
-        parameters: GenericOperatorParameters,
-    ) -> OperationOutput: ...
+#: Callable that runs an operator after registration (nested calls / CLI).
+#:
+#: Structural convention::
+#:
+#:     (resource₁, …, resourceₙ, operationInfo=None, parameters: ConfigurationModel)
+#:         -> OperationOutput
+#:
+#: Resource parameter names and types are deduced from the function signature
+#: (see :func:`~ado.core.operation.inputs.resource_inputs_from_operator_function`);
+#: ``parameters`` is an instance of the operator's ``configuration_model``.
+OperatorCallable: TypeAlias = Callable[..., OperationOutput]
 
 
 def validate_operator_call_shape(
@@ -69,8 +73,9 @@ def validate_operator_call_shape(
     """Validate that *fn* matches the operator call-shape convention.
 
     Named parameters must be the resource input identifiers, in declaration
-    order, followed by ``operationInfo`` and then ``parameters``. The return
-    type must be :class:`~ado.core.operation.operation.OperationOutput`.
+    order, followed by ``operationInfo`` and then ``parameters``. Parameters
+    must be passable as keywords. The return type must be
+    :class:`~ado.core.operation.operation.OperationOutput`.
 
     Args:
         fn: The callable to validate.
@@ -107,6 +112,12 @@ def validate_operator_call_shape(
             "Operator function must not declare **kwargs; operation parameters "
             "must be a single 'parameters' argument typed as the configuration model."
         )
+    if any(p.kind == inspect.Parameter.POSITIONAL_ONLY for p in params):
+        raise ValueError(
+            "Operator function must not declare positional-only parameters; "
+            "orchestration passes resource inputs, operationInfo, and parameters "
+            "as keyword arguments."
+        )
 
     named = [
         p
@@ -114,7 +125,6 @@ def validate_operator_call_shape(
         if p.kind
         in (
             inspect.Parameter.POSITIONAL_OR_KEYWORD,
-            inspect.Parameter.POSITIONAL_ONLY,
             inspect.Parameter.KEYWORD_ONLY,
         )
     ]
@@ -131,7 +141,7 @@ def validate_operator_call_shape(
         )
 
     try:
-        hints = typing.get_type_hints(fn)
+        hints = typing.get_type_hints(fn, include_extras=True)
     except Exception as exc:  # noqa: BLE001
         raise ValueError(
             f"Operator function has valid structure but type hints are missing "
@@ -149,18 +159,20 @@ def validate_operator_call_shape(
             f"for {missing_hints}. {_HINTS_MISSING_HINT}"
         )
 
-    if hints["return"] != OperationOutput:
+    return_type = unwrap_annotated(hints["return"])
+    if return_type != OperationOutput:
         raise ValueError(
             f"Operator function return type must be {OperationOutput!r}, "
-            f"got {hints['return']!r}."
+            f"got {return_type!r}."
         )
     expected_operation_info = FunctionOperationInfo | None
-    if hints["operationInfo"] != expected_operation_info:
+    operation_info_type = unwrap_annotated(hints["operationInfo"])
+    if operation_info_type != expected_operation_info:
         raise ValueError(
             f"Operator function parameter 'operationInfo' must be "
-            f"{expected_operation_info!r}, got {hints['operationInfo']!r}."
+            f"{expected_operation_info!r}, got {operation_info_type!r}."
         )
-    parameters_type = hints["parameters"]
+    parameters_type = unwrap_annotated(hints["parameters"])
     if configuration_model is not None:
         if parameters_type is not configuration_model:
             raise ValueError(

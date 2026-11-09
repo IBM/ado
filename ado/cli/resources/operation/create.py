@@ -188,12 +188,6 @@ def create_operation(parameters: AdoCreateCommandParameters) -> str | None:
             model=op_resource_configuration, override_values=parameters.override_values
         )
 
-    if len(op_resource_configuration.spaces) > 1:
-        console_print(
-            f"{ERROR}the spaces field only supports one value for now.", stderr=True
-        )
-        raise typer.Exit(1)
-
     if parameters.dry_run:
         console_print(f"{INFO}The operation YAML is syntactically valid.", stderr=True)
 

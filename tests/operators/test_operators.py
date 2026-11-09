@@ -735,7 +735,7 @@ def test_operator_function_conf_identifier_delegates_to_operator_metadata() -> N
 
 
 def test_explore_operation_class_decorator_registers_function() -> None:
-    """@explore_operation returns the class unchanged and stores the OperatorFunction in the collection."""
+    """@explore_operation returns the class unchanged and stores the operator callable in the collection."""
     import inspect
 
     from ado.core.operation.config import (
@@ -771,7 +771,7 @@ def test_explore_operation_class_decorator_registers_function() -> None:
     assert isinstance(_TestOp, type)
     assert issubclass(_TestOp, Explore)
 
-    # The generated OperatorFunction is stored in the collection
+    # The generated operator callable is stored in the collection
     assert "_test_class_op" in explore.operators
     fn = explore.operators["_test_class_op"].function
     assert callable(fn)

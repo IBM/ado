@@ -142,7 +142,8 @@ def create_resource(
             help="""Specify additional resources to use or create via key=value pairs,
             where the key is a resource type and the value is a resource ID or a resource configuration file.
 
-            Supports creating spaces with sample stores and operations with spaces and actuator configurations.""",
+            Supports creating spaces with sample stores and operations with
+            spaces, data containers, and actuator configurations.""",
         ),
     ] = None,
     use_latest: Annotated[

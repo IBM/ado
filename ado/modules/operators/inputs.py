@@ -108,18 +108,6 @@ def validate_resource_inputs_for_operation_type(
             f"{primary_kind.value!r} resource input."
         )
 
-    if operation_type == DiscoveryOperationEnum.FUSE:
-        non_space = [
-            descriptor
-            for descriptor in required_resource_inputs
-            if descriptor.kind != CoreResourceKinds.DISCOVERYSPACE
-        ]
-        if non_space:
-            raise ValueError(
-                "Fuse operators require all resource inputs to be of kind "
-                f"'discoveryspace'; found: {[d.identifier for d in non_space]}."
-            )
-
     identifiers = [descriptor.identifier for descriptor in required_resource_inputs]
     if len(identifiers) != len(set(identifiers)):
         duplicates = [i for i in identifiers if identifiers.count(i) > 1]

@@ -101,6 +101,15 @@ def wrong_return_type(
 ) -> int: ...
 
 
+def positional_only(
+    discoverySpace: DiscoverySpace,
+    /,
+    operationInfo: FunctionOperationInfo | None = None,
+    *,
+    parameters: _Params,
+) -> OperationOutput: ...
+
+
 class TestValidSignatures:
     def test_valid_parameters_model(self) -> None:
         """A discoverySpace, operationInfo, and parameters model passes."""
@@ -226,3 +235,65 @@ class TestInvalidSignatures:
         """Wrong return type is rejected."""
         with pytest.raises(ValueError, match="return"):
             _validate(wrong_return_type)
+
+    def test_annotated_discovery_space_is_unwrapped(self) -> None:
+        """Annotated[DiscoverySpace, ...] deduces a discoveryspace input."""
+        from typing import Annotated
+
+        def annotated_space(
+            discoverySpace: Annotated[DiscoverySpace, "meta"],
+            operationInfo: FunctionOperationInfo | None = None,
+            *,
+            parameters: _Params,
+        ) -> OperationOutput: ...
+
+        descriptors = resource_inputs_from_operator_function(annotated_space)
+        assert [descriptor.identifier for descriptor in descriptors] == [
+            "discoverySpace"
+        ]
+        assert descriptors[0].kind == CoreResourceKinds.DISCOVERYSPACE
+        _validate(annotated_space)
+
+    def test_annotated_call_shape_hints_are_unwrapped(self) -> None:
+        """Annotated operationInfo, parameters, and return still validate."""
+        from typing import Annotated
+
+        def annotated_hints(
+            discoverySpace: DiscoverySpace,
+            operationInfo: Annotated[FunctionOperationInfo | None, "meta"] = None,
+            *,
+            parameters: Annotated[_Params, "meta"],
+        ) -> Annotated[OperationOutput, "meta"]: ...
+
+        _validate(annotated_hints)
+
+    def test_positional_only_rejected(self) -> None:
+        """Positional-only parameters cannot be passed as keywords."""
+        with pytest.raises(ValueError, match="positional-only"):
+            resource_inputs_from_operator_function(positional_only)
+        with pytest.raises(ValueError, match="positional-only"):
+            validate_operator_call_shape(
+                positional_only,
+                [],
+                configuration_model=_Params,
+            )
+
+    def test_fuse_rejects_non_discovery_space_inputs(self) -> None:
+        """Fuse inputs that are not discovery spaces are rejected."""
+
+        def fuse_mixed(
+            left: DiscoverySpace,
+            right: DataContainerResource,
+            operationInfo: FunctionOperationInfo | None = None,
+            *,
+            parameters: _Params,
+        ) -> OperationOutput: ...
+
+        descriptors = resource_inputs_from_operator_function(fuse_mixed)
+        with pytest.raises(ValueError, match="does not allow"):
+            validate_operator_registration(
+                fuse_mixed,
+                descriptors,
+                DiscoveryOperationEnum.FUSE,
+                configuration_model=_Params,
+            )

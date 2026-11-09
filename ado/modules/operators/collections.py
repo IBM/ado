@@ -5,7 +5,8 @@ import functools
 import inspect
 import logging
 import typing
-from typing import Annotated
+from collections.abc import Callable
+from typing import Annotated, ParamSpec
 
 import pydantic
 
@@ -26,12 +27,14 @@ from ado.modules.operators.base import (
     DiscoveryOperationBase,
     DiscoverySpaceSubscribingDiscoveryOperation,
     OperationOutput,
-    OperatorFunction,
+    OperatorCallable,
     validate_operator_registration,
 )
 from ado.modules.operators.errors import OperatorVersionMismatchError
 
 moduleLog = logging.getLogger("operation_collections")
+
+P = ParamSpec("P")
 
 
 def _warn_if_operator_name_reused(
@@ -69,7 +72,7 @@ class OperatorCollection(pydantic.BaseModel):
         """Returns all registered operator names."""
         return list(self.operators.keys())
 
-    def __getattr__(self, item: str) -> OperatorFunction | None:
+    def __getattr__(self, item: str) -> OperatorCallable | None:
         """Returns the operator function for the given registered name.
 
         Args:
@@ -204,8 +207,8 @@ def _register_general_operator(
     configuration_model: type[GenericOperatorParameters],
     example_configuration: GenericOperatorParameters,
     description: str | None,
-    func: OperatorFunction,
-) -> OperatorFunction:
+    func: Callable[P, OperationOutput],
+) -> Callable[P, OperationOutput]:
     """Validate, wrap, and register a non-explore operator.
 
     Resource inputs are deduced from *func*.
@@ -251,7 +254,7 @@ def _register_general_operator(
         provenance=PackageProvenance.from_module_name(func.__module__),
         required_resource_inputs=tuple(required_resource_inputs),
     )
-    return typing.cast("OperatorFunction", wrapper)
+    return typing.cast("Callable[P, OperationOutput]", wrapper)
 
 
 def characterize_operation(
@@ -260,7 +263,7 @@ def characterize_operation(
     configuration_model: type[GenericOperatorParameters],
     example_configuration: GenericOperatorParameters,
     description: str | None = None,
-) -> typing.Callable[[OperatorFunction], OperatorFunction]:
+) -> Callable[[Callable[P, OperationOutput]], Callable[P, OperationOutput]]:
     """Decorator that registers a function as a characterize operation.
 
     Resource inputs are deduced from the decorated function's signature.
@@ -276,7 +279,9 @@ def characterize_operation(
         A decorator that wraps and registers the decorated function under ``name``.
     """
 
-    def _register(func: OperatorFunction) -> OperatorFunction:
+    def _register(
+        func: Callable[P, OperationOutput],
+    ) -> Callable[P, OperationOutput]:
         return _register_general_operator(
             collection=characterize,
             collection_label="characterize",
@@ -325,7 +330,7 @@ def explore_operation(
     """Decorator that registers an explore operator class.
 
     All metadata is sourced from the class's ``operator_metadata()``
-    classmethod.  The decorator generates an :class:`OperatorFunction`,
+    classmethod.  The decorator generates an :class:`OperatorCallable`,
     validates its signature, registers it in the explore collection, and
     returns the **original class unchanged**::
 
@@ -405,7 +410,6 @@ def explore_operation(
         operation_type=DiscoveryOperationEnum.EXPLORE,
         configuration_model=configuration_model,
     )
-    _generated = typing.cast("OperatorFunction", _generated)
     _warn_if_operator_name_reused("explore", op_name, explore.operators)
     explore.operators[op_name] = metadata.model_copy(
         update={
@@ -424,7 +428,7 @@ def modify_operation(
     configuration_model: type[GenericOperatorParameters],
     example_configuration: GenericOperatorParameters,
     description: str | None = None,
-) -> typing.Callable[[OperatorFunction], OperatorFunction]:
+) -> Callable[[Callable[P, OperationOutput]], Callable[P, OperationOutput]]:
     """Decorator that registers a function as a modify operation.
 
     Args:
@@ -438,7 +442,9 @@ def modify_operation(
         A decorator that wraps and registers the decorated function under ``name``.
     """
 
-    def _register(func: OperatorFunction) -> OperatorFunction:
+    def _register(
+        func: Callable[P, OperationOutput],
+    ) -> Callable[P, OperationOutput]:
         return _register_general_operator(
             collection=modify,
             collection_label="modify",
@@ -460,7 +466,7 @@ def export_operation(
     configuration_model: type[GenericOperatorParameters],
     example_configuration: GenericOperatorParameters,
     description: str | None = None,
-) -> typing.Callable[[OperatorFunction], OperatorFunction]:
+) -> Callable[[Callable[P, OperationOutput]], Callable[P, OperationOutput]]:
     """Decorator that registers a function as an export operation.
 
     Args:
@@ -474,7 +480,9 @@ def export_operation(
         A decorator that wraps and registers the decorated function under ``name``.
     """
 
-    def _register(func: OperatorFunction) -> OperatorFunction:
+    def _register(
+        func: Callable[P, OperationOutput],
+    ) -> Callable[P, OperationOutput]:
         return _register_general_operator(
             collection=export,
             collection_label="export",
@@ -496,7 +504,7 @@ def compare_operation(
     configuration_model: type[GenericOperatorParameters],
     example_configuration: GenericOperatorParameters,
     description: str | None = None,
-) -> typing.Callable[[OperatorFunction], OperatorFunction]:
+) -> Callable[[Callable[P, OperationOutput]], Callable[P, OperationOutput]]:
     """Decorator that registers a function as a compare operation.
 
     A compare operator takes at least two discovery-space or data-container
@@ -513,7 +521,9 @@ def compare_operation(
         A decorator that wraps and registers the decorated function under ``name``.
     """
 
-    def _register(func: OperatorFunction) -> OperatorFunction:
+    def _register(
+        func: Callable[P, OperationOutput],
+    ) -> Callable[P, OperationOutput]:
         return _register_general_operator(
             collection=compare,
             collection_label="compare",
@@ -535,7 +545,7 @@ def fuse_operation(
     configuration_model: type[GenericOperatorParameters],
     example_configuration: GenericOperatorParameters,
     description: str | None = None,
-) -> typing.Callable[[OperatorFunction], OperatorFunction]:
+) -> Callable[[Callable[P, OperationOutput]], Callable[P, OperationOutput]]:
     """Decorator that registers a function as a fuse operation.
 
     A fuse operator takes at least two discovery-space inputs. Resource inputs
@@ -552,7 +562,9 @@ def fuse_operation(
         A decorator that wraps and registers the decorated function under ``name``.
     """
 
-    def _register(func: OperatorFunction) -> OperatorFunction:
+    def _register(
+        func: Callable[P, OperationOutput],
+    ) -> Callable[P, OperationOutput]:
         return _register_general_operator(
             collection=fuse,
             collection_label="fuse",

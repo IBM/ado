@@ -20,7 +20,7 @@ from ado.core.resources import (
     ADOResourceReference,
     CoreResourceKinds,
 )
-from ado.utilities.annotations import _unwrap_annotated
+from ado.utilities.annotations import unwrap_annotated
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -36,7 +36,7 @@ if TYPE_CHECKING:
 # Python types an operator function may receive for a resolved resource input.
 OperatorInputType = DiscoverySpace | DataContainerResource
 
-# For mapping types in function signatures to
+# Maps parameter type annotations to CoreResourceKinds.
 KIND_FOR_OPERATOR_INPUT_TYPE: dict[type, CoreResourceKinds] = {
     DiscoverySpace: CoreResourceKinds.DISCOVERYSPACE,
     DataContainerResource: CoreResourceKinds.DATACONTAINER,
@@ -62,8 +62,9 @@ def resource_inputs_from_operator_function(
     Raises:
         ValueError: If the signature cannot be inspected, lacks the trailing
             ``operationInfo`` and ``parameters`` parameters, has no resource
-            inputs, uses ``*args`` or ``**kwargs``, or annotates a leading
-            parameter with an unsupported type.
+            inputs, uses ``*args``, ``**kwargs``, or positional-only
+            parameters, or annotates a leading parameter with an unsupported
+            type.
     """
     try:
         sig = inspect.signature(fn)
@@ -84,6 +85,12 @@ def resource_inputs_from_operator_function(
             "Operator function must not declare **kwargs; operation parameters "
             "must be a single 'parameters' argument typed as the configuration model."
         )
+    if any(p.kind == inspect.Parameter.POSITIONAL_ONLY for p in params):
+        raise ValueError(
+            "Operator function must not declare positional-only parameters; "
+            "orchestration passes resource inputs, operationInfo, and parameters "
+            "as keyword arguments."
+        )
 
     named = [
         p
@@ -91,7 +98,6 @@ def resource_inputs_from_operator_function(
         if p.kind
         in (
             inspect.Parameter.POSITIONAL_OR_KEYWORD,
-            inspect.Parameter.POSITIONAL_ONLY,
             inspect.Parameter.KEYWORD_ONLY,
         )
     ]
@@ -126,7 +132,7 @@ def resource_inputs_from_operator_function(
                 f"Operator function parameter {param.name!r} is missing a "
                 "resolvable type annotation."
             )
-        hint = _unwrap_annotated(hints[param.name])
+        hint = unwrap_annotated(hints[param.name])
         kind = KIND_FOR_OPERATOR_INPUT_TYPE.get(hint)  # type: ignore[arg-type]
         if kind is None:
             raise ValueError(

@@ -6,7 +6,7 @@ from __future__ import annotations
 from typing import Annotated, get_args, get_origin
 
 
-def _unwrap_annotated(hint: object) -> object:
+def unwrap_annotated(hint: object) -> object:
     """Return the underlying type if *hint* is ``Annotated[T, ...]``, else *hint*.
 
     Args:

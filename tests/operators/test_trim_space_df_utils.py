@@ -1,7 +1,13 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-"""Integration tests for the DataFrame helpers in trim.samplers.no_priors_utils."""
+"""Integration tests for the DataFrame helpers in trim.samplers.no_priors_utils.
+
+These tests use the sample store, discovery space and project context fixtures
+of the top-level ``tests/`` package (``ml_multi_cloud_space``, ``create_space``,
+``empty_sample_store``), like the other TRIM integration tests in
+``tests/operators/``.
+"""
 
 import logging
 import pathlib
@@ -20,6 +26,10 @@ from ado.core.discoveryspace.config import DiscoverySpaceConfiguration
 from ado.core.discoveryspace.space import DiscoverySpace
 from ado.core.samplestore.sql import SQLSampleStore
 from ado.metastore.project import ProjectContext
+from ado.schema.observed_property import ObservedProperty, ObservedPropertyValue
+from ado.schema.property import AbstractPropertyDescriptor
+from ado.schema.reference import ExperimentReference
+from ado.schema.result import ValidMeasurementResult
 
 pytest.importorskip("trim")
 pytest.importorskip("trim_custom_experiments")
@@ -45,6 +55,10 @@ def test_get_df_all_entities_no_measurements(
     assert list(df.columns) == ["identifier", *CONSTITUTIVE_PROPERTIES]
     assert len(df) == ml_multi_cloud_space.entitySpace.size
     assert df["identifier"].is_unique
+    for row in df.to_dict(orient="records"):
+        point = {cp: row[cp] for cp in CONSTITUTIVE_PROPERTIES}
+        expected = ml_multi_cloud_space.entitySpace.entity_for_point(point).identifier
+        assert row["identifier"] == expected
 
 
 def test_get_df_at_least_one_measured_value_names_target_column(
@@ -87,6 +101,52 @@ def test_get_df_at_least_one_measured_value_from_space_identifier(
 
     assert not from_identifier.empty
     assert from_identifier.equals(from_space)
+
+
+def test_get_df_at_least_one_measured_value_sees_new_measurements(
+    ml_multi_cloud_space: DiscoverySpace,
+) -> None:
+    """Should include measurements stored after a previous call."""
+    _, unmeasured = get_source_and_target(ml_multi_cloud_space, TARGET)
+    before = get_df_at_least_one_measured_value(
+        ml_multi_cloud_space, [TARGET], add_measurement_id=True
+    )
+    point = {cp: unmeasured.iloc[0][cp] for cp in CONSTITUTIVE_PROPERTIES}
+    entity = ml_multi_cloud_space.entity_for_point(point)
+    assert entity.identifier not in set(before["identifier"])
+
+    store = ml_multi_cloud_space.sample_store
+    store.addEntities([entity])
+    store.add_measurement_results(
+        results=[
+            ValidMeasurementResult(
+                entityIdentifier=entity.identifier,
+                measurements=[
+                    ObservedPropertyValue(
+                        value=42.0,
+                        property=ObservedProperty(
+                            targetProperty=AbstractPropertyDescriptor(
+                                identifier=TARGET
+                            ),
+                            experimentReference=ExperimentReference(
+                                experimentIdentifier="benchmark_performance",
+                                actuatorIdentifier="replay",
+                            ),
+                        ),
+                    )
+                ],
+            )
+        ],
+        skip_relationship_to_request=True,
+    )
+
+    after = get_df_at_least_one_measured_value(
+        ml_multi_cloud_space, [TARGET], add_measurement_id=True
+    )
+
+    assert len(after) == len(before) + 1
+    added = after[after["identifier"] == entity.identifier]
+    assert added[TARGET].tolist() == [42.0]
 
 
 def test_get_df_at_least_one_measured_value_unknown_target(

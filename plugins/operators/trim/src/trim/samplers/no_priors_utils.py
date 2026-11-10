@@ -592,14 +592,20 @@ def get_df_all_entities_no_measurements(
     """
     Return a DataFrame of all entities in the Discovery Space.
 
+    Args:
+        discoverySpace: Discovery space, or the identifier of a stored one.
+
     Returns:
         DataFrame with columns: ['identifier', <constitutive properties>]
+
+    Raises:
+        ValueError: If the entity space has a non-discrete dimension.
     """
     space = get_space(space_or_space_id=discoverySpace)
     entity_space = space.entitySpace
     cp_ids = [cp.identifier for cp in entity_space.constitutiveProperties]
 
-    rows = []
+    rows: list[dict[str, Any]] = []
     for point_values in entity_space.sequential_point_iterator():
         point = dict(zip(cp_ids, point_values, strict=True))
         rows.append(
@@ -632,7 +638,7 @@ def _resolve_target_columns(
         outputs present in it, in the order of ``target_outputs``.
     """
     df = df.copy()
-    found = []
+    found: list[str] = []
     for target in target_outputs:
         aggregated_column = f"{target}-{aggregation_method.value}"
         if aggregated_column in df.columns:
@@ -654,6 +660,11 @@ def get_df_at_least_one_measured_value(
 ) -> pd.DataFrame:
     """
     Return a DataFrame of entities with at least one measured target output.
+
+    Args:
+        discoverySpace: Discovery space, or the identifier of a stored one.
+        targetOutput_list: Bare target property identifiers to include.
+        add_measurement_id: If True, include the entity 'identifier' column.
 
     Returns:
         DataFrame with columns: ['identifier' (optional), <constitutive properties>, <target outputs>]
@@ -737,8 +748,15 @@ def get_source_and_target(
     """
     Build source (labeled) and target (unlabeled) DataFrames for a target output.
 
+    Args:
+        discoverySpace: Discovery space, or the identifier of a stored one.
+        targetOutput: Bare target property identifier.
+        log_string: Text added to the debug log message.
+
     Returns:
-        Tuple of (source_df, target_df)
+        Tuple of (source_df, target_df). source_df holds the entities with a
+        measured targetOutput; target_df holds the remaining entities of the
+        space, without the targetOutput column.
     """
     dfm = get_df_at_least_one_measured_value(discoverySpace, [targetOutput])
     dfu = get_df_all_entities_no_measurements(discoverySpace)

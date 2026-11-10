@@ -319,12 +319,12 @@ def _apply_with_resources(
     raw_operation_configuration: dict,
     parameters: AdoCreateCommandParameters,
 ) -> None:
-    """Apply ``--with`` resource overlays to *raw_operation_configuration*.
+    """Update *raw_operation_configuration* using the resources given via ``--with``.
 
     Args:
-        operation_data: Raw operation resource configuration dict.
+        raw_operation_configuration: Raw operation resource configuration dict.
         parameters: CLI parameters carrying the ``--with`` values.
-        
+
     Raises:
         typer.Exit: If an invalid resource parameter is provided.
     """
@@ -411,12 +411,13 @@ def _apply_use_latest(
     raw_operation_configuration: dict,
     parameters: AdoCreateCommandParameters,
 ) -> None:
-    """Apply ``--use-latest`` overlays to *raw_operation_configuration*.
+    """Update *raw_operation_configuration* using the resources requested via
+    ``--use-latest``.
 
     Args:
-        operation_data: Raw operation resource configuration dict.
+        raw_operation_configuration: Raw operation resource configuration dict.
         parameters: CLI parameters carrying the requested latest kinds.
-        
+
     Raises:
         typer.Exit: If the latest identifier for a requested kind cannot be found.
     """

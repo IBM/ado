@@ -148,7 +148,7 @@ class TestHintIntrospectionFailure:
             parameters: _Params,
         ) -> OperationOutput: ...
 
-        with pytest.raises(ValueError, match="type hints are missing or unresolvable"):
+        with pytest.raises(ValueError, match="type hints are unresolvable"):
             _validate(bad_hints)
 
     def test_uninspectable_fn_raises(self) -> None:

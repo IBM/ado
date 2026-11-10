@@ -112,7 +112,7 @@ def inspect_operator_function(
         hints = typing.get_type_hints(fn, include_extras=True)
     except Exception as exc:
         raise ValueError(
-            f"Operator function type hints are missing or unresolvable ({exc})."
+            f"Operator function type hints are unresolvable ({exc})."
         ) from exc
 
     return named, hints

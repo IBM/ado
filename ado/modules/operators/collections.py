@@ -127,32 +127,34 @@ def _make_general_orchestration_wrapper(
     *,
     collection: OperatorCollection,
     name: str,
-    user_fn: typing.Callable[..., OperationOutput],
+    operator_function: typing.Callable[..., OperationOutput],
     required_resource_inputs: list[ADOResourcePropertyDescriptor],
     configuration_model: type[GenericOperatorParameters],
 ) -> typing.Callable[..., OperationOutput]:
-    """Build a wrapper that starts orchestration and then runs *user_fn*.
+    """Build a wrapper that starts orchestration and then runs *operator_function*.
 
-    The wrapper accepts the same call shape as *user_fn*: resource inputs,
+    The wrapper accepts the same call shape as *operator_function*: resource inputs,
     then ``operationInfo``, then ``parameters``.
 
     Args:
         collection: Registry the operator is stored in.
         name: Canonical operator name.
-        user_fn: Operator implementation used to bind the call.
-        required_resource_inputs: Resource inputs deduced from *user_fn*.
+        operator_function: Operator implementation used to bind the call.
+        required_resource_inputs: Resource inputs deduced from *operator_function*.
         configuration_model: Model used to validate ``parameters``.
 
     Returns:
-        A wrapper with the same call shape as *user_fn*.
+        A wrapper with the same call shape as *operator_function*.
     """
-    input_ids = [descriptor.identifier for descriptor in required_resource_inputs]
-    user_sig = inspect.signature(user_fn)
+    input_identifiers = [
+        descriptor.identifier for descriptor in required_resource_inputs
+    ]
+    operator_signature = inspect.signature(operator_function)
 
-    @functools.wraps(user_fn)
+    @functools.wraps(operator_function)
     def wrapper(*args: object, **kwargs: object) -> OperationOutput:
         """Bind the operator call and run it through general orchestration."""
-        bound = user_sig.bind(*args, **kwargs)
+        bound = operator_signature.bind(*args, **kwargs)
         bound.apply_defaults()
         arguments = dict(bound.arguments)
 
@@ -164,15 +166,21 @@ def _make_general_orchestration_wrapper(
             orchestrate_general_operation,
         )
 
-        missing = [input_id for input_id in input_ids if input_id not in arguments]
-        if missing:
+        missing_input_identifiers = [
+            input_identifier
+            for input_identifier in input_identifiers
+            if input_identifier not in arguments
+        ]
+        if missing_input_identifiers:
             raise ValueError(
-                f"Operator {name!r} missing required resource input(s): {missing!r}."
+                f"Operator {name!r} missing required resource input(s): {missing_input_identifiers!r}."
             )
 
         inputs: dict[str, OperatorInputType] = {
-            input_id: typing.cast("OperatorInputType", arguments.pop(input_id))
-            for input_id in input_ids
+            input_identifier: typing.cast(
+                "OperatorInputType", arguments.pop(input_identifier)
+            )
+            for input_identifier in input_identifiers
         }
         raw_operation_info = typing.cast(
             "FunctionOperationInfo | None",
@@ -209,11 +217,11 @@ def _register_general_operator(
     configuration_model: type[GenericOperatorParameters],
     example_configuration: GenericOperatorParameters,
     description: str | None,
-    func: Callable[P, OperationOutput],
+    operator_function: Callable[P, OperationOutput],
 ) -> Callable[P, OperationOutput]:
     """Validate, wrap, and register a non-explore operator.
 
-    Resource inputs are deduced from *func*.
+    Resource inputs are deduced from *operator_function*.
 
     Args:
         collection: Registry to store the operator in.
@@ -224,21 +232,21 @@ def _register_general_operator(
         configuration_model: Pydantic model used to validate operation parameters.
         example_configuration: Example parameter model instance for templating.
         description: Human-readable description shown in the registry.
-        func: Operator implementation.
+        operator_function: Operator implementation.
 
     Returns:
         The registered wrapper.
     """
-    required_resource_inputs = resource_inputs_from_operator_function(func)
+    required_resource_inputs = resource_inputs_from_operator_function(operator_function)
     wrapper = _make_general_orchestration_wrapper(
         collection=collection,
         name=name,
-        user_fn=func,
+        operator_function=operator_function,
         required_resource_inputs=required_resource_inputs,
         configuration_model=configuration_model,
     )
     validate_operator_registration(
-        user_fn=func,
+        operator_function=operator_function,
         required_resource_inputs=required_resource_inputs,
         operation_type=operation_type,
         configuration_model=configuration_model,
@@ -252,7 +260,7 @@ def _register_general_operator(
         configuration_model=configuration_model,
         example_configuration=example_configuration,
         type=operation_type,
-        provenance=PackageProvenance.from_module_name(func.__module__),
+        provenance=PackageProvenance.from_module_name(operator_function.__module__),
         required_resource_inputs=tuple(required_resource_inputs),
     )
     return typing.cast("Callable[P, OperationOutput]", wrapper)
@@ -281,7 +289,7 @@ def characterize_operation(
     """
 
     def _register(
-        func: Callable[P, OperationOutput],
+        operator_function: Callable[P, OperationOutput],
     ) -> Callable[P, OperationOutput]:
         return _register_general_operator(
             collection=characterize,
@@ -292,7 +300,7 @@ def characterize_operation(
             configuration_model=configuration_model,
             example_configuration=example_configuration,
             description=description,
-            func=func,
+            operator_function=operator_function,
         )
 
     return _register
@@ -396,10 +404,10 @@ def explore_operation(
     _generated.__annotations__["parameters"] = configuration_model
     _generated.__name__ = op_name
     _generated.__qualname__ = op_name
-    stored_inputs = resource_inputs_from_operator_function(_generated)
+    explore_resource_inputs = resource_inputs_from_operator_function(_generated)
     validate_operator_registration(
-        user_fn=_generated,
-        required_resource_inputs=stored_inputs,
+        operator_function=_generated,
+        required_resource_inputs=explore_resource_inputs,
         operation_type=DiscoveryOperationEnum.EXPLORE,
         configuration_model=configuration_model,
     )
@@ -409,7 +417,7 @@ def explore_operation(
             "function": _generated,
             "cls": cls,
             "provenance": PackageProvenance.from_module_name(cls.__module__),
-            "required_resource_inputs": tuple(stored_inputs),
+            "required_resource_inputs": tuple(explore_resource_inputs),
         }
     )
     return cls
@@ -436,7 +444,7 @@ def modify_operation(
     """
 
     def _register(
-        func: Callable[P, OperationOutput],
+        operator_function: Callable[P, OperationOutput],
     ) -> Callable[P, OperationOutput]:
         return _register_general_operator(
             collection=modify,
@@ -447,7 +455,7 @@ def modify_operation(
             configuration_model=configuration_model,
             example_configuration=example_configuration,
             description=description,
-            func=func,
+            operator_function=operator_function,
         )
 
     return _register
@@ -474,7 +482,7 @@ def export_operation(
     """
 
     def _register(
-        func: Callable[P, OperationOutput],
+        operator_function: Callable[P, OperationOutput],
     ) -> Callable[P, OperationOutput]:
         return _register_general_operator(
             collection=export,
@@ -485,7 +493,7 @@ def export_operation(
             configuration_model=configuration_model,
             example_configuration=example_configuration,
             description=description,
-            func=func,
+            operator_function=operator_function,
         )
 
     return _register
@@ -515,7 +523,7 @@ def compare_operation(
     """
 
     def _register(
-        func: Callable[P, OperationOutput],
+        operator_function: Callable[P, OperationOutput],
     ) -> Callable[P, OperationOutput]:
         return _register_general_operator(
             collection=compare,
@@ -526,7 +534,7 @@ def compare_operation(
             configuration_model=configuration_model,
             example_configuration=example_configuration,
             description=description,
-            func=func,
+            operator_function=operator_function,
         )
 
     return _register
@@ -556,7 +564,7 @@ def fuse_operation(
     """
 
     def _register(
-        func: Callable[P, OperationOutput],
+        operator_function: Callable[P, OperationOutput],
     ) -> Callable[P, OperationOutput]:
         return _register_general_operator(
             collection=fuse,
@@ -567,7 +575,7 @@ def fuse_operation(
             configuration_model=configuration_model,
             example_configuration=example_configuration,
             description=description,
-            func=func,
+            operator_function=operator_function,
         )
 
     return _register

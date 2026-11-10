@@ -96,10 +96,12 @@ def _resource_inputs_for_module(
             )
         operator_class = getattr(importlib.import_module(module_name), module_class)
         metadata = operator_class.operator_metadata()
-        recorded = tuple(metadata.required_resource_inputs)
-        if not recorded:
-            recorded = (_REQUIRED_INPUT_PROPERTY_FOR_ORIGINAL_FUNCTION_OPERATORS,)
-        return metadata.name, recorded
+        declared_resource_inputs = tuple(metadata.required_resource_inputs)
+        if not declared_resource_inputs:
+            declared_resource_inputs = (
+                _REQUIRED_INPUT_PROPERTY_FOR_ORIGINAL_FUNCTION_OPERATORS,
+            )
+        return metadata.name, declared_resource_inputs
 
     if "name" in module:
         return (
@@ -119,7 +121,7 @@ def _operator_input_name_for_kind(
 ) -> str:
     """Resolve the operator input parameter name for a resource *kind*.
 
-    Uses the operator's resource inputs. Class modules with no recorded inputs
+    Uses the operator's resource inputs. Class modules with no declared inputs
     and script modules use ``discoverySpace``. When several inputs share
     *kind*, prefers an input that is not yet present.
 
@@ -146,14 +148,14 @@ def _operator_input_name_for_kind(
     if len(inputs_of_kind) == 1:
         return inputs_of_kind[0].identifier
 
-    present_inputs = raw_operation_configuration.get("inputs", {})
-    missing_inputs = [
+    inputs_already_set = raw_operation_configuration.get("inputs", {})
+    unset_input_identifiers = [
         descriptor.identifier
         for descriptor in inputs_of_kind
-        if descriptor.identifier not in present_inputs
+        if descriptor.identifier not in inputs_already_set
     ]
-    if len(missing_inputs) == 1:
-        return missing_inputs[0]
+    if len(unset_input_identifiers) == 1:
+        return unset_input_identifiers[0]
     input_identifiers_of_kind = [descriptor.identifier for descriptor in inputs_of_kind]
     raise ValueError(
         f"Operator {operator_label!r} has multiple {kind.value!r} inputs "
@@ -177,11 +179,11 @@ def _add_operation_input_for_reference(
     """
     if reference.kind is None:
         raise ValueError("Operation input references must include a resource kind.")
-    input_name = _operator_input_name_for_kind(
+    operator_input_name = _operator_input_name_for_kind(
         raw_operation_configuration, reference.kind
     )
-    inputs = raw_operation_configuration.setdefault("inputs", {})
-    inputs[input_name] = {
+    operation_inputs = raw_operation_configuration.setdefault("inputs", {})
+    operation_inputs[operator_input_name] = {
         "identifier": reference.identifier,
         "kind": reference.kind.value,
     }
@@ -310,20 +312,20 @@ def create_operation(parameters: AdoCreateCommandParameters) -> str | None:
 
 
 def _apply_with_resources(
-    operation_data: dict,
+    raw_operation_configuration: dict,
     parameters: AdoCreateCommandParameters,
 ) -> None:
-    """Apply ``--with`` resource overlays to raw *operation_data*.
+    """Apply ``--with`` resource overlays to *raw_operation_configuration*.
 
     Args:
-        operation_data: Raw operation resource configuration dict.
+        raw_operation_configuration: Raw operation resource configuration dict.
         parameters: CLI parameters carrying the ``--with`` values.
     """
     if CoreResourceKinds.ACTUATORCONFIGURATION in parameters.with_resources:
         if isinstance(
             parameters.with_resources[CoreResourceKinds.ACTUATORCONFIGURATION], str
         ):
-            operation_data["actuatorConfigurationIdentifiers"] = [
+            raw_operation_configuration["actuatorConfigurationIdentifiers"] = [
                 parameters.with_resources[CoreResourceKinds.ACTUATORCONFIGURATION]
             ]
         else:
@@ -344,15 +346,17 @@ def _apply_with_resources(
             )
             # A dry-run of a new actuator configuration returns no identifier.
             if actuator_configuration_identifier is not None:
-                operation_data["actuatorConfigurationIdentifiers"] = [
+                raw_operation_configuration["actuatorConfigurationIdentifiers"] = [
                     actuator_configuration_identifier
                 ]
 
     if CoreResourceKinds.DISCOVERYSPACE in parameters.with_resources:
         if isinstance(parameters.with_resources[CoreResourceKinds.DISCOVERYSPACE], str):
-            space_id = parameters.with_resources[CoreResourceKinds.DISCOVERYSPACE]
+            space_identifier = parameters.with_resources[
+                CoreResourceKinds.DISCOVERYSPACE
+            ]
         else:
-            space_id = create_discovery_space(
+            space_identifier = create_discovery_space(
                 AdoCreateCommandParameters(
                     ado_configuration=parameters.ado_configuration,
                     dry_run=parameters.dry_run,
@@ -368,17 +372,19 @@ def _apply_with_resources(
                 )
             )
         # A dry-run of a new discovery space returns no identifier.
-        if space_id is not None:
+        if space_identifier is not None:
             _add_operation_input_for_reference(
-                operation_data,
+                raw_operation_configuration,
                 ADOResourceReference(
-                    kind=CoreResourceKinds.DISCOVERYSPACE, identifier=space_id
+                    kind=CoreResourceKinds.DISCOVERYSPACE, identifier=space_identifier
                 ),
             )
 
     if CoreResourceKinds.DATACONTAINER in parameters.with_resources:
-        dcr_identifier = parameters.with_resources[CoreResourceKinds.DATACONTAINER]
-        if not isinstance(dcr_identifier, str):
+        data_container_identifier = parameters.with_resources[
+            CoreResourceKinds.DATACONTAINER
+        ]
+        if not isinstance(data_container_identifier, str):
             console_print(
                 f"{ERROR}--with datacontainer currently supports an existing "
                 "identifier only (not a YAML file).",
@@ -386,21 +392,22 @@ def _apply_with_resources(
             )
             raise typer.Exit(1)
         _add_operation_input_for_reference(
-            operation_data,
+            raw_operation_configuration,
             ADOResourceReference(
-                kind=CoreResourceKinds.DATACONTAINER, identifier=dcr_identifier
+                kind=CoreResourceKinds.DATACONTAINER,
+                identifier=data_container_identifier,
             ),
         )
 
 
 def _apply_use_latest(
-    operation_data: dict,
+    raw_operation_configuration: dict,
     parameters: AdoCreateCommandParameters,
 ) -> None:
-    """Apply ``--use-latest`` overlays to raw *operation_data*.
+    """Apply ``--use-latest`` overlays to *raw_operation_configuration*.
 
     Args:
-        operation_data: Raw operation resource configuration dict.
+        raw_operation_configuration: Raw operation resource configuration dict.
         parameters: CLI parameters carrying the requested latest kinds.
     """
     from ado.cli.utils.generic.wrappers import get_sql_store
@@ -418,8 +425,8 @@ def _apply_use_latest(
         if resource_kind not in _OPERATION_USE_LATEST_KINDS:
             continue
 
-        latest_id = latest_ids.get(resource_kind)
-        if not latest_id:
+        latest_identifier = latest_ids.get(resource_kind)
+        if not latest_identifier:
             console_print(
                 latest_identifier_for_resource_not_found(resource_kind),
                 stderr=True,
@@ -427,18 +434,20 @@ def _apply_use_latest(
             raise typer.Exit(1)
 
         if resource_kind == CoreResourceKinds.ACTUATORCONFIGURATION:
-            operation_data["actuatorConfigurationIdentifiers"] = [latest_id]
+            raw_operation_configuration["actuatorConfigurationIdentifiers"] = [
+                latest_identifier
+            ]
         else:
             _add_operation_input_for_reference(
-                operation_data,
-                ADOResourceReference(kind=resource_kind, identifier=latest_id),
+                raw_operation_configuration,
+                ADOResourceReference(kind=resource_kind, identifier=latest_identifier),
             )
 
         console_print(
             value_in_configuration_replaced_with_latest_identifier_for_resource(
                 reused_resource_kind=resource_kind,
                 target_resource_kind=CoreResourceKinds.OPERATION,
-                replacement_identifier=latest_id,
+                replacement_identifier=latest_identifier,
             ),
             stderr=True,
         )

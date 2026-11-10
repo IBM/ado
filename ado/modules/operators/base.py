@@ -149,7 +149,7 @@ def validate_operator_call_shape(
 
 
 def validate_operator_registration(
-    user_fn: typing.Callable,
+    operator_function: typing.Callable,
     required_resource_inputs: list[ADOResourcePropertyDescriptor],
     operation_type: DiscoveryOperationEnum,
     configuration_model: type | None = None,
@@ -157,12 +157,12 @@ def validate_operator_registration(
     """Run registration-time checks for an operator callable.
 
     Checks the deduced inputs against the collection rules, then checks that
-    *user_fn* takes those inputs followed by ``operationInfo`` and
+    *operator_function* takes those inputs followed by ``operationInfo`` and
     ``parameters``.
 
     Args:
-        user_fn: The operator implementation.
-        required_resource_inputs: Resource inputs deduced from *user_fn*.
+        operator_function: The operator implementation.
+        required_resource_inputs: Resource inputs deduced from *operator_function*.
         operation_type: Collection the operator is registered into.
         configuration_model: The operator's parameter model class.
 
@@ -177,7 +177,9 @@ def validate_operator_registration(
         required_resource_inputs, operation_type
     )
     validate_operator_call_shape(
-        user_fn, required_resource_inputs, configuration_model=configuration_model
+        operator_function,
+        required_resource_inputs,
+        configuration_model=configuration_model,
     )
 
 

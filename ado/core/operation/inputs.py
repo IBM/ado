@@ -60,7 +60,7 @@ def inspect_operator_function(
 
     Raises:
         ValueError: If the signature cannot be inspected, uses ``*args``,
-            ``**kwargs``, or positional-only parameters, does not keep
+            ``**kwargs``, or positional-only parameters, does not declare
             ``parameters`` as its only keyword-only parameter, or has
             unresolvable type hints.
     """
@@ -123,10 +123,16 @@ def resource_inputs_from_operator_function(
 ) -> list[ADOResourcePropertyDescriptor]:
     """Deduce resource inputs from an operator function signature.
 
-    Leading parameters, everything before ``operationInfo`` and ``parameters``,
-    must be annotated with a type registered in
-    ``KIND_FOR_OPERATOR_INPUT_TYPE``. Parameter names become input identifiers
-    and annotations become resource kinds. ``parameters`` must be keyword-only.
+    The signature is interpreted as follows:
+
+    - Leading parameters (everything before ``operationInfo`` and
+      ``parameters``) are resource inputs.
+    - Each leading parameter must be annotated with a type registered in
+      ``KIND_FOR_OPERATOR_INPUT_TYPE``. ``Annotated`` wrappers are unwrapped
+      and the underlying type must match a registered type exactly.
+    - Parameter names become input identifiers and annotations become
+      resource kinds.
+    - ``parameters`` must be keyword-only.
 
     Args:
         fn: Operator callable to inspect.
@@ -135,12 +141,19 @@ def resource_inputs_from_operator_function(
         Ordered resource-input descriptors.
 
     Raises:
-        ValueError: If the signature cannot be inspected, lacks the trailing
-            ``operationInfo`` and ``parameters`` parameters, has no resource
-            inputs, uses ``*args``, ``**kwargs``, positional-only parameters,
-            or a ``parameters`` argument that is not the only keyword-only
-            parameter, or annotates a leading parameter with an unsupported
-            type.
+        ValueError: If any of the following hold:
+
+            - the signature cannot be inspected
+            - the type hints cannot be resolved
+            - the function uses ``*args``, ``**kwargs``, or positional-only
+              parameters
+            - ``parameters`` is not the only keyword-only parameter
+            - the last two parameters are not ``operationInfo`` and
+              ``parameters``
+            - there are no resource inputs
+            - a leading parameter is unannotated
+            - a leading parameter is annotated with a type not in
+              ``KIND_FOR_OPERATOR_INPUT_TYPE``
     """
     named, hints = inspect_operator_function(fn)
     if len(named) < 2 or (

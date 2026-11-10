@@ -57,22 +57,26 @@ _OPERATION_USE_LATEST_KINDS = frozenset(
 def _resource_inputs_for_module(
     module: dict,
 ) -> tuple[str, tuple[ADOResourcePropertyDescriptor, ...]]:
-    """Return an operator label and its resource-input descriptors.
+    """Return an operator's name and the resource inputs it declares.
 
-    Operator references use registry metadata. Class modules
-    (``moduleName`` / ``moduleClass``) use ``operator_metadata()``, and an
-    empty recording falls back to ``discoverySpace``. Script modules bind
-    ``discoverySpace``.
+    Where the inputs come from depends on which keys *module* contains:
+
+    - Operator reference (``operatorName`` and ``operationType``): the inputs
+      registered for that operator.
+    - Class module (``moduleName`` and ``moduleClass``): the inputs from the
+      class's ``operator_metadata()``, or a single ``discoverySpace`` input if
+      it declares none.
+    - Script module (``name``): a single ``discoverySpace`` input.
 
     Args:
-        module: Raw ``operation.module`` mapping.
+        module: The raw ``operation.module`` mapping.
 
     Returns:
-        The operator label and its resource-input descriptors.
+        A tuple of the operator's name and its resource-input descriptors.
 
     Raises:
-        ValueError: If *module* is not an operator reference, class module, or
-            script, or a class module omits ``moduleName`` or ``moduleClass``.
+        ValueError: If *module* matches none of the cases above, or has only one
+            of ``moduleName`` and ``moduleClass``.
     """
     if "operatorName" in module and "operationType" in module:
         from ado.modules.operators.collections import operator_metadata_for_reference
@@ -119,22 +123,22 @@ def _operator_input_name_for_kind(
     raw_operation_configuration: dict,
     kind: CoreResourceKinds,
 ) -> str:
-    """Resolve the operator input parameter name for a resource *kind*.
+    """Return the name of the operator input that receives a resource of *kind*.
 
-    Uses the operator's resource inputs. Class modules with no declared inputs
-    and script modules use ``discoverySpace``. When several inputs share
-    *kind*, prefers an input that is not yet present.
+    When the operator has several inputs of *kind*, the one not yet set under
+    ``inputs`` is returned.
 
     Args:
-        raw_operation_configuration: Raw operation resource configuration dict.
-        kind: Resource kind to bind.
+        raw_operation_configuration: The raw operation resource configuration.
+        kind: The resource kind to find an input for.
 
     Returns:
-        The input parameter identifier to set.
+        The name of the operator input that receives a resource of *kind*.
 
     Raises:
-        ValueError: If the module shape is unrecognized, the operator has no
-            matching input, or multiple matching inputs are unset.
+        ValueError: If ``operation.module`` is not a recognised form, the
+            operator has no input of *kind*, or several inputs of *kind* exist
+            and the number of them missing from ``inputs`` is not exactly one.
     """
     module = raw_operation_configuration.get("operation", {}).get("module", {})
     operator_label, required_resource_inputs = _resource_inputs_for_module(module)
@@ -318,8 +322,11 @@ def _apply_with_resources(
     """Apply ``--with`` resource overlays to *raw_operation_configuration*.
 
     Args:
-        raw_operation_configuration: Raw operation resource configuration dict.
+        operation_data: Raw operation resource configuration dict.
         parameters: CLI parameters carrying the ``--with`` values.
+        
+    Raises:
+        typer.Exit: If an invalid resource parameter is provided.
     """
     if CoreResourceKinds.ACTUATORCONFIGURATION in parameters.with_resources:
         if isinstance(
@@ -407,8 +414,11 @@ def _apply_use_latest(
     """Apply ``--use-latest`` overlays to *raw_operation_configuration*.
 
     Args:
-        raw_operation_configuration: Raw operation resource configuration dict.
+        operation_data: Raw operation resource configuration dict.
         parameters: CLI parameters carrying the requested latest kinds.
+        
+    Raises:
+        typer.Exit: If the latest identifier for a requested kind cannot be found.
     """
     from ado.cli.utils.generic.wrappers import get_sql_store
 

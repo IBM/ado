@@ -56,7 +56,7 @@ moduleLog = logging.getLogger("operation_base")
 #:
 #: Structural convention::
 #:
-#:     (resource₁, …, resourceₙ, operationInfo=None, parameters: ConfigurationModel)
+#:     (resource₁, …, resourceₙ, operationInfo=None, *, parameters: ConfigurationModel)
 #:         -> OperationOutput
 #:
 #: Resource parameter names and types are deduced from the function signature

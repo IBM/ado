@@ -96,13 +96,13 @@ def test_select_least_dense_index(
 
 def test_select_least_dense_index_ignores_positions_beyond_segment() -> None:
     """Should select only within the segment when occupancy extends beyond it."""
-    occupancy = np.array([1, 0, 0, 0, 1, 0, 0, 1])
+    occupancy = np.array([1, 1, 1, 0, 0, 0, 0, 0, 0, 1])
 
-    chosen = _select_least_dense_index(
-        occupancy=occupancy, length_segment=5, max_half_width=5
+    selected_index = _select_least_dense_index(
+        occupancy=occupancy, length_segment=4, max_half_width=4
     )
 
-    assert chosen == 2
+    assert selected_index == 3
 
 
 def test_get_index_list_van_der_corput_with_out_of_segment_sampled_index() -> None:

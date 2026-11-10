@@ -47,33 +47,39 @@ def _select_least_dense_index(
     """Return the unsampled index lying in the least densely sampled neighbourhood.
 
     For each unsampled index ``i`` in ``[0, length_segment)`` the density at
-    half-width ``d`` is the fraction of sampled positions in the window
-    ``[i - d, i + d]`` clipped to ``[0, len(occupancy) - 1]``. Candidates are
-    narrowed to those of minimal density for ``d = 1, 2, ...`` until one
-    candidate is left or ``d`` reaches ``max_half_width``; the smallest
+    half-width ``w`` is the fraction of sampled positions in the window
+    ``[i - w, i + w]`` clipped to ``[0, len(occupancy) - 1]``. Candidates are
+    narrowed to those of minimal density for ``w = 1, 2, ...`` until one
+    candidate is left or ``w`` reaches ``max_half_width``; the smallest
     remaining index is returned.
 
     Args:
         occupancy: Array with 1 at sampled positions and 0 elsewhere.
         length_segment: Number of positions eligible for selection.
-        max_half_width: Largest window half-width considered.
+        max_half_width: Largest window half-width considered. The window
+            of half-width 1 is always evaluated.
 
     Returns:
         The selected index.
+
+    Raises:
+        ValueError: If no unsampled index exists in ``[0, length_segment)``.
     """
-    last = len(occupancy) - 1
-    prefix = np.concatenate(([0], np.cumsum(occupancy)))
+    last_position = len(occupancy) - 1
+    cumulative_occupancy = np.concatenate(([0], np.cumsum(occupancy)))
     candidates = np.flatnonzero(occupancy[:length_segment] == 0)
 
-    d = 1
+    half_width = 1
     while True:
-        left = np.maximum(candidates - d, 0)
-        right = np.minimum(candidates + d, last)
-        density = (prefix[right + 1] - prefix[left]) / (right - left + 1)
-        candidates = candidates[density == density.min()]
-        if len(candidates) == 1 or d >= max_half_width:
+        window_start = np.maximum(candidates - half_width, 0)
+        window_end = np.minimum(candidates + half_width, last_position)
+        window_density = (
+            cumulative_occupancy[window_end + 1] - cumulative_occupancy[window_start]
+        ) / (window_end - window_start + 1)
+        candidates = candidates[window_density == window_density.min()]
+        if len(candidates) == 1 or half_width >= max_half_width:
             return int(candidates[0])
-        d += 1
+        half_width += 1
 
 
 def get_index_list_van_der_corput(
@@ -143,16 +149,16 @@ def get_index_list_van_der_corput(
     occupancy[[i for i in sampled_set if 0 <= i < occupancy_length]] = 1
 
     while len(index_list) < tot_points_to_sample:
-        chosen = _select_least_dense_index(
+        selected_index = _select_least_dense_index(
             occupancy=occupancy,
             length_segment=length_segment,
             max_half_width=length_segment,
         )
         if verbose:
-            logger.info(f"Appending {chosen} to {index_list}")
-        index_list.append(chosen)
-        sampled_set.add(chosen)
-        occupancy[chosen] = 1
+            logger.info(f"Appending {selected_index} to {index_list}")
+        index_list.append(selected_index)
+        sampled_set.add(selected_index)
+        occupancy[selected_index] = 1
 
     if sort:
         return sorted(index_list)
@@ -638,19 +644,19 @@ def _resolve_target_columns(
         outputs present in it, in the order of ``target_outputs``.
     """
     df = df.copy()
-    found: list[str] = []
+    found_targets: list[str] = []
     for target in target_outputs:
         aggregated_column = f"{target}-{aggregation_method.value}"
         if aggregated_column in df.columns:
-            aggregated = df.pop(aggregated_column)
+            aggregated_values = df.pop(aggregated_column)
             df[target] = (
-                aggregated.combine_first(df[target])
+                aggregated_values.combine_first(df[target])
                 if target in df.columns
-                else aggregated
+                else aggregated_values
             )
         if target in df.columns:
-            found.append(target)
-    return df, found
+            found_targets.append(target)
+    return df, found_targets
 
 
 def get_df_at_least_one_measured_value(
@@ -659,7 +665,10 @@ def get_df_at_least_one_measured_value(
     add_measurement_id: bool = False,
 ) -> pd.DataFrame:
     """
-    Return a DataFrame of entities with at least one measured target output.
+    Return a DataFrame of entities with a measured value for every requested target output.
+
+    Rows with a missing value in any returned column are dropped. Requested
+    targets with no measurements in the space are omitted from the columns.
 
     Args:
         discoverySpace: Discovery space, or the identifier of a stored one.

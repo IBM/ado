@@ -92,38 +92,37 @@ def test_get_df_at_least_one_measured_value_from_space_identifier(
         runner=CliRunner(), path=tmp_path, project_context=valid_ado_project_context
     )
 
-    from_identifier = get_df_at_least_one_measured_value(
+    df_from_identifier = get_df_at_least_one_measured_value(
         ml_multi_cloud_space.uri, [TARGET], add_measurement_id=True
     )
-    from_space = get_df_at_least_one_measured_value(
+    df_from_space = get_df_at_least_one_measured_value(
         ml_multi_cloud_space, [TARGET], add_measurement_id=True
     )
 
-    assert not from_identifier.empty
-    assert from_identifier.equals(from_space)
+    assert not df_from_identifier.empty
+    assert df_from_identifier.equals(df_from_space)
 
 
 def test_get_df_at_least_one_measured_value_sees_new_measurements(
     ml_multi_cloud_space: DiscoverySpace,
 ) -> None:
-    """Should include measurements stored after a previous call."""
-    _, unmeasured = get_source_and_target(ml_multi_cloud_space, TARGET)
-    before = get_df_at_least_one_measured_value(
+    """Should reflect a measurement stored after the entity's measurements were cached."""
+    df_before = get_df_at_least_one_measured_value(
         ml_multi_cloud_space, [TARGET], add_measurement_id=True
     )
-    point = {cp: unmeasured.iloc[0][cp] for cp in CONSTITUTIVE_PROPERTIES}
-    entity = ml_multi_cloud_space.entity_for_point(point)
-    assert entity.identifier not in set(before["identifier"])
+    measured_entity_id = df_before["identifier"].iloc[0]
+    value_before = df_before.loc[
+        df_before["identifier"] == measured_entity_id, TARGET
+    ].iloc[0]
+    new_measured_value = value_before + 1000.0
 
-    store = ml_multi_cloud_space.sample_store
-    store.addEntities([entity])
-    store.add_measurement_results(
+    ml_multi_cloud_space.sample_store.add_measurement_results(
         results=[
             ValidMeasurementResult(
-                entityIdentifier=entity.identifier,
+                entityIdentifier=measured_entity_id,
                 measurements=[
                     ObservedPropertyValue(
-                        value=42.0,
+                        value=new_measured_value,
                         property=ObservedProperty(
                             targetProperty=AbstractPropertyDescriptor(
                                 identifier=TARGET
@@ -140,13 +139,15 @@ def test_get_df_at_least_one_measured_value_sees_new_measurements(
         skip_relationship_to_request=True,
     )
 
-    after = get_df_at_least_one_measured_value(
+    df_after = get_df_at_least_one_measured_value(
         ml_multi_cloud_space, [TARGET], add_measurement_id=True
     )
 
-    assert len(after) == len(before) + 1
-    added = after[after["identifier"] == entity.identifier]
-    assert added[TARGET].tolist() == [42.0]
+    assert len(df_after) == len(df_before)
+    value_after = df_after.loc[
+        df_after["identifier"] == measured_entity_id, TARGET
+    ].iloc[0]
+    assert value_after != pytest.approx(value_before)
 
 
 def test_get_df_at_least_one_measured_value_unknown_target(

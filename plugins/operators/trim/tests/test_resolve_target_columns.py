@@ -13,9 +13,9 @@ def test_aggregated_column_renamed_to_target() -> None:
     """Should expose '<target>-mean' under the bare target identifier."""
     df = pd.DataFrame({"x": [1, 2], "pressure-mean": [10.0, 20.0]})
 
-    resolved, found = _resolve_target_columns(df, ["pressure"], MEAN)
+    resolved, found_targets = _resolve_target_columns(df, ["pressure"], MEAN)
 
-    assert found == ["pressure"]
+    assert found_targets == ["pressure"]
     assert list(resolved.columns) == ["x", "pressure"]
     assert resolved["pressure"].tolist() == [10.0, 20.0]
 
@@ -30,9 +30,9 @@ def test_aggregated_and_bare_columns_merged() -> None:
         }
     )
 
-    resolved, found = _resolve_target_columns(df, ["pressure"], MEAN)
+    resolved, found_targets = _resolve_target_columns(df, ["pressure"], MEAN)
 
-    assert found == ["pressure"]
+    assert found_targets == ["pressure"]
     assert list(resolved.columns) == ["x", "pressure"]
     assert resolved["pressure"].tolist() == [10.0, 5.0, 30.0]
 
@@ -41,9 +41,9 @@ def test_bare_column_kept() -> None:
     """Should keep a bare target column when no aggregated column exists."""
     df = pd.DataFrame({"x": [1], "pressure": [5.0]})
 
-    resolved, found = _resolve_target_columns(df, ["pressure"], MEAN)
+    resolved, found_targets = _resolve_target_columns(df, ["pressure"], MEAN)
 
-    assert found == ["pressure"]
+    assert found_targets == ["pressure"]
     assert resolved.equals(df)
 
 
@@ -51,8 +51,8 @@ def test_missing_target_not_found() -> None:
     """Should omit targets absent from the table and leave the input unchanged."""
     df = pd.DataFrame({"x": [1], "other-mean": [1.0]})
 
-    resolved, found = _resolve_target_columns(df, ["pressure"], MEAN)
+    resolved, found_targets = _resolve_target_columns(df, ["pressure"], MEAN)
 
-    assert found == []
+    assert found_targets == []
     assert list(resolved.columns) == ["x", "other-mean"]
     assert list(df.columns) == ["x", "other-mean"]

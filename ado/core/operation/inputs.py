@@ -326,19 +326,21 @@ def metastore_for_operation_inputs(
     operation_info: FunctionOperationInfo | None,
     inputs: dict[str, OperatorInputType],
 ) -> tuple[SQLStore, FunctionOperationInfo]:
-    """Open the metastore for *inputs* and attach the resolved project context.
+    """Connect to the project's metastore and verify *inputs* exist in it.
+
+    The project context comes from ``operation_info`` if set, otherwise from
+    *inputs*, and is set on the returned operation info.
 
     Args:
         operation_info: Optional operation info that may carry a project context.
         inputs: Mapping of parameter name to rich operator input.
 
     Returns:
-        The metastore for the resolved project context, and operation info
-        whose ``projectContext`` is that context.
+        The metastore, and operation info with ``projectContext`` set.
 
     Raises:
-        ValueError: If the project context cannot be resolved or an input is
-            missing from the metastore.
+        ValueError: If the project context cannot be resolved, or an input has
+            an unsupported type or is not in the metastore.
     """
     from ado.core.operation.config import FunctionOperationInfo
     from ado.metastore.sqlstore import SQLStore

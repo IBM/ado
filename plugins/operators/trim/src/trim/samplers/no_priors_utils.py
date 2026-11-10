@@ -609,6 +609,44 @@ def get_df_all_entities_no_measurements(
     return pd.DataFrame(rows, columns=["identifier", *cp_ids])
 
 
+def _resolve_target_columns(
+    df: pd.DataFrame,
+    target_outputs: list[str],
+    aggregation_method: PropertyAggregationMethodEnum,
+) -> tuple[pd.DataFrame, list[str]]:
+    """Expose each target output of a target-property table under its bare identifier.
+
+    In a table built with an aggregation method, a target is stored in the
+    column ``"<target>-<method>"`` for entities whose values were aggregated and
+    in the column ``"<target>"`` for entities whose values could not be
+    aggregated. The two columns are merged into ``"<target>"``, taking the
+    aggregated value where present.
+
+    Args:
+        df: Target-property table.
+        target_outputs: Bare target property identifiers to expose.
+        aggregation_method: Aggregation method used to build ``df``.
+
+    Returns:
+        Tuple of the DataFrame with merged target columns and the target
+        outputs present in it, in the order of ``target_outputs``.
+    """
+    df = df.copy()
+    found = []
+    for target in target_outputs:
+        aggregated_column = f"{target}-{aggregation_method.value}"
+        if aggregated_column in df.columns:
+            aggregated = df.pop(aggregated_column)
+            df[target] = (
+                aggregated.combine_first(df[target])
+                if target in df.columns
+                else aggregated
+            )
+        if target in df.columns:
+            found.append(target)
+    return df, found
+
+
 def get_df_at_least_one_measured_value(
     discoverySpace: DiscoverySpace | str,
     targetOutput_list: list[str] | None = None,
@@ -645,17 +683,11 @@ def get_df_at_least_one_measured_value(
         )
         return df
 
-    # Aggregated targets are named "<target>-<method>" by matchingEntitiesTable;
-    # a bare "<target>" column appears when the values cannot be aggregated.
-    valid_targetOutput_list = []
-    for el in targetOutput_list:
-        aggregated_column = f"{el}-{aggregation_method.value}"
-        if aggregated_column in df.columns:
-            df = df.drop(columns=[el], errors="ignore").rename(
-                columns={aggregated_column: el}
-            )
-        if el in df.columns:
-            valid_targetOutput_list.append(el)
+    df, valid_targetOutput_list = _resolve_target_columns(
+        df=df,
+        target_outputs=targetOutput_list,
+        aggregation_method=aggregation_method,
+    )
     col_list += valid_targetOutput_list
 
     if valid_targetOutput_list != targetOutput_list:

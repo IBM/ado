@@ -1,8 +1,12 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
+import numpy as np
 import pytest
-from trim.samplers.no_priors_utils import get_index_list_van_der_corput
+from trim.samplers.no_priors_utils import (
+    _select_least_dense_index,
+    get_index_list_van_der_corput,
+)
 
 # --- Error Handling Tests ---
 
@@ -65,3 +69,42 @@ def test_get_index_list_van_der_corput_full_sampling_is_permutation(
     order = get_index_list_van_der_corput(length, length)
     assert sorted(order) == list(range(length))
     assert order[: min(2, length)] == [0, length - 1][: min(2, length)]
+
+
+@pytest.mark.parametrize(
+    ("occupancy", "length_segment", "expected"),
+    [
+        ([1, 0, 0, 0, 1], 5, 2),
+        ([1, 0, 0, 0, 0, 0, 0, 0, 1], 9, 4),
+        ([1, 1, 0, 0, 1], 5, 3),
+        ([1, 0, 0, 1, 0, 0, 0, 0, 1], 9, 5),
+    ],
+)
+def test_select_least_dense_index(
+    occupancy: list[int], length_segment: int, expected: int
+) -> None:
+    """Should return the unsampled index in the least densely sampled window."""
+    assert (
+        _select_least_dense_index(
+            occupancy=np.array(occupancy),
+            length_segment=length_segment,
+            max_half_width=length_segment,
+        )
+        == expected
+    )
+
+
+def test_select_least_dense_index_ignores_positions_beyond_segment() -> None:
+    """Should select only within the segment when occupancy extends beyond it."""
+    occupancy = np.array([1, 0, 0, 0, 1, 0, 0, 1])
+
+    chosen = _select_least_dense_index(
+        occupancy=occupancy, length_segment=5, max_half_width=5
+    )
+
+    assert chosen == 2
+
+
+def test_get_index_list_van_der_corput_with_out_of_segment_sampled_index() -> None:
+    """Should count an out-of-segment sampled index and select only in-segment indices."""
+    assert get_index_list_van_der_corput(5, 5, sampled_indices=[7]) == [7, 0, 4, 2, 3]

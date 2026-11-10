@@ -53,7 +53,7 @@ def resource_type_callback(
     ctx: typer.Context,
     param: typer.CallbackParam,
     value: AdoCreateSupportedResourceTypes,
-) -> str:
+) -> AdoCreateSupportedResourceTypes:
     # AP: 27/05/2025
     # To avoid making it impossible to run ado create context
     # when there is no default context, we need to disable
@@ -79,8 +79,7 @@ def resource_type_callback(
             _override_config_dir=override_ado_app_dir,
         )
 
-    # We need to return a string
-    return value.value
+    return value
 
 
 def create_resource(

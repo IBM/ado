@@ -75,11 +75,9 @@ def enum_choice_parser(
     case_sensitive: bool = True,
     resolve_shorthands: bool = False,
     handle_plurals: bool = False,
-) -> Callable[[str], str]:
+) -> Callable[[str], T]:
     """
     Create a parser function for enum choices with optional transformations.
-
-    Typer will convert the returned string to the enum type based on the type annotation.
 
     Args:
         enum_type: The enum class to create choices from
@@ -88,11 +86,11 @@ def enum_choice_parser(
         handle_plurals: Whether to strip trailing 's' for plural forms
 
     Returns:
-        A parser function that validates input and returns the string value
+        A parser function that validates input and returns the matching enum member
     """
     choices = [member.value for member in enum_type]
 
-    def parser(value: str) -> str:
+    def parser(value: str) -> T:
         resolved_value = value
 
         # Apply transformations in order
@@ -107,11 +105,11 @@ def enum_choice_parser(
             resolved_lower = resolved_value.lower()
             for choice in choices:
                 if choice.lower() == resolved_lower:
-                    return choice
+                    return enum_type(choice)
 
         # Exact match
         if resolved_value in choices:
-            return resolved_value
+            return enum_type(resolved_value)
 
         # Build error message
         error_msg = f"Invalid choice: '{value}'"
@@ -126,36 +124,32 @@ def enum_choice_parser(
 
 def enum_choice_with_shorthand_parser(
     enum_type: type[T], case_sensitive: bool = True
-) -> Callable[[str], str]:
+) -> Callable[[str], T]:
     """
-    Create a parser function that resolves shorthands and returns the validated string value.
-
-    Typer will convert the returned string to the enum type based on the type annotation.
+    Create a parser function that resolves shorthands and returns the matching enum member.
 
     Args:
         enum_type: The enum class to create choices from
         case_sensitive: Whether the choice matching should be case sensitive
 
     Returns:
-        A parser function that resolves shorthands and returns the string value
+        A parser function that resolves shorthands and returns the enum member
     """
     return enum_choice_parser(enum_type, case_sensitive, resolve_shorthands=True)
 
 
 def enum_choice_with_plural_parser(
     enum_type: type[T], case_sensitive: bool = True
-) -> Callable[[str], str]:
+) -> Callable[[str], T]:
     """
-    Create a parser function that handles plurals, resolves shorthands, and returns the validated string value.
-
-    Typer will convert the returned string to the enum type based on the type annotation.
+    Create a parser function that handles plurals, resolves shorthands, and returns the matching enum member.
 
     Args:
         enum_type: The enum class to create choices from
         case_sensitive: Whether the choice matching should be case sensitive
 
     Returns:
-        A parser function that handles plurals and returns the string value
+        A parser function that handles plurals and returns the enum member
     """
     return enum_choice_parser(
         enum_type, case_sensitive, resolve_shorthands=True, handle_plurals=True

@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 import pytest
 from active_learning.regression._shared import _encode_features
+from active_learning.regression.autogluon_model import AutoGluonPredictor
 from active_learning.regression.model import RandomForestPredictor
 from sklearn.ensemble import RandomForestRegressor
 
@@ -48,7 +49,7 @@ def _predictor() -> tuple[RandomForestPredictor, pd.DataFrame]:
         frame,
         labels,
         target_output="response",
-        categorical_columns=["code"],
+        categorical_columns=["code", "material", "code"],
         forest_parameters=parameters,
     )
     return predictor, frame
@@ -68,6 +69,7 @@ def test_fit_uses_labelled_rows_and_complete_pool_encoding() -> None:
     assert predictor.forest_.n_features_in_ == encoded.shape[1]
     assert predictor.n_training_samples_ == len(labels)
     assert predictor.target_output == "response"
+    assert predictor._categorical_columns == ("code", "material")
     assert predictor.predict(frame).index.equals(frame.index)
     assert predictor.predict(frame).name == "response"
 
@@ -122,46 +124,70 @@ def test_prediction_requires_original_feature_columns() -> None:
         predictor.predict(frame.drop(columns="size"))
 
 
+@pytest.mark.parametrize("predictor_class", [RandomForestPredictor, AutoGluonPredictor])
 @pytest.mark.parametrize(
     ("labels", "message"),
     [
-        (pd.Series(dtype=float), "at least one.*label"),
-        (pd.Series([1.0], index=["outside"]), "index.*feature"),
-        (pd.Series([1.0, 2.0], index=["a", "a"]), "unique"),
-        (pd.Series([np.nan], index=["a"]), "finite"),
-        (pd.Series([np.inf], index=["a"]), "finite"),
-        (pd.Series([1.0 + 2.0j], index=["a"]), "real"),
+        (pd.Series(dtype=float), "at least.*label"),
+        (pd.Series([1.0] * 4, index=["outside", "b", "c", "d"]), "index.*feature"),
+        (pd.Series([1.0] * 4, index=["a", "a", "c", "d"]), "unique"),
+        (pd.Series([np.nan] * 4, index=["a", "b", "c", "d"]), "finite"),
+        (pd.Series([np.inf] * 4, index=["a", "b", "c", "d"]), "finite"),
+        (pd.Series([1.0 + 2.0j] * 4, index=["a", "b", "c", "d"]), "real"),
+        (pd.Series(["invalid"] * 4, index=["a", "b", "c", "d"]), "real"),
+        (pd.Series([[1.0]] * 4, index=["a", "b", "c", "d"]), "scalar"),
     ],
 )
-def test_fit_rejects_invalid_label_subsets(labels: pd.Series, message: str) -> None:
+def test_fit_rejects_invalid_label_subsets(
+    predictor_class: type[RandomForestPredictor] | type[AutoGluonPredictor],
+    labels: pd.Series,
+    message: str,
+) -> None:
     """Training labels must uniquely identify measured rows with finite real values."""
 
-    frame, _, parameters = _training_data()
+    frame, _, _ = _training_data()
     with pytest.raises(ValueError, match=message):
-        RandomForestPredictor.fit(
-            frame, labels, target_output="response", forest_parameters=parameters
-        )
+        predictor_class.fit(frame, labels, target_output="response")
 
 
+@pytest.mark.parametrize("predictor_class", [RandomForestPredictor, AutoGluonPredictor])
 @pytest.mark.parametrize(
-    "invalid_schema", ["empty", "duplicate_columns", "duplicate_index"]
+    "invalid_schema", ["empty", "duplicate_columns", "duplicate_index", "nonstring"]
 )
-def test_fit_rejects_ambiguous_feature_schema(invalid_schema: str) -> None:
+def test_fit_rejects_ambiguous_feature_schema(
+    predictor_class: type[RandomForestPredictor] | type[AutoGluonPredictor],
+    invalid_schema: str,
+) -> None:
     """Empty pools and ambiguous row or column identities are rejected."""
 
-    frame, labels, parameters = _training_data()
+    frame, labels, _ = _training_data()
     if invalid_schema == "empty":
         frame = frame.iloc[:0]
         message = "at least one"
     elif invalid_schema == "duplicate_columns":
         frame.columns = ["size", "size", "code"]
         message = "unique"
-    else:
+    elif invalid_schema == "duplicate_index":
         frame.index = ["a", "a", "c", "d", "e"]
         message = "unique"
+    else:
+        frame.columns = [1, "material", "code"]
+        message = "strings"
     with pytest.raises(ValueError, match=message):
-        RandomForestPredictor.fit(
-            frame, labels, target_output="response", forest_parameters=parameters
+        predictor_class.fit(frame, labels, target_output="response")
+
+
+@pytest.mark.parametrize("predictor_class", [RandomForestPredictor, AutoGluonPredictor])
+def test_fit_requires_existing_categorical_columns(
+    predictor_class: type[RandomForestPredictor] | type[AutoGluonPredictor],
+) -> None:
+    """Explicit categories must identify existing raw features for either backend."""
+
+    frame, _, _ = _training_data()
+    labels = pd.Series([1.0, 2.0, 3.0, 4.0], index=frame.index[:4])
+    with pytest.raises(ValueError, match=r"categorical columns.*missing.*absent"):
+        predictor_class.fit(
+            frame, labels, target_output="response", categorical_columns=["absent"]
         )
 
 

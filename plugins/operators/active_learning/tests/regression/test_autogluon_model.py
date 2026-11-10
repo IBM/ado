@@ -28,7 +28,7 @@ requires_autogluon = pytest.mark.skipif(
 
 
 def _fit_parameters() -> dict:
-    """Keep real AutoGluon training small and independent of optional model libraries."""
+    """Configure small AutoGluon fits using its random-forest backend."""
 
     return {
         "presets": "medium_quality",

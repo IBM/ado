@@ -4,6 +4,7 @@
 
 """Tests for final-model training from stored target measurements."""
 
+import json
 from pathlib import Path
 
 import numpy as np
@@ -15,23 +16,42 @@ from active_learning.regression._finalize import (
     _final_model_directory,
     _finalize_predictive_model,
 )
-from active_learning.regression._shared import _finite_pool, _measured_labels
+from active_learning.regression._shared import (
+    _finite_pool,
+    _measured_labels,
+    _resolve_target,
+)
 from active_learning.regression.model import RandomForestPredictor
 from active_learning.regression.pkh.parameters import PKHOperatorParameters
-from test_samplers import _adaptive_test_space, _entity_with_label
+from test_samplers import (
+    _adaptive_test_space,
+    _discovery_space,
+    _independent_sample_store,
+    _measurement_space,
+    _store_label,
+)
 
+from ado.metastore.project import ProjectContext
 from ado.schema.domain import PropertyDomain, VariableTypeEnum
 from ado.schema.entityspace import EntitySpaceRepresentation
 from ado.schema.property import ConstitutiveProperty
 
 
-def test_final_model_includes_existing_and_latest_measurements(tmp_path: Path) -> None:
+def test_final_model_includes_existing_and_latest_measurements(
+    tmp_path: Path, valid_ado_sqlite_project_context: ProjectContext
+) -> None:
     """A fresh fit uses all stored labels and refreshes the entity cache."""
 
-    space, store, target, entities = _adaptive_test_space()
+    space, store, target, entities = _adaptive_test_space(
+        valid_ado_sqlite_project_context
+    )
+    assert _measured_labels(space, _finite_pool(space), target) == {0: 1.0}
+    writer = _independent_sample_store(space)
     for index in (2, 4):
-        entity = _entity_with_label(entities[index], target, float(index + 1))
-        store.entities[entity.identifier] = entity
+        _store_label(writer, entities[index], target, float(index + 1))
+    assert {
+        entity.identifier for entity in store.get_entities(require_measurements=False)
+    } == {entities[0].identifier}
     directory = tmp_path / "finalized"
     metadata = _finalize_predictive_model(
         space,
@@ -50,18 +70,18 @@ def test_final_model_includes_existing_and_latest_measurements(tmp_path: Path) -
     assert metadata["observedProperty"] == target.identifier
     assert metadata["modelPath"] == str(directory / "model.pkl")
     assert all(tree.tree_.weighted_n_node_samples[0] == 3 for tree in predictor.forest_)
-    assert (None, False, True) in store.reads
 
 
 @pytest.mark.parametrize("backend", ["random_forest", "autogluon"])
 def test_final_model_preserves_pool_schema_and_label_alignment(
-    tmp_path: Path, backend: str
+    tmp_path: Path,
+    backend: str,
+    valid_ado_sqlite_project_context: ProjectContext,
 ) -> None:
     """Saved predictors retain raw numeric features, categories, and measured rows."""
 
     if backend == "autogluon":
         pytest.importorskip("autogluon.tabular")
-    space, store, target, _ = _adaptive_test_space()
     category_values = [2**53, 2**53 + 1]
     domains = {
         "workers": PropertyDomain(values=[1, 2, 3]),
@@ -72,21 +92,27 @@ def test_final_model_preserves_pool_schema_and_label_alignment(
             variableType=VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE,
         ),
     }
-    space.entitySpace = EntitySpaceRepresentation(
+    entity_space = EntitySpaceRepresentation(
         constitutiveProperties=[
             ConstitutiveProperty(identifier=name, propertyDomain=domain)
             for name, domain in domains.items()
         ]
     )
-    store.entities.clear()
+    measurement_space = _measurement_space(
+        "benchmark", required_properties=entity_space.constitutiveProperties
+    )
+    target = _resolve_target(measurement_space, "latency")
+    space = _discovery_space(
+        valid_ado_sqlite_project_context, entity_space, measurement_space
+    )
+    store = space.sample_store
     pool = _finite_pool(space)
     labels = pd.Series([11.0, 22.0, 33.0, 44.0], index=[1, 6, 13, 22])
     for index, label in labels.items():
         entity = pool.entities[index]
         if index == 13:
             entity = entity.model_copy(update={"identifier": "external-measured-row"})
-        entity = _entity_with_label(entity, target, label)
-        store.entities[entity.identifier] = entity
+        _store_label(store, entity, target, label)
     pool = _finite_pool(space, refresh=True)
     assert pool.feature_frame.columns.tolist() == list(domains)
     assert pool.categorical_columns == ("material", "code")
@@ -144,11 +170,16 @@ def test_final_model_preserves_pool_schema_and_label_alignment(
 
 
 @pytest.mark.parametrize("backend", ["random_forest", "autogluon"])
-def test_final_model_requires_target_measurements(tmp_path: Path, backend: str) -> None:
+def test_final_model_requires_target_measurements(
+    tmp_path: Path,
+    backend: str,
+    valid_ado_sqlite_project_context: ProjectContext,
+) -> None:
     """An empty training set cannot produce a saved predictor."""
 
-    space, store, target, _ = _adaptive_test_space()
-    store.entities.clear()
+    space, _, target, _ = _adaptive_test_space(
+        valid_ado_sqlite_project_context, initial_labels=0
+    )
     directory = tmp_path / "finalized"
 
     with pytest.raises(ValueError, match="no target measurements") as caught:
@@ -161,7 +192,8 @@ def test_final_model_requires_target_measurements(tmp_path: Path, backend: str) 
             minimum_training_count=5,
         )
     assert str(caught.value) == (
-        f"cannot fit a final predictor: no target measurements for {target.identifier!r}; "
+        "cannot fit a final predictor: no target measurements for "
+        f"{target.identifier!r}; "
         "expected at least 5, collected 0"
     )
     assert not directory.exists()
@@ -170,15 +202,16 @@ def test_final_model_requires_target_measurements(tmp_path: Path, backend: str) 
 @pytest.mark.parametrize("backend", ["random_forest", "autogluon"])
 @pytest.mark.parametrize("collected", [1, 3, 4])
 def test_final_model_rejects_an_incomplete_target_set(
-    tmp_path: Path, backend: str, collected: int
+    tmp_path: Path,
+    backend: str,
+    collected: int,
+    valid_ado_sqlite_project_context: ProjectContext,
 ) -> None:
     """A missing final target cannot silently produce a partial training set."""
 
-    space, store, target, entities = _adaptive_test_space()
-    store.entities = {
-        entity.identifier: _entity_with_label(entity, target, float(index))
-        for index, entity in enumerate(entities[:collected])
-    }
+    space, _, target, _ = _adaptive_test_space(
+        valid_ado_sqlite_project_context, initial_labels=collected
+    )
     directory = tmp_path / "finalized"
 
     with pytest.raises(ValueError, match="expected at least 5") as caught:
@@ -199,15 +232,15 @@ def test_final_model_rejects_an_incomplete_target_set(
 
 @pytest.mark.parametrize("collected", [1, 3])
 def test_autogluon_reports_collected_labels_below_training_minimum(
-    tmp_path: Path, collected: int
+    tmp_path: Path,
+    collected: int,
+    valid_ado_sqlite_project_context: ProjectContext,
 ) -> None:
     """Finalization reports actual labels when the campaign minimum is satisfied."""
 
-    space, store, target, entities = _adaptive_test_space()
-    store.entities = {
-        entity.identifier: _entity_with_label(entity, target, float(index))
-        for index, entity in enumerate(entities[:collected])
-    }
+    space, _, _, _ = _adaptive_test_space(
+        valid_ado_sqlite_project_context, initial_labels=collected
+    )
     directory = tmp_path / "finalized"
     with pytest.raises(ValueError, match="available") as caught:
         _finalize_predictive_model(
@@ -242,15 +275,19 @@ def test_final_model_directory_preserves_existing_artifacts(tmp_path: Path) -> N
 
 @pytest.mark.parametrize("number_entities", [1, 2])
 def test_autogluon_requires_enough_labels_before_measurement(
-    tmp_path: Path, number_entities: int
+    tmp_path: Path,
+    number_entities: int,
+    valid_ado_sqlite_project_context: ProjectContext,
 ) -> None:
     """A campaign too small for AutoGluon's validation split fails before sampling."""
 
     from active_learning.regression._sequential import _run_predictive_operator
     from active_learning.regression.pkh.sampler import PKHSampleSelector
 
-    space, store, _, _ = _adaptive_test_space()
-    before = dict(store.entities)
+    space, store, _, _ = _adaptive_test_space(valid_ado_sqlite_project_context)
+    before = [
+        entity.model_dump() for entity in store.get_entities(require_measurements=True)
+    ]
     parameters = PKHOperatorParameters(
         targetOutput="latency",
         numberEntities=number_entities,
@@ -269,29 +306,31 @@ def test_autogluon_requires_enough_labels_before_measurement(
         "AutoGluon requires at least 4 labelled entities, "
         f"but this campaign would provide only {number_entities + 1} in total."
     )
-    assert store.entities == before
+    assert [
+        entity.model_dump()
+        for entity in store.get_entities(require_measurements=True, refresh=True)
+    ] == before
     assert not (tmp_path / "model_finalized").exists()
 
 
-def test_expected_training_count_is_capped_by_the_finite_pool() -> None:
+def test_expected_training_count_is_capped_by_the_finite_pool(
+    valid_ado_sqlite_project_context: ProjectContext,
+) -> None:
     """Existing labels and a large measurement budget cannot exceed pool size."""
 
-    space, _, _, _ = _adaptive_test_space()
+    space, _, _, _ = _adaptive_test_space(valid_ado_sqlite_project_context)
     parameters = PKHOperatorParameters(targetOutput="latency", numberEntities=100)
     assert (
         _expected_training_count(space, parameters=parameters, number_entities=100) == 5
     )
 
 
-def test_generic_loader_reads_existing_random_forest_artifacts(tmp_path: Path) -> None:
+def test_generic_loader_reads_existing_random_forest_artifacts(
+    tmp_path: Path, valid_ado_sqlite_project_context: ProjectContext
+) -> None:
     """Existing model.pkl artifacts retain their predictions with the common loader."""
 
-    import json
-
-    import pandas as pd
-    from active_learning.regression import load_predictor
-
-    space, _, _, _ = _adaptive_test_space()
+    space, _, _, _ = _adaptive_test_space(valid_ado_sqlite_project_context)
     directory = tmp_path / "finalized"
     _finalize_predictive_model(
         space,

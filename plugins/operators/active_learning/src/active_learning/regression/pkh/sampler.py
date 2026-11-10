@@ -154,10 +154,9 @@ class PKHSampleSelector(_PredictiveSampleSelector):
     References
     ----------
     .. [1] E. Aydar, C. Pinto, S. Venugopal, and D. Chatzopoulos, "Sampling
-           Where It Matters: Predicting LLM Serving Performance."
-           in Proceedings of the Sixth European
-           Workshop on Machine Learning and Systems (EuroMLSys '26), ACM,
-           2026, pp. 13-22. doi: 10.1145/3805621.3807633.
+           Where It Matters: Predicting LLM Serving Performance," in Proceedings
+           of the Sixth European Workshop on Machine Learning and Systems
+           (EuroMLSys '26), ACM, 2026, pp. 13-22. doi: 10.1145/3805621.3807633.
     """
 
     def __init__(self, parameters: PKHParameters) -> None:

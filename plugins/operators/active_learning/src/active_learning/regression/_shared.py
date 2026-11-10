@@ -19,6 +19,7 @@ import ray
 
 from active_learning.regression._pilot import PilotStrategy, _StructuredPilot
 from active_learning.regression._predictor import _FinalPredictorParameters
+from active_learning.regression._validation import _resolve_categorical_columns
 from ado.core.discoveryspace.samplers import BaseSampler
 from ado.core.operation.config import GenericOperatorParameters
 from ado.schema.domain import VariableTypeEnum
@@ -185,27 +186,15 @@ def _encode_features(
 
     if frame.empty:
         raise ValueError("the finite pool must contain at least one entity")
-    if frame.shape[1] == 0:
-        raise ValueError("the finite pool must contain at least one feature")
 
-    explicit_categorical = list(categorical_columns or [])
-    missing_columns = sorted(set(explicit_categorical) - set(frame.columns))
-    if missing_columns:
-        raise ValueError(
-            f"categorical columns are absent from the feature frame: {missing_columns}"
-        )
-
-    inferred_categorical = [
-        column
-        for column in frame.columns
-        if not pd.api.types.is_numeric_dtype(frame[column].dtype)
-    ]
-    encoded_columns = list(
-        dict.fromkeys([*explicit_categorical, *inferred_categorical])
+    encoded_columns = _resolve_categorical_columns(
+        frame,
+        categorical_columns,
+        missing_message="categorical columns are absent from the feature frame",
     )
     encoded_frame = pd.get_dummies(
         frame,
-        columns=encoded_columns,
+        columns=list(encoded_columns),
         dummy_na=True,
         dtype=float,
     )

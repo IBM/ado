@@ -22,16 +22,13 @@ according to the forest. When the budget is spent, it saves a predictor that
 estimates the target at every configuration you did not measure.
 PKH was initially introduced to predict LLM serving performance.[^pkh]
 
-!!! tip "PKH, FLORA, or TRIM?"
+!!! tip "PKH or TRIM?"
 
-    All three operators build a surrogate model from a subset of measurements.
+    Both operators build a surrogate model from a subset of measurements.
     They differ in what drives the next measurement:
 
     - **PKH** measures where the sample is most under-represented. Choose it
       when you need measurements whose distribution mirrors the whole space.
-    - **[FLORA][flora-guide]** prioritizes measurements using an estimated
-      risk-reduction score based on forest disagreement. Choose it when you
-      want to target predictive accuracy for one target with a fixed budget.
     - **[TRIM][trim-guide]** retrains an AutoGluon model as it samples and can
       stop early when its holdout-score stability test is satisfied. Choose it
       when you would rather not fix the number of measurements in advance.
@@ -699,16 +696,6 @@ The forest and scheduling settings rarely need changing. The example sets
 
 <div class="grid cards" markdown>
 
-- :octicons-git-compare-24:{ .lg .middle } **Target predictive accuracy with FLORA**
-
-    ---
-
-    Read about the sibling operator, which prioritizes measurements using an
-    estimated risk-reduction score based on forest disagreement, and compare
-    its approach with PKH's.
-
-    [Build a surrogate model with FLORA :octicons-arrow-right-24:][flora-guide]
-
 - :octicons-graph-24:{ .lg .middle } **Stop sampling automatically with TRIM**
 
     ---
@@ -744,7 +731,6 @@ The forest and scheduling settings rarely need changing. The example sets
 <!-- markdownlint-disable MD053 -->
 [first-experiment]: https://ibm.github.io/ado/latest/user-guide/examples/tutorials/density-example/
 [contexts]: https://ibm.github.io/ado/latest/resources/metastore/#working-with-contexts
-[flora-guide]: https://ibm.github.io/ado/latest/user-guide/examples/flora/
 [trim-guide]: https://ibm.github.io/ado/latest/user-guide/examples/trim/
 [vllm-actuator]: https://ibm.github.io/ado/latest/user-guide/actuators/vllm-performance/
 [vllm-guide]: https://ibm.github.io/ado/latest/user-guide/examples/vllm-performance-full/

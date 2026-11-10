@@ -19,8 +19,12 @@ import yaml
 
 try:
     from yaml import CSafeDumper as SafeDumper
+    from yaml import CSafeLoader as SafeLoader
 except ImportError:  # pragma: nocover
-    from yaml import SafeDumper  # type: ignore[assignment]
+    from yaml import (
+        SafeDumper,  # type: ignore[assignment]
+        SafeLoader,  # type: ignore[assignment]
+    )
 
 from ado.metastore.project import ProjectContext
 from ado.utilities.location import SQLiteStoreConfiguration
@@ -128,7 +132,7 @@ def test_cli_saves_final_model_trained_on_every_measurement(
     parameter_class.model_validate(parameters)
     operation_path = tmp_path / "operation.yaml"
     operation_path.write_text(
-        yaml.safe_dump(
+        yaml.dump(
             {
                 "spaces": ["replace-with-a-space-identifier"],
                 "operation": {
@@ -138,7 +142,8 @@ def test_cli_saves_final_model_trained_on_every_measurement(
                     },
                     "parameters": parameters,
                 },
-            }
+            },
+            Dumper=SafeDumper,
         )
     )
     example_space = (
@@ -203,7 +208,7 @@ def test_cli_saves_final_model_trained_on_every_measurement(
     measurements = pd.read_csv(measurements_path)
     assert len(measurements) == measurements["identifier"].nunique() == budget
     assert np.isfinite(measurements["density"]).all()
-    space_configuration = yaml.safe_load(example_space.read_text())
+    space_configuration = yaml.load(example_space.read_text(), Loader=SafeLoader)
     properties = space_configuration["entitySpace"]
     raw_pool = pd.DataFrame(
         itertools.product(*(prop["propertyDomain"]["values"] for prop in properties)),

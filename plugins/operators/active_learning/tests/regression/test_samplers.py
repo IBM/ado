@@ -10,7 +10,8 @@ strategy, in ``tests/regression/pkh/``. This file covers the machinery in
 parametrized across strategies.
 """
 
-from types import SimpleNamespace
+import asyncio
+from collections.abc import Callable
 
 import numpy as np
 import pandas as pd
@@ -20,14 +21,17 @@ from active_learning.regression._shared import (
     _encode_features,
     _entity_target_values,
     _finite_pool,
-    _FinitePool,
     _measured_labels,
     _resolve_target,
     _SequentialSelectionState,
 )
 from active_learning.regression.pkh.parameters import PKHParameters
 from active_learning.regression.pkh.sampler import PKHSampleSelector, _PKHSelectionState
+from ray.actor import ActorHandle
 
+from ado.core.discoveryspace.space import DiscoverySpace
+from ado.core.samplestore.sql import SQLSampleStore
+from ado.metastore.project import ProjectContext
 from ado.modules.operators.randomwalk import (
     CustomSamplerConfiguration,
     SamplerModuleConf,
@@ -46,81 +50,15 @@ from ado.schema.property_value import ConstitutivePropertyValue
 from ado.schema.result import ValidMeasurementResult
 
 
-class _MutableSampleStore:
-    """Small in-memory implementation of the public sample-store read API."""
-
-    def __init__(self, entities: list[Entity]) -> None:
-        """Index the supplied entities by identifier.
-
-        Args:
-            entities: Entities initially held by the test store.
-        """
-
-        self.entities = {
-            entity.identifier: entity
-            for entity in entities
-            if entity.identifier is not None
-        }
-        self.reads: list[tuple[set[str] | None, bool, bool]] = []
-
-    def get_entities(
-        self,
-        identifiers: str | set[str] | None = None,
-        *,
-        require_measurements: bool,
-        refresh: bool = False,
-    ) -> list[Entity]:
-        """Return requested entities and record the public API arguments."""
-
-        selected_identifiers = (
-            {identifiers} if isinstance(identifiers, str) else identifiers
-        )
-        self.reads.append((selected_identifiers, require_measurements, refresh))
-        if selected_identifiers is None:
-            return list(self.entities.values())
-        return [
-            entity
-            for identifier, entity in self.entities.items()
-            if identifier in selected_identifiers
-        ]
-
-
-class _RemoteValue:
-    """Asynchronous value accessor matching a Ray actor method."""
-
-    def __init__(self, value: SimpleNamespace) -> None:
-        """Retain the discovery-space value returned by ``remote``.
-
-        Args:
-            value: Discovery-space test double to return.
-        """
-
-        self.value = value
-
-    async def remote(self) -> SimpleNamespace:
-        """Return the retained value asynchronously."""
-
-        return self.value
-
-
-class _RemoteDiscoverySpace:
-    """Manager exposing a remote discovery-space accessor."""
-
-    def __init__(self, discovery_space: SimpleNamespace) -> None:
-        """Expose a discovery space through a Ray-like accessor.
-
-        Args:
-            discovery_space: Discovery-space test double to expose.
-        """
-
-        self.discoverySpace = _RemoteValue(discovery_space)
-
-
-def _measurement_space(*experiment_names: str) -> MeasurementSpace:
+def _measurement_space(
+    *experiment_names: str,
+    required_properties: list[ConstitutiveProperty] | None = None,
+) -> MeasurementSpace:
     """Create experiments that each measure the scalar test target.
 
     Args:
         *experiment_names: Identifiers for the experiments to create.
+        required_properties: Entity dimensions consumed by each experiment.
 
     Returns:
         A measurement space containing the requested experiments.
@@ -131,6 +69,11 @@ def _measurement_space(*experiment_names: str) -> MeasurementSpace:
         Experiment(
             actuatorIdentifier="test",
             identifier=name,
+            requiredProperties=(
+                required_properties
+                if required_properties is not None
+                else [ConstitutiveProperty(identifier="workers")]
+            ),
             targetProperties=[target],
         )
         for name in experiment_names
@@ -165,20 +108,75 @@ def _entity_with_label(
     return entity.model_copy(update={"measurement_results": [result]})
 
 
-def _adaptive_test_space() -> tuple[
-    SimpleNamespace,
-    _MutableSampleStore,
+def _discovery_space(
+    project_context: ProjectContext,
+    entity_space: EntitySpaceRepresentation,
+    measurement_space: MeasurementSpace,
+) -> DiscoverySpace:
+    """Create a discovery space backed by the fixture's SQLite database."""
+
+    store = SQLSampleStore(
+        identifier=None,
+        storageLocation=project_context.metadataStore,
+        parameters={},
+    )
+    return DiscoverySpace(
+        project_context=project_context,
+        entitySpace=entity_space,
+        measurementSpace=measurement_space,
+        sample_store=store,
+    )
+
+
+def _independent_sample_store(space: DiscoverySpace) -> SQLSampleStore:
+    """Open a separate store handle with an independent entity cache."""
+
+    return SQLSampleStore(
+        identifier=space.sample_store.identifier,
+        storageLocation=space.project_context.metadataStore,
+        parameters={},
+    )
+
+
+def _store_label(
+    store: SQLSampleStore,
+    entity: Entity,
+    target_property: ObservedProperty,
+    value: float,
+) -> None:
+    """Persist an entity and a target measurement through the public store API."""
+
+    store.addEntities([entity])
+    store.add_measurement_results(
+        _entity_with_label(entity, target_property, value).measurement_results,
+        skip_relationship_to_request=True,
+    )
+
+
+def _adaptive_test_space(
+    project_context: ProjectContext,
+    *,
+    initial_labels: int = 1,
+    measurement_space: MeasurementSpace | None = None,
+) -> tuple[
+    DiscoverySpace,
+    SQLSampleStore,
     ObservedProperty,
     list[Entity],
 ]:
-    """Create a finite discovery space with one initially labelled entity.
+    """Create a finite SQLite-backed discovery space with initial labels.
+
+    Args:
+        project_context: Database configuration supplied by the SQLite fixture.
+        initial_labels: Number of entities to label before selection.
+        measurement_space: Experiments to associate with the finite entity space.
 
     Returns:
-        The discovery space, mutable store, target property, and finite entities.
+        The discovery space, SQL store, target property, and finite entities.
     """
 
-    measurement_space = _measurement_space("benchmark")
-    target_property = measurement_space.observedProperties[0]
+    measurement_space = measurement_space or _measurement_space("benchmark")
+    target_property = _resolve_target(measurement_space, "latency")
     entity_space = EntitySpaceRepresentation(
         constitutiveProperties=[
             ConstitutiveProperty(
@@ -191,12 +189,10 @@ def _adaptive_test_space() -> tuple[
         entity_space.entity_for_point({"workers": workers})
         for workers in [1, 2, 3, 4, 5]
     ]
-    store = _MutableSampleStore([_entity_with_label(entities[0], target_property, 1.0)])
-    discovery_space = SimpleNamespace(
-        entitySpace=entity_space,
-        measurementSpace=measurement_space,
-        sample_store=store,
-    )
+    discovery_space = _discovery_space(project_context, entity_space, measurement_space)
+    store = discovery_space.sample_store
+    for index, entity in enumerate(entities[:initial_labels]):
+        _store_label(store, entity, target_property, float(index + 1))
     return discovery_space, store, target_property, entities
 
 
@@ -286,6 +282,7 @@ def test_selectors_expose_and_load_their_parameter_models(
     selector_class: type[PKHSampleSelector],
     parameters_class: type[PKHParameters],
     pilot_strategy: str,
+    valid_ado_sqlite_project_context: ProjectContext,
 ) -> None:
     """Verify ADO loads each selector with its concrete parameter model."""
 
@@ -314,7 +311,7 @@ def test_selectors_expose_and_load_their_parameter_models(
     assert restored.params.pilotSize == 2
     assert restored.params.pilotStrategy == pilot_strategy
 
-    discovery_space, _, _, _ = _adaptive_test_space()
+    discovery_space, _, _, _ = _adaptive_test_space(valid_ado_sqlite_project_context)
     _, _, state = restored._initial_state(discovery_space)
     assert state.pilot_size == 2
     pilot = state.query_one()
@@ -329,8 +326,9 @@ def test_selectors_expose_and_load_their_parameter_models(
     [(PKHSampleSelector, PKHParameters)],
 )
 def test_clhs_selector_uses_original_categorical_dimensions(
-    selector_class: type,
-    parameters_class: type,
+    selector_class: type[PKHSampleSelector],
+    parameters_class: type[PKHParameters],
+    valid_ado_sqlite_project_context: ProjectContext,
 ) -> None:
     """The public selector maps a categorical CLHS pilot to real pool entities."""
 
@@ -346,10 +344,12 @@ def test_clhs_selector_uses_original_categorical_dimensions(
             ),
         ]
     )
-    space = SimpleNamespace(
-        entitySpace=entity_space,
-        measurementSpace=_measurement_space("benchmark"),
-        sample_store=_MutableSampleStore([]),
+    space = _discovery_space(
+        valid_ado_sqlite_project_context,
+        entity_space,
+        _measurement_space(
+            "benchmark", required_properties=entity_space.constitutiveProperties
+        ),
     )
     selector = selector_class(
         parameters_class(
@@ -378,7 +378,9 @@ def test_clhs_selector_uses_original_categorical_dimensions(
     assert not state._forest_fitted
 
 
-def test_pilot_pool_preserves_large_integer_category_values() -> None:
+def test_pilot_pool_preserves_large_integer_category_values(
+    valid_ado_sqlite_project_context: ProjectContext,
+) -> None:
     """Mixed numeric dimensions preserve distinct integer categorical levels."""
 
     levels = [2**53, 2**53 + 1]
@@ -397,10 +399,12 @@ def test_pilot_pool_preserves_large_integer_category_values() -> None:
             ),
         ]
     )
-    space = SimpleNamespace(
-        entitySpace=entity_space,
-        measurementSpace=_measurement_space("benchmark"),
-        sample_store=_MutableSampleStore([]),
+    space = _discovery_space(
+        valid_ado_sqlite_project_context,
+        entity_space,
+        _measurement_space(
+            "benchmark", required_properties=entity_space.constitutiveProperties
+        ),
     )
     pool = _finite_pool(space)
     assert pool.feature_frame["category"].tolist() == levels
@@ -511,36 +515,40 @@ def test_entity_target_values_match_experiment_semantics(
     )
 
 
-def test_measured_labels_use_refreshable_sample_store_api() -> None:
-    """Verify label reads use the refreshable public sample-store API."""
+def test_measured_labels_use_refreshable_sample_store_api(
+    valid_ado_sqlite_project_context: ProjectContext,
+) -> None:
+    """Refresh cached labels after measurements arrive through another handle."""
 
-    measurement_space = _measurement_space("benchmark")
-    target_property = measurement_space.observedProperties[0]
-    entity = Entity(identifier="point-0", constitutive_property_values=())
-    store = _MutableSampleStore([_entity_with_label(entity, target_property, 3.5)])
-    discovery_space = SimpleNamespace(sample_store=store)
-    pool = _FinitePool(
-        features=np.array([[0.0]]),
-        entities=(entity,),
-        index_by_identifier={"point-0": 0},
-        feature_frame=pd.DataFrame({"feature": [0.0]}),
-        categorical_columns=(),
+    discovery_space, store, target_property, entities = _adaptive_test_space(
+        valid_ado_sqlite_project_context
     )
+    pool = _finite_pool(discovery_space)
+    assert _measured_labels(discovery_space, pool, target_property) == {0: 1.0}
+    writer = _independent_sample_store(discovery_space)
+    _store_label(writer, entities[0], target_property, 6.0)
+    cached = store.get_entities(
+        identifiers=entities[0].identifier, require_measurements=True
+    )[0]
+    assert _entity_target_values(cached, target_property) == [1.0]
 
     labels = _measured_labels(discovery_space, pool, target_property)
 
     assert labels == {0: 3.5}
-    assert store.reads == [({"point-0"}, True, True)]
 
 
-def test_finite_pool_preserves_external_stored_entity_identifiers() -> None:
+def test_finite_pool_preserves_external_stored_entity_identifiers(
+    valid_ado_sqlite_project_context: ProjectContext,
+) -> None:
     """Verify pool construction preserves an externally assigned entity ID."""
 
-    discovery_space, store, target_property, entities = _adaptive_test_space()
+    discovery_space, store, target_property, entities = _adaptive_test_space(
+        valid_ado_sqlite_project_context, initial_labels=0
+    )
     external_entity = entities[0].model_copy(update={"identifier": "external-1"})
-    store.entities = {
-        "external-1": _entity_with_label(external_entity, target_property, 1.0)
-    }
+    store.add_external_entities(
+        [_entity_with_label(external_entity, target_property, 1.0)]
+    )
 
     pool = _finite_pool(discovery_space)
     labels = _measured_labels(discovery_space, pool, target_property)
@@ -550,10 +558,15 @@ def test_finite_pool_preserves_external_stored_entity_identifiers() -> None:
     assert labels == {0: 1.0}
 
 
-def test_public_iterator_refreshes_each_returned_label() -> None:
-    """Verify the synchronous iterator waits for each requested label."""
+def test_public_iterator_refreshes_each_returned_label(
+    valid_ado_sqlite_project_context: ProjectContext,
+) -> None:
+    """Verify the synchronous iterator reads fresh feedback before its next query."""
 
-    discovery_space, store, target_property, entities = _adaptive_test_space()
+    discovery_space, store, target_property, entities = _adaptive_test_space(
+        valid_ado_sqlite_project_context
+    )
+    store.addEntities(entities[1:])
     selector = PKHSampleSelector(
         PKHParameters(
             targetOutput="latency",
@@ -566,38 +579,60 @@ def test_public_iterator_refreshes_each_returned_label() -> None:
 
     first = next(iterator)[0]
     assert first.identifier not in {entities[0].identifier, None}
-    store.entities[first.identifier] = _entity_with_label(first, target_property, 2.0)
+    writer = _independent_sample_store(discovery_space)
+    _store_label(writer, first, target_property, 2.0)
     second = next(iterator)[0]
 
     assert second.identifier not in {entities[0].identifier, first.identifier, None}
-    assert store.reads[-1] == ({first.identifier}, True, True)
+    pool = _finite_pool(discovery_space)
+    assert _measured_labels(discovery_space, pool, target_property) == {
+        0: 1.0,
+        pool.index_by_identifier[first.identifier]: 2.0,
+    }
+    iterator.close()
 
 
 @pytest.mark.asyncio
-async def test_remote_iterator_refreshes_each_returned_label() -> None:
+async def test_remote_iterator_refreshes_each_returned_label(
+    valid_ado_sqlite_project_context: ProjectContext,
+    remote_discovery_space: Callable[[DiscoverySpace], ActorHandle],
+) -> None:
     """Verify the remote iterator observes feedback before acquisition."""
 
-    discovery_space, store, target_property, entities = _adaptive_test_space()
+    discovery_space, store, target_property, entities = _adaptive_test_space(
+        valid_ado_sqlite_project_context
+    )
+    store.addEntities(entities[1:])
     selector = PKHSampleSelector(
         PKHParameters(
             targetOutput="latency",
             nEstimators=5,
             minSamplesLeaf=1,
             nJobs=1,
+            labelWaitTimeoutSeconds=1.0,
             labelPollIntervalSeconds=0.001,
         )
     )
     iterator = await selector.remoteEntityIterator(
-        _RemoteDiscoverySpace(discovery_space)
+        remote_discovery_space(discovery_space)
     )
 
-    first = (await anext(iterator))[0]
-    assert first.identifier not in {entities[0].identifier, None}
-    store.entities[first.identifier] = _entity_with_label(first, target_property, 2.0)
-    second = (await anext(iterator))[0]
+    pending: asyncio.Task[list[Entity]] | None = None
+    try:
+        first = (await anext(iterator))[0]
+        assert first.identifier not in {entities[0].identifier, None}
+        pending = asyncio.create_task(anext(iterator))
+        await asyncio.sleep(0.01)
+        assert not pending.done()
+        _store_label(store, first, target_property, 2.0)
+        second = (await asyncio.wait_for(pending, timeout=2.0))[0]
 
-    assert second.identifier not in {entities[0].identifier, first.identifier, None}
-    assert store.reads[-1] == ({first.identifier}, True, True)
+        assert second.identifier not in {entities[0].identifier, first.identifier, None}
+    finally:
+        if pending is not None:
+            pending.cancel()
+            await asyncio.gather(pending, return_exceptions=True)
+        await iterator.aclose()
 
 
 def _complete_queries(

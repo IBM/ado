@@ -65,7 +65,8 @@ def _finalize_predictive_model(
 
     Args:
         discovery_space: Space containing committed experiment measurements.
-        parameters: Target identifier, acquisition settings and final-predictor settings.
+        parameters: Target identifier, acquisition settings and final-predictor
+            settings.
         directory: New directory for the finalized model artifact.
         minimum_training_count: Required number of labelled entities at completion.
 
@@ -81,7 +82,8 @@ def _finalize_predictive_model(
     labels = _measured_labels(discovery_space, pool, target)
     if not labels:
         raise ValueError(
-            f"cannot fit a final predictor: no target measurements for {target.identifier!r}; "
+            "cannot fit a final predictor: no target measurements for "
+            f"{target.identifier!r}; "
             f"expected at least {minimum_training_count}, collected 0"
         )
     if len(labels) < minimum_training_count:

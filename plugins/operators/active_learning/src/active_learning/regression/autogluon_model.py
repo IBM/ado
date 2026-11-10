@@ -20,6 +20,11 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from active_learning.regression._validation import (
+    _prepare_feature_frame,
+    _resolve_categorical_columns,
+    _validate_training_data,
+)
 from active_learning.regression.model import _atomic_write
 
 if typing.TYPE_CHECKING:
@@ -102,48 +107,16 @@ class AutoGluonPredictor:
             RuntimeError: If AutoGluon is unavailable in the current environment.
         """
 
-        if not isinstance(feature_frame, pd.DataFrame) or feature_frame.empty:
-            raise ValueError("feature_frame must contain at least one row and feature")
-        if not feature_frame.columns.is_unique or not feature_frame.index.is_unique:
-            raise ValueError("feature names and feature row indices must be unique")
-        if not all(isinstance(column, str) for column in feature_frame.columns):
-            raise ValueError("feature names must be strings")
-        if not isinstance(target_output, str) or not target_output.strip():
-            raise ValueError("target_output must be a nonempty string")
-        if not isinstance(labels, pd.Series) or len(labels) < 4:
-            raise ValueError(
+        _, targets = _validate_training_data(
+            feature_frame,
+            labels,
+            target_output,
+            minimum_labels=4,
+            minimum_labels_message=(
                 "AutoGluon requires at least four measured training labels"
-            )
-        if not labels.index.is_unique:
-            raise ValueError("training label indices must be unique")
-        if np.any(feature_frame.index.get_indexer(labels.index) < 0):
-            raise ValueError("each label index must identify a feature row")
-        raw_labels = labels.to_numpy()
-        if np.iscomplexobj(raw_labels):
-            raise ValueError("training labels must be finite real scalar values")
-        try:
-            targets = np.asarray(raw_labels, dtype=float)
-        except (TypeError, ValueError) as error:
-            raise ValueError(
-                "training labels must be finite real scalar values"
-            ) from error
-        if targets.ndim != 1 or not np.all(np.isfinite(targets)):
-            raise ValueError("training labels must be finite real scalar values")
-
-        explicit_categorical = list(categorical_columns or [])
-        missing = sorted(set(explicit_categorical) - set(feature_frame.columns))
-        if missing:
-            raise ValueError(
-                f"categorical columns are missing from features: {missing}"
-            )
-        inferred_categorical = [
-            column
-            for column in feature_frame.columns
-            if not pd.api.types.is_numeric_dtype(feature_frame[column].dtype)
-        ]
-        categorical = tuple(
-            dict.fromkeys([*explicit_categorical, *inferred_categorical])
+            ),
         )
+        categorical = _resolve_categorical_columns(feature_frame, categorical_columns)
         predictor = cls(
             predictor_=None,
             feature_names_in_=feature_frame.columns.to_numpy(copy=True),
@@ -207,35 +180,9 @@ class AutoGluonPredictor:
     def _prepare_features(self, frame: pd.DataFrame) -> pd.DataFrame:
         """Validate raw values and restore the fitted numeric/category schema."""
 
-        missing = [name for name in self.feature_names_in_ if name not in frame.columns]
-        if missing:
-            raise ValueError(f"missing required feature columns: {missing}")
-        selected = frame.loc[:, self.feature_names_in_].copy()
-        if not selected.columns.is_unique:
-            raise ValueError("feature names must be unique")
-        for column in self.feature_names_in_:
-            values = selected[column]
-            if column in self._category_dtypes:
-                dtype = self._category_dtypes[column]
-                unknown = values.notna() & ~values.isin(dtype.categories)
-                if unknown.any():
-                    raise ValueError(f"unknown category in feature {column!r}")
-                selected[column] = pd.Categorical(values, dtype=dtype)
-            else:
-                if np.iscomplexobj(values.to_numpy()):
-                    raise ValueError(
-                        f"feature {column!r} must contain real numeric values"
-                    )
-                try:
-                    numeric = values.to_numpy(dtype=float)
-                except (TypeError, ValueError) as error:
-                    raise ValueError(
-                        f"feature {column!r} must contain numeric values"
-                    ) from error
-                if not np.all(np.isfinite(numeric)):
-                    raise ValueError(f"feature {column!r} must contain finite values")
-                selected[column] = numeric
-        return selected
+        return _prepare_feature_frame(
+            frame, self.feature_names_in_, self._category_dtypes
+        )
 
     def predict(self, feature_frame: pd.DataFrame) -> pd.Series:
         """Predict raw rows, preserving their index and ignoring extra columns."""

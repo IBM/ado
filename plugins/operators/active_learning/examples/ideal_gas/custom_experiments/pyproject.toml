@@ -5,7 +5,7 @@
 name = "ado-active-learning-ideal-gas"
 version = "0.1.0"
 description = "Ideal-gas custom experiment for the PKH example."
-requires-python = ">=3.10,<3.15"
+requires-python = ">=3.11,<3.15"
 dependencies = ["ado-core>=2.1.0"]
 
 [project.entry-points."ado.custom_experiments"]

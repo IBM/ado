@@ -6,25 +6,24 @@
 
 import asyncio
 import logging
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Callable
 from queue import Queue
 
 import pytest
 from active_learning.regression._sequential import _SequentialPredictiveWalk
 from active_learning.regression.pkh.parameters import PKHParameters
 from active_learning.regression.pkh.sampler import PKHSampleSelector
-from test_samplers import (
-    _adaptive_test_space,
-    _entity_with_label,
-    _RemoteDiscoverySpace,
-)
+from ray.actor import ActorHandle
+from test_samplers import _adaptive_test_space
 
+from ado.core.discoveryspace.space import DiscoverySpace
+from ado.metastore.project import ProjectContext
 from ado.modules.operators.randomwalk import RandomWalkParameters
 from ado.schema.entity import Entity
 from ado.schema.experiment import Experiment
 from ado.schema.measurementspace import MeasurementSpace, MeasurementSpaceConfiguration
 from ado.schema.observed_property import ObservedPropertyValue
-from ado.schema.property import AbstractPropertyDescriptor
+from ado.schema.property import AbstractPropertyDescriptor, ConstitutiveProperty
 from ado.schema.request import MeasurementRequest, MeasurementRequestStateEnum
 from ado.schema.result import InvalidMeasurementResult, ValidMeasurementResult
 
@@ -105,13 +104,15 @@ async def _sample(
 @pytest.mark.parametrize("retry_prerequisite", [False, True])
 async def test_unrelated_completion_keeps_dependencies_and_retries_schedulable(
     retry_prerequisite: bool,
+    valid_ado_sqlite_project_context: ProjectContext,
+    remote_discovery_space: Callable[[DiscoverySpace], ActorHandle],
 ) -> None:
     """An unrelated result cannot block the completion that enables the target."""
 
-    space, store, _, _ = _adaptive_test_space()
     unrelated = Experiment(
         actuatorIdentifier="test",
         identifier="unrelated",
+        requiredProperties=[ConstitutiveProperty(identifier="workers")],
         targetProperties=[AbstractPropertyDescriptor(identifier="other")],
     )
     prerequisite = Experiment(
@@ -125,12 +126,15 @@ async def test_unrelated_completion_keeps_dependencies_and_retries_schedulable(
         requiredProperties=(prerequisite.observedProperties[0],),
         targetProperties=[AbstractPropertyDescriptor(identifier="latency")],
     )
-    space.measurementSpace = MeasurementSpace(
-        configuration=MeasurementSpaceConfiguration(
-            experiments=[unrelated, prerequisite, target]
-        )
+    space, store, _, _ = _adaptive_test_space(
+        valid_ado_sqlite_project_context,
+        initial_labels=0,
+        measurement_space=MeasurementSpace(
+            configuration=MeasurementSpaceConfiguration(
+                experiments=[unrelated, prerequisite, target]
+            )
+        ),
     )
-    store.entities.clear()
     selector = PKHSampleSelector(
         PKHParameters(
             targetOutput="latency",
@@ -139,7 +143,7 @@ async def test_unrelated_completion_keeps_dependencies_and_retries_schedulable(
             labelPollIntervalSeconds=0.001,
         )
     )
-    iterator = await selector.remoteEntityIterator(_RemoteDiscoverySpace(space))
+    iterator = await selector.remoteEntityIterator(remote_discovery_space(space))
     first = (await anext(iterator))[0]
     walk = _walk(requests=2)
     queue = Queue()
@@ -148,9 +152,7 @@ async def test_unrelated_completion_keeps_dependencies_and_retries_schedulable(
             _completion(walk, unrelated, first), space.measurementSpace, queue
         )
         assert queue.empty()
-        reads = len(store.reads)
         assert await _sample(walk, queue, iterator, space.measurementSpace) == []
-        assert len(store.reads) == reads
         assert walk.numberEntitiesSampled() == 1
         assert walk.numberMeasurementsRequested() == 2
 
@@ -176,7 +178,8 @@ async def test_unrelated_completion_keeps_dependencies_and_retries_schedulable(
         assert await _sample(walk, queue, iterator, space.measurementSpace) == []
 
         finished = _completion(walk, target, dependent["entities"][0])
-        store.entities[first.identifier] = finished.entities[0]
+        store.addEntities(finished.entities)
+        store.addMeasurement(finished)
         assert walk._processCompletedMeasurement(
             finished, space.measurementSpace, queue
         )
@@ -200,15 +203,15 @@ async def test_unrelated_completion_keeps_dependencies_and_retries_schedulable(
 @pytest.mark.parametrize("exhaust_pool", [False, True])
 async def test_single_target_feedback_resumes_or_exhausts_pool(
     exhaust_pool: bool,
+    valid_ado_sqlite_project_context: ProjectContext,
+    remote_discovery_space: Callable[[DiscoverySpace], ActorHandle],
 ) -> None:
     """A target completion permits the next query or clean finite-pool exhaustion."""
 
-    space, store, target, entities = _adaptive_test_space()
-    if exhaust_pool:
-        store.entities = {
-            entity.identifier: _entity_with_label(entity, target, float(index))
-            for index, entity in enumerate(entities[:-1])
-        }
+    space, store, _, _ = _adaptive_test_space(
+        valid_ado_sqlite_project_context,
+        initial_labels=4 if exhaust_pool else 1,
+    )
     selector = PKHSampleSelector(
         PKHParameters(
             targetOutput="latency",
@@ -217,7 +220,7 @@ async def test_single_target_feedback_resumes_or_exhausts_pool(
             labelPollIntervalSeconds=0.001,
         )
     )
-    iterator = await selector.remoteEntityIterator(_RemoteDiscoverySpace(space))
+    iterator = await selector.remoteEntityIterator(remote_discovery_space(space))
     first = (await anext(iterator))[0]
     walk = _walk(requests=1)
     queue = Queue()
@@ -226,7 +229,8 @@ async def test_single_target_feedback_resumes_or_exhausts_pool(
         assert walk.numberEntitiesSampled() == 1
         assert walk.numberMeasurementsRequested() == 1
         finished = _completion(walk, space.measurementSpace.experiments[0], first)
-        store.entities[first.identifier] = finished.entities[0]
+        store.addEntities(finished.entities)
+        store.addMeasurement(finished)
         assert walk._processCompletedMeasurement(
             finished, space.measurementSpace, queue
         )
@@ -239,10 +243,12 @@ async def test_single_target_feedback_resumes_or_exhausts_pool(
         await iterator.aclose()
 
 
-def test_unrelated_operation_completion_does_not_release_feedback() -> None:
+def test_unrelated_operation_completion_does_not_release_feedback(
+    valid_ado_sqlite_project_context: ProjectContext,
+) -> None:
     """Only this operation's completions count toward its outstanding requests."""
 
-    space, _, _, entities = _adaptive_test_space()
+    space, _, _, entities = _adaptive_test_space(valid_ado_sqlite_project_context)
     walk = _walk(requests=1)
     request = _completion(walk, space.measurementSpace.experiments[0], entities[0])
     request = request.model_copy(update={"operation_id": "another-operation"})
@@ -253,10 +259,11 @@ def test_unrelated_operation_completion_does_not_release_feedback() -> None:
 @pytest.mark.parametrize("max_retries", [0, 1])
 def test_terminal_measurement_failure_raises_after_retry_limit(
     max_retries: int,
+    valid_ado_sqlite_project_context: ProjectContext,
 ) -> None:
     """An exhausted failure surfaces even for the final budgeted entity."""
 
-    space, _, _, entities = _adaptive_test_space()
+    space, _, _, entities = _adaptive_test_space(valid_ado_sqlite_project_context)
     walk = _walk(requests=1, max_retries=max_retries)
     walk.params.numberEntities = 1
     queue = Queue()

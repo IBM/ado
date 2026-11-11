@@ -20,13 +20,12 @@ from ado.modules.operators._orchestrate_core import (
     _run_operation_harness,
     log_space_details,
 )
-from ado.modules.operators.base import OperatorFunction
 from ado.modules.operators.provenance import operation_provenance
 
 moduleLog = logging.getLogger("general_orchestration")
 
 
-def _operator_callable_for_harness(registered: OperatorFunction) -> OperatorFunction:
+def _operator_callable_for_harness(registered: typing.Callable) -> typing.Callable:
     """Resolve the callable to execute inside :func:`_run_operation_harness`.
 
     Operators registered via ``characterize_operation`` / ``modify_operation`` /
@@ -41,11 +40,11 @@ def _operator_callable_for_harness(registered: OperatorFunction) -> OperatorFunc
     Returns:
         The innermost unwrapped callable, or *registered* if there is no wrapper chain.
     """
-    return typing.cast("OperatorFunction", inspect.unwrap(registered))
+    return inspect.unwrap(registered)
 
 
 def run_general_operation_core_closure(
-    operation_function: OperatorFunction,
+    operation_function: typing.Callable,
     inputs: dict[str, OperatorInputType],
     operationInfo: FunctionOperationInfo,
     operation_parameters: GenericOperatorParameters,
@@ -111,7 +110,7 @@ def orchestrate_general_operation(
         raise ValueError(
             f"Operator '{operator_metadata.name}' has no function registered"
         )
-    operator_function = typing.cast("OperatorFunction", operator_metadata.function)
+    operator_function = operator_metadata.function
 
     if not operation_info.ray_namespace:
         operation_info.ray_namespace = (

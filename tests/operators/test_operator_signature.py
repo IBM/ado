@@ -1,0 +1,374 @@
+# Copyright IBM Corporation 2025, 2026
+# SPDX-License-Identifier: MIT
+"""Tests for operator signature deduction and call-shape validation."""
+
+from collections.abc import Callable
+
+import pytest
+
+from ado.core.datacontainer.resource import DataContainerResource
+from ado.core.discoveryspace.space import DiscoverySpace
+from ado.core.operation.config import (
+    DiscoveryOperationEnum,
+    FunctionOperationInfo,
+    GenericOperatorParameters,
+)
+from ado.core.operation.inputs import resource_inputs_from_operator_function
+from ado.core.operation.operation import OperationOutput
+from ado.core.resources import ADOResourcePropertyDescriptor, CoreResourceKinds
+from ado.modules.operators.base import (
+    validate_operator_call_shape,
+    validate_operator_registration,
+)
+from ado.modules.operators.inputs import validate_resource_inputs_for_operation_type
+
+
+def _validate(fn: Callable[..., object]) -> None:
+    """Deduce resource inputs and check the call shape."""
+    inputs = resource_inputs_from_operator_function(fn)
+    validate_operator_call_shape(fn, inputs, configuration_model=_Params)
+
+
+class _Params(GenericOperatorParameters):
+    value: int = 1
+
+
+def valid_op(
+    discoverySpace: DiscoverySpace,
+    operationInfo: FunctionOperationInfo | None = None,
+    *,
+    parameters: _Params,
+) -> OperationOutput: ...
+
+
+def valid_op_with_kwargs(
+    discoverySpace: DiscoverySpace,
+    operationInfo: FunctionOperationInfo | None = None,
+    **kwargs: object,
+) -> OperationOutput: ...
+
+
+def no_annotations(
+    discoverySpace,  # noqa: ANN001
+    operationInfo=None,  # noqa: ANN001
+    *,
+    parameters: _Params,
+) -> OperationOutput: ...
+
+
+def missing_operation_info(
+    discoverySpace: DiscoverySpace,
+    *,
+    parameters: _Params,
+) -> OperationOutput: ...
+
+
+def extra_positional(
+    discoverySpace: DiscoverySpace,
+    operationInfo: FunctionOperationInfo | None = None,
+    extra: int = 0,
+    *,
+    parameters: _Params,
+) -> OperationOutput: ...
+
+
+def wrong_first_param_type(
+    discoverySpace: int,
+    operationInfo: FunctionOperationInfo | None = None,
+    *,
+    parameters: _Params,
+) -> OperationOutput: ...
+
+
+def wrong_second_param_type(
+    discoverySpace: DiscoverySpace,
+    operationInfo: int = 0,
+    *,
+    parameters: _Params,
+) -> OperationOutput: ...
+
+
+def wrong_parameters_type(
+    discoverySpace: DiscoverySpace,
+    operationInfo: FunctionOperationInfo | None = None,
+    *,
+    parameters: int,
+) -> OperationOutput: ...
+
+
+def wrong_return_type(
+    discoverySpace: DiscoverySpace,
+    operationInfo: FunctionOperationInfo | None = None,
+    *,
+    parameters: _Params,
+) -> int: ...
+
+
+def positional_parameters(
+    discoverySpace: DiscoverySpace,
+    operationInfo: FunctionOperationInfo | None = None,
+    parameters: _Params | None = None,
+) -> OperationOutput: ...
+
+
+def positional_only(
+    discoverySpace: DiscoverySpace,
+    /,
+    operationInfo: FunctionOperationInfo | None = None,
+    *,
+    parameters: _Params,
+) -> OperationOutput: ...
+
+
+class TestValidSignatures:
+    def test_valid_parameters_model(self) -> None:
+        """A discoverySpace, operationInfo, and parameters model passes."""
+        _validate(valid_op)
+
+    def test_kwargs_rejected(self) -> None:
+        """**kwargs is rejected in favour of a parameters model."""
+        with pytest.raises(ValueError, match="kwargs"):
+            _validate(valid_op_with_kwargs)
+
+
+class TestHintIntrospectionFailure:
+    def test_unresolvable_forward_reference_raises(self) -> None:
+        """An unresolvable forward reference in annotations raises ValueError.
+
+        A function whose annotation references a name that is not in scope
+        causes typing.get_type_hints to raise NameError.  The function has
+        valid structure but the hints are unresolvable, so validation must
+        reject it rather than silently skipping the type checks.
+        """
+
+        def bad_hints(
+            discoverySpace: "UnresolvableType",  # noqa: F821
+            operationInfo: FunctionOperationInfo | None = None,
+            *,
+            parameters: _Params,
+        ) -> OperationOutput: ...
+
+        with pytest.raises(ValueError, match="type hints are unresolvable"):
+            _validate(bad_hints)
+
+    def test_uninspectable_fn_raises(self) -> None:
+        """A callable whose signature cannot be inspected must raise ValueError.
+
+        Conformance cannot be confirmed when introspection fails, so silently
+        passing would allow invalid callables through.
+        """
+        import inspect
+        import unittest.mock as mock
+
+        fn = lambda: None  # noqa: E731
+        original_signature = inspect.signature
+
+        def patched_signature(obj: object, **kwargs: object) -> inspect.Signature:
+            if obj is fn:
+                raise TypeError("not inspectable")
+            return original_signature(obj, **kwargs)  # type: ignore[arg-type]
+
+        with (
+            mock.patch("inspect.signature", side_effect=patched_signature),
+            pytest.raises(ValueError, match="signature could not be inspected"),
+        ):
+            _validate(fn)
+
+
+class TestInvalidSignatures:
+    def test_missing_param_annotations_rejected(self) -> None:
+        """A function with unannotated parameters is rejected."""
+        with pytest.raises(ValueError, match="missing a resolvable type annotation"):
+            _validate(no_annotations)
+
+    def test_missing_operation_info(self) -> None:
+        """A function that omits operationInfo is rejected."""
+        with pytest.raises(ValueError, match="operationInfo"):
+            _validate(missing_operation_info)
+
+    def test_extra_positional_parameter(self) -> None:
+        """Function with more positional parameters than the protocol is rejected."""
+        with pytest.raises(ValueError, match="extra"):
+            _validate(extra_positional)
+
+    def test_wrong_first_param_type(self) -> None:
+        """Wrong type on the first positional parameter is rejected."""
+        with pytest.raises(ValueError, match="discoverySpace"):
+            _validate(wrong_first_param_type)
+
+    def test_wrong_second_param_type(self) -> None:
+        """Wrong type on the second positional parameter is rejected."""
+        with pytest.raises(ValueError, match="operationInfo"):
+            _validate(wrong_second_param_type)
+
+    def test_wrong_parameters_type(self) -> None:
+        """parameters must be a GenericOperatorParameters subclass."""
+        with pytest.raises(ValueError, match="parameters"):
+            _validate(wrong_parameters_type)
+
+    def test_compare_inputs_are_deduced_from_the_signature(self) -> None:
+        """Leading resource parameters become the operator's required inputs."""
+
+        def compare_spaces(
+            left: DiscoverySpace,
+            right: DataContainerResource,
+            operationInfo: FunctionOperationInfo | None = None,
+            *,
+            parameters: _Params,
+        ) -> OperationOutput: ...
+
+        descriptors = resource_inputs_from_operator_function(compare_spaces)
+        assert [descriptor.identifier for descriptor in descriptors] == [
+            "left",
+            "right",
+        ]
+        assert descriptors[1].kind == CoreResourceKinds.DATACONTAINER
+        validate_operator_registration(
+            compare_spaces,
+            descriptors,
+            DiscoveryOperationEnum.COMPARE,
+            configuration_model=_Params,
+        )
+
+    def test_fuse_requires_two_discovery_spaces(self) -> None:
+        """A fuse operator with one discovery space is rejected."""
+        descriptors = resource_inputs_from_operator_function(valid_op)
+        with pytest.raises(ValueError, match="at least 2"):
+            validate_operator_registration(
+                valid_op,
+                descriptors,
+                DiscoveryOperationEnum.FUSE,
+                configuration_model=_Params,
+            )
+
+    def test_wrong_return_type(self) -> None:
+        """Wrong return type is rejected."""
+        with pytest.raises(ValueError, match="return"):
+            _validate(wrong_return_type)
+
+    def test_annotated_discovery_space_is_unwrapped(self) -> None:
+        """Annotated[DiscoverySpace, ...] deduces a discoveryspace input."""
+        from typing import Annotated
+
+        def annotated_space(
+            discoverySpace: Annotated[DiscoverySpace, "meta"],
+            operationInfo: FunctionOperationInfo | None = None,
+            *,
+            parameters: _Params,
+        ) -> OperationOutput: ...
+
+        descriptors = resource_inputs_from_operator_function(annotated_space)
+        assert [descriptor.identifier for descriptor in descriptors] == [
+            "discoverySpace"
+        ]
+        assert descriptors[0].kind == CoreResourceKinds.DISCOVERYSPACE
+        _validate(annotated_space)
+
+    def test_annotated_call_shape_hints_are_unwrapped(self) -> None:
+        """Annotated operationInfo, parameters, and return still validate."""
+        from typing import Annotated
+
+        def annotated_hints(
+            discoverySpace: DiscoverySpace,
+            operationInfo: Annotated[FunctionOperationInfo | None, "meta"] = None,
+            *,
+            parameters: Annotated[_Params, "meta"],
+        ) -> Annotated[OperationOutput, "meta"]: ...
+
+        _validate(annotated_hints)
+
+    def test_parameters_must_be_keyword_only(self) -> None:
+        """parameters must be the only keyword-only parameter."""
+        with pytest.raises(ValueError, match="keyword-only"):
+            resource_inputs_from_operator_function(positional_parameters)
+        with pytest.raises(ValueError, match="keyword-only"):
+            validate_operator_call_shape(
+                positional_parameters,
+                [],
+                configuration_model=_Params,
+            )
+
+    def test_positional_only_rejected(self) -> None:
+        """Positional-only parameters cannot be passed as keywords."""
+        with pytest.raises(ValueError, match="positional-only"):
+            resource_inputs_from_operator_function(positional_only)
+        with pytest.raises(ValueError, match="positional-only"):
+            validate_operator_call_shape(
+                positional_only,
+                [],
+                configuration_model=_Params,
+            )
+
+    def test_fuse_rejects_non_discovery_space_inputs(self) -> None:
+        """Fuse inputs that are not discovery spaces are rejected."""
+
+        def fuse_mixed(
+            left: DiscoverySpace,
+            right: DataContainerResource,
+            operationInfo: FunctionOperationInfo | None = None,
+            *,
+            parameters: _Params,
+        ) -> OperationOutput: ...
+
+        descriptors = resource_inputs_from_operator_function(fuse_mixed)
+        with pytest.raises(ValueError, match="does not allow"):
+            validate_operator_registration(
+                fuse_mixed,
+                descriptors,
+                DiscoveryOperationEnum.FUSE,
+                configuration_model=_Params,
+            )
+
+
+def _space(identifier: str) -> ADOResourcePropertyDescriptor:
+    """Return a discovery-space resource input named *identifier*."""
+    return ADOResourcePropertyDescriptor(
+        identifier=identifier,
+        kind=CoreResourceKinds.DISCOVERYSPACE,
+    )
+
+
+class TestResourceInputRules:
+    def test_empty_inputs_rejected(self) -> None:
+        """An operator must declare at least one resource input."""
+        with pytest.raises(ValueError, match="at least"):
+            validate_resource_inputs_for_operation_type(
+                [], DiscoveryOperationEnum.CHARACTERIZE
+            )
+
+    def test_explore_rejects_a_second_input(self) -> None:
+        """Explore operators take exactly one resource input."""
+        with pytest.raises(ValueError, match="exactly"):
+            validate_resource_inputs_for_operation_type(
+                [_space("left"), _space("right")],
+                DiscoveryOperationEnum.EXPLORE,
+            )
+
+    def test_export_rejects_a_second_input(self) -> None:
+        """Export operators take exactly one resource input."""
+        with pytest.raises(ValueError, match="exactly"):
+            validate_resource_inputs_for_operation_type(
+                [_space("left"), _space("right")],
+                DiscoveryOperationEnum.EXPORT,
+            )
+
+    def test_disallowed_kind_rejected(self) -> None:
+        """A kind outside the collection's allow-list is rejected."""
+        with pytest.raises(ValueError, match="does not allow"):
+            validate_resource_inputs_for_operation_type(
+                [
+                    ADOResourcePropertyDescriptor(
+                        identifier="store",
+                        kind=CoreResourceKinds.SAMPLESTORE,
+                    )
+                ],
+                DiscoveryOperationEnum.CHARACTERIZE,
+            )
+
+    def test_duplicate_identifiers_rejected(self) -> None:
+        """Two resource inputs cannot share an identifier."""
+        with pytest.raises(ValueError, match="Duplicate"):
+            validate_resource_inputs_for_operation_type(
+                [_space("space"), _space("space")],
+                DiscoveryOperationEnum.FUSE,
+            )

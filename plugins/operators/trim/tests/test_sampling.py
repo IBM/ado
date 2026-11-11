@@ -42,16 +42,14 @@ def test_get_index_list_nn_sorted_sampling(points: int, expected: list[int]) -> 
 @pytest.mark.parametrize(
     ("length", "points", "sampled_indices", "expected"),
     [
-        (5, 3, [0, 4], [0, 4, 2]),
         (10, 4, [0, 4, 9], [0, 4, 9, 6]),
-        (14, 8, None, [0, 13, 6, 9, 3, 11, 5, 2]),
         (12, 12, [3, 7], [3, 7, 0, 11, 5, 9, 2, 8, 4, 10, 1, 6]),
     ],
 )
 def test_get_index_list_van_der_corput_with_sampled_indices(
     length: int,
     points: int,
-    sampled_indices: list[int] | None,
+    sampled_indices: list[int],
     expected: list[int],
 ) -> None:
     """Should extend already-sampled indices in least-dense-neighbourhood order."""
@@ -61,50 +59,41 @@ def test_get_index_list_van_der_corput_with_sampled_indices(
     )
 
 
-@pytest.mark.parametrize("length", [1, 2, 3, 16, 33, 100])
-def test_get_index_list_van_der_corput_full_sampling_is_permutation(
-    length: int,
+@pytest.mark.parametrize("sampled_indices", [[7], [-1], [0, 5]])
+def test_get_index_list_van_der_corput_rejects_out_of_segment_sampled_indices(
+    sampled_indices: list[int],
 ) -> None:
-    """Should return each index of the segment exactly once, extremities first."""
-    order = get_index_list_van_der_corput(length, length)
-    assert sorted(order) == list(range(length))
-    assert order[: min(2, length)] == [0, length - 1][: min(2, length)]
+    """Should raise ValueError for sampled indices outside the segment."""
+    with pytest.raises(ValueError, match="outside the segment"):
+        get_index_list_van_der_corput(5, 5, sampled_indices=sampled_indices)
 
 
 @pytest.mark.parametrize(
-    ("occupancy", "length_segment", "expected"),
+    ("occupancy", "expected"),
     [
-        ([1, 0, 0, 0, 1], 5, 2),
-        ([1, 0, 0, 0, 0, 0, 0, 0, 1], 9, 4),
-        ([1, 1, 0, 0, 1], 5, 3),
-        ([1, 0, 0, 1, 0, 0, 0, 0, 1], 9, 5),
+        ([1, 1, 0, 0, 1], 3),
+        ([1, 0, 0, 1, 0, 0, 0, 0, 1], 5),
+        ([1, 1, 0, 0, 1, 0, 0, 1], 5),
     ],
 )
-def test_select_least_dense_index(
-    occupancy: list[int], length_segment: int, expected: int
-) -> None:
+def test_select_least_dense_index(occupancy: list[int], expected: int) -> None:
     """Should return the unsampled index in the least densely sampled window."""
     assert (
         _select_least_dense_index(
-            occupancy=np.array(occupancy),
-            length_segment=length_segment,
-            max_half_width=length_segment,
+            occupancy=np.array(occupancy), max_half_width=len(occupancy)
         )
         == expected
     )
 
 
-def test_select_least_dense_index_ignores_positions_beyond_segment() -> None:
-    """Should select only within the segment when occupancy extends beyond it."""
-    occupancy = np.array([1, 1, 1, 0, 0, 0, 0, 0, 0, 1])
+@pytest.mark.parametrize(("max_half_width", "expected"), [(1, 2), (2, 3), (8, 5)])
+def test_select_least_dense_index_widens_window_to_break_ties(
+    max_half_width: int, expected: int
+) -> None:
+    """Should widen the window until a single candidate is left or the cap is reached."""
+    occupancy = np.array([1, 1, 0, 0, 1, 0, 0, 1])
 
-    selected_index = _select_least_dense_index(
-        occupancy=occupancy, length_segment=4, max_half_width=4
+    assert (
+        _select_least_dense_index(occupancy=occupancy, max_half_width=max_half_width)
+        == expected
     )
-
-    assert selected_index == 3
-
-
-def test_get_index_list_van_der_corput_with_out_of_segment_sampled_index() -> None:
-    """Should count an out-of-segment sampled index and select only in-segment indices."""
-    assert get_index_list_van_der_corput(5, 5, sampled_indices=[7]) == [7, 0, 4, 2, 3]

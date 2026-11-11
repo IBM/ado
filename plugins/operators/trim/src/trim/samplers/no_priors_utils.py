@@ -41,12 +41,11 @@ logger = logging.getLogger(__name__)
 
 def _select_least_dense_index(
     occupancy: np.ndarray,
-    length_segment: int,
     max_half_width: int,
 ) -> int:
     """Return the unsampled index lying in the least densely sampled neighbourhood.
 
-    For each unsampled index ``i`` in ``[0, length_segment)`` the density at
+    For each unsampled index ``i`` of ``occupancy`` the density at
     half-width ``w`` is the fraction of sampled positions in the window
     ``[i - w, i + w]`` clipped to ``[0, len(occupancy) - 1]``. Candidates are
     narrowed to those of minimal density for ``w = 1, 2, ...`` until one
@@ -55,7 +54,6 @@ def _select_least_dense_index(
 
     Args:
         occupancy: Array with 1 at sampled positions and 0 elsewhere.
-        length_segment: Number of positions eligible for selection.
         max_half_width: Largest window half-width considered. The window
             of half-width 1 is always evaluated.
 
@@ -63,11 +61,11 @@ def _select_least_dense_index(
         The selected index.
 
     Raises:
-        ValueError: If no unsampled index exists in ``[0, length_segment)``.
+        ValueError: If ``occupancy`` has no unsampled index.
     """
     last_position = len(occupancy) - 1
     cumulative_occupancy = np.concatenate(([0], np.cumsum(occupancy)))
-    candidates = np.flatnonzero(occupancy[:length_segment] == 0)
+    candidates = np.flatnonzero(occupancy == 0)
 
     half_width = 1
     while True:
@@ -95,7 +93,8 @@ def get_index_list_van_der_corput(
     Args:
         length_segment: Total number of units in the 1D segment
         tot_points_to_sample: Total number of indices to sample
-        sampled_indices: List of indices already sampled
+        sampled_indices: List of indices already sampled, each in
+            ``[0, length_segment)``
         sort: If True, returns the final list sorted
         verbose: If True, prints debug information
 
@@ -103,7 +102,8 @@ def get_index_list_van_der_corput(
         List of sampled indices
 
     Raises:
-        ValueError: If tot_points_to_sample exceeds length_segment
+        ValueError: If tot_points_to_sample exceeds length_segment, or if a
+            sampled index lies outside ``[0, length_segment)``
     """
     if tot_points_to_sample == 0:
         return []
@@ -115,6 +115,13 @@ def get_index_list_van_der_corput(
 
     if sampled_indices is None:
         sampled_indices = []
+
+    out_of_segment = sorted({i for i in sampled_indices if not 0 <= i < length_segment})
+    if out_of_segment:
+        raise ValueError(
+            f"Sampled indices {out_of_segment} lie outside the segment "
+            f"[0, {length_segment})"
+        )
 
     if len(sampled_indices) == length_segment:
         maximal_indices_list = list(range(length_segment))
@@ -142,16 +149,12 @@ def get_index_list_van_der_corput(
             if len(index_list) == tot_points_to_sample:
                 return sorted(index_list)
 
-    # Both extremities are sampled here, so the occupancy array spans at least
-    # the whole segment; it also covers any out-of-segment sampled index.
-    occupancy_length = max(index_list) + 1
-    occupancy = np.zeros(occupancy_length, dtype=np.int64)
-    occupancy[[i for i in sampled_set if 0 <= i < occupancy_length]] = 1
+    occupancy = np.zeros(length_segment, dtype=np.int64)
+    occupancy[list(sampled_set)] = 1
 
     while len(index_list) < tot_points_to_sample:
         selected_index = _select_least_dense_index(
             occupancy=occupancy,
-            length_segment=length_segment,
             max_half_width=length_segment,
         )
         if verbose:

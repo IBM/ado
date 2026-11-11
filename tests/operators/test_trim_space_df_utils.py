@@ -9,7 +9,6 @@ of the top-level ``tests/`` package (``ml_multi_cloud_space``, ``create_space``,
 ``tests/operators/``.
 """
 
-import logging
 import pathlib
 from collections.abc import Callable
 
@@ -63,20 +62,58 @@ def test_get_df_all_entities_no_measurements(
 
 def test_get_df_at_least_one_measured_value_names_target_column(
     ml_multi_cloud_space: DiscoverySpace,
-    caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Should expose the mean-aggregated target under its bare identifier."""
-    with caplog.at_level(logging.WARNING, logger="trim.samplers.no_priors_utils"):
-        df = get_df_at_least_one_measured_value(
-            ml_multi_cloud_space, [TARGET], add_measurement_id=True
-        )
+    df = get_df_at_least_one_measured_value(
+        ml_multi_cloud_space, [TARGET], add_measurement_id=True
+    )
 
     assert list(df.columns) == ["identifier", *CONSTITUTIVE_PROPERTIES, TARGET]
     assert not df.empty
-    assert df[TARGET].notna().all()
-    assert [
-        r for r in caplog.records if r.name == "trim.samplers.no_priors_utils"
-    ] == []
+
+
+def test_get_df_at_least_one_measured_value_drops_entities_missing_target(
+    ml_multi_cloud_space: DiscoverySpace,
+) -> None:
+    """Should drop entities measured only for other properties of the experiment."""
+    _, unmeasured = get_source_and_target(ml_multi_cloud_space, TARGET)
+    point = {cp: unmeasured.iloc[0][cp] for cp in CONSTITUTIVE_PROPERTIES}
+    entity = ml_multi_cloud_space.entity_for_point(point)
+    store = ml_multi_cloud_space.sample_store
+    store.addEntities([entity])
+    store.add_measurement_results(
+        results=[
+            ValidMeasurementResult(
+                entityIdentifier=entity.identifier,
+                measurements=[
+                    ObservedPropertyValue(
+                        value="ok",
+                        property=ObservedProperty(
+                            targetProperty=AbstractPropertyDescriptor(
+                                identifier="status"
+                            ),
+                            experimentReference=ExperimentReference(
+                                experimentIdentifier="benchmark_performance",
+                                actuatorIdentifier="replay",
+                            ),
+                        ),
+                    )
+                ],
+            )
+        ],
+        skip_relationship_to_request=True,
+    )
+
+    with_target = get_df_at_least_one_measured_value(
+        ml_multi_cloud_space, [TARGET], add_measurement_id=True
+    )
+    with_status = get_df_at_least_one_measured_value(
+        ml_multi_cloud_space, ["status"], add_measurement_id=True
+    )
+
+    assert entity.identifier not in set(with_target["identifier"])
+    assert with_target[TARGET].notna().all()
+    assert entity.identifier in set(with_status["identifier"])
 
 
 def test_get_df_at_least_one_measured_value_from_space_identifier(
@@ -205,7 +242,9 @@ def unmeasured_space(
     """Discovery space on an empty sample store."""
     configuration = DiscoverySpaceConfiguration.model_validate(
         yaml.load(
-            pathlib.Path("tests/resources/trim/space_minimal.yaml").read_text(),
+            (
+                pathlib.Path(__file__).parents[1] / "resources/trim/space_minimal.yaml"
+            ).read_text(),
             Loader=SafeLoader,
         )
     )

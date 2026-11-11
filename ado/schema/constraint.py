@@ -9,7 +9,7 @@ of two operands, or a combination of predicates using allOf, anyOf, or not.
 """
 
 import enum
-from typing import Annotated, Self
+from typing import Annotated, NoReturn, Self
 
 import pydantic
 from pydantic import ConfigDict
@@ -41,6 +41,44 @@ class ComparisonOperator(enum.StrEnum):
 
 
 _MEMBERSHIP_OPERATORS = frozenset({ComparisonOperator.in_, ComparisonOperator.notIn})
+_ORDERING_OPERATORS = frozenset(
+    {
+        ComparisonOperator.lt,
+        ComparisonOperator.le,
+        ComparisonOperator.gt,
+        ComparisonOperator.ge,
+    }
+)
+_ORDERING_LITERAL_TYPES = (int, float)
+
+
+def _raise_discriminator_validation_error(
+    title: str,
+    message: str,
+    input_value: object,
+) -> NoReturn:
+    """Raise a ValidationError for a discriminator that cannot choose a variant.
+
+    Args:
+        title: Title used in the ValidationError.
+        message: Human-readable error message.
+        input_value: The value that could not be discriminated.
+
+    Raises:
+        pydantic.ValidationError: Always raised.
+    """
+
+    raise pydantic.ValidationError.from_exception_data(
+        title,
+        [
+            {
+                "type": "value_error",
+                "loc": (),
+                "input": input_value,
+                "ctx": {"error": message},
+            }
+        ],
+    )
 
 
 class PropertyOperand(pydantic.BaseModel):
@@ -170,7 +208,8 @@ def _comparison_operand_discriminator(
         The tag ``propertyIdentifier``, ``value``, or ``values``.
 
     Raises:
-        ValueError: If the operand does not set exactly one of those fields.
+        ValueError: If a mapping does not set exactly one of those fields.
+        pydantic.ValidationError: If the value is not a recognised operand.
     """
 
     if isinstance(operand, PropertyOperand):
@@ -181,7 +220,11 @@ def _comparison_operand_discriminator(
         return "values"
     if isinstance(operand, dict):
         return _operand_tag(operand)
-    raise ValueError(f"Unable to determine comparison operand type for {operand!r}")
+    _raise_discriminator_validation_error(
+        "ComparisonOperand",
+        f"Unable to determine comparison operand type for {operand!r}",
+        operand,
+    )
 
 
 ComparisonOperand = Annotated[
@@ -222,8 +265,9 @@ class Comparison(pydantic.BaseModel):
             This comparison.
 
         Raises:
-            ValueError: If neither operand names a property, or the operand
-                kinds do not match the operator.
+            ValueError: If neither operand names a property, the operand kinds
+                do not match the operator, or an ordering operator is used
+                with a non-numeric literal.
         """
 
         if not (
@@ -252,6 +296,17 @@ class Comparison(pydantic.BaseModel):
                 f"Operator {self.operator.value} compares single values. "
                 "Use value for a literal."
             )
+
+        if self.operator in _ORDERING_OPERATORS:
+            for side in (self.left, self.right):
+                if (
+                    isinstance(side, SingleValueOperand)
+                    and type(side.value) not in _ORDERING_LITERAL_TYPES
+                ):
+                    raise ValueError(
+                        f"Operator {self.operator.value} requires a numeric literal; "
+                        f"got {side.value!r}"
+                    )
         return self
 
     def property_identifiers(self) -> set[str]:
@@ -407,7 +462,8 @@ def _predicate_discriminator(
         The tag ``comparison``, ``allOf``, ``anyOf``, or ``not``.
 
     Raises:
-        ValueError: If the value is not a predicate or mixes predicate forms.
+        ValueError: If a mapping is not a predicate or mixes predicate forms.
+        pydantic.ValidationError: If the value is not a recognised predicate.
     """
 
     if isinstance(predicate, Comparison):
@@ -420,7 +476,11 @@ def _predicate_discriminator(
         return "not"
     if isinstance(predicate, dict):
         return _predicate_tag(predicate)
-    raise ValueError(f"Unable to determine predicate type for {predicate!r}")
+    _raise_discriminator_validation_error(
+        "Predicate",
+        f"Unable to determine predicate type for {predicate!r}",
+        predicate,
+    )
 
 
 Predicate = Annotated[

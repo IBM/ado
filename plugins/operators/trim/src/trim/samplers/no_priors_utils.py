@@ -22,6 +22,7 @@ import pandas as pd
 from scipy.stats.qmc import Sobol
 
 from ado.core.discoveryspace.space import DiscoverySpace
+from ado.schema.entity import entity_identifier_from_properties_and_values
 from ado.schema.virtual_property import PropertyAggregationMethodEnum
 
 if TYPE_CHECKING:
@@ -38,6 +39,47 @@ logger = logging.getLogger(__name__)
 # ============================================================================
 
 
+def _select_least_dense_index(
+    occupancy: np.ndarray,
+    max_half_width: int,
+) -> int:
+    """Return the unsampled index lying in the least densely sampled neighbourhood.
+
+    For each unsampled index ``i`` of ``occupancy`` the density at
+    half-width ``w`` is the fraction of sampled positions in the window
+    ``[i - w, i + w]`` clipped to ``[0, len(occupancy) - 1]``. Candidates are
+    narrowed to those of minimal density for ``w = 1, 2, ...`` until one
+    candidate is left or ``w`` reaches ``max_half_width``; the smallest
+    remaining index is returned.
+
+    Args:
+        occupancy: Array with 1 at sampled positions and 0 elsewhere.
+        max_half_width: Largest window half-width considered. The window
+            of half-width 1 is always evaluated.
+
+    Returns:
+        The selected index.
+
+    Raises:
+        ValueError: If ``occupancy`` has no unsampled index.
+    """
+    last_position = len(occupancy) - 1
+    cumulative_occupancy = np.concatenate(([0], np.cumsum(occupancy)))
+    candidates = np.flatnonzero(occupancy == 0)
+
+    half_width = 1
+    while True:
+        window_start = np.maximum(candidates - half_width, 0)
+        window_end = np.minimum(candidates + half_width, last_position)
+        window_density = (
+            cumulative_occupancy[window_end + 1] - cumulative_occupancy[window_start]
+        ) / (window_end - window_start + 1)
+        candidates = candidates[window_density == window_density.min()]
+        if len(candidates) == 1 or half_width >= max_half_width:
+            return int(candidates[0])
+        half_width += 1
+
+
 def get_index_list_van_der_corput(
     length_segment: int,
     tot_points_to_sample: int,
@@ -51,7 +93,8 @@ def get_index_list_van_der_corput(
     Args:
         length_segment: Total number of units in the 1D segment
         tot_points_to_sample: Total number of indices to sample
-        sampled_indices: List of indices already sampled
+        sampled_indices: List of indices already sampled, each in
+            ``[0, length_segment)``
         sort: If True, returns the final list sorted
         verbose: If True, prints debug information
 
@@ -59,7 +102,8 @@ def get_index_list_van_der_corput(
         List of sampled indices
 
     Raises:
-        ValueError: If tot_points_to_sample exceeds length_segment
+        ValueError: If tot_points_to_sample exceeds length_segment, or if a
+            sampled index lies outside ``[0, length_segment)``
     """
     if tot_points_to_sample == 0:
         return []
@@ -71,6 +115,13 @@ def get_index_list_van_der_corput(
 
     if sampled_indices is None:
         sampled_indices = []
+
+    out_of_segment = sorted({i for i in sampled_indices if not 0 <= i < length_segment})
+    if out_of_segment:
+        raise ValueError(
+            f"Sampled indices {out_of_segment} lie outside the segment "
+            f"[0, {length_segment})"
+        )
 
     if len(sampled_indices) == length_segment:
         maximal_indices_list = list(range(length_segment))
@@ -98,91 +149,19 @@ def get_index_list_van_der_corput(
             if len(index_list) == tot_points_to_sample:
                 return sorted(index_list)
 
-    def build_prefix_and_len(index_list: list[int]) -> tuple[list[int], int]:
-        if not index_list:
-            return [0], 0
-
-        M = max(index_list) + 1
-        sampled_set = set(index_list)
-        prefix = [0] * (M + 1)
-        s = 0
-
-        for i in range(M):
-            s += 1 if i in sampled_set else 0
-            prefix[i + 1] = s
-
-        return prefix, M
-
-    def get_list_min_weight(
-        prefix: list[int], M: int, d: int, selectable_indices: list[int]
-    ) -> list[int]:
-        vals = {}
-        for i in selectable_indices:
-            if i >= M:
-                break
-            left = max(0, i - d)
-            right = min(M - 1, i + d)
-            total = prefix[right + 1] - prefix[left]
-            denom = right - left + 1
-            mean = total / denom
-            vals[i] = mean
-
-        if not vals:
-            return []
-
-        min_val = min(vals.values())
-        out = []
-        for i in selectable_indices:
-            if i >= M:
-                break
-            if vals.get(i) == min_val:
-                out.append(i)
-        return out
-
-    def get_selectable_indices() -> list[int]:
-        return [i for i in range(length_segment) if i not in sampled_set]
-
-    max_d = length_segment
+    occupancy = np.zeros(length_segment, dtype=np.int64)
+    occupancy[list(sampled_set)] = 1
 
     while len(index_list) < tot_points_to_sample:
-        selection = 0
-        selectable_indices = get_selectable_indices()
-        prefix, M = build_prefix_and_len(index_list=index_list)
-        d = 1
-        previous_set = selectable_indices
-
-        while selection == 0:
-            indices = get_list_min_weight(prefix, M, d, selectable_indices)
-
-            if not indices:
-                if not previous_set:
-                    raise ValueError(
-                        "Previous candidate set should not be empty or None"
-                    )
-                if verbose:
-                    logger.info(
-                        f"No intersection found with d={d}. Using the previous set "
-                        f"Appending to {index_list} the first element of {previous_set}"
-                    )
-                chosen = previous_set[0]
-                index_list.append(chosen)
-                sampled_set.add(chosen)
-                selection = 1
-            else:
-                previous_set = selectable_indices
-                selectable_indices = indices
-
-                if len(selectable_indices) == 1 or d == max_d:
-                    if verbose:
-                        logger.info(
-                            f"Appending to {index_list} the first element of {selectable_indices}"
-                        )
-                    chosen = selectable_indices[0]
-                    index_list.append(chosen)
-                    sampled_set.add(chosen)
-                    selection = 1
-
-            d += 1
+        selected_index = _select_least_dense_index(
+            occupancy=occupancy,
+            max_half_width=length_segment,
+        )
+        if verbose:
+            logger.info(f"Appending {selected_index} to {index_list}")
+        index_list.append(selected_index)
+        sampled_set.add(selected_index)
+        occupancy[selected_index] = 1
 
     if sort:
         return sorted(index_list)
@@ -622,22 +601,65 @@ def get_df_all_entities_no_measurements(
     """
     Return a DataFrame of all entities in the Discovery Space.
 
+    Args:
+        discoverySpace: Discovery space, or the identifier of a stored one.
+
     Returns:
         DataFrame with columns: ['identifier', <constitutive properties>]
+
+    Raises:
+        ValueError: If the entity space has a non-discrete dimension.
     """
     space = get_space(space_or_space_id=discoverySpace)
     entity_space = space.entitySpace
     cp_ids = [cp.identifier for cp in entity_space.constitutiveProperties]
 
-    list_of_dicts_to_convert = []
+    rows: list[dict[str, Any]] = []
     for point_values in entity_space.sequential_point_iterator():
-        point_dict = dict(zip(cp_ids, point_values, strict=True))
-        entity = entity_space.entity_for_point(point_dict)
-        ed = {"identifier": entity.identifier}
-        ed.update(point_dict)
-        list_of_dicts_to_convert.append(ed)
+        point = dict(zip(cp_ids, point_values, strict=True))
+        rows.append(
+            {"identifier": entity_identifier_from_properties_and_values(point), **point}
+        )
 
-    return pd.DataFrame(list_of_dicts_to_convert)
+    return pd.DataFrame(rows, columns=["identifier", *cp_ids])
+
+
+def _resolve_target_columns(
+    df: pd.DataFrame,
+    target_outputs: list[str],
+    aggregation_method: PropertyAggregationMethodEnum,
+) -> tuple[pd.DataFrame, list[str]]:
+    """Expose each target output of a target-property table under its bare identifier.
+
+    In a table built with an aggregation method, a target is stored in the
+    column ``"<target>-<method>"`` for entities whose values were aggregated and
+    in the column ``"<target>"`` for entities whose values could not be
+    aggregated. The two columns are merged into ``"<target>"``, taking the
+    aggregated value where present.
+
+    Args:
+        df: Target-property table.
+        target_outputs: Bare target property identifiers to expose.
+        aggregation_method: Aggregation method used to build ``df``.
+
+    Returns:
+        Tuple of the DataFrame with merged target columns and the target
+        outputs present in it, in the order of ``target_outputs``.
+    """
+    df = df.copy()
+    found_targets: list[str] = []
+    for target in target_outputs:
+        aggregated_column = f"{target}-{aggregation_method.value}"
+        if aggregated_column in df.columns:
+            aggregated_values = df.pop(aggregated_column)
+            df[target] = (
+                aggregated_values.combine_first(df[target])
+                if target in df.columns
+                else aggregated_values
+            )
+        if target in df.columns:
+            found_targets.append(target)
+    return df, found_targets
 
 
 def get_df_at_least_one_measured_value(
@@ -646,7 +668,15 @@ def get_df_at_least_one_measured_value(
     add_measurement_id: bool = False,
 ) -> pd.DataFrame:
     """
-    Return a DataFrame of entities with at least one measured target output.
+    Return a DataFrame of entities with a measured value for every requested target output.
+
+    Rows with a missing value in any returned column are dropped. Requested
+    targets with no measurements in the space are omitted from the columns.
+
+    Args:
+        discoverySpace: Discovery space, or the identifier of a stored one.
+        targetOutput_list: Bare target property identifiers to include.
+        add_measurement_id: If True, include the entity 'identifier' column.
 
     Returns:
         DataFrame with columns: ['identifier' (optional), <constitutive properties>, <target outputs>]
@@ -658,12 +688,15 @@ def get_df_at_least_one_measured_value(
     if add_measurement_id:
         col_list = ["identifier", *col_list]
 
-    discoverySpace.sample_store.refresh()
+    # The sample store caches entities; refresh picks up measurements added
+    # since the last query.
+    space.sample_store.refresh()
 
+    aggregation_method = PropertyAggregationMethodEnum.mean
     df = pd.DataFrame(
         space.matchingEntitiesTable(
             property_type="target",
-            aggregationMethod=PropertyAggregationMethodEnum.mean,
+            aggregationMethod=aggregation_method,
         )
     )
 
@@ -673,28 +706,11 @@ def get_df_at_least_one_measured_value(
         )
         return df
 
-    all_df_cols = list(df.columns)
-    valid_targetOutput_list = []
-    for el in targetOutput_list:
-        if el in all_df_cols:
-            valid_targetOutput_list.append(el)
-        elif f"{el}-mean" in all_df_cols and el not in all_df_cols:
-            logger.warning(
-                f"Column named '{el}-mean' (instead of '{el}', which is not present) "
-                "found in the DataFrame obtained through matchingEntitiesTable. "
-                f"Renaming it to '{el}'."
-            )
-            df.rename(columns={f"{el}-mean": el}, inplace=True)
-            valid_targetOutput_list += [el]
-        elif f"{el}-mean" in all_df_cols and el in all_df_cols:
-            logger.warning(
-                f"Columns named '{el}-mean' and '{el}' "
-                "found in the DataFrame obtained through matchingEntitiesTable. "
-                f"Renaming it to '{el}'."
-            )
-            logger.error("Unexpected behavior can happen!")
-            df.rename(columns={f"{el}-mean": el}, inplace=True)
-            valid_targetOutput_list += [el]
+    df, valid_targetOutput_list = _resolve_target_columns(
+        df=df,
+        target_outputs=targetOutput_list,
+        aggregation_method=aggregation_method,
+    )
     col_list += valid_targetOutput_list
 
     if valid_targetOutput_list != targetOutput_list:
@@ -744,8 +760,15 @@ def get_source_and_target(
     """
     Build source (labeled) and target (unlabeled) DataFrames for a target output.
 
+    Args:
+        discoverySpace: Discovery space, or the identifier of a stored one.
+        targetOutput: Bare target property identifier.
+        log_string: Text added to the debug log message.
+
     Returns:
-        Tuple of (source_df, target_df)
+        Tuple of (source_df, target_df). source_df holds the entities with a
+        measured targetOutput; target_df holds the remaining entities of the
+        space, without the targetOutput column.
     """
     dfm = get_df_at_least_one_measured_value(discoverySpace, [targetOutput])
     dfu = get_df_all_entities_no_measurements(discoverySpace)
@@ -757,39 +780,28 @@ def get_source_and_target(
 
     df = dfu.merge(dfm, on=keys, how="left")
 
-    if targetOutput not in list(df.columns):
+    if targetOutput not in df.columns:
         logger.info(
-            f"""The target output was not present in the columns of the measured+unmeasured DataFrame,' \
-                        meaning that '{targetOutput}' has never been measured in this space.
-                        dfm.empty = {df.empty}. Adding an empty column to the DataFrame.
-                    """
+            f"'{targetOutput}' has never been measured in this space. "
+            "Adding an empty column to the DataFrame."
         )
-        logger.debug("Adding an empty column to the DataFrame.")
         df[targetOutput] = pd.NA
 
-    if targetOutput in list(df.columns):
-        df_measured_drop_na = df.dropna(subset=[targetOutput])
-        df_unmeasured_drop_na = df[df[targetOutput].isna()].drop(columns=[targetOutput])
-        n_rows_dropped = len(df) - len(df_measured_drop_na)
-        logger.debug(
-            f"Dropped {n_rows_dropped} rows. Function called with log_string={log_string}"
-        )
-        if df_measured_drop_na.empty:
-            logger.warning(
-                f"Empty source after dropping rows that contain Nan in {targetOutput} column"
-            )
-        if df_unmeasured_drop_na.empty:
-            logger.warning(
-                f"Empty target after filtering rows that contain Nan in {targetOutput} column"
-            )
-        return df_measured_drop_na, df_unmeasured_drop_na
-
-    save_path = "df_with_no_targetOutput_columns.csv"
-    logger.error(
-        f"'{targetOutput}' column is missing, saving df in {save_path}, returning unmerged DataFrames"
+    df_measured = df.dropna(subset=[targetOutput])
+    df_unmeasured = df[df[targetOutput].isna()].drop(columns=[targetOutput])
+    logger.debug(
+        f"Dropped {len(df) - len(df_measured)} rows. "
+        f"Function called with log_string={log_string}"
     )
-    df.to_csv(save_path)
-    return dfm, dfu
+    if df_measured.empty:
+        logger.warning(
+            f"Empty source after dropping rows that contain Nan in {targetOutput} column"
+        )
+    if df_unmeasured.empty:
+        logger.warning(
+            f"Empty target after filtering rows that contain Nan in {targetOutput} column"
+        )
+    return df_measured, df_unmeasured
 
 
 # ============================================================================

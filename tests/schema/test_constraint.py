@@ -5,6 +5,11 @@ import pydantic
 import pytest
 import yaml
 
+try:
+    from yaml import CSafeLoader as SafeLoader
+except ImportError:  # pragma: nocover
+    from yaml import SafeLoader  # type: ignore[assignment]
+
 from ado.schema.constraint import (
     AllOf,
     AnyOf,
@@ -176,7 +181,9 @@ def test_property_constraint_examples_round_trip(payload: dict) -> None:
     constraint = PropertyConstraint.model_validate(payload)
     _assert_round_trip(constraint)
     assert (
-        constraint.model_validate(yaml.safe_load(pydantic_model_as_yaml(constraint)))
+        constraint.model_validate(
+            yaml.load(pydantic_model_as_yaml(constraint), Loader=SafeLoader)
+        )
         == constraint
     )
 

@@ -15,6 +15,9 @@ metadata:
 ## General Rules
 
 - Review the committed changes in the current branch
+- Do not assume — verify claims by reading the relevant code or running a short
+  script. Never report a finding based on what code looks like it might do;
+  confirm it first.
 - Be picky: report every deviation from the guidelines, including minor ones
 - Be concise
   - report only problems; do not describe code that is correct
@@ -41,6 +44,28 @@ metadata:
 Evaluate changes to code against the guidelines in
 [AGENTS.md](../../../AGENTS.md) and
 [ado-develop-plugin](../ado-develop-plugin/SKILL.md).
+
+### Code quality checklist
+
+Read [AGENTS.md](../../../AGENTS.md) in full and check every changed Python
+file against all rules it contains. Pay particular attention to these
+commonly missed areas:
+
+- **Fixture reuse** — a new fixture that duplicates one already present in
+  `tests/fixtures/` or any `conftest.py` is a `test` finding.
+- **Fixture placement** — a fixture used only within one subdirectory but
+  defined in a parent `conftest.py` is misplaced; report it as a `test`
+  finding.
+- **Naming** — variables, functions, and methods must have clear,
+  self-explanatory names; abbreviated or single-letter names outside
+  conventional loop indices are a violation.
+- **Docstring accuracy** — for every changed function or method, read the
+  implementation body and verify the docstring matches what the code actually
+  does. A docstring that no longer reflects the implementation is a stale
+  docstring; report it as a `docs` finding.
+- **Stale docstrings** — a docstring that describes behaviour the function no
+  longer has, or omits behaviour it has gained, is a `docs` finding even if
+  it was not touched in this diff.
 
 ### Plugin versioning
 

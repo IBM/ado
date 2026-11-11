@@ -58,7 +58,7 @@ dependencies = [
   "pyyaml>=6.0.2",
   "ray[serve]>=2.9",
   "sqlalchemy>2",
-  "typer>=0.22.0",
+  "typer>=0.29.0",
   "uv>=0.10.4",
 ]
 # Deps/Build-related section

@@ -10,26 +10,25 @@ to every new or modified skill on the branch.
 3. Read every file in the skill directory, including each file listed in the
    skill's References section.
 4. Compare the skill against related content in `.agents/skills/`,
-   `examples/`, `docs/`, and [AGENTS.md](../../../../AGENTS.md). Compare the
-   `description` of all other skills and identify any whose scope overlaps.
+   `examples/`, `docs/`, the root [AGENTS.md](../../../../AGENTS.md), and the
+   skill-writing rules in [.agents/skills/AGENTS.md](../../AGENTS.md). Compare
+   the `description` of all other skills and identify any whose scope overlaps.
 5. Write one subsection per skill using the structure below.
 
 ## Upstream documentation
 
-[Writing Agent Skills](../../../../AGENTS.md#writing-agent-skills) in AGENTS.md
-links to the upstream specification and skill-creation documentation. Fetch the
-current content of those links, and of the pages they reference on skill
-content and descriptions, before reviewing. Review against what was fetched
-instead of relying on memory.
+[.agents/skills/AGENTS.md](../../AGENTS.md) links to the upstream
+specification and skill-creation documentation. Fetch the current content of
+those links, and of the pages they reference on skill content and descriptions,
+before reviewing. Review against what was fetched instead of relying on memory.
 
 If the documentation cannot be fetched, state that in the review and fall back
-to [Writing Agent Skills](../../../../AGENTS.md#writing-agent-skills).
+to [.agents/skills/AGENTS.md](../../AGENTS.md).
 
 ## Specification conformance
 
 Check the skill against the fetched documentation and
-[Writing Agent Skills](../../../../AGENTS.md#writing-agent-skills). In
-addition, check that:
+[.agents/skills/AGENTS.md](../../AGENTS.md). In addition, check that:
 
 - `name` matches the parent directory, uses only lowercase alphanumerics and
   hyphens, is at most 64 characters, and does not start, end, or contain

@@ -1,9 +1,3 @@
----
-description:
-  General development guidelines for ado - code style, testing, quality checks,
-  and commit standards
----
-
 # General Development Guidelines for ado
 
 These guidelines apply to all code development in the ado codebase.
@@ -62,6 +56,9 @@ These guidelines apply to all code development in the ado codebase.
 - **Exception**: use camelCase for fields of pydantic models.
 - Do not modify existing names unless explicitly asked, even if they do not
   follow PEP8.
+- Give variables, functions, and methods clear, self-explanatory names that
+  describe what they hold or do. Avoid single-letter or abbreviated names
+  except for conventional loop indices.
 - Use type annotations on all functions and methods, including return types.
 - Add docstrings to all functions and methods. Use Google style for docstrings.
 
@@ -72,12 +69,28 @@ These guidelines apply to all code development in the ado codebase.
   variable, not inside pydantic.Field. For any mutable default values such as
   dictionaries, lists, tuples, or sets, use `default_factory` inside
   pydantic.Field and do not assign a default to the Annotation.
+
+  ```python
+  name: Annotated[str, pydantic.Field(description="A name")] = "unk"
+  results: Annotated[
+      list[Result],
+      pydantic.Field(default_factory=list, description="A list of results"),
+  ]
+  ```
+
 - Use discriminated unions when a type is a union (see `ExperimentType` in
   `ado/schema/experiment.py`).
 - Use the `Defaultable` type from `ado/utilities/pydantic` for pydantic
   fields that:
   - accept `None`, but
   - are always defaulted to a different type.
+
+  ```python
+  identifier: Annotated[
+      Defaultable[str],
+      pydantic.Field(default_factory=lambda: f"document-{uuid.uuid4().hex[:8]}"),
+  ]
+  ```
 
 #### Imports and Serialization
 
@@ -103,6 +116,9 @@ These guidelines apply to all code development in the ado codebase.
 
 - After making changes, run `uv run pre-commit run -a` and fix any issues
   it reports.
+- Run the command as-is and read its full output. Do not pipe it through
+  `tail`, `head`, `grep`, or similar: truncating the output hides failing hooks
+  and the pipe masks the command's exit status.
 
 ### Writing Documentation and Comments
 
@@ -114,53 +130,22 @@ These guidelines apply to all code development in the ado codebase.
 - Do not add comments that narrate the TDD process, such as "written before
   implementation" or "this test is expected to fail". Tests are code; write
   them without process annotations.
+- Do not leak the conversation, prompt, or iteration history into code
+  comments, pull request descriptions, or other maintainer-facing prose. Write
+  for readers who have not seen the conversation.
 
 ### Writing Tests
 
 - Check for existing fixtures before creating new ones:
   - `tests/fixtures/`
+  - `conftest.py` files, starting with `tests/conftest.py` and any in the
+    test directory you are working in
 - Do not mock by default; prefer integration tests.
   - Search for existing fixtures that provide the same functionality.
   - If you really feel a mock is correct, confirm with the user before
     implementing.
 - Test the full lifecycle for pydantic models:
   create → dump → create from dump.
-
-### Writing Agent Skills
-
-Agent skills in `.agents/skills/` must conform to the
-[Agent Skills Specification](https://agentskills.io/home) (see also
-[upstream documentation](https://github.com/agentskills/agentskills/tree/main/docs/skill-creation)):
-
-- **Directory Layout**:
-  - `SKILL.md` (required): metadata frontmatter and concise instructions
-    (< 500 lines / ~5,000 tokens).
-  - `references/` (optional): on-demand reference documentation, secondary
-    guides, and deep schemas.
-  - `assets/` (optional): static resources, configuration templates, and YAML
-    example manifests.
-  - `scripts/` (optional): executable helper scripts.
-- **Frontmatter**:
-  - `name` (required): 1–64 characters, lowercase alphanumeric and hyphens
-    only, matching the parent directory name exactly.
-  - `description` (required): non-empty, maximum 1024 characters. Must use
-    imperative phrasing ("Use when...") specifying clear activation
-    conditions, intent, and domain context.
-- **Progressive Disclosure**:
-  - Keep `SKILL.md` focused on core workflows, decision rules, and high-value
-    gotchas.
-  - Move extended reference guides into `references/` and link them with
-    explicit loading triggers.
-  - Store reusable YAML manifests, templates, and example files in `assets/`
-    and link them using relative paths (e.g. `assets/my-example.yaml`).
-  - Write automated tests under `tests/` for all YAML examples and templates
-    stored in `assets/`.
-- **Quality & Scope**:
-  - Be brief and to the point; avoid ambiguous statements.
-  - Avoid duplication — check existing skills under `.agents/skills/`,
-    examples under `examples/`, and documentation under `docs/`.
-  - After writing or editing a skill, verify that all referenced file and
-    directory paths exist.
 
 ---
 
@@ -211,11 +196,24 @@ uv sync --reinstall --group test --group dev
 - As a final validation step after a change, run tests for all impacted
   subpackages.
 - All tests must pass before submitting changes.
-- Run tests in parallel (pytest-xdist) for quicker execution:
+- The Python versions and dependency modes tested by `tox` are defined in
+  [tox.ini](tox.ini).
+- Run a single test file or test while iterating:
 
   ```sh
-  uv run pytest -n auto tests/
+  uv run pytest tests/PATH/test_FILE.py::test_NAME
   ```
+
+- Run tests in parallel (pytest-xdist) for quicker execution. Use
+  `--dist loadgroup` so tests marked with `xdist_group` run on the same worker:
+
+  ```sh
+  uv run pytest -n auto --dist loadgroup -rFEx tests/
+  ```
+
+- Run the test command as-is and read its full output. Do not pipe it through
+  `tail`, `head`, `grep`, or similar: truncating the output hides failing tests
+  and the pipe masks the command's exit status.
 
 ### Testing YAML Resources
 
@@ -241,8 +239,27 @@ uv run ado create RESOURCETYPE -f FILE --dry-run
 
 ---
 
+## Commits and Pull Requests
+
+- Sign off every commit with `git commit -s` (Developer Certificate of Origin).
+- Write commit messages and PR titles in the conventional commits format
+  `<type>[optional scope]: <description>`, including the scope. The allowed
+  types and scopes are listed in
+  [CONTRIBUTING.md](CONTRIBUTING.md#commit-and-pr-title-guidelines).
+
+---
+
+## Security
+
+- Report vulnerabilities as described in [SECURITY.md](SECURITY.md).
+
+---
+
 ## Links
 
+- For contribution requirements, see [CONTRIBUTING.md](CONTRIBUTING.md)
+- For setting up a development environment, see
+  [DEVELOPING.md](DEVELOPING.md)
 - For plugin development, see
   [ado-develop-plugin](.agents/skills/ado-develop-plugin/SKILL.md)
 - For formulating problems with ado, see
@@ -253,3 +270,5 @@ uv run ado create RESOURCETYPE -f FILE --dry-run
   [ado-create-resource-yaml](.agents/skills/ado-create-resource-yaml/SKILL.md)
 - For querying catalog and measurement data, see
   [ado-query-database](.agents/skills/ado-query-database/SKILL.md)
+- For writing agent skills, see
+  [.agents/skills/AGENTS.md](.agents/skills/AGENTS.md)

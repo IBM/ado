@@ -501,6 +501,108 @@ def test_predicate_rejects_mixed_forms() -> None:
         )
 
 
+def test_predicate_rejects_combinator_mixed_with_comparison() -> None:
+    """Test a predicate cannot be both a combinator and a comparison."""
+
+    with pytest.raises(
+        pydantic.ValidationError,
+        match="comparison or a combinator, not both",
+    ):
+        PropertyConstraint.model_validate(
+            {
+                "name": "mixed",
+                "require": {
+                    "allOf": [
+                        {
+                            "left": {"propertyIdentifier": "x"},
+                            "operator": "eq",
+                            "right": {"value": 1},
+                        }
+                    ],
+                    "left": {"propertyIdentifier": "x"},
+                    "operator": "eq",
+                    "right": {"value": 1},
+                },
+            }
+        )
+
+
+def test_predicate_rejects_an_unrecognised_mapping() -> None:
+    """Test a mapping that is not a comparison or combinator is rejected."""
+
+    with pytest.raises(
+        pydantic.ValidationError,
+        match="Unable to determine predicate type",
+    ):
+        PropertyConstraint.model_validate(
+            {
+                "name": "unknown",
+                "require": {"foo": 1},
+            }
+        )
+
+
+def test_non_dict_operand_raises_validation_error() -> None:
+    """Test a non-mapping operand raises ValidationError, not ValueError."""
+
+    with pytest.raises(
+        pydantic.ValidationError,
+        match="Unable to determine comparison operand type",
+    ):
+        Comparison.model_validate(
+            {
+                "left": ["not", "a", "mapping"],
+                "operator": "eq",
+                "right": {"propertyIdentifier": "model"},
+            }
+        )
+
+
+def test_non_dict_predicate_raises_validation_error() -> None:
+    """Test a non-mapping predicate raises ValidationError, not ValueError."""
+
+    with pytest.raises(
+        pydantic.ValidationError,
+        match="Unable to determine predicate type",
+    ):
+        PropertyConstraint.model_validate(
+            {
+                "name": "bad_require",
+                "require": ["not", "a", "mapping"],
+            }
+        )
+
+
+@pytest.mark.parametrize(
+    "value",
+    [None, True, False, "4"],
+    ids=["null", "true", "false", "string"],
+)
+@pytest.mark.parametrize(
+    "operator",
+    [
+        ComparisonOperator.lt,
+        ComparisonOperator.le,
+        ComparisonOperator.gt,
+        ComparisonOperator.ge,
+    ],
+)
+def test_ordering_operators_reject_non_numeric_literals(
+    operator: ComparisonOperator,
+    value: bool | str | None,
+) -> None:
+    """Test lt, le, gt, and ge require numeric literals."""
+
+    with pytest.raises(pydantic.ValidationError, match="numeric"):
+        Comparison.model_validate(
+            {
+                "left": {"propertyIdentifier": "x"},
+                "operator": operator.value,
+                "right": {"value": value},
+            }
+        )
+
+
 def test_unknown_operator_rejected() -> None:
     """Test an operator outside the comparison set is rejected."""
 

@@ -582,7 +582,7 @@ def fuse_operation(
             operator_function=operator_function,
         )
 
-        return _register
+    return _register
 
 
 def summarize_operation(
@@ -591,7 +591,7 @@ def summarize_operation(
     configuration_model: type[GenericOperatorParameters],
     example_configuration: GenericOperatorParameters,
     description: str | None = None,
-) -> typing.Callable[[OperatorFunction], OperatorFunction]:
+) -> Callable[[Callable[P, OperationOutput]], Callable[P, OperationOutput]]:
     """Decorator that registers a function as a summarize operation.
 
     A summarize operator takes at least one list of discovery-space or
@@ -610,7 +610,9 @@ def summarize_operation(
         A decorator that wraps and registers the decorated function under ``name``.
     """
 
-    def _register(func: OperatorFunction) -> OperatorFunction:
+    def _register(
+        operator_function: Callable[P, OperationOutput],
+    ) -> Callable[P, OperationOutput]:
         return _register_general_operator(
             collection=summarize,
             collection_label="summarize",
@@ -620,7 +622,7 @@ def summarize_operation(
             configuration_model=configuration_model,
             example_configuration=example_configuration,
             description=description,
-            func=func,
+            operator_function=operator_function,
         )
 
     return _register

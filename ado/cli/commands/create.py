@@ -141,7 +141,8 @@ def create_resource(
             help="""Specify additional resources to use or create via key=value pairs,
             where the key is a resource type and the value is a resource ID or a resource configuration file.
 
-            Supports creating spaces with sample stores and operations with spaces and actuator configurations.""",
+            Supports creating spaces with sample stores and operations with
+            spaces, data containers, and actuator configurations.""",
         ),
     ] = None,
     use_latest: Annotated[
@@ -153,7 +154,18 @@ def create_resource(
             help="""
             Reuse the latest identifier of a resource kind. Can be used multiple times.
 
-            Only supported for spaces and operations. Ignored if --with is used.""",
+            Supported kinds depend on the resource being created:
+
+            - space: samplestore.
+
+            - operation: space, datacontainer, and actuatorconfiguration.
+
+            For operations, the latest identifier is assigned to the operator
+            input of that kind that is not set in the operation YAML. If the
+            operator has several unset inputs of that kind, the command fails;
+            set those inputs in the operation YAML instead.
+
+            Ignored if --with is used.""",
         ),
     ] = None,
     use_default_sample_store: Annotated[

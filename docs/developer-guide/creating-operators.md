@@ -81,7 +81,7 @@ def detect_anomalous_series(
 The first thing you need to do is decide what type of operator you
 are creating.
 The choices are
-[explore, characterize, learn, modify, fuse, export, or compare](../user-guide/operators/working-with-operators.md).
+[explore, characterize, modify, fuse, export, or compare](../user-guide/operators/working-with-operators.md).
 You then import the decorator for this operator type from
 `ado.modules.operators.collections` and use it to decorate your
 operator function.
@@ -99,36 +99,72 @@ The decorator parameters are the same for all operator/operation types.
 
 ### Operator function parameters
 
-All operator functions take a discovery space and a `parameters` argument
-typed as the operator's configuration model.
+Operator functions take one or more resource inputs (`DiscoverySpace` and/or
+`DataContainerResource`), then `operationInfo`, then a keyword-only
+`parameters` argument typed as the operator's configuration model.
 
-If your operation type is `explore`, `characterize`, `learn` or `modify`, your
-function should have a parameter `discoverySpace` i.e.
+Resource parameter names and types are deduced from the function signature at
+registration time. Every parameter before `operationInfo` and `parameters`
+must be annotated with `DiscoverySpace` or `DataContainerResource`. Those
+annotations are the operator's resource inputs, and the parameter name becomes
+the YAML `inputs` key. A `characterize` or `compare` operator can take
+`DataContainerResource` inputs and does not have to take a discovery space.
+
+For the common single-space case:
 
 ```python
 def detect_anomalous_series(
     discoverySpace: DiscoverySpace,
     operationInfo: FunctionOperationInfo | None = None,
     *,
-    parameters: DetectAnomalousSeriesOperatorParameters,
+    parameters: MyOperatorOptions,
 ) -> OperationOutput: ...
 ```
 
-If it is `fuse` or `compare` your function should have a parameter
-`discoverySpaces` which is a list of `discoveryspaces` i.e.
+The parameter name `discoverySpace` above is an example. Whatever name you
+choose is what callers and operation YAML must use under `inputs`. The
+function generated for an explore operator uses the name `discoverySpace`.
+
+For multi-input operators (for example compare or fuse), declare each resource
+as its own typed parameter. Collection rules still apply: compare needs at
+least two inputs, and fuse accepts only `DiscoverySpace` inputs.
 
 ```python
-def detect_anomalous_series(
-    discoverySpaces: list[DiscoverySpace],
+def merge_spaces(
+    left: DiscoverySpace,
+    right: DiscoverySpace,
     operationInfo: FunctionOperationInfo | None = None,
     *,
-    parameters: DetectAnomalousSeriesOperatorParameters,
+    parameters: FuseParameters,
 ) -> OperationOutput: ...
 ```
 
-Operator functions also take an optional third parameter, `operationInfo`, that
-holds information for `ado`. You do not have to interact with the parameter
-unless you are writing an [explore operator](#creating-explore-operators).
+```python
+from ado.core.datacontainer.resource import DataContainerResource
+
+
+def my_comparison(
+    baseline: DataContainerResource,
+    candidate: DataContainerResource,
+    operationInfo: FunctionOperationInfo | None = None,
+    *,
+    parameters: MyCompareOptions,
+) -> OperationOutput: ...
+```
+
+Declare `operationInfo` after the resource parameters as
+`operationInfo: FunctionOperationInfo | None = None`. It holds information for
+`ado`. You need to use it when writing an
+[explore operator](#creating-explore-operators), or when nesting other
+operators. When nesting, pass a copy of `operationInfo` to the nested
+operator. You can change the `metadata` field on the copy to describe the
+sub-operation, and keep the other fields.
+
+`validate_operator_function_signature` and
+`ado.modules.operators.collections._build_discovery_space_inputs` have been
+removed. Register operators with the collection decorators, which call
+`validate_operator_registration`. Resource inputs are deduced by
+`resource_inputs_from_operator_function`.
 
 ## Describing your operation input parameters
 
@@ -463,10 +499,10 @@ operators via the relevant collection in
 operator
 
 ```python
-from ado.modules.operators.collections import explore
+from ado.modules.operators.collections import characterize_operation, explore
 
-@learn_operation(...)
-def my_learning_operation(...):
+@characterize_operation(...)
+def my_characterization(...):
     ...
     #Note: The name of the function called (here random_walk() ) is the operator name
     random_walk_output = explore.random_walk(...Args...)

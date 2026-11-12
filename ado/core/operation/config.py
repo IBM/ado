@@ -330,6 +330,16 @@ class OperatorMetadata(pydantic.BaseModel):
             ),
         ),
     ]
+    requiresRay: Annotated[
+        bool,
+        pydantic.Field(
+            description=(
+                "Whether running this operator requires a Ray cluster. Explore "
+                "operators always require Ray. Non-explore operators default to "
+                "False and may opt in when they use Ray APIs."
+            ),
+        ),
+    ] = False
 
     @property
     def operatorIdentifier(self) -> str:

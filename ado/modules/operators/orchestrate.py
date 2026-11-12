@@ -16,6 +16,8 @@ from ado.core.operation.config import (
     DiscoveryOperationResourceConfiguration,
     FunctionOperationInfo,
     OperatorModuleConf,
+    OperatorReference,
+    ScriptOperatorConf,
 )
 from ado.core.operation.operation import OperationException, OperationOutput
 from ado.metastore.base import ResourceDoesNotExistError
@@ -78,14 +80,76 @@ def _check_if_using_unsupported_operator_module_conf(
         )
 
 
+def operation_requires_ray(
+    operation_resource_configuration: DiscoveryOperationResourceConfiguration,
+) -> bool:
+    """Return whether the configured operator needs Ray initialized.
+
+    Registered :class:`~ado.core.operation.config.OperatorReference` operators
+    declare this via :attr:`~ado.core.operation.config.OperatorMetadata.requiresRay`.
+    Explore operators always require Ray. Unknown or legacy module forms default
+    to requiring Ray so behaviour stays conservative.
+
+    Args:
+        operation_resource_configuration: The operation configuration being run.
+
+    Returns:
+        True when Ray should be initialized before running the operator.
+    """
+    module = operation_resource_configuration.operation.module
+    if isinstance(module, OperatorReference):
+        from ado.modules.operators.collections import operator_metadata_for_reference
+
+        try:
+            return operator_metadata_for_reference(module).requiresRay
+        except ValueError:
+            moduleLog.warning(
+                "Could not resolve operator metadata for %s; assuming Ray is required",
+                module,
+            )
+            return True
+    if isinstance(module, ScriptOperatorConf | OperatorModuleConf):
+        return True
+    return True
+
+
+def _initialize_ray_for_operation() -> None:
+    """Initialize Ray for a local driver or reconnect inside a Ray job."""
+    # If we are running with a ray runtime environment we need to handle env-vars differently
+    if "RAY_JOB_CONFIG_JSON_ENV_VAR" in os.environ:
+        ray_runtime_config = os.environ["RAY_JOB_CONFIG_JSON_ENV_VAR"]
+        moduleLog.info(
+            f"Runtime environment variables are set based on provided ray runtime environment - {ray_runtime_config}"
+        )
+        ray.init(ignore_reinit_error=True)
+        return
+
+    # In local mode, propagate the current log level to Ray workers so that
+    # remote functions and actors inherit the same log level as the CLI process.
+    #
+    # NOTE: runtime_env must be passed as a plain dict, not a RuntimeEnv instance.
+    # RuntimeEnv(working_dir=None) does not behave the same as {"working_dir": None}
+    # and causes incorrect working-directory handling. This was established in
+    # commit a9a14708 (https://github.com/IBM/ado/pull/546).
+    ray_env_vars = {"LOGLEVEL": logging.getLevelName(logging.getLogger().level)}
+    moduleLog.debug(
+        f"Setting runtime environment variables based on local environment - {ray_env_vars}"
+    )
+    ray.init(
+        runtime_env={"env_vars": ray_env_vars},
+        ignore_reinit_error=True,
+    )
+
+
 def orchestrate(
     operation_resource_configuration: DiscoveryOperationResourceConfiguration,
     project_context: ProjectContext,
 ) -> OperationOutput:
     """Orchestrate the execution of an operation defined as a function or a class.
 
-    This function initializes Ray, resolves every named input from the operation
-    configuration, and calls the operator with those inputs.
+    This function optionally initializes Ray (when the operator requires it),
+    resolves every named input from the operation configuration, and calls the
+    operator with those inputs.
 
     Args:
         operation_resource_configuration: Configuration for the operation including
@@ -106,41 +170,22 @@ def orchestrate(
     from ado.core.operation.inputs import resource_references_to_rich_types
     from ado.metastore.sqlstore import SQLStore
 
-    #
-    # INIT RAY
-    #
+    _check_if_using_unsupported_operator_module_conf(operation_resource_configuration)
 
-    # If we are running with a ray runtime environment we need to handle env-vars differently
-    if "RAY_JOB_CONFIG_JSON_ENV_VAR" in os.environ:
-        ray_runtime_config = os.environ["RAY_JOB_CONFIG_JSON_ENV_VAR"]
-        moduleLog.info(
-            f"Runtime environment variables are set based on provided ray runtime environment - {ray_runtime_config}"
+    requires_ray = operation_requires_ray(operation_resource_configuration)
+    ray_initialized = False
+    if requires_ray:
+        _initialize_ray_for_operation()
+        ray_initialized = True
+        signal.signal(
+            signalnum=signal.SIGTERM,
+            handler=graceful_operation_shutdown_signal_handler(),
         )
-        ray.init(ignore_reinit_error=True)
+        cleanup_callback_functions["orchestrate"] = graceful_orchestrate_shutdown
     else:
-        # In local mode, propagate the current log level to Ray workers so that
-        # remote functions and actors inherit the same log level as the CLI process.
-        #
-        # NOTE: runtime_env must be passed as a plain dict, not a RuntimeEnv instance.
-        # RuntimeEnv(working_dir=None) does not behave the same as {"working_dir": None}
-        # and causes incorrect working-directory handling. This was established in
-        # commit a9a14708 (https://github.com/IBM/ado/pull/546).
-        ray_env_vars = {"LOGLEVEL": logging.getLevelName(logging.getLogger().level)}
-        moduleLog.debug(
-            f"Setting runtime environment variables based on local environment - {ray_env_vars}"
+        moduleLog.info(
+            "Operator does not require Ray — skipping local Ray initialization"
         )
-        ray.init(
-            runtime_env={"env_vars": ray_env_vars},
-            ignore_reinit_error=True,
-        )
-
-    #
-    # Register signal handler
-    #
-    signal.signal(
-        signalnum=signal.SIGTERM, handler=graceful_operation_shutdown_signal_handler()
-    )
-    cleanup_callback_functions["orchestrate"] = graceful_orchestrate_shutdown
 
     #
     # GET INPUTS
@@ -173,10 +218,6 @@ def orchestrate(
     operation_parameters = operation_resource_configuration.operation.parameters
 
     try:
-        _check_if_using_unsupported_operator_module_conf(
-            operation_resource_configuration
-        )
-
         operator_fn = (
             operation_resource_configuration.operation.module.operationFunction()
         )
@@ -207,8 +248,11 @@ def orchestrate(
         )
         raise
     finally:
-        if not ado.modules.operators._cleanup.shutdown_signal_received:
+        if (
+            ray_initialized
+            and not ado.modules.operators._cleanup.shutdown_signal_received
+        ):
             graceful_orchestrate_shutdown()
-            cleanup_callback_functions.pop("orchestrate")
+            cleanup_callback_functions.pop("orchestrate", None)
 
     return output

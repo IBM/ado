@@ -15,10 +15,7 @@ from ado.core.operation.config import (
     GenericOperatorParameters,
     OperatorMetadata,
 )
-from ado.core.operation.inputs import (
-    ResolvedOperatorInput,
-    discovery_spaces_from_inputs,
-)
+from ado.core.operation.inputs import ResolvedOperatorInput
 from ado.core.operation.operation import OperationOutput
 from ado.modules.actuators.measurement_queue import MeasurementQueue
 from ado.modules.operators import _cleanup
@@ -168,29 +165,6 @@ def run_explore_operation_core_closure(
         return operation_output
 
     return _run_explore_operation_core
-
-
-def _check_and_extract_discovery_space(
-    inputs: dict[str, ResolvedOperatorInput],
-) -> DiscoverySpace:
-    """Return the single discovery space in *inputs*.
-
-    Args:
-        inputs: Mapping of parameter name to rich operator input.
-
-    Returns:
-        The single DiscoverySpace instance in inputs.
-
-    Raises:
-        ValueError: If *inputs* does not contain exactly one DiscoverySpace.
-    """
-    spaces = discovery_spaces_from_inputs(inputs)
-    if len(spaces) != 1:
-        raise ValueError(
-            "Explore operations require exactly one discovery space input; "
-            f"found {len(spaces)}."
-        )
-    return spaces[0]
 
 
 def orchestrate_explore_operation(

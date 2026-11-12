@@ -42,7 +42,7 @@ OperationResourceInput = ADOResourceReference | list[ADOResourceReference]
 # The rich object, or list of rich objects, passed to an operator parameter.
 ResolvedOperatorInput = OperatorInputType | list[OperatorInputType]
 
-# For mapping types in function signatures to
+# Maps parameter type annotations to CoreResourceKinds.
 KIND_FOR_OPERATOR_INPUT_TYPE: dict[type, CoreResourceKinds] = {
     DiscoverySpace: CoreResourceKinds.DISCOVERYSPACE,
     DataContainerResource: CoreResourceKinds.DATACONTAINER,
@@ -122,7 +122,6 @@ def inspect_operator_function(
         ) from exc
 
     return named, hints
-
 
 
 def iter_resource_references(
@@ -273,15 +272,21 @@ def _resource_input_from_annotation(
 
 
 def resource_inputs_from_operator_function(
-    fn: typing.Callable,
+    fn: Callable[..., object],
 ) -> list[ADOResourcePropertyDescriptor]:
     """Deduce resource inputs from an operator function signature.
 
-    Leading parameters, everything before ``operationInfo`` and ``parameters``,
-    must be annotated with a type registered in
-    ``KIND_FOR_OPERATOR_INPUT_TYPE``, or with a list of one such type. Parameter
-    names become input identifiers and annotations become resource kinds. A list
-    annotation sets ``isList`` on the descriptor.
+    The signature is interpreted as follows:
+
+    - Leading parameters (everything before ``operationInfo`` and
+      ``parameters``) are resource inputs.
+    - Each leading parameter must be annotated with a type registered in
+      ``KIND_FOR_OPERATOR_INPUT_TYPE``, or with a list of one such type.
+      ``Annotated`` wrappers are unwrapped and the underlying type must match
+      a registered type exactly.
+    - Parameter names become input identifiers and annotations become
+      resource kinds. A list annotation sets ``isList`` on the descriptor.
+    - ``parameters`` must be keyword-only.
 
     Args:
         fn: Operator callable to inspect.
@@ -290,41 +295,22 @@ def resource_inputs_from_operator_function(
         Ordered resource-input descriptors.
 
     Raises:
-        ValueError: If the signature cannot be inspected, lacks the trailing
-            ``operationInfo`` and ``parameters`` parameters, has no resource
-            inputs, uses ``*args`` or ``**kwargs``, or annotates a leading
-            parameter with an unsupported type.
+        ValueError: If any of the following hold:
+
+            - the signature cannot be inspected
+            - the type hints cannot be resolved
+            - the function uses ``*args``, ``**kwargs``, or positional-only
+              parameters
+            - ``parameters`` is not the only keyword-only parameter
+            - the last two parameters are not ``operationInfo`` and
+              ``parameters``
+            - there are no resource inputs
+            - a leading parameter is unannotated
+            - a leading parameter is annotated with a type not in
+              ``KIND_FOR_OPERATOR_INPUT_TYPE``, or with a list of anything
+              other than exactly one such type
     """
-    try:
-        sig = inspect.signature(fn)
-    except (TypeError, ValueError) as exc:
-        raise ValueError(
-            f"Cannot deduce resource inputs for operator function {fn!r}: "
-            f"signature could not be inspected ({exc})."
-        ) from exc
-
-    params = list(sig.parameters.values())
-    if any(p.kind == inspect.Parameter.VAR_POSITIONAL for p in params):
-        raise ValueError(
-            "Operator function must not declare *args; resource inputs must be "
-            "explicit named parameters."
-        )
-    if any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params):
-        raise ValueError(
-            "Operator function must not declare **kwargs; operation parameters "
-            "must be a single 'parameters' argument typed as the configuration model."
-        )
-
-    named = [
-        p
-        for p in params
-        if p.kind
-        in (
-            inspect.Parameter.POSITIONAL_OR_KEYWORD,
-            inspect.Parameter.POSITIONAL_ONLY,
-            inspect.Parameter.KEYWORD_ONLY,
-        )
-    ]
+    named, hints = inspect_operator_function(fn)
     if len(named) < 2 or (
         named[-2].name != "operationInfo" or named[-1].name != "parameters"
     ):
@@ -339,14 +325,6 @@ def resource_inputs_from_operator_function(
             "Operator function must declare at least one resource input "
             "parameter before 'operationInfo' and 'parameters'."
         )
-
-    try:
-        hints = typing.get_type_hints(fn, include_extras=True)
-    except Exception as exc:  # noqa: BLE001
-        raise ValueError(
-            f"Cannot deduce resource inputs for operator function {fn!r}: "
-            f"type hints are missing or unresolvable ({exc})."
-        ) from exc
 
     descriptors: list[ADOResourcePropertyDescriptor] = []
     for param in resource_params:
@@ -387,52 +365,6 @@ def project_contexts_from_inputs(
             if isinstance(resource, DiscoverySpace)
         )
     return result
-
-
-def resolve_operation_project_context(
-    operation_info: FunctionOperationInfo | None,
-    inputs: dict[str, ResolvedOperatorInput],
-) -> ProjectContext:
-    """Resolve the project context for an operation invocation.
-
-    Prefers ``FunctionOperationInfo.projectContext`` when set. Otherwise,
-    extracts project context from operator inputs that carry one. When no
-    input carries context, callers must set ``projectContext`` explicitly.
-    List inputs are flattened, so every discovery space in a list contributes
-    a project context.
-
-    Args:
-        operation_info: Optional operation info that may carry a project context.
-        inputs: Mapping of parameter name to a rich operator input or a list
-            of rich operator inputs.
-
-    Returns:
-        The resolved project context.
-
-    Raises:
-        ValueError: If ``projectContext`` is unset and no input carries a
-            project context, or if context-carrying inputs disagree on the
-            project.
-    """
-    if operation_info is not None and operation_info.projectContext is not None:
-        return operation_info.projectContext
-
-    carried = project_contexts_from_inputs(inputs)
-    if not carried:
-        raise ValueError(
-            "FunctionOperationInfo.projectContext is required when no operator "
-            "input carries a project context (e.g. DataContainer-only inputs)."
-        )
-
-    # ProjectContext is an unfrozen pydantic model, so it cannot be placed in a set.
-    reference = carried[0][1]
-    if any(ctx != reference for _, ctx in carried):
-        details = ", ".join(
-            f"{name!r}→project={ctx.project!r}" for name, ctx in carried
-        )
-        raise ValueError(f"Operator inputs disagree on project context: {details}.")
-
-    return reference
 
 
 def _resolve_discoveryspace(
@@ -486,6 +418,52 @@ def _resolve_one_reference(
     return resolver(reference, metastore)
 
 
+def resolve_operation_project_context(
+    operation_info: FunctionOperationInfo | None,
+    inputs: dict[str, ResolvedOperatorInput],
+) -> ProjectContext:
+    """Resolve the project context for an operation invocation.
+
+    Prefers ``FunctionOperationInfo.projectContext`` when set. Otherwise,
+    extracts project context from operator inputs that carry one. When no
+    input carries context, callers must set ``projectContext`` explicitly.
+    List inputs are flattened, so every discovery space in a list contributes
+    a project context.
+
+    Args:
+        operation_info: Optional operation info that may carry a project context.
+        inputs: Mapping of parameter name to a rich operator input or a list
+            of rich operator inputs.
+
+    Returns:
+        The resolved project context.
+
+    Raises:
+        ValueError: If ``projectContext`` is unset and no input carries a
+            project context, or if context-carrying inputs disagree on the
+            project.
+    """
+    if operation_info is not None and operation_info.projectContext is not None:
+        return operation_info.projectContext
+
+    carried = project_contexts_from_inputs(inputs)
+    if not carried:
+        raise ValueError(
+            "FunctionOperationInfo.projectContext is required when no operator "
+            "input carries a project context (e.g. DataContainer-only inputs)."
+        )
+
+    # ProjectContext is an unfrozen pydantic model, so it cannot be placed in a set.
+    reference = carried[0][1]
+    if any(ctx != reference for _, ctx in carried):
+        details = ", ".join(
+            f"{name!r}→project={ctx.project!r}" for name, ctx in carried
+        )
+        raise ValueError(f"Operator inputs disagree on project context: {details}.")
+
+    return reference
+
+
 def verify_inputs_exist_in_metastore(
     inputs: dict[str, ResolvedOperatorInput],
     metastore: SQLStore,
@@ -527,8 +505,11 @@ def verify_inputs_exist_in_metastore(
 def metastore_for_operation_inputs(
     operation_info: FunctionOperationInfo | None,
     inputs: dict[str, ResolvedOperatorInput],
-) -> SQLStore:
-    """Open the metastore for *inputs* and check that each input is stored there.
+) -> tuple[SQLStore, FunctionOperationInfo]:
+    """Connect to the project's metastore and verify *inputs* exist in it.
+
+    The project context comes from ``operation_info`` if set, otherwise from
+    *inputs*, and is set on the returned operation info.
 
     Args:
         operation_info: Optional operation info that may carry a project context.
@@ -536,18 +517,24 @@ def metastore_for_operation_inputs(
             of rich operator inputs.
 
     Returns:
-        A metastore for the resolved project context.
+        The metastore, and operation info with ``projectContext`` set.
 
     Raises:
-        ValueError: If the project context cannot be resolved or an input is
-            missing from the metastore.
+        ValueError: If the project context cannot be resolved, or an input has
+            an unsupported type or is not in the metastore.
     """
+    from ado.core.operation.config import FunctionOperationInfo
     from ado.metastore.sqlstore import SQLStore
 
     project_context = resolve_operation_project_context(operation_info, inputs)
+    resolved_info = operation_info or FunctionOperationInfo()
+    if resolved_info.projectContext is None:
+        resolved_info = resolved_info.model_copy(
+            update={"projectContext": project_context}
+        )
     metastore = SQLStore(project_context=project_context)
     verify_inputs_exist_in_metastore(inputs, metastore)
-    return metastore
+    return metastore, resolved_info
 
 
 # ---------------------------------------------------------------------------

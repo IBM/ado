@@ -154,8 +154,8 @@ def apply_exclude_package_rules(
 def get_pinned_packages(
     path_requirements: str,
     override_fms_hf_tuning: str | None = None,
-    ensure_aim: bool = True,
     exclude_packages: list[str] | None = None,
+    extra_packages: list[str] | None = None,
 ) -> list[str]:
     """Extracts the pinned packages from a path_requirements file
 
@@ -164,10 +164,10 @@ def get_pinned_packages(
             Path to the requirements.txt file containing the pinned packages (one package per line, a-la pip)
         override_fms_hf_tuning:
             If set, overrides the `fms-hf-tuning` pinned package from the contents of the requirements.txt file
-        ensure_aim:
-            If set, ensures that the dependencies include the aim python package.
         exclude_packages:
             Packages to exclude from installation
+        extra_packages:
+            Additional packages to append after all other processing
     Returns:
         An array consisting of pinned packages a-la pip
     """
@@ -191,8 +191,8 @@ def get_pinned_packages(
     if override_fms_hf_tuning:
         packages.append(override_fms_hf_tuning)
 
-    if ensure_aim and len(find_matching_packages("aim", packages)) == 0:
-        packages.append("aim")
+    if extra_packages:
+        packages.extend(extra_packages)
 
     return packages
 
@@ -262,7 +262,7 @@ def get_ray_environment(
 
     # VV: Do not switch on pip_check.
     plugin = {}
-    env = {"AIM_UI_TELEMETRY_ENABLED": "0"}
+    env = {}
     env.update(env_vars)
 
     ray_environment = {

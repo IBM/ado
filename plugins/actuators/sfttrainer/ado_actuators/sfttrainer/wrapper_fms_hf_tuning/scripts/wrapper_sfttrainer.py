@@ -13,22 +13,19 @@
 # limitations under the License.
 import dataclasses
 import datetime as dt
+import json
 import os
 import sys
 import typing
 from typing import Any
 
+import ado_actuators.sfttrainer.wrapper_fms_hf_tuning.callbacks.metrics_tracker as metrics_tracker
 import ado_actuators.sfttrainer.wrapper_fms_hf_tuning.constants as constants
 import ado_actuators.sfttrainer.wrapper_fms_hf_tuning.tuning_versions as tuning_versions
 import torch
 import torch.distributed
-from aim.hugging_face import AimCallback
 from transformers import TrainerControl, TrainerState, TrainingArguments
-
-if typing.TYPE_CHECKING:
-    import aim
-    from torch.nn import Module
-    from transformers import PreTrainedModel
+from transformers.trainer_callback import TrainerCallback
 
 
 def has_gathered_enough_samples(
@@ -88,24 +85,24 @@ def has_gathered_enough_samples(
 def get_cuda_uuid_to_index() -> dict[str, int]:
     """Returns a dictionary mapping GPU device UUIDs to their index numbers"""
     try:
-        import aim.ext.pynvml as nvml
+        import pynvml
 
-        nvml.nvmlInit()
+        pynvml.nvmlInit()
     except Exception as e:
         print(
-            f"Unable to initialize nvml when mapping cuda uuid to AIM gpu indices due to {e} - "
+            f"Unable to initialize pynvml when mapping cuda uuid to gpu indices due to {e} - "
             f"will skip mapping the uuids"
         )
         return {}
 
-    gpu_device_count = nvml.nvmlDeviceGetCount()
+    gpu_device_count = pynvml.nvmlDeviceGetCount()
 
     ret = {
-        str(nvml.nvmlDeviceGetUUID(nvml.nvmlDeviceGetHandleByIndex(i))): i
+        str(pynvml.nvmlDeviceGetUUID(pynvml.nvmlDeviceGetHandleByIndex(i))): i
         for i in range(gpu_device_count)
     }
 
-    nvml.nvmlShutdown()
+    pynvml.nvmlShutdown()
 
     return ret
 
@@ -135,81 +132,19 @@ def get_cuda_device_indices(cuda_visible_devices: str) -> list[int]:
     return [cuda_mapping.get(uuid, uuid) for uuid in cuda_visible_devices.split(",")]
 
 
-def calculate_gpu_power_percent(
-    run_metrics: list[tuple[str, dict[str, int], list[float]]],
-) -> list[tuple[str, dict[str, int], list[float]]]:
-    """Calculates __system__gpu_power_percent using __system__gpu_power_watts and inserts it into existing run metrics
-
-    Args:
-        run_metrics:
-            The run metrics collected from AIM. The method updates this array in memory
-
-    Returns:
-        Nothing
-    """
-    from aim.ext.resource.utils import round10e5
-
-    try:
-        import aim.ext.pynvml as nvml
-
-        nvml.nvmlInit()
-    except Exception as e:
-        print(
-            f"Unable to instantiate nvml due to {e} - will not record power measurements",
-            file=sys.stderr,
-        )
-        return []
-
-    for name, context, values in run_metrics:
-        # VV: aim reports: gpu_info['gpu_power_watts'] = round10e5(nvml.nvmlDeviceGetPowerUsage(handle) / 1000)
-        if name == "__system__gpu_power_watts" and "gpu" in context:
-            handle = nvml.nvmlDeviceGetHandleByIndex(context["gpu"])
-            # VV: nvmlDeviceGetEnforcedPowerLimit is in Milliwatts:
-            # https://docs.nvidia.com/deploy/nvml-api/group__nvmlDeviceQueries.html
-
-            power_cap = nvml.nvmlDeviceGetEnforcedPowerLimit(handle) / 1000
-
-            # VV: The range is [0, 100]
-            gpu_percent = [round10e5(v * 100.0 / power_cap) for v in values]
-
-            run_metrics.append(
-                (
-                    "__system__gpu_power_percent",
-                    context.copy(),
-                    gpu_percent,
-                )
-            )
-
-    nvml.nvmlShutdown()
-
-    return run_metrics
-
-
-class CustomAimCallback(AimCallback):
-    # VV: Set this after training starts and never delete it
-    the_run_hash = None
-    the_experiment: "aim.Run | None" = None
+class CustomCallBack(TrainerCallback):
     training_steps = 0
 
     def __init__(
         self,
-        repo: str | None = None,
-        experiment: str | None = None,
-        system_tracking_interval: int | None = 10,
-        log_system_params: bool | None = True,
-        capture_terminal_logs: bool | None = True,
-        additional_metrics: dict[str, Any] | None = None,
-        aim_info_path: str | None = None,
-        aim_info_aggregate_metrics: bool = False,
-        aim_metadata: dict[str, Any] | None = None,
+        system_tracking_interval: float = 10,
+        aggregate_metrics: bool = True,
+        output_info_path: str | None = None,
         stop_after_seconds: float = -1.0,
         auto_stop_method: constants.AutoStopMethod | None = None,
     ) -> None:
 
-        self._additional_metrics = additional_metrics or {}
-        self._aim_info_path = aim_info_path
-        self._aim_info_aggregate_metrics = aim_info_aggregate_metrics
-        self._aim_metadata = aim_metadata or {}
+        self._output_info_path = output_info_path
 
         self._stop_after_seconds = stop_after_seconds
         self._time_started: dt.datetime | None = None
@@ -221,37 +156,58 @@ class CustomAimCallback(AimCallback):
         self._warmup_steps: int | None = None
         self._optimization_step_durations = []
         self._auto_stop_method = auto_stop_method
+        self._system_tracking_interval = system_tracking_interval
+        self._aggregate_metrics = aggregate_metrics
+        self._logged_metrics: dict[tuple[str, str | None], list[float | int]] = {}
 
-        super().__init__(
-            repo,
-            experiment,
-            system_tracking_interval,
-            log_system_params,
-            capture_terminal_logs,
+        self.resource_tracker = metrics_tracker.ResourceTracker(
+            period=self._system_tracking_interval
         )
+
+        self.resource_tracker.begin_track()
+
+        super().__init__()
+
+    def on_log(
+        self,
+        args: TrainingArguments,
+        state: TrainerState,
+        control: TrainerControl,
+        logs: dict[str, Any] | None = None,
+        **kwargs: Any,  # noqa: ANN401
+    ) -> None:
+        super().on_log(args=args, state=state, control=control, logs=logs, **kwargs)
+
+        if not state.is_world_process_zero or not logs:
+            return
+
+        prefix_set = ("train_", "eval_", "test_")
+        for log_name, log_value in logs.items():
+            if not isinstance(log_value, (int, float)):
+                continue
+
+            subset = None
+            for prefix in prefix_set:
+                if log_name.startswith(prefix):
+                    log_name = log_name[len(prefix) :]
+                    subset = prefix[:-1]
+                    break
+
+            key = (log_name, subset)
+            if key not in self._logged_metrics:
+                self._logged_metrics[key] = []
+            self._logged_metrics[key].append(log_value)
 
     def on_train_begin(
         self,
         args: TrainingArguments,
         state: TrainerState,
         control: TrainerControl,
-        model: "PreTrainedModel | Module | None" = None,
         **kwargs: Any,  # noqa: ANN401
     ) -> None:
-        super().on_train_begin(args, state, control, model, **kwargs)
+        super().on_train_begin(args=args, state=state, control=control, **kwargs)
 
         self._time_started = dt.datetime.now()
-
-        if state.is_local_process_zero:
-            run: aim.Run = self.experiment
-            CustomAimCallback.the_experiment = run
-            CustomAimCallback.the_run_hash = run.hash
-
-            for k, v in self._additional_metrics.items():
-                run.track(v, name=k, context={"scope": "additional_metrics"})
-
-            for k, v in self._aim_metadata.items():
-                run[k] = v
 
     def on_step_begin(
         self,
@@ -260,6 +216,7 @@ class CustomAimCallback(AimCallback):
         control: TrainerControl,
         **kwargs: Any,  # noqa: ANN401
     ) -> None:
+        super().on_step_begin(args=args, state=state, control=control, **kwargs)
         self._optimization_step_started = dt.datetime.now()
 
     def on_step_end(
@@ -269,27 +226,22 @@ class CustomAimCallback(AimCallback):
         control: TrainerControl,
         **kwargs: Any,  # noqa: ANN401
     ) -> None:
-        super().on_step_end(args, state, control, **kwargs)
+        super().on_step_end(args=args, state=state, control=control, **kwargs)
 
-        CustomAimCallback.training_steps += 1
+        CustomCallBack.training_steps += 1
 
         now = dt.datetime.now()
-        elapsed = (now - self._optimization_step_started).total_seconds()
-        running_for = (now - self._time_started).total_seconds()
+        elapsed = (now - self._time_started).total_seconds()
+        step_duration = (now - self._optimization_step_started).total_seconds()
 
-        if state.is_world_process_zero:
-            self.experiment.track(value=elapsed, name="optimization_step_duration")
-
-        if (
-            state.is_local_process_zero
-            and 0.0 <= self._stop_after_seconds <= running_for
-        ):
+        if state.is_local_process_zero and 0.0 <= self._stop_after_seconds <= elapsed:
             print(
                 "Triggering experiment to stop after running for",
-                running_for,
+                elapsed,
                 f"seconds due to stop_after_seconds={self._stop_after_seconds}",
             )
             control.should_training_stop = True
+            self.resource_tracker.end_track()
 
         if state.is_local_process_zero:
             if (
@@ -301,7 +253,7 @@ class CustomAimCallback(AimCallback):
                 # each local-rank 0 process must know the warmup duration. Instead of synchronizing across workers,
                 # we just have all local-rank 0 processes compute it independently.
                 # To this end, local-rank 0 processes track the duration of optimization steps.
-                self._optimization_step_durations.append(dt)
+                self._optimization_step_durations.append(step_duration)
 
                 # VV: all processes with local rank 0 need to compute their respective warmup phase in order to
                 # be able to discard the system metrics that they collect during warmup
@@ -316,7 +268,7 @@ class CustomAimCallback(AimCallback):
                     self._warmup_steps = post_warmup_step_idx
                     print(
                         "Triggering experiment to stop after running for",
-                        running_for,
+                        elapsed,
                         f"seconds due to auto_stop_method={self._auto_stop_method}.",
                         "Warmup steps were",
                         self._warmup_steps,
@@ -360,49 +312,44 @@ class CustomAimCallback(AimCallback):
         **kwargs: Any,  # noqa: ANN401
     ) -> None:
         try:
-            if self._aim_info_path and state.is_local_process_zero:
+            if self._output_info_path and state.is_local_process_zero:
                 format_time = "%d%m%y-%H%M%S"
                 train_time_stop = dt.datetime.now().strftime(format_time)
-
-                run: aim.Run = self.experiment
-
-                for k, v in self._additional_metrics.items():
-                    run.track(v, name=k, context={"scope": "additional_metrics"})
 
                 cuda_visible_devices = os.environ.get("CUDA_VISIBLE_DEVICES", "")
 
                 cuda_visible_devices = get_cuda_device_indices(cuda_visible_devices)
 
                 metrics = []
-
-                run_metrics = [
-                    (m.name, m.context.to_dict(), m.values.values_list())
-                    for m in run.metrics()
-                ]
-
-                run_metrics.extend(calculate_gpu_power_percent(run_metrics=run_metrics))
-
-                skip_first_system_metrics, warmup_seconds = None, None
+                _skip_first_system_metrics, warmup_seconds = None, None
+                keep_after_time: dt.datetime | None = None
 
                 if self._warmup_steps:
                     warmup_seconds = sum(
                         self._optimization_step_durations[: self._warmup_steps]
                     )
 
-                    skip_first_system_metrics = int(
-                        warmup_seconds / self._system_tracking_interval
+                    keep_after_time = self._time_started + dt.timedelta(
+                        seconds=warmup_seconds
                     )
 
+                run_metrics = [
+                    (m.name, m.context, m.values)
+                    for m in self.resource_tracker.to_resource_tracker_metrics(
+                        keep_after_time=keep_after_time
+                    )
+                ]
+
+                for (name, subset), values in self._logged_metrics.items():
+                    # VV: This is copying in the train_ metrics which we need to
+                    # extrapolate the training duration of the measurement
+                    context = {"subset": subset} if subset is not None else {}
+                    run_metrics.append((name, context, values))
+
                 for name, context, values in run_metrics:
-                    if self._aim_info_aggregate_metrics:
+                    if self._aggregate_metrics:
                         try:
                             values = list(values)
-
-                            if (
-                                name.startswith("__system")
-                                and skip_first_system_metrics is not None
-                            ):
-                                values = values[skip_first_system_metrics:]
 
                             values = [x for x in values if x is not None]
                             len_values = len(values)
@@ -432,18 +379,14 @@ class CustomAimCallback(AimCallback):
                         }
                     )
 
-                # Standard
-                import json
-
                 if self._time_started is not None:
                     train_time_start = self._time_started.strftime(format_time)
                 else:
                     train_time_start = None
 
-                with open(self._aim_info_path, "w", encoding="utf-8") as f:
+                with open(self._output_info_path, "w", encoding="utf-8") as f:
                     json.dump(
                         {
-                            "run_hash": run.hash,
                             "metrics": metrics,
                             "hostname": os.environ.get("HOSTNAME"),
                             "train_time_start": train_time_start,
@@ -451,7 +394,7 @@ class CustomAimCallback(AimCallback):
                             "cuda_visible_devices": cuda_visible_devices,
                             "world_rank": os.environ.get("RANK", "0"),
                             "world_size": os.environ.get("WORLD_SIZE", "1"),
-                            "training_steps": CustomAimCallback.training_steps,
+                            "training_steps": CustomCallBack.training_steps,
                             "warmup_steps": self._warmup_steps,
                             "warmup_seconds": warmup_seconds,
                         },
@@ -459,41 +402,24 @@ class CustomAimCallback(AimCallback):
                     )
         finally:
             super().on_train_end(args=args, state=state, control=control, **kwargs)
-            if CustomAimCallback.the_experiment:
-                CustomAimCallback.the_experiment = None
+            self.resource_tracker.end_track()
 
 
 @dataclasses.dataclass
 class CustomArgs:
-    aim_metadata_path: str | None = dataclasses.field(
+    metrics_info_path: str | None = dataclasses.field(
         default=None,
         metadata={
-            "help": "Path to JSON file containing metadata that sft_trainer.py will store in AIM"
-        },
-    )
-
-    aim_info_path: str | None = dataclasses.field(
-        default=None,
-        metadata={
-            "help": "The path to a JSON file that sft_trainer.py will use to store the metrics that AIM captures. "
+            "help": "The path to a JSON file that sft_trainer.py will use to store the metrics that the resource tracker and trainer callbacks capture. "
             "If unset, the script will not produce the file"
         },
     )
 
-    aim_info_aggregate_metrics: bool = dataclasses.field(
+    metrics_info_aggregate_metrics: bool = dataclasses.field(
         default=False,
         metadata={
-            "help": "Whether to store the mean values of the metrics that AIM measures in the aim_info_path file"
+            "help": "Whether to store the mean values of the metrics that are captured in the metrics_info_path file"
         },
-    )
-
-    aim_db: str | None = dataclasses.field(
-        default=None,
-        metadata={"help": "The AIM endpoint"},
-    )
-    aim_experiment: str = dataclasses.field(
-        default=None,
-        metadata={"help": "The name of the AIM experiment"},
     )
 
     fms_hf_tuning_version: str = dataclasses.field(
@@ -527,8 +453,7 @@ class CustomArgs:
 
 def main() -> None:
     """Utility method that invokes the main() method of sft_trainer.py, catches GPU OOM exceptions and logs them
-    to the --aim_info_path JSON file as well as STDERR"""
-    import json
+    to the --metrics_info_path JSON file as well as STDERR"""
     import sys
 
     import transformers
@@ -550,24 +475,8 @@ def main() -> None:
     if custom_args.fms_hf_tuning_version is None:
         raise ValueError("must set --fms_hf_tuning_version")
 
-    if custom_args.aim_metadata_path:
-        with open(custom_args.aim_metadata_path) as f:
-            aim_metadata = json.load(f)
-    else:
-        aim_metadata = {}
-
-    import json
-
     import torch.cuda
     import tuning.sft_trainer
-
-    metadata = aim_metadata.get("metadata", {})
-
-    try:
-        measurement_id = "/".join((metadata["experiment"], metadata["entity"]))
-    except KeyError as e:
-        print("Could not construct measurement id due to", e, file=sys.stderr)
-        measurement_id = "unknown/unknown"
 
     def report_error(exception: Exception, warning: str, exception_type: str) -> None:
         print(warning, file=sys.stderr)
@@ -580,16 +489,15 @@ def main() -> None:
         # VV: 'accelerate' injects this env-var
         if os.environ.get("RANK", ""):
             rank = os.environ["RANK"]
-            path = f"{custom_args.aim_info_path}_{rank}"
+            path = f"{custom_args.metrics_info_path}_{rank}"
         else:
-            path = custom_args.aim_info_path
+            path = custom_args.metrics_info_path
             rank = "?"
 
         report = {
             "error": exception_type,
             "exception": str(exception),
-            "run_hash": CustomAimCallback.the_run_hash,
-            "training_steps": CustomAimCallback.training_steps,
+            "training_steps": CustomCallBack.training_steps,
         }
 
         with open(path, "w", encoding="utf-8") as f:
@@ -599,7 +507,7 @@ def main() -> None:
             )
 
         print(
-            f"Worker {rank} of {measurement_id} dumped {report} in {path}",
+            f"Worker {rank} dumped {report} in {path}",
             file=sys.stderr,
         )
 
@@ -617,22 +525,19 @@ def main() -> None:
             exception_type="NCCLError",
         )
 
+    callbacks: list[CustomCallBack] = []
     try:
         print("Worker started", file=sys.stderr)
 
-        if not custom_args.aim_info_path:
-            raise ValueError("must set --aim_info_path")
+        if not custom_args.metrics_info_path:
+            raise ValueError("must set --metrics_info_path")
 
         job_config = tuning.sft_trainer.get_json_config()
 
         callbacks = [
-            CustomAimCallback(
-                repo=custom_args.aim_db,
-                experiment=custom_args.aim_experiment,
-                additional_metrics={},
-                aim_info_path=custom_args.aim_info_path,
-                aim_info_aggregate_metrics=custom_args.aim_info_aggregate_metrics,
-                aim_metadata=aim_metadata,
+            CustomCallBack(
+                output_info_path=custom_args.metrics_info_path,
+                aggregate_metrics=custom_args.metrics_info_aggregate_metrics,
                 stop_after_seconds=custom_args.stop_after_seconds,
                 auto_stop_method=custom_args.auto_stop_method,
             )
@@ -671,15 +576,15 @@ def main() -> None:
         raise
     finally:
         print("Worker stopped", file=sys.stderr)
-        if CustomAimCallback.the_experiment:
+        if callbacks:
+            print("Stopping the resource tracker", file=sys.stderr)
+            rt = callbacks[0].resource_tracker
+            rt.end_track()
+            total_requests = rt.metrics
             print(
-                "AIM Run is not closed, will close it now. Measurement id:",
-                measurement_id,
-                "AIM run hash",
-                CustomAimCallback.the_experiment.hash,
+                f"Resource tracker stopped after collecting {len(total_requests)} total measurements",
                 file=sys.stderr,
             )
-            CustomAimCallback.the_experiment.close()
 
 
 if __name__ == "__main__":

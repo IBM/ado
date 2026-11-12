@@ -180,9 +180,10 @@ models.
     **Note**: `--fast_moe` is only supported for fms-hf-tuning v2.4.0+
 
     We use a thin wrapper of `sft_trainer.py` which injects a custom Callback that
-    exports the metrics collected by AIM. You can repeat our experiments by just
-    pointing the above command-line to `sft_trainer.py` from the `fms-hf-tuning`
-    package.
+    exports the [system metrics](#measured-properties) and training throughput
+    metrics described in the Measured Properties section. You can repeat our
+    experiments by just pointing the above command-line to `sft_trainer.py` from
+    the `fms-hf-tuning` package.
 
     Versioning:
 
@@ -445,9 +446,10 @@ configurations.
     **Note**: `--fast_moe` is only supported for fms-hf-tuning v2.4.0+
 
     We use a thin wrapper of `sft_trainer.py` which injects a custom Callback that
-    exports the metrics collected by AIM. You can repeat our experiments by just
-    pointing the above command-line to `sft_trainer.py` from the `fms-hf-tuning`
-    package.
+    exports the [system metrics](#measured-properties) and training throughput
+    metrics described in the Measured Properties section. You can repeat our
+    experiments by just pointing the above command-line to `sft_trainer.py` from
+    the `fms-hf-tuning` package.
 
     Versioning:
 
@@ -734,9 +736,10 @@ adaptation.
     **Note**: `--fast_moe` is only supported for fms-hf-tuning v2.4.0+
 
     We use a thin wrapper of `sft_trainer.py` which injects a custom Callback that
-    exports the metrics collected by AIM. You can repeat our experiments by just
-    pointing the above command-line to `sft_trainer.py` from the `fms-hf-tuning`
-    package.
+    exports the [system metrics](#measured-properties) and training throughput
+    metrics described in the Measured Properties section. You can repeat our
+    experiments by just pointing the above command-line to `sft_trainer.py` from
+    the `fms-hf-tuning` package.
 
     Versioning:
 
@@ -1065,9 +1068,10 @@ memory constrained environments.
     **Note**: `--fast_moe` is only supported for fms-hf-tuning v2.4.0+
 
     We use a thin wrapper of `sft_trainer.py` which injects a custom Callback that
-    exports the metrics collected by AIM. You can repeat our experiments by just
-    pointing the above command-line to `sft_trainer.py` from the `fms-hf-tuning`
-    package.
+    exports the [system metrics](#measured-properties) and training throughput
+    metrics described in the Measured Properties section. You can repeat our
+    experiments by just pointing the above command-line to `sft_trainer.py` from
+    the `fms-hf-tuning` package.
 
     Versioning:
 
@@ -1357,9 +1361,10 @@ for performance.
     **Note**: `--fast_moe` is only supported for fms-hf-tuning v2.4.0+
 
     We use a thin wrapper of `sft_trainer.py` which injects a custom Callback that
-    exports the metrics collected by AIM. You can repeat our experiments by just
-    pointing the above command-line to `sft_trainer.py` from the `fms-hf-tuning`
-    package.
+    exports the [system metrics](#measured-properties) and training throughput
+    metrics described in the Measured Properties section. You can repeat our
+    experiments by just pointing the above command-line to `sft_trainer.py` from
+    the `fms-hf-tuning` package.
 
     Versioning:
 
@@ -1599,18 +1604,6 @@ parameters:
 - **Description**: Path to the directory containing the dataset files used for
   fine-tuning.
 
-#### `aim_db` (str, default: None)
-
-- **Description**: Endpoint of the AIM server used to log training metrics. When
-  set to None the measurement will use a temporary AIM repository that will be
-  garbage collected after the termination of the measurement.
-
-#### `aim_dashboard_url` (str or null, optional)
-
-- **Description**: URL of the AIM dashboard. If set, this will be included in
-  the metadata of the measurement results.
-- **Example**: `"http://aim-dashboard.example.com"`
-
 #### `hf_home` (str, default: `"/hf-models-pvc/huggingface_home"`)
 
 - **Description**: Directory where Hugging Face stores authentication tokens and
@@ -1638,9 +1631,19 @@ parameters:
 
 ### Measured Properties
 
-Each experiment collects detailed runtime and system-level metrics using
-[AIM](https://github.com/aimhubio/aim). The AIM metrics are aggregated into the
-following before being stored in ado's database:
+Each experiment collects detailed runtime and system-level metrics.
+These metrics are aggregated into the following before being stored in
+ado's database.
+
+**System metrics** (GPU, CPU, and memory) are collected by a background thread
+that takes a snapshot of the node's resource usage every 10 seconds, plus one
+when training ends. When the run uses an auto-stop method with a warmup phase,
+snapshots taken during the warmup are discarded. GPU metrics are averaged over
+the snapshots of each GPU, and the actuator reports the min, average, and max of
+those averages across the GPUs that the run used. CPU and memory metrics are
+reported as the average over the snapshots. All system metrics are percentages
+except the GPU power in Watts and CPU compute utilization (100 is one full
+core, so it can exceed 100).
 
 #### **GPU Metrics**
 
@@ -1650,8 +1653,9 @@ following before being stored in ado's database:
 
 #### **CPU Metrics**
 
-- **Compute Utilization**: Average CPU usage per core (%)
-- **Memory Utilization**: Average memory usage of the training process (%)
+- **Compute Utilization**: Average CPU usage of the training process, where
+  100 is one full core (%)
+- **Memory Utilization**: Average memory usage of the whole node (%)
 
 #### **Training Performance**
 
@@ -1672,9 +1676,9 @@ following before being stored in ado's database:
 
 !!! info end
 
-    We report all **system metrics** as min/avg/max over the duration of the run.
-    GPU metrics are collected per device; CPU metrics are collected for the training
-    process. Token throughput accounts for padding and sequence truncation.
+    GPU metrics are collected per device and reported as min/avg/max across the
+    GPUs the run used; CPU and memory metrics are reported as averages. Token
+    throughput accounts for padding and sequence truncation.
 
 #### **Validation**
 

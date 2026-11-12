@@ -96,9 +96,7 @@ ado context local
 
 ### Configure the parameters of the SFTTrainer actuator
 
-SFTTrainer includes parameters that control its behavior. For example, it pushes
-any training metrics it collects, like system profiling metadata, to an
-[AIM](https://github.com/aimhubio/aim) server by default. It also features
+SFTTrainer includes parameters that control its behavior. For example,
 parameters that specify important paths, such as the location of the Hugging
 Face cache and the directory where the actuator expects to find files like the
 test dataset.

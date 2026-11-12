@@ -56,7 +56,7 @@ def test_ray_runtime_env_with_ordered_pip_plugin(set_plugin: None) -> None:
 
     if utils.ray_version_supports_pip_install_options():
         assert runtime_env == {
-            "env_vars": {"AIM_UI_TELEMETRY_ENABLED": "0"},
+            "env_vars": {},
             "ordered_pip": {
                 "phases": [
                     {
@@ -73,7 +73,6 @@ def test_ray_runtime_env_with_ordered_pip_plugin(set_plugin: None) -> None:
     else:
         assert runtime_env == {
             "env_vars": {
-                "AIM_UI_TELEMETRY_ENABLED": "0",
                 "PIP_NO_BUILD_ISOLATION": "0",
             },
             "ordered_pip": {
@@ -106,7 +105,6 @@ def test_pip_find_links_option() -> None:
     if utils.ray_version_supports_pip_install_options():
         assert runtime_env == {
             "env_vars": {
-                "AIM_UI_TELEMETRY_ENABLED": "0",
                 "PIP_FIND_LINKS": wheelhouse,
             },
             "pip": {
@@ -121,7 +119,6 @@ def test_pip_find_links_option() -> None:
     else:
         assert runtime_env == {
             "env_vars": {
-                "AIM_UI_TELEMETRY_ENABLED": "0",
                 "PIP_NO_BUILD_ISOLATION": "0",
                 "PIP_FIND_LINKS": wheelhouse,
             },
@@ -149,7 +146,7 @@ def test_ray_runtime_env_with_vanilla_pip() -> None:
 
     if utils.ray_version_supports_pip_install_options():
         assert runtime_env == {
-            "env_vars": {"AIM_UI_TELEMETRY_ENABLED": "0"},
+            "env_vars": {},
             "pip": {
                 "packages": [
                     "torch==2.6.0",
@@ -162,7 +159,6 @@ def test_ray_runtime_env_with_vanilla_pip() -> None:
     else:
         assert runtime_env == {
             "env_vars": {
-                "AIM_UI_TELEMETRY_ENABLED": "0",
                 "PIP_NO_BUILD_ISOLATION": "0",
             },
             "pip": {

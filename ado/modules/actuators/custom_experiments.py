@@ -13,15 +13,12 @@ import ray
 
 import ado.modules.actuators.catalog
 from ado.core.actuatorconfiguration.config import GenericActuatorParameters
-from ado.modules.actuators.base import (
-    ActuatorBase,
-)
 from ado.modules.actuators.errors import UnknownExperimentError
 from ado.modules.actuators.executor_supervisor import (
-    ExperimentExecutorSupervisor,
     ExperimentExecutorSupervisorParameters,
 )
-from ado.modules.actuators.measurement_queue import MeasurementQueue
+from ado.modules.actuators.measurement_queue import MeasurementQueue, NullQueue
+from ado.modules.actuators.standard import StandardActuator
 from ado.modules.module import (
     ModuleConf,
     ModuleTypeEnum,
@@ -56,6 +53,10 @@ configure_logging()
 _custom_experiments_catalog = ado.modules.actuators.catalog.ExperimentCatalog(
     catalogIdentifier="CustomExperiments"
 )
+
+# Live callables registered by @custom_experiment. Preferred over reloading from
+# module metadata so in-process execute() works for nested/test definitions too.
+_custom_experiment_functions: dict[str, Callable[..., Any]] = {}
 
 
 class RayRemoteOptions(pydantic.BaseModel):
@@ -460,6 +461,7 @@ def custom_experiment(
         validated_func._experiment = experiment
         validated_func._use_ray = use_ray
         validated_func._ray_options = ray_options_model
+        _custom_experiment_functions[experiment.identifier] = validated_func
         return validated_func
 
     return decorator
@@ -630,19 +632,24 @@ def custom_experiment_executor(
     parameters: dict,
     measurement_request: MeasurementRequest,
     target_experiment: Experiment,
-    queue: MeasurementQueue,
+    queue: MeasurementQueue | NullQueue,
     custom_experiments_actor: "CustomExperimentsActor | None" = None,
-) -> None:
-    """
-    :param function: The function to call
-    :param parameters: The custom parameters to the function
-    :param measurement_request: The entity and custom experiment to be measured
-    :param target_experiment: The experiment to execute.
-        Required as the measurementRequest only includes an ExperimentReference
-    :param queue: The queue to put the result on
-    :param custom_experiments_actor: Optional handle to CustomExperiments actuator
-        to notify after the result is queued
-    :return:
+) -> MeasurementRequest:
+    """Run a custom experiment and place the completed request on ``queue``.
+
+    Args:
+        function: The function to call.
+        parameters: The custom parameters to the function.
+        measurement_request: The entity and custom experiment to be measured.
+        target_experiment: The experiment to execute. Required as the
+            measurementRequest only includes an ExperimentReference.
+        queue: The queue to put the result on. Use ``NullQueue`` when the
+            caller only needs the returned request.
+        custom_experiments_actor: Optional handle to CustomExperiments actuator
+            to notify after the result is queued.
+
+    Returns:
+        The completed ``MeasurementRequest`` (also written to ``queue``).
     """
 
     measurement_results = []
@@ -685,6 +692,7 @@ def custom_experiment_executor(
         custom_experiments_actor.mark_measurement_request_completed.remote(
             measurement_request.requestid
         )
+    return measurement_request
 
 
 def _custom_experiment_executor_remote(
@@ -716,36 +724,37 @@ class CustomExperimentsParameters(ExperimentExecutorSupervisorParameters):
     model_config = pydantic.ConfigDict(extra="forbid")
 
 
-class CustomExperiments(ActuatorBase):
-    """Actuator for applying user supplied custom experiments"""
+class CustomExperiments(StandardActuator):
+    """Actuator for applying user supplied custom experiments.
+
+    Subclasses :class:`~ado.modules.actuators.standard.StandardActuator` for
+    shared queue/supervisor setup and the ``execute`` / ``submit`` API surface.
+    Custom experiments keep their own Ray dispatch model: a single remote task
+    per request (honouring per-experiment ``use_ray`` / ``ray_options``), not
+    StandardActuator's nested per-entity Ray tasks.
+    """
 
     identifier = "custom_experiments"
     parameters_class = CustomExperimentsParameters
 
-    def __init__(self, queue: "MeasurementQueue", params: dict | None = None) -> None:
-        """
+    def __init__(
+        self,
+        queue: MeasurementQueue | NullQueue | None = None,
+        params: dict | None = None,
+    ) -> None:
+        """Initialise the actuator and load custom experiment implementations.
 
-        :param queue: The MeasurementQueue instance
-        :param params: The params for the objective-function
-
+        Args:
+            queue: MeasurementQueue for submit()-based async operation.
+                If None, a NullQueue is used — suitable for execute()-only use.
+            params: Actuator configuration parameters.
         """
 
         enable_ray_actor_coverage("custom_experiments")
         super().__init__(queue=queue, params=params)
 
-        params = params or {}
-        self._typed_parameters = self.parameters_class.model_validate(
-            params, from_attributes=True
-        )
         self.log.debug(f"Queue is {self._stateUpdateQueue}")
-        self.log.debug(f"Params are {self._typed_parameters}")
-
-        self._launch_supervisor = ExperimentExecutorSupervisor(
-            queue=self._stateUpdateQueue,
-            config=self._typed_parameters.to_supervisor_config(),
-            logger=self.log,
-        )
-        self._launch_supervisor.start()
+        self.log.debug(f"Params are {self._parameters}")
 
         # Use the module-level catalog by calling the class method
         self._catalog = type(self).catalog()
@@ -753,14 +762,21 @@ class CustomExperiments(ActuatorBase):
 
         self._functionImplementations = {}
         for experiment in self._catalog.experiments:
-            function = None
-            if module := experiment.metadata.get("module"):
+            function = _custom_experiment_functions.get(experiment.identifier)
+            if function is None and (module := experiment.metadata.get("module")):
                 experiment_module_conf = ExperimentModuleConf.model_validate(module)
-                function = (
-                    load_module_class_or_function(experiment_module_conf)
-                    if experiment_module_conf
-                    else None
-                )
+                try:
+                    function = (
+                        load_module_class_or_function(experiment_module_conf)
+                        if experiment_module_conf
+                        else None
+                    )
+                except ValueError:
+                    self.log.exception(
+                        "Unable to load custom experiment function for "
+                        f"{experiment.identifier} from module metadata"
+                    )
+                    function = None
 
             if function:
                 self._functionImplementations[experiment.identifier] = function
@@ -776,9 +792,9 @@ class CustomExperiments(ActuatorBase):
 
         self.log.debug("Completed init")
 
-    def mark_measurement_request_completed(self, requestid: str) -> None:
-        """Record that a measurement result was queued."""
-        self._launch_supervisor.mark_measurement_request_completed(requestid)
+    def _experiment_implementations(self) -> dict[str, Callable[..., Any]]:
+        """Return loaded custom experiment callables keyed by experiment id."""
+        return self._functionImplementations
 
     def loadedExperiment(
         self,
@@ -790,20 +806,26 @@ class CustomExperiments(ActuatorBase):
             is not None
         )
 
-    def submit(
+    def _resolve_experiment_and_function(
         self,
         entities: list[Entity],
         experimentReference: ExperimentReference,
-        requesterid: str,
-        requestIndex: int,
-    ) -> list[str]:
+    ) -> tuple[Experiment, Callable]:
+        """Validate entities and resolve the experiment definition and function.
 
-        self.log.debug(
-            f"Received a request to measure {experimentReference} on {[e.identifier for e in entities]}"
-        )
+        Args:
+            entities: Entities to measure.
+            experimentReference: Reference to the experiment to run.
 
+        Returns:
+            Tuple of ``(target_experiment, function)``.
+
+        Raises:
+            ValueError: If the experiment is unknown or an entity is missing
+                required property values.
+        """
         try:
-            targetExperiment = self._catalog.experimentForReference(
+            target_experiment = self._catalog.experimentForReference(
                 experimentReference, resolve=True
             )
         # ExperimentVersionMismatchError can't be raised as we don't use FQI
@@ -818,17 +840,108 @@ class CustomExperiments(ActuatorBase):
                 f"Requested experiments {experimentReference} is not in the CustomExperiments actuator catalog (which is empty). "
             ) from error
 
-        # Check all required property values are present to actuate on
         for entity in entities:
             if not CheckRequiredObservedPropertyValuesPresent(
-                entity, targetExperiment, exactMatch=False
+                entity, target_experiment, exactMatch=False
             ):
                 raise ValueError(
                     f"Entity {entity.identifier} does not have values for properties required "
                     f"as inputs for experiment {experimentReference.experimentIdentifier}"
                 )
 
-        # Create Measurement Request
+        fn = self._functionImplementations[experimentReference.experimentIdentifier]
+        return target_experiment, fn
+
+    def execute(
+        self,
+        entities: list[Entity],
+        experimentReference: ExperimentReference,
+        requesterid: str,
+        requestIndex: int,
+        use_ray: bool = False,
+    ) -> MeasurementRequest:
+        """Run the experiment and return the completed MeasurementRequest.
+
+        Overrides :meth:`StandardActuator.execute` so custom experiments keep
+        whole-request Ray dispatch and ``ray_options`` instead of nested
+        per-entity tasks.
+
+        Args:
+            entities: Entities to measure.
+            experimentReference: Reference to the experiment to run.
+            requesterid: ID of the requesting operation.
+            requestIndex: Index of this request within the operation.
+            use_ray: When True, dispatch execution to a Ray remote task
+                (honouring the experiment's ``ray_options``).
+
+        Returns:
+            A completed MeasurementRequest with measurements and status set.
+        """
+        target_experiment, fn = self._resolve_experiment_and_function(
+            entities, experimentReference
+        )
+        request = MeasurementRequest(
+            operation_id=requesterid,
+            requestIndex=requestIndex,
+            experimentReference=experimentReference,
+            entities=entities,
+            requestid=str(uuid.uuid4())[:6],
+        )
+        parameters = self._catalog.experimentForReference(
+            experimentReference
+        ).metadata.get("parameters", {})
+
+        if not use_ray:
+            return custom_experiment_executor(
+                fn,
+                parameters,
+                request,
+                target_experiment,
+                NullQueue(),
+            )
+
+        remote_fn = _custom_experiment_executor_remote(fn)
+        return ray.get(
+            remote_fn.remote(
+                fn,
+                parameters,
+                request,
+                target_experiment,
+                NullQueue(),
+                None,
+            )
+        )
+
+    def submit(
+        self,
+        entities: list[Entity],
+        experimentReference: ExperimentReference,
+        requesterid: str,
+        requestIndex: int,
+    ) -> list[str]:
+        """Submit the experiment for asynchronous execution via Ray.
+
+        Overrides :meth:`StandardActuator.submit` to honour per-experiment
+        ``use_ray`` / ``ray_options`` and whole-request remote execution.
+
+        Args:
+            entities: Entities to measure.
+            experimentReference: Reference to the experiment to run.
+            requesterid: ID of the requesting operation.
+            requestIndex: Index of this request within the operation.
+
+        Returns:
+            A list containing the single request ID.
+        """
+
+        self.log.debug(
+            f"Received a request to measure {experimentReference} on {[e.identifier for e in entities]}"
+        )
+
+        target_experiment, fn = self._resolve_experiment_and_function(
+            entities, experimentReference
+        )
+
         requestid = str(uuid.uuid4())[:6]
         request = MeasurementRequest(
             operation_id=requesterid,
@@ -839,12 +952,10 @@ class CustomExperiments(ActuatorBase):
         )
 
         self.log.debug(f"Create measurement request {request}")
-        # TODO: Allow functions to specify if they should be remote
 
-        # Fetch custom_experiment function for this identifier
-        fn = self._functionImplementations[
-            request.experimentReference.experimentIdentifier
-        ]
+        parameters = self._catalog.experimentForReference(
+            request.experimentReference
+        ).metadata.get("parameters", {})
         use_ray = getattr(fn, "_use_ray", True)
         if use_ray:
             # Dispatch as Ray task. Pass ray options if present.
@@ -858,11 +969,9 @@ class CustomExperiments(ActuatorBase):
             remote_fn = _custom_experiment_executor_remote(fn)
             executor_ref = remote_fn.remote(
                 fn,
-                self._catalog.experimentForReference(
-                    request.experimentReference
-                ).metadata.get("parameters", {}),
+                parameters,
                 request,
-                targetExperiment,
+                target_experiment,
                 self._stateUpdateQueue,
                 _notifier,
             )
@@ -870,11 +979,9 @@ class CustomExperiments(ActuatorBase):
         else:
             custom_experiment_executor(
                 fn,
-                self._catalog.experimentForReference(
-                    request.experimentReference
-                ).metadata.get("parameters", {}),
+                parameters,
                 request,
-                targetExperiment,
+                target_experiment,
                 self._stateUpdateQueue,
             )
         return [requestid]

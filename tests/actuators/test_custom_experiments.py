@@ -371,3 +371,49 @@ def test_check_parameters_and_infer() -> None:
         domainRange=[0, 10],
     )
     assert parameterization["c"] == 1
+
+
+def test_custom_experiments_is_standard_actuator_subclass() -> None:
+    """CustomExperiments inherits StandardActuator's execute/submit API surface."""
+    from ado.modules.actuators.standard import StandardActuator
+
+    assert issubclass(custom_experiments.CustomExperiments, StandardActuator)
+
+
+def test_execute_no_queue_required() -> None:
+    """execute() works when no MeasurementQueue is provided (NullQueue is used)."""
+
+    @custom_experiments.custom_experiment(output_property_identifiers=["y"])
+    def execute_no_queue_exp(x: float) -> dict[str, float]:
+        return {"y": x * 2}
+
+    actuator = custom_experiments.CustomExperiments()
+    result = actuator.execute(
+        entities=[SpacePoint.model_validate({"entity": {"x": 3.0}}).to_entity()],
+        experimentReference=execute_no_queue_exp._experiment.reference,
+        requesterid="test-op",
+        requestIndex=0,
+    )
+
+    assert result.status == MeasurementRequestStateEnum.SUCCESS
+    assert result.measurements[0].measurements[0].value == pytest.approx(6.0)
+
+
+def test_execute_with_use_ray() -> None:
+    """execute(use_ray=True) produces the correct result via a Ray remote task."""
+
+    @custom_experiments.custom_experiment(output_property_identifiers=["y"])
+    def execute_use_ray_exp(x: float) -> dict[str, float]:
+        return {"y": x * 3}
+
+    actuator = custom_experiments.CustomExperiments()
+    result = actuator.execute(
+        entities=[SpacePoint.model_validate({"entity": {"x": 4.0}}).to_entity()],
+        experimentReference=execute_use_ray_exp._experiment.reference,
+        requesterid="test-op",
+        requestIndex=0,
+        use_ray=True,
+    )
+
+    assert result.status == MeasurementRequestStateEnum.SUCCESS
+    assert result.measurements[0].measurements[0].value == pytest.approx(12.0)

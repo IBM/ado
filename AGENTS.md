@@ -92,6 +92,14 @@ These guidelines apply to all code development in the ado codebase.
   ]
   ```
 
+#### Helpers
+
+- Do not introduce private helpers (leading underscore) that are one-line
+  wrappers, renames of an existing call, or called from a single place when
+  inlining reads as clearly. Avoid many small private helpers in one module.
+- Add a private helper when it is reused, or when it isolates a non-trivial
+  step whose name makes the caller easier to read.
+
 #### Imports and Serialization
 
 - Use absolute imports within the repository unless the file already uses
@@ -146,6 +154,17 @@ These guidelines apply to all code development in the ado codebase.
     implementing.
 - Test the full lifecycle for pydantic models:
   create → dump → create from dump.
+- Write tests that can fail for a meaningful reason. Do not assert a value
+  that was just set, a constant, or a default; do not assert only that a call
+  does not raise; do not assert only that a mock was called; do not copy the
+  implementation's logic into the test.
+- Before adding a test, search `tests/` for existing tests of the same
+  function, class, or code path. Extend an existing test instead of adding one
+  with the same assertions.
+- Test behaviour whose regression would matter: business logic, error handling
+  a caller relies on, and edge cases the code explicitly handles. Do not test
+  trivial code, pass-through wrappers, or framework behaviour, and do not
+  enumerate every input combination.
 
 ---
 

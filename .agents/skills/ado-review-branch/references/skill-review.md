@@ -22,6 +22,18 @@ specification and skill-creation documentation. Fetch the current content of
 those links, and of the pages they reference on skill content and descriptions,
 before reviewing. Review against what was fetched instead of relying on memory.
 
+Fetch the whole upstream repository instead of individual pages, so that every
+page under `docs/` can be read locally. Use the `gh` CLI when it is available
+and authenticated (`gh auth status`):
+
+```sh
+gh repo clone agentskills/agentskills "$TMPDIR/agentskills" -- --depth 1
+```
+
+Then read `docs/specification.mdx` and the pages under `docs/skill-creation/`
+from that directory. Fall back to fetching individual pages with `curl` from
+`raw.githubusercontent.com` only when `gh` is unavailable or the clone fails.
+
 If the documentation cannot be fetched, state that in the review and fall back
 to [.agents/skills/AGENTS.md](../../AGENTS.md).
 

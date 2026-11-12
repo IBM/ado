@@ -2,12 +2,12 @@
 name: ado-review-branch
 description: >-
   Review committed changes in the current branch. Use when the user asks to
-  review, audit, or critique a branch — covers code quality, skill quality,
-  bugs, linting issues, and adherence to project guidelines. Produces a
-  structured review report written to a markdown file.
+  review, audit, or critique a branch — covers code quality, test quality,
+  skill quality, bugs, linting issues, and adherence to project guidelines.
+  Produces a structured review report written to a markdown file.
 metadata:
-  user-invocable: true
-  disable-model-invocation: true
+  user-invocable: "true"
+  disable-model-invocation: "true"
 ---
 
 # Review a branch
@@ -61,11 +61,29 @@ commonly missed areas:
   conventional loop indices are a violation.
 - **Docstring accuracy** — for every changed function or method, read the
   implementation body and verify the docstring matches what the code actually
-  does. A docstring that no longer reflects the implementation is a stale
-  docstring; report it as a `docs` finding.
-- **Stale docstrings** — a docstring that describes behaviour the function no
-  longer has, or omits behaviour it has gained, is a `docs` finding even if
-  it was not touched in this diff.
+  does. A docstring that describes behaviour the function no longer has, or
+  omits behaviour it has gained, is stale; report it as a `docs` finding even
+  if the docstring was not touched in this diff.
+- **Private helpers** — every new private function or method must satisfy the
+  helper rules in AGENTS.md; report violations as `design` findings. The fix is
+  to inline the helper.
+
+### Test quality
+
+For every test added or modified in the branch, read the test body and the code
+it exercises, and check it against the test rules in AGENTS.md. Report
+violations as `test` findings, and additionally:
+
+- **Redundant tests** — search `tests/` for existing tests of the same code
+  path. Name the existing test in the finding and suggest removing the new one
+  or extending the existing one.
+- **Missing tests** — for each changed behaviour whose regression would
+  matter, verify that at least one test would fail if that behaviour were
+  reverted. Do not report a missing test for code AGENTS.md says not to test.
+- **Verify by mutation** — when a test looks weak, confirm it by temporarily
+  breaking the code under test and running that test; do not report a test as
+  banal on appearance alone. Start from a clean working tree and restore the
+  edited file with `git restore <file>` afterwards.
 
 ### Plugin versioning
 
@@ -99,9 +117,11 @@ Write the report with these sections, omitting any that are empty:
      do not already say it
 2. **Findings** — a single list ordered by severity under the headings
    Critical, Medium, and Minor
+   - default severity when none is specified elsewhere: `bug` Critical,
+     `lint`, `test`, and `docs` Medium, `design` Minor
    - number findings continuously (1, 2, 3, ...) so they can be referenced
-   - start each finding with a short title and a tag: `bug`, `design`, `test`,
-     `docs`, or `lint`
+   - start each finding with a bold heading of the form `tag: short title`,
+     where the tag is one of `bug`, `design`, `test`, `docs`, or `lint`
    - test gaps and documentation gaps are findings with the matching tag, not
      separate sections
 3. **Skill Reviews** — one subsection per new or modified skill, using the
@@ -112,7 +132,7 @@ Write the report with these sections, omitting any that are empty:
 Example finding:
 
 ```markdown
-3. **Exit swallowed by broad except** `bug` —
+3. **bug: exit swallowed by broad except** —
    [create.py:160](ado/cli/resources/operation/create.py:160) catches
    Exception, which includes typer.Exit, so the specific error is followed by a
    generic failure message. Re-raise typer.Exit before the except clause.

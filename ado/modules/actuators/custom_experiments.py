@@ -66,6 +66,25 @@ class RayRemoteOptions(pydantic.BaseModel):
     runtime_env: dict | None = None
 
 
+# Ray runtime_env keys that provision an isolated Python environment for the task.
+_SANDBOX_VENV_RUNTIME_ENV_KEYS = frozenset({"pip", "conda", "uv"})
+
+
+def runtime_env_creates_sandbox_venv(runtime_env: dict | None) -> bool:
+    """Return True if ``runtime_env`` asks Ray to create a sandboxed Python env.
+
+    Args:
+        runtime_env: A Ray ``runtime_env`` mapping, or None.
+
+    Returns:
+        True when ``runtime_env`` includes package-manager keys that create a
+        task-local virtual environment (``pip``, ``conda``, or ``uv``).
+    """
+    if not runtime_env:
+        return False
+    return bool(_SANDBOX_VENV_RUNTIME_ENV_KEYS.intersection(runtime_env))
+
+
 class ExperimentModuleConf(ModuleConf):
     moduleType: Annotated[ModuleTypeEnum, pydantic.Field()] = ModuleTypeEnum.EXPERIMENT
 
@@ -751,7 +770,9 @@ class CustomExperiments(StandardActuator):
         """
 
         enable_ray_actor_coverage("custom_experiments")
-        super().__init__(queue=queue, params=params)
+        super().__init__(
+            queue=queue if queue is not None else NullQueue(), params=params
+        )
 
         self.log.debug(f"Queue is {self._stateUpdateQueue}")
         self.log.debug(f"Params are {self._parameters}")
@@ -805,6 +826,32 @@ class CustomExperiments(StandardActuator):
             self._functionImplementations.get(experimentReference.experimentIdentifier)
             is not None
         )
+
+    def experiment_requires_ray_sandbox_venv(
+        self,
+        experimentReference: ExperimentReference,
+    ) -> bool:
+        """Return True if the experiment needs a Ray-managed sandbox venv.
+
+        Experiments whose ``ray_options.runtime_env`` includes ``pip``,
+        ``conda``, or ``uv`` cannot run via ``execute(use_ray=False)``.
+
+        Args:
+            experimentReference: Reference to the experiment to inspect.
+
+        Returns:
+            True when the decorated experiment uses Ray and its runtime
+            environment creates a sandboxed Python environment.
+        """
+        fn = self._functionImplementations.get(experimentReference.experimentIdentifier)
+        if fn is None:
+            return False
+        if not getattr(fn, "_use_ray", True):
+            return False
+        ray_options = getattr(fn, "_ray_options", None)
+        if ray_options is None:
+            return False
+        return runtime_env_creates_sandbox_venv(ray_options.runtime_env)
 
     def _resolve_experiment_and_function(
         self,
@@ -864,7 +911,8 @@ class CustomExperiments(StandardActuator):
 
         Overrides :meth:`StandardActuator.execute` so custom experiments keep
         whole-request Ray dispatch and ``ray_options`` instead of nested
-        per-entity tasks.
+        per-entity tasks. No Ray actor or MeasurementQueue is required when
+        ``use_ray=False``.
 
         Args:
             entities: Entities to measure.

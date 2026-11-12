@@ -28,8 +28,10 @@ from ado.cli.utils.output.prints import (
     WARN,
     console_print,
 )
-from ado.modules.actuators.measurement_queue import MeasurementQueue
+from ado.modules.actuators.custom_experiments import CustomExperiments
+from ado.modules.actuators.measurement_queue import MeasurementQueue, NullQueue
 from ado.modules.actuators.registry import ActuatorRegistry
+from ado.modules.actuators.standard import StandardActuator
 from ado.modules.operators._cleanup import (
     initialize_ray_resource_cleaner,
 )
@@ -45,11 +47,48 @@ if typing.TYPE_CHECKING:
     from ado.modules.actuators.base import ActuatorBase
 
 
+def _load_actuator_configurations(
+    actuator_configuration_identifiers: list[str] | None,
+) -> dict:
+    """Load actuator configurations from the active metastore context.
+
+    Args:
+        actuator_configuration_identifiers: Optional configuration resource IDs.
+
+    Returns:
+        Mapping of actuator identifier to configuration parameters model.
+    """
+    actuator_configurations = {}
+    if not actuator_configuration_identifiers:
+        return actuator_configurations
+
+    from ado.cli.core.config import AdoConfiguration
+    from ado.core.resources import CoreResourceKinds
+    from ado.metastore.sqlstore import SQLStore
+
+    ado_config = AdoConfiguration.load()
+    metastore = SQLStore(project_context=ado_config.project_context)
+    for actuator_configuration_identifier in actuator_configuration_identifiers:
+        actuator_configuration = metastore.getResource(
+            identifier=actuator_configuration_identifier,
+            kind=CoreResourceKinds.ACTUATORCONFIGURATION,
+            raise_error_if_no_resource=True,
+            ignore_plugin_validation=False,
+        ).config
+        actuator_configurations[actuator_configuration.actuatorIdentifier] = (
+            actuator_configuration
+        )
+        console_print(
+            f"Loaded configuration {actuator_configuration_identifier} for actuator {actuator_configuration.actuatorIdentifier}"
+        )
+    return actuator_configurations
+
+
 def local_execution_closure(
     registry: ActuatorRegistry,
     actuator_configuration_identifiers: list[str] | None = None,
-) -> Callable[[ExperimentReference, Entity], MeasurementRequest] | None:
-    """Create a callable that submits a local measurement request.
+) -> Callable[[ExperimentReference, Entity], MeasurementRequest | None]:
+    """Create a callable that submits a local measurement request via Ray.
 
     The function keeps a dictionary of Actuator actors so that each actuator
     is instantiated only once.
@@ -67,29 +106,9 @@ def local_execution_closure(
 
     actuators: dict[str, ActorHandle[ActuatorBase]] = {}
     queue = MeasurementQueue()
-
-    actuator_configurations = {}
-    if actuator_configuration_identifiers:
-        from ado.cli.core.config import AdoConfiguration
-        from ado.core.resources import CoreResourceKinds
-        from ado.metastore.sqlstore import SQLStore
-
-        # get the metastore instance for current project context
-        ado_config = AdoConfiguration.load()
-        metastore = SQLStore(project_context=ado_config.project_context)
-        for actuator_configuration_identifier in actuator_configuration_identifiers:
-            actuator_configuration = metastore.getResource(
-                identifier=actuator_configuration_identifier,
-                kind=CoreResourceKinds.ACTUATORCONFIGURATION,
-                raise_error_if_no_resource=True,
-                ignore_plugin_validation=False,
-            ).config
-            actuator_configurations[actuator_configuration.actuatorIdentifier] = (
-                actuator_configuration
-            )
-            console_print(
-                f"Loaded configuration {actuator_configuration_identifier} for actuator {actuator_configuration.actuatorIdentifier}"
-            )
+    actuator_configurations = _load_actuator_configurations(
+        actuator_configuration_identifiers
+    )
 
     def execute_local(
         reference: ExperimentReference, entity: Entity
@@ -138,6 +157,70 @@ def local_execution_closure(
         return queue.get()
 
     return execute_local
+
+
+def local_no_ray_execution_closure(
+    registry: ActuatorRegistry,
+    actuator_configuration_identifiers: list[str] | None = None,
+) -> Callable[[ExperimentReference, Entity], MeasurementRequest]:
+    """Create a callable that runs measurements in-process without Ray.
+
+    Supports ``StandardActuator`` subclasses only (including
+    ``CustomExperiments``). Custom experiments whose
+    ``ray_options.runtime_env`` creates a sandbox venv are rejected.
+
+    Args:
+        registry: The ActuatorRegistry used to resolve actuator classes.
+        actuator_configuration_identifiers: Optional actuator configuration IDs.
+
+    Returns:
+        A callable that executes a local measurement request without Ray.
+    """
+    actuators: dict[str, StandardActuator] = {}
+    actuator_configurations = _load_actuator_configurations(
+        actuator_configuration_identifiers
+    )
+
+    def execute_local_no_ray(
+        reference: ExperimentReference, entity: Entity
+    ) -> MeasurementRequest:
+        if reference.actuatorIdentifier not in actuators:
+            actuator_class = registry.actuatorForIdentifier(
+                reference.actuatorIdentifier
+            )
+            if not issubclass(actuator_class, StandardActuator):
+                raise typer.BadParameter(
+                    f"Actuator '{reference.actuatorIdentifier}' does not support "
+                    "--no-ray (only StandardActuator subclasses are supported)"
+                )
+            if reference.actuatorIdentifier in actuator_configurations:
+                config = actuator_configurations[
+                    reference.actuatorIdentifier
+                ].parameters
+            else:
+                config = actuator_class.default_parameters()
+            actuators[reference.actuatorIdentifier] = actuator_class(
+                queue=NullQueue(), params=config
+            )
+
+        actuator = actuators[reference.actuatorIdentifier]
+        if isinstance(actuator, CustomExperiments) and (
+            actuator.experiment_requires_ray_sandbox_venv(reference)
+        ):
+            raise typer.BadParameter(
+                f"Experiment '{reference.experimentIdentifier}' requires creating "
+                "a sandbox Ray venv — cannot run without Ray"
+            )
+
+        return actuator.execute(
+            entities=[entity],
+            experimentReference=reference,
+            requesterid="run_experiment",
+            requestIndex=0,
+            use_ray=False,
+        )
+
+    return execute_local_no_ray
 
 
 def remote_execution_closure(
@@ -283,10 +366,22 @@ def run(
     request_timeout: Annotated[
         int, typer.Option(help="Timeout for web requests.")
     ] = 60,
+    no_ray: Annotated[
+        bool,
+        typer.Option(
+            "--no-ray",
+            help="Run locally in-process without starting Ray. "
+            "Supports StandardActuator subclasses only (including "
+            "custom_experiments). Incompatible with --remote.",
+        ),
+    ] = False,
 ) -> None:
     from ado.modules.actuators.registry import ActuatorRegistry
 
     logging.getLogger().setLevel(os.environ.get("LOGLEVEL", 40))
+
+    if no_ray and remote:
+        raise typer.BadParameter("--no-ray cannot be used with --remote")
 
     point = SpacePoint.model_validate(
         yaml.load(point_file.read_text(), Loader=SafeLoader)
@@ -296,19 +391,23 @@ def run(
     console_print(f"Point: {point.entity}")
 
     registry = ActuatorRegistry()
-    execute = (
-        local_execution_closure(
-            registry=registry,
-            actuator_configuration_identifiers=actuator_configuration_identifiers,
-        )
-        if not remote
-        else remote_execution_closure(
+    if remote:
+        execute = remote_execution_closure(
             remote,
             experiment_timeout=timeout,
             verify_certs=verify_certs,
             requests_timeout=request_timeout,
         )
-    )
+    elif no_ray:
+        execute = local_no_ray_execution_closure(
+            registry=registry,
+            actuator_configuration_identifiers=actuator_configuration_identifiers,
+        )
+    else:
+        execute = local_execution_closure(
+            registry=registry,
+            actuator_configuration_identifiers=actuator_configuration_identifiers,
+        )
 
     try:
         for reference in point.experiments:
@@ -337,7 +436,7 @@ def run(
             else:
                 console_print(f"{ERROR}Entity is not valid")
     finally:
-        if not remote:
+        if not remote and not no_ray:
             graceful_orchestrate_shutdown()
 
 

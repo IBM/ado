@@ -32,8 +32,9 @@ For measuring multiple entities, create a `discoveryspace` and an
 uv run run_experiment PATH_TO_POINT_YAML
 ```
 
-Ray is started locally and shut down automatically; no metastore or remote
-cluster is required.
+By default Ray is started locally and shut down automatically; no metastore or
+remote cluster is required. Use `--no-ray` to run in-process without Ray
+(`StandardActuator` subclasses and `custom_experiments` only).
 
 ## Point YAML
 
@@ -78,6 +79,7 @@ Verify with `uv run run_experiment --help` before writing a command.
 | `--timeout SECONDS`                    | Timeout for a remote experiment (default 300)                                                     |
 | `--request-timeout SECONDS`            | Timeout for individual web requests to a remote endpoint (default 60)                             |
 | `--verify-certs` / `--no-verify-certs` | SSL certificate verification of remote hosts (default `--no-verify-certs`)                        |
+| `--no-ray`                             | Run locally in-process without Ray; incompatible with `--remote`                                  |
 
 <!-- markdownlint-enable line-length -->
 

@@ -25,7 +25,7 @@
 ```bash
 run_experiment <point_file.yaml> [--remote <ENDPOINT>] [--timeout <SECONDS>] [--no-validate] \
                [--actuator-config-id <identifier>] [--verify-certs | --no-verify-certs] \
-               [--request-timeout <timeout-in-seconds>]
+               [--request-timeout <timeout-in-seconds>] [--no-ray]
 ```
 
 <!-- markdownlint-enable line-length -->
@@ -43,6 +43,10 @@ run_experiment <point_file.yaml> [--remote <ENDPOINT>] [--timeout <SECONDS>] [--
 - `--verify-certs`, `--no-verify-certs`: Enable or disable SSL certificate verification
   of remote hosts. (default: `--no-verify-certs`).
 - `--request-timeout`: Timeout for web requests. (default: 60s)
+- `--no-ray`: Run locally in-process without starting Ray. Supports
+  `StandardActuator` subclasses and `custom_experiments` only. Incompatible
+  with `--remote`. Custom experiments whose `ray_options.runtime_env` creates
+  a sandboxed venv (via `pip`, `conda`, or `uv`) cannot use `--no-ray`.
 
 ## Example
 
@@ -85,6 +89,8 @@ run_experiment example_point.yaml
 - **For Development & Debugging:** This script is best suited for
   actuator/experiment development, debugging, or quick checks — not for
   production or persistent experiment tracking.
+- **Local Ray by default:** Without `--no-ray`, local execution starts a local
+  Ray instance, wraps actuators as Ray actors, and shuts Ray down when finished.
 
 ## When to Use
 

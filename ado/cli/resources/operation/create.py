@@ -209,7 +209,6 @@ def _add_operation_input_for_reference(
         raw_operation_configuration.pop("spaces", None)
 
 
-
 def create_operation(parameters: AdoCreateCommandParameters) -> str | None:
 
     import ado.modules.operators.orchestrate

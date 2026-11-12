@@ -13,7 +13,7 @@ from testcontainers.community.mysql import MySqlContainer
 from typer.testing import CliRunner
 
 from ado.cli.core.cli import app as ado
-from ado.cli.resources.operation.create import _operator_input_name_for_kind
+from ado.cli.resources.operation.create import _operator_input_descriptor_for_kind
 from ado.core.datacontainer.resource import DataContainerResource
 from ado.core.discoveryspace.space import DiscoverySpace
 from ado.core.operation.config import (
@@ -176,7 +176,9 @@ class TestOperatorInputNameForKind:
         ) as name:
             raw = _raw_operation(name, "characterize")
             assert (
-                _operator_input_name_for_kind(raw, CoreResourceKinds.DATACONTAINER)
+                _operator_input_descriptor_for_kind(
+                    raw, CoreResourceKinds.DATACONTAINER
+                ).identifier
                 == "measurements"
             )
 
@@ -187,7 +189,9 @@ class TestOperatorInputNameForKind:
         ) as name:
             raw = _raw_operation(name, "compare")
             with pytest.raises(ValueError, match="multiple"):
-                _operator_input_name_for_kind(raw, CoreResourceKinds.DATACONTAINER)
+                _operator_input_descriptor_for_kind(
+                    raw, CoreResourceKinds.DATACONTAINER
+                )
 
     def test_single_missing_input_is_chosen(self) -> None:
         """When one input of the kind is unset, that name is returned."""
@@ -203,7 +207,9 @@ class TestOperatorInputNameForKind:
                 },
             )
             assert (
-                _operator_input_name_for_kind(raw, CoreResourceKinds.DISCOVERYSPACE)
+                _operator_input_descriptor_for_kind(
+                    raw, CoreResourceKinds.DISCOVERYSPACE
+                ).identifier
                 == "right"
             )
 
@@ -218,7 +224,9 @@ class TestOperatorInputNameForKind:
             }
         }
         assert (
-            _operator_input_name_for_kind(raw, CoreResourceKinds.DISCOVERYSPACE)
+            _operator_input_descriptor_for_kind(
+                raw, CoreResourceKinds.DISCOVERYSPACE
+            ).identifier
             == "discoverySpace"
         )
 
@@ -233,7 +241,9 @@ class TestOperatorInputNameForKind:
             }
         }
         assert (
-            _operator_input_name_for_kind(raw, CoreResourceKinds.DATACONTAINER)
+            _operator_input_descriptor_for_kind(
+                raw, CoreResourceKinds.DATACONTAINER
+            ).identifier
             == "measurements"
         )
 
@@ -241,7 +251,9 @@ class TestOperatorInputNameForKind:
         """A script module binds the discoverySpace input."""
         raw = {"operation": {"module": {"name": "my-script", "version": "0.1.0"}}}
         assert (
-            _operator_input_name_for_kind(raw, CoreResourceKinds.DISCOVERYSPACE)
+            _operator_input_descriptor_for_kind(
+                raw, CoreResourceKinds.DISCOVERYSPACE
+            ).identifier
             == "discoverySpace"
         )
 

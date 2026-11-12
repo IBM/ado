@@ -52,6 +52,26 @@ already include the appropriate version of `torch`:
 - For RayClusters on Kubernetes, use: `quay.io/ado/ado:c6ba952ad79a2d86d1174fd9aaebddd8953c78cf-py311-cu121-ofed2410v1140`
 <!-- markdownlint-enable line-length -->
 
+### System metrics
+
+While `sft_trainer.py` runs, a background thread takes a snapshot of the node's
+resource usage every 10 seconds, plus one when training ends. When the run uses
+an auto-stop method with a warmup phase, snapshots taken during the warmup are
+discarded. The snapshots contain:
+
+- Per GPU: compute utilization, memory utilization, and power draw as a
+  percentage of the GPU's power limit. These are percentages (0 to 100).
+- Per GPU: power draw in Watts.
+- CPU compute utilization of the `sft_trainer.py` process. This is a percentage
+  where 100 means one full core, so it can exceed 100.
+- Memory utilization of the whole node, as a percentage (0 to 100).
+
+Each GPU metric is averaged over the snapshots of each GPU, and the actuator
+reports the min, average, and max of those averages across the GPUs that the run
+used. CPU and memory utilization are reported as the average over the snapshots.
+All metrics are percentages except `gpu_power_watts_*` (Watts) and
+`cpu_compute_utilization` (100 is one full core).
+
 ## Full Fine-Tuning Experiments
 
 ### finetune_full_benchmark-v1.0.0
@@ -148,9 +168,9 @@ accelerate launch --config_file ${PATH_ACCELERATE_CONFIG} --num_processes ${NUMB
 **Note**: `--fast_moe` is only supported for fms-hf-tuning v2.4.0+
 
 We use a thin wrapper of `sft_trainer.py` which injects a custom Callback that
-exports the metrics collected by AIM. You can repeat our experiments by just
-pointing the above command-line to `sft_trainer.py` from the `fms-hf-tuning`
-package.
+exports the [system metrics](#system-metrics) and training throughput metrics
+described below. You can repeat our experiments by just pointing the above
+command-line to `sft_trainer.py` from the `fms-hf-tuning` package.
 
 Versioning:
 
@@ -367,8 +387,9 @@ Optional:
 
 #### Measured properties
 
-We use AIM to collect profiling metadata. Then we convert the timeseries that
-AIM collects into the metrics below.
+The system metrics (GPU, CPU and memory) are collected as described in
+[System metrics](#system-metrics). Then we convert the resulting timeseries into
+the metrics below.
 
 - gpu_compute_utilization_min (0.0 if not using any GPUs): Measured in
   Percentages (0 to 100) (see note 1)
@@ -398,7 +419,7 @@ AIM collects into the metrics below.
   utilization percentage across all devices
 - cpu_compute_utilization: Measured in Percentages (0 to 100 where 100 means 1
   full core) (see note 2)
-- cpu_memory_utilization: Measured in Percentages (0 to 100) taken from AIM (see
+- cpu_memory_utilization: Measured in Percentages (0 to 100) (see
   note 2)
 - train_runtime: Measured in seconds
 - train_samples_per_second
@@ -419,11 +440,12 @@ AIM collects into the metrics below.
 Notes:
 
 - (1) They are reported as the min/max/avg of the average in the timeseries
-  metrics that AIM collects for the in-use GPUs of a run.
-- (2) CPU compute and memory utilization are percentages. They are reported as
-  the min/max/avg of the metrics that AIM collects for the sft_trainer.py
-  process. The total memory capacity of the nodes varies from 100 GB to 400 GB.
-  Currently, we do not store this information in our database.
+  metrics for the in-use GPUs of a run.
+- (2) CPU compute and memory utilization are reported as the average of the
+  snapshots. CPU compute utilization is that of the sft_trainer.py process while
+  memory utilization is that of the whole node. The total memory capacity of the
+  nodes varies from 100 GB to 400 GB. Currently, we do not store this
+  information in our database.
 - (3) `dataset_tokens_per_second` and `dataset_tokens_per_second_per_gpu` take
   into account the `tokenizer.model_max_length` and `max_seq_length` (i.e. for
   each entry, we report
@@ -530,9 +552,9 @@ accelerate launch --config_file ${PATH_ACCELERATE_CONFIG} --num_processes ${NUMB
 **Note**: `--fast_moe` is only supported for fms-hf-tuning v2.4.0+
 
 We use a thin wrapper of `sft_trainer.py` which injects a custom Callback that
-exports the metrics collected by AIM. You can repeat our experiments by just
-pointing the above command-line to `sft_trainer.py` from the `fms-hf-tuning`
-package.
+exports the [system metrics](#system-metrics) and training throughput metrics
+described below. You can repeat our experiments by just pointing the above
+command-line to `sft_trainer.py` from the `fms-hf-tuning` package.
 
 Versioning:
 
@@ -783,9 +805,9 @@ accelerate launch --config_file ${PATH_ACCELERATE_CONFIG} --num_processes ${NUMB
 **Note**: `--fast_moe` is only supported for fms-hf-tuning v2.4.0+
 
 We use a thin wrapper of `sft_trainer.py` which injects a custom Callback that
-exports the metrics collected by AIM. You can repeat our experiments by just
-pointing the above command-line to `sft_trainer.py` from the `fms-hf-tuning`
-package.
+exports the [system metrics](#system-metrics) and training throughput metrics
+described below. You can repeat our experiments by just pointing the above
+command-line to `sft_trainer.py` from the `fms-hf-tuning` package.
 
 Versioning:
 
@@ -1050,8 +1072,9 @@ Sets the `--target_modules` layer names based on the `model_name`:
 <!-- markdownlint-disable-next-line no-duplicate-heading -->
 #### Measured properties
 
-We use AIM to collect profiling metadata. Then we convert the timeseries that
-AIM collects into the metrics below.
+The system metrics (GPU, CPU and memory) are collected as described in
+[System metrics](#system-metrics). Then we convert the resulting timeseries into
+the metrics below.
 
 - gpu_compute_utilization_min (0.0 if not using any GPUs): Measured in
   Percentages (0 to 100) (see note 1)
@@ -1081,7 +1104,7 @@ AIM collects into the metrics below.
   utilization percentage across all devices
 - cpu_compute_utilization: Measured in Percentages (0 to 100 where 100 means 1
   full core) (see note 2)
-- cpu_memory_utilization: Measured in Percentages (0 to 100) taken from AIM (see
+- cpu_memory_utilization: Measured in Percentages (0 to 100) (see
   note 2)
 - train_runtime: Measured in seconds
 - train_samples_per_second
@@ -1102,11 +1125,12 @@ AIM collects into the metrics below.
 Notes:
 
 - (1) They are reported as the min/max/avg of the average in the timeseries
-  metrics that AIM collects for the in-use GPUs of a run.
-- (2) CPU compute and memory utilization are percentages. They are reported as
-  the min/max/avg of the metrics that AIM collects for the sft_trainer.py
-  process. The total memory capacity of the nodes varies from 100 GB to 400 GB.
-  Currently, we do not store this information in our database.
+  metrics for the in-use GPUs of a run.
+- (2) CPU compute and memory utilization are reported as the average of the
+  snapshots. CPU compute utilization is that of the sft_trainer.py process while
+  memory utilization is that of the whole node. The total memory capacity of the
+  nodes varies from 100 GB to 400 GB. Currently, we do not store this
+  information in our database.
 - (3) `dataset_tokens_per_second` and `dataset_tokens_per_second_per_gpu` take
   into account the `tokenizer.model_max_length` and `max_seq_length` (i.e. for
   each entry, we report
@@ -1242,9 +1266,9 @@ accelerate launch --config_file ${PATH_ACCELERATE_CONFIG} --num_processes ${NUMB
 **Note**: `--fast_moe` is only supported for fms-hf-tuning v2.4.0+
 
 We use a thin wrapper of `sft_trainer.py` which injects a custom Callback that
-exports the metrics collected by AIM. You can repeat our experiments by just
-pointing the above command-line to `sft_trainer.py` from the `fms-hf-tuning`
-package.
+exports the [system metrics](#system-metrics) and training throughput metrics
+described below. You can repeat our experiments by just pointing the above
+command-line to `sft_trainer.py` from the `fms-hf-tuning` package.
 
 Versioning:
 
@@ -1472,8 +1496,9 @@ Sets the `--target_modules` layer names based on the `model_name`:
 <!-- markdownlint-disable-next-line no-duplicate-heading -->
 #### Measured properties
 
-We use AIM to collect profiling metadata. Then we convert the timeseries that
-AIM collects into the metrics below.
+The system metrics (GPU, CPU and memory) are collected as described in
+[System metrics](#system-metrics). Then we convert the resulting timeseries into
+the metrics below.
 
 - gpu_compute_utilization_min (0.0 if not using any GPUs): Measured in
   Percentages (0 to 100) (see note 1)
@@ -1503,7 +1528,7 @@ AIM collects into the metrics below.
   utilization percentage across all devices
 - cpu_compute_utilization: Measured in Percentages (0 to 100 where 100 means 1
   full core) (see note 2)
-- cpu_memory_utilization: Measured in Percentages (0 to 100) taken from AIM (see
+- cpu_memory_utilization: Measured in Percentages (0 to 100) (see
   note 2)
 - train_runtime: Measured in seconds
 - train_samples_per_second
@@ -1524,11 +1549,12 @@ AIM collects into the metrics below.
 Notes:
 
 - (1) They are reported as the min/max/avg of the average in the timeseries
-  metrics that AIM collects for the in-use GPUs of a run.
-- (2) CPU compute and memory utilization are percentages. They are reported as
-  the min/max/avg of the metrics that AIM collects for the sft_trainer.py
-  process. The total memory capacity of the nodes varies from 100 GB to 400 GB.
-  Currently, we do not store this information in our database.
+  metrics for the in-use GPUs of a run.
+- (2) CPU compute and memory utilization are reported as the average of the
+  snapshots. CPU compute utilization is that of the sft_trainer.py process while
+  memory utilization is that of the whole node. The total memory capacity of the
+  nodes varies from 100 GB to 400 GB. Currently, we do not store this
+  information in our database.
 - (3) `dataset_tokens_per_second` and `dataset_tokens_per_second_per_gpu` take
   into account the `tokenizer.model_max_length` and `max_seq_length` (i.e. for
   each entry, we report
@@ -1655,9 +1681,9 @@ accelerate launch --config_file ${PATH_ACCELERATE_CONFIG} --num_processes ${NUMB
 **Note**: `--fast_moe` is only supported for fms-hf-tuning v2.4.0+
 
 We use a thin wrapper of `sft_trainer.py` which injects a custom Callback that
-exports the metrics collected by AIM. You can repeat our experiments by just
-pointing the above command-line to `sft_trainer.py` from the `fms-hf-tuning`
-package.
+exports the [system metrics](#system-metrics) and training throughput metrics
+described below. You can repeat our experiments by just pointing the above
+command-line to `sft_trainer.py` from the `fms-hf-tuning` package.
 
 Versioning:
 
@@ -1876,8 +1902,9 @@ Optional:
 <!-- markdownlint-disable-next-line no-duplicate-heading -->
 #### Measured properties
 
-We use AIM to collect profiling metadata. Then we convert the timeseries that
-AIM collects into the metrics below.
+The system metrics (GPU, CPU and memory) are collected as described in
+[System metrics](#system-metrics). Then we convert the resulting timeseries into
+the metrics below.
 
 - gpu_compute_utilization_min (0.0 if not using any GPUs): Measured in
   Percentages (0 to 100) (see note 1)
@@ -1907,7 +1934,7 @@ AIM collects into the metrics below.
   utilization percentage across all devices
 - cpu_compute_utilization: Measured in Percentages (0 to 100 where 100 means 1
   full core) (see note 2)
-- cpu_memory_utilization: Measured in Percentages (0 to 100) taken from AIM (see
+- cpu_memory_utilization: Measured in Percentages (0 to 100) (see
   note 2)
 - train_runtime: Measured in seconds
 - train_samples_per_second
@@ -1928,11 +1955,12 @@ AIM collects into the metrics below.
 Notes:
 
 - (1) They are reported as the min/max/avg of the average in the timeseries
-  metrics that AIM collects for the in-use GPUs of a run.
-- (2) CPU compute and memory utilization are percentages. They are reported as
-  the min/max/avg of the metrics that AIM collects for the sft_trainer.py
-  process. The total memory capacity of the nodes varies from 100 GB to 400 GB.
-  Currently, we do not store this information in our database.
+  metrics for the in-use GPUs of a run.
+- (2) CPU compute and memory utilization are reported as the average of the
+  snapshots. CPU compute utilization is that of the sft_trainer.py process while
+  memory utilization is that of the whole node. The total memory capacity of the
+  nodes varies from 100 GB to 400 GB. Currently, we do not store this
+  information in our database.
 - (3) `dataset_tokens_per_second` and `dataset_tokens_per_second_per_gpu` take
   into account the `tokenizer.model_max_length` and `max_seq_length` (i.e. for
   each entry, we report

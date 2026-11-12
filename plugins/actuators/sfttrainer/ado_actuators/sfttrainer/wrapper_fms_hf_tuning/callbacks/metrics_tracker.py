@@ -8,22 +8,28 @@ import os
 import typing
 from threading import Event, Thread
 
-import aim.ext.resource.stat
-import psutil
-
 if typing.TYPE_CHECKING:
-    from tuning.sft_trainer import EnhancedTrainOutput
+    import psutil
+
+log = logging.getLogger(__name__)
 
 
 def was_gpu_in_use(
     gpu_cuda_id: int, cuda_visible_devices: list[int], num_gpus: int
 ) -> bool:
     # VV: We used that GPU if cuda_visible_devices is empty BUT we did ask
-    # FSDP to use at least 1 GPU. OR the gpu cuda id is in the cuda_visible_devices array (i.e. AIM/pytorch knew
+    # FSDP to use at least 1 GPU. OR the gpu cuda id is in the cuda_visible_devices array (i.e. pytorch knew
     # exactly which of the GPUs available on the system it was meant to use)
     return (not cuda_visible_devices and num_gpus > 0) or (
         gpu_cuda_id in cuda_visible_devices
     )
+
+
+@dataclasses.dataclass
+class ResourceTrackerMetric:
+    name: str
+    context: dict[str, typing.Any]
+    values: list[float | int]
 
 
 @dataclasses.dataclass
@@ -75,9 +81,6 @@ class GPUMetrics:
         default_factory=AggregatedValues,
         metadata={"help": "GPU memory utilization percent"},
     )
-    gpu_temp: AggregatedValues = dataclasses.field(
-        default_factory=AggregatedValues, metadata={"help": "GPU temperature"}
-    )
     gpu_power_watts: AggregatedValues = dataclasses.field(
         default_factory=AggregatedValues,
         metadata={"help": "GPU power consumption in Watts."},
@@ -88,13 +91,12 @@ class GPUMetrics:
     )
 
     @classmethod
-    def from_aim_info_dict(cls, info: dict[str, typing.Any]) -> "GPUMetrics":
+    def from_metrics_info_dict(cls, info: dict[str, typing.Any]) -> "GPUMetrics":
         return GPUMetrics(
             gpu=aggregate_values(info["__system__gpu"]["values"]),
             gpu_memory_percent=aggregate_values(
                 info["__system__gpu_memory_percent"]["values"]
             ),
-            gpu_temp=aggregate_values(info["__system__gpu_temp"]["values"]),
             gpu_power_watts=aggregate_values(
                 info["__system__gpu_power_watts"]["values"]
             ),
@@ -113,23 +115,12 @@ class SystemMetrics:
     memory_percent: AggregatedValues = dataclasses.field(
         default_factory=AggregatedValues, metadata={"help": "Whole system memory usage"}
     )
-    p_memory_percent: AggregatedValues = dataclasses.field(
-        default_factory=AggregatedValues,
-        metadata={"help": "Memory occupied by process"},
-    )
-    disk_percent: AggregatedValues = dataclasses.field(
-        default_factory=AggregatedValues, metadata={"help": "Disk usage"}
-    )
 
     @classmethod
-    def from_aim_info_dict(cls, info: dict[str, typing.Any]) -> "SystemMetrics":
+    def from_metrics_info_dict(cls, info: dict[str, typing.Any]) -> "SystemMetrics":
         return SystemMetrics(
             cpu=aggregate_values(info["__system__cpu"]["values"]),
             memory_percent=aggregate_values(info["__system__memory_percent"]["values"]),
-            p_memory_percent=aggregate_values(
-                info["__system__p_memory_percent"]["values"]
-            ),
-            disk_percent=aggregate_values(info["__system__disk_percent"]["values"]),
         )
 
 
@@ -152,7 +143,7 @@ class TrainingMetrics:
     )
 
     @classmethod
-    def from_aim_info_list(
+    def from_metrics_info_list(
         cls, training_metrics: dict[str, dict[str, typing.Any]]
     ) -> "TrainingMetrics":
         if "runtime" not in training_metrics:
@@ -191,7 +182,6 @@ class Metrics:
     training_steps: int = dataclasses.field(
         metadata={"help": "The number of training steps excluding the warmup steps"},
     )
-    aim_run_hash: str | None = None
     train_time_start: dt.datetime | None = None
     train_time_stop: dt.datetime | None = None
     hostname_gpus: dict[str, list[int]] = dataclasses.field(
@@ -275,9 +265,6 @@ class Metrics:
         )
         scalar_observations["model_load_time"] = self.model.model_load_time.avg
 
-        if self.aim_run_hash:
-            scalar_observations["aim_run_hash"] = self.aim_run_hash
-
         if self.hostname_gpus:
             scalar_observations["hostname_gpus"] = self.hostname_gpus
 
@@ -293,10 +280,10 @@ class Metrics:
         return scalar_observations
 
     @classmethod
-    def from_aim_info_dict(
-        cls, aim_info: dict[str, typing.Any], num_gpus: int
+    def from_metrics_info_dict(
+        cls, metrics_info: dict[str, typing.Any], num_gpus: int
     ) -> "Metrics":
-        json_metrics = aim_info["metrics"]
+        json_metrics = metrics_info["metrics"]
 
         training_metrics = {
             x["name"]: x
@@ -311,7 +298,7 @@ class Metrics:
             )
         }
 
-        training_metrics = TrainingMetrics.from_aim_info_list(training_metrics)
+        training_metrics = TrainingMetrics.from_metrics_info_list(training_metrics)
 
         gpus = {}
 
@@ -321,11 +308,10 @@ class Metrics:
 
                 if gpu_cuda_id not in gpus:
                     gpus[gpu_cuda_id] = {
-                        # VV: init all metrics just in case aim couldn't extract any of them
+                        # VV: init all metrics just in case the tracker couldn't extract any of them
                         x: {"values": [], "context": {"gpu": gpu_cuda_id}, "name": x}
                         for x in [
                             "__system__gpu",
-                            "__system__gpu_temp",
                             "__system__gpu_power_watts",
                             "__system__gpu_memory_percent",
                             "__system__gpu_power_percent",
@@ -336,17 +322,17 @@ class Metrics:
 
         gpu_metrics = []
         for gpu_cuda_id, gpu_info in gpus.items():
-            if was_gpu_in_use(gpu_cuda_id, aim_info["cuda_visible_devices"], num_gpus):
-                gpu_metrics.append(GPUMetrics.from_aim_info_dict(gpu_info))
+            if was_gpu_in_use(
+                gpu_cuda_id, metrics_info["cuda_visible_devices"], num_gpus
+            ):
+                gpu_metrics.append(GPUMetrics.from_metrics_info_dict(gpu_info))
 
         system_metrics = {
-            # VV: init all metrics just in case aim couldn't extract any of them
+            # VV: init all metrics just in case the tracker couldn't extract any of them
             x: {"values": [], "context": {}, "name": x}
             for x in [
                 "__system__cpu",
-                "__system__disk_percent",
                 "__system__memory_percent",
-                "__system__p_memory_percent",
             ]
         }
 
@@ -354,7 +340,7 @@ class Metrics:
             if m["name"] in system_metrics:
                 system_metrics[m["name"]] = m
 
-        system_metrics = SystemMetrics.from_aim_info_dict(system_metrics)
+        system_metrics = SystemMetrics.from_metrics_info_dict(system_metrics)
 
         model_load_time = [-1.0]
 
@@ -362,8 +348,8 @@ class Metrics:
             if m["name"] == "model_load_time":
                 model_load_time = m["values"]
 
-        train_time_start = aim_info.get("train_time_start")
-        train_time_stop = aim_info.get("train_time_stop")
+        train_time_start = metrics_info.get("train_time_start")
+        train_time_stop = metrics_info.get("train_time_stop")
         format_time = "%d%m%y-%H%M%S"
 
         if train_time_start:
@@ -372,13 +358,21 @@ class Metrics:
             train_time_stop = dt.datetime.strptime(train_time_stop, format_time)
 
         # VV: training_steps does not include the warmup_steps
-        training_steps = aim_info["training_steps"] - (
-            aim_info.get("warmup_steps") or 0
+        training_steps = metrics_info["training_steps"] - (
+            metrics_info.get("warmup_steps") or 0
         )
 
-        warmup_seconds = aim_info.get("warmup_seconds") or 0
+        warmup_seconds = metrics_info.get("warmup_seconds") or 0
 
         if warmup_seconds > 0:
+            if (
+                training_metrics.train_runtime.avg is None
+                or training_metrics.train_runtime.avg < 0
+            ):
+                raise ValueError(
+                    f"warmup_seconds={warmup_seconds} is set but training_metrics.train_runtime "
+                    f"was not measured ({training_metrics.train_runtime})"
+                )
             # VV: Just like training_steps, train_runtime does not include the warmup_seconds
             training_metrics.train_runtime.avg -= warmup_seconds
             training_metrics.train_runtime.min -= warmup_seconds
@@ -389,13 +383,14 @@ class Metrics:
             system=system_metrics,
             training=training_metrics,
             model=ModelMetrics(model_load_time=aggregate_values(model_load_time)),
-            aim_run_hash=aim_info.get("run_hash"),
-            hostname_gpus={aim_info["hostname"]: aim_info["cuda_visible_devices"]},
+            hostname_gpus={
+                metrics_info["hostname"]: metrics_info["cuda_visible_devices"]
+            },
             train_time_start=train_time_start,
             train_time_stop=train_time_stop,
             training_steps=training_steps,
-            warmup_steps=aim_info.get("warmup_steps"),
-            warmup_seconds=aim_info.get("warmup_seconds"),
+            warmup_steps=metrics_info.get("warmup_steps"),
+            warmup_seconds=metrics_info.get("warmup_seconds"),
         )
 
     def filter_unused_gpus(self) -> None:
@@ -416,48 +411,110 @@ class Metrics:
             pass
 
 
-def round10e5(val: float) -> float:
-    return round(val * 10e5) / 10e5
+@dataclasses.dataclass
+class SnapshotGPUMetrics:
+    gpu: float | None = None
+    gpu_memory_percent: float | None = None
+    gpu_power_watts: float | None = None
+    gpu_power_percent: float | None = None
+
+    def to_dict(self) -> dict[str, float]:
+        return {k: v for k, v in dataclasses.asdict(self).items() if v is not None}
+
+
+@dataclasses.dataclass
+class SnapshotSystemMetrics:
+    cpu: float | None = None
+    memory_percent: float | None = None
+
+    def to_dict(self) -> dict[str, float]:
+        return {k: v for k, v in dataclasses.asdict(self).items() if v is not None}
+
+
+def extract_gpu_metrics(
+    gpu_index: int,
+    handle: object,
+) -> SnapshotGPUMetrics:
+    """Extracts as many metrics as possible for a GPU given its index and handle."""
+    import pynvml
+
+    ret: dict[str, float] = {}
+
+    try:
+        ret["gpu"] = float(pynvml.nvmlDeviceGetUtilizationRates(handle).gpu)
+    except Exception as e:
+        log.warning("Failed to get GPU utilization for GPU %s: %s", gpu_index, e)
+
+    try:
+        gpu_mem = pynvml.nvmlDeviceGetMemoryInfo(handle)
+        ret["gpu_memory_percent"] = float(gpu_mem.used * 100.0 / gpu_mem.total)
+    except Exception as e:
+        log.warning("Failed to get GPU memory for GPU %s: %s", gpu_index, e)
+
+    try:
+        power_w = pynvml.nvmlDeviceGetPowerUsage(handle) / 1000.0
+        power_cap = pynvml.nvmlDeviceGetEnforcedPowerLimit(handle) / 1000.0
+        ret["gpu_power_watts"] = float(power_w)
+        ret["gpu_power_percent"] = float(power_w * 100.0 / power_cap)
+    except Exception as e:
+        log.warning("Failed to get GPU power for GPU %s: %s", gpu_index, e)
+
+    return SnapshotGPUMetrics(**ret)
+
+
+def extract_system_metrics(process: "psutil.Process") -> SnapshotSystemMetrics:
+    """Extracts as many system metrics as possible for a process and the node.
+
+    Args:
+        process:
+            The process whose CPU utilization is measured. CPU utilization is
+            computed since the previous call with the same object, so callers
+            must reuse it across calls.
+    """
+    import psutil
+
+    ret: dict[str, float] = {}
+
+    try:
+        ret["cpu"] = process.cpu_percent(None)
+    except Exception as e:
+        log.warning("Failed to get CPU utilization: %s", e)
+
+    try:
+        mem = psutil.virtual_memory()
+        ret["memory_percent"] = mem.used * 100.0 / mem.total
+    except Exception as e:
+        log.warning("Failed to get system memory usage: %s", e)
+
+    return SnapshotSystemMetrics(**ret)
+
+
+@dataclasses.dataclass
+class ResourceSnapshot:
+    timestamp: dt.datetime
+    system: SnapshotSystemMetrics
+    gpus: list[SnapshotGPUMetrics]
 
 
 class ResourceTracker:
-    AGG_MODE_AVG = "average"
-    AGG_MODE_MIN = "min"
-    AGG_MODE_MAX = "max"
-    AGG_MODE_DIFF = "diff"
-    AGG_NOTHING = "nothing"
-    AGG_DEFAULT = AGG_NOTHING
-
-    @classmethod
-    def aggregate(cls, items: list, mode: str) -> float | list:
-        """
-        Aggregates array of numbers by a given 'mode'
-        """
-        if mode == cls.AGG_MODE_MAX:
-            return max(items)
-        if mode == cls.AGG_MODE_MIN:
-            return min(items)
-        if mode == cls.AGG_MODE_AVG:
-            return round10e5(sum(items) / len(items))
-        if mode == cls.AGG_MODE_DIFF:
-            return round10e5(max(items) - min(items))
-        if mode == cls.AGG_NOTHING:
-            return items
-        raise ValueError(f"unknown aggregation mode: '{mode}'")
-
-    def __init__(self, period: float = 30.0) -> None:
+    def __init__(self, period: float = 10.0) -> None:
         """Takes a snapshot of system metrics every @period seconds
 
         Args:
             period:
                 Seconds between successive snapshots
         """
-        self._log = logging.getLogger("ResourceTracker")
-        self._process = psutil.Process()
-        self._stat = aim.ext.resource.stat.Stat(self._process)
-        self._fix_stat(self._stat.stat_item)
+        import psutil
 
-        self.metrics: list[aim.ext.resource.stat.StatDict] = [self._stat.stat_item]
+        self._log = logging.getLogger("ResourceTracker")
+
+        # VV: psutil computes cpu_percent() since the previous call on the same Process object,
+        # so we keep one around. The first call has no reference point and reports 0.0, therefore
+        # we use it to prime the object and drop its cpu value from the initial snapshot.
+        self._process = psutil.Process()
+        initial_snapshot = self._collect_snapshot()
+        initial_snapshot.system.cpu = None
+        self.metrics: list[ResourceSnapshot] = [initial_snapshot]
 
         # VV: end_track() puts a message here asking the thread to stop
         self._end_requested = Event()
@@ -467,16 +524,32 @@ class ResourceTracker:
         self._stopped.set()
         self._period = period
 
-    def track_stats(self) -> None:
-        system, gpus = self._stat.get_stats()
-        stat = aim.ext.resource.stat.StatDict(system, gpus)
+    def _collect_snapshot(self) -> ResourceSnapshot:
+        system = extract_system_metrics(self._process)
 
+        gpus: list[SnapshotGPUMetrics] = []
         try:
-            self._fix_stat(stat)
-        finally:
-            self._log.debug(f"Resources Snapshot {stat.to_dict()}")
+            import pynvml
 
-        self.metrics.append(stat)
+            pynvml.nvmlInit()
+            num_gpus = pynvml.nvmlDeviceGetCount()
+            for i in range(num_gpus):
+                handle = pynvml.nvmlDeviceGetHandleByIndex(i)
+                gpus.append(extract_gpu_metrics(i, handle))
+            pynvml.nvmlShutdown()
+        except Exception as e:
+            self._log.debug("NVML metrics collection skipped: %s", e)
+
+        return ResourceSnapshot(
+            timestamp=dt.datetime.now(),
+            system=system,
+            gpus=gpus,
+        )
+
+    def track_stats(self) -> None:
+        snapshot = self._collect_snapshot()
+        self._log.debug("Resources Snapshot: %s", snapshot)
+        self.metrics.append(snapshot)
 
     def _kernel(self: "ResourceTracker") -> None:
         """Utility method which takes a metric snapshot every period seconds and can be cancelled via end_track()"""
@@ -509,99 +582,68 @@ class ResourceTracker:
 
             self._thread = None
 
-    @classmethod
-    def _fix_stat(cls, stat: aim.ext.resource.stat.StatDict) -> None:
-        # VV: There's a bug in AIM which causes some GPU fields to be a tuple of 1 item instead of a float
-        for g in stat.gpus:
-            for name in g:
-                if isinstance(g[name], tuple):
-                    if len(g[name]) != 1:
-                        raise ValueError(f"Unexpected GPU stat {name} in GPU {g}")
-                    g[name] = g[name][0]
+    def to_resource_tracker_metrics(
+        self, keep_after_time: dt.datetime | None
+    ) -> list[ResourceTrackerMetric]:
+        """Converts stored resource snapshots into metric timeseries.
 
-    @classmethod
-    def aggregate_items(
-        cls,
-        items: list[aim.ext.resource.stat.StatDict],
-        agg_mode: str = AGG_NOTHING,
-    ) -> aim.ext.resource.stat.StatDict:
+        The resource tracker records snapshots of the system at each step. This
+        method splits those snapshots into individual named timeseries, one per
+        metric, using the following naming and context conventions:
+
+        - System-level metrics are named ``system__<metric>``, with an empty context.
+        - Per-GPU metrics are named ``system__<metric>``, with a context of
+          ``{"gpu": <gpu_index>}``.
+
+        Returns:
+            A list of :class:`ResourceTrackerMetric` objects, each representing a single
+            timeseries for one system or GPU metric.
         """
-        Aggregates array of `StatDict` items by a given `mode`
-        """
-        aggregated_stat = aim.ext.resource.stat.StatDict()
+        # VV: The resource tracker is storing snapshots of the system,
+        # here we are splitting the snapshots into timeseries of individual metrics
 
-        # Return empty item if items array is empty
-        if not items or len(items) == 0:
-            return aggregated_stat
+        # VV: Format is: {$gpuID: {$metric: [value1, value2,...] }}
+        gpu_measurements: dict[int, dict[str, list[float | int]]] = {}
 
-        gpu_stats = []
-        for s in items:
-            # Collect system stats
-            for k in s.system:
-                aggregated_stat.system.setdefault(k, [])
-                aggregated_stat.system[k].append(s.system[k])
+        # VV: Format is: {$metric: [value1, value2,...]}
+        system_measurements: dict[str, list[float | int]] = {}
 
-            # Collect GPU device stats
-            for stat_item_gpu_idx in range(len(s.gpus)):
-                stat_item_gpu_stat = s.gpus[stat_item_gpu_idx]
-                if len(gpu_stats) == stat_item_gpu_idx:
-                    gpu_stats.append({})
-                for gpu_stat_key in stat_item_gpu_stat:
-                    gpu_stat = stat_item_gpu_stat[gpu_stat_key]
-                    gpu_stats[stat_item_gpu_idx].setdefault(gpu_stat_key, [])
-                    gpu_stats[stat_item_gpu_idx][gpu_stat_key].append(gpu_stat)
+        for m in self.metrics:
+            if keep_after_time is not None and m.timestamp < keep_after_time:
+                continue
 
-        # Aggregate system stats
-        for k in aggregated_stat.system:
-            aggregated_stat.system[k] = cls.aggregate(
-                aggregated_stat.system[k], agg_mode
+            for index, gpu in enumerate(m.gpus):
+                if index not in gpu_measurements:
+                    gpu_measurements[index] = {}
+
+                for name, value in gpu.to_dict().items():
+                    if name not in gpu_measurements[index]:
+                        gpu_measurements[index][name] = []
+
+                    gpu_measurements[index][name].append(value)
+            for name, value in m.system.to_dict().items():
+                if name not in system_measurements:
+                    system_measurements[name] = []
+                system_measurements[name].append(value)
+        # VV: Metrics are named like so __system__$metric
+        # For GPU metrics, we also insert a context with the key: value pair: "gpu: $gpuIndex"
+        metrics = []
+
+        for name, values in system_measurements.items():
+            metrics.append(
+                ResourceTrackerMetric(
+                    name=f"__system__{name}", context={}, values=values
+                )
             )
 
-        # Aggregate GPU device stats
-        for g in range(len(gpu_stats)):
-            for k in gpu_stats[g]:
-                gpu_stats[g][k] = cls.aggregate(gpu_stats[g][k], agg_mode)
+        for gpu_index, measurements in gpu_measurements.items():
+            for name, values in measurements.items():
+                metrics.append(
+                    ResourceTrackerMetric(
+                        name=f"__system__{name}",
+                        context={"gpu": gpu_index},
+                        values=values,
+                    )
+                )
 
-        aggregated_stat.gpus = gpu_stats
-
-        return aggregated_stat
-
-    def to_metrics(self, train_output: "EnhancedTrainOutput | None") -> Metrics:
-        self._log.debug("Waiting for stat tracker thread to finish")
-        self._stopped.wait()
-
-        aggregate = self.aggregate_items(self.metrics, agg_mode=self.AGG_NOTHING)
-        gpus = [
-            GPUMetrics(**{k: aggregate_values(v) for k, v in g.items()})
-            for g in aggregate.gpus
-        ]
-
-        system = SystemMetrics(
-            **{k: aggregate_values(v) for k, v in aggregate.system.items()}
-        )
-        train_metrics = {}
-        model_load_time = -1
-
-        if train_output is not None:
-            model_load_time = train_output.model_load_time
-            train_metrics.update(
-                {
-                    k.name: train_output.train_output.metrics[k.name]
-                    for k in dataclasses.fields(TrainingMetrics)
-                    if k.name in train_output.train_output.metrics
-                }
-            )
-        training = TrainingMetrics(**train_metrics)
-
-        model = ModelMetrics(model_load_time=aggregate_values([model_load_time]))
-        return Metrics(gpus=gpus, system=system, training=training, model=model)
-
-    @classmethod
-    def filter_unused_gpus(cls, metrics: Metrics) -> None:
-        """Uses CUDA_VISIBLE_DEVICES to filter out metrics of GPUs that the task did not use
-
-        Args:
-            metrics:
-                The metrics to update in place
-        """
-        metrics.filter_unused_gpus()
+        return metrics

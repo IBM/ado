@@ -39,9 +39,6 @@ pip:
   - \${RAY_RUNTIME_ENV_CREATE_WORKING_DIR}/${sftrainer_wheel_prefix}-$(ls ${sftrainer_wheel_prefix}-* | cut -d "-" -f2-)
 env_vars:
   env_vars:
-  AIM_UI_TELEMETRY_ENABLED: "0"
-  # We set HOME to /tmp because "import aim.utils.tracking" tries to write under \$HOME/.aim_profile.
-  # However, the process lacks permissions to do so and that leads to an ImportError exception.
   HOME: "/tmp/"
   OMP_NUM_THREADS: "1"
   OPENBLAS_NUM_THREADS: "1"

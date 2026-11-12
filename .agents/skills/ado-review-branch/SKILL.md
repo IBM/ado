@@ -67,6 +67,10 @@ commonly missed areas:
 - **Private helpers** — every new private function or method must satisfy the
   helper rules in AGENTS.md; report violations as `design` findings. The fix is
   to inline the helper.
+- **Nesting depth** — an `if` whose condition could be inverted to return,
+  continue, or raise early and remove a level of indentation (a guard clause)
+  is a `design` finding at Minor severity; report it only when the inversion
+  clearly improves readability.
 
 ### Test quality
 

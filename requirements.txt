@@ -415,9 +415,9 @@ distlib==0.4.4 \
     --hash=sha256:ca4175b4ac7f71223cc30ed7248c45d2b38c2439d8ee6e498ab67ed63cf3508d \
     --hash=sha256:cf09d55b1e85a89576b036aeb71550bfd68320f3f21761ca329eadadad918638
     # via virtualenv
-fastapi==0.136.3 \
-    --hash=sha256:3d2a69bdf04b7e9f3afa292c3bc7a98816bbfafa10bc9b45f3f3700d2f761620 \
-    --hash=sha256:e487fae93ad408e6f47641ee4dfe389864fd7bec92e547ea8498fc13f43e83ab
+fastapi==0.162.5 \
+    --hash=sha256:1ca37f64f61c99cebd38636e67525fb721c5e8c1169f07f2a35d73b0a63265d4 \
+    --hash=sha256:5303c67415fde762889ca337db79d27b755b8bd09cef314fa7a4340bb30bfd2b
     # via ray
 filelock==3.32.7 \
     --hash=sha256:37b8a3d9811b0f9aef7e5ec5c71bb320de52df51e6ca9bcd6f5ad81187660da7 \

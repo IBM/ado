@@ -24,6 +24,7 @@ Operators are grouped into the following types:
   measurementspace of an input `discoveryspace`
 - **compare**: compare one or more `discoveryspaces`
 - **fuse**: create a new `discoveryspace` from a set of input `discoveryspaces`
+- **summarize**: summarize a batch of resources, optionally versus a baseline
 
 [This page](explore-operators.md) describes **explore** operators in more detail
 as they are the only operators that sample and measure entities.

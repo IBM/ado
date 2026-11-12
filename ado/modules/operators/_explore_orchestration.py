@@ -15,7 +15,7 @@ from ado.core.operation.config import (
     GenericOperatorParameters,
     OperatorMetadata,
 )
-from ado.core.operation.inputs import OperatorInputType
+from ado.core.operation.inputs import ResolvedOperatorInput
 from ado.core.operation.operation import OperationOutput
 from ado.modules.actuators.measurement_queue import MeasurementQueue
 from ado.modules.operators import _cleanup
@@ -169,7 +169,7 @@ def run_explore_operation_core_closure(
 
 def orchestrate_explore_operation(
     operator_metadata: OperatorMetadata,
-    inputs: dict[str, OperatorInputType],
+    inputs: dict[str, ResolvedOperatorInput],
     parameters: GenericOperatorParameters,
     operation_info: FunctionOperationInfo,
 ) -> OperationOutput:

@@ -87,6 +87,13 @@ def test_registered_explore_operators_require_ray() -> None:
     assert explore.operators["random_walk"].requiresRay is True
 
 
+def test_trim_operator_requires_ray() -> None:
+    """Trim nests random_walk explore ops, so it must opt into Ray."""
+    import trim.operator  # noqa: F401 — registers the trim operator
+
+    assert characterize.operators["trim"].requiresRay is True
+
+
 def test_characterize_decorator_requires_ray_opt_in() -> None:
     """requires_ray=True is stored on OperatorMetadata."""
     with _temporary_characterize(requires_ray=True) as name:

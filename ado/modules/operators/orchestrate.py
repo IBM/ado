@@ -113,32 +113,10 @@ def operation_requires_ray(
     return True
 
 
-def _running_as_ray_job() -> bool:
-    """Return True when this process is a Ray Jobs API driver."""
-    return "RAY_JOB_CONFIG_JSON_ENV_VAR" in os.environ
-
-
-def should_initialize_ray(requires_ray: bool) -> bool:
-    """Return whether orchestrate should initialize Ray and install signal handlers.
-
-    Ray is initialized when the operator declares ``requiresRay``, or when this
-    process is already a Ray job driver (so job connect, SIGTERM handling, and
-    job metadata still work for non-Ray operators submitted via ``ray job
-    submit``). Local non-Ray operators skip initialization.
-
-    Args:
-        requires_ray: Whether the operator metadata requires Ray for compute.
-
-    Returns:
-        True when Ray should be initialized for this orchestrate call.
-    """
-    return requires_ray or _running_as_ray_job()
-
-
 def _initialize_ray_for_operation() -> None:
     """Initialize Ray for a local driver or reconnect inside a Ray job."""
     # If we are running with a ray runtime environment we need to handle env-vars differently
-    if _running_as_ray_job():
+    if "RAY_JOB_CONFIG_JSON_ENV_VAR" in os.environ:
         ray_runtime_config = os.environ["RAY_JOB_CONFIG_JSON_ENV_VAR"]
         moduleLog.info(
             f"Runtime environment variables are set based on provided ray runtime environment - {ray_runtime_config}"
@@ -196,7 +174,9 @@ def orchestrate(
 
     requires_ray = operation_requires_ray(operation_resource_configuration)
     ray_initialized = False
-    if should_initialize_ray(requires_ray):
+    # Also initialize when running as a Ray Jobs API driver so connect,
+    # SIGTERM handling, and job metadata still work for non-Ray operators.
+    if requires_ray or "RAY_JOB_CONFIG_JSON_ENV_VAR" in os.environ:
         if not requires_ray:
             moduleLog.info(
                 "Operator does not require Ray for compute, but process is a "

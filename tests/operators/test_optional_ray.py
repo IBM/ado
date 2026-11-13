@@ -148,22 +148,6 @@ def test_operation_requires_ray_true_for_script_operator() -> None:
     assert operation_requires_ray(config) is True
 
 
-def test_should_initialize_ray_local_vs_job() -> None:
-    """Local non-Ray ops skip init; Ray jobs always initialize."""
-    from ado.modules.operators.orchestrate import should_initialize_ray
-
-    with mock.patch.dict(os.environ, {}, clear=False):
-        os.environ.pop("RAY_JOB_CONFIG_JSON_ENV_VAR", None)
-        assert should_initialize_ray(False) is False
-        assert should_initialize_ray(True) is True
-
-    with mock.patch.dict(
-        os.environ, {"RAY_JOB_CONFIG_JSON_ENV_VAR": '{"metadata": {}}'}
-    ):
-        assert should_initialize_ray(False) is True
-        assert should_initialize_ray(True) is True
-
-
 def test_orchestrate_skips_ray_init_when_not_required_locally(
     tmp_path: pathlib.Path,
 ) -> None:

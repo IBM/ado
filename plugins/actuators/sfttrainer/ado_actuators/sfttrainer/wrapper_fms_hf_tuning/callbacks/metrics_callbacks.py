@@ -15,9 +15,9 @@ from . import metrics_tracker
 class ResourceMetricsCallbacks(TrainerCallback):
     def __init__(self, period: float | None = None) -> None:
         if period is None:
-            period = 30.0
-
-        self.tracker = metrics_tracker.ResourceTracker(period=period)
+            self.tracker = metrics_tracker.ResourceTracker()
+        else:
+            self.tracker = metrics_tracker.ResourceTracker(period=period)
 
     def on_train_begin(
         self,

@@ -169,14 +169,14 @@ members = [
   "plugins/operators/anomalous_series",
   "plugins/operators/profile_space",
   "plugins/operators/ray_tune",
-  # "plugins/actuators/sfttrainer",  # Excluded: incompatible with Python 3.13+ (aim dependency)
+  "plugins/actuators/sfttrainer",
   # "plugins/operators/trim",  # Excluded: AutoGluon does not support Python 3.14+
 ]
 
 [tool.uv.sources]
 ado-autoconf = { path = "plugins/custom_experiments/autoconf", editable = true }
 ado-ray-tune = { workspace = true }
-ado-sfttrainer = { path = "plugins/actuators/sfttrainer", editable = true }
+ado-sfttrainer = { workspace = true }
 ado-trim = { path = "plugins/operators/trim", editable = true }
 ado-vllm-performance = { workspace = true }
 ado-anomalous-series = { workspace = true }

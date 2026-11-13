@@ -56,7 +56,10 @@ from ray.util.scheduling_strategies import PlacementGroupSchedulingStrategy
 import ado.modules.actuators.catalog
 import ado.schema.property_value
 import ado.schema.request
-from ado.core.actuatorconfiguration.config import GenericActuatorParameters
+from ado.core.actuatorconfiguration.config import (
+    GenericActuatorParameters,
+    warn_deprecated_actuator_parameters_model_in_use,
+)
 
 # VV: If you do import ado.actuators.base and then use
 # ado.actuators.base.ActuatorBase
@@ -168,23 +171,6 @@ class ActuatorParameters(
         ),
     ] = "/data/fms-hf-tuning/artificial-dataset/"
 
-    aim_dashboard_url: Annotated[
-        str | None,
-        pydantic.Field(
-            description="The AIM Dashboard endpoint. When set, the actuator inserts the aim_url field "
-            "in the MeasurementResult.metadata object that is associated with the measurement.",
-        ),
-    ] = None
-
-    aim_db: Annotated[
-        str | None,
-        pydantic.Field(
-            description="The AIM server endpoint. When set to None the "
-            "measurement will use a temporary AIM repository that will be garbage collected after the termination "
-            "of the measurement.",
-        ),
-    ] = None
-
     hf_home: Annotated[
         str,
         pydantic.Field(
@@ -213,6 +199,27 @@ class ActuatorParameters(
             "If num_tokens_cache_directory is None then the cache will not be used.",
         ),
     ] = "cache"
+
+    @pydantic.model_validator(mode="before")
+    @classmethod
+    def remove_deprecated_aim_fields(
+        cls, values: dict[str, Any] | object
+    ) -> dict[str, Any] | object:
+        """Removes the deprecated aim_dashboard_url and aim_db fields and warns about them"""
+        if not isinstance(values, dict):
+            return values
+
+        deprecated = [k for k in ("aim_dashboard_url", "aim_db") if k in values]
+        if deprecated:
+            warn_deprecated_actuator_parameters_model_in_use(
+                affected_actuator="sfttrainer",
+                deprecated_from_actuator_version="v1.9.0",
+                removed_from_actuator_version="v2.0.0",
+                deprecated_fields=deprecated,
+            )
+            values = {k: v for k, v in values.items() if k not in deprecated}
+
+        return values
 
     @pydantic.field_validator("model_map", mode="before")
     @classmethod
@@ -283,7 +290,8 @@ def prepare_runtime_environment(
             commit=FMS_HF_TUNING_COMMIT[space.fms_hf_tuning_version]
         ),
         exclude_packages=exclude_packages,
-        ensure_aim=True,
+        # VV: Need these to extract system metrics (gpu and process)
+        extra_packages=["psutil", "nvidia-ml-py"],
     )
 
     # VV: Detect any extra wheels and propagate them to the job e.g. sfttrainer
@@ -387,7 +395,6 @@ class FinetuneContext:
         exp: "Experiment",
         exp_params: ExperimentParameters,
         entity_space: EntitySpace,
-        aim_metadata: dict[str, Any],
         log_level: int,
         extra: dict[str, Any],
         actuator_params: ActuatorParameters,
@@ -406,8 +413,6 @@ class FinetuneContext:
                 The parameterisation of the experiment
             entity_space:
                 The base entity definition
-            aim_metadata:
-                Extra metadata to store in AIM
             log_level:
                 The logging level to use during the measurement
             extra:
@@ -421,7 +426,6 @@ class FinetuneContext:
         self.runtime_env = runtime_env
         self.exp = exp
         self.exp_params = exp_params
-        self.aim_metadata = aim_metadata
         self.log_level = log_level
         self.args = args
         self.extra = extra or {}
@@ -659,7 +663,6 @@ class SFTTrainer(ActuatorBase):
             # VV: Manually exclude fields which are not CLI args of the fms-hf-tuning wrapper
             exclude={
                 "data_directory",
-                "aim_dashboard_url",
                 "model_map",
                 "num_tokens_cache_directory",
                 "match_exact_dependencies",
@@ -700,9 +703,7 @@ class SFTTrainer(ActuatorBase):
         # VV: Here we fill in fields which need to propagate to FinetuneArgs BUT their definition in the
         # pydantic model (e.g. ExperimentParameter, or EntitySpace) contains `exclude=True`
         args.output_dir = os.path.join(args.output_dir, task_uid)
-        args.aim_experiment = entity_identifier
 
-        args.aim_db = actuator_parameters.aim_db
         args.number_gpus = space.number_gpus // space.number_nodes
         args.fms_hf_tuning_version = space.fms_hf_tuning_version
 
@@ -713,7 +714,6 @@ class SFTTrainer(ActuatorBase):
         entity_id: str,
         exp_id: str,
         args: "finetune.FineTuneArgs",
-        aim_metadata: dict[str, Any],
         method: "ray.actor.ActorMethod",
         distributed_settings: finetune.DistributedSettings,
         multi_node: finetune.MultiNodeSettings | None = None,
@@ -727,10 +727,7 @@ class SFTTrainer(ActuatorBase):
         }
         number_sample_runs = 5
 
-        aim_metadata["explore_errors"] = {}
-
         for idx in range(number_sample_runs):
-            aim_metadata["explore_errors"]["sample_idx"] = idx
             self.log.info(
                 f"Launching {idx + 1}/{number_sample_runs} for {exp_id} on {entity_id}"
             )
@@ -738,7 +735,6 @@ class SFTTrainer(ActuatorBase):
                 # VV: We could run these in parallel
                 _ = await method.remote(
                     args=args,
-                    aim_metadata=aim_metadata,
                     count_dataset_tokens=False,
                     distributed_settings=distributed_settings,
                     log_level=log_level,
@@ -828,20 +824,10 @@ class SFTTrainer(ActuatorBase):
 
         number_cpus = max(space.number_gpus, 1) * 2
 
-        aim_metadata = {
-            p.property.identifier: p.value for p in entity.constitutive_property_values
-        }
-
-        aim_metadata["experiment"] = exp.identifier
-        aim_metadata["entity"] = entity.identifier
-
         self.log.info(
             f"Starting {exp.identifier} for {entity.identifier} with gpus={space.number_gpus}, cpus={number_cpus}, "
             f"environment {runtime_env} and args {args}"
         )
-
-        # VV: This is so that we can query AIM for `run.$field` e.g. `run.model_name` etc
-        aim_metadata = {"metadata": aim_metadata}
 
         extra = {}
         if space.number_gpus > 0:
@@ -872,7 +858,6 @@ class SFTTrainer(ActuatorBase):
             exp=exp,
             entity_space=space,
             exp_params=exp_params,
-            aim_metadata=aim_metadata,
             log_level=log_level,
             extra=extra,
             actuator_params=self.typed_parameters,
@@ -959,12 +944,8 @@ class SFTTrainer(ActuatorBase):
             self.log.info(f"The host is {host} its ip is {ip} and the port is {port}")
 
             # VV: TODO how do we deal with errors here ?
-            orig_aim_metadata = context.aim_metadata
 
             for bundle_idx in range(context.entity_space.number_nodes):
-                context.aim_metadata = copy.deepcopy(orig_aim_metadata)
-                context.aim_metadata["rank"] = bundle_idx
-
                 pgs = PlacementGroupSchedulingStrategy(
                     placement_group=pg, placement_group_bundle_index=bundle_idx
                 )
@@ -996,8 +977,7 @@ class SFTTrainer(ActuatorBase):
         # VV: At this point we'll have N metrics one for each of the nodes we used. To combine them we'll:
         # 1. use the fields training and model from the main worker at rank 0
         # 2. concatenate the gpu fields
-        # 3. get rid of aim_run_hash altogether (there are multiple aim hashes, one for each machine)
-        # 4. combine the system metrics such as the resulting min,max,avg values correspond to min(min, min, min...)
+        # 3. combine the system metrics such as the resulting min,max,avg values correspond to min(min, min, min...)
         #      max(max, max, max...), avg(avg, avg, avg...)
 
         gpus = []
@@ -1013,8 +993,6 @@ class SFTTrainer(ActuatorBase):
             gpus.extend(r.gpus)
 
         sm = {}
-
-        aim_run_hash = results[0].aim_run_hash
 
         for name in dataclasses.asdict(results[0].system):
             _min = []
@@ -1039,7 +1017,6 @@ class SFTTrainer(ActuatorBase):
 
         combined_metrics.gpus = gpus
         combined_metrics.system = system
-        combined_metrics.aim_run_hash = aim_run_hash
         combined_metrics.hostname_gpus = hostname_gpus
 
         self.log.info(
@@ -1060,7 +1037,6 @@ class SFTTrainer(ActuatorBase):
         if context.exp.metadata["method"] == "full-error":
             return self._launch_explore_errors_runs(
                 args=context.args,
-                aim_metadata=context.aim_metadata,
                 entity_id=entity.identifier,
                 exp_id=context.exp.identifier,
                 method=method,
@@ -1070,7 +1046,6 @@ class SFTTrainer(ActuatorBase):
             )
         return method.remote(
             args=context.args,
-            aim_metadata=context.aim_metadata,
             distributed_settings=distributed_settings,
             count_dataset_tokens=True,
             num_tokens_cache_dir=context.num_tokens_cache_dir,
@@ -1331,7 +1306,6 @@ class SFTTrainer(ActuatorBase):
             measurements.append(property_value)
 
         metadata = {
-            "aim_hash": scalar_observations.get("aim_run_hash"),
             # VV: The 3 fields below are adequate information to link this experiment with
             # metadata stored on prometheus. See metrics_tracker.py for details on field contents
             "train_time_start": scalar_observations.get("train_time_start"),
@@ -1339,17 +1313,6 @@ class SFTTrainer(ActuatorBase):
             "hostname_gpus": scalar_observations.get("hostname_gpus"),
             "total_steps": scalar_observations.get("total_steps"),
         }
-
-        if metadata["aim_hash"] and self.typed_parameters.aim_dashboard_url:
-            aim_dashboard_url = "/".join(
-                (
-                    self.typed_parameters.aim_dashboard_url.rstrip("/"),
-                    "runs",
-                    metadata["aim_hash"],
-                )
-            )
-
-            metadata["aim_dashboard_url"] = aim_dashboard_url
 
         measurement_result = ValidMeasurementResult(
             entityIdentifier=entity.identifier,

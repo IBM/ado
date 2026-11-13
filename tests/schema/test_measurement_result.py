@@ -15,10 +15,13 @@ from ado.schema.property import AbstractPropertyDescriptor
 from ado.schema.property_value import ConstitutivePropertyValue
 from ado.schema.reference import ExperimentReference
 from ado.schema.result import (
+    IntermediateMeasurementResult,
     InvalidMeasurementResult,
     MeasurementResult,
     MeasurementResultStateEnum,
+    MeasurementResultType,
     ValidMeasurementResult,
+    measurement_result_type_discriminator,
 )
 from ado.schema.virtual_property import (
     PropertyAggregationMethod,
@@ -504,3 +507,207 @@ def test_json_serialization_roundtrip(
     assert original.uid == deserialized.uid
     assert original.entityIdentifier == deserialized.entityIdentifier
     assert len(original.measurements) == len(deserialized.measurements)
+
+
+def test_intermediate_measurement_result(
+    entity: Entity,
+    property_values: list[ObservedPropertyValue | ConstitutivePropertyValue],
+) -> None:
+
+    result = IntermediateMeasurementResult(
+        entityIdentifier=entity.identifier, intermediateMeasurements=property_values
+    )
+
+    assert property_values[0].property.experimentReference == result.experimentReference
+    assert not isinstance(result, ValidMeasurementResult)
+    assert not isinstance(result, InvalidMeasurementResult)
+
+
+def test_intermediate_measurement_result_mismatch_properties(
+    entity: Entity,
+    property_values: list[ObservedPropertyValue | ConstitutivePropertyValue],
+) -> None:
+
+    import pydantic
+
+    other_experiment_property_value = ObservedPropertyValue(
+        value=numpy.random.default_rng().integers(0, 50),
+        property=ObservedProperty(
+            targetProperty=AbstractPropertyDescriptor(identifier="test_prop"),
+            experimentReference=ExperimentReference(
+                experimentIdentifier="test_exp", actuatorIdentifier="test_act"
+            ),
+        ),
+    )
+    property_values.append(other_experiment_property_value)
+
+    with pytest.raises(
+        pydantic.ValidationError, match="must be made by the same experiment"
+    ):
+        IntermediateMeasurementResult(
+            entityIdentifier=entity.identifier,
+            intermediateMeasurements=property_values,
+        )
+
+
+def test_intermediate_measurement_result_no_properties(entity: Entity) -> None:
+
+    import pydantic
+
+    with pytest.raises(
+        pydantic.ValidationError, match="must include at least one measured value"
+    ):
+        IntermediateMeasurementResult(
+            entityIdentifier=entity.identifier, intermediateMeasurements=[]
+        )
+
+
+def test_intermediate_measurement_result_forbids_extra_fields(
+    entity: Entity,
+    property_values: list[ObservedPropertyValue | ConstitutivePropertyValue],
+) -> None:
+
+    import pydantic
+
+    with pytest.raises(pydantic.ValidationError):
+        IntermediateMeasurementResult(
+            entityIdentifier=entity.identifier,
+            intermediateMeasurements=property_values,
+            reason="Not allowed",
+        )
+
+
+def test_intermediate_measurement_result_lifecycle(
+    entity: Entity,
+    property_values: list[ObservedPropertyValue | ConstitutivePropertyValue],
+) -> None:
+
+    original = IntermediateMeasurementResult(
+        entityIdentifier=entity.identifier,
+        intermediateMeasurements=property_values,
+        metadata={"step": 3},
+    )
+
+    for dump in [original.model_dump(), original.model_dump(mode="json")]:
+        recreated = IntermediateMeasurementResult.model_validate(dump)
+
+        assert recreated.uid == original.uid
+        assert recreated.entityIdentifier == original.entityIdentifier
+        assert recreated.metadata == original.metadata
+        assert recreated.experimentReference == original.experimentReference
+        assert recreated.intermediateMeasurements == original.intermediateMeasurements
+
+    recreated_from_json = IntermediateMeasurementResult.model_validate_json(
+        original.model_dump_json()
+    )
+    assert (
+        recreated_from_json.intermediateMeasurements
+        == original.intermediateMeasurements
+    )
+
+
+def test_measurement_result_type_discriminator(
+    entity: Entity,
+    property_values: list[ObservedPropertyValue | ConstitutivePropertyValue],
+) -> None:
+
+    valid_result = ValidMeasurementResult(
+        entityIdentifier=entity.identifier, measurements=property_values
+    )
+    invalid_result = InvalidMeasurementResult(
+        entityIdentifier=entity.identifier,
+        reason="Insufficient memory",
+        experimentReference=ExperimentReference(
+            experimentIdentifier="testexp", actuatorIdentifier="testact"
+        ),
+    )
+    intermediate_result = IntermediateMeasurementResult(
+        entityIdentifier=entity.identifier, intermediateMeasurements=property_values
+    )
+
+    expected_tags = {
+        MeasurementResultStateEnum.VALID: valid_result,
+        MeasurementResultStateEnum.INVALID: invalid_result,
+        MeasurementResultStateEnum.INTERMEDIATE: intermediate_result,
+    }
+
+    for expected_tag, result in expected_tags.items():
+        assert measurement_result_type_discriminator(result) == expected_tag
+        assert (
+            measurement_result_type_discriminator(result.model_dump()) == expected_tag
+        )
+
+    with pytest.raises(ValueError, match="Unable to determine measurement result type"):
+        measurement_result_type_discriminator({"entityIdentifier": entity.identifier})
+
+
+def test_measurement_result_type_union_validates_intermediate_result(
+    entity: Entity,
+    property_values: list[ObservedPropertyValue | ConstitutivePropertyValue],
+) -> None:
+
+    import pydantic
+
+    original = IntermediateMeasurementResult(
+        entityIdentifier=entity.identifier, intermediateMeasurements=property_values
+    )
+
+    type_adapter = pydantic.TypeAdapter(MeasurementResultType)
+
+    for value in [original, original.model_dump(), original.model_dump(mode="json")]:
+        recreated = type_adapter.validate_python(value)
+        assert isinstance(recreated, IntermediateMeasurementResult)
+        assert recreated.uid == original.uid
+        assert recreated.intermediateMeasurements == original.intermediateMeasurements
+
+    recreated = type_adapter.validate_json(type_adapter.dump_json(original))
+    assert isinstance(recreated, IntermediateMeasurementResult)
+    assert recreated.uid == original.uid
+
+
+def test_intermediate_measurement_result_series_representation(
+    random_ml_multi_cloud_benchmark_performance_entities: Callable[[int], list[Entity]],
+    random_ml_multi_cloud_benchmark_performance_measurement_results: Callable[
+        [Entity, int, MeasurementResultStateEnum | None], MeasurementResult
+    ],
+) -> None:
+
+    random_result: IntermediateMeasurementResult = (
+        random_ml_multi_cloud_benchmark_performance_measurement_results(
+            measurements_per_result=1,
+            entity=random_ml_multi_cloud_benchmark_performance_entities(quantity=1)[0],
+            status=MeasurementResultStateEnum.INTERMEDIATE,
+        )
+    )
+    assert isinstance(random_result, IntermediateMeasurementResult)
+
+    target_series_representation = random_result.series_representation(
+        output_format="target"
+    )
+    observed_series_representation = random_result.series_representation(
+        output_format="observed"
+    )
+
+    measurement = random_result.intermediateMeasurements[0]
+
+    for representation in [
+        target_series_representation,
+        observed_series_representation,
+    ]:
+        assert representation["identifier"] == random_result.entityIdentifier
+        assert representation["experiment_id"] == str(random_result.experimentReference)
+        assert not representation["valid"]
+
+    assert (
+        target_series_representation[measurement.property.targetProperty.identifier]
+        == measurement.value
+    )
+    assert (
+        observed_series_representation[measurement.property.identifier]
+        == measurement.value
+    )
+
+    with pytest.raises(
+        ValueError, match="The only supported series representation output formats are"
+    ):
+        random_result.series_representation(output_format="random")

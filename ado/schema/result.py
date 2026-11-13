@@ -25,6 +25,7 @@ if typing.TYPE_CHECKING:  # pragma: nocover
 class MeasurementResultStateEnum(enum.StrEnum):
     VALID = "Valid"
     INVALID = "Invalid"
+    INTERMEDIATE = "Intermediate"
 
 
 class MeasurementResult(pydantic.BaseModel):
@@ -288,22 +289,145 @@ class InvalidMeasurementResult(MeasurementResult):
         )
 
 
+class IntermediateMeasurementResult(MeasurementResult):
+    """Used to record an intermediate measurement obtained before an experiment completed"""
+
+    intermediateMeasurements: Annotated[
+        list[ObservedPropertyValue],
+        pydantic.Field(
+            description="A list of the intermediate observed property values measured. Cannot be empty"
+        ),
+    ]
+
+    model_config = pydantic.ConfigDict(extra="forbid")
+
+    @pydantic.field_validator("intermediateMeasurements")
+    @classmethod
+    def validate_intermediate_measurements(
+        cls, value: list[ObservedPropertyValue]
+    ) -> list[ObservedPropertyValue]:
+        """Validate the intermediate observed property values.
+
+        Args:
+            value: The intermediate observed property values.
+
+        Returns:
+            The validated intermediate observed property values.
+
+        Raises:
+            ValueError: If no values are given or the values were measured
+                by more than one experiment.
+        """
+
+        if len(value) == 0:
+            raise ValueError(
+                "An intermediate measurement result must include at least one measured value - none given"
+            )
+
+        refs = list({v.property.experimentReference for v in value})
+
+        if len(refs) > 1:
+            raise ValueError(
+                f"All measurements in a results set must be made by the same experiment - "
+                f"However {len(refs)} experiments detected: {refs}"
+            )
+
+        return value
+
+    @property
+    def experimentReference(self) -> ExperimentReference:
+        """The reference of the experiment that made the intermediate measurements.
+
+        Returns:
+            The experiment reference shared by all intermediate measurements.
+        """
+
+        # All the PropertyValues have the same reference as it's checked on init
+        return self.intermediateMeasurements[0].property.experimentReference
+
+    def series_representation(
+        self,
+        output_format: typing.Literal["target", "observed"],
+        virtual_target_property_identifiers: list[str] | None = None,
+    ) -> "pd.Series":
+        """Return the intermediate measurement result as a pandas Series.
+
+        Args:
+            output_format: Whether to key the measured values by target property
+                identifier ("target") or observed property identifier ("observed").
+            virtual_target_property_identifiers: Identifiers of virtual target
+                properties. Ignored for intermediate measurement results.
+
+        Returns:
+            A Series with the entity identifier, the experiment identifier,
+            a "valid" field set to False, and the intermediate measured values.
+
+        Raises:
+            ValueError: If output_format is not "target" or "observed".
+        """
+
+        import pandas as pd
+
+        supported_formats = {"target", "observed"}
+        if output_format not in supported_formats:
+            raise ValueError(
+                f"The only supported series representation output formats are {supported_formats}"
+            )
+
+        rep = {
+            "identifier": self.entityIdentifier,
+            "experiment_id": str(self.experimentReference),
+            "valid": False,
+        }
+
+        for measurement in self.intermediateMeasurements:
+            key = (
+                f"{measurement.property.targetProperty.identifier}"
+                if output_format == "target"
+                else measurement.property.identifier
+            )
+
+            rep[key] = measurement.value
+
+        return pd.Series(rep)
+
+
 class DuplicateMeasurementResultError(ValueError): ...
 
 
 def measurement_result_type_discriminator(
-    result: dict | ValidMeasurementResult | InvalidMeasurementResult,
+    result: (
+        dict
+        | ValidMeasurementResult
+        | InvalidMeasurementResult
+        | IntermediateMeasurementResult
+    ),
 ) -> str:
+    """Return the tag of the measurement result type of a result.
+
+    Args:
+        result: A measurement result instance or its dictionary representation.
+
+    Returns:
+        "Valid", "Invalid" or "Intermediate".
+
+    Raises:
+        ValueError: If the measurement result type cannot be determined.
+    """
 
     if isinstance(result, ValidMeasurementResult):
         return "Valid"
     if isinstance(result, InvalidMeasurementResult):
         return "Invalid"
+    if isinstance(result, IntermediateMeasurementResult):
+        return "Intermediate"
     if isinstance(result, dict):
         if result.get("measurements", None):
             return "Valid"
         if result.get("reason", None):
             return "Invalid"
+        if result.get("intermediateMeasurements", None):
+            return "Intermediate"
 
     raise ValueError(
         f"Unable to determine measurement result type for result: {result}"
@@ -312,6 +436,7 @@ def measurement_result_type_discriminator(
 
 MeasurementResultType = Annotated[
     Annotated[ValidMeasurementResult, pydantic.Tag("Valid")]
-    | Annotated[InvalidMeasurementResult, pydantic.Tag("Invalid")],
+    | Annotated[InvalidMeasurementResult, pydantic.Tag("Invalid")]
+    | Annotated[IntermediateMeasurementResult, pydantic.Tag("Intermediate")],
     pydantic.Discriminator(measurement_result_type_discriminator),
 ]

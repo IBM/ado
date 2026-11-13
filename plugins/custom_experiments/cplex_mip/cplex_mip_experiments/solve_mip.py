@@ -202,6 +202,112 @@ Qtolin = ConstitutiveProperty(
     ),
 )
 
+Presolve = ConstitutiveProperty(
+    identifier="presolve",
+    metadata={
+        "description": (
+            "Presolve switch (CPX_PARAM_PREIND / `set preprocessing presolve`): "
+            "0=off, 1=on."
+        )
+    },
+    propertyDomain=PropertyDomain(
+        variableType=VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
+        values=[0, 1],
+    ),
+)
+
+NodeSubalgorithm = ConstitutiveProperty(
+    identifier="node_subalgorithm",
+    metadata={
+        "description": (
+            "Algorithm for the continuous relaxation at each branch-and-bound node "
+            "(CPX_PARAM_SUBALG / `set mip strategy subalgorithm`): 0=automatic, "
+            "1=primal simplex, 2=dual simplex, 3=network simplex, 4=barrier, "
+            "5=sifting."
+        )
+    },
+    propertyDomain=PropertyDomain(
+        variableType=VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
+        values=[0, 1, 2, 3, 4, 5],
+    ),
+)
+
+SearchStrategy = ConstitutiveProperty(
+    identifier="search_strategy",
+    metadata={
+        "description": (
+            "MIP search method (CPX_PARAM_MIPSEARCH / `set mip strategy search`): "
+            "0=automatic, 1=traditional branch and cut, 2=dynamic search."
+        )
+    },
+    propertyDomain=PropertyDomain(
+        variableType=VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
+        values=[0, 1, 2],
+    ),
+)
+
+BestBoundInterval = ConstitutiveProperty(
+    identifier="best_bound_interval",
+    metadata={
+        "description": (
+            "Best-bound interval (CPX_PARAM_BBINTERVAL / `set mip strategy "
+            "bbinterval`): with best-estimate node selection, select the "
+            "best-bound node every n nodes; 0 never selects by best bound. "
+            "Default 7."
+        )
+    },
+    propertyDomain=PropertyDomain(
+        variableType=VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
+        values=[0, 1, 7, 20],
+    ),
+)
+
+Symmetry = ConstitutiveProperty(
+    identifier="symmetry",
+    metadata={
+        "description": (
+            "Symmetry breaking (CPX_PARAM_SYMMETRY / `set preprocessing "
+            "symmetry`): -1=automatic, 0=off, 1 to 5=increasingly aggressive."
+        )
+    },
+    propertyDomain=PropertyDomain(
+        variableType=VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
+        values=[-1, 0, 1, 2, 3, 4, 5],
+    ),
+)
+
+Qpmakepsd = ConstitutiveProperty(
+    identifier="qpmakepsd",
+    metadata={
+        "description": (
+            "Indefinite-objective repair in presolve (CPX_PARAM_QPMAKEPSDIND / "
+            "`set preprocessing qpmakepsd`): 1=presolve may modify the quadratic "
+            "objective of a binary problem to make it positive semi-definite, "
+            "0=leave the quadratic objective unchanged. Default 1."
+        )
+    },
+    propertyDomain=PropertyDomain(
+        variableType=VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
+        values=[0, 1],
+    ),
+)
+
+PolishAfter = ConstitutiveProperty(
+    identifier="polish_after_s",
+    metadata={
+        "description": (
+            "Seconds after which CPLEX switches from branch and cut to solution "
+            "polishing (CPX_PARAM_POLISHAFTERTIME / `set mip polishafter time`). "
+            "0 polishes from the start; the default 1e75 never polishes."
+        )
+    },
+    propertyDomain=PropertyDomain(
+        variableType=VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE,
+        # Upper bound is strictly above 1e75 so that the default 1e75 validates.
+        domainRange=[0, 1e76],
+    ),
+)
+
 Parallel = ConstitutiveProperty(
     identifier="parallel",
     metadata={
@@ -609,28 +715,21 @@ def _append_terminal_progress_sample(
 
     Best bound selection:
     - ``mip_gap == 0`` (proven optimal): best bound converges to ``objective_value``.
-    - Non-optimal (e.g. time limit): forward-fill the last callback-recorded bound.
-      The post-solve CPLEX solution API may return the incumbent rather than the
-      LP-relaxation dual bound, so it is only used as a fallback when no callback
-      samples exist (``progress_interval_s == 0``).
+    - Otherwise, when CPLEX reports a MIP gap: the post-solve best bound from
+      ``solution.MIP.get_best_objective()``, which is the final dual bound for
+      time-limited solves and for solves stopped at the gap tolerance.
+    - When no post-solve bound is available: forward-fill the last
+      callback-recorded bound.
     """
     if mip_gap is not None and mip_gap == 0.0 and objective_value is not None:
         best_bound: float | None = objective_value
     else:
         best_bound = None
-        for prev in reversed(progress_samples):
-            prev_bound = prev.get("best_bound")
-            if prev_bound is not None:
-                best_bound = prev_bound
-                break
-        if best_bound is None:
-            # No callback samples available (progress_interval_s == 0).
-            # The post-solve API may return the incumbent for non-optimal solves,
-            # so this is a best-effort fallback only.
+        if mip_gap is not None:
             import cplex
 
             try:
-                api_bound = float(model.solution.MIP.get_best_objective_value())
+                api_bound = float(model.solution.MIP.get_best_objective())
                 if abs(api_bound) < _NO_INCUMBENT_SENTINEL:
                     best_bound = api_bound
             except (
@@ -640,6 +739,12 @@ def _append_terminal_progress_sample(
                 ValueError,
             ):
                 pass
+        if best_bound is None:
+            for prev in reversed(progress_samples):
+                prev_bound = prev.get("best_bound")
+                if prev_bound is not None:
+                    best_bound = prev_bound
+                    break
 
     progress_samples.append(
         {
@@ -732,6 +837,13 @@ def _run_single_seed(
     cut_passes_all: CutPassesAllLevel = "cplex_default",
     mip_emphasis: int = 0,
     qtolin: int = -1,
+    presolve: int = 1,
+    node_subalgorithm: int = 0,
+    search_strategy: int = 0,
+    best_bound_interval: int = 7,
+    symmetry: int = -1,
+    qpmakepsd: int = 1,
+    polish_after_s: float = 1e75,
     progress_interval_s: float = 0,
     workmem_mb: int = 0,
     warm_start_file: str = "",
@@ -754,6 +866,18 @@ def _run_single_seed(
             metadata; default 0 matches CPLEX balanced emphasis.
         qtolin: Quadratic-term linearization (CPX_PARAM_QTOLIN): -1 automatic,
             0 keep quadratic terms, 1 linearize.
+        presolve: Presolve switch (CPX_PARAM_PREIND): 0 off, 1 on.
+        node_subalgorithm: Node relaxation algorithm (CPX_PARAM_SUBALG): 0 automatic,
+            1 primal, 2 dual, 3 network, 4 barrier, 5 sifting.
+        search_strategy: MIP search method (CPX_PARAM_MIPSEARCH): 0 automatic,
+            1 traditional, 2 dynamic.
+        best_bound_interval: Best-bound interval (CPX_PARAM_BBINTERVAL).
+        symmetry: Symmetry breaking (CPX_PARAM_SYMMETRY): -1 automatic, 0 off,
+            1 to 5 increasingly aggressive.
+        qpmakepsd: Indefinite-objective repair (CPX_PARAM_QPMAKEPSDIND): 1 presolve
+            may modify the quadratic objective to make it PSD, 0 leave it unchanged.
+        polish_after_s: Seconds after which CPLEX starts solution polishing
+            (CPX_PARAM_POLISHAFTERTIME); 1e75 never polishes.
         progress_interval_s: If > 0, capture progress at this interval (seconds).
         workmem_mb: When > 0, sets CPLEX WorkMem (CPX_PARAM_WORKMEM) to this
             value in MB and enables compressed on-disk node files
@@ -808,6 +932,13 @@ def _run_single_seed(
     model.parameters.mip.strategy.rinsheur.set(rins_frequency)
     model.parameters.mip.limits.cutpasses.set(cut_passes)
     model.parameters.preprocessing.qtolin.set(qtolin)
+    model.parameters.preprocessing.presolve.set(presolve)
+    model.parameters.mip.strategy.subalgorithm.set(node_subalgorithm)
+    model.parameters.mip.strategy.search.set(search_strategy)
+    model.parameters.mip.strategy.bbinterval.set(best_bound_interval)
+    model.parameters.preprocessing.symmetry.set(symmetry)
+    model.parameters.preprocessing.qpmakepsd.set(qpmakepsd)
+    model.parameters.mip.polishafter.time.set(polish_after_s)
     model.parameters.timelimit.set(time_limit_s)
     model.parameters.mip.display.set(4)
     model.parameters.mip.interval.set(100)
@@ -834,6 +965,8 @@ def _run_single_seed(
         "Solving %s with seed=%d, n_threads=%d, node_selection=%d, "
         "variable_selection=%d, heuristic_frequency=%d, rins_frequency=%d, "
         "cut_passes=%d, cut_passes_all=%r, mip_emphasis=%d, qtolin=%d, "
+        "presolve=%d, node_subalgorithm=%d, search_strategy=%d, "
+        "best_bound_interval=%d, symmetry=%d, qpmakepsd=%d, polish_after_s=%.1g, "
         "time_limit_s=%.1g",
         mps_file,
         seed,
@@ -846,6 +979,13 @@ def _run_single_seed(
         cut_passes_all,
         mip_emphasis,
         qtolin,
+        presolve,
+        node_subalgorithm,
+        search_strategy,
+        best_bound_interval,
+        symmetry,
+        qpmakepsd,
+        polish_after_s,
         time_limit_s,
     )
 
@@ -929,9 +1069,9 @@ def _run_single_seed(
     )
 
     # Per-seed best_bound: last non-None best_bound in progress_samples.
-    # The terminal sample sets this to objective_value at optimality (mip_gap == 0)
-    # and forward-fills the last callback-recorded LP-relaxation bound otherwise,
-    # avoiding the post-solve CPLEX API which may return the incumbent.
+    # The terminal sample holds objective_value at optimality (mip_gap == 0),
+    # CPLEX's final best bound otherwise, and the last callback-recorded bound
+    # when CPLEX reports none.
     best_bound: float | None = None
     for prev in reversed(progress_samples):
         if prev.get("best_bound") is not None:
@@ -964,6 +1104,13 @@ def _run_single_seed(
         CutPassesAll,
         MipEmphasis,
         Qtolin,
+        Presolve,
+        NodeSubalgorithm,
+        SearchStrategy,
+        BestBoundInterval,
+        Symmetry,
+        Qpmakepsd,
+        PolishAfter,
         Parallel,
         ProgressInterval,
         WarmStartFile,
@@ -1008,6 +1155,13 @@ def solve_mip(
     cut_passes_all: CutPassesAllLevel = "cplex_default",
     mip_emphasis: int = 0,
     qtolin: int = -1,
+    presolve: int = 1,
+    node_subalgorithm: int = 0,
+    search_strategy: int = 0,
+    best_bound_interval: int = 7,
+    symmetry: int = -1,
+    qpmakepsd: int = 1,
+    polish_after_s: float = 1e75,
     parallel: bool = True,
     progress_interval_s: float = 0,
     warm_start_file: str = "",
@@ -1035,6 +1189,21 @@ def solve_mip(
         mip_emphasis: CPLEX MIP emphasis (0=balanced through 5=heuristic); default 0.
         qtolin: CPLEX quadratic-term linearization (CPX_PARAM_QTOLIN): -1 automatic
             (default), 0 keep quadratic terms, 1 linearize.
+        presolve: CPLEX presolve switch (CPX_PARAM_PREIND): 0 off, 1 on (default).
+        node_subalgorithm: CPLEX node relaxation algorithm (CPX_PARAM_SUBALG):
+            0 automatic (default), 1 primal, 2 dual, 3 network, 4 barrier, 5 sifting.
+        search_strategy: CPLEX MIP search method (CPX_PARAM_MIPSEARCH):
+            0 automatic (default), 1 traditional, 2 dynamic.
+        best_bound_interval: CPLEX best-bound interval (CPX_PARAM_BBINTERVAL);
+            default 7.
+        symmetry: CPLEX symmetry breaking (CPX_PARAM_SYMMETRY): -1 automatic
+            (default), 0 off, 1 to 5 increasingly aggressive.
+        qpmakepsd: CPLEX indefinite-objective repair in presolve
+            (CPX_PARAM_QPMAKEPSDIND): 1 (default) presolve may modify the
+            quadratic objective to make it PSD, 0 leave it unchanged.
+        polish_after_s: Seconds after which CPLEX starts solution polishing
+            (CPX_PARAM_POLISHAFTERTIME); 0 polishes from the start, 1e75 (default)
+            never polishes.
         parallel: If True, run each seed as a Ray remote task (requires ray_remote).
             If False, run seeds in serial. With parallel=True, Ray task failures on
             individual seeds are recorded as ``ray_task_failed: ...`` in
@@ -1088,6 +1257,13 @@ def solve_mip(
             cut_passes_all=cut_passes_all,
             mip_emphasis=mip_emphasis,
             qtolin=qtolin,
+            presolve=presolve,
+            node_subalgorithm=node_subalgorithm,
+            search_strategy=search_strategy,
+            best_bound_interval=best_bound_interval,
+            symmetry=symmetry,
+            qpmakepsd=qpmakepsd,
+            polish_after_s=polish_after_s,
             progress_interval_s=progress_interval_s,
             warm_start_file=warm_start_file,
             export_solution=export_solution,

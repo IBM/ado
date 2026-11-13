@@ -32,23 +32,24 @@ def _operation_inputs_template(
     """Build template ``inputs`` from recorded resource inputs, or one space."""
 
     required_resource_inputs = getattr(operator, "required_resource_inputs", None)
-    if required_resource_inputs:
-        template: dict[str, ADOResourceReference | list[ADOResourceReference]] = {}
-        for descriptor in required_resource_inputs:
-            reference = ADOResourceReference(
-                identifier=f"your-{descriptor.kind.value}-id",
-                kind=descriptor.kind,
+    if not required_resource_inputs:
+        return {
+            "discoverySpace": ADOResourceReference(
+                identifier="your-discoveryspace-id",
+                kind=CoreResourceKinds.DISCOVERYSPACE,
             )
-            template[descriptor.identifier] = (
-                [reference] if descriptor.isList else reference
-            )
-        return template
-    return {
-        "discoverySpace": ADOResourceReference(
-            identifier="your-discoveryspace-id",
-            kind=CoreResourceKinds.DISCOVERYSPACE,
+        }
+
+    template: dict[str, ADOResourceReference | list[ADOResourceReference]] = {}
+    for descriptor in required_resource_inputs:
+        reference = ADOResourceReference(
+            identifier=f"your-{descriptor.kind.value}-id",
+            kind=descriptor.kind,
         )
-    }
+        template[descriptor.identifier] = (
+            [reference] if descriptor.isList else reference
+        )
+    return template
 
 
 def template_operation(parameters: AdoTemplateCommandParameters) -> None:

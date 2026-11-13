@@ -2,12 +2,12 @@
 name: ado-review-branch
 description: >-
   Review committed changes in the current branch. Use when the user asks to
-  review, audit, or critique a branch — covers code quality, skill quality,
-  bugs, linting issues, and adherence to project guidelines. Produces a
-  structured review report written to a markdown file.
+  review, audit, or critique a branch — covers code quality, test quality,
+  skill quality, bugs, linting issues, and adherence to project guidelines.
+  Produces a structured review report written to a markdown file.
 metadata:
-  user-invocable: true
-  disable-model-invocation: true
+  user-invocable: "true"
+  disable-model-invocation: "true"
 ---
 
 # Review a branch
@@ -15,6 +15,12 @@ metadata:
 ## General Rules
 
 - Review the committed changes in the current branch
+- Run mutation checks, linting, and tests in a detached worktree of `HEAD`, so
+  uncommitted work is neither touched nor linted
+  - create it with `git worktree add --detach "$REVIEW_DIR" HEAD`, where
+    `REVIEW_DIR` is a fresh directory from `mktemp -d`
+  - run `uv` commands from inside it
+  - remove it with `git worktree remove --force "$REVIEW_DIR"` when finished
 - Do not assume — verify claims by reading the relevant code or running a short
   script. Never report a finding based on what code looks like it might do;
   confirm it first.
@@ -25,7 +31,9 @@ metadata:
   - limit each finding to three sentences: the problem, why it matters if not
     obvious, and the fix
   - drop any finding that cannot be tied to a location and a fix
-- Write the review to a markdown file when finished
+- Write the review to `<branch_name>-review.md` at the repo root when finished,
+  where `<branch_name>` is the current branch name with `/` replaced by `-`,
+  unless the user names another path
 - Anchor each review comment to the file and line it refers to
   - give the location once per comment as a single markdown link to the
     primary file and line
@@ -51,21 +59,42 @@ Read [AGENTS.md](../../../AGENTS.md) in full and check every changed Python
 file against all rules it contains. Pay particular attention to these
 commonly missed areas:
 
-- **Fixture reuse** — a new fixture that duplicates one already present in
-  `tests/fixtures/` or any `conftest.py` is a `test` finding.
+- **Fixture reuse** — see the fixture rules in AGENTS.md; report violations as
+  `test` findings.
 - **Fixture placement** — a fixture used only within one subdirectory but
   defined in a parent `conftest.py` is misplaced; report it as a `test`
   finding.
-- **Naming** — variables, functions, and methods must have clear,
-  self-explanatory names; abbreviated or single-letter names outside
-  conventional loop indices are a violation.
+- **Naming** — see the naming rules in AGENTS.md; report violations as
+  `design` findings.
 - **Docstring accuracy** — for every changed function or method, read the
   implementation body and verify the docstring matches what the code actually
-  does. A docstring that no longer reflects the implementation is a stale
-  docstring; report it as a `docs` finding.
-- **Stale docstrings** — a docstring that describes behaviour the function no
-  longer has, or omits behaviour it has gained, is a `docs` finding even if
-  it was not touched in this diff.
+  does. A docstring that describes behaviour the function no longer has, or
+  omits behaviour it has gained, is stale; report it as a `docs` finding even
+  if the docstring was not touched in this diff.
+- **Private helpers** — every new private function or method must satisfy the
+  helper rules in AGENTS.md; report violations as `design` findings. The fix is
+  to inline the helper.
+- **Nesting depth** — an `if` whose condition could be inverted to return,
+  continue, or raise early and remove a level of indentation (a guard clause)
+  is a `design` finding at Minor severity; report it only when the inversion
+  clearly improves readability.
+
+### Test quality
+
+For every test added or modified in the branch, read the test body and the code
+it exercises, and check it against the test rules in AGENTS.md. Report
+violations as `test` findings, and additionally:
+
+- **Redundant tests** — search `tests/` for existing tests of the same code
+  path. Name the existing test in the finding and suggest removing the new one
+  or extending the existing one.
+- **Missing tests** — for each changed behaviour whose regression would
+  matter, verify that at least one test would fail if that behaviour were
+  reverted. Do not report a missing test for code AGENTS.md says not to test.
+- **Verify by mutation** — when a test looks weak, confirm it by temporarily
+  breaking the code under test and running that test; do not report a test as
+  banal on appearance alone. Edit only files in the review worktree and restore
+  each with `git restore <file>` afterwards.
 
 ### Plugin versioning
 
@@ -79,8 +108,8 @@ report violations with these severities:
 
 ### Linting
 
-Run `uv run pre-commit run -a` and report each failure as a finding tagged
-`lint`. These issues block commits.
+Run `uv run pre-commit run -a` in the review worktree and report each failure
+as a finding tagged `lint`. These issues block commits.
 
 ## Skill Review
 
@@ -99,9 +128,11 @@ Write the report with these sections, omitting any that are empty:
      do not already say it
 2. **Findings** — a single list ordered by severity under the headings
    Critical, Medium, and Minor
+   - default severity when none is specified elsewhere: `bug` Critical,
+     `lint`, `test`, and `docs` Medium, `design` Minor
    - number findings continuously (1, 2, 3, ...) so they can be referenced
-   - start each finding with a short title and a tag: `bug`, `design`, `test`,
-     `docs`, or `lint`
+   - start each finding with a bold heading of the form `tag: short title`,
+     where the tag is one of `bug`, `design`, `test`, `docs`, or `lint`
    - test gaps and documentation gaps are findings with the matching tag, not
      separate sections
 3. **Skill Reviews** — one subsection per new or modified skill, using the
@@ -112,7 +143,7 @@ Write the report with these sections, omitting any that are empty:
 Example finding:
 
 ```markdown
-3. **Exit swallowed by broad except** `bug` —
+3. **bug: exit swallowed by broad except** —
    [create.py:160](ado/cli/resources/operation/create.py:160) catches
    Exception, which includes typer.Exit, so the specific error is followed by a
    generic failure message. Re-raise typer.Exit before the except clause.

@@ -163,7 +163,7 @@ def _make_general_orchestration_wrapper(
         arguments = dict(bound.arguments)
 
         from ado.core.operation.inputs import (
-            ResolvedOperatorInput,
+            OperationInputResource,
             metastore_for_operation_inputs,
         )
         from ado.modules.operators._general_orchestration import (
@@ -180,9 +180,9 @@ def _make_general_orchestration_wrapper(
                 f"Operator {name!r} missing required resource input(s): {missing_input_identifiers!r}."
             )
 
-        inputs: dict[str, ResolvedOperatorInput] = {
+        inputs: dict[str, OperationInputResource] = {
             input_identifier: typing.cast(
-                "ResolvedOperatorInput", arguments.pop(input_identifier)
+                "OperationInputResource", arguments.pop(input_identifier)
             )
             for input_identifier in input_identifiers
         }

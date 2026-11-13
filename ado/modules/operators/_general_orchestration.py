@@ -13,7 +13,7 @@ from ado.core.operation.config import (
     validate_actuator_configurations_against_space_configuration,
 )
 from ado.core.operation.inputs import (
-    ResolvedOperatorInput,
+    OperationInputResource,
     discovery_spaces_from_inputs,
 )
 from ado.core.operation.operation import OperationOutput
@@ -47,7 +47,7 @@ def _operator_callable_for_harness(registered: typing.Callable) -> typing.Callab
 
 def run_general_operation_core_closure(
     operation_function: typing.Callable,
-    inputs: dict[str, ResolvedOperatorInput],
+    inputs: dict[str, OperationInputResource],
     operationInfo: FunctionOperationInfo,
     operation_parameters: GenericOperatorParameters,
 ) -> typing.Callable[[], OperationOutput | None]:
@@ -78,7 +78,7 @@ def run_general_operation_core_closure(
 def orchestrate_general_operation(
     operator_metadata: OperatorMetadata,
     operation_parameters: GenericOperatorParameters,
-    inputs: dict[str, ResolvedOperatorInput],
+    inputs: dict[str, OperationInputResource],
     operation_info: FunctionOperationInfo,
     metastore: SQLStore,
 ) -> OperationOutput:

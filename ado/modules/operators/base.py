@@ -27,7 +27,7 @@ from ado.core.operation.config import (
     OperatorModuleConf,
     OperatorReference,
 )
-from ado.core.operation.inputs import OperationResourceInput
+from ado.core.operation.inputs import OperationInputResourceReference
 from ado.core.operation.operation import OperationOutput
 from ado.core.operation.resource import (
     OperationProvenanceInfo,
@@ -416,7 +416,7 @@ def add_operation_output_to_metastore(
 
 
 def create_operation_and_add_to_metastore(
-    inputs: dict[str, OperationResourceInput],
+    inputs: dict[str, OperationInputResourceReference],
     operator_module: OperatorModuleConf | OperatorReference,
     operation_parameters: dict,
     operation_info: FunctionOperationInfo,

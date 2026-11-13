@@ -5,7 +5,6 @@ import inspect
 import logging
 import typing
 
-from ado.core.discoveryspace.space import DiscoverySpace
 from ado.core.operation.config import (
     FunctionOperationInfo,
     GenericOperatorParameters,
@@ -13,7 +12,10 @@ from ado.core.operation.config import (
     get_actuator_configurations,
     validate_actuator_configurations_against_space_configuration,
 )
-from ado.core.operation.inputs import OperatorInputType
+from ado.core.operation.inputs import (
+    OperationInputResource,
+    discovery_spaces_from_inputs,
+)
 from ado.core.operation.operation import OperationOutput
 from ado.metastore.sqlstore import SQLStore
 from ado.modules.operators._orchestrate_core import (
@@ -45,7 +47,7 @@ def _operator_callable_for_harness(registered: typing.Callable) -> typing.Callab
 
 def run_general_operation_core_closure(
     operation_function: typing.Callable,
-    inputs: dict[str, OperatorInputType],
+    inputs: dict[str, OperationInputResource],
     operationInfo: FunctionOperationInfo,
     operation_parameters: GenericOperatorParameters,
 ) -> typing.Callable[[], OperationOutput | None]:
@@ -53,8 +55,8 @@ def run_general_operation_core_closure(
 
     Args:
         operation_function: The callable stored on the operator metadata.
-        inputs: Mapping of parameter name to rich resource, passed as keyword
-            arguments.
+        inputs: Mapping of parameter name to a rich resource or list of rich
+            resources, passed as keyword arguments.
         operationInfo: Runtime operation context.
         operation_parameters: Validated instance of the operator's configuration model.
 
@@ -76,7 +78,7 @@ def run_general_operation_core_closure(
 def orchestrate_general_operation(
     operator_metadata: OperatorMetadata,
     operation_parameters: GenericOperatorParameters,
-    inputs: dict[str, OperatorInputType],
+    inputs: dict[str, OperationInputResource],
     operation_info: FunctionOperationInfo,
     metastore: SQLStore,
 ) -> OperationOutput:
@@ -87,7 +89,8 @@ def orchestrate_general_operation(
     Args:
         operator_metadata: Registered metadata for the operator.
         operation_parameters: Validated configuration model.
-        inputs: Mapping of parameter name to rich resource.
+        inputs: Mapping of parameter name to a rich resource or list of rich
+            resources.
         operation_info: Operation metadata, including project context.
         metastore: Metastore that contains every input.
 
@@ -104,7 +107,7 @@ def orchestrate_general_operation(
 
     import uuid
 
-    spaces = [value for value in inputs.values() if isinstance(value, DiscoverySpace)]
+    spaces = discovery_spaces_from_inputs(inputs)
 
     if operator_metadata.function is None:
         raise ValueError(

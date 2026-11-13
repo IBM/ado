@@ -4,9 +4,8 @@
 """Tests for registering an operator and calling its wrapper."""
 
 import pathlib
-import uuid
-from collections.abc import Callable, Iterator
-from contextlib import contextmanager
+from collections.abc import Callable
+from contextlib import AbstractContextManager
 
 import pytest
 
@@ -49,30 +48,11 @@ def _one_space(
     return _stub(discoverySpace, operationInfo, parameters=parameters)
 
 
-@contextmanager
-def _temporary_operator(
-    collection_operators: dict,
-    decorator: Callable[..., Callable[..., OperationOutput]],
-    fn: Callable[..., OperationOutput],
-) -> Iterator[str]:
-    """Register *fn* under a unique name and remove it afterwards."""
-    name = f"test-op-{uuid.uuid4().hex[:8]}"
-    decorator(
-        name=name,
-        version="1.0.0",
-        configuration_model=GenericOperatorParameters,
-        example_configuration=GenericOperatorParameters(),
-        description="temporary test operator",
-    )(fn)
-    try:
-        yield name
-    finally:
-        collection_operators.pop(name, None)
-
-
-def test_compare_registration_records_resource_inputs() -> None:
+def test_compare_registration_records_resource_inputs(
+    temporary_operator: Callable[..., AbstractContextManager[str]],
+) -> None:
     """Registration stores the deduced inputs and rejects a bad call."""
-    with _temporary_operator(compare.operators, compare_operation, _two_spaces) as name:
+    with temporary_operator(compare.operators, compare_operation, _two_spaces) as name:
         metadata = compare.operators[name]
         assert [
             descriptor.identifier for descriptor in metadata.required_resource_inputs
@@ -93,6 +73,7 @@ def test_compare_registration_records_resource_inputs() -> None:
 def test_wrapper_resolves_project_context_from_discovery_space(
     tmp_path: pathlib.Path,
     make_stub_discovery_space: Callable,
+    temporary_operator: Callable[..., AbstractContextManager[str]],
 ) -> None:
     """A discovery space supplies project context when operation info omits it."""
     context = ProjectContext(
@@ -101,7 +82,7 @@ def test_wrapper_resolves_project_context_from_discovery_space(
     )
     space = make_stub_discovery_space(context)
     space._identifier = "space-carried01"  # noqa: SLF001
-    with _temporary_operator(
+    with temporary_operator(
         characterize.operators, characterize_operation, _one_space
     ) as name:
         function = characterize.operators[name].function

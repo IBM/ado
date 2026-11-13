@@ -24,6 +24,7 @@ Operators are grouped into the following types:
   measurementspace of an input `discoveryspace`
 - **compare**: compare one or more `discoveryspaces`
 - **fuse**: create a new `discoveryspace` from a set of input `discoveryspaces`
+- **summarize**: summarize a batch of resources, optionally versus a baseline
 
 [This page](explore-operators.md) describes **explore** operators in more detail
 as they are the only operators that sample and measure entities.
@@ -86,6 +87,10 @@ as `inputs.discoverySpace`.
 data container, or actuator configuration. This can fill a single
 unset input of that kind. When several inputs of the same kind are unset, set
 them in the operation YAML.
+
+If the operator has a list input of that kind, as `summarize` operators do,
+the resource is appended to that list. A scalar input of the same kind, such as
+a baseline, is not filled this way. Set it in the operation YAML.
 
 ## What's next
 

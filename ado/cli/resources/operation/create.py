@@ -119,50 +119,57 @@ def _resource_inputs_for_module(
     )
 
 
-def _operator_input_name_for_kind(
+def _operator_input_descriptor_for_kind(
     raw_operation_configuration: dict,
     kind: CoreResourceKinds,
-) -> str:
-    """Return the name of the operator input that receives a resource of *kind*.
+) -> ADOResourcePropertyDescriptor:
+    """Resolve the operator input descriptor for a resource *kind*.
 
-    When the operator has several inputs of *kind*, the one not yet set under
-    ``inputs`` is returned.
+    Uses the operator's declared resource inputs. When several inputs share
+    *kind*, selects, in order of preference:
+
+    1. the only list input, if there is exactly one;
+    2. the only input not yet set under ``inputs``, if there is exactly one.
 
     Args:
         raw_operation_configuration: The raw operation resource configuration.
         kind: The resource kind to find an input for.
 
     Returns:
-        The name of the operator input that receives a resource of *kind*.
+        The matching operator resource input descriptor.
 
     Raises:
         ValueError: If ``operation.module`` is not a recognised form, the
             operator has no input of *kind*, or several inputs of *kind* exist
-            and the number of them missing from ``inputs`` is not exactly one.
+            and the number of unset inputs of *kind* is not exactly one.
     """
     module = raw_operation_configuration.get("operation", {}).get("module", {})
-    operator_label, required_resource_inputs = _resource_inputs_for_module(module)
+    operator_name, declared_resource_inputs = _resource_inputs_for_module(module)
     inputs_of_kind = [
-        descriptor for descriptor in required_resource_inputs if descriptor.kind == kind
+        descriptor for descriptor in declared_resource_inputs if descriptor.kind == kind
     ]
     if not inputs_of_kind:
         raise ValueError(
-            f"Operator {operator_label!r} has no resource input of kind {kind.value!r}."
+            f"Operator {operator_name!r} has no resource input of kind {kind.value!r}."
         )
     if len(inputs_of_kind) == 1:
-        return inputs_of_kind[0].identifier
+        return inputs_of_kind[0]
+
+    list_inputs = [descriptor for descriptor in inputs_of_kind if descriptor.isList]
+    if len(list_inputs) == 1:
+        return list_inputs[0]
 
     inputs_already_set = raw_operation_configuration.get("inputs", {})
-    unset_input_identifiers = [
-        descriptor.identifier
+    unset_input_descriptors = [
+        descriptor
         for descriptor in inputs_of_kind
         if descriptor.identifier not in inputs_already_set
     ]
-    if len(unset_input_identifiers) == 1:
-        return unset_input_identifiers[0]
+    if len(unset_input_descriptors) == 1:
+        return unset_input_descriptors[0]
     input_identifiers_of_kind = [descriptor.identifier for descriptor in inputs_of_kind]
     raise ValueError(
-        f"Operator {operator_label!r} has multiple {kind.value!r} inputs "
+        f"Operator {operator_name!r} has multiple {kind.value!r} inputs "
         f"{input_identifiers_of_kind}; set them explicitly in the operation YAML."
     )
 
@@ -171,7 +178,11 @@ def _add_operation_input_for_reference(
     raw_operation_configuration: dict,
     reference: ADOResourceReference,
 ) -> None:
-    """Set one named input reference on a raw operation configuration.
+    """Bind one resource reference to an operator input of a raw configuration.
+
+    The reference is stored under the operator input resolved by
+    ``_operator_input_descriptor_for_kind``. For a list input, it is appended
+    to the references already set.
 
     Args:
         raw_operation_configuration: Raw operation resource configuration dict.
@@ -183,14 +194,21 @@ def _add_operation_input_for_reference(
     """
     if reference.kind is None:
         raise ValueError("Operation input references must include a resource kind.")
-    operator_input_name = _operator_input_name_for_kind(
+    descriptor = _operator_input_descriptor_for_kind(
         raw_operation_configuration, reference.kind
     )
+    serialized_reference = reference.model_dump(mode="json")
     operation_inputs = raw_operation_configuration.setdefault("inputs", {})
-    operation_inputs[operator_input_name] = {
-        "identifier": reference.identifier,
-        "kind": reference.kind.value,
-    }
+    if descriptor.isList:
+        existing_input_value = operation_inputs.get(descriptor.identifier)
+        if existing_input_value is None:
+            existing_input_value = []
+        elif not isinstance(existing_input_value, list):
+            existing_input_value = [existing_input_value]
+        existing_input_value.append(serialized_reference)
+        operation_inputs[descriptor.identifier] = existing_input_value
+    else:
+        operation_inputs[descriptor.identifier] = serialized_reference
     if reference.kind == CoreResourceKinds.DISCOVERYSPACE:
         raw_operation_configuration.pop("spaces", None)
 

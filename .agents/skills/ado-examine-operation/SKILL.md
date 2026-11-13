@@ -47,6 +47,8 @@ Read the following basic skills first:
 - **compare** — compares two or more spaces or operations
 - **fuse** — fuses multiple spaces into one
 - **learn** — trains a model or learns from measurements
+- **summarize** — summarizes a batch of spaces or data containers, optionally
+  against a baseline
 
 ### Measured vs Matching
 

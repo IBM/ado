@@ -285,15 +285,17 @@ def make_stub_discovery_space() -> Callable:
     """Factory fixture that returns a minimal DiscoverySpace stub.
 
     The returned space skips full construction (entity/measurement space
-    validation) and only carries the given project context.  Use this fixture
-    when a test only needs an object that passes ``isinstance(x, DiscoverySpace)``
-    and optionally exposes ``project_context``.
+    validation) and only carries the given project context and identifier.
+    Use this fixture when a test only needs an object that passes
+    ``isinstance(x, DiscoverySpace)`` and optionally exposes
+    ``project_context``, ``uri`` and ``reference``.
 
     Usage::
 
         def test_foo(make_stub_discovery_space):
             space = make_stub_discovery_space()          # default ProjectContext
             space = make_stub_discovery_space(my_ctx)    # custom ProjectContext
+            space = make_stub_discovery_space(identifier="space-a")
     """
     from ado.core.discoveryspace.space import DiscoverySpace
     from ado.metastore.project import ProjectContext
@@ -301,11 +303,15 @@ def make_stub_discovery_space() -> Callable:
     class _StubSpace(DiscoverySpace):
         """Minimal DiscoverySpace stub that skips full initialisation."""
 
-        def __init__(self, project_context: ProjectContext) -> None:
-            """Skip parent initialisation; store only the project context."""
+        def __init__(self, project_context: ProjectContext, identifier: str) -> None:
+            """Skip parent initialisation; store only the context and identifier."""
             self._project_context = project_context
+            self._identifier = identifier
 
-    def _make(project_context: "ProjectContext | None" = None) -> DiscoverySpace:
-        return _StubSpace(project_context or ProjectContext())
+    def _make(
+        project_context: "ProjectContext | None" = None,
+        identifier: str = "space-stub",
+    ) -> DiscoverySpace:
+        return _StubSpace(project_context or ProjectContext(), identifier)
 
     return _make

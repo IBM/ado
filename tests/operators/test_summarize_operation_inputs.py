@@ -125,6 +125,24 @@ def test_validate_inputs_rejects_empty_list(
         )
 
 
+def test_validate_inputs_rejects_wrong_kind_in_list_member(
+    summarize_dummy_operator: None,
+) -> None:
+    """Every member of a list input must have the operator input's kind."""
+    with pytest.raises(ValueError, match="declares kind 'discoveryspace'"):
+        _operation_config(
+            {
+                "containers": [
+                    ADOResourceReference(identifier="datacontainer-aaa"),
+                    ADOResourceReference(
+                        identifier="space-bbb", kind=CoreResourceKinds.DISCOVERYSPACE
+                    ),
+                ],
+                "baseline": ADOResourceReference(identifier="datacontainer-baseline"),
+            }
+        )
+
+
 def test_validate_inputs_rejects_list_for_scalar_param(
     summarize_dummy_operator: None,
 ) -> None:

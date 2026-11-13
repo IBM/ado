@@ -2,87 +2,67 @@
 # SPDX-License-Identifier: MIT
 """Tests for operator resource-input conversion helpers."""
 
-from unittest.mock import MagicMock
+from collections.abc import Callable
 
 import pytest
 
-from ado.core.discoveryspace.space import DiscoverySpace
+from ado.core.datacontainer.resource import DataContainer, DataContainerResource
 from ado.core.operation.config import (
     DiscoveryOperationEnum,
     DiscoveryOperationResourceConfiguration,
 )
 from ado.core.operation.inputs import (
     discovery_spaces_from_inputs,
-    iter_resource_references,
     project_contexts_from_inputs,
     resolve_operation_project_context,
     resource_references_from_resolved_inputs,
     resource_references_to_rich_types,
+    verify_inputs_exist_in_metastore,
 )
-from ado.core.resources import ADOResourceReference, CoreResourceKinds
+from ado.metastore.base import ResourcesDoNotExistError
 from ado.metastore.project import ProjectContext
+from ado.metastore.sqlstore import SQLStore
 from ado.utilities.location import SQLiteStoreConfiguration
 from ado.utilities.pydantic import ignore_plugin_validation_context
 
 
-class _Space(DiscoverySpace):
-    """Discovery space stand-in that only carries a project context."""
-
-    def __init__(
-        self, project_context: ProjectContext, identifier: str = "space-test"
-    ) -> None:
-        """Skip parent initialization."""
-        self._project_context = project_context
-        self._identifier = identifier
+def _data_container_resource(value: str) -> DataContainerResource:
+    """Return a data container resource holding one key-value pair."""
+    return DataContainerResource(config=DataContainer(data={"key": {"value": value}}))
 
 
-def test_iter_resource_references_wraps_a_scalar() -> None:
-    """A single reference is yielded as a one-element sequence."""
-    reference = ADOResourceReference(
-        identifier="space-a", kind=CoreResourceKinds.DISCOVERYSPACE
-    )
-    assert iter_resource_references(reference) == [reference]
-
-
-def test_iter_resource_references_returns_a_list() -> None:
-    """A list of references is returned unchanged."""
-    references = [
-        ADOResourceReference(
-            identifier="space-a", kind=CoreResourceKinds.DISCOVERYSPACE
-        ),
-        ADOResourceReference(
-            identifier="space-b", kind=CoreResourceKinds.DISCOVERYSPACE
-        ),
-    ]
-    assert iter_resource_references(references) == references
-
-
-def test_discovery_spaces_from_inputs_flattens_list_params() -> None:
+def test_discovery_spaces_from_inputs_flattens_list_params(
+    make_stub_discovery_space: Callable,
+) -> None:
     """Discovery spaces nested in list parameters are collected."""
-    context = ProjectContext()
-    first = _Space(context, "space-a")
-    second = _Space(context, "space-b")
-    third = _Space(context, "space-c")
+    first = make_stub_discovery_space(identifier="space-a")
+    second = make_stub_discovery_space(identifier="space-b")
+    third = make_stub_discovery_space(identifier="space-c")
     spaces = discovery_spaces_from_inputs({"batch": [first, second], "other": third})
     assert spaces == [first, second, third]
 
 
-def test_project_contexts_from_list_of_spaces() -> None:
+def test_project_contexts_from_list_of_spaces(
+    make_stub_discovery_space: Callable,
+) -> None:
     """Each space in a list input contributes a project context."""
     context = ProjectContext()
-    carried = project_contexts_from_inputs(
-        {"spaces": [_Space(context, "space-a"), _Space(context, "space-b")]}
-    )
+    inputs = {
+        "spaces": [
+            make_stub_discovery_space(context, "space-a"),
+            make_stub_discovery_space(context, "space-b"),
+        ]
+    }
+    carried = project_contexts_from_inputs(inputs)
     assert [name for name, _ in carried] == ["spaces", "spaces"]
     assert all(ctx == context for _, ctx in carried)
 
-    resolved = resolve_operation_project_context(
-        None, {"spaces": [_Space(context, "space-a"), _Space(context, "space-b")]}
-    )
-    assert resolved == context
+    assert resolve_operation_project_context(None, inputs) == context
 
 
-def test_project_contexts_from_list_rejects_disagreeing_spaces() -> None:
+def test_project_contexts_from_list_rejects_disagreeing_spaces(
+    make_stub_discovery_space: Callable,
+) -> None:
     """Spaces in one list that belong to different projects are rejected."""
     first = ProjectContext()
     second = ProjectContext(
@@ -92,16 +72,22 @@ def test_project_contexts_from_list_rejects_disagreeing_spaces() -> None:
     with pytest.raises(ValueError, match="disagree on project context"):
         resolve_operation_project_context(
             None,
-            {"spaces": [_Space(first, "space-a"), _Space(second, "space-b")]},
+            {
+                "spaces": [
+                    make_stub_discovery_space(first, "space-a"),
+                    make_stub_discovery_space(second, "space-b"),
+                ]
+            },
         )
 
 
-def test_resource_references_from_resolved_inputs_preserves_lists() -> None:
+def test_resource_references_from_resolved_inputs_preserves_lists(
+    make_stub_discovery_space: Callable,
+) -> None:
     """Resolved list inputs dump back to lists of references."""
-    context = ProjectContext()
-    first = _Space(context, "space-a")
-    second = _Space(context, "space-b")
-    third = _Space(context, "space-c")
+    first = make_stub_discovery_space(identifier="space-a")
+    second = make_stub_discovery_space(identifier="space-b")
+    third = make_stub_discovery_space(identifier="space-c")
     dumped = resource_references_from_resolved_inputs(
         {"batch": [first, second], "other": third}
     )
@@ -110,42 +96,42 @@ def test_resource_references_from_resolved_inputs_preserves_lists() -> None:
 
 
 def test_resource_references_to_rich_types_resolves_lists(
-    monkeypatch: pytest.MonkeyPatch,
+    sql_store: SQLStore,
+    create_resources: Callable,
 ) -> None:
-    """A list of references is resolved to a list of rich objects."""
-    from ado.core.operation import inputs as inputs_module
+    """A list of references is resolved to a list of stored resources."""
+    listed = [_data_container_resource("one"), _data_container_resource("two")]
+    scalar = _data_container_resource("three")
+    create_resources([*listed, scalar])
 
-    resolved_ids: list[str] = []
-
-    def _fake_resolve(reference: ADOResourceReference, metastore: object) -> _Space:
-        resolved_ids.append(reference.identifier)
-        return _Space(ProjectContext(), reference.identifier)
-
-    monkeypatch.setitem(
-        inputs_module._RESOLVERS,
-        CoreResourceKinds.DISCOVERYSPACE,
-        _fake_resolve,
-    )
     result = resource_references_to_rich_types(
         {
-            "spaces": [
-                ADOResourceReference(
-                    identifier="space-a", kind=CoreResourceKinds.DISCOVERYSPACE
-                ),
-                ADOResourceReference(
-                    identifier="space-b", kind=CoreResourceKinds.DISCOVERYSPACE
-                ),
-            ],
-            "other": ADOResourceReference(
-                identifier="space-c", kind=CoreResourceKinds.DISCOVERYSPACE
-            ),
+            "containers": [resource.reference for resource in listed],
+            "baseline": scalar.reference,
         },
-        metastore=MagicMock(),
+        metastore=sql_store,
     )
-    assert resolved_ids == ["space-a", "space-b", "space-c"]
-    assert isinstance(result["spaces"], list)
-    assert [space.uri for space in result["spaces"]] == ["space-a", "space-b"]
-    assert result["other"].uri == "space-c"
+
+    assert isinstance(result["containers"], list)
+    assert [resource.identifier for resource in result["containers"]] == [
+        resource.identifier for resource in listed
+    ]
+    assert result["baseline"].identifier == scalar.identifier
+
+
+def test_verify_inputs_exist_in_metastore_checks_list_members(
+    sql_store: SQLStore,
+    create_resources: Callable,
+) -> None:
+    """A list member missing from the metastore is reported."""
+    stored = _data_container_resource("one")
+    missing = _data_container_resource("two")
+    create_resources([stored])
+
+    with pytest.raises(ResourcesDoNotExistError, match=missing.identifier):
+        verify_inputs_exist_in_metastore(
+            {"containers": [stored, missing], "baseline": stored}, sql_store
+        )
 
 
 def test_operation_inputs_accept_yaml_lists() -> None:

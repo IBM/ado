@@ -341,6 +341,8 @@ Certain operation types are expected to return outputs as follows:
   SampleStoreResource
 - compare: a new DataContainerResource
 - characterize: a new DataContainerResource
+- summarize: typically a new DataContainerResource. Other resources, such as
+  DiscoverySpaceResources, may also be returned
 
 ## How to update your operator input parameters
 

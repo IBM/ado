@@ -27,10 +27,7 @@ from ado.core.operation.config import (
     OperatorModuleConf,
     OperatorReference,
 )
-from ado.core.operation.inputs import (
-    OperationResourceInput,
-    iter_resource_references,
-)
+from ado.core.operation.inputs import OperationResourceInput
 from ado.core.operation.operation import OperationOutput
 from ado.core.operation.resource import (
     OperationProvenanceInfo,
@@ -45,6 +42,7 @@ from ado.modules.operators.discovery_space_manager import (
 from ado.schema.entity import Entity
 from ado.schema.reference import ExperimentReference
 from ado.utilities.annotations import unwrap_annotated
+from ado.utilities.lists import as_list
 
 if typing.TYPE_CHECKING:
     from ado.core.resources import ADOResource
@@ -475,7 +473,7 @@ def create_operation_and_add_to_metastore(
         *[
             reference.identifier
             for entry in inputs.values()
-            for reference in iter_resource_references(entry)
+            for reference in as_list(entry)
         ],
         *operation_resource_configuration.actuatorConfigurationIdentifiers,
     ]

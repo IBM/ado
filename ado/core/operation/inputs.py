@@ -21,6 +21,7 @@ from ado.core.resources import (
     CoreResourceKinds,
 )
 from ado.utilities.annotations import unwrap_annotated
+from ado.utilities.lists import as_list
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -124,22 +125,6 @@ def inspect_operator_function(
     return named, hints
 
 
-def iter_resource_references(
-    value: OperationResourceInput,
-) -> list[ADOResourceReference]:
-    """Return the resource references stored in one operation input.
-
-    Args:
-        value: A single resource reference, or a list of references.
-
-    Returns:
-        The references. A scalar reference is wrapped in a one-element list.
-    """
-    if isinstance(value, list):
-        return value
-    return [value]
-
-
 def discovery_spaces_from_inputs(
     inputs: dict[str, ResolvedOperatorInput],
 ) -> list[DiscoverySpace]:
@@ -157,7 +142,7 @@ def discovery_spaces_from_inputs(
     return [
         resource
         for value in inputs.values()
-        for resource in (value if isinstance(value, list) else [value])
+        for resource in as_list(value)
         if isinstance(resource, DiscoverySpace)
     ]
 
@@ -174,9 +159,7 @@ def _reference_for_operator_input(resource: OperatorInputType) -> ADOResourceRef
     Raises:
         ValueError: If *resource* is not a supported operator input type.
     """
-    if isinstance(resource, DiscoverySpace):
-        return resource.reference
-    if isinstance(resource, DataContainerResource):
+    if isinstance(resource, DiscoverySpace | DataContainerResource):
         return resource.reference
     raise ValueError(
         f"Resolved input has unsupported type {type(resource)!r}; "
@@ -339,7 +322,7 @@ def project_contexts_from_inputs(
     return [
         (name, resource.project_context)
         for name, value in inputs.items()
-        for resource in (value if isinstance(value, list) else [value])
+        for resource in as_list(value)
         if isinstance(resource, DiscoverySpace)
     ]
 
@@ -380,7 +363,21 @@ def _resolve_one_reference(
     reference: ADOResourceReference,
     metastore: SQLStore,
 ) -> OperatorInputType:
-    """Resolve a single named resource reference to a rich operator-input object."""
+    """Resolve a single named resource reference to a rich operator-input object.
+
+    Args:
+        name: Input name, used in error messages.
+        reference: The reference to resolve. Its ``kind`` must be set.
+        metastore: Metastore used to load the referenced resource.
+
+    Returns:
+        The rich operator-input object for *reference*.
+
+    Raises:
+        ValueError: If ``reference.kind`` is not set or has no resolver.
+        ResourceDoesNotExistError: If the identifier does not exist in the
+            project's metastore.
+    """
     if reference.kind is None:
         raise ValueError(f"Input '{name}' has no kind set")
 
@@ -462,7 +459,7 @@ def verify_inputs_exist_in_metastore(
     identifiers = {
         _reference_for_operator_input(resource).identifier
         for value in inputs.values()
-        for resource in (value if isinstance(value, list) else [value])
+        for resource in as_list(value)
     }
     metastore.has_resources_with_identifiers(identifiers, raise_if_missing=True)
 

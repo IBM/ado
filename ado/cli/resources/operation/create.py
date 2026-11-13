@@ -176,7 +176,11 @@ def _add_operation_input_for_reference(
     raw_operation_configuration: dict,
     reference: ADOResourceReference,
 ) -> None:
-    """Set one named input reference on a raw operation configuration.
+    """Bind one resource reference to an operator input of a raw configuration.
+
+    The reference is stored under the operator input resolved by
+    ``_operator_input_descriptor_for_kind``. For a list input, it is appended
+    to the references already set.
 
     Args:
         raw_operation_configuration: Raw operation resource configuration dict.

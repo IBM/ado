@@ -29,7 +29,10 @@ from ado.core.resources import ADOResourceReference, CoreResourceKinds
 def _operation_inputs_template(
     operator: object | None,
 ) -> dict[str, ADOResourceReference | list[ADOResourceReference]]:
-    """Build template ``inputs`` from recorded resource inputs, or one space."""
+    """Build template ``inputs`` from recorded resource inputs, or one space.
+
+    A list input gets a one-element list of placeholder references.
+    """
 
     required_resource_inputs = getattr(operator, "required_resource_inputs", None)
     if not required_resource_inputs:

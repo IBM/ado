@@ -125,16 +125,15 @@ def _operator_input_descriptor_for_kind(
 ) -> ADOResourcePropertyDescriptor:
     """Resolve the operator input descriptor for a resource *kind*.
 
-    Uses the operator's declared resource inputs. When several inputs share
-    *kind*, prefers a unique list input, then an input that is not yet set under
-    ``inputs``.
+    Uses the operator's ``required_resource_inputs``. When several inputs share
+    *kind*, prefers a unique list input, then an input that is not yet present.
 
     Args:
         raw_operation_configuration: The raw operation resource configuration.
         kind: The resource kind to find an input for.
 
     Returns:
-        The matching operator resource input descriptor.
+        The resource-input descriptor to set.
 
     Raises:
         ValueError: If ``operation.module`` is not a recognised form, the
@@ -145,12 +144,10 @@ def _operator_input_descriptor_for_kind(
     operator_label, required_resource_inputs = _resource_inputs_for_module(module)
     inputs_of_kind = [
         descriptor for descriptor in required_resource_inputs if descriptor.kind == kind
-    inputs_of_kind = [
-        descriptor for descriptor in declared_resource_inputs if descriptor.kind == kind
     ]
     if not inputs_of_kind:
         raise ValueError(
-            f"Operator {operator_name!r} has no resource input of kind {kind.value!r}."
+            f"Operator {operator_label!r} has no resource input of kind {kind.value!r}."
         )
     if len(inputs_of_kind) == 1:
         return inputs_of_kind[0]
@@ -170,18 +167,6 @@ def _operator_input_descriptor_for_kind(
     input_identifiers_of_kind = [descriptor.identifier for descriptor in inputs_of_kind]
     raise ValueError(
         f"Operator {operator_label!r} has multiple {kind.value!r} inputs "
-        f"{input_identifiers_of_kind}; set them explicitly in the operation YAML."
-    inputs_already_set = raw_operation_configuration.get("inputs", {})
-    unset_input_descriptors = [
-        descriptor
-        for descriptor in inputs_of_kind
-        if descriptor.identifier not in inputs_already_set
-    ]
-    if len(unset_input_descriptors) == 1:
-        return unset_input_descriptors[0]
-    input_identifiers_of_kind = [descriptor.identifier for descriptor in inputs_of_kind]
-    raise ValueError(
-        f"Operator {operator_name!r} has multiple {kind.value!r} inputs "
         f"{input_identifiers_of_kind}; set them explicitly in the operation YAML."
     )
 
@@ -205,18 +190,21 @@ def _add_operation_input_for_reference(
     descriptor = _operator_input_descriptor_for_kind(
         raw_operation_configuration, reference.kind
     )
-    serialized_reference = reference.model_dump(mode="json")
-    operation_inputs = raw_operation_configuration.setdefault("inputs", {})
+    payload = {
+        "identifier": reference.identifier,
+        "kind": reference.kind.value,
+    }
+    inputs = raw_operation_configuration.setdefault("inputs", {})
     if descriptor.isList:
-        existing_input_value = operation_inputs.get(descriptor.identifier)
-        if existing_input_value is None:
-            existing_input_value = []
-        elif not isinstance(existing_input_value, list):
-            existing_input_value = [existing_input_value]
-        existing_input_value.append(serialized_reference)
-        operation_inputs[descriptor.identifier] = existing_input_value
+        existing = inputs.get(descriptor.identifier)
+        if isinstance(existing, list):
+            existing.append(payload)
+        elif existing is None:
+            inputs[descriptor.identifier] = [payload]
+        else:
+            inputs[descriptor.identifier] = [existing, payload]
     else:
-        operation_inputs[descriptor.identifier] = serialized_reference
+        inputs[descriptor.identifier] = payload
     if reference.kind == CoreResourceKinds.DISCOVERYSPACE:
         raw_operation_configuration.pop("spaces", None)
 

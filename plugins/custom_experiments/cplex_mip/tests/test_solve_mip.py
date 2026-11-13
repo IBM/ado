@@ -61,7 +61,7 @@ class TestRequiredProperties:
 
 class TestOptionalProperties:
     def test_all_optional_properties_present(self, experiment: Experiment) -> None:
-        """All fifteen optional properties must be defined."""
+        """All twenty optional properties must be defined."""
         optional_ids = {p.identifier for p in experiment.optionalProperties}
         expected = {
             "n_seeds",
@@ -79,6 +79,13 @@ class TestOptionalProperties:
             "warm_start_file",
             "export_solution",
             "qtolin",
+            "presolve",
+            "node_subalgorithm",
+            "search_strategy",
+            "best_bound_interval",
+            "symmetry",
+            "qpmakepsd",
+            "polish_after_s",
         }
         assert expected == optional_ids
 
@@ -148,6 +155,13 @@ class TestOptionalProperties:
             p for p in experiment.optionalProperties if p.identifier == "qtolin"
         )
         assert sorted(prop.propertyDomain.values) == [-1, 0, 1]
+
+    def test_presolve_domain_values(self, experiment: Experiment) -> None:
+        """presolve domain must be [0, 1]."""
+        prop = next(
+            p for p in experiment.optionalProperties if p.identifier == "presolve"
+        )
+        assert sorted(prop.propertyDomain.values) == [0, 1]
 
     def test_time_limit_domain_type(self, experiment: Experiment) -> None:
         """time_limit_s must be continuous with a nonnegative range including 1e75."""
@@ -262,6 +276,13 @@ class TestDefaultParameterization:
             p.property.identifier: p.value for p in experiment.defaultParameterization
         }
         assert param_map["qtolin"] == -1
+
+    def test_presolve_default(self, experiment: Experiment) -> None:
+        """Default presolve must be 1 (CPLEX default, presolve on)."""
+        param_map = {
+            p.property.identifier: p.value for p in experiment.defaultParameterization
+        }
+        assert param_map["presolve"] == 1
 
     def test_parallel_default(self, experiment: Experiment) -> None:
         """Default parallel must be True (Ray remote execution)."""
@@ -459,6 +480,29 @@ class TestSolveMipVectorOutput:
             )
 
         assert seen == [True, True]
+
+    def test_presolve_passed_to_run_single_seed(
+        self, solve_mip_func: Callable[..., Any]
+    ) -> None:
+        """presolve must be forwarded to _run_single_seed."""
+        seen: list[int] = []
+
+        def capture(**kw: Any) -> dict[str, Any]:  # noqa: ANN401
+            seen.append(kw["presolve"])
+            return self._make_seed_result(kw["seed"])
+
+        with patch(
+            "cplex_mip_experiments.solve_mip._run_single_seed",
+            side_effect=capture,
+        ):
+            solve_mip_func(
+                mps_file=DEFAULT_MPS,
+                n_seeds=2,
+                presolve=0,
+                parallel=False,
+            )
+
+        assert seen == [0, 0]
 
     def test_seeds_are_zero_indexed_and_sequential(
         self, solve_mip_func: Callable[..., Any]
@@ -1521,3 +1565,282 @@ class TestSolveMipWorkmemPropagation:
         expected_workmem_mb = int(fake_mem_bytes / (1024**2) * 0.80)
         assert len(captured_workmem) == 2
         assert all(w == expected_workmem_mb for w in captured_workmem)
+
+
+@pytest.mark.skipif(not HAS_CPLEX, reason="CPLEX Python API not installed")
+class TestPresolve:
+    @pytest.mark.parametrize("presolve", [0, 1])
+    def test_presolve_set_on_model(self, tmp_path: pathlib.Path, presolve: int) -> None:
+        """_run_single_seed sets CPLEX preprocessing.presolve before solving."""
+        import cplex
+        from cplex_mip_experiments.solve_mip import _run_single_seed
+
+        lp = tmp_path / "tiny.lp"
+        lp.write_text(
+            "Minimize\n obj: - x - y\nSubject To\n c1: x + y <= 1\n"
+            "Binaries\n x y\nEnd\n"
+        )
+        seen: list[int] = []
+        original_solve = cplex.Cplex.solve
+
+        def recording_solve(self: Any) -> None:  # noqa: ANN401
+            seen.append(self.parameters.preprocessing.presolve.get())
+            original_solve(self)
+
+        with patch.object(cplex.Cplex, "solve", recording_solve):
+            result = _run_single_seed(
+                mps_file=str(lp),
+                seed=0,
+                seed_index=0,
+                n_seeds=1,
+                node_selection=1,
+                variable_selection=0,
+                heuristic_frequency=0,
+                time_limit_s=10.0,
+                n_threads=1,
+                rins_frequency=0,
+                cut_passes=0,
+                presolve=presolve,
+            )
+
+        assert seen == [presolve]
+        assert result["objective_value"] == pytest.approx(-1.0)
+
+
+#: New search-control properties: (identifier, CPLEX parameter path, domain, default,
+#: non-default value to check).
+SEARCH_CONTROL_PROPERTIES = [
+    ("node_subalgorithm", "mip.strategy.subalgorithm", [0, 1, 2, 3, 4, 5], 0, 2),
+    ("search_strategy", "mip.strategy.search", [0, 1, 2], 0, 1),
+    ("best_bound_interval", "mip.strategy.bbinterval", [0, 1, 7, 20], 7, 0),
+    ("symmetry", "preprocessing.symmetry", [-1, 0, 1, 2, 3, 4, 5], -1, 0),
+    ("qpmakepsd", "preprocessing.qpmakepsd", [0, 1], 1, 0),
+]
+
+
+class TestSearchControlProperties:
+    @pytest.mark.parametrize(
+        ("identifier", "domain"),
+        [(i, d) for i, _, d, _, _ in SEARCH_CONTROL_PROPERTIES],
+    )
+    def test_domain_values(
+        self, experiment: Experiment, identifier: str, domain: list[int]
+    ) -> None:
+        """Each search-control property has its CPLEX value domain."""
+        prop = next(
+            p for p in experiment.optionalProperties if p.identifier == identifier
+        )
+        assert sorted(prop.propertyDomain.values) == domain
+
+    @pytest.mark.parametrize(
+        ("identifier", "default"),
+        [(i, d) for i, _, _, d, _ in SEARCH_CONTROL_PROPERTIES],
+    )
+    def test_default_is_cplex_default(
+        self, experiment: Experiment, identifier: str, default: int
+    ) -> None:
+        """Each search-control property defaults to the CPLEX default."""
+        param_map = {
+            p.property.identifier: p.value for p in experiment.defaultParameterization
+        }
+        assert param_map[identifier] == default
+
+    @pytest.mark.parametrize(
+        ("identifier", "value"),
+        [(i, v) for i, _, _, _, v in SEARCH_CONTROL_PROPERTIES],
+    )
+    def test_passed_to_run_single_seed(
+        self, solve_mip_func: Callable[..., Any], identifier: str, value: int
+    ) -> None:
+        """Each search-control property is forwarded to _run_single_seed."""
+        seen: list[int] = []
+
+        def capture(**kw: Any) -> dict[str, Any]:  # noqa: ANN401
+            seen.append(kw[identifier])
+            return TestSolveMipVectorOutput()._make_seed_result(kw["seed"])
+
+        with patch(
+            "cplex_mip_experiments.solve_mip._run_single_seed",
+            side_effect=capture,
+        ):
+            solve_mip_func(
+                mps_file=DEFAULT_MPS,
+                n_seeds=2,
+                parallel=False,
+                **{identifier: value},
+            )
+
+        assert seen == [value, value]
+
+
+@pytest.mark.skipif(not HAS_CPLEX, reason="CPLEX Python API not installed")
+class TestSearchControlOnModel:
+    @pytest.mark.parametrize(
+        ("identifier", "path", "value"),
+        [(i, p, v) for i, p, _, _, v in SEARCH_CONTROL_PROPERTIES],
+    )
+    def test_set_on_model(
+        self, tmp_path: pathlib.Path, identifier: str, path: str, value: int
+    ) -> None:
+        """_run_single_seed sets the CPLEX parameter before solving."""
+        import cplex
+        from cplex_mip_experiments.solve_mip import _run_single_seed
+
+        lp = tmp_path / "tiny.lp"
+        lp.write_text(
+            "Minimize\n obj: - x - y\nSubject To\n c1: x + y <= 1\n"
+            "Binaries\n x y\nEnd\n"
+        )
+        seen: list[int] = []
+        original_solve = cplex.Cplex.solve
+
+        def recording_solve(self: Any) -> None:  # noqa: ANN401
+            param = self.parameters
+            for part in path.split("."):
+                param = getattr(param, part)
+            seen.append(param.get())
+            original_solve(self)
+
+        with patch.object(cplex.Cplex, "solve", recording_solve):
+            result = _run_single_seed(
+                mps_file=str(lp),
+                seed=0,
+                seed_index=0,
+                n_seeds=1,
+                node_selection=1,
+                variable_selection=0,
+                heuristic_frequency=0,
+                time_limit_s=10.0,
+                n_threads=1,
+                rins_frequency=0,
+                cut_passes=0,
+                **{identifier: value},
+            )
+
+        assert seen == [value]
+        assert result["objective_value"] == pytest.approx(-1.0)
+
+
+def _write_tolerance_knapsack(path: pathlib.Path) -> None:
+    """Write a 40-item knapsack that CPLEX stops at the relative gap tolerance."""
+    import random
+
+    rng = random.Random(1)  # noqa: S311 - fixed test data
+    weights = [rng.randint(100000, 999999) for _ in range(40)]
+    values = [w + rng.randint(-1000, 1000) for w in weights]
+    terms = " + ".join(f"{v} x{i}" for i, v in enumerate(values))
+    capacity_terms = " + ".join(f"{w} x{i}" for i, w in enumerate(weights))
+    names = " ".join(f"x{i}" for i in range(40))
+    path.write_text(
+        f"Maximize\n obj: {terms}\nSubject To\n cap: {capacity_terms} <= "
+        f"{sum(weights) // 2}\nBinaries\n {names}\nEnd\n"
+    )
+
+
+@pytest.mark.skipif(not HAS_CPLEX, reason="CPLEX Python API not installed")
+class TestFinalBoundAtGapTolerance:
+    @pytest.mark.parametrize("progress_interval_s", [0, 60])
+    def test_best_bound_matches_final_gap(
+        self, tmp_path: pathlib.Path, progress_interval_s: float
+    ) -> None:
+        """A solve stopped at the gap tolerance reports CPLEX's final bound."""
+        from cplex_mip_experiments.solve_mip import _run_single_seed
+
+        lp = tmp_path / "knapsack.lp"
+        _write_tolerance_knapsack(lp)
+        result = _run_single_seed(
+            mps_file=str(lp),
+            seed=0,
+            seed_index=0,
+            n_seeds=1,
+            node_selection=1,
+            variable_selection=0,
+            heuristic_frequency=0,
+            time_limit_s=60.0,
+            n_threads=1,
+            rins_frequency=0,
+            cut_passes=0,
+            progress_interval_s=progress_interval_s,
+        )
+
+        assert result["solve_status"] == "integer optimal, tolerance"
+        assert 0 < result["mip_gap"] <= 1e-4
+        objective = result["objective_value"]
+        assert result["best_bound"] == pytest.approx(
+            objective + result["mip_gap"] * abs(objective), rel=1e-9
+        )
+
+
+class TestPolishAfter:
+    def test_domain_is_non_negative_seconds(self, experiment: Experiment) -> None:
+        """polish_after_s accepts 0 up to and including 1e75 seconds."""
+        prop = next(
+            p for p in experiment.optionalProperties if p.identifier == "polish_after_s"
+        )
+        low, high = prop.propertyDomain.domainRange
+        assert low == 0
+        assert high > 1e75
+
+    def test_default_is_off(self, experiment: Experiment) -> None:
+        """polish_after_s defaults to 1e75, CPLEX's value for never polishing."""
+        param_map = {
+            p.property.identifier: p.value for p in experiment.defaultParameterization
+        }
+        assert param_map["polish_after_s"] == 1e75
+
+    def test_passed_to_run_single_seed(
+        self, solve_mip_func: Callable[..., Any]
+    ) -> None:
+        """polish_after_s is forwarded to _run_single_seed."""
+        seen: list[float] = []
+
+        def capture(**kw: Any) -> dict[str, Any]:  # noqa: ANN401
+            seen.append(kw["polish_after_s"])
+            return TestSolveMipVectorOutput()._make_seed_result(kw["seed"])
+
+        with patch(
+            "cplex_mip_experiments.solve_mip._run_single_seed",
+            side_effect=capture,
+        ):
+            solve_mip_func(
+                mps_file=DEFAULT_MPS, n_seeds=2, parallel=False, polish_after_s=600.0
+            )
+
+        assert seen == [600.0, 600.0]
+
+    @pytest.mark.skipif(not HAS_CPLEX, reason="CPLEX Python API not installed")
+    def test_set_on_model(self, tmp_path: pathlib.Path) -> None:
+        """_run_single_seed sets mip.polishafter.time before solving."""
+        import cplex
+        from cplex_mip_experiments.solve_mip import _run_single_seed
+
+        lp = tmp_path / "tiny.lp"
+        lp.write_text(
+            "Minimize\n obj: - x - y\nSubject To\n c1: x + y <= 1\n"
+            "Binaries\n x y\nEnd\n"
+        )
+        seen: list[float] = []
+        original_solve = cplex.Cplex.solve
+
+        def recording_solve(self: Any) -> None:  # noqa: ANN401
+            seen.append(self.parameters.mip.polishafter.time.get())
+            original_solve(self)
+
+        with patch.object(cplex.Cplex, "solve", recording_solve):
+            result = _run_single_seed(
+                mps_file=str(lp),
+                seed=0,
+                seed_index=0,
+                n_seeds=1,
+                node_selection=1,
+                variable_selection=0,
+                heuristic_frequency=0,
+                time_limit_s=10.0,
+                n_threads=1,
+                rins_frequency=0,
+                cut_passes=0,
+                polish_after_s=0.0,
+            )
+
+        assert seen == [0.0]
+        assert result["objective_value"] == pytest.approx(-1.0)

@@ -103,6 +103,7 @@ def validate_targetOutput(
                 If the number of measured entity is too small, Trim instantiates a no-priors characterization operation.
                 """,
     version="2.2.0",
+    requires_ray=True,
 )
 def trim(
     discoverySpace: DiscoverySpace,

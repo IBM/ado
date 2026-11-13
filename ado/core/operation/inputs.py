@@ -427,7 +427,6 @@ def resolve_operation_project_context(
             "input carries a project context (e.g. DataContainer-only inputs)."
         )
 
-    # ProjectContext is an unfrozen pydantic model, so it cannot be placed in a set.
     reference = carried[0][1]
     if any(ctx != reference for _, ctx in carried):
         details = ", ".join(

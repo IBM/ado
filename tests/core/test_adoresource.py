@@ -148,40 +148,23 @@ def test_ado_resource_reference(
 
 
 def test_ado_resource_property_descriptor_basics() -> None:
-    """ADOResourcePropertyDescriptor carries identifier, kind, and isList."""
+    """ADOResourcePropertyDescriptor carries identifier and kind."""
     descriptor = ADOResourcePropertyDescriptor(
         identifier="discoverySpace", kind=CoreResourceKinds.DISCOVERYSPACE
     )
     assert descriptor.identifier == "discoverySpace"
     assert descriptor.kind == CoreResourceKinds.DISCOVERYSPACE
-    assert descriptor.isList is False
-
-
-def test_ado_resource_property_descriptor_is_list_round_trip() -> None:
-    """isList survives model_dump → model_validate and defaults when omitted."""
-    original = ADOResourcePropertyDescriptor(
-        identifier="containers",
-        kind=CoreResourceKinds.DATACONTAINER,
-        isList=True,
-    )
-    restored = ADOResourcePropertyDescriptor.model_validate(original.model_dump())
-    assert restored.isList is True
-    assert restored == original
-
-    without_is_list = ADOResourcePropertyDescriptor.model_validate(
-        {"identifier": "containers", "kind": "datacontainer"}
-    )
-    assert without_is_list.isList is False
 
 
 def test_ado_resource_property_descriptor_round_trip() -> None:
     """ADOResourcePropertyDescriptor survives model_dump → model_validate."""
     original = ADOResourcePropertyDescriptor(
-        identifier="candidate", kind=CoreResourceKinds.OPERATION
+        identifier="candidate", kind=CoreResourceKinds.OPERATION, isList=True
     )
     restored = ADOResourcePropertyDescriptor.model_validate(original.model_dump())
     assert restored.identifier == original.identifier
     assert restored.kind == original.kind
+    assert restored.isList == original.isList
 
 
 def test_ado_resource_property_descriptor_extra_fields_forbidden() -> None:
@@ -224,7 +207,10 @@ def test_ado_resource_property_descriptor_is_a_property_descriptor() -> None:
     assert descriptor != different_kind
     assert descriptor != different_identifier
     assert descriptor != list_descriptor
-    assert hash(descriptor) != hash(list_descriptor)
-    assert {descriptor, same, different_kind} == {descriptor, different_kind}
+    assert {descriptor, same, different_kind, list_descriptor} == {
+        descriptor,
+        different_kind,
+        list_descriptor,
+    }
     assert descriptor == PropertyDescriptor(identifier="baseline")
     assert descriptor != PropertyDescriptor(identifier="candidate")

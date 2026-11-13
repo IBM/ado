@@ -56,7 +56,10 @@ from ray.util.scheduling_strategies import PlacementGroupSchedulingStrategy
 import ado.modules.actuators.catalog
 import ado.schema.property_value
 import ado.schema.request
-from ado.core.actuatorconfiguration.config import GenericActuatorParameters
+from ado.core.actuatorconfiguration.config import (
+    GenericActuatorParameters,
+    warn_deprecated_actuator_parameters_model_in_use,
+)
 
 # VV: If you do import ado.actuators.base and then use
 # ado.actuators.base.ActuatorBase
@@ -208,10 +211,11 @@ class ActuatorParameters(
 
         deprecated = [k for k in ("aim_dashboard_url", "aim_db") if k in values]
         if deprecated:
-            logging.getLogger("SFTTrainer").warning(
-                f"The options {deprecated} were deprecated in v1.9.0 of the ado-sfttrainer "
-                "python package and are now automatically removed. "
-                "They will be treated as errors in v2.0.0 of the package."
+            warn_deprecated_actuator_parameters_model_in_use(
+                affected_actuator="sfttrainer",
+                deprecated_from_actuator_version="v1.9.0",
+                removed_from_actuator_version="v2.0.0",
+                deprecated_fields=deprecated,
             )
             values = {k: v for k, v in values.items() if k not in deprecated}
 

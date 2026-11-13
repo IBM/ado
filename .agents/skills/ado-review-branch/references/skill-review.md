@@ -21,11 +21,13 @@ Review against the current upstream documentation instead of relying on memory.
 Clone the upstream repository, which is public and needs no authentication:
 
 ```sh
-git clone --depth 1 https://github.com/agentskills/agentskills "$(mktemp -d)"
+AGENTSKILLS_DIR="$(mktemp -d)"
+git clone --depth 1 https://github.com/agentskills/agentskills "$AGENTSKILLS_DIR"
 ```
 
-Then read `docs/specification.mdx`, the pages under `docs/skill-creation/`, and
-any other page under `docs/` that the links in
+Then read `$AGENTSKILLS_DIR/docs/specification.mdx`, the pages under
+`$AGENTSKILLS_DIR/docs/skill-creation/`, and any other page under
+`$AGENTSKILLS_DIR/docs/` that the links in
 [.agents/skills/AGENTS.md](../../AGENTS.md) reference.
 
 If the clone fails, state that in the review and fall back to

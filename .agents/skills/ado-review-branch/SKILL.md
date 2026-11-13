@@ -15,6 +15,12 @@ metadata:
 ## General Rules
 
 - Review the committed changes in the current branch
+- Run mutation checks, linting, and tests in a detached worktree of `HEAD`, so
+  uncommitted work is neither touched nor linted
+  - create it with `git worktree add --detach "$REVIEW_DIR" HEAD`, where
+    `REVIEW_DIR` is a fresh directory from `mktemp -d`
+  - run `uv` commands from inside it
+  - remove it with `git worktree remove --force "$REVIEW_DIR"` when finished
 - Do not assume — verify claims by reading the relevant code or running a short
   script. Never report a finding based on what code looks like it might do;
   confirm it first.
@@ -87,8 +93,8 @@ violations as `test` findings, and additionally:
   reverted. Do not report a missing test for code AGENTS.md says not to test.
 - **Verify by mutation** — when a test looks weak, confirm it by temporarily
   breaking the code under test and running that test; do not report a test as
-  banal on appearance alone. Start from a clean working tree and restore the
-  edited file with `git restore <file>` afterwards.
+  banal on appearance alone. Edit only files in the review worktree and restore
+  each with `git restore <file>` afterwards.
 
 ### Plugin versioning
 
@@ -102,8 +108,8 @@ report violations with these severities:
 
 ### Linting
 
-Run `uv run pre-commit run -a` and report each failure as a finding tagged
-`lint`. These issues block commits.
+Run `uv run pre-commit run -a` in the review worktree and report each failure
+as a finding tagged `lint`. These issues block commits.
 
 ## Skill Review
 

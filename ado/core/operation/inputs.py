@@ -171,24 +171,22 @@ def discovery_spaces_from_inputs(
     Returns:
         Discovery spaces in input iteration order.
     """
-    spaces: list[DiscoverySpace] = []
-    for value in inputs.values():
-        spaces.extend(
-            resource
-            for resource in iter_resolved_inputs(value)
-            if isinstance(resource, DiscoverySpace)
-        )
-    return spaces
+    return [
+        resource
+        for value in inputs.values()
+        for resource in (value if isinstance(value, list) else [value])
+        if isinstance(resource, DiscoverySpace)
+    ]
 
 
 def _reference_for_operator_input(resource: OperatorInputType) -> ADOResourceReference:
-    """Return the metastore reference for one resolved operator input.
+    """Return the resource reference for a resolved operator input.
 
     Args:
         resource: A discovery space or data container.
 
     Returns:
-        The resource's metastore reference.
+        An ADOResourceReference holding the kind and identifier of *resource*.
 
     Raises:
         ValueError: If *resource* is not a supported operator input type.
@@ -233,7 +231,12 @@ def resource_references_from_resolved_inputs(
 def _resource_input_from_annotation(
     hint: object, param_name: str
 ) -> tuple[CoreResourceKinds, bool]:
-    """Return the resource kind and list flag for a parameter annotation.
+    """Return the resource kind of a parameter annotation and whether it is a list.
+
+    The annotation must be a type registered in
+    ``KIND_FOR_OPERATOR_INPUT_TYPE``, or a list of exactly one such type.
+    ``Annotated`` wrappers on the annotation and on the list item type are
+    unwrapped.
 
     Args:
         hint: Resolved type annotation, possibly wrapped in ``Annotated``.
@@ -243,32 +246,25 @@ def _resource_input_from_annotation(
         The resource kind and whether the annotation is a list of that kind.
 
     Raises:
-        ValueError: If the annotation is not a supported resource type, or a
-            list of exactly one supported resource type.
+        ValueError: If the annotation is neither a registered type nor a list
+            of exactly one registered type.
     """
-    unwrapped = unwrap_annotated(hint)
-    is_list = False
-    if typing.get_origin(unwrapped) is list:
-        element_args = typing.get_args(unwrapped)
-        element = unwrap_annotated(element_args[0]) if len(element_args) == 1 else None
-        if element is None or typing.get_origin(element) is not None:
-            supported = sorted(t.__name__ for t in KIND_FOR_OPERATOR_INPUT_TYPE)
-            raise ValueError(
-                f"Operator function parameter {param_name!r} must be annotated "
-                f"with one of {supported}, or a list of one of those types, "
-                f"got {unwrapped!r}."
-            )
-        unwrapped = element
-        is_list = True
+    annotation = unwrap_annotated(hint)
+    list_type_arguments = typing.get_args(annotation)
+    is_list = typing.get_origin(annotation) is list and len(list_type_arguments) == 1
+    resource_type = unwrap_annotated(list_type_arguments[0]) if is_list else annotation
 
-    kind = KIND_FOR_OPERATOR_INPUT_TYPE.get(unwrapped)  # type: ignore[arg-type]
-    if kind is None:
-        supported = sorted(t.__name__ for t in KIND_FOR_OPERATOR_INPUT_TYPE)
+    resource_kind = KIND_FOR_OPERATOR_INPUT_TYPE.get(resource_type)  # type: ignore[arg-type]
+    if resource_kind is None:
+        supported_type_names = sorted(
+            input_type.__name__ for input_type in KIND_FOR_OPERATOR_INPUT_TYPE
+        )
         raise ValueError(
             f"Operator function parameter {param_name!r} must be annotated "
-            f"with one of {supported}, got {unwrapped!r}."
+            f"with one of {supported_type_names}, or a list of one of those "
+            f"types, got {annotation!r}."
         )
-    return kind, is_list
+    return resource_kind, is_list
 
 
 def resource_inputs_from_operator_function(
@@ -355,16 +351,14 @@ def project_contexts_from_inputs(
         ``(name, ProjectContext)`` pairs in input iteration order. Empty when
         no input carries a project context.
     """
-    result: list[tuple[str, ProjectContext]] = []
-    for name, value in inputs.items():
-        # At the moment only DiscoverySpace carries context.
-        # This may change with addition of new operator input types
-        result.extend(
-            (name, resource.project_context)
-            for resource in iter_resolved_inputs(value)
-            if isinstance(resource, DiscoverySpace)
-        )
-    return result
+    # At the moment only DiscoverySpace carries context.
+    # This may change with addition of new operator input types
+    return [
+        (name, resource.project_context)
+        for name, value in inputs.items()
+        for resource in (value if isinstance(value, list) else [value])
+        if isinstance(resource, DiscoverySpace)
+    ]
 
 
 def _resolve_discoveryspace(
@@ -563,15 +557,12 @@ def resource_references_to_rich_types(
         ResourceDoesNotExistError: If an identifier does not exist in the
             project's metastore.
     """
-    resolved: dict[str, ResolvedOperatorInput] = {}
+    return {
+        name: (
+            [_resolve_one_reference(name, reference, metastore) for reference in value]
+            if isinstance(value, list)
+            else _resolve_one_reference(name, value, metastore)
+        )
+        for name, value in resource_references.items()
+    }
 
-    for name, value in resource_references.items():
-        if isinstance(value, list):
-            resolved[name] = [
-                _resolve_one_reference(name, reference, metastore)
-                for reference in value
-            ]
-        else:
-            resolved[name] = _resolve_one_reference(name, value, metastore)
-
-    return resolved

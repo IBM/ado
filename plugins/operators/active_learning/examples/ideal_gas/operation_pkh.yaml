@@ -1,0 +1,25 @@
+# Copyright IBM Corporation 2025, 2026
+# SPDX-License-Identifier: MIT
+spaces:
+  - replace-with-a-space-identifier
+operation:
+  module:
+    operationType: characterize
+    operatorName: pkh
+  parameters:
+    numberEntities: 20
+    finalPredictor: random_forest
+    targetOutput: pressure
+    pilotSize: 5
+    pilotStrategy: random
+    maxFeatures: sqrt
+    epochLength: 10
+    seed: 42
+    nJobs: 1
+    outputDirectory: pkh_models
+metadata:
+  name: pkh-ideal-gas-example
+  description: Measure twenty ideal-gas configurations selected by PKH.
+  labels:
+    example: ideal-gas
+    operator: pkh

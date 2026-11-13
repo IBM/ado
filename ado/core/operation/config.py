@@ -26,6 +26,7 @@ from ado.modules.module import (
     load_module_class_or_function,
 )
 from ado.schema.measurementspace import MeasurementSpaceConfiguration
+from ado.utilities.lists import as_list
 from ado.utilities.pydantic import StrictSemVerStr, ignore_plugin_validation
 
 if typing.TYPE_CHECKING:
@@ -640,7 +641,7 @@ class DiscoveryOperationResourceConfiguration(pydantic.BaseModel):
         return [
             reference.identifier
             for entry in self.inputs.values()
-            for reference in (entry if isinstance(entry, list) else [entry])
+            for reference in as_list(entry)
             if reference.kind == CoreResourceKinds.DISCOVERYSPACE
             or (reference.kind is None and reference.identifier.startswith("space-"))
         ]
@@ -701,8 +702,9 @@ class DiscoveryOperationResourceConfiguration(pydantic.BaseModel):
         :attr:`~ado.core.resources.CoreResourceKinds.DISCOVERYSPACE`.
 
         Raises:
-            ValueError: If ``inputs`` is empty, has more than one entry, or an
-                entry's kind is missing or is not a discoveryspace.
+            ValueError: If ``inputs`` is empty, has more than one entry, an
+                entry is a list, or an entry's kind is missing or is not a
+                discoveryspace.
         """
         if not self.inputs:
             raise ValueError(
@@ -766,8 +768,10 @@ class DiscoveryOperationResourceConfiguration(pydantic.BaseModel):
 
         Raises:
             ValueError: If ``inputs`` is empty, an input name is undeclared, a
-                kind mismatches its binding, a required input is missing, or a
-                script input has a missing or wrong kind.
+                list is given for a scalar parameter, a list parameter is
+                empty, a kind mismatches its binding, a required input is
+                missing, or a script input is a list or has a missing or wrong
+                kind.
         """
         if ignore_plugin_validation(info):
             return self
@@ -824,7 +828,7 @@ class DiscoveryOperationResourceConfiguration(pydantic.BaseModel):
                     "parameter is a scalar resource."
                 )
 
-            references = entry if isinstance(entry, list) else [entry]
+            references = as_list(entry)
             if descriptor.isList:
                 if not references:
                     raise ValueError(

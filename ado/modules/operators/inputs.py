@@ -42,7 +42,6 @@ _ALLOWED_INPUT_KINDS: dict[DiscoveryOperationEnum, frozenset[CoreResourceKinds]]
 _MIN_RESOURCE_INPUT_COUNT: dict[DiscoveryOperationEnum, int] = {
     DiscoveryOperationEnum.FUSE: 2,
     DiscoveryOperationEnum.COMPARE: 2,
-    DiscoveryOperationEnum.SUMMARIZE: 1,
 }
 
 # Exact required count. Operation types absent from this map have no exact count.

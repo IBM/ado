@@ -168,9 +168,9 @@ class _LegacyOperatorWithContainer:
         )
 
 
-class TestOperatorInputNameForKind:
+class TestOperatorInputDescriptorForKind:
     def test_single_match_returns_identifier(self) -> None:
-        """One input of the requested kind returns that parameter name."""
+        """One input of the requested kind returns that parameter's descriptor."""
         with _temporary_operator(
             characterize.operators, characterize_operation, _one_container
         ) as name:
@@ -194,7 +194,7 @@ class TestOperatorInputNameForKind:
                 )
 
     def test_single_missing_input_is_chosen(self) -> None:
-        """When one input of the kind is unset, that name is returned."""
+        """When one input of the kind is unset, its descriptor is returned."""
         with _temporary_operator(fuse.operators, fuse_operation, _two_spaces) as name:
             raw = _raw_operation(
                 name,
@@ -231,7 +231,7 @@ class TestOperatorInputNameForKind:
         )
 
     def test_legacy_module_uses_recorded_resource_inputs(self) -> None:
-        """A class module binds the name recorded on its metadata."""
+        """A class module binds the input recorded on its metadata."""
         raw = {
             "operation": {
                 "module": {

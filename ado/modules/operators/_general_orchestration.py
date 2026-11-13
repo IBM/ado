@@ -55,8 +55,8 @@ def run_general_operation_core_closure(
 
     Args:
         operation_function: The callable stored on the operator metadata.
-        inputs: Mapping of parameter name to rich resource, passed as keyword
-            arguments.
+        inputs: Mapping of parameter name to a rich resource or list of rich
+            resources, passed as keyword arguments.
         operationInfo: Runtime operation context.
         operation_parameters: Validated instance of the operator's configuration model.
 
@@ -89,7 +89,8 @@ def orchestrate_general_operation(
     Args:
         operator_metadata: Registered metadata for the operator.
         operation_parameters: Validated configuration model.
-        inputs: Mapping of parameter name to rich resource.
+        inputs: Mapping of parameter name to a rich resource or list of rich
+            resources.
         operation_info: Operation metadata, including project context.
         metastore: Metastore that contains every input.
 

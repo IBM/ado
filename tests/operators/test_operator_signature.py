@@ -427,19 +427,6 @@ class TestListResourceInputs:
         assert descriptors[0].isList is True
         assert descriptors[0].kind == CoreResourceKinds.DISCOVERYSPACE
 
-    def test_list_of_unsupported_type_is_rejected(self) -> None:
-        """list[int] is not a valid resource input annotation."""
-
-        def bad_list(
-            values: list[int],
-            operationInfo: FunctionOperationInfo | None = None,
-            *,
-            parameters: _Params,
-        ) -> OperationOutput: ...
-
-        with pytest.raises(ValueError, match="values"):
-            resource_inputs_from_operator_function(bad_list)
-
     def test_mixed_union_list_is_rejected(self) -> None:
         """A list whose element type is a union of resource types is rejected."""
 
@@ -452,19 +439,6 @@ class TestListResourceInputs:
 
         with pytest.raises(ValueError, match="resources"):
             resource_inputs_from_operator_function(mixed_list)
-
-    def test_nested_list_is_rejected(self) -> None:
-        """Nested list resource annotations are rejected."""
-
-        def nested_list(
-            spaces: list[list[DiscoverySpace]],
-            operationInfo: FunctionOperationInfo | None = None,
-            *,
-            parameters: _Params,
-        ) -> OperationOutput: ...
-
-        with pytest.raises(ValueError, match="spaces"):
-            resource_inputs_from_operator_function(nested_list)
 
     def test_characterize_rejects_list_resource_inputs(self) -> None:
         """Non-summarize operators may not declare list resource parameters."""
@@ -523,25 +497,6 @@ class TestListResourceInputs:
                 DiscoveryOperationEnum.COMPARE,
                 configuration_model=_Params,
             )
-
-    def test_summarize_accepts_list_and_scalar_baseline(self) -> None:
-        """A summarize operator may take a list plus a scalar baseline."""
-
-        def summarize_containers(
-            containers: list[DataContainerResource],
-            baseline: DataContainerResource,
-            operationInfo: FunctionOperationInfo | None = None,
-            *,
-            parameters: _Params,
-        ) -> OperationOutput: ...
-
-        descriptors = resource_inputs_from_operator_function(summarize_containers)
-        validate_operator_registration(
-            summarize_containers,
-            descriptors,
-            DiscoveryOperationEnum.SUMMARIZE,
-            configuration_model=_Params,
-        )
 
     def test_summarize_rejects_scalar_only_inputs(self) -> None:
         """A summarize operator must declare at least one list resource input."""

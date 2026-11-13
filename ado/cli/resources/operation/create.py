@@ -126,8 +126,10 @@ def _operator_input_descriptor_for_kind(
     """Resolve the operator input descriptor for a resource *kind*.
 
     Uses the operator's declared resource inputs. When several inputs share
-    *kind*, prefers a unique list input, then an input that is not yet set under
-    ``inputs``.
+    *kind*, selects, in order of preference:
+
+    1. the only list input, if there is exactly one;
+    2. the only input not yet set under ``inputs``, if there is exactly one.
 
     Args:
         raw_operation_configuration: The raw operation resource configuration.

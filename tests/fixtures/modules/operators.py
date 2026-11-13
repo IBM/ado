@@ -2,6 +2,9 @@
 # SPDX-License-Identifier: MIT
 import pathlib
 import sys
+import uuid
+from collections.abc import Callable, Iterator
+from contextlib import AbstractContextManager, contextmanager
 
 import pytest
 import yaml
@@ -15,8 +18,10 @@ from ado_ray_tune.operator import RayTune
 import ado.core
 from ado.core.operation.config import (
     DiscoveryOperationResourceConfiguration,
+    GenericOperatorParameters,
     OperatorModuleConf,
 )
+from ado.core.operation.operation import OperationOutput
 from ado.modules.operators.randomwalk import RandomWalk
 
 
@@ -30,6 +35,40 @@ def expected_characterize_operators() -> list[str]:
         operators = [operator for operator in operators if operator != "trim"]
 
     return operators
+
+
+@pytest.fixture
+def temporary_operator() -> Callable[..., AbstractContextManager[str]]:
+    """Return a context manager that registers an operator under a unique name.
+
+    The operator is registered with the given decorator and removed from its
+    collection when the context exits.
+    """
+
+    @contextmanager
+    def _temporary_operator(
+        collection_operators: dict,
+        decorator: Callable[..., Callable[..., OperationOutput]],
+        operator_function: Callable[..., OperationOutput],
+        configuration_model: type[
+            GenericOperatorParameters
+        ] = GenericOperatorParameters,
+    ) -> Iterator[str]:
+        """Register *operator_function* under a unique name until the context exits."""
+        name = f"test-op-{uuid.uuid4().hex[:8]}"
+        decorator(
+            name=name,
+            version="1.0.0",
+            configuration_model=configuration_model,
+            example_configuration=configuration_model(),
+            description="temporary test operator",
+        )(operator_function)
+        try:
+            yield name
+        finally:
+            collection_operators.pop(name, None)
+
+    return _temporary_operator
 
 
 @pytest.fixture

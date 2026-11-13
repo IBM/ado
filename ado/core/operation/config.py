@@ -700,6 +700,39 @@ class DiscoveryOperationResourceConfiguration(pydantic.BaseModel):
                 data["inputs"] = {"discoverySpace": {"identifier": spaces[0]}}
         return data
 
+    def requires_ray(self) -> bool:
+        """Return whether Ray must be initialized before running this operation.
+
+        Registered :class:`OperatorReference` operators declare this via
+        :attr:`OperatorMetadata.requiresRay`. Legacy
+        :class:`OperatorModuleConf` and :class:`ScriptOperatorConf` modules
+        always require Ray.
+
+        Returns:
+            True when Ray should be initialized before running the operator.
+
+        Raises:
+            TypeError: If ``operation.module`` is not an
+                :class:`OperatorReference`, :class:`ScriptOperatorConf`, or
+                :class:`OperatorModuleConf`.
+            ValueError: If the :class:`OperatorReference` operation type is
+                unknown or the operator is not registered.
+        """
+        module = self.operation.module
+        if isinstance(module, OperatorReference):
+            from ado.modules.operators.collections import (
+                operator_metadata_for_reference,
+            )
+
+            return operator_metadata_for_reference(module).requiresRay
+        if isinstance(module, ScriptOperatorConf | OperatorModuleConf):
+            return True
+        raise TypeError(
+            f"Unexpected operation.module type {type(module).__name__}: "
+            "expected OperatorReference, ScriptOperatorConf, or "
+            "OperatorModuleConf"
+        )
+
     def _validate_script_operator_inputs(self) -> None:
         """Check that a script operator has exactly one discoveryspace input.
 

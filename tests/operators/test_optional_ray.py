@@ -10,6 +10,8 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from unittest import mock
 
+import pytest
+
 import ado.modules.operators.randomwalk  # noqa: F401 — loads explore operators
 from ado.core.discoveryspace.space import DiscoverySpace
 from ado.core.operation.config import (
@@ -29,7 +31,6 @@ from ado.modules.operators.collections import (
     characterize_operation,
     explore,
 )
-from ado.modules.operators.orchestrate import operation_requires_ray
 from ado.utilities.location import SQLiteStoreConfiguration
 
 
@@ -107,16 +108,16 @@ def test_characterize_decorator_requires_ray_default_false() -> None:
         assert characterize.operators[name].requiresRay is False
 
 
-def test_operation_requires_ray_follows_operator_metadata() -> None:
-    """operation_requires_ray reads requiresRay from the registered operator."""
+def test_requires_ray_follows_operator_metadata() -> None:
+    """requires_ray reads requiresRay from the registered operator."""
     with _temporary_characterize(requires_ray=False) as name:
-        assert operation_requires_ray(_characterize_config(name)) is False
+        assert _characterize_config(name).requires_ray() is False
 
     with _temporary_characterize(requires_ray=True) as name:
-        assert operation_requires_ray(_characterize_config(name)) is True
+        assert _characterize_config(name).requires_ray() is True
 
 
-def test_operation_requires_ray_true_for_explore_reference() -> None:
+def test_requires_ray_true_for_explore_reference() -> None:
     """Explore operator references always require Ray."""
     config = DiscoveryOperationResourceConfiguration(
         operation=DiscoveryOperationConfiguration(
@@ -133,10 +134,10 @@ def test_operation_requires_ray_true_for_explore_reference() -> None:
             )
         },
     )
-    assert operation_requires_ray(config) is True
+    assert config.requires_ray() is True
 
 
-def test_operation_requires_ray_true_for_script_operator() -> None:
+def test_requires_ray_true_for_script_operator() -> None:
     """Script operators conservatively require Ray."""
     config = DiscoveryOperationResourceConfiguration.model_construct(
         operation=DiscoveryOperationConfiguration.model_construct(
@@ -145,7 +146,20 @@ def test_operation_requires_ray_true_for_script_operator() -> None:
         ),
         inputs={},
     )
-    assert operation_requires_ray(config) is True
+    assert config.requires_ray() is True
+
+
+def test_requires_ray_rejects_unexpected_module_type() -> None:
+    """requires_ray raises when operation.module is not a known type."""
+    config = DiscoveryOperationResourceConfiguration.model_construct(
+        operation=DiscoveryOperationConfiguration.model_construct(
+            module=object(),  # type: ignore[arg-type]
+            parameters={},
+        ),
+        inputs={},
+    )
+    with pytest.raises(TypeError, match=r"Unexpected operation\.module type"):
+        config.requires_ray()
 
 
 def test_orchestrate_skips_ray_init_when_not_required_locally(

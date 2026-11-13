@@ -16,8 +16,6 @@ from ado.core.operation.config import (
     DiscoveryOperationResourceConfiguration,
     FunctionOperationInfo,
     OperatorModuleConf,
-    OperatorReference,
-    ScriptOperatorConf,
 )
 from ado.core.operation.operation import OperationException, OperationOutput
 from ado.metastore.base import ResourceDoesNotExistError
@@ -80,39 +78,6 @@ def _check_if_using_unsupported_operator_module_conf(
         )
 
 
-def operation_requires_ray(
-    operation_resource_configuration: DiscoveryOperationResourceConfiguration,
-) -> bool:
-    """Return whether the configured operator needs Ray initialized.
-
-    Registered :class:`~ado.core.operation.config.OperatorReference` operators
-    declare this via :attr:`~ado.core.operation.config.OperatorMetadata.requiresRay`.
-    Explore operators always require Ray. Unknown or legacy module forms default
-    to requiring Ray so behaviour stays conservative.
-
-    Args:
-        operation_resource_configuration: The operation configuration being run.
-
-    Returns:
-        True when Ray should be initialized before running the operator.
-    """
-    module = operation_resource_configuration.operation.module
-    if isinstance(module, OperatorReference):
-        from ado.modules.operators.collections import operator_metadata_for_reference
-
-        try:
-            return operator_metadata_for_reference(module).requiresRay
-        except ValueError:
-            moduleLog.warning(
-                "Could not resolve operator metadata for %s; assuming Ray is required",
-                module,
-            )
-            return True
-    if isinstance(module, ScriptOperatorConf | OperatorModuleConf):
-        return True
-    return True
-
-
 def _initialize_ray_for_operation() -> None:
     """Initialize Ray for a local driver or reconnect inside a Ray job."""
     # If we are running with a ray runtime environment we need to handle env-vars differently
@@ -172,7 +137,7 @@ def orchestrate(
 
     _check_if_using_unsupported_operator_module_conf(operation_resource_configuration)
 
-    requires_ray = operation_requires_ray(operation_resource_configuration)
+    requires_ray = operation_resource_configuration.requires_ray()
     ray_initialized = False
     # Also initialize when running as a Ray Jobs API driver so connect,
     # SIGTERM handling, and job metadata still work for non-Ray operators.

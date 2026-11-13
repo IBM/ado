@@ -13,7 +13,6 @@ from ado.core.operation.config import (
 )
 from ado.core.operation.inputs import (
     discovery_spaces_from_inputs,
-    iter_resolved_inputs,
     iter_resource_references,
     project_contexts_from_inputs,
     resolve_operation_project_context,
@@ -56,15 +55,6 @@ def test_iter_resource_references_returns_a_list() -> None:
         ),
     ]
     assert iter_resource_references(references) == references
-
-
-def test_iter_resolved_inputs_flattens_lists() -> None:
-    """Resolved list inputs are iterated item by item."""
-    context = ProjectContext()
-    first = _Space(context, "space-a")
-    second = _Space(context, "space-b")
-    assert list(iter_resolved_inputs([first, second])) == [first, second]
-    assert list(iter_resolved_inputs(first)) == [first]
 
 
 def test_discovery_spaces_from_inputs_flattens_list_params() -> None:

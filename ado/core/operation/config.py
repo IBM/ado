@@ -637,13 +637,18 @@ class DiscoveryOperationResourceConfiguration(pydantic.BaseModel):
         Returns:
             List of discoveryspace resource identifiers in insertion order.
         """
-        return [
-            reference.identifier
-            for entry in self.inputs.values()
-            for reference in (entry if isinstance(entry, list) else [entry])
-            if reference.kind == CoreResourceKinds.DISCOVERYSPACE
-            or (reference.kind is None and reference.identifier.startswith("space-"))
-        ]
+        spaces: list[str] = []
+        for entry in self.inputs.values():
+            references = entry if isinstance(entry, list) else [entry]
+            spaces.extend(
+                reference.identifier
+                for reference in references
+                if reference.kind == CoreResourceKinds.DISCOVERYSPACE
+                or (
+                    reference.kind is None and reference.identifier.startswith("space-")
+                )
+            )
+        return spaces
 
     @pydantic.model_validator(mode="before")
     @classmethod
@@ -817,23 +822,24 @@ class DiscoveryOperationResourceConfiguration(pydantic.BaseModel):
                     f"Input '{name}' is not declared in the operator's "
                     "required_resource_inputs."
                 )
-
-            if isinstance(entry, list) and not descriptor.isList:
-                raise ValueError(
-                    f"Input '{name}' is a list but the operator "
-                    "parameter is a scalar resource."
-                )
-
-            references = entry if isinstance(entry, list) else [entry]
             if descriptor.isList:
-                if not references:
+                if isinstance(entry, list):
+                    if not entry:
+                        raise ValueError(
+                            f"Input '{name}' is empty; list resource inputs "
+                            "must contain at least one reference."
+                        )
+                    references = entry
+                else:
+                    references = [entry]
+                    self.inputs[name] = references
+            else:
+                if isinstance(entry, list):
                     raise ValueError(
-                        f"Input '{name}' is empty; list resource inputs "
-                        "must contain at least one reference."
+                        f"Input '{name}' is a list but the operator "
+                        "parameter is a scalar resource."
                     )
-                # Normalise a single reference to a one-element list
-                self.inputs[name] = references
-
+                references = [entry]
             for reference in references:
                 if reference.kind is None:
                     reference.kind = descriptor.kind

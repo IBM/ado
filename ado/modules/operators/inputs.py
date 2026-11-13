@@ -77,14 +77,14 @@ def validate_resource_inputs_for_operation_type(
         for descriptor in required_resource_inputs
         if descriptor.isList
     ]
-    is_summarize = operation_type == DiscoveryOperationEnum.SUMMARIZE
-    if list_inputs and not is_summarize:
-        raise ValueError(
-            f"Operator of type {operation_type.value!r} does not allow "
-            f"list resource inputs; found: {list_inputs}. List resource "
-            "inputs are only supported for summarize operators."
-        )
-    if is_summarize and not list_inputs:
+    if operation_type != DiscoveryOperationEnum.SUMMARIZE:
+        if list_inputs:
+            raise ValueError(
+                f"Operator of type {operation_type.value!r} does not allow "
+                f"list resource inputs; found: {list_inputs}. List resource "
+                "inputs are only supported for summarize operators."
+            )
+    elif not list_inputs:
         raise ValueError(
             "Operator of type 'summarize' requires at least one list resource input."
         )

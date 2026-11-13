@@ -34,14 +34,14 @@ if TYPE_CHECKING:
 # Project-context helpers
 # ---------------------------------------------------------------------------
 
-# Python types an operator function may receive for a resolved resource input.
-OperatorInputType = DiscoverySpace | DataContainerResource
+# # ado resource kinds an operator function can accept
+OperatorInputResourceKind = DiscoverySpace | DataContainerResource
 
-# A stored operation input: one resource reference, or a list of them.
-OperationResourceInput = ADOResourceReference | list[ADOResourceReference]
+# A reference or list of references to operator inputs
+OperationInputResourceReference = ADOResourceReference | list[ADOResourceReference]
 
 # The rich object, or list of rich objects, passed to an operator parameter.
-ResolvedOperatorInput = OperatorInputType | list[OperatorInputType]
+OperationInputResource = OperatorInputResourceKind | list[OperatorInputResourceKind]
 
 # Maps parameter type annotations to CoreResourceKinds.
 KIND_FOR_OPERATOR_INPUT_TYPE: dict[type, CoreResourceKinds] = {
@@ -126,7 +126,7 @@ def inspect_operator_function(
 
 
 def discovery_spaces_from_inputs(
-    inputs: dict[str, ResolvedOperatorInput],
+    inputs: dict[str, OperationInputResource],
 ) -> list[DiscoverySpace]:
     """Collect discovery spaces from resolved operator inputs.
 
@@ -147,7 +147,9 @@ def discovery_spaces_from_inputs(
     ]
 
 
-def _reference_for_operator_input(resource: OperatorInputType) -> ADOResourceReference:
+def _reference_for_operator_input(
+    resource: OperatorInputResourceKind,
+) -> ADOResourceReference:
     """Return the resource reference for a resolved operator input.
 
     Args:
@@ -167,10 +169,10 @@ def _reference_for_operator_input(resource: OperatorInputType) -> ADOResourceRef
     )
 
 
-def resource_references_from_resolved_inputs(
-    inputs: dict[str, ResolvedOperatorInput],
-) -> dict[str, OperationResourceInput]:
-    """Dump resolved operator inputs back to resource references.
+def references_for_operator_inputs(
+    inputs: dict[str, OperationInputResource],
+) -> dict[str, OperationInputResourceReference]:
+    """Return reference to the passed operator inputs.
 
     List parameters stay lists. Scalar parameters stay scalars.
 
@@ -185,7 +187,7 @@ def resource_references_from_resolved_inputs(
     Raises:
         ValueError: If an input has an unsupported type.
     """
-    dumped: dict[str, OperationResourceInput] = {}
+    dumped: dict[str, OperationInputResourceReference] = {}
     for name, value in inputs.items():
         if isinstance(value, list):
             dumped[name] = [_reference_for_operator_input(item) for item in value]
@@ -196,7 +198,7 @@ def resource_references_from_resolved_inputs(
 
 def _resource_input_from_annotation(
     hint: object, param_name: str
-) -> tuple[CoreResourceKinds, bool]:
+) -> tuple[OperatorInputResourceKind, bool]:
     """Return the resource kind of a parameter annotation and whether it is a list.
 
     The annotation must be a type registered in
@@ -306,7 +308,7 @@ def resource_inputs_from_operator_function(
 
 
 def project_contexts_from_inputs(
-    inputs: dict[str, ResolvedOperatorInput],
+    inputs: dict[str, OperationInputResource],
 ) -> list[tuple[str, ProjectContext]]:
     """Return ``(input_name, project_context)`` for context-carrying inputs.
 
@@ -351,7 +353,7 @@ def _resolve_datacontainer(
 
 _RESOLVERS: dict[
     CoreResourceKinds,
-    Callable[[ADOResourceReference, SQLStore], OperatorInputType],
+    Callable[[ADOResourceReference, SQLStore], OperatorInputResourceKind],
 ] = {
     CoreResourceKinds.DISCOVERYSPACE: _resolve_discoveryspace,
     CoreResourceKinds.DATACONTAINER: _resolve_datacontainer,
@@ -362,7 +364,7 @@ def _resolve_one_reference(
     name: str,
     reference: ADOResourceReference,
     metastore: SQLStore,
-) -> OperatorInputType:
+) -> OperatorInputResourceKind:
     """Resolve a single named resource reference to a rich operator-input object.
 
     Args:
@@ -394,7 +396,7 @@ def _resolve_one_reference(
 
 def resolve_operation_project_context(
     operation_info: FunctionOperationInfo | None,
-    inputs: dict[str, ResolvedOperatorInput],
+    inputs: dict[str, OperationInputResource],
 ) -> ProjectContext:
     """Resolve the project context for an operation invocation.
 
@@ -438,7 +440,7 @@ def resolve_operation_project_context(
 
 
 def verify_inputs_exist_in_metastore(
-    inputs: dict[str, ResolvedOperatorInput],
+    inputs: dict[str, OperationInputResource],
     metastore: SQLStore,
 ) -> None:
     """Assert that every operator input resource belongs to *metastore*.
@@ -465,7 +467,7 @@ def verify_inputs_exist_in_metastore(
 
 def metastore_for_operation_inputs(
     operation_info: FunctionOperationInfo | None,
-    inputs: dict[str, ResolvedOperatorInput],
+    inputs: dict[str, OperationInputResource],
 ) -> tuple[SQLStore, FunctionOperationInfo]:
     """Connect to the project's metastore and verify *inputs* exist in it.
 
@@ -504,9 +506,9 @@ def metastore_for_operation_inputs(
 
 
 def resource_references_to_rich_types(
-    resource_references: dict[str, OperationResourceInput],
+    resource_references: dict[str, OperationInputResourceReference],
     metastore: SQLStore,
-) -> dict[str, ResolvedOperatorInput]:
+) -> dict[str, OperationInputResource]:
     """Resolve named resource references to rich operator-input objects.
 
     Args:

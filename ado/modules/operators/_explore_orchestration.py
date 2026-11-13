@@ -15,7 +15,7 @@ from ado.core.operation.config import (
     OperatorMetadata,
 )
 from ado.core.operation.inputs import (
-    ResolvedOperatorInput,
+    OperationInputResource,
     discovery_spaces_from_inputs,
 )
 from ado.core.operation.operation import OperationOutput
@@ -171,7 +171,7 @@ def run_explore_operation_core_closure(
 
 def orchestrate_explore_operation(
     operator_metadata: OperatorMetadata,
-    inputs: dict[str, ResolvedOperatorInput],
+    inputs: dict[str, OperationInputResource],
     parameters: GenericOperatorParameters,
     operation_info: FunctionOperationInfo,
 ) -> OperationOutput:

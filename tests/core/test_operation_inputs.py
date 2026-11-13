@@ -14,8 +14,8 @@ from ado.core.operation.config import (
 from ado.core.operation.inputs import (
     discovery_spaces_from_inputs,
     project_contexts_from_inputs,
+    references_for_operator_inputs,
     resolve_operation_project_context,
-    resource_references_from_resolved_inputs,
     resource_references_to_rich_types,
     verify_inputs_exist_in_metastore,
 )
@@ -88,9 +88,7 @@ def test_resource_references_from_resolved_inputs_preserves_lists(
     first = make_stub_discovery_space(identifier="space-a")
     second = make_stub_discovery_space(identifier="space-b")
     third = make_stub_discovery_space(identifier="space-c")
-    dumped = resource_references_from_resolved_inputs(
-        {"batch": [first, second], "other": third}
-    )
+    dumped = references_for_operator_inputs({"batch": [first, second], "other": third})
     assert dumped["batch"] == [first.reference, second.reference]
     assert dumped["other"] == third.reference
 

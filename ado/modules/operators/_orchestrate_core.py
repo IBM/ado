@@ -19,9 +19,9 @@ from ado.core.operation.config import (
     OperatorMetadata,
 )
 from ado.core.operation.inputs import (
-    ResolvedOperatorInput,
+    OperationInputResource,
     discovery_spaces_from_inputs,
-    resource_references_from_resolved_inputs,
+    references_for_operator_inputs,
 )
 from ado.core.operation.operation import OperationException, OperationOutput
 from ado.core.operation.resource import (
@@ -133,7 +133,7 @@ def _run_operation_harness(
     operation_parameters: GenericOperatorParameters,
     operation_info: FunctionOperationInfo,
     metastore: SQLStore,
-    inputs: dict[str, ResolvedOperatorInput],
+    inputs: dict[str, OperationInputResource],
     provenance: OperationProvenanceInfo,
     operation_identifier: str | None = None,
     finalize_callback: typing.Callable[[OperationResource], None] | None = None,
@@ -165,7 +165,7 @@ def _run_operation_harness(
         OperationException: If there is an error during the operation execution.
     """
 
-    references = resource_references_from_resolved_inputs(inputs)
+    references = references_for_operator_inputs(inputs)
     spaces = discovery_spaces_from_inputs(inputs)
 
     #

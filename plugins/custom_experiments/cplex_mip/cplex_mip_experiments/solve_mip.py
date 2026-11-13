@@ -715,28 +715,21 @@ def _append_terminal_progress_sample(
 
     Best bound selection:
     - ``mip_gap == 0`` (proven optimal): best bound converges to ``objective_value``.
-    - Non-optimal (e.g. time limit): forward-fill the last callback-recorded bound.
-      The post-solve CPLEX solution API may return the incumbent rather than the
-      LP-relaxation dual bound, so it is only used as a fallback when no callback
-      samples exist (``progress_interval_s == 0``).
+    - Otherwise, when CPLEX reports a MIP gap: the post-solve best bound from
+      ``solution.MIP.get_best_objective()``, which is the final dual bound for
+      time-limited solves and for solves stopped at the gap tolerance.
+    - When no post-solve bound is available: forward-fill the last
+      callback-recorded bound.
     """
     if mip_gap is not None and mip_gap == 0.0 and objective_value is not None:
         best_bound: float | None = objective_value
     else:
         best_bound = None
-        for prev in reversed(progress_samples):
-            prev_bound = prev.get("best_bound")
-            if prev_bound is not None:
-                best_bound = prev_bound
-                break
-        if best_bound is None:
-            # No callback samples available (progress_interval_s == 0).
-            # The post-solve API may return the incumbent for non-optimal solves,
-            # so this is a best-effort fallback only.
+        if mip_gap is not None:
             import cplex
 
             try:
-                api_bound = float(model.solution.MIP.get_best_objective_value())
+                api_bound = float(model.solution.MIP.get_best_objective())
                 if abs(api_bound) < _NO_INCUMBENT_SENTINEL:
                     best_bound = api_bound
             except (
@@ -746,6 +739,12 @@ def _append_terminal_progress_sample(
                 ValueError,
             ):
                 pass
+        if best_bound is None:
+            for prev in reversed(progress_samples):
+                prev_bound = prev.get("best_bound")
+                if prev_bound is not None:
+                    best_bound = prev_bound
+                    break
 
     progress_samples.append(
         {

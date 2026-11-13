@@ -1087,12 +1087,19 @@ class TestAppendTerminalProgressSample:
         assert samples[-1]["best_bound"] == 0.005212
         assert samples[-1]["best_objective"] == 0.005212
 
-    def test_non_optimal_forward_fills_last_callback_bound(self) -> None:
-        """When mip_gap != 0.0, best_bound must be the last callback-recorded bound."""
+    def test_non_optimal_forward_fills_when_post_solve_bound_unavailable(
+        self,
+    ) -> None:
+        """Without a post-solve bound, best_bound must be the last callback bound."""
+        import sys
         from unittest.mock import MagicMock
 
         from cplex_mip_experiments.solve_mip import _append_terminal_progress_sample
 
+        mock_cplex = MagicMock()
+        mock_cplex.exceptions.CplexSolverError = RuntimeError
+        model = MagicMock()
+        model.solution.MIP.get_best_objective.side_effect = RuntimeError("no bound")
         last_callback_bound = 0.003623
         samples: list[dict] = [
             {
@@ -1103,25 +1110,30 @@ class TestAppendTerminalProgressSample:
                 "mip_gap": 0.305,
             }
         ]
-        _append_terminal_progress_sample(
-            model=MagicMock(),
-            progress_samples=samples,
-            solve_time=120.0,
-            objective_value=0.005212,
-            mip_gap=0.305,
-            nodes_explored=200,
-        )
+        with patch.dict(sys.modules, {"cplex": mock_cplex}):
+            _append_terminal_progress_sample(
+                model=model,
+                progress_samples=samples,
+                solve_time=120.0,
+                objective_value=0.005212,
+                mip_gap=0.305,
+                nodes_explored=200,
+            )
         assert samples[-1]["best_bound"] == last_callback_bound
 
-    def test_non_optimal_does_not_use_post_solve_api_when_callback_samples_exist(
+    def test_non_optimal_prefers_post_solve_bound_over_callback_bound(
         self,
     ) -> None:
-        """When callback samples are present, post-solve API must not be called."""
+        """The post-solve bound replaces an older callback-recorded bound."""
+        import sys
         from unittest.mock import MagicMock
 
         from cplex_mip_experiments.solve_mip import _append_terminal_progress_sample
 
+        mock_cplex = MagicMock()
+        mock_cplex.exceptions.CplexSolverError = RuntimeError
         model = MagicMock()
+        model.solution.MIP.get_best_objective.return_value = 0.0052
         samples: list[dict] = [
             {
                 "elapsed": 60.0,
@@ -1131,15 +1143,16 @@ class TestAppendTerminalProgressSample:
                 "mip_gap": 0.3,
             }
         ]
-        _append_terminal_progress_sample(
-            model=model,
-            progress_samples=samples,
-            solve_time=120.0,
-            objective_value=0.005212,
-            mip_gap=0.3,
-            nodes_explored=200,
-        )
-        model.solution.MIP.get_best_objective_value.assert_not_called()
+        with patch.dict(sys.modules, {"cplex": mock_cplex}):
+            _append_terminal_progress_sample(
+                model=model,
+                progress_samples=samples,
+                solve_time=120.0,
+                objective_value=0.005212,
+                mip_gap=0.0023,
+                nodes_explored=200,
+            )
+        assert samples[-1]["best_bound"] == 0.0052
 
     def test_non_optimal_no_callback_samples_uses_api_fallback(self) -> None:
         """Without callback samples, post-solve API is used as best-effort fallback."""
@@ -1149,7 +1162,7 @@ class TestAppendTerminalProgressSample:
         from cplex_mip_experiments.solve_mip import _append_terminal_progress_sample
 
         model = MagicMock()
-        model.solution.MIP.get_best_objective_value.return_value = 0.003800
+        model.solution.MIP.get_best_objective.return_value = 0.003800
 
         # Provide a stub cplex module so the lazy import inside the fallback path
         # succeeds even when the real CPLEX package is not installed.

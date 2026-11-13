@@ -17,25 +17,19 @@ to every new or modified skill on the branch.
 
 ## Upstream documentation
 
-[.agents/skills/AGENTS.md](../../AGENTS.md) links to the upstream
-specification and skill-creation documentation. Fetch the current content of
-those links, and of the pages they reference on skill content and descriptions,
-before reviewing. Review against what was fetched instead of relying on memory.
-
-Fetch the whole upstream repository instead of individual pages, so that every
-page under `docs/` can be read locally. Use the `gh` CLI when it is available
-and authenticated (`gh auth status`):
+Review against the current upstream documentation instead of relying on memory.
+Clone the upstream repository, which is public and needs no authentication:
 
 ```sh
-gh repo clone agentskills/agentskills "$TMPDIR/agentskills" -- --depth 1
+git clone --depth 1 https://github.com/agentskills/agentskills "$(mktemp -d)"
 ```
 
-Then read `docs/specification.mdx` and the pages under `docs/skill-creation/`
-from that directory. Fall back to fetching individual pages with `curl` from
-`raw.githubusercontent.com` only when `gh` is unavailable or the clone fails.
+Then read `docs/specification.mdx`, the pages under `docs/skill-creation/`, and
+any other page under `docs/` that the links in
+[.agents/skills/AGENTS.md](../../AGENTS.md) reference.
 
-If the documentation cannot be fetched, state that in the review and fall back
-to [.agents/skills/AGENTS.md](../../AGENTS.md).
+If the clone fails, state that in the review and fall back to
+[.agents/skills/AGENTS.md](../../AGENTS.md).
 
 ## Specification conformance
 
@@ -47,6 +41,7 @@ Check the skill against the fetched documentation and
   consecutive hyphens (`--`)
 - `description` is at most 1024 characters, states what the skill does and when
   to use it, and uses imperative phrasing ("Use when...")
+- every value under `metadata` is a string (for example `"true"`, not `true`)
 - `SKILL.md` is under 500 lines
 - supplementary docs are in `references/`, templates and example manifests in
   `assets/`, helper scripts in `scripts/`

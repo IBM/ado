@@ -25,7 +25,9 @@ metadata:
   - limit each finding to three sentences: the problem, why it matters if not
     obvious, and the fix
   - drop any finding that cannot be tied to a location and a fix
-- Write the review to a markdown file when finished
+- Write the review to `<branch_name>-review.md` at the repo root when finished,
+  where `<branch_name>` is the current branch name with `/` replaced by `-`,
+  unless the user names another path
 - Anchor each review comment to the file and line it refers to
   - give the location once per comment as a single markdown link to the
     primary file and line
@@ -51,14 +53,13 @@ Read [AGENTS.md](../../../AGENTS.md) in full and check every changed Python
 file against all rules it contains. Pay particular attention to these
 commonly missed areas:
 
-- **Fixture reuse** — a new fixture that duplicates one already present in
-  `tests/fixtures/` or any `conftest.py` is a `test` finding.
+- **Fixture reuse** — see the fixture rules in AGENTS.md; report violations as
+  `test` findings.
 - **Fixture placement** — a fixture used only within one subdirectory but
   defined in a parent `conftest.py` is misplaced; report it as a `test`
   finding.
-- **Naming** — variables, functions, and methods must have clear,
-  self-explanatory names; abbreviated or single-letter names outside
-  conventional loop indices are a violation.
+- **Naming** — see the naming rules in AGENTS.md; report violations as
+  `design` findings.
 - **Docstring accuracy** — for every changed function or method, read the
   implementation body and verify the docstring matches what the code actually
   does. A docstring that describes behaviour the function no longer has, or

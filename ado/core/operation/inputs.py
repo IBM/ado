@@ -172,7 +172,7 @@ def _reference_for_operator_input(
 def references_for_operator_inputs(
     inputs: dict[str, OperationInputResource],
 ) -> dict[str, OperationInputResourceReference]:
-    """Return reference to the passed operator inputs.
+    """Return the resource references for the resolved operator inputs.
 
     List parameters stay lists. Scalar parameters stay scalars.
 

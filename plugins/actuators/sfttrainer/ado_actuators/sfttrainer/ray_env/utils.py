@@ -4,6 +4,7 @@
 import contextlib
 import functools
 import os
+import re
 import typing
 
 
@@ -151,6 +152,34 @@ def apply_exclude_package_rules(
     return ret, removed
 
 
+def remove_packages_overridden_by(
+    packages: list[str], extra_packages: list[str]
+) -> list[str]:
+    """Drops the entries of packages whose package name is also in extra_packages
+
+    Args:
+        packages:
+            Package specifiers a-la pip
+        extra_packages:
+            Package specifiers a-la pip whose names must not appear in the returned list
+
+    Returns:
+        The entries of packages that do not share a package name with any entry of extra_packages
+    """
+
+    def normalized_name(specifier: str) -> str:
+        # VV: Some packages look like this: "name @ file://...."
+        name = re.split(r"[<=>!~@\[;]", specifier.replace(" ", ""), maxsplit=1)[0]
+        # VV: pip treats "-", "_", "." and letter case as equivalent in package names
+        return re.sub(r"[-_.]+", "-", name).lower()
+
+    extra_names = {normalized_name(extra) for extra in extra_packages}
+
+    return [
+        package for package in packages if normalized_name(package) not in extra_names
+    ]
+
+
 def get_pinned_packages(
     path_requirements: str,
     override_fms_hf_tuning: str | None = None,
@@ -167,21 +196,15 @@ def get_pinned_packages(
         exclude_packages:
             Packages to exclude from installation
         extra_packages:
-            Additional packages to append after all other processing
+            Additional packages to append after all other processing. Pinned
+            packages that share a package name with any of these are removed
+            first, so the entries here take precedence.
     Returns:
         An array consisting of pinned packages a-la pip
     """
 
     with open(path_requirements, encoding="utf-8") as f:
         packages = [x.strip() for x in f if x.strip() and not x.startswith("#")]
-
-    def find_matching_packages(package_name: str, packages: list[str]) -> list[str]:
-        return [
-            x
-            for x in packages
-            if x.startswith((f"{package_name}=", f"{package_name} "))
-            or x == package_name
-        ]
 
     if override_fms_hf_tuning:
         exclude_packages = [*list(exclude_packages or []), "fms-hf-tuning"]
@@ -192,6 +215,7 @@ def get_pinned_packages(
         packages.append(override_fms_hf_tuning)
 
     if extra_packages:
+        packages = remove_packages_overridden_by(packages, extra_packages)
         packages.extend(extra_packages)
 
     return packages

@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import dataclasses
 import datetime as dt
 import json
@@ -132,7 +133,7 @@ def get_cuda_device_indices(cuda_visible_devices: str) -> list[int]:
     return [cuda_mapping.get(uuid, uuid) for uuid in cuda_visible_devices.split(",")]
 
 
-class CustomCallBack(TrainerCallback):
+class ResourceTrackerCallback(TrainerCallback):
     training_steps = 0
 
     def __init__(
@@ -143,7 +144,23 @@ class CustomCallBack(TrainerCallback):
         stop_after_seconds: float = -1.0,
         auto_stop_method: constants.AutoStopMethod | None = None,
     ) -> None:
+        """Initializes the callback and its resource tracker.
 
+        Args:
+            system_tracking_interval:
+                Seconds between successive resource snapshots.
+            aggregate_metrics:
+                Whether to store the min, avg, and max of each metric instead of
+                all of its values.
+            output_info_path:
+                Path of the JSON file that receives the metrics when training ends.
+                If unset, no file is written.
+            stop_after_seconds:
+                Stops training once this many seconds have elapsed since training
+                began. A negative value disables the limit.
+            auto_stop_method:
+                The method that decides when to stop training early, or None.
+        """
         self._output_info_path = output_info_path
 
         self._stop_after_seconds = stop_after_seconds
@@ -164,8 +181,6 @@ class CustomCallBack(TrainerCallback):
             period=self._system_tracking_interval
         )
 
-        self.resource_tracker.begin_track()
-
         super().__init__()
 
     def on_log(
@@ -176,6 +191,20 @@ class CustomCallBack(TrainerCallback):
         logs: dict[str, Any] | None = None,
         **kwargs: Any,  # noqa: ANN401
     ) -> None:
+        """Processes and records logged training metrics from HuggingFace.
+
+        Args:
+            args:
+                Training arguments.
+            state:
+                Current trainer state.
+            control:
+                Trainer control flow state.
+            logs:
+                Logged metric values from the trainer.
+            **kwargs:
+                Additional keyword arguments passed to the callback.
+        """
         super().on_log(args=args, state=state, control=control, logs=logs, **kwargs)
 
         if not state.is_world_process_zero or not logs:
@@ -198,6 +227,14 @@ class CustomCallBack(TrainerCallback):
                 self._logged_metrics[key] = []
             self._logged_metrics[key].append(log_value)
 
+    def __del__(self) -> None:
+        """Stops the resource tracker when this object goes out of scope."""
+        try:
+            tracker = self.resource_tracker
+        except AttributeError:
+            return
+        tracker.end_track()
+
     def on_train_begin(
         self,
         args: TrainingArguments,
@@ -205,9 +242,23 @@ class CustomCallBack(TrainerCallback):
         control: TrainerControl,
         **kwargs: Any,  # noqa: ANN401
     ) -> None:
+        """Records the start time and starts the resource tracker.
+
+        Args:
+            args:
+                Training arguments.
+            state:
+                Current trainer state.
+            control:
+                Trainer control flow state.
+            **kwargs:
+                Additional keyword arguments passed to the callback.
+        """
         super().on_train_begin(args=args, state=state, control=control, **kwargs)
 
         self._time_started = dt.datetime.now()
+        ResourceTrackerCallback.training_steps = 0
+        self.resource_tracker.begin_track()
 
     def on_step_begin(
         self,
@@ -216,6 +267,18 @@ class CustomCallBack(TrainerCallback):
         control: TrainerControl,
         **kwargs: Any,  # noqa: ANN401
     ) -> None:
+        """Records the start time of the optimization step.
+
+        Args:
+            args:
+                Training arguments.
+            state:
+                Current trainer state.
+            control:
+                Trainer control flow state.
+            **kwargs:
+                Additional keyword arguments passed to the callback.
+        """
         super().on_step_begin(args=args, state=state, control=control, **kwargs)
         self._optimization_step_started = dt.datetime.now()
 
@@ -226,9 +289,30 @@ class CustomCallBack(TrainerCallback):
         control: TrainerControl,
         **kwargs: Any,  # noqa: ANN401
     ) -> None:
+        """Counts the step and decides whether training should stop early.
+
+        Training stops when `stop_after_seconds` has elapsed or when the
+        `auto_stop_method` has gathered enough samples. With multiple workers, it
+        stops only when all local-rank 0 workers agree.
+
+        Args:
+            args:
+                Training arguments.
+            state:
+                Current trainer state.
+            control:
+                Trainer control flow state. `should_training_stop` is set to stop
+                training.
+            **kwargs:
+                Additional keyword arguments passed to the callback.
+
+        Raises:
+            NotImplementedError:
+                If `auto_stop_method` is not a supported method.
+        """
         super().on_step_end(args=args, state=state, control=control, **kwargs)
 
-        CustomCallBack.training_steps += 1
+        ResourceTrackerCallback.training_steps += 1
 
         now = dt.datetime.now()
         elapsed = (now - self._time_started).total_seconds()
@@ -241,7 +325,6 @@ class CustomCallBack(TrainerCallback):
                 f"seconds due to stop_after_seconds={self._stop_after_seconds}",
             )
             control.should_training_stop = True
-            self.resource_tracker.end_track()
 
         if state.is_local_process_zero:
             if (
@@ -303,6 +386,7 @@ class CustomCallBack(TrainerCallback):
 
             if control.should_training_stop:
                 print("All local-rank 0 workers agree to stop early")
+                self.resource_tracker.end_track()
 
     def on_train_end(
         self,
@@ -311,7 +395,34 @@ class CustomCallBack(TrainerCallback):
         control: TrainerControl,
         **kwargs: Any,  # noqa: ANN401
     ) -> None:
+        """Stops the resource tracker and writes the collected metrics.
+
+        On the local-rank 0 process, writes the metrics to `output_info_path`,
+        discarding resource snapshots taken before training began or during warmup.
+
+        Args:
+            args:
+                Training arguments.
+            state:
+                Current trainer state.
+            control:
+                Trainer control flow state.
+            **kwargs:
+                Additional keyword arguments passed to the callback.
+
+        Raises:
+            ValueError:
+                If training start was not recorded.
+        """
         try:
+            self.resource_tracker.end_track()
+
+            if self._time_started is None:
+                raise ValueError(
+                    "ResourceTrackerCallback has not registered "
+                    "_time_started cannot collect system measurements without it"
+                )
+
             if self._output_info_path and state.is_local_process_zero:
                 format_time = "%d%m%y-%H%M%S"
                 train_time_stop = dt.datetime.now().strftime(format_time)
@@ -321,8 +432,9 @@ class CustomCallBack(TrainerCallback):
                 cuda_visible_devices = get_cuda_device_indices(cuda_visible_devices)
 
                 metrics = []
-                _skip_first_system_metrics, warmup_seconds = None, None
-                keep_after_time: dt.datetime | None = None
+                warmup_seconds = None
+                # VV: Filter out metric snapshots prior to on_train_begin()
+                keep_after_time: dt.datetime = self._time_started
 
                 if self._warmup_steps:
                     warmup_seconds = sum(
@@ -348,28 +460,9 @@ class CustomCallBack(TrainerCallback):
 
                 for name, context, values in run_metrics:
                     if self._aggregate_metrics:
-                        try:
-                            values = list(values)
-
-                            values = [x for x in values if x is not None]
-                            len_values = len(values)
-
-                            if len_values > 0:
-                                _sum = sum(values)
-                                avg = _sum / len_values
-                                _max = max(values)
-                                _min = min(values)
-                            else:
-                                avg, _max, _min = None, None, None
-
-                            values = {
-                                "avg": avg,
-                                "max": _max,
-                                "min": _min,
-                            }
-                        except ValueError:
-                            # Don't aggregate properties that are weird
-                            pass
+                        values = dataclasses.asdict(
+                            metrics_tracker.aggregate_values(list(values))
+                        )
 
                     metrics.append(
                         {
@@ -394,7 +487,7 @@ class CustomCallBack(TrainerCallback):
                             "cuda_visible_devices": cuda_visible_devices,
                             "world_rank": os.environ.get("RANK", "0"),
                             "world_size": os.environ.get("WORLD_SIZE", "1"),
-                            "training_steps": CustomCallBack.training_steps,
+                            "training_steps": ResourceTrackerCallback.training_steps,
                             "warmup_steps": self._warmup_steps,
                             "warmup_seconds": warmup_seconds,
                         },
@@ -402,7 +495,6 @@ class CustomCallBack(TrainerCallback):
                     )
         finally:
             super().on_train_end(args=args, state=state, control=control, **kwargs)
-            self.resource_tracker.end_track()
 
 
 @dataclasses.dataclass
@@ -479,6 +571,16 @@ def main() -> None:
     import tuning.sft_trainer
 
     def report_error(exception: Exception, warning: str, exception_type: str) -> None:
+        """Writes an error report to the metrics info file of this worker.
+
+        Args:
+            exception:
+                The exception to report.
+            warning:
+                The message to print to stderr.
+            exception_type:
+                The error name that is stored in the report.
+        """
         print(warning, file=sys.stderr)
         # Standard
         import traceback
@@ -497,7 +599,7 @@ def main() -> None:
         report = {
             "error": exception_type,
             "exception": str(exception),
-            "training_steps": CustomCallBack.training_steps,
+            "training_steps": ResourceTrackerCallback.training_steps,
         }
 
         with open(path, "w", encoding="utf-8") as f:
@@ -512,6 +614,12 @@ def main() -> None:
         )
 
     def report_oom(exception: Exception) -> None:
+        """Reports that the worker ran out of GPU memory.
+
+        Args:
+            exception:
+                The out-of-memory exception.
+        """
         return report_error(
             exception,
             warning="SFTTRAINER_EXCEPTION: OUT_OF_MEMORY",
@@ -519,13 +627,19 @@ def main() -> None:
         )
 
     def report_nccl_error(exception: Exception) -> None:
+        """Reports that the worker hit an NCCL error.
+
+        Args:
+            exception:
+                The NCCL exception.
+        """
         return report_error(
             exception,
             warning="SFTTRAINER_EXCEPTION: NCCL_ERROR",
             exception_type="NCCLError",
         )
 
-    callbacks: list[CustomCallBack] = []
+    callbacks: list[ResourceTrackerCallback] = []
     try:
         print("Worker started", file=sys.stderr)
 
@@ -535,7 +649,7 @@ def main() -> None:
         job_config = tuning.sft_trainer.get_json_config()
 
         callbacks = [
-            CustomCallBack(
+            ResourceTrackerCallback(
                 output_info_path=custom_args.metrics_info_path,
                 aggregate_metrics=custom_args.metrics_info_aggregate_metrics,
                 stop_after_seconds=custom_args.stop_after_seconds,
@@ -578,11 +692,11 @@ def main() -> None:
         print("Worker stopped", file=sys.stderr)
         if callbacks:
             print("Stopping the resource tracker", file=sys.stderr)
-            rt = callbacks[0].resource_tracker
-            rt.end_track()
-            total_requests = rt.metrics
+            tracker = callbacks[0].resource_tracker
+            tracker.end_track()
+            num_snapshots = len(tracker.metrics)
             print(
-                f"Resource tracker stopped after collecting {len(total_requests)} total measurements",
+                f"Resource tracker stopped after collecting {num_snapshots} system-metric snapshots",
                 file=sys.stderr,
             )
 

@@ -117,8 +117,6 @@ Dataset.
 In this section you will configure the actuator for experiments on your remote
 RayCluster.
 
-<!-- markdownlint-disable code-block-style -->
-
 Create the file `actuator_configuration.yaml` with the following contents:
 
 ```yaml
@@ -127,8 +125,6 @@ parameters:
   hf_home: /hf-models-pvc/huggingface_home
   data_directory: /data/fms-hf-tuning/artificial-dataset/
 ```
-
-<!-- markdownlint-enable code-block-style -->
 
 > [!IMPORTANT]
 >

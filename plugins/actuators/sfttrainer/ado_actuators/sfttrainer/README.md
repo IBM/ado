@@ -37,8 +37,6 @@ features.
 <!-- markdownlint-disable-next-line no-duplicate-heading -->
 ### Requirements
 
-The SFTTrainer actuator currently **supports only Python 3.11, 3.12**.
-
 You must use an `fms-hf-tuning` version **greater than `2.8.2`**. Earlier
 versions are not supported.
 
@@ -54,17 +52,17 @@ already include the appropriate version of `torch`:
 
 ### System metrics
 
-While `sft_trainer.py` runs, a background thread takes a snapshot of the node's
-resource usage every 10 seconds, plus one when training ends. When the run uses
-an auto-stop method with a warmup phase, snapshots taken during the warmup are
-discarded. The snapshots contain:
+While `sft_trainer.py` runs, a background thread takes a snapshot of the GPUs
+and of the training process's resource usage every 10 seconds, plus one when
+training ends. When the run uses an auto-stop method with a warmup phase,
+snapshots taken during the warmup are discarded. The snapshots contain:
 
 - Per GPU: compute utilization, memory utilization, and power draw as a
   percentage of the GPU's power limit. These are percentages (0 to 100).
 - Per GPU: power draw in Watts.
 - CPU compute utilization of the `sft_trainer.py` process. This is a percentage
   where 100 means one full core, so it can exceed 100.
-- Memory utilization of the whole node, as a percentage (0 to 100).
+- Memory utilization of the training process, as a percentage (0 to 100).
 
 Each GPU metric is averaged over the snapshots of each GPU, and the actuator
 reports the min, average, and max of those averages across the GPUs that the run
@@ -174,7 +172,7 @@ command-line to `sft_trainer.py` from the `fms-hf-tuning` package.
 
 Versioning:
 
-- Actuator version: `2.1.0`
+- Actuator version: `2.2.0`
 - fms-hf-tuning versions:
   - 3.1.0
     - The full list of packages is at
@@ -443,8 +441,8 @@ Notes:
   metrics for the in-use GPUs of a run.
 - (2) CPU compute and memory utilization are reported as the average of the
   snapshots. CPU compute utilization is that of the sft_trainer.py process while
-  memory utilization is that of the whole node. The total memory capacity of the
-  nodes varies from 100 GB to 400 GB. Currently, we do not store this
+  memory utilization is that of the training process. The total memory capacity
+  of the nodes varies from 100 GB to 400 GB. Currently, we do not store this
   information in our database.
 - (3) `dataset_tokens_per_second` and `dataset_tokens_per_second_per_gpu` take
   into account the `tokenizer.model_max_length` and `max_seq_length` (i.e. for
@@ -558,7 +556,7 @@ command-line to `sft_trainer.py` from the `fms-hf-tuning` package.
 
 Versioning:
 
-- Actuator version: `2.1.0`
+- Actuator version: `2.2.0`
 - fms-hf-tuning versions:
   - 3.1.0
     - The full list of packages is at
@@ -811,7 +809,7 @@ command-line to `sft_trainer.py` from the `fms-hf-tuning` package.
 
 Versioning:
 
-- Actuator version: `2.1.0`
+- Actuator version: `2.2.0`
 - fms-hf-tuning versions:
   - 3.1.0
     - The full list of packages is at
@@ -1128,8 +1126,8 @@ Notes:
   metrics for the in-use GPUs of a run.
 - (2) CPU compute and memory utilization are reported as the average of the
   snapshots. CPU compute utilization is that of the sft_trainer.py process while
-  memory utilization is that of the whole node. The total memory capacity of the
-  nodes varies from 100 GB to 400 GB. Currently, we do not store this
+  memory utilization is that of the training process. The total memory capacity
+  of the nodes varies from 100 GB to 400 GB. Currently, we do not store this
   information in our database.
 - (3) `dataset_tokens_per_second` and `dataset_tokens_per_second_per_gpu` take
   into account the `tokenizer.model_max_length` and `max_seq_length` (i.e. for
@@ -1272,7 +1270,7 @@ command-line to `sft_trainer.py` from the `fms-hf-tuning` package.
 
 Versioning:
 
-- Actuator version: `2.1.0`
+- Actuator version: `2.2.0`
 - fms-hf-tuning versions:
   - 3.1.0
     - The full list of packages is at
@@ -1552,8 +1550,8 @@ Notes:
   metrics for the in-use GPUs of a run.
 - (2) CPU compute and memory utilization are reported as the average of the
   snapshots. CPU compute utilization is that of the sft_trainer.py process while
-  memory utilization is that of the whole node. The total memory capacity of the
-  nodes varies from 100 GB to 400 GB. Currently, we do not store this
+  memory utilization is that of the training process. The total memory capacity
+  of the nodes varies from 100 GB to 400 GB. Currently, we do not store this
   information in our database.
 - (3) `dataset_tokens_per_second` and `dataset_tokens_per_second_per_gpu` take
   into account the `tokenizer.model_max_length` and `max_seq_length` (i.e. for
@@ -1687,7 +1685,7 @@ command-line to `sft_trainer.py` from the `fms-hf-tuning` package.
 
 Versioning:
 
-- Actuator version: `2.1.0`
+- Actuator version: `2.2.0`
 - fms-hf-tuning versions:
   - 3.1.0
     - The full list of packages is at
@@ -1958,8 +1956,8 @@ Notes:
   metrics for the in-use GPUs of a run.
 - (2) CPU compute and memory utilization are reported as the average of the
   snapshots. CPU compute utilization is that of the sft_trainer.py process while
-  memory utilization is that of the whole node. The total memory capacity of the
-  nodes varies from 100 GB to 400 GB. Currently, we do not store this
+  memory utilization is that of the training process. The total memory capacity
+  of the nodes varies from 100 GB to 400 GB. Currently, we do not store this
   information in our database.
 - (3) `dataset_tokens_per_second` and `dataset_tokens_per_second_per_gpu` take
   into account the `tokenizer.model_max_length` and `max_seq_length` (i.e. for

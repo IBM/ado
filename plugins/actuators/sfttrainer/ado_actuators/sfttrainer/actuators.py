@@ -203,13 +203,18 @@ class ActuatorParameters(
     @pydantic.model_validator(mode="before")
     @classmethod
     def remove_deprecated_aim_fields(
-        cls, values: dict[str, Any] | object
+        cls, values: dict[str, Any] | GenericActuatorParameters
     ) -> dict[str, Any] | object:
         """Removes the deprecated aim_dashboard_url and aim_db fields and warns about them"""
-        if not isinstance(values, dict):
+        is_dict = isinstance(values, dict)
+        if not is_dict and not isinstance(values, GenericActuatorParameters):
             return values
 
-        deprecated = [k for k in ("aim_dashboard_url", "aim_db") if k in values]
+        deprecated = [
+            k
+            for k in ("aim_dashboard_url", "aim_db")
+            if (k in values if is_dict else hasattr(values, k))
+        ]
         if deprecated:
             warn_deprecated_actuator_parameters_model_in_use(
                 affected_actuator="sfttrainer",
@@ -217,7 +222,11 @@ class ActuatorParameters(
                 removed_from_actuator_version="v2.0.0",
                 deprecated_fields=deprecated,
             )
-            values = {k: v for k, v in values.items() if k not in deprecated}
+            if is_dict:
+                values = {k: v for k, v in values.items() if k not in deprecated}
+            else:
+                for k in deprecated:
+                    delattr(values, k)
 
         return values
 
@@ -291,7 +300,7 @@ def prepare_runtime_environment(
         ),
         exclude_packages=exclude_packages,
         # VV: Need these to extract system metrics (gpu and process)
-        extra_packages=["psutil", "nvidia-ml-py"],
+        extra_packages=["psutil==7.2.2", "nvidia-ml-py==13.615.71"],
     )
 
     # VV: Detect any extra wheels and propagate them to the job e.g. sfttrainer
@@ -719,6 +728,27 @@ class SFTTrainer(ActuatorBase):
         multi_node: finetune.MultiNodeSettings | None = None,
         log_level: int | None = None,
     ) -> dict[str, float]:
+        """Launches repeated sample runs to estimate error probabilities for an entity.
+
+        Args:
+            entity_id:
+                Identifier of the entity being measured.
+            exp_id:
+                Identifier of the experiment being executed.
+            args:
+                Fine-tuning arguments for the tuning job workers.
+            method:
+                Ray remote actor method to invoke for each run.
+            distributed_settings:
+                Distributed backend and process configuration.
+            multi_node:
+                Multi-node scheduling configuration, if applicable.
+            log_level:
+                Logging level to use during the measurement.
+
+        Returns:
+            Dictionary containing error frequencies and run validity status.
+        """
         metrics = {
             "f_gpu_oom": 0,
             "f_other_error": 0,

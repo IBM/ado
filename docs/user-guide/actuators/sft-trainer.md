@@ -1636,14 +1636,14 @@ These metrics are aggregated into the following before being stored in
 ado's database.
 
 **System metrics** (GPU, CPU, and memory) are collected by a background thread
-that takes a snapshot of the node's resource usage every 10 seconds, plus one
-when training ends. When the run uses an auto-stop method with a warmup phase,
-snapshots taken during the warmup are discarded. GPU metrics are averaged over
-the snapshots of each GPU, and the actuator reports the min, average, and max of
-those averages across the GPUs that the run used. CPU and memory metrics are
-reported as the average over the snapshots. All system metrics are percentages
-except the GPU power in Watts and CPU compute utilization (100 is one full
-core, so it can exceed 100).
+that takes a snapshot of the GPUs and of the training process's resource usage
+every 10 seconds, plus one when training ends. When the run uses an auto-stop
+method with a warmup phase, snapshots taken during the warmup are discarded.
+GPU metrics are averaged over the snapshots of each GPU, and the actuator
+reports the min, average, and max of those averages across the GPUs that the
+run used. CPU and memory metrics are reported as the average over the
+snapshots. All system metrics are percentages except the GPU power in Watts
+and CPU compute utilization (100 is one full core, so it can exceed 100).
 
 #### **GPU Metrics**
 
@@ -1655,7 +1655,7 @@ core, so it can exceed 100).
 
 - **Compute Utilization**: Average CPU usage of the training process, where
   100 is one full core (%)
-- **Memory Utilization**: Average memory usage of the whole node (%)
+- **Memory Utilization**: Average memory usage of the training process (%)
 
 #### **Training Performance**
 

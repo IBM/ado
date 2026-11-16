@@ -446,6 +446,25 @@ def get_available_open_port() -> int:
 def extract_metrics(
     metrics_info_path: str, number_gpus: int
 ) -> "metrics_tracker.Metrics":
+    """Reads the metrics that a training worker wrote to a file.
+
+    Args:
+        metrics_info_path:
+            Path to the JSON file written by the training worker.
+        number_gpus:
+            The number of GPUs that the run was configured to use.
+
+    Returns:
+        The metrics of the run.
+
+    Raises:
+        OutOfGPUMemoryError:
+            If the worker reported that it ran out of GPU memory.
+        NCCLError:
+            If the worker reported an NCCL error.
+        UnhandledError:
+            If the worker reported any other error.
+    """
     import json
 
     with open(metrics_info_path, encoding="utf-8") as f:

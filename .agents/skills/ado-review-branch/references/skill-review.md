@@ -17,13 +17,21 @@ to every new or modified skill on the branch.
 
 ## Upstream documentation
 
-[.agents/skills/AGENTS.md](../../AGENTS.md) links to the upstream
-specification and skill-creation documentation. Fetch the current content of
-those links, and of the pages they reference on skill content and descriptions,
-before reviewing. Review against what was fetched instead of relying on memory.
+Review against the current upstream documentation instead of relying on memory.
+Clone the upstream repository, which is public and needs no authentication:
 
-If the documentation cannot be fetched, state that in the review and fall back
-to [.agents/skills/AGENTS.md](../../AGENTS.md).
+```sh
+AGENTSKILLS_DIR="$(mktemp -d)"
+git clone --depth 1 https://github.com/agentskills/agentskills "$AGENTSKILLS_DIR"
+```
+
+Then read `$AGENTSKILLS_DIR/docs/specification.mdx`, the pages under
+`$AGENTSKILLS_DIR/docs/skill-creation/`, and any other page under
+`$AGENTSKILLS_DIR/docs/` that the links in
+[.agents/skills/AGENTS.md](../../AGENTS.md) reference.
+
+If the clone fails, state that in the review and fall back to
+[.agents/skills/AGENTS.md](../../AGENTS.md).
 
 ## Specification conformance
 
@@ -35,6 +43,7 @@ Check the skill against the fetched documentation and
   consecutive hyphens (`--`)
 - `description` is at most 1024 characters, states what the skill does and when
   to use it, and uses imperative phrasing ("Use when...")
+- every value under `metadata` is a string (for example `"true"`, not `true`)
 - `SKILL.md` is under 500 lines
 - supplementary docs are in `references/`, templates and example manifests in
   `assets/`, helper scripts in `scripts/`

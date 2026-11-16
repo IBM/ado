@@ -9,13 +9,15 @@ import ray
 import ray.util.queue
 
 from ado.core import OperationResource
-from ado.core.discoveryspace.space import DiscoverySpace
 from ado.core.operation.config import (
     FunctionOperationInfo,
     GenericOperatorParameters,
     OperatorMetadata,
 )
-from ado.core.operation.inputs import OperatorInputType
+from ado.core.operation.inputs import (
+    OperationInputResource,
+    discovery_spaces_from_inputs,
+)
 from ado.core.operation.operation import OperationOutput
 from ado.modules.actuators.measurement_queue import MeasurementQueue
 from ado.modules.operators import _cleanup
@@ -169,7 +171,7 @@ def run_explore_operation_core_closure(
 
 def orchestrate_explore_operation(
     operator_metadata: OperatorMetadata,
-    inputs: dict[str, OperatorInputType],
+    inputs: dict[str, OperationInputResource],
     parameters: GenericOperatorParameters,
     operation_info: FunctionOperationInfo,
 ) -> OperationOutput:
@@ -211,7 +213,7 @@ def orchestrate_explore_operation(
 
     import ado.modules.operators.setup
 
-    spaces = [value for value in inputs.values() if isinstance(value, DiscoverySpace)]
+    spaces = discovery_spaces_from_inputs(inputs)
     if len(spaces) != 1:
         raise ValueError(
             "Explore operations require exactly one discovery space input; "

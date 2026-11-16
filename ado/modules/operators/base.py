@@ -27,6 +27,7 @@ from ado.core.operation.config import (
     OperatorModuleConf,
     OperatorReference,
 )
+from ado.core.operation.inputs import OperationInputResourceReference
 from ado.core.operation.operation import OperationOutput
 from ado.core.operation.resource import (
     OperationProvenanceInfo,
@@ -41,6 +42,7 @@ from ado.modules.operators.discovery_space_manager import (
 from ado.schema.entity import Entity
 from ado.schema.reference import ExperimentReference
 from ado.utilities.annotations import unwrap_annotated
+from ado.utilities.lists import as_list
 
 if typing.TYPE_CHECKING:
     from ado.core.resources import ADOResource
@@ -414,7 +416,7 @@ def add_operation_output_to_metastore(
 
 
 def create_operation_and_add_to_metastore(
-    inputs: dict[str, ado.core.resources.ADOResourceReference],
+    inputs: dict[str, OperationInputResourceReference],
     operator_module: OperatorModuleConf | OperatorReference,
     operation_parameters: dict,
     operation_info: FunctionOperationInfo,
@@ -429,7 +431,7 @@ def create_operation_and_add_to_metastore(
 
     Args:
         inputs: Mapping of operator parameter name to the resource reference
-            the operation worked on.
+            the operation worked on. A value may be a list of references.
         operator_module: Configuration for the operator (module or function-based).
         operation_parameters: Dictionary of parameters for the operation.
         operation_info: Information about the operation including metadata and
@@ -468,7 +470,11 @@ def create_operation_and_add_to_metastore(
     )
 
     related_identifiers = [
-        *[entry.identifier for entry in inputs.values()],
+        *[
+            reference.identifier
+            for entry in inputs.values()
+            for reference in as_list(entry)
+        ],
         *operation_resource_configuration.actuatorConfigurationIdentifiers,
     ]
 

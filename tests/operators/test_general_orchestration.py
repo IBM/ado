@@ -3,15 +3,28 @@
 
 import inspect
 from collections.abc import Callable
+from contextlib import AbstractContextManager
 
 import pytest
 
 import ado.modules.operators.randomwalk  # noqa: F401 — loads operator plugins
-from ado.core.operation.config import OperatorModuleConf
+from ado.core.datacontainer.resource import DataContainer, DataContainerResource
+from ado.core.operation.config import (
+    FunctionOperationInfo,
+    GenericOperatorParameters,
+    OperatorModuleConf,
+)
 from ado.core.operation.inputs import resolve_operation_project_context
+from ado.core.operation.operation import OperationOutput
 from ado.metastore.project import ProjectContext
+from ado.metastore.sqlstore import SQLStore
 from ado.modules.operators._general_orchestration import _operator_callable_for_harness
-from ado.modules.operators.collections import characterize, explore
+from ado.modules.operators.collections import (
+    characterize,
+    explore,
+    summarize,
+    summarize_operation,
+)
 from ado.modules.operators.provenance import operation_provenance
 from ado.utilities.location import SQLiteStoreConfiguration
 
@@ -87,3 +100,56 @@ def test_operator_callable_for_harness_unwraps_decorated_operator(
     assert registered is not None
     resolved = _operator_callable_for_harness(registered)
     assert resolved is inspect.unwrap(registered)
+
+
+def test_summarize_operator_receives_list_inputs_and_relates_every_member(
+    sql_store: SQLStore,
+    create_resources: Callable,
+    temporary_operator: Callable[..., AbstractContextManager[str]],
+) -> None:
+    """A summarize operator run with a list input stores all list members as related."""
+    received: dict[str, object] = {}
+
+    def summarize_containers(
+        containers: list[DataContainerResource],
+        baseline: DataContainerResource,
+        operationInfo: FunctionOperationInfo | None = None,
+        *,
+        parameters: GenericOperatorParameters,
+    ) -> OperationOutput:
+        received["containers"] = containers
+        received["baseline"] = baseline
+        return OperationOutput()
+
+    listed = [
+        DataContainerResource(config=DataContainer(data={"key": {"value": value}}))
+        for value in ("one", "two")
+    ]
+    baseline = DataContainerResource(
+        config=DataContainer(data={"key": {"value": "baseline"}})
+    )
+    create_resources([*listed, baseline])
+
+    with temporary_operator(
+        summarize.operators, summarize_operation, summarize_containers
+    ) as name:
+        function = summarize.operators[name].function
+        assert function is not None
+        function(
+            listed,
+            baseline,
+            FunctionOperationInfo(projectContext=sql_store.project_context),
+            parameters=GenericOperatorParameters(),
+        )
+
+    assert received["containers"] == listed
+    assert received["baseline"] == baseline
+
+    operation_identifiers = sql_store.getResourceIdentifiersOfKind("operation")[
+        "IDENTIFIER"
+    ]
+    assert len(operation_identifiers) == 1
+    related = sql_store.getRelatedSubjectResourceIdentifiers(operation_identifiers[0])
+    assert set(related["IDENTIFIER"]) == {
+        resource.identifier for resource in [*listed, baseline]
+    }

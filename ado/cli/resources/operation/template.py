@@ -28,24 +28,31 @@ from ado.core.resources import ADOResourceReference, CoreResourceKinds
 
 def _operation_inputs_template(
     operator: object | None,
-) -> dict[str, ADOResourceReference]:
-    """Build template ``inputs`` from recorded resource inputs, or one space."""
+) -> dict[str, ADOResourceReference | list[ADOResourceReference]]:
+    """Build template ``inputs`` from recorded resource inputs, or one space.
+
+    A list input gets a one-element list of placeholder references.
+    """
 
     required_resource_inputs = getattr(operator, "required_resource_inputs", None)
-    if required_resource_inputs:
+    if not required_resource_inputs:
         return {
-            descriptor.identifier: ADOResourceReference(
-                identifier=f"your-{descriptor.kind.value}-id",
-                kind=descriptor.kind,
+            "discoverySpace": ADOResourceReference(
+                identifier="your-discoveryspace-id",
+                kind=CoreResourceKinds.DISCOVERYSPACE,
             )
-            for descriptor in required_resource_inputs
         }
-    return {
-        "discoverySpace": ADOResourceReference(
-            identifier="your-discoveryspace-id",
-            kind=CoreResourceKinds.DISCOVERYSPACE,
+
+    template: dict[str, ADOResourceReference | list[ADOResourceReference]] = {}
+    for descriptor in required_resource_inputs:
+        reference = ADOResourceReference(
+            identifier=f"your-{descriptor.kind.value}-id",
+            kind=descriptor.kind,
         )
-    }
+        template[descriptor.identifier] = (
+            [reference] if descriptor.isList else reference
+        )
+    return template
 
 
 def template_operation(parameters: AdoTemplateCommandParameters) -> None:

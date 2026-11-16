@@ -149,6 +149,7 @@ See
 - `compare` - Comparison operations
 - `fuse` - Space fusion operations
 - `learn` - Learning operations
+- `summarize` - Summaries of a batch of spaces or data containers
 
 ## Experiment Properties
 

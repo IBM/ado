@@ -332,6 +332,27 @@ def test_script_operation_resource_identifier() -> None:
     assert operation.identifier.startswith("operation-script-inline-script-0.1.0-")
 
 
+def test_script_operator_conf_rejects_list_input() -> None:
+    """A script operation accepts exactly one discoveryspace, not a list of them."""
+    with pytest.raises(pydantic.ValidationError, match="is a list"):
+        DiscoveryOperationResourceConfiguration(
+            operation=DiscoveryOperationConfiguration(
+                module=ScriptOperatorConf(
+                    name="inline-script",
+                    operationType=DiscoveryOperationEnum.CHARACTERIZE,
+                )
+            ),
+            inputs={
+                "discoverySpace": [
+                    ADOResourceReference(
+                        identifier="space-test123",
+                        kind=CoreResourceKinds.DISCOVERYSPACE,
+                    )
+                ]
+            },
+        )
+
+
 def test_operation_resource_wrong_kind_raises_validation_error(
     operation_resource: OperationResource,
 ) -> None:

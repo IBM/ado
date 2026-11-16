@@ -159,11 +159,12 @@ def test_ado_resource_property_descriptor_basics() -> None:
 def test_ado_resource_property_descriptor_round_trip() -> None:
     """ADOResourcePropertyDescriptor survives model_dump → model_validate."""
     original = ADOResourcePropertyDescriptor(
-        identifier="candidate", kind=CoreResourceKinds.OPERATION
+        identifier="candidate", kind=CoreResourceKinds.OPERATION, isList=True
     )
     restored = ADOResourcePropertyDescriptor.model_validate(original.model_dump())
     assert restored.identifier == original.identifier
     assert restored.kind == original.kind
+    assert restored.isList == original.isList
 
 
 def test_ado_resource_property_descriptor_extra_fields_forbidden() -> None:
@@ -194,12 +195,22 @@ def test_ado_resource_property_descriptor_is_a_property_descriptor() -> None:
     different_identifier = ADOResourcePropertyDescriptor(
         identifier="candidate", kind=CoreResourceKinds.DATACONTAINER
     )
+    list_descriptor = ADOResourcePropertyDescriptor(
+        identifier="baseline",
+        kind=CoreResourceKinds.DATACONTAINER,
+        isList=True,
+    )
 
     assert isinstance(descriptor, PropertyDescriptor)
     assert descriptor == same
     assert hash(descriptor) == hash(same)
     assert descriptor != different_kind
     assert descriptor != different_identifier
-    assert {descriptor, same, different_kind} == {descriptor, different_kind}
+    assert descriptor != list_descriptor
+    assert {descriptor, same, different_kind, list_descriptor} == {
+        descriptor,
+        different_kind,
+        list_descriptor,
+    }
     assert descriptor == PropertyDescriptor(identifier="baseline")
     assert descriptor != PropertyDescriptor(identifier="candidate")

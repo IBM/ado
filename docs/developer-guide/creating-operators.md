@@ -81,7 +81,7 @@ def detect_anomalous_series(
 The first thing you need to do is decide what type of operator you
 are creating.
 The choices are
-[explore, characterize, modify, fuse, export, or compare](../user-guide/operators/working-with-operators.md).
+[explore, characterize, modify, fuse, export, compare, or summarize](../user-guide/operators/working-with-operators.md).
 You then import the decorator for this operator type from
 `ado.modules.operators.collections` and use it to decorate your
 operator function.
@@ -150,6 +150,38 @@ def my_comparison(
     *,
     parameters: MyCompareOptions,
 ) -> OperationOutput: ...
+```
+
+If the operator is `summarize`, declare at least one parameter as a list of
+resources. Additional scalar resource parameters, such as a baseline, are
+allowed.
+
+```python
+from ado.modules.operators.collections import summarize_operation
+
+
+@summarize_operation(...)
+def compare_containers_to_baseline(
+    containers: list[DataContainerResource],
+    baseline: DataContainerResource,
+    operationInfo: FunctionOperationInfo | None = None,
+    *,
+    parameters: SummaryParams,
+) -> OperationOutput: ...
+```
+
+The matching operation YAML uses a list of references for the list parameter:
+
+```yaml
+inputs:
+  containers:
+    - identifier: datacontainer-aaa
+      kind: datacontainer
+    - identifier: datacontainer-bbb
+      kind: datacontainer
+  baseline:
+    identifier: datacontainer-baseline
+    kind: datacontainer
 ```
 
 Declare `operationInfo` after the resource parameters as
@@ -309,6 +341,8 @@ Certain operation types are expected to return outputs as follows:
   SampleStoreResource
 - compare: a new DataContainerResource
 - characterize: a new DataContainerResource
+- summarize: typically a new DataContainerResource. Other resources, such as
+  DiscoverySpaceResources, may also be returned
 
 ## How to update your operator input parameters
 

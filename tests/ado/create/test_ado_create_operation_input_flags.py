@@ -3,7 +3,8 @@
 """Tests for --with and --use-latest targeting named operation inputs."""
 
 import pathlib
-from collections.abc import Callable, Iterator
+from collections.abc import Callable
+from contextlib import AbstractContextManager
 
 import pytest
 import typer
@@ -37,48 +38,25 @@ from ado.metastore.sqlstore import SQLStore
 from ado.modules.operators.collections import compare, compare_operation
 
 
-class _Params(GenericOperatorParameters):
-    value: int = 1
+def _two_spaces_and_container(
+    reference: DiscoverySpace,
+    candidate: DiscoverySpace,
+    data: DataContainerResource,
+    operationInfo: FunctionOperationInfo | None = None,
+    *,
+    parameters: GenericOperatorParameters,
+) -> OperationOutput: ...
 
 
-_OPERATOR_NAME = "_test_compare_input_flags"
-
-
-@pytest.fixture
-def compare_dummy_operator() -> Iterator[None]:
-    """Register a compare operator with two space inputs and one data container."""
-
-    @compare_operation(
-        name=_OPERATOR_NAME,
-        version="0.0.1",
-        configuration_model=_Params,
-        example_configuration=_Params(),
-        description="Test compare operator",
-    )
-    def compare_spaces(
-        reference: DiscoverySpace,
-        candidate: DiscoverySpace,
-        data: DataContainerResource,
-        operationInfo: FunctionOperationInfo | None = None,
-        *,
-        parameters: _Params,
-    ) -> OperationOutput: ...
-
-    try:
-        yield
-    finally:
-        compare.operators.pop(_OPERATOR_NAME, None)
-
-
-def _raw_operation(inputs: dict | None = None) -> dict:
-    """Return a raw operation configuration for the dummy compare operator."""
+def _raw_operation(name: str, inputs: dict | None = None) -> dict:
+    """Return a raw operation configuration for a compare operator named *name*."""
     raw: dict = {
         "operation": {
             "module": {
-                "operatorName": _OPERATOR_NAME,
+                "operatorName": name,
                 "operationType": DiscoveryOperationEnum.COMPARE.value,
             },
-            "parameters": {"value": 1},
+            "parameters": {},
         }
     }
     if inputs is not None:
@@ -89,8 +67,9 @@ def _raw_operation(inputs: dict | None = None) -> dict:
 def _create_parameters(
     with_resources: dict | None = None,
     with_inputs: list[OperationInputResourceOption] | None = None,
+    use_latest: list[CoreResourceKinds] | None = None,
 ) -> AdoCreateCommandParameters:
-    """Build create parameters carrying only --with values."""
+    """Build create parameters carrying --with and --use-latest values."""
     return AdoCreateCommandParameters(
         ado_configuration=AdoConfiguration(),
         dry_run=True,
@@ -99,7 +78,7 @@ def _create_parameters(
         resource_configuration_file=None,
         resource_type=AdoCreateSupportedResourceTypes.OPERATION,
         use_default_sample_store=False,
-        use_latest=[],
+        use_latest=use_latest or [],
         with_resources=with_resources or {},
         withInputs=with_inputs or [],
     )
@@ -191,28 +170,33 @@ def test_resource_kind_with_input_parser_rejects_invalid(value: str) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_apply_with_sets_named_inputs(compare_dummy_operator: None) -> None:
+def test_apply_with_sets_named_inputs(
+    temporary_operator: Callable[..., AbstractContextManager[str]],
+) -> None:
     """Qualified --with values are written to the named inputs."""
-    raw = _raw_operation()
-    apply_resource_flags(
-        raw,
-        _create_parameters(
-            with_inputs=[
-                OperationInputResourceOption(
-                    inputName="reference",
-                    kind=CoreResourceKinds.DISCOVERYSPACE,
-                    value="space-ref",
-                ),
-                OperationInputResourceOption(
-                    inputName="candidate",
-                    kind=CoreResourceKinds.DISCOVERYSPACE,
-                    value="space-cand",
-                ),
-            ],
-            with_resources={CoreResourceKinds.DATACONTAINER: "dc-1"},
-        ),
-        latest_identifiers={},
-    )
+    with temporary_operator(
+        compare.operators, compare_operation, _two_spaces_and_container
+    ) as name:
+        raw = _raw_operation(name)
+        apply_resource_flags(
+            raw,
+            _create_parameters(
+                with_inputs=[
+                    OperationInputResourceOption(
+                        inputName="reference",
+                        kind=CoreResourceKinds.DISCOVERYSPACE,
+                        value="space-ref",
+                    ),
+                    OperationInputResourceOption(
+                        inputName="candidate",
+                        kind=CoreResourceKinds.DISCOVERYSPACE,
+                        value="space-cand",
+                    ),
+                ],
+                with_resources={CoreResourceKinds.DATACONTAINER: "dc-1"},
+            ),
+            latest_identifiers={},
+        )
     assert raw["inputs"] == {
         "reference": {"identifier": "space-ref", "kind": "discoveryspace"},
         "candidate": {"identifier": "space-cand", "kind": "discoveryspace"},
@@ -221,33 +205,43 @@ def test_apply_with_sets_named_inputs(compare_dummy_operator: None) -> None:
 
 
 def test_apply_with_unqualified_fills_remaining_input(
-    compare_dummy_operator: None,
+    temporary_operator: Callable[..., AbstractContextManager[str]],
 ) -> None:
     """An unqualified --with fills the input of its kind not set by a qualified one."""
-    raw = _raw_operation()
-    apply_resource_flags(
-        raw,
-        _create_parameters(
-            with_inputs=[
-                OperationInputResourceOption(
-                    inputName="reference",
-                    kind=CoreResourceKinds.DISCOVERYSPACE,
-                    value="space-ref",
-                )
-            ],
-            with_resources={CoreResourceKinds.DISCOVERYSPACE: "space-cand"},
-        ),
-        latest_identifiers={},
-    )
+    with temporary_operator(
+        compare.operators, compare_operation, _two_spaces_and_container
+    ) as name:
+        raw = _raw_operation(name)
+        apply_resource_flags(
+            raw,
+            _create_parameters(
+                with_inputs=[
+                    OperationInputResourceOption(
+                        inputName="reference",
+                        kind=CoreResourceKinds.DISCOVERYSPACE,
+                        value="space-ref",
+                    )
+                ],
+                with_resources={CoreResourceKinds.DISCOVERYSPACE: "space-cand"},
+            ),
+            latest_identifiers={},
+        )
     assert raw["inputs"]["reference"]["identifier"] == "space-ref"
     assert raw["inputs"]["candidate"]["identifier"] == "space-cand"
 
 
-def test_apply_with_unknown_input_name_raises(compare_dummy_operator: None) -> None:
+def test_apply_with_unknown_input_name_raises(
+    temporary_operator: Callable[..., AbstractContextManager[str]],
+) -> None:
     """A qualified --with naming an undeclared input raises."""
-    with pytest.raises(ValueError, match="missing_input"):
+    with (
+        temporary_operator(
+            compare.operators, compare_operation, _two_spaces_and_container
+        ) as name,
+        pytest.raises(ValueError, match="missing_input"),
+    ):
         apply_resource_flags(
-            _raw_operation(),
+            _raw_operation(name),
             _create_parameters(
                 with_inputs=[
                     OperationInputResourceOption(
@@ -261,11 +255,18 @@ def test_apply_with_unknown_input_name_raises(compare_dummy_operator: None) -> N
         )
 
 
-def test_apply_with_kind_mismatch_raises(compare_dummy_operator: None) -> None:
+def test_apply_with_kind_mismatch_raises(
+    temporary_operator: Callable[..., AbstractContextManager[str]],
+) -> None:
     """A qualified --with whose kind differs from the input's kind raises."""
-    with pytest.raises(ValueError, match="reference"):
+    with (
+        temporary_operator(
+            compare.operators, compare_operation, _two_spaces_and_container
+        ) as name,
+        pytest.raises(ValueError, match="reference"),
+    ):
         apply_resource_flags(
-            _raw_operation(),
+            _raw_operation(name),
             _create_parameters(
                 with_inputs=[
                     OperationInputResourceOption(
@@ -280,12 +281,17 @@ def test_apply_with_kind_mismatch_raises(compare_dummy_operator: None) -> None:
 
 
 def test_apply_with_same_scalar_input_twice_raises(
-    compare_dummy_operator: None,
+    temporary_operator: Callable[..., AbstractContextManager[str]],
 ) -> None:
     """Setting one scalar input from two flags raises."""
-    with pytest.raises(ValueError, match="reference"):
+    with (
+        temporary_operator(
+            compare.operators, compare_operation, _two_spaces_and_container
+        ) as name,
+        pytest.raises(ValueError, match="reference"),
+    ):
         apply_resource_flags(
-            _raw_operation(),
+            _raw_operation(name),
             _create_parameters(
                 with_inputs=[
                     OperationInputResourceOption(
@@ -305,16 +311,41 @@ def test_apply_with_same_scalar_input_twice_raises(
 
 
 def test_apply_with_ambiguous_kind_suggests_qualifier(
-    compare_dummy_operator: None,
+    temporary_operator: Callable[..., AbstractContextManager[str]],
 ) -> None:
     """An unqualified --with for an ambiguous kind names the qualified syntax."""
-    with pytest.raises(ValueError, match=r"discoveryspace:<input>"):
+    with (
+        temporary_operator(
+            compare.operators, compare_operation, _two_spaces_and_container
+        ) as name,
+        pytest.raises(ValueError, match=r"discoveryspace:<input>"),
+    ):
         apply_resource_flags(
-            _raw_operation(),
+            _raw_operation(name),
             _create_parameters(
                 with_resources={CoreResourceKinds.DISCOVERYSPACE: "space-1"}
             ),
             latest_identifiers={},
+        )
+
+
+def test_apply_rejects_same_kind_on_with_and_use_latest(
+    temporary_operator: Callable[..., AbstractContextManager[str]],
+) -> None:
+    """An unqualified kind cannot be given to both --with and --use-latest."""
+    with (
+        temporary_operator(
+            compare.operators, compare_operation, _two_spaces_and_container
+        ) as name,
+        pytest.raises(ValueError, match="both --with and --use-latest"),
+    ):
+        apply_resource_flags(
+            _raw_operation(name),
+            _create_parameters(
+                with_resources={CoreResourceKinds.DISCOVERYSPACE: "space-1"},
+                use_latest=[CoreResourceKinds.DISCOVERYSPACE],
+            ),
+            latest_identifiers={CoreResourceKinds.DISCOVERYSPACE: "space-latest"},
         )
 
 
@@ -323,21 +354,21 @@ def test_apply_with_ambiguous_kind_suggests_qualifier(
 # ---------------------------------------------------------------------------
 
 
-def _write_operation_yaml(path: pathlib.Path) -> pathlib.Path:
-    """Write an operation YAML for the dummy compare operator with no inputs."""
+def _write_operation_yaml(path: pathlib.Path, name: str) -> pathlib.Path:
+    """Write an operation YAML for a compare operator named *name* with no inputs."""
     operation_file = path / "compare_operation.yaml"
     operation_file.write_text(
         "operation:\n"
         "  module:\n"
-        f"    operatorName: {_OPERATOR_NAME}\n"
+        f"    operatorName: {name}\n"
         "    operationType: compare\n"
-        "  parameters:\n"
-        "    value: 1\n"
+        "  parameters: {}\n"
     )
     return operation_file
 
 
 def test_create_operation_dry_run_with_named_inputs_and_use_latest(
+    temporary_operator: Callable[..., AbstractContextManager[str]],
     tmp_path: pathlib.Path,
     mysql_test_instance: MySqlContainer,
     valid_ado_project_context: ProjectContext,
@@ -345,7 +376,6 @@ def test_create_operation_dry_run_with_named_inputs_and_use_latest(
         [CliRunner, pathlib.Path, ProjectContext], None
     ],
     sql_store: SQLStore,
-    compare_dummy_operator: None,
 ) -> None:
     """--with and --use-latest with input qualifiers combine on one operation."""
     runner = CliRunner()
@@ -355,22 +385,25 @@ def test_create_operation_dry_run_with_named_inputs_and_use_latest(
     data_container = DataContainerResource(config=DataContainer(data={"k": "v"}))
     sql_store.addResource(data_container)
 
-    result = runner.invoke(
-        ado,
-        [
-            "create",
-            "operation",
-            "-f",
-            str(_write_operation_yaml(tmp_path)),
-            "--with",
-            "space:reference=space-ref",
-            "--with",
-            "space:candidate=space-cand",
-            "--use-latest",
-            "dcr:data",
-            "--dry-run",
-        ],
-    )
+    with temporary_operator(
+        compare.operators, compare_operation, _two_spaces_and_container
+    ) as name:
+        result = runner.invoke(
+            ado,
+            [
+                "create",
+                "operation",
+                "-f",
+                str(_write_operation_yaml(tmp_path, name)),
+                "--with",
+                "space:reference=space-ref",
+                "--with",
+                "space:candidate=space-cand",
+                "--use-latest",
+                "dcr:data",
+                "--dry-run",
+            ],
+        )
     assert result.exit_code == 0, result.output
     assert data_container.identifier in result.output
     assert "data" in result.output

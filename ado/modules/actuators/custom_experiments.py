@@ -309,10 +309,12 @@ def custom_experiment(
     """Decorator for custom experiment functions.
 
     Args:
-        required_properties: List of ConstitutiveProperty instances that are required input values.
+        required_properties: List of ConstitutiveProperty or ObservedProperty instances
+            that are required input values.
         output_property_identifiers: List of strings identifying the output property names.
         optional_properties: List of ConstitutiveProperty instances that are optional input values.
-        parameterization: Tuple of parameters for default parameterization.
+        parameterization: Dictionary mapping optional property identifiers to their
+            default values.
         metadata: Metadata for the experiment.
         use_ray: If True the CustomExperiments actuator will launch the experiment as a ray remote task.
         ray_options: A dictionary containing ray remote task options.
@@ -345,7 +347,7 @@ def custom_experiment(
 
     @custom_experiment(
         required_properties=[mass, volume],
-        output_properties=["density"],
+        output_property_identifiers=["density"],
         version="1.0.0",
     )
     def calculate_density(mass, volume):
@@ -389,20 +391,15 @@ def custom_experiment(
                 _required_properties=required_properties,
                 _optional_properties=_optional_properties,
             )
-        except ValueError as error:
-            raise ValueError(
-                f"Unable to generate custom experiment for {func.__name__} via decorator.\n\t{error}"
-            ) from error
 
-        # Create an ExperimentModuleConf instance describing where the function is
-        metadata["module"] = ExperimentModuleConf(
-            moduleType=ModuleTypeEnum.EXPERIMENT,
-            moduleName=func.__module__,
-            moduleFunction=func.__name__,
-        )
+            # Create an ExperimentModuleConf instance describing where the function is
+            metadata["module"] = ExperimentModuleConf(
+                moduleType=ModuleTypeEnum.EXPERIMENT,
+                moduleName=func.__module__,
+                moduleFunction=func.__name__,
+            )
 
-        # Create and store the Experiment instance
-        try:
+            # Create and store the Experiment instance
             experiment = Experiment(
                 actuatorIdentifier="custom_experiments",
                 identifier=func.__name__,
@@ -426,7 +423,7 @@ def custom_experiment(
                 version=version,
                 constraints=tuple(constraints or []),
             )
-        except pydantic.ValidationError as error:
+        except ValueError as error:
             raise ValueError(
                 f"Unable to generate custom experiment for {func.__name__} via decorator.\n\t{error}"
             ) from error

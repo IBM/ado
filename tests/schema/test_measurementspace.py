@@ -134,6 +134,31 @@ def test_measurement_space_with_parameterized_experiments_ser_dser(
     )
 
 
+def test_measurement_space_experiment_constraints(
+    constrained_parameterizable_experiment: Experiment,
+    experiment: Experiment,
+) -> None:
+    ms = MeasurementSpace(
+        configuration=MeasurementSpaceConfiguration(
+            experiments=[constrained_parameterizable_experiment, experiment]
+        )
+    )
+
+    expected = {
+        str(
+            constrained_parameterizable_experiment
+        ): constrained_parameterizable_experiment.constraints
+    }
+    assert ms.experiment_constraints == expected
+
+    stored_config = MeasurementSpaceConfiguration.model_validate(
+        ms.selfContainedConfig.model_dump()
+    )
+    assert (
+        MeasurementSpace(configuration=stored_config).experiment_constraints == expected
+    )
+
+
 def test_measurement_space_from_parameterized_references(
     parameterizable_experiments: list[Experiment],
     parameterized_references: list[ExperimentReference],

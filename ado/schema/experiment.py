@@ -11,6 +11,10 @@ from typing import Annotated
 import pydantic
 from pydantic import ConfigDict
 
+from ado.schema.constraint import (
+    PropertyConstraint,
+    check_constraints_against_properties,
+)
 from ado.schema.observed_property import (
     ObservedProperty,
 )
@@ -131,6 +135,35 @@ class Experiment(pydantic.BaseModel):
             ),
         ),
     ] = None
+    constraints: Annotated[
+        tuple[PropertyConstraint, ...],
+        pydantic.Field(
+            default_factory=tuple,
+            frozen=True,
+            description="Constraints on the values of the required and optional "
+            "constitutive properties of this experiment",
+        ),
+    ]
+
+    @pydantic.model_validator(mode="after")
+    def validate_constraints(self) -> "Experiment":
+        """Check the constraints against the constitutive properties of the experiment.
+
+        Returns:
+            This experiment.
+
+        Raises:
+            ValueError: If two constraints share a name, or a constraint references
+                a property that is not a required constitutive property or an
+                optional property of the experiment.
+        """
+
+        check_constraints_against_properties(
+            self.constraints,
+            [p.identifier for p in self.requiredConstitutiveProperties]
+            + [p.identifier for p in self.optionalProperties],
+        )
+        return self
 
     @property
     def major_version_identifier(self) -> str:
@@ -439,6 +472,29 @@ class Experiment(pydantic.BaseModel):
                     Panel(
                         Group(*opt_inputs),
                         box=rich.box.SIMPLE_HEAVY,
+                        padding=(0, 2),
+                    ),
+                ]
+            )
+
+        if self.constraints:
+            from ado.utilities.output import pydantic_model_as_yaml
+
+            content.extend(
+                [
+                    Text("Constraints:", style="bold"),
+                    Panel(
+                        Group(
+                            *[
+                                Text(
+                                    pydantic_model_as_yaml(
+                                        constraint, exclude_none=True
+                                    ).rstrip()
+                                )
+                                for constraint in self.constraints
+                            ]
+                        ),
+                        box=rich.box.SIMPLE,
                         padding=(0, 2),
                     ),
                 ]

@@ -157,6 +157,38 @@ def mock_parameterizable_experiment(
 
 
 @pytest.fixture(scope="module")
+def constrained_parameterizable_experiment(
+    mock_parameterizable_experiment: Experiment,
+) -> Experiment:
+    """mock_parameterizable_experiment with a constraint on a required and an optional property.
+
+    Requires test_opt2 to be non-negative when test_req1 is X.
+    """
+
+    return Experiment.model_validate(
+        {
+            **mock_parameterizable_experiment.model_dump(),
+            "identifier": "test_constrained_experiment",
+            "constraints": [
+                {
+                    "name": "x_needs_non_negative_opt2",
+                    "when": {
+                        "left": {"propertyIdentifier": "test_req1"},
+                        "operator": "eq",
+                        "right": {"value": "X"},
+                    },
+                    "require": {
+                        "left": {"propertyIdentifier": "test_opt2"},
+                        "operator": "ge",
+                        "right": {"value": 0},
+                    },
+                }
+            ],
+        }
+    )
+
+
+@pytest.fixture(scope="module")
 def mock_parameterizable_experiment_no_required(
     optionalProperties: list[ConstitutiveProperty],
     defaultParameterization: list[ConstitutivePropertyValue],

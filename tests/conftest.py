@@ -8,6 +8,7 @@ from collections.abc import Callable, Generator
 import pytest
 import ray
 
+from .mysql_xdist_grouping import mysql_xdist_group_name
 from .fixtures.ado_cli_isolation import *
 from .fixtures.agents import *
 from .fixtures.core.datacontainer import *
@@ -41,6 +42,24 @@ sqlite3_version = sqlite3.sqlite_version_info
 requires_sqlite_3_38 = pytest.mark.skipif(
     sqlite3_version < (3, 38, 0), reason="SQLite version 3.38.0 or higher is required"
 )
+
+
+def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
+    """Assign MySQL-using tests to a small set of xdist groups.
+
+    With ``pytest -n auto --dist loadgroup``, this caps concurrent MySQL
+    testcontainers at ``MYSQL_XDIST_GROUP_COUNT`` instead of one per worker.
+    """
+    for item in items:
+        callspec = getattr(item, "callspec", None)
+        params = callspec.params if callspec is not None else None
+        group_name = mysql_xdist_group_name(
+            item.nodeid,
+            getattr(item, "fixturenames", ()),
+            params=params,
+        )
+        if group_name is not None:
+            item.add_marker(pytest.mark.xdist_group(name=group_name))
 
 
 @pytest.fixture(scope="session")

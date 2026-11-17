@@ -289,61 +289,34 @@ class InvalidMeasurementResult(MeasurementResult):
         )
 
 
-class IntermediateMeasurementResult(MeasurementResult):
-    """Used to record an intermediate measurement obtained before an experiment completed"""
+class IntermediateMeasurementResult(ValidMeasurementResult):
+    """Used to record a measurement obtained before an experiment completed"""
 
-    intermediateMeasurements: Annotated[
-        list[ObservedPropertyValue],
+    intermediate: Annotated[
+        typing.Literal[True],
         pydantic.Field(
-            description="A list of the intermediate observed property values measured. Cannot be empty"
+            description="Marks the measurements as obtained before the experiment completed. Always True"
         ),
-    ]
+    ] = True
 
-    model_config = pydantic.ConfigDict(extra="forbid")
+    @pydantic.model_serializer
+    def serialize_to_custom_format(self, _info: pydantic.SerializationInfo) -> dict:
+        """Serialize with the compressed format of ValidMeasurementResult and the intermediate flag.
 
-    @pydantic.field_validator("intermediateMeasurements")
-    @classmethod
-    def validate_intermediate_measurements(
-        cls, value: list[ObservedPropertyValue]
-    ) -> list[ObservedPropertyValue]:
-        """Validate the intermediate observed property values.
+        The intermediate flag is always included, also when exclude_defaults is
+        set, as it identifies the dump as an IntermediateMeasurementResult.
 
         Args:
-            value: The intermediate observed property values.
+            _info: The pydantic serialization settings.
 
         Returns:
-            The validated intermediate observed property values.
-
-        Raises:
-            ValueError: If no values are given or the values were measured
-                by more than one experiment.
+            The compressed representation of the result with the intermediate
+            flag set to True.
         """
 
-        if len(value) == 0:
-            raise ValueError(
-                "An intermediate measurement result must include at least one measured value - none given"
-            )
-
-        refs = list({v.property.experimentReference for v in value})
-
-        if len(refs) > 1:
-            raise ValueError(
-                f"All measurements in a results set must be made by the same experiment - "
-                f"However {len(refs)} experiments detected: {refs}"
-            )
-
-        return value
-
-    @property
-    def experimentReference(self) -> ExperimentReference:
-        """The reference of the experiment that made the intermediate measurements.
-
-        Returns:
-            The experiment reference shared by all intermediate measurements.
-        """
-
-        # All the PropertyValues have the same reference as it's checked on init
-        return self.intermediateMeasurements[0].property.experimentReference
+        result = ValidMeasurementResult.serialize_to_custom_format(self, _info)
+        result["intermediate"] = self.intermediate
+        return result
 
     def series_representation(
         self,
@@ -356,40 +329,23 @@ class IntermediateMeasurementResult(MeasurementResult):
             output_format: Whether to key the measured values by target property
                 identifier ("target") or observed property identifier ("observed").
             virtual_target_property_identifiers: Identifiers of virtual target
-                properties. Ignored for intermediate measurement results.
+                properties to aggregate from the measurements.
 
         Returns:
-            A Series with the entity identifier, the experiment identifier,
-            a "valid" field set to False, and the intermediate measured values.
+            The series representation of ValidMeasurementResult with the "valid"
+            field set to False.
 
         Raises:
-            ValueError: If output_format is not "target" or "observed".
+            ValueError: If output_format is not "target" or "observed", or a
+                virtual target property identifier is not valid.
         """
 
-        import pandas as pd
-
-        supported_formats = {"target", "observed"}
-        if output_format not in supported_formats:
-            raise ValueError(
-                f"The only supported series representation output formats are {supported_formats}"
-            )
-
-        rep = {
-            "identifier": self.entityIdentifier,
-            "experiment_id": str(self.experimentReference),
-            "valid": False,
-        }
-
-        for measurement in self.intermediateMeasurements:
-            key = (
-                f"{measurement.property.targetProperty.identifier}"
-                if output_format == "target"
-                else measurement.property.identifier
-            )
-
-            rep[key] = measurement.value
-
-        return pd.Series(rep)
+        representation = super().series_representation(
+            output_format=output_format,
+            virtual_target_property_identifiers=virtual_target_property_identifiers,
+        )
+        representation["valid"] = False
+        return representation
 
 
 class DuplicateMeasurementResultError(ValueError): ...
@@ -415,19 +371,21 @@ def measurement_result_type_discriminator(
         ValueError: If the measurement result type cannot be determined.
     """
 
+    # IntermediateMeasurementResult subclasses ValidMeasurementResult,
+    # so it is checked first
+    if isinstance(result, IntermediateMeasurementResult):
+        return "Intermediate"
     if isinstance(result, ValidMeasurementResult):
         return "Valid"
     if isinstance(result, InvalidMeasurementResult):
         return "Invalid"
-    if isinstance(result, IntermediateMeasurementResult):
-        return "Intermediate"
     if isinstance(result, dict):
+        if result.get("intermediate", None):
+            return "Intermediate"
         if result.get("measurements", None):
             return "Valid"
         if result.get("reason", None):
             return "Invalid"
-        if result.get("intermediateMeasurements", None):
-            return "Intermediate"
 
     raise ValueError(
         f"Unable to determine measurement result type for result: {result}"

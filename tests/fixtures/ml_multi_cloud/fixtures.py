@@ -277,7 +277,7 @@ def random_ml_multi_cloud_benchmark_performance_measurement_results(
         if status == MeasurementResultStateEnum.INTERMEDIATE:
             return IntermediateMeasurementResult(
                 entityIdentifier=entity.identifier,
-                intermediateMeasurements=observed_property_values,
+                measurements=observed_property_values,
             )
         return InvalidMeasurementResult(
             entityIdentifier=entity.identifier,

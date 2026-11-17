@@ -14,6 +14,7 @@ from pydantic import ConfigDict
 from ado.schema.constraint import (
     PropertyConstraint,
     check_constraints_against_properties,
+    constraints_as_rich_table,
 )
 from ado.schema.observed_property import (
     ObservedProperty,
@@ -482,7 +483,7 @@ class Experiment(pydantic.BaseModel):
                 [
                     Text("Constraints:", style="bold"),
                     Panel(
-                        Group(*self.constraints),
+                        constraints_as_rich_table(self.constraints),
                         box=rich.box.SIMPLE,
                         padding=(0, 2),
                     ),

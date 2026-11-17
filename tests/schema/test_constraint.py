@@ -685,17 +685,82 @@ def test_string_is_not_coerced_to_number() -> None:
     assert type(operand.value) is str
 
 
-def test_constraint_rich_print_is_yaml_without_unset_fields() -> None:
-    """Test a constraint renders as YAML and omits an unset when."""
+def test_comparison_str_uses_ascii_operators() -> None:
+    """Comparisons render as compact left operator right expressions."""
 
-    from rich.console import Console
+    comparison = Comparison.model_validate(_AT_LEAST_ONE_SAMPLE_PER_GPU["require"])
+    assert str(comparison) == "effective_batch_size >= num_gpus"
 
-    console = Console(width=200)
-    with console.capture() as capture:
-        console.print(PropertyConstraint.model_validate(_AT_LEAST_ONE_SAMPLE_PER_GPU))
+    membership = Comparison.model_validate(_FLASH_ATTENTION_UNSUPPORTED["require"])
+    assert str(membership) == "gpu_type not in {'v100', 't4'}"
 
-    rendered = yaml.load(capture.get(), Loader=SafeLoader)
-    assert rendered == _AT_LEAST_ONE_SAMPLE_PER_GPU
+
+def test_combinator_str_parenthesizes_nested_predicates() -> None:
+    """Nested allOf and not predicates keep parentheses so precedence stays clear."""
+
+    require = Not.model_validate(
+        {
+            "not": {
+                "allOf": [
+                    {
+                        "left": {"propertyIdentifier": "peptide_concentration"},
+                        "operator": "ge",
+                        "right": {"value": 0.8},
+                    },
+                    {
+                        "left": {"propertyIdentifier": "lanthanide_concentration"},
+                        "operator": "ge",
+                        "right": {"value": 0.8},
+                    },
+                ]
+            }
+        }
+    )
+    assert str(require) == (
+        "not (peptide_concentration >= 0.8 and lanthanide_concentration >= 0.8)"
+    )
+
+
+def test_constraint_rich_print_is_compact_expression() -> None:
+    """A constraint prints as name, optional when, and require expressions."""
+
+    from ado.utilities.rich import render_to_string
+
+    unconditional = PropertyConstraint.model_validate(_AT_LEAST_ONE_SAMPLE_PER_GPU)
+    assert (
+        render_to_string(unconditional).rstrip()
+        == "at_least_one_sample_per_gpu: effective_batch_size >= num_gpus"
+    )
+
+    conditional = PropertyConstraint.model_validate(_LARGE_MODEL_NEEDS_MULTIPLE_GPUS)
+    assert render_to_string(conditional).rstrip() == (
+        "large_model_needs_multiple_gpus: when model == 'llama-70b' => num_gpus >= 4"
+    )
+
+
+def test_constraints_as_rich_table_has_name_when_require_columns() -> None:
+    """The shared constraints table lists name, when, and require for each row."""
+
+    from ado.schema.constraint import constraints_as_rich_table
+    from ado.utilities.rich import render_to_string
+
+    rendered = render_to_string(
+        constraints_as_rich_table(
+            [
+                PropertyConstraint.model_validate(_AT_LEAST_ONE_SAMPLE_PER_GPU),
+                PropertyConstraint.model_validate(_LARGE_MODEL_NEEDS_MULTIPLE_GPUS),
+            ]
+        ),
+        width=200,
+    )
+    assert "name" in rendered
+    assert "when" in rendered
+    assert "require" in rendered
+    assert "always" in rendered
+    assert "at_least_one_sample_per_gpu" in rendered
+    assert "effective_batch_size >= num_gpus" in rendered
+    assert "model == 'llama-70b'" in rendered
+    assert "num_gpus >= 4" in rendered
 
 
 def test_check_constraints_rejects_unknown_property() -> None:

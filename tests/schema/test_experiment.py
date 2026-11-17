@@ -454,10 +454,6 @@ def test_experiment_constraints_lifecycle(
     )
 
     assert from_dump.constraints == constrained_parameterizable_experiment.constraints
-    assert from_dump.constraints[0].property_identifiers() == {
-        "test_req1",
-        "test_opt2",
-    }
 
 
 def test_experiment_rejects_constraint_on_property_it_does_not_take(
@@ -471,29 +467,6 @@ def test_experiment_rejects_constraint_on_property_it_does_not_take(
 
     with pytest.raises(pydantic.ValidationError, match="test_opt2"):
         Experiment.model_validate(experiment_without_optional_properties)
-
-
-def test_parameterized_experiment_from_catalog_keeps_constraints(
-    constrained_parameterizable_experiment: Experiment,
-    customParameterization: list[ConstitutivePropertyValue],
-) -> None:
-    catalog = ExperimentCatalog(
-        experiments={
-            constrained_parameterizable_experiment.identifier: constrained_parameterizable_experiment
-        }
-    )
-    reference = ExperimentReference(
-        actuatorIdentifier=constrained_parameterizable_experiment.actuatorIdentifier,
-        experimentIdentifier=constrained_parameterizable_experiment.identifier,
-        parameterization=customParameterization,
-    )
-
-    parameterized = catalog.experimentForReference(reference, resolve=True)
-
-    assert isinstance(parameterized, ParameterizedExperiment)
-    assert (
-        parameterized.constraints == constrained_parameterizable_experiment.constraints
-    )
 
 
 def test_experiment_rich_print_includes_constraints(

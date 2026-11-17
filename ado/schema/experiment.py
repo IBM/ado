@@ -478,22 +478,11 @@ class Experiment(pydantic.BaseModel):
             )
 
         if self.constraints:
-            from ado.utilities.output import pydantic_model_as_yaml
-
             content.extend(
                 [
                     Text("Constraints:", style="bold"),
                     Panel(
-                        Group(
-                            *[
-                                Text(
-                                    pydantic_model_as_yaml(
-                                        constraint, exclude_none=True
-                                    ).rstrip()
-                                )
-                                for constraint in self.constraints
-                            ]
-                        ),
+                        Group(*self.constraints),
                         box=rich.box.SIMPLE,
                         padding=(0, 2),
                     ),

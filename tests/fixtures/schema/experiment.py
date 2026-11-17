@@ -160,9 +160,10 @@ def mock_parameterizable_experiment(
 def constrained_parameterizable_experiment(
     mock_parameterizable_experiment: Experiment,
 ) -> Experiment:
-    """mock_parameterizable_experiment with a constraint on a required and an optional property.
+    """mock_parameterizable_experiment renamed test_constrained_experiment, with a constraint.
 
-    Requires test_opt2 to be non-negative when test_req1 is X.
+    The constraint references a required and an optional property: it requires
+    test_opt2 to be non-negative when test_req1 is X.
     """
 
     return Experiment.model_validate(

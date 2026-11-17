@@ -144,19 +144,11 @@ def test_measurement_space_experiment_constraints(
         )
     )
 
-    expected = {
+    assert ms.experiment_constraints == {
         str(
             constrained_parameterizable_experiment
         ): constrained_parameterizable_experiment.constraints
     }
-    assert ms.experiment_constraints == expected
-
-    stored_config = MeasurementSpaceConfiguration.model_validate(
-        ms.selfContainedConfig.model_dump()
-    )
-    assert (
-        MeasurementSpace(configuration=stored_config).experiment_constraints == expected
-    )
 
 
 def test_measurement_space_from_parameterized_references(

@@ -13,8 +13,8 @@ from typer.testing import CliRunner
 
 from ado.cli.core.cli import app as ado
 from ado.cli.resources.operation.create import (
-    _add_operation_input_for_reference,
-    _operator_input_descriptor_for_kind,
+    _descriptor_for_kind,
+    _resource_inputs_for_module,
 )
 from ado.cli.resources.operation.template import _operation_inputs_template
 from ado.core.datacontainer.resource import DataContainerResource
@@ -28,7 +28,6 @@ from ado.core.operation.config import (
 from ado.core.operation.operation import OperationOutput
 from ado.core.resources import (
     ADOResourcePropertyDescriptor,
-    ADOResourceReference,
     CoreResourceKinds,
 )
 from ado.metastore.project import ProjectContext
@@ -40,8 +39,6 @@ from ado.modules.operators.collections import (
     compare_operation,
     fuse,
     fuse_operation,
-    summarize,
-    summarize_operation,
 )
 
 
@@ -78,16 +75,6 @@ def _two_spaces(
     parameters: GenericOperatorParameters,
 ) -> OperationOutput:
     return _stub(left, right, operationInfo, parameters=parameters)
-
-
-def _list_and_baseline_containers(
-    containers: list[DataContainerResource],
-    baseline: DataContainerResource,
-    operationInfo: FunctionOperationInfo | None = None,
-    *,
-    parameters: GenericOperatorParameters,
-) -> OperationOutput:
-    return _stub(containers, baseline, operationInfo, parameters=parameters)
 
 
 def _raw_operation(
@@ -166,7 +153,24 @@ class _LegacyOperatorWithContainer:
         )
 
 
-class TestOperatorInputDescriptorForKind:
+def _descriptor_for_raw(
+    raw: dict,
+    kind: CoreResourceKinds,
+    assigned_inputs: set[str] | None = None,
+) -> ADOResourcePropertyDescriptor:
+    """Resolve the unqualified input descriptor for *kind* on *raw*."""
+    module = raw.get("operation", {}).get("module", {})
+    operator_name, descriptors = _resource_inputs_for_module(module)
+    return _descriptor_for_kind(
+        operator_name,
+        descriptors,
+        kind,
+        dict(raw.get("inputs") or {}),
+        assigned_inputs or set(),
+    )
+
+
+class TestDescriptorForKind:
     def test_single_match_returns_identifier(
         self, temporary_operator: Callable[..., AbstractContextManager[str]]
     ) -> None:
@@ -176,9 +180,7 @@ class TestOperatorInputDescriptorForKind:
         ) as name:
             raw = _raw_operation(name, "characterize")
             assert (
-                _operator_input_descriptor_for_kind(
-                    raw, CoreResourceKinds.DATACONTAINER
-                ).identifier
+                _descriptor_for_raw(raw, CoreResourceKinds.DATACONTAINER).identifier
                 == "measurements"
             )
 
@@ -191,9 +193,7 @@ class TestOperatorInputDescriptorForKind:
         ) as name:
             raw = _raw_operation(name, "compare")
             with pytest.raises(ValueError, match="multiple"):
-                _operator_input_descriptor_for_kind(
-                    raw, CoreResourceKinds.DATACONTAINER
-                )
+                _descriptor_for_raw(raw, CoreResourceKinds.DATACONTAINER)
 
     def test_single_missing_input_is_chosen(
         self, temporary_operator: Callable[..., AbstractContextManager[str]]
@@ -211,9 +211,7 @@ class TestOperatorInputDescriptorForKind:
                 },
             )
             assert (
-                _operator_input_descriptor_for_kind(
-                    raw, CoreResourceKinds.DISCOVERYSPACE
-                ).identifier
+                _descriptor_for_raw(raw, CoreResourceKinds.DISCOVERYSPACE).identifier
                 == "right"
             )
 
@@ -228,9 +226,7 @@ class TestOperatorInputDescriptorForKind:
             }
         }
         assert (
-            _operator_input_descriptor_for_kind(
-                raw, CoreResourceKinds.DISCOVERYSPACE
-            ).identifier
+            _descriptor_for_raw(raw, CoreResourceKinds.DISCOVERYSPACE).identifier
             == "discoverySpace"
         )
 
@@ -245,9 +241,7 @@ class TestOperatorInputDescriptorForKind:
             }
         }
         assert (
-            _operator_input_descriptor_for_kind(
-                raw, CoreResourceKinds.DATACONTAINER
-            ).identifier
+            _descriptor_for_raw(raw, CoreResourceKinds.DATACONTAINER).identifier
             == "measurements"
         )
 
@@ -255,82 +249,9 @@ class TestOperatorInputDescriptorForKind:
         """A script module binds the discoverySpace input."""
         raw = {"operation": {"module": {"name": "my-script", "version": "0.1.0"}}}
         assert (
-            _operator_input_descriptor_for_kind(
-                raw, CoreResourceKinds.DISCOVERYSPACE
-            ).identifier
+            _descriptor_for_raw(raw, CoreResourceKinds.DISCOVERYSPACE).identifier
             == "discoverySpace"
         )
-
-
-class TestAddOperationInputForReference:
-    def test_list_parameter_gets_one_element_list(
-        self, temporary_operator: Callable[..., AbstractContextManager[str]]
-    ) -> None:
-        """A reference for a list parameter is stored as a one-element list."""
-        with temporary_operator(
-            summarize.operators, summarize_operation, _list_and_baseline_containers
-        ) as name:
-            raw = _raw_operation(
-                name,
-                "summarize",
-                inputs={
-                    "baseline": {
-                        "identifier": "datacontainer-baseline",
-                        "kind": "datacontainer",
-                    }
-                },
-            )
-            _add_operation_input_for_reference(
-                raw,
-                ADOResourceReference(
-                    identifier="datacontainer-aaa",
-                    kind=CoreResourceKinds.DATACONTAINER,
-                ),
-            )
-        assert raw["inputs"]["containers"] == [
-            {"identifier": "datacontainer-aaa", "kind": "datacontainer"}
-        ]
-        assert raw["inputs"]["baseline"]["identifier"] == "datacontainer-baseline"
-
-    @pytest.mark.parametrize(
-        "existing_value",
-        [
-            [{"identifier": "datacontainer-aaa", "kind": "datacontainer"}],
-            {"identifier": "datacontainer-aaa", "kind": "datacontainer"},
-        ],
-        ids=["list", "single-mapping"],
-    )
-    def test_list_parameter_appends_to_existing_value(
-        self,
-        temporary_operator: Callable[..., AbstractContextManager[str]],
-        existing_value: list | dict,
-    ) -> None:
-        """A further reference is appended to a list or single mapping already set."""
-        with temporary_operator(
-            summarize.operators, summarize_operation, _list_and_baseline_containers
-        ) as name:
-            raw = _raw_operation(
-                name,
-                "summarize",
-                inputs={
-                    "containers": existing_value,
-                    "baseline": {
-                        "identifier": "datacontainer-baseline",
-                        "kind": "datacontainer",
-                    },
-                },
-            )
-            _add_operation_input_for_reference(
-                raw,
-                ADOResourceReference(
-                    identifier="datacontainer-bbb",
-                    kind=CoreResourceKinds.DATACONTAINER,
-                ),
-            )
-        assert raw["inputs"]["containers"] == [
-            {"identifier": "datacontainer-aaa", "kind": "datacontainer"},
-            {"identifier": "datacontainer-bbb", "kind": "datacontainer"},
-        ]
 
 
 def test_operation_inputs_template_emits_list_placeholder() -> None:

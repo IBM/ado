@@ -24,6 +24,7 @@ from ado.modules.module import (
     ModuleTypeEnum,
     load_module_class_or_function,
 )
+from ado.schema.constraint import PropertyConstraint
 from ado.schema.entity import (
     CheckRequiredObservedPropertyValuesPresent,
     Entity,
@@ -301,6 +302,7 @@ def custom_experiment(
     use_ray: bool = True,
     ray_options: dict | None = None,
     version: str | None = None,
+    constraints: list[PropertyConstraint] | None = None,
 ) -> Callable[
     [Callable[..., Any]],  # noqa: ANN401
     Callable[[tuple[Any, ...], dict[str, Any]], Any],  # noqa: ANN401
@@ -318,6 +320,7 @@ def custom_experiment(
             The keys and allowed values are defined by RayRemoteOptions.
         version: Algorithm version string in strict SemVer format (``"MAJOR.MINOR.PATCH"``).
             Can be None.
+        constraints: Constraints on the values of the required and optional properties.
 
     Returns:
         A decorator that wraps a function to work with ado's custom experiment system.
@@ -328,6 +331,7 @@ def custom_experiment(
             - Optional properties provided but parameterization could not be derived from signature.
             - No optional properties provided and they could not be derived from signature.
             - Function parameter names did not include all property identifiers.
+            - A constraint references a property that is not a required or optional property.
 
     Example:
 
@@ -399,27 +403,34 @@ def custom_experiment(
         )
 
         # Create and store the Experiment instance
-        experiment = Experiment(
-            actuatorIdentifier="custom_experiments",
-            identifier=func.__name__,
-            requiredProperties=tuple(_required_properties),
-            optionalProperties=tuple(_optional_properties),
-            targetProperties=[
-                AbstractPropertyDescriptor(identifier=p)
-                for p in output_property_identifiers
-            ],
-            defaultParameterization=tuple(
-                [
-                    ConstitutivePropertyValue(
-                        property=ConstitutivePropertyDescriptor(identifier=k), value=v
-                    )
-                    for k, v in _parameterization.items()
-                ]
-            ),
-            deprecated=False,
-            metadata=metadata,
-            version=version,
-        )
+        try:
+            experiment = Experiment(
+                actuatorIdentifier="custom_experiments",
+                identifier=func.__name__,
+                requiredProperties=tuple(_required_properties),
+                optionalProperties=tuple(_optional_properties),
+                targetProperties=[
+                    AbstractPropertyDescriptor(identifier=p)
+                    for p in output_property_identifiers
+                ],
+                defaultParameterization=tuple(
+                    [
+                        ConstitutivePropertyValue(
+                            property=ConstitutivePropertyDescriptor(identifier=k),
+                            value=v,
+                        )
+                        for k, v in _parameterization.items()
+                    ]
+                ),
+                deprecated=False,
+                metadata=metadata,
+                version=version,
+                constraints=tuple(constraints or []),
+            )
+        except pydantic.ValidationError as error:
+            raise ValueError(
+                f"Unable to generate custom experiment for {func.__name__} via decorator.\n\t{error}"
+            ) from error
         func._experiment = experiment
 
         # Add the experiment to the module-level catalog

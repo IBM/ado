@@ -5,6 +5,7 @@ from typing import Any
 import pytest
 
 from ado.core.discoveryspace.samplers import sample_random_entity_from_space
+from ado.schema.constraint import PropertyConstraint
 from ado.schema.domain import PropertyDomain, VariableTypeEnum
 from ado.schema.entity import Entity
 from ado.schema.entityspace import EntitySpaceRepresentation
@@ -432,3 +433,137 @@ def test_entity_space_updates_open_categorical_property() -> None:
         "b",
         "c",
     ], "Expected values to be retained"
+
+
+@pytest.fixture
+def gpu_batch_size_properties() -> list[ConstitutiveProperty]:
+    """Return discrete num_gpus and batch_size properties."""
+
+    return [
+        ConstitutiveProperty(
+            identifier="num_gpus",
+            propertyDomain=PropertyDomain(
+                variableType=VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
+                values=[1, 2, 4, 8],
+            ),
+        ),
+        ConstitutiveProperty(
+            identifier="batch_size",
+            propertyDomain=PropertyDomain(
+                variableType=VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
+                values=[1, 2, 4, 8, 16],
+            ),
+        ),
+    ]
+
+
+def _batch_size_at_least_num_gpus(
+    name: str = "at_least_one_sample_per_gpu",
+) -> PropertyConstraint:
+    """Return a constraint requiring batch_size >= num_gpus."""
+
+    return PropertyConstraint.model_validate(
+        {
+            "name": name,
+            "require": {
+                "left": {"propertyIdentifier": "batch_size"},
+                "operator": "ge",
+                "right": {"propertyIdentifier": "num_gpus"},
+            },
+        }
+    )
+
+
+def test_entity_space_without_constraints_has_empty_constraints(
+    gpu_batch_size_properties: list[ConstitutiveProperty],
+) -> None:
+    es = EntitySpaceRepresentation(constitutiveProperties=gpu_batch_size_properties)
+
+    assert es.constraints == []
+
+
+def test_entity_space_exposes_constraints(
+    gpu_batch_size_properties: list[ConstitutiveProperty],
+) -> None:
+    constraint = _batch_size_at_least_num_gpus()
+
+    es = EntitySpaceRepresentation(
+        constitutiveProperties=gpu_batch_size_properties, constraints=[constraint]
+    )
+
+    assert es.constraints == [constraint]
+
+    from_configuration = EntitySpaceRepresentation.representationFromConfiguration(
+        gpu_batch_size_properties, constraints=[constraint]
+    )
+    assert from_configuration.constraints == [constraint]
+
+
+def test_entity_space_constraints_do_not_change_size_or_iteration(
+    gpu_batch_size_properties: list[ConstitutiveProperty],
+) -> None:
+    unconstrained = EntitySpaceRepresentation(
+        constitutiveProperties=gpu_batch_size_properties
+    )
+    constrained = EntitySpaceRepresentation(
+        constitutiveProperties=gpu_batch_size_properties,
+        constraints=[_batch_size_at_least_num_gpus()],
+    )
+
+    assert constrained.size == unconstrained.size == 20
+    assert list(constrained.sequential_point_iterator()) == list(
+        unconstrained.sequential_point_iterator()
+    )
+    assert constrained.isPointInSpace({"num_gpus": 8, "batch_size": 1})
+
+
+def test_entity_space_rejects_constraint_on_unknown_property(
+    gpu_batch_size_properties: list[ConstitutiveProperty],
+) -> None:
+    constraint = PropertyConstraint.model_validate(
+        {
+            "name": "needs_learning_rate",
+            "require": {
+                "left": {"propertyIdentifier": "learning_rate"},
+                "operator": "gt",
+                "right": {"value": 0},
+            },
+        }
+    )
+
+    with pytest.raises(ValueError, match="learning_rate"):
+        EntitySpaceRepresentation(
+            constitutiveProperties=gpu_batch_size_properties, constraints=[constraint]
+        )
+
+
+def test_entity_space_rejects_duplicate_constraint_names(
+    gpu_batch_size_properties: list[ConstitutiveProperty],
+) -> None:
+    with pytest.raises(ValueError, match="at_least_one_sample_per_gpu"):
+        EntitySpaceRepresentation(
+            constitutiveProperties=gpu_batch_size_properties,
+            constraints=[
+                _batch_size_at_least_num_gpus(),
+                _batch_size_at_least_num_gpus(),
+            ],
+        )
+
+
+def test_entity_space_rich_print_includes_constraints(
+    gpu_batch_size_properties: list[ConstitutiveProperty],
+) -> None:
+    from rich.console import Console
+
+    es = EntitySpaceRepresentation(
+        constitutiveProperties=gpu_batch_size_properties,
+        constraints=[_batch_size_at_least_num_gpus()],
+    )
+
+    console = Console(width=200)
+    with console.capture() as capture:
+        console.print(es)
+
+    output = capture.get()
+    assert "Constraints:" in output
+    assert "at_least_one_sample_per_gpu" in output

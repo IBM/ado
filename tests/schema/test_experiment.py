@@ -446,6 +446,70 @@ def test_experiment_rich_print_includes_fully_qualified_identifier() -> None:
     assert "1.2.3" in rendered
 
 
+def test_experiment_constraints_lifecycle(
+    constrained_parameterizable_experiment: Experiment,
+) -> None:
+    from_dump = Experiment.model_validate(
+        constrained_parameterizable_experiment.model_dump()
+    )
+
+    assert from_dump.constraints == constrained_parameterizable_experiment.constraints
+    assert from_dump.constraints[0].property_identifiers() == {
+        "test_req1",
+        "test_opt2",
+    }
+
+
+def test_experiment_rejects_constraint_on_property_it_does_not_take(
+    constrained_parameterizable_experiment: Experiment,
+) -> None:
+    experiment_without_optional_properties = (
+        constrained_parameterizable_experiment.model_dump()
+    )
+    experiment_without_optional_properties.pop("optionalProperties")
+    experiment_without_optional_properties.pop("defaultParameterization")
+
+    with pytest.raises(pydantic.ValidationError, match="test_opt2"):
+        Experiment.model_validate(experiment_without_optional_properties)
+
+
+def test_parameterized_experiment_from_catalog_keeps_constraints(
+    constrained_parameterizable_experiment: Experiment,
+    customParameterization: list[ConstitutivePropertyValue],
+) -> None:
+    catalog = ExperimentCatalog(
+        experiments={
+            constrained_parameterizable_experiment.identifier: constrained_parameterizable_experiment
+        }
+    )
+    reference = ExperimentReference(
+        actuatorIdentifier=constrained_parameterizable_experiment.actuatorIdentifier,
+        experimentIdentifier=constrained_parameterizable_experiment.identifier,
+        parameterization=customParameterization,
+    )
+
+    parameterized = catalog.experimentForReference(reference, resolve=True)
+
+    assert isinstance(parameterized, ParameterizedExperiment)
+    assert (
+        parameterized.constraints == constrained_parameterizable_experiment.constraints
+    )
+
+
+def test_experiment_rich_print_includes_constraints(
+    constrained_parameterizable_experiment: Experiment,
+) -> None:
+    from io import StringIO
+
+    from rich.console import Console
+
+    output = StringIO()
+    Console(file=output, width=120).print(constrained_parameterizable_experiment)
+    rendered = output.getvalue()
+    assert "Constraints:" in rendered
+    assert "x_needs_non_negative_opt2" in rendered
+
+
 def test_measurement_types(experiment: Experiment) -> None:
     """Test that created experiments have the correct measurements types"""
 

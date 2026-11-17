@@ -1153,6 +1153,27 @@ def launch_finetune(
     num_tokens_cache_dir: str | None = None,
     log_level: int | None = None,
 ) -> "metrics_tracker.Metrics":
+    """Runs a fine-tuning job and returns the metrics it collected.
+
+    The job runs in a temporary working directory that is removed once it
+    finishes. If requested, the number of dataset tokens processed during
+    training (excluding warmup steps) is computed and stored in the returned
+    metrics.
+
+    Args:
+        args: The fine-tuning arguments.
+        count_dataset_tokens: Whether to count the tokens in the dataset
+            entries that were consumed by the training steps and record them in
+            ``metrics.training.dataset_tokens``.
+        distributed_settings: The distributed training settings.
+        multi_node: The multi-node settings. If None, a single machine is used.
+        model_id: Identifier of the model, used when counting dataset tokens.
+        num_tokens_cache_dir: Directory used to cache dataset token counts.
+        log_level: The logging level. If None, defaults to 20 (INFO).
+
+    Returns:
+        The metrics collected during fine-tuning.
+    """
     from .callbacks import metrics_tracker
 
     if log_level is None:

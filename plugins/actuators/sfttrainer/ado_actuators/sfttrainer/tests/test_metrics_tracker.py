@@ -3,6 +3,7 @@
 
 import datetime as dt
 import time
+from typing import Any
 
 import pytest
 from ado_actuators.sfttrainer.wrapper_fms_hf_tuning.callbacks.metrics_tracker import (
@@ -124,7 +125,18 @@ def test_to_resource_tracker_metrics_keep_after_time() -> None:
 
 def _metrics_info(
     warmup_seconds: float | None, runtime_values: list[float | None] | None
-) -> dict:
+) -> dict[str, Any]:
+    """Builds a metrics info dictionary as consumed by Metrics.from_metrics_info_dict.
+
+    Args:
+        warmup_seconds:
+            Value for the warmup_seconds field.
+        runtime_values:
+            Values for the "runtime" metric. If None, the metric is omitted.
+
+    Returns:
+        A metrics info dictionary.
+    """
     metrics = [
         {"name": name, "values": [1.0], "context": {}}
         for name in ("samples_per_second", "steps_per_second", "tokens_per_second")

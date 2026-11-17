@@ -556,11 +556,15 @@ def extract_gpu_metrics(
 
     try:
         power_w = pynvml.nvmlDeviceGetPowerUsage(handle) / 1000.0
-        power_cap = pynvml.nvmlDeviceGetEnforcedPowerLimit(handle) / 1000.0
         ret["gpu_power_watts"] = float(power_w)
-        ret["gpu_power_percent"] = float(power_w * 100.0 / power_cap)
     except Exception as e:
         log.warning("Failed to get GPU power for GPU %s: %s", gpu_index, e)
+    else:
+        try:
+            power_cap = pynvml.nvmlDeviceGetEnforcedPowerLimit(handle) / 1000.0
+            ret["gpu_power_percent"] = float(power_w * 100.0 / power_cap)
+        except Exception as e:
+            log.warning("Failed to get GPU power cap for GPU %s: %s", gpu_index, e)
 
     return SnapshotGPUMetrics(**ret)
 
@@ -719,16 +723,16 @@ class ResourceTracker:
         method splits those snapshots into individual named timeseries, one per
         metric, using the following naming and context conventions:
 
-        - System-level metrics are named ``__system__<metric>``, with an empty context.
-        - Per-GPU metrics are named ``__system__<metric>``, with a context of
-          ``{"gpu": <gpu_index>}``.
+        - System-level metrics are named `__system__<metric>`, with an empty context.
+        - Per-GPU metrics are named `__system__<metric>`, with a context of
+          `{"gpu": <gpu_index>}`.
 
         Args:
             keep_after_time:
                 When set, drops metrics collected prior to the specified time
 
         Returns:
-            A list of :class:`ResourceTrackerMetric` objects, each representing a single
+            A list of `ResourceTrackerMetric` objects, each representing a single
             timeseries for one system or GPU metric.
         """
         # VV: The resource tracker is storing snapshots of the system,

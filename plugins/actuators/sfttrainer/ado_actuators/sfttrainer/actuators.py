@@ -205,7 +205,18 @@ class ActuatorParameters(
     def remove_deprecated_aim_fields(
         cls, values: dict[str, Any] | GenericActuatorParameters
     ) -> dict[str, Any] | object:
-        """Removes the deprecated aim_dashboard_url and aim_db fields and warns about them"""
+        """Removes the deprecated aim_dashboard_url and aim_db fields and warns about them.
+
+        Args:
+            values:
+                Raw input for the model, either a dictionary of field values or
+                a GenericActuatorParameters instance.
+
+        Returns:
+            The input with the deprecated fields removed. Inputs that are neither
+            a dictionary nor a GenericActuatorParameters instance are returned
+            unchanged.
+        """
         is_dict = isinstance(values, dict)
         if not is_dict and not isinstance(values, GenericActuatorParameters):
             return values
@@ -727,7 +738,7 @@ class SFTTrainer(ActuatorBase):
         distributed_settings: finetune.DistributedSettings,
         multi_node: finetune.MultiNodeSettings | None = None,
         log_level: int | None = None,
-    ) -> dict[str, float]:
+    ) -> dict[str, float | bool]:
         """Launches repeated sample runs to estimate error probabilities for an entity.
 
         Args:

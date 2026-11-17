@@ -199,6 +199,7 @@ def get_pinned_packages(
             Additional packages to append after all other processing. Pinned
             packages that share a package name with any of these are removed
             first, so the entries here take precedence.
+
     Returns:
         An array consisting of pinned packages a-la pip
     """

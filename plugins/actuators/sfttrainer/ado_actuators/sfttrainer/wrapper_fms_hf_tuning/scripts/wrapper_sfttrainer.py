@@ -514,7 +514,7 @@ class CustomArgs:
         },
     )
 
-    fms_hf_tuning_version: str = dataclasses.field(
+    fms_hf_tuning_version: str | None = dataclasses.field(
         default=None,
         metadata={
             "help": "The version of fms-hf-tuning to use - controls which wrapper to use "

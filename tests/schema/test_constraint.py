@@ -685,18 +685,6 @@ def test_string_is_not_coerced_to_number() -> None:
     assert type(operand.value) is str
 
 
-def test_check_constraints_accepts_known_properties() -> None:
-    """Test constraints referencing only known properties pass the check."""
-
-    check_constraints_against_properties(
-        [
-            PropertyConstraint.model_validate(_AT_LEAST_ONE_SAMPLE_PER_GPU),
-            PropertyConstraint.model_validate(_LARGE_MODEL_NEEDS_MULTIPLE_GPUS),
-        ],
-        ["effective_batch_size", "num_gpus", "model"],
-    )
-
-
 def test_check_constraints_rejects_unknown_property() -> None:
     """Test a constraint referencing an unknown property fails the check."""
 

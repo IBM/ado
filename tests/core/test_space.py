@@ -417,6 +417,7 @@ def test_stored_space_keeps_only_user_constraints(
     create_space: Callable[[DiscoverySpaceConfiguration, str], DiscoverySpace],
     constrained_space_configuration: DiscoverySpaceConfiguration,
 ) -> None:
+    """A stored and reloaded space holds the user constraints but not the experiment constraints."""
     space = create_space(
         constrained_space_configuration, ml_multi_cloud_sample_store.identifier
     )
@@ -436,6 +437,7 @@ def test_effective_constraints_include_experiment_constraints(
     constrained_space_configuration: DiscoverySpaceConfiguration,
     constrained_parameterizable_experiment: Experiment,
 ) -> None:
+    """effective_constraints lists the user constraints then each experiment's constraints."""
     space = create_space(
         constrained_space_configuration, ml_multi_cloud_sample_store.identifier
     )
@@ -452,6 +454,7 @@ def test_effective_constraints_include_experiment_constraints(
 def test_space_resource_rich_print_includes_constraints(
     constrained_space_configuration: DiscoverySpaceConfiguration,
 ) -> None:
+    """Describe output for a space shows both user and experiment constraints."""
     from rich.console import Console
 
     console = Console(width=200)

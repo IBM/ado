@@ -7,6 +7,7 @@ from typing import Literal
 import pytest
 
 from ado.modules.actuators import custom_experiments
+from ado.schema.constraint import PropertyConstraint
 from ado.schema.domain import PropertyDomain, VariableTypeEnum
 from ado.schema.point import SpacePoint
 from ado.schema.property import ConstitutiveProperty
@@ -69,6 +70,59 @@ def test_custom_experiment_exact_output_keys() -> None:
     assert "foo" in identifiers
     assert "bar" in identifiers
     assert len(observed_values) == 2
+
+
+def test_custom_experiment_constraints_are_set_on_catalog_experiment() -> None:
+    """Constraints passed to the decorator are on the experiment stored in the catalog."""
+    constraint = PropertyConstraint.model_validate(
+        {
+            "name": "batch_at_least_gpus",
+            "require": {
+                "left": {"propertyIdentifier": "batch_size"},
+                "operator": "ge",
+                "right": {"propertyIdentifier": "gpus"},
+            },
+        }
+    )
+
+    @custom_experiments.custom_experiment(
+        output_property_identifiers=["throughput"], constraints=[constraint]
+    )
+    def constrained_throughput(batch_size: int, gpus: int = 1) -> dict:
+        return {"throughput": batch_size / gpus}
+
+    catalog_experiment = (
+        custom_experiments.get_custom_experiments_catalog().experimentForReference(
+            constrained_throughput._experiment.reference
+        )
+    )
+    assert catalog_experiment.constraints == (constraint,)
+
+
+def test_custom_experiment_rejects_constraint_on_unknown_property() -> None:
+    """A constraint on a property the function does not take raises ValueError."""
+    constraint = PropertyConstraint.model_validate(
+        {
+            "name": "needs_memory",
+            "require": {
+                "left": {"propertyIdentifier": "memory"},
+                "operator": "ge",
+                "right": {"value": 1},
+            },
+        }
+    )
+
+    with pytest.raises(
+        ValueError,
+        match=r"(?s)Unable to generate custom experiment for invalid_constrained_fn"
+        r".*Constraint needs_memory references unknown properties \['memory'\]",
+    ):
+
+        @custom_experiments.custom_experiment(
+            output_property_identifiers=["out"], constraints=[constraint]
+        )
+        def invalid_constrained_fn(batch_size: int) -> dict:
+            return {"out": batch_size}
 
 
 def test_infer_domain_and_property_type() -> None:

@@ -45,7 +45,7 @@ from ado.core.operation.operation import OperationException, OperationOutput
 from ado.core.operation.resource import (
     OperationExitStateEnum,
 )
-from ado.core.resources import ADOResourcePropertyDescriptor, ADOResourceReference
+from ado.core.resources import ADOResourcePropertyDescriptor
 from ado.modules.operators.errors import OperatorVersionMismatchError
 
 _INPUT_KINDS = frozenset(KIND_FOR_OPERATOR_INPUT_TYPE.values())
@@ -116,118 +116,6 @@ def _resource_inputs_for_module(
     )
 
 
-def _operator_resource_inputs(
-    raw_operation_configuration: dict,
-) -> tuple[str, tuple[ADOResourcePropertyDescriptor, ...]]:
-    """Return the operator name and resource-input descriptors for an operation.
-
-    Args:
-        raw_operation_configuration: Raw operation resource configuration dict.
-
-    Returns:
-        The operator name and its resource-input descriptors. Operators that
-        record no resource inputs have a single ``discoverySpace`` input.
-
-    Raises:
-        ValueError: If ``operation.module`` does not identify an operator.
-    """
-    module = raw_operation_configuration.get("operation", {}).get("module", {})
-    return _resource_inputs_for_module(module)
-
-
-def _operator_input_descriptor_for_kind(
-    raw_operation_configuration: dict,
-    kind: CoreResourceKinds,
-) -> ADOResourcePropertyDescriptor:
-    """Resolve the operator input descriptor for a resource *kind*.
-
-    Uses the operator's declared resource inputs. When several inputs share
-    *kind*, selects, in order of preference:
-
-    1. the only list input, if there is exactly one;
-    2. the only input not yet set under ``inputs``, if there is exactly one.
-
-    Args:
-        raw_operation_configuration: The raw operation resource configuration.
-        kind: The resource kind to find an input for.
-
-    Returns:
-        The matching operator resource input descriptor.
-
-    Raises:
-        ValueError: If ``operation.module`` is not a recognised form, the
-            operator has no input of *kind*, or several inputs of *kind* exist
-            and the number of unset inputs of *kind* is not exactly one.
-    """
-    module = raw_operation_configuration.get("operation", {}).get("module", {})
-    operator_name, declared_resource_inputs = _resource_inputs_for_module(module)
-    inputs_of_kind = [
-        descriptor for descriptor in declared_resource_inputs if descriptor.kind == kind
-    ]
-    if not inputs_of_kind:
-        raise ValueError(
-            f"Operator {operator_name!r} has no resource input of kind {kind.value!r}."
-        )
-    if len(inputs_of_kind) == 1:
-        return inputs_of_kind[0]
-
-    list_inputs = [descriptor for descriptor in inputs_of_kind if descriptor.isList]
-    if len(list_inputs) == 1:
-        return list_inputs[0]
-
-    inputs_already_set = raw_operation_configuration.get("inputs", {})
-    unset_input_descriptors = [
-        descriptor
-        for descriptor in inputs_of_kind
-        if descriptor.identifier not in inputs_already_set
-    ]
-    if len(unset_input_descriptors) == 1:
-        return unset_input_descriptors[0]
-    input_identifiers_of_kind = [descriptor.identifier for descriptor in inputs_of_kind]
-    raise ValueError(
-        f"Operator {operator_name!r} has multiple {kind.value!r} inputs "
-        f"{input_identifiers_of_kind}; set them explicitly in the operation YAML."
-    )
-
-def _add_operation_input_for_reference(
-    raw_operation_configuration: dict,
-    reference: ADOResourceReference,
-) -> None:
-    """Bind one resource reference to an operator input of a raw configuration.
-
-    The reference is stored under the operator input resolved by
-    ``_operator_input_descriptor_for_kind``. For a list input, it is appended
-    to the references already set.
-
-    Args:
-        raw_operation_configuration: Raw operation resource configuration dict.
-        reference: Resource reference to store. ``kind`` must be set.
-
-    Raises:
-        ValueError: If the operator input name cannot be resolved, or if
-            *reference* has no kind.
-    """
-    if reference.kind is None:
-        raise ValueError("Operation input references must include a resource kind.")
-    descriptor = _operator_input_descriptor_for_kind(
-        raw_operation_configuration, reference.kind
-    )
-    serialized_reference = reference.model_dump(mode="json")
-    operation_inputs = raw_operation_configuration.setdefault("inputs", {})
-    if descriptor.isList:
-        existing_input_value = operation_inputs.get(descriptor.identifier)
-        if existing_input_value is None:
-            existing_input_value = []
-        elif not isinstance(existing_input_value, list):
-            existing_input_value = [existing_input_value]
-        existing_input_value.append(serialized_reference)
-        operation_inputs[descriptor.identifier] = existing_input_value
-    else:
-        operation_inputs[descriptor.identifier] = serialized_reference
-    if reference.kind == CoreResourceKinds.DISCOVERYSPACE:
-        raw_operation_configuration.pop("spaces", None)
-
-
 def _descriptor_for_kind(
     operator_name: str,
     descriptors: tuple[ADOResourcePropertyDescriptor, ...],
@@ -254,22 +142,32 @@ def _descriptor_for_kind(
     Raises:
         ValueError: If no input, or more than one input, can be chosen.
     """
-    inputs_of_kind = [d for d in descriptors if d.kind == kind]
+    inputs_of_kind = [
+        descriptor for descriptor in descriptors if descriptor.kind == kind
+    ]
     if not inputs_of_kind:
         raise ValueError(
             f"Operator {operator_name!r} has no resource input of kind {kind.value!r}."
         )
 
-    candidates = [d for d in inputs_of_kind if d.identifier not in assigned_inputs]
+    candidates = [
+        descriptor
+        for descriptor in inputs_of_kind
+        if descriptor.identifier not in assigned_inputs
+    ]
     for narrowed in (
         candidates,
-        [d for d in candidates if d.isList],
-        [d for d in candidates if d.identifier not in present_inputs],
+        [descriptor for descriptor in candidates if descriptor.isList],
+        [
+            descriptor
+            for descriptor in candidates
+            if descriptor.identifier not in present_inputs
+        ],
     ):
         if len(narrowed) == 1:
             return narrowed[0]
 
-    names = [d.identifier for d in inputs_of_kind]
+    names = [descriptor.identifier for descriptor in inputs_of_kind]
     raise ValueError(
         f"Operator {operator_name!r} has multiple {kind.value!r} inputs {names}. "
         f"Use {kind.value}:<input> to choose one, e.g. {kind.value}:{names[0]}."
@@ -296,7 +194,7 @@ def _descriptor_for_name(
     Raises:
         ValueError: If the operator has no such input, or its kind differs.
     """
-    by_name = {d.identifier: d for d in descriptors}
+    by_name = {descriptor.identifier: descriptor for descriptor in descriptors}
     descriptor = by_name.get(input_name)
     if descriptor is None:
         raise ValueError(
@@ -610,15 +508,16 @@ def apply_resource_flags(
     if not (parameters.withInputs or parameters.useLatestInputs or input_kinds):
         return
 
-    operator_name, descriptors = _operator_resource_inputs(raw_operation_configuration)
+    module = raw_operation_configuration.get("operation", {}).get("module", {})
+    operator_name, descriptors = _resource_inputs_for_module(module)
     present_inputs = dict(raw_operation_configuration.get("inputs") or {})
     assigned_inputs: set[str] = set()
 
     for option in parameters.withInputs:
+        identifier = _identifier_for_with_value(option.kind, option.value, parameters)
         descriptor = _descriptor_for_name(
             operator_name, descriptors, option.inputName, option.kind
         )
-        identifier = _identifier_for_with_value(option.kind, option.value, parameters)
         if identifier is not None:
             _set_input(
                 raw_operation_configuration, descriptor, identifier, assigned_inputs
@@ -635,15 +534,16 @@ def apply_resource_flags(
         _print_latest_used(kind, latest_identifiers[kind], input_name)
 
     for kind in input_kinds:
-        descriptor = _descriptor_for_kind(
-            operator_name, descriptors, kind, present_inputs, assigned_inputs
-        )
         if kind in with_resources:
             identifier = _identifier_for_with_value(
                 kind, with_resources[kind], parameters
             )
         else:
             identifier = latest_identifiers[kind]
+        descriptor = _descriptor_for_kind(
+            operator_name, descriptors, kind, present_inputs, assigned_inputs
+        )
+        if kind not in with_resources:
             _print_latest_used(kind, identifier, descriptor.identifier)
         if identifier is not None:
             _set_input(

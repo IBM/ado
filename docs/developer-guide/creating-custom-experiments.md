@@ -329,12 +329,9 @@ passed to `calculate_buoyancy`.
 When `ado` runs the experiment on an entity:
 
 - the entity must have **exactly one** value for each observed input. If it has
-  more than one, the measurement of that entity is recorded as invalid.
-- if the entity has no value for an observed input from any version of the
-  experiment that measures it, the request fails with an error.
-- if the entity only has values for an observed input from a different major
-  version or parameterization of the experiment that measures it, the
-  measurement of that entity is recorded as invalid.
+  more than one, or none, the measurement of that entity is recorded as
+  invalid. A value only from a different major version or parameterization of
+  the experiment that measures the input counts as none.
 
 Both experiments must be in the same `discoveryspace`, so that the input is
 measured before the experiment that uses it. Two inputs can't map to the same

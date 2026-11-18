@@ -14,7 +14,6 @@ except ImportError:  # pragma: nocover
 
 import ado.metastore.project
 import ado.modules.actuators.base
-import ado.modules.actuators.catalog
 import ado.modules.actuators.custom_experiments
 import ado.modules.actuators.replay
 import ado.modules.module
@@ -48,26 +47,6 @@ def objectiveFunctionConfiguration(
 ) -> ActuatorConfiguration:
 
     return ActuatorConfiguration(**objectiveFunctionConfigurationYAML)
-
-
-@pytest.fixture
-def actuatorCatalogExtensionConfigurationYAML() -> dict[str, Any]:
-
-    y = """
-    name: custom_experiments.yaml
-    location: 'examples/pfas-generative-models/'
-    """
-
-    return yaml.load(y, Loader=SafeLoader)
-
-
-@pytest.fixture
-def actuatorCatalogExtensionConfiguration(
-    actuatorCatalogExtensionConfigurationYAML: dict[str, Any],
-) -> ado.modules.actuators.catalog.ActuatorCatalogExtensionConf:
-    return ado.modules.actuators.catalog.ActuatorCatalogExtensionConf(
-        **actuatorCatalogExtensionConfigurationYAML
-    )
 
 
 def test_custom_experiments(

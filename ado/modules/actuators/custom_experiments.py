@@ -22,12 +22,8 @@ from ado.modules.actuators.standard import StandardActuator
 from ado.modules.module import (
     ModuleConf,
     ModuleTypeEnum,
-    load_module_class_or_function,
 )
-from ado.schema.entity import (
-    CheckRequiredObservedPropertyValuesPresent,
-    Entity,
-)
+from ado.schema.entity import Entity
 from ado.schema.experiment import Experiment
 from ado.schema.observed_property import (
     ObservedProperty,
@@ -539,68 +535,6 @@ def custom_experiment(
     return decorator
 
 
-def load_custom_experiments_from_catalog_extensions(identifier: str) -> None:
-    import importlib.resources
-    import logging
-    import pkgutil
-    from pathlib import Path
-
-    import yaml
-
-    try:
-        from yaml import CSafeLoader as SafeLoader
-    except ImportError:  # pragma: nocover
-        from yaml import SafeLoader  # type: ignore[assignment]
-
-    from ado.modules.actuators.catalog import ActuatorCatalogExtension
-    from ado.modules.actuators.registry import (
-        CATALOG_EXTENSIONS_CONFIGURATION_FILE_NAME,
-    )
-
-    try:
-        import ado_actuators as plugins
-    except ImportError:
-        logging.getLogger("custom_experiments").info(
-            "ado_actuators namespace package has not been created yet"
-        )
-        return
-
-    logger = logging.getLogger("custom_experiments")
-
-    for module in pkgutil.iter_modules(plugins.__path__, f"{plugins.__name__}."):
-        module_contents = {
-            entry.name for entry in importlib.resources.files(module.name).iterdir()
-        }
-
-        if CATALOG_EXTENSIONS_CONFIGURATION_FILE_NAME in module_contents:
-            logger.debug(f"Found {CATALOG_EXTENSIONS_CONFIGURATION_FILE_NAME}")
-
-            experiments_configuration_file = Path(
-                str(importlib.resources.files(module.name))
-            ) / Path(CATALOG_EXTENSIONS_CONFIGURATION_FILE_NAME)
-
-            try:
-                catalog_extension = ActuatorCatalogExtension.model_validate(
-                    yaml.load(
-                        experiments_configuration_file.read_text(), Loader=SafeLoader
-                    )
-                )
-            except pydantic.ValidationError:
-                logger.exception(
-                    f"{module.name}'s {CATALOG_EXTENSIONS_CONFIGURATION_FILE_NAME} raised a validation error"
-                )
-                raise
-
-            logger.debug(f"Adding catalog extension {catalog_extension!s}")
-            for experiment in catalog_extension.experiments:
-                if experiment.actuatorIdentifier == "custom_experiments":
-                    _custom_experiments_catalog.addExperiment(experiment)
-                else:
-                    logger.warning(
-                        f"Cannot add catalog extension for {experiment.actuatorIdentifier} - only custom_experiments supports catalog extensions"
-                    )
-
-
 def load_custom_experiments_from_entry_points() -> None:
     """
     Load custom experiments from entry points.
@@ -710,25 +644,8 @@ def _call_decorated_custom_experiment(
     return observed_property_values
 
 
-def _call_legacy_custom_experiment(
-    function: Callable,
-    target_experiment: Experiment,
-    entity: Entity,
-    parameters: dict | None = None,
-) -> list[ObservedPropertyValue]:
-    # For legacy case or other functions, check for parameters kwarg else pass entity/experiment
-    func_signature = inspect.signature(function)
-    if "parameters" in func_signature.parameters:
-        values = function(entity, target_experiment, parameters=parameters)
-    else:
-        values = function(entity, target_experiment)
-
-    return values
-
-
 def custom_experiment_executor(
     function: Callable,
-    parameters: dict,
     measurement_request: MeasurementRequest,
     target_experiment: Experiment,
     queue: MeasurementQueue | NullQueue,
@@ -737,8 +654,7 @@ def custom_experiment_executor(
     """Run a custom experiment and place the completed request on ``queue``.
 
     Args:
-        function: The function to call.
-        parameters: The custom parameters to the function.
+        function: The decorated custom experiment function to call.
         measurement_request: The entity and custom experiment to be measured.
         target_experiment: The experiment to execute. Required as the
             measurementRequest only includes an ExperimentReference.
@@ -754,20 +670,11 @@ def custom_experiment_executor(
     measurement_results = []
     for entity in measurement_request.entities:
         try:
-            # Check if this is a custom experiment decorated function
-            if getattr(function, "_is_custom_experiment", False):
-                values = _call_decorated_custom_experiment(
-                    function=function,
-                    target_experiment=target_experiment,
-                    entity=entity,
-                )
-            else:
-                values = _call_legacy_custom_experiment(
-                    function=function,
-                    target_experiment=target_experiment,
-                    entity=entity,
-                    parameters=parameters,
-                )
+            values = _call_decorated_custom_experiment(
+                function=function,
+                target_experiment=target_experiment,
+                entity=entity,
+            )
 
             if len(values) > 0:
                 measurement_result = ValidMeasurementResult(
@@ -866,25 +773,17 @@ class CustomExperiments(StandardActuator):
         self._functionImplementations = {}
         for experiment in self._catalog.experiments:
             function = _custom_experiment_functions.get(experiment.identifier)
-            if function is None and (module := experiment.metadata.get("module")):
-                experiment_module_conf = ExperimentModuleConf.model_validate(module)
-                function = (
-                    load_module_class_or_function(experiment_module_conf)
-                    if experiment_module_conf
-                    else None
+            if function is None:
+                raise ValueError(
+                    f"Custom experiment '{experiment.identifier}' is in the catalog "
+                    f"but has no registered function."
                 )
-
-            if function:
-                self._functionImplementations[experiment.identifier] = function
-                self.log.info(
-                    f"Experiment name: {experiment.identifier}. "
-                    f"Function Implementation: {self._functionImplementations[experiment.identifier]}. "
-                    f"Experiment: {experiment}"
-                )
-            else:
-                self.log.error(
-                    f"Experiment in custom_experiment catalog is missing required metadata (either experiment_function or module): {experiment}"
-                )
+            self._functionImplementations[experiment.identifier] = function
+            self.log.info(
+                f"Experiment name: {experiment.identifier}. "
+                f"Function Implementation: {function}. "
+                f"Experiment: {experiment}"
+            )
 
         self.log.debug("Completed init")
 
@@ -924,25 +823,20 @@ class CustomExperiments(StandardActuator):
             return False
         return runtime_env_creates_sandbox_venv(ray_options.runtime_env)
 
-    def _resolve_experiment_function_and_parameters(
+    def _resolve_experiment_and_function(
         self,
-        entities: list[Entity],
         experimentReference: ExperimentReference,
-    ) -> tuple[Experiment, Callable, dict]:
-        """Validate entities and resolve the experiment, its function and parameters.
+    ) -> tuple[Experiment, Callable]:
+        """Resolve the experiment and its function.
 
         Args:
-            entities: Entities to measure.
             experimentReference: Reference to the experiment to run.
 
         Returns:
-            Tuple of ``(target_experiment, function, parameters)`` where
-            ``parameters`` is the ``parameters`` entry of the experiment's
-            metadata, or an empty dict if it has none.
+            Tuple of ``(target_experiment, function)``.
 
         Raises:
-            ValueError: If the experiment is unknown or an entity is missing
-                required property values.
+            ValueError: If the experiment is unknown.
         """
         try:
             target_experiment = self._catalog.experimentForReference(
@@ -960,18 +854,8 @@ class CustomExperiments(StandardActuator):
                 f"Requested experiments {experimentReference} is not in the CustomExperiments actuator catalog (which is empty). "
             ) from error
 
-        for entity in entities:
-            if not CheckRequiredObservedPropertyValuesPresent(
-                entity, target_experiment, exactMatch=False
-            ):
-                raise ValueError(
-                    f"Entity {entity.identifier} does not have values for properties required "
-                    f"as inputs for experiment {experimentReference.experimentIdentifier}"
-                )
-
         fn = self._functionImplementations[experimentReference.experimentIdentifier]
-        parameters = target_experiment.metadata.get("parameters", {})
-        return target_experiment, fn, parameters
+        return target_experiment, fn
 
     def execute(
         self,
@@ -994,10 +878,8 @@ class CustomExperiments(StandardActuator):
         Returns:
             A completed MeasurementRequest with measurements and status set.
         """
-        target_experiment, fn, parameters = (
-            self._resolve_experiment_function_and_parameters(
-                entities, experimentReference
-            )
+        target_experiment, fn = self._resolve_experiment_and_function(
+            experimentReference
         )
         request = MeasurementRequest(
             operation_id=requesterid,
@@ -1010,7 +892,6 @@ class CustomExperiments(StandardActuator):
         if not use_ray:
             return custom_experiment_executor(
                 fn,
-                parameters,
                 request,
                 target_experiment,
                 NullQueue(),
@@ -1020,7 +901,6 @@ class CustomExperiments(StandardActuator):
         return ray.get(
             remote_fn.remote(
                 fn,
-                parameters,
                 request,
                 target_experiment,
                 NullQueue(),
@@ -1057,10 +937,8 @@ class CustomExperiments(StandardActuator):
             f"Received a request to measure {experimentReference} on {[e.identifier for e in entities]}"
         )
 
-        target_experiment, fn, parameters = (
-            self._resolve_experiment_function_and_parameters(
-                entities, experimentReference
-            )
+        target_experiment, fn = self._resolve_experiment_and_function(
+            experimentReference
         )
 
         requestid = str(uuid.uuid4())[:6]
@@ -1087,7 +965,6 @@ class CustomExperiments(StandardActuator):
             remote_fn = _custom_experiment_executor_remote(fn)
             executor_ref = remote_fn.remote(
                 fn,
-                parameters,
                 request,
                 target_experiment,
                 self._stateUpdateQueue,
@@ -1097,7 +974,6 @@ class CustomExperiments(StandardActuator):
         else:
             custom_experiment_executor(
                 fn,
-                parameters,
                 request,
                 target_experiment,
                 self._stateUpdateQueue,
@@ -1109,7 +985,6 @@ class CustomExperiments(StandardActuator):
         cls, actuator_configuration: GenericActuatorParameters | None = None
     ) -> ado.modules.actuators.catalog.ExperimentCatalog:
 
-        load_custom_experiments_from_catalog_extensions(cls.identifier)
         # Load custom experiments from entry points before returning catalog
         load_custom_experiments_from_entry_points()
         return get_custom_experiments_catalog()

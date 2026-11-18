@@ -20,6 +20,6 @@ entitySpace:
 experiments:
   - experimentIdentifier: 'benchmark_performance'
     actuatorIdentifier: 'replay'
-  - experimentIdentifier: 'ml-multicloud-cost'
+  - experimentIdentifier: 'ml_multicloud_cost'
     actuatorIdentifier: 'custom_experiments'
     experimentVersion: 1.0.0

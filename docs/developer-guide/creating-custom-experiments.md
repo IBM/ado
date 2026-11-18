@@ -317,8 +317,8 @@ equivalent measurements of a property (see, for example,
 or
 [experiment matching](../resources/metastore.md#how-experiments-are-paired-and-evaluated)).
 So, in the above example, by setting the version
-to `1.0.0`, a measurement from any `1.x` version of `calcualte_density` can be
-passed to `calcualte_buoyancy`.
+to `1.0.0`, a measurement from any `1.x` version of `calculate_density` can be
+passed to `calculate_buoyancy`.
 
 > [!IMPORTANT]
 >
@@ -330,8 +330,11 @@ When `ado` runs the experiment on an entity:
 
 - the entity must have **exactly one** value for each observed input. If it has
   more than one, the measurement of that entity is recorded as invalid.
-- if the entity has no value for an observed input, the request fails with an
-  error.
+- if the entity has no value for an observed input from any version of the
+  experiment that measures it, the request fails with an error.
+- if the entity only has values for an observed input from a different major
+  version or parameterization of the experiment that measures it, the
+  measurement of that entity is recorded as invalid.
 
 Both experiments must be in the same `discoveryspace`, so that the input is
 measured before the experiment that uses it. Two inputs can't map to the same

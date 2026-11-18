@@ -376,10 +376,13 @@ def custom_experiment(
 
     Args:
         required_properties: List of ConstitutiveProperty and ObservedProperty instances
-            that are required input values.
+            that are required input values. The value of a ConstitutiveProperty is passed
+            to the function parameter named by its identifier. The value of an
+            ObservedProperty is passed to the function parameter named by its target
+            property identifier.
         output_property_identifiers: List of strings identifying the output property names.
         optional_properties: List of ConstitutiveProperty instances that are optional input values.
-        parameterization: Tuple of parameters for default parameterization.
+        parameterization: Dictionary mapping optional property identifiers to their default values.
         metadata: Metadata for the experiment.
         use_ray: If True the CustomExperiments actuator will launch the experiment as a ray remote task.
         ray_options: A dictionary containing ray remote task options.
@@ -411,7 +414,7 @@ def custom_experiment(
 
     @custom_experiment(
         required_properties=[mass, volume],
-        output_properties=["density"],
+        output_property_identifiers=["density"],
         version="1.0.0",
     )
     def calculate_density(mass, volume):

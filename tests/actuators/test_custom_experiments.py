@@ -652,23 +652,39 @@ def _entity_with_observed_values(
     return entity
 
 
-def test_custom_experiment_observed_input_maps_to_target_parameter(
+def test_custom_experiment_infers_optional_properties_excluding_observed_inputs(
     observed_input_experiments: tuple[Callable[..., Any], Callable[..., Any]],
 ) -> None:
-    """An observed required property is supplied through its target-named parameter."""
-    upstream, downstream = observed_input_experiments
+    """A defaulted parameter that receives an observed input is not inferred as optional."""
+    upstream, _ = observed_input_experiments
+    upstream_value = upstream._experiment.observedPropertyForTargetIdentifier(
+        "upstream_value"
+    )
+    x = ConstitutiveProperty(
+        identifier="x",
+        propertyDomain=PropertyDomain(
+            variableType=VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE
+        ),
+    )
 
-    experiment = downstream._experiment
-    assert experiment.requiredObservedProperties == [
-        upstream._experiment.observedPropertyForTargetIdentifier("upstream_value")
-    ]
-    assert [p.identifier for p in experiment.requiredConstitutiveProperties] == ["x"]
+    @custom_experiments.custom_experiment(
+        output_property_identifiers=["total"],
+        required_properties=[x, upstream_value],
+    )
+    def observed_input_with_default_exp(
+        x: float, upstream_value: float = 0.0, scale: float = 2.0
+    ) -> dict[str, float]:
+        return {"total": scale * (x + upstream_value)}
+
+    experiment = observed_input_with_default_exp._experiment
+    assert [p.identifier for p in experiment.optionalProperties] == ["scale"]
 
 
 def test_custom_experiment_rejects_inputs_with_same_parameter_name() -> None:
     """Decoration fails when two inputs would be passed to the same parameter."""
 
     def observed_value_from(experiment_identifier: str) -> ObservedProperty:
+        """Return an observed property for the target ``value`` of an experiment."""
         return ObservedProperty(
             targetProperty=AbstractPropertyDescriptor(identifier="value"),
             experimentReference=ExperimentReference(

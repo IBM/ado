@@ -26,6 +26,10 @@ from ado.core.actuatorconfiguration.config import (
     ActuatorConfiguration,
 )
 from ado.modules.actuators.catalog import ExperimentCatalog
+from ado.modules.actuators.registry import ActuatorRegistry
+from ado.schema.experiment import Experiment
+from ado.schema.observed_property import ObservedProperty, ObservedPropertyValue
+from ado.schema.point import SpacePoint
 
 
 @pytest.fixture
@@ -89,6 +93,7 @@ def test_custom_experiments(
     expected_identifiers = {
         "acid_test",
         "calculate_density",
+        "ml_multicloud_cost",
         "min_gpu_recommender",
         "avoid_oom_recommender",
         "throughput_recommender",
@@ -169,3 +174,94 @@ def test_execute_nevergrad_opt_3d_test_func(
     assert len(request.measurements) == 1
     assert request.measurements[0].entityIdentifier == entity.identifier
     assert isinstance(request.measurements[0], ado.schema.result.ValidMeasurementResult)
+
+
+def _entity_with_observed_value(
+    constitutive_values: dict[str, Any],
+    observed_property: ObservedProperty,
+    value: float,
+) -> ado.schema.entity.Entity:
+    """Return an entity with the given constitutive values and one observed value.
+
+    Args:
+        constitutive_values: Constitutive property identifiers and their values.
+        observed_property: The observed property the value is a measurement of.
+        value: The measured value.
+
+    Returns:
+        The entity.
+    """
+    entity = SpacePoint(entity=constitutive_values).to_entity()
+    entity.add_measurement_result(
+        ado.schema.result.ValidMeasurementResult(
+            entityIdentifier=entity.identifier,
+            measurements=[
+                ObservedPropertyValue(property=observed_property, value=value)
+            ],
+        )
+    )
+    return entity
+
+
+def _measured_target_values(
+    request: ado.schema.request.MeasurementRequest,
+) -> dict[str, dict[str, Any]]:
+    """Return each entity's measured values keyed by target property identifier.
+
+    Args:
+        request: A measurement request whose results are all valid.
+
+    Returns:
+        A dictionary mapping entity identifiers to their measured values.
+    """
+    return {
+        result.entityIdentifier: {
+            value.property.targetProperty.identifier: value.value
+            for value in result.measurements
+        }
+        for result in request.measurements
+    }
+
+
+def test_execute_acid_test() -> None:
+    """acid_test classifies a negative pKa as acid and a non-negative pKa as not."""
+    reference = ado.schema.reference.ExperimentReference(
+        actuatorIdentifier="custom_experiments", experimentIdentifier="acid_test"
+    )
+    experiment = ActuatorRegistry.globalRegistry().experimentForReference(reference)
+    pka = experiment.requiredObservedProperties[0]
+    acid = _entity_with_observed_value({"smiles": "CC(=O)O"}, pka, -1.5)
+    not_acid = _entity_with_observed_value({"smiles": "CCO"}, pka, 4.0)
+
+    request = ado.modules.actuators.custom_experiments.CustomExperiments().execute(
+        entities=[acid, not_acid],
+        experimentReference=reference,
+        requesterid="test-acid-test",
+        requestIndex=0,
+    )
+
+    assert request.status == ado.schema.request.MeasurementRequestStateEnum.SUCCESS
+    measured_values = _measured_target_values(request)
+    assert measured_values[acid.identifier]["isAcid"] == 1
+    assert measured_values[not_acid.identifier]["isAcid"] == 0
+
+
+def test_execute_ml_multicloud_cost(ml_multi_cloud_cost_experiment: Experiment) -> None:
+    """ml_multicloud_cost reproduces the total cost in the search-custom-objective docs."""
+    entity = _entity_with_observed_value(
+        {"provider": "B", "cpu_family": 0, "vcpu_size": 0, "nodes": 3},
+        ml_multi_cloud_cost_experiment.requiredObservedProperties[0],
+        153.51639366149902,
+    )
+
+    request = ado.modules.actuators.custom_experiments.CustomExperiments().execute(
+        entities=[entity],
+        experimentReference=ml_multi_cloud_cost_experiment.reference,
+        requesterid="test-ml-multicloud-cost",
+        requestIndex=0,
+    )
+
+    assert request.status == ado.schema.request.MeasurementRequestStateEnum.SUCCESS
+    assert _measured_target_values(request)[entity.identifier][
+        "total_cost"
+    ] == pytest.approx(1.2793032805124918)

@@ -37,6 +37,7 @@ members = [
     "ado-sfttrainer",
     "ado-vllm-performance",
     "density-test",
+    "ml-multi-cloud-custom-experiments",
     "optimization-test-functions",
     "pfas-custom-functions",
     "robotic-lab",
@@ -149,6 +150,7 @@ test = [
     { name = "ado-vllm-performance" },
     { name = "cloudpickle" },
     { name = "density-test" },
+    { name = "ml-multi-cloud-custom-experiments" },
     { name = "optimization-test-functions" },
     { name = "pfas-custom-functions" },
     { name = "psutil" },
@@ -216,6 +218,7 @@ test = [
     { name = "ado-vllm-performance", editable = "plugins/actuators/vllm_performance" },
     { name = "cloudpickle", specifier = ">=3.1.2" },
     { name = "density-test", editable = "examples/density_example" },
+    { name = "ml-multi-cloud-custom-experiments", editable = "examples/ml-multi-cloud/custom_experiment" },
     { name = "optimization-test-functions", editable = "examples/optimization_test_functions/custom_experiments" },
     { name = "pfas-custom-functions", editable = "examples/pfas-generative-models/custom_actuator_function" },
     { name = "psutil", specifier = "==7.2.2" },
@@ -3930,6 +3933,10 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/ea/18/f614916d281090a598b0fa22004588b0e0bde3acf86675285280d69ef1a3/ml_dtypes-0.7.0-cp314-cp314t-win_amd64.whl", hash = "sha256:3a71fe4a4c323e89058ba828f41d3995203c27c09fed64776173de05e4ad28d1", size = 491626, upload-time = "2026-11-16T16:21:07.678Z" },
     { url = "https://files.pythonhosted.org/packages/39/0b/c47ba04c7113d3b9d13c56041021cbcbed07650ed7718c878843df2fc20e/ml_dtypes-0.7.0-cp314-cp314t-win_arm64.whl", hash = "sha256:69aeab7864e8a2beae8b4765945d44e826f82f8003a96a7c1cf3365b6abbaf2b", size = 608634, upload-time = "2026-11-16T16:21:09.058Z" },
 ]
+
+[[package]]
+name = "ml-multi-cloud-custom-experiments"
+source = { editable = "examples/ml-multi-cloud/custom_experiment" }
 
 [[package]]
 name = "mmh3"

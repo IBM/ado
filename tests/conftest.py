@@ -45,11 +45,7 @@ requires_sqlite_3_38 = pytest.mark.skipif(
 
 
 def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
-    """Assign MySQL-using tests to a small set of xdist groups.
-
-    With ``pytest -n auto --dist loadgroup``, this caps concurrent MySQL
-    testcontainers at ``MYSQL_XDIST_GROUP_COUNT`` instead of one per worker.
-    """
+    """Mark MySQL-using items with ``xdist_group`` names from ``mysql_xdist_group_name``."""
     for item in items:
         callspec = getattr(item, "callspec", None)
         params = callspec.params if callspec is not None else None

@@ -1,13 +1,7 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-"""Limit concurrent MySQL testcontainers under pytest-xdist.
-
-Each xdist worker is a separate process, so a session-scoped MySQL container
-fixture starts one container per worker that needs it. Marking MySQL-using
-tests with a small set of ``xdist_group`` names keeps container count bounded
-when pytest is run with ``--dist loadgroup``.
-"""
+"""Classify collected pytest items and return MySQL ``xdist_group`` names."""
 
 from __future__ import annotations
 
@@ -26,16 +20,14 @@ MYSQL_CONTAINER_FIXTURES = frozenset(
     }
 )
 
-# Parametrized fixtures whose ``mysql`` value pulls in the MySQL container
-# (possibly via ``request.getfixturevalue``, which is not always visible in
-# ``fixturenames`` at collection time).
+# Parametrized fixtures whose ``mysql`` parameter requires MySQL.
 MYSQL_PARAMETRIZED_FIXTURES = frozenset(
     {
         "valid_ado_project_context",
     }
 )
 
-# Concurrent MySQL containers under ``-n auto --dist loadgroup``.
+# Number of MySQL ``xdist_group`` names to assign.
 MYSQL_XDIST_GROUP_COUNT = 2
 
 
@@ -50,7 +42,7 @@ def requires_mysql_container(
         params: ``callspec.params`` for the item, if present.
 
     Returns:
-        True if the item should be placed in a MySQL xdist group.
+        True when the item's fixtures or parameters require MySQL.
     """
     if MYSQL_CONTAINER_FIXTURES.intersection(fixturenames):
         return True
@@ -68,7 +60,7 @@ def mysql_xdist_group_name(
     params: Mapping[str, object] | None = None,
     group_count: int = MYSQL_XDIST_GROUP_COUNT,
 ) -> str | None:
-    """Return an ``xdist_group`` name for a MySQL-using item, or None.
+    """Return an ``xdist_group`` name for a MySQL-using item.
 
     Args:
         nodeid: Pytest node id used to bucket the item stably.
@@ -77,8 +69,7 @@ def mysql_xdist_group_name(
         group_count: Number of concurrent MySQL xdist groups to use.
 
     Returns:
-        A group name such as ``mysql_0``, or None if the item does not need
-        MySQL.
+        A group name such as ``mysql_0``, or ``None``.
     """
     if group_count < 1:
         raise ValueError("group_count must be >= 1")

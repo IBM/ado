@@ -55,6 +55,16 @@ _ORDERING_OPERATORS = frozenset(
     }
 )
 _ORDERING_LITERAL_TYPES = (int, float)
+_OPERATOR_SYMBOLS = {
+    ComparisonOperator.eq: "==",
+    ComparisonOperator.ne: "!=",
+    ComparisonOperator.lt: "<",
+    ComparisonOperator.le: "<=",
+    ComparisonOperator.gt: ">",
+    ComparisonOperator.ge: ">=",
+    ComparisonOperator.in_: "in",
+    ComparisonOperator.notIn: "not in",
+}
 
 
 def _raise_discriminator_validation_error(
@@ -107,6 +117,11 @@ class PropertyOperand(pydantic.BaseModel):
 
         return {self.propertyIdentifier}
 
+    def __str__(self) -> str:
+        """Return the property identifier."""
+
+        return self.propertyIdentifier
+
 
 class SingleValueOperand(pydantic.BaseModel):
     """An operand that is one literal value."""
@@ -125,6 +140,11 @@ class SingleValueOperand(pydantic.BaseModel):
         """
 
         return set()
+
+    def __str__(self) -> str:
+        """Return the literal value as a Python representation."""
+
+        return repr(self.value)
 
 
 class MultipleValuesOperand(pydantic.BaseModel):
@@ -150,6 +170,11 @@ class MultipleValuesOperand(pydantic.BaseModel):
         """
 
         return set()
+
+    def __str__(self) -> str:
+        """Return the set of literal values as a brace-enclosed list."""
+
+        return "{" + ", ".join(repr(value) for value in self.values) + "}"
 
 
 def _operand_tag(operand_mapping: dict[str, object]) -> str:
@@ -323,6 +348,29 @@ class Comparison(pydantic.BaseModel):
 
         return self.left.property_identifiers() | self.right.property_identifiers()
 
+    def __str__(self) -> str:
+        """Return this comparison as ``left operator right``."""
+
+        return f"{self.left} {_OPERATOR_SYMBOLS[self.operator]} {self.right}"
+
+
+def _format_combinator_parts(predicates: Iterable["Predicate"], joiner: str) -> str:
+    """Join nested predicates, parenthesizing nested combinators.
+
+    Args:
+        predicates: The nested predicates to format.
+        joiner: The string used between parts, including surrounding spaces.
+
+    Returns:
+        The joined expression.
+    """
+
+    parts = [
+        str(predicate) if isinstance(predicate, Comparison) else f"({predicate})"
+        for predicate in predicates
+    ]
+    return joiner.join(parts)
+
 
 class AllOf(pydantic.BaseModel):
     """A predicate that holds when every nested predicate holds."""
@@ -348,6 +396,11 @@ class AllOf(pydantic.BaseModel):
             identifiers.update(predicate.property_identifiers())
         return identifiers
 
+    def __str__(self) -> str:
+        """Return the nested predicates joined by ``and``."""
+
+        return _format_combinator_parts(self.allOf, " and ")
+
 
 class AnyOf(pydantic.BaseModel):
     """A predicate that holds when at least one nested predicate holds."""
@@ -372,6 +425,11 @@ class AnyOf(pydantic.BaseModel):
         for predicate in self.anyOf:
             identifiers.update(predicate.property_identifiers())
         return identifiers
+
+    def __str__(self) -> str:
+        """Return the nested predicates joined by ``or``."""
+
+        return _format_combinator_parts(self.anyOf, " or ")
 
 
 class Not(pydantic.BaseModel):
@@ -399,6 +457,11 @@ class Not(pydantic.BaseModel):
         """
 
         return self.not_.property_identifiers()
+
+    def __str__(self) -> str:
+        """Return this predicate as ``not (nested)``."""
+
+        return f"not ({self.not_})"
 
 
 def _predicate_tag(predicate: dict[str, object]) -> str:
@@ -541,18 +604,52 @@ class PropertyConstraint(pydantic.BaseModel):
             identifiers |= self.when.property_identifiers()
         return identifiers
 
+    def __str__(self) -> str:
+        """Return this constraint as a compact expression."""
+
+        if self.when is None:
+            return f"{self.name}: {self.require}"
+        return f"{self.name}: when {self.when} => {self.require}"
+
     def __rich__(self) -> "RenderableType":
-        """Render this constraint as YAML.
+        """Render this constraint as a compact expression.
 
         Returns:
-            A rich Text containing the YAML form of this constraint.
+            A rich Text containing the compact form of this constraint.
         """
 
         from rich.text import Text
 
-        from ado.utilities.output import pydantic_model_as_yaml
+        return Text(str(self))
 
-        return Text(pydantic_model_as_yaml(self, exclude_none=True).rstrip())
+
+def constraints_as_rich_table(
+    constraints: Iterable[PropertyConstraint],
+) -> "RenderableType":
+    """Render constraints as a table with name, when, and require columns.
+
+    Args:
+        constraints: The constraints to render.
+
+    Returns:
+        A rich Table of the constraints.
+    """
+
+    import pandas as pd
+
+    from ado.utilities.rich import dataframe_to_rich_table
+
+    rows = [
+        [
+            constraint.name,
+            "always" if constraint.when is None else str(constraint.when),
+            str(constraint.require),
+        ]
+        for constraint in constraints
+    ]
+    return dataframe_to_rich_table(
+        pd.DataFrame(rows, columns=["name", "when", "require"])
+    )
 
 
 def check_constraints_against_properties(

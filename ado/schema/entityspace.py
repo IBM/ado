@@ -8,6 +8,7 @@ from rich.panel import Panel
 from ado.schema.constraint import (
     PropertyConstraint,
     check_constraints_against_properties,
+    constraints_as_rich_table,
 )
 from ado.schema.domain import PropertyDomain, VariableTypeEnum
 from ado.schema.entity import Entity
@@ -304,7 +305,10 @@ class EntitySpaceRepresentation:
             content.extend(
                 [
                     Text("Constraints:", style="bold"),
-                    Panel(Group(*self._constraints), box=rich.box.SIMPLE_HEAD),
+                    Panel(
+                        constraints_as_rich_table(self._constraints),
+                        box=rich.box.SIMPLE_HEAD,
+                    ),
                 ]
             )
 

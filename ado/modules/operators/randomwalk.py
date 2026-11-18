@@ -43,7 +43,9 @@ from ado.modules.operators.collections import explore_operation
 from ado.modules.operators.discovery_space_manager import DiscoverySpaceManager
 from ado.schema.entity import Entity
 from ado.schema.entityspace import EntitySpaceRepresentation
+from ado.schema.experiment import Experiment
 from ado.schema.measurementspace import MeasurementSpace
+from ado.schema.reference import ExperimentReference
 from ado.schema.request import MeasurementRequest, MeasurementRequestStateEnum
 from ado.utilities.environment import enable_ray_actor_coverage
 from ado.utilities.logging import configure_logging
@@ -475,8 +477,13 @@ class RandomWalkParameters(GenericOperatorParameters):
     batchSize: Annotated[
         int,
         pydantic.Field(
-            description="The number of concurrent experiments will be maintained at"
-            " this value multiplied by the size of the measurement space",
+            description="Maximum number of sampled entities that may still have an "
+            "experiment waiting to be submitted. A new entity is sampled only when "
+            "one of those entities has every experiment submitted or terminally "
+            "finished. Independent experiments then keep about this many times the "
+            "number of experiments in flight. A dependent experiment blocked on an "
+            "in-flight prerequisite keeps its entity's slot, so fewer experiments "
+            "may be in flight until that prerequisite finishes.",
         ),
     ] = 1
     singleMeasurement: Annotated[
@@ -535,6 +542,180 @@ class RequestRetry(pydantic.BaseModel):
             f"Experiment: {self.measurementRequest.experimentReference}. "
             f"Retried: {self.retries} times. Final status: {self.finalStatus}"
         )
+
+
+class EntitySubmissionTracker:
+    """Records queued, submitted, and finished experiments for each sampled entity.
+
+    An entity occupies a batch slot while it has an experiment that has not been
+    submitted and may still be submitted. Independent experiments occupy the slot
+    until they are submitted. A dependent experiment occupies the slot while it
+    is queued, or while an in-space provider of a required input has not finished.
+    After every such provider has finished and the dependent is not queued, that
+    dependent no longer occupies the slot.
+    """
+
+    def __init__(self) -> None:
+        self._submitted: dict[int, set[ExperimentReference]] = {}
+        self._finished: dict[int, set[ExperimentReference]] = {}
+        self._queued: dict[int, set[ExperimentReference]] = {}
+
+    def note_queued(
+        self, request_index: int, experiment_reference: ExperimentReference
+    ) -> None:
+        """Record that an experiment is waiting in the submit queue.
+
+        Args:
+            request_index: Index of the sampled entity.
+            experiment_reference: Experiment placed on the queue.
+        """
+
+        self._ensure_entity(request_index)
+        self._queued[request_index].add(experiment_reference)
+
+    def note_submitted(
+        self, request_index: int, experiment_reference: ExperimentReference
+    ) -> None:
+        """Record that an experiment was submitted for an entity.
+
+        Args:
+            request_index: Index of the sampled entity.
+            experiment_reference: Experiment that was submitted.
+        """
+
+        self._ensure_entity(request_index)
+        self._submitted[request_index].add(experiment_reference)
+        self._queued[request_index].discard(experiment_reference)
+
+    def note_finished(
+        self, request_index: int, experiment_reference: ExperimentReference
+    ) -> None:
+        """Record that an experiment finished and will not be retried.
+
+        Args:
+            request_index: Index of the sampled entity.
+            experiment_reference: Experiment that succeeded or exhausted retries.
+        """
+
+        self._ensure_entity(request_index)
+        self._finished[request_index].add(experiment_reference)
+
+    def record_submission(
+        self,
+        request_index: int,
+        experiment_reference: ExperimentReference,
+        request_ids: list[str],
+    ) -> None:
+        """Record a submission, and a finish when no measurement request was created.
+
+        Args:
+            request_index: Index of the sampled entity.
+            experiment_reference: Experiment passed to the actuator.
+            request_ids: Identifiers of the measurement requests that were created.
+        """
+
+        self.note_submitted(request_index, experiment_reference)
+        if len(request_ids) == 0:
+            self.note_finished(request_index, experiment_reference)
+
+    def open_entity_count(self, measurement_space: MeasurementSpace) -> int:
+        """Return how many tracked entities still occupy a batch slot.
+
+        Args:
+            measurement_space: Experiments that can be applied to a sampled entity.
+
+        Returns:
+            The number of entities with a reachable experiment that is not submitted.
+        """
+
+        return sum(
+            self._entity_is_open(request_index, measurement_space)
+            for request_index in self._submitted
+        )
+
+    def has_room(self, batch_size: int, measurement_space: MeasurementSpace) -> bool:
+        """Return whether another entity can be sampled into the batch.
+
+        Args:
+            batch_size: Maximum number of entities that may occupy a slot.
+            measurement_space: Experiments considered for each entity.
+
+        Returns:
+            True when fewer than ``batch_size`` entities are open.
+        """
+
+        return self.open_entity_count(measurement_space) < batch_size
+
+    def _ensure_entity(self, request_index: int) -> None:
+        """Create the tracking sets for request_index if they are absent.
+
+        Args:
+            request_index: Index of the sampled entity.
+        """
+
+        self._submitted.setdefault(request_index, set())
+        self._finished.setdefault(request_index, set())
+        self._queued.setdefault(request_index, set())
+
+    def _entity_is_open(
+        self, request_index: int, measurement_space: MeasurementSpace
+    ) -> bool:
+        """Return whether request_index has a reachable unsubmitted experiment.
+
+        Args:
+            request_index: Index of the sampled entity.
+            measurement_space: Experiments that can be applied to the entity.
+
+        Returns:
+            True when the entity still occupies a batch slot.
+        """
+
+        submitted = self._submitted[request_index]
+        queued = self._queued[request_index]
+        for experiment in measurement_space.experiments:
+            if experiment.reference in submitted:
+                continue
+            if experiment.reference in queued or self._can_still_submit(
+                request_index, experiment, measurement_space
+            ):
+                return True
+        return False
+
+    def _can_still_submit(
+        self,
+        request_index: int,
+        experiment: Experiment,
+        measurement_space: MeasurementSpace,
+    ) -> bool:
+        """Return whether experiment may be submitted later for request_index.
+
+        Args:
+            request_index: Index of the sampled entity.
+            experiment: Experiment that has not been submitted.
+            measurement_space: Experiments that can provide required inputs.
+
+        Returns:
+            True for an independent experiment, or for a dependent experiment
+            that is still waiting on an in-space provider.
+        """
+
+        required_references = experiment.references_of_required_input_experiments
+        if len(required_references) == 0:
+            return True
+
+        finished = self._finished[request_index]
+        for required_reference in required_references:
+            providers = [
+                candidate
+                for candidate in measurement_space.experiments
+                if candidate.actuatorIdentifier == required_reference.actuatorIdentifier
+                and candidate.identifier == required_reference.experimentIdentifier
+            ]
+            if len(providers) == 0:
+                continue
+            if any(provider.reference not in finished for provider in providers):
+                return True
+        return False
 
 
 @explore_operation
@@ -684,6 +865,7 @@ class RandomWalk(Explore):
             f" therefore there can be up to {self.params.batchSize * number_experiments} experiments running concurrently"
         )
         # Create batch
+        submission_tracker = EntitySubmissionTracker()
         self._entitiesSampled = 0
         while self._entitiesSampled < self.params.batchSize:
             try:
@@ -718,6 +900,11 @@ class RandomWalk(Explore):
                         measurement_queue=measurement_queue,
                         memoize=self.params.singleMeasurement,
                     )
+                    submission_tracker.record_submission(
+                        request_index=self._entitiesSampled,
+                        experiment_reference=experiment.reference,
+                        request_ids=experiment_identifiers,
+                    )
                     print(
                         f"Submitted experiment {EXPERIMENT}{experiment}{RESET} for {ENTITY}{entities[0].identifier}{RESET}. "
                         f"Request identifier: {REQUEST}{experiment_identifiers[0]}{RESET}",
@@ -750,7 +937,8 @@ class RandomWalk(Explore):
         # 2(a) wait for measurements to complete
         # 2(b) for each completion check does it allow a dependent calculation to start
         # 2(c) if it does launch it
-        # 2(d) check if all experiments launched have completed.
+        # 2(d) sample a new entity when the ready queue is empty and a batch slot is free
+        # 2(e) check if all experiments launched have completed.
 
         completed_experiments = 0  # experiments which are considered finished
         # The number of requests that have finished - it may take more than one request
@@ -801,27 +989,60 @@ class RandomWalk(Explore):
                     measurement_request,
                     measurement_space,
                     continuous_batching_queue,
+                    submission_tracker,
                 )
+                if completed:
+                    submission_tracker.note_finished(
+                        measurement_request.requestIndex,
+                        measurement_request.experimentReference,
+                    )
 
                 completed_experiments += completed
 
-                # If the queue is empty, add the next entity + experiments
+                # Sample the next entity when nothing is ready to submit and a
+                # batch slot is free. A slot stays occupied while an entity still
+                # has an experiment that can be submitted, including a dependent
+                # blocked on an in-flight prerequisite.
                 if (
                     continuous_batching_queue.empty()
                     and self._entitiesSampled < number_entities
+                    and submission_tracker.has_room(
+                        self.params.batchSize, measurement_space
+                    )
                 ):
                     # If there are no more entities to sample this does nothing
                     # This can happen if it's not possible to sample the requested number of entities
                     # due to, for example, filters removing many Entities from consideration
                     await self._sampleEntityAndAddMeasurementsToQueue(
-                        continuous_batching_queue, iterator, measurement_space
+                        continuous_batching_queue,
+                        iterator,
+                        measurement_space,
+                        submission_tracker,
                     )
+                elif (
+                    continuous_batching_queue.empty()
+                    and self._entitiesSampled < number_entities
+                ):
+                    open_entities = submission_tracker.open_entity_count(
+                        measurement_space
+                    )
+                    if open_entities == 1:
+                        holding = "1 entity still has experiments to submit."
+                    else:
+                        holding = (
+                            f"{open_entities} entities still have experiments "
+                            "to submit."
+                        )
+                    print(f"Continuous batching: {SUMMARY}HOLD BATCH{RESET}. {holding}")
 
                 # Get the next experiment from the continuous batching queue and submit it
                 # If there are no experiment to get this does nothing
                 # This will update self._experimentsRequested
                 await self._getAndSubmitMeasurement(
-                    completed_experiments, continuous_batching_queue, measurement_queue
+                    completed_experiments,
+                    continuous_batching_queue,
+                    measurement_queue,
+                    submission_tracker,
                 )
 
             waiting_on_requests = finished_requests < self._experimentsRequested
@@ -848,6 +1069,7 @@ class RandomWalk(Explore):
         measurementRequest: MeasurementRequest,
         measurementSpace: MeasurementSpace,
         continuousBatchingQueue: Queue,
+        submissionTracker: EntitySubmissionTracker,
     ) -> bool:
 
         if measurementRequest.status == MeasurementRequestStateEnum.SUCCESS:
@@ -880,6 +1102,7 @@ class RandomWalk(Explore):
 
                 for d in prepared_inputs:
                     continuousBatchingQueue.put(d._asdict())
+                    submissionTracker.note_queued(d.requestIndex, d.experimentReference)
         else:
             print(
                 f"Continuous Batching: {FAILED}EXPERIMENT FAILURE{RESET}. Experiment request {REQUEST}{measurementRequest.requestid}{RESET} "
@@ -919,6 +1142,10 @@ class RandomWalk(Explore):
                         "requestIndex": measurementRequest.requestIndex,
                     }
                 )
+                submissionTracker.note_queued(
+                    measurementRequest.requestIndex,
+                    measurementRequest.experimentReference,
+                )
 
         return completed
 
@@ -927,6 +1154,7 @@ class RandomWalk(Explore):
         completedExperiments: int,
         continuousBatchingQueue: Queue,
         updateQueue: "MeasurementQueue",
+        submissionTracker: EntitySubmissionTracker,
     ) -> None:
         """
         Gets an experiment+entity for continuousBatchingQueue and submits it
@@ -958,6 +1186,11 @@ class RandomWalk(Explore):
                 measurement_queue=updateQueue,
                 memoize=self.params.singleMeasurement,
             )
+            submissionTracker.record_submission(
+                request_index=request_index,
+                experiment_reference=experiment_reference,
+                request_ids=experiment_identifiers,
+            )
             print(
                 f"Continuous batching: {SUBMIT}SUBMIT EXPERIMENT{RESET}. Submitted experiment {EXPERIMENT}{experiment_reference}{RESET} "
                 f"for {ENTITY}{entities[0].identifier}{RESET}. "
@@ -971,6 +1204,7 @@ class RandomWalk(Explore):
         continuousBatchingQueue: Queue,
         iterator: AsyncGenerator[list[Entity], None],
         measurementSpace: MeasurementSpace,
+        submissionTracker: EntitySubmissionTracker,
     ) -> list[Entity]:
         """
         Samples an entity from the sampler and adds the requested measurements to the continuousBatchingQueue
@@ -1018,6 +1252,9 @@ class RandomWalk(Explore):
                         "experimentReference": experiment.reference,
                         "requestIndex": self._entitiesSampled,
                     }
+                )
+                submissionTracker.note_queued(
+                    self._entitiesSampled, experiment.reference
                 )
 
         self._entitiesSampled += len(entities)

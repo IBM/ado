@@ -45,6 +45,9 @@ a configuration space after, or instead of, exhaustive measurement.
   intelligently sample just enough points to train an accurate `AutoGluon`
   surrogate model, stopping once the model quality plateaus. The resulting model
   can be used for prediction at unmeasured points.
+- **[Predictive Kernel Herding surrogate modeling](pkh.md)** — Use the PKH
+  operator to measure a fixed budget of representative entities, train a Random
+  Forest surrogate model on them, and predict every other entity in the space.
 
 ## Fine-tuning
 

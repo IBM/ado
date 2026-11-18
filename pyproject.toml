@@ -112,6 +112,7 @@ docs = [
 ]
 
 test = [
+  "ado-active-learning",
   "ado-anomalous-series",
   "ado-autoconf ; python_full_version < '3.14'",
   "ado-profile-space",
@@ -176,6 +177,7 @@ members = [
 ]
 
 [tool.uv.sources]
+ado-active-learning = { path = "plugins/operators/active_learning", editable = true }
 ado-autoconf = { path = "plugins/custom_experiments/autoconf", editable = true }
 ado-ray-tune = { workspace = true }
 ado-sfttrainer = { workspace = true }

@@ -37,18 +37,21 @@ The following CLI command will list the available `operators`
 ado get operators
 ```
 
-Example output:
+This example shows the operators in one installation. Your list depends on the
+plugins you have installed.
 
 ```commandline
+Available operators by type:
 ┌───────┬─────────────────────────┬─────────┬──────────────┐
 │ INDEX │ OPERATOR                │ VERSION │ TYPE         │
 ├───────┼─────────────────────────┼─────────┼──────────────┤
 │ 0     │ detect_anomalous_series │ 1.0.5   │ characterize │
-│ 1     │ profile                 │ 2.0.4   │ characterize │
-│ 2     │ trim                    │ 2.0.3   │ characterize │
-│ 3     │ random_walk             │ 2.1.0   │ explore      │
-│ 4     │ ray_tune                │ 2.0.6   │ explore      │
-│ 5     │ rifferla                │ 2.0.6   │ modify       │
+│ 1     │ pkh                     │ 0.1.0   │ characterize │
+│ 2     │ profile                 │ 2.0.4   │ characterize │
+│ 3     │ trim                    │ 2.2.0   │ characterize │
+│ 4     │ random_walk             │ 2.1.0   │ explore      │
+│ 5     │ ray_tune                │ 2.1.0   │ explore      │
+│ 6     │ rifferla                │ 2.0.6   │ modify       │
 └───────┴─────────────────────────┴─────────┴──────────────┘
 ```
 
@@ -56,25 +59,26 @@ Example output:
 
 Using an operator involves the following steps:
 
-1. Generate an operation template for the operator with default parameter values:
+1. Save a template for an installed operator, for example `random_walk`.
 
       ```shell
-      ado template operation --operator-name $OPERATOR_NAME
+      ado template operation --operator-name random_walk --output-file operation.yaml
       ```
 
-2. Edit the generated YAML to configure the parameters to your liking.
+2. Edit `operation.yaml` to set the discovery space identifier and parameters.
 3. Create the operation:
 
       ```shell
-      ado create operation -f $OPERATION_FILE
+      ado create operation -f operation.yaml
       ```
 
-4. Retrieve the results of the operation:
+4. Use the identifier printed by `ado create operation` to inspect that run.
 
       ```shell
-      ado show related operation --use-latest
+      OPERATION_IDENTIFIER="<your operation identifier>"
+      ado show related operation "$OPERATION_IDENTIFIER"
       # For explore operations
-      ado show measurements operation --use-latest
+      ado show measurements operation "$OPERATION_IDENTIFIER"
       ```
 
 These steps are covered in detail in [operations](../../resources/operation.md).

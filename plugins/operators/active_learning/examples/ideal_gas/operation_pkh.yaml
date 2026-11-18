@@ -1,0 +1,22 @@
+# Copyright IBM Corporation 2025, 2026
+# SPDX-License-Identifier: MIT
+inputs:
+  discoverySpace:
+    identifier: calculate_pressure_0-0-0
+    kind: discoveryspace
+operation:
+  module:
+    operationType: characterize
+    operatorName: pkh
+  parameters:
+    targetOutput: pressure
+    numberEntities: 20
+    pilotSize: 5
+    epochLength: 5
+    nEstimators: 100
+    minSamplesLeaf: 2
+    maxFeatures: 1.0
+    criterion: squared_error
+    seed: 42
+    outputDirectory: pkh_models
+    finalPredictor: random_forest

@@ -37,20 +37,15 @@ logger = logging.getLogger(__name__)
 PKH_VERSION = "0.1.0"
 
 
-def _fit_predictor(  # noqa: PLR0913
-    parameters: PKHParameters,
+def _fit_predictor(
     state: PKHState,
+    frame: pd.DataFrame,
     target_name: str,
-    training_data: tuple[pd.DataFrame, np.ndarray, pd.Series],
     encoder: ColumnTransformer,
     final_directory: Path,
 ) -> "Pipeline | TabularPredictor":
-    """Fit and persist the final predictor on the measured entities.
-
-    ``training_data`` holds the measured rows of the feature frame, the encoded
-    feature matrix and the target values.
-    """
-    frame, features, labels = training_data
+    """Fit and persist the final predictor on the measured entities."""
+    parameters = state.params
     if parameters.finalPredictor == "autogluon":
         from autogluon.tabular import TabularPredictor
 
@@ -65,11 +60,16 @@ def _fit_predictor(  # noqa: PLR0913
             if parameters.autoGluon
             else {}
         )
-        model.fit(train_data=frame.assign(**{target_name: labels}), **fit_kwargs)
+        train_data = frame.iloc[state.measured_indices].assign(
+            **{target_name: state.measured_labels}
+        )
+        model.fit(train_data=train_data, **fit_kwargs)
         return model
     forest = state.forest
     if forest is None:
-        forest = build_forest(parameters, parameters.seed).fit(features, labels)
+        forest = build_forest(parameters, parameters.seed).fit(
+            state.features[state.measured_indices], state.measured_labels
+        )
     model = Pipeline([("features", encoder), ("forest", forest)])
     with (final_directory / "model.pkl").open("wb") as model_file:
         pickle.dump(model, model_file, protocol=5)
@@ -81,7 +81,7 @@ def _finalize_model(
     parameters: PKHParameters,
     final_directory: Path,
     sampled_identifiers: set[str],
-) -> tuple[Path, float | None]:
+) -> float | None:
     """Save a predictor, full-space predictions, and MMD in a reserved directory."""
     target = validate_target_output(parameters.targetOutput, discovery_space)
     target_name = target.targetProperty.identifier
@@ -93,10 +93,7 @@ def _finalize_model(
             f"{', '.join(sorted(missing))}"
         )
     entities = candidate_entities(discovery_space)
-    property_names = [
-        prop.identifier for prop in discovery_space.entitySpace.constitutiveProperties
-    ]
-    frame, features, encoder = encode_feature_matrix(entities, property_names)
+    frame, features, encoder = encode_feature_matrix(discovery_space, entities)
     frame.index = [entity.identifier for entity in entities]
     target_values = pd.Series(labels, dtype=float).reindex(frame.index)
     measured = target_values.notna().to_numpy()
@@ -118,14 +115,7 @@ def _finalize_model(
     state.fit_forest_and_histograms()
     mmd_squared = state.mmd_squared()
 
-    model = _fit_predictor(
-        parameters,
-        state,
-        target_name,
-        (frame.loc[measured], features[measured], target_values[measured]),
-        encoder,
-        final_directory,
-    )
+    model = _fit_predictor(state, frame, target_name, encoder, final_directory)
 
     table = frame.assign(
         entityIdentifier=frame.index,
@@ -139,15 +129,15 @@ def _finalize_model(
     metadata = FinalPredictorMetadata(
         backend=parameters.finalPredictor,
         targetOutput=target_name,
-        featureNames=property_names,
-        categoricalColumns=frame.select_dtypes(exclude="number").columns.tolist(),
+        featureNames=frame.columns.tolist(),
+        categoricalColumns=frame.select_dtypes(include="category").columns.tolist(),
         measuredCount=int(measured.sum()),
         createdTimestamp=dt.datetime.now(dt.UTC).isoformat(),
         pkhVersion=PKH_VERSION,
         mmdSquared=mmd_squared,
     )
     (final_directory / "metadata.json").write_text(metadata.model_dump_json(indent=2))
-    return final_directory, mmd_squared
+    return mmd_squared
 
 
 @characterize_operation(
@@ -202,7 +192,7 @@ def pkh(
             output.exitStatus
             and output.exitStatus.exit_state == OperationExitStateEnum.SUCCESS
         ):
-            _, mmd_squared = _finalize_model(
+            mmd_squared = _finalize_model(
                 discoverySpace,
                 parameters,
                 final_directory,

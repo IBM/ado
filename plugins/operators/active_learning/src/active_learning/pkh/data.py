@@ -99,13 +99,16 @@ def measured_labels(
 
 
 def encode_feature_matrix(
+    discovery_space: DiscoverySpace,
     entities: list[Entity],
-    property_names: list[str],
 ) -> tuple[pd.DataFrame, np.ndarray, ColumnTransformer]:
-    """Return constitutive values, encoded features, and their fitted transformer."""
+    """Encode constitutive values in the discovery space's declared feature order."""
     frame = pd.DataFrame(
         [entity.seriesRepresentation(constitutiveOnly=True) for entity in entities],
-        columns=property_names,
+        columns=[
+            prop.identifier
+            for prop in discovery_space.entitySpace.constitutiveProperties
+        ],
     )
     categorical_columns = frame.select_dtypes(exclude="number").columns.tolist()
     frame[categorical_columns] = frame[categorical_columns].astype("category")

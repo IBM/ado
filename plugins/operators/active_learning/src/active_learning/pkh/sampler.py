@@ -72,7 +72,7 @@ class PKHState:
         self.measured_labels: list[float] = list(initial_labels)
         self.measured_set: set[int] = set(initial_measured_indices)
         self._rng = np.random.default_rng(params.seed)
-        unmeasured = [i for i in range(self.n_candidates) if i not in self.measured_set]
+        unmeasured = self._unmeasured_indices()
         pilot_size = min(
             len(unmeasured), max(0, params.pilotSize - len(self.measured_set))
         )
@@ -85,6 +85,13 @@ class PKHState:
         self._leaf_assignments: np.ndarray | None = None  # shape: (N, n_trees)
         self._pool_leaf_mass: np.ndarray | None = None  # shape: (n_trees, max_nodes)
         self._sample_leaf_counts: np.ndarray | None = None
+
+    def _unmeasured_indices(self) -> np.ndarray:
+        """Return unmeasured indices in candidate order."""
+        return np.fromiter(
+            (i for i in range(self.n_candidates) if i not in self.measured_set),
+            dtype=np.intp,
+        )
 
     def record_measurement(self, index: int, label: float) -> None:
         """Record a completed target measurement for an entity index."""
@@ -140,6 +147,13 @@ class PKHState:
             self.mmd_squared(),
         )
 
+    def _leaf_discrepancy(self) -> np.ndarray | None:
+        """Subtract the measured sample's leaf probabilities from the pool's."""
+        if self._pool_leaf_mass is None or self._sample_leaf_counts is None:
+            return None
+        sample_mass = self._sample_leaf_counts / len(self.measured_indices)
+        return self._pool_leaf_mass - sample_mass
+
     def mmd_squared(self) -> float | None:
         """MMD^2 between the measured entities and the whole pool (read-only).
 
@@ -148,10 +162,8 @@ class PKHState:
         Returns None until the forest has been fitted. The kernel is defined by
         the current forest, so values are only strictly comparable within an epoch.
         """
-        if self._pool_leaf_mass is None or self._sample_leaf_counts is None:
+        if (discrepancy := self._leaf_discrepancy()) is None:
             return None
-        n_measured = max(1, len(self.measured_indices))
-        discrepancy = self._pool_leaf_mass - self._sample_leaf_counts / n_measured
         return float(np.sum(discrepancy**2) / self.params.nEstimators)
 
     def select_next(self) -> int | None:
@@ -163,26 +175,21 @@ class PKHState:
         if (pilot_index := next(self._pilot_indices, None)) is not None:
             return pilot_index
 
-        unmeasured = [i for i in range(self.n_candidates) if i not in self.measured_set]
-        if not unmeasured:
+        unmeasured = self._unmeasured_indices()
+        if not unmeasured.size:
             return None
 
         if self.forest is None or self._steps_since_refit >= self.params.epochLength:
             self.fit_forest_and_histograms()
 
-        if self._leaf_assignments is None or self._pool_leaf_mass is None:
-            return unmeasured[0]
+        if (discrepancy := self._leaf_discrepancy()) is None:
+            return int(unmeasured[0])
 
-        n_measured = max(1, len(self.measured_indices))
-        sample_leaf_mass = self._sample_leaf_counts / n_measured
-        discrepancy = self._pool_leaf_mass - sample_leaf_mass
-
-        unmeasured_arr = np.asarray(unmeasured, dtype=np.int64)
-        scores = np.zeros(len(unmeasured_arr), dtype=float)
+        scores = np.zeros(len(unmeasured), dtype=float)
 
         # Score candidates: average under-representation across all trees in the ensemble
         for tree_idx in range(self.params.nEstimators):
-            candidate_leaves = self._leaf_assignments[unmeasured_arr, tree_idx]
+            candidate_leaves = self._leaf_assignments[unmeasured, tree_idx]
             scores += discrepancy[tree_idx, candidate_leaves]
 
         scores /= self.params.nEstimators
@@ -190,7 +197,7 @@ class PKHState:
         best_positions = np.flatnonzero(
             np.isclose(scores, scores.max(), rtol=0, atol=1e-12)
         )
-        return int(unmeasured_arr[self._rng.choice(best_positions)])
+        return int(unmeasured[self._rng.choice(best_positions)])
 
 
 class PKHSampleSelector(BaseSampler):
@@ -256,22 +263,15 @@ class PKHSampleSelector(BaseSampler):
         discovery_space: DiscoverySpace = (
             await remoteDiscoverySpace.discoverySpace.remote()
         )
-        self.params = self.params.model_copy(
-            update={
-                "targetOutput": validate_target_output(
-                    self.params.targetOutput, discovery_space
-                ).identifier
-            }
-        )
-        prop_names = [
-            cp.identifier for cp in discovery_space.entitySpace.constitutiveProperties
-        ]
-        existing_labels = measured_labels(discovery_space, self.params.targetOutput)
+        target_id = validate_target_output(
+            self.params.targetOutput, discovery_space
+        ).identifier
+        existing_labels = measured_labels(discovery_space, target_id)
         entities = candidate_entities(discovery_space)
         if not entities:
             return
 
-        _, features, _ = encode_feature_matrix(entities, prop_names)
+        _, features, _ = encode_feature_matrix(discovery_space, entities)
 
         initial_indices = [
             idx
@@ -299,13 +299,11 @@ class PKHSampleSelector(BaseSampler):
                 refresh=True,
             )
             label = (
-                target_label(stored_entities[0], self.params.targetOutput)
-                if stored_entities
-                else None
+                target_label(stored_entities[0], target_id) if stored_entities else None
             )
             if label is None:
                 raise ValueError(
-                    f"Missing finite target measurement for '{self.params.targetOutput}' "
+                    f"Missing finite target measurement for '{target_id}' "
                     f"on entity {entity.identifier}"
                 )
             state.record_measurement(next_idx, label)

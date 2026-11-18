@@ -1,7 +1,6 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-import copy
 import enum
 import functools
 import logging
@@ -18,11 +17,6 @@ if typing.TYPE_CHECKING:
 
 import dataclasses
 import os
-
-# VV: Env vars this script uses:
-# HOME -> Must set this to something like `/tmp` because aim is attempting to generate files under `~/.aim_profile`
-#         when importing `aim.utils.tracking` and that fails as the Process in the container does not have
-#         write permissions to the home folder.
 
 
 class ExperimentError(Exception):
@@ -170,16 +164,6 @@ class FineTuneArgs:
             "your token and the cache will be stored in this folder. "
             "This is actually an environment variable, not a command-line argument (HF_HOME)"
         },
-    )
-
-    aim_db: str | None = dataclasses.field(
-        default=None,
-        metadata={"help": "The AIM endpoint"},
-    )
-
-    aim_experiment: str = dataclasses.field(
-        default=None,
-        metadata={"help": "The name of the AIM experiment"},
     )
 
     fms_hf_tuning_version: str = dataclasses.field(
@@ -459,17 +443,38 @@ def get_available_open_port() -> int:
         return s.getsockname()[1]
 
 
-def extract_metrics(aim_info_path: str, number_gpus: int) -> "metrics_tracker.Metrics":
+def extract_metrics(
+    metrics_info_path: str, number_gpus: int
+) -> "metrics_tracker.Metrics":
+    """Reads the metrics that a training worker wrote to a file.
+
+    Args:
+        metrics_info_path:
+            Path to the JSON file written by the training worker.
+        number_gpus:
+            The number of GPUs that the run was configured to use.
+
+    Returns:
+        The metrics of the run.
+
+    Raises:
+        OutOfGPUMemoryError:
+            If the worker reported that it ran out of GPU memory.
+        NCCLError:
+            If the worker reported an NCCL error.
+        UnhandledError:
+            If the worker reported any other error.
+    """
     import json
 
-    with open(aim_info_path, encoding="utf-8") as f:
-        aim_info: dict[str, typing.Any] = json.load(f)
+    with open(metrics_info_path, encoding="utf-8") as f:
+        metrics_info: dict[str, typing.Any] = json.load(f)
 
-    if "error" in aim_info:
-        exc = aim_info.get("exception")
-        if aim_info["error"] == "OutOfGPUMemoryError":
+    if "error" in metrics_info:
+        exc = metrics_info.get("exception")
+        if metrics_info["error"] == "OutOfGPUMemoryError":
             raise OutOfGPUMemoryError(underlying_error=exc)
-        if aim_info["error"] == "NCCLError":
+        if metrics_info["error"] == "NCCLError":
             raise NCCLError(underlying_error=exc)
         raise UnhandledError(underlying_error=exc)
 
@@ -478,16 +483,15 @@ def extract_metrics(aim_info_path: str, number_gpus: int) -> "metrics_tracker.Me
     from .callbacks import metrics_tracker
 
     log = logging.getLogger("actuator")
-    log.info(f"The metrics were {json.dumps(aim_info)}")
+    log.info(f"The metrics were {json.dumps(metrics_info)}")
 
-    return metrics_tracker.Metrics.from_aim_info_dict(
-        aim_info=aim_info, num_gpus=number_gpus
+    return metrics_tracker.Metrics.from_metrics_info_dict(
+        metrics_info=metrics_info, num_gpus=number_gpus
     )
 
 
 def _finetune_launch_kernel(
     args: FineTuneArgs,
-    aim_metadata: dict[str, typing.Any] | None,
     multi_node: MultiNodeSettings,
     distributed_settings: DistributedSettings,
     working_directory: str,
@@ -520,13 +524,6 @@ def _finetune_launch_kernel(
     # VV: Convert args to a dictionary which we'll then use to put together the commandline of
     # `accelerate launch` or python
 
-    if args.aim_db is None:
-        args = copy.deepcopy(args)
-        args.aim_db = os.path.join(working_directory, "ephemeral_aim")
-        log.info(
-            f"aim_db is unset, will use an ephemeral aim repository at {args.aim_db}"
-        )
-
     cmdline_args = generate_arguments_sft_trainer(args)
     log.info(
         f"Evaluate {dataclasses.asdict(args)} and multi_node {dataclasses.asdict(multi_node)}"
@@ -538,21 +535,11 @@ def _finetune_launch_kernel(
     with tempfile.NamedTemporaryFile(
         mode="w",
         suffix=".yaml",
-        prefix="aim_info_",
+        prefix="metrics_info_",
         delete=True,
         dir=working_directory,
     ) as f:
-        aim_info_path = f.name
-
-    with tempfile.NamedTemporaryFile(
-        mode="w",
-        suffix=".yaml",
-        prefix="aim_metadata_",
-        delete=False,
-        dir=working_directory,
-    ) as f:
-        aim_metadata_path = f.name
-        json.dump(aim_metadata, f)
+        metrics_info_path = f.name
 
     # VV: We're using this file as a thin wrapper to the main method in sft_trainer.py to catch
     # exceptions (e.g. GPU OOM) and report system metrics, it parses cmdline-args and invokes train()
@@ -649,8 +636,6 @@ def _finetune_launch_kernel(
     else:
         command = ["python", wrapper_script]
 
-    cmdline_args["aim_metadata_path"] = aim_metadata_path
-
     for key, value in cmdline_args.items():
         if isinstance(value, enum.Enum):
             command.extend((f"--{key}", value.value))
@@ -669,9 +654,9 @@ def _finetune_launch_kernel(
 
     command.extend(
         [
-            "--aim_info_path",
-            aim_info_path,
-            "--aim_info_aggregate_metrics",
+            "--metrics_info_path",
+            metrics_info_path,
+            "--metrics_info_aggregate_metrics",
             "true",
         ]
     )
@@ -712,7 +697,7 @@ def _finetune_launch_kernel(
     proc.wait()
 
     if proc.returncode == 0:
-        return extract_metrics(aim_info_path, args.number_gpus)
+        return extract_metrics(metrics_info_path, args.number_gpus)
 
     # VV: if we got here then something broke
     errors = {}
@@ -721,9 +706,9 @@ def _finetune_launch_kernel(
         try:
             if distributed_settings.backend is None:
                 # VV: the DP backend doesn't use accelerate
-                path = aim_info_path
+                path = metrics_info_path
             else:
-                path = "_".join((aim_info_path, str(worker)))
+                path = "_".join((metrics_info_path, str(worker)))
 
             m = extract_metrics(path, args.number_gpus)
         except FileNotFoundError:  # noqa: PERF203
@@ -1161,7 +1146,6 @@ def aggregate_tokens_of_samples(
 
 def launch_finetune(
     args: FineTuneArgs,
-    aim_metadata: dict[str, typing.Any] | None,
     count_dataset_tokens: bool,
     distributed_settings: DistributedSettings,
     multi_node: MultiNodeSettings | None,
@@ -1169,6 +1153,27 @@ def launch_finetune(
     num_tokens_cache_dir: str | None = None,
     log_level: int | None = None,
 ) -> "metrics_tracker.Metrics":
+    """Runs a fine-tuning job and returns the metrics it collected.
+
+    The job runs in a temporary working directory that is removed once it
+    finishes. If requested, the number of dataset tokens processed during
+    training (excluding warmup steps) is computed and stored in the returned
+    metrics.
+
+    Args:
+        args: The fine-tuning arguments.
+        count_dataset_tokens: Whether to count the tokens in the dataset
+            entries that were consumed by the training steps and record them in
+            ``metrics.training.dataset_tokens``.
+        distributed_settings: The distributed training settings.
+        multi_node: The multi-node settings. If None, a single machine is used.
+        model_id: Identifier of the model, used when counting dataset tokens.
+        num_tokens_cache_dir: Directory used to cache dataset token counts.
+        log_level: The logging level. If None, defaults to 20 (INFO).
+
+    Returns:
+        The metrics collected during fine-tuning.
+    """
     from .callbacks import metrics_tracker
 
     if log_level is None:
@@ -1184,7 +1189,6 @@ def launch_finetune(
     with tempfile.TemporaryDirectory(prefix="sfttrainer_") as working_directory:
         metrics = _finetune_launch_kernel(
             args=args,
-            aim_metadata=aim_metadata,
             distributed_settings=distributed_settings,
             multi_node=multi_node,
             working_directory=working_directory,

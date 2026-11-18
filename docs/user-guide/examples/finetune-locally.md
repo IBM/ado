@@ -28,10 +28,10 @@ To explore this space, you will:
 - define the parameters to test - such as the batch size and the model max
   length
 - define what to test them with - In this case we will use SFTTrainer's
-  `finetune_full_benchmark-v1.0.0` experiment
+  `finetune_full_benchmark-v1.1.0` experiment
 - explore the parameter space - the sampling method
 
-Here, you'll use the `finetune_full_benchmark-v1.0.0` experiment that the
+Here, you'll use the `finetune_full_benchmark-v1.1.0` experiment that the
 SFTTrainer actuator provides to run four measurements on your laptop without
 using GPUs. Each measurement records metrics like `dataset tokens per second`
 and stores the results in `ado`'s database.
@@ -47,10 +47,6 @@ ado context local
 ```
 
 ### Install the SFTTrainer actuator
-
-> [!WARNING]
->
-> The SFTTrainer actuator currently **supports only Python 3.11, 3.12**.
 
 === "Install the SFTTrainer Actuator plugin from PyPi"
 
@@ -96,9 +92,7 @@ ado context local
 
 ### Configure the parameters of the SFTTrainer actuator
 
-SFTTrainer includes parameters that control its behavior. For example, it pushes
-any training metrics it collects, like system profiling metadata, to an
-[AIM](https://github.com/aimhubio/aim) server by default. It also features
+SFTTrainer includes parameters that control its behavior. It includes
 parameters that specify important paths, such as the location of the Hugging
 Face cache and the directory where the actuator expects to find files like the
 test dataset.
@@ -178,7 +172,7 @@ want to measure it (Measurement Space). It also links to the `samplestore` which
 is where Entities and their measured properties are stored in.
 
 In this example, we create a `discoveryspace` that runs the
-[finetune_full_benchmark-v1.0.0](../actuators/sft-trainer.md#finetune_full_benchmark-v100)
+[finetune_full_benchmark-v1.1.0](../actuators/sft-trainer.md#finetune_full_benchmark-v110)
 experiment to finetune the
 [`smollm2-135m`](https://huggingface.co/HuggingFaceTB/SmolLM2-135M) model
 without using any GPUs.
@@ -194,7 +188,7 @@ contains 4 entities.
 
 You can find the complete list of the entity space properties in the
 documentation of the
-[finetune_full_benchmark-v1.0.0](../actuators/sft-trainer.md#finetune_full_benchmark-v100)
+[finetune_full_benchmark-v1.1.0](../actuators/sft-trainer.md#finetune_full_benchmark-v110)
 experiment.
 
 To create the Discovery Space:
@@ -205,7 +199,7 @@ To create the Discovery Space:
 
    ```yaml
    experiments:
-     - experimentIdentifier: finetune_full_benchmark-v1.0.0
+     - experimentIdentifier: finetune_full_benchmark-v1.1.0
        actuatorIdentifier: SFTTrainer
        parameterization:
          - property:
@@ -273,7 +267,7 @@ To create the Discovery Space:
    ```
 
 The operation will execute the measurements (i.e. apply the experiment
-**finetune_full_benchmark-v1.0.0** on the 4 entities) based on the definition of
+**finetune_full_benchmark-v1.1.0** on the 4 entities) based on the definition of
 your `discoveryspace`. The remaining three measurements will reuse both the
 cached model weights and the cached data, making them faster to complete.
 
@@ -323,7 +317,7 @@ In the above CSV file you will find 1 column per:
 
 For a complete list of the entity space properties check out the documentation
 for the
-[finetune_full_benchmark-v1.0.0](../actuators/sft-trainer.md#finetune_full_benchmark-v100)
+[finetune_full_benchmark-v1.1.0](../actuators/sft-trainer.md#finetune_full_benchmark-v110)
 experiment in the SFTTrainer docs. The complete list of measured properties is
 [available there too](../actuators/sft-trainer.md#measured-properties).
 

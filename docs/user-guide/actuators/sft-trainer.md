@@ -78,7 +78,7 @@ of the Actuator.
 
 The most frequently used experiments are:
 
-### finetune_full_benchmark-v1.0.0
+### finetune_full_benchmark-v1.1.0
 
 Performs full fine-tuning of all model parameters. This experiment is ideal for
 evaluating end-to-end training performance and resource utilization on large
@@ -180,13 +180,13 @@ models.
     **Note**: `--fast_moe` is only supported for fms-hf-tuning v2.4.0+
 
     We use a thin wrapper of `sft_trainer.py` which injects a custom Callback that
-    exports the metrics collected by AIM. You can repeat our experiments by just
-    pointing the above command-line to `sft_trainer.py` from the `fms-hf-tuning`
-    package.
+    exports the [system metrics](#measured-properties) and training throughput
+    metrics described in the Measured Properties section. You can repeat our
+    experiments by just pointing the above command-line to `sft_trainer.py` from
+    the `fms-hf-tuning` package.
 
     Versioning:
 
-    - Actuator version: `2.1.0`
     - fms-hf-tuning versions:
       - 3.1.0
       - 3.0.0.1
@@ -367,7 +367,7 @@ models.
         `number_gpus` to 1 this experiment actually runs the `tuning.sft_trainer`
         script directly (i.e. a DataParallel (DP) run).
 
-### finetune_full_stability-v1.0.0
+### finetune_full_stability-v1.1.0
 
 Runs full fine-tuning five times and reports the proportion of tasks that fail
 due to GPU memory limits, unknown errors, or complete successfully. This
@@ -445,13 +445,13 @@ configurations.
     **Note**: `--fast_moe` is only supported for fms-hf-tuning v2.4.0+
 
     We use a thin wrapper of `sft_trainer.py` which injects a custom Callback that
-    exports the metrics collected by AIM. You can repeat our experiments by just
-    pointing the above command-line to `sft_trainer.py` from the `fms-hf-tuning`
-    package.
+    exports the [system metrics](#measured-properties) and training throughput
+    metrics described in the Measured Properties section. You can repeat our
+    experiments by just pointing the above command-line to `sft_trainer.py` from
+    the `fms-hf-tuning` package.
 
     Versioning:
 
-    - Actuator version: `2.1.0`
     - fms-hf-tuning versions:
       - 3.1.0
       - 3.0.0.1
@@ -635,7 +635,7 @@ configurations.
         `number_gpus` to 1 this experiment actually runs the `tuning.sft_trainer`
         script directly (i.e. a DataParallel (DP) run).
 
-### finetune_lora_benchmark-v1.0.0
+### finetune_lora_benchmark-v1.1.0
 
 Executes LoRA-based fine-tuning, a parameter-efficient method that adapts only a
 small subset of model weights. This benchmark is useful for scenarios where
@@ -734,13 +734,13 @@ adaptation.
     **Note**: `--fast_moe` is only supported for fms-hf-tuning v2.4.0+
 
     We use a thin wrapper of `sft_trainer.py` which injects a custom Callback that
-    exports the metrics collected by AIM. You can repeat our experiments by just
-    pointing the above command-line to `sft_trainer.py` from the `fms-hf-tuning`
-    package.
+    exports the [system metrics](#measured-properties) and training throughput
+    metrics described in the Measured Properties section. You can repeat our
+    experiments by just pointing the above command-line to `sft_trainer.py` from
+    the `fms-hf-tuning` package.
 
     Versioning:
 
-    - Actuator version: `2.1.0`
     - fms-hf-tuning versions:
       - 3.1.0
       - 3.0.0.1
@@ -969,7 +969,7 @@ adaptation.
         `number_gpus` to 1 this experiment actually runs the `tuning.sft_trainer`
         script directly (i.e. a DataParallel (DP) run).
 
-### finetune_pt_benchmark-v1.0.0
+### finetune_pt_benchmark-v1.1.0
 
 Runs prompt-tuning, a lightweight fine-tuning strategy that prepends trainable
 prompts to the input. Similar to LoRA, this benchmark is useful for compute or
@@ -1065,13 +1065,13 @@ memory constrained environments.
     **Note**: `--fast_moe` is only supported for fms-hf-tuning v2.4.0+
 
     We use a thin wrapper of `sft_trainer.py` which injects a custom Callback that
-    exports the metrics collected by AIM. You can repeat our experiments by just
-    pointing the above command-line to `sft_trainer.py` from the `fms-hf-tuning`
-    package.
+    exports the [system metrics](#measured-properties) and training throughput
+    metrics described in the Measured Properties section. You can repeat our
+    experiments by just pointing the above command-line to `sft_trainer.py` from
+    the `fms-hf-tuning` package.
 
     Versioning:
 
-    - Actuator version: `2.1.0`
     - fms-hf-tuning versions:
       - 3.1.0
       - 3.0.0.1
@@ -1251,7 +1251,7 @@ memory constrained environments.
         `number_gpus` to 1 this experiment actually runs the `tuning.sft_trainer`
         script directly (i.e. a DataParallel (DP) run).
 
-### finetune_gtpq-lora_benchmark-v1.0.0
+### finetune_gtpq-lora_benchmark-v1.1.0
 
 Combines LoRA with GPTQ quantization to enable fine-tuning on quantized models.
 This benchmark is tailored for scenarios where model size and inference
@@ -1357,13 +1357,13 @@ for performance.
     **Note**: `--fast_moe` is only supported for fms-hf-tuning v2.4.0+
 
     We use a thin wrapper of `sft_trainer.py` which injects a custom Callback that
-    exports the metrics collected by AIM. You can repeat our experiments by just
-    pointing the above command-line to `sft_trainer.py` from the `fms-hf-tuning`
-    package.
+    exports the [system metrics](#measured-properties) and training throughput
+    metrics described in the Measured Properties section. You can repeat our
+    experiments by just pointing the above command-line to `sft_trainer.py` from
+    the `fms-hf-tuning` package.
 
     Versioning:
 
-    - Actuator version: `2.1.0`
     - fms-hf-tuning versions:
       - 3.1.0
       - 3.0.0.1
@@ -1599,18 +1599,6 @@ parameters:
 - **Description**: Path to the directory containing the dataset files used for
   fine-tuning.
 
-#### `aim_db` (str, default: None)
-
-- **Description**: Endpoint of the AIM server used to log training metrics. When
-  set to None the measurement will use a temporary AIM repository that will be
-  garbage collected after the termination of the measurement.
-
-#### `aim_dashboard_url` (str or null, optional)
-
-- **Description**: URL of the AIM dashboard. If set, this will be included in
-  the metadata of the measurement results.
-- **Example**: `"http://aim-dashboard.example.com"`
-
 #### `hf_home` (str, default: `"/hf-models-pvc/huggingface_home"`)
 
 - **Description**: Directory where Hugging Face stores authentication tokens and
@@ -1638,9 +1626,19 @@ parameters:
 
 ### Measured Properties
 
-Each experiment collects detailed runtime and system-level metrics using
-[AIM](https://github.com/aimhubio/aim). The AIM metrics are aggregated into the
-following before being stored in ado's database:
+Each experiment collects detailed runtime and system-level metrics.
+These metrics are aggregated into the following before being stored in
+ado's database.
+
+**System metrics** (GPU, CPU, and memory) are collected by a background thread
+that takes a snapshot of the GPUs and of the training process's resource usage
+every 10 seconds, plus one when training ends. When the run uses an auto-stop
+method with a warmup phase, snapshots taken during the warmup are discarded.
+GPU metrics are averaged over the snapshots of each GPU, and the actuator
+reports the min, average, and max of those averages across the GPUs that the
+run used. CPU and memory metrics are reported as the average over the
+snapshots. All system metrics are percentages except the GPU power in Watts
+and CPU compute utilization (100 is one full core, so it can exceed 100).
 
 #### **GPU Metrics**
 
@@ -1650,7 +1648,8 @@ following before being stored in ado's database:
 
 #### **CPU Metrics**
 
-- **Compute Utilization**: Average CPU usage per core (%)
+- **Compute Utilization**: Average CPU usage of the training process, where
+  100 is one full core (%)
 - **Memory Utilization**: Average memory usage of the training process (%)
 
 #### **Training Performance**
@@ -1672,9 +1671,9 @@ following before being stored in ado's database:
 
 !!! info end
 
-    We report all **system metrics** as min/avg/max over the duration of the run.
-    GPU metrics are collected per device; CPU metrics are collected for the training
-    process. Token throughput accounts for padding and sequence truncation.
+    GPU metrics are collected per device and reported as min/avg/max across the
+    GPUs the run used; CPU and memory metrics are reported as averages. Token
+    throughput accounts for padding and sequence truncation.
 
 #### **Validation**
 

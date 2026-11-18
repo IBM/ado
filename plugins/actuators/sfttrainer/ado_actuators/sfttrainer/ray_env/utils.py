@@ -4,6 +4,7 @@
 import contextlib
 import functools
 import os
+import re
 import typing
 
 
@@ -151,11 +152,39 @@ def apply_exclude_package_rules(
     return ret, removed
 
 
+def remove_packages_overridden_by(
+    packages: list[str], extra_packages: list[str]
+) -> list[str]:
+    """Drops the entries of packages whose package name is also in extra_packages
+
+    Args:
+        packages:
+            Package specifiers a-la pip
+        extra_packages:
+            Package specifiers a-la pip whose names must not appear in the returned list
+
+    Returns:
+        The entries of packages that do not share a package name with any entry of extra_packages
+    """
+
+    def normalized_name(specifier: str) -> str:
+        # VV: Some packages look like this: "name @ file://...."
+        name = re.split(r"[<=>!~@\[;]", specifier.replace(" ", ""), maxsplit=1)[0]
+        # VV: pip treats "-", "_", "." and letter case as equivalent in package names
+        return re.sub(r"[-_.]+", "-", name).lower()
+
+    extra_names = {normalized_name(extra) for extra in extra_packages}
+
+    return [
+        package for package in packages if normalized_name(package) not in extra_names
+    ]
+
+
 def get_pinned_packages(
     path_requirements: str,
     override_fms_hf_tuning: str | None = None,
-    ensure_aim: bool = True,
     exclude_packages: list[str] | None = None,
+    extra_packages: list[str] | None = None,
 ) -> list[str]:
     """Extracts the pinned packages from a path_requirements file
 
@@ -164,24 +193,19 @@ def get_pinned_packages(
             Path to the requirements.txt file containing the pinned packages (one package per line, a-la pip)
         override_fms_hf_tuning:
             If set, overrides the `fms-hf-tuning` pinned package from the contents of the requirements.txt file
-        ensure_aim:
-            If set, ensures that the dependencies include the aim python package.
         exclude_packages:
             Packages to exclude from installation
+        extra_packages:
+            Additional packages to append after all other processing. Pinned
+            packages that share a package name with any of these are removed
+            first, so the entries here take precedence.
+
     Returns:
         An array consisting of pinned packages a-la pip
     """
 
     with open(path_requirements, encoding="utf-8") as f:
         packages = [x.strip() for x in f if x.strip() and not x.startswith("#")]
-
-    def find_matching_packages(package_name: str, packages: list[str]) -> list[str]:
-        return [
-            x
-            for x in packages
-            if x.startswith((f"{package_name}=", f"{package_name} "))
-            or x == package_name
-        ]
 
     if override_fms_hf_tuning:
         exclude_packages = [*list(exclude_packages or []), "fms-hf-tuning"]
@@ -191,8 +215,9 @@ def get_pinned_packages(
     if override_fms_hf_tuning:
         packages.append(override_fms_hf_tuning)
 
-    if ensure_aim and len(find_matching_packages("aim", packages)) == 0:
-        packages.append("aim")
+    if extra_packages:
+        packages = remove_packages_overridden_by(packages, extra_packages)
+        packages.extend(extra_packages)
 
     return packages
 
@@ -262,7 +287,7 @@ def get_ray_environment(
 
     # VV: Do not switch on pip_check.
     plugin = {}
-    env = {"AIM_UI_TELEMETRY_ENABLED": "0"}
+    env = {}
     env.update(env_vars)
 
     ray_environment = {

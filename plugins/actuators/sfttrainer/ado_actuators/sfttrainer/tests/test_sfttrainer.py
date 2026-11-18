@@ -192,3 +192,32 @@ def test_select_wrapper() -> None:
         # VV: fms-hf-tuning is not a required dependency of the SFTTrainer actuator
         if e.name != "tuning":
             raise
+
+
+@pytest.mark.parametrize("deprecated_field", ["aim_db", "aim_dashboard_url"])
+@pytest.mark.parametrize(
+    "source_type",
+    [
+        # From a dict (e.g. YAML)
+        dict,
+        # From an instance (as ActuatorBase.validate_parameters does)
+        GenericActuatorParameters,
+    ],
+)
+def test_deprecated_aim_fields_warn_and_are_removed(
+    deprecated_field: str,
+    source_type: type,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    parameters_class = ado_actuators.sfttrainer.actuators.ActuatorParameters
+    source = source_type(**{deprecated_field: "x"})
+
+    validated = parameters_class.model_validate(source, from_attributes=True)
+    assert deprecated_field not in validated.model_dump()
+    assert deprecated_field in capsys.readouterr().err
+
+    # create -> dump -> create
+    dumped = validated.model_dump()
+    recreated = parameters_class.model_validate(dumped)
+    assert recreated == validated
+    assert not capsys.readouterr().err

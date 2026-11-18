@@ -64,7 +64,6 @@ for name, layers in lora.default_target_modules.items():
 
 print("-------fms-hf-tuning versions--------")
 
-print(f"- Actuator version: `{common.ACTUATOR_VERSION}`")
 print("- fms-hf-tuning versions:")
 # - fms-hf-tuning versions:
 #   - 2.1.0 (default)

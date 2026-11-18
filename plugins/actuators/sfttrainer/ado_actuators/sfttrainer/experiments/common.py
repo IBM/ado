@@ -1,11 +1,6 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-# VV: @actuator_version Update this version according to semver.
-# Consider "refactoring" the code as a "bug patch".
-# Use `git-bisect` when looking for the implementation of a specific actuator version.
-# Also remember to update the experiment descriptions in the `README.md` as bumping the version of the actuator
-# also bumps the version of *all* currently supported experiments.
 import copy
 import enum
 import functools
@@ -45,7 +40,6 @@ class InvalidEntityError(ValueError):
 
 
 ACTUATOR_IDENTIFIER = "SFTTrainer"
-ACTUATOR_VERSION = "2.2.0"
 
 FMS_HF_TUNING_REPOSITORY = "https://github.com/foundation-model-stack/fms-hf-tuning"
 PACKAGES_DIR = f"{os.path.dirname(__file__)}/../packages"
@@ -264,9 +258,7 @@ def get_fms_hf_tuning_src(fms_hf_tuning_version: str) -> str:
 def get_versioning_metadata(
     fms_hf_tuning_version: str | list[str],
 ) -> dict[str, str]:
-    ret = {
-        "actuator": ACTUATOR_VERSION,
-    }
+    ret: dict[str, typing.Any] = {}
     if isinstance(fms_hf_tuning_version, str):
         ret.update(
             {
@@ -513,7 +505,6 @@ def generate_parameterisable_finetune_experiment(
             "deprecated": False,
             "parameterised": is_true_parameterised,
             "parameters": copy.deepcopy(hardcoded_parameters),
-            # VV: See @actuator_version
             "versioning": versioning,
         },
         targetProperties=[

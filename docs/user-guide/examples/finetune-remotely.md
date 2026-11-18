@@ -28,7 +28,7 @@ To explore this space, you will:
 - define the parameters to test - such as the batch size and the model max
   length
 - define what to test them with - In this case we will use SFTTrainer's
-  `finetune_full_benchmark-v1.0.0` experiment
+  `finetune_full_benchmark-v1.1.0` experiment
 - explore the parameter space - the sampling method
 
 > [!NOTE]
@@ -62,10 +62,6 @@ To explore this space, you will:
    ```
 
 ## Install and Configure the SFTTrainer actuator
-
-> [!WARNING]
->
-> The SFTTrainer actuator currently **supports only Python 3.11, 3.12**.
 
 ### Install the SFTTrainer actuator
 
@@ -109,9 +105,7 @@ To explore this space, you will:
 
 ### Configure the SFTTrainer Actuator
 
-SFTTrainer includes parameters that control its behavior. For example, it pushes
-any training metrics it collects, like system profiling metadata, to an
-[AIM](https://github.com/aimhubio/aim) server by default. It also features
+SFTTrainer includes parameters that control its behavior. For example,
 parameters that define important paths, such as the location of the Hugging Face
 cache and the directory where the actuator expects to find files like the test
 Dataset.
@@ -119,33 +113,14 @@ Dataset.
 In this section you will configure the actuator for experiments on your remote
 RayCluster.
 
-<!-- markdownlint-disable code-block-style -->
+Create the file `actuator_configuration.yaml` with the following contents:
 
-=== "If you do not have an AIM server"
-
-     Create the file `actuator_configuration.yaml` with the following contents:
-
-     ```yaml
-     actuatorIdentifier: SFTTrainer
-     parameters:
-       hf_home: /hf-models-pvc/huggingface_home
-       data_directory: /data/fms-hf-tuning/artificial-dataset/
-     ```
-
-=== "If you have an AIM server"
-
-    Create the file `actuator_configuration.yaml` with the following contents:
-
-    ```yaml
-    actuatorIdentifier: SFTTrainer
-    parameters:
-      aim_db: aim://$the-aim-server-domain-or-ip:port
-      aim_dashboard_url: https://$the-aim-dashboard-domain-or-ip:port
-      hf_home: /hf-models-pvc/huggingface_home
-      data_directory: /data/fms-hf-tuning/artificial-dataset/
-    ```
-
-<!-- markdownlint-enable code-block-style -->
+```yaml
+actuatorIdentifier: SFTTrainer
+parameters:
+  hf_home: /hf-models-pvc/huggingface_home
+  data_directory: /data/fms-hf-tuning/artificial-dataset/
+```
 
 > [!IMPORTANT]
 >
@@ -228,9 +203,6 @@ In this section, we’ll focus on the second approach.
     pip:
        - ado-sfttrainer
     env_vars:
-        AIM_UI_TELEMETRY_ENABLED: "0"
-        # We set HOME to /tmp because "import aim.utils.tracking" tries to write under $HOME/.aim_profile.
-        # However, the process lacks permissions to do so and that leads to an ImportError exception.
         HOME: "/tmp/"
         OMP_NUM_THREADS: "1"
         OPENBLAS_NUM_THREADS: "1"
@@ -261,9 +233,6 @@ In this section, we’ll focus on the second approach.
     pip:
        - ${RAY_RUNTIME_ENV_CREATE_WORKING_DIR}/ado_sfttrainer-1.1.0.dev152+g23c7ba34e-py3-none-any.whl
     env_vars:
-       AIM_UI_TELEMETRY_ENABLED: "0"
-       # We set HOME to /tmp because "import aim.utils.tracking" tries to write under $HOME/.aim_profile.
-       # However, the process lacks permissions to do so and that leads to an ImportError exception.
        HOME: "/tmp/"
        OMP_NUM_THREADS: "1"
        OPENBLAS_NUM_THREADS: "1"
@@ -363,7 +332,7 @@ sfttrainer_download_hf_weights -i models.yaml -o /hf-models-pvc/huggingface_home
 ### Define the finetuning workload configurations to test and how to test them
 
 In this example, we create a `discoveryspace` that runs the
-[finetune_full_benchmark-v1.0.0](../actuators/sft-trainer.md#finetune_full_benchmark-v100)
+[finetune_full_benchmark-v1.1.0](../actuators/sft-trainer.md#finetune_full_benchmark-v110)
 experiment to finetune the
 [`granite-3.1-2b`](https://huggingface.co/ibm-granite/granite-3.1-2b-base) using
 1 GPU.
@@ -379,7 +348,7 @@ contains 4 entities.
 
 You can find the complete list of the entity space properties in the
 documentation of the
-[finetune_full_benchmark-v1.0.0](../actuators/sft-trainer.md#finetune_full_benchmark-v100)
+[finetune_full_benchmark-v1.1.0](../actuators/sft-trainer.md#finetune_full_benchmark-v110)
 experiment.
 
 1. Create the file `space.yaml` with the contents:
@@ -388,7 +357,7 @@ experiment.
 
    ```yaml
    experiments:
-     - experimentIdentifier: finetune_full_benchmark-v1.0.0
+     - experimentIdentifier: finetune_full_benchmark-v1.1.0
        actuatorIdentifier: SFTTrainer
        parameterization:
          - property:
@@ -505,7 +474,7 @@ ado -c context.yaml create operation -f operation.yaml
 <!-- markdownlint-enable line-length -->
 
 The operation will execute the measurements (i.e. apply the experiment
-**finetune_full_benchmark-v1.0.0** on the 4 entities) as defined in your
+**finetune_full_benchmark-v1.1.0** on the 4 entities) as defined in your
 `discoveryspace`.
 
 > [!NOTE]
@@ -566,7 +535,7 @@ In the above CSV file you will find 1 column per:
 
 For a complete list of the entity space properties check out the documentation
 for the
-[finetune_full_benchmark-v1.0.0](../actuators/sft-trainer.md#finetune_full_benchmark-v100)
+[finetune_full_benchmark-v1.1.0](../actuators/sft-trainer.md#finetune_full_benchmark-v110)
 experiment in the SFTTrainer docs. The complete list of measured properties is
 [available there too](../actuators/sft-trainer.md#measured-properties).
 

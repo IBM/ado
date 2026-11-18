@@ -55,7 +55,7 @@ then scale up to a remote cluster.
 
 - **[Measure fine-tuning throughput locally](finetune-locally.md)** — Explore a
   fine-tuning parameter space on a laptop without GPUs using the
-  `finetune_full_benchmark-v1.0.0` experiment and the `random_walk` operator.
+  `finetune_full_benchmark-v1.1.0` experiment and the `random_walk` operator.
 - **[Measure fine-tuning throughput on a RayCluster](finetune-remotely.md)** —
   Scale the same exploration to a remote RayCluster with GPUs. Assumes
   completion of the local example.

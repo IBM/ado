@@ -27,7 +27,7 @@ not know the study, its phases or its operations.
    [ado-examine-space](../ado-examine-space/SKILL.md)).
 2. **Find external context.** Locate the set the subject comes from (for
    example a benchmark library): its size, how the studied items were
-   selected, and the published baselines.
+   selected, published baselines, and external reference URLs.
 3. **Check the subject directly.** Compute the structural properties the
    report will claim (sizes, spectra, symmetries, trivial solutions) from the
    input files. Record this as experiment `E0`.
@@ -45,6 +45,9 @@ not know the study, its phases or its operations.
 - Write about the subject. The study's own question (for example "can
   method A beat method B") goes in the Appendix as the source of the
   evidence, not in headings or the summary headline.
+- The Summary MUST state the ultimate goals of the report, the exact scope
+  of the experiments, and the specific solvers evaluated (e.g., CPLEX vs. Gurobi).
+- Distinguish cleanly between structural facts and derived insights.
 - Never name study phases, internal run labels or campaign steps in the main
   text. Group results by topic ("a search-control screen of X, Y and Z
   found ...") and cite experiments with tags such as `[E7]`.
@@ -68,19 +71,38 @@ not know the study, its phases or its operations.
 
 ### Content
 
-- Separate hardness into three levels: characteristics of the subject
-  (independent of any method), friction common to a class of methods, and
-  friction specific to each method. Number them (`H1`, `F1`) and have each
-  lower level cite the level above.
-- Open the reformulation (or transformation) section by explaining why
-  reformulating helps on this subject.
-- Put recommendations for a method inside that method's section. Do not add
-  a section of to-dos for the campaign that produced the data.
+- **Separate insights into three distinct levels**:
+  1. **Problem Class Insights:** Characteristics of the subject/problem
+     itself, independent of how it is tackled.
+  2. **Formulation Insights:** Characteristics specific to how the problem
+     is encoded or described
+  3. **Solver Insights:** Behavior specific to applying a particular solver
+     or method to a formulation. Number them (`H1`, `F1`) and have each
+     lower level cite the level above.
+- **Upstream Completeness:** Define all terminology used in analysis in the
+  problem class or formulation definition sections.
+- **Mandate the "So What?":** When stating characteristics of problem,
+  formulation or solver/method explicitly state the practical consequence of
+  that characteristic.
+- **Justify Parameters:** Explicitly state the rationale for experimental
+  boundaries or algorithmic tweaks.
+- **Decouple Theory from Empirical Results:** When reviewing method or solver
+  mechanics include a clear introductory sentence bridging the theoretical
+  friction to the specific problem instances being solved. Avoid an abrupt
+  mix of general theory and explicit experimental data. Provide introductory
+  framing before directly comparing solvers or methods.
 - Omit sections that do not apply. Do not add sentences that only describe
   the report's structure.
 
 ## Verification checklist
 
+- [ ] Goals, scope, baseline solvers, and reference links are explicitly
+      stated upfront.
+- [ ] All variables, costs, and terms are fully defined in the model section
+      before use.
+- [ ] Every time limit or technical parameter includes a stated justification.
+- [ ] Every mathematical property claimed includes an explicit statement of
+      its practical impact on the solver.
 - [ ] Every effect size uses one stated, comparable metric, for example the
       fraction of the remaining gap closed rather than percentage change of a
       value near zero.
@@ -92,7 +114,7 @@ not know the study, its phases or its operations.
       observation on one item or parameter value is stated for that item, and
       checked on the others before being stated more widely.
 - [ ] Each table compares like with like (same run length, same baseline);
-      differences are footnoted.
+      differences are footnoted, and time formatting is completely unambiguous.
 - [ ] Each proposal states why it is valid, that it is untested, and how to
       validate it before use.
 - [ ] The summary contains the conclusion and at most a few headline numbers,

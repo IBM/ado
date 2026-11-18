@@ -8,6 +8,7 @@ from typing import Any, Literal
 import pytest
 
 from ado.modules.actuators import custom_experiments
+from ado.modules.actuators.measurement_queue import MeasurementQueue
 from ado.schema.domain import PropertyDomain, VariableTypeEnum
 from ado.schema.point import SpacePoint
 from ado.schema.property import ConstitutiveProperty
@@ -431,6 +432,62 @@ def test_execute_with_use_ray() -> None:
     measured_values = _measured_values_by_identifier(result)
     assert measured_values["y"] == pytest.approx(12.0)
     assert measured_values["pid"] != os.getpid()
+
+
+def test_execute_with_use_ray_applies_ray_options() -> None:
+    """execute(use_ray=True) reserves the CPUs given in the experiment's ray_options."""
+
+    @custom_experiments.custom_experiment(
+        output_property_identifiers=["y", "cpu"],
+        ray_options={"num_cpus": 0},
+    )
+    def execute_ray_options_exp(x: float) -> dict[str, float]:
+        import ray
+
+        assigned_cpus = (
+            ray.get_runtime_context().get_assigned_resources().get("CPU", 0.0)
+        )
+        return {"y": x * 2, "cpu": assigned_cpus}
+
+    actuator = custom_experiments.CustomExperiments()
+    result = actuator.execute(
+        entities=[SpacePoint.model_validate({"entity": {"x": 5.0}}).to_entity()],
+        experimentReference=execute_ray_options_exp._experiment.reference,
+        requesterid="test-op",
+        requestIndex=0,
+        use_ray=True,
+    )
+
+    assert result.status == MeasurementRequestStateEnum.SUCCESS
+    measured_values = _measured_values_by_identifier(result)
+    assert measured_values["y"] == pytest.approx(10.0)
+    assert measured_values["cpu"] == 0.0
+
+
+def test_submit_use_ray_false_puts_completed_request_on_queue() -> None:
+    """submit() puts the completed request on the queue before returning when use_ray is False."""
+
+    @custom_experiments.custom_experiment(
+        output_property_identifiers=["y"],
+        use_ray=False,
+    )
+    def submit_use_ray_false_exp(x: float) -> dict[str, float]:
+        return {"y": x * 2}
+
+    queue = MeasurementQueue()
+    actuator = custom_experiments.CustomExperiments(queue=queue)
+    request_ids = actuator.submit(
+        entities=[SpacePoint.model_validate({"entity": {"x": 3.0}}).to_entity()],
+        experimentReference=submit_use_ray_false_exp._experiment.reference,
+        requesterid="test-op",
+        requestIndex=0,
+    )
+
+    result = queue.get(block=False)
+
+    assert result.requestid == request_ids[0]
+    assert result.status == MeasurementRequestStateEnum.SUCCESS
+    assert _measured_values_by_identifier(result)["y"] == pytest.approx(6.0)
 
 
 def test_execute_unknown_experiment_raises_value_error() -> None:

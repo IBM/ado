@@ -150,6 +150,9 @@ to inspect the space operated on, especially when the space
 has been explored by multiple operations e.g.
   - between phases of a multi-step study
   - when there was pre-existing data in the space
+- [ado-write-research-report](../ado-write-research-report/SKILL.md), to
+synthesise the study's experiments into a report for readers outside the
+study
 
 ---
 

@@ -856,10 +856,6 @@ class CustomExperiments(StandardActuator):
     ) -> MeasurementRequest:
         """Run the experiment and return the completed MeasurementRequest.
 
-        Overrides :meth:`StandardActuator.execute` so custom experiments keep
-        whole-request Ray dispatch and ``ray_options`` instead of nested
-        per-entity tasks.
-
         Args:
             entities: Entities to measure.
             experimentReference: Reference to the experiment to run.

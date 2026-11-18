@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 sampleStoreIdentifier: "replace-me"
 experiments:
-  - experimentIdentifier: finetune_full_benchmark-v1.0.0
+  - experimentIdentifier: finetune_full_benchmark-v1.1.0
     actuatorIdentifier: SFTTrainer
     parameterization:
       - property:

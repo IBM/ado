@@ -42,7 +42,7 @@ def add_experiments(catalog: "ExperimentCatalog") -> None:
     # VV: GTPQ-LoRA has been known to work before support for padding_free
     # "padding_free": ["huggingface"],
     method = "gptq-lora"
-    version = "1.0.0"
+    version = "1.1.0"
     exp_name = f"finetune_{method}_benchmark"
 
     description = (

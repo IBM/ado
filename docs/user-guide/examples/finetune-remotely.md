@@ -28,7 +28,7 @@ To explore this space, you will:
 - define the parameters to test - such as the batch size and the model max
   length
 - define what to test them with - In this case we will use SFTTrainer's
-  `finetune_full_benchmark-v1.0.0` experiment
+  `finetune_full_benchmark-v1.1.0` experiment
 - explore the parameter space - the sampling method
 
 > [!NOTE]
@@ -62,10 +62,6 @@ To explore this space, you will:
    ```
 
 ## Install and Configure the SFTTrainer actuator
-
-> [!WARNING]
->
-> The SFTTrainer actuator currently **supports only Python 3.11, 3.12**.
 
 ### Install the SFTTrainer actuator
 
@@ -336,7 +332,7 @@ sfttrainer_download_hf_weights -i models.yaml -o /hf-models-pvc/huggingface_home
 ### Define the finetuning workload configurations to test and how to test them
 
 In this example, we create a `discoveryspace` that runs the
-[finetune_full_benchmark-v1.0.0](../actuators/sft-trainer.md#finetune_full_benchmark-v100)
+[finetune_full_benchmark-v1.1.0](../actuators/sft-trainer.md#finetune_full_benchmark-v110)
 experiment to finetune the
 [`granite-3.1-2b`](https://huggingface.co/ibm-granite/granite-3.1-2b-base) using
 1 GPU.
@@ -352,7 +348,7 @@ contains 4 entities.
 
 You can find the complete list of the entity space properties in the
 documentation of the
-[finetune_full_benchmark-v1.0.0](../actuators/sft-trainer.md#finetune_full_benchmark-v100)
+[finetune_full_benchmark-v1.1.0](../actuators/sft-trainer.md#finetune_full_benchmark-v110)
 experiment.
 
 1. Create the file `space.yaml` with the contents:
@@ -361,7 +357,7 @@ experiment.
 
    ```yaml
    experiments:
-     - experimentIdentifier: finetune_full_benchmark-v1.0.0
+     - experimentIdentifier: finetune_full_benchmark-v1.1.0
        actuatorIdentifier: SFTTrainer
        parameterization:
          - property:
@@ -478,7 +474,7 @@ ado -c context.yaml create operation -f operation.yaml
 <!-- markdownlint-enable line-length -->
 
 The operation will execute the measurements (i.e. apply the experiment
-**finetune_full_benchmark-v1.0.0** on the 4 entities) as defined in your
+**finetune_full_benchmark-v1.1.0** on the 4 entities) as defined in your
 `discoveryspace`.
 
 > [!NOTE]
@@ -539,7 +535,7 @@ In the above CSV file you will find 1 column per:
 
 For a complete list of the entity space properties check out the documentation
 for the
-[finetune_full_benchmark-v1.0.0](../actuators/sft-trainer.md#finetune_full_benchmark-v100)
+[finetune_full_benchmark-v1.1.0](../actuators/sft-trainer.md#finetune_full_benchmark-v110)
 experiment in the SFTTrainer docs. The complete list of measured properties is
 [available there too](../actuators/sft-trainer.md#measured-properties).
 

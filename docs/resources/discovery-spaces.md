@@ -30,7 +30,7 @@ ado get experiments
 ┌───────┬──────────────────┬─────────────────────────────────────┬─────────┐
 │ INDEX │ ACTUATOR ID      │ EXPERIMENT ID                       │ VERSION │
 ├───────┼──────────────────┼─────────────────────────────────────┼─────────┤
-│ 0     │ SFTTrainer       │ finetune_full_benchmark-v1.0.0      │ None    │
+│ 0     │ SFTTrainer       │ finetune_full_benchmark-v1.1.0      │ None    │
 │ ...   │ ...              │ ...                                 │ ...     │
 │ 11    │ custom_experi... │ nevergrad_opt_3d_test_func          │ 1.0.0   │
 │ ...   │ ...              │ ...                                 │ ...     │
@@ -227,10 +227,10 @@ the experiments - if not entities could be sampled that experiments in the
 `measurementspace` cannot measure.
 
 For example, to see the input requirements of the experiment
-`finetune_full_benchmark-v1.0.0` you can run:
+`finetune_full_benchmark-v1.1.0` you can run:
 
 ```commandline
-ado describe experiment SFTTrainer.finetune_full_benchmark-v1.0.0
+ado describe experiment SFTTrainer.finetune_full_benchmark-v1.1.0
 ```
 
 you will get output like
@@ -238,7 +238,7 @@ you will get output like
 <!-- markdownlint-disable line-length -->
 
 ```terminaloutput
-Identifier: SFTTrainer.finetune_full_benchmark-v1.0.0
+Identifier: SFTTrainer.finetune_full_benchmark-v1.1.0
 Description: Measures the performance of full-finetuning a model for a given (GPU model, number GPUS, batch_size,
 model_max_length, number nodes) combination.
 
@@ -316,9 +316,9 @@ Optional Inputs and Default Values:
 
 Outputs:
  ─────────────────────────────────────────────────────────────────────────────────────────────────────────
-   finetune_full_benchmark-v1.0.0-is_valid
-   finetune_full_benchmark-v1.0.0-dataset_tokens_per_second_per_gpu
-   finetune_full_benchmark-v1.0.0-train_runtime
+   finetune_full_benchmark-v1.1.0-is_valid
+   finetune_full_benchmark-v1.1.0-dataset_tokens_per_second_per_gpu
+   finetune_full_benchmark-v1.1.0-train_runtime
    ... 20 more outputs ...
  ─────────────────────────────────────────────────────────────────────────────────────────────────────────
 ```

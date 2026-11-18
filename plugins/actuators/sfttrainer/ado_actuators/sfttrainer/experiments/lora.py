@@ -56,7 +56,7 @@ default_target_modules = {
 def add_experiments(catalog: "ExperimentCatalog") -> None:
 
     method = "lora"
-    version = "1.0.0"
+    version = "1.1.0"
     exp_name = f"finetune_{method}_benchmark"
 
     description = (

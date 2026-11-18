@@ -14,7 +14,7 @@ def add_full_experiments(
     catalog: "ExperimentCatalog",
 ) -> None:
     method = "full"
-    version = "1.0.0"
+    version = "1.1.0"
     exp_name = f"finetune_{method}_benchmark"
 
     description = (
@@ -52,7 +52,7 @@ def add_full_experiments(
 def add_full_stability_experiments(catalog: "ExperimentCatalog") -> None:
 
     method = "full"
-    version = "1.0.0"
+    version = "1.1.0"
     purpose = common.ExperimentPurpose.Stability
     exp_name = f"finetune_{method}_{purpose.lower()}"
 

@@ -7,6 +7,7 @@ Table of contents
 - [LORA Fine-Tuning Experiments](#lora-fine-tuning-experiments)
 - [GPTQ-LORA Fine-Tuning Experiments](#gptq-lora-fine-tuning-experiments)
 - [PT Fine-Tuning Experiments](#pt-fine-tuning-experiments)
+- [Deprecated experiments](#deprecated-full-fine-tuning-experiments)
 
 ## Overview
 
@@ -72,7 +73,7 @@ All metrics are percentages except `gpu_power_watts_*` (Watts) and
 
 ## Full Fine-Tuning Experiments
 
-### finetune_full_benchmark-v1.0.0
+### finetune_full_benchmark-v1.1.0
 
 An experiment instance:
 
@@ -172,7 +173,6 @@ command-line to `sft_trainer.py` from the `fms-hf-tuning` package.
 
 Versioning:
 
-- Actuator version: `2.2.0`
 - fms-hf-tuning versions:
   - 3.1.0
     - The full list of packages is at
@@ -440,10 +440,10 @@ Notes:
 - (1) They are reported as the min/max/avg of the average in the timeseries
   metrics for the in-use GPUs of a run.
 - (2) CPU compute and memory utilization are reported as the average of the
-  snapshots. CPU compute utilization is that of the sft_trainer.py process while
-  memory utilization is that of the training process. The total memory capacity
-  of the nodes varies from 100 GB to 400 GB. Currently, we do not store this
-  information in our database.
+  snapshots. CPU compute and memory utilization are those of the
+  sft_trainer.py training process. The total memory capacity of the nodes
+  varies from 100 GB to 400 GB. Currently, we do not store this information
+  in our database.
 - (3) `dataset_tokens_per_second` and `dataset_tokens_per_second_per_gpu` take
   into account the `tokenizer.model_max_length` and `max_seq_length` (i.e. for
   each entry, we report
@@ -477,9 +477,20 @@ containing the string `NCCL Error`) are considered to have `Failed`. They will
 not contain the `is_valid` measured property, or any other property for that
 matter. `Failed` measurements do not record any properties and can be repeated.
 
+## Deprecated Full Fine-Tuning Experiments
+
+### finetune_full_benchmark-v1.0.0
+
+Replaced by [finetune_full_benchmark-v1.1.0](#finetune_full_benchmark-v110)
+
+The differences to finetune_full_benchmark-v1.1.0 are:
+
+- `cpu_memory_utilization` is the percentage of the memory of the whole node
+  in v1.0.0 and of the `sft_trainer.py` training process in v1.1.0
+
 ## Full Fine-Tuning Experiments for exploring GPU Out Of Memory and Transient Errors
 
-### finetune_full_stability-v1.0.0
+### finetune_full_stability-v1.1.0
 
 An experiment instance:
 
@@ -556,7 +567,6 @@ command-line to `sft_trainer.py` from the `fms-hf-tuning` package.
 
 Versioning:
 
-- Actuator version: `2.2.0`
 - fms-hf-tuning versions:
   - 3.1.0
     - The full list of packages is at
@@ -709,9 +719,19 @@ containing the string `NCCL Error`) are considered to have `Failed`. They will
 not contain the `is_valid` measured property, or any other property for that
 matter. `Failed` measurements do not record any properties and can be repeated.
 
+## Deprecated Full Fine-Tuning Stability Experiments
+
+### finetune_full_stability-v1.0.0
+
+Replaced by
+[finetune_full_stability-v1.1.0](#finetune_full_stability-v110)
+
+The version bump accompanies the change to `cpu_memory_utilization` in the other
+experiments. It does not affect the properties this experiment measures.
+
 ## LORA Fine-Tuning Experiments
 
-### finetune_lora_benchmark-v1.0.0
+### finetune_lora_benchmark-v1.1.0
 
 An experiment instance:
 
@@ -809,7 +829,6 @@ command-line to `sft_trainer.py` from the `fms-hf-tuning` package.
 
 Versioning:
 
-- Actuator version: `2.2.0`
 - fms-hf-tuning versions:
   - 3.1.0
     - The full list of packages is at
@@ -1125,10 +1144,10 @@ Notes:
 - (1) They are reported as the min/max/avg of the average in the timeseries
   metrics for the in-use GPUs of a run.
 - (2) CPU compute and memory utilization are reported as the average of the
-  snapshots. CPU compute utilization is that of the sft_trainer.py process while
-  memory utilization is that of the training process. The total memory capacity
-  of the nodes varies from 100 GB to 400 GB. Currently, we do not store this
-  information in our database.
+  snapshots. CPU compute and memory utilization are those of the
+  sft_trainer.py training process. The total memory capacity of the nodes
+  varies from 100 GB to 400 GB. Currently, we do not store this information
+  in our database.
 - (3) `dataset_tokens_per_second` and `dataset_tokens_per_second_per_gpu` take
   into account the `tokenizer.model_max_length` and `max_seq_length` (i.e. for
   each entry, we report
@@ -1163,9 +1182,20 @@ containing the string `NCCL Error`) are considered to have `Failed`. They will
 not contain the `is_valid` measured property, or any other property for that
 matter. `Failed` measurements do not record any properties and can be repeated.
 
+## Deprecated LORA Fine-Tuning Experiments
+
+### finetune_lora_benchmark-v1.0.0
+
+Replaced by [finetune_lora_benchmark-v1.1.0](#finetune_lora_benchmark-v110)
+
+The differences to finetune_lora_benchmark-v1.1.0 are:
+
+- `cpu_memory_utilization` is the percentage of the memory of the whole node
+  in v1.0.0 and of the `sft_trainer.py` training process in v1.1.0
+
 ## GPTQ-LORA Fine-Tuning Experiments
 
-### finetune_gtpq-lora_benchmark-v1.0.0
+### finetune_gtpq-lora_benchmark-v1.1.0
 
 An experiment instance:
 
@@ -1270,7 +1300,6 @@ command-line to `sft_trainer.py` from the `fms-hf-tuning` package.
 
 Versioning:
 
-- Actuator version: `2.2.0`
 - fms-hf-tuning versions:
   - 3.1.0
     - The full list of packages is at
@@ -1549,10 +1578,10 @@ Notes:
 - (1) They are reported as the min/max/avg of the average in the timeseries
   metrics for the in-use GPUs of a run.
 - (2) CPU compute and memory utilization are reported as the average of the
-  snapshots. CPU compute utilization is that of the sft_trainer.py process while
-  memory utilization is that of the training process. The total memory capacity
-  of the nodes varies from 100 GB to 400 GB. Currently, we do not store this
-  information in our database.
+  snapshots. CPU compute and memory utilization are those of the
+  sft_trainer.py training process. The total memory capacity of the nodes
+  varies from 100 GB to 400 GB. Currently, we do not store this information
+  in our database.
 - (3) `dataset_tokens_per_second` and `dataset_tokens_per_second_per_gpu` take
   into account the `tokenizer.model_max_length` and `max_seq_length` (i.e. for
   each entry, we report
@@ -1587,9 +1616,20 @@ containing the string `NCCL Error`) are considered to have `Failed`. They will
 not contain the `is_valid` measured property, or any other property for that
 matter. `Failed` measurements do not record any properties and can be repeated.
 
+## Deprecated GPTQ-LORA Fine-Tuning Experiments
+
+### finetune_gtpq-lora_benchmark-v1.0.0
+
+Replaced by [finetune_gtpq-lora_benchmark-v1.1.0](#finetune_gtpq-lora_benchmark-v110)
+
+The differences to finetune_gtpq-lora_benchmark-v1.1.0 are:
+
+- `cpu_memory_utilization` is the percentage of the memory of the whole node
+  in v1.0.0 and of the `sft_trainer.py` training process in v1.1.0
+
 ## PT Fine-Tuning Experiments
 
-### finetune_pt_benchmark-v1.0.0
+### finetune_pt_benchmark-v1.1.0
 
 An experiment instance:
 
@@ -1685,7 +1725,6 @@ command-line to `sft_trainer.py` from the `fms-hf-tuning` package.
 
 Versioning:
 
-- Actuator version: `2.2.0`
 - fms-hf-tuning versions:
   - 3.1.0
     - The full list of packages is at
@@ -1955,10 +1994,10 @@ Notes:
 - (1) They are reported as the min/max/avg of the average in the timeseries
   metrics for the in-use GPUs of a run.
 - (2) CPU compute and memory utilization are reported as the average of the
-  snapshots. CPU compute utilization is that of the sft_trainer.py process while
-  memory utilization is that of the training process. The total memory capacity
-  of the nodes varies from 100 GB to 400 GB. Currently, we do not store this
-  information in our database.
+  snapshots. CPU compute and memory utilization are those of the
+  sft_trainer.py training process. The total memory capacity of the nodes
+  varies from 100 GB to 400 GB. Currently, we do not store this information
+  in our database.
 - (3) `dataset_tokens_per_second` and `dataset_tokens_per_second_per_gpu` take
   into account the `tokenizer.model_max_length` and `max_seq_length` (i.e. for
   each entry, we report
@@ -1992,3 +2031,14 @@ Measurements raising any other exception (including for example `RuntimeError`
 containing the string `NCCL Error`) are considered to have `Failed`. They will
 not contain the `is_valid` measured property, or any other property for that
 matter. `Failed` measurements do not record any properties and can be repeated.
+
+## Deprecated PT Fine-Tuning Experiments
+
+### finetune_pt_benchmark-v1.0.0
+
+Replaced by [finetune_pt_benchmark-v1.1.0](#finetune_pt_benchmark-v110)
+
+The differences to finetune_pt_benchmark-v1.1.0 are:
+
+- `cpu_memory_utilization` is the percentage of the memory of the whole node
+  in v1.0.0 and of the `sft_trainer.py` training process in v1.1.0

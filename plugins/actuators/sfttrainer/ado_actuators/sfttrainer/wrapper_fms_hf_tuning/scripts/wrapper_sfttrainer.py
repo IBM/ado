@@ -472,10 +472,7 @@ class ResourceTrackerCallback(TrainerCallback):
                         }
                     )
 
-                if self._time_started is not None:
-                    train_time_start = self._time_started.strftime(format_time)
-                else:
-                    train_time_start = None
+                train_time_start = self._time_started.strftime(format_time)
 
                 with open(self._output_info_path, "w", encoding="utf-8") as f:
                     json.dump(

@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 sampleStoreIdentifier: default
 experiments:
-  - experimentIdentifier: finetune_full_benchmark-v1.0.0
+  - experimentIdentifier: finetune_full_benchmark-v1.1.0
     actuatorIdentifier: SFTTrainer
     parameterization: &baseline
       - property:
@@ -14,7 +14,7 @@ experiments:
       - property:
           identifier: auto_stop_method
         value: WARMUP_60S_STABLE_120S_OR_10_STEPS
-  - experimentIdentifier: finetune_full_benchmark-v1.0.0
+  - experimentIdentifier: finetune_full_benchmark-v1.1.0
     actuatorIdentifier: SFTTrainer
     parameterization: &enhanced
       - property:
@@ -29,10 +29,10 @@ experiments:
       - property:
           identifier: fast_kernels
         value: ["True", "True", "True"]
-  - experimentIdentifier: finetune_lora_benchmark-v1.0.0
+  - experimentIdentifier: finetune_lora_benchmark-v1.1.0
     actuatorIdentifier: SFTTrainer
     parameterization: *baseline
-  - experimentIdentifier: finetune_lora_benchmark-v1.0.0
+  - experimentIdentifier: finetune_lora_benchmark-v1.1.0
     actuatorIdentifier: SFTTrainer
     parameterization: *enhanced
 entitySpace:

@@ -78,7 +78,7 @@ of the Actuator.
 
 The most frequently used experiments are:
 
-### finetune_full_benchmark-v1.0.0
+### finetune_full_benchmark-v1.1.0
 
 Performs full fine-tuning of all model parameters. This experiment is ideal for
 evaluating end-to-end training performance and resource utilization on large
@@ -187,7 +187,6 @@ models.
 
     Versioning:
 
-    - Actuator version: `2.1.0`
     - fms-hf-tuning versions:
       - 3.1.0
       - 3.0.0.1
@@ -368,7 +367,7 @@ models.
         `number_gpus` to 1 this experiment actually runs the `tuning.sft_trainer`
         script directly (i.e. a DataParallel (DP) run).
 
-### finetune_full_stability-v1.0.0
+### finetune_full_stability-v1.1.0
 
 Runs full fine-tuning five times and reports the proportion of tasks that fail
 due to GPU memory limits, unknown errors, or complete successfully. This
@@ -453,7 +452,6 @@ configurations.
 
     Versioning:
 
-    - Actuator version: `2.1.0`
     - fms-hf-tuning versions:
       - 3.1.0
       - 3.0.0.1
@@ -637,7 +635,7 @@ configurations.
         `number_gpus` to 1 this experiment actually runs the `tuning.sft_trainer`
         script directly (i.e. a DataParallel (DP) run).
 
-### finetune_lora_benchmark-v1.0.0
+### finetune_lora_benchmark-v1.1.0
 
 Executes LoRA-based fine-tuning, a parameter-efficient method that adapts only a
 small subset of model weights. This benchmark is useful for scenarios where
@@ -743,7 +741,6 @@ adaptation.
 
     Versioning:
 
-    - Actuator version: `2.1.0`
     - fms-hf-tuning versions:
       - 3.1.0
       - 3.0.0.1
@@ -972,7 +969,7 @@ adaptation.
         `number_gpus` to 1 this experiment actually runs the `tuning.sft_trainer`
         script directly (i.e. a DataParallel (DP) run).
 
-### finetune_pt_benchmark-v1.0.0
+### finetune_pt_benchmark-v1.1.0
 
 Runs prompt-tuning, a lightweight fine-tuning strategy that prepends trainable
 prompts to the input. Similar to LoRA, this benchmark is useful for compute or
@@ -1075,7 +1072,6 @@ memory constrained environments.
 
     Versioning:
 
-    - Actuator version: `2.1.0`
     - fms-hf-tuning versions:
       - 3.1.0
       - 3.0.0.1
@@ -1255,7 +1251,7 @@ memory constrained environments.
         `number_gpus` to 1 this experiment actually runs the `tuning.sft_trainer`
         script directly (i.e. a DataParallel (DP) run).
 
-### finetune_gtpq-lora_benchmark-v1.0.0
+### finetune_gtpq-lora_benchmark-v1.1.0
 
 Combines LoRA with GPTQ quantization to enable fine-tuning on quantized models.
 This benchmark is tailored for scenarios where model size and inference
@@ -1368,7 +1364,6 @@ for performance.
 
     Versioning:
 
-    - Actuator version: `2.1.0`
     - fms-hf-tuning versions:
       - 3.1.0
       - 3.0.0.1

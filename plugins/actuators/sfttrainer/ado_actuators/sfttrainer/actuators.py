@@ -829,7 +829,7 @@ class SFTTrainer(ActuatorBase):
                 # VV: The entity overrides information in the experiment.
                 # Some experiments (e.g. finetune-lora-default-r-4-a-16-fsdp-v2.1.0) have a hard-coded num_train_epochs
                 # which cannot be overridden by the entity. Others support overriding the experiment defaults
-                # (e.g. finetune_lora_benchmark-v1.0.0 for num_train_epochs)
+                # (e.g. finetune_lora_benchmark-v1.1.0 for num_train_epochs)
                 continue
             entity_values[key] = value
 

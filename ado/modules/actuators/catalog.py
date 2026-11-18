@@ -25,23 +25,6 @@ ExperimentReferenceMatchMode = Literal[
 ]
 
 
-class ActuatorCatalogExtensionConf(pydantic.BaseModel):
-    """Represents a dynamically loadable set of experiments for an actuator"""
-
-    name: Annotated[
-        str, pydantic.Field(description="The name of the catalog extension")
-    ]
-    location: Annotated[
-        str, pydantic.Field(description="The location of the catalog extension")
-    ]
-
-    @property
-    def catalogExtensionLocation(self) -> str:
-        import os
-
-        return os.path.join(self.location, self.name)
-
-
 class ActuatorCatalogExtension(pydantic.BaseModel):
     """A list of experiments that can be added to a catalog
 

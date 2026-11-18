@@ -301,24 +301,10 @@ class EntitySpaceRepresentation:
             )
 
         if self._constraints:
-            from ado.utilities.output import pydantic_model_as_yaml
-
             content.extend(
                 [
                     Text("Constraints:", style="bold"),
-                    Panel(
-                        Group(
-                            *[
-                                Text(
-                                    pydantic_model_as_yaml(
-                                        constraint, exclude_none=True
-                                    ).rstrip()
-                                )
-                                for constraint in self._constraints
-                            ]
-                        ),
-                        box=rich.box.SIMPLE_HEAD,
-                    ),
+                    Panel(Group(*self._constraints), box=rich.box.SIMPLE_HEAD),
                 ]
             )
 

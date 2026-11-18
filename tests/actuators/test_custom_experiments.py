@@ -778,3 +778,37 @@ def test_execute_entity_with_multiple_observed_values_is_invalid(
     repeated_result = results_by_entity[repeated_value_entity.identifier]
     assert isinstance(repeated_result, InvalidMeasurementResult)
     assert upstream_value.identifier in repeated_result.reason
+
+
+def test_execute_entity_missing_observed_value_is_invalid(
+    observed_input_experiments: tuple[Callable[..., Any], Callable[..., Any]],
+) -> None:
+    """An entity with no value for an observed input gets an invalid result.
+
+    Other entities in the same request are still measured.
+    """
+    upstream, downstream = observed_input_experiments
+    upstream_value = upstream._experiment.observedPropertyForTargetIdentifier(
+        "upstream_value"
+    )
+    measured_entity = _entity_with_observed_values(1.0, upstream_value, [10.0])
+    missing_value_entity = _entity_with_observed_values(2.0, upstream_value, [])
+
+    actuator = custom_experiments.CustomExperiments()
+    result = actuator.execute(
+        entities=[measured_entity, missing_value_entity],
+        experimentReference=downstream._experiment.reference,
+        requesterid="test-op",
+        requestIndex=0,
+    )
+
+    results_by_entity = {
+        measurement_result.entityIdentifier: measurement_result
+        for measurement_result in result.measurements
+    }
+    assert isinstance(
+        results_by_entity[measured_entity.identifier], ValidMeasurementResult
+    )
+    missing_result = results_by_entity[missing_value_entity.identifier]
+    assert isinstance(missing_result, InvalidMeasurementResult)
+    assert upstream_value.identifier in missing_result.reason

@@ -756,6 +756,9 @@ class CustomExperiments(StandardActuator):
             queue: MeasurementQueue for submit()-based async operation.
                 If None, a NullQueue is used — suitable for execute()-only use.
             params: Actuator configuration parameters.
+
+        Raises:
+            ValueError: If a catalog experiment has no registered function.
         """
 
         enable_ray_actor_coverage("custom_experiments")

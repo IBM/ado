@@ -9,6 +9,10 @@ import pydantic
 from pydantic import ConfigDict
 
 from ado.core.metadata import ConfigurationMetadata
+from ado.schema.constraint import (
+    PropertyConstraint,
+    check_constraints_against_properties,
+)
 from ado.schema.measurementspace import MeasurementSpaceConfiguration
 from ado.schema.property import ConstitutiveProperty
 from ado.schema.reference import ExperimentReference
@@ -111,6 +115,13 @@ class DiscoverySpaceConfiguration(pydantic.BaseModel):
         MeasurementSpaceConfigurationType | None,
         pydantic.Field(description="Defines the measurement space"),
     ] = None
+    constraints: Annotated[
+        list[PropertyConstraint],
+        pydantic.Field(
+            default_factory=list,
+            description="Constraints on the values of the entitySpace properties",
+        ),
+    ]
     metadata: Annotated[
         ConfigurationMetadata,
         pydantic.Field(
@@ -178,6 +189,30 @@ class DiscoverySpaceConfiguration(pydantic.BaseModel):
                 )
 
         return values
+
+    @pydantic.model_validator(mode="after")
+    def validate_constraints(self) -> "DiscoverySpaceConfiguration":
+        """Check the constraints against the entitySpace properties.
+
+        Returns:
+            This configuration.
+
+        Raises:
+            ValueError: If constraints are given without an entitySpace, two
+                constraints share a name, or a constraint references a property
+                that is not in the entitySpace.
+        """
+
+        if not self.constraints:
+            return self
+
+        if not self.entitySpace:
+            raise ValueError("constraints require an entitySpace to be specified")
+
+        check_constraints_against_properties(
+            self.constraints, [p.identifier for p in self.entitySpace]
+        )
+        return self
 
     def convert_experiments_to_reference_list(self) -> "DiscoverySpaceConfiguration":
         """Returns a copy where the experiments field is a list of experiment references"""

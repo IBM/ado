@@ -238,6 +238,20 @@ def test_terminal_failure_frees_the_slot_when_the_dependent_cannot_run() -> None
     assert tracker.has_room(batch_size=1, measurement_space=space)
 
 
+def test_terminal_failure_of_a_chain_root_frees_the_slot() -> None:
+    """A failed root frees the slot when the rest of the chain was never queued."""
+
+    root = _experiment("a")
+    middle = _experiment("b", root)
+    dependent = _experiment("c", middle)
+    space = _space(root, middle, dependent)
+    tracker = EntitySubmissionTracker()
+
+    tracker.note_submitted(0, root.reference)
+    tracker.note_finished(0, root.reference)
+    assert tracker.has_room(batch_size=1, measurement_space=space)
+
+
 def test_batch_size_two_frees_one_slot_when_one_entity_is_fully_submitted() -> None:
     """Two blocked entities fill the batch, and submitting one dependent frees one slot."""
 
@@ -294,15 +308,47 @@ def test_second_parameterization_keeps_the_dependent_reachable_until_both_finish
 
 
 def test_record_submission_with_no_request_finishes_the_experiment() -> None:
-    """An experiment that creates no measurement request leaves the slot free."""
+    """A provider that creates no measurement request frees the slot for its dependent."""
 
-    experiment = _experiment("a")
-    space = _space(experiment)
+    provider = _experiment("a")
+    dependent = _experiment("b", provider)
+    space = _space(provider, dependent)
     tracker = EntitySubmissionTracker()
 
     tracker.record_submission(
         request_index=0,
-        experiment_reference=experiment.reference,
+        experiment_reference=provider.reference,
         request_ids=[],
     )
     assert tracker.has_room(batch_size=1, measurement_space=space)
+
+
+def test_sampling_waits_while_the_batch_has_no_room() -> None:
+    """An empty queue does not sample while a blocked dependent occupies the slot."""
+
+    finished = _experiment("a")
+    prerequisite = _experiment("b")
+    dependent = _experiment("c", prerequisite)
+    space = _space(finished, prerequisite, dependent)
+    tracker = EntitySubmissionTracker()
+    tracker.note_submitted(0, finished.reference)
+    tracker.note_submitted(0, prerequisite.reference)
+    tracker.note_finished(0, finished.reference)
+
+    assert not tracker.should_sample(
+        batch_size=1,
+        measurement_space=space,
+        queue_is_empty=True,
+        entities_sampled=1,
+        number_entities=2,
+    )
+
+    tracker.note_finished(0, prerequisite.reference)
+    tracker.note_submitted(0, dependent.reference)
+    assert tracker.should_sample(
+        batch_size=1,
+        measurement_space=space,
+        queue_is_empty=True,
+        entities_sampled=1,
+        number_entities=2,
+    )

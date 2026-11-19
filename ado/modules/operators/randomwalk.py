@@ -479,11 +479,12 @@ class RandomWalkParameters(GenericOperatorParameters):
         pydantic.Field(
             description="Maximum number of sampled entities that may still have an "
             "experiment waiting to be submitted. A new entity is sampled only when "
-            "one of those entities has every experiment submitted or terminally "
-            "finished. Independent experiments then keep about this many times the "
-            "number of experiments in flight. A dependent experiment blocked on an "
-            "in-flight prerequisite keeps its entity's slot, so fewer experiments "
-            "may be in flight until that prerequisite finishes.",
+            "one of those entities has every remaining experiment submitted or "
+            "unable to run because a prerequisite finished in failure. Independent "
+            "experiments then keep about this many times the number of experiments "
+            "in flight. A dependent experiment blocked on an in-flight prerequisite "
+            "keeps its entity's slot, so fewer experiments may be in flight until "
+            "that prerequisite finishes.",
         ),
     ] = 1
     singleMeasurement: Annotated[
@@ -550,9 +551,10 @@ class EntitySubmissionTracker:
     An entity occupies a batch slot while it has an experiment that has not been
     submitted and may still be submitted. Independent experiments occupy the slot
     until they are submitted. A dependent experiment occupies the slot while it
-    is queued, or while an in-space provider of a required input has not finished.
-    After every such provider has finished and the dependent is not queued, that
-    dependent no longer occupies the slot.
+    is queued, or while an in-space provider of a required input is unfinished
+    and may still be submitted. After every such provider has finished or can no
+    longer be submitted, and the dependent is not queued, that dependent no
+    longer occupies the slot.
     """
 
     def __init__(self) -> None:
@@ -594,7 +596,8 @@ class EntitySubmissionTracker:
 
         Args:
             request_index: Index of the sampled entity.
-            experiment_reference: Experiment that succeeded or exhausted retries.
+            experiment_reference: Experiment that succeeded, exhausted retries, or
+                created no measurement request.
         """
 
         self._ensure_entity(request_index)
@@ -646,6 +649,33 @@ class EntitySubmissionTracker:
 
         return self.open_entity_count(measurement_space) < batch_size
 
+    def should_sample(
+        self,
+        batch_size: int,
+        measurement_space: MeasurementSpace,
+        queue_is_empty: bool,
+        entities_sampled: int,
+        number_entities: int,
+    ) -> bool:
+        """Return whether another entity should be sampled into the batch.
+
+        Args:
+            batch_size: Maximum number of entities that may occupy a slot.
+            measurement_space: Experiments considered for each entity.
+            queue_is_empty: True when no experiment is ready to submit.
+            entities_sampled: How many entities have already been sampled.
+            number_entities: How many entities the walk intends to sample.
+
+        Returns:
+            True when the queue is empty, entities remain, and a batch slot is free.
+        """
+
+        return (
+            queue_is_empty
+            and entities_sampled < number_entities
+            and self.has_room(batch_size, measurement_space)
+        )
+
     def _ensure_entity(self, request_index: int) -> None:
         """Create the tracking sets for request_index if they are absent.
 
@@ -686,6 +716,7 @@ class EntitySubmissionTracker:
         request_index: int,
         experiment: Experiment,
         measurement_space: MeasurementSpace,
+        seen: frozenset[ExperimentReference] | None = None,
     ) -> bool:
         """Return whether experiment may be submitted later for request_index.
 
@@ -693,17 +724,26 @@ class EntitySubmissionTracker:
             request_index: Index of the sampled entity.
             experiment: Experiment that has not been submitted.
             measurement_space: Experiments that can provide required inputs.
+            seen: Experiments already being resolved. A repeat means a cycle.
 
         Returns:
             True for an independent experiment, or for a dependent experiment
-            that is still waiting on an in-space provider.
+            whose in-space provider is unfinished and may still be submitted.
         """
+
+        if seen is None:
+            seen = frozenset()
+        if experiment.reference in seen:
+            return False
 
         required_references = experiment.references_of_required_input_experiments
         if len(required_references) == 0:
             return True
 
+        visiting = seen | {experiment.reference}
         finished = self._finished[request_index]
+        submitted = self._submitted[request_index]
+        queued = self._queued[request_index]
         for required_reference in required_references:
             providers = [
                 candidate
@@ -713,7 +753,17 @@ class EntitySubmissionTracker:
             ]
             if len(providers) == 0:
                 continue
-            if any(provider.reference not in finished for provider in providers):
+            if any(
+                provider.reference not in finished
+                and (
+                    provider.reference in submitted
+                    or provider.reference in queued
+                    or self._can_still_submit(
+                        request_index, provider, measurement_space, visiting
+                    )
+                )
+                for provider in providers
+            ):
                 return True
         return False
 
@@ -1003,12 +1053,12 @@ class RandomWalk(Explore):
                 # batch slot is free. A slot stays occupied while an entity still
                 # has an experiment that can be submitted, including a dependent
                 # blocked on an in-flight prerequisite.
-                if (
-                    continuous_batching_queue.empty()
-                    and self._entitiesSampled < number_entities
-                    and submission_tracker.has_room(
-                        self.params.batchSize, measurement_space
-                    )
+                if submission_tracker.should_sample(
+                    batch_size=self.params.batchSize,
+                    measurement_space=measurement_space,
+                    queue_is_empty=continuous_batching_queue.empty(),
+                    entities_sampled=self._entitiesSampled,
+                    number_entities=number_entities,
                 ):
                     # If there are no more entities to sample this does nothing
                     # This can happen if it's not possible to sample the requested number of entities
@@ -1066,62 +1116,79 @@ class RandomWalk(Explore):
 
     def _processCompletedMeasurement(
         self,
-        measurementRequest: MeasurementRequest,
-        measurementSpace: MeasurementSpace,
-        continuousBatchingQueue: Queue,
-        submissionTracker: EntitySubmissionTracker,
+        measurement_request: MeasurementRequest,
+        measurement_space: MeasurementSpace,
+        continuous_batching_queue: Queue,
+        submission_tracker: EntitySubmissionTracker,
     ) -> bool:
+        """Queue dependents or a retry for a finished measurement request.
 
-        if measurementRequest.status == MeasurementRequestStateEnum.SUCCESS:
+        Args:
+            measurement_request: Measurement request that finished.
+            measurement_space: Experiments that may depend on the finished request.
+            continuous_batching_queue: Queue that receives ready experiments.
+                Each item is a dict with keys ``entities``, ``experimentReference``,
+                and ``requestIndex``.
+            submission_tracker: Records experiments placed on the queue.
+
+        Returns:
+            True when the experiment succeeded or retries are exhausted.
+        """
+
+        if measurement_request.status == MeasurementRequestStateEnum.SUCCESS:
             completed = True
 
-            if measurementRequest.requestIndex in self._retriedExperimentRequests:
+            if measurement_request.requestIndex in self._retriedExperimentRequests:
                 self._retriedExperimentRequests[
-                    measurementRequest.requestIndex
+                    measurement_request.requestIndex
                 ].finalStatus = MeasurementRequestStateEnum.SUCCESS
 
-            for entity in measurementRequest.entities:
+            for entity in measurement_request.entities:
                 self.log.debug(
                     "%s"
                     % [
                         f"{v}"
                         for v in entity.propertyValuesFromExperimentReference(
-                            measurementRequest.experimentReference
+                            measurement_request.experimentReference
                         )
                     ]
                 )
 
-            has_dependent_experiments = len(measurementSpace.dependentExperiments) > 0
+            has_dependent_experiments = len(measurement_space.dependentExperiments) > 0
 
             # If this experiment has dependent experiments add them to the queue
             if has_dependent_experiments:
                 prepared_inputs = prepare_dependent_experiment_input(
-                    measurement_request=measurementRequest,
-                    measurement_space=measurementSpace,
+                    measurement_request=measurement_request,
+                    measurement_space=measurement_space,
                 )
 
                 for d in prepared_inputs:
-                    continuousBatchingQueue.put(d._asdict())
-                    submissionTracker.note_queued(d.requestIndex, d.experimentReference)
+                    continuous_batching_queue.put(d._asdict())
+                    submission_tracker.note_queued(
+                        d.requestIndex, d.experimentReference
+                    )
         else:
             print(
-                f"Continuous Batching: {FAILED}EXPERIMENT FAILURE{RESET}. Experiment request {REQUEST}{measurementRequest.requestid}{RESET} "
-                f"with measurement request index {measurementRequest.requestIndex} failed"
+                f"Continuous Batching: {FAILED}EXPERIMENT FAILURE{RESET}. Experiment request {REQUEST}{measurement_request.requestid}{RESET} "
+                f"with measurement request index {measurement_request.requestIndex} failed"
             )
 
-            if not self._retriedExperimentRequests.get(measurementRequest.requestIndex):
-                self._retriedExperimentRequests[measurementRequest.requestIndex] = (
-                    RequestRetry(measurementRequest=measurementRequest)
+            if not self._retriedExperimentRequests.get(
+                measurement_request.requestIndex
+            ):
+                self._retriedExperimentRequests[measurement_request.requestIndex] = (
+                    RequestRetry(measurementRequest=measurement_request)
                 )
 
             retry_tracker = self._retriedExperimentRequests[
-                measurementRequest.requestIndex
+                measurement_request.requestIndex
             ]
 
             if retry_tracker.retries == self.params.maxRetries:
                 print(
                     f"Continuous Batching: {MAXED}EXPERIMENT RETRY{RESET}. Max retries {self.params.maxRetries} "
-                    f"reached for request {REQUEST}{measurementRequest.requestid}{RESET}"
+                    f"reached for request {REQUEST}{measurement_request.requestid}{RESET}"
                 )
                 retry_tracker.finalStatus = MeasurementRequestStateEnum.FAILED
                 # It's completed as we are not trying again
@@ -1129,22 +1196,22 @@ class RandomWalk(Explore):
             else:
                 retry_tracker.retries += 1
                 print(
-                    f"Continuous Batching: {SUMMARY}EXPERIMENT COMPLETION{RESET}. Will retry request {REQUEST}{measurementRequest.requestIndex}{RESET}."
-                    f" Retry attempt {self._retriedExperimentRequests[measurementRequest.requestIndex].retries} "
+                    f"Continuous Batching: {SUMMARY}EXPERIMENT COMPLETION{RESET}. Will retry request {REQUEST}{measurement_request.requestIndex}{RESET}."
+                    f" Retry attempt {self._retriedExperimentRequests[measurement_request.requestIndex].retries} "
                     f"of {self.params.maxRetries}"
                 )
 
                 completed = False
-                continuousBatchingQueue.put(
+                continuous_batching_queue.put(
                     {
-                        "entities": measurementRequest.entities,
-                        "experimentReference": measurementRequest.experimentReference,
-                        "requestIndex": measurementRequest.requestIndex,
+                        "entities": measurement_request.entities,
+                        "experimentReference": measurement_request.experimentReference,
+                        "requestIndex": measurement_request.requestIndex,
                     }
                 )
-                submissionTracker.note_queued(
-                    measurementRequest.requestIndex,
-                    measurementRequest.experimentReference,
+                submission_tracker.note_queued(
+                    measurement_request.requestIndex,
+                    measurement_request.experimentReference,
                 )
 
         return completed
@@ -1154,15 +1221,18 @@ class RandomWalk(Explore):
         completedExperiments: int,
         continuousBatchingQueue: Queue,
         updateQueue: "MeasurementQueue",
-        submissionTracker: EntitySubmissionTracker,
+        submission_tracker: EntitySubmissionTracker,
     ) -> None:
-        """
-        Gets an experiment+entity for continuousBatchingQueue and submits it
+        """Submit the next ready experiment, or log that the queue is empty.
 
-        Params
-            completedExperiments: The number of completedExperiments. For logging
-            continuousBatchingQueue: The queue instance to retrieve the next experiment+entity from
-            measurement_queue: queue to pass to Actuator
+        Args:
+            completedExperiments: Number of experiments already considered finished.
+            continuousBatchingQueue: Queue of experiments ready to submit. Each
+                item is a dict with keys ``entities``, ``experimentReference``,
+                and ``requestIndex``.
+            updateQueue: Queue passed to the actuator for measurement updates.
+            submission_tracker: Records the submission, and a finish when the
+                actuator creates no measurement request.
         """
 
         try:
@@ -1186,7 +1256,7 @@ class RandomWalk(Explore):
                 measurement_queue=updateQueue,
                 memoize=self.params.singleMeasurement,
             )
-            submissionTracker.record_submission(
+            submission_tracker.record_submission(
                 request_index=request_index,
                 experiment_reference=experiment_reference,
                 request_ids=experiment_identifiers,
@@ -1204,24 +1274,26 @@ class RandomWalk(Explore):
         continuousBatchingQueue: Queue,
         iterator: AsyncGenerator[list[Entity], None],
         measurementSpace: MeasurementSpace,
-        submissionTracker: EntitySubmissionTracker,
+        submission_tracker: EntitySubmissionTracker,
     ) -> list[Entity]:
-        """
-        Samples an entity from the sampler and adds the requested measurements to the continuousBatchingQueue
+        """Sample one entity and queue its independent experiments.
 
-        If there are no more entities to sample this method returns an empty list and no measurements are added
-        to the queue
+        If the sampler is exhausted, return an empty list and leave the queue
+        unchanged. Increments ``_entitiesSampled`` by the number of entities
+        sampled.
 
-        Updates self._entitiesSampled
-
-        Params:
-            continuousBatchingQueue: A queue new measurements are added to
-                As a dict with keys "entity", "experiment", "requestIndex"
-            iterator: An iterator which returns Entities
-            measurementSpace: The measurement space
+        Args:
+            continuousBatchingQueue: Queue that receives the independent
+                experiments. Each item is a dict with keys ``entities``,
+                ``experimentReference``, and ``requestIndex``.
+            iterator: Iterator that yields lists of entities.
+            measurementSpace: Measurement space whose independent experiments
+                are queued.
+            submission_tracker: Records each experiment placed on the queue.
 
         Returns:
-            A list with 0 or 1 Entity instance.
+            The sampled entity in a one-item list, or an empty list when none
+            remain.
         """
         try:
             passedFilter = False
@@ -1253,7 +1325,7 @@ class RandomWalk(Explore):
                         "requestIndex": self._entitiesSampled,
                     }
                 )
-                submissionTracker.note_queued(
+                submission_tracker.note_queued(
                     self._entitiesSampled, experiment.reference
                 )
 

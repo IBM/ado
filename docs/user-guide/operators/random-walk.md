@@ -125,8 +125,9 @@ experiments are being executed.
 `random_walk` uses continuous batching to keep up to `batchSize` entities that
 still have an experiment waiting to be submitted. A new entity is sampled when
 there is no experiment ready to submit and one of those entities has every
-experiment submitted or terminally finished. Experiments already in flight
-leave the slot free once every experiment for that entity has been submitted.
+remaining experiment submitted or unable to run because a prerequisite
+finished in failure. Experiments already in flight leave the slot free once
+every experiment for that entity has been submitted.
 A dependent experiment blocked on an in-flight prerequisite keeps the slot, so
 the walk waits for that prerequisite. Until the prerequisite finishes, the
 number of experiments in flight can stay below `batchSize` multiplied by the
@@ -153,8 +154,8 @@ tries to keep that many requests in flight.
 
 When an experiment depends on the output of another, it is submitted after the
 experiments it requires have finished. The entity keeps its slot until that
-dependent is submitted, or until those prerequisites have finished in failure
-and the dependent can no longer run.
+dependent is submitted, or until the dependent can no longer run because a
+prerequisite finished in failure.
 
 !!! info end
 
@@ -162,7 +163,8 @@ and the dependent can no longer run.
     not how many are actually executing.
     Continuous batching schedules further entities from that requested work.
     It samples a new entity when a batch slot is free, which requires the
-    current entities to have their experiments submitted or terminally finished.
+    current entities to have their remaining experiments submitted or unable
+    to run because a prerequisite finished in failure.
 
 ### Sampling all Entities
 

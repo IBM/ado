@@ -48,7 +48,8 @@ name = "ado-active-learning"
 source = { editable = "plugins/operators/active_learning" }
 dependencies = [
     { name = "ado-core" },
-    { name = "numpy" },
+    { name = "numpy", version = "2.3.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.13'" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.13'" },
     { name = "pandas" },
     { name = "scikit-learn" },
 ]

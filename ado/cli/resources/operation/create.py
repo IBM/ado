@@ -45,7 +45,7 @@ from ado.core.operation.operation import OperationException, OperationOutput
 from ado.core.operation.resource import (
     OperationExitStateEnum,
 )
-from ado.core.resources import ADOResourcePropertyDescriptor
+from ado.core.resources import ADOResourcePropertyDescriptor, ADOResourceReference
 from ado.modules.operators.errors import OperatorVersionMismatchError
 
 _INPUT_KINDS = frozenset(KIND_FOR_OPERATOR_INPUT_TYPE.values())
@@ -155,17 +155,33 @@ def _descriptor_for_kind(
         for descriptor in inputs_of_kind
         if descriptor.identifier not in assigned_inputs
     ]
-    for narrowed in (
-        candidates,
-        [descriptor for descriptor in candidates if descriptor.isList],
-        [
-            descriptor
-            for descriptor in candidates
-            if descriptor.identifier not in present_inputs
-        ],
-    ):
-        if len(narrowed) == 1:
-            return narrowed[0]
+    if not candidates:
+        names = [descriptor.identifier for descriptor in inputs_of_kind]
+        if len(names) == 1:
+            raise ValueError(
+                f"Input {names[0]!r} of operator {operator_name!r} was already set."
+            )
+        raise ValueError(
+            f"All {kind.value!r} inputs {names} of operator {operator_name!r} "
+            "were already set."
+        )
+
+    if len(candidates) == 1:
+        return candidates[0]
+
+    list_typed_candidates = [
+        descriptor for descriptor in candidates if descriptor.isList
+    ]
+    if len(list_typed_candidates) == 1:
+        return list_typed_candidates[0]
+
+    unconfigured_candidates = [
+        descriptor
+        for descriptor in candidates
+        if descriptor.identifier not in present_inputs
+    ]
+    if len(unconfigured_candidates) == 1:
+        return unconfigured_candidates[0]
 
     names = [descriptor.identifier for descriptor in inputs_of_kind]
     raise ValueError(
@@ -230,7 +246,9 @@ def _set_input(
         ValueError: If a scalar input is assigned more than once.
     """
     name = descriptor.identifier
-    payload = {"identifier": identifier, "kind": descriptor.kind.value}
+    payload = ADOResourceReference(
+        identifier=identifier, kind=descriptor.kind
+    ).model_dump(mode="json")
     inputs = raw_operation_configuration.setdefault("inputs", {})
     if descriptor.isList:
         if name in assigned_inputs:
@@ -265,11 +283,7 @@ def create_operation(parameters: AdoCreateCommandParameters) -> str | None:
         raise typer.Exit(1) from e
 
     try:
-        apply_resource_flags(
-            raw_operation_configuration,
-            parameters,
-            latest_identifiers=_latest_identifiers(parameters),
-        )
+        apply_resource_flags(raw_operation_configuration, parameters)
     except ValueError as e:
         console_print(
             f"{ERROR}Failed to apply --with/--use-latest to operation inputs:\n{e}",
@@ -379,21 +393,15 @@ def _latest_identifiers(
     Raises:
         typer.Exit: If a requested kind has no resources.
     """
-    kinds = list(
-        dict.fromkeys(
-            [
-                *(parameters.use_latest or []),
-                *(kind for _, kind in parameters.useLatestInputs),
-            ]
-        )
-    )
+    kinds = set(parameters.use_latest or [])
+    kinds.update(kind for _, kind in parameters.use_latest_inputs)
     if not kinds:
         return {}
 
     from ado.cli.utils.generic.wrappers import get_sql_store
 
     sql_store = get_sql_store(parameters.ado_configuration.project_context)
-    latest_ids = sql_store.get_latest_resource_identifiers_of_kinds(kinds=kinds)
+    latest_ids = sql_store.get_latest_resource_identifiers_of_kinds(kinds=list(kinds))
     for kind in kinds:
         if not latest_ids.get(kind):
             console_print(latest_identifier_for_resource_not_found(kind), stderr=True)
@@ -459,26 +467,26 @@ def _identifier_for_with_value(
 def apply_resource_flags(
     raw_operation_configuration: dict,
     parameters: AdoCreateCommandParameters,
-    latest_identifiers: dict[CoreResourceKinds, str],
 ) -> None:
     """Apply ``--with`` and ``--use-latest`` values to a raw operation configuration.
 
     Actuator configurations are applied first, then inputs named with
     ``KIND:INPUT``, then unqualified kinds. An unqualified kind binds to the
-    single input of that kind not already set by a flag.
+    single input of that kind not already set by a flag. Latest identifiers for
+    ``--use-latest`` are looked up from the project metastore when needed.
 
     Args:
         raw_operation_configuration: Raw operation resource configuration dict;
             updated in place.
         parameters: CLI parameters carrying the ``--with`` and ``--use-latest``
             values.
-        latest_identifiers: Latest identifier of each kind requested with
-            ``--use-latest``.
 
     Raises:
         ValueError: If a kind is given by both flags, an input name or kind is
             invalid, a scalar input is set twice, or an unqualified kind cannot
             be bound to a single input.
+        typer.Exit: If a requested latest identifier cannot be found, or a
+            ``--with`` file cannot be created for its kind.
     """
     with_resources = parameters.with_resources or {}
     use_latest = parameters.use_latest or []
@@ -487,6 +495,8 @@ def apply_resource_flags(
     if duplicated:
         names = ", ".join(sorted(kind.value for kind in duplicated))
         raise ValueError(f"{names} given with both --with and --use-latest.")
+
+    latest_identifiers = _latest_identifiers(parameters)
 
     actuator_configuration = CoreResourceKinds.ACTUATORCONFIGURATION
     actuator_configuration_identifier = None
@@ -504,8 +514,10 @@ def apply_resource_flags(
             actuator_configuration_identifier
         ]
 
-    input_kinds = [k for k in (*with_resources, *use_latest) if k in _INPUT_KINDS]
-    if not (parameters.withInputs or parameters.useLatestInputs or input_kinds):
+    input_kinds = [
+        kind for kind in (*with_resources, *use_latest) if kind in _INPUT_KINDS
+    ]
+    if not (parameters.with_inputs or parameters.use_latest_inputs or input_kinds):
         return
 
     module = raw_operation_configuration.get("operation", {}).get("module", {})
@@ -513,17 +525,17 @@ def apply_resource_flags(
     present_inputs = dict(raw_operation_configuration.get("inputs") or {})
     assigned_inputs: set[str] = set()
 
-    for option in parameters.withInputs:
+    for option in parameters.with_inputs:
         identifier = _identifier_for_with_value(option.kind, option.value, parameters)
         descriptor = _descriptor_for_name(
-            operator_name, descriptors, option.inputName, option.kind
+            operator_name, descriptors, option.input_name, option.kind
         )
         if identifier is not None:
             _set_input(
                 raw_operation_configuration, descriptor, identifier, assigned_inputs
             )
 
-    for input_name, kind in parameters.useLatestInputs:
+    for input_name, kind in parameters.use_latest_inputs:
         descriptor = _descriptor_for_name(operator_name, descriptors, input_name, kind)
         _set_input(
             raw_operation_configuration,

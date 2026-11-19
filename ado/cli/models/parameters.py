@@ -53,7 +53,7 @@ class OperationInputResourceOption(pydantic.BaseModel):
 
     model_config = pydantic.ConfigDict(frozen=True)
 
-    inputName: Annotated[
+    input_name: Annotated[
         str, pydantic.Field(description="Name of the operator input parameter")
     ]
     kind: Annotated[
@@ -77,14 +77,14 @@ class AdoCreateCommandParameters(pydantic.BaseModel):
     use_default_sample_store: bool
     use_latest: list[CoreResourceKinds] | None
     with_resources: dict[CoreResourceKinds, pathlib.Path | str] | None
-    useLatestInputs: Annotated[
+    use_latest_inputs: Annotated[
         list[tuple[str, CoreResourceKinds]],
         pydantic.Field(
             default_factory=list,
             description="(input name, kind) pairs from --use-latest KIND:INPUT",
         ),
     ]
-    withInputs: Annotated[
+    with_inputs: Annotated[
         list[OperationInputResourceOption],
         pydantic.Field(
             default_factory=list,

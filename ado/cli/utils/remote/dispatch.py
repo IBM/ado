@@ -3,7 +3,6 @@
 
 import contextlib
 import logging
-import os
 import shlex
 import shutil
 import subprocess
@@ -28,6 +27,7 @@ from ado.cli.models.remote_submission import (
     RemoteSubmissionFlagMatch,
     RemoteSubmissionFlagSpec,
 )
+from ado.cli.utils.input.parsers import resolve_path_or_identifier
 from ado.cli.utils.output.prints import (
     ADO_SPINNER_REMOTE_PORT_FORWARD,
     ADO_SPINNER_REMOTE_PREPARING_FILES,
@@ -271,20 +271,18 @@ def _rewrite_with_value(kv: str, working_dir: Path, seen: set[str]) -> str:
         return kv
 
     key, value = kv.split("=", 1)
-    value_looks_like_path = "." in value or os.sep in value
-    value_as_path = Path(value)
+    try:
+        resolved = resolve_path_or_identifier(value)
+    except FileNotFoundError as error:
+        raise FileNotFoundError(
+            f"--with {kv}: '{value}' looks like a file path but does not exist."
+        ) from error
 
-    if value_as_path.exists() and value_as_path.is_file():
-        src = value_as_path.resolve()
+    if isinstance(resolved, Path):
+        src = resolved.resolve()
         _copy_file_checked(src, working_dir, seen)
         return f"{key}={src.name}"
 
-    if value_looks_like_path:
-        raise FileNotFoundError(
-            f"--with {kv}: '{value}' looks like a file path but does not exist."
-        )
-
-    # Plain resource identifier — leave unchanged
     return kv
 
 

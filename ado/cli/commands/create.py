@@ -1,6 +1,5 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
-import os
 import pathlib
 from typing import Annotated
 
@@ -31,6 +30,7 @@ from ado.cli.resources.sample_store.create import create_sample_store
 from ado.cli.utils.input.parsers import (
     enum_choice_with_plural_parser,
     parse_key_value_pairs,
+    resolve_path_or_identifier,
     resource_kind_with_input_parser,
     resource_shorthands_to_full_names,
     split_input_qualifier,
@@ -40,6 +40,7 @@ from ado.cli.utils.output.prints import (
     HINT,
     bold,
     console_print,
+    cyan,
     magenta,
 )
 from ado.core import CoreResourceKinds
@@ -143,8 +144,9 @@ def create_resource(
         list[str] | None,
         typer.Option(
             "--with",
-            help="""Specify additional resources to use or create via KIND=VALUE pairs,
-            where VALUE is a resource ID or a resource configuration file.
+            help="""Specify additional resources to use or create via KIND=VALUE
+            pairs, or KIND:INPUT=VALUE for named operation inputs, where VALUE
+            is a resource ID or a resource configuration file.
 
             Supports creating spaces with sample stores and operations with
             spaces, data containers, and actuator configurations.
@@ -233,10 +235,10 @@ def create_resource(
 
     ado_configuration: AdoConfiguration = ctx.obj
     override_values = parse_key_value_pairs(set_values)
-    with_resources, with_inputs = parse_with_resource_options(with_resources)
-    use_latest_kinds, use_latest_inputs = parse_use_latest_options(use_latest)
+    with_resources, with_named_inputs = parse_with_resource_options(with_resources)
+    use_latest_kinds, use_latest_named_inputs = parse_use_latest_options(use_latest)
 
-    if (with_inputs or use_latest_inputs) and (
+    if (with_named_inputs or use_latest_named_inputs) and (
         resource_type != AdoCreateSupportedResourceTypes.OPERATION
     ):
         console_print(
@@ -256,8 +258,8 @@ def create_resource(
         use_default_sample_store=use_default_sample_store,
         use_latest=use_latest_kinds,
         with_resources=with_resources,
-        useLatestInputs=use_latest_inputs,
-        withInputs=with_inputs,
+        use_latest_inputs=use_latest_named_inputs,
+        with_inputs=with_named_inputs,
     )
 
     method_mapping = {
@@ -295,8 +297,6 @@ def register_create_command(app: typer.Typer) -> None:
 def _resolve_with_value(value: str) -> pathlib.Path | str:
     """Interpret a ``--with`` value as a configuration file path or an identifier.
 
-    A value containing a dot or a path separator must be an existing file.
-
     Args:
         value: The value part of a ``--with`` option.
 
@@ -306,13 +306,11 @@ def _resolve_with_value(value: str) -> pathlib.Path | str:
     Raises:
         typer.Exit: If *value* looks like a path but is not an existing file.
     """
-    value_as_path = pathlib.Path(value)
-    if value_as_path.exists() and value_as_path.is_file():
-        return value_as_path
-    if "." in value or os.sep in value:
+    try:
+        return resolve_path_or_identifier(value)
+    except FileNotFoundError:
         console_print(f"{ERROR}{value} does not exist or is not a file.", stderr=True)
-        raise typer.Exit(1)
-    return value
+        raise typer.Exit(1) from None
 
 
 def parse_with_resource_options(
@@ -359,7 +357,7 @@ def parse_with_resource_options(
                     f"{ERROR}{bold(resource_type)} is not a supported resource type "
                     f"for the {magenta('--with')} option.\n"
                     f"{HINT}The only supported resource types are "
-                    f"[b cyan]{', '.join(sorted(supported_resource_types))}[/b cyan] "
+                    f"{cyan(', '.join(sorted(supported_resource_types)))} "
                     "and their shorthands.",
                     stderr=True,
                 )
@@ -372,14 +370,13 @@ def parse_with_resource_options(
                     console_print(
                         f"{ERROR}{bold(kind.value)} cannot be used as an operation "
                         "input. Supported input kinds are "
-                        f"[b cyan]{', '.join(sorted(k.value for k in supported_input_kinds))}"
-                        "[/b cyan].",
+                        f"{cyan(', '.join(sorted(k.value for k in supported_input_kinds)))}.",
                         stderr=True,
                     )
                     raise typer.Exit(1)
                 named_inputs.append(
                     OperationInputResourceOption(
-                        inputName=input_name,
+                        input_name=input_name,
                         kind=kind,
                         value=_resolve_with_value(value),
                     )
@@ -429,8 +426,7 @@ def parse_use_latest_options(
             console_print(
                 f"{ERROR}{bold(kind.value)} cannot be used as an operation input. "
                 "Supported input kinds are "
-                f"[b cyan]{', '.join(sorted(k.value for k in supported_input_kinds))}"
-                "[/b cyan].",
+                f"{cyan(', '.join(sorted(k.value for k in supported_input_kinds)))}.",
                 stderr=True,
             )
             raise typer.Exit(1)

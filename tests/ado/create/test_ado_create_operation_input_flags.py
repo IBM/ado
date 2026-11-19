@@ -80,7 +80,7 @@ def _create_parameters(
         use_default_sample_store=False,
         use_latest=use_latest or [],
         with_resources=with_resources or {},
-        withInputs=with_inputs or [],
+        with_inputs=with_inputs or [],
     )
 
 
@@ -97,12 +97,12 @@ def test_parse_with_resource_options_splits_qualified_inputs() -> None:
     assert with_resources == {CoreResourceKinds.SAMPLESTORE: "store-1"}
     assert with_inputs == [
         OperationInputResourceOption(
-            inputName="reference",
+            input_name="reference",
             kind=CoreResourceKinds.DISCOVERYSPACE,
             value="space-1",
         ),
         OperationInputResourceOption(
-            inputName="data", kind=CoreResourceKinds.DATACONTAINER, value="dc-1"
+            input_name="data", kind=CoreResourceKinds.DATACONTAINER, value="dc-1"
         ),
     ]
 
@@ -183,19 +183,18 @@ def test_apply_with_sets_named_inputs(
             _create_parameters(
                 with_inputs=[
                     OperationInputResourceOption(
-                        inputName="reference",
+                        input_name="reference",
                         kind=CoreResourceKinds.DISCOVERYSPACE,
                         value="space-ref",
                     ),
                     OperationInputResourceOption(
-                        inputName="candidate",
+                        input_name="candidate",
                         kind=CoreResourceKinds.DISCOVERYSPACE,
                         value="space-cand",
                     ),
                 ],
                 with_resources={CoreResourceKinds.DATACONTAINER: "dc-1"},
             ),
-            latest_identifiers={},
         )
     assert raw["inputs"] == {
         "reference": {"identifier": "space-ref", "kind": "discoveryspace"},
@@ -217,14 +216,13 @@ def test_apply_with_unqualified_fills_remaining_input(
             _create_parameters(
                 with_inputs=[
                     OperationInputResourceOption(
-                        inputName="reference",
+                        input_name="reference",
                         kind=CoreResourceKinds.DISCOVERYSPACE,
                         value="space-ref",
                     )
                 ],
                 with_resources={CoreResourceKinds.DISCOVERYSPACE: "space-cand"},
             ),
-            latest_identifiers={},
         )
     assert raw["inputs"]["reference"]["identifier"] == "space-ref"
     assert raw["inputs"]["candidate"]["identifier"] == "space-cand"
@@ -245,13 +243,12 @@ def test_apply_with_unknown_input_name_raises(
             _create_parameters(
                 with_inputs=[
                     OperationInputResourceOption(
-                        inputName="missing_input",
+                        input_name="missing_input",
                         kind=CoreResourceKinds.DISCOVERYSPACE,
                         value="space-1",
                     )
                 ]
             ),
-            latest_identifiers={},
         )
 
 
@@ -270,13 +267,12 @@ def test_apply_with_kind_mismatch_raises(
             _create_parameters(
                 with_inputs=[
                     OperationInputResourceOption(
-                        inputName="reference",
+                        input_name="reference",
                         kind=CoreResourceKinds.DATACONTAINER,
                         value="dc-1",
                     )
                 ]
             ),
-            latest_identifiers={},
         )
 
 
@@ -295,18 +291,17 @@ def test_apply_with_same_scalar_input_twice_raises(
             _create_parameters(
                 with_inputs=[
                     OperationInputResourceOption(
-                        inputName="reference",
+                        input_name="reference",
                         kind=CoreResourceKinds.DISCOVERYSPACE,
                         value="space-1",
                     ),
                     OperationInputResourceOption(
-                        inputName="reference",
+                        input_name="reference",
                         kind=CoreResourceKinds.DISCOVERYSPACE,
                         value="space-2",
                     ),
                 ]
             ),
-            latest_identifiers={},
         )
 
 
@@ -325,7 +320,6 @@ def test_apply_with_ambiguous_kind_suggests_qualifier(
             _create_parameters(
                 with_resources={CoreResourceKinds.DISCOVERYSPACE: "space-1"}
             ),
-            latest_identifiers={},
         )
 
 
@@ -345,7 +339,36 @@ def test_apply_rejects_same_kind_on_with_and_use_latest(
                 with_resources={CoreResourceKinds.DISCOVERYSPACE: "space-1"},
                 use_latest=[CoreResourceKinds.DISCOVERYSPACE],
             ),
-            latest_identifiers={CoreResourceKinds.DISCOVERYSPACE: "space-latest"},
+        )
+
+
+def test_apply_unqualified_kind_when_all_already_assigned_raises(
+    temporary_operator: Callable[..., AbstractContextManager[str]],
+) -> None:
+    """An unqualified kind fails clearly when every input of that kind is set."""
+    with (
+        temporary_operator(
+            compare.operators, compare_operation, _two_spaces_and_container
+        ) as name,
+        pytest.raises(ValueError, match="were already set"),
+    ):
+        apply_resource_flags(
+            _raw_operation(name),
+            _create_parameters(
+                with_inputs=[
+                    OperationInputResourceOption(
+                        input_name="reference",
+                        kind=CoreResourceKinds.DISCOVERYSPACE,
+                        value="space-ref",
+                    ),
+                    OperationInputResourceOption(
+                        input_name="candidate",
+                        kind=CoreResourceKinds.DISCOVERYSPACE,
+                        value="space-cand",
+                    ),
+                ],
+                with_resources={CoreResourceKinds.DISCOVERYSPACE: "space-extra"},
+            ),
         )
 
 

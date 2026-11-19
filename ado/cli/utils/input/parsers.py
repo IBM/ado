@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: MIT
 
 import enum
+import os
+import pathlib
 from collections.abc import Callable
 from typing import TypeVar
 
@@ -139,6 +141,30 @@ def enum_choice_with_shorthand_parser(
 
 
 INPUT_QUALIFIER_SEPARATOR = ":"
+
+
+def resolve_path_or_identifier(value: str) -> pathlib.Path | str:
+    """Interpret *value* as an existing file path or a plain identifier.
+
+    A value that names an existing file is returned as a ``Path``. A value that
+    contains a ``.`` or path separator but is not an existing file raises
+    ``FileNotFoundError``. Other values are returned unchanged as identifiers.
+
+    Args:
+        value: A resource identifier or a path to a configuration file.
+
+    Returns:
+        The file path when *value* names an existing file, otherwise *value*.
+
+    Raises:
+        FileNotFoundError: If *value* looks like a path but is not an existing file.
+    """
+    value_as_path = pathlib.Path(value)
+    if value_as_path.exists() and value_as_path.is_file():
+        return value_as_path
+    if "." in value or os.sep in value:
+        raise FileNotFoundError(f"{value} does not exist or is not a file.")
+    return value
 
 
 def split_input_qualifier(value: str) -> tuple[str, str | None]:

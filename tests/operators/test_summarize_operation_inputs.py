@@ -184,7 +184,6 @@ def test_with_kind_writes_one_element_list(
                 use_latest=[],
                 with_resources={CoreResourceKinds.DATACONTAINER: "datacontainer-aaa"},
             ),
-            latest_identifiers={},
         )
     assert raw["inputs"]["containers"] == [
         {"identifier": "datacontainer-aaa", "kind": "datacontainer"}
@@ -239,16 +238,15 @@ def test_with_named_list_input_replaces_file_value_then_appends(
                 use_default_sample_store=False,
                 use_latest=[],
                 with_resources={},
-                withInputs=[
+                with_inputs=[
                     OperationInputResourceOption(
-                        inputName="containers",
+                        input_name="containers",
                         kind=CoreResourceKinds.DATACONTAINER,
                         value=identifier,
                     )
                     for identifier in ("datacontainer-aaa", "datacontainer-bbb")
                 ],
             ),
-            latest_identifiers={},
         )
     assert raw["inputs"]["containers"] == [
         {"identifier": "datacontainer-aaa", "kind": "datacontainer"},

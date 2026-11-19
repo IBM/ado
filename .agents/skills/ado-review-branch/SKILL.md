@@ -24,13 +24,26 @@ metadata:
 - Do not assume — verify claims by reading the relevant code or running a short
   script. Never report a finding based on what code looks like it might do;
   confirm it first.
+- Validate claims against the target branch — before claiming that the PR or
+  branch introduces a certain behaviour or regression, check the branch the PR
+  is targeting (e.g. `main`) to confirm the behaviour is genuinely new and not
+  already present. If it is pre-existing, state it explicitly so that an issue
+  can be opened.
+- Be clear about mutations — when a mutation you made during verification
+  introduced a change or exposed an issue, explicitly state what mutation was
+  made so it is not confused with the branch's committed code.
+- Explain from the problem's perspective — describe every finding from the point
+  of view of the problem (what goes wrong, why it fails, or how it affects
+  callers or users) rather than merely narrating code mechanics.
+- Propose a clear fix — whenever possible, provide a concrete, actionable fix
+  for each finding. If an issue cannot be tied to a specific location or does
+  not have a clear fix, place it in the Observations section.
 - Be picky: report every deviation from the guidelines, including minor ones
 - Be concise
   - report only problems; do not describe code that is correct
   - report each issue once, under one heading
-  - limit each finding to three sentences: the problem, why it matters if not
-    obvious, and the fix
-  - drop any finding that cannot be tied to a location and a fix
+  - limit each finding in the Findings section to three sentences: the problem,
+    why it matters if not obvious, and the clear fix
 - Write the review to `<branch_name>-review.md` at the repo root when finished,
   where `<branch_name>` is the current branch name with `/` replaced by `-`,
   unless the user names another path
@@ -94,7 +107,8 @@ violations as `test` findings, and additionally:
 - **Verify by mutation** — when a test looks weak, confirm it by temporarily
   breaking the code under test and running that test; do not report a test as
   banal on appearance alone. Edit only files in the review worktree and restore
-  each with `git restore <file>` afterwards.
+  each with `git restore <file>` afterwards. Be clear in your finding when a
+  mutation you made introduced a change or failure.
 
 ### Plugin versioning
 
@@ -133,11 +147,17 @@ Write the report with these sections, omitting any that are empty:
    - number findings continuously (1, 2, 3, ...) so they can be referenced
    - start each finding with a bold heading of the form `tag: short title`,
      where the tag is one of `bug`, `design`, `test`, `docs`, or `lint`
+   - explain each finding from the point of view of the problem, state why it
+     matters if not obvious, and propose a clear fix
+   - be clear when a mutation you made introduced a change
    - test gaps and documentation gaps are findings with the matching tag, not
      separate sections
-3. **Skill Reviews** — one subsection per new or modified skill, using the
+3. **Observations** — issues that cannot be tied to a specific location,
+   concerns without a clear fix, or pre-existing bugs identified during the
+   review, described clearly so that tracking issues can be opened
+4. **Skill Reviews** — one subsection per new or modified skill, using the
    per-skill structure in [references/skill-review.md](references/skill-review.md)
-4. **Verdict** (1-2 lines) — merge as is, merge after the Critical findings are
+5. **Verdict** (1-2 lines) — merge as is, merge after the Critical findings are
    fixed, or do not merge; do not restate the findings
 
 Example finding:

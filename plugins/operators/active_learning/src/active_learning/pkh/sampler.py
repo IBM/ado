@@ -11,6 +11,7 @@ import numpy as np
 from pydantic import BaseModel
 from sklearn.ensemble import RandomForestRegressor
 
+from active_learning.forest_sampling import ForestSamplingState
 from active_learning.pkh.data import (
     candidate_entities,
     encode_feature_matrix,
@@ -45,7 +46,7 @@ def build_forest(
     )
 
 
-class PKHState:
+class PKHState(ForestSamplingState):
     """Core mathematical state and greedy MMD leaf-histogram selection for PKH."""
 
     def __init__(
@@ -64,47 +65,16 @@ class PKHState:
             initial_labels: Measurement target values for initial_measured_indices.
             params: PKH sampler hyperparameters.
         """
-        self.features = features
-        self.n_candidates = len(features)
+        super().__init__(
+            features,
+            initial_measured_indices,
+            initial_labels,
+            pilot_size=params.pilotSize,
+            seed=params.seed,
+        )
         self.params = params
-
-        self.measured_indices: list[int] = list(initial_measured_indices)
-        self.measured_labels: list[float] = list(initial_labels)
-        self.measured_set: set[int] = set(initial_measured_indices)
-        self._rng = np.random.default_rng(params.seed)
-        unmeasured = self._unmeasured_indices()
-        pilot_size = min(
-            len(unmeasured), max(0, params.pilotSize - len(self.measured_set))
-        )
-        self._pilot_indices = iter(
-            self._rng.choice(unmeasured, size=pilot_size, replace=False).tolist()
-        )
-
-        self._steps_since_refit: int = 0
-        self.forest: RandomForestRegressor | None = None
-        self._leaf_assignments: np.ndarray | None = None  # shape: (N, n_trees)
-        self._pool_leaf_mass: np.ndarray | None = None  # shape: (n_trees, max_nodes)
-        self._sample_leaf_counts: np.ndarray | None = None
-
-    def _unmeasured_indices(self) -> np.ndarray:
-        """Return unmeasured indices in candidate order."""
-        return np.fromiter(
-            (i for i in range(self.n_candidates) if i not in self.measured_set),
-            dtype=np.intp,
-        )
-
-    def record_measurement(self, index: int, label: float) -> None:
-        """Record a completed target measurement for an entity index."""
-        if index not in self.measured_set:
-            self.measured_indices.append(index)
-            self.measured_labels.append(label)
-            self.measured_set.add(index)
-            self._steps_since_refit += 1
-
-            if self._sample_leaf_counts is not None:
-                self._sample_leaf_counts[
-                    np.arange(self.params.nEstimators), self._leaf_assignments[index]
-                ] += 1
+        self._measured_at_last_refit = 0
+        self._pool_leaf_mass: np.ndarray | None = None
 
     def fit_forest_and_histograms(self) -> None:
         """Fit the Random Forest on measured points and construct pool leaf histograms."""
@@ -116,31 +86,9 @@ class PKHState:
             if self.params.seed is not None
             else None
         )
-        forest = build_forest(self.params, seed)
-
-        train_features = self.features[self.measured_indices]
-        train_labels = np.asarray(self.measured_labels, dtype=float)
-        forest.fit(train_features, train_labels)
-        self.forest = forest
-
-        leaf_assignments = forest.apply(self.features).astype(np.int32)
-        n_trees = self.params.nEstimators
-        self._leaf_assignments = leaf_assignments
-        histogram_size = int(leaf_assignments.max()) + 1
-
-        self._pool_leaf_mass = np.zeros((n_trees, histogram_size), dtype=float)
-        self._sample_leaf_counts = np.zeros_like(self._pool_leaf_mass)
-        for tree_idx in range(n_trees):
-            self._pool_leaf_mass[tree_idx] = (
-                np.bincount(leaf_assignments[:, tree_idx], minlength=histogram_size)
-                / self.n_candidates
-            )
-            self._sample_leaf_counts[tree_idx] = np.bincount(
-                leaf_assignments[self.measured_indices, tree_idx],
-                minlength=histogram_size,
-            )
-
-        self._steps_since_refit = 0
+        self._pool_leaf_mass = self.fit_forest(build_forest(self.params, seed))
+        self._pool_leaf_mass /= self.n_candidates
+        self._measured_at_last_refit = len(self.measured_indices)
         logger.info(
             "PKH forest refit: measured=%d mmd2=%.6f",
             len(self.measured_indices),
@@ -166,20 +114,10 @@ class PKHState:
             return None
         return float(np.sum(discrepancy**2) / self.params.nEstimators)
 
-    def select_next(self) -> int | None:
-        """Select the next candidate entity index to measure.
-
-        Returns:
-            The chosen candidate index, or None if the pool is exhausted.
-        """
-        if (pilot_index := next(self._pilot_indices, None)) is not None:
-            return pilot_index
-
-        unmeasured = self._unmeasured_indices()
-        if not unmeasured.size:
-            return None
-
-        if self.forest is None or self._steps_since_refit >= self.params.epochLength:
+    def _select_after_pilot(self, unmeasured: np.ndarray) -> int:
+        """Select the candidate with the largest mean leaf discrepancy."""
+        new_measurements = len(self.measured_indices) - self._measured_at_last_refit
+        if self.forest is None or new_measurements >= self.params.epochLength:
             self.fit_forest_and_histograms()
 
         if (discrepancy := self._leaf_discrepancy()) is None:
@@ -289,21 +227,7 @@ class PKHSampleSelector(BaseSampler):
             params=self.params,
         )
 
-        while (next_idx := state.select_next()) is not None:
-            entity = entities[next_idx]
-            yield [entity]
-
-            stored_entities = discovery_space.sample_store.get_entities(
-                identifiers=entity.identifier,
-                require_measurements=True,
-                refresh=True,
-            )
-            label = (
-                target_label(stored_entities[0], target_id) if stored_entities else None
-            )
-            if label is None:
-                raise ValueError(
-                    f"Missing finite target measurement for '{target_id}' "
-                    f"on entity {entity.identifier}"
-                )
-            state.record_measurement(next_idx, label)
+        for batch in state.sample_with_feedback(
+            entities, discovery_space, target_id, target_label
+        ):
+            yield batch

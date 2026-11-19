@@ -89,7 +89,7 @@ HeuristicFrequency = ConstitutiveProperty(
     },
     propertyDomain=PropertyDomain(
         variableType=VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
-        values=[-1, 0, 10, 50, 100],
+        values=[-1, 0, 1, 2, 5, 10, 25, 50, 100],
     ),
 )
 
@@ -135,7 +135,7 @@ RinsFrequency = ConstitutiveProperty(
     },
     propertyDomain=PropertyDomain(
         variableType=VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
-        values=[-1, 0, 5, 25, 100],
+        values=[-1, 0, 1, 2, 5, 10, 25, 50, 100],
     ),
 )
 
@@ -305,6 +305,52 @@ PolishAfter = ConstitutiveProperty(
         variableType=VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE,
         # Upper bound is strictly above 1e75 so that the default 1e75 validates.
         domainRange=[0, 1e76],
+    ),
+)
+
+LocalBranching = ConstitutiveProperty(
+    identifier="local_branching",
+    metadata={
+        "description": (
+            "Local branching heuristic (CPX_PARAM_LBHEUR / `set mip strategy "
+            "lbheur`): 0=off (default), 1=search a neighbourhood of the incumbent."
+        )
+    },
+    propertyDomain=PropertyDomain(
+        variableType=VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
+        values=[0, 1],
+    ),
+)
+
+HeuristicEffort = ConstitutiveProperty(
+    identifier="heuristic_effort",
+    metadata={
+        "description": (
+            "Effort spent on MIP heuristics relative to CPLEX's default "
+            "(CPXPARAM_MIP_Strategy_HeuristicEffort / `set mip strategy "
+            "heuristiceffort`): 0 turns heuristics off, 1 is the default, larger "
+            "values spend more effort."
+        )
+    },
+    propertyDomain=PropertyDomain(
+        variableType=VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE,
+        domainRange=[0, 1e76],
+    ),
+)
+
+SubMipNodeLimit = ConstitutiveProperty(
+    identifier="submip_node_limit",
+    metadata={
+        "description": (
+            "Node limit of each sub-MIP solved by RINS, local branching and other "
+            "heuristics (CPXPARAM_MIP_SubMIP_NodeLimit / `set mip submip "
+            "nodelimit`). Default 500."
+        )
+    },
+    propertyDomain=PropertyDomain(
+        variableType=VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
+        domainRange=[1, 10000001],
+        interval=1,
     ),
 )
 
@@ -844,6 +890,9 @@ def _run_single_seed(
     symmetry: int = -1,
     qpmakepsd: int = 1,
     polish_after_s: float = 1e75,
+    local_branching: int = 0,
+    heuristic_effort: float = 1.0,
+    submip_node_limit: int = 500,
     progress_interval_s: float = 0,
     workmem_mb: int = 0,
     warm_start_file: str = "",
@@ -878,6 +927,11 @@ def _run_single_seed(
             may modify the quadratic objective to make it PSD, 0 leave it unchanged.
         polish_after_s: Seconds after which CPLEX starts solution polishing
             (CPX_PARAM_POLISHAFTERTIME); 1e75 never polishes.
+        local_branching: Local branching heuristic (CPX_PARAM_LBHEUR): 0 off, 1 on.
+        heuristic_effort: Heuristic effort multiplier
+            (CPXPARAM_MIP_Strategy_HeuristicEffort); 1.0 is the CPLEX default.
+        submip_node_limit: Node limit of each heuristic sub-MIP
+            (CPXPARAM_MIP_SubMIP_NodeLimit).
         progress_interval_s: If > 0, capture progress at this interval (seconds).
         workmem_mb: When > 0, sets CPLEX WorkMem (CPX_PARAM_WORKMEM) to this
             value in MB and enables compressed on-disk node files
@@ -939,6 +993,9 @@ def _run_single_seed(
     model.parameters.preprocessing.symmetry.set(symmetry)
     model.parameters.preprocessing.qpmakepsd.set(qpmakepsd)
     model.parameters.mip.polishafter.time.set(polish_after_s)
+    model.parameters.mip.strategy.lbheur.set(local_branching)
+    model.parameters.mip.strategy.heuristiceffort.set(heuristic_effort)
+    model.parameters.mip.submip.nodelimit.set(submip_node_limit)
     model.parameters.timelimit.set(time_limit_s)
     model.parameters.mip.display.set(4)
     model.parameters.mip.interval.set(100)
@@ -967,6 +1024,7 @@ def _run_single_seed(
         "cut_passes=%d, cut_passes_all=%r, mip_emphasis=%d, qtolin=%d, "
         "presolve=%d, node_subalgorithm=%d, search_strategy=%d, "
         "best_bound_interval=%d, symmetry=%d, qpmakepsd=%d, polish_after_s=%.1g, "
+        "local_branching=%d, heuristic_effort=%.3g, submip_node_limit=%d, "
         "time_limit_s=%.1g",
         mps_file,
         seed,
@@ -986,6 +1044,9 @@ def _run_single_seed(
         symmetry,
         qpmakepsd,
         polish_after_s,
+        local_branching,
+        heuristic_effort,
+        submip_node_limit,
         time_limit_s,
     )
 
@@ -1111,6 +1172,9 @@ def _run_single_seed(
         Symmetry,
         Qpmakepsd,
         PolishAfter,
+        LocalBranching,
+        HeuristicEffort,
+        SubMipNodeLimit,
         Parallel,
         ProgressInterval,
         WarmStartFile,
@@ -1162,6 +1226,9 @@ def solve_mip(
     symmetry: int = -1,
     qpmakepsd: int = 1,
     polish_after_s: float = 1e75,
+    local_branching: int = 0,
+    heuristic_effort: float = 1.0,
+    submip_node_limit: int = 500,
     parallel: bool = True,
     progress_interval_s: float = 0,
     warm_start_file: str = "",
@@ -1204,6 +1271,12 @@ def solve_mip(
         polish_after_s: Seconds after which CPLEX starts solution polishing
             (CPX_PARAM_POLISHAFTERTIME); 0 polishes from the start, 1e75 (default)
             never polishes.
+        local_branching: CPLEX local branching heuristic (CPX_PARAM_LBHEUR): 0 off
+            (default), 1 on.
+        heuristic_effort: CPLEX heuristic effort multiplier
+            (CPXPARAM_MIP_Strategy_HeuristicEffort); 0 off, 1.0 (default) standard.
+        submip_node_limit: Node limit of each heuristic sub-MIP
+            (CPXPARAM_MIP_SubMIP_NodeLimit); default 500.
         parallel: If True, run each seed as a Ray remote task (requires ray_remote).
             If False, run seeds in serial. With parallel=True, Ray task failures on
             individual seeds are recorded as ``ray_task_failed: ...`` in
@@ -1264,6 +1337,9 @@ def solve_mip(
             symmetry=symmetry,
             qpmakepsd=qpmakepsd,
             polish_after_s=polish_after_s,
+            local_branching=local_branching,
+            heuristic_effort=heuristic_effort,
+            submip_node_limit=submip_node_limit,
             progress_interval_s=progress_interval_s,
             warm_start_file=warm_start_file,
             export_solution=export_solution,

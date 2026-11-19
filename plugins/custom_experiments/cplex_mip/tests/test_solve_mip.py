@@ -86,6 +86,9 @@ class TestOptionalProperties:
             "symmetry",
             "qpmakepsd",
             "polish_after_s",
+            "local_branching",
+            "heuristic_effort",
+            "submip_node_limit",
         }
         assert expected == optional_ids
 
@@ -106,13 +109,13 @@ class TestOptionalProperties:
         assert sorted(prop.propertyDomain.values) == [-1, 0, 1, 2, 3, 4]
 
     def test_heuristic_frequency_domain_values(self, experiment: Experiment) -> None:
-        """heuristic_frequency domain must contain exactly [-1, 0, 10, 50, 100]."""
+        """heuristic_frequency domain covers off, automatic and every 1 to 100 nodes."""
         prop = next(
             p
             for p in experiment.optionalProperties
             if p.identifier == "heuristic_frequency"
         )
-        assert sorted(prop.propertyDomain.values) == [-1, 0, 10, 50, 100]
+        assert sorted(prop.propertyDomain.values) == [-1, 0, 1, 2, 5, 10, 25, 50, 100]
 
     def test_n_seeds_domain_range(self, experiment: Experiment) -> None:
         """n_seeds domain must have range [1, 100]."""
@@ -184,11 +187,11 @@ class TestOptionalProperties:
         assert sorted(prop.propertyDomain.values) == [1, 2, 4, 8, 16]
 
     def test_rins_frequency_domain_values(self, experiment: Experiment) -> None:
-        """rins_frequency domain must contain exactly [-1, 0, 5, 25, 100]."""
+        """rins_frequency domain covers off, automatic and every 1 to 100 nodes."""
         prop = next(
             p for p in experiment.optionalProperties if p.identifier == "rins_frequency"
         )
-        assert sorted(prop.propertyDomain.values) == [-1, 0, 5, 25, 100]
+        assert sorted(prop.propertyDomain.values) == [-1, 0, 1, 2, 5, 10, 25, 50, 100]
 
     def test_cut_passes_domain_values(self, experiment: Experiment) -> None:
         """cut_passes domain must span integers -1 through 200 (exclusive upper 201)."""
@@ -1628,6 +1631,7 @@ SEARCH_CONTROL_PROPERTIES = [
     ("best_bound_interval", "mip.strategy.bbinterval", [0, 1, 7, 20], 7, 0),
     ("symmetry", "preprocessing.symmetry", [-1, 0, 1, 2, 3, 4, 5], -1, 0),
     ("qpmakepsd", "preprocessing.qpmakepsd", [0, 1], 1, 0),
+    ("local_branching", "mip.strategy.lbheur", [0, 1], 0, 1),
 ]
 
 
@@ -1856,4 +1860,115 @@ class TestPolishAfter:
             )
 
         assert seen == [0.0]
+        assert result["objective_value"] == pytest.approx(-1.0)
+
+
+#: Range-valued primal heuristic controls: (identifier, CPLEX parameter path, lower
+#: end of the domain, default, non-default value to check).
+PRIMAL_RANGE_PROPERTIES = [
+    ("heuristic_effort", "mip.strategy.heuristiceffort", 0, 1.0, 5.0),
+    ("submip_node_limit", "mip.submip.nodelimit", 1, 500, 5000),
+]
+
+
+class TestPrimalRangeProperties:
+    @pytest.mark.parametrize(
+        ("identifier", "low", "default"),
+        [(i, low, d) for i, _, low, d, _ in PRIMAL_RANGE_PROPERTIES],
+    )
+    def test_domain_starts_at_cplex_minimum(
+        self, experiment: Experiment, identifier: str, low: float, default: float
+    ) -> None:
+        """Each range starts at the CPLEX minimum and contains the default."""
+        prop = next(
+            p for p in experiment.optionalProperties if p.identifier == identifier
+        )
+        start, end = prop.propertyDomain.domainRange
+        assert start == low
+        assert start <= default < end
+
+    @pytest.mark.parametrize(
+        ("identifier", "default"),
+        [(i, d) for i, _, _, d, _ in PRIMAL_RANGE_PROPERTIES],
+    )
+    def test_default_is_cplex_default(
+        self, experiment: Experiment, identifier: str, default: float
+    ) -> None:
+        """Each property defaults to the CPLEX default."""
+        param_map = {
+            p.property.identifier: p.value for p in experiment.defaultParameterization
+        }
+        assert param_map[identifier] == default
+
+    @pytest.mark.parametrize(
+        ("identifier", "value"),
+        [(i, v) for i, _, _, _, v in PRIMAL_RANGE_PROPERTIES],
+    )
+    def test_passed_to_run_single_seed(
+        self, solve_mip_func: Callable[..., Any], identifier: str, value: float
+    ) -> None:
+        """Each property is forwarded to _run_single_seed."""
+        seen: list[float] = []
+
+        def capture(**kw: Any) -> dict[str, Any]:  # noqa: ANN401
+            seen.append(kw[identifier])
+            return TestSolveMipVectorOutput()._make_seed_result(kw["seed"])
+
+        with patch(
+            "cplex_mip_experiments.solve_mip._run_single_seed",
+            side_effect=capture,
+        ):
+            solve_mip_func(
+                mps_file=DEFAULT_MPS,
+                n_seeds=2,
+                parallel=False,
+                **{identifier: value},
+            )
+
+        assert seen == [value, value]
+
+    @pytest.mark.skipif(not HAS_CPLEX, reason="CPLEX Python API not installed")
+    @pytest.mark.parametrize(
+        ("identifier", "path", "value"),
+        [(i, p, v) for i, p, _, _, v in PRIMAL_RANGE_PROPERTIES],
+    )
+    def test_set_on_model(
+        self, tmp_path: pathlib.Path, identifier: str, path: str, value: float
+    ) -> None:
+        """_run_single_seed sets the CPLEX parameter before solving."""
+        import cplex
+        from cplex_mip_experiments.solve_mip import _run_single_seed
+
+        lp = tmp_path / "tiny.lp"
+        lp.write_text(
+            "Minimize\n obj: - x - y\nSubject To\n c1: x + y <= 1\n"
+            "Binaries\n x y\nEnd\n"
+        )
+        seen: list[float] = []
+        original_solve = cplex.Cplex.solve
+
+        def recording_solve(self: Any) -> None:  # noqa: ANN401
+            param = self.parameters
+            for part in path.split("."):
+                param = getattr(param, part)
+            seen.append(param.get())
+            original_solve(self)
+
+        with patch.object(cplex.Cplex, "solve", recording_solve):
+            result = _run_single_seed(
+                mps_file=str(lp),
+                seed=0,
+                seed_index=0,
+                n_seeds=1,
+                node_selection=1,
+                variable_selection=0,
+                heuristic_frequency=0,
+                time_limit_s=10.0,
+                n_threads=1,
+                rins_frequency=0,
+                cut_passes=0,
+                **{identifier: value},
+            )
+
+        assert seen == [value]
         assert result["objective_value"] == pytest.approx(-1.0)

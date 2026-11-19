@@ -24,41 +24,39 @@ metadata:
 - Do not assume — verify claims by reading the relevant code or running a short
   script. Never report a finding based on what code looks like it might do;
   confirm it first.
-- Validate claims against the target branch — before claiming that the PR or
-  branch introduces a certain behaviour or regression, check the branch the PR
-  is targeting (e.g. `main`) to confirm the behaviour is genuinely new and not
-  already present. If it is pre-existing, state it explicitly so that an issue
-  can be opened.
-- Be clear about mutations — when a mutation you made during verification
-  introduced a change or exposed an issue, explicitly state what mutation was
-  made so it is not confused with the branch's committed code.
-- Explain from the problem's perspective — describe every finding from the point
-  of view of the problem (what goes wrong, why it fails, or how it affects
-  callers or users) rather than merely narrating code mechanics.
-- Propose a clear fix — whenever possible, provide a concrete, actionable fix
-  for each finding. If an issue cannot be tied to a specific location or does
-  not have a clear fix, place it in the Observations section.
+- Validate claims against the target branch — check the branch the PR targets
+  (e.g. `main`) to verify whether a behaviour or bug is new or pre-existing.
+  If pre-existing, note it under Observations so an issue can be opened.
 - Be picky: report every deviation from the guidelines, including minor ones
-- Be concise
-  - report only problems; do not describe code that is correct
-  - report each issue once, under one heading
-  - limit each finding in the Findings section to three sentences: the problem,
-    why it matters if not obvious, and the clear fix
 - Write the review to `<branch_name>-review.md` at the repo root when finished,
   where `<branch_name>` is the current branch name with `/` replaced by `-`,
   unless the user names another path
-- Anchor each review comment to the file and line it refers to
-  - give the location once per comment as a single markdown link to the
-    primary file and line
-  - refer to any further locations in that comment as plain `path:line` text
-  - for pages under `docs/`, use a markdown link to the page, not a plain
-    section name
-- Keep formatting light
-  - use code formatting only for file paths, commands, and identifiers that
-    would be ambiguous in prose; write other terms as plain text
-  - do not add fenced code blocks unless a short snippet is the clearest way to
-    show a proposed fix
-  - do not link or code-format the same name more than once per comment
+
+### Rules for findings
+
+- Focus on the problem — describe the functional and behavioural defect from the
+  perspective of callers, users, or system contracts; do not narrate internal
+  code mechanics or execution flow.
+- One problem per finding — keep each finding strictly focused on a single
+  distinct issue. Do not combine behavioural bugs with doc omissions or commit
+  message critiques.
+- Contrast regressions clearly — for regressions, state behaviour before and
+  after: "Before this PR, [behaviour on target branch]. This PR changes it so
+  that [new behaviour], which [why it is a problem]."
+- Attribute mutations — when a mutation made during verification introduced a
+  change or failure, state it explicitly so it is not confused with PR code.
+- Provide a clear fix — propose a concrete, actionable fix for every finding.
+  If an issue lacks a specific location or clear fix, place it under
+  Observations.
+- Limit length and formatting:
+  - report only problems; do not praise or describe correct code
+  - limit each finding to three sentences: the problem, why it matters if not
+    obvious, and the proposed fix
+  - anchor location once per finding as a single markdown link
+    (`[file:line](path:line)`); refer to additional locations as plain
+    `path:line` text (for `docs/`, link the page)
+  - use code formatting only for paths, commands, and ambiguous identifiers
+  - avoid fenced code blocks unless a short snippet is the clearest fix
 
 ## Code Review
 
@@ -140,31 +138,40 @@ Write the report with these sections, omitting any that are empty:
    - checks that were not run, and why
    - one or two sentences on what the change does, only if the commit messages
      do not already say it
-2. **Findings** — a single list ordered by severity under the headings
+2. **Summary of Issues** — a high-level overview explaining the key problems and
+   regressions discovered across the branch in plain, accessible terms before
+   diving into detailed findings
+3. **Findings** — a single list ordered by severity under the headings
    Critical, Medium, and Minor
    - default severity when none is specified elsewhere: `bug` Critical,
      `lint`, `test`, and `docs` Medium, `design` Minor
    - number findings continuously (1, 2, 3, ...) so they can be referenced
    - start each finding with a bold heading of the form `tag: short title`,
      where the tag is one of `bug`, `design`, `test`, `docs`, or `lint`
-   - explain each finding from the point of view of the problem, state why it
-     matters if not obvious, and propose a clear fix
-   - be clear when a mutation you made introduced a change
    - test gaps and documentation gaps are findings with the matching tag, not
      separate sections
-3. **Observations** — issues that cannot be tied to a specific location,
+4. **Observations** — issues that cannot be tied to a specific location,
    concerns without a clear fix, or pre-existing bugs identified during the
    review, described clearly so that tracking issues can be opened
-4. **Skill Reviews** — one subsection per new or modified skill, using the
+5. **Skill Reviews** — one subsection per new or modified skill, using the
    per-skill structure in [references/skill-review.md](references/skill-review.md)
-5. **Verdict** (1-2 lines) — merge as is, merge after the Critical findings are
+6. **Verdict** (1-2 lines) — merge as is, merge after the Critical findings are
    fixed, or do not merge; do not restate the findings
 
-Example finding:
+Example findings:
 
 ```markdown
-3. **bug: exit swallowed by broad except** —
+1. **design: new module-level registry inverts experiment loading order** —
+   [custom_experiments.py:59](ado/modules/actuators/custom_experiments.py:59)
+   allows only one custom experiment per identifier. Before this PR, if a legacy
+   experiment and new experiment shared an identifier, the legacy experiment was
+   loaded; this PR inverts that precedence so the last decorated experiment
+   silently overwrites earlier ones. Restore legacy precedence or raise on
+   duplicate identifiers.
+
+2. **bug: exit swallowed by broad except** —
    [create.py:160](ado/cli/resources/operation/create.py:160) catches
-   Exception, which includes typer.Exit, so the specific error is followed by a
-   generic failure message. Re-raise typer.Exit before the except clause.
+   Exception, changing behaviour from re-raising typer.Exit (on main) to
+   swallowing it and printing a generic failure message. Re-raise typer.Exit
+   before the except clause.
 ```

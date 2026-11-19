@@ -1,15 +1,18 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
+import os
 import re
-from typing import Literal
+from typing import Any, Literal
 
 import pytest
 
 from ado.modules.actuators import custom_experiments
+from ado.modules.actuators.measurement_queue import MeasurementQueue
 from ado.schema.domain import PropertyDomain, VariableTypeEnum
 from ado.schema.point import SpacePoint
 from ado.schema.property import ConstitutiveProperty
+from ado.schema.reference import ExperimentReference
 from ado.schema.request import MeasurementRequest, MeasurementRequestStateEnum
 
 
@@ -371,3 +374,157 @@ def test_check_parameters_and_infer() -> None:
         domainRange=[0, 10],
     )
     assert parameterization["c"] == 1
+
+
+def _measured_values_by_identifier(request: MeasurementRequest) -> dict[str, Any]:
+    """Return the first entity's measured values keyed by target property identifier.
+
+    Args:
+        request: A completed MeasurementRequest.
+
+    Returns:
+        Dict mapping target property identifier to measured value.
+    """
+    return {
+        value.property.targetProperty.identifier: value.value
+        for value in request.measurements[0].measurements
+    }
+
+
+def test_execute_no_queue_required() -> None:
+    """execute() runs in the calling process when no MeasurementQueue is provided."""
+
+    @custom_experiments.custom_experiment(output_property_identifiers=["y", "pid"])
+    def execute_no_queue_exp(x: float) -> dict[str, float]:
+        return {"y": x * 2, "pid": os.getpid()}
+
+    actuator = custom_experiments.CustomExperiments()
+    result = actuator.execute(
+        entities=[SpacePoint.model_validate({"entity": {"x": 3.0}}).to_entity()],
+        experimentReference=execute_no_queue_exp._experiment.reference,
+        requesterid="test-op",
+        requestIndex=0,
+    )
+
+    assert result.status == MeasurementRequestStateEnum.SUCCESS
+    measured_values = _measured_values_by_identifier(result)
+    assert measured_values["y"] == pytest.approx(6.0)
+    assert measured_values["pid"] == os.getpid()
+
+
+def test_execute_with_use_ray() -> None:
+    """execute(use_ray=True) runs the experiment in a Ray worker process."""
+
+    @custom_experiments.custom_experiment(output_property_identifiers=["y", "pid"])
+    def execute_use_ray_exp(x: float) -> dict[str, float]:
+        return {"y": x * 3, "pid": os.getpid()}
+
+    actuator = custom_experiments.CustomExperiments()
+    result = actuator.execute(
+        entities=[SpacePoint.model_validate({"entity": {"x": 4.0}}).to_entity()],
+        experimentReference=execute_use_ray_exp._experiment.reference,
+        requesterid="test-op",
+        requestIndex=0,
+        use_ray=True,
+    )
+
+    assert result.status == MeasurementRequestStateEnum.SUCCESS
+    measured_values = _measured_values_by_identifier(result)
+    assert measured_values["y"] == pytest.approx(12.0)
+    assert measured_values["pid"] != os.getpid()
+
+
+def test_execute_with_use_ray_applies_ray_options() -> None:
+    """execute(use_ray=True) reserves the CPUs given in the experiment's ray_options."""
+
+    @custom_experiments.custom_experiment(
+        output_property_identifiers=["y", "cpu"],
+        ray_options={"num_cpus": 0},
+    )
+    def execute_ray_options_exp(x: float) -> dict[str, float]:
+        import ray
+
+        assigned_cpus = (
+            ray.get_runtime_context().get_assigned_resources().get("CPU", 0.0)
+        )
+        return {"y": x * 2, "cpu": assigned_cpus}
+
+    actuator = custom_experiments.CustomExperiments()
+    result = actuator.execute(
+        entities=[SpacePoint.model_validate({"entity": {"x": 5.0}}).to_entity()],
+        experimentReference=execute_ray_options_exp._experiment.reference,
+        requesterid="test-op",
+        requestIndex=0,
+        use_ray=True,
+    )
+
+    assert result.status == MeasurementRequestStateEnum.SUCCESS
+    measured_values = _measured_values_by_identifier(result)
+    assert measured_values["y"] == pytest.approx(10.0)
+    assert measured_values["cpu"] == 0.0
+
+
+def test_submit_use_ray_false_puts_completed_request_on_queue() -> None:
+    """submit() puts the completed request on the queue before returning when use_ray is False."""
+
+    @custom_experiments.custom_experiment(
+        output_property_identifiers=["y"],
+        use_ray=False,
+    )
+    def submit_use_ray_false_exp(x: float) -> dict[str, float]:
+        return {"y": x * 2}
+
+    queue = MeasurementQueue()
+    actuator = custom_experiments.CustomExperiments(queue=queue)
+    request_ids = actuator.submit(
+        entities=[SpacePoint.model_validate({"entity": {"x": 3.0}}).to_entity()],
+        experimentReference=submit_use_ray_false_exp._experiment.reference,
+        requesterid="test-op",
+        requestIndex=0,
+    )
+
+    result = queue.get(block=False)
+
+    assert result.requestid == request_ids[0]
+    assert result.status == MeasurementRequestStateEnum.SUCCESS
+    assert _measured_values_by_identifier(result)["y"] == pytest.approx(6.0)
+
+
+def test_execute_unknown_experiment_raises_value_error() -> None:
+    """execute() raises ValueError for an experiment not in the catalog."""
+
+    actuator = custom_experiments.CustomExperiments()
+    with pytest.raises(
+        ValueError, match="is not in the CustomExperiments actuator catalog"
+    ):
+        actuator.execute(
+            entities=[SpacePoint.model_validate({"entity": {"x": 1.0}}).to_entity()],
+            experimentReference=ExperimentReference(
+                experimentIdentifier="execute_experiment_that_does_not_exist",
+                actuatorIdentifier="custom_experiments",
+            ),
+            requesterid="test-op",
+            requestIndex=0,
+        )
+
+
+def test_init_raises_when_experiment_function_cannot_be_loaded(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """CustomExperiments() raises ValueError when an experiment's function cannot be loaded.
+
+    The experiment is defined inside the test, so its module metadata does not
+    resolve to a module-level function once the live callable is unregistered.
+    """
+
+    @custom_experiments.custom_experiment(output_property_identifiers=["y"])
+    def unloadable_exp(x: float) -> dict[str, float]:
+        return {"y": x}
+
+    monkeypatch.delitem(
+        custom_experiments._custom_experiment_functions,
+        unloadable_exp._experiment.identifier,
+    )
+
+    with pytest.raises(ValueError, match="Unable to load class or function"):
+        custom_experiments.CustomExperiments()

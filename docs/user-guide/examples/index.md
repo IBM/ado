@@ -52,6 +52,10 @@ a configuration space after, or instead of, exhaustive measurement.
 - **[Predictive Kernel Herding surrogate modeling](pkh.md)** — Use the PKH
   operator to measure a fixed budget of representative entities, train a Random
   Forest surrogate model on them, and predict every other entity in the space.
+- **[FLORA surrogate modeling](flora.md)** — Use the FLORA operator to measure
+  a fixed budget of entities chosen where the trees of a Random Forest
+  disagree, train a surrogate model on them, and predict every other entity in
+  the space.
 
 ## Fine-tuning
 

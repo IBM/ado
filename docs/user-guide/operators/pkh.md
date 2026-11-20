@@ -36,6 +36,7 @@ guides sampling and model training.
 | Operator | Type | Budget | Sampling / Strategy | Primary Deliverable |
 | :--- | :--- | :--- | :--- | :--- |
 | **`pkh`** | `characterize` | Fixed entity budget | Match the pool in forest leaf space | Surrogate model and predictions |
+| **[`flora`](flora.md)** | `characterize` | Fixed entity budget | Prioritize leaves with high tree disagreement and few measurements | Surrogate model and predictions |
 | **[`trim`](trim.md)** | `characterize` | Adaptive up to a point limit | Stop when holdout scores stabilize or the budget is reached | Surrogate model and predictions |
 | **[`random_walk`](random-walk.md)** | `explore` | Fixed count or all entities | Sequential or random order (Sobol or CLHS with a custom sampler) | Sampled entity observations (no surrogate model) |
 | **[`ray_tune`](ray-tune.md)** | `explore` | Sample or time budget, with optional early stopping | Optimize a target metric | Best observed configuration and stop reason |
@@ -471,6 +472,14 @@ ado show stats operation "$RANDOM_WALK_OPERATION_IDENTIFIER"
     saved model.
 
     [PKH tutorial :octicons-arrow-right-24:](../examples/pkh.md)
+
+- :octicons-workflow-24:{ .lg .middle } **Also try FLORA**
+
+    ---
+
+    See how FLORA targets regions where the trees of a Random Forest disagree.
+
+    [FLORA operator :octicons-arrow-right-24:](flora.md)
 
 - :octicons-workflow-24:{ .lg .middle } **Also try TRIM**
 

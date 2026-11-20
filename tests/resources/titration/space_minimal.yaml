@@ -1,0 +1,18 @@
+# Copyright IBM Corporation 2025, 2026
+# SPDX-License-Identifier: MIT
+# Discrete grid for the FLORA integration test: 16 entities.
+metadata:
+  name: titration_integration_minimal
+entitySpace:
+  - identifier: acid_concentration
+    propertyDomain:
+      values: [0.05, 0.1]
+  - identifier: base_concentration
+    propertyDomain:
+      values: [0.1, 0.2]
+  - identifier: titrant_volume
+    propertyDomain:
+      values: [0, 10, 20, 30]
+experiments:
+  - actuatorIdentifier: custom_experiments
+    experimentIdentifier: titrate_strong_acid

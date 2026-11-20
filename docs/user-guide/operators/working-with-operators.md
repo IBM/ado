@@ -46,12 +46,13 @@ Available operators by type:
 │ INDEX │ OPERATOR                │ VERSION │ TYPE         │
 ├───────┼─────────────────────────┼─────────┼──────────────┤
 │ 0     │ detect_anomalous_series │ 1.0.5   │ characterize │
-│ 1     │ pkh                     │ 0.1.0   │ characterize │
-│ 2     │ profile                 │ 2.0.4   │ characterize │
-│ 3     │ trim                    │ 2.2.0   │ characterize │
-│ 4     │ random_walk             │ 2.1.0   │ explore      │
-│ 5     │ ray_tune                │ 2.1.0   │ explore      │
-│ 6     │ rifferla                │ 2.0.6   │ modify       │
+│ 1     │ flora                   │ 0.2.0   │ characterize │
+│ 2     │ pkh                     │ 0.2.0   │ characterize │
+│ 3     │ profile                 │ 2.0.4   │ characterize │
+│ 4     │ trim                    │ 2.2.0   │ characterize │
+│ 5     │ random_walk             │ 2.1.0   │ explore      │
+│ 6     │ ray_tune                │ 2.1.0   │ explore      │
+│ 7     │ rifferla                │ 2.0.6   │ modify       │
 └───────┴─────────────────────────┴─────────┴──────────────┘
 ```
 

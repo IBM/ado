@@ -12,21 +12,43 @@ from ado.cli.core.cli import app
 
 
 @pytest.mark.timeout(900)
-def test_pkh_ideal_gas_example(tmp_path: Path) -> None:
-    """PKH measures six of eight gas configurations and predicts the other two."""
-    result = CliRunner().invoke(
+@pytest.mark.parametrize("operator_name", ["pkh", "flora"])
+def test_active_learning_ideal_gas_example(tmp_path: Path, operator_name: str) -> None:
+    """Each operator measures six gas configurations and predicts the other two."""
+    runner = CliRunner()
+    operation_file = Path(
+        "plugins/operators/active_learning/examples/ideal_gas/operation_pkh.yaml"
+    )
+    target_override = []
+    if operator_name == "flora":
+        operation_file = tmp_path / "operation_flora.yaml"
+        template = runner.invoke(
+            app,
+            [
+                "template",
+                "operation",
+                "--operator-name",
+                "flora",
+                "--output-file",
+                str(operation_file),
+            ],
+        )
+        assert template.exit_code == 0, template.output
+        target_override = ["--set", "operation.parameters.targetOutput=pressure"]
+    result = runner.invoke(
         app,
         [
             "create",
             "operation",
             "-f",
-            "plugins/operators/active_learning/examples/ideal_gas/operation_pkh.yaml",
+            str(operation_file),
             "--with",
             "space=tests/resources/trim/space_minimal.yaml",
             "--set",
             "operation.parameters.numberEntities=6",
             "--set",
             f"operation.parameters.outputDirectory={tmp_path / 'model'}",
+            *target_override,
         ],
     )
     assert result.exit_code == 0, result.output
@@ -35,7 +57,8 @@ def test_pkh_ideal_gas_example(tmp_path: Path) -> None:
     metadata = json.loads((directory / "metadata.json").read_text())
     predictions = pd.read_csv(directory / "combined_predictions.csv")
     assert metadata["measuredCount"] == 6
-    assert f"pkhMmdSquared: {metadata['mmdSquared']}" in result.output
+    if operator_name == "pkh":
+        assert f"pkhMmdSquared: {metadata['mmdSquared']}" in result.output
     assert len(predictions) == 8
     assert predictions["is_predicted"].sum() == 2
     assert predictions["pressure"].notna().all()

@@ -13,6 +13,7 @@ dependencies = [
 dynamic = ["version"]
 
 [project.entry-points."ado.operators"]
+flora = "active_learning.flora.operator"
 pkh = "active_learning.pkh.operator"
 
 [project.optional-dependencies]
@@ -35,7 +36,7 @@ vcs = "git"
 style = "pep440"
 pattern = "default-unprefixed"
 pattern-prefix = "active-learning/"
-fallback-version = "0.1.0"
+fallback-version = "0.2.0"
 format-jinja-imports = [{ module = "datetime", item = "datetime" }]
 format-jinja = """
 {%- set metadata = [

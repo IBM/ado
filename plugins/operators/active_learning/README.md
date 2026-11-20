@@ -1,16 +1,17 @@
 # ADO Active Learning Operators
 
-The `pkh` (Predictive Kernel Herding) operator selects entities from a finite
-ADO discovery space within a fixed budget. It fits a surrogate model and
-predicts the remaining target values.
+The `pkh` (Predictive Kernel Herding) and `flora` operators select entities from
+a finite ADO discovery space within a fixed budget. They fit a surrogate model
+and predict the remaining target values.
 
 The discovery space must define exactly one experiment. It can return several
-outputs. `targetOutput` selects the numeric output to model, and PKH reuses its
-existing measurements.
+outputs. Set `targetOutput` to the numeric output to model. Both operators
+reuse existing measurements of that output.
 
 PKH selects entities to match the pool in a learned Random Forest leaf space.
 This objective measures representativeness under the learned kernel. It does
-not guarantee predictive accuracy.
+not guarantee predictive accuracy. FLORA selects entities using the trees'
+disagreement about the target and the number of measurements in each leaf.
 
 ## Installation
 
@@ -26,5 +27,11 @@ For the optional AutoGluon predictor on Python 3.11–3.13, install the extra:
 pip install -e "plugins/operators/active_learning[autogluon]"
 ```
 
-See the [configuration guide](../../../docs/user-guide/operators/pkh.md)
-and [ideal-gas tutorial](../../../docs/user-guide/examples/pkh.md).
+When upgrading from 0.1.0, update any explicit PKH
+`operation.module.operatorVersion` pin to `0.2.0` to run it with this release.
+Omit the field to let `ado` resolve the installed operator version.
+
+See the [PKH configuration guide](../../../docs/user-guide/operators/pkh.md),
+the [FLORA guide](../../../docs/user-guide/operators/flora.md), the
+[ideal-gas tutorial](../../../docs/user-guide/examples/pkh.md), and the
+[titration tutorial](../../../docs/user-guide/examples/flora.md).

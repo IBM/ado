@@ -4,46 +4,15 @@
 """Predictive Kernel Herding (PKH) sample selector for finite Discovery Spaces."""
 
 import logging
-from collections.abc import AsyncGenerator, Generator
-from typing import TYPE_CHECKING
 
 import numpy as np
-from pydantic import BaseModel
-from sklearn.ensemble import RandomForestRegressor
 
 from active_learning.forest_sampling import ForestSamplingState
-from active_learning.pkh.data import (
-    candidate_entities,
-    encode_feature_matrix,
-    measured_labels,
-    target_label,
-    validate_target_output,
-)
+from active_learning.pkh.data import encode_feature_matrix, target_label
 from active_learning.pkh.parameters import PKHParameters
-from ado.core.discoveryspace.samplers import (
-    BaseSampler,
-    ExplicitEntitySpaceGridSampleGenerator,
-)
-from ado.core.discoveryspace.space import DiscoverySpace, Entity
-
-if TYPE_CHECKING:
-    from ado.modules.operators.discovery_space_manager import DiscoverySpaceManager
+from active_learning.sampler import ForestSampleSelector, build_forest
 
 logger = logging.getLogger(__name__)
-
-
-def build_forest(
-    params: PKHParameters, random_state: int | None
-) -> RandomForestRegressor:
-    """Return an unfitted Random Forest configured from the PKH parameters."""
-    return RandomForestRegressor(
-        n_estimators=params.nEstimators,
-        min_samples_leaf=params.minSamplesLeaf,
-        max_features=params.maxFeatures,
-        criterion=params.criterion,
-        random_state=random_state,
-        n_jobs=params.nJobs,
-    )
 
 
 class PKHState(ForestSamplingState):
@@ -138,96 +107,10 @@ class PKHState(ForestSamplingState):
         return int(unmeasured[self._rng.choice(best_positions)])
 
 
-class PKHSampleSelector(BaseSampler):
+class PKHSampleSelector(ForestSampleSelector):
     """ADO sample selector implementing Predictive Kernel Herding."""
 
-    def __init__(self, params: PKHParameters) -> None:
-        """Initialize the PKH sample selector."""
-        self.params = params
-
-    @classmethod
-    def samplerCompatibleWithDiscoverySpaceRemote(
-        cls,
-        remoteDiscoverySpace: "DiscoverySpaceManager",
-    ) -> bool:
-        """Verify that the discovery space is finite and compatible."""
-        return ExplicitEntitySpaceGridSampleGenerator.samplerCompatibleWithDiscoverySpaceRemote(
-            remoteDiscoverySpace
-        )
-
-    @classmethod
-    def parameters_model(cls) -> type[BaseModel] | None:
-        """Return the parameter model validated by RandomWalk for this sampler.
-
-        The operator forwards its full parameter set, including ``targetOutput``
-        which the sampler reads to collect measured labels.
-        """
-        return PKHParameters
-
-    def entityIterator(
-        self,
-        discoverySpace: DiscoverySpace,
-        batchsize: int = 1,
-    ) -> Generator[list[Entity], None, None]:
-        """Synchronous iteration is unsupported; PKH needs live measurement feedback."""
-        raise NotImplementedError(
-            "PKHSampleSelector only supports remoteEntityIterator"
-        )
-
-    async def remoteEntityIterator(
-        self,
-        remoteDiscoverySpace: "DiscoverySpaceManager",
-        batchsize: int = 1,
-    ) -> AsyncGenerator[list[Entity], None]:
-        """Return an async iterator of entities driven by PKH leaf-histogram herding.
-
-        Args:
-            remoteDiscoverySpace: Handle to the remote Discovery Space manager.
-            batchsize: Must be 1 for sequential active learning feedback.
-
-        Returns:
-            Async generator yielding single-element lists of Entity objects to measure.
-        """
-        if batchsize != 1:
-            raise ValueError(f"PKHSampleSelector requires batchsize=1, got {batchsize}")
-
-        return self._entity_stream(remoteDiscoverySpace)
-
-    async def _entity_stream(
-        self,
-        remoteDiscoverySpace: "DiscoverySpaceManager",
-    ) -> AsyncGenerator[list[Entity], None]:
-        """Yield candidate entities sequentially driven by PKH leaf-histogram herding."""
-        discovery_space: DiscoverySpace = (
-            await remoteDiscoverySpace.discoverySpace.remote()
-        )
-        target_id = validate_target_output(
-            self.params.targetOutput, discovery_space
-        ).identifier
-        existing_labels = measured_labels(discovery_space, target_id)
-        entities = candidate_entities(discovery_space)
-        if not entities:
-            return
-
-        _, features, _ = encode_feature_matrix(discovery_space, entities)
-
-        initial_indices = [
-            idx
-            for idx, entity in enumerate(entities)
-            if entity.identifier in existing_labels
-        ]
-        initial_labels = [
-            existing_labels[entities[idx].identifier] for idx in initial_indices
-        ]
-
-        state = PKHState(
-            features,
-            initial_measured_indices=initial_indices,
-            initial_labels=initial_labels,
-            params=self.params,
-        )
-
-        for batch in state.sample_with_feedback(
-            entities, discovery_space, target_id, target_label
-        ):
-            yield batch
+    state_factory = PKHState
+    parameter_class = PKHParameters
+    target_label = staticmethod(target_label)
+    encode_feature_matrix = staticmethod(encode_feature_matrix)

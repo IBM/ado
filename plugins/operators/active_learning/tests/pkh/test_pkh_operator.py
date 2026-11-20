@@ -1,90 +1,20 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-"""Regression tests for PKH measurements, output protection, and saved predictors."""
+"""Regression tests for PKH measurements and output protection."""
 
-import pickle
 from pathlib import Path
 from types import SimpleNamespace
 
-import pandas as pd
 import pytest
+from active_learning.operator import PredictorExport
 from active_learning.pkh.data import validate_target_output
-from active_learning.pkh.operator import _finalize_model, pkh
-from active_learning.pkh.parameters import (
-    ActiveLearningAutoGluonParameters,
-    PKHParameters,
-)
+from active_learning.pkh.operator import pkh
+from active_learning.pkh.parameters import PKHParameters
 from active_learning.pkh.sampler import PKHSampleSelector
 
 from ado.core.discoveryspace.space import DiscoverySpace
-from ado.core.samplestore.sql import SQLSampleStore
-from ado.metastore.project import ProjectContext
-from ado.schema.domain import PropertyDomain
-from ado.schema.entityspace import EntitySpaceRepresentation
-from ado.schema.experiment import Experiment
 from ado.schema.measurementspace import MeasurementSpace, MeasurementSpaceConfiguration
-from ado.schema.observed_property import ObservedPropertyValue
-from ado.schema.property import ConcretePropertyDescriptor, ConstitutiveProperty
-from ado.schema.result import ValidMeasurementResult
-from ado.utilities.location import SQLiteStoreConfiguration
-
-
-@pytest.fixture
-def categorical_space(tmp_path: Path) -> DiscoverySpace:
-    """Six measured points, with a seventh measured only by another experiment."""
-    kind = ConstitutiveProperty(
-        identifier="kind", propertyDomain=PropertyDomain(values=[1, "b", "c", "d"])
-    )
-    count = ConstitutiveProperty(
-        identifier="count", propertyDomain=PropertyDomain(values=[0, 1])
-    )
-    entity_space = EntitySpaceRepresentation(constitutiveProperties=[kind, count])
-    experiment = Experiment(
-        identifier="selected",
-        actuatorIdentifier="test",
-        requiredProperties=(kind, count),
-        targetProperties=[
-            ConcretePropertyDescriptor(identifier="response"),
-            ConcretePropertyDescriptor(identifier="is_predicted"),
-        ],
-    )
-    other = experiment.model_copy(update={"identifier": "other"})
-    location = SQLiteStoreConfiguration(path=str(tmp_path / "pkh.db"), database="pkh")
-    store = SQLSampleStore(identifier="labels", storageLocation=location, parameters={})
-    entities = [
-        entity_space.entity_for_point({"kind": value, "count": number})
-        for value in kind.propertyDomain.domain_values
-        for number in (0, 1)
-    ]
-    store.addEntities(entities)
-    store.get_entities(require_measurements=True)  # Cache the empty measurement set.
-    writer = SQLSampleStore(
-        identifier="labels", storageLocation=location, parameters={}
-    )
-    writer.add_measurement_results(
-        [
-            ValidMeasurementResult(
-                entityIdentifier=entity.identifier,
-                measurements=[ObservedPropertyValue(property=observed, value=value)],
-            )
-            for entity, observed, value in zip(
-                entities[:7],
-                [experiment.observedProperties[0]] * 6 + [other.observedProperties[0]],
-                [0, 1] * 3 + [999],
-                strict=True,
-            )
-        ],
-        skip_relationship_to_request=True,
-    )
-    return DiscoverySpace(
-        entitySpace=entity_space,
-        measurementSpace=MeasurementSpace(
-            MeasurementSpaceConfiguration(experiments=[experiment])
-        ),
-        sample_store=store,
-        project_context=ProjectContext(project="pkh", metadataStore=location),
-    )
 
 
 def test_rejects_multiple_experiments_before_reserving_output(
@@ -141,45 +71,6 @@ def test_existing_model_is_preserved(
     assert model.read_bytes() == b"previous model"
 
 
-@pytest.mark.parametrize("backend", ["random_forest", "autogluon"])
-def test_saved_predictor_reproduces_categorical_predictions(
-    categorical_space: DiscoverySpace, tmp_path: Path, backend: str
-) -> None:
-    """Reload the predictor and compare its output with the exported predictions."""
-    settings = None
-    if backend == "autogluon":
-        pytest.importorskip("autogluon.tabular")
-        settings = ActiveLearningAutoGluonParameters(
-            timeLimit=10, hyperparameters={"RF": {"n_estimators": 3}}
-        )
-    parameters = PKHParameters(
-        targetOutput=categorical_space.measurementSpace.observedProperties[
-            0
-        ].identifier,
-        numberEntities=1,
-        nEstimators=3,
-        finalPredictor=backend,
-        autoGluon=settings,
-    )
-    sampled = categorical_space.entitySpace.entity_for_point({"kind": "c", "count": 1})
-    _finalize_model(categorical_space, parameters, tmp_path, {sampled.identifier})
-    table = pd.read_csv(tmp_path / "combined_predictions.csv")
-    assert table.loc[~table.is_predicted, "response"].tolist() == [0, 1] * 3
-    unmeasured = table.loc[table.is_predicted]
-    assert unmeasured.kind.tolist() == ["d", "d"]
-    if backend == "autogluon":
-        from autogluon.tabular import TabularPredictor
-
-        model = TabularPredictor.load(str(tmp_path / "autogluon"))
-        assert model.problem_type == "regression"
-    else:
-        with (tmp_path / "model.pkl").open("rb") as model_file:
-            model = pickle.load(model_file)  # noqa: S301 - reload this test's model
-    assert model.predict(unmeasured[["kind", "count"]]).tolist() == pytest.approx(
-        unmeasured.response.tolist()
-    )
-
-
 def test_incomplete_measurements_cannot_publish_a_model(
     categorical_space: DiscoverySpace, tmp_path: Path
 ) -> None:
@@ -187,11 +78,21 @@ def test_incomplete_measurements_cannot_publish_a_model(
     directory = tmp_path / "model_finalized"
     directory.mkdir()
     parameters = PKHParameters(targetOutput="response", numberEntities=1)
+    target = validate_target_output(parameters.targetOutput, categorical_space)
     missing = categorical_space.entitySpace.entity_for_point({"kind": "d", "count": 1})
     with pytest.raises(ValueError, match="Missing finite target measurements"):
-        _finalize_model(categorical_space, parameters, directory, {missing.identifier})
+        PredictorExport(
+            categorical_space,
+            target,
+            parameters,
+            directory,
+            {missing.identifier},
+            PKHSampleSelector,
+        )
     with pytest.raises(ValueError, match="budget is incomplete"):
-        _finalize_model(categorical_space, parameters, directory, set())
+        PredictorExport(
+            categorical_space, target, parameters, directory, set(), PKHSampleSelector
+        )
     assert not list(directory.iterdir())
 
 

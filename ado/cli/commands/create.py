@@ -146,14 +146,14 @@ def create_resource(
         typer.Option(
             "--with",
             help="""Specify additional resources to use or create via KIND=VALUE
-            pairs, or KIND:INPUT=VALUE for named operation inputs, where VALUE
+            pairs, or INPUT:KIND=VALUE for named operation inputs, where VALUE
             is a resource ID or a resource configuration file.
 
             Supports creating spaces with sample stores and operations with
             spaces, data containers, and actuator configurations.
 
-            For operations, use KIND:INPUT=VALUE to set the operation input
-            named INPUT, e.g. space:reference=space-abc.""",
+            For operations, use INPUT:KIND=VALUE to set the operation input
+            named INPUT, e.g. reference:space=space-abc.""",
         ),
     ] = None,
     use_latest: Annotated[
@@ -161,7 +161,7 @@ def create_resource(
         typer.Option(
             show_default=False,
             parser=resource_kind_with_input_parser(CoreResourceKinds),
-            metavar=f"[{'|'.join(m.value for m in CoreResourceKinds)}][:INPUT]",
+            metavar=f"[INPUT:][{'|'.join(m.value for m in CoreResourceKinds)}]",
             help="""
             Reuse the latest identifier of a resource kind. Can be used multiple times.
 
@@ -171,8 +171,8 @@ def create_resource(
 
             - operation: space, datacontainer, and actuatorconfiguration.
 
-            For operations, use KIND:INPUT to set the operation input named INPUT,
-            e.g. space:reference.""",
+            For operations, use INPUT:KIND to set the operation input named INPUT,
+            e.g. reference:space.""",
         ),
     ] = None,
     use_default_sample_store: Annotated[
@@ -247,7 +247,7 @@ def create_resource(
         resource_type != AdoCreateSupportedResourceTypes.OPERATION
     ):
         console_print(
-            f"{ERROR}KIND:INPUT qualifiers for {magenta('--with')} and "
+            f"{ERROR}INPUT:KIND qualifiers for {magenta('--with')} and "
             f"{magenta('--use-latest')} are only supported when creating operations.",
             stderr=True,
         )
@@ -322,7 +322,7 @@ def _check_operation_input_kind(kind: CoreResourceKinds) -> None:
     """Exit with an error if *kind* is not a kind of operator input.
 
     Args:
-        kind: Resource kind given with a ``KIND:INPUT`` qualifier.
+        kind: Resource kind given with an ``INPUT:KIND`` qualifier.
 
     Raises:
         typer.Exit: If *kind* is not in ``OPERATOR_INPUT_KINDS``.
@@ -345,7 +345,7 @@ def parse_with_resource_options(
 ]:
     """Parse ``--with`` options into kind-keyed values and named operation inputs.
 
-    ``KIND=VALUE`` options are keyed by kind. ``KIND:INPUT=VALUE`` options
+    ``KIND=VALUE`` options are keyed by kind. ``INPUT:KIND=VALUE`` options
     become named operation inputs. ``KIND`` may be a shorthand.
 
     Args:
@@ -403,7 +403,7 @@ def parse_with_resource_options(
             if kind in parsed_options:
                 console_print(
                     f"{ERROR}The {kind.value} resource type was specified more than once.\n"
-                    f"{HINT}Use {kind.value}:INPUT=VALUE to set several "
+                    f"{HINT}Use INPUT:{kind.value}=VALUE to set several "
                     "operation inputs of the same kind.",
                     stderr=True,
                 )
@@ -420,7 +420,7 @@ def parse_use_latest_options(
     """Parse ``--use-latest`` values into kinds and named operation inputs.
 
     Args:
-        user_provided_options: ``KIND`` or ``KIND:INPUT`` values with the kind
+        user_provided_options: ``KIND`` or ``INPUT:KIND`` values with the kind
             already resolved to its full name.
 
     Returns:

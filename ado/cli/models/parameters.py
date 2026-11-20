@@ -49,7 +49,7 @@ class AdoGetCommandParameters(pydantic.BaseModel):
 
 
 class OperationInputReference(pydantic.BaseModel):
-    """A ``KIND:INPUT`` qualifier naming an operation input and its kind."""
+    """An ``INPUT:KIND`` qualifier naming an operation input and its kind."""
 
     model_config = pydantic.ConfigDict(frozen=True)
 
@@ -62,7 +62,7 @@ class OperationInputReference(pydantic.BaseModel):
 
 
 class OperationInputResourceOption(OperationInputReference):
-    """A ``--with KIND:INPUT=VALUE`` option targeting a named operation input."""
+    """A ``--with INPUT:KIND=VALUE`` option targeting a named operation input."""
 
     value: Annotated[
         pathlib.Path | str,
@@ -86,14 +86,14 @@ class AdoCreateCommandParameters(pydantic.BaseModel):
         list[OperationInputReference],
         pydantic.Field(
             default_factory=list,
-            description="Named operation inputs from --use-latest KIND:INPUT",
+            description="Named operation inputs from --use-latest INPUT:KIND",
         ),
     ]
     with_inputs: Annotated[
         list[OperationInputResourceOption],
         pydantic.Field(
             default_factory=list,
-            description="Named operation inputs from --with KIND:INPUT=VALUE",
+            description="Named operation inputs from --with INPUT:KIND=VALUE",
         ),
     ]
 

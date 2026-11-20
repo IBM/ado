@@ -168,7 +168,10 @@ def resolve_path_or_identifier(value: str) -> pathlib.Path | str:
 
 
 def split_input_qualifier(value: str) -> tuple[str, str | None]:
-    """Split a ``KIND[:INPUT]`` string into its kind and optional input name.
+    """Split an ``[INPUT:]KIND`` string into its kind and optional input name.
+
+    The qualified form follows a Python annotation: the input name comes before
+    the kind, as in ``reference:discoveryspace``.
 
     Args:
         value: The string to split.
@@ -177,17 +180,21 @@ def split_input_qualifier(value: str) -> tuple[str, str | None]:
         The kind part and the input name, or ``None`` when no qualifier is given.
 
     Raises:
-        ValueError: If the value has more than one separator, or the input name
-            is not a valid Python identifier.
+        ValueError: If the value has more than one separator, the kind is empty,
+            or the input name is not a valid Python identifier.
     """
     if INPUT_QUALIFIER_SEPARATOR not in value:
         return value, None
     parts = value.split(INPUT_QUALIFIER_SEPARATOR)
     if len(parts) != 2:  # noqa: PLR2004
         raise ValueError(
-            f"'{value}' must have the form KIND or KIND{INPUT_QUALIFIER_SEPARATOR}INPUT"
+            f"'{value}' must have the form KIND or INPUT{INPUT_QUALIFIER_SEPARATOR}KIND"
         )
-    kind, input_name = parts
+    input_name, kind = parts
+    if not kind:
+        raise ValueError(
+            f"'{value}' must have the form KIND or INPUT{INPUT_QUALIFIER_SEPARATOR}KIND"
+        )
     if not input_name.isidentifier():
         raise ValueError(
             f"'{input_name}' in '{value}' is not a valid operation input name"
@@ -198,7 +205,7 @@ def split_input_qualifier(value: str) -> tuple[str, str | None]:
 def resource_kind_with_input_parser(
     enum_type: type[T], case_sensitive: bool = True
 ) -> Callable[[str], str]:
-    """Create a parser for ``KIND`` or ``KIND:INPUT`` values.
+    """Create a parser for ``KIND`` or ``INPUT:KIND`` values.
 
     The kind part may be a shorthand and is resolved to its full name. The
     input name is kept unchanged.
@@ -208,7 +215,7 @@ def resource_kind_with_input_parser(
         case_sensitive: Whether kind matching is case sensitive.
 
     Returns:
-        A parser returning ``KIND`` or ``KIND:INPUT`` with the kind resolved.
+        A parser returning ``KIND`` or ``INPUT:KIND`` with the kind resolved.
     """
     kind_parser = enum_choice_with_shorthand_parser(enum_type, case_sensitive)
 
@@ -220,7 +227,7 @@ def resource_kind_with_input_parser(
         resolved_kind = kind_parser(kind)
         if input_name is None:
             return resolved_kind
-        return f"{resolved_kind}{INPUT_QUALIFIER_SEPARATOR}{input_name}"
+        return f"{input_name}{INPUT_QUALIFIER_SEPARATOR}{resolved_kind}"
 
     return parser
 

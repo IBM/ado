@@ -206,7 +206,7 @@ def _descriptor_for_kind(
     names = [descriptor.identifier for descriptor in inputs_of_kind]
     raise ValueError(
         f"Operator {operator_name!r} has multiple {kind.value!r} inputs {names}. "
-        f"Use {kind.value}:<input> to choose one, e.g. {kind.value}:{names[0]}."
+        f"Use <input>:{kind.value} to choose one, e.g. {names[0]}:{kind.value}."
     )
 
 
@@ -485,7 +485,7 @@ def _resolve_input_bindings(
 ) -> list[tuple[ADOResourcePropertyDescriptor, pathlib.Path | str | None]]:
     """Resolve the operation input targeted by each ``--with`` and ``--use-latest`` value.
 
-    Inputs named with ``KIND:INPUT`` are resolved first, then unqualified
+    Inputs named with ``INPUT:KIND`` are resolved first, then unqualified
     kinds. An unqualified kind excludes inputs already targeted by a flag,
     then binds the only remaining input of that kind, else the only list
     input, else the only one absent from the configuration.
@@ -557,7 +557,7 @@ def apply_resource_flags(
     All values are validated, and the input each one targets is resolved,
     before any resource is looked up or created from a ``--with`` file. The
     actuator configuration is then applied, followed by inputs named with
-    ``KIND:INPUT`` and then unqualified kinds. Values for a list input are
+    ``INPUT:KIND`` and then unqualified kinds. Values for a list input are
     appended to the entries already in the configuration.
 
     Args:

@@ -247,7 +247,7 @@ def _copy_files_and_rewrite_args(
 def _rewrite_with_value(kv: str, working_dir: Path, seen: set[str]) -> str:
     """Rewrite the value part of a ``--with KEY=VALUE`` argument if it is a file.
 
-    *KEY* is ``KIND`` or ``KIND:INPUT`` and is kept unchanged. The value is
+    *KEY* is ``KIND`` or ``INPUT:KIND`` and is kept unchanged. The value is
     classified with ``resolve_path_or_identifier``. An existing file is copied
     to *working_dir* and the argument is rewritten to ``KEY=basename``. A value
     that looks like a path but is not an existing file raises

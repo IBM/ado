@@ -142,8 +142,8 @@ The complete syntax of the `ado create` command is as follows:
 ```shell
 ado create RESOURCE_TYPE [--file | -f <FILE.yaml>] \
                          [--set <jsonpath=json-value>] \
-                         [--with <kind[:input]=value>] \
-                         [--use-latest <kind[:input]>] \
+                         [--with <[input:]kind=value>] \
+                         [--use-latest <[input:]kind>] \
                          [--new-sample-store] \
                          [--use-default-sample-store] [--dry-run]
 ```
@@ -176,14 +176,14 @@ Where:
   example, you can create a space along with a sample store definition, or
   create an operation together with an actuator configuration and a space
   definition. It takes `KIND=VALUE`, where `VALUE` is a resource identifier or
-  a resource configuration file. For operations, `KIND:INPUT=VALUE` sets the
-  operation input named `INPUT`. See
+  a resource configuration file. For operations, `INPUT:KIND=VALUE` sets the
+  operation input named `INPUT`, in the same order as a Python annotation. See
   [Setting operation inputs](#setting-operation-inputs).
 - `--use-latest` allows reusing the latest identifier of a certain resource kind
   from the current context's metastore. It is only supported during
   `ado create space`, for `samplestore`, and `ado create operation`, for
   `space`, `datacontainer`, and `actuatorconfiguration`; other kinds are
-  rejected for operations. For operations, `KIND:INPUT` sets the operation
+  rejected for operations. For operations, `INPUT:KIND` sets the operation
   input named `INPUT`. It can be combined with `--with` as long as the two
   flags do not name the same kind without an input qualifier.
 - `--new-sample-store` creates a new sample store. Only available when running
@@ -276,19 +276,20 @@ ado create operation -f operation.yaml --with space=space-abc123
 ado create operation -f operation.yaml --use-latest space
 ```
 
-When an operator has several inputs of the same kind, name the input with
-`KIND:INPUT`. For an operator with `reference` and `candidate` space inputs and
-a `data` data container input:
+When an operator has several inputs of the same kind, name the input first
+with `INPUT:KIND`, the same order as a Python annotation (`name: type`). For
+an operator with `reference` and `candidate` space inputs and a `data` data
+container input:
 
 ```shell
 ado create operation -f operation.yaml \
-    --with space:reference=space-abc123 \
-    --with space:candidate=space-def456 \
-    --use-latest dcr:data
+    --with reference:space=space-abc123 \
+    --with candidate:space=space-def456 \
+    --use-latest data:dcr
 ```
 
 An unqualified kind fills the one input of that kind not set by a qualified
-flag, so `--with space:reference=space-abc123 --use-latest space` sets
+flag, so `--with reference:space=space-abc123 --use-latest space` sets
 `candidate` to the latest space. When several inputs of that kind remain and
 exactly one is a list, the unqualified kind selects that list. Values given
 for a list input are appended to any entries the operation file already sets

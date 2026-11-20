@@ -90,7 +90,7 @@ def _create_parameters(
 def _space_input(
     input_name: str, value: pathlib.Path | str
 ) -> OperationInputResourceOption:
-    """Return a --with discoveryspace:INPUT=VALUE option."""
+    """Return a --with INPUT:discoveryspace=VALUE option."""
     return OperationInputResourceOption(
         input_name=input_name, kind=CoreResourceKinds.DISCOVERYSPACE, value=value
     )
@@ -129,7 +129,7 @@ def test_operation_input_option_round_trip(
 def test_parse_with_resource_options_splits_qualified_inputs() -> None:
     """Qualified --with keys become input options; unqualified stay kind-keyed."""
     with_resources, with_inputs = parse_with_resource_options(
-        ["space:reference=space-1", "dcr:data=dc-1", "store=store-1"]
+        ["reference:space=space-1", "data:dcr=dc-1", "store=store-1"]
     )
     assert with_resources == {CoreResourceKinds.SAMPLESTORE: "store-1"}
     assert with_inputs == [
@@ -150,11 +150,11 @@ def test_parse_with_resource_options_accepts_unqualified_datacontainer() -> None
 @pytest.mark.parametrize(
     "option",
     [
-        "store:foo=store-1",
-        "actuatorconfiguration:foo=ac-1",
-        "space:not-an-identifier=space-1",
-        "space:=space-1",
-        "operation:foo=op-1",
+        "foo:store=store-1",
+        "foo:actuatorconfiguration=ac-1",
+        "not-an-identifier:space=space-1",
+        ":space=space-1",
+        "foo:operation=op-1",
     ],
 )
 def test_parse_with_resource_options_rejects_invalid_qualifier(option: str) -> None:
@@ -166,7 +166,7 @@ def test_parse_with_resource_options_rejects_invalid_qualifier(option: str) -> N
 def test_parse_use_latest_options_splits_qualified_inputs() -> None:
     """Qualified --use-latest values become named input references."""
     kinds, inputs = parse_use_latest_options(
-        ["discoveryspace", "datacontainer:data", "discoveryspace:reference"]
+        ["discoveryspace", "data:datacontainer", "reference:discoveryspace"]
     )
     assert kinds == [CoreResourceKinds.DISCOVERYSPACE]
     assert inputs == [
@@ -182,7 +182,7 @@ def test_parse_use_latest_options_splits_qualified_inputs() -> None:
 def test_parse_use_latest_options_rejects_non_input_kind() -> None:
     """A qualified --use-latest kind must be an operator input kind."""
     with pytest.raises(typer.Exit):
-        parse_use_latest_options(["samplestore:store"])
+        parse_use_latest_options(["store:samplestore"])
 
 
 @pytest.mark.parametrize(
@@ -190,8 +190,8 @@ def test_parse_use_latest_options_rejects_non_input_kind() -> None:
     [
         ("space", "discoveryspace"),
         ("dcr", "datacontainer"),
-        ("dcr:data", "datacontainer:data"),
-        ("space:reference", "discoveryspace:reference"),
+        ("data:dcr", "data:datacontainer"),
+        ("reference:space", "reference:discoveryspace"),
     ],
 )
 def test_resource_kind_with_input_parser_resolves_shorthands(
@@ -201,7 +201,7 @@ def test_resource_kind_with_input_parser_resolves_shorthands(
     assert resource_kind_with_input_parser(CoreResourceKinds)(value) == expected
 
 
-@pytest.mark.parametrize("value", ["bogus", "bogus:data", "space:not-valid", "a:b:c"])
+@pytest.mark.parametrize("value", ["bogus", "data:bogus", "not-valid:space", "a:b:c"])
 def test_resource_kind_with_input_parser_rejects_invalid(value: str) -> None:
     """The --use-latest parser rejects unknown kinds and invalid input names."""
     with pytest.raises(typer.BadParameter):
@@ -302,7 +302,7 @@ def test_apply_with_file_in_dry_run_leaves_input_unset(
             lambda space_file: _create_parameters(
                 with_resources={CoreResourceKinds.DISCOVERYSPACE: space_file}
             ),
-            r"discoveryspace:<input>",
+            r"<input>:discoveryspace",
         ),
     ],
     ids=["unknown-input", "ambiguous-kind"],
@@ -373,7 +373,7 @@ def test_apply_with_ambiguous_kind_suggests_qualifier(
     compare_operator_name: str,
 ) -> None:
     """An unqualified --with for an ambiguous kind names the qualified syntax."""
-    with pytest.raises(ValueError, match=r"discoveryspace:<input>"):
+    with pytest.raises(ValueError, match=r"<input>:discoveryspace"):
         apply_resource_flags(
             raw_operation(compare_operator_name, DiscoveryOperationEnum.COMPARE.value),
             _create_parameters(
@@ -553,11 +553,11 @@ def test_create_operation_dry_run_with_named_inputs_and_use_latest(
             "-f",
             str(operation_file),
             "--with",
-            "space:reference=space-ref",
+            "reference:space=space-ref",
             "--with",
-            "space:candidate=space-cand",
+            "candidate:space=space-cand",
             "--use-latest",
-            "dcr:data",
+            "data:dcr",
             "--dry-run",
         ],
     )
@@ -617,8 +617,8 @@ def test_create_space_rejects_input_qualifier(
         runner=runner, path=tmp_path, project_context=valid_ado_project_context
     )
     for flag, value in (
-        ("--with", "space:reference=space-1"),
-        ("--use-latest", "space:reference"),
+        ("--with", "reference:space=space-1"),
+        ("--use-latest", "reference:space"),
     ):
         result = runner.invoke(
             ado,

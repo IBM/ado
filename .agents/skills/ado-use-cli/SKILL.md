@@ -344,18 +344,19 @@ uv run ado create operation -f operation.yaml --set "inputs.discoverySpace.ident
 uv run ado create operation -f operation.yaml --with space=space.yaml
 ```
 
-When an operator has several inputs of the same kind, name the input with
-`KIND:INPUT` on `--with` or `--use-latest` (operations only). Run `ado template
-operation --operator-name NAME` to see the input names. An unqualified kind
-fills the one input of that kind left unset by the qualified flags. When
-several remain and exactly one of them is a list, that list is used.
+When an operator has several inputs of the same kind, name the input first,
+as in a Python annotation (`name: type`): `INPUT:KIND` on `--with` or
+`--use-latest` (operations only). Run `ado template operation --operator-name
+NAME` to see the input names. An unqualified kind fills the one input of that
+kind left unset by the qualified flags. When several remain and exactly one of
+them is a list, that list is used.
 
 ```bash
 # Operator with `reference` and `candidate` space inputs and a `data` container
 uv run ado create operation -f operation.yaml \
-  --with space:reference=space-abc123 \
+  --with reference:space=space-abc123 \
   --use-latest space \
-  --use-latest dcr:data
+  --use-latest data:dcr
 ```
 
 See "Setting operation inputs" in `docs/cli-reference/index.md` if the source

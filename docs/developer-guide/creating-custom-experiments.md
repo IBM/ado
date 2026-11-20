@@ -278,6 +278,70 @@ def calculate_density(mass, volume, round_result: bool = False):
 The above registers `round_result` as an optional properties of the experiment,
 with its value in the function signature as the default parameterization.
 
+### Using measurements from other experiments as inputs
+
+A custom experiment can take a value measured by another experiment as an
+input. Declare the input as an `ObservedProperty` in `required_properties`,
+and name the function parameter after its **target property**. In the
+following example, `calculate_buoyancy` uses the `density` measured by
+`calculate_density`:
+
+```python
+from ado.schema.observed_property import ObservedProperty
+from ado.schema.property import AbstractPropertyDescriptor
+from ado.schema.reference import ExperimentReference
+
+density = ObservedProperty(
+    targetProperty=AbstractPropertyDescriptor(identifier="density"),
+    experimentReference=ExperimentReference(
+        experimentIdentifier="calculate_density",
+        actuatorIdentifier="custom_experiments",
+        experimentVersion="1.0.0",
+    ),
+)
+
+
+@custom_experiment(
+    required_properties=[volume, density],
+    output_property_identifiers=["buoyancy"],
+    version="1.0.0",
+)
+def calculate_buoyancy(volume, density):
+    return {"buoyancy": volume * density * 9.81}
+```
+
+The `experimentReference` identifies the experiment that measures the value.
+Across `ado`, experiments with the same major version are expected to produce
+equivalent measurements of a property (see, for example,
+[memoization](../resources/discovery-spaces.md#experiment-versions-and-memoization)
+or
+[experiment matching](../resources/metastore.md#how-experiments-are-paired-and-evaluated)).
+So, in the above example, by setting the version
+to `1.0.0`, a measurement from any `1.x` version of `calculate_density` can be
+passed to `calculate_buoyancy`.
+
+> [!IMPORTANT]
+>
+> Observed properties can't be inferred from the function signature, so an
+> experiment with an observed input must declare all its required properties
+> explicitly.
+
+When `ado` runs the experiment on an entity:
+
+- the entity must have **exactly one** value for each observed input. If it has
+  more than one, the measurement of that entity is recorded as invalid.
+- if the entity has no value for an observed input from any version of the
+  experiment that measures it, the request fails with an error.
+- if the entity only has values for an observed input from a different major
+  version or parameterization of the experiment that measures it, the
+  measurement of that entity is recorded as invalid.
+
+Both experiments must be in the same `discoveryspace`, so that the input is
+measured before the experiment that uses it. Two inputs can't map to the same
+parameter: for example, two observed inputs with the same target property from
+different experiments, or a constitutive property with the same name as an
+observed input's target property.
+
 ### Declaring an experiment version
 
 Use the `version` parameter of `@custom_experiment` to declare the

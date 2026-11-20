@@ -97,7 +97,7 @@ Available operators by type:
 └───────┴─────────────┴─────────┴─────────┘
 ```
 
-### The `ml-multicloud-cost` custom experiment
+### The `ml_multicloud_cost` custom experiment
 
 The example ships a custom experiment that derives a cost from two inputs: the
 number of nodes in the configuration and the run time measured by the
@@ -121,7 +121,7 @@ ado get experiments --details
 ┌───────┬────────────────────┬────────────────────────┬─────────┬─────────────┐
 │ INDEX │ ACTUATOR ID        │ EXPERIMENT ID          │ VERSION │ DESCRIPTION │
 ├───────┼────────────────────┼────────────────────────┼─────────┼─────────────┤
-│ 0     │ custom_experiments │ ml-multicloud-cost     │ 1.0.0   │             │
+│ 0     │ custom_experiments │ ml_multicloud_cost     │ 1.0.0   │             │
 └───────┴────────────────────┴────────────────────────┴─────────┴─────────────┘
 ```
 
@@ -130,13 +130,13 @@ ado get experiments --details
 Inspect the experiment interface:
 
 ```bash
-ado describe experiment ml-multicloud-cost
+ado describe experiment ml_multicloud_cost
 ```
 
 <!-- markdownlint-disable line-length -->
 
 ```terminaloutput
-Identifier: custom_experiments.ml-multicloud-cost@1.0.0
+Identifier: custom_experiments.ml_multicloud_cost@1.0.0
 Version: 1.0.0
 
 Required Inputs:
@@ -166,13 +166,13 @@ Required Inputs:
 
 Outputs:
  ───────────────────────────────────────────────────────────────────────────────────────────────────────
-   ml-multicloud-cost@v1-total_cost
+   ml_multicloud_cost@v1-total_cost
  ───────────────────────────────────────────────────────────────────────────────────────────────────────
 ```
 
 <!-- markdownlint-enable line-length -->
 
-The `ml-multicloud-cost` experiment takes `nodes` and `cpu_family` as
+The `ml_multicloud_cost` experiment takes `nodes` and `cpu_family` as
 constitutive properties (entity-space dimensions) and `wallClockRuntime` as
 an **observed property** — a measurement produced by another experiment. The
 single output, `total_cost`, is the derived metric.
@@ -188,13 +188,13 @@ single output, `total_cost`, is the derived metric.
 
 The file `examples/ml-multi-cloud/ml_multicloud_space_with_custom.yaml`
 extends the base space from the random walk example with an additional
-`ml-multicloud-cost` entry:
+`ml_multicloud_cost` entry:
 
 ```yaml
 experiments:
   - experimentIdentifier: "benchmark_performance"
     actuatorIdentifier: "replay"
-  - experimentIdentifier: "ml-multicloud-cost"
+  - experimentIdentifier: "ml_multicloud_cost"
     actuatorIdentifier: "custom_experiments"
     experimentVersion: 1.0.0
 ```
@@ -259,7 +259,7 @@ ado show measurements operation --use-latest
 │ request_index │ result_index │ identifier                                  │ experiment_id                               │ cpu_family │ nodes │ provider │ vcpu_size │ wallClockRuntime   │ status       │ total_cost         │ valid │
 ├───────────────┼──────────────┼─────────────────────────────────────────────┼─────────────────────────────────────────────┼────────────┼───────┼──────────┼───────────┼────────────────────┼──────────────┼────────────────────┼───────┤
 │ 1             │ 0            │ B_f0.0-c0.0-n3                              │ replay.benchmark_performance                │ 0.0        │ 3     │ B        │ 0.0       │ 153.51639366149902 │ ok           │ not_measured       │ True  │
-│ 1             │ 0            │ B_f0.0-c0.0-n3                              │ custom_experiments.ml-multicloud-cost@1.0.0 │ 0.0        │ 3     │ B        │ 0.0       │ not_measured       │ not_measured │ 1.2793032805124918 │ True  │
+│ 1             │ 0            │ B_f0.0-c0.0-n3                              │ custom_experiments.ml_multicloud_cost@1.0.0 │ 0.0        │ 3     │ B        │ 0.0       │ not_measured       │ not_measured │ 1.2793032805124918 │ True  │
 └───────────────┴──────────────┴─────────────────────────────────────────────┴─────────────────────────────────────────────┴────────────┴───────┴──────────┴───────────┴────────────────────┴──────────────┴────────────────────┴───────┘
 ```
 
@@ -289,9 +289,10 @@ Try extending this example:
 - **Compose multiple derived metrics** — add a second custom experiment that
   consumes `total_cost` as an observed property to compute, for example, a
   cost-per-throughput ratio
-- **Change the cost formula** — edit `objective_function.py` in
-  `examples/ml-multi-cloud/custom_experiment/` and bump the experiment
-  version to keep stored measurements consistent
+- **Change the cost formula** — edit the `ml_multicloud_cost` function in
+  `examples/ml-multi-cloud/custom_experiment/ml_multi_cloud_custom_experiments/objective_function.py`
+  and bump the `version` in its `@custom_experiment` decorator to keep stored
+  measurements consistent
 - **Inspect space-level measurements** — run `ado show measurements space
   --use-latest` to see all measurements accumulated across operations, not
   just the latest one

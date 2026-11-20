@@ -68,7 +68,7 @@ The parameters for a `random_walk` operation are (default values shown):
 
 ```yaml
 numberEntities: 1 # The number of entities to sample (unfiltered), or the maximum number of entities to sample (filtered). Can also be the string "all" - see "Sampling all Entities".
-batchSize: 1 # The Number of entities in the initial batch. For more on this see "Batch Size and Concurrent Experiments" below
+batchSize: 1 # Maximum number of entities that may still have experiments waiting to be submitted. See "Batch Size and Concurrent Experiments" below
 samplerConfig:
   mode: random # How to sample - can be random, sequential, sequentialgrouped or randomgrouped. sequential requires the sampling supports sequencing entities
   samplerType: selector # How to sample entities. Can be selector or generator. For more see Sampling Types and Modes below
@@ -122,9 +122,16 @@ When a `random_walk` operation encounters an unmeasured entity in the
 Depending on the experiments, you may want to control how many concurrent
 experiments are being executed.
 
-`random_walk` uses continuous batching to set the number of concurrent
-**requested** experiments and ensure that, as far as possible, there is always
-this number of experiments in flight.
+`random_walk` uses continuous batching to keep up to `batchSize` entities that
+still have an experiment waiting to be submitted. A new entity is sampled when
+there is no experiment ready to submit and one of those entities has every
+remaining experiment submitted or unable to run because a prerequisite
+finished in failure. Experiments already in flight leave the slot free once
+every experiment for that entity has been submitted.
+A dependent experiment blocked on an in-flight prerequisite keeps the slot, so
+the walk waits for that prerequisite. Until the prerequisite finishes, the
+number of experiments in flight can stay below `batchSize` multiplied by the
+number of experiments in the measurement space.
 
 This approach maximizes throughput compared to standard batch-wise submission.
 In the normal case the time to finish measuring batch of N entities is, at a
@@ -134,23 +141,30 @@ system for (N-1) additional entities to be measured but it will not be used.
 
 ### Batch Size and Concurrent Experiments
 
-When it comes to managing resources during an exploration, the key variable to
-control is the number of concurrent experiments.
+`batchSize` is the maximum number of sampled entities that may still have an
+experiment waiting to be submitted. The walk starts by sampling that many
+entities and submitting every independent experiment on each of them.
 
-For the `random_walk` operator, this number is its `batchSize` parameter (the
-number of initial entities submitted) multiplied by the number of experiments in
-the `measurementspace` of the `discoveryspace` it is operating on. For example,
-if the `batchSize` is 2 and there are 2 experiments defined in the
-`measurementspace` there will be 4 (2\*2) experiments requested. Each experiment
-will be measuring one entity. The continuous batching will endeavour to keep
-this many concurrent experiment requests during the operation.
+When every experiment is independent, those entities have all of their
+experiments in flight immediately, so the next completion can sample another
+entity. The walk then keeps about `batchSize` times the number of experiments
+requested. For example, if `batchSize` is 2 and the measurement space has 2
+independent experiments, 4 experiments are requested, and continuous batching
+tries to keep that many requests in flight.
+
+When an experiment depends on the output of another, it is submitted after the
+experiments it requires have finished. The entity keeps its slot until that
+dependent is submitted, or until the dependent can no longer run because a
+prerequisite finished in failure.
 
 !!! info end
 
     The `random_walk` operator only knows how many experiments it has requested,
     not how many are actually executing.
-    Hence, continuous batching can only maintain that there are
-    N experiments requested at any time.
+    Continuous batching schedules further entities from that requested work.
+    It samples a new entity when a batch slot is free, which requires the
+    current entities to have their remaining experiments submitted or unable
+    to run because a prerequisite finished in failure.
 
 ### Sampling all Entities
 

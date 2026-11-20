@@ -5,6 +5,7 @@ from typing import Any
 import pytest
 
 from ado.core.discoveryspace.samplers import sample_random_entity_from_space
+from ado.schema.constraint import PropertyConstraint
 from ado.schema.domain import PropertyDomain, VariableTypeEnum
 from ado.schema.entity import Entity
 from ado.schema.entityspace import EntitySpaceRepresentation
@@ -432,3 +433,52 @@ def test_entity_space_updates_open_categorical_property() -> None:
         "b",
         "c",
     ], "Expected values to be retained"
+
+
+def test_entity_space_from_configuration_keeps_constraints(
+    constitutive_property_configuration_general: list[ConstitutiveProperty],
+    t4_batch_size_constraint: PropertyConstraint,
+) -> None:
+    es = EntitySpaceRepresentation.representationFromConfiguration(
+        constitutive_property_configuration_general,
+        constraints=[t4_batch_size_constraint],
+    )
+
+    assert es.constraints == [t4_batch_size_constraint]
+
+
+def test_entity_space_rejects_constraint_on_property_not_in_space(
+    constitutive_property_configuration_general: list[ConstitutiveProperty],
+    t4_batch_size_constraint: PropertyConstraint,
+) -> None:
+    properties_without_batch_size = [
+        p
+        for p in constitutive_property_configuration_general
+        if p.identifier != "BatchSize"
+    ]
+
+    with pytest.raises(ValueError, match="BatchSize"):
+        EntitySpaceRepresentation(
+            constitutiveProperties=properties_without_batch_size,
+            constraints=[t4_batch_size_constraint],
+        )
+
+
+def test_entity_space_rich_print_includes_constraints(
+    constitutive_property_configuration_general: list[ConstitutiveProperty],
+    t4_batch_size_constraint: PropertyConstraint,
+) -> None:
+    from rich.console import Console
+
+    es = EntitySpaceRepresentation(
+        constitutiveProperties=constitutive_property_configuration_general,
+        constraints=[t4_batch_size_constraint],
+    )
+
+    console = Console(width=200)
+    with console.capture() as capture:
+        console.print(es)
+
+    output = capture.get()
+    assert "Constraints:" in output
+    assert "t4_max_batch_size" in output

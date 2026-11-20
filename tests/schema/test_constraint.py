@@ -685,6 +685,19 @@ def test_string_is_not_coerced_to_number() -> None:
     assert type(operand.value) is str
 
 
+def test_constraint_rich_print_is_yaml_without_unset_fields() -> None:
+    """Test a constraint renders as YAML and omits an unset when."""
+
+    from rich.console import Console
+
+    console = Console(width=200)
+    with console.capture() as capture:
+        console.print(PropertyConstraint.model_validate(_AT_LEAST_ONE_SAMPLE_PER_GPU))
+
+    rendered = yaml.load(capture.get(), Loader=SafeLoader)
+    assert rendered == _AT_LEAST_ONE_SAMPLE_PER_GPU
+
+
 def test_check_constraints_rejects_unknown_property() -> None:
     """Test a constraint referencing an unknown property fails the check."""
 

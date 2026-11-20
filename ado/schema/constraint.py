@@ -9,11 +9,15 @@ of two operands, or a combination of predicates using allOf, anyOf, or not.
 """
 
 import enum
+import typing
 from collections.abc import Iterable
 from typing import Annotated, NoReturn, Self
 
 import pydantic
 from pydantic import ConfigDict
+
+if typing.TYPE_CHECKING:  # pragma: nocover
+    from rich.console import RenderableType
 
 ScalarLiteral = (
     pydantic.StrictBool
@@ -536,6 +540,19 @@ class PropertyConstraint(pydantic.BaseModel):
         if self.when is not None:
             identifiers |= self.when.property_identifiers()
         return identifiers
+
+    def __rich__(self) -> "RenderableType":
+        """Render this constraint as YAML.
+
+        Returns:
+            A rich Text containing the YAML form of this constraint.
+        """
+
+        from rich.text import Text
+
+        from ado.utilities.output import pydantic_model_as_yaml
+
+        return Text(pydantic_model_as_yaml(self, exclude_none=True).rstrip())
 
 
 def check_constraints_against_properties(

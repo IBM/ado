@@ -10,6 +10,7 @@ from ado.modules.actuators.catalog import (
     ExperimentCatalog,
 )
 from ado.modules.actuators.errors import ExperimentVersionMismatchError
+from ado.schema.constraint import PropertyConstraint
 from ado.schema.entity import (
     CheckRequiredObservedPropertyValuesPresent,
     Entity,
@@ -301,6 +302,17 @@ class MeasurementSpace:
     def experiments(self) -> list[Experiment | ParameterizedExperiment]:
 
         return self._experiments.copy()
+
+    @property
+    def experiment_constraints(self) -> dict[str, tuple[PropertyConstraint, ...]]:
+        """Return the constraints of each experiment in the measurement space.
+
+        Returns:
+            A dict mapping the string form of each experiment with constraints
+            to its constraints. Experiments without constraints are omitted.
+        """
+
+        return {str(e): e.constraints for e in self._experiments if e.constraints}
 
     @property
     def supported_experiments(self) -> list[Experiment]:

@@ -17,10 +17,12 @@
 
 Use FLORA when you want to concentrate a fixed measurement budget in regions
 with few measurements. A Random Forest predicts the target by averaging the
-predictions of many decision trees. FLORA gives priority to regions where the
-trees disagree. In an acid–base titration, for example, pH can change sharply
-as the added base neutralizes the acid. Disagreement can help locate such a
-transition, but trees can also agree on an inaccurate prediction.
+predictions of many decision trees. FLORA gives priority to regions that contain
+few labeled entities and where trees disagree. In an acid–base titration, for
+example, pH can change sharply as the added base neutralises the acid.
+Disagreement can help locate such a transition. FLORA's acquisition function
+allows implicit diversity, by forcing sampling to explore more sparsely labeled
+regions as well.
 
 FLORA reuses existing target measurements. It saves a final model and a table
 of measured and predicted values for the whole candidate pool. The pool is
@@ -41,16 +43,16 @@ output that guides sampling and model training.
 | :--- | :--- | :--- | :--- | :--- |
 | **`flora`** | `characterize` | Fixed entity budget | Prioritize leaves with high tree disagreement and few measurements | Surrogate model and predictions |
 | **[`pkh`](pkh.md)** | `characterize` | Fixed entity budget | Match the pool in forest leaf space | Surrogate model and predictions |
-| **[`trim`](trim.md)** | `characterize` | Adaptive up to a point limit | Stop when holdout scores stabilize or the budget is reached | Surrogate model and predictions |
+| **[`trim`](trim.md)** | `characterize` | Adaptive up to a point limit | Stop when holdout scores stabilize or TRIM reaches its budget | Surrogate model and predictions |
 | **[`random_walk`](random-walk.md)** | `explore` | Fixed count or all entities | Sequential or random order (Sobol or CLHS with a custom sampler) | Sampled entity observations (no surrogate model) |
 | **[`ray_tune`](ray-tune.md)** | `explore` | Sample or time budget, with optional early stopping | Optimize a target metric | Best observed configuration and stop reason |
 
 ## Quick Start
 
 This example uses a current checkout of `ado` and a discovery space with at
-least 60 entities and a numeric `ph` output. The
-[titration tutorial](../examples/flora.md#step-1-create-the-discovery-space)
-shows how to create that space.
+least 60 entities and a numeric `ph` output. For titration, follow the
+[tutorial prerequisites](../examples/flora.md#prerequisites), then
+[create the discovery space](../examples/flora.md#step-1-create-the-discovery-space).
 
 **1. Install the core and plugin** from the repository root:
 
@@ -67,8 +69,8 @@ pip install -e . -e plugins/operators/active_learning
 
 **2. Save this configuration** as `operation_flora.yaml`.
 
-Only `targetOutput` and `numberEntities` are required parameters. The other
-parameters have defaults.
+You must set `targetOutput` and `numberEntities`. The other parameters have
+defaults.
 
 ```yaml
 inputs:
@@ -91,9 +93,20 @@ operation:
 ado create operation -f operation_flora.yaml --use-latest space
 ```
 
-When the run finishes, the model and predictions are in
-`flora_models_finalized/`. See
-[Working with FLORA output](#working-with-flora-output) for how to use them.
+After a successful run, list the files in the output directory.
+
+```bash
+ls -1 flora_models_finalized/
+```
+
+```text
+combined_predictions.csv
+metadata.json
+model.pkl
+```
+
+See [Working with FLORA output](#working-with-flora-output) to read the
+predictions or reload the model.
 
 ---
 
@@ -140,9 +153,11 @@ For each tree $t$ and leaf $\ell$, let
 
 FLORA treats the leaf's mean disagreement as a proxy for its prediction error.
 The $p_{t\ell}$ pool entities share $c_{t\ell}$ labels, so the leaf's estimated
-risk is $\frac{D_{t\ell}}{N\,c_{t\ell}}$. One more label in the leaf lowers
-this risk by $\frac{D_{t\ell}}{N\,c_{t\ell}(c_{t\ell}+1)}$, and the newly
-measured entity no longer needs a prediction, which removes a further
+risk is $\frac{D_{t\ell}}{N\,c_{t\ell}}$.
+
+One more label in the leaf lowers this risk by
+$\frac{D_{t\ell}}{N\,c_{t\ell}(c_{t\ell}+1)}$. The newly measured entity no
+longer needs a prediction, which removes a further
 $\frac{D_{t\ell}}{N\,p_{t\ell}}$. The **gain** of the leaf is the sum of both
 terms:
 
@@ -153,7 +168,8 @@ $$
 
 The gain is large for leaves with high disagreement and few labels. It falls as
 labels accumulate. Every leaf of a fitted tree contains at least one measured
-entity, because each leaf is built from labelled entities, so $c_{t\ell} \ge 1$.
+entity, because the forest builds each leaf from labelled entities, so
+$c_{t\ell} \ge 1$.
 
 At each step, FLORA scores every unmeasured entity by the mean gain of the
 leaves it reaches, where $\ell_t(\mathbf{x})$ is its leaf in tree $t$:
@@ -291,6 +307,12 @@ predictor.
 
 Each Random Forest contains this number of trees. More trees give a smoother
 disagreement estimate.
+
+!!! tip "Choosing the number of trees"
+
+    With `nEstimators: 1`, every candidate has zero disagreement, so after the
+    pilot FLORA samples uniformly from the unmeasured entities. Use at least
+    two trees if you want disagreement to guide selection.
 
 #### `minSamplesLeaf`
 
@@ -455,7 +477,7 @@ ado show stats operation "$RANDOM_WALK_OPERATION_IDENTIFIER"
 | `Target '...' requires finite scalar measurements` | A measurement of the target is `NaN`, infinite, or not a single number. | Inspect the measurement results for the related `random_walk` operation. |
 | `Missing finite target measurement for '...'` | A selected entity finished without a usable target value. | Inspect the measurement results for the related `random_walk` operation. |
 | `FLORA requires at least four target measurements for AutoGluon` | The budget and existing labels give fewer than four measured entities. | Raise `numberEntities`, or use `finalPredictor: random_forest`. |
-| `autoGluon parameters must not be provided for random_forest` | AutoGluon settings were supplied for the Random Forest backend. | Remove `autoGluon`, or select `finalPredictor: autogluon`. |
+| `autoGluon parameters must not be provided for random_forest` | The configuration includes AutoGluon settings for the Random Forest backend. | Remove `autoGluon`, or select `finalPredictor: autogluon`. |
 | `Install 'ado-active-learning[autogluon]' to use finalPredictor='autogluon'` | The optional backend is unavailable. | Install the extra on Python 3.11–3.13 (see [Quick start](#quick-start)). |
 | The finalized output path already exists | FLORA reserves the path before collecting measurements. | Choose a distinct `outputDirectory`. Earlier files remain untouched. |
 | `Unknown category in feature '...'` when calling `model.predict` | The input contains a category value absent from the discovery space. | Use values from the space's domain. |

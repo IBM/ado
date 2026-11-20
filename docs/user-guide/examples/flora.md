@@ -10,9 +10,8 @@ selected measurements to estimate the rest.
 This tutorial applies FLORA to the [acid–base titration example](titration.md).
 The space has 1,830 possible conditions and the budget is 60 measurements.
 You will create the discovery space, run FLORA, and inspect the measurements
-and predictions. You will also compare predictions with the pH given by the
-titration equations and check how the error changes with [PKH](pkh.md) and
-random sampling.
+and predictions. An optional fourth step compares FLORA with [PKH](pkh.md)
+and random sampling using the pH from the titration equations.
 
 ## Prerequisites
 
@@ -41,7 +40,8 @@ ado describe experiment titrate_strong_acid
 ```
 
 Check that `flora` appears as a `characterize` operator.
-The experiment description should list `ph` as its output.
+Look for `titrate_strong_acid-ph` under `Outputs`. The operation configuration
+uses its short name, `ph`.
 See the [context guide](../../cli-reference/index.md#ado-context) to select
 another database.
 
@@ -66,7 +66,7 @@ the one in this example:
 Success! Created space with identifier: space-611e3b-f1690c
 ```
 
-The [titration grid](titration.md#create-the-discovery-space) contains 30
+The [titration grid](titration.md#step-3-define-a-discovery-space) contains 30
 acid–base concentration pairs and 61 titrant volumes for each pair. The pH
 rises sharply near the **equivalence point**, where the added base neutralises
 the acid. Use the [titration equations](titration.md#the-titration-equations)
@@ -95,16 +95,17 @@ These three settings control the run:
 | `numberEntities` | `60` | Maximum new entities to measure, including the pilot |
 | `pilotSize` | `5` | Labels needed before active selection starts |
 
-The budget covers about 3% of the space. FLORA schedules its forest refits
-automatically.
+The budget covers about 3% of the space. This configuration sets
+`maxFeatures: 1.0` so each tree can consider all three inputs at each split.
+FLORA schedules its forest refits automatically.
 
 !!! warning "Rerunning this example"
 
-    FLORA creates `flora_models_finalized/` before it collects measurements. It
-    refuses to run if that path already exists, and it leaves earlier files
-    untouched. Before a second run, set a new `outputDirectory` in the
-    configuration, for example `flora_models_run2`. Then use the matching
-    `_finalized` directory in the commands below.
+    Choose a new `outputDirectory` for each run, such as `flora_models_run2`.
+    Use the matching `_finalized` directory in the commands below. To
+    reproduce the results shown here, also repeat Step 1 with
+    `--new-sample-store`. If you keep the same space, FLORA reuses its earlier
+    measurements and spends its budget on additional entities.
 
 Start the operation:
 
@@ -200,6 +201,9 @@ experimental measurements in the sample store.
 
 ### Read the predictions
 
+The model learns from 60 of the 1,830 conditions. Where few measurements
+bracket the sharp rise in pH, the forest can miss the location of the jump.
+
 ```python
 import pandas as pd
 
@@ -278,7 +282,7 @@ ado show related operation "$OPERATION_IDENTIFIER" --max-hops 1
     measurements through a related `random_walk` operation, which is created
     later and so is the most recent operation.
 
-### Compare with PKH
+## Step 4: Compare with PKH (optional) { #compare-with-pkh }
 
 Run PKH on the same problem to see where each operator spends its budget. Create
 a second space with its own sample store. If you reuse the first space, PKH
@@ -317,36 +321,39 @@ for operator in ("flora", "pkh"):
     print(
         f"{operator:5s} RMSE {rmse:.2f} pH, "
         f"{measured_near_equivalence} of {measured.sum()} measurements "
-        "within 8 mL of equivalence"
+        "less than 8 mL from equivalence"
     )
 ```
 
 ```text
-flora RMSE 2.03 pH, 31 of 60 measurements within 8 mL of equivalence
-pkh   RMSE 2.58 pH, 15 of 60 measurements within 8 mL of equivalence
+flora RMSE 2.03 pH, 31 of 60 measurements less than 8 mL from equivalence
+pkh   RMSE 2.58 pH, 15 of 60 measurements less than 8 mL from equivalence
 ```
 
-Of the 1,830 entities, 436 lie within 8 mL of an equivalence point (24%).
+Of the 1,830 entities, 436 lie less than 8 mL from an equivalence point (24%).
 FLORA measured 31 entities in this region (52% of its budget) and PKH measured
 15 (25%). FLORA's RMSE was 21% lower in this run.
 
-To check how the choice of seed affects this result, the comparison script
-repeats the selection with seeds 0–29. It runs each operator's sampler on the
-full pool. Each seed gives a different pilot sample and forest. The random
-method selects 60 entities uniformly. The script fits each final forest with
-the same training-row order and forest seed as the operator. The random
-baseline uses FLORA's final forest settings. Run it from the repository root:
+### Repeat the comparison across 30 seeds
+
+Run the comparison script from the repository root to see how much the result
+changes with the seed.
 
 ```bash
 python examples/titration/compare_sampling.py --seeds 30 --output comparison.csv
 ```
 
-The script prints package versions and summary statistics, and saves each
-seed's RMSE and measurement counts in `comparison.csv`. Use `--seed 42
---seeds 1` to compare the seed used in the CLI example, or `--budget 120` to
-increase the measurement budget. With NumPy 2.3.5 and scikit-learn 1.9.1, the
-median and interquartile range of the pH RMSE on each method's unmeasured
-entities are:
+For each seed from 0 to 29, the script runs both samplers on the full grid.
+It fits each final forest with the same training-row order and seed as its
+operator. The random baseline draws 60 entities uniformly and uses FLORA's
+final forest settings.
+
+The script prints the package versions and summary statistics. Open
+`comparison.csv` for each seed's RMSE and measurement counts. To check the
+seed from the CLI run, use `--seed 42 --seeds 1`.
+
+The table shows the median and interquartile range of the RMSE on each
+method's unmeasured entities, in pH units (NumPy 2.3.5, scikit-learn 1.9.1).
 
 | Method | Median RMSE | Interquartile range |
 | :--- | :--- | :--- |

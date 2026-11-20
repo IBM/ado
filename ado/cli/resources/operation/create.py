@@ -486,8 +486,9 @@ def _resolve_input_bindings(
     """Resolve the operation input targeted by each ``--with`` and ``--use-latest`` value.
 
     Inputs named with ``KIND:INPUT`` are resolved first, then unqualified
-    kinds. An unqualified kind binds to the single input of that kind not
-    already targeted by a flag.
+    kinds. An unqualified kind excludes inputs already targeted by a flag,
+    then binds the only remaining input of that kind, else the only list
+    input, else the only one absent from the configuration.
 
     Args:
         raw_operation_configuration: Raw operation resource configuration dict.

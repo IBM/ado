@@ -289,8 +289,10 @@ ado create operation -f operation.yaml \
 
 An unqualified kind fills the one input of that kind not set by a qualified
 flag, so `--with space:reference=space-abc123 --use-latest space` sets
-`candidate` to the latest space. Values given for a list input are appended
-to any entries the operation file already sets for it.
+`candidate` to the latest space. When several inputs of that kind remain and
+exactly one is a list, the unqualified kind selects that list. Values given
+for a list input are appended to any entries the operation file already sets
+for it.
 
 #### Create a space renaming a property identifier in the space
 

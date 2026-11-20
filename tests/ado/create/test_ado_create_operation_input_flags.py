@@ -249,6 +249,30 @@ def test_apply_with_unqualified_fills_remaining_input(
     assert raw["inputs"]["candidate"]["identifier"] == "space-cand"
 
 
+def test_apply_unqualified_kind_skips_list_set_by_qualified_flag(
+    summarize_operator_name: str,
+) -> None:
+    """An unqualified kind skips a list input already set by a qualified flag."""
+    raw = raw_operation(summarize_operator_name, DiscoveryOperationEnum.SUMMARIZE.value)
+    apply_resource_flags(
+        raw,
+        _create_parameters(
+            with_inputs=[
+                OperationInputResourceOption(
+                    input_name="containers",
+                    kind=CoreResourceKinds.DATACONTAINER,
+                    value="datacontainer-list",
+                )
+            ],
+            with_resources={CoreResourceKinds.DATACONTAINER: "datacontainer-base"},
+        ),
+    )
+    assert raw["inputs"]["containers"] == [
+        {"identifier": "datacontainer-list", "kind": "datacontainer"}
+    ]
+    assert raw["inputs"]["baseline"]["identifier"] == "datacontainer-base"
+
+
 def test_apply_with_file_in_dry_run_leaves_input_unset(
     compare_operator_name: str,
 ) -> None:
@@ -592,17 +616,21 @@ def test_create_space_rejects_input_qualifier(
     create_active_ado_context(
         runner=runner, path=tmp_path, project_context=valid_ado_project_context
     )
-    result = runner.invoke(
-        ado,
-        [
-            "create",
-            "space",
-            "-f",
-            str(SPACE_CONFIGURATION_FILE),
-            "--with",
-            "space:reference=space-1",
-            "--dry-run",
-        ],
-    )
-    assert result.exit_code == 1, result.output
-    assert "only supported when creating operations" in result.output
+    for flag, value in (
+        ("--with", "space:reference=space-1"),
+        ("--use-latest", "space:reference"),
+    ):
+        result = runner.invoke(
+            ado,
+            [
+                "create",
+                "space",
+                "-f",
+                str(SPACE_CONFIGURATION_FILE),
+                flag,
+                value,
+                "--dry-run",
+            ],
+        )
+        assert result.exit_code == 1, result.output
+        assert "only supported when creating operations" in result.output

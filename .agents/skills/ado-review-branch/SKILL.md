@@ -21,41 +21,46 @@ metadata:
     `REVIEW_DIR` is a fresh directory from `mktemp -d`
   - run `uv` commands from inside it
   - remove it with `git worktree remove --force "$REVIEW_DIR"` when finished
-- Do not assume — verify claims by reading the relevant code or running a short
-  script. Never report a finding based on what code looks like it might do;
-  confirm it first.
-- Validate claims against the target branch — check the branch the PR targets
-  (e.g. `main`) to verify whether a behaviour or bug is new or pre-existing.
-  If pre-existing, note it under Observations so an issue can be opened.
-- Be picky: report every deviation from the guidelines, including minor ones
-- Write the review to `<branch_name>-review.md` at the repo root when finished,
-  where `<branch_name>` is the current branch name with `/` replaced by `-`,
-  unless the user names another path
+- Verify every claim by running it — a short script, a test, or a command that
+  reproduces the behaviour — before reporting it. Reading the code is not
+  verification; use it only when the claim cannot be executed.
+- Validate claims against the target branch — the target is `main` unless the
+  user names another. Use `git diff <target>...HEAD` for the scope,
+  `git show <target>:<path>` to read the old code, and a second detached
+  worktree of `<target>` (created and removed like the review worktree) to run
+  the old behaviour. Use this to verify whether a behaviour or bug is new or
+  pre-existing; report pre-existing ones as Observations.
+- Report every deviation from the guidelines, including Minor ones
+- Write the review to `<branch_name>-review.md` at the root of the main
+  checkout (not a review worktree, which is removed) when finished, where
+  `<branch_name>` is the current branch name with `/` replaced by `-`, unless
+  the user names another path
 
 ### Rules for findings
 
-- Focus on the problem — describe the functional and behavioural defect from the
-  perspective of callers, users, or system contracts; do not narrate internal
-  code mechanics or execution flow.
 - One problem per finding — keep each finding strictly focused on a single
   distinct issue. Do not combine behavioural bugs with doc omissions or commit
   message critiques.
-- Contrast regressions clearly — for regressions, state behaviour before and
-  after: "Before this PR, [behaviour on target branch]. This PR changes it so
-  that [new behaviour], which [why it is a problem]."
+- For `bug` findings, focus on the problem — describe the functional and
+  behavioural defect from the perspective of callers, users, or system
+  contracts; do not narrate internal code mechanics or execution flow.
+- For `bug` findings that are regressions, contrast behaviour — state it before
+  and after: "Before this PR, [behaviour on target branch]. This PR changes it
+  so that [new behaviour], which [why it is a problem]."
 - Attribute mutations — when a mutation made during verification introduced a
   change or failure, state it explicitly so it is not confused with PR code.
 - Provide a clear fix — propose a concrete, actionable fix for every finding.
-  If an issue lacks a specific location or clear fix, place it under
-  Observations.
+  Issues without one are Observations.
 - Limit length and formatting:
   - report only problems; do not praise or describe correct code
+  - report each issue once, under one heading
   - limit each finding to three sentences: the problem, why it matters if not
     obvious, and the proposed fix
   - anchor location once per finding as a single markdown link
     (`[file:line](path:line)`); refer to additional locations as plain
     `path:line` text (for `docs/`, link the page)
   - use code formatting only for paths, commands, and ambiguous identifiers
+  - do not link or code-format the same name more than once per finding
   - avoid fenced code blocks unless a short snippet is the clearest fix
 
 ## Code Review
@@ -105,8 +110,7 @@ violations as `test` findings, and additionally:
 - **Verify by mutation** — when a test looks weak, confirm it by temporarily
   breaking the code under test and running that test; do not report a test as
   banal on appearance alone. Edit only files in the review worktree and restore
-  each with `git restore <file>` afterwards. Be clear in your finding when a
-  mutation you made introduced a change or failure.
+  each with `git restore <file>` afterwards.
 
 ### Plugin versioning
 
@@ -123,6 +127,11 @@ report violations with these severities:
 Run `uv run pre-commit run -a` in the review worktree and report each failure
 as a finding tagged `lint`. These issues block commits.
 
+Several hooks rewrite files (for example `ruff-format`, `yamlfmt`, and
+`markdownlint-cli2-docker --fix`). Treat those edits as mutations of the
+worktree, not as branch code. The `markdownlint-cli2-docker` hook needs Docker;
+if it cannot run, list it under checks not run in the report header.
+
 ## Skill Review
 
 If the branch adds or changes anything under `.agents/skills/`, read
@@ -138,9 +147,8 @@ Write the report with these sections, omitting any that are empty:
    - checks that were not run, and why
    - one or two sentences on what the change does, only if the commit messages
      do not already say it
-2. **Summary of Issues** — a high-level overview explaining the key problems and
-   regressions discovered across the branch in plain, accessible terms before
-   diving into detailed findings
+2. **Summary of Issues** — at most two sentences naming the highest-severity
+   themes; do not list individual findings
 3. **Findings** — a single list ordered by severity under the headings
    Critical, Medium, and Minor
    - default severity when none is specified elsewhere: `bug` Critical,
@@ -152,26 +160,29 @@ Write the report with these sections, omitting any that are empty:
      separate sections
 4. **Observations** — issues that cannot be tied to a specific location,
    concerns without a clear fix, or pre-existing bugs identified during the
-   review, described clearly so that tracking issues can be opened
+   review, so that tracking issues can be opened
+   - number them continuously after the findings
+   - give each a title, the location if known, and why no fix is proposed
 5. **Skill Reviews** — one subsection per new or modified skill, using the
    per-skill structure in [references/skill-review.md](references/skill-review.md)
 6. **Verdict** (1-2 lines) — merge as is, merge after the Critical findings are
    fixed, or do not merge; do not restate the findings
 
-Example findings:
+Example findings (file paths and line numbers are illustrative):
 
 ```markdown
-1. **design: new module-level registry inverts experiment loading order** —
-   [custom_experiments.py:59](ado/modules/actuators/custom_experiments.py:59)
-   allows only one custom experiment per identifier. Before this PR, if a legacy
-   experiment and new experiment shared an identifier, the legacy experiment was
-   loaded; this PR inverts that precedence so the last decorated experiment
-   silently overwrites earlier ones. Restore legacy precedence or raise on
+### Critical
+
+1. **bug: duplicate identifiers silently shadow legacy experiments** —
+   [experiments.py:59](ado/example/experiments.py:59) Before this PR, when a
+   legacy and a new experiment shared an identifier, the legacy experiment was
+   loaded. This PR makes the last decorated experiment win, so legacy
+   experiments are silently replaced; restore legacy precedence or raise on
    duplicate identifiers.
 
-2. **bug: exit swallowed by broad except** —
-   [create.py:160](ado/cli/resources/operation/create.py:160) catches
-   Exception, changing behaviour from re-raising typer.Exit (on main) to
-   swallowing it and printing a generic failure message. Re-raise typer.Exit
-   before the except clause.
+### Minor
+
+2. **design: private helper called from a single place** —
+   [create.py:120](ado/example/create.py:120) `_format_error` wraps one call and
+   is used only at `ado/example/create.py:98`. Inline it.
 ```

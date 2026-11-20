@@ -18,7 +18,7 @@
 Use FLORA when you want to concentrate a fixed measurement budget in regions
 with few measurements. A Random Forest predicts the target by averaging the
 predictions of many decision trees. FLORA gives priority to regions that contain
-few labeled entities and where trees disagree. In an acid–base titration, for
+few labelled entities and where trees disagree. In an acid–base titration, for
 example, pH can change sharply as the added base neutralises the acid.
 Disagreement can help locate such a transition. When trees disagree, FLORA
 gives more weight to regions with fewer measurements, all else being equal.

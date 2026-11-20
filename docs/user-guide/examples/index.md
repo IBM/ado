@@ -19,9 +19,13 @@ research loop step by step, from defining a space to retrieving results.
   an `operation` to sample and measure points, and retrieving the results —
   using a real cloud workload dataset.
 
+- **[Simulate an acid–base titration](titration.md)** — Measure pH on either
+  side of the equivalence point, then sample 20 entities from the titration
+  space and inspect their readings.
+
 ## Search
 
-These are **intermediate examples** that build on both tutorials. They assume
+These are **intermediate examples** that build on the tutorials. They assume
 you are comfortable with the core `ado` workflow and introduce the `ray_tune`
 operator, which gives access to the RayTune optimisation framework.
 

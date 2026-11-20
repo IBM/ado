@@ -1,3 +1,74 @@
+## [2.4.0](https://github.com/ibm/ado/compare/4397c5dc1ea8193c38a59c726e5b7d37cf737580..2.4.0) - 2026-11-20
+#### Features
+- (**cli**) extend --with and --use-latest to handle multiple inputs (#1655) - ([a84bea6](https://github.com/ibm/ado/commit/a84bea669e9f2a3c0b7781481113708b937ea29c)) - Michael Johnston
+- (**cli**) add hidden ctx alias for context command (#1649) - ([d210822](https://github.com/ibm/ado/commit/d2108226f261d66beb394dce03c36b949b1b6394)) - Alessandro Pomponio
+- (**cli**) add stats to yaml and json output formats in ado get (#1597) - ([c06026a](https://github.com/ibm/ado/commit/c06026a4a2adb1e4909c5e062bfa03f55a121059)) - Alessandro Pomponio
+- (**cli**) add csv output format to ado get (#1595) - ([5fd2128](https://github.com/ibm/ado/commit/5fd212845cd221f6cabb678bc39f770203587d27)) - Alessandro Pomponio
+- (**core**) add summarize operator type (#1609) - ([797c304](https://github.com/ibm/ado/commit/797c3040109a82a839e627bcc464b4f183ae5eaa)) - Michael Johnston
+- (**core**) add pydantic models for expressing property constraints (#1576) - ([eedc518](https://github.com/ibm/ado/commit/eedc5182897944e5952557eabf2311c88021bd09)) - Michael Johnston
+- (**core**) deduce operator resource inputs from the signature (#1584) - ([28d761e](https://github.com/ibm/ado/commit/28d761e774798a28d13ca9229a70d3b1fba25536)) - Michael Johnston
+- (**core**) allow open categorical domain in space definitions (#1548) - ([29e0cbb](https://github.com/ibm/ado/commit/29e0cbbd9a0fb3ec1cef7d106ec5df7254c2f105)) - Michael Johnston
+- (**core**) orchestrate handles operations with multiple inputs of multiple types (#1583) - ([30345d3](https://github.com/ibm/ado/commit/30345d3cd6f6fe74df779dcd25ff04b4d7df5bac)) - Michael Johnston
+- (**core**) pass operator parameters to operator function using the operators model (#1582) - ([717a9c1](https://github.com/ibm/ado/commit/717a9c1ae41f9b627c6918c5a37ca4e69a17a95f)) - Michael Johnston
+- (**core**) record operation input resources in inputs field (#1578) - ([f6c5364](https://github.com/ibm/ado/commit/f6c5364245e73857fcf6e59159c8dc57907b0a0e)) - Michael Johnston
+- (**core**) require operator parameters to subclass GenericOperatorParameters (#1580) - ([d8175bb](https://github.com/ibm/ado/commit/d8175bbaf5b7d7e1d8ed46da23694a1d0b514c96)) - Michael Johnston
+- (**core**) add resource reference and property descriptor types (#1577) - ([2506638](https://github.com/ibm/ado/commit/2506638029a26fc1a7d029527635ac89525f5ecb)) - Michael Johnston
+- (**core**) add StudyDocumentMetadata with todo list support (#1570) - ([3099786](https://github.com/ibm/ado/commit/3099786a4e77d368550da1b9ec89a95bf579982f)) - Alessandro Pomponio
+- (**cplex-mip**) add qtolin option (#1627) - ([fffdbe8](https://github.com/ibm/ado/commit/fffdbe864e4d763a4bd3215ad281c5d062bc0c17)) - Michael Johnston
+- (**vllm-performance**) extend vllm-bench experiments with prefix-repetition and agentic deployment args (#1494) - ([d6339be](https://github.com/ibm/ado/commit/d6339be5070aabe37d7ff5dd62e96ce1036aeb6e)) - mgazz
+#### Bug Fixes
+- (**cli**) update parsers to return enum types for typer 0.29.0 (#1663) - ([cadd50e](https://github.com/ibm/ado/commit/cadd50eb0cf2af486abdcf09e2e2f701894d86f7)) - Alessandro Pomponio
+- (**cli**) propagate dry-run flag to nested resources in create commands (#1564) - ([41d0822](https://github.com/ibm/ado/commit/41d0822c8d1171ae74bb38702a8625878ea8fc8a)) - Alessandro Pomponio
+- (**cli**) prevent line truncation in ado describe output (#1567) - ([a7bbc63](https://github.com/ibm/ado/commit/a7bbc634c2997391f76ccf1e8f6561e274de6312)) - Alessandro Pomponio
+- (**core**) exclude float values rounding to upper bound from range (#1653) - ([23ae34e](https://github.com/ibm/ado/commit/23ae34e3f1dc72ef884614144426460dbfbe3047)) - Alessandro Pomponio
+- (**core**) require grid alignment for subdomains of unbounded discrete domains (#1651) - ([c457f7a](https://github.com/ibm/ado/commit/c457f7a3e469b5797764bc7dd2fa9afb8d9a7a52)) - Alessandro Pomponio
+- (**core**) validate value against interval in unbounded discrete domain (#1650) - ([b307bcc](https://github.com/ibm/ado/commit/b307bccd705aa8bca49a9ffbeb13abde01bfa43b)) - Alessandro Pomponio
+- (**core**) handle unbounded discrete domain in subdomain checks (#1633) - ([52d6734](https://github.com/ibm/ado/commit/52d67344b4730b1a0a2a77016ee7b546152bc365)) - Alessandro Pomponio
+- (**core**) ensure subdomain check returns bool when range absent (#1630) - ([7d47f63](https://github.com/ibm/ado/commit/7d47f6344aa90ecd6ffb3f41e7314dcbf4ed9dc4)) - Alessandro Pomponio
+- (**core**) update subdomain checks for single element and float domains (#1628) - ([abbbead](https://github.com/ibm/ado/commit/abbbead09b6ece3ed8ac3772dc193c415b4e05d3)) - Alessandro Pomponio
+- (**core**) reject property domain floats exceeding 10 decimal places (#1622) - ([041e50e](https://github.com/ibm/ado/commit/041e50e13f45890ae5f6ab9c3ade9c90df413b46)) - Alessandro Pomponio
+- (**core**) exclude domain values above upper bound in generation (#1620) - ([18c7f52](https://github.com/ibm/ado/commit/18c7f522b7956fc5957cb81bdac9554723804ab4)) - Alessandro Pomponio
+- (**core**) raise ValueError for non-positive interval in internal range (#1617) - ([992f2c5](https://github.com/ibm/ado/commit/992f2c5493c3dcee57be0a07aac18fce97a7d37c)) - Alessandro Pomponio
+- (**core**) enforce positive constraint on PropertyDomain interval (#1616) - ([cb9cf83](https://github.com/ibm/ado/commit/cb9cf83751c6879f6c73db322f3547f390753e37)) - Alessandro Pomponio
+- ![BREAKING](https://img.shields.io/badge/BREAKING-red) (**core**) ensure property value handles arbitrary bytes (#1612) - ([de10c1c](https://github.com/ibm/ado/commit/de10c1c3134786065e6477b6fed262b6549f2490)) - Alessandro Pomponio
+- (**core**) decode file URIs when resolving editable distribution paths (#1592) - ([9829a31](https://github.com/ibm/ado/commit/9829a31ba81098638d557a63834f966a21adf982)) - Daniele Lotito
+#### Performance Improvements
+- (**core**) replace range materialization with scaled integer arithmetic (#1656) - ([7b85f62](https://github.com/ibm/ado/commit/7b85f621abbfd818b19a6c32b6ad9b0ab1c2e894)) - Alessandro Pomponio
+- use C-backed YAML loader/dumper with pure-Python fallback (#1590) - ([b055f9d](https://github.com/ibm/ado/commit/b055f9dc3c2559f4faa39a115112c757ed26979e)) - Alessandro Pomponio
+#### Documentation
+- (**agents**) add skill to write a research report (#1690) - ([95facc7](https://github.com/ibm/ado/commit/95facc78a99b83a1c2d0377c7983b3b0f62559b1)) - Michael Johnston
+- (**agents**) make review skill more user friendly (#1693) - ([97457d2](https://github.com/ibm/ado/commit/97457d2c37be8c02b1f3853322626303093a9c2d)) - Alessandro Pomponio
+- (**agents**) update review skill and AGENTS.md guidelines (#1672) - ([7b7cf83](https://github.com/ibm/ado/commit/7b7cf83463a3e3ecc92f700bcfad95aa913e836f)) - Alessandro Pomponio
+- (**agents**) improve agents.md and review skill (#1664) - ([b51893a](https://github.com/ibm/ado/commit/b51893a7f26abb20d4788459e4a5bb2b10d782b5)) - Alessandro Pomponio
+- (**agents**) update review skill (#1660) - ([f3a0320](https://github.com/ibm/ado/commit/f3a0320efa9ae93fa4a1b2f9ff30b00c6646d678)) - Alessandro Pomponio
+- (**agents**) update skills to latest specifications (#1646) - ([c67db46](https://github.com/ibm/ado/commit/c67db46d9154a7daf52247110bbffcf6fb44f9b1)) - Alessandro Pomponio
+- (**changelog**) add release notes for 2.3.0 (#1563) - ([4397c5d](https://github.com/ibm/ado/commit/4397c5dc1ea8193c38a59c726e5b7d37cf737580)) - DRL-NextGen
+#### Tests
+- configure asyncio default fixture loop scope to suppress warning (#1647) - ([a07e20b](https://github.com/ibm/ado/commit/a07e20b586d91e6bc644ff0bbdaa584a16f57b1d)) - Alessandro Pomponio
+- include failed and errored tests in short summary (#1589) - ([3478641](https://github.com/ibm/ado/commit/347864128688c5c5f3fb00b968de4ab75fae0123)) - Michael Johnston
+#### Build system
+- (**core**) improve PyPI metadata (#1644) - ([3575c85](https://github.com/ibm/ado/commit/3575c8538a252e827314e6f88a8bbd8399f37a5d)) - Alessandro Pomponio
+- (**deps**) update dependencies (#1689) - ([dbae6ec](https://github.com/ibm/ado/commit/dbae6ec6d8ba6e141e498178a0efbdad10a318b0)) - Alessandro Pomponio
+- (**deps**) update dependencies (#1658) - ([554b011](https://github.com/ibm/ado/commit/554b01133aab175bd98d981562ec12b9767d5c4b)) - DRL-NextGen
+- (**deps**) update dependencies (#1635) - ([fae7d67](https://github.com/ibm/ado/commit/fae7d678b43ee1ad3395b3b4a25c536ccf08a1d9)) - DRL-NextGen
+- (**deps**) update dependencies (#1605) - ([1852e21](https://github.com/ibm/ado/commit/1852e21ff01bdd85e38906a3fee7815ae4c087eb)) - DRL-NextGen
+- (**deps**) update dependencies (#1585) - ([ea82276](https://github.com/ibm/ado/commit/ea822760431aef24d3025028f150d0dca8dc5c02)) - DRL-NextGen
+- (**hooks**) update pre-commit hooks (#1659) - ([8b7bdbd](https://github.com/ibm/ado/commit/8b7bdbd23aaa84ae423a9a4b9b7174daee06705d)) - DRL-NextGen
+- (**hooks**) update pre-commit hooks (#1636) - ([c699891](https://github.com/ibm/ado/commit/c6998914c5bb886ebe6d070c321c68981b41252d)) - DRL-NextGen
+- (**hooks**) update pre-commit hooks (#1606) - ([106e4b6](https://github.com/ibm/ado/commit/106e4b67c0c51f3e11b86272b83c8bd4dfb8189e)) - DRL-NextGen
+- (**hooks**) update pre-commit hooks (#1588) - ([123172c](https://github.com/ibm/ado/commit/123172c883f5b66501d384c5cccb8cba4541c111)) - DRL-NextGen
+#### Refactoring
+- (**cli**) replace -o stats with --stats flag in ado get (#1593) - ([6f015be](https://github.com/ibm/ado/commit/6f015be327618f437931fe42ee66f2a22acc5d10)) - Alessandro Pomponio
+- (**core**) make CustomExperiments a StandardActuator subclass (#1669) - ([fc33c3f](https://github.com/ibm/ado/commit/fc33c3fc173dafd5ad45856bdc3bb52a7a75dc17)) - Michael Johnston
+- (**core**) use parameterization set for equality and hashing (#1599) - ([c8e97ed](https://github.com/ibm/ado/commit/c8e97ed6e7bbfd9cf8a3ffe6e791b97ffc16f2ae)) - Alessandro Pomponio
+- (**sfttrainer**) remove dependency to AIM and replace with custom metrics tracker (#1674) - ([33cd6a6](https://github.com/ibm/ado/commit/33cd6a6157b40a0b07e0e73c08c075aae035ba51)) - Vassilis Vassiliadis
+- (**trim**) clean up no-priors 1D sampling and DataFrame helpers (#1661) - ([f923866](https://github.com/ibm/ado/commit/f9238668110ffe944a3f7abb1825b86341700086)) - Daniele Lotito
+#### Miscellaneous Chores
+- (**vllm-performance**) update vllm image version to v0.31.0 (#1604) - ([c783121](https://github.com/ibm/ado/commit/c783121cea755e0005ec99c1e267fdddfc3300d6)) - Alessandro Pomponio
+- remove .bob link to .agents (#1459) - ([2cf5c7c](https://github.com/ibm/ado/commit/2cf5c7cec151946fec8343ecfccd01ba1d4930ed)) - Alessandro Pomponio
+
+- - -
+
 ## [2.3.0](https://github.com/ibm/ado/compare/159e9617ddceeb0a80c0134c990746cd9ca8b0a4..2.3.0) - 2026-10-20
 #### Features
 - (**autoconf**) add throughput recommender (#1477) - ([9ea5cee](https://github.com/ibm/ado/commit/9ea5cee34b2711a5b8ffbeda2b373a548bc0addf)) - Daniele Lotito

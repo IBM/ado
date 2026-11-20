@@ -20,9 +20,8 @@ with few measurements. A Random Forest predicts the target by averaging the
 predictions of many decision trees. FLORA gives priority to regions that contain
 few labeled entities and where trees disagree. In an acid–base titration, for
 example, pH can change sharply as the added base neutralises the acid.
-Disagreement can help locate such a transition. FLORA's acquisition function
-allows implicit diversity, by forcing sampling to explore more sparsely labeled
-regions as well.
+Disagreement can help locate such a transition. When trees disagree, FLORA
+gives more weight to regions with fewer measurements, all else being equal.
 
 FLORA reuses existing target measurements. It saves a final model and a table
 of measured and predicted values for the whole candidate pool. The pool is

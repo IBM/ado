@@ -91,6 +91,10 @@ uv run ado create operation -f operation.yaml \
   --with space=space-abcd-1234
 ```
 
+For an operator with several inputs of one kind, name the input with
+`KIND:INPUT`, e.g. `--with space:reference=space-abc123` or
+`--use-latest dcr:data`; see [ado-use-cli](../ado-use-cli/SKILL.md) (`--with`).
+
 `--dry-run` propagates to nested resources passed via `--with KIND=FILE.yaml`
 and `--new-sample-store`, validating them without creating anything in the metastore.
 See [ado-use-cli](../ado-use-cli/SKILL.md) (`--with` and iterative development).

@@ -40,6 +40,7 @@ from ado.modules.operators.collections import (
     fuse,
     fuse_operation,
 )
+from tests.ado.create.conftest import raw_operation, write_operation
 
 
 def _stub(
@@ -75,43 +76,6 @@ def _two_spaces(
     parameters: GenericOperatorParameters,
 ) -> OperationOutput:
     return _stub(left, right, operationInfo, parameters=parameters)
-
-
-def _raw_operation(
-    name: str,
-    operation_type: str,
-    inputs: dict | None = None,
-) -> dict:
-    """Return a raw operation configuration for *name*."""
-    raw: dict = {
-        "operation": {
-            "module": {
-                "operatorName": name,
-                "operationType": operation_type,
-            },
-            "parameters": {},
-        }
-    }
-    if inputs is not None:
-        raw["inputs"] = inputs
-    return raw
-
-
-def _write_operation(
-    path: pathlib.Path,
-    name: str,
-    operation_type: str,
-    inputs_yaml: str = "",
-) -> None:
-    """Write an operation YAML that references *name*."""
-    path.write_text(
-        "operation:\n"
-        "  module:\n"
-        f"    operatorName: {name}\n"
-        f"    operationType: {operation_type}\n"
-        "  parameters: {}\n"
-        f"{inputs_yaml}"
-    )
 
 
 def _legacy_metadata(
@@ -178,7 +142,7 @@ class TestDescriptorForKind:
         with temporary_operator(
             characterize.operators, characterize_operation, _one_container
         ) as name:
-            raw = _raw_operation(name, "characterize")
+            raw = raw_operation(name, "characterize")
             assert (
                 _descriptor_for_raw(raw, CoreResourceKinds.DATACONTAINER).identifier
                 == "measurements"
@@ -191,7 +155,7 @@ class TestDescriptorForKind:
         with temporary_operator(
             compare.operators, compare_operation, _two_containers
         ) as name:
-            raw = _raw_operation(name, "compare")
+            raw = raw_operation(name, "compare")
             with pytest.raises(ValueError, match="multiple"):
                 _descriptor_for_raw(raw, CoreResourceKinds.DATACONTAINER)
 
@@ -200,7 +164,7 @@ class TestDescriptorForKind:
     ) -> None:
         """When one input of the kind is unset, its descriptor is returned."""
         with temporary_operator(fuse.operators, fuse_operation, _two_spaces) as name:
-            raw = _raw_operation(
+            raw = raw_operation(
                 name,
                 "fuse",
                 inputs={
@@ -294,7 +258,7 @@ def test_create_operation_dry_run_allows_multiple_discovery_spaces(
     )
     operation_file = tmp_path / "operation.yaml"
     with temporary_operator(fuse.operators, fuse_operation, _two_spaces) as name:
-        _write_operation(
+        write_operation(
             operation_file,
             name,
             "fuse",
@@ -343,7 +307,7 @@ def test_create_operation_dry_run_with_datacontainer(
     with temporary_operator(
         characterize.operators, characterize_operation, _one_container
     ) as name:
-        _write_operation(operation_file, name, "characterize")
+        write_operation(operation_file, name, "characterize")
         result = runner.invoke(
             ado,
             [
@@ -383,7 +347,7 @@ def test_create_operation_dry_run_use_latest_datacontainer(
     with temporary_operator(
         characterize.operators, characterize_operation, _one_container
     ) as name:
-        _write_operation(operation_file, name, "characterize")
+        write_operation(operation_file, name, "characterize")
         result = runner.invoke(
             ado,
             [
@@ -419,7 +383,7 @@ def test_with_datacontainer_file_is_not_wrapped_as_generic_failure(
     container_file = tmp_path / "container.yaml"
     container_file.write_text("metadata: {}\n")
     operation_file = tmp_path / "operation.yaml"
-    _write_operation(operation_file, "random_walk", "explore")
+    write_operation(operation_file, "random_walk", "explore")
     result = runner.invoke(
         ado,
         [

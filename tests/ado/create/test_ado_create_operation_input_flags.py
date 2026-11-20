@@ -3,7 +3,7 @@
 """Tests for --with and --use-latest targeting named operation inputs."""
 
 import pathlib
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from contextlib import AbstractContextManager
 
 import pytest
@@ -19,12 +19,13 @@ from ado.cli.core.cli import app as ado
 from ado.cli.core.config import AdoConfiguration
 from ado.cli.models.parameters import (
     AdoCreateCommandParameters,
+    OperationInputReference,
     OperationInputResourceOption,
 )
 from ado.cli.models.types import AdoCreateSupportedResourceTypes
 from ado.cli.resources.operation.create import apply_resource_flags
 from ado.cli.utils.input.parsers import resource_kind_with_input_parser
-from ado.core.datacontainer.resource import DataContainer, DataContainerResource
+from ado.core.datacontainer.resource import DataContainerResource
 from ado.core.discoveryspace.space import DiscoverySpace
 from ado.core.operation.config import (
     DiscoveryOperationEnum,
@@ -36,6 +37,11 @@ from ado.core.resources import CoreResourceKinds
 from ado.metastore.project import ProjectContext
 from ado.metastore.sqlstore import SQLStore
 from ado.modules.operators.collections import compare, compare_operation
+from tests.ado.create.conftest import raw_operation, write_operation
+
+SPACE_CONFIGURATION_FILE = pathlib.Path(
+    "examples/optimization_test_functions/space.yaml"
+)
 
 
 def _two_spaces_and_container(
@@ -48,28 +54,24 @@ def _two_spaces_and_container(
 ) -> OperationOutput: ...
 
 
-def _raw_operation(name: str, inputs: dict | None = None) -> dict:
-    """Return a raw operation configuration for a compare operator named *name*."""
-    raw: dict = {
-        "operation": {
-            "module": {
-                "operatorName": name,
-                "operationType": DiscoveryOperationEnum.COMPARE.value,
-            },
-            "parameters": {},
-        }
-    }
-    if inputs is not None:
-        raw["inputs"] = inputs
-    return raw
+@pytest.fixture
+def compare_operator_name(
+    temporary_operator: Callable[..., AbstractContextManager[str]],
+) -> Iterator[str]:
+    """Register a compare operator with two space inputs and a data container."""
+    with temporary_operator(
+        compare.operators, compare_operation, _two_spaces_and_container
+    ) as name:
+        yield name
 
 
 def _create_parameters(
     with_resources: dict | None = None,
     with_inputs: list[OperationInputResourceOption] | None = None,
     use_latest: list[CoreResourceKinds] | None = None,
+    use_latest_inputs: list[OperationInputReference] | None = None,
 ) -> AdoCreateCommandParameters:
-    """Build create parameters carrying --with and --use-latest values."""
+    """Build dry-run create parameters carrying --with and --use-latest values."""
     return AdoCreateCommandParameters(
         ado_configuration=AdoConfiguration(),
         dry_run=True,
@@ -81,7 +83,42 @@ def _create_parameters(
         use_latest=use_latest or [],
         with_resources=with_resources or {},
         with_inputs=with_inputs or [],
+        use_latest_inputs=use_latest_inputs or [],
     )
+
+
+def _space_input(
+    input_name: str, value: pathlib.Path | str
+) -> OperationInputResourceOption:
+    """Return a --with discoveryspace:INPUT=VALUE option."""
+    return OperationInputResourceOption(
+        input_name=input_name, kind=CoreResourceKinds.DISCOVERYSPACE, value=value
+    )
+
+
+# ---------------------------------------------------------------------------
+# Models
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "option",
+    [
+        OperationInputReference(
+            input_name="data", kind=CoreResourceKinds.DATACONTAINER
+        ),
+        _space_input("reference", "space-1"),
+        _space_input("reference", SPACE_CONFIGURATION_FILE),
+    ],
+)
+def test_operation_input_option_round_trip(
+    option: OperationInputReference,
+) -> None:
+    """Named input options survive a dump and reload with value types intact."""
+    reloaded = type(option).model_validate(option.model_dump())
+    assert reloaded == option
+    if isinstance(option, OperationInputResourceOption):
+        assert type(reloaded.value) is type(option.value)
 
 
 # ---------------------------------------------------------------------------
@@ -96,11 +133,7 @@ def test_parse_with_resource_options_splits_qualified_inputs() -> None:
     )
     assert with_resources == {CoreResourceKinds.SAMPLESTORE: "store-1"}
     assert with_inputs == [
-        OperationInputResourceOption(
-            input_name="reference",
-            kind=CoreResourceKinds.DISCOVERYSPACE,
-            value="space-1",
-        ),
+        _space_input("reference", "space-1"),
         OperationInputResourceOption(
             input_name="data", kind=CoreResourceKinds.DATACONTAINER, value="dc-1"
         ),
@@ -131,15 +164,25 @@ def test_parse_with_resource_options_rejects_invalid_qualifier(option: str) -> N
 
 
 def test_parse_use_latest_options_splits_qualified_inputs() -> None:
-    """Qualified --use-latest values become (input, kind) pairs."""
+    """Qualified --use-latest values become named input references."""
     kinds, inputs = parse_use_latest_options(
         ["discoveryspace", "datacontainer:data", "discoveryspace:reference"]
     )
     assert kinds == [CoreResourceKinds.DISCOVERYSPACE]
     assert inputs == [
-        ("data", CoreResourceKinds.DATACONTAINER),
-        ("reference", CoreResourceKinds.DISCOVERYSPACE),
+        OperationInputReference(
+            input_name="data", kind=CoreResourceKinds.DATACONTAINER
+        ),
+        OperationInputReference(
+            input_name="reference", kind=CoreResourceKinds.DISCOVERYSPACE
+        ),
     ]
+
+
+def test_parse_use_latest_options_rejects_non_input_kind() -> None:
+    """A qualified --use-latest kind must be an operator input kind."""
+    with pytest.raises(typer.Exit):
+        parse_use_latest_options(["samplestore:store"])
 
 
 @pytest.mark.parametrize(
@@ -170,32 +213,19 @@ def test_resource_kind_with_input_parser_rejects_invalid(value: str) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_apply_with_sets_named_inputs(
-    temporary_operator: Callable[..., AbstractContextManager[str]],
-) -> None:
+def test_apply_with_sets_named_inputs(compare_operator_name: str) -> None:
     """Qualified --with values are written to the named inputs."""
-    with temporary_operator(
-        compare.operators, compare_operation, _two_spaces_and_container
-    ) as name:
-        raw = _raw_operation(name)
-        apply_resource_flags(
-            raw,
-            _create_parameters(
-                with_inputs=[
-                    OperationInputResourceOption(
-                        input_name="reference",
-                        kind=CoreResourceKinds.DISCOVERYSPACE,
-                        value="space-ref",
-                    ),
-                    OperationInputResourceOption(
-                        input_name="candidate",
-                        kind=CoreResourceKinds.DISCOVERYSPACE,
-                        value="space-cand",
-                    ),
-                ],
-                with_resources={CoreResourceKinds.DATACONTAINER: "dc-1"},
-            ),
-        )
+    raw = raw_operation(compare_operator_name, DiscoveryOperationEnum.COMPARE.value)
+    apply_resource_flags(
+        raw,
+        _create_parameters(
+            with_inputs=[
+                _space_input("reference", "space-ref"),
+                _space_input("candidate", "space-cand"),
+            ],
+            with_resources={CoreResourceKinds.DATACONTAINER: "dc-1"},
+        ),
+    )
     assert raw["inputs"] == {
         "reference": {"identifier": "space-ref", "kind": "discoveryspace"},
         "candidate": {"identifier": "space-cand", "kind": "discoveryspace"},
@@ -204,66 +234,89 @@ def test_apply_with_sets_named_inputs(
 
 
 def test_apply_with_unqualified_fills_remaining_input(
-    temporary_operator: Callable[..., AbstractContextManager[str]],
+    compare_operator_name: str,
 ) -> None:
     """An unqualified --with fills the input of its kind not set by a qualified one."""
-    with temporary_operator(
-        compare.operators, compare_operation, _two_spaces_and_container
-    ) as name:
-        raw = _raw_operation(name)
-        apply_resource_flags(
-            raw,
-            _create_parameters(
-                with_inputs=[
-                    OperationInputResourceOption(
-                        input_name="reference",
-                        kind=CoreResourceKinds.DISCOVERYSPACE,
-                        value="space-ref",
-                    )
-                ],
-                with_resources={CoreResourceKinds.DISCOVERYSPACE: "space-cand"},
-            ),
-        )
+    raw = raw_operation(compare_operator_name, DiscoveryOperationEnum.COMPARE.value)
+    apply_resource_flags(
+        raw,
+        _create_parameters(
+            with_inputs=[_space_input("reference", "space-ref")],
+            with_resources={CoreResourceKinds.DISCOVERYSPACE: "space-cand"},
+        ),
+    )
     assert raw["inputs"]["reference"]["identifier"] == "space-ref"
     assert raw["inputs"]["candidate"]["identifier"] == "space-cand"
 
 
-def test_apply_with_unknown_input_name_raises(
-    temporary_operator: Callable[..., AbstractContextManager[str]],
+def test_apply_with_file_in_dry_run_leaves_input_unset(
+    compare_operator_name: str,
 ) -> None:
-    """A qualified --with naming an undeclared input raises."""
-    with (
-        temporary_operator(
-            compare.operators, compare_operation, _two_spaces_and_container
-        ) as name,
-        pytest.raises(ValueError, match="missing_input"),
-    ):
-        apply_resource_flags(
-            _raw_operation(name),
-            _create_parameters(
-                with_inputs=[
-                    OperationInputResourceOption(
-                        input_name="missing_input",
-                        kind=CoreResourceKinds.DISCOVERYSPACE,
-                        value="space-1",
-                    )
-                ]
+    """A --with file validated in a dry run claims its input without writing it."""
+    raw = raw_operation(compare_operator_name, DiscoveryOperationEnum.COMPARE.value)
+    apply_resource_flags(
+        raw,
+        _create_parameters(
+            with_inputs=[_space_input("reference", SPACE_CONFIGURATION_FILE)],
+            with_resources={CoreResourceKinds.DISCOVERYSPACE: "space-cand"},
+        ),
+    )
+    assert "reference" not in raw["inputs"]
+    assert raw["inputs"]["candidate"]["identifier"] == "space-cand"
+
+
+@pytest.mark.parametrize(
+    ("build_parameters", "error"),
+    [
+        (
+            lambda space_file: _create_parameters(
+                with_inputs=[_space_input("missing_input", space_file)]
             ),
+            "missing_input",
+        ),
+        (
+            lambda space_file: _create_parameters(
+                with_resources={CoreResourceKinds.DISCOVERYSPACE: space_file}
+            ),
+            r"discoveryspace:<input>",
+        ),
+    ],
+    ids=["unknown-input", "ambiguous-kind"],
+)
+def test_apply_validates_inputs_before_creating_resources(
+    compare_operator_name: str,
+    tmp_path: pathlib.Path,
+    build_parameters: Callable[[pathlib.Path], AdoCreateCommandParameters],
+    error: str,
+) -> None:
+    """Input errors are raised before a --with file is turned into a resource.
+
+    The space file is invalid, so creating it first would exit with a space
+    validation error instead of raising the input error.
+    """
+    invalid_space_file = tmp_path / "invalid_space.yaml"
+    invalid_space_file.write_text("not: a space\n")
+    with pytest.raises(ValueError, match=error):
+        apply_resource_flags(
+            raw_operation(compare_operator_name, DiscoveryOperationEnum.COMPARE.value),
+            build_parameters(invalid_space_file),
         )
 
 
-def test_apply_with_kind_mismatch_raises(
-    temporary_operator: Callable[..., AbstractContextManager[str]],
-) -> None:
-    """A qualified --with whose kind differs from the input's kind raises."""
-    with (
-        temporary_operator(
-            compare.operators, compare_operation, _two_spaces_and_container
-        ) as name,
-        pytest.raises(ValueError, match="reference"),
-    ):
+def test_apply_with_unknown_input_name_raises(compare_operator_name: str) -> None:
+    """A qualified --with naming an undeclared input raises."""
+    with pytest.raises(ValueError, match="missing_input"):
         apply_resource_flags(
-            _raw_operation(name),
+            raw_operation(compare_operator_name, DiscoveryOperationEnum.COMPARE.value),
+            _create_parameters(with_inputs=[_space_input("missing_input", "space-1")]),
+        )
+
+
+def test_apply_with_kind_mismatch_raises(compare_operator_name: str) -> None:
+    """A qualified --with whose kind differs from the input's kind raises."""
+    with pytest.raises(ValueError, match="reference"):
+        apply_resource_flags(
+            raw_operation(compare_operator_name, DiscoveryOperationEnum.COMPARE.value),
             _create_parameters(
                 with_inputs=[
                     OperationInputResourceOption(
@@ -277,46 +330,28 @@ def test_apply_with_kind_mismatch_raises(
 
 
 def test_apply_with_same_scalar_input_twice_raises(
-    temporary_operator: Callable[..., AbstractContextManager[str]],
+    compare_operator_name: str,
 ) -> None:
     """Setting one scalar input from two flags raises."""
-    with (
-        temporary_operator(
-            compare.operators, compare_operation, _two_spaces_and_container
-        ) as name,
-        pytest.raises(ValueError, match="reference"),
-    ):
+    with pytest.raises(ValueError, match="reference"):
         apply_resource_flags(
-            _raw_operation(name),
+            raw_operation(compare_operator_name, DiscoveryOperationEnum.COMPARE.value),
             _create_parameters(
                 with_inputs=[
-                    OperationInputResourceOption(
-                        input_name="reference",
-                        kind=CoreResourceKinds.DISCOVERYSPACE,
-                        value="space-1",
-                    ),
-                    OperationInputResourceOption(
-                        input_name="reference",
-                        kind=CoreResourceKinds.DISCOVERYSPACE,
-                        value="space-2",
-                    ),
+                    _space_input("reference", "space-1"),
+                    _space_input("reference", "space-2"),
                 ]
             ),
         )
 
 
 def test_apply_with_ambiguous_kind_suggests_qualifier(
-    temporary_operator: Callable[..., AbstractContextManager[str]],
+    compare_operator_name: str,
 ) -> None:
     """An unqualified --with for an ambiguous kind names the qualified syntax."""
-    with (
-        temporary_operator(
-            compare.operators, compare_operation, _two_spaces_and_container
-        ) as name,
-        pytest.raises(ValueError, match=r"discoveryspace:<input>"),
-    ):
+    with pytest.raises(ValueError, match=r"discoveryspace:<input>"):
         apply_resource_flags(
-            _raw_operation(name),
+            raw_operation(compare_operator_name, DiscoveryOperationEnum.COMPARE.value),
             _create_parameters(
                 with_resources={CoreResourceKinds.DISCOVERYSPACE: "space-1"}
             ),
@@ -324,17 +359,12 @@ def test_apply_with_ambiguous_kind_suggests_qualifier(
 
 
 def test_apply_rejects_same_kind_on_with_and_use_latest(
-    temporary_operator: Callable[..., AbstractContextManager[str]],
+    compare_operator_name: str,
 ) -> None:
     """An unqualified kind cannot be given to both --with and --use-latest."""
-    with (
-        temporary_operator(
-            compare.operators, compare_operation, _two_spaces_and_container
-        ) as name,
-        pytest.raises(ValueError, match="both --with and --use-latest"),
-    ):
+    with pytest.raises(ValueError, match="both --with and --use-latest"):
         apply_resource_flags(
-            _raw_operation(name),
+            raw_operation(compare_operator_name, DiscoveryOperationEnum.COMPARE.value),
             _create_parameters(
                 with_resources={CoreResourceKinds.DISCOVERYSPACE: "space-1"},
                 use_latest=[CoreResourceKinds.DISCOVERYSPACE],
@@ -342,30 +372,39 @@ def test_apply_rejects_same_kind_on_with_and_use_latest(
         )
 
 
+@pytest.mark.parametrize(
+    ("with_resources", "use_latest"),
+    [
+        ({}, [CoreResourceKinds.SAMPLESTORE]),
+        ({}, [CoreResourceKinds.OPERATION]),
+        ({CoreResourceKinds.SAMPLESTORE: "store-1"}, []),
+    ],
+    ids=["use-latest-samplestore", "use-latest-operation", "with-samplestore"],
+)
+def test_apply_rejects_kinds_operations_cannot_use(
+    compare_operator_name: str,
+    with_resources: dict,
+    use_latest: list[CoreResourceKinds],
+) -> None:
+    """Kinds that are neither operation inputs nor actuator configurations raise."""
+    with pytest.raises(ValueError, match="cannot be used when creating an operation"):
+        apply_resource_flags(
+            raw_operation(compare_operator_name, DiscoveryOperationEnum.COMPARE.value),
+            _create_parameters(with_resources=with_resources, use_latest=use_latest),
+        )
+
+
 def test_apply_unqualified_kind_when_all_already_assigned_raises(
-    temporary_operator: Callable[..., AbstractContextManager[str]],
+    compare_operator_name: str,
 ) -> None:
     """An unqualified kind fails clearly when every input of that kind is set."""
-    with (
-        temporary_operator(
-            compare.operators, compare_operation, _two_spaces_and_container
-        ) as name,
-        pytest.raises(ValueError, match="were already set"),
-    ):
+    with pytest.raises(ValueError, match="were already set"):
         apply_resource_flags(
-            _raw_operation(name),
+            raw_operation(compare_operator_name, DiscoveryOperationEnum.COMPARE.value),
             _create_parameters(
                 with_inputs=[
-                    OperationInputResourceOption(
-                        input_name="reference",
-                        kind=CoreResourceKinds.DISCOVERYSPACE,
-                        value="space-ref",
-                    ),
-                    OperationInputResourceOption(
-                        input_name="candidate",
-                        kind=CoreResourceKinds.DISCOVERYSPACE,
-                        value="space-cand",
-                    ),
+                    _space_input("reference", "space-ref"),
+                    _space_input("candidate", "space-cand"),
                 ],
                 with_resources={CoreResourceKinds.DISCOVERYSPACE: "space-extra"},
             ),
@@ -373,25 +412,95 @@ def test_apply_unqualified_kind_when_all_already_assigned_raises(
 
 
 # ---------------------------------------------------------------------------
+# List inputs
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("existing_containers", "expected_identifiers"),
+    [
+        (None, ["datacontainer-aaa"]),
+        (
+            [{"identifier": "datacontainer-file", "kind": "datacontainer"}],
+            ["datacontainer-file", "datacontainer-aaa"],
+        ),
+        (
+            {"identifier": "datacontainer-file", "kind": "datacontainer"},
+            ["datacontainer-file", "datacontainer-aaa"],
+        ),
+    ],
+    ids=["unset", "list", "single-mapping"],
+)
+def test_apply_unqualified_kind_appends_to_list_input(
+    summarize_operator_name: str,
+    existing_containers: list | dict | None,
+    expected_identifiers: list[str],
+) -> None:
+    """An unqualified --with binds to the list input and appends to its value."""
+    inputs: dict = {
+        "baseline": {"identifier": "datacontainer-baseline", "kind": "datacontainer"}
+    }
+    if existing_containers is not None:
+        inputs["containers"] = existing_containers
+    raw = raw_operation(
+        summarize_operator_name, DiscoveryOperationEnum.SUMMARIZE.value, inputs
+    )
+    apply_resource_flags(
+        raw,
+        _create_parameters(
+            with_resources={CoreResourceKinds.DATACONTAINER: "datacontainer-aaa"}
+        ),
+    )
+    assert [
+        container["identifier"] for container in raw["inputs"]["containers"]
+    ] == expected_identifiers
+    assert raw["inputs"]["baseline"]["identifier"] == "datacontainer-baseline"
+
+
+def test_apply_named_list_input_appends_each_value(
+    summarize_operator_name: str,
+) -> None:
+    """Repeated --with for a list input append after the file's entries."""
+    raw = raw_operation(
+        summarize_operator_name,
+        DiscoveryOperationEnum.SUMMARIZE.value,
+        {
+            "containers": [
+                {"identifier": "datacontainer-file", "kind": "datacontainer"}
+            ],
+            "baseline": {
+                "identifier": "datacontainer-baseline",
+                "kind": "datacontainer",
+            },
+        },
+    )
+    apply_resource_flags(
+        raw,
+        _create_parameters(
+            with_inputs=[
+                OperationInputResourceOption(
+                    input_name="containers",
+                    kind=CoreResourceKinds.DATACONTAINER,
+                    value=identifier,
+                )
+                for identifier in ("datacontainer-aaa", "datacontainer-bbb")
+            ]
+        ),
+    )
+    assert raw["inputs"]["containers"] == [
+        {"identifier": "datacontainer-file", "kind": "datacontainer"},
+        {"identifier": "datacontainer-aaa", "kind": "datacontainer"},
+        {"identifier": "datacontainer-bbb", "kind": "datacontainer"},
+    ]
+
+
+# ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 
 
-def _write_operation_yaml(path: pathlib.Path, name: str) -> pathlib.Path:
-    """Write an operation YAML for a compare operator named *name* with no inputs."""
-    operation_file = path / "compare_operation.yaml"
-    operation_file.write_text(
-        "operation:\n"
-        "  module:\n"
-        f"    operatorName: {name}\n"
-        "    operationType: compare\n"
-        "  parameters: {}\n"
-    )
-    return operation_file
-
-
 def test_create_operation_dry_run_with_named_inputs_and_use_latest(
-    temporary_operator: Callable[..., AbstractContextManager[str]],
+    compare_operator_name: str,
     tmp_path: pathlib.Path,
     mysql_test_instance: MySqlContainer,
     valid_ado_project_context: ProjectContext,
@@ -399,37 +508,75 @@ def test_create_operation_dry_run_with_named_inputs_and_use_latest(
         [CliRunner, pathlib.Path, ProjectContext], None
     ],
     sql_store: SQLStore,
+    data_container_resource: DataContainerResource,
 ) -> None:
     """--with and --use-latest with input qualifiers combine on one operation."""
     runner = CliRunner()
     create_active_ado_context(
         runner=runner, path=tmp_path, project_context=valid_ado_project_context
     )
-    data_container = DataContainerResource(config=DataContainer(data={"k": "v"}))
-    sql_store.addResource(data_container)
+    sql_store.addResource(data_container_resource)
+    operation_file = tmp_path / "compare_operation.yaml"
+    write_operation(
+        operation_file, compare_operator_name, DiscoveryOperationEnum.COMPARE.value
+    )
 
-    with temporary_operator(
-        compare.operators, compare_operation, _two_spaces_and_container
-    ) as name:
-        result = runner.invoke(
-            ado,
-            [
-                "create",
-                "operation",
-                "-f",
-                str(_write_operation_yaml(tmp_path, name)),
-                "--with",
-                "space:reference=space-ref",
-                "--with",
-                "space:candidate=space-cand",
-                "--use-latest",
-                "dcr:data",
-                "--dry-run",
-            ],
-        )
+    result = runner.invoke(
+        ado,
+        [
+            "create",
+            "operation",
+            "-f",
+            str(operation_file),
+            "--with",
+            "space:reference=space-ref",
+            "--with",
+            "space:candidate=space-cand",
+            "--use-latest",
+            "dcr:data",
+            "--dry-run",
+        ],
+    )
     assert result.exit_code == 0, result.output
-    assert data_container.identifier in result.output
-    assert "data" in result.output
+    assert data_container_resource.identifier in result.output
+
+
+def test_create_operation_reports_unresolvable_operator_module(
+    tmp_path: pathlib.Path,
+    mysql_test_instance: MySqlContainer,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+) -> None:
+    """A module that cannot be imported is reported as a flag error, not a traceback."""
+    runner = CliRunner()
+    create_active_ado_context(
+        runner=runner, path=tmp_path, project_context=valid_ado_project_context
+    )
+    operation_file = tmp_path / "operation.yaml"
+    operation_file.write_text(
+        "operation:\n"
+        "  module:\n"
+        "    moduleName: module_that_does_not_exist\n"
+        "    moduleClass: Operator\n"
+        "  parameters: {}\n"
+    )
+
+    result = runner.invoke(
+        ado,
+        [
+            "create",
+            "operation",
+            "-f",
+            str(operation_file),
+            "--with",
+            "space=space-1",
+            "--dry-run",
+        ],
+    )
+    assert result.exit_code == 1, result.output
+    assert "Failed to apply --with/--use-latest" in result.output
 
 
 def test_create_space_rejects_input_qualifier(
@@ -451,7 +598,7 @@ def test_create_space_rejects_input_qualifier(
             "create",
             "space",
             "-f",
-            "examples/optimization_test_functions/space.yaml",
+            str(SPACE_CONFIGURATION_FILE),
             "--with",
             "space:reference=space-1",
             "--dry-run",

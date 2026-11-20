@@ -2,43 +2,16 @@
 # SPDX-License-Identifier: MIT
 """Tests for validating list inputs of summarize operations."""
 
-from collections.abc import Callable, Iterator
-from contextlib import AbstractContextManager
-
 import pytest
 
-from ado.core.datacontainer.resource import DataContainerResource
 from ado.core.operation.config import (
     DiscoveryOperationConfiguration,
     DiscoveryOperationEnum,
     DiscoveryOperationResourceConfiguration,
-    FunctionOperationInfo,
     GenericOperatorParameters,
     OperatorReference,
 )
-from ado.core.operation.operation import OperationOutput
 from ado.core.resources import ADOResourceReference, CoreResourceKinds
-from ado.modules.operators.collections import summarize, summarize_operation
-
-
-def _summarize_containers(
-    containers: list[DataContainerResource],
-    baseline: DataContainerResource,
-    operationInfo: FunctionOperationInfo | None = None,
-    *,
-    parameters: GenericOperatorParameters,
-) -> OperationOutput: ...
-
-
-@pytest.fixture
-def summarize_operator_name(
-    temporary_operator: Callable[..., AbstractContextManager[str]],
-) -> Iterator[str]:
-    """Register a summarize operator with a list input and a scalar baseline."""
-    with temporary_operator(
-        summarize.operators, summarize_operation, _summarize_containers
-    ) as name:
-        yield name
 
 
 def _operation_config(
@@ -143,112 +116,3 @@ def test_validate_inputs_rejects_list_for_scalar_param(
                 ],
             },
         )
-
-
-def test_with_kind_writes_one_element_list(
-    temporary_operator: Callable[..., AbstractContextManager[str]],
-) -> None:
-    """An unqualified --with binds to the list input and stores a one-element list."""
-    from ado.cli.core.config import AdoConfiguration
-    from ado.cli.models.parameters import AdoCreateCommandParameters
-    from ado.cli.models.types import AdoCreateSupportedResourceTypes
-    from ado.cli.resources.operation.create import apply_resource_flags
-
-    with temporary_operator(
-        summarize.operators, summarize_operation, _summarize_containers
-    ) as name:
-        raw = {
-            "operation": {
-                "module": {
-                    "operatorName": name,
-                    "operationType": DiscoveryOperationEnum.SUMMARIZE.value,
-                }
-            },
-            "inputs": {
-                "baseline": {
-                    "identifier": "datacontainer-baseline",
-                    "kind": "datacontainer",
-                }
-            },
-        }
-        apply_resource_flags(
-            raw,
-            AdoCreateCommandParameters(
-                ado_configuration=AdoConfiguration(),
-                dry_run=True,
-                new_sample_store=False,
-                override_values=[],
-                resource_configuration_file=None,
-                resource_type=AdoCreateSupportedResourceTypes.OPERATION,
-                use_default_sample_store=False,
-                use_latest=[],
-                with_resources={CoreResourceKinds.DATACONTAINER: "datacontainer-aaa"},
-            ),
-        )
-    assert raw["inputs"]["containers"] == [
-        {"identifier": "datacontainer-aaa", "kind": "datacontainer"}
-    ]
-    assert raw["inputs"]["baseline"]["identifier"] == "datacontainer-baseline"
-
-
-def test_with_named_list_input_replaces_file_value_then_appends(
-    temporary_operator: Callable[..., AbstractContextManager[str]],
-) -> None:
-    """Repeated --with for a list input replace the file's list and then append."""
-    from ado.cli.core.config import AdoConfiguration
-    from ado.cli.models.parameters import (
-        AdoCreateCommandParameters,
-        OperationInputResourceOption,
-    )
-    from ado.cli.models.types import AdoCreateSupportedResourceTypes
-    from ado.cli.resources.operation.create import apply_resource_flags
-
-    with temporary_operator(
-        summarize.operators, summarize_operation, _summarize_containers
-    ) as name:
-        raw = {
-            "operation": {
-                "module": {
-                    "operatorName": name,
-                    "operationType": DiscoveryOperationEnum.SUMMARIZE.value,
-                }
-            },
-            "inputs": {
-                "containers": [
-                    {
-                        "identifier": "datacontainer-from-file",
-                        "kind": "datacontainer",
-                    }
-                ],
-                "baseline": {
-                    "identifier": "datacontainer-baseline",
-                    "kind": "datacontainer",
-                },
-            },
-        }
-        apply_resource_flags(
-            raw,
-            AdoCreateCommandParameters(
-                ado_configuration=AdoConfiguration(),
-                dry_run=True,
-                new_sample_store=False,
-                override_values=[],
-                resource_configuration_file=None,
-                resource_type=AdoCreateSupportedResourceTypes.OPERATION,
-                use_default_sample_store=False,
-                use_latest=[],
-                with_resources={},
-                with_inputs=[
-                    OperationInputResourceOption(
-                        input_name="containers",
-                        kind=CoreResourceKinds.DATACONTAINER,
-                        value=identifier,
-                    )
-                    for identifier in ("datacontainer-aaa", "datacontainer-bbb")
-                ],
-            ),
-        )
-    assert raw["inputs"]["containers"] == [
-        {"identifier": "datacontainer-aaa", "kind": "datacontainer"},
-        {"identifier": "datacontainer-bbb", "kind": "datacontainer"},
-    ]

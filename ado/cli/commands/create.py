@@ -13,6 +13,7 @@ from ado.cli.exceptions.handlers import (
 )
 from ado.cli.models.parameters import (
     AdoCreateCommandParameters,
+    OperationInputReference,
     OperationInputResourceOption,
 )
 from ado.cli.models.types import (
@@ -44,7 +45,7 @@ from ado.cli.utils.output.prints import (
     magenta,
 )
 from ado.core import CoreResourceKinds
-from ado.core.operation.inputs import KIND_FOR_OPERATOR_INPUT_TYPE
+from ado.core.operation.inputs import OPERATOR_INPUT_KINDS
 from ado.metastore.base import (
     NoRelatedResourcesError,
     ResourceDoesNotExistError,
@@ -164,10 +165,14 @@ def create_resource(
             help="""
             Reuse the latest identifier of a resource kind. Can be used multiple times.
 
-            For operations, use KIND:INPUT to set the operation input named INPUT,
-            e.g. space:reference.
+            Supported kinds depend on the resource being created:
 
-            Only supported for spaces and operations.""",
+            - space: samplestore.
+
+            - operation: space, datacontainer, and actuatorconfiguration.
+
+            For operations, use KIND:INPUT to set the operation input named INPUT,
+            e.g. space:reference.""",
         ),
     ] = None,
     use_default_sample_store: Annotated[
@@ -313,6 +318,26 @@ def _resolve_with_value(value: str) -> pathlib.Path | str:
         raise typer.Exit(1) from None
 
 
+def _check_operation_input_kind(kind: CoreResourceKinds) -> None:
+    """Exit with an error if *kind* is not a kind of operator input.
+
+    Args:
+        kind: Resource kind given with a ``KIND:INPUT`` qualifier.
+
+    Raises:
+        typer.Exit: If *kind* is not in ``OPERATOR_INPUT_KINDS``.
+    """
+    if kind in OPERATOR_INPUT_KINDS:
+        return
+    console_print(
+        f"{ERROR}{bold(kind.value)} cannot be used as an operation input. "
+        "Supported input kinds are "
+        f"{cyan(', '.join(sorted(input_kind.value for input_kind in OPERATOR_INPUT_KINDS)))}.",
+        stderr=True,
+    )
+    raise typer.Exit(1)
+
+
 def parse_with_resource_options(
     user_provided_options: list[str] | None,
 ) -> tuple[
@@ -341,7 +366,6 @@ def parse_with_resource_options(
     supported_resource_types = {
         v.value for v in AdoCreateWithResourceSupportedResourceTypes
     }
-    supported_input_kinds = set(KIND_FOR_OPERATOR_INPUT_TYPE.values())
 
     for with_option in parse_key_value_pairs(user_provided_options):
         for key, value in with_option.items():
@@ -366,14 +390,7 @@ def parse_with_resource_options(
             kind = CoreResourceKinds(resource_type)
 
             if input_name is not None:
-                if kind not in supported_input_kinds:
-                    console_print(
-                        f"{ERROR}{bold(kind.value)} cannot be used as an operation "
-                        "input. Supported input kinds are "
-                        f"{cyan(', '.join(sorted(k.value for k in supported_input_kinds)))}.",
-                        stderr=True,
-                    )
-                    raise typer.Exit(1)
+                _check_operation_input_kind(kind)
                 named_inputs.append(
                     OperationInputResourceOption(
                         input_name=input_name,
@@ -399,7 +416,7 @@ def parse_with_resource_options(
 
 def parse_use_latest_options(
     user_provided_options: list[str] | None,
-) -> tuple[list[CoreResourceKinds], list[tuple[str, CoreResourceKinds]]]:
+) -> tuple[list[CoreResourceKinds], list[OperationInputReference]]:
     """Parse ``--use-latest`` values into kinds and named operation inputs.
 
     Args:
@@ -407,14 +424,13 @@ def parse_use_latest_options(
             already resolved to its full name.
 
     Returns:
-        The unqualified kinds and the ``(input name, kind)`` pairs, in option order.
+        The unqualified kinds and the named operation inputs, in option order.
 
     Raises:
         typer.Exit: If a qualified kind cannot be an operation input.
     """
     kinds: list[CoreResourceKinds] = []
-    named_inputs: list[tuple[str, CoreResourceKinds]] = []
-    supported_input_kinds = set(KIND_FOR_OPERATOR_INPUT_TYPE.values())
+    named_inputs: list[OperationInputReference] = []
 
     for option in user_provided_options or []:
         kind_value, input_name = split_input_qualifier(option)
@@ -422,14 +438,7 @@ def parse_use_latest_options(
         if input_name is None:
             kinds.append(kind)
             continue
-        if kind not in supported_input_kinds:
-            console_print(
-                f"{ERROR}{bold(kind.value)} cannot be used as an operation input. "
-                "Supported input kinds are "
-                f"{cyan(', '.join(sorted(k.value for k in supported_input_kinds)))}.",
-                stderr=True,
-            )
-            raise typer.Exit(1)
-        named_inputs.append((input_name, kind))
+        _check_operation_input_kind(kind)
+        named_inputs.append(OperationInputReference(input_name=input_name, kind=kind))
 
     return kinds, named_inputs

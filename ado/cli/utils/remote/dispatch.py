@@ -247,12 +247,11 @@ def _copy_files_and_rewrite_args(
 def _rewrite_with_value(kv: str, working_dir: Path, seen: set[str]) -> str:
     """Rewrite the value part of a ``--with KEY=VALUE`` argument if it is a file.
 
-    Mirrors the path-detection logic in ``ado create``: a value is treated as
-    a file path when it contains a ``.`` or path separator.  If it resolves to
-    an existing file it is copied to *working_dir* and the argument is rewritten
-    to ``KEY=basename``.  If it looks like a path but the file is not found, a
-    ``FileNotFoundError`` is raised so the problem is caught locally rather than
-    on the remote cluster.  Plain resource identifiers are returned unchanged.
+    *KEY* is ``KIND`` or ``KIND:INPUT`` and is kept unchanged. The value is
+    classified with ``resolve_path_or_identifier``. An existing file is copied
+    to *working_dir* and the argument is rewritten to ``KEY=basename``. A value
+    that looks like a path but is not an existing file raises
+    ``FileNotFoundError``. Resource identifiers are returned unchanged.
 
     Args:
         kv: The ``KEY=VALUE`` string from the ``--with`` argument.

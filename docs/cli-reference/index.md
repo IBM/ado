@@ -180,10 +180,12 @@ Where:
   operation input named `INPUT`. See
   [Setting operation inputs](#setting-operation-inputs).
 - `--use-latest` allows reusing the latest identifier of a certain resource kind
-  from the current context's metastore. It is only supported for spaces and
-  operations during `ado create`. For operations, `KIND:INPUT` sets the
-  operation input named `INPUT`. It can be combined with `--with` as long as
-  the two flags do not name the same kind without an input qualifier.
+  from the current context's metastore. It is only supported during
+  `ado create space`, for `samplestore`, and `ado create operation`, for
+  `space`, `datacontainer`, and `actuatorconfiguration`; other kinds are
+  rejected for operations. For operations, `KIND:INPUT` sets the operation
+  input named `INPUT`. It can be combined with `--with` as long as the two
+  flags do not name the same kind without an input qualifier.
 - `--new-sample-store` creates a new sample store. Only available when running
   `ado create` on `space` and `samplestore`. If running
   `ado create space --new-sample-store`, the `sampleStoreIdentifier` contained
@@ -287,8 +289,8 @@ ado create operation -f operation.yaml \
 
 An unqualified kind fills the one input of that kind not set by a qualified
 flag, so `--with space:reference=space-abc123 --use-latest space` sets
-`candidate` to the latest space. Values given for a list input are collected
-into a list, replacing any list in the operation file.
+`candidate` to the latest space. Values given for a list input are appended
+to any entries the operation file already sets for it.
 
 #### Create a space renaming a property identifier in the space
 

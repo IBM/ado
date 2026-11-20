@@ -49,6 +49,11 @@ KIND_FOR_OPERATOR_INPUT_TYPE: dict[type, CoreResourceKinds] = {
     DataContainerResource: CoreResourceKinds.DATACONTAINER,
 }
 
+# Resource kinds an operator can declare as inputs.
+OPERATOR_INPUT_KINDS: frozenset[CoreResourceKinds] = frozenset(
+    KIND_FOR_OPERATOR_INPUT_TYPE.values()
+)
+
 
 def inspect_operator_function(
     fn: Callable[..., object],

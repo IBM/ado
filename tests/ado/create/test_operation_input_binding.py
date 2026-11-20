@@ -13,8 +13,8 @@ from typer.testing import CliRunner
 
 from ado.cli.core.cli import app as ado
 from ado.cli.resources.operation.create import (
-    _add_operation_input_for_reference,
-    _operator_input_descriptor_for_kind,
+    _descriptor_for_kind,
+    _resource_inputs_for_module,
 )
 from ado.cli.resources.operation.template import _operation_inputs_template
 from ado.core.datacontainer.resource import DataContainerResource
@@ -28,7 +28,6 @@ from ado.core.operation.config import (
 from ado.core.operation.operation import OperationOutput
 from ado.core.resources import (
     ADOResourcePropertyDescriptor,
-    ADOResourceReference,
     CoreResourceKinds,
 )
 from ado.metastore.project import ProjectContext
@@ -40,9 +39,8 @@ from ado.modules.operators.collections import (
     compare_operation,
     fuse,
     fuse_operation,
-    summarize,
-    summarize_operation,
 )
+from tests.ado.create.conftest import raw_operation, write_operation
 
 
 def _stub(
@@ -78,53 +76,6 @@ def _two_spaces(
     parameters: GenericOperatorParameters,
 ) -> OperationOutput:
     return _stub(left, right, operationInfo, parameters=parameters)
-
-
-def _list_and_baseline_containers(
-    containers: list[DataContainerResource],
-    baseline: DataContainerResource,
-    operationInfo: FunctionOperationInfo | None = None,
-    *,
-    parameters: GenericOperatorParameters,
-) -> OperationOutput:
-    return _stub(containers, baseline, operationInfo, parameters=parameters)
-
-
-def _raw_operation(
-    name: str,
-    operation_type: str,
-    inputs: dict | None = None,
-) -> dict:
-    """Return a raw operation configuration for *name*."""
-    raw: dict = {
-        "operation": {
-            "module": {
-                "operatorName": name,
-                "operationType": operation_type,
-            },
-            "parameters": {},
-        }
-    }
-    if inputs is not None:
-        raw["inputs"] = inputs
-    return raw
-
-
-def _write_operation(
-    path: pathlib.Path,
-    name: str,
-    operation_type: str,
-    inputs_yaml: str = "",
-) -> None:
-    """Write an operation YAML that references *name*."""
-    path.write_text(
-        "operation:\n"
-        "  module:\n"
-        f"    operatorName: {name}\n"
-        f"    operationType: {operation_type}\n"
-        "  parameters: {}\n"
-        f"{inputs_yaml}"
-    )
 
 
 def _legacy_metadata(
@@ -166,7 +117,24 @@ class _LegacyOperatorWithContainer:
         )
 
 
-class TestOperatorInputDescriptorForKind:
+def _descriptor_for_raw(
+    raw: dict,
+    kind: CoreResourceKinds,
+    assigned_inputs: set[str] | None = None,
+) -> ADOResourcePropertyDescriptor:
+    """Resolve the unqualified input descriptor for *kind* on *raw*."""
+    module = raw.get("operation", {}).get("module", {})
+    operator_name, descriptors = _resource_inputs_for_module(module)
+    return _descriptor_for_kind(
+        operator_name,
+        descriptors,
+        kind,
+        dict(raw.get("inputs") or {}),
+        assigned_inputs or set(),
+    )
+
+
+class TestDescriptorForKind:
     def test_single_match_returns_identifier(
         self, temporary_operator: Callable[..., AbstractContextManager[str]]
     ) -> None:
@@ -174,11 +142,9 @@ class TestOperatorInputDescriptorForKind:
         with temporary_operator(
             characterize.operators, characterize_operation, _one_container
         ) as name:
-            raw = _raw_operation(name, "characterize")
+            raw = raw_operation(name, "characterize")
             assert (
-                _operator_input_descriptor_for_kind(
-                    raw, CoreResourceKinds.DATACONTAINER
-                ).identifier
+                _descriptor_for_raw(raw, CoreResourceKinds.DATACONTAINER).identifier
                 == "measurements"
             )
 
@@ -189,18 +155,16 @@ class TestOperatorInputDescriptorForKind:
         with temporary_operator(
             compare.operators, compare_operation, _two_containers
         ) as name:
-            raw = _raw_operation(name, "compare")
+            raw = raw_operation(name, "compare")
             with pytest.raises(ValueError, match="multiple"):
-                _operator_input_descriptor_for_kind(
-                    raw, CoreResourceKinds.DATACONTAINER
-                )
+                _descriptor_for_raw(raw, CoreResourceKinds.DATACONTAINER)
 
     def test_single_missing_input_is_chosen(
         self, temporary_operator: Callable[..., AbstractContextManager[str]]
     ) -> None:
         """When one input of the kind is unset, its descriptor is returned."""
         with temporary_operator(fuse.operators, fuse_operation, _two_spaces) as name:
-            raw = _raw_operation(
+            raw = raw_operation(
                 name,
                 "fuse",
                 inputs={
@@ -211,9 +175,7 @@ class TestOperatorInputDescriptorForKind:
                 },
             )
             assert (
-                _operator_input_descriptor_for_kind(
-                    raw, CoreResourceKinds.DISCOVERYSPACE
-                ).identifier
+                _descriptor_for_raw(raw, CoreResourceKinds.DISCOVERYSPACE).identifier
                 == "right"
             )
 
@@ -228,9 +190,7 @@ class TestOperatorInputDescriptorForKind:
             }
         }
         assert (
-            _operator_input_descriptor_for_kind(
-                raw, CoreResourceKinds.DISCOVERYSPACE
-            ).identifier
+            _descriptor_for_raw(raw, CoreResourceKinds.DISCOVERYSPACE).identifier
             == "discoverySpace"
         )
 
@@ -245,9 +205,7 @@ class TestOperatorInputDescriptorForKind:
             }
         }
         assert (
-            _operator_input_descriptor_for_kind(
-                raw, CoreResourceKinds.DATACONTAINER
-            ).identifier
+            _descriptor_for_raw(raw, CoreResourceKinds.DATACONTAINER).identifier
             == "measurements"
         )
 
@@ -255,82 +213,9 @@ class TestOperatorInputDescriptorForKind:
         """A script module binds the discoverySpace input."""
         raw = {"operation": {"module": {"name": "my-script", "version": "0.1.0"}}}
         assert (
-            _operator_input_descriptor_for_kind(
-                raw, CoreResourceKinds.DISCOVERYSPACE
-            ).identifier
+            _descriptor_for_raw(raw, CoreResourceKinds.DISCOVERYSPACE).identifier
             == "discoverySpace"
         )
-
-
-class TestAddOperationInputForReference:
-    def test_list_parameter_gets_one_element_list(
-        self, temporary_operator: Callable[..., AbstractContextManager[str]]
-    ) -> None:
-        """A reference for a list parameter is stored as a one-element list."""
-        with temporary_operator(
-            summarize.operators, summarize_operation, _list_and_baseline_containers
-        ) as name:
-            raw = _raw_operation(
-                name,
-                "summarize",
-                inputs={
-                    "baseline": {
-                        "identifier": "datacontainer-baseline",
-                        "kind": "datacontainer",
-                    }
-                },
-            )
-            _add_operation_input_for_reference(
-                raw,
-                ADOResourceReference(
-                    identifier="datacontainer-aaa",
-                    kind=CoreResourceKinds.DATACONTAINER,
-                ),
-            )
-        assert raw["inputs"]["containers"] == [
-            {"identifier": "datacontainer-aaa", "kind": "datacontainer"}
-        ]
-        assert raw["inputs"]["baseline"]["identifier"] == "datacontainer-baseline"
-
-    @pytest.mark.parametrize(
-        "existing_value",
-        [
-            [{"identifier": "datacontainer-aaa", "kind": "datacontainer"}],
-            {"identifier": "datacontainer-aaa", "kind": "datacontainer"},
-        ],
-        ids=["list", "single-mapping"],
-    )
-    def test_list_parameter_appends_to_existing_value(
-        self,
-        temporary_operator: Callable[..., AbstractContextManager[str]],
-        existing_value: list | dict,
-    ) -> None:
-        """A further reference is appended to a list or single mapping already set."""
-        with temporary_operator(
-            summarize.operators, summarize_operation, _list_and_baseline_containers
-        ) as name:
-            raw = _raw_operation(
-                name,
-                "summarize",
-                inputs={
-                    "containers": existing_value,
-                    "baseline": {
-                        "identifier": "datacontainer-baseline",
-                        "kind": "datacontainer",
-                    },
-                },
-            )
-            _add_operation_input_for_reference(
-                raw,
-                ADOResourceReference(
-                    identifier="datacontainer-bbb",
-                    kind=CoreResourceKinds.DATACONTAINER,
-                ),
-            )
-        assert raw["inputs"]["containers"] == [
-            {"identifier": "datacontainer-aaa", "kind": "datacontainer"},
-            {"identifier": "datacontainer-bbb", "kind": "datacontainer"},
-        ]
 
 
 def test_operation_inputs_template_emits_list_placeholder() -> None:
@@ -373,7 +258,7 @@ def test_create_operation_dry_run_allows_multiple_discovery_spaces(
     )
     operation_file = tmp_path / "operation.yaml"
     with temporary_operator(fuse.operators, fuse_operation, _two_spaces) as name:
-        _write_operation(
+        write_operation(
             operation_file,
             name,
             "fuse",
@@ -422,7 +307,7 @@ def test_create_operation_dry_run_with_datacontainer(
     with temporary_operator(
         characterize.operators, characterize_operation, _one_container
     ) as name:
-        _write_operation(operation_file, name, "characterize")
+        write_operation(operation_file, name, "characterize")
         result = runner.invoke(
             ado,
             [
@@ -462,7 +347,7 @@ def test_create_operation_dry_run_use_latest_datacontainer(
     with temporary_operator(
         characterize.operators, characterize_operation, _one_container
     ) as name:
-        _write_operation(operation_file, name, "characterize")
+        write_operation(operation_file, name, "characterize")
         result = runner.invoke(
             ado,
             [
@@ -498,7 +383,7 @@ def test_with_datacontainer_file_is_not_wrapped_as_generic_failure(
     container_file = tmp_path / "container.yaml"
     container_file.write_text("metadata: {}\n")
     operation_file = tmp_path / "operation.yaml"
-    _write_operation(operation_file, "random_walk", "explore")
+    write_operation(operation_file, "random_walk", "explore")
     result = runner.invoke(
         ado,
         [

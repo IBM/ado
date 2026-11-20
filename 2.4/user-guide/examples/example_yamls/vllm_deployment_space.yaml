@@ -1,0 +1,60 @@
+# Copyright IBM Corporation 2025, 2026
+# SPDX-License-Identifier: MIT
+entitySpace:
+  - identifier: model
+    propertyDomain:
+      values:
+        - ibm-granite/granite-3.3-8b-instruct
+  - identifier: image
+    metadata:
+      description: Docker image with vLLM. Specify as [image, version] for threadpool validation
+    propertyDomain:
+      values:
+        - - quay.io/dataprep1/data-prep-kit/vllm_image:0.1
+          - "0.6.3"
+  - identifier: 'use_threadpool'
+    metadata:
+      description: "Enable threadpool for vLLM renderer. When enabled, uses multiple workers for rendering."
+    propertyDomain:
+      variableType: 'CATEGORICAL_VARIABLE_TYPE'
+      values: [false, true]
+  - identifier: 'renderer_num_workers'
+    metadata:
+      description: "Number of renderer workers when threadpool is enabled. Only used when threadpool=1."
+    propertyDomain:
+      variableType: 'DISCRETE_VARIABLE_TYPE'
+      domainRange: [1, 128]
+      interval: 1
+  - identifier: "number_input_tokens"
+    propertyDomain:
+      values: [1024, 2048, 4096]
+  - identifier: "request_rate"
+    propertyDomain:
+      domainRange: [1, 10]
+      interval: 1
+  - identifier: n_cpus
+    propertyDomain:
+      domainRange: [2, 16]
+      interval: 2
+  - identifier: memory
+    propertyDomain:
+      values: ["128Gi", "256Gi"]
+  - identifier: "max_batch_tokens"
+    propertyDomain:
+      values: [8192, 16384, 32768]
+  - identifier: "max_num_seq"
+    propertyDomain:
+      values: [32, 64]
+  - identifier: "n_gpus"
+    propertyDomain:
+      values: [1]
+  - identifier: "gpu_type"
+    propertyDomain:
+      values: ["NVIDIA-A100-80GB-PCIe"]
+experiments:
+  - actuatorIdentifier: vllm_performance
+    experimentIdentifier: vllm-bench-deployment
+    experimentVersion: 1.0.0
+metadata:
+  description: A space of vllm deployment configurations
+  name: vllm_deployments

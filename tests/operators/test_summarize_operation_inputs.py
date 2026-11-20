@@ -2,43 +2,16 @@
 # SPDX-License-Identifier: MIT
 """Tests for validating list inputs of summarize operations."""
 
-from collections.abc import Callable, Iterator
-from contextlib import AbstractContextManager
-
 import pytest
 
-from ado.core.datacontainer.resource import DataContainerResource
 from ado.core.operation.config import (
     DiscoveryOperationConfiguration,
     DiscoveryOperationEnum,
     DiscoveryOperationResourceConfiguration,
-    FunctionOperationInfo,
     GenericOperatorParameters,
     OperatorReference,
 )
-from ado.core.operation.operation import OperationOutput
 from ado.core.resources import ADOResourceReference, CoreResourceKinds
-from ado.modules.operators.collections import summarize, summarize_operation
-
-
-def _summarize_containers(
-    containers: list[DataContainerResource],
-    baseline: DataContainerResource,
-    operationInfo: FunctionOperationInfo | None = None,
-    *,
-    parameters: GenericOperatorParameters,
-) -> OperationOutput: ...
-
-
-@pytest.fixture
-def summarize_operator_name(
-    temporary_operator: Callable[..., AbstractContextManager[str]],
-) -> Iterator[str]:
-    """Register a summarize operator with a list input and a scalar baseline."""
-    with temporary_operator(
-        summarize.operators, summarize_operation, _summarize_containers
-    ) as name:
-        yield name
 
 
 def _operation_config(

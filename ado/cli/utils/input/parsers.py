@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: MIT
 
 import enum
+import os
+import pathlib
 from collections.abc import Callable
 from typing import TypeVar
 
@@ -136,6 +138,98 @@ def enum_choice_with_shorthand_parser(
         A parser function that resolves shorthands and returns the enum member
     """
     return enum_choice_parser(enum_type, case_sensitive, resolve_shorthands=True)
+
+
+INPUT_QUALIFIER_SEPARATOR = ":"
+
+
+def resolve_path_or_identifier(value: str) -> pathlib.Path | str:
+    """Interpret *value* as an existing file path or a plain identifier.
+
+    A value that names an existing file is returned as a ``Path``. A value that
+    contains a ``.`` or path separator but is not an existing file raises
+    ``FileNotFoundError``. Other values are returned unchanged as identifiers.
+
+    Args:
+        value: A resource identifier or a path to a configuration file.
+
+    Returns:
+        The file path when *value* names an existing file, otherwise *value*.
+
+    Raises:
+        FileNotFoundError: If *value* looks like a path but is not an existing file.
+    """
+    value_as_path = pathlib.Path(value)
+    if value_as_path.exists() and value_as_path.is_file():
+        return value_as_path
+    if "." in value or os.sep in value:
+        raise FileNotFoundError(f"{value} does not exist or is not a file.")
+    return value
+
+
+def split_input_qualifier(value: str) -> tuple[str, str | None]:
+    """Split an ``[INPUT:]KIND`` string into its kind and optional input name.
+
+    The qualified form follows a Python annotation: the input name comes before
+    the kind, as in ``reference:discoveryspace``.
+
+    Args:
+        value: The string to split.
+
+    Returns:
+        The kind part and the input name, or ``None`` when no qualifier is given.
+
+    Raises:
+        ValueError: If the value has more than one separator, the kind is empty,
+            or the input name is not a valid Python identifier.
+    """
+    if INPUT_QUALIFIER_SEPARATOR not in value:
+        return value, None
+    parts = value.split(INPUT_QUALIFIER_SEPARATOR)
+    if len(parts) != 2:  # noqa: PLR2004
+        raise ValueError(
+            f"'{value}' must have the form KIND or INPUT{INPUT_QUALIFIER_SEPARATOR}KIND"
+        )
+    input_name, kind = parts
+    if not kind:
+        raise ValueError(
+            f"'{value}' must have the form KIND or INPUT{INPUT_QUALIFIER_SEPARATOR}KIND"
+        )
+    if not input_name.isidentifier():
+        raise ValueError(
+            f"'{input_name}' in '{value}' is not a valid operation input name"
+        )
+    return kind, input_name
+
+
+def resource_kind_with_input_parser(
+    enum_type: type[T], case_sensitive: bool = True
+) -> Callable[[str], str]:
+    """Create a parser for ``KIND`` or ``INPUT:KIND`` values.
+
+    The kind part may be a shorthand and is resolved to its full name. The
+    input name is kept unchanged.
+
+    Args:
+        enum_type: The enum class whose values are the valid kinds.
+        case_sensitive: Whether kind matching is case sensitive.
+
+    Returns:
+        A parser returning ``KIND`` or ``INPUT:KIND`` with the kind resolved.
+    """
+    kind_parser = enum_choice_with_shorthand_parser(enum_type, case_sensitive)
+
+    def parser(value: str) -> str:
+        try:
+            kind, input_name = split_input_qualifier(value)
+        except ValueError as error:
+            raise typer.BadParameter(str(error)) from error
+        resolved_kind = kind_parser(kind)
+        if input_name is None:
+            return resolved_kind
+        return f"{input_name}{INPUT_QUALIFIER_SEPARATOR}{resolved_kind}"
+
+    return parser
 
 
 def enum_choice_with_plural_parser(

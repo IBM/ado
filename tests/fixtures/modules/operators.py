@@ -16,12 +16,15 @@ except ImportError:  # pragma: nocover
 from ado_ray_tune.operator import RayTune
 
 import ado.core
+from ado.core.datacontainer.resource import DataContainerResource
 from ado.core.operation.config import (
     DiscoveryOperationResourceConfiguration,
+    FunctionOperationInfo,
     GenericOperatorParameters,
     OperatorModuleConf,
 )
 from ado.core.operation.operation import OperationOutput
+from ado.modules.operators.collections import summarize, summarize_operation
 from ado.modules.operators.randomwalk import RandomWalk
 
 
@@ -141,3 +144,23 @@ def optimizer_operator(
 ) -> type[RandomWalk] | type[RayTune]:
 
     return request.param
+
+
+def _summarize_containers(
+    containers: list[DataContainerResource],
+    baseline: DataContainerResource,
+    operationInfo: FunctionOperationInfo | None = None,
+    *,
+    parameters: GenericOperatorParameters,
+) -> OperationOutput: ...
+
+
+@pytest.fixture
+def summarize_operator_name(
+    temporary_operator: Callable[..., AbstractContextManager[str]],
+) -> Iterator[str]:
+    """Register a summarize operator with a list input and a scalar baseline."""
+    with temporary_operator(
+        summarize.operators, summarize_operation, _summarize_containers
+    ) as name:
+        yield name

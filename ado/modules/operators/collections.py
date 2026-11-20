@@ -222,6 +222,7 @@ def _register_general_operator(
     example_configuration: GenericOperatorParameters,
     description: str | None,
     operator_function: Callable[P, OperationOutput],
+    requires_ray: bool = False,
 ) -> Callable[P, OperationOutput]:
     """Validate, wrap, and register a non-explore operator.
 
@@ -237,6 +238,8 @@ def _register_general_operator(
         example_configuration: Example parameter model instance for templating.
         description: Human-readable description shown in the registry.
         operator_function: Operator implementation.
+        requires_ray: When True, ``orchestrate`` initializes Ray before running
+            this operator.
 
     Returns:
         The registered wrapper.
@@ -266,6 +269,7 @@ def _register_general_operator(
         type=operation_type,
         provenance=PackageProvenance.from_module_name(operator_function.__module__),
         required_resource_inputs=tuple(required_resource_inputs),
+        requiresRay=requires_ray,
     )
     return typing.cast("Callable[P, OperationOutput]", wrapper)
 
@@ -276,6 +280,7 @@ def characterize_operation(
     configuration_model: type[GenericOperatorParameters],
     example_configuration: GenericOperatorParameters,
     description: str | None = None,
+    requires_ray: bool = False,
 ) -> Callable[[Callable[P, OperationOutput]], Callable[P, OperationOutput]]:
     """Decorator that registers a function as a characterize operation.
 
@@ -287,6 +292,8 @@ def characterize_operation(
         configuration_model: Pydantic model used to validate operation parameters.
         example_configuration: Example parameter model instance for templating.
         description: Human-readable description shown in the registry.
+        requires_ray: When True, ``orchestrate`` initializes Ray for this
+            operator. Defaults to False.
 
     Returns:
         A decorator that wraps and registers the decorated function under ``name``.
@@ -305,6 +312,7 @@ def characterize_operation(
             example_configuration=example_configuration,
             description=description,
             operator_function=operator_function,
+            requires_ray=requires_ray,
         )
 
     return _register
@@ -422,6 +430,7 @@ def explore_operation(
             "cls": cls,
             "provenance": PackageProvenance.from_module_name(cls.__module__),
             "required_resource_inputs": tuple(explore_resource_inputs),
+            "requiresRay": True,
         }
     )
     return cls
@@ -433,6 +442,7 @@ def modify_operation(
     configuration_model: type[GenericOperatorParameters],
     example_configuration: GenericOperatorParameters,
     description: str | None = None,
+    requires_ray: bool = False,
 ) -> Callable[[Callable[P, OperationOutput]], Callable[P, OperationOutput]]:
     """Decorator that registers a function as a modify operation.
 
@@ -442,6 +452,8 @@ def modify_operation(
         configuration_model: Pydantic model used to validate operation parameters.
         example_configuration: Example parameter model instance for templating.
         description: Human-readable description shown in the registry.
+        requires_ray: When True, ``orchestrate`` initializes Ray for this
+            operator. Defaults to False.
 
     Returns:
         A decorator that wraps and registers the decorated function under ``name``.
@@ -460,6 +472,7 @@ def modify_operation(
             example_configuration=example_configuration,
             description=description,
             operator_function=operator_function,
+            requires_ray=requires_ray,
         )
 
     return _register
@@ -471,6 +484,7 @@ def export_operation(
     configuration_model: type[GenericOperatorParameters],
     example_configuration: GenericOperatorParameters,
     description: str | None = None,
+    requires_ray: bool = False,
 ) -> Callable[[Callable[P, OperationOutput]], Callable[P, OperationOutput]]:
     """Decorator that registers a function as an export operation.
 
@@ -480,6 +494,8 @@ def export_operation(
         configuration_model: Pydantic model used to validate operation parameters.
         example_configuration: Example parameter model instance for templating.
         description: Human-readable description shown in the registry.
+        requires_ray: When True, ``orchestrate`` initializes Ray for this
+            operator. Defaults to False.
 
     Returns:
         A decorator that wraps and registers the decorated function under ``name``.
@@ -498,6 +514,7 @@ def export_operation(
             example_configuration=example_configuration,
             description=description,
             operator_function=operator_function,
+            requires_ray=requires_ray,
         )
 
     return _register
@@ -509,6 +526,7 @@ def compare_operation(
     configuration_model: type[GenericOperatorParameters],
     example_configuration: GenericOperatorParameters,
     description: str | None = None,
+    requires_ray: bool = False,
 ) -> Callable[[Callable[P, OperationOutput]], Callable[P, OperationOutput]]:
     """Decorator that registers a function as a compare operation.
 
@@ -521,6 +539,8 @@ def compare_operation(
         configuration_model: Pydantic model used to validate operation parameters.
         example_configuration: Example parameter model instance for templating.
         description: Human-readable description shown in the registry.
+        requires_ray: When True, ``orchestrate`` initializes Ray for this
+            operator. Defaults to False.
 
     Returns:
         A decorator that wraps and registers the decorated function under ``name``.
@@ -539,6 +559,7 @@ def compare_operation(
             example_configuration=example_configuration,
             description=description,
             operator_function=operator_function,
+            requires_ray=requires_ray,
         )
 
     return _register
@@ -550,6 +571,7 @@ def fuse_operation(
     configuration_model: type[GenericOperatorParameters],
     example_configuration: GenericOperatorParameters,
     description: str | None = None,
+    requires_ray: bool = False,
 ) -> Callable[[Callable[P, OperationOutput]], Callable[P, OperationOutput]]:
     """Decorator that registers a function as a fuse operation.
 
@@ -562,6 +584,8 @@ def fuse_operation(
         configuration_model: Pydantic model used to validate operation parameters.
         example_configuration: Example parameter model instance for templating.
         description: Human-readable description shown in the registry.
+        requires_ray: When True, ``orchestrate`` initializes Ray for this
+            operator. Defaults to False.
 
     Returns:
         A decorator that wraps and registers the decorated function under ``name``.
@@ -580,6 +604,7 @@ def fuse_operation(
             example_configuration=example_configuration,
             description=description,
             operator_function=operator_function,
+            requires_ray=requires_ray,
         )
 
     return _register

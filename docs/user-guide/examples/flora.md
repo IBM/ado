@@ -10,8 +10,8 @@ selected measurements to estimate the rest.
 This tutorial applies FLORA to the [acid–base titration example](titration.md).
 The space has 1,830 possible conditions and the budget is 60 measurements.
 You will create the discovery space, run FLORA, and inspect the measurements
-and predictions. An optional fourth step compares FLORA with [PKH](pkh.md)
-and random sampling using the pH from the titration equations.
+and predictions. An optional fourth step compares FLORA and [PKH](pkh.md)
+against the pH from the titration equations.
 
 ## Prerequisites
 
@@ -332,38 +332,9 @@ pkh   RMSE 2.58 pH, 15 of 60 measurements less than 8 mL from equivalence
 
 Of the 1,830 entities, 436 lie less than 8 mL from an equivalence point (24%).
 FLORA measured 31 entities in this region (52% of its budget) and PKH measured
-15 (25%). FLORA's RMSE was 21% lower in this run.
-
-### Repeat the comparison across 30 seeds
-
-Run the comparison script from the repository root to see how much the result
-changes with the seed.
-
-```bash
-python examples/titration/compare_sampling.py --seeds 30 --output comparison.csv
-```
-
-For each seed from 0 to 29, the script runs both samplers on the full grid.
-It fits each final forest with the same training-row order and seed as its
-operator. The random baseline draws 60 entities uniformly and uses FLORA's
-final forest settings.
-
-The script prints the package versions and summary statistics. Open
-`comparison.csv` for each seed's RMSE and measurement counts. To check the
-seed from the CLI run, use `--seed 42 --seeds 1`.
-
-The table shows the median and interquartile range of the RMSE on each
-method's unmeasured entities, in pH units (NumPy 2.3.5, scikit-learn 1.9.1).
-
-| Method | Median RMSE | Interquartile range |
-| :--- | :--- | :--- |
-| FLORA | 2.16 | 2.11–2.19 |
-| PKH | 2.63 | 2.50–2.79 |
-| Random | 2.97 | 2.81–3.26 |
-
-FLORA had a lower RMSE than PKH for all 30 seeds. Its median error still
-exceeded 2 pH units with this measurement budget. Compare the operators on
-your own discovery space to see how each samples the conditions of interest.
+15 (25%). In this run, FLORA's RMSE was 21% lower than PKH's.
+Both models had an RMSE above 2 pH units. Compare the operators on your own
+discovery space to see how each samples the conditions of interest.
 
 ## Next Steps
 

@@ -15,10 +15,13 @@ from ado.schema.property import AbstractPropertyDescriptor
 from ado.schema.property_value import ConstitutivePropertyValue
 from ado.schema.reference import ExperimentReference
 from ado.schema.result import (
+    IntermediateMeasurementResult,
     InvalidMeasurementResult,
     MeasurementResult,
     MeasurementResultStateEnum,
+    MeasurementResultType,
     ValidMeasurementResult,
+    measurement_result_type_discriminator,
 )
 from ado.schema.virtual_property import (
     PropertyAggregationMethod,
@@ -504,3 +507,290 @@ def test_json_serialization_roundtrip(
     assert original.uid == deserialized.uid
     assert original.entityIdentifier == deserialized.entityIdentifier
     assert len(original.measurements) == len(deserialized.measurements)
+
+
+def test_intermediate_measurement_result(
+    entity: Entity,
+    property_values: list[ObservedPropertyValue | ConstitutivePropertyValue],
+) -> None:
+    """An intermediate result is a ValidMeasurementResult flagged as intermediate."""
+
+    result = IntermediateMeasurementResult(
+        entityIdentifier=entity.identifier, measurements=property_values
+    )
+
+    assert result.intermediate is True
+    assert result.measurements == property_values
+    assert property_values[0].property.experimentReference == result.experimentReference
+    assert isinstance(result, ValidMeasurementResult)
+    assert not isinstance(result, InvalidMeasurementResult)
+
+
+def test_intermediate_measurement_result_rejects_false_flag(
+    entity: Entity,
+    property_values: list[ObservedPropertyValue | ConstitutivePropertyValue],
+) -> None:
+    """The intermediate flag of an intermediate result cannot be set to False."""
+
+    import pydantic
+
+    with pytest.raises(pydantic.ValidationError):
+        IntermediateMeasurementResult(
+            entityIdentifier=entity.identifier,
+            measurements=property_values,
+            intermediate=False,
+        )
+
+
+def test_valid_measurement_result_rejects_intermediate_flag(
+    entity: Entity,
+    property_values: list[ObservedPropertyValue | ConstitutivePropertyValue],
+) -> None:
+    """A ValidMeasurementResult does not accept the intermediate flag."""
+
+    import pydantic
+
+    with pytest.raises(pydantic.ValidationError):
+        ValidMeasurementResult(
+            entityIdentifier=entity.identifier,
+            measurements=property_values,
+            intermediate=True,
+        )
+
+
+def test_intermediate_measurement_result_mismatch_properties(
+    entity: Entity,
+    property_values: list[ObservedPropertyValue | ConstitutivePropertyValue],
+) -> None:
+    """Measurements from more than one experiment are rejected."""
+
+    import pydantic
+
+    other_experiment_property_value = ObservedPropertyValue(
+        value=numpy.random.default_rng().integers(0, 50),
+        property=ObservedProperty(
+            targetProperty=AbstractPropertyDescriptor(identifier="test_prop"),
+            experimentReference=ExperimentReference(
+                experimentIdentifier="test_exp", actuatorIdentifier="test_act"
+            ),
+        ),
+    )
+    property_values.append(other_experiment_property_value)
+
+    with pytest.raises(
+        pydantic.ValidationError, match="must be made by the same experiment"
+    ):
+        IntermediateMeasurementResult(
+            entityIdentifier=entity.identifier, measurements=property_values
+        )
+
+
+def test_intermediate_measurement_result_no_properties(entity: Entity) -> None:
+    """An intermediate result without measurements is rejected."""
+
+    import pydantic
+
+    with pytest.raises(pydantic.ValidationError, match="none given"):
+        IntermediateMeasurementResult(
+            entityIdentifier=entity.identifier, measurements=[]
+        )
+
+
+def test_intermediate_measurement_result_forbids_extra_fields(
+    entity: Entity,
+    property_values: list[ObservedPropertyValue | ConstitutivePropertyValue],
+) -> None:
+    """Fields not defined on the model are rejected."""
+
+    import pydantic
+
+    with pytest.raises(pydantic.ValidationError):
+        IntermediateMeasurementResult(
+            entityIdentifier=entity.identifier,
+            measurements=property_values,
+            reason="Not allowed",
+        )
+
+
+def test_intermediate_measurement_result_compressed_serialization(
+    entity: Entity,
+    property_values: list[ObservedPropertyValue | ConstitutivePropertyValue],
+) -> None:
+    """The dump uses the compressed format and always carries the intermediate flag."""
+
+    result = IntermediateMeasurementResult(
+        entityIdentifier=entity.identifier, measurements=property_values
+    )
+
+    for serialized in [
+        result.model_dump(),
+        result.model_dump(mode="json"),
+        result.model_dump(exclude_defaults=True),
+    ]:
+        assert serialized["intermediate"] is True
+        assert "experimentReference" in serialized
+        assert "experimentReference" not in serialized["measurements"][0]["property"]
+
+
+def test_intermediate_measurement_result_lifecycle(
+    entity: Entity,
+    property_values: list[ObservedPropertyValue | ConstitutivePropertyValue],
+) -> None:
+    """An intermediate result survives create, dump and create from dump."""
+
+    original = IntermediateMeasurementResult(
+        entityIdentifier=entity.identifier,
+        measurements=property_values,
+        metadata={"step": 3},
+    )
+
+    for dump in [original.model_dump(), original.model_dump(mode="json")]:
+        recreated = IntermediateMeasurementResult.model_validate(dump)
+
+        assert recreated.uid == original.uid
+        assert recreated.entityIdentifier == original.entityIdentifier
+        assert recreated.metadata == original.metadata
+        assert recreated.experimentReference == original.experimentReference
+        assert recreated.measurements == original.measurements
+        assert recreated.intermediate is True
+
+    recreated_from_json = IntermediateMeasurementResult.model_validate_json(
+        original.model_dump_json()
+    )
+    assert recreated_from_json.measurements == original.measurements
+
+
+def test_measurement_result_type_discriminator(
+    entity: Entity,
+    property_values: list[ObservedPropertyValue | ConstitutivePropertyValue],
+) -> None:
+    """The discriminator returns the tag of instances and of their dumps."""
+
+    valid_result = ValidMeasurementResult(
+        entityIdentifier=entity.identifier, measurements=property_values
+    )
+    invalid_result = InvalidMeasurementResult(
+        entityIdentifier=entity.identifier,
+        reason="Insufficient memory",
+        experimentReference=ExperimentReference(
+            experimentIdentifier="testexp", actuatorIdentifier="testact"
+        ),
+    )
+    intermediate_result = IntermediateMeasurementResult(
+        entityIdentifier=entity.identifier, measurements=property_values
+    )
+
+    results_by_expected_tag = {
+        MeasurementResultStateEnum.VALID: valid_result,
+        MeasurementResultStateEnum.INVALID: invalid_result,
+        MeasurementResultStateEnum.INTERMEDIATE: intermediate_result,
+    }
+
+    for expected_tag, result in results_by_expected_tag.items():
+        assert measurement_result_type_discriminator(result) == expected_tag
+        assert (
+            measurement_result_type_discriminator(result.model_dump()) == expected_tag
+        )
+
+    with pytest.raises(ValueError, match="Unable to determine measurement result type"):
+        measurement_result_type_discriminator({"entityIdentifier": entity.identifier})
+
+
+def test_measurement_result_type_union_validates_intermediate_result(
+    entity: Entity,
+    property_values: list[ObservedPropertyValue | ConstitutivePropertyValue],
+) -> None:
+    """MeasurementResultType recreates intermediate and valid results as their own types."""
+
+    import pydantic
+
+    intermediate_result = IntermediateMeasurementResult(
+        entityIdentifier=entity.identifier, measurements=property_values
+    )
+    valid_result = ValidMeasurementResult(
+        entityIdentifier=entity.identifier, measurements=property_values
+    )
+
+    type_adapter = pydantic.TypeAdapter(MeasurementResultType)
+
+    for value in [
+        intermediate_result,
+        intermediate_result.model_dump(),
+        intermediate_result.model_dump(mode="json"),
+    ]:
+        recreated = type_adapter.validate_python(value)
+        assert isinstance(recreated, IntermediateMeasurementResult)
+        assert recreated.uid == intermediate_result.uid
+        assert recreated.measurements == intermediate_result.measurements
+
+    recreated = type_adapter.validate_json(type_adapter.dump_json(intermediate_result))
+    assert isinstance(recreated, IntermediateMeasurementResult)
+    assert recreated.uid == intermediate_result.uid
+
+    recreated_valid_result = type_adapter.validate_python(valid_result.model_dump())
+    assert type(recreated_valid_result) is ValidMeasurementResult
+
+
+def test_intermediate_measurement_result_series_representation(
+    random_ml_multi_cloud_benchmark_performance_entities: Callable[[int], list[Entity]],
+    random_ml_multi_cloud_benchmark_performance_measurement_results: Callable[
+        [Entity, int, MeasurementResultStateEnum | None], MeasurementResult
+    ],
+    ml_multi_cloud_benchmark_performance_experiment: Experiment,
+) -> None:
+    """The series representation of an intermediate result is marked not valid."""
+
+    random_result: IntermediateMeasurementResult = (
+        random_ml_multi_cloud_benchmark_performance_measurement_results(
+            measurements_per_result=1,
+            entity=random_ml_multi_cloud_benchmark_performance_entities(quantity=1)[0],
+            status=MeasurementResultStateEnum.INTERMEDIATE,
+        )
+    )
+    assert isinstance(random_result, IntermediateMeasurementResult)
+
+    target_series_representation = random_result.series_representation(
+        output_format="target"
+    )
+    observed_series_representation = random_result.series_representation(
+        output_format="observed"
+    )
+
+    measurement = random_result.measurements[0]
+
+    for representation in [
+        target_series_representation,
+        observed_series_representation,
+    ]:
+        assert representation["identifier"] == random_result.entityIdentifier
+        assert representation["experiment_id"] == str(random_result.experimentReference)
+        assert not representation["valid"]
+
+    assert (
+        target_series_representation[measurement.property.targetProperty.identifier]
+        == measurement.value
+    )
+    assert (
+        observed_series_representation[measurement.property.identifier]
+        == measurement.value
+    )
+
+    virtual_property = VirtualObservedProperty(
+        baseObservedProperty=ml_multi_cloud_benchmark_performance_experiment.observedProperties[
+            0
+        ],
+        aggregationMethod=PropertyAggregationMethod(),
+    )
+    virtual_representation = random_result.series_representation(
+        output_format="target",
+        virtual_target_property_identifiers=[
+            virtual_property.virtualTargetPropertyIdentifier
+        ],
+    )
+    assert virtual_representation.get(virtual_property.virtualTargetPropertyIdentifier)
+    assert not virtual_representation["valid"]
+
+    with pytest.raises(
+        ValueError, match="The only supported series representation output formats are"
+    ):
+        random_result.series_representation(output_format="random")

@@ -9,9 +9,9 @@ selected measurements to estimate the rest.
 
 This tutorial applies FLORA to the [acid–base titration example](titration.md).
 The space has 1,830 possible conditions and the budget is 60 measurements.
-You will create the discovery space, run FLORA, and inspect the measurements
-and predictions. An optional fourth step compares FLORA and [PKH](pkh.md)
-against the pH from the titration equations.
+You will create the discovery space, run FLORA, and compare a model prediction
+with the pH from the titration equations. Choose a Random Forest or AutoGluon
+for the final model.
 
 ## Prerequisites
 
@@ -26,6 +26,12 @@ the same checkout:
 pip install -e . \
   -e plugins/operators/active_learning \
   -e examples/titration/custom_experiments/
+```
+
+For the AutoGluon path, use Python 3.11–3.13 and install the optional extra:
+
+```bash
+pip install -e "plugins/operators/active_learning[autogluon]"
 ```
 
 FLORA requires a discovery space with exactly one experiment. That experiment
@@ -107,13 +113,28 @@ FLORA schedules its forest refits automatically.
     `--new-sample-store`. If you keep the same space, FLORA reuses its earlier
     measurements and spends its budget on additional entities.
 
-Start the operation:
+Choose the final model for this run. FLORA uses the same forest to select
+measurements with either backend.
 
-```bash
-ado create operation \
-  -f examples/titration/example_yamls/operation_flora.yaml \
-  --use-latest space
-```
+=== "Random Forest"
+
+    Run the example configuration as supplied:
+
+    ```bash
+    ado create operation \
+      -f examples/titration/example_yamls/operation_flora.yaml \
+      --use-latest space
+    ```
+
+=== "AutoGluon"
+
+    Use the same configuration and set `finalPredictor` on the command line:
+
+    ```bash
+    ado create operation \
+      -f examples/titration/example_yamls/operation_flora.yaml \
+      --use-latest space --set operation.parameters.finalPredictor=autogluon
+    ```
 
 `--use-latest space` uses the space you just created in the active context.
 It replaces the example's `inputs.discoverySpace` identifier.
@@ -156,16 +177,6 @@ Existing target measurements count toward `pilotSize` and do not use the
 new-entity budget. This tutorial starts with an empty store, so FLORA collects
 60 new measurements.
 
-!!! tip "Train the final model with AutoGluon"
-
-    This tutorial uses the default Random Forest for the final model. To train
-    an AutoGluon predictor instead, install the extra on Python 3.11–3.13 with
-    `pip install -e "plugins/operators/active_learning[autogluon]"`. Then set
-    `finalPredictor: autogluon` in the configuration. FLORA saves the model in
-    `autogluon/` instead of `model.pkl`, and you load it with
-    `TabularPredictor.load`. See the
-    [`finalPredictor` parameter](../operators/flora.md#finalpredictor).
-
 ## Step 3: Inspect the Results
 
 ### Check the measurements
@@ -192,7 +203,8 @@ directory where you ran the operation:
 
 | File | Contents |
 | :--- | :--- |
-| `model.pkl` | Fitted preprocessing pipeline and Random Forest |
+| `model.pkl` | Fitted Random Forest and its preprocessing pipeline |
+| `autogluon/` | Fitted AutoGluon predictor |
 | `combined_predictions.csv` | Measured and predicted pH for all 1,830 entities |
 | `metadata.json` | Backend, feature names, measured count, and creation time |
 
@@ -202,7 +214,7 @@ experimental measurements in the sample store.
 ### Read the predictions
 
 The model learns from 60 of the 1,830 conditions. Where few measurements
-bracket the sharp rise in pH, the forest can miss the location of the jump.
+bracket the sharp rise in pH, the model can miss the location of the jump.
 
 ```python
 import pandas as pd
@@ -214,6 +226,9 @@ print(f"Predicted entities: {table['is_predicted'].sum()}")
 columns = ["acid_concentration", "base_concentration", "titrant_volume", "ph"]
 print(table.loc[table["is_predicted"], columns].head(3))
 ```
+
+Both paths give the same row counts. The pH estimates below are from the
+Random Forest run:
 
 ```text
 Total entities:     1830
@@ -227,8 +242,7 @@ Predicted entities: 1770
 
 The `is_predicted` column is `False` for measured values and `True` for model
 estimates. The default `seed` selects the same entities on every run with the
-same package versions. Predictions can differ in the last digits because the
-forest trains on several processors.
+same package versions.
 
 The forest predicts 5.1 for each of the first three volumes. At 0 mL, the
 titration equations give a pH of 1.7, so the first estimate is 3.4 pH units
@@ -236,35 +250,54 @@ too high. FLORA measured only two entities for this acid–base pair.
 
 ### Predict a new configuration
 
-Load the model and supply a DataFrame with the same property names. This
+Use a DataFrame with the same property names as the training data. This
 configuration is one of the 1,770 entities that FLORA did not measure. It lies
-0.5 mL before the equivalence point.
+0.5 mL before the equivalence point. At this volume the titration equations
+give a pH of 2.6.
 
 ```python
-import pickle
-
 import pandas as pd
-
-with open("flora_models_finalized/model.pkl", "rb") as model_file:
-    model = pickle.load(model_file)
 
 configuration = pd.DataFrame(
     [{"acid_concentration": 0.1, "base_concentration": 0.2, "titrant_volume": 12.0}]
 )
-predicted_ph = float(model.predict(configuration)[0])
-print(f"Model estimate: {predicted_ph:.1f}")
 ```
 
-```text
-Model estimate: 5.3
-```
+Load the model from your run and predict the pH:
 
-The titration equations give a pH of 2.6 for this configuration, so the model
-overestimates the pH by 2.7 units.
+=== "Random Forest"
+
+    ```python
+    import pickle
+
+    with open("flora_models_finalized/model.pkl", "rb") as model_file:
+        model = pickle.load(model_file)
+
+    predicted_ph = model.predict(configuration)[0]
+    print(f"Model estimate: {predicted_ph:.1f}")
+    ```
+
+    In this run, the Random Forest predicted 5.3, which is 2.7 pH units above
+    the value from the titration equations.
+
+=== "AutoGluon"
+
+    Load the predictor in the Python environment you used to train it:
+
+    ```python
+    from autogluon.tabular import TabularPredictor
+
+    model = TabularPredictor.load("flora_models_finalized/autogluon")
+    predicted_ph = model.predict(configuration).iloc[0]
+    print(f"Model estimate: {predicted_ph:.1f}")
+    ```
+
+    In this run, AutoGluon predicted 2.7. Your estimate can vary with the
+    models AutoGluon fits within its time limit.
 
 !!! warning
 
-    `model.pkl` is a Python pickle file. Only load pickle files you trust.
+    Only load saved models from sources you trust.
 
 ### Inspect the operation
 
@@ -281,60 +314,6 @@ ado show related operation "$OPERATION_IDENTIFIER" --max-hops 1
     Do not use `--use-latest` to find the FLORA operation. FLORA collects
     measurements through a related `random_walk` operation, which is created
     later and so is the most recent operation.
-
-## Step 4: Compare with PKH (optional) { #compare-with-pkh }
-
-Run PKH on the same problem to see where each operator spends its budget. Create
-a second space with its own sample store. If you reuse the first space, PKH
-starts from the 60 measurements FLORA already made:
-
-```bash
-ado create space \
-  -f examples/titration/example_yamls/space_titration.yaml --new-sample-store
-ado create operation \
-  -f examples/titration/example_yamls/operation_pkh.yaml --use-latest space
-```
-
-Both operators start with five pilot measurements and a budget of 60. PKH
-refits after every five new measurements. Score both models against the
-noiseless titration equations on the entities each operator left unmeasured.
-The root mean squared error (RMSE) is in pH units.
-
-```python
-import numpy as np
-import pandas as pd
-
-for operator in ("flora", "pkh"):
-    table = pd.read_csv(f"{operator}_models_finalized/combined_predictions.csv")
-    acid = table["acid_concentration"]
-    base = table["base_concentration"]
-    volume = table["titrant_volume"]
-    excess_acid = (acid * 25 - base * volume) / (25 + volume)
-    hydrogen = (excess_acid + np.sqrt(excess_acid**2 + 4e-14)) / 2
-    true_ph = -np.log10(hydrogen)
-
-    error = (table["ph"] - true_ph)[table["is_predicted"]]
-    rmse = np.sqrt((error**2).mean())
-    near_equivalence = (volume - acid * 25 / base).abs() < 8
-    measured = ~table["is_predicted"]
-    measured_near_equivalence = near_equivalence[measured].sum()
-    print(
-        f"{operator:5s} RMSE {rmse:.2f} pH, "
-        f"{measured_near_equivalence} of {measured.sum()} measurements "
-        "less than 8 mL from equivalence"
-    )
-```
-
-```text
-flora RMSE 2.03 pH, 31 of 60 measurements less than 8 mL from equivalence
-pkh   RMSE 2.58 pH, 15 of 60 measurements less than 8 mL from equivalence
-```
-
-Of the 1,830 entities, 436 lie less than 8 mL from an equivalence point (24%).
-FLORA measured 31 entities in this region (52% of its budget) and PKH measured
-15 (25%). In this run, FLORA's RMSE was 21% lower than PKH's.
-Both models had an RMSE above 2 pH units. Compare the operators on your own
-discovery space to see how each samples the conditions of interest.
 
 ## Next Steps
 

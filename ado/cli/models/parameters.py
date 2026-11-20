@@ -3,6 +3,7 @@
 
 import pathlib
 from pathlib import Path
+from typing import Annotated
 
 import pydantic
 
@@ -47,6 +48,30 @@ class AdoGetCommandParameters(pydantic.BaseModel):
     use_latest: bool
 
 
+class OperationInputReference(pydantic.BaseModel):
+    """An ``INPUT:KIND`` qualifier naming an operation input and its kind."""
+
+    model_config = pydantic.ConfigDict(frozen=True)
+
+    input_name: Annotated[
+        str, pydantic.Field(description="Name of the operator input parameter")
+    ]
+    kind: Annotated[
+        CoreResourceKinds, pydantic.Field(description="Resource kind of the input")
+    ]
+
+
+class OperationInputResourceOption(OperationInputReference):
+    """A ``--with INPUT:KIND=VALUE`` option targeting a named operation input."""
+
+    value: Annotated[
+        pathlib.Path | str,
+        pydantic.Field(
+            description="Resource identifier or path to a resource configuration file"
+        ),
+    ]
+
+
 class AdoCreateCommandParameters(pydantic.BaseModel):
     ado_configuration: AdoConfiguration
     dry_run: bool
@@ -57,6 +82,20 @@ class AdoCreateCommandParameters(pydantic.BaseModel):
     use_default_sample_store: bool
     use_latest: list[CoreResourceKinds] | None
     with_resources: dict[CoreResourceKinds, pathlib.Path | str] | None
+    use_latest_inputs: Annotated[
+        list[OperationInputReference],
+        pydantic.Field(
+            default_factory=list,
+            description="Named operation inputs from --use-latest INPUT:KIND",
+        ),
+    ]
+    with_inputs: Annotated[
+        list[OperationInputResourceOption],
+        pydantic.Field(
+            default_factory=list,
+            description="Named operation inputs from --with INPUT:KIND=VALUE",
+        ),
+    ]
 
 
 class AdoDeleteCommandParameters(pydantic.BaseModel):

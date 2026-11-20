@@ -28,7 +28,8 @@ git clone --depth 1 https://github.com/agentskills/agentskills "$AGENTSKILLS_DIR
 Then read `$AGENTSKILLS_DIR/docs/specification.mdx`, the pages under
 `$AGENTSKILLS_DIR/docs/skill-creation/`, and any other page under
 `$AGENTSKILLS_DIR/docs/` that the links in
-[.agents/skills/AGENTS.md](../../AGENTS.md) reference.
+[.agents/skills/AGENTS.md](../../AGENTS.md) reference. Remove the clone with
+`rm -rf "$AGENTSKILLS_DIR"` when finished.
 
 If the clone fails, state that in the review and fall back to
 [.agents/skills/AGENTS.md](../../AGENTS.md).
@@ -36,23 +37,19 @@ If the clone fails, state that in the review and fall back to
 ## Specification conformance
 
 Check the skill against the fetched documentation and
-[.agents/skills/AGENTS.md](../../AGENTS.md). In addition, check that:
+[.agents/skills/AGENTS.md](../../AGENTS.md), which define the `name`,
+`description`, line-limit, directory-layout, and `assets/` test rules. In
+addition, check that:
 
-- `name` matches the parent directory, uses only lowercase alphanumerics and
-  hyphens, is at most 64 characters, and does not start, end, or contain
-  consecutive hyphens (`--`)
-- `description` is at most 1024 characters, states what the skill does and when
-  to use it, and uses imperative phrasing ("Use when...")
+- `name` does not start, end, or contain consecutive hyphens (`--`)
 - every value under `metadata` is a string (for example `"true"`, not `true`)
-- `SKILL.md` is under 500 lines
-- supplementary docs are in `references/`, templates and example manifests in
-  `assets/`, helper scripts in `scripts/`
 - file references from `SKILL.md` are one level deep (no reference chains)
-- every YAML file in `assets/` is covered by a test under `tests/`
 
 ## Per-skill structure
 
-Keep each part short; omit a part that has nothing to report.
+Keep each part short; omit a part that has nothing to report. Apply the
+[Rules for findings](../SKILL.md#rules-for-findings) to every bullet under
+Critical, Medium, and Minor Issues.
 
 1. **What the skill adds** — one or two sentence summary
 2. **Related existing documentation** — bullet list of related skills,
@@ -80,11 +77,13 @@ Keep each part short; omit a part that has nothing to report.
    - Content the agent already knows, or generic advice without
      project-specific detail
    - Menus of equal options where a default should be given
-   - Formatting problems, structural issues, or misleading text
+   - Misleading text
    - Mistakes in code examples
    - Inconsistencies with other skill files or agent files
    - File or directory paths referenced in the skill that do not exist in the
      repo
-6. **Recommendation** — one line stating whether the skill should be (a) kept
+6. **Minor Issues**
+   - Formatting problems and structural issues
+7. **Recommendation** — one line stating whether the skill should be (a) kept
    largely as is, (b) changed substantially, or (c) removed. If substantial
    changes are required, add a short sketch of the revised skill.

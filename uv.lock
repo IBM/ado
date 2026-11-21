@@ -40,6 +40,7 @@ members = [
     "optimization-test-functions",
     "pfas-custom-functions",
     "robotic-lab",
+    "titration-custom-experiments",
     "trim-custom-experiments",
 ]
 
@@ -151,6 +152,7 @@ test = [
     { name = "pfas-custom-functions" },
     { name = "psutil" },
     { name = "robotic-lab" },
+    { name = "titration-custom-experiments" },
     { name = "trim-custom-experiments" },
 ]
 
@@ -216,6 +218,7 @@ test = [
     { name = "pfas-custom-functions", editable = "examples/pfas-generative-models/custom_actuator_function" },
     { name = "psutil", specifier = "==7.2.2" },
     { name = "robotic-lab", editable = "plugins/actuators/example_actuator" },
+    { name = "titration-custom-experiments", editable = "examples/titration/custom_experiments" },
     { name = "trim-custom-experiments", editable = "examples/trim/custom_experiments" },
 ]
 
@@ -8344,6 +8347,21 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/d1/53/f281a0bd9ee7e03d6a97828fc0e443321ed26ea2b0bd74bf9f1d9451d30f/tilelang-0.1.12-cp38-abi3-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:bbeb5573cbe2544a51a5c9a6cc737c5e3b5c2d95411caa3687fd9b08eb9d5f97", size = 50501074, upload-time = "2026-07-08T04:22:39.973Z" },
     { url = "https://files.pythonhosted.org/packages/fb/a4/ff0b14d00d29fe418063cd97490f55aa9cad6f981a6fbbf29124b024637d/tilelang-0.1.12-cp38-abi3-manylinux_2_34_aarch64.whl", hash = "sha256:a1701eba4ad603d73f1b128b88f6a2350f1b1161729e5b2d1e540a1ec7a82d52", size = 46281933, upload-time = "2026-07-08T04:22:44.244Z" },
     { url = "https://files.pythonhosted.org/packages/cb/15/1a8a5b5df0a23ece80b4da8e49c43418244e5ab165ed1938a1cc2656cda2/tilelang-0.1.12-cp38-abi3-win_amd64.whl", hash = "sha256:daeb3d529ab9e7665adb94c4bf0d47732294709aa9b8b9bd673fa48001385422", size = 34020025, upload-time = "2026-07-08T04:22:48.066Z" },
+]
+
+[[package]]
+name = "titration-custom-experiments"
+source = { editable = "examples/titration/custom_experiments" }
+dependencies = [
+    { name = "ado-core" },
+    { name = "numpy", version = "2.3.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.13'" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.13'" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "ado-core", editable = "." },
+    { name = "numpy" },
 ]
 
 [[package]]

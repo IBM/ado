@@ -172,16 +172,16 @@ def valid_ado_sqlite_project_context(
 
 @pytest.fixture(params=["mysql", "sqlite"])
 def valid_ado_project_context(
-    valid_ado_mysql_project_context: ado.metastore.project.ProjectContext,
-    valid_ado_sqlite_project_context: ado.metastore.project.ProjectContext,
     request: pytest.FixtureRequest,
 ) -> ado.metastore.project.ProjectContext:
-    """Fixture that provides both MySQL and SQLite project contexts via parametrization"""
-    return (
-        valid_ado_sqlite_project_context
-        if request.param == "sqlite"
-        else valid_ado_mysql_project_context
-    )
+    """Provide a MySQL or SQLite project context based on ``request.param``.
+
+    Loads ``valid_ado_sqlite_project_context`` or
+    ``valid_ado_mysql_project_context`` via ``getfixturevalue``.
+    """
+    if request.param == "sqlite":
+        return request.getfixturevalue("valid_ado_sqlite_project_context")
+    return request.getfixturevalue("valid_ado_mysql_project_context")
 
 
 @pytest.fixture

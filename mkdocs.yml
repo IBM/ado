@@ -25,6 +25,10 @@ extra:
       link: https://github.com/ibm/ado
     - icon: fontawesome/solid/globe
       link: https://www.ibm.com/
+# MathJax is needed to render the LaTeX used in some pages
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js
 extra_css:
   - https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,100..700;1,100..700&display=swap
   - https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&family=IBM+Plex+Sans:ital,wght@0,100..700;1,100..700&display=swap
@@ -123,7 +127,9 @@ markdown_extensions:
   # Strikethrough: https://facelessuser.github.io/pymdown-extensions/extensions/tilde/
   pymdownx.tilde: {}
   pymdownx.progressbar: {}
-  pymdownx.arithmatex: {}
+  # Math: https://squidfunk.github.io/mkdocs-material/reference/math/
+  pymdownx.arithmatex:
+    generic: true
   toc:
     permalink: true
     toc_depth: 4
@@ -165,6 +171,7 @@ nav:
           - Working with operators: user-guide/operators/working-with-operators.md
           - Explore operators: user-guide/operators/explore-operators.md
           - Operator guides:
+              - The PKH Operator: user-guide/operators/pkh.md
               - The Random Walk Operator: user-guide/operators/random-walk.md
               - The Ray Tune Operator: user-guide/operators/ray-tune.md
               - The TRIM Operator: user-guide/operators/trim.md
@@ -193,6 +200,7 @@ nav:
       - Analysis:
           - Identify the important dimensions of a space: user-guide/examples/lhu.md
           - Quickly building a predictive model: user-guide/examples/trim.md
+          - Predictive Kernel Herding surrogate modeling: user-guide/examples/pkh.md
       - Fine-tuning:
           - Measure fine-tuning throughput locally: user-guide/examples/finetune-locally.md
           - Measure fine-tuning throughput on a RayCluster: user-guide/examples/finetune-remotely.md

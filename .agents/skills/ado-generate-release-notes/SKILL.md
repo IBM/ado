@@ -66,7 +66,7 @@ Run the following to get the latest tag for each component:
 ```bash
 git tag --sort=-version:refname \
   | grep -E \
-    '^(autoconf|sfttrainer|vllm-performance|trim|cplex-mip|anomalous-series|ray-tune|profile-space|example-actuator)/'
+    '^(autoconf|sfttrainer|vllm-performance|trim|cplex-mip|anomalous-series|ray-tune|profile-space|example-actuator|active-learning)/'
 ```
 
 For each component, the latest tag has the form `<component>/<version>`.
@@ -91,6 +91,7 @@ plugin. The complete list of component scopes to exclude is:
 - `anomalous-series`, `anomalous_series`
 - `profile-space`, `profile_space`
 - `example-actuator`, `example_actuator`
+- `active-learning`, `active_learning`, `pkh`
 
 **Do not mention any of these components, their features, or their fixes
 anywhere in the general sections.** If an entry's scope is in the list above,
@@ -136,6 +137,8 @@ section for each component that has entries, in this order:
 - `## 🎛️ Profile Space X.Y.Z` (scopes: `profile-space`, `profile_space`)
 - `## 📋 Example Actuator X.Y.Z` (scopes: `example-actuator`,
   `example_actuator`)
+- `## 🌳 Active Learning (PKH) X.Y.Z` (scopes: `active-learning`,
+  `active_learning`, `pkh`)
 
 Replace `X.Y.Z` with the version from the component's latest tag (Step 4).
 If no tag exists for the component, omit the version from the header.

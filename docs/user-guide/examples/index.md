@@ -19,9 +19,13 @@ research loop step by step, from defining a space to retrieving results.
   an `operation` to sample and measure points, and retrieving the results —
   using a real cloud workload dataset.
 
+- **[Simulate an acid–base titration](titration.md)** — Measure pH on either
+  side of the equivalence point, then sample 20 entities from the titration
+  space and inspect their readings.
+
 ## Search
 
-These are **intermediate examples** that build on both tutorials. They assume
+These are **intermediate examples** that build on the tutorials. They assume
 you are comfortable with the core `ado` workflow and introduce the `ray_tune`
 operator, which gives access to the RayTune optimisation framework.
 
@@ -45,6 +49,13 @@ a configuration space after, or instead of, exhaustive measurement.
   intelligently sample just enough points to train an accurate `AutoGluon`
   surrogate model, stopping once the model quality plateaus. The resulting model
   can be used for prediction at unmeasured points.
+- **[Predictive Kernel Herding surrogate modeling](pkh.md)** — Use the PKH
+  operator to measure a fixed budget of representative entities, train a Random
+  Forest surrogate model on them, and predict every other entity in the space.
+- **[FLORA surrogate modeling](flora.md)** — Use the FLORA operator to measure
+  a fixed budget of entities chosen where the trees of a Random Forest
+  disagree, train a surrogate model on them, and predict every other entity in
+  the space.
 
 ## Fine-tuning
 

@@ -4,7 +4,7 @@ description = """ado provides tools for executing computational experiment campa
 Coding Agents can use ado to autonomously formulate, run, and analyze your experiments.
 """
 readme = "README.md"
-requires-python = ">=3.11,<3.15"
+requires-python = ">=3.15,<3.16"
 license = "MIT"
 license-files = ["AUTHORS.md", "LICEN[CS]E*", "vendored/licenses/*.txt"]
 authors = [{ name = "Michael A. Johnston", email = "michaelj@ie.ibm.com" }]

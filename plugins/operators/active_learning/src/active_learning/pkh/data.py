@@ -4,7 +4,6 @@
 """Entity pool, feature and label helpers shared by the PKH sampler and operator."""
 
 import contextlib
-import json
 
 import numpy as np
 import pandas as pd
@@ -17,14 +16,15 @@ from ado.core.discoveryspace.samplers import (
     WalkModeEnum,
 )
 from ado.core.discoveryspace.space import DiscoverySpace, Entity
+from ado.schema.domain import VariableTypeEnum
 from ado.schema.observed_property import ObservedProperty
 
 
 def candidate_entities(discovery_space: DiscoverySpace) -> list[Entity]:
     """Return one entity per point of the finite entity space.
 
-    Entities already in the sample store are reused and the others are created
-    (not stored), so this also works on an empty sample store.
+    Reuse entities from the sample store and create the remaining candidates
+    in memory.
     """
     generator = ExplicitEntitySpaceGridSampleGenerator(mode=WalkModeEnum.SEQUENTIAL)
     entities = [
@@ -43,7 +43,21 @@ def candidate_entities(discovery_space: DiscoverySpace) -> list[Entity]:
 def validate_target_output(
     target_output: str, discovery_space: DiscoverySpace
 ) -> ObservedProperty:
-    """Resolve a unique target in a measurement space containing one experiment."""
+    """Find the observed property that PKH will model.
+
+    Args:
+        target_output: Qualified observed-property identifier or bare target name.
+        discovery_space: Discovery space containing the experiment and its inputs.
+
+    Returns:
+        The matching observed property.
+
+    Raises:
+        ValueError: The space contains zero or multiple experiments, or the
+            target matches zero or multiple observed properties. This error
+            also occurs when the target and a feature share a name, or when
+            either uses the reserved name ``entityIdentifier`` or ``is_predicted``.
+    """
     number_experiments = len(discovery_space.measurementSpace.experimentReferences)
     if number_experiments != 1:
         raise ValueError(
@@ -98,24 +112,51 @@ def measured_labels(
     }
 
 
+def _format_categorical_value(value: object) -> str:
+    """Format a categorical value as a string for consistent discrete encoding."""
+    return value if isinstance(value, str) else str(value)
+
+
 def encode_feature_matrix(
     discovery_space: DiscoverySpace,
     entities: list[Entity],
 ) -> tuple[pd.DataFrame, np.ndarray, ColumnTransformer]:
     """Encode constitutive values in the discovery space's declared feature order."""
+    properties = discovery_space.entitySpace.constitutiveProperties
+    raw_columns = {
+        prop.identifier: [
+            entity.valueForConstitutivePropertyIdentifier(prop.identifier).value
+            for entity in entities
+        ]
+        for prop in properties
+    }
+    categorical_columns = [
+        prop.identifier
+        for prop in properties
+        if prop.propertyDomain.variableType
+        == VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE
+        or any(not isinstance(v, (int, float)) for v in raw_columns[prop.identifier])
+    ]
     frame = pd.DataFrame(
-        [entity.seriesRepresentation(constitutiveOnly=True) for entity in entities],
-        columns=[
-            prop.identifier
-            for prop in discovery_space.entitySpace.constitutiveProperties
-        ],
+        {
+            prop.identifier: (
+                pd.Series(
+                    [
+                        _format_categorical_value(v)
+                        for v in raw_columns[prop.identifier]
+                    ],
+                    dtype="category",
+                )
+                if prop.identifier in categorical_columns
+                else pd.Series(raw_columns[prop.identifier])
+            )
+            for prop in properties
+        }
     )
-    categorical_columns = frame.select_dtypes(exclude="number").columns.tolist()
-    frame[categorical_columns] = frame[categorical_columns].astype("category")
     categorical_encoder = make_pipeline(
         FunctionTransformer(
             pd.DataFrame.map,
-            kw_args={"func": json.dumps},
+            kw_args={"func": _format_categorical_value},
             feature_names_out="one-to-one",
         ),
         OneHotEncoder(handle_unknown="ignore", sparse_output=False),

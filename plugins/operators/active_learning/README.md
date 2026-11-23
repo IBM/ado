@@ -8,9 +8,9 @@ The discovery space must define exactly one experiment. It can return several
 outputs. `targetOutput` selects the numeric output to model, and PKH reuses its
 existing measurements.
 
-PKH selects entities to match the pool in a learned Random Forest leaf space.
-This objective measures representativeness under the learned kernel. It does
-not guarantee predictive accuracy.
+PKH compares the fraction of the sample in each Random Forest leaf with the
+fraction of the full pool in that leaf. It favors entities in leaves where the
+sample fraction is smaller.
 
 ## Installation
 

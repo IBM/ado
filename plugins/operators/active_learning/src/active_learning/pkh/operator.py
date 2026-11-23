@@ -32,9 +32,12 @@ from ado.modules.operators.collections import characterize_operation, explore
 if TYPE_CHECKING:
     from autogluon.tabular import TabularPredictor
 
+    from ado.modules.operators.randomwalk import RandomWalkParameters
+
 logger = logging.getLogger(__name__)
 
 PKH_VERSION = "0.1.0"
+_MIN_AUTOGLUON_LABELS = 4
 
 
 def _fit_predictor(
@@ -47,6 +50,10 @@ def _fit_predictor(
     """Fit and persist the final predictor on the measured entities."""
     parameters = state.params
     if parameters.finalPredictor == "autogluon":
+        from autogluon.features.generators import (
+            AsTypeFeatureGenerator,
+            AutoMLPipelineFeatureGenerator,
+        )
         from autogluon.tabular import TabularPredictor
 
         model = TabularPredictor(
@@ -63,6 +70,13 @@ def _fit_predictor(
         train_data = frame.iloc[state.measured_indices].assign(
             **{target_name: state.measured_labels}
         )
+        categorical_columns = train_data.select_dtypes(include="category").columns
+        if not categorical_columns.empty:
+            # Cast raw category values to their training strings before binary encoding.
+            train_data = train_data.astype(dict.fromkeys(categorical_columns, "string"))
+            fit_kwargs["feature_generator"] = AsTypeFeatureGenerator(
+                convert_bool=False, post_generators=[AutoMLPipelineFeatureGenerator()]
+            )
         model.fit(train_data=train_data, **fit_kwargs)
         return model
     forest = state.forest
@@ -97,7 +111,16 @@ def _finalize_model(
     frame.index = [entity.identifier for entity in entities]
     target_values = pd.Series(labels, dtype=float).reindex(frame.index)
     measured = target_values.notna().to_numpy()
-    if not measured.any():
+    measured_count = int(measured.sum())
+    if (
+        parameters.finalPredictor == "autogluon"
+        and measured_count < _MIN_AUTOGLUON_LABELS
+    ):
+        raise ValueError(
+            f"PKH requires at least {_MIN_AUTOGLUON_LABELS} target labels for AutoGluon "
+            f"and collected {measured_count}."
+        )
+    if measured_count == 0:
         raise ValueError(f"No completed measurements for '{target.identifier}'.")
     if len(sampled_identifiers) < parameters.numberEntities and not measured.all():
         raise ValueError(
@@ -131,13 +154,58 @@ def _finalize_model(
         targetOutput=target_name,
         featureNames=frame.columns.tolist(),
         categoricalColumns=frame.select_dtypes(include="category").columns.tolist(),
-        measuredCount=int(measured.sum()),
+        measuredCount=measured_count,
         createdTimestamp=dt.datetime.now(dt.UTC).isoformat(),
         pkhVersion=PKH_VERSION,
         mmdSquared=mmd_squared,
     )
     (final_directory / "metadata.json").write_text(metadata.model_dump_json(indent=2))
     return mmd_squared
+
+
+def _sampling_parameters(parameters: PKHParameters) -> "RandomWalkParameters":
+    """Configure a sequential measurement run using PKH's feedback-driven sampler."""
+    # RandomWalk loads operator plugins, so import its configuration after registration.
+    from ado.modules.operators.randomwalk import (
+        CustomSamplerConfiguration,
+        RandomWalkParameters,
+        SamplerModuleConf,
+    )
+
+    return RandomWalkParameters(
+        batchSize=1,
+        numberEntities=parameters.numberEntities,
+        samplerConfig=CustomSamplerConfiguration(
+            module=SamplerModuleConf(
+                moduleName="active_learning.pkh.sampler",
+                moduleClass="PKHSampleSelector",
+            ),
+            parameters=parameters,
+        ),
+    )
+
+
+def _output_after_sampling(
+    walk: OperationOutput,
+    discovery_space: DiscoverySpace,
+    parameters: PKHParameters,
+    final_directory: Path,
+) -> OperationOutput:
+    """Preserve the measurement run's status and publish a model on success."""
+    result = OperationOutput(resources=[walk.operation], exitStatus=walk.exitStatus)
+    if walk.exitStatus and walk.exitStatus.exit_state == OperationExitStateEnum.SUCCESS:
+        mmd_squared = _finalize_model(
+            discovery_space,
+            parameters,
+            final_directory,
+            discovery_space.sample_store.entity_identifiers_in_operations(
+                walk.operation.identifier
+            ),
+        )
+        logger.info("PKH model and predictions finalized at: %s", final_directory)
+        if mmd_squared is not None:
+            result.metadata["pkhMmdSquared"] = mmd_squared
+    return result
 
 
 @characterize_operation(
@@ -155,13 +223,19 @@ def pkh(
 ) -> OperationOutput:
     """Collect measurements with PKH and save a final predictor of the target property."""
     target = validate_target_output(parameters.targetOutput, discoverySpace)
-    # RandomWalk loads operator plugins, so import its configuration after registration.
-    from ado.modules.operators.randomwalk import (
-        CustomSamplerConfiguration,
-        RandomWalkParameters,
-        SamplerModuleConf,
-    )
-
+    if parameters.finalPredictor == "autogluon":
+        label_count = parameters.numberEntities
+        if label_count < _MIN_AUTOGLUON_LABELS:
+            label_count += len(measured_labels(discoverySpace, target.identifier))
+        max_labels = min(
+            label_count, getattr(discoverySpace.entitySpace, "size", label_count)
+        )
+        if max_labels < _MIN_AUTOGLUON_LABELS:
+            raise ValueError(
+                f"PKH requires at least {_MIN_AUTOGLUON_LABELS} target labels for AutoGluon "
+                f"and can reach at most {max_labels} with this budget and space."
+            )
+    sampling_parameters = _sampling_parameters(parameters)
     random_walk = explore.operators["random_walk"].function
     if random_walk is None:
         raise RuntimeError("The random_walk operator is not available.")
@@ -169,45 +243,10 @@ def pkh(
     final_directory = base_directory.with_name(f"{base_directory.name}_finalized")
     final_directory.mkdir(parents=True, exist_ok=False)
     try:
-        output = random_walk(
-            discoverySpace,
-            operationInfo,
-            parameters=RandomWalkParameters(
-                batchSize=1,
-                numberEntities=parameters.numberEntities,
-                samplerConfig=CustomSamplerConfiguration(
-                    module=SamplerModuleConf(
-                        moduleName="active_learning.pkh.sampler",
-                        moduleClass="PKHSampleSelector",
-                    ),
-                    parameters={
-                        **parameters.model_dump(),
-                        "targetOutput": target.identifier,
-                    },
-                ),
-            ),
+        walk = random_walk(
+            discoverySpace, operationInfo, parameters=sampling_parameters
         )
-        metadata = {}
-        if (
-            output.exitStatus
-            and output.exitStatus.exit_state == OperationExitStateEnum.SUCCESS
-        ):
-            mmd_squared = _finalize_model(
-                discoverySpace,
-                parameters,
-                final_directory,
-                discoverySpace.sample_store.entity_identifiers_in_operations(
-                    output.operation.identifier
-                ),
-            )
-            logger.info("PKH model and predictions finalized at: %s", final_directory)
-            if mmd_squared is not None:
-                metadata["pkhMmdSquared"] = mmd_squared
-        return OperationOutput(
-            resources=[output.operation],
-            metadata=metadata,
-            exitStatus=output.exitStatus,
-        )
+        return _output_after_sampling(walk, discoverySpace, parameters, final_directory)
     finally:
         with contextlib.suppress(OSError):
             final_directory.rmdir()

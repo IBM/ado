@@ -2,23 +2,16 @@
 
 # Build a Surrogate Model with PKH
 
-Measuring every configuration of an experiment is often too expensive.
-Predictive Kernel Herding (PKH) selects a small, representative set of
-configurations to measure. It then trains a **surrogate model** on those
-measurements to estimate the rest.
-
-This tutorial applies PKH to the ideal gas example from the
-[TRIM tutorial](trim.md). The space has 1,215 possible gas conditions and the
-budget is 20 measurements. You will create the discovery space, run PKH, and
-inspect the measurements and predictions. You will also compare one prediction
-with the ideal gas law, $P = nRT/V$, which gives a known answer to check the
-model against.
+In this tutorial, Predictive Kernel Herding (PKH) selects 20 of the 1,215 gas
+conditions from the [TRIM tutorial](trim.md). PKH trains a **surrogate model**
+on the measured pressures and predicts the pressure for the remaining conditions.
+You will check one prediction against the ideal gas law, $P = nRT/V$.
 
 ## Prerequisites
 
 Use Python 3.11–3.14 and a current `ado` source checkout.
-Activate your Python environment, then run all commands from the repository
-root. See [Getting Started](../getting-started.md#installing) for setup.
+Activate your Python environment. Run the commands from the repository root.
+See [Getting Started](../getting-started.md#installing) for setup.
 
 Install the core, PKH plugin, and example experiment from the same checkout:
 
@@ -62,7 +55,7 @@ The command prints the new space identifier. Your identifiers will differ from
 the ones in this example:
 
 ```text
-Success! Created space with identifier: space-e3da9d-82ee36
+Success! Created space with identifier: space-ab6c24-a57faa
 ```
 
 The configuration defines this grid. Each range includes its lower bound and
@@ -74,9 +67,8 @@ excludes its upper bound:
 | `volume` | 1 to 10 m³ | 1 | 9 |
 | `mol` | 0.1 to 1 mol | 0.1 | 9 |
 
-The grid contains 15 × 9 × 9 = **1,215 entities**.
-The `calculate_pressure_ideal_gas` experiment calculates pressure for a
-selected entity. Creating the space does not run this experiment.
+The grid contains 15 × 9 × 9 = **1,215 entities**. When PKH selects an
+entity, the `calculate_pressure_ideal_gas` experiment calculates its pressure.
 
 ## Step 2: Run PKH
 
@@ -92,7 +84,8 @@ Use the operation configuration at
 ```
 <!-- prettier-ignore-end -->
 
-The **pilot** is the initial sample used to train the first forest.
+The **pilot** is the initial sample of entities that PKH measures at random to
+train the first Random Forest before active learning begins.
 These four settings control the run:
 
 | Parameter | Value | Meaning |
@@ -104,11 +97,9 @@ These four settings control the run:
 
 !!! warning "Rerunning this example"
 
-    PKH creates `pkh_models_finalized/` before it collects measurements. It
-    refuses to run if that path already exists, and it leaves earlier files
-    untouched. Before a second run, set a new `outputDirectory` in the
-    configuration, for example `pkh_models_run2`. Then use the matching
-    `_finalized` directory in the commands below.
+    PKH creates a new output directory before it collects measurements. For a
+    second run, set `outputDirectory` to a new name, such as `pkh_models_run2`.
+    Use `pkh_models_run2_finalized/` in the commands below for that run.
 
 Start the operation:
 
@@ -126,7 +117,7 @@ identifier:
 <!-- markdownlint-disable MD013 -->
 
 ```text
-Success! Created operation with identifier operation-pkh@0.1.0-d817a02e and it finished successfully.
+Success! Created operation with identifier operation-pkh@0.1.0-423031d3 and it finished successfully.
 ```
 
 <!-- markdownlint-enable MD013 -->
@@ -145,26 +136,24 @@ Success! Created operation with identifier operation-pkh@0.1.0-d817a02e and it f
 5. **Save:** PKH fits the final model and predicts pressure for the other
    1,195 entities.
 
-Every selected entity must produce a finite target value. A missing or invalid
-label fails the operation.
+PKH needs a finite pressure measurement from each selected entity before it
+can select the next one.
 
 The selection step is **herding**: PKH tries to match the sample's leaf
 proportions to those of the whole space.
 The [algorithm guide](../operators/pkh.md#how-pkh-works) shows a small example
 and the equations.
 
-Existing target measurements count toward `pilotSize` and do not use the
-new-entity budget. This tutorial starts with an empty store, so PKH collects 20
-new measurements.
+Existing target measurements count toward `pilotSize`. The budget counts new
+measurements. This tutorial starts with an empty store, so PKH collects all 20.
 
 !!! tip "Train the final model with AutoGluon"
 
-    This tutorial uses the default Random Forest for the final model. To train
-    an AutoGluon predictor instead, install the extra on Python 3.11–3.13 with
-    `pip install -e "plugins/operators/active_learning[autogluon]"`. Then set
-    `finalPredictor: autogluon` in the configuration. PKH saves the model in
-    `autogluon/` instead of `model.pkl`, and you load it with
-    `TabularPredictor.load`. See the
+    This tutorial uses the default Random Forest. For AutoGluon on
+    Python 3.11–3.13, install the extra with
+    `pip install -e "plugins/operators/active_learning[autogluon]"`.
+    Set `finalPredictor: autogluon` in the configuration. PKH saves this model
+    in `autogluon/`. Load it with `TabularPredictor.load`. See the
     [`finalPredictor` parameter](../operators/pkh.md#finalpredictor).
 
 ## Step 3: Inspect the Results
@@ -179,13 +168,13 @@ The table shows the identifier and pressure of each of the 20 measured
 entities. The row order can vary. This run starts with:
 
 ```text
-INFO:   Using space space-e3da9d-82ee36.
+INFO:   Using space space-ab6c24-a57faa.
 ┌───────┬──────────────────────────────────┬────────────────────┐
 │ INDEX │ identifier                       │ pressure           │
 ├───────┼──────────────────────────────────┼────────────────────┤
-│ 0     │ mol.0.3-temperature.292-volume.6 │ 121.39115422280001 │
-│ 1     │ mol.0.1-temperature.272-volume.4 │ 56.5383458024      │
-│ 2     │ mol.0.4-temperature.276-volume.2 │ 458.9583365136     │
+│ 0     │ mol.0.5-temperature.282-volume.5 │ 234.4678458276     │
+│ 1     │ mol.0.3-temperature.278-volume.1 │ 693.4261823412     │
+│ 2     │ mol.0.4-temperature.292-volume.2 │ 485.5646168912     │
 ```
 
 These are experiment results that `ado` stores in the sample store.
@@ -200,9 +189,6 @@ where you ran the operation:
 | `model.pkl` | Fitted preprocessing pipeline and Random Forest |
 | `combined_predictions.csv` | Measured and predicted pressure for all 1,215 entities |
 | `metadata.json` | Backend, feature names, measured count, and final MMD² |
-
-Predictions stay in these local files. PKH does not record them as experimental
-measurements in the sample store.
 
 ### Read the predictions
 
@@ -233,8 +219,12 @@ versions.
 
 ### Predict a new configuration
 
-Load the model and supply a DataFrame with the same property names. This
-configuration is one of the 1,195 entities that PKH did not measure:
+!!! warning
+
+    Load `model.pkl` only if you trust its source.
+
+Load the model. Supply the same property names it used for training.
+This configuration comes from the 1,195 rows where `is_predicted` is `True`:
 
 ```python
 import pickle
@@ -256,19 +246,17 @@ Model estimate: 315.9 Pa
 Ideal gas law:  354.2 Pa
 ```
 
-For this configuration, the model underestimates the pressure by about 11%.
-
-!!! warning
-
-    `model.pkl` is a Python pickle file. Only load pickle files you trust.
+In this run, the model estimates a pressure about 11% below the ideal gas
+value. The model estimate and MMD² can vary slightly across package versions
+and platforms.
 
 ### Check the sampling diagnostic
 
 PKH also reports **MMD²**. It measures how closely the measured entities match
 the whole space in the forest's leaf representation. A lower value means a
-closer match. MMD² does not measure prediction error.
+closer match. Use the ideal-gas comparison above to check prediction accuracy.
 
-The final value is stored in `metadata.json`:
+Read the final value from `metadata.json`:
 
 ```bash
 grep mmdSquared pkh_models_finalized/metadata.json
@@ -283,15 +271,14 @@ Replace the example identifier below with the one printed by
 `ado create operation`:
 
 ```bash
-OPERATION_IDENTIFIER="operation-pkh@0.1.0-d817a02e"
+OPERATION_IDENTIFIER="operation-pkh@0.1.0-423031d3"
 ado get operation "$OPERATION_IDENTIFIER" -o yaml
 ```
 
 !!! tip
 
-    Do not use `--use-latest` to find the PKH operation. PKH collects
-    measurements through a related `random_walk` operation, which is created
-    later and so is the most recent operation.
+    Use the printed PKH operation ID to check MMD². The related
+    `random_walk` operation can be the most recent operation.
 
 Set `LOGLEVEL=INFO` when you start the operation to log MMD² at each refit.
 The value can increase after a refit, because each refit changes the forest.
@@ -303,5 +290,5 @@ See the [MMD reference](../operators/pkh.md#mmd-statistic) for details.
   Compare the predictions with the ideal gas law for several conditions.
 - Use the [configuration guide](../operators/pkh.md#configuration-parameters)
   to adapt PKH to another finite discovery space.
-- Try [TRIM](trim.md), an experimental design framework that uses prediction
-  stability to decide when to stop instead of a fixed measurement budget.
+- Try [TRIM](trim.md) to stop sampling when holdout scores stabilize or the run
+  reaches its budget.

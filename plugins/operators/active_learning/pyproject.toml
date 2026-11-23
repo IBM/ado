@@ -4,8 +4,7 @@ description = "Active learning characterization operators for ADO discovery spac
 readme = "README.md"
 requires-python = ">=3.11,<3.15"
 dependencies = [
-  # The 2.3.1 maintenance release lacks the typed operator parameters on main.
-  "ado-core>=2.3.1.dev51,!=2.3.1",
+  "ado-core>=2.4.0",
   "numpy",
   "pandas>=2.2.0",
   "scikit-learn>=1.6",

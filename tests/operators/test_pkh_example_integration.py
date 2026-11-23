@@ -6,15 +6,14 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
-from typer.testing import CliRunner
+from typer.testing import CliRunner, Result
 
 from ado.cli.core.cli import app
 
 
-@pytest.mark.timeout(900)
-def test_pkh_ideal_gas_example(tmp_path: Path) -> None:
-    """PKH measures six of eight gas configurations and predicts the other two."""
-    result = CliRunner().invoke(
+def _run_example(tmp_path: Path, budget: int) -> Result:
+    """Run the PKH example on the eight-point ideal-gas space."""
+    return CliRunner().invoke(
         app,
         [
             "create",
@@ -24,11 +23,17 @@ def test_pkh_ideal_gas_example(tmp_path: Path) -> None:
             "--with",
             "space=tests/resources/trim/space_minimal.yaml",
             "--set",
-            "operation.parameters.numberEntities=6",
+            f"operation.parameters.numberEntities={budget}",
             "--set",
             f"operation.parameters.outputDirectory={tmp_path / 'model'}",
         ],
     )
+
+
+@pytest.mark.timeout(900)
+def test_pkh_ideal_gas_example(tmp_path: Path) -> None:
+    """PKH measures six of eight gas configurations and predicts the other two."""
+    result = _run_example(tmp_path, budget=6)
     assert result.exit_code == 0, result.output
 
     directory = tmp_path / "model_finalized"
@@ -40,3 +45,12 @@ def test_pkh_ideal_gas_example(tmp_path: Path) -> None:
     assert predictions["is_predicted"].sum() == 2
     assert predictions["pressure"].notna().all()
     assert (directory / "model.pkl").is_file()
+
+
+@pytest.mark.timeout(900)
+def test_pkh_failed_run_cleans_reserved_directory(tmp_path: Path) -> None:
+    """PKH releases its output directory when the measurement run raises."""
+    result = _run_example(tmp_path, budget=100)
+    assert result.exit_code != 0, result.output
+    assert "Requested number of entities to sample (100)" in result.output
+    assert not (tmp_path / "model_finalized").exists()

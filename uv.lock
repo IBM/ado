@@ -56,7 +56,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "ado-core", specifier = ">=2.3.1.dev51,!=2.3.1" },
+    { name = "ado-core", specifier = ">=2.4.0" },
     { name = "autogluon-tabular", extras = ["catboost", "xgboost"], marker = "python_full_version < '3.14' and extra == 'autogluon'", specifier = "==1.6.3" },
     { name = "numpy" },
     { name = "pandas", specifier = ">=2.2.0" },

@@ -1,9 +1,14 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
+import os
+import pathlib
+import shutil
 import sqlite3
+import tempfile
 import uuid
 from collections.abc import Callable, Generator
+from typing import TYPE_CHECKING
 
 import pytest
 import ray
@@ -18,6 +23,13 @@ from .fixtures.core.space import *
 from .fixtures.samplestore.crud import *
 from .fixtures.samplestore.fixtures import *
 from .fixtures.metastore import *
+from .fixtures.shared_mysql_instance import *
+from .fixtures.shared_mysql_instance import (
+    MYSQL_OWNER_PID_INPUT_KEY,
+    MYSQL_SHARED_DIRECTORY_INPUT_KEY,
+    cleanup_shared_instance,
+    remove_mysql_test_container,
+)
 from .fixtures.example_actuator.fixtures import *
 from .fixtures.ml_multi_cloud.fixtures import *
 from .fixtures.pfas.fixtures import *
@@ -35,12 +47,53 @@ from .fixtures.schema.results import *
 # or we will get create_sample_store fixture not found.
 from .fixtures.samplestore.crud_from_configurations import *
 
+if TYPE_CHECKING:
+    from xdist.workermanage import WorkerController
+
 # SQLite version check for tests requiring JSON operators (-> and ->>)
 # ref: https://sqlite.org/json1.html#jptr
 sqlite3_version = sqlite3.sqlite_version_info
 requires_sqlite_3_38 = pytest.mark.skipif(
     sqlite3_version < (3, 38, 0), reason="SQLite version 3.38.0 or higher is required"
 )
+
+
+mysql_shared_directory_key = pytest.StashKey[pathlib.Path]()
+
+
+def pytest_configure_node(node: "WorkerController") -> None:
+    """Pass an xdist worker the shared MySQL directory and the controller pid.
+
+    The pid identifies the process that owns the MySQL container.
+
+    Args:
+        node: The worker being configured.
+    """
+    stash = node.config.stash
+    if mysql_shared_directory_key not in stash:
+        stash[mysql_shared_directory_key] = pathlib.Path(
+            tempfile.mkdtemp(prefix="ado-pytest-mysql-")
+        )
+    node.workerinput[MYSQL_SHARED_DIRECTORY_INPUT_KEY] = str(
+        stash[mysql_shared_directory_key]
+    )
+    node.workerinput[MYSQL_OWNER_PID_INPUT_KEY] = os.getpid()
+
+
+def pytest_sessionfinish(session: pytest.Session) -> None:
+    """Stop the shared MySQL instance and delete its directory.
+
+    Applies to the process that created the shared directory.
+
+    Args:
+        session: The finished test session.
+    """
+    shared_directory = session.config.stash.get(mysql_shared_directory_key, None)
+    if shared_directory is None:
+        return
+
+    cleanup_shared_instance(shared_directory, remove_mysql_test_container)
+    shutil.rmtree(shared_directory, ignore_errors=True)
 
 
 @pytest.fixture(scope="session")

@@ -2,13 +2,11 @@
 # SPDX-License-Identifier: MIT
 
 
-import os
 import pathlib
 from collections.abc import Callable, Generator
 
 import pytest
 import sqlalchemy
-import testcontainers.community.mysql as testcontainers_mysql
 import yaml
 
 try:
@@ -29,6 +27,7 @@ from ado.metastore.project import ProjectContext
 from ado.metastore.sqlstore import SQLStore
 from ado.modules.module import ModuleConf, ModuleTypeEnum
 from ado.utilities.output import pydantic_model_as_yaml
+from tests.fixtures.shared_mysql_instance import MySqlConnectionDetails
 
 
 @pytest.fixture(
@@ -42,45 +41,12 @@ def module_config(request: pytest.FixtureRequest) -> ModuleConf:
     return ModuleConf(moduleType=request.param)
 
 
-@pytest.fixture(scope="session")
-def mysql_test_password() -> str:
-    return "a-possible-password-for-mysql"
-
-
-@pytest.fixture(scope="session")
-def mysql_test_port() -> int:
-    return 3306
-
-
-@pytest.fixture(scope="session")
-def mysql_test_instance(
-    mysql_test_password: str,
-    mysql_test_port: int,
-) -> testcontainers_mysql.MySqlContainer:
-
-    # AP 20/03/2024: Ryuk is not connecting locally and we
-    # don't really need it since we're using the context manager
-    # ref: https://github.com/testcontainers/testcontainers-python/pull/314
-    os.environ["TESTCONTAINERS_RYUK_DISABLED"] = "true"
-
-    # We need to use root as we need to create databases on-the-fly
-    with testcontainers_mysql.MySqlContainer(
-        image="mirror.gcr.io/mysql:8",
-        username="root",
-        root_password=mysql_test_password,
-        password=mysql_test_password,
-        port=mysql_test_port,
-        dialect="pymysql",
-    ) as mysql_instance:
-        yield mysql_instance
-
-
 @pytest.fixture
 def valid_ado_mysql_context_yaml(
     random_identifier: Callable[[], str],
     mysql_test_password: str,
     mysql_test_port: int,
-    mysql_test_instance: testcontainers_mysql.MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
 ) -> str:
     random_id = random_identifier()
     db_name = f"pytest_{random_id}"

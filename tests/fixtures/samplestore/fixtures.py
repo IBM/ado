@@ -3,7 +3,6 @@
 from collections.abc import Callable
 
 import pytest
-from testcontainers.community.mysql import MySqlContainer
 
 from ado.core import (
     DiscoverySpaceResource,
@@ -20,18 +19,20 @@ from ado.core.samplestore.config import (
 from ado.core.samplestore.sql import SQLSampleStore
 from ado.metastore.project import ProjectContext
 from ado.metastore.sqlstore import SQLStore
+from tests.fixtures.shared_mysql_instance import MySqlConnectionDetails
 
 
 @pytest.fixture
 def sql_store(
-    mysql_test_instance: MySqlContainer, valid_ado_project_context: ProjectContext
+    mysql_test_instance: MySqlConnectionDetails,
+    valid_ado_project_context: ProjectContext,
 ) -> SQLStore:
     return SQLStore(project_context=valid_ado_project_context)
 
 
 @pytest.fixture
 def sql_store_with_resources_preloaded(
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     valid_ado_project_context: ProjectContext,
     discovery_space_resource: DiscoverySpaceResource,
     operation_resource: OperationResource,

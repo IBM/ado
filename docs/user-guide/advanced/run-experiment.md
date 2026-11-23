@@ -44,9 +44,10 @@ run_experiment <point_file.yaml> [--remote <ENDPOINT>] [--timeout <SECONDS>] [--
   of remote hosts. (default: `--no-verify-certs`).
 - `--request-timeout`: Timeout for web requests. (default: 60s)
 - `--no-ray`: Run locally in-process without starting Ray. Supports
-  `StandardActuator` subclasses and `custom_experiments` only. Incompatible
-  with `--remote`. Custom experiments whose `ray_options.runtime_env` creates
-  a sandboxed venv (via `pip`, `conda`, or `uv`) cannot use `--no-ray`.
+  `StandardActuator` subclasses only (for example `custom_experiments` and
+  `robotic_lab`). Incompatible with `--remote`. Custom experiments whose
+  `ray_options.runtime_env` creates a sandboxed venv (via `pip`, `conda`, or
+  `uv`) cannot use `--no-ray`.
 
 ## Example
 

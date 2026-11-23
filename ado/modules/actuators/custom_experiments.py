@@ -772,9 +772,7 @@ class CustomExperiments(StandardActuator):
         """
 
         enable_ray_actor_coverage("custom_experiments")
-        super().__init__(
-            queue=queue if queue is not None else NullQueue(), params=params
-        )
+        super().__init__(queue=queue, params=params)
 
         self.log.debug(f"Queue is {self._stateUpdateQueue}")
         self.log.debug(f"Params are {self._parameters}")

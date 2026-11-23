@@ -5,7 +5,8 @@ description: >-
   (entity) without creating a discoveryspace or operation. Use when smoke
   testing or functionally validating an actuator, custom experiment, or actuator
   configuration; debugging experiment execution or entity validation; or when a
-  single measurement is wanted without ado metastore tracking. For campaigns
+  single measurement is wanted without ado metastore tracking; or running an
+  experiment locally without Ray. For campaigns
   over many entities, see ado-define-experiment-campaign; for the ado CLI itself,
   see ado-use-cli.
 ---
@@ -34,7 +35,8 @@ uv run run_experiment PATH_TO_POINT_YAML
 
 By default Ray is started locally and shut down automatically; no metastore or
 remote cluster is required. Use `--no-ray` to run in-process without Ray
-(`StandardActuator` subclasses and `custom_experiments` only).
+(`StandardActuator` subclasses only, for example `custom_experiments` and
+`robotic_lab`).
 
 ## Point YAML
 
@@ -79,7 +81,7 @@ Verify with `uv run run_experiment --help` before writing a command.
 | `--timeout SECONDS`                    | Timeout for a remote experiment (default 300)                                                     |
 | `--request-timeout SECONDS`            | Timeout for individual web requests to a remote endpoint (default 60)                             |
 | `--verify-certs` / `--no-verify-certs` | SSL certificate verification of remote hosts (default `--no-verify-certs`)                        |
-| `--no-ray`                             | Run locally in-process without Ray; incompatible with `--remote`                                  |
+| `--no-ray`                             | Run in-process without Ray (`StandardActuator` subclasses only); incompatible with `--remote`     |
 
 <!-- markdownlint-enable line-length -->
 

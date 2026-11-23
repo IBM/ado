@@ -165,8 +165,7 @@ def local_no_ray_execution_closure(
 ) -> Callable[[ExperimentReference, Entity], MeasurementRequest]:
     """Create a callable that runs measurements in-process without Ray.
 
-    Supports ``StandardActuator`` subclasses only (including
-    ``CustomExperiments``). Custom experiments whose
+    Supports ``StandardActuator`` subclasses only. Custom experiments whose
     ``ray_options.runtime_env`` creates a sandbox venv are rejected.
 
     Args:
@@ -184,6 +183,19 @@ def local_no_ray_execution_closure(
     def execute_local_no_ray(
         reference: ExperimentReference, entity: Entity
     ) -> MeasurementRequest:
+        """Execute the experiment on the entity in the calling process.
+
+        Args:
+            reference: The experiment to execute.
+            entity: The entity to measure.
+
+        Returns:
+            The completed MeasurementRequest.
+
+        Raises:
+            typer.BadParameter: If the actuator is not a StandardActuator subclass.
+            typer.Exit: If the experiment requires a Ray sandbox venv.
+        """
         if reference.actuatorIdentifier not in actuators:
             actuator_class = registry.actuatorForIdentifier(
                 reference.actuatorIdentifier
@@ -207,10 +219,12 @@ def local_no_ray_execution_closure(
         if isinstance(actuator, CustomExperiments) and (
             actuator.experiment_requires_ray_sandbox_venv(reference)
         ):
-            raise typer.BadParameter(
-                f"Experiment '{reference.experimentIdentifier}' requires creating "
-                "a sandbox Ray venv — cannot run without Ray"
+            console_print(
+                f"{ERROR}Experiment '{reference.experimentIdentifier}' requires "
+                "creating a sandbox Ray venv — cannot run without Ray",
+                stderr=True,
             )
+            raise typer.Exit(code=1)
 
         return actuator.execute(
             entities=[entity],
@@ -371,8 +385,8 @@ def run(
         typer.Option(
             "--no-ray",
             help="Run locally in-process without starting Ray. "
-            "Supports StandardActuator subclasses only (including "
-            "custom_experiments). Incompatible with --remote.",
+            "Supports StandardActuator subclasses only (for example "
+            "custom_experiments and robotic_lab). Incompatible with --remote.",
         ),
     ] = False,
 ) -> None:

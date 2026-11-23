@@ -64,17 +64,30 @@ def _load_actuator_configurations(
 
     from ado.cli.core.config import AdoConfiguration
     from ado.core.resources import CoreResourceKinds
+    from ado.metastore.base import ResourcesDoNotExistError
     from ado.metastore.sqlstore import SQLStore
 
     ado_config = AdoConfiguration.load()
     metastore = SQLStore(project_context=ado_config.project_context)
-    for actuator_configuration_identifier in actuator_configuration_identifiers:
-        actuator_configuration = metastore.getResource(
-            identifier=actuator_configuration_identifier,
+    resources = metastore.getResources(
+        identifiers=actuator_configuration_identifiers,
+        ignore_validation_errors=False,
+        ignore_plugin_validation=False,
+    )
+    missing_identifiers = {
+        identifier
+        for identifier in actuator_configuration_identifiers
+        if identifier not in resources
+        or resources[identifier].kind != CoreResourceKinds.ACTUATORCONFIGURATION
+    }
+    if missing_identifiers:
+        raise ResourcesDoNotExistError(
+            missing_ids=missing_identifiers,
             kind=CoreResourceKinds.ACTUATORCONFIGURATION,
-            raise_error_if_no_resource=True,
-            ignore_plugin_validation=False,
-        ).config
+        )
+
+    for actuator_configuration_identifier in actuator_configuration_identifiers:
+        actuator_configuration = resources[actuator_configuration_identifier].config
         actuator_configurations[actuator_configuration.actuatorIdentifier] = (
             actuator_configuration
         )

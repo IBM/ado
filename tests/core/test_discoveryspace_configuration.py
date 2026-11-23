@@ -21,6 +21,7 @@ def test_configuration_constraints_lifecycle(
     constitutive_property_configuration_general: list[ConstitutiveProperty],
     t4_batch_size_constraint: PropertyConstraint,
 ) -> None:
+    """Test constraints survive model dump and YAML load."""
     configuration = DiscoverySpaceConfiguration(
         entitySpace=constitutive_property_configuration_general,
         constraints=[t4_batch_size_constraint],
@@ -28,7 +29,6 @@ def test_configuration_constraints_lifecycle(
 
     from_dump = DiscoverySpaceConfiguration.model_validate(configuration.model_dump())
     assert from_dump == configuration
-    assert from_dump.constraints == [t4_batch_size_constraint]
 
     from_yaml = DiscoverySpaceConfiguration.model_validate(
         yaml.load(pydantic_model_as_yaml(configuration), Loader=SafeLoader)
@@ -40,6 +40,7 @@ def test_configuration_rejects_constraint_on_property_not_in_entity_space(
     constitutive_property_configuration_general: list[ConstitutiveProperty],
     t4_batch_size_constraint: PropertyConstraint,
 ) -> None:
+    """Test a constraint on a property absent from the entity space is rejected."""
     properties_without_batch_size = [
         p
         for p in constitutive_property_configuration_general
@@ -56,5 +57,6 @@ def test_configuration_rejects_constraint_on_property_not_in_entity_space(
 def test_configuration_rejects_constraints_without_entity_space(
     t4_batch_size_constraint: PropertyConstraint,
 ) -> None:
+    """Test constraints without an entity space are rejected."""
     with pytest.raises(pydantic.ValidationError, match="entitySpace"):
         DiscoverySpaceConfiguration(constraints=[t4_batch_size_constraint])

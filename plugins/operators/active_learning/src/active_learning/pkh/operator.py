@@ -53,6 +53,7 @@ def _fit_predictor(
         from autogluon.features.generators import (
             AsTypeFeatureGenerator,
             AutoMLPipelineFeatureGenerator,
+            FillNaFeatureGenerator,
         )
         from autogluon.tabular import TabularPredictor
 
@@ -72,10 +73,14 @@ def _fit_predictor(
         )
         categorical_columns = train_data.select_dtypes(include="category").columns
         if not categorical_columns.empty:
-            # Cast raw category values to their training strings before binary encoding.
             train_data = train_data.astype(dict.fromkeys(categorical_columns, "string"))
+            # Match the training string "None" before AutoGluon encodes categories.
             fit_kwargs["feature_generator"] = AsTypeFeatureGenerator(
-                convert_bool=False, post_generators=[AutoMLPipelineFeatureGenerator()]
+                convert_bool=False,
+                post_generators=[
+                    FillNaFeatureGenerator(fillna_map={"object": "None"}),
+                    AutoMLPipelineFeatureGenerator(),
+                ],
             )
         model.fit(train_data=train_data, **fit_kwargs)
         return model

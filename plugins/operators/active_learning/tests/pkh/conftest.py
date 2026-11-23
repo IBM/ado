@@ -56,9 +56,9 @@ def make_pkh_space(
 def categorical_space(
     make_pkh_space: Callable[[list[ConstitutiveProperty]], DiscoverySpace],
 ) -> DiscoverySpace:
-    """Twelve candidates, six response labels, and one label for a second target."""
+    """Sixteen candidates, eight response labels, and one label for a second target."""
     kinds = [1, "b", "c", "d"]
-    codes = [0.5, 2**53, 2**53 + 1]
+    codes = [0.5, 2**53, 2**53 + 1, None]
     space = make_pkh_space(
         [
             ConstitutiveProperty(
@@ -93,10 +93,10 @@ def categorical_space(
     ).observedProperties[0]
     observations = [
         (entity, response, value)
-        for entity, value in zip(entities[:6], [0, 1] * 3, strict=True)
+        for entity, value in zip(entities[:8], [0, 1, 2, 10] * 2, strict=True)
     ]
     observations.extend(
-        [(entities[6], other_response, 999), (entities[0], alternate, 10)]
+        [(entities[8], other_response, 999), (entities[0], alternate, 10)]
     )
     writer.add_measurement_results(
         [

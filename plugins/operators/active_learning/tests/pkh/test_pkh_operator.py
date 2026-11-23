@@ -145,12 +145,15 @@ def test_saved_predictor_reproduces_categorical_predictions(
         {"kind": "b", "count": 2**53 + 1}
     )
     _finalize_model(categorical_space, parameters, tmp_path, {sampled.identifier})
-    table = pd.read_csv(tmp_path / "combined_predictions.csv", dtype={"count": str})
-    assert table.loc[~table.is_predicted, "response"].tolist() == [0, 1] * 3
+    table = pd.read_csv(
+        tmp_path / "combined_predictions.csv",
+        dtype={"count": str},
+        keep_default_na=False,
+    )
+    assert table.loc[~table.is_predicted, "response"].tolist() == [0, 1, 2, 10] * 2
     unmeasured = table.loc[table.is_predicted]
-    assert unmeasured.kind.tolist() == ["c", "c", "c", "d", "d", "d"]
-    raw_counts = [0.5, 2**53, 2**53 + 1] * 2
-    assert unmeasured["count"].tolist() == [str(value) for value in raw_counts]
+    assert unmeasured.kind.tolist() == ["c"] * 4 + ["d"] * 4
+    raw_counts = [0.5, 2**53, 2**53 + 1, None] * 2
     inputs = pd.DataFrame(
         {"kind": unmeasured.kind.tolist(), "count": pd.Series(raw_counts, dtype=object)}
     )
@@ -159,14 +162,16 @@ def test_saved_predictor_reproduces_categorical_predictions(
 
         model = TabularPredictor.load(str(tmp_path / "autogluon"))
         assert model.problem_type == "regression"
-        assert model.transform_features(inputs)["count"].nunique() == 3
+        assert model.transform_features(inputs)["count"].nunique(dropna=False) == 4
     else:
         with (tmp_path / "model.pkl").open("rb") as model_file:
             model = pickle.load(model_file)  # noqa: S301 - reload this test's model
-        # Mixed float/int categories (0.5, 2**53, 2**53+1) remain distinct.
+        # Each known category activates one indicator per input column.
         features = model.named_steps["features"].transform(inputs)
+        assert (features.sum(axis=1) == len(inputs.columns)).all()
         assert len(np.unique(features, axis=0)) == len(inputs)
     assert model.predict(inputs).tolist() == pytest.approx(unmeasured.response.tolist())
+    assert unmeasured["count"].tolist() == [str(value) for value in raw_counts]
 
 
 def test_incomplete_measurements_cannot_publish_a_model(

@@ -19,9 +19,6 @@ from ado.core.discoveryspace.space import DiscoverySpace, Entity
 from ado.schema.domain import VariableTypeEnum
 from ado.schema.observed_property import ObservedProperty
 
-# Earlier Random Forest pickles look up their category formatter by this name.
-_format_categorical_value = str
-
 
 def candidate_entities(discovery_space: DiscoverySpace) -> list[Entity]:
     """Return one entity per point of the finite entity space.

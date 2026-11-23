@@ -4,15 +4,18 @@
 """Tests for optional Ray initialization based on operator requiresRay."""
 
 import os
-import pathlib
+import signal
 import uuid
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from unittest import mock
 
 import pytest
 
+import ado.core.samplestore.sql  # noqa: F401 — registers SQLSampleStore
 import ado.modules.operators.randomwalk  # noqa: F401 — loads explore operators
+from ado.core.discoveryspace.config import DiscoverySpaceConfiguration
+from ado.core.discoveryspace.resource import DiscoverySpaceResource
 from ado.core.discoveryspace.space import DiscoverySpace
 from ado.core.operation.config import (
     DiscoveryOperationConfiguration,
@@ -25,13 +28,23 @@ from ado.core.operation.config import (
 )
 from ado.core.operation.operation import OperationOutput
 from ado.core.resources import ADOResourceReference, CoreResourceKinds
+from ado.core.samplestore.config import (
+    SampleStoreConfiguration,
+    SampleStoreModuleConf,
+    SampleStoreSpecification,
+)
+from ado.core.samplestore.utils import create_sample_store_resource
 from ado.metastore.project import ProjectContext
+from ado.metastore.sqlstore import SQLStore
+from ado.modules.operators._cleanup import cleanup_callback_functions
 from ado.modules.operators.collections import (
     characterize,
     characterize_operation,
     explore,
 )
-from ado.utilities.location import SQLiteStoreConfiguration
+from ado.schema.experiment import Experiment
+from ado.schema.measurementspace import MeasurementSpaceConfiguration
+from ado.schema.property import AbstractPropertyDescriptor
 
 
 def _one_space(
@@ -48,6 +61,7 @@ def _one_space(
 def _temporary_characterize(
     *,
     requires_ray: bool,
+    operator_function: Callable[..., OperationOutput] | None = None,
 ) -> Iterator[str]:
     """Register a temporary characterize operator and remove it afterwards."""
     name = f"test-ray-op-{uuid.uuid4().hex[:8]}"
@@ -58,7 +72,7 @@ def _temporary_characterize(
         example_configuration=GenericOperatorParameters(),
         description="temporary ray-requirement test operator",
         requires_ray=requires_ray,
-    )(_one_space)
+    )(operator_function or _one_space)
     try:
         yield name
     finally:
@@ -91,6 +105,7 @@ def test_registered_explore_operators_require_ray() -> None:
 
 def test_trim_operator_requires_ray() -> None:
     """Trim nests random_walk explore ops, so it must opt into Ray."""
+    pytest.importorskip("trim")
     import trim.operator  # noqa: F401 — registers the trim operator
 
     assert characterize.operators["trim"].requiresRay is True
@@ -162,141 +177,132 @@ def test_requires_ray_rejects_unexpected_module_type() -> None:
         config.requires_ray()
 
 
-def test_orchestrate_skips_ray_init_when_not_required_locally(
-    tmp_path: pathlib.Path,
+def _store_discovery_space(project_context: ProjectContext) -> tuple[SQLStore, str]:
+    """Persist a sample store and a discovery space with one experiment."""
+    metastore = SQLStore(project_context=project_context)
+    sample_store_configuration = SampleStoreConfiguration(
+        specification=SampleStoreSpecification(
+            module=SampleStoreModuleConf(
+                moduleClass="SQLSampleStore",
+                moduleName="ado.core.samplestore.sql",
+            ),
+        )
+    )
+    sample_store_configuration.specification.storageLocation = (
+        project_context.metadataStore
+    )
+    _resource, sample_store = create_sample_store_resource(
+        sample_store_configuration, metastore
+    )
+    experiment = Experiment(
+        actuatorIdentifier="test",
+        identifier="noop-exp",
+        targetProperties=[AbstractPropertyDescriptor(identifier="output")],
+    )
+    space = DiscoverySpaceResource(
+        identifier=f"space-{uuid.uuid4().hex[:8]}",
+        config=DiscoverySpaceConfiguration(
+            sampleStoreIdentifier=sample_store.identifier,
+            experiments=MeasurementSpaceConfiguration(experiments=[experiment]),
+        ),
+    )
+    metastore.addResource(space)
+    return metastore, space.identifier
+
+
+@pytest.mark.parametrize(
+    ("requires_ray", "in_ray_job"),
+    [
+        (False, False),
+        (True, False),
+        (False, True),
+    ],
+)
+def test_orchestrate_ray_initialization(
+    requires_ray: bool,
+    in_ray_job: bool,
+    valid_ado_sqlite_project_context: ProjectContext,
 ) -> None:
-    """Local orchestrate does not call ray.init for requiresRay=False."""
+    """Start Ray only when the operator requires it or this process is a Ray job.
+
+    SIGTERM handling is installed in every case. ``ray.init`` and
+    ``ray.shutdown`` are spies so the test leaves the session Ray cluster
+    alone. ``time.sleep`` is patched because Ray shutdown waits for logs.
+    """
     from ado.modules.operators import orchestrate as orchestrate_module
 
-    context = ProjectContext(
-        project="no-ray",
-        metadataStore=SQLiteStoreConfiguration(path=str(tmp_path / "no-ray.db")),
+    metastore, space_identifier = _store_discovery_space(
+        valid_ado_sqlite_project_context
     )
+    observed: dict[str, bool] = {}
 
-    with _temporary_characterize(requires_ray=False) as name:
-        config = _characterize_config(name)
+    def one_space(
+        discoverySpace: DiscoverySpace,
+        operationInfo: FunctionOperationInfo | None = None,
+        *,
+        parameters: GenericOperatorParameters,
+    ) -> OperationOutput:
+        """Characterize one stored discovery space."""
+        del discoverySpace, operationInfo, parameters
+        handler = signal.getsignal(signal.SIGTERM)
+        observed["sigterm_handler_installed"] = callable(handler) and handler not in (
+            signal.SIG_DFL,
+            signal.SIG_IGN,
+        )
+        observed["orchestrate_cleanup_registered"] = (
+            "orchestrate" in cleanup_callback_functions
+        )
+        return OperationOutput()
 
-        with (
-            mock.patch.dict(os.environ, {}, clear=False),
-            mock.patch.object(orchestrate_module.ray, "init") as ray_init,
-            mock.patch.object(
-                orchestrate_module,
-                "graceful_orchestrate_shutdown",
-            ) as shutdown,
-            mock.patch(
-                "ado.core.operation.inputs.resource_references_to_rich_types",
-                return_value={},
-            ),
-            mock.patch.object(
-                OperatorReference,
-                "operationFunction",
-                return_value=lambda **kwargs: OperationOutput(),
-            ),
-            mock.patch.object(
-                orchestrate_module.signal,
-                "signal",
-            ) as signal_mock,
-        ):
-            os.environ.pop("RAY_JOB_CONFIG_JSON_ENV_VAR", None)
-            output = orchestrate_module.orchestrate(
-                operation_resource_configuration=config,
-                project_context=context,
+    environment = (
+        {"RAY_JOB_CONFIG_JSON_ENV_VAR": '{"metadata": {}}'} if in_ray_job else {}
+    )
+    previous_sigterm_handler = signal.getsignal(signal.SIGTERM)
+    try:
+        with _temporary_characterize(
+            requires_ray=requires_ray,
+            operator_function=one_space,
+        ) as name:
+            config = DiscoveryOperationResourceConfiguration(
+                operation=DiscoveryOperationConfiguration(
+                    module=OperatorReference(
+                        operatorName=name,
+                        operationType=DiscoveryOperationEnum.CHARACTERIZE,
+                    ),
+                    parameters={},
+                ),
+                inputs={
+                    "discoverySpace": ADOResourceReference(
+                        identifier=space_identifier,
+                        kind=CoreResourceKinds.DISCOVERYSPACE,
+                    )
+                },
             )
+            with (
+                mock.patch.dict(os.environ, environment, clear=False),
+                mock.patch.object(orchestrate_module.ray, "init") as ray_init,
+                mock.patch.object(orchestrate_module.ray, "shutdown") as ray_shutdown,
+                mock.patch("time.sleep"),
+            ):
+                if not in_ray_job:
+                    os.environ.pop("RAY_JOB_CONFIG_JSON_ENV_VAR", None)
+                output = orchestrate_module.orchestrate(
+                    operation_resource_configuration=config,
+                    project_context=valid_ado_sqlite_project_context,
+                )
+    finally:
+        signal.signal(signal.SIGTERM, previous_sigterm_handler)
 
-        assert isinstance(output, OperationOutput)
+    assert isinstance(output, OperationOutput)
+    assert observed["sigterm_handler_installed"] is True
+    assert observed["orchestrate_cleanup_registered"] is True
+    operation_identifiers = metastore.getResourceIdentifiersOfKind("operation")[
+        "IDENTIFIER"
+    ]
+    assert len(operation_identifiers) == 1
+    if requires_ray or in_ray_job:
+        ray_init.assert_called_once()
+        ray_shutdown.assert_called_once()
+    else:
         ray_init.assert_not_called()
-        shutdown.assert_not_called()
-        signal_mock.assert_not_called()
-
-
-def test_orchestrate_initializes_ray_when_required(
-    tmp_path: pathlib.Path,
-) -> None:
-    """orchestrate initializes Ray for operators with requiresRay=True."""
-    from ado.modules.operators import orchestrate as orchestrate_module
-
-    context = ProjectContext(
-        project="needs-ray",
-        metadataStore=SQLiteStoreConfiguration(path=str(tmp_path / "needs-ray.db")),
-    )
-
-    with _temporary_characterize(requires_ray=True) as name:
-        config = _characterize_config(name)
-
-        with (
-            mock.patch.object(orchestrate_module.ray, "init") as ray_init,
-            mock.patch.object(
-                orchestrate_module,
-                "graceful_orchestrate_shutdown",
-            ) as shutdown,
-            mock.patch(
-                "ado.core.operation.inputs.resource_references_to_rich_types",
-                return_value={},
-            ),
-            mock.patch.object(
-                OperatorReference,
-                "operationFunction",
-                return_value=lambda **kwargs: OperationOutput(),
-            ),
-            mock.patch.object(
-                orchestrate_module.signal,
-                "signal",
-            ) as signal_mock,
-        ):
-            output = orchestrate_module.orchestrate(
-                operation_resource_configuration=config,
-                project_context=context,
-            )
-
-        assert isinstance(output, OperationOutput)
-        ray_init.assert_called_once()
-        shutdown.assert_called_once()
-        signal_mock.assert_called_once()
-
-
-def test_orchestrate_initializes_ray_for_job_even_when_not_required(
-    tmp_path: pathlib.Path,
-) -> None:
-    """Ray job drivers still connect and install SIGTERM handlers."""
-    from ado.modules.operators import orchestrate as orchestrate_module
-
-    context = ProjectContext(
-        project="job-no-ray",
-        metadataStore=SQLiteStoreConfiguration(path=str(tmp_path / "job-no-ray.db")),
-    )
-
-    with _temporary_characterize(requires_ray=False) as name:
-        config = _characterize_config(name)
-
-        with (
-            mock.patch.dict(
-                os.environ, {"RAY_JOB_CONFIG_JSON_ENV_VAR": '{"metadata": {}}'}
-            ),
-            mock.patch.object(orchestrate_module.ray, "init") as ray_init,
-            mock.patch.object(
-                orchestrate_module,
-                "graceful_orchestrate_shutdown",
-            ) as shutdown,
-            mock.patch(
-                "ado.core.operation.inputs.resource_references_to_rich_types",
-                return_value={},
-            ),
-            mock.patch.object(
-                OperatorReference,
-                "operationFunction",
-                return_value=lambda **kwargs: OperationOutput(),
-            ),
-            mock.patch.object(
-                orchestrate_module.signal,
-                "signal",
-            ) as signal_mock,
-        ):
-            output = orchestrate_module.orchestrate(
-                operation_resource_configuration=config,
-                project_context=context,
-            )
-
-        assert isinstance(output, OperationOutput)
-        ray_init.assert_called_once()
-        shutdown.assert_called_once()
-        signal_mock.assert_called_once()
+        ray_shutdown.assert_not_called()

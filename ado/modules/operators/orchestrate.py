@@ -111,9 +111,10 @@ def orchestrate(
 ) -> OperationOutput:
     """Orchestrate the execution of an operation defined as a function or a class.
 
-    This function optionally initializes Ray (when the operator requires it, or
-    when running as a Ray job), resolves every named input from the operation
-    configuration, and calls the operator with those inputs.
+    This function initializes Ray when the operator requires it or when this
+    process is already a Ray job, installs a SIGTERM handler so an external
+    shutdown can record a finished status, resolves every named input from the
+    operation configuration, and calls the operator with those inputs.
 
     Args:
         operation_resource_configuration: Configuration for the operation including
@@ -141,58 +142,69 @@ def orchestrate(
 
     requires_ray = operation_resource_configuration.requires_ray()
     ray_initialized = False
-    # Also initialize when running as a Ray Jobs API driver so connect,
-    # SIGTERM handling, and job metadata still work for non-Ray operators.
-    if requires_ray or "RAY_JOB_CONFIG_JSON_ENV_VAR" in os.environ:
-        if not requires_ray:
+    cleanup_registered = False
+    output: OperationOutput
+    try:
+        # A Ray Jobs API driver still connects so job metadata and ray job stop work.
+        if requires_ray or "RAY_JOB_CONFIG_JSON_ENV_VAR" in os.environ:
+            if not requires_ray:
+                moduleLog.info(
+                    "Operator does not require Ray for compute, but process is a "
+                    "Ray job — connecting to the cluster"
+                )
+            _initialize_ray_for_operation()
+            ray_initialized = True
+        else:
             moduleLog.info(
-                "Operator does not require Ray for compute, but process is a "
-                "Ray job — connecting and installing signal handlers"
+                "Operator does not require Ray — skipping local Ray initialization"
             )
-        _initialize_ray_for_operation()
-        ray_initialized = True
+
+        # Every operation handles SIGTERM so a killed run records a finished
+        # status. Ray shutdown is registered only when this call initialized Ray.
         signal.signal(
             signalnum=signal.SIGTERM,
             handler=graceful_operation_shutdown_signal_handler(),
         )
-        cleanup_callback_functions["orchestrate"] = graceful_orchestrate_shutdown
-    else:
-        moduleLog.info(
-            "Operator does not require Ray — skipping local Ray initialization"
+
+        def _skip_ray_shutdown() -> None:
+            """No Ray cluster was started for this operation."""
+
+        cleanup_callback_functions["orchestrate"] = (
+            graceful_orchestrate_shutdown if ray_initialized else _skip_ray_shutdown
+        )
+        cleanup_registered = True
+
+        #
+        # GET INPUTS
+        #
+
+        metastore = SQLStore(project_context=project_context)
+        inputs = resource_references_to_rich_types(
+            resource_references=operation_resource_configuration.inputs,
+            metastore=metastore,
         )
 
-    #
-    # GET INPUTS
-    #
+        for space in discovery_spaces_from_inputs(inputs):
+            if not space.measurementSpace.isConsistent:
+                moduleLog.critical("The measurement space is inconsistent - aborting")
+                raise ValueError("The measurement space is inconsistent")
 
-    metastore = SQLStore(project_context=project_context)
-    inputs = resource_references_to_rich_types(
-        resource_references=operation_resource_configuration.inputs,
-        metastore=metastore,
-    )
+        #
+        # RUN OPERATION
+        #
 
-    for space in discovery_spaces_from_inputs(inputs):
-        if not space.measurementSpace.isConsistent:
-            moduleLog.critical("The measurement space is inconsistent - aborting")
-            raise ValueError("The measurement space is inconsistent")
+        operation_info = FunctionOperationInfo(
+            metadata=operation_resource_configuration.metadata,
+            actuatorConfigurationIdentifiers=operation_resource_configuration.actuatorConfigurationIdentifiers,
+            projectContext=project_context,
+        )
 
-    #
-    # RUN OPERATION
-    #
+        operation_parameters = operation_resource_configuration.operation.parameters
 
-    operation_info = FunctionOperationInfo(
-        metadata=operation_resource_configuration.metadata,
-        actuatorConfigurationIdentifiers=operation_resource_configuration.actuatorConfigurationIdentifiers,
-        projectContext=project_context,
-    )
-
-    operation_parameters = operation_resource_configuration.operation.parameters
-
-    try:
         operator_fn = (
             operation_resource_configuration.operation.module.operationFunction()
         )
-        output: OperationOutput = operator_fn(
+        output = operator_fn(
             **inputs,
             operationInfo=operation_info,
             parameters=operation_parameters,
@@ -219,11 +231,10 @@ def orchestrate(
         )
         raise
     finally:
-        if (
-            ray_initialized
-            and not ado.modules.operators._cleanup.shutdown_signal_received
-        ):
-            graceful_orchestrate_shutdown()
-            cleanup_callback_functions.pop("orchestrate", None)
+        if not ado.modules.operators._cleanup.shutdown_signal_received:
+            if ray_initialized:
+                graceful_orchestrate_shutdown()
+            if cleanup_registered:
+                cleanup_callback_functions.pop("orchestrate")
 
     return output

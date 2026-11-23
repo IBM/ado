@@ -329,8 +329,9 @@ nonnegative labels with a positive sum.
 #### `finalPredictor`
 
 PKH trains this regression model on all available labels. The `"autogluon"`
-backend combines candidate model types and requires the optional extra on
-Python 3.11–3.13. PKH requires at least four finite target labels for this
+backend combines candidate model types. Install the `autogluon` extra in the
+Python 3.11–3.13 environment of each node that validates PKH parameters.
+PKH requires at least four finite target labels for this
 backend. Existing labels count toward the minimum. The `"random_forest"`
 backend uses the standard dependencies.
 

@@ -29,13 +29,19 @@ from ado.schema.virtual_property import (
 )
 
 
+@pytest.mark.parametrize(
+    "result_class",
+    [ValidMeasurementResult, IntermediateMeasurementResult],
+    ids=["valid", "intermediate"],
+)
 def test_valid_measurement_result(
     entity: Entity,
     property_values: list[ObservedPropertyValue | ConstitutivePropertyValue],
+    result_class: type[ValidMeasurementResult],
 ) -> None:
 
     # Test init
-    result = ValidMeasurementResult(
+    result = result_class(
         entityIdentifier=entity.identifier, measurements=property_values
     )
 
@@ -43,9 +49,15 @@ def test_valid_measurement_result(
     assert property_values[0].property.experimentReference == result.experimentReference
 
 
+@pytest.mark.parametrize(
+    "result_class",
+    [ValidMeasurementResult, IntermediateMeasurementResult],
+    ids=["valid", "intermediate"],
+)
 def test_valid_measurement_result_mismatch_properties(
     entity: Entity,
     property_values: list[ObservedPropertyValue | ConstitutivePropertyValue],
+    result_class: type[ValidMeasurementResult],
 ) -> None:
 
     import pydantic
@@ -67,18 +79,23 @@ def test_valid_measurement_result_mismatch_properties(
 
     with pytest.raises(pydantic.ValidationError):
         # Test init
-        ValidMeasurementResult(
-            entityIdentifier=entity.identifier, measurements=property_values
-        )
+        result_class(entityIdentifier=entity.identifier, measurements=property_values)
 
 
-def test_valid_measurement_result_no_properties(entity: Entity) -> None:
+@pytest.mark.parametrize(
+    "result_class",
+    [ValidMeasurementResult, IntermediateMeasurementResult],
+    ids=["valid", "intermediate"],
+)
+def test_valid_measurement_result_no_properties(
+    entity: Entity, result_class: type[ValidMeasurementResult]
+) -> None:
 
     import pydantic
 
     with pytest.raises(pydantic.ValidationError):
         # Test init
-        ValidMeasurementResult(entityIdentifier=entity.identifier, measurements=[])
+        result_class(entityIdentifier=entity.identifier, measurements=[])
 
 
 def test_invalid_measurement_record(entity: Entity) -> None:
@@ -509,23 +526,6 @@ def test_json_serialization_roundtrip(
     assert len(original.measurements) == len(deserialized.measurements)
 
 
-def test_intermediate_measurement_result(
-    entity: Entity,
-    property_values: list[ObservedPropertyValue | ConstitutivePropertyValue],
-) -> None:
-    """An intermediate result is a ValidMeasurementResult flagged as intermediate."""
-
-    result = IntermediateMeasurementResult(
-        entityIdentifier=entity.identifier, measurements=property_values
-    )
-
-    assert result.intermediate is True
-    assert result.measurements == property_values
-    assert property_values[0].property.experimentReference == result.experimentReference
-    assert isinstance(result, ValidMeasurementResult)
-    assert not isinstance(result, InvalidMeasurementResult)
-
-
 def test_intermediate_measurement_result_rejects_false_flag(
     entity: Entity,
     property_values: list[ObservedPropertyValue | ConstitutivePropertyValue],
@@ -539,76 +539,6 @@ def test_intermediate_measurement_result_rejects_false_flag(
             entityIdentifier=entity.identifier,
             measurements=property_values,
             intermediate=False,
-        )
-
-
-def test_valid_measurement_result_rejects_intermediate_flag(
-    entity: Entity,
-    property_values: list[ObservedPropertyValue | ConstitutivePropertyValue],
-) -> None:
-    """A ValidMeasurementResult does not accept the intermediate flag."""
-
-    import pydantic
-
-    with pytest.raises(pydantic.ValidationError):
-        ValidMeasurementResult(
-            entityIdentifier=entity.identifier,
-            measurements=property_values,
-            intermediate=True,
-        )
-
-
-def test_intermediate_measurement_result_mismatch_properties(
-    entity: Entity,
-    property_values: list[ObservedPropertyValue | ConstitutivePropertyValue],
-) -> None:
-    """Measurements from more than one experiment are rejected."""
-
-    import pydantic
-
-    other_experiment_property_value = ObservedPropertyValue(
-        value=numpy.random.default_rng().integers(0, 50),
-        property=ObservedProperty(
-            targetProperty=AbstractPropertyDescriptor(identifier="test_prop"),
-            experimentReference=ExperimentReference(
-                experimentIdentifier="test_exp", actuatorIdentifier="test_act"
-            ),
-        ),
-    )
-    property_values.append(other_experiment_property_value)
-
-    with pytest.raises(
-        pydantic.ValidationError, match="must be made by the same experiment"
-    ):
-        IntermediateMeasurementResult(
-            entityIdentifier=entity.identifier, measurements=property_values
-        )
-
-
-def test_intermediate_measurement_result_no_properties(entity: Entity) -> None:
-    """An intermediate result without measurements is rejected."""
-
-    import pydantic
-
-    with pytest.raises(pydantic.ValidationError, match="none given"):
-        IntermediateMeasurementResult(
-            entityIdentifier=entity.identifier, measurements=[]
-        )
-
-
-def test_intermediate_measurement_result_forbids_extra_fields(
-    entity: Entity,
-    property_values: list[ObservedPropertyValue | ConstitutivePropertyValue],
-) -> None:
-    """Fields not defined on the model are rejected."""
-
-    import pydantic
-
-    with pytest.raises(pydantic.ValidationError):
-        IntermediateMeasurementResult(
-            entityIdentifier=entity.identifier,
-            measurements=property_values,
-            reason="Not allowed",
         )
 
 

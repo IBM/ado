@@ -37,7 +37,7 @@ def make_pkh_space(
             requiredProperties=tuple(properties),
             targetProperties=[
                 ConcretePropertyDescriptor(identifier=name)
-                for name in ("response", "is_predicted", "selected-response")
+                for name in ("self", "is_predicted", "selected-self")
             ],
         )
         return DiscoverySpace(
@@ -53,12 +53,23 @@ def make_pkh_space(
 
 
 @pytest.fixture
+def empty_pkh_space(
+    make_pkh_space: Callable[[list[ConstitutiveProperty]], DiscoverySpace],
+) -> DiscoverySpace:
+    """Create a one-candidate space for checks that precede measurement."""
+    kind = ConstitutiveProperty(
+        identifier="kind", propertyDomain=PropertyDomain(values=["b"])
+    )
+    return make_pkh_space([kind])
+
+
+@pytest.fixture
 def categorical_space(
     make_pkh_space: Callable[[list[ConstitutiveProperty]], DiscoverySpace],
 ) -> DiscoverySpace:
-    """Sixteen candidates, eight response labels, and one label for a second target."""
+    """Twenty mixed-category candidates, with labels for the first two kinds."""
     kinds = [1, "b", "c", "d"]
-    codes = [0.5, 2**53, 2**53 + 1, None]
+    codes = [0.5, 2**53, 2**53 + 1, None, b"code"]
     space = make_pkh_space(
         [
             ConstitutiveProperty(
@@ -87,16 +98,16 @@ def categorical_space(
         parameters={},
     )
     experiment = space.measurementSpace.experiments[0]
-    response, _, alternate = experiment.observedProperties
-    other_response = experiment.model_copy(
+    target, _, alternate = experiment.observedProperties
+    other_target = experiment.model_copy(
         update={"identifier": "other"}
     ).observedProperties[0]
     observations = [
-        (entity, response, value)
-        for entity, value in zip(entities[:8], [0, 1, 2, 10] * 2, strict=True)
+        (entity, target, value)
+        for entity, value in zip(entities[:10], [0, 1, 2, 10, 20] * 2, strict=True)
     ]
     observations.extend(
-        [(entities[8], other_response, 999), (entities[0], alternate, 10)]
+        [(entities[10], other_target, 999), (entities[0], alternate, 10)]
     )
     writer.add_measurement_results(
         [

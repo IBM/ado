@@ -208,8 +208,8 @@ Sampling ends when the operation selects `numberEntities` new entities or
 exhausts the unmeasured pool. PKH includes existing target measurements in the
 pilot and training set.
 
-PKH then fits the final predictor on all available target measurements. It
-saves the predictor, a table of measured and predicted values, and metadata.
+PKH then saves the fitted predictor, a table of measured and predicted values,
+and metadata.
 
 For the method and its evaluation on LLM serving workloads, see
 [Sampling Where It Matters: Predicting LLM Serving Performance](https://research.ibm.com/publications/sampling-where-it-matters-predicting-llm-serving-performance)
@@ -328,12 +328,14 @@ nonnegative labels with a positive sum.
 
 #### `finalPredictor`
 
-PKH trains this regression model on all available labels. The `"autogluon"`
-backend combines candidate model types. Install the `autogluon` extra in the
-Python 3.11–3.13 environment of each node that validates PKH parameters.
-PKH requires at least four finite target labels for this
-backend. Existing labels count toward the minimum. The `"random_forest"`
-backend uses the standard dependencies.
+PKH passes one finite target label per measured entity to the final predictor,
+including labels from earlier runs. The default `"random_forest"` fits on
+these rows. AutoGluon uses a validation split or cross-validation according
+to its training preset.
+
+For `"autogluon"`, PKH requires at least four labelled entities. Install the
+`autogluon` extra in the Python 3.11–3.13 environment of each node that
+validates PKH parameters.
 
 #### `outputDirectory`
 
@@ -423,8 +425,9 @@ The saved Random Forest pipeline includes its fitted categorical preprocessing.
 
 === "AutoGluon (`autogluon/`)"
 
-    Load the predictor in the environment used for training. For example, a
-    saved model that uses PyTorch also needs PyTorch to make predictions.
+    Load the predictor in the environment used for training. A model with
+    categorical features needs the `ado-active-learning` plugin to preprocess
+    those features. A model trained with PyTorch also needs PyTorch.
 
     ```python
     import pandas as pd

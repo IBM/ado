@@ -30,12 +30,12 @@ from ado.schema.property import ConstitutiveProperty
 
 
 def test_rejects_multiple_experiments_before_reserving_output(
-    categorical_space: DiscoverySpace, tmp_path: Path
+    empty_pkh_space: DiscoverySpace, tmp_path: Path
 ) -> None:
     """PKH validates the experiment count before it reserves an output directory."""
-    experiment = categorical_space.measurementSpace.experiments[0]
+    experiment = empty_pkh_space.measurementSpace.experiments[0]
     space = DiscoverySpace(
-        entitySpace=categorical_space.entitySpace,
+        entitySpace=empty_pkh_space.entitySpace,
         measurementSpace=MeasurementSpace(
             MeasurementSpaceConfiguration(
                 experiments=[
@@ -44,12 +44,12 @@ def test_rejects_multiple_experiments_before_reserving_output(
                 ]
             )
         ),
-        sample_store=categorical_space.sample_store,
-        project_context=categorical_space.project_context,
+        sample_store=empty_pkh_space.sample_store,
+        project_context=empty_pkh_space.project_context,
     )
     (tmp_path / "model_finalized").mkdir()
     parameters = PKHParameters(
-        targetOutput="response",
+        targetOutput="self",
         numberEntities=1,
         outputDirectory=str(tmp_path / "model"),
     )
@@ -61,19 +61,19 @@ def test_rejects_multiple_experiments_before_reserving_output(
     ("target", "error"),
     [
         ("is_predicted", "output column names conflict"),
-        ("selected-response", "must identify exactly one observed property"),
+        ("selected-self", "must identify exactly one observed property"),
     ],
 )
 def test_rejects_unusable_target_names(
-    categorical_space: DiscoverySpace, target: str, error: str
+    empty_pkh_space: DiscoverySpace, target: str, error: str
 ) -> None:
     """PKH requires one identifiable target with its own output column."""
     with pytest.raises(ValueError, match=error):
-        validate_target_output(target, categorical_space)
+        validate_target_output(target, empty_pkh_space)
 
 
 def test_existing_model_is_preserved(
-    categorical_space: DiscoverySpace, tmp_path: Path
+    empty_pkh_space: DiscoverySpace, tmp_path: Path
 ) -> None:
     """A rerun must leave the previous predictor intact."""
     directory = tmp_path / "model_finalized"
@@ -81,12 +81,12 @@ def test_existing_model_is_preserved(
     model = directory / "model.pkl"
     model.write_bytes(b"previous model")
     parameters = PKHParameters(
-        targetOutput="response",
+        targetOutput="self",
         numberEntities=1,
         outputDirectory=str(tmp_path / "model"),
     )
     with pytest.raises(FileExistsError):
-        pkh.__wrapped__(categorical_space, parameters=parameters)
+        pkh.__wrapped__(empty_pkh_space, parameters=parameters)
     assert model.read_bytes() == b"previous model"
 
 
@@ -103,7 +103,7 @@ def test_failed_sampling_preserves_status_and_skips_publication(
             count,
         ]
     )
-    assert len(measured_labels(space, "selected-response")) == space.entitySpace.size
+    assert len(measured_labels(space, "selected-self")) == space.entitySpace.size
     walk = OperationOutput(
         operation=OperationResource(
             operationType="explore",
@@ -117,7 +117,7 @@ def test_failed_sampling_preserves_status_and_skips_publication(
     directory = tmp_path / "model_finalized"
     directory.mkdir()
     result = _output_after_sampling(
-        walk, space, PKHParameters(targetOutput="response", numberEntities=1), directory
+        walk, space, PKHParameters(targetOutput="self", numberEntities=1), directory
     )
     assert result.exitStatus == walk.exitStatus
     assert not list(directory.iterdir())
@@ -135,7 +135,7 @@ def test_saved_predictor_reproduces_categorical_predictions(
             timeLimit=10, hyperparameters={"RF": {"n_estimators": 3}}
         )
     parameters = PKHParameters(
-        targetOutput="response",
+        targetOutput="self",
         numberEntities=1,
         nEstimators=3,
         finalPredictor=backend,
@@ -150,10 +150,10 @@ def test_saved_predictor_reproduces_categorical_predictions(
         dtype={"count": str},
         keep_default_na=False,
     )
-    assert table.loc[~table.is_predicted, "response"].tolist() == [0, 1, 2, 10] * 2
+    assert table.loc[~table.is_predicted, "self"].tolist() == [0, 1, 2, 10, 20] * 2
     unmeasured = table.loc[table.is_predicted]
-    assert unmeasured.kind.tolist() == ["c"] * 4 + ["d"] * 4
-    raw_counts = [0.5, 2**53, 2**53 + 1, None] * 2
+    assert unmeasured.kind.tolist() == ["c"] * 5 + ["d"] * 5
+    raw_counts = [0.5, 2**53, 2**53 + 1, None, b"code"] * 2
     inputs = pd.DataFrame(
         {"kind": unmeasured.kind.tolist(), "count": pd.Series(raw_counts, dtype=object)}
     )
@@ -162,7 +162,7 @@ def test_saved_predictor_reproduces_categorical_predictions(
 
         model = TabularPredictor.load(str(tmp_path / "autogluon"))
         assert model.problem_type == "regression"
-        assert model.transform_features(inputs)["count"].nunique(dropna=False) == 4
+        assert model.transform_features(inputs)["count"].nunique() == 5
     else:
         with (tmp_path / "model.pkl").open("rb") as model_file:
             model = pickle.load(model_file)  # noqa: S301 - reload this test's model
@@ -170,7 +170,7 @@ def test_saved_predictor_reproduces_categorical_predictions(
         features = model.named_steps["features"].transform(inputs)
         assert (features.sum(axis=1) == len(inputs.columns)).all()
         assert len(np.unique(features, axis=0)) == len(inputs)
-    assert model.predict(inputs).tolist() == pytest.approx(unmeasured.response.tolist())
+    assert model.predict(inputs).tolist() == pytest.approx(unmeasured["self"].tolist())
     assert unmeasured["count"].tolist() == [str(value) for value in raw_counts]
 
 
@@ -180,7 +180,7 @@ def test_incomplete_measurements_cannot_publish_a_model(
     """PKH checks the new measurements before it publishes a model."""
     directory = tmp_path / "model_finalized"
     directory.mkdir()
-    parameters = PKHParameters(targetOutput="response", numberEntities=1)
+    parameters = PKHParameters(targetOutput="self", numberEntities=1)
     missing = categorical_space.entitySpace.entity_for_point(
         {"kind": "d", "count": 2**53 + 1}
     )
@@ -197,7 +197,7 @@ def test_autogluon_requires_enough_labels_for_the_selected_target(
     """PKH checks the attainable and collected target counts before training."""
     pytest.importorskip("autogluon.tabular")
     parameters = PKHParameters(
-        targetOutput="selected-selected-response",
+        targetOutput="selected-selected-self",
         numberEntities=1,
         finalPredictor="autogluon",
         outputDirectory=str(tmp_path / "model"),

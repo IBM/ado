@@ -7,7 +7,7 @@ from collections.abc import Callable
 
 import numpy as np
 import pytest
-from active_learning.pkh.data import candidate_entities
+from active_learning.pkh.data import candidate_entities, measured_labels
 from active_learning.pkh.operator import _sampling_parameters
 from active_learning.pkh.parameters import PKHParameters
 from active_learning.pkh.sampler import PKHState
@@ -92,12 +92,14 @@ async def test_sampler_requires_current_target_before_next_entity(
     queue = MeasurementQueue()
     manager = DiscoverySpaceManager.remote(space=categorical_space, queue=queue)
     try:
-        parameters = PKHParameters(targetOutput="response", numberEntities=2)
+        parameters = PKHParameters(targetOutput="self", numberEntities=2)
         sampler = _sampling_parameters(parameters).samplerConfig.sampler()
         assert sampler.samplerCompatibleWithDiscoverySpaceRemote(manager)
         stream = await sampler.remoteEntityIterator(manager)
         [first] = await anext(stream)
-        assert first.valueForConstitutivePropertyIdentifier("kind").value == "c"
+        assert first.identifier not in measured_labels(
+            categorical_space, "selected-self"
+        )
         with pytest.raises(ValueError, match="Missing finite target measurement"):
             await anext(stream)
     finally:

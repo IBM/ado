@@ -19,6 +19,9 @@ from ado.core.discoveryspace.space import DiscoverySpace, Entity
 from ado.schema.domain import VariableTypeEnum
 from ado.schema.observed_property import ObservedProperty
 
+# Earlier Random Forest pickles look up their category formatter by this name.
+_format_categorical_value = str
+
 
 def candidate_entities(discovery_space: DiscoverySpace) -> list[Entity]:
     """Return one entity per point of the finite entity space.
@@ -112,11 +115,6 @@ def measured_labels(
     }
 
 
-def _format_categorical_value(value: object) -> str:
-    """Format a categorical value as a string for consistent discrete encoding."""
-    return value if isinstance(value, str) else str(value)
-
-
 def encode_feature_matrix(
     discovery_space: DiscoverySpace,
     entities: list[Entity],
@@ -141,10 +139,7 @@ def encode_feature_matrix(
         {
             prop.identifier: (
                 pd.Series(
-                    [
-                        _format_categorical_value(v)
-                        for v in raw_columns[prop.identifier]
-                    ],
+                    [str(value) for value in raw_columns[prop.identifier]],
                     dtype="category",
                 )
                 if prop.identifier in categorical_columns
@@ -156,7 +151,7 @@ def encode_feature_matrix(
     categorical_encoder = make_pipeline(
         FunctionTransformer(
             pd.DataFrame.map,
-            kw_args={"func": _format_categorical_value},
+            kw_args={"func": str},
             feature_names_out="one-to-one",
         ),
         OneHotEncoder(handle_unknown="ignore", sparse_output=False),

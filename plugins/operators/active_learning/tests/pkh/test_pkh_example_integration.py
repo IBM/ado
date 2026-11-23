@@ -16,6 +16,8 @@ def _run_example(tmp_path: Path, budget: int) -> Result:
     return CliRunner().invoke(
         app,
         [
+            "--override-ado-app-dir",
+            str(tmp_path),
             "create",
             "operation",
             "-f",

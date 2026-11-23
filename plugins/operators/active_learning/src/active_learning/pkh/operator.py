@@ -50,11 +50,6 @@ def _fit_predictor(
     """Fit and persist the final predictor on the measured entities."""
     parameters = state.params
     if parameters.finalPredictor == "autogluon":
-        from autogluon.features.generators import (
-            AsTypeFeatureGenerator,
-            AutoMLPipelineFeatureGenerator,
-            FillNaFeatureGenerator,
-        )
         from autogluon.tabular import TabularPredictor
 
         model = TabularPredictor(
@@ -68,20 +63,14 @@ def _fit_predictor(
             if parameters.autoGluon
             else {}
         )
-        train_data = frame.iloc[state.measured_indices].assign(
-            **{target_name: state.measured_labels}
-        )
+        train_data = frame.iloc[state.measured_indices].copy()
+        train_data[target_name] = state.measured_labels
         categorical_columns = train_data.select_dtypes(include="category").columns
         if not categorical_columns.empty:
+            from active_learning.pkh.autogluon import PKHCategoricalFeatureGenerator
+
             train_data = train_data.astype(dict.fromkeys(categorical_columns, "string"))
-            # Match the training string "None" before AutoGluon encodes categories.
-            fit_kwargs["feature_generator"] = AsTypeFeatureGenerator(
-                convert_bool=False,
-                post_generators=[
-                    FillNaFeatureGenerator(fillna_map={"object": "None"}),
-                    AutoMLPipelineFeatureGenerator(),
-                ],
-            )
+            fit_kwargs["feature_generator"] = PKHCategoricalFeatureGenerator()
         model.fit(train_data=train_data, **fit_kwargs)
         return model
     forest = state.forest
@@ -145,10 +134,9 @@ def _finalize_model(
 
     model = _fit_predictor(state, frame, target_name, encoder, final_directory)
 
-    table = frame.assign(
-        entityIdentifier=frame.index,
-        **{target_name: target_values, "is_predicted": ~measured},
-    )
+    table = frame.assign(entityIdentifier=frame.index)
+    table[target_name] = target_values
+    table["is_predicted"] = ~measured
     if (~measured).any():
         table.loc[~measured, target_name] = np.asarray(
             model.predict(frame.loc[~measured])

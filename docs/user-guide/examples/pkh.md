@@ -152,9 +152,10 @@ measurements. This tutorial starts with an empty store, so PKH collects all 20.
     This tutorial uses the default Random Forest. For AutoGluon on
     Python 3.11–3.13, install the extra with
     `pip install -e "plugins/operators/active_learning[autogluon]"`.
-    Set `finalPredictor: autogluon` in the configuration. PKH saves this model
-    in `autogluon/`. Load it with `TabularPredictor.load`. See the
-    [`finalPredictor` parameter](../operators/pkh.md#finalpredictor).
+    Set `finalPredictor: autogluon` in the configuration. PKH saves the model
+    in `pkh_models_finalized/autogluon/`. The
+    [AutoGluon example](../operators/pkh.md#__tabbed_1_2) shows how to reload
+    it and predict pressure.
 
 ## Step 3: Inspect the Results
 

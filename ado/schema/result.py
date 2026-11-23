@@ -292,7 +292,7 @@ class InvalidMeasurementResult(MeasurementResult):
 class IntermediateMeasurementResult(ValidMeasurementResult):
     """Used to record a measurement obtained before an experiment completed"""
 
-    intermediate: Annotated[
+    isIntermediate: Annotated[
         typing.Literal[True],
         pydantic.Field(
             description="Marks the measurements as obtained before the experiment completed. Always True"
@@ -301,21 +301,21 @@ class IntermediateMeasurementResult(ValidMeasurementResult):
 
     @pydantic.model_serializer
     def serialize_to_custom_format(self, _info: pydantic.SerializationInfo) -> dict:
-        """Serialize with the compressed format of ValidMeasurementResult and the intermediate flag.
+        """Serialize with the compressed format of ValidMeasurementResult and the isIntermediate flag.
 
-        The intermediate flag is always included, also when exclude_defaults is
-        set, as it identifies the dump as an IntermediateMeasurementResult.
+        The isIntermediate flag is always included, also when exclude_defaults
+        is set, as it identifies the dump as an IntermediateMeasurementResult.
 
         Args:
             _info: The pydantic serialization settings.
 
         Returns:
-            The compressed representation of the result with the intermediate
+            The compressed representation of the result with the isIntermediate
             flag set to True.
         """
 
-        result = ValidMeasurementResult.serialize_to_custom_format(self, _info)
-        result["intermediate"] = self.intermediate
+        result = super().serialize_to_custom_format(_info)
+        result["isIntermediate"] = self.isIntermediate
         return result
 
     def series_representation(
@@ -380,7 +380,7 @@ def measurement_result_type_discriminator(
     if isinstance(result, InvalidMeasurementResult):
         return "Invalid"
     if isinstance(result, dict):
-        if result.get("intermediate", None):
+        if result.get("isIntermediate", None):
             return "Intermediate"
         if result.get("measurements", None):
             return "Valid"

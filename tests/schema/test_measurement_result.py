@@ -530,7 +530,7 @@ def test_intermediate_measurement_result_rejects_false_flag(
     entity: Entity,
     property_values: list[ObservedPropertyValue | ConstitutivePropertyValue],
 ) -> None:
-    """The intermediate flag of an intermediate result cannot be set to False."""
+    """The isIntermediate flag of an intermediate result cannot be set to False."""
 
     import pydantic
 
@@ -538,7 +538,7 @@ def test_intermediate_measurement_result_rejects_false_flag(
         IntermediateMeasurementResult(
             entityIdentifier=entity.identifier,
             measurements=property_values,
-            intermediate=False,
+            isIntermediate=False,
         )
 
 
@@ -546,7 +546,7 @@ def test_intermediate_measurement_result_compressed_serialization(
     entity: Entity,
     property_values: list[ObservedPropertyValue | ConstitutivePropertyValue],
 ) -> None:
-    """The dump uses the compressed format and always carries the intermediate flag."""
+    """The dump uses the compressed format and always carries the isIntermediate flag."""
 
     result = IntermediateMeasurementResult(
         entityIdentifier=entity.identifier, measurements=property_values
@@ -557,7 +557,7 @@ def test_intermediate_measurement_result_compressed_serialization(
         result.model_dump(mode="json"),
         result.model_dump(exclude_defaults=True),
     ]:
-        assert serialized["intermediate"] is True
+        assert serialized["isIntermediate"] is True
         assert "experimentReference" in serialized
         assert "experimentReference" not in serialized["measurements"][0]["property"]
 
@@ -582,7 +582,7 @@ def test_intermediate_measurement_result_lifecycle(
         assert recreated.metadata == original.metadata
         assert recreated.experimentReference == original.experimentReference
         assert recreated.measurements == original.measurements
-        assert recreated.intermediate is True
+        assert recreated.isIntermediate is True
 
     recreated_from_json = IntermediateMeasurementResult.model_validate_json(
         original.model_dump_json()

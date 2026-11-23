@@ -95,7 +95,33 @@ from ado.modules.operators.collections import compare_operation
 def my_comparison_operation():
 ```
 
-The decorator parameters are the same for all operator/operation types.
+#### Using Ray
+
+A local run starts a Ray cluster only for operators that require Ray.
+By default, this is only `explore` operators, which always require Ray.
+
+Non-explore operator types can configure this behaviour,
+i.e. turn on starting a Ray cluster locally, via the
+`requires_ray` (default `False`) parameter of their decorator.
+Set `requires_ray=True` if your operator uses Ray APIs or nests an explore
+operator.
+
+```python
+@characterize_operation(
+    name="my_operator",
+    description="Example operator that nests an explore operation",
+    configuration_model=MyOperatorOptions,
+    example_configuration=MyOperatorOptions(),
+    version="1.0.0",
+    requires_ray=True,
+)
+```
+
+> [!NOTE]
+>
+> An operation submitted to a Ray cluster (`ray job submit` or ado remote
+> execution) still connects to that cluster when `requires_ray` is false, so
+> `ray job stop` and job metadata keep working.
 
 ### Operator function parameters
 
@@ -530,12 +556,13 @@ Operators can use other operators. For example your operator can create
 operations using other operators and consume the results. You access other
 operators via the relevant collection in
 `ado.modules.operators.collections`. For example to use the RandomWalk
-operator
+operator. Nesting an explore operator requires `requires_ray=True` on the
+outer operator so ado initializes Ray before that nested operation runs.
 
 ```python
 from ado.modules.operators.collections import characterize_operation, explore
 
-@characterize_operation(...)
+@characterize_operation(..., requires_ray=True)
 def my_characterization(...):
     ...
     #Note: The name of the function called (here random_walk() ) is the operator name

@@ -1,20 +1,31 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-"""PKH configuration and saved predictor metadata."""
+"""PKH sampling and prediction configuration."""
 
 from __future__ import annotations
 
-import importlib.util
-from typing import Annotated, Any, Literal
+import importlib
+import sys
+from typing import Annotated, Any, Literal, get_args
 
-from pydantic import BaseModel, ConfigDict, Field, PositiveInt, model_validator
+from pydantic import (
+    AliasChoices,
+    BaseModel,
+    ConfigDict,
+    Field,
+    PositiveInt,
+    model_validator,
+)
 
 from ado.core.operation.config import GenericOperatorParameters
 
+TreeFamily = Literal["RF", "XT", "XGB", "CAT", "GBM"]
+TreeSettings = dict[str, Any] | Annotated[list[dict[str, Any]], Field(min_length=1)]
+
 
 class ActiveLearningAutoGluonParameters(BaseModel):
-    """Fit arguments for the optional final AutoGluon predictor."""
+    """Fit arguments for AutoGluon's final tree predictor."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -25,12 +36,14 @@ class ActiveLearningAutoGluonParameters(BaseModel):
     timeLimit: Annotated[
         PositiveInt,
         Field(
+            validation_alias=AliasChoices("timeLimit", "time_limit"),
             serialization_alias="time_limit",
             description="Training time limit in seconds.",
         ),
     ] = 60
     hyperparameters: Annotated[
-        dict[str, Any] | None, Field(description="AutoGluon model hyperparameters.")
+        dict[TreeFamily, TreeSettings] | None,
+        Field(min_length=1, description="AutoGluon hyperparameters by tree family."),
     ] = None
 
 
@@ -42,24 +55,27 @@ class PKHParameters(GenericOperatorParameters):
         Field(description="Total pilot labels, including existing measurements."),
     ] = 5
     epochLength: Annotated[
-        PositiveInt, Field(description="Measurements between Random Forest refits.")
+        PositiveInt, Field(description="Measurements between sampling forest refits.")
     ] = 10
     nEstimators: Annotated[
-        PositiveInt, Field(description="Trees in each Random Forest.")
+        PositiveInt, Field(description="Trees in the sampling forest.")
     ] = 100
     minSamplesLeaf: Annotated[
-        PositiveInt, Field(description="Minimum training samples in a leaf.")
+        PositiveInt,
+        Field(description="Minimum training samples per sampling forest leaf."),
     ] = 2
     maxFeatures: Annotated[
         Literal["sqrt", "log2"]
         | Annotated[int, Field(ge=1)]
         | Annotated[float, Field(gt=0, le=1)]
         | None,
-        Field(description="Features per split: count, fraction, sqrt, log2, or null."),
+        Field(
+            description="Features per sampling forest split: count, fraction, sqrt, log2, or null."
+        ),
     ] = "sqrt"
     criterion: Annotated[
         Literal["squared_error", "absolute_error", "friedman_mse", "poisson"],
-        Field(description="Random Forest split criterion."),
+        Field(description="Sampling forest split criterion."),
     ] = "squared_error"
     seed: Annotated[
         int | None,
@@ -67,7 +83,9 @@ class PKHParameters(GenericOperatorParameters):
     ] = 42
     nJobs: Annotated[
         Annotated[int, Field(le=-1)] | PositiveInt,
-        Field(description="Parallel forest jobs; -1 uses all processors."),
+        Field(
+            description="CPU jobs for the sampling forest and final predictor. Use -1 for all processors."
+        ),
     ] = 1
     targetOutput: Annotated[
         str,
@@ -81,57 +99,80 @@ class PKHParameters(GenericOperatorParameters):
         Field(description="New entities to measure, including any pilot additions."),
     ]
     outputDirectory: Annotated[
-        str, Field(min_length=1, description="Output path, with _finalized appended.")
-    ] = "pkh_models"
+        str | None,
+        Field(
+            min_length=1,
+            exclude=True,
+            deprecated=True,
+            description="Legacy output path accepted for existing PKH configurations.",
+        ),
+    ] = None
     finalPredictor: Annotated[
-        Literal["random_forest", "autogluon"],
-        Field(description="Final predictor backend."),
+        Literal["random_forest", "weighted_ensemble", "autogluon"],
+        Field(
+            description="Random Forest, five-family weighted L2 ensemble, or configured AutoGluon trees."
+        ),
     ] = "random_forest"
     autoGluon: Annotated[
         ActiveLearningAutoGluonParameters | None,
-        Field(description="Fit arguments when finalPredictor is autogluon."),
+        Field(description="AutoGluon fit options for completing the prediction table."),
     ] = None
 
     @model_validator(mode="after")
     def validate_predictor_configuration(self) -> PKHParameters:
-        """Validate and default arguments for the selected predictor backend."""
-        if self.finalPredictor == "random_forest":
-            if self.autoGluon is not None:
-                raise ValueError(
-                    "autoGluon parameters must not be provided for random_forest"
-                )
-        else:
-            if (
-                importlib.util.find_spec("autogluon") is None
-                or importlib.util.find_spec("autogluon.tabular") is None
-            ):
-                raise ValueError(
-                    "Install 'ado-active-learning[autogluon]' to use finalPredictor='autogluon'."
-                )
-            self.autoGluon = self.autoGluon or ActiveLearningAutoGluonParameters()
+        """Keep the Random Forest mode restricted to the RF family."""
+        if (
+            self.finalPredictor == "random_forest"
+            and self.autoGluon
+            and self.autoGluon.hyperparameters
+            and self.autoGluon.hyperparameters.keys() != {"RF"}
+        ):
+            raise ValueError("random_forest accepts only RF hyperparameters.")
         return self
+
+    def prediction_hyperparameters(self) -> dict[TreeFamily, TreeSettings]:
+        """Return the tree families and settings submitted to AutoGluon."""
+        configured = (self.autoGluon and self.autoGluon.hyperparameters) or {}
+        families = (
+            get_args(TreeFamily)
+            if self.finalPredictor == "weighted_ensemble"
+            else configured or ("RF",)
+        )
+        trees = {family: configured.get(family, {}) for family in families}
+        if "CAT" in trees:
+            # A small training split can have a constant target even when the full pool varies.
+            cat = trees["CAT"]
+            defaults = {"allow_const_label": True}
+            trees["CAT"] = (
+                [defaults | variant for variant in cat]
+                if isinstance(cat, list)
+                else defaults | cat
+            )
+        return trees
+
+    def validate_autogluon_installation(self) -> None:
+        """Check that the driver can load the requested tree model libraries."""
+        if sys.version_info >= (3, 14):
+            raise ValueError(
+                "PKH's AutoGluon predictor requires Python 3.11 through 3.13."
+            )
+        modules = {"GBM": "lightgbm", "CAT": "catboost", "XGB": "xgboost"}
+        required = ["autogluon.tabular"]
+        required.extend(
+            modules[family]
+            for family in self.prediction_hyperparameters()
+            if family in modules
+        )
+        for module in required:
+            try:
+                importlib.import_module(module)
+            except (ImportError, OSError, ValueError) as exc:
+                raise ValueError(
+                    f"PKH prediction could not load {module}. Install "
+                    f"'ado-active-learning[autogluon]' and its native dependencies: {exc}"
+                ) from exc
 
     @classmethod
     def example_configuration(cls) -> PKHParameters:
         """Return a minimal example for operator discovery."""
         return cls(targetOutput="objective", numberEntities=20)
-
-
-class FinalPredictorMetadata(BaseModel):
-    """Metadata saved alongside a finalized predictor."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    backend: Annotated[Literal["random_forest", "autogluon"], Field()]
-    targetOutput: Annotated[str, Field()]
-    featureNames: Annotated[list[str], Field()]
-    categoricalColumns: Annotated[list[str], Field()]
-    measuredCount: Annotated[int, Field(ge=0)]
-    createdTimestamp: Annotated[str, Field()]
-    pkhVersion: Annotated[str, Field()]
-    mmdSquared: Annotated[
-        float | None,
-        Field(
-            description="Final forest leaf-space MMD squared; null with fewer than two labels."
-        ),
-    ] = None

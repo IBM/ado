@@ -8,6 +8,7 @@ from collections.abc import AsyncGenerator, Generator
 from typing import TYPE_CHECKING
 
 import numpy as np
+import ray
 from pydantic import BaseModel
 from sklearn.ensemble import RandomForestRegressor
 
@@ -15,35 +16,20 @@ from active_learning.forest_sampling import ForestSamplingState
 from active_learning.pkh.data import (
     candidate_entities,
     encode_feature_matrix,
+    feature_frame,
     measured_labels,
     target_label,
+    validate_candidate_space,
     validate_target_output,
 )
 from active_learning.pkh.parameters import PKHParameters
-from ado.core.discoveryspace.samplers import (
-    BaseSampler,
-    ExplicitEntitySpaceGridSampleGenerator,
-)
+from ado.core.discoveryspace.samplers import BaseSampler
 from ado.core.discoveryspace.space import DiscoverySpace, Entity
 
 if TYPE_CHECKING:
     from ado.modules.operators.discovery_space_manager import DiscoverySpaceManager
 
 logger = logging.getLogger(__name__)
-
-
-def build_forest(
-    params: PKHParameters, random_state: int | None
-) -> RandomForestRegressor:
-    """Return an unfitted Random Forest configured from the PKH parameters."""
-    return RandomForestRegressor(
-        n_estimators=params.nEstimators,
-        min_samples_leaf=params.minSamplesLeaf,
-        max_features=params.maxFeatures,
-        criterion=params.criterion,
-        random_state=random_state,
-        n_jobs=params.nJobs,
-    )
 
 
 class PKHState(ForestSamplingState):
@@ -86,7 +72,15 @@ class PKHState(ForestSamplingState):
             if self.params.seed is not None
             else None
         )
-        self._pool_leaf_mass = self.fit_forest(build_forest(self.params, seed))
+        forest = RandomForestRegressor(
+            n_estimators=self.params.nEstimators,
+            min_samples_leaf=self.params.minSamplesLeaf,
+            max_features=self.params.maxFeatures,
+            criterion=self.params.criterion,
+            random_state=seed,
+            n_jobs=self.params.nJobs,
+        )
+        self._pool_leaf_mass = self.fit_forest(forest)
         self._pool_leaf_mass /= self.n_candidates
         self._measured_at_last_refit = len(self.measured_indices)
         logger.info(
@@ -151,9 +145,12 @@ class PKHSampleSelector(BaseSampler):
         remoteDiscoverySpace: "DiscoverySpaceManager",
     ) -> bool:
         """Verify that the discovery space is finite and compatible."""
-        return ExplicitEntitySpaceGridSampleGenerator.samplerCompatibleWithDiscoverySpaceRemote(
-            remoteDiscoverySpace
-        )
+        entity_space = ray.get(remoteDiscoverySpace.entitySpace.remote())
+        try:
+            validate_candidate_space(entity_space)
+        except ValueError:
+            return False
+        return True
 
     @classmethod
     def parameters_model(cls) -> type[BaseModel] | None:
@@ -210,22 +207,19 @@ class PKHSampleSelector(BaseSampler):
         ).identifier
         existing_labels = measured_labels(discovery_space, target_id)
         entities = candidate_entities(discovery_space)
-        if not entities:
-            return
-
-        _, features, _ = encode_feature_matrix(discovery_space, entities)
-
         initial_indices = [
             idx
             for idx, entity in enumerate(entities)
             if entity.identifier in existing_labels
         ]
+        if len(initial_indices) == len(entities):
+            return
         initial_labels = [
             existing_labels[entities[idx].identifier] for idx in initial_indices
         ]
 
         state = PKHState(
-            features,
+            encode_feature_matrix(feature_frame(discovery_space, entities)),
             initial_measured_indices=initial_indices,
             initial_labels=initial_labels,
             params=self.params,

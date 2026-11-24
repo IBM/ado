@@ -115,6 +115,7 @@ docs = [
 
 test = [
   "ado-active-learning",
+  "ado-active-learning[autogluon] ; sys_platform == 'linux' and python_full_version < '3.14'",
   "ado-anomalous-series",
   "ado-autoconf ; python_full_version < '3.14'",
   "ado-profile-space",

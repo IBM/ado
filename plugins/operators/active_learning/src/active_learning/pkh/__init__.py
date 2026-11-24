@@ -5,14 +5,12 @@
 
 from active_learning.pkh.parameters import (
     ActiveLearningAutoGluonParameters,
-    FinalPredictorMetadata,
     PKHParameters,
 )
 from active_learning.pkh.sampler import PKHSampleSelector
 
 __all__ = [
     "ActiveLearningAutoGluonParameters",
-    "FinalPredictorMetadata",
     "PKHParameters",
     "PKHSampleSelector",
 ]

@@ -18,5 +18,5 @@ operation:
     maxFeatures: 1.0
     criterion: squared_error
     seed: 42
-    outputDirectory: pkh_models
+    # Set to weighted_ensemble to combine Random Forest, Extra Trees, XGBoost, CatBoost and LightGBM.
     finalPredictor: random_forest

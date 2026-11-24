@@ -4,12 +4,12 @@
 """Entity pool, feature and label helpers shared by the PKH sampler and operator."""
 
 import contextlib
+import math
 
 import numpy as np
 import pandas as pd
 from sklearn.compose import ColumnTransformer
-from sklearn.pipeline import make_pipeline
-from sklearn.preprocessing import FunctionTransformer, OneHotEncoder
+from sklearn.preprocessing import OneHotEncoder
 
 from ado.core.discoveryspace.samplers import (
     ExplicitEntitySpaceGridSampleGenerator,
@@ -17,7 +17,23 @@ from ado.core.discoveryspace.samplers import (
 )
 from ado.core.discoveryspace.space import DiscoverySpace, Entity
 from ado.schema.domain import VariableTypeEnum
+from ado.schema.entityspace import EntitySpaceRepresentation
 from ado.schema.observed_property import ObservedProperty
+
+
+def validate_candidate_space(entity_space: EntitySpaceRepresentation | None) -> int:
+    """Return the size of an explicit grid with finite property domains."""
+    if not isinstance(entity_space, EntitySpaceRepresentation):
+        raise ValueError("PKH requires an explicit finite entity space.")
+    count = 1
+    for prop in entity_space.constitutiveProperties:
+        size = prop.propertyDomain.size
+        if size == math.inf:
+            raise ValueError(
+                f"PKH requires a finite domain for constitutive property '{prop.identifier}'."
+            )
+        count *= int(size)
+    return count
 
 
 def candidate_entities(discovery_space: DiscoverySpace) -> list[Entity]:
@@ -112,50 +128,35 @@ def measured_labels(
     }
 
 
-def encode_feature_matrix(
+def feature_frame(
     discovery_space: DiscoverySpace,
     entities: list[Entity],
-) -> tuple[pd.DataFrame, np.ndarray, ColumnTransformer]:
-    """Encode constitutive values in the discovery space's declared feature order."""
-    properties = discovery_space.entitySpace.constitutiveProperties
-    raw_columns = {
-        prop.identifier: [
+) -> pd.DataFrame:
+    """Build candidate features in the discovery space's declared property order."""
+    columns = {}
+    for prop in discovery_space.entitySpace.constitutiveProperties:
+        values = [
             entity.valueForConstitutivePropertyIdentifier(prop.identifier).value
             for entity in entities
         ]
-        for prop in properties
-    }
-    categorical_columns = [
-        prop.identifier
-        for prop in properties
-        if prop.propertyDomain.variableType
-        == VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE
-        or any(not isinstance(v, (int, float)) for v in raw_columns[prop.identifier])
-    ]
-    frame = pd.DataFrame(
-        {
-            prop.identifier: (
-                pd.Series(
-                    [str(value) for value in raw_columns[prop.identifier]],
-                    dtype="category",
-                )
-                if prop.identifier in categorical_columns
-                else pd.Series(raw_columns[prop.identifier])
+        if (
+            prop.propertyDomain.variableType
+            == VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE
+            or any(not isinstance(value, (int, float)) for value in values)
+        ):
+            columns[prop.identifier] = pd.Series(
+                [str(value) for value in values], dtype="category"
             )
-            for prop in properties
-        }
-    )
-    categorical_encoder = make_pipeline(
-        FunctionTransformer(
-            pd.DataFrame.map,
-            kw_args={"func": str},
-            feature_names_out="one-to-one",
-        ),
-        OneHotEncoder(handle_unknown="ignore", sparse_output=False),
-    )
+        else:
+            columns[prop.identifier] = pd.Series(values)
+    return pd.DataFrame(columns)
+
+
+def encode_feature_matrix(frame: pd.DataFrame) -> np.ndarray:
+    """One-hot encode categorical features and retain the numeric features."""
+    categorical_columns = frame.select_dtypes(include="category").columns.tolist()
     encoder = ColumnTransformer(
-        [("categorical", categorical_encoder, categorical_columns)],
+        [("categorical", OneHotEncoder(sparse_output=False), categorical_columns)],
         remainder="passthrough",
     )
-    features = np.ascontiguousarray(encoder.fit_transform(frame), dtype=float)
-    return frame, features, encoder
+    return np.ascontiguousarray(encoder.fit_transform(frame), dtype=float)

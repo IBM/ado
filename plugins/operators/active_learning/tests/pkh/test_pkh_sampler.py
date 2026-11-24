@@ -7,13 +7,16 @@ from collections.abc import Callable
 
 import numpy as np
 import pytest
-from active_learning.pkh.data import candidate_entities, measured_labels
-from active_learning.pkh.operator import _sampling_parameters
+from active_learning.pkh.data import (
+    candidate_entities,
+    measured_labels,
+    validate_candidate_space,
+)
 from active_learning.pkh.parameters import PKHParameters
-from active_learning.pkh.sampler import PKHState
+from active_learning.pkh.sampler import PKHSampleSelector, PKHState
 
 from ado.core.discoveryspace.space import DiscoverySpace
-from ado.schema.domain import PropertyDomain
+from ado.schema.domain import PropertyDomain, VariableTypeEnum
 from ado.schema.property import ConstitutiveProperty
 
 
@@ -93,7 +96,7 @@ async def test_sampler_requires_current_target_before_next_entity(
     manager = DiscoverySpaceManager.remote(space=categorical_space, queue=queue)
     try:
         parameters = PKHParameters(targetOutput="self", numberEntities=2)
-        sampler = _sampling_parameters(parameters).samplerConfig.sampler()
+        sampler = PKHSampleSelector(parameters)
         assert sampler.samplerCompatibleWithDiscoverySpaceRemote(manager)
         stream = await sampler.remoteEntityIterator(manager)
         [first] = await anext(stream)
@@ -105,4 +108,62 @@ async def test_sampler_requires_current_target_before_next_entity(
     finally:
         import ray
 
+        ray.kill(manager)
+
+
+@pytest.mark.asyncio
+async def test_sampler_stops_on_fully_measured_grid(
+    categorical_space: DiscoverySpace,
+    make_pkh_space: Callable[[list[ConstitutiveProperty]], DiscoverySpace],
+) -> None:
+    """A completed grid should yield no new measurement requests."""
+    import ray
+
+    from ado.modules.actuators.measurement_queue import MeasurementQueue
+    from ado.modules.operators.discovery_space_manager import DiscoverySpaceManager
+
+    kind, count = categorical_space.entitySpace.constitutiveProperties
+    space = make_pkh_space(
+        [
+            kind.model_copy(update={"propertyDomain": PropertyDomain(values=["b"])}),
+            count,
+        ]
+    )
+    assert len(measured_labels(space, "selected-self")) == validate_candidate_space(
+        space.entitySpace
+    )
+    manager = DiscoverySpaceManager.remote(space=space, queue=MeasurementQueue())
+    try:
+        sampler = PKHSampleSelector(
+            PKHParameters(targetOutput="self", numberEntities=1)
+        )
+        stream = await sampler.remoteEntityIterator(manager)
+        assert [batch async for batch in stream] == []
+    finally:
+        ray.kill(manager)
+
+
+def test_sampler_rejects_unbounded_discrete_property(
+    make_pkh_space: Callable[[list[ConstitutiveProperty]], DiscoverySpace],
+) -> None:
+    """An unbounded grid cannot supply the finite leaf distribution PKH needs."""
+    import ray
+
+    from ado.modules.actuators.measurement_queue import MeasurementQueue
+    from ado.modules.operators.discovery_space_manager import DiscoverySpaceManager
+
+    prop = ConstitutiveProperty(
+        identifier="temperature",
+        propertyDomain=PropertyDomain(
+            variableType=VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
+            interval=1,
+        ),
+    )
+    space = make_pkh_space([prop])
+    with pytest.raises(ValueError, match=r"finite domain.*temperature"):
+        validate_candidate_space(space.entitySpace)
+    manager = DiscoverySpaceManager.remote(space=space, queue=MeasurementQueue())
+    try:
+        assert not PKHSampleSelector.samplerCompatibleWithDiscoverySpaceRemote(manager)
+    finally:
         ray.kill(manager)

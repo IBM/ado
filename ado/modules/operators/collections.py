@@ -616,6 +616,7 @@ def summarize_operation(
     configuration_model: type[GenericOperatorParameters],
     example_configuration: GenericOperatorParameters,
     description: str | None = None,
+    requires_ray: bool = False,
 ) -> Callable[[Callable[P, OperationOutput]], Callable[P, OperationOutput]]:
     """Decorator that registers a function as a summarize operation.
 
@@ -630,6 +631,8 @@ def summarize_operation(
         configuration_model: Pydantic model used to validate operation parameters.
         example_configuration: Example parameter model instance for templating.
         description: Human-readable description shown in the registry.
+        requires_ray: When True, ``orchestrate`` initializes Ray for this
+            operator. Defaults to False.
 
     Returns:
         A decorator that wraps and registers the decorated function under ``name``.
@@ -648,6 +651,7 @@ def summarize_operation(
             example_configuration=example_configuration,
             description=description,
             operator_function=operator_function,
+            requires_ray=requires_ray,
         )
 
     return _register

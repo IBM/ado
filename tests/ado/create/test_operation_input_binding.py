@@ -8,7 +8,6 @@ from collections.abc import Callable
 from contextlib import AbstractContextManager
 
 import pytest
-from testcontainers.community.mysql import MySqlContainer
 from typer.testing import CliRunner
 
 from ado.cli.core.cli import app as ado
@@ -41,6 +40,7 @@ from ado.modules.operators.collections import (
     fuse_operation,
 )
 from tests.ado.create.conftest import raw_operation, write_operation
+from tests.fixtures.shared_mysql_instance import MySqlConnectionDetails
 
 
 def _stub(
@@ -245,7 +245,7 @@ def test_operation_inputs_template_emits_list_placeholder() -> None:
 def test_create_operation_dry_run_allows_multiple_discovery_spaces(
     temporary_operator: Callable[..., AbstractContextManager[str]],
     tmp_path: pathlib.Path,
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
@@ -292,7 +292,7 @@ def test_create_operation_dry_run_allows_multiple_discovery_spaces(
 def test_create_operation_dry_run_with_datacontainer(
     temporary_operator: Callable[..., AbstractContextManager[str]],
     tmp_path: pathlib.Path,
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
@@ -329,7 +329,7 @@ def test_create_operation_dry_run_with_datacontainer(
 def test_create_operation_dry_run_use_latest_datacontainer(
     temporary_operator: Callable[..., AbstractContextManager[str]],
     tmp_path: pathlib.Path,
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
@@ -369,7 +369,7 @@ def test_create_operation_dry_run_use_latest_datacontainer(
 
 def test_with_datacontainer_file_is_not_wrapped_as_generic_failure(
     tmp_path: pathlib.Path,
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None

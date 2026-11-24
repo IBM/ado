@@ -130,6 +130,8 @@ dependencies = [
 dev = [
     { name = "coverage" },
     { name = "detect-secrets" },
+    { name = "docker" },
+    { name = "filelock" },
     { name = "pip" },
     { name = "pre-commit" },
     { name = "pydevd" },
@@ -198,6 +200,8 @@ requires-dist = [
 dev = [
     { name = "coverage", specifier = ">=7.10.2" },
     { name = "detect-secrets", git = "https://github.com/ibm/detect-secrets.git?rev=master" },
+    { name = "docker", specifier = ">=7.1.0" },
+    { name = "filelock", specifier = ">=3.20.0" },
     { name = "pip", specifier = ">=25.1.1" },
     { name = "pre-commit", specifier = ">=4.2.0" },
     { name = "pydevd", specifier = ">=3.3.0" },

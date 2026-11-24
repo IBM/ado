@@ -3,7 +3,6 @@
 from collections.abc import Callable
 
 import pytest
-from testcontainers.community.mysql import MySqlContainer
 
 import ado.core.actuatorconfiguration.config
 import ado.core.actuatorconfiguration.resource
@@ -24,6 +23,7 @@ from ado.core.samplestore.base import ActiveSampleStore
 from ado.core.samplestore.config import SampleStoreConfiguration
 from ado.metastore.project import ProjectContext
 from ado.metastore.sqlstore import SQLStore
+from tests.fixtures.shared_mysql_instance import MySqlConnectionDetails
 
 
 @pytest.fixture
@@ -57,7 +57,7 @@ def create_sample_store(
 
 @pytest.fixture
 def create_space(
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     valid_ado_project_context: ProjectContext,
 ) -> Callable[
     [ado.core.discoveryspace.config.DiscoverySpaceConfiguration, str],

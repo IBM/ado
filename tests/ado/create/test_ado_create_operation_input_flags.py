@@ -8,7 +8,6 @@ from contextlib import AbstractContextManager
 
 import pytest
 import typer
-from testcontainers.community.mysql import MySqlContainer
 from typer.testing import CliRunner
 
 from ado.cli.commands.create import (
@@ -38,6 +37,7 @@ from ado.metastore.project import ProjectContext
 from ado.metastore.sqlstore import SQLStore
 from ado.modules.operators.collections import compare, compare_operation
 from tests.ado.create.conftest import raw_operation, write_operation
+from tests.fixtures.shared_mysql_instance import MySqlConnectionDetails
 
 SPACE_CONFIGURATION_FILE = pathlib.Path(
     "examples/optimization_test_functions/space.yaml"
@@ -526,7 +526,7 @@ def test_apply_named_list_input_appends_each_value(
 def test_create_operation_dry_run_with_named_inputs_and_use_latest(
     compare_operator_name: str,
     tmp_path: pathlib.Path,
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
@@ -567,7 +567,7 @@ def test_create_operation_dry_run_with_named_inputs_and_use_latest(
 
 def test_create_operation_reports_unresolvable_operator_module(
     tmp_path: pathlib.Path,
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
@@ -605,7 +605,7 @@ def test_create_operation_reports_unresolvable_operator_module(
 
 def test_create_space_rejects_input_qualifier(
     tmp_path: pathlib.Path,
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None

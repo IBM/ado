@@ -82,6 +82,8 @@ randomwalk = "ado.modules.operators.randomwalk"
 dev = [
   "coverage>=7.10.2",
   "detect-secrets @ git+https://github.com/ibm/detect-secrets.git",
+  "docker>=7.1.0",
+  "filelock>=3.20.0",
   "pip>=25.1.1",
   "pre-commit>=4.2.0",
   "pydevd>=3.3.0",

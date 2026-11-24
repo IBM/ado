@@ -39,6 +39,7 @@ from ado.core.operation.config import (
     _REQUIRED_INPUT_PROPERTY_FOR_ORIGINAL_FUNCTION_OPERATORS,
     DiscoveryOperationResourceConfiguration,
     OperatorReference,
+    upgrade_legacy_operator_module,
 )
 from ado.core.operation.inputs import OPERATOR_INPUT_KINDS
 from ado.core.operation.operation import OperationException, OperationOutput
@@ -72,7 +73,9 @@ def _resource_inputs_for_module(
     Where the inputs come from depends on which keys *module* contains:
 
     - Operator reference (``operatorName`` and ``operationType``): the inputs
-      registered for that operator.
+      registered for that operator. An auto-upgradable legacy
+      ``moduleName``/``moduleClass`` module is treated as its operator
+      reference.
     - Script module (``name``): a single ``discoverySpace`` input.
 
     Args:
@@ -84,6 +87,7 @@ def _resource_inputs_for_module(
     Raises:
         ValueError: If *module* matches none of the cases above.
     """
+    module = upgrade_legacy_operator_module(module) or module
     if "operatorName" in module and "operationType" in module:
         from ado.modules.operators.collections import operator_metadata_for_reference
 

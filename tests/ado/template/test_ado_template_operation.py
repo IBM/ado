@@ -18,6 +18,8 @@ def test_template_operation(operator_name: str) -> None:
 
 
 def test_template_operation_defaults_to_random_walk() -> None:
+    """The operation template uses random_walk when no operator is specified."""
+
     runner = CliRunner()
     result = runner.invoke(ado, ["template", "operation"])
     assert result.exit_code == 0, result.output

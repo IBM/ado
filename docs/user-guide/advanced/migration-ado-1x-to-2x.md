@@ -93,8 +93,13 @@ removed in ado 3.0.0.
 
 Any other `module` that uses the old fields fails validation.
 
+The `module` field is also required. In ado 1.x, an operation without a
+`module` defaulted to RandomWalk. In ado 2.x, an operation without a `module`
+fails validation with "Field required": set `module` explicitly, for example
+with `operatorName: random_walk` and `operationType: explore`.
+
 **Who is affected:** any operation YAML file whose `module` contains
-`moduleName` or `moduleClass`.
+`moduleName` or `moduleClass`, or that has no `module`.
 
 **Before (ado 1.x):**
 

@@ -151,6 +151,21 @@ class TestDescriptorForKind:
         with pytest.raises(ValueError, match="no longer supported"):
             _descriptor_for_raw(raw, CoreResourceKinds.DISCOVERYSPACE)
 
+    def test_legacy_random_walk_module_resolves_to_random_walk_inputs(self) -> None:
+        """A legacy RandomWalk moduleName/moduleClass module resolves like random_walk."""
+        raw = {
+            "operation": {
+                "module": {
+                    "moduleName": "ado.modules.operators.randomwalk",
+                    "moduleClass": "RandomWalk",
+                }
+            }
+        }
+        assert (
+            _descriptor_for_raw(raw, CoreResourceKinds.DISCOVERYSPACE).identifier
+            == "discoverySpace"
+        )
+
     def test_unrecognised_module_is_rejected(self) -> None:
         """A module naming neither an operator nor a script cannot be resolved."""
         with pytest.raises(ValueError, match="operatorName and operationType"):

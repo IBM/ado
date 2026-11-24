@@ -18,6 +18,7 @@ from ado.core.operation.config import (
     DiscoveryOperationResourceConfiguration,
     OperatorReference,
     ScriptOperatorConf,
+    upgrade_legacy_operator_module,
 )
 from ado.core.operation.resource import (
     OperationExitStateEnum,
@@ -249,15 +250,57 @@ def test_legacy_spaces_with_inputs_present_does_not_warn(
             "moduleName": "ado.modules.operators.randomwalk",
             "moduleClass": "RandomWalk",
         },
-        {"moduleName": "ado_ray_tune.operator", "moduleClass": "RayTune"},
+        {
+            "moduleName": "orchestrator.modules.operators.randomwalk",
+            "moduleClass": "RandomWalk",
+        },
+        {
+            "moduleName": "ado.modules.operators.randomwalk",
+            "moduleClass": "RandomWalk",
+            "modulePath": ".",
+            "moduleType": "operation",
+            "moduleFunction": None,
+        },
+    ],
+)
+def test_legacy_random_walk_module_is_upgraded_with_callout(
+    legacy_module: dict, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A legacy RandomWalk module is upgraded to an operator reference and called out."""
+    configuration = DiscoveryOperationConfiguration.model_validate(
+        {
+            "module": legacy_module,
+            "parameters": {"numberEntities": 1, "batchSize": 1},
+        }
+    )
+
+    assert isinstance(configuration.module, OperatorReference)
+    assert configuration.module.operatorName == "random_walk"
+    assert configuration.module.operationType == DiscoveryOperationEnum.EXPLORE
+
+    stderr = " ".join(capsys.readouterr().err.split())
+    assert "WARN" in stderr
+    assert "auto-upgraded" in stderr
+    assert "ado upgrade operations" in stderr
+
+
+def test_legacy_ray_tune_module_is_upgraded_to_operator_reference() -> None:
+    """A legacy RayTune module maps to the ray_tune explore operator."""
+    assert upgrade_legacy_operator_module(
+        {"moduleName": "ado_ray_tune.operator", "moduleClass": "RayTune"}
+    ) == {"operatorName": "ray_tune", "operationType": "explore"}
+
+
+@pytest.mark.parametrize(
+    "legacy_module",
+    [
         {"moduleName": "my_package.operators", "moduleClass": "MyOperator"},
         {"moduleClass": "RandomWalk"},
         {"moduleName": 5, "moduleClass": "RandomWalk"},
         {
             "moduleName": "ado.modules.operators.randomwalk",
             "moduleClass": "RandomWalk",
-            "modulePath": ".",
-            "moduleType": "operation",
+            "modulePath": "/some/path",
         },
         {
             "moduleName": "ado.modules.operators.randomwalk",
@@ -269,7 +312,7 @@ def test_legacy_spaces_with_inputs_present_does_not_warn(
 def test_legacy_operator_module_is_rejected_with_callout(
     legacy_module: dict, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """A legacy moduleName/moduleClass module fails validation and is called out."""
+    """A legacy moduleName/moduleClass module that cannot be upgraded fails validation."""
     with pytest.raises(pydantic.ValidationError, match="operatorName") as error:
         DiscoveryOperationConfiguration.model_validate({"module": legacy_module})
     assert "operationType" in str(error.value)

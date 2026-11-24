@@ -59,6 +59,59 @@ _LEGACY_MODULE_KEYS = (
     "moduleFunction",
 )
 
+# Legacy (``moduleName``, ``moduleClass``) pairs that are auto-upgraded, mapped
+# to the name of the explore operator that replaces them.
+_AUTO_UPGRADED_LEGACY_OPERATORS = {
+    ("ado.modules.operators.randomwalk", "RandomWalk"): "random_walk",
+    ("ado_ray_tune.operator", "RayTune"): "ray_tune",
+}
+
+
+def upgrade_legacy_operator_module(module: dict) -> dict | None:
+    """Converts a legacy ``moduleName``/``moduleClass`` module to an operator reference.
+
+    Only the built-in RandomWalk and RayTune operators are converted. A
+    ``moduleName`` starting with ``orchestrator.`` is treated as starting with
+    ``ado.``. The default values of the other legacy keys
+    (``moduleType: operation``, ``modulePath: .``, ``moduleFunction: None``)
+    are accepted.
+
+    Args:
+        module: The raw value of the operation ``module`` field.
+
+    Returns:
+        The equivalent ``operatorName``/``operationType`` mapping, or None if
+        ``module`` is not a legacy format that can be auto-upgraded.
+    """
+    module_name = module.get("moduleName")
+    if not isinstance(module_name, str):
+        return None
+    if module_name.startswith("orchestrator."):
+        module_name = "ado." + module_name[len("orchestrator.") :]
+
+    operator_name = _AUTO_UPGRADED_LEGACY_OPERATORS.get(
+        (module_name, module.get("moduleClass"))
+    )
+    default_values = {
+        "moduleType": "operation",
+        "modulePath": ".",
+        "moduleFunction": None,
+    }
+    only_default_values_besides_name_and_class = set(module) <= set(
+        _LEGACY_MODULE_KEYS
+    ) and all(
+        module[key] in (default, None)
+        for key, default in default_values.items()
+        if key in module
+    )
+    if operator_name is None or not only_default_values_besides_name_and_class:
+        return None
+
+    return {
+        "operatorName": operator_name,
+        "operationType": DiscoveryOperationEnum.EXPLORE.value,
+    }
+
 
 # Parameter name required by function operators created before multi-input
 # operators existed: ``discoverySpace: DiscoverySpace``.
@@ -482,18 +535,22 @@ class DiscoveryOperationConfiguration(pydantic.BaseModel):
     @pydantic.field_validator("module", mode="before")
     @classmethod
     def upgrade_legacy_module_format(cls, module: object) -> object:
-        """Rejects the legacy ``moduleName``/``moduleClass`` operator format.
+        """Upgrades or rejects the legacy ``moduleName``/``moduleClass`` format.
 
-        A deprecation callout is printed when the legacy format is used.
+        The built-in RandomWalk and RayTune operators are upgraded to an
+        operator reference. Any other legacy module is rejected. A deprecation
+        callout is printed in both cases.
 
         Args:
             module: The raw value of the ``module`` field.
 
         Returns:
-            The unmodified value if it does not use the legacy format.
+            The upgraded operator reference if ``module`` is an upgradable
+            legacy module, otherwise the unmodified value.
 
         Raises:
-            ValueError: If ``module`` uses the legacy format.
+            ValueError: If ``module`` uses the legacy format and cannot be
+                upgraded.
         """
         if not isinstance(module, dict):
             return module
@@ -507,6 +564,7 @@ class DiscoveryOperationConfiguration(pydantic.BaseModel):
             warn_deprecated_resource_model_in_use,
         )
 
+        upgraded_module = upgrade_legacy_operator_module(module)
         warn_deprecated_resource_model_in_use(
             affected_resource=CoreResourceKinds.OPERATION,
             deprecated_from_ado_version="2.0.0",
@@ -516,8 +574,11 @@ class DiscoveryOperationConfiguration(pydantic.BaseModel):
                 "https://ibm.github.io/ado/latest/user-guide/advanced/migration-ado-1x-to-2x/"
                 "#removed-operation-module-fields-modulename-and-moduleclass"
             ),
-            auto_upgraded=False,
+            auto_upgraded=upgraded_module is not None,
         )
+        if upgraded_module is not None:
+            return upgraded_module
+
         raise ValueError(
             f"Operation 'module' fields {legacy_keys} are no longer supported. "
             "Reference the operator with 'operatorName' and 'operationType' "

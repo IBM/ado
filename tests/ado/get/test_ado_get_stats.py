@@ -14,7 +14,6 @@ try:
     from yaml import CSafeLoader as SafeLoader
 except ImportError:  # pragma: nocover
     from yaml import SafeLoader  # type: ignore[assignment]
-from testcontainers.community.mysql import MySqlContainer
 from typer.testing import CliRunner
 
 from ado.cli.core.cli import app as ado
@@ -26,6 +25,7 @@ from ado.schema.point import SpacePoint
 from ado.schema.request import MeasurementRequest
 from ado.utilities.output import pydantic_model_as_yaml
 from tests.conftest import requires_sqlite_3_38
+from tests.fixtures.shared_mysql_instance import MySqlConnectionDetails
 from tests.utilities.cli_rendering import render_dataframe_to_cli_output
 
 if typing.TYPE_CHECKING:
@@ -68,7 +68,7 @@ def test_timedelta_to_string_boundary_rounding() -> None:
 @requires_sqlite_3_38
 def test_ado_get_operations_stats_columns_present(
     tmp_path: pathlib.Path,
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
@@ -115,7 +115,7 @@ def test_ado_get_operations_stats_columns_present(
 @requires_sqlite_3_38
 def test_ado_get_operations_stats_values(
     tmp_path: pathlib.Path,
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
@@ -184,7 +184,7 @@ def test_ado_get_operations_stats_values(
 @requires_sqlite_3_38
 def test_ado_get_operation_stats_single_resource(
     tmp_path: pathlib.Path,
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
@@ -253,7 +253,7 @@ def test_ado_get_operation_stats_single_resource(
 @requires_sqlite_3_38
 def test_ado_get_spaces_stats_values(
     tmp_path: pathlib.Path,
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
@@ -321,7 +321,7 @@ def test_ado_get_spaces_stats_values(
 @requires_sqlite_3_38
 def test_ado_get_space_stats_single_resource(
     tmp_path: pathlib.Path,
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
@@ -391,7 +391,7 @@ def test_ado_get_space_stats_single_resource(
 @pytest.mark.parametrize("output_args", [[], ["-o", "yaml"]])
 def test_ado_get_stats_unsupported_resource_type_exits_1(
     tmp_path: pathlib.Path,
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
@@ -424,7 +424,7 @@ def test_ado_get_stats_unsupported_resource_type_exits_1(
 @requires_sqlite_3_38
 def test_ado_get_samplestores_stats_values(
     tmp_path: pathlib.Path,
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
@@ -489,7 +489,7 @@ def test_ado_get_samplestores_stats_values(
 @requires_sqlite_3_38
 def test_ado_get_datacontainers_stats_columns_present(
     tmp_path: pathlib.Path,
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
@@ -524,7 +524,7 @@ def test_ado_get_datacontainers_stats_columns_present(
 @requires_sqlite_3_38
 def test_ado_get_datacontainers_stats_values(
     tmp_path: pathlib.Path,
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
@@ -591,7 +591,7 @@ def test_ado_get_datacontainers_stats_values(
 @requires_sqlite_3_38
 def test_ado_get_operation_stats_details_columns(
     tmp_path: pathlib.Path,
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
@@ -645,7 +645,7 @@ def test_ado_get_operation_stats_details_columns(
 @requires_sqlite_3_38
 def test_ado_get_space_stats_details_columns(
     tmp_path: pathlib.Path,
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
@@ -684,7 +684,7 @@ def test_ado_get_space_stats_details_columns(
 @requires_sqlite_3_38
 def test_ado_get_stats_deprecated_output_format_warns_and_shows_stats(
     tmp_path: pathlib.Path,
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
@@ -740,7 +740,7 @@ _DATACONTAINER_STATS_KEYS = {"tables", "locations", "key_values", "data_bytes"}
 )
 def test_ado_get_stats_structured_output(
     tmp_path: pathlib.Path,
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
@@ -774,7 +774,7 @@ def test_ado_get_stats_structured_output(
 @requires_sqlite_3_38
 def test_ado_get_datacontainers_stats_structured_output(
     tmp_path: pathlib.Path,
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
@@ -800,7 +800,7 @@ def test_ado_get_datacontainers_stats_structured_output(
 @requires_sqlite_3_38
 def test_ado_get_operation_stats_yaml_single_resource_values(
     tmp_path: pathlib.Path,
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
@@ -842,7 +842,7 @@ def test_ado_get_operation_stats_yaml_single_resource_values(
 @requires_sqlite_3_38
 def test_ado_get_operations_no_stats_yaml(
     tmp_path: pathlib.Path,
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
@@ -873,7 +873,7 @@ def test_ado_get_operations_no_stats_yaml(
 @pytest.mark.parametrize("output_format", ["name", "raw", "config"])
 def test_ado_get_stats_ignored_with_unsupported_format(
     tmp_path: pathlib.Path,
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
@@ -910,7 +910,7 @@ def test_ado_get_stats_ignored_with_unsupported_format(
 @requires_sqlite_3_38
 def test_ado_get_stats_structured_output_empty_listing(
     tmp_path: pathlib.Path,
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
@@ -932,7 +932,7 @@ def test_ado_get_stats_structured_output_empty_listing(
 @requires_sqlite_3_38
 def test_ado_get_spaces_stats_matching_point_structured_output(
     tmp_path: pathlib.Path,
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
@@ -971,7 +971,7 @@ def test_ado_get_spaces_stats_matching_point_structured_output(
 @requires_sqlite_3_38
 def test_ado_get_spaces_stats_matching_point(
     tmp_path: pathlib.Path,
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None

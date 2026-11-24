@@ -10,7 +10,6 @@ from collections.abc import Callable
 
 import pandas as pd
 import yaml
-from testcontainers.community.mysql import MySqlContainer
 from typer.testing import CliRunner
 
 from ado.cli.core.cli import app as ado
@@ -23,6 +22,7 @@ from ado.metastore.project import ProjectContext
 from ado.schema.reference import ExperimentReference
 from ado.schema.request import MeasurementRequest
 from tests.conftest import requires_sqlite_3_38
+from tests.fixtures.shared_mysql_instance import MySqlConnectionDetails
 
 
 def _parse_csv(content: str) -> pd.DataFrame:
@@ -123,7 +123,7 @@ def test_ado_contexts_csv(tmp_path: pathlib.Path) -> None:
 @requires_sqlite_3_38
 def test_get_operations_csv(
     tmp_path: pathlib.Path,
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
@@ -167,7 +167,7 @@ def test_get_operations_csv(
 @requires_sqlite_3_38
 def test_get_operations_csv_stats(
     tmp_path: pathlib.Path,
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
@@ -204,7 +204,7 @@ def test_get_operations_csv_stats(
 @requires_sqlite_3_38
 def test_get_spaces_csv_quotes_special_characters(
     tmp_path: pathlib.Path,
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
@@ -234,7 +234,7 @@ def test_get_spaces_csv_quotes_special_characters(
 @requires_sqlite_3_38
 def test_get_spaces_csv_empty_result(
     tmp_path: pathlib.Path,
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
@@ -254,7 +254,7 @@ def test_get_spaces_csv_empty_result(
 @requires_sqlite_3_38
 def test_get_spaces_csv_matching_space_id(
     tmp_path: pathlib.Path,
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     create_resources: Callable[[list[ADOResource]], None],
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
@@ -293,7 +293,7 @@ def test_get_spaces_csv_matching_space_id(
 @requires_sqlite_3_38
 def test_get_spaces_csv_matching_point(
     tmp_path: pathlib.Path,
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None

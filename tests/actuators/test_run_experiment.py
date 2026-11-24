@@ -20,6 +20,21 @@ _DENSITY_POINT = "examples/density_example/point.yaml"
 _OPT_FUNCTIONS_POINT = "examples/optimization_test_functions/point.yaml"
 
 
+def _isolate_custom_experiment_registry(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Register test experiments on copies restored when the test ends.
+
+    Args:
+        monkeypatch: Pytest monkeypatch fixture for the calling test.
+    """
+    catalog = custom_experiments._custom_experiments_catalog
+    monkeypatch.setattr(catalog, "_experiments", dict(catalog._experiments))
+    monkeypatch.setattr(
+        custom_experiments,
+        "_custom_experiment_functions",
+        dict(custom_experiments._custom_experiment_functions),
+    )
+
+
 @pytest.mark.parametrize(
     "point_file",
     [_DENSITY_POINT, _OPT_FUNCTIONS_POINT],
@@ -42,8 +57,11 @@ def test_run_experiment_no_ray_point_yaml_succeeds(point_file: str) -> None:
     assert result.exit_code == 0, result.output
 
 
-def test_run_experiment_no_ray_runs_in_calling_process(tmp_path: Path) -> None:
+def test_run_experiment_no_ray_runs_in_calling_process(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """--no-ray runs the experiment in the calling process and leaves Ray running."""
+    _isolate_custom_experiment_registry(monkeypatch)
 
     @custom_experiments.custom_experiment(output_property_identifiers=["pid"])
     def run_experiment_pid_exp(x: float) -> dict[str, int]:
@@ -64,12 +82,26 @@ def test_run_experiment_no_ray_runs_in_calling_process(tmp_path: Path) -> None:
         )
     )
 
-    ray.init(ignore_reinit_error=True)
     runner = CliRunner()
     result = runner.invoke(app, ["--no-ray", str(point_file)])
     assert result.exit_code == 0, result.output
     assert str(os.getpid()) in result.output
     assert ray.is_initialized()
+
+
+def test_run_experiment_no_ray_does_not_initialise_ray() -> None:
+    """--no-ray must leave Ray uninitialised when it was not already running."""
+    ray.shutdown()
+    try:
+        runner = CliRunner()
+        result = runner.invoke(app, ["--no-ray", _DENSITY_POINT])
+        assert result.exit_code == 0, result.output
+        assert not ray.is_initialized()
+    finally:
+        ray.init(
+            ignore_reinit_error=True,
+            object_store_memory=200 * 1024 * 1024,
+        )
 
 
 def test_run_experiment_no_ray_rejects_non_standard_actuator(tmp_path: Path) -> None:
@@ -91,15 +123,16 @@ def test_run_experiment_no_ray_rejects_non_standard_actuator(tmp_path: Path) -> 
 
     runner = CliRunner()
     result = runner.invoke(app, ["--no-ray", "--no-validate", str(point_file)])
-    assert result.exit_code == 2, result.output
+    assert result.exit_code == 1, result.output
     assert "'replay'" in result.output
     assert "StandardActuator" in result.output
 
 
 def test_run_experiment_no_ray_rejects_sandbox_venv_experiment(
-    tmp_path: Path,
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """--no-ray must refuse experiments that require a Ray sandbox venv."""
+    _isolate_custom_experiment_registry(monkeypatch)
 
     @custom_experiments.custom_experiment(
         output_property_identifiers=["y"],
@@ -125,7 +158,7 @@ def test_run_experiment_no_ray_rejects_sandbox_venv_experiment(
 
     runner = CliRunner()
     result = runner.invoke(app, ["--no-ray", str(point_file)])
-    assert result.exit_code != 0, result.output
+    assert result.exit_code == 1, result.output
     assert "sandbox Ray venv" in result.output
 
 

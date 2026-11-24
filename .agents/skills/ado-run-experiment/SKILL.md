@@ -3,12 +3,12 @@ name: ado-run-experiment
 description: >-
   Use the run_experiment tool to execute one experiment on a single point
   (entity) without creating a discoveryspace or operation. Use when smoke
-  testing or functionally validating an actuator, custom experiment, or actuator
-  configuration; debugging experiment execution or entity validation; or when a
-  single measurement is wanted without ado metastore tracking; or running an
-  experiment locally without Ray. For campaigns
-  over many entities, see ado-define-experiment-campaign; for the ado CLI itself,
-  see ado-use-cli.
+  testing or functionally validating an actuator, custom experiment, or
+  actuator configuration; debugging experiment execution or entity
+  validation; taking a single measurement without ado metastore tracking;
+  or running an experiment locally without Ray. For campaigns over many
+  entities, see ado-define-experiment-campaign; for the ado CLI itself, see
+  ado-use-cli.
 ---
 
 # Running an experiment on a single point
@@ -34,9 +34,9 @@ uv run run_experiment PATH_TO_POINT_YAML
 ```
 
 By default Ray is started locally and shut down automatically; no metastore or
-remote cluster is required. Use `--no-ray` to run in-process without Ray
-(`StandardActuator` subclasses only, for example `custom_experiments` and
-`robotic_lab`).
+remote cluster is required. Use `--no-ray` to run in-process without Ray (see
+the options table). Custom experiments whose `ray_options.runtime_env` uses
+`pip`, `conda`, or `uv` cannot use `--no-ray`.
 
 ## Point YAML
 

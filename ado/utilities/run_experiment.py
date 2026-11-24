@@ -206,18 +206,21 @@ def local_no_ray_execution_closure(
             The completed MeasurementRequest.
 
         Raises:
-            typer.BadParameter: If the actuator is not a StandardActuator subclass.
-            typer.Exit: If the experiment requires a Ray sandbox venv.
+            typer.Exit: If the actuator is not a StandardActuator subclass, or
+                the experiment requires a Ray sandbox venv.
         """
         if reference.actuatorIdentifier not in actuators:
             actuator_class = registry.actuatorForIdentifier(
                 reference.actuatorIdentifier
             )
             if not issubclass(actuator_class, StandardActuator):
-                raise typer.BadParameter(
-                    f"Actuator '{reference.actuatorIdentifier}' does not support "
-                    "--no-ray (only StandardActuator subclasses are supported)"
+                console_print(
+                    f"{ERROR}Actuator '{reference.actuatorIdentifier}' does not "
+                    "support --no-ray (only StandardActuator subclasses are "
+                    "supported)",
+                    stderr=True,
                 )
+                raise typer.Exit(code=1)
             if reference.actuatorIdentifier in actuator_configurations:
                 config = actuator_configurations[
                     reference.actuatorIdentifier

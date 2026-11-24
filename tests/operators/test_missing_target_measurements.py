@@ -19,8 +19,6 @@ try:
     from yaml import CSafeLoader as SafeLoader
 except ImportError:  # pragma: nocover
     from yaml import SafeLoader  # type: ignore[assignment]
-from testcontainers.community.mysql import MySqlContainer
-
 import ado.modules.operators.randomwalk  # noqa: F401
 from ado.core.discoveryspace.config import DiscoverySpaceConfiguration
 from ado.core.discoveryspace.space import DiscoverySpace
@@ -33,6 +31,7 @@ from ado.core.samplestore.config import (
 from ado.core.samplestore.sql import SQLSampleStore
 from ado.metastore.project import ProjectContext
 from ado.modules.operators.collections import characterize
+from tests.fixtures.shared_mysql_instance import MySqlConnectionDetails
 
 pytest.importorskip("autogluon")
 
@@ -83,7 +82,7 @@ _AUTOGLUON_ARGS = AutoGluonArgs(
 # ---------------------------------------------------------------------------
 @pytest.fixture
 def controlled_error_space(
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     valid_ado_project_context: ProjectContext,
     create_sample_store: Callable[[SampleStoreConfiguration], SQLSampleStore],
     create_space: Callable[[DiscoverySpaceConfiguration, str], DiscoverySpace],

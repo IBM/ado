@@ -25,6 +25,7 @@ if typing.TYPE_CHECKING:  # pragma: nocover
 class MeasurementResultStateEnum(enum.StrEnum):
     VALID = "Valid"
     INVALID = "Invalid"
+    INTERMEDIATE = "Intermediate"
 
 
 class MeasurementResult(pydantic.BaseModel):
@@ -288,18 +289,99 @@ class InvalidMeasurementResult(MeasurementResult):
         )
 
 
+class IntermediateMeasurementResult(ValidMeasurementResult):
+    """Used to record a measurement obtained before an experiment completed"""
+
+    isIntermediate: Annotated[
+        typing.Literal[True],
+        pydantic.Field(
+            description="Marks the measurements as obtained before the experiment completed. Always True"
+        ),
+    ] = True
+
+    @pydantic.model_serializer
+    def serialize_to_custom_format(self, _info: pydantic.SerializationInfo) -> dict:
+        """Serialize with the compressed format of ValidMeasurementResult and the isIntermediate flag.
+
+        The isIntermediate flag is always included, also when exclude_defaults
+        is set, as it identifies the dump as an IntermediateMeasurementResult.
+
+        Args:
+            _info: The pydantic serialization settings.
+
+        Returns:
+            The compressed representation of the result with the isIntermediate
+            flag set to True.
+        """
+
+        result = super().serialize_to_custom_format(_info)
+        result["isIntermediate"] = self.isIntermediate
+        return result
+
+    def series_representation(
+        self,
+        output_format: typing.Literal["target", "observed"],
+        virtual_target_property_identifiers: list[str] | None = None,
+    ) -> "pd.Series":
+        """Return the intermediate measurement result as a pandas Series.
+
+        Args:
+            output_format: Whether to key the measured values by target property
+                identifier ("target") or observed property identifier ("observed").
+            virtual_target_property_identifiers: Identifiers of virtual target
+                properties to aggregate from the measurements.
+
+        Returns:
+            The series representation of ValidMeasurementResult with the "valid"
+            field set to False.
+
+        Raises:
+            ValueError: If output_format is not "target" or "observed", or a
+                virtual target property identifier is not valid.
+        """
+
+        representation = super().series_representation(
+            output_format=output_format,
+            virtual_target_property_identifiers=virtual_target_property_identifiers,
+        )
+        representation["valid"] = False
+        return representation
+
+
 class DuplicateMeasurementResultError(ValueError): ...
 
 
 def measurement_result_type_discriminator(
-    result: dict | ValidMeasurementResult | InvalidMeasurementResult,
+    result: (
+        dict
+        | ValidMeasurementResult
+        | InvalidMeasurementResult
+        | IntermediateMeasurementResult
+    ),
 ) -> str:
+    """Return the tag of the measurement result type of a result.
 
+    Args:
+        result: A measurement result instance or its dictionary representation.
+
+    Returns:
+        "Valid", "Invalid" or "Intermediate".
+
+    Raises:
+        ValueError: If the measurement result type cannot be determined.
+    """
+
+    # IntermediateMeasurementResult subclasses ValidMeasurementResult,
+    # so it is checked first
+    if isinstance(result, IntermediateMeasurementResult):
+        return "Intermediate"
     if isinstance(result, ValidMeasurementResult):
         return "Valid"
     if isinstance(result, InvalidMeasurementResult):
         return "Invalid"
     if isinstance(result, dict):
+        if result.get("isIntermediate", None):
+            return "Intermediate"
         if result.get("measurements", None):
             return "Valid"
         if result.get("reason", None):
@@ -312,6 +394,7 @@ def measurement_result_type_discriminator(
 
 MeasurementResultType = Annotated[
     Annotated[ValidMeasurementResult, pydantic.Tag("Valid")]
-    | Annotated[InvalidMeasurementResult, pydantic.Tag("Invalid")],
+    | Annotated[InvalidMeasurementResult, pydantic.Tag("Invalid")]
+    | Annotated[IntermediateMeasurementResult, pydantic.Tag("Intermediate")],
     pydantic.Discriminator(measurement_result_type_discriminator),
 ]

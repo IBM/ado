@@ -55,6 +55,7 @@ from ado.schema.request import (
     ReplayedMeasurement,
 )
 from ado.schema.result import (
+    IntermediateMeasurementResult,
     InvalidMeasurementResult,
     MeasurementResult,
     MeasurementResultStateEnum,
@@ -252,32 +253,38 @@ def random_ml_multi_cloud_benchmark_performance_measurement_results(
         )
         status = status or MeasurementResultStateEnum.VALID
 
-        if status == MeasurementResultStateEnum.VALID:
-            return ValidMeasurementResult(
+        if status == MeasurementResultStateEnum.INVALID:
+            return InvalidMeasurementResult(
                 entityIdentifier=entity.identifier,
-                measurements=[
-                    ObservedPropertyValue(
-                        value=random.random(),
-                        property=ObservedProperty(
-                            targetProperty=AbstractPropertyDescriptor(
-                                identifier="wallClockRuntime"
-                            ),
-                            experimentReference=ExperimentReference(
-                                experimentIdentifier="benchmark_performance",
-                                actuatorIdentifier="replay",
-                            ),
-                        ),
-                    )
-                    for _ in range(measurements_per_result)
-                ],
+                reason=random_identifier(),
+                experimentReference=ExperimentReference(
+                    experimentIdentifier="benchmark_performance",
+                    actuatorIdentifier="replay",
+                ),
             )
-        return InvalidMeasurementResult(
+
+        result_class = (
+            IntermediateMeasurementResult
+            if status == MeasurementResultStateEnum.INTERMEDIATE
+            else ValidMeasurementResult
+        )
+        return result_class(
             entityIdentifier=entity.identifier,
-            reason=random_identifier(),
-            experimentReference=ExperimentReference(
-                experimentIdentifier="benchmark_performance",
-                actuatorIdentifier="replay",
-            ),
+            measurements=[
+                ObservedPropertyValue(
+                    value=random.random(),
+                    property=ObservedProperty(
+                        targetProperty=AbstractPropertyDescriptor(
+                            identifier="wallClockRuntime"
+                        ),
+                        experimentReference=ExperimentReference(
+                            experimentIdentifier="benchmark_performance",
+                            actuatorIdentifier="replay",
+                        ),
+                    ),
+                )
+                for _ in range(measurements_per_result)
+            ],
         )
 
     return _random_ml_multi_cloud_benchmark_performance_measurement_results

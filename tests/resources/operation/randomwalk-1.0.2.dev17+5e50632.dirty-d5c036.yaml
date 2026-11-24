@@ -5,6 +5,9 @@ config:
     description: Perform a random walk on all points in a space
     name: randomwalk-all
   operation:
+    module:
+      operatorName: random_walk
+      operationType: explore
     parameters:
       samplerConfig:
         samplerType: generator

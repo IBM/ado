@@ -1,0 +1,19 @@
+# Copyright IBM Corporation 2025, 2026
+# SPDX-License-Identifier: MIT
+metadata:
+  name: titration_ph
+  description: pH of a 25 mL strong acid sample during titration with a strong base.
+entitySpace:
+  - identifier: acid_concentration
+    propertyDomain:
+      values: [0.02, 0.04, 0.06, 0.08, 0.1, 0.12, 0.14, 0.16, 0.18, 0.2]
+  - identifier: base_concentration
+    propertyDomain:
+      values: [0.1, 0.2, 0.4]
+  - identifier: titrant_volume
+    propertyDomain:
+      domainRange: [0, 61]
+      interval: 1
+experiments:
+  - actuatorIdentifier: custom_experiments
+    experimentIdentifier: titrate_strong_acid

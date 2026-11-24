@@ -3,10 +3,18 @@
 
 """PKH selection, histogram updates, and refitting against explicit leaf embeddings."""
 
+from collections.abc import Callable
+
 import numpy as np
 import pytest
+from active_learning.pkh.data import candidate_entities, measured_labels
+from active_learning.pkh.operator import _sampling_parameters
 from active_learning.pkh.parameters import PKHParameters
 from active_learning.pkh.sampler import PKHState
+
+from ado.core.discoveryspace.space import DiscoverySpace
+from ado.schema.domain import PropertyDomain
+from ado.schema.property import ConstitutiveProperty
 
 
 def test_herding_and_mmd_match_explicit_embeddings() -> None:
@@ -59,3 +67,42 @@ def test_herding_and_mmd_match_explicit_embeddings() -> None:
         )
     assert forests[0] is forests[1]
     assert forests[1] is not forests[2]
+
+
+def test_candidate_entities_rejects_colliding_identifiers(
+    make_pkh_space: Callable[[list[ConstitutiveProperty]], DiscoverySpace],
+) -> None:
+    """PKH rejects distinct candidates that share a measurement identifier."""
+    prop = ConstitutiveProperty(
+        identifier="k", propertyDomain=PropertyDomain(values=[1, "1"])
+    )
+    space = make_pkh_space([prop])
+    with pytest.raises(ValueError, match="unique entity identifiers"):
+        candidate_entities(space)
+
+
+@pytest.mark.asyncio
+async def test_sampler_requires_current_target_before_next_entity(
+    categorical_space: DiscoverySpace,
+) -> None:
+    """PKH waits for the selected entity's target label before choosing another."""
+    from ado.modules.actuators.measurement_queue import MeasurementQueue
+    from ado.modules.operators.discovery_space_manager import DiscoverySpaceManager
+
+    queue = MeasurementQueue()
+    manager = DiscoverySpaceManager.remote(space=categorical_space, queue=queue)
+    try:
+        parameters = PKHParameters(targetOutput="self", numberEntities=2)
+        sampler = _sampling_parameters(parameters).samplerConfig.sampler()
+        assert sampler.samplerCompatibleWithDiscoverySpaceRemote(manager)
+        stream = await sampler.remoteEntityIterator(manager)
+        [first] = await anext(stream)
+        assert first.identifier not in measured_labels(
+            categorical_space, "selected-self"
+        )
+        with pytest.raises(ValueError, match="Missing finite target measurement"):
+            await anext(stream)
+    finally:
+        import ray
+
+        ray.kill(manager)

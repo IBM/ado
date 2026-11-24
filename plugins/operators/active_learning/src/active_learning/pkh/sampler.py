@@ -103,12 +103,12 @@ class PKHState(ForestSamplingState):
         return self._pool_leaf_mass - sample_mass
 
     def mmd_squared(self) -> float | None:
-        """MMD^2 between the measured entities and the whole pool (read-only).
+        """Return MMD^2 between the measured entities and the whole pool.
 
         With Phi scaled by 1/sqrt(T), ``||mu_P - mean(Phi(x_s))||^2`` equals
         ``(1/T) * sum_t ||pool_mass_t - sample_mass_t||^2`` in the leaf space.
-        Returns None until the forest has been fitted. The kernel is defined by
-        the current forest, so values are only strictly comparable within an epoch.
+        Return None before the first forest fit. Each forest defines its own
+        kernel. Compare values within the same epoch.
         """
         if (discrepancy := self._leaf_discrepancy()) is None:
             return None
@@ -169,7 +169,11 @@ class PKHSampleSelector(BaseSampler):
         discoverySpace: DiscoverySpace,
         batchsize: int = 1,
     ) -> Generator[list[Entity], None, None]:
-        """Synchronous iteration is unsupported; PKH needs live measurement feedback."""
+        """Use ``remoteEntityIterator`` to select entities with live measurement feedback.
+
+        Raises:
+            NotImplementedError: PKH requires the asynchronous iterator.
+        """
         raise NotImplementedError(
             "PKHSampleSelector only supports remoteEntityIterator"
         )

@@ -12,9 +12,9 @@ from active_learning.pkh.parameters import (
 )
 
 
-@pytest.mark.parametrize("weighted", [False, True], ids=["rf", "five-tree-ensemble"])
+@pytest.mark.parametrize("weighted", [False, True], ids=["rf", "ensemble-wins"])
 def test_transient_tree_predictions(weighted: bool) -> None:
-    """The selected predictor fills missing labels using the requested stack level."""
+    """A weighted blend improves on the individual trees for this quadratic target."""
     pytest.importorskip("autogluon.tabular")
     from active_learning.pkh.autogluon import predict_unmeasured
 
@@ -46,8 +46,8 @@ def test_transient_tree_predictions(weighted: bool) -> None:
     assert values[0] < values[1]
 
 
-def test_ensemble_with_constant_labels_and_rare_categories() -> None:
-    """Four measured categories with the same target still train all five models."""
+def test_single_tree_model_wins_validation_tie_on_constant_labels() -> None:
+    """A single model can match the ensemble perfectly on rare categories."""
     for dependency in ("autogluon.tabular", "lightgbm", "catboost", "xgboost"):
         pytest.importorskip(dependency)
     from active_learning.pkh.autogluon import predict_unmeasured
@@ -60,5 +60,11 @@ def test_ensemble_with_constant_labels_and_rare_categories() -> None:
         targetOutput="y", numberEntities=4, finalPredictor="weighted_ensemble"
     )
     values, model = predict_unmeasured(frame, labels, "y", parameters)
-    assert model == "WeightedEnsemble_L2_FULL"
+    assert model in {
+        "RandomForest_FULL",
+        "ExtraTrees_FULL",
+        "LightGBM_FULL",
+        "CatBoost_FULL",
+        "XGBoost_FULL",
+    }
     np.testing.assert_allclose(values, [5.0])

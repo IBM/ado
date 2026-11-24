@@ -18,5 +18,6 @@ operation:
     maxFeatures: 1.0
     criterion: squared_error
     seed: 42
-    # Set to weighted_ensemble to combine Random Forest, Extra Trees, XGBoost, CatBoost and LightGBM.
+    # weighted_ensemble compares five individual tree models with their weighted
+    # ensemble and uses the one with the lowest validation error.
     finalPredictor: random_forest

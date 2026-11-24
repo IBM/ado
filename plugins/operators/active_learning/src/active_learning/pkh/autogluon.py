@@ -30,8 +30,8 @@ def predict_unmeasured(
 ) -> tuple[np.ndarray, str]:
     """Fit temporary tree models and predict the rows with missing target values.
 
-    A level-two ensemble learns weights on held-out predictions. Refit its selected
-    base models on all labels before predicting the unmeasured rows.
+    Compare the individual models and any weighted ensemble by validation score.
+    Refit the winner on all measured labels before filling the unmeasured rows.
     """
     measured = labels.notna()
     training = frame.loc[measured].copy()
@@ -71,20 +71,27 @@ def predict_unmeasured(
             refit_full=False,
             set_best_to_refit_full=False,
         )
-        fitted = predictor.model_names(level=1)
+        leaderboard = predictor.leaderboard()
+        fitted = leaderboard.loc[leaderboard["stack_level"] == 1, "model"].tolist()
         if len(fitted) != expected_models:
             raise ValueError(
                 f"AutoGluon fitted {len(fitted)} of {expected_models} requested tree models: "
                 f"{fitted}. Check the tree settings and autoGluon.timeLimit."
             )
-        model = predictor.model_best
-        if weighted:
-            level_two = predictor.model_names(level=2)
-            if len(level_two) != 1:
-                raise ValueError(
-                    "AutoGluon could not fit the requested level-two weighted ensemble."
-                )
-            model = level_two[0]
+        if weighted and not leaderboard["stack_level"].eq(2).any():
+            raise ValueError(
+                "AutoGluon could not fit the requested level-two weighted ensemble."
+            )
+        # AutoGluon reports all scores as higher-is-better. Prefer a single model
+        # on an exact tie, then the model with the shorter validation prediction time.
+        ranked = leaderboard.dropna(subset=["score_val"]).sort_values(
+            ["score_val", "stack_level", "pred_time_val"], ascending=[False, True, True]
+        )
+        if ranked.empty:
+            raise ValueError(
+                "AutoGluon returned no validation scores for PKH prediction."
+            )
+        model = ranked.iloc[0]["model"]
         full_model = predictor.refit_full(model=model, num_cpus=cpus)[model]
         predictions = predictor.predict(frame.loc[~measured], model=full_model)
         return predictions.to_numpy(dtype=float), full_model

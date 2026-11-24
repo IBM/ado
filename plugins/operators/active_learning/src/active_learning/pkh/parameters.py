@@ -110,7 +110,11 @@ class PKHParameters(GenericOperatorParameters):
     finalPredictor: Annotated[
         Literal["random_forest", "weighted_ensemble", "autogluon"],
         Field(
-            description="Random Forest, five-family weighted L2 ensemble, or configured AutoGluon trees."
+            description=(
+                "random_forest fits a Random Forest. weighted_ensemble selects the best "
+                "of five tree families and their weighted L2 ensemble by validation score. "
+                "autogluon uses the configured tree families."
+            )
         ),
     ] = "random_forest"
     autoGluon: Annotated[

@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import importlib
 import sys
-from typing import Annotated, Any, Literal, get_args
+from typing import Annotated, Any, Literal
 
 from pydantic import (
     AliasChoices,
@@ -20,12 +20,12 @@ from pydantic import (
 
 from ado.core.operation.config import GenericOperatorParameters
 
-TreeFamily = Literal["RF", "XT", "XGB", "CAT", "GBM"]
-TreeSettings = dict[str, Any] | Annotated[list[dict[str, Any]], Field(min_length=1)]
+TREE_FAMILIES = ("RF", "XT", "XGB", "CAT", "GBM")
+ModelSettings = dict[str, Any] | Annotated[list[dict[str, Any]], Field(min_length=1)]
 
 
 class ActiveLearningAutoGluonParameters(BaseModel):
-    """Fit arguments for AutoGluon's final tree predictor."""
+    """Fit arguments for AutoGluon's final predictor."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -42,8 +42,8 @@ class ActiveLearningAutoGluonParameters(BaseModel):
         ),
     ] = 60
     hyperparameters: Annotated[
-        dict[TreeFamily, TreeSettings] | None,
-        Field(min_length=1, description="AutoGluon hyperparameters by tree family."),
+        dict[str, ModelSettings] | None,
+        Field(min_length=1, description="AutoGluon hyperparameters by model family."),
     ] = None
 
 
@@ -113,7 +113,8 @@ class PKHParameters(GenericOperatorParameters):
             description=(
                 "random_forest fits a Random Forest. weighted_ensemble selects the best "
                 "of five tree families and their weighted L2 ensemble by validation score. "
-                "autogluon uses the configured tree families."
+                "autogluon compares the selected preset's models or explicitly configured "
+                "families with their weighted ensemble."
             )
         ),
     ] = "random_forest"
@@ -124,57 +125,79 @@ class PKHParameters(GenericOperatorParameters):
 
     @model_validator(mode="after")
     def validate_predictor_configuration(self) -> PKHParameters:
-        """Keep the Random Forest mode restricted to the RF family."""
-        if (
-            self.finalPredictor == "random_forest"
-            and self.autoGluon
-            and self.autoGluon.hyperparameters
-            and self.autoGluon.hyperparameters.keys() != {"RF"}
-        ):
+        """Check model-family overrides against the selected predictor mode."""
+        configured = self.autoGluon and self.autoGluon.hyperparameters
+        if not configured:
+            return self
+        if self.finalPredictor == "random_forest" and configured.keys() != {"RF"}:
             raise ValueError("random_forest accepts only RF hyperparameters.")
+        if (
+            self.finalPredictor == "weighted_ensemble"
+            and configured.keys() - TREE_FAMILIES
+        ):
+            raise ValueError(
+                f"weighted_ensemble accepts only the following tree families: {', '.join(TREE_FAMILIES)}."
+            )
         return self
 
-    def prediction_hyperparameters(self) -> dict[TreeFamily, TreeSettings]:
-        """Return the tree families and settings submitted to AutoGluon."""
-        configured = (self.autoGluon and self.autoGluon.hyperparameters) or {}
-        families = (
-            get_args(TreeFamily)
-            if self.finalPredictor == "weighted_ensemble"
-            else configured or ("RF",)
-        )
-        trees = {family: configured.get(family, {}) for family in families}
-        if "CAT" in trees:
+    def prediction_hyperparameters(self) -> dict[str, ModelSettings] | None:
+        """Return explicit model settings, or None for the native AutoGluon portfolio."""
+        configured = self.autoGluon and self.autoGluon.hyperparameters
+        if self.finalPredictor == "autogluon" and configured is None:
+            return None
+        models = dict(configured or {"RF": {}})
+        if self.finalPredictor == "weighted_ensemble":
+            models = {family: models.get(family, {}) for family in TREE_FAMILIES}
+        if "CAT" in models:
             # A small training split can have a constant target even when the full pool varies.
-            cat = trees["CAT"]
+            cat = models["CAT"]
             defaults = {"allow_const_label": True}
-            trees["CAT"] = (
+            models["CAT"] = (
                 [defaults | variant for variant in cat]
                 if isinstance(cat, list)
                 else defaults | cat
             )
-        return trees
+        return models
 
     def validate_autogluon_installation(self) -> None:
-        """Check that the driver can load the requested tree model libraries."""
+        """Validate AutoGluon family names and dependencies before sampling."""
         if sys.version_info >= (3, 14):
             raise ValueError(
                 "PKH's AutoGluon predictor requires Python 3.11 through 3.13."
             )
-        modules = {"GBM": "lightgbm", "CAT": "catboost", "XGB": "xgboost"}
-        required = ["autogluon.tabular"]
+        plugin_extra = "ado-active-learning[autogluon]"
+        dependencies = {
+            "GBM": ("lightgbm", plugin_extra),
+            "CAT": ("catboost", plugin_extra),
+            "XGB": ("xgboost", plugin_extra),
+            "FASTAI": ("fastai.tabular.all", "autogluon.tabular[fastai]"),
+            "NN_TORCH": ("torch", "torch"),
+        }
+        families = self.prediction_hyperparameters() or {}
+        required = [("autogluon.tabular", "ado-active-learning")]
         required.extend(
-            modules[family]
-            for family in self.prediction_hyperparameters()
-            if family in modules
+            dependencies[family] for family in families if family in dependencies
         )
-        for module in required:
+        for module, package in required:
             try:
                 importlib.import_module(module)
             except (ImportError, OSError, ValueError) as exc:
                 raise ValueError(
-                    f"PKH prediction could not load {module}. Install "
-                    f"'ado-active-learning[autogluon]' and its native dependencies: {exc}"
+                    f"PKH prediction could not load {module}. Install '{package}' "
+                    f"and its native dependencies: {exc}"
                 ) from exc
+
+        if self.finalPredictor == "autogluon" and families:
+            from autogluon.tabular.registry import ag_model_registry
+
+            base_families = set(ag_model_registry.keys) - {
+                "ENS_WEIGHTED",
+                "SIMPLE_ENS_WEIGHTED",
+            }
+            if invalid := families.keys() - base_families:
+                raise ValueError(
+                    f"Unsupported AutoGluon base model families: {sorted(invalid)}."
+                )
 
     @classmethod
     def example_configuration(cls) -> PKHParameters:

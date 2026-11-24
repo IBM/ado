@@ -18,6 +18,7 @@ operation:
     maxFeatures: 1.0
     criterion: squared_error
     seed: 42
-    # weighted_ensemble compares five individual tree models with their weighted
-    # ensemble and uses the one with the lowest validation error.
+    # Use weighted_ensemble to compare five tree families, or autogluon to use
+    # the preset's installed models. Both compare single models and their
+    # weighted ensemble by validation RMSE.
     finalPredictor: random_forest

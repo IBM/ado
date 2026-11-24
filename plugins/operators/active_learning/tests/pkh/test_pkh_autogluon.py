@@ -1,7 +1,7 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-"""Test the AutoGluon tree models used to complete PKH measurements."""
+"""Test the AutoGluon predictors used to complete PKH measurements."""
 
 import numpy as np
 import pandas as pd
@@ -46,25 +46,43 @@ def test_transient_tree_predictions(weighted: bool) -> None:
     assert values[0] < values[1]
 
 
-def test_single_tree_model_wins_validation_tie_on_constant_labels() -> None:
-    """A single model can match the ensemble perfectly on rare categories."""
-    for dependency in ("autogluon.tabular", "lightgbm", "catboost", "xgboost"):
-        pytest.importorskip(dependency)
+@pytest.mark.parametrize("mode", ["weighted_ensemble", "autogluon"])
+def test_single_model_wins_validation_tie_on_constant_labels(mode: str) -> None:
+    """Both portfolios can complete a constant target using a single predictor."""
+    pytest.importorskip("autogluon.tabular")
+    if mode == "weighted_ensemble":
+        for dependency in ("lightgbm", "catboost", "xgboost"):
+            pytest.importorskip(dependency)
     from active_learning.pkh.autogluon import predict_unmeasured
 
     frame = pd.DataFrame(
         {"category": pd.Categorical(["None", "9007199254740993", "a", "b", "c"])}
     )
     labels = pd.Series([5.0, 5.0, 5.0, 5.0, np.nan])
+    parameters = PKHParameters(targetOutput="y", numberEntities=4, finalPredictor=mode)
+    values, model = predict_unmeasured(frame, labels, "y", parameters)
+    assert model.endswith("_FULL")
+    assert not model.startswith("WeightedEnsemble")
+    if mode == "autogluon":
+        # The native regression preset names its RF candidate RandomForestMSE.
+        assert model != "RandomForest_FULL"
+    np.testing.assert_allclose(values, [5.0])
+
+
+def test_configured_portfolio_can_select_a_linear_model() -> None:
+    """A linear predictor wins validation and extrapolates beyond measured values."""
+    pytest.importorskip("autogluon.tabular")
+    from active_learning.pkh.autogluon import predict_unmeasured
+
+    frame = pd.DataFrame({"x": np.arange(101)})
+    labels = 2.0 * frame["x"] + 3
+    labels.iloc[-1] = np.nan
     parameters = PKHParameters(
-        targetOutput="y", numberEntities=4, finalPredictor="weighted_ensemble"
+        targetOutput="y",
+        numberEntities=100,
+        finalPredictor="autogluon",
+        autoGluon={"hyperparameters": {"LR": {"C": 1e6}, "RF": {"n_estimators": 10}}},
     )
     values, model = predict_unmeasured(frame, labels, "y", parameters)
-    assert model in {
-        "RandomForest_FULL",
-        "ExtraTrees_FULL",
-        "LightGBM_FULL",
-        "CatBoost_FULL",
-        "XGBoost_FULL",
-    }
-    np.testing.assert_allclose(values, [5.0])
+    assert model == "LinearModel_FULL"
+    np.testing.assert_allclose(values, [203.0], atol=1e-3)

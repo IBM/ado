@@ -38,7 +38,7 @@ def predict_unmeasured(
     training[target_name] = labels.loc[measured]
     settings = parameters.autoGluon or ActiveLearningAutoGluonParameters()
     hyperparameters = parameters.prediction_hyperparameters()
-    # Omitting hyperparameters lets each AutoGluon preset supply its own portfolio.
+    # Omitting hyperparameters lets the AutoGluon preset choose the candidate models.
     fit_options = {}
     expected_models = None
     if hyperparameters is not None:

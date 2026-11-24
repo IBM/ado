@@ -18,7 +18,6 @@ operation:
     maxFeatures: 1.0
     criterion: squared_error
     seed: 42
-    # Use weighted_ensemble to compare five tree families, or autogluon to use
-    # the preset's installed models. Both compare single models and their
-    # weighted ensemble by validation RMSE.
+    # AutoGluon fits a Random Forest by default. Set finalPredictor to autogluon
+    # for automatic model selection, or weighted_ensemble to compare five tree families.
     finalPredictor: random_forest

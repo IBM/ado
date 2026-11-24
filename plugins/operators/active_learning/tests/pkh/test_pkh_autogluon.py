@@ -48,7 +48,7 @@ def test_transient_tree_predictions(weighted: bool) -> None:
 
 @pytest.mark.parametrize("mode", ["weighted_ensemble", "autogluon"])
 def test_single_model_wins_validation_tie_on_constant_labels(mode: str) -> None:
-    """Both portfolios can complete a constant target using a single predictor."""
+    """Both model selection modes can complete a constant target with one predictor."""
     pytest.importorskip("autogluon.tabular")
     if mode == "weighted_ensemble":
         for dependency in ("lightgbm", "catboost", "xgboost"):
@@ -69,7 +69,7 @@ def test_single_model_wins_validation_tie_on_constant_labels(mode: str) -> None:
     np.testing.assert_allclose(values, [5.0])
 
 
-def test_configured_portfolio_can_select_a_linear_model() -> None:
+def test_automatic_selection_can_choose_a_configured_linear_model() -> None:
     """A linear predictor wins validation and extrapolates beyond measured values."""
     pytest.importorskip("autogluon.tabular")
     from active_learning.pkh.autogluon import predict_unmeasured

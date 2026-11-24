@@ -111,10 +111,11 @@ class PKHParameters(GenericOperatorParameters):
         Literal["random_forest", "weighted_ensemble", "autogluon"],
         Field(
             description=(
-                "random_forest fits a Random Forest. weighted_ensemble selects the best "
-                "of five tree families and their weighted L2 ensemble by validation score. "
-                "autogluon compares the selected preset's models or explicitly configured "
-                "families with their weighted ensemble."
+                "AutoGluon fits the final predictor. random_forest fits a Random Forest. "
+                "autogluon enables automatic model selection using the chosen preset or "
+                "the families in autoGluon.hyperparameters. weighted_ensemble compares "
+                "five tree families. Both selection modes compare single models and "
+                "their weighted ensemble by validation RMSE."
             )
         ),
     ] = "random_forest"
@@ -141,7 +142,7 @@ class PKHParameters(GenericOperatorParameters):
         return self
 
     def prediction_hyperparameters(self) -> dict[str, ModelSettings] | None:
-        """Return explicit model settings, or None for the native AutoGluon portfolio."""
+        """Return explicit model settings, or None to use the preset's models."""
         configured = self.autoGluon and self.autoGluon.hyperparameters
         if self.finalPredictor == "autogluon" and configured is None:
             return None

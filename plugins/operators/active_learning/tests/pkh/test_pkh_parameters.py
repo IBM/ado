@@ -56,8 +56,8 @@ def test_tree_predictor_configuration() -> None:
         )
 
 
-def test_autogluon_portfolio_and_explicit_families() -> None:
-    """Presets choose the native portfolio unless families are specified."""
+def test_automatic_model_selection_with_preset_or_explicit_families() -> None:
+    """AutoGluon takes candidate models from the preset or the configured families."""
     parameters = PKHParameters(
         targetOutput="pressure",
         numberEntities=20,

@@ -173,7 +173,7 @@ class ValidMeasurementResult(MeasurementResult):
 
         if len(value) == 0:
             raise ValueError(
-                "A valid measurement result must included at least on measured value - none given"
+                f"{cls.__name__} must include at least one measured value - none given"
             )
 
         refs = list({v.property.experimentReference for v in value})

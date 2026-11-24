@@ -93,7 +93,10 @@ def test_valid_measurement_result_no_properties(
 
     import pydantic
 
-    with pytest.raises(pydantic.ValidationError):
+    with pytest.raises(
+        pydantic.ValidationError,
+        match=f"{result_class.__name__} must include at least one measured value - none given",
+    ):
         # Test init
         result_class(entityIdentifier=entity.identifier, measurements=[])
 

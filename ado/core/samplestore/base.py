@@ -641,8 +641,9 @@ class ActiveSampleStore(SampleStore, ABC):
             ``dict`` mapping each entity identifier to an
             :class:`ExperimentReferencesByMeasurementValidity` instance containing
             the experiment references for which the entity has at least one valid
-            measurement (:attr:`with_valid_measurements`) or at least one invalid
-            measurement (:attr:`with_invalid_measurements`).
+            measurement (:attr:`with_valid_measurements`), at least one invalid
+            measurement (:attr:`with_invalid_measurements`) or at least one
+            intermediate measurement (:attr:`with_intermediate_measurements`).
             Entity identifiers with no measurement results at all are omitted from
             the returned dict.
         """
@@ -663,6 +664,13 @@ class ExperimentReferencesByMeasurementValidity(pydantic.BaseModel):
         pydantic.Field(
             default_factory=set,
             description="References for which the entity has >= 1 invalid measurement.",
+        ),
+    ]
+    with_intermediate_measurements: Annotated[
+        set[ExperimentReference],
+        pydantic.Field(
+            default_factory=set,
+            description="References for which the entity has >= 1 intermediate measurement.",
         ),
     ]
 

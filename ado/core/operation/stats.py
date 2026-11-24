@@ -17,6 +17,8 @@ class OperationMeasurementStatistics(pydantic.BaseModel):
         total_results: Total number of measurement results across all requests.
         successful_results: Number of valid results (those carrying measurements).
         failed_results: Number of invalid results (those carrying a failure reason).
+        intermediate_results: Number of intermediate results (those obtained
+            before their experiment completed).
         measured_entities: Count of distinct entities that have at least one result.
     """
 
@@ -49,7 +51,7 @@ class OperationMeasurementStatistics(pydantic.BaseModel):
     successful_results: Annotated[
         int,
         pydantic.Field(
-            description="Number of valid results (those carrying measurements)."
+            description="Number of valid results (those carrying the measurements of a completed experiment)."
         ),
     ]
     failed_results: Annotated[
@@ -58,6 +60,12 @@ class OperationMeasurementStatistics(pydantic.BaseModel):
             description="Number of invalid results (those carrying a failure reason)."
         ),
     ]
+    intermediate_results: Annotated[
+        int,
+        pydantic.Field(
+            description="Number of intermediate results (those obtained before their experiment completed)."
+        ),
+    ] = 0
     measured_entities: Annotated[
         int,
         pydantic.Field(

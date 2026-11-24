@@ -21,6 +21,7 @@ from ado.schema.request import (
     ReplayedMeasurement,
 )
 from ado.schema.result import (
+    IntermediateMeasurementResult,
     InvalidMeasurementResult,
     MeasurementResult,
     MeasurementResultStateEnum,
@@ -559,6 +560,69 @@ def test_populate_measurement_results_in_entities(
         == second_measurement_result.measurements[0].value
         for result in random_entity.measurement_results
     )
+
+
+def test_populate_measurement_results_in_entities_skips_intermediate_results(
+    random_ml_multi_cloud_benchmark_performance_entities: Callable[[int], list[Entity]],
+    random_ml_multi_cloud_benchmark_performance_measurement_results: Callable[
+        [Entity, int, MeasurementResultStateEnum | None], MeasurementResult
+    ],
+) -> None:
+    """Intermediate results of a request are not added to its entities."""
+
+    random_entity = random_ml_multi_cloud_benchmark_performance_entities(quantity=1)[0]
+    intermediate_result = (
+        random_ml_multi_cloud_benchmark_performance_measurement_results(
+            entity=random_entity,
+            measurements_per_result=1,
+            status=MeasurementResultStateEnum.INTERMEDIATE,
+        )
+    )
+
+    MeasurementRequest(
+        operation_id="test_populate_measurement_results_in_entities_skips_intermediate_results",
+        requestIndex=0,
+        experimentReference=intermediate_result.experimentReference,
+        entities=[random_entity],
+        measurements=(intermediate_result,),
+    )
+
+    assert intermediate_result.uid not in {
+        result.uid for result in random_entity.measurement_results
+    }
+
+
+def test_measurement_request_with_intermediate_result_lifecycle(
+    random_ml_multi_cloud_benchmark_performance_entities: Callable[[int], list[Entity]],
+    random_ml_multi_cloud_benchmark_performance_measurement_results: Callable[
+        [Entity, int, MeasurementResultStateEnum | None], MeasurementResult
+    ],
+) -> None:
+    """A request holding an intermediate result survives create, dump and create from dump."""
+
+    random_entity = random_ml_multi_cloud_benchmark_performance_entities(quantity=1)[0]
+    intermediate_result = (
+        random_ml_multi_cloud_benchmark_performance_measurement_results(
+            entity=random_entity,
+            measurements_per_result=2,
+            status=MeasurementResultStateEnum.INTERMEDIATE,
+        )
+    )
+
+    original = MeasurementRequest(
+        operation_id="test_measurement_request_with_intermediate_result_lifecycle",
+        requestIndex=0,
+        experimentReference=intermediate_result.experimentReference,
+        entities=[random_entity],
+        measurements=(intermediate_result,),
+    )
+
+    for dump in [original.model_dump(), original.model_dump(mode="json")]:
+        recreated = MeasurementRequest.model_validate(dump)
+        (recreated_result,) = recreated.measurements
+        assert isinstance(recreated_result, IntermediateMeasurementResult)
+        assert recreated_result.uid == intermediate_result.uid
+        assert recreated_result.measurements == intermediate_result.measurements
 
 
 @pytest.fixture

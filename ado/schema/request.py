@@ -13,6 +13,7 @@ from dateutil.tz import tzlocal
 from ado.schema.entity import Entity
 from ado.schema.reference import ExperimentReference
 from ado.schema.result import (
+    IntermediateMeasurementResult,
     InvalidMeasurementResult,
     MeasurementResultType,
     ValidMeasurementResult,
@@ -117,7 +118,9 @@ class MeasurementRequest(pydantic.BaseModel, validate_assignment=True):
                     result
                     for result in request.measurements
                     if result.entityIdentifier == entity.identifier
-                    and isinstance(result, ValidMeasurementResult)
+                    # Intermediate results subclass ValidMeasurementResult and
+                    # are not added to entities
+                    and type(result) is ValidMeasurementResult
                 ]
                 for result in results_for_entity:
                     if result not in entity.measurement_results:
@@ -170,9 +173,21 @@ class MeasurementRequest(pydantic.BaseModel, validate_assignment=True):
     @classmethod
     def validate_measurements(
         cls,
-        value: list[ValidMeasurementResult | InvalidMeasurementResult] | None,
+        value: list[
+            ValidMeasurementResult
+            | IntermediateMeasurementResult
+            | InvalidMeasurementResult
+        ]
+        | None,
         values: pydantic.ValidationInfo,
-    ) -> list[ValidMeasurementResult | InvalidMeasurementResult] | None:
+    ) -> (
+        list[
+            ValidMeasurementResult
+            | IntermediateMeasurementResult
+            | InvalidMeasurementResult
+        ]
+        | None
+    ):
 
         # None is allowed
         if value is None:
@@ -235,7 +250,12 @@ class MeasurementRequest(pydantic.BaseModel, validate_assignment=True):
 
     def measurement_for_entity(
         self, entity_identifier: str
-    ) -> ValidMeasurementResult | InvalidMeasurementResult | None:
+    ) -> (
+        ValidMeasurementResult
+        | IntermediateMeasurementResult
+        | InvalidMeasurementResult
+        | None
+    ):
         """Returns the measurement for the requested entity identifier.
 
         If no measurements have been set returns None

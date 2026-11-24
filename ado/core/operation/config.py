@@ -20,11 +20,6 @@ from ado.core.resources import (
     CoreResourceKinds,
 )
 from ado.metastore.project import ProjectContext
-from ado.modules.module import (
-    ModuleConf,
-    ModuleTypeEnum,
-    load_module_class_or_function,
-)
 from ado.schema.measurementspace import MeasurementSpaceConfiguration
 from ado.utilities.lists import as_list
 from ado.utilities.pydantic import StrictSemVerStr, ignore_plugin_validation
@@ -53,6 +48,16 @@ class DiscoveryOperationEnum(enum.Enum):
         if value == "search":
             return cls.EXPLORE
         return None
+
+
+# Keys of the legacy ``module`` format (``moduleName``/``moduleClass``).
+_LEGACY_MODULE_KEYS = (
+    "moduleName",
+    "moduleClass",
+    "modulePath",
+    "moduleType",
+    "moduleFunction",
+)
 
 
 # Parameter name required by function operators created before multi-input
@@ -210,42 +215,6 @@ def validate_actuator_configuration_ids_against_space_ids(
         )
 
     return actuator_configurations
-
-
-class OperatorModuleConf(ModuleConf):
-    moduleType: Annotated[ModuleTypeEnum, pydantic.Field()] = ModuleTypeEnum.OPERATION
-
-    @classmethod
-    def _warn_legacy_module_name(cls, old_name: str, new_name: str) -> None:
-        from ado.core.resources import (
-            CoreResourceKinds,
-            warn_deprecated_resource_model_in_use,
-        )
-
-        warn_deprecated_resource_model_in_use(
-            affected_resource=CoreResourceKinds.OPERATION,
-            deprecated_from_ado_version="2.0.0",
-            removed_from_ado_version="3.0.0",
-            deprecated_fields="moduleName",
-            latest_format_documentation_url=(
-                "https://ibm.github.io/ado/latest/user-guide/advanced/migration-ado-1x-to-2x/"
-                "#renamed-python-import-package-orchestrator-ado"
-            ),
-        )
-
-    @property
-    def operationType(self) -> DiscoveryOperationEnum:
-        c: type[ado.modules.operators.base.DiscoveryOperationBase] = (
-            load_module_class_or_function(self)
-        )
-        return c.operator_metadata().type
-
-    @property
-    def operatorIdentifier(self) -> str:
-        c: type[ado.modules.operators.base.DiscoveryOperationBase] = (
-            load_module_class_or_function(self)
-        )
-        return c.operator_metadata().operatorIdentifier
 
 
 class OperatorMetadata(pydantic.BaseModel):
@@ -497,11 +466,11 @@ class DiscoveryOperationConfiguration(pydantic.BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     module: Annotated[
-        OperatorModuleConf | OperatorReference | ScriptOperatorConf,
+        OperatorReference | ScriptOperatorConf,
         pydantic.Field(
-            description="The module or function providing the discovery operation"
+            description="The registered operator or script providing the discovery operation"
         ),
-    ] = OperatorModuleConf()
+    ]
     parameters: Annotated[
         typing.Any,
         pydantic.Field(
@@ -510,49 +479,59 @@ class DiscoveryOperationConfiguration(pydantic.BaseModel):
         ),
     ]
 
-    @pydantic.field_validator("module", mode="after")
+    @pydantic.field_validator("module", mode="before")
     @classmethod
-    def ensure_module_is_installed(
-        cls,
-        module: OperatorModuleConf | OperatorReference | ScriptOperatorConf,
-        info: pydantic.ValidationInfo,
-    ) -> OperatorModuleConf | OperatorReference | ScriptOperatorConf:
-        """Validates that the operator module is installed and accessible.
+    def upgrade_legacy_module_format(cls, module: object) -> object:
+        """Rejects the legacy ``moduleName``/``moduleClass`` operator format.
+
+        A deprecation callout is printed when the legacy format is used.
 
         Args:
-            module: The operator module or function configuration to validate.
-            info: Pydantic validation info for the current validation step.
+            module: The raw value of the ``module`` field.
 
         Returns:
-            The validated module configuration.
+            The unmodified value if it does not use the legacy format.
 
         Raises:
-            ValueError: If the operator module is not installed or cannot be imported.
+            ValueError: If ``module`` uses the legacy format.
         """
-        if ignore_plugin_validation(info):
+        if not isinstance(module, dict):
             return module
 
-        if isinstance(module, OperatorReference | ScriptOperatorConf):
+        legacy_keys = [key for key in _LEGACY_MODULE_KEYS if key in module]
+        if not legacy_keys:
             return module
 
-        import importlib
+        from ado.core.resources import (
+            CoreResourceKinds,
+            warn_deprecated_resource_model_in_use,
+        )
 
-        try:
-            getattr(importlib.import_module(module.moduleName), module.moduleClass)
-        except ModuleNotFoundError as e:
-            raise ValueError(
-                f"Operator {module.moduleName}.{module.moduleClass} is not installed"
-            ) from e
-
-        return module
+        warn_deprecated_resource_model_in_use(
+            affected_resource=CoreResourceKinds.OPERATION,
+            deprecated_from_ado_version="2.0.0",
+            removed_from_ado_version="3.0.0",
+            deprecated_fields=legacy_keys,
+            latest_format_documentation_url=(
+                "https://ibm.github.io/ado/latest/user-guide/advanced/migration-ado-1x-to-2x/"
+                "#removed-operation-module-fields-modulename-and-moduleclass"
+            ),
+            auto_upgraded=False,
+        )
+        raise ValueError(
+            f"Operation 'module' fields {legacy_keys} are no longer supported. "
+            "Reference the operator with 'operatorName' and 'operationType' "
+            "(or a script with 'name')."
+        )
 
     @pydantic.model_validator(mode="after")
     def validate_and_downcast_parameters(self, info: pydantic.ValidationInfo) -> Self:
         """Validates and downcasts operation parameters.
 
-        For OperatorModuleConf modules, validates parameters using the operation's
-        validateOperationParameters method. For OperatorReference modules,
-        validates parameters against the configuration model if available.
+        For OperatorReference modules, resolves the reference (pinning its
+        ``operatorVersion``) and validates parameters against the operator's
+        configuration model. For ScriptOperatorConf modules, parameters are
+        reset to an empty dictionary.
 
         Args:
             info: Pydantic validation info for the current validation step.
@@ -566,16 +545,7 @@ class DiscoveryOperationConfiguration(pydantic.BaseModel):
         if ignore_plugin_validation(info):
             return self
 
-        if isinstance(self.module, OperatorModuleConf):
-            # This is guaranteed to not raise an error thanks to ensure_module_is_installed
-            operator_class = getattr(
-                importlib.import_module(self.module.moduleName), self.module.moduleClass
-            )
-            operator_metadata = operator_class.operator_metadata()
-            self.parameters = operator_metadata.configuration_model.model_validate(
-                self.parameters
-            )
-        elif isinstance(self.module, ScriptOperatorConf):
+        if isinstance(self.module, ScriptOperatorConf):
             self.parameters = {}
         else:
             from ado.modules.operators.collections import (
@@ -739,8 +709,8 @@ class DiscoveryOperationResourceConfiguration(pydantic.BaseModel):
     def validate_inputs(self, info: pydantic.ValidationInfo) -> Self:
         """Validate and populate ``kind`` on all input entries.
 
-        For :class:`OperatorModuleConf` and :class:`OperatorReference`
-        operators, loads the operator's ``required_resource_inputs`` and:
+        For :class:`OperatorReference` operators, loads the operator's
+        ``required_resource_inputs`` and:
 
         * fills ``kind=None`` entries from the descriptor map,
         * checks every entry's (explicit or filled) kind matches the
@@ -782,19 +752,11 @@ class DiscoveryOperationResourceConfiguration(pydantic.BaseModel):
             self._validate_script_operator_inputs()
             return self
 
-        if isinstance(module, OperatorModuleConf):
-            import importlib
+        from ado.modules.operators.collections import (
+            operator_metadata_for_reference,
+        )
 
-            operator_class = getattr(
-                importlib.import_module(module.moduleName), module.moduleClass
-            )
-            operator_metadata = operator_class.operator_metadata()
-        else:
-            from ado.modules.operators.collections import (
-                operator_metadata_for_reference,
-            )
-
-            operator_metadata = operator_metadata_for_reference(module)
+        operator_metadata = operator_metadata_for_reference(module)
 
         # Empty when registration has not recorded resource inputs yet.
         # Existing operators use the name discoverySpace.

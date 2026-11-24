@@ -32,8 +32,8 @@ a breaking change for anyone who writes Python code that directly imports from
 the package — custom actuators, operators, custom experiments, or scripts.
 
 **Who is affected:** any code that contains `from orchestrator.` or
-`import orchestrator.` statements, and any samplestore or operation YAML files
-that contain `moduleName` values beginning with `orchestrator.`.
+`import orchestrator.` statements, and any samplestore YAML files that contain
+`moduleName` values beginning with `orchestrator.`.
 
 **Before (ado 1.x):**
 
@@ -51,8 +51,8 @@ from ado.modules.actuators.custom_experiments import custom_experiment
 from ado.schema.experiment import Experiment
 ```
 
-**YAML files:** if you have samplestore or operation YAML files with a
-`moduleName` field, update the value from `orchestrator.*` to `ado.*`:
+**YAML files:** if you have samplestore YAML files with a `moduleName` field,
+update the value from `orchestrator.*` to `ado.*`:
 
 ```yaml
 # Before
@@ -72,6 +72,58 @@ grep -rn "orchestrator\." --include="*.yaml" --include="*.json" .
 ```
 
 <!-- markdownlint-enable line-length -->
+
+### Removed: operation `module` fields `moduleName` and `moduleClass`
+
+Operations can no longer reference an operator with `moduleName` and
+`moduleClass`. The `module` field of an operation must be one of:
+
+- an operator reference, using `operatorName` and `operationType`
+- a script, using `name`
+
+The `modulePath`, `moduleType` and `moduleFunction` fields of an operation's
+`module` are no longer supported either.
+
+`moduleName`/`moduleClass` pairs that identify the built-in RandomWalk operator
+(`random_walk`) or the RayTune operator (`ray_tune`) are temporarily
+auto-upgraded to the `operatorName`/`operationType` format when an operation is
+validated. A warning is printed when this happens. Run `ado upgrade operations`
+to upgrade operations already stored in a metastore. This auto-upgrade will be
+removed in ado 3.0.0.
+
+Any other `module` that uses the old fields fails validation.
+
+**Who is affected:** any operation YAML file whose `module` contains
+`moduleName` or `moduleClass`.
+
+**Before (ado 1.x):**
+
+```yaml
+operation:
+  module:
+    moduleName: orchestrator.modules.operators.randomwalk
+    moduleClass: RandomWalk
+  parameters:
+    numberEntities: 10
+```
+
+**After (ado 2.x):**
+
+```yaml
+operation:
+  module:
+    operatorName: random_walk
+    operationType: explore
+  parameters:
+    numberEntities: 10
+```
+
+Use `ado get operators` to list the available operators and their operation
+types, and `ado template operation --operator-name OPERATOR_NAME` to generate a
+valid operation YAML file.
+
+Nested `moduleName` and `moduleClass` fields inside operation `parameters`, such
+as those that configure a custom sampler, are unchanged.
 
 ### Renamed: `ado show entities` → `ado show measurements`
 

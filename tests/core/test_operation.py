@@ -16,6 +16,7 @@ from ado.core.operation.config import (
     DiscoveryOperationConfiguration,
     DiscoveryOperationEnum,
     DiscoveryOperationResourceConfiguration,
+    OperatorReference,
     ScriptOperatorConf,
 )
 from ado.core.operation.resource import (
@@ -29,7 +30,7 @@ from ado.core.resources import (
     ADOResourceReference,
     CoreResourceKinds,
 )
-from ado.modules.module import load_module_class_or_function
+from ado.modules.operators.collections import operator_metadata_for_reference
 
 
 def test_discovery_operation_enum_legacy_search_redirects_to_explore() -> None:
@@ -151,15 +152,11 @@ def test_operation_config_file_valid(valid_operation_config_file: str) -> None:
         yaml.load(content, Loader=SafeLoader)
     )
 
-    try:
-        module = op_cfg.module
-    except AttributeError:
-        pass
-    else:
-        moduleClass = load_module_class_or_function(module)  # type: "ado.modules.operators.base.DiscoveryOperationBase"
-        meta = moduleClass.operator_metadata()
-        if meta.configuration_model is not None:
-            meta.configuration_model.model_validate(op_cfg.parameters)
+    module = op_cfg.operation.module
+    assert isinstance(module, OperatorReference | ScriptOperatorConf)
+    if isinstance(module, OperatorReference):
+        metadata = operator_metadata_for_reference(module)
+        metadata.configuration_model.model_validate(op_cfg.operation.parameters)
 
 
 def test_set_manual_operation_identifier(
@@ -245,22 +242,89 @@ def test_legacy_spaces_with_inputs_present_does_not_warn(
     assert configuration.spaces == ["space-test123"]
 
 
-def test_setting_space_id(
-    operation_configuration: DiscoveryOperationResourceConfiguration,
+@pytest.mark.parametrize(
+    "legacy_module",
+    [
+        {
+            "moduleName": "ado.modules.operators.randomwalk",
+            "moduleClass": "RandomWalk",
+        },
+        {"moduleName": "ado_ray_tune.operator", "moduleClass": "RayTune"},
+        {"moduleName": "my_package.operators", "moduleClass": "MyOperator"},
+        {"moduleClass": "RandomWalk"},
+        {"moduleName": 5, "moduleClass": "RandomWalk"},
+        {
+            "moduleName": "ado.modules.operators.randomwalk",
+            "moduleClass": "RandomWalk",
+            "modulePath": ".",
+            "moduleType": "operation",
+        },
+        {
+            "moduleName": "ado.modules.operators.randomwalk",
+            "moduleClass": "RandomWalk",
+            "operatorName": "random_walk",
+        },
+    ],
+)
+def test_legacy_operator_module_is_rejected_with_callout(
+    legacy_module: dict, capsys: pytest.CaptureFixture[str]
 ) -> None:
+    """A legacy moduleName/moduleClass module fails validation and is called out."""
+    with pytest.raises(pydantic.ValidationError, match="operatorName") as error:
+        DiscoveryOperationConfiguration.model_validate({"module": legacy_module})
+    assert "operationType" in str(error.value)
 
-    import pydantic
+    stderr = " ".join(capsys.readouterr().err.split())
+    assert "WARN" in stderr
+    assert "rejected" in stderr
+    assert "ado upgrade" not in stderr
+    assert "migration-ado-1x-to-2x" in stderr
+
+
+def test_operation_module_is_required() -> None:
+    """An operation configuration without a module fails validation."""
+    with pytest.raises(pydantic.ValidationError, match="module"):
+        DiscoveryOperationConfiguration.model_validate({"parameters": {}})
+
+
+def test_operator_reference_operation_round_trip(
+    random_walk_operation_configuration: DiscoveryOperationConfiguration,
+) -> None:
+    """An OperatorReference operation survives create -> dump -> create from dump."""
+    configuration = DiscoveryOperationResourceConfiguration(
+        operation=random_walk_operation_configuration,
+        inputs={
+            "discoverySpace": ADOResourceReference(
+                identifier="space-test123",
+                kind=CoreResourceKinds.DISCOVERYSPACE,
+            )
+        },
+    )
+
+    restored = DiscoveryOperationResourceConfiguration.model_validate(
+        configuration.model_dump()
+    )
+
+    assert isinstance(restored.operation.module, OperatorReference)
+    assert restored.operation.module.operatorName == "random_walk"
+    assert restored.operation.module.operationType == DiscoveryOperationEnum.EXPLORE
+    assert restored.operation.parameters == configuration.operation.parameters
+
+
+def test_setting_space_id(
+    random_walk_operation_configuration: DiscoveryOperationConfiguration,
+) -> None:
 
     # Test setting empty spaces raises an error
     with pytest.raises(pydantic.ValidationError):
         DiscoveryOperationResourceConfiguration(
-            spaces=[], operation=DiscoveryOperationConfiguration()
+            spaces=[], operation=random_walk_operation_configuration
         )
 
     # Test setting no space raises an error
     with pytest.raises(pydantic.ValidationError):
         DiscoveryOperationResourceConfiguration(
-            operation=DiscoveryOperationConfiguration()
+            operation=random_walk_operation_configuration
         )
 
 

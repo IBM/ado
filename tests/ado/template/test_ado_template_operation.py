@@ -15,3 +15,10 @@ def test_template_operation(operator_name: str) -> None:
     )
     assert result.exit_code == 0, result.output
     assert operator_name in result.output
+
+
+def test_template_operation_defaults_to_random_walk() -> None:
+    runner = CliRunner()
+    result = runner.invoke(ado, ["template", "operation"])
+    assert result.exit_code == 0, result.output
+    assert "operatorName: random_walk" in result.output

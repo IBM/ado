@@ -56,21 +56,6 @@ def test_operator_function_conf() -> None:
     assert function.operatorIdentifier.split("@")[0] == "rifferla"
 
 
-def test_operator_module_conf(
-    operator_module_conf: ado.core.operation.config.OperatorModuleConf,
-) -> None:
-
-    from ado.modules.module import load_module_class_or_function
-
-    assert (
-        operator_module_conf.operationType
-        == ado.core.operation.config.DiscoveryOperationEnum.EXPLORE
-    )
-    cls = load_module_class_or_function(operator_module_conf)
-    expected_name = cls.operator_metadata().name
-    assert operator_module_conf.operatorIdentifier.startswith(f"{expected_name}@")
-
-
 def test_characterize(expected_characterize_operators: list[str]) -> None:
 
     assert len(ado.modules.operators.collections.characterize.list_operators()) == len(

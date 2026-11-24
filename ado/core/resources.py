@@ -159,7 +159,23 @@ def warn_deprecated_resource_model_in_use(
     deprecated_fields: str | list[str] | None = None,
     latest_format_documentation_url: str | None = None,
     include_entities_and_results_hint: bool = False,
+    auto_upgraded: bool = True,
 ) -> None:
+    """Prints a callout on stderr about a deprecated resource model.
+
+    Args:
+        affected_resource: The kind of resource using the deprecated model.
+        deprecated_from_ado_version: The ado version that deprecated the model.
+        removed_from_ado_version: The ado version that removes the fallback.
+        deprecated_fields: The deprecated field(s) found in the resource.
+        latest_format_documentation_url: Documentation describing the
+            latest format.
+        include_entities_and_results_hint: Whether to hint at upgrading
+            entities and results (samplestores only).
+        auto_upgraded: Whether the deprecated model is still being
+            auto-upgraded. When False, the callout states that the model is
+            rejected and omits the ``ado upgrade`` hint.
+    """
     from rich.console import Console
 
     # AP: some resources have a slightly different name in the CLI
@@ -193,6 +209,17 @@ def warn_deprecated_resource_model_in_use(
             f"as of ado [b cyan]{deprecated_from_ado_version}[/b cyan] "
             f"and the previous version is no longer supported."
         )
+
+    if not auto_upgraded:
+        Console(stderr=True).print(
+            f"[b yellow]WARN[/b yellow]:\t{warning_preamble}\n\t"
+            f"They are rejected when validated.\n"
+            f"[b magenta]HINT[/b magenta]:\t"
+            f"Update your {resource_name} YAML files to use the latest format{doc_url}.",
+            overflow="ignore",
+            crop=False,
+        )
+        return
 
     autoupgrade_notice = (
         "They are being temporarily auto-upgraded to the latest version."

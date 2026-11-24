@@ -19,10 +19,8 @@ from ado.cli.resources.operation.template import _operation_inputs_template
 from ado.core.datacontainer.resource import DataContainerResource
 from ado.core.discoveryspace.space import DiscoverySpace
 from ado.core.operation.config import (
-    DiscoveryOperationEnum,
     FunctionOperationInfo,
     GenericOperatorParameters,
-    OperatorMetadata,
 )
 from ado.core.operation.operation import OperationOutput
 from ado.core.resources import (
@@ -76,45 +74,6 @@ def _two_spaces(
     parameters: GenericOperatorParameters,
 ) -> OperationOutput:
     return _stub(left, right, operationInfo, parameters=parameters)
-
-
-def _legacy_metadata(
-    required_resource_inputs: tuple[ADOResourcePropertyDescriptor, ...] = (),
-) -> OperatorMetadata:
-    """Return operator metadata for a class-style module configuration."""
-    return OperatorMetadata(
-        name="legacy-operator",
-        version="1.0.0",
-        configuration_model=GenericOperatorParameters,
-        example_configuration=GenericOperatorParameters(),
-        type=DiscoveryOperationEnum.CHARACTERIZE,
-        required_resource_inputs=required_resource_inputs,
-    )
-
-
-class _LegacyOperatorWithoutInputs:
-    """Class operator whose metadata has not recorded resource inputs."""
-
-    @classmethod
-    def operator_metadata(cls) -> OperatorMetadata:
-        """Return metadata with no recorded resource inputs."""
-        return _legacy_metadata()
-
-
-class _LegacyOperatorWithContainer:
-    """Class operator that records one data-container input."""
-
-    @classmethod
-    def operator_metadata(cls) -> OperatorMetadata:
-        """Return metadata with a measurements input."""
-        return _legacy_metadata(
-            (
-                ADOResourcePropertyDescriptor(
-                    identifier="measurements",
-                    kind=CoreResourceKinds.DATACONTAINER,
-                ),
-            )
-        )
 
 
 def _descriptor_for_raw(
@@ -179,35 +138,23 @@ class TestDescriptorForKind:
                 == "right"
             )
 
-    def test_legacy_module_without_recorded_inputs_uses_discovery_space(self) -> None:
-        """A class module with empty resource inputs binds discoverySpace."""
+    def test_unknown_legacy_module_is_rejected(self) -> None:
+        """A moduleName/moduleClass module is unsupported."""
         raw = {
             "operation": {
                 "module": {
-                    "moduleName": __name__,
-                    "moduleClass": "_LegacyOperatorWithoutInputs",
+                    "moduleName": "my_package.operators",
+                    "moduleClass": "MyOperator",
                 }
             }
         }
-        assert (
-            _descriptor_for_raw(raw, CoreResourceKinds.DISCOVERYSPACE).identifier
-            == "discoverySpace"
-        )
+        with pytest.raises(ValueError, match="no longer supported"):
+            _descriptor_for_raw(raw, CoreResourceKinds.DISCOVERYSPACE)
 
-    def test_legacy_module_uses_recorded_resource_inputs(self) -> None:
-        """A class module binds the input recorded on its metadata."""
-        raw = {
-            "operation": {
-                "module": {
-                    "moduleName": __name__,
-                    "moduleClass": "_LegacyOperatorWithContainer",
-                }
-            }
-        }
-        assert (
-            _descriptor_for_raw(raw, CoreResourceKinds.DATACONTAINER).identifier
-            == "measurements"
-        )
+    def test_unrecognised_module_is_rejected(self) -> None:
+        """A module naming neither an operator nor a script cannot be resolved."""
+        with pytest.raises(ValueError, match="operatorName and operationType"):
+            _resource_inputs_for_module({"version": "1.0.0"})
 
     def test_script_module_uses_discovery_space(self) -> None:
         """A script module binds the discoverySpace input."""

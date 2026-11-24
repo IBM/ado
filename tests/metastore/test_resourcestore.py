@@ -24,6 +24,7 @@ from ado.core.document.config import DocumentConfiguration
 from ado.core.document.resource import DocumentResource
 from ado.core.metadata import PackageProvenance
 from ado.core.operation.config import (
+    DiscoveryOperationConfiguration,
     DiscoveryOperationResourceConfiguration,
     FunctionOperationInfo,
 )
@@ -1206,6 +1207,7 @@ def two_op_hierarchy(
     sql_store: SQLStore,
     random_space_resource_from_file: Callable[[str | None], DiscoverySpaceResource],
     data_container_resource: ado.core.datacontainer.resource.DataContainerResource,
+    random_walk_operation_configuration: DiscoveryOperationConfiguration,
 ) -> dict:
     """Two operations sharing the same discoveryspace, each with its own datacontainer."""
 
@@ -1213,7 +1215,6 @@ def two_op_hierarchy(
         SampleStoreResource,
     )
     from ado.core.operation.config import (
-        DiscoveryOperationConfiguration,
         DiscoveryOperationEnum,
         DiscoveryOperationResourceConfiguration,
     )
@@ -1241,7 +1242,7 @@ def two_op_hierarchy(
 
     op1_config = DiscoveryOperationResourceConfiguration(
         spaces=[ds.identifier],
-        operation=DiscoveryOperationConfiguration(),
+        operation=random_walk_operation_configuration,
     )
     op1 = OperationResource(
         config=op1_config,
@@ -1252,7 +1253,7 @@ def two_op_hierarchy(
 
     op2_config = DiscoveryOperationResourceConfiguration(
         spaces=[ds.identifier],
-        operation=DiscoveryOperationConfiguration(),
+        operation=random_walk_operation_configuration,
     )
     op2 = OperationResource(
         config=op2_config,
@@ -1752,6 +1753,7 @@ def resource_hierarchy_with_child_operation(
     sql_store: SQLStore,
     random_space_resource_from_file: Callable[[str | None], DiscoverySpaceResource],
     operation_resource: OperationResource,
+    random_walk_operation_configuration: DiscoveryOperationConfiguration,
 ) -> dict:
     """Build a hierarchy with a parent and a child operation linked to a second space.
 
@@ -1760,7 +1762,6 @@ def resource_hierarchy_with_child_operation(
     """
     from ado.core import SampleStoreResource
     from ado.core.operation.config import (
-        DiscoveryOperationConfiguration,
         DiscoveryOperationEnum,
         DiscoveryOperationResourceConfiguration,
     )
@@ -1807,7 +1808,7 @@ def resource_hierarchy_with_child_operation(
 
     child_op_config = DiscoveryOperationResourceConfiguration(
         spaces=[space2.identifier],
-        operation=DiscoveryOperationConfiguration(),
+        operation=random_walk_operation_configuration,
     )
     child_op = OperationResource(
         config=child_op_config,
@@ -1929,6 +1930,7 @@ def test_space_op_space_op_multi_hop(
 def resource_hierarchy_with_document(
     sql_store: SQLStore,
     random_space_resource_from_file: Callable[[str | None], DiscoverySpaceResource],
+    random_walk_operation_configuration: DiscoveryOperationConfiguration,
 ) -> dict:
     """Build a hierarchy with a document that has both a parent and a child operation.
 
@@ -1939,7 +1941,6 @@ def resource_hierarchy_with_document(
     """
     from ado.core import SampleStoreResource
     from ado.core.operation.config import (
-        DiscoveryOperationConfiguration,
         DiscoveryOperationEnum,
         DiscoveryOperationResourceConfiguration,
     )
@@ -1966,7 +1967,7 @@ def resource_hierarchy_with_document(
 
     op_a_config = DiscoveryOperationResourceConfiguration(
         spaces=[space.identifier],
-        operation=DiscoveryOperationConfiguration(),
+        operation=random_walk_operation_configuration,
     )
     op_a = OperationResource(
         config=op_a_config,
@@ -1987,7 +1988,7 @@ def resource_hierarchy_with_document(
 
     op_b_config = DiscoveryOperationResourceConfiguration(
         spaces=[space.identifier],
-        operation=DiscoveryOperationConfiguration(),
+        operation=random_walk_operation_configuration,
     )
     op_b = OperationResource(
         config=op_b_config,

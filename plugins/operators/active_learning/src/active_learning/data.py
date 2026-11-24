@@ -21,8 +21,8 @@ from ado.schema.observed_property import ObservedProperty
 def candidate_entities(discovery_space: DiscoverySpace) -> list[Entity]:
     """Return one entity per point of the finite entity space.
 
-    Entities already in the sample store are reused and the others are created
-    (not stored), so this also works on an empty sample store.
+    Reuse entities from the sample store and create the remaining candidates
+    in memory.
     """
     generator = ExplicitEntitySpaceGridSampleGenerator(mode=WalkModeEnum.SEQUENTIAL)
     entities = [
@@ -41,7 +41,21 @@ def candidate_entities(discovery_space: DiscoverySpace) -> list[Entity]:
 def validate_target_output(
     target_output: str, discovery_space: DiscoverySpace
 ) -> ObservedProperty:
-    """Resolve a unique target in a measurement space containing one experiment."""
+    """Find the observed property that the operator will model.
+
+    Args:
+        target_output: Qualified observed-property identifier or bare target name.
+        discovery_space: Discovery space containing the experiment and its inputs.
+
+    Returns:
+        The matching observed property.
+
+    Raises:
+        ValueError: The space contains zero or multiple experiments, or the
+            target matches zero or multiple observed properties. This error
+            also occurs when the target and a feature share a name, or when
+            either uses the reserved name ``entityIdentifier`` or ``is_predicted``.
+    """
     number_experiments = len(discovery_space.measurementSpace.experimentReferences)
     if number_experiments != 1:
         raise ValueError(

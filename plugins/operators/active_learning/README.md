@@ -8,9 +8,9 @@ The discovery space must define exactly one experiment. It can return several
 outputs. Set `targetOutput` to the numeric output to model. Both operators
 reuse existing measurements of that output.
 
-PKH selects entities to match the pool in a learned Random Forest leaf space.
-This objective measures representativeness under the learned kernel. It does
-not guarantee predictive accuracy. FLORA selects entities using the trees'
+PKH compares the fraction of the sample in each Random Forest leaf with the
+fraction of the full pool in that leaf. It favors entities in leaves where the
+sample fraction is smaller. FLORA selects entities using the trees'
 disagreement about the target and the number of measurements in each leaf.
 
 ## Installation

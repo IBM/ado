@@ -33,6 +33,7 @@ from ado.schema.result import ValidMeasurementResult
         ),
     ],
 )
+@pytest.mark.parametrize("categorical_space", [([0, 1, 2], [0, 1, 2])], indirect=True)
 @pytest.mark.parametrize("backend", ["random_forest", "autogluon"])
 def test_saved_predictor_reproduces_categorical_predictions(
     categorical_space: DiscoverySpace,
@@ -60,22 +61,22 @@ def test_saved_predictor_reproduces_categorical_predictions(
         pytest.importorskip("autogluon.tabular")
         settings = {"timeLimit": 10, "hyperparameters": {"RF": {"n_estimators": 3}}}
     parameters = parameter_type(
-        targetOutput=target.identifier,
+        targetOutput=target.targetProperty.identifier,
         numberEntities=1,
         nEstimators=3,
         finalPredictor=backend,
         autoGluon=settings,
     )
-    sampled = categorical_space.entitySpace.entity_for_point({"kind": "c", "count": 1})
+    sampled = categorical_space.entitySpace.entity_for_point({"kind": "b", "count": 1})
     export = PredictorExport(
         categorical_space, target, parameters, tmp_path, {sampled.identifier}, sampler
     )
     finalize_model(export, parameters)
     table = pd.read_csv(tmp_path / "combined_predictions.csv")
-    expected_labels = [first_label, 1, 0, 1, 0, 1]
-    assert table.loc[~table.is_predicted, "response"].tolist() == expected_labels
+    expected_labels = [first_label, 1, 2, 0, 1, 2]
+    assert table.loc[~table.is_predicted, "self"].tolist() == expected_labels
     unmeasured = table.loc[table.is_predicted]
-    assert unmeasured.kind.tolist() == ["d", "d"]
+    assert unmeasured.kind.tolist() == ["c"] * 3 + ["d"] * 3
     if backend == "autogluon":
         from autogluon.tabular import TabularPredictor
 
@@ -85,5 +86,5 @@ def test_saved_predictor_reproduces_categorical_predictions(
         with (tmp_path / "model.pkl").open("rb") as model_file:
             model = pickle.load(model_file)  # noqa: S301 - reload this test's model
     assert model.predict(unmeasured[["kind", "count"]]).tolist() == pytest.approx(
-        unmeasured.response.tolist()
+        unmeasured["self"].tolist()
     )

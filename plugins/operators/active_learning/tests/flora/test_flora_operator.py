@@ -3,17 +3,19 @@
 
 """FLORA's parameter validation, label reading and feature encoding."""
 
+from collections.abc import Callable
+
 import numpy as np
 import pandas as pd
 import pytest
 from active_learning.data import candidate_entities
-from active_learning.flora.operator import _require_autogluon_labels
+from active_learning.flora.operator import flora
 from active_learning.flora.parameters import FLORAParameters
 from active_learning.flora.sampler import FLORASampleSelector, encode_forest_features
 from pydantic import ValidationError
 
 from ado.core.discoveryspace.space import DiscoverySpace
-from ado.schema.domain import PropertyDomain
+from ado.schema.domain import PropertyDomain, VariableTypeEnum
 from ado.schema.entityspace import EntitySpaceRepresentation
 from ado.schema.experiment import Experiment
 from ado.schema.observed_property import ObservedPropertyValue
@@ -39,10 +41,13 @@ def test_parameters_round_trip() -> None:
     assert FLORAParameters(**parameters.model_dump()) == parameters
 
 
-def test_autogluon_requires_four_labels() -> None:
+def test_autogluon_requires_four_labels(empty_space: DiscoverySpace) -> None:
     """AutoGluon needs enough labels for its training and validation sets."""
-    with pytest.raises(ValueError, match="at least four"):
-        _require_autogluon_labels(3)
+    parameters = FLORAParameters(
+        targetOutput="self", numberEntities=1, finalPredictor="autogluon"
+    )
+    with pytest.raises(ValueError, match=r"at least 4.*at most 1"):
+        flora.__wrapped__(empty_space, parameters=parameters)
 
 
 def test_target_label_averages_measurements_and_rejects_non_finite() -> None:
@@ -91,11 +96,24 @@ def test_forest_features_one_hot_levels_and_reject_unknown_category() -> None:
         )
 
 
-@pytest.mark.parametrize("categorical_space", [[10, 20, 30, 40]], indirect=True)
 def test_numeric_categories_have_no_ordered_distance(
-    categorical_space: DiscoverySpace,
+    make_test_space: Callable[[list[ConstitutiveProperty]], DiscoverySpace],
 ) -> None:
     """Declared numeric categories are equally distant in the encoded feature space."""
+    categorical_space = make_test_space(
+        [
+            ConstitutiveProperty(
+                identifier="kind",
+                propertyDomain=PropertyDomain(
+                    values=[10, 20, 30, 40],
+                    variableType=VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE,
+                ),
+            ),
+            ConstitutiveProperty(
+                identifier="count", propertyDomain=PropertyDomain(values=[0, 1])
+            ),
+        ]
+    )
     entities = candidate_entities(categorical_space)
     frame, features, encoder = FLORASampleSelector.encode_feature_matrix(
         categorical_space, entities

@@ -28,7 +28,7 @@ def _finalize_model(export: PredictorExport, parameters: PKHParameters) -> float
     state.fit_forest_and_histograms()
     mmd_squared = state.mmd_squared()
     if parameters.finalPredictor == "autogluon":
-        model = export.fit_autogluon()
+        model = export.fit_autogluon(stringify_categories=True)
     else:
         model = export.save_forest(state.forest)
     export.save_predictions(

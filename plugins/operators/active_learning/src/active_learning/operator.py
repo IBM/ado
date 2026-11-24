@@ -33,9 +33,11 @@ if TYPE_CHECKING:
 
     from ado.core.discoveryspace.space import DiscoverySpace
     from ado.core.operation.config import FunctionOperationInfo
+    from ado.modules.operators.randomwalk import RandomWalkParameters
     from ado.schema.observed_property import ObservedProperty
 
 logger = logging.getLogger(__name__)
+_MIN_AUTOGLUON_LABELS = 4
 
 
 class PredictorExport:
@@ -67,7 +69,16 @@ class PredictorExport:
         self.frame.index = [entity.identifier for entity in entities]
         self.labels = pd.Series(labels, dtype=float).reindex(self.frame.index)
         self.measured = self.labels.notna().to_numpy()
-        if not self.measured.any():
+        measured_count = int(self.measured.sum())
+        if (
+            parameters.finalPredictor == "autogluon"
+            and measured_count < _MIN_AUTOGLUON_LABELS
+        ):
+            raise ValueError(
+                f"AutoGluon requires at least {_MIN_AUTOGLUON_LABELS} target labels "
+                f"and collected {measured_count}."
+            )
+        if measured_count == 0:
             raise ValueError(f"No completed measurements for '{target.identifier}'.")
         if (
             len(sampled_identifiers) < parameters.numberEntities
@@ -83,19 +94,23 @@ class PredictorExport:
         self.directory = directory
 
     def fit_autogluon(
-        self, *, numeric_as_float: bool = False, random_state: int | None = None
+        self,
+        *,
+        numeric_as_float: bool = False,
+        random_state: int | None = None,
+        stringify_categories: bool = False,
     ) -> TabularPredictor:
         """Fit and save the regression model on measured rows of the original feature frame.
 
         Args:
             numeric_as_float: Cast every numeric training column to float.
             random_state: Seed for AutoGluon's learner; None leaves it unseeded.
+            stringify_categories: Apply PKH's category conversion to raw predictions.
         """
         from autogluon.tabular import TabularPredictor
 
-        training = self.frame.loc[self.measured].assign(
-            **{self.target_name: self.labels[self.measured]}
-        )
+        training = self.frame.loc[self.measured].copy()
+        training[self.target_name] = self.labels[self.measured]
         if numeric_as_float:
             training = training.astype(
                 dict.fromkeys(training.select_dtypes("number"), float)
@@ -113,6 +128,12 @@ class PredictorExport:
         fit_args = (
             options.model_dump(by_alias=True, exclude_none=True) if options else {}
         )
+        categorical_columns = training.select_dtypes(include="category").columns
+        if stringify_categories and not categorical_columns.empty:
+            from active_learning.pkh.autogluon import PKHCategoricalFeatureGenerator
+
+            training = training.astype(dict.fromkeys(categorical_columns, "string"))
+            fit_args["feature_generator"] = PKHCategoricalFeatureGenerator()
         model.fit(train_data=training, **fit_args)
         return model
 
@@ -136,10 +157,9 @@ class PredictorExport:
         **metadata_fields: object,
     ) -> None:
         """Write full-space predictions and the operator's predictor metadata."""
-        table = self.frame.assign(
-            entityIdentifier=self.frame.index,
-            **{self.target_name: self.labels, "is_predicted": ~self.measured},
-        )
+        table = self.frame.assign(entityIdentifier=self.frame.index)
+        table[self.target_name] = self.labels
+        table["is_predicted"] = ~self.measured
         if (~self.measured).any():
             table.loc[~self.measured, self.target_name] = np.asarray(
                 model.predict(self.frame.loc[~self.measured])
@@ -161,6 +181,60 @@ class PredictorExport:
         )
 
 
+def _sampling_parameters(
+    parameters: ActiveLearningParameters,
+    sampler: type[ForestSampleSelector],
+) -> RandomWalkParameters:
+    """Configure Random Walk with the operator's sampler and original target name."""
+    # Import after plugin registration because Random Walk loads operator entry points.
+    from ado.modules.operators.randomwalk import (
+        CustomSamplerConfiguration,
+        RandomWalkParameters,
+        SamplerModuleConf,
+    )
+
+    return RandomWalkParameters(
+        batchSize=1,
+        numberEntities=parameters.numberEntities,
+        samplerConfig=CustomSamplerConfiguration(
+            module=SamplerModuleConf(
+                moduleName=sampler.__module__,
+                moduleClass=sampler.__name__,
+            ),
+            parameters=parameters,
+        ),
+    )
+
+
+def _output_after_sampling(
+    walk: OperationOutput,
+    discovery_space: DiscoverySpace,
+    parameters: ActiveLearningParameters,
+    target: ObservedProperty,
+    final_directory: Path,
+    sampler: type[ForestSampleSelector],
+) -> tuple[OperationOutput, PredictorExport | None]:
+    """Preserve the walk's status and prepare predictor export on success."""
+    result = OperationOutput(resources=[walk.operation], exitStatus=walk.exitStatus)
+    if (
+        not walk.exitStatus
+        or walk.exitStatus.exit_state != OperationExitStateEnum.SUCCESS
+    ):
+        return result, None
+    sampled_identifiers = discovery_space.sample_store.entity_identifiers_in_operations(
+        walk.operation.identifier
+    )
+    export = PredictorExport(
+        discovery_space,
+        target,
+        parameters,
+        final_directory,
+        sampled_identifiers,
+        sampler,
+    )
+    return result, export
+
+
 @contextlib.contextmanager
 def collect_measurements(
     discovery_space: DiscoverySpace,
@@ -174,14 +248,24 @@ def collect_measurements(
     Yields:
         The operation output and, on success, the measured pool for predictor export.
     """
-    # Import after plugin registration because Random Walk loads operator entry points.
     from ado.modules.operators.collections import explore
-    from ado.modules.operators.randomwalk import (
-        CustomSamplerConfiguration,
-        RandomWalkParameters,
-        SamplerModuleConf,
-    )
 
+    if parameters.finalPredictor == "autogluon":
+        label_count = parameters.numberEntities
+        if label_count < _MIN_AUTOGLUON_LABELS:
+            label_count += len(
+                measured_labels(
+                    discovery_space, target.identifier, sampler.target_label
+                )
+            )
+        max_labels = min(
+            label_count, getattr(discovery_space.entitySpace, "size", label_count)
+        )
+        if max_labels < _MIN_AUTOGLUON_LABELS:
+            raise ValueError(
+                f"AutoGluon requires at least {_MIN_AUTOGLUON_LABELS} target labels "
+                f"and can reach at most {max_labels} with this budget and space."
+            )
     random_walk = explore.operators["random_walk"].function
     if random_walk is None:
         raise RuntimeError("The random_walk operator is not available.")
@@ -189,45 +273,14 @@ def collect_measurements(
     final_directory = base_directory.with_name(f"{base_directory.name}_finalized")
     final_directory.mkdir(parents=True, exist_ok=False)
     try:
-        output = random_walk(
+        walk = random_walk(
             discovery_space,
             operation_info,
-            parameters=RandomWalkParameters(
-                batchSize=1,
-                numberEntities=parameters.numberEntities,
-                samplerConfig=CustomSamplerConfiguration(
-                    module=SamplerModuleConf(
-                        moduleName=sampler.__module__,
-                        moduleClass=sampler.__name__,
-                    ),
-                    parameters={
-                        **parameters.model_dump(),
-                        "targetOutput": target.identifier,
-                    },
-                ),
-            ),
+            parameters=_sampling_parameters(parameters, sampler),
         )
-        result = OperationOutput(
-            resources=[output.operation], exitStatus=output.exitStatus
+        result, export = _output_after_sampling(
+            walk, discovery_space, parameters, target, final_directory, sampler
         )
-        export = None
-        if (
-            output.exitStatus
-            and output.exitStatus.exit_state == OperationExitStateEnum.SUCCESS
-        ):
-            sampled_identifiers = (
-                discovery_space.sample_store.entity_identifiers_in_operations(
-                    output.operation.identifier
-                )
-            )
-            export = PredictorExport(
-                discovery_space,
-                target,
-                parameters,
-                final_directory,
-                sampled_identifiers,
-                sampler,
-            )
         yield result, export
         if export is not None:
             logger.info("Saved model and predictions to %s", final_directory)

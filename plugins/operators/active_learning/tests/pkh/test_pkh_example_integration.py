@@ -6,15 +6,13 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
-from typer.testing import CliRunner
+from typer.testing import CliRunner, Result
 
 from ado.cli.core.cli import app
 
 
-@pytest.mark.timeout(900)
-@pytest.mark.parametrize("operator_name", ["pkh", "flora"])
-def test_active_learning_ideal_gas_example(tmp_path: Path, operator_name: str) -> None:
-    """Each operator measures six gas configurations and predicts the other two."""
+def _run_example(tmp_path: Path, budget: int, operator_name: str = "pkh") -> Result:
+    """Run the chosen operator on the eight-point ideal-gas space."""
     runner = CliRunner()
     operation_file = Path(
         "plugins/operators/active_learning/examples/ideal_gas/operation_pkh.yaml"
@@ -25,6 +23,8 @@ def test_active_learning_ideal_gas_example(tmp_path: Path, operator_name: str) -
         template = runner.invoke(
             app,
             [
+                "--override-ado-app-dir",
+                str(tmp_path),
                 "template",
                 "operation",
                 "--operator-name",
@@ -35,9 +35,11 @@ def test_active_learning_ideal_gas_example(tmp_path: Path, operator_name: str) -
         )
         assert template.exit_code == 0, template.output
         target_override = ["--set", "operation.parameters.targetOutput=pressure"]
-    result = runner.invoke(
+    return runner.invoke(
         app,
         [
+            "--override-ado-app-dir",
+            str(tmp_path),
             "create",
             "operation",
             "-f",
@@ -45,12 +47,19 @@ def test_active_learning_ideal_gas_example(tmp_path: Path, operator_name: str) -
             "--with",
             "space=tests/resources/trim/space_minimal.yaml",
             "--set",
-            "operation.parameters.numberEntities=6",
+            f"operation.parameters.numberEntities={budget}",
             "--set",
             f"operation.parameters.outputDirectory={tmp_path / 'model'}",
             *target_override,
         ],
     )
+
+
+@pytest.mark.timeout(900)
+@pytest.mark.parametrize("operator_name", ["pkh", "flora"])
+def test_active_learning_ideal_gas_example(tmp_path: Path, operator_name: str) -> None:
+    """Each operator measures six of eight gas configurations and predicts the other two."""
+    result = _run_example(tmp_path, budget=6, operator_name=operator_name)
     assert result.exit_code == 0, result.output
 
     directory = tmp_path / "model_finalized"
@@ -63,3 +72,12 @@ def test_active_learning_ideal_gas_example(tmp_path: Path, operator_name: str) -
     assert predictions["is_predicted"].sum() == 2
     assert predictions["pressure"].notna().all()
     assert (directory / "model.pkl").is_file()
+
+
+@pytest.mark.timeout(900)
+def test_pkh_failed_run_cleans_reserved_directory(tmp_path: Path) -> None:
+    """PKH releases its output directory when the measurement run raises."""
+    result = _run_example(tmp_path, budget=100)
+    assert result.exit_code != 0, result.output
+    assert "Requested number of entities to sample (100)" in result.output
+    assert not (tmp_path / "model_finalized").exists()

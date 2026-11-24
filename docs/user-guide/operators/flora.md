@@ -475,7 +475,7 @@ ado show stats operation "$RANDOM_WALK_OPERATION_IDENTIFIER"
 | `Active learning requires exactly 1 experiment` | The discovery space has zero or multiple experiments. | Create a space containing one experiment. That experiment can return several outputs. |
 | `Target '...' requires finite scalar measurements` | A measurement of the target is `NaN`, infinite, or not a single number. | Inspect the measurement results for the related `random_walk` operation. |
 | `Missing finite target measurement for '...'` | A selected entity finished without a usable target value. | Inspect the measurement results for the related `random_walk` operation. |
-| `FLORA requires at least four target measurements for AutoGluon` | The budget and existing labels give fewer than four measured entities. | Raise `numberEntities`, or use `finalPredictor: random_forest`. |
+| `AutoGluon requires at least 4 target labels` | The budget and existing labels give fewer than four measured entities. | Raise `numberEntities`, or use `finalPredictor: random_forest`. |
 | `autoGluon parameters must not be provided for random_forest` | The configuration includes AutoGluon settings for the Random Forest backend. | Remove `autoGluon`, or select `finalPredictor: autogluon`. |
 | `Install 'ado-active-learning[autogluon]' to use finalPredictor='autogluon'` | The optional backend is unavailable. | Install the extra on Python 3.11–3.13 (see [Quick start](#quick-start)). |
 | The finalized output path already exists | FLORA reserves the path before collecting measurements. | Choose a distinct `outputDirectory`. Earlier files remain untouched. |

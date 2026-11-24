@@ -15,7 +15,6 @@ try:
     from yaml import CSafeLoader as SafeLoader
 except ImportError:  # pragma: nocover
     from yaml import SafeLoader  # type: ignore[assignment]
-from testcontainers.community.mysql import MySqlContainer
 from typer.testing import CliRunner
 
 from ado.cli.core.cli import app as ado
@@ -29,6 +28,7 @@ from ado.metastore.project import ProjectContext
 from ado.metastore.sqlstore import SQLStore
 from ado.modules.actuators.catalog import ExperimentCatalog
 from tests.conftest import requires_sqlite_3_38
+from tests.fixtures.shared_mysql_instance import MySqlConnectionDetails
 from tests.utilities.cli_rendering import (
     render_ado_resources_to_cli_output,
     render_dataframe_to_cli_output,
@@ -38,7 +38,7 @@ from tests.utilities.cli_rendering import (
 @requires_sqlite_3_38
 def test_space_exists(
     tmp_path: pathlib.Path,
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
@@ -61,7 +61,7 @@ def test_space_exists(
 @requires_sqlite_3_38
 def test_get_space_includes_requested_constitutive_properties(
     tmp_path: pathlib.Path,
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     sql_store: SQLStore,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
@@ -97,7 +97,7 @@ def test_get_space_includes_requested_constitutive_properties(
 @requires_sqlite_3_38
 def test_get_space_includes_optional_and_parameterized_properties(
     tmp_path: pathlib.Path,
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     sql_store: SQLStore,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
@@ -195,7 +195,7 @@ def test_get_vllm_performance_actuator_details() -> None:
 @requires_sqlite_3_38
 def test_field_filtering(
     tmp_path: pathlib.Path,
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     sql_store: SQLStore,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
@@ -531,7 +531,7 @@ def test_field_filtering(
 @requires_sqlite_3_38
 def test_get_space_with_use_latest(
     tmp_path: pathlib.Path,
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     sql_store: SQLStore,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
@@ -589,7 +589,7 @@ def test_get_space_with_use_latest(
 @requires_sqlite_3_38
 def test_get_operation_with_use_latest(
     tmp_path: pathlib.Path,
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     sql_store: SQLStore,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
@@ -649,7 +649,7 @@ def test_get_operation_with_use_latest(
 @requires_sqlite_3_38
 def test_get_with_use_latest_and_explicit_id(
     tmp_path: pathlib.Path,
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     sql_store: SQLStore,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
@@ -711,7 +711,7 @@ def test_get_with_use_latest_and_explicit_id(
 @requires_sqlite_3_38
 def test_get_with_use_latest_table_format(
     tmp_path: pathlib.Path,
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     sql_store: SQLStore,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
@@ -759,7 +759,7 @@ def test_get_with_use_latest_table_format(
 @requires_sqlite_3_38
 def test_get_with_use_latest_name_format(
     tmp_path: pathlib.Path,
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     sql_store: SQLStore,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[

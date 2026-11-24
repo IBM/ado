@@ -9,7 +9,6 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 
 import pytest
-from testcontainers.community.mysql import MySqlContainer
 from typer.testing import CliRunner
 
 from ado.cli.core.cli import app as ado
@@ -19,11 +18,12 @@ from ado.core.discoveryspace.space import DiscoverySpace
 from ado.metastore.project import ProjectContext
 from ado.metastore.sqlstore import SQLStore
 from tests.conftest import requires_sqlite_3_38
+from tests.fixtures.shared_mysql_instance import MySqlConnectionDetails
 
 
 def test_describe_nonexistent_space(
     tmp_path: pathlib.Path,
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
@@ -50,7 +50,7 @@ def test_describe_nonexistent_space(
 
 def test_describe_valid_space(
     tmp_path: pathlib.Path,
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
@@ -185,7 +185,7 @@ def test_describe_vllm_bench_deployment_experiment() -> None:
 @requires_sqlite_3_38
 def test_describe_datacontainer_with_use_latest(
     tmp_path: pathlib.Path,
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     sql_store: SQLStore,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[

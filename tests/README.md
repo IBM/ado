@@ -97,6 +97,18 @@ pytest -n auto --cov=ado --cov=plugins/operators --dist worksteal -rx -vv --log-
 
 <!-- markdownlint-enable line-length -->
 
+`--dist loadgroup` keeps tests marked with `xdist_group` on the same worker, as
+required by the Ray executor supervision tests.
+
+All MySQL-backed tests of a pytest run use a single MySQL container named
+`ado-pytest-mysql-<random suffix>`. The first xdist worker that needs it starts
+the container; the other workers reuse it. The container is removed when the
+test session ends. Each test creates its own database in the shared instance.
+
+Each container is labelled with the pid of the pytest process that owns it. A
+new run removes leftover containers whose owner process has exited and leaves
+the containers of concurrent runs untouched.
+
 To run other tests, we recommend checking the `commands` section of the
 `tox.ini` file
 

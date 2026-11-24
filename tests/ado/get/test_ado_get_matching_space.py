@@ -6,7 +6,6 @@ import pathlib
 from collections.abc import Callable
 
 import pandas as pd
-from testcontainers.community.mysql import MySqlContainer
 from typer.testing import CliRunner
 
 from ado.cli.core.cli import app as ado
@@ -23,13 +22,14 @@ from ado.schema.property_value import ConstitutivePropertyValue
 from ado.schema.reference import ExperimentReference
 from ado.utilities.output import pydantic_model_as_yaml
 from tests.conftest import requires_sqlite_3_38
+from tests.fixtures.shared_mysql_instance import MySqlConnectionDetails
 from tests.utilities.cli_rendering import render_dataframe_to_cli_output
 
 
 @requires_sqlite_3_38
 def test_get_space_matching_space_id(
     tmp_path: pathlib.Path,
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     create_resources: Callable[[list[ADOResource]], None],
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
@@ -163,7 +163,7 @@ def test_get_space_matching_space_id(
 @requires_sqlite_3_38
 def test_get_space_matching_space_file(
     tmp_path: pathlib.Path,
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     create_resources: Callable[[list[ADOResource]], None],
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
@@ -230,7 +230,7 @@ def test_get_space_matching_space_file(
 @requires_sqlite_3_38
 def test_get_space_matching_space_version_and_parameterization(
     tmp_path: pathlib.Path,
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     create_resources: Callable[[list[ADOResource]], None],
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[

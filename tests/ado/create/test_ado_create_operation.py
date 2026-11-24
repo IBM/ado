@@ -6,7 +6,6 @@ import sys
 from collections.abc import Callable
 
 import pytest
-from testcontainers.community.mysql import MySqlContainer
 from typer.testing import CliRunner
 
 from ado.cli.core.cli import app as ado
@@ -17,6 +16,7 @@ from ado.metastore.project import ProjectContext
 from ado.metastore.sqlstore import SQLStore
 from ado.utilities.output import pydantic_model_as_yaml
 from tests.conftest import requires_sqlite_3_38
+from tests.fixtures.shared_mysql_instance import MySqlConnectionDetails
 
 
 @pytest.fixture(
@@ -33,7 +33,7 @@ def operations_to_be_run(
 
 def test_create_operation_dry_run_success(
     tmp_path: pathlib.Path,
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
@@ -70,7 +70,7 @@ def test_create_operation_dry_run_success(
 
 def test_create_operation_dry_run_failure(
     tmp_path: pathlib.Path,
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
@@ -106,7 +106,7 @@ def test_create_operation_dry_run_failure(
 
 def test_create_operation_success(
     tmp_path: pathlib.Path,
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
@@ -135,7 +135,7 @@ def test_create_operation_success(
 
 def test_create_operation_success_set_spaces(
     tmp_path: pathlib.Path,
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
@@ -167,7 +167,7 @@ def test_create_operation_success_set_spaces(
 
 def test_create_operation_success_with_discovery_space(
     tmp_path: pathlib.Path,
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
@@ -204,7 +204,7 @@ def test_create_operation_success_with_discovery_space(
 
 def test_create_operation_dry_run_with_discovery_space(
     tmp_path: pathlib.Path,
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
@@ -244,7 +244,7 @@ def test_create_operation_dry_run_with_discovery_space(
 
 def test_create_operation_dry_run_with_actuator_configuration(
     tmp_path: pathlib.Path,
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
@@ -293,7 +293,7 @@ def test_create_operation_dry_run_with_actuator_configuration(
 def test_create_ml_multi_cloud_operation_success_lhc_sampler(
     tmp_path: pathlib.Path,
     ml_multi_cloud_sample_store_configuration_file: pathlib.Path,
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None

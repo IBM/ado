@@ -4,13 +4,13 @@
 import pathlib
 from collections.abc import Callable
 
-from testcontainers.community.mysql import MySqlContainer
 from typer.testing import CliRunner
 
 from ado.cli.core.cli import app as ado
 from ado.core.samplestore.config import SampleStoreConfiguration
 from ado.metastore.project import ProjectContext
 from ado.utilities.output import pydantic_model_as_yaml
+from tests.fixtures.shared_mysql_instance import MySqlConnectionDetails
 
 
 def test_create_sample_store_dry_run_success(
@@ -124,7 +124,7 @@ def test_create_sample_store_success_new_sample_store(
 
 def test_create_sample_store_failure_because_hardcoded_storage_location(
     tmp_path: pathlib.Path,
-    mysql_test_instance: MySqlContainer,
+    mysql_test_instance: MySqlConnectionDetails,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None

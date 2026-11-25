@@ -269,6 +269,7 @@ def _store_discovery_space(project_context: ProjectContext) -> tuple[SQLStore, s
         (False, False),
         (True, False),
         (False, True),
+        (True, True),
     ],
 )
 def test_orchestrate_ray_initialization(

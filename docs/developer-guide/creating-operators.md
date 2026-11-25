@@ -556,8 +556,7 @@ Operators can use other operators. For example your operator can create
 operations using other operators and consume the results. You access other
 operators via the relevant collection in
 `ado.modules.operators.collections`. For example to use the RandomWalk
-operator. Nesting an explore operator requires `requires_ray=True` on the
-outer operator so ado initializes Ray before that nested operation runs.
+operator:
 
 ```python
 from ado.modules.operators.collections import characterize_operation, explore
@@ -569,6 +568,9 @@ def my_characterization(...):
     random_walk_output = explore.random_walk(...Args...)
     ...
 ```
+
+Nesting an explore operator requires `requires_ray=True` on the outer operator
+so ado initializes Ray before that nested operation runs.
 
 > [!IMPORTANT]
 >

@@ -38,9 +38,20 @@ from ado.metastore.project import ProjectContext
 from ado.metastore.sqlstore import SQLStore
 from ado.modules.operators._cleanup import cleanup_callback_functions
 from ado.modules.operators.collections import (
+    OperatorCollection,
     characterize,
     characterize_operation,
+    compare,
+    compare_operation,
     explore,
+    export,
+    export_operation,
+    fuse,
+    fuse_operation,
+    modify,
+    modify_operation,
+    summarize,
+    summarize_operation,
 )
 from ado.schema.experiment import Experiment
 from ado.schema.measurementspace import MeasurementSpaceConfiguration
@@ -111,16 +122,58 @@ def test_trim_operator_requires_ray() -> None:
     assert characterize.operators["trim"].requiresRay is True
 
 
-def test_characterize_decorator_requires_ray_opt_in() -> None:
-    """requires_ray=True is stored on OperatorMetadata."""
-    with _temporary_characterize(requires_ray=True) as name:
-        assert characterize.operators[name].requiresRay is True
+def _two_spaces(
+    discoverySpace: DiscoverySpace,
+    otherDiscoverySpace: DiscoverySpace,
+    operationInfo: FunctionOperationInfo | None = None,
+    *,
+    parameters: GenericOperatorParameters,
+) -> OperationOutput:
+    """Operate on two discovery spaces."""
+    return OperationOutput()
 
 
-def test_characterize_decorator_requires_ray_default_false() -> None:
-    """requires_ray defaults to False for non-explore operators."""
-    with _temporary_characterize(requires_ray=False) as name:
-        assert characterize.operators[name].requiresRay is False
+def _space_list(
+    discoverySpaces: list[DiscoverySpace],
+    operationInfo: FunctionOperationInfo | None = None,
+    *,
+    parameters: GenericOperatorParameters,
+) -> OperationOutput:
+    """Operate on a list of discovery spaces."""
+    return OperationOutput()
+
+
+@pytest.mark.parametrize("requires_ray", [True, False])
+@pytest.mark.parametrize(
+    ("decorator", "collection", "operator_function"),
+    [
+        (characterize_operation, characterize, _one_space),
+        (modify_operation, modify, _one_space),
+        (export_operation, export, _one_space),
+        (compare_operation, compare, _two_spaces),
+        (fuse_operation, fuse, _two_spaces),
+        (summarize_operation, summarize, _space_list),
+    ],
+)
+def test_general_decorators_store_requires_ray(
+    decorator: Callable[..., Callable[..., OperationOutput]],
+    collection: OperatorCollection,
+    operator_function: Callable[..., OperationOutput],
+    requires_ray: bool,
+) -> None:
+    """Each non-explore decorator stores requires_ray on OperatorMetadata."""
+    name = f"test-ray-op-{uuid.uuid4().hex[:8]}"
+    decorator(
+        name=name,
+        version="1.0.0",
+        configuration_model=GenericOperatorParameters,
+        example_configuration=GenericOperatorParameters(),
+        requires_ray=requires_ray,
+    )(operator_function)
+    try:
+        assert collection.operators[name].requiresRay is requires_ray
+    finally:
+        collection.operators.pop(name, None)
 
 
 def test_requires_ray_follows_operator_metadata() -> None:
@@ -295,7 +348,8 @@ def test_orchestrate_ray_initialization(
 
     assert isinstance(output, OperationOutput)
     assert observed["sigterm_handler_installed"] is True
-    assert observed["orchestrate_cleanup_registered"] is True
+    assert observed["orchestrate_cleanup_registered"] is (requires_ray or in_ray_job)
+    assert "orchestrate" not in cleanup_callback_functions
     operation_identifiers = metastore.getResourceIdentifiersOfKind("operation")[
         "IDENTIFIER"
     ]

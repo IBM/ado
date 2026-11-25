@@ -125,7 +125,9 @@ def orchestrate(
         OperationOutput containing the results and status of the operation.
 
     Raises:
-        ValueError: If a measurement space is inconsistent.
+        ValueError: If a measurement space is inconsistent or the operator is
+            not registered.
+        TypeError: If the operation module is of an unexpected type.
         OperationException: If there is an error during the operation.
         pydantic.ValidationError: If the operation parameters are not valid.
         ray.exceptions.ActorDiedError: If there was an error initializing actors.
@@ -142,7 +144,6 @@ def orchestrate(
 
     requires_ray = operation_resource_configuration.requires_ray()
     ray_initialized = False
-    cleanup_registered = False
     output: OperationOutput
     try:
         # A Ray Jobs API driver still connects so job metadata and ray job stop work.
@@ -165,14 +166,8 @@ def orchestrate(
             signalnum=signal.SIGTERM,
             handler=graceful_operation_shutdown_signal_handler(),
         )
-
-        def _skip_ray_shutdown() -> None:
-            """No Ray cluster was started for this operation."""
-
-        cleanup_callback_functions["orchestrate"] = (
-            graceful_orchestrate_shutdown if ray_initialized else _skip_ray_shutdown
-        )
-        cleanup_registered = True
+        if ray_initialized:
+            cleanup_callback_functions["orchestrate"] = graceful_orchestrate_shutdown
 
         #
         # GET INPUTS
@@ -234,7 +229,6 @@ def orchestrate(
         if not ado.modules.operators._cleanup.shutdown_signal_received:
             if ray_initialized:
                 graceful_orchestrate_shutdown()
-            if cleanup_registered:
-                cleanup_callback_functions.pop("orchestrate")
+            cleanup_callback_functions.pop("orchestrate", None)
 
     return output

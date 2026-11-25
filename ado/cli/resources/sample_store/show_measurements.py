@@ -18,6 +18,7 @@ from ado.cli.utils.output.prints import (
     magenta,
 )
 from ado.cli.utils.resources.experiments import parse_cli_from_experiment
+from ado.cli.utils.resources.properties import add_properties_to_dataframe
 from ado.core.samplestore.base import SampleStore
 from ado.metastore.base import ResourceDoesNotExistError
 
@@ -108,6 +109,21 @@ def show_sample_store_measurements(
         if properties_set.issubset(df_column_set):
             parameters.properties.insert(0, "identifier")
             output_df = output_df[parameters.properties]
+
+    if parameters.include_properties is not None:
+        constitutive_property_identifiers = list(
+            {
+                property_value.property.identifier
+                for entity in measured_entities
+                for property_value in entity.constitutive_property_values
+            }
+        )
+        output_df = add_properties_to_dataframe(
+            df=output_df,
+            include_properties=parameters.include_properties,
+            experiments=references,
+            constitutive_property_identifiers=constitutive_property_identifiers,
+        )
 
     df_to_output(
         df=output_df,

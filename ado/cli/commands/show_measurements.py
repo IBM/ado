@@ -166,6 +166,19 @@ def show_measurements_for_resources(
             show_default=False,
         ),
     ] = None,
+    include_properties: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--include-properties",
+            "-p",
+            help=(
+                "Include experiment properties. Specify constitutive, parameterized, "
+                "optional, all, or one or more property identifiers. "
+                "Cannot be combined with --property."
+            ),
+            show_default=False,
+        ),
+    ] = None,
 ) -> None:
     """
     Show measurements related to a space, an operation, or a samplestore.
@@ -198,6 +211,13 @@ def show_measurements_for_resources(
             resource_type=resource_type.value,
             project_context=ado_configuration.project_context,
         )
+
+    if properties and include_properties:
+        console_print(
+            f"{ERROR}--property and --include-properties cannot be used together",
+            stderr=True,
+        )
+        raise typer.Exit(1)
 
     if not (resource_id or resource_configuration) or (
         resource_id and resource_configuration
@@ -233,6 +253,7 @@ def show_measurements_for_resources(
         ado_configuration=ado_configuration,
         aggregation_method=aggregation_method,
         from_experiment=from_experiment,
+        include_properties=include_properties,
         measurements_output_format=output_format,
         measurements_property_format=property_format,
         measurements_type=entity_type,

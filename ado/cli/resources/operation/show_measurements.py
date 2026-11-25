@@ -13,6 +13,7 @@ from ado.cli.utils.output.prints import (
     magenta,
 )
 from ado.cli.utils.resources.experiments import parse_cli_from_experiment
+from ado.cli.utils.resources.properties import add_properties_to_dataframe
 from ado.core.discoveryspace.space import DiscoverySpace
 from ado.metastore.base import (
     NoRelatedResourcesError,
@@ -76,6 +77,18 @@ def show_operation_measurements(
                 stderr=True,
             )
             return
+
+    if parameters.include_properties is not None and not output_df.empty:
+        constitutive_property_identifiers = [
+            constitutive_property.identifier
+            for constitutive_property in space.entitySpace.constitutiveProperties
+        ]
+        output_df = add_properties_to_dataframe(
+            df=output_df,
+            include_properties=parameters.include_properties,
+            experiments=space.measurementSpace.experiments,
+            constitutive_property_identifiers=constitutive_property_identifiers,
+        )
 
     df_to_output(
         df=output_df,

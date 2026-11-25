@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 import ray
 from pydantic import BaseModel
+from scipy.sparse import csr_matrix
 from sklearn.ensemble import RandomForestRegressor
 
 from active_learning.forest_sampling import ForestSamplingState
@@ -37,7 +38,7 @@ class PKHState(ForestSamplingState):
 
     def __init__(
         self,
-        features: np.ndarray,
+        features: np.ndarray | csr_matrix,
         *,
         initial_measured_indices: list[int],
         initial_labels: list[float],
@@ -84,9 +85,7 @@ class PKHState(ForestSamplingState):
         self._pool_leaf_mass /= self.n_candidates
         self._measured_at_last_refit = len(self.measured_indices)
         logger.info(
-            "PKH forest refit: measured=%d mmd2=%.6f",
-            len(self.measured_indices),
-            self.mmd_squared(),
+            "PKH forest refit with %d measurements", self._measured_at_last_refit
         )
 
     def _leaf_discrepancy(self) -> np.ndarray | None:
@@ -202,10 +201,8 @@ class PKHSampleSelector(BaseSampler):
         discovery_space: DiscoverySpace = (
             await remoteDiscoverySpace.discoverySpace.remote()
         )
-        target_id = validate_target_output(
-            self.params.targetOutput, discovery_space
-        ).identifier
-        existing_labels = measured_labels(discovery_space, target_id)
+        target = validate_target_output(self.params.targetOutput, discovery_space)
+        existing_labels = measured_labels(discovery_space, target)
         entities = candidate_entities(discovery_space)
         initial_indices = [
             idx
@@ -226,6 +223,6 @@ class PKHSampleSelector(BaseSampler):
         )
 
         for batch in state.sample_with_feedback(
-            entities, discovery_space, target_id, target_label
+            entities, discovery_space, target, target_label
         ):
             yield batch

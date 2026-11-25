@@ -20,7 +20,9 @@ Use a current `ado` checkout. Install the core and plugin from its root:
 pip install -e . -e plugins/operators/active_learning
 ```
 
-For the optional AutoGluon predictor on Python 3.11–3.13, install the extra:
+On Python 3.11–3.13, the base install includes AutoGluon for both
+`random_forest` and `autogluon`. To include CatBoost, LightGBM, and XGBoost
+in AutoGluon model selection, install the extra:
 
 ```bash
 pip install -e "plugins/operators/active_learning[autogluon]"

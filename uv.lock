@@ -62,6 +62,8 @@ dependencies = [
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.13'" },
     { name = "pandas" },
     { name = "scikit-learn" },
+    { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "scipy", version = "1.18.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
 ]
 
 [package.optional-dependencies]
@@ -78,6 +80,7 @@ requires-dist = [
     { name = "numpy" },
     { name = "pandas", specifier = ">=2.2.0" },
     { name = "scikit-learn", specifier = ">=1.6" },
+    { name = "scipy" },
 ]
 provides-extras = ["autogluon"]
 

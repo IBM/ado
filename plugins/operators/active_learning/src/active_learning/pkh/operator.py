@@ -54,7 +54,7 @@ def _complete_dataset(
 ) -> tuple[DataContainerResource, float | None]:
     """Combine finite observations with predictions for the remaining candidates."""
     # Refresh labels before enumerating the pool to retain stored entity identifiers.
-    labels = measured_labels(discovery_space, target.identifier)
+    labels = measured_labels(discovery_space, target)
     if missing := sampled_identifiers.difference(labels):
         raise ValueError(
             f"Missing finite target measurements for '{target.identifier}': "
@@ -157,7 +157,7 @@ def pkh(
     target = validate_target_output(parameters.targetOutput, discoverySpace)
     pool_size = validate_candidate_space(discoverySpace.entitySpace)
     if parameters.numberEntities < pool_size:
-        prior = measured_labels(discoverySpace, target.identifier)
+        prior = measured_labels(discoverySpace, target)
         attainable = len(prior) + parameters.numberEntities
         if attainable < pool_size:
             _validate_prediction(parameters, attainable, before_sampling=True)
@@ -166,6 +166,7 @@ def pkh(
         raise RuntimeError("The random_walk operator is not available.")
     sampling = RandomWalkParameters(
         batchSize=1,
+        singleMeasurement=False,
         numberEntities=parameters.numberEntities,
         samplerConfig=CustomSamplerConfiguration(
             module=SamplerModuleConf(

@@ -9,7 +9,7 @@ You will check one prediction against the ideal gas law, $P = nRT/V$.
 
 ## Prerequisites
 
-Use Python 3.11–3.14 and a current `ado` source checkout.
+Use Python 3.11–3.13 and a current `ado` source checkout.
 Activate your Python environment. Run the commands from the repository root.
 See [Getting Started](../getting-started.md#installing) for setup.
 
@@ -95,12 +95,6 @@ These four settings control the run:
 | `pilotSize` | `5` | Labels needed before herding starts |
 | `epochLength` | `5` | New measurements between forest refits |
 
-!!! warning "Rerunning this example"
-
-    PKH creates a new output directory before it collects measurements. For a
-    second run, set `outputDirectory` to a new name, such as `pkh_models_run2`.
-    Use `pkh_models_run2_finalized/` in the commands below for that run.
-
 Start the operation:
 
 ```bash
@@ -133,7 +127,7 @@ Success! Created operation with identifier operation-pkh@0.1.0-423031d3 and it f
 4. **Refit and repeat:** After every five new measurements, PKH refits the
    forest. Selection continues until it measures 20 entities or exhausts the
    pool.
-5. **Save:** PKH fits the final model and predicts pressure for the other
+5. **Predict:** PKH fits the final model and predicts pressure for the other
    1,195 entities.
 
 PKH needs a finite pressure measurement from each selected entity before it
@@ -147,15 +141,10 @@ and the equations.
 Existing target measurements count toward `pilotSize`. The budget counts new
 measurements. This tutorial starts with an empty store, so PKH collects all 20.
 
-!!! tip "Train the final model with AutoGluon"
+!!! tip "Choose the final predictor"
 
-    This tutorial uses the default Random Forest. For AutoGluon on
-    Python 3.11–3.13, install the extra with
-    `pip install -e "plugins/operators/active_learning[autogluon]"`.
-    Set `finalPredictor: autogluon` in the configuration. PKH saves the model
-    in `pkh_models_finalized/autogluon/`. The
-    [AutoGluon example](../operators/pkh.md#__tabbed_1_2) shows how to reload
-    it and predict pressure.
+    With the default `finalPredictor: random_forest`, AutoGluon fits a Random
+    Forest. Set `finalPredictor: autogluon` to let AutoGluon compare models.
 
 ## Step 3: Inspect the Results
 
@@ -180,76 +169,43 @@ INFO:   Using space space-ab6c24-a57faa.
 
 These are experiment results that `ado` stores in the sample store.
 
-### Find the output files
-
-PKH writes these files to `pkh_models_finalized/`, relative to the directory
-where you ran the operation:
-
-| File | Contents |
-| :--- | :--- |
-| `model.pkl` | Fitted preprocessing pipeline and Random Forest |
-| `combined_predictions.csv` | Measured and predicted pressure for all 1,215 entities |
-| `metadata.json` | Backend, feature names, measured count, and final MMD² |
-
 ### Read the predictions
 
-```python
-import pandas as pd
+PKH saves the `predictions` table in a `DataContainer` linked to the operation.
+Find it using the PKH operation identifier printed in Step 2.
 
-table = pd.read_csv("pkh_models_finalized/combined_predictions.csv")
-print(f"Total entities:     {len(table)}")
-print(f"Measured entities:  {(~table['is_predicted']).sum()}")
-print(f"Predicted entities: {table['is_predicted'].sum()}")
-columns = ["temperature", "volume", "mol", "pressure"]
-print(table.loc[table["is_predicted"], columns].head(3))
+```bash
+OPERATION_IDENTIFIER="<your PKH operation identifier>"
+ado show related operation "$OPERATION_IDENTIFIER" --max-hops 1
 ```
 
-```text
-Total entities:     1215
-Measured entities:  20
-Predicted entities: 1195
-   temperature  volume  mol    pressure
-0          270       1  0.1  865.325770
-1          270       1  0.2  865.250016
-2          270       1  0.3  888.143460
+Copy the `datacontainer-…` identifier from the output and export the resource
+to JSON for the calculation below.
+
+```bash
+ado get datacontainer "<datacontainer-id>" -o json > pkh-results.json
 ```
 
-The `is_predicted` column is `False` for measured values and `True` for model
-estimates. The default `seed` makes the run repeatable on the same package
-versions.
+### Compare a prediction with the ideal gas law
 
-### Predict a new configuration
-
-!!! warning
-
-    Load `model.pkl` only if you trust its source.
-
-Load the model. Supply the same property names it used for training.
-This configuration comes from the 1,195 rows where `is_predicted` is `True`:
+The table contains 20 measured pressures and 1,195 predictions. Select a row
+where `is_predicted` is true and calculate $P = nRT/V$ for that gas condition.
 
 ```python
-import pickle
+from pathlib import Path
 
-import pandas as pd
+from ado.core.datacontainer.resource import DataContainerResource
 
-with open("pkh_models_finalized/model.pkl", "rb") as model_file:
-    model = pickle.load(model_file)
+resource = DataContainerResource.model_validate_json(
+    Path("pkh-results.json").read_text()
+)
+table = resource.config.tabularData["predictions"].dataframe()
+row = table.loc[table["is_predicted"]].iloc[0]
 
-configuration = pd.DataFrame([{"temperature": 284.0, "volume": 4.0, "mol": 0.6}])
-predicted_pressure = float(model.predict(configuration)[0])
-ideal_pressure = 0.6 * 8.314462618 * 284.0 / 4.0
-print(f"Model estimate: {predicted_pressure:.1f} Pa")
+ideal_pressure = row["mol"] * 8.314462618 * row["temperature"] / row["volume"]
+print(f"Model estimate: {row['pressure']:.1f} Pa")
 print(f"Ideal gas law:  {ideal_pressure:.1f} Pa")
 ```
-
-```text
-Model estimate: 315.9 Pa
-Ideal gas law:  354.2 Pa
-```
-
-In this run, the model estimates a pressure about 11% below the ideal gas
-value. The model estimate and MMD² can vary slightly across package versions
-and platforms.
 
 ### Check the sampling diagnostic
 
@@ -257,29 +213,11 @@ PKH also reports **MMD²**. It measures how closely the measured entities match
 the whole space in the forest's leaf representation. A lower value means a
 closer match. Use the ideal-gas comparison above to check prediction accuracy.
 
-Read the final value from `metadata.json`:
+Read `metadata.pkhMmdSquared` on the PKH operation.
 
 ```bash
-grep mmdSquared pkh_models_finalized/metadata.json
-```
-
-```text
-  "mmdSquared": 0.007886089518874154
-```
-
-PKH also stores this value as `metadata.pkhMmdSquared` on the PKH operation.
-Replace the example identifier below with the one printed by
-`ado create operation`:
-
-```bash
-OPERATION_IDENTIFIER="operation-pkh@0.1.0-423031d3"
 ado get operation "$OPERATION_IDENTIFIER" -o yaml
 ```
-
-!!! tip
-
-    Use the printed PKH operation ID to check MMD². The related
-    `random_walk` operation can be the most recent operation.
 
 Set `LOGLEVEL=INFO` when you start the operation to log MMD² at each refit.
 The value can increase after a refit, because each refit changes the forest.

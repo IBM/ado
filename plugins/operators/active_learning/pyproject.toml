@@ -10,6 +10,7 @@ dependencies = [
   "numpy",
   "pandas>=2.2.0",
   "scikit-learn>=1.6",
+  "scipy",
 ]
 dynamic = ["version"]
 

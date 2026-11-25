@@ -47,7 +47,7 @@ def predict_unmeasured(
             len(variants) if isinstance(variants, list) else 1
             for variants in hyperparameters.values()
         )
-    weighted = parameters.finalPredictor != "random_forest" and expected_models != 1
+    weighted = parameters.finalPredictor == "autogluon" and expected_models != 1
     cpus = effective_n_jobs(parameters.nJobs)
     with TemporaryDirectory(prefix="ado-pkh-") as directory:
         predictor = TabularPredictor(

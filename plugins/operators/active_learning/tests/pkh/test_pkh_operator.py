@@ -61,31 +61,25 @@ def test_rejects_unusable_target_names(
 
 
 def test_failed_sampling_preserves_status_and_skips_publication(
-    categorical_space: DiscoverySpace,
-    make_pkh_space: Callable[[list[ConstitutiveProperty]], DiscoverySpace],
+    empty_pkh_space: DiscoverySpace,
 ) -> None:
     """A failed walk retains its status and is the only resource PKH returns."""
-    kind, count = categorical_space.entitySpace.constitutiveProperties
-    space = make_pkh_space(
-        [
-            kind.model_copy(update={"propertyDomain": PropertyDomain(values=["b"])}),
-            count,
-        ]
-    )
-    assert len(measured_labels(space, "selected-self")) == space.entitySpace.size
     walk = OperationOutput(
         operation=OperationResource(
             operationType="explore",
             operatorIdentifier="random_walk",
-            config={"inputs": {"discoverySpace": space.reference}, "operation": {}},
+            config={
+                "inputs": {"discoverySpace": empty_pkh_space.reference},
+                "operation": {},
+            },
         ),
         exitStatus=OperationResourceStatus(
             event="finished", exit_state="fail", message="Measurement run failed"
         ),
     )
     parameters = PKHParameters(targetOutput="self", numberEntities=1)
-    target = validate_target_output(parameters.targetOutput, space)
-    result = operator._output_after_sampling(walk, space, parameters, target)
+    target = validate_target_output(parameters.targetOutput, empty_pkh_space)
+    result = operator._output_after_sampling(walk, empty_pkh_space, parameters, target)
     assert result.exitStatus == walk.exitStatus
     assert result.resources == [walk.operation]
 
@@ -96,7 +90,7 @@ def test_completed_dataset_preserves_mixed_categories(
 ) -> None:
     """ADO can round-trip each candidate, its provenance, and its finite target."""
     target = validate_target_output("self", categorical_space)
-    original_labels = measured_labels(categorical_space, target.identifier)
+    original_labels = measured_labels(categorical_space, target)
     sampled = categorical_space.entitySpace.entity_for_point(
         {"kind": "b", "count": 2**53 + 1}
     )
@@ -130,7 +124,7 @@ def test_completed_dataset_preserves_mixed_categories(
     assert unmeasured["count"].tolist() == [str(value) for value in raw_counts]
     assert np.isfinite(unmeasured["self"]).all()
     assert np.isfinite(mmd_squared)
-    assert measured_labels(categorical_space, target.identifier) == original_labels
+    assert measured_labels(categorical_space, target) == original_labels
     assert not list(tmp_path.glob("previous_model*"))
 
 
@@ -148,7 +142,7 @@ def test_fully_measured_small_space_publishes_existing_targets(
     expected_labels: list[int],
     expected_mmd: float | None,
 ) -> None:
-    """A fully labelled grid needs no predictor, even for an ensemble request."""
+    """PKH publishes all measured targets even on grids too small to fit AutoGluon."""
     kind, count = categorical_space.entitySpace.constitutiveProperties
     space = make_pkh_space(
         [
@@ -157,7 +151,7 @@ def test_fully_measured_small_space_publishes_existing_targets(
         ]
     )
     parameters = PKHParameters(
-        targetOutput="self", numberEntities=1, finalPredictor="weighted_ensemble"
+        targetOutput="self", numberEntities=1, finalPredictor="autogluon"
     )
     target = validate_target_output(parameters.targetOutput, space)
     resource, mmd_squared = operator._complete_dataset(space, parameters, target, set())
@@ -185,7 +179,7 @@ def test_incomplete_measurements_cannot_publish_a_dataset(
         operator._complete_dataset(categorical_space, parameters, target, set())
 
 
-@pytest.mark.parametrize("predictor", ["random_forest", "weighted_ensemble"])
+@pytest.mark.parametrize("predictor", ["random_forest", "autogluon"])
 def test_checks_attainable_and_collected_label_counts(
     categorical_space: DiscoverySpace,
     predictor: str,

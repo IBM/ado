@@ -5,9 +5,11 @@
 
 import contextlib
 import math
+from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
+from scipy.sparse import csr_matrix
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import OneHotEncoder
 
@@ -19,6 +21,9 @@ from ado.core.discoveryspace.space import DiscoverySpace, Entity
 from ado.schema.domain import VariableTypeEnum
 from ado.schema.entityspace import EntitySpaceRepresentation
 from ado.schema.observed_property import ObservedProperty
+
+if TYPE_CHECKING:
+    from ado.schema.property_value import ConstitutivePropertyValue
 
 
 def validate_candidate_space(entity_space: EntitySpaceRepresentation | None) -> int:
@@ -43,10 +48,29 @@ def candidate_entities(discovery_space: DiscoverySpace) -> list[Entity]:
     in memory.
     """
     generator = ExplicitEntitySpaceGridSampleGenerator(mode=WalkModeEnum.SEQUENTIAL)
-    entities = [
+    candidates = [
         entity
-        for batch in generator.entityIterator(discovery_space, batchsize=1)
+        for batch in generator.entitySpaceIterator(discovery_space.entitySpace)
         for entity in batch
+    ]
+    stored_by_point: dict[frozenset[ConstitutivePropertyValue], Entity | None] = {
+        frozenset(candidate.constitutive_property_values): None
+        for candidate in candidates
+    }
+    for stored in discovery_space.sample_store.get_entities(require_measurements=False):
+        point = frozenset(stored.constitutive_property_values)
+        if point not in stored_by_point:
+            continue
+        if (previous := stored_by_point[point]) is not None:
+            raise ValueError(
+                "Multiple stored entities match one PKH grid point: "
+                f"'{previous.identifier}' and '{stored.identifier}'."
+            )
+        stored_by_point[point] = stored
+
+    entities = [
+        stored_by_point[frozenset(candidate.constitutive_property_values)] or candidate
+        for candidate in candidates
     ]
     if len({entity.identifier for entity in entities}) != len(entities):
         raise ValueError(
@@ -107,9 +131,11 @@ def validate_target_output(
     return matches[0]
 
 
-def target_label(entity: Entity, target_name: str) -> float | None:
+def target_label(entity: Entity, target: ObservedProperty) -> float | None:
     """Return the first finite scalar measurement of the exact observed property."""
-    for value in entity.valuesForObservedPropertyIdentifier(target_name):
+    for value in entity.observedPropertyValues:
+        if value.property != target:
+            continue
         with contextlib.suppress(ValueError, TypeError, OverflowError):
             if np.isfinite(label := float(value.value)):
                 return label
@@ -117,14 +143,14 @@ def target_label(entity: Entity, target_name: str) -> float | None:
 
 
 def measured_labels(
-    discovery_space: DiscoverySpace, target_name: str
+    discovery_space: DiscoverySpace, target: ObservedProperty
 ) -> dict[str, float]:
     """Refresh and return finite labels of the observed property, by entity identifier."""
     discovery_space.sample_store.get_entities(require_measurements=True, refresh=True)
     return {
         entity.identifier: label
         for entity in discovery_space.matchingEntities(require_measurements=True)
-        if (label := target_label(entity, target_name)) is not None
+        if (label := target_label(entity, target)) is not None
     }
 
 
@@ -152,11 +178,15 @@ def feature_frame(
     return pd.DataFrame(columns)
 
 
-def encode_feature_matrix(frame: pd.DataFrame) -> np.ndarray:
-    """One-hot encode categorical features and retain the numeric features."""
+def encode_feature_matrix(frame: pd.DataFrame) -> np.ndarray | csr_matrix:
+    """One-hot encode features for a forest, using sparse storage when possible."""
     categorical_columns = frame.select_dtypes(include="category").columns.tolist()
     encoder = ColumnTransformer(
-        [("categorical", OneHotEncoder(sparse_output=False), categorical_columns)],
+        [("categorical", OneHotEncoder(), categorical_columns)],
         remainder="passthrough",
     )
-    return np.ascontiguousarray(encoder.fit_transform(frame), dtype=float)
+    features = encoder.fit_transform(frame).astype(float, copy=False)
+    # Scikit-learn's forest supports missing numeric values only in dense input.
+    if isinstance(features, csr_matrix) and np.isnan(features.data).any():
+        return features.toarray()
+    return features

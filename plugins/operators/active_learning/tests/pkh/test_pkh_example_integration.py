@@ -9,10 +9,17 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
+from active_learning.pkh.data import candidate_entities
+from active_learning.pkh.operator import pkh
+from active_learning.pkh.parameters import PKHParameters
 from typer.testing import CliRunner, Result
 
 from ado.cli.core.cli import app
+from ado.cli.core.config import AdoConfiguration
 from ado.core.datacontainer.resource import DataContainerResource
+from ado.core.discoveryspace.space import DiscoverySpace
+from ado.schema.observed_property import ObservedPropertyValue
+from ado.schema.result import ValidMeasurementResult
 
 
 def _run_example(tmp_path: Path, budget: int) -> Result:
@@ -114,3 +121,57 @@ def test_pkh_failed_run_has_no_dataset(tmp_path: Path) -> None:
     assert containers.exit_code == 0, containers.output
     assert "datacontainer-" not in containers.stdout
     assert not (tmp_path / "pkh_models_finalized").exists()
+
+
+@pytest.mark.timeout(300)
+def test_partial_prior_is_measured_by_the_requested_actuator(tmp_path: Path) -> None:
+    """Only the selected actuator's plateau measurement can complete the dataset."""
+    result = CliRunner().invoke(
+        app,
+        [
+            "--override-ado-app-dir",
+            str(tmp_path),
+            "create",
+            "space",
+            "-f",
+            "plugins/actuators/example_actuator/yamls/discoveryspace.yaml",
+            "--new-sample-store",
+            "--set",
+            "entitySpace[1].propertyDomain.values=[0.1]",
+            "--set",
+            "entitySpace[2].propertyDomain.values=[0.1]",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    [space_id] = re.findall(r"Created space with identifier: (\S+)", result.output)
+    space = DiscoverySpace.from_stored_configuration(
+        project_context=AdoConfiguration.load(
+            _override_config_dir=tmp_path
+        ).project_context,
+        space_identifier=space_id,
+    )
+    [entity] = candidate_entities(space)
+    sibling, target = space.measurementSpace.observedProperties
+    other_lab = target.experimentReference.model_copy(
+        update={"actuatorIdentifier": "other_lab"}
+    )
+    foreign_target = target.model_copy(update={"experimentReference": other_lab})
+    space.sample_store.addEntities([entity])
+    space.sample_store.add_measurement_results(
+        [
+            ValidMeasurementResult(
+                entityIdentifier=entity.identifier,
+                measurements=[ObservedPropertyValue(property=prop, value=value)],
+            )
+            for prop, value in [(sibling, [0.25]), (foreign_target, -1)]
+        ],
+        skip_relationship_to_request=True,
+    )
+
+    parameters = PKHParameters(
+        targetOutput="adsorption_plateau_value", numberEntities=1
+    )
+    _, dataset = pkh(space, parameters=parameters).resources
+    table = dataset.config.tabularData["predictions"].dataframe()
+    assert not table.is_predicted.item()
+    assert 0 <= table.adsorption_plateau_value.item() < 1

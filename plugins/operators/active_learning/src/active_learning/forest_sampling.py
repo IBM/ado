@@ -13,9 +13,11 @@ import numpy as np
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterator
 
+    from scipy.sparse import csr_matrix
     from sklearn.ensemble import RandomForestRegressor
 
     from ado.core.discoveryspace.space import DiscoverySpace, Entity
+    from ado.schema.observed_property import ObservedProperty
 
 
 class ForestSamplingState(ABC):
@@ -23,7 +25,7 @@ class ForestSamplingState(ABC):
 
     def __init__(
         self,
-        features: np.ndarray,
+        features: np.ndarray | csr_matrix,
         initial_measured_indices: list[int],
         initial_labels: list[float],
         *,
@@ -32,7 +34,7 @@ class ForestSamplingState(ABC):
     ) -> None:
         """Draw the rest of the random pilot after accounting for prior measurements."""
         self.features = features
-        self.n_candidates = len(features)
+        self.n_candidates = features.shape[0]
         self.measured_indices = list(initial_measured_indices)
         self.measured_labels = list(initial_labels)
         self.measured_set = set(initial_measured_indices)
@@ -95,8 +97,8 @@ class ForestSamplingState(ABC):
         self,
         entities: list[Entity],
         discovery_space: DiscoverySpace,
-        target_id: str,
-        read_label: Callable[[Entity, str], float | None],
+        target: ObservedProperty,
+        read_label: Callable[[Entity, ObservedProperty], float | None],
     ) -> Iterator[list[Entity]]:
         """Yield one entity and record its target measurement before selecting the next."""
         while (index := self.select_next()) is not None:
@@ -106,12 +108,10 @@ class ForestSamplingState(ABC):
             stored_entities = discovery_space.sample_store.get_entities(
                 identifiers=entity.identifier, require_measurements=True, refresh=True
             )
-            label = (
-                read_label(stored_entities[0], target_id) if stored_entities else None
-            )
+            label = read_label(stored_entities[0], target) if stored_entities else None
             if label is None:
                 raise ValueError(
-                    f"Missing finite target measurement for '{target_id}' "
+                    f"Missing finite target measurement for '{target}' "
                     f"on entity {entity.identifier}"
                 )
             self.record_measurement(index, label)

@@ -418,10 +418,11 @@ def test_constitutive_property_value_equal_values_have_equal_hash(
     assert hash(first) == hash(second)
 
     first_list = ConstitutivePropertyValue(
-        value=[1, [2, 3]], property=constitutive_property_descriptor
+        value=[1, {"left": [2], "right": 3}], property=constitutive_property_descriptor
     )
     second_list = ConstitutivePropertyValue(
-        value=[1.0, [2, 3.0]], property=constitutive_property_descriptor
+        value=[1.0, {"right": 3.0, "left": [2]}],
+        property=constitutive_property_descriptor,
     )
     assert first_list == second_list
     assert hash(first_list) == hash(second_list)

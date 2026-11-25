@@ -20,8 +20,46 @@ from pydantic import (
 
 from ado.core.operation.config import GenericOperatorParameters
 
-TREE_FAMILIES = ("RF", "XT", "XGB", "CAT", "GBM")
 ModelSettings = dict[str, Any] | Annotated[list[dict[str, Any]], Field(min_length=1)]
+
+# AutoGluon 1.6.3 regressors for PKH's numeric and categorical features.
+# Keep family names available for configuration validation on Python 3.14.
+_TREE_EXTRA = "ado-active-learning[autogluon]"
+_MODEL_BACKENDS = {
+    ("DUMMY", "KNN", "LR", "RF", "XT"): ("autogluon.tabular", "ado-active-learning"),
+    ("GBM", "GBM_PREP"): ("lightgbm", _TREE_EXTRA),
+    ("CAT",): ("catboost", _TREE_EXTRA),
+    ("XGB",): ("xgboost", _TREE_EXTRA),
+    ("FASTAI",): ("fastai.tabular.all", "autogluon.tabular[fastai]"),
+    ("NN_TORCH", "TABM"): ("torch", "torch"),
+    ("REALMLP",): ("pytabkit", "autogluon.tabular[realmlp]"),
+    ("EBM",): ("interpret.glassbox", "autogluon.tabular[interpret]"),
+    # The 1.6.3 greedy-tree adapter passes an unsupported argument to sklearn's regressor.
+    ("IM_RULEFIT", "IM_FIGS", "IM_HSTREE"): (
+        "imodels",
+        "autogluon.tabular[imodels]",
+    ),
+    ("AG_TEXT_NN", "AG_AUTOMM", "FT_TRANSFORMER"): (
+        "autogluon.multimodal",
+        "autogluon.multimodal",
+    ),
+    ("TABDPT", "TABDPT-TURBO"): ("tabdpt", "autogluon.tabular[tabdpt]"),
+    ("TABICL",): ("tabicl", "autogluon.tabular[tabicl]"),
+    ("REALTABPFN-V2", "REALTABPFN-V2.5", "TABPFN-2.6", "TABPFN-3"): (
+        "tabpfn",
+        "autogluon.tabular[tabpfn]",
+    ),
+    ("TABPFNMIX",): (
+        "autogluon.tabular.models.tabpfnmix._internal.tabpfnmix_regressor",
+        "autogluon.tabular[tabpfnmix]",
+    ),
+    ("MITRA",): (
+        "autogluon.tabular.models.mitra.sklearn_interface",
+        "autogluon.tabular[mitra]",
+    ),
+    ("NORI",): ("synthefy_nori", "autogluon.tabular[nori]"),
+}
+_BASE_REGRESSORS = frozenset(family for group in _MODEL_BACKENDS for family in group)
 
 
 class ActiveLearningAutoGluonParameters(BaseModel):
@@ -108,14 +146,12 @@ class PKHParameters(GenericOperatorParameters):
         ),
     ] = None
     finalPredictor: Annotated[
-        Literal["random_forest", "weighted_ensemble", "autogluon"],
+        Literal["random_forest", "autogluon"],
         Field(
             description=(
                 "AutoGluon fits the final predictor. random_forest fits a Random Forest. "
-                "autogluon enables automatic model selection using the chosen preset or "
-                "the families in autoGluon.hyperparameters. weighted_ensemble compares "
-                "five tree families. Both selection modes compare single models and "
-                "their weighted ensemble by validation RMSE."
+                "autogluon selects a model by validation RMSE using the chosen preset "
+                "or the families in autoGluon.hyperparameters."
             )
         ),
     ] = "random_forest"
@@ -132,12 +168,9 @@ class PKHParameters(GenericOperatorParameters):
             return self
         if self.finalPredictor == "random_forest" and configured.keys() != {"RF"}:
             raise ValueError("random_forest accepts only RF hyperparameters.")
-        if (
-            self.finalPredictor == "weighted_ensemble"
-            and configured.keys() - TREE_FAMILIES
-        ):
+        if invalid := configured.keys() - _BASE_REGRESSORS:
             raise ValueError(
-                f"weighted_ensemble accepts only the following tree families: {', '.join(TREE_FAMILIES)}."
+                f"Unsupported AutoGluon model families for PKH regression: {sorted(invalid)}."
             )
         return self
 
@@ -147,8 +180,6 @@ class PKHParameters(GenericOperatorParameters):
         if self.finalPredictor == "autogluon" and configured is None:
             return None
         models = dict(configured or {"RF": {}})
-        if self.finalPredictor == "weighted_ensemble":
-            models = {family: models.get(family, {}) for family in TREE_FAMILIES}
         if "CAT" in models:
             # A small training split can have a constant target even when the full pool varies.
             cat = models["CAT"]
@@ -161,25 +192,19 @@ class PKHParameters(GenericOperatorParameters):
         return models
 
     def validate_autogluon_installation(self) -> None:
-        """Validate AutoGluon family names and dependencies before sampling."""
+        """Check that the requested prediction backends can load before sampling."""
         if sys.version_info >= (3, 14):
             raise ValueError(
                 "PKH's AutoGluon predictor requires Python 3.11 through 3.13."
             )
-        plugin_extra = "ado-active-learning[autogluon]"
-        dependencies = {
-            "GBM": ("lightgbm", plugin_extra),
-            "CAT": ("catboost", plugin_extra),
-            "XGB": ("xgboost", plugin_extra),
-            "FASTAI": ("fastai.tabular.all", "autogluon.tabular[fastai]"),
-            "NN_TORCH": ("torch", "torch"),
-        }
         families = self.prediction_hyperparameters() or {}
-        required = [("autogluon.tabular", "ado-active-learning")]
-        required.extend(
-            dependencies[family] for family in families if family in dependencies
+        required = {"autogluon.tabular": "ado-active-learning"}
+        required.update(
+            backend
+            for group, backend in _MODEL_BACKENDS.items()
+            if families.keys() & group
         )
-        for module, package in required:
+        for module, package in required.items():
             try:
                 importlib.import_module(module)
             except (ImportError, OSError, ValueError) as exc:
@@ -187,18 +212,6 @@ class PKHParameters(GenericOperatorParameters):
                     f"PKH prediction could not load {module}. Install '{package}' "
                     f"and its native dependencies: {exc}"
                 ) from exc
-
-        if self.finalPredictor == "autogluon" and families:
-            from autogluon.tabular.registry import ag_model_registry
-
-            base_families = set(ag_model_registry.keys) - {
-                "ENS_WEIGHTED",
-                "SIMPLE_ENS_WEIGHTED",
-            }
-            if invalid := families.keys() - base_families:
-                raise ValueError(
-                    f"Unsupported AutoGluon base model families: {sorted(invalid)}."
-                )
 
     @classmethod
     def example_configuration(cls) -> PKHParameters:

@@ -19,9 +19,8 @@
 
 The **PKH** (Predictive Kernel Herding) operator is a *characterize* operator
 that selects an informative sample from a finite discovery space within a fixed
-measurement budget. It uses the measurements to train a surrogate model
-(Random Forest or AutoGluon) and predicts target values for all unmeasured
-entities in the space.
+measurement budget. If any entities remain unmeasured, PKH uses AutoGluon to
+train a surrogate model on the measurements and predict the remaining values.
 
 PKH operates in three main steps:
 
@@ -30,8 +29,7 @@ PKH operates in three main steps:
 2. **Iteratively selects points** using *kernel herding*, choosing unmeasured
    entities that best reduce the discrepancy between the sample and the full
    pool in the learned forest leaf space.
-3. **Trains a final predictor** and exports predictions and sampling diagnostics
-   for the entire discovery space.
+3. **Completes the results table** by predicting any missing target values.
 
 ### When should you use the PKH operator?
 
@@ -58,7 +56,7 @@ Use the PKH operator when you want to:
 
 | Operator | Type | Budget | Sampling / Strategy | Primary Deliverable |
 | :--- | :--- | :--- | :--- | :--- |
-| **`pkh`** | `characterize` | Fixed entity budget | Match the pool in forest leaf space | Surrogate model and predictions |
+| **`pkh`** | `characterize` | Fixed entity budget | Match the pool in forest leaf space | Table of measured and predicted target values |
 | **[`trim`](trim.md)** | `characterize` | Adaptive up to a point limit | Stop when holdout scores stabilize or the run reaches its budget | Surrogate model and predictions |
 | **[`random_walk`](random-walk.md)** | `explore` | Fixed count or all entities | Sequential or random order (Sobol or CLHS with a custom sampler) | Measurements for the sampled entities |
 | **[`ray_tune`](ray-tune.md)** | `explore` | Sample or time budget, with optional early stopping | Optimize a target metric | Best observed configuration and stop reason |
@@ -77,10 +75,10 @@ pip install -e . -e plugins/operators/active_learning
 
 !!! tip
 
-    To use `finalPredictor: autogluon` on Python 3.11–3.13, install the optional
-    extra with
+    On Python 3.11–3.13, the base installation includes AutoGluon for both
+    final predictors. If you want AutoGluon to consider CatBoost, LightGBM, and
+    XGBoost as well, install the extra with
     `pip install -e "plugins/operators/active_learning[autogluon]"`.
-    The standard installation includes the default predictor, `random_forest`.
 
 **2. Save this configuration** as `operation_pkh.yaml`.
 
@@ -108,8 +106,8 @@ operation:
 ado create operation -f operation_pkh.yaml --use-latest space
 ```
 
-When the run finishes, the model and predictions are in `pkh_models_finalized/`.
-See [Working with PKH output](#working-with-pkh-output) for how to use them.
+When the run finishes, use the printed PKH operation identifier to
+[retrieve the results table](#working-with-pkh-output).
 
 ---
 
@@ -208,8 +206,9 @@ Sampling ends when the operation selects `numberEntities` new entities or
 exhausts the unmeasured pool. PKH includes existing target measurements in the
 pilot and training set.
 
-PKH then saves the fitted predictor, a table of measured and predicted values,
-and metadata.
+If any entities remain unmeasured, PKH fits the final predictor on the measured
+targets and fills in the missing values. Otherwise, the table is already
+complete.
 
 For the method and its evaluation on LLM serving workloads, see
 [Sampling Where It Matters: Predicting LLM Serving Performance](https://research.ibm.com/publications/sampling-where-it-matters-predicting-llm-serving-performance)
@@ -247,7 +246,7 @@ This example configures PKH for the ideal-gas tutorial.
 | [`criterion`](#criterion) | `str` | `"squared_error"` | No |
 | [`nJobs`](#njobs) | `int` | `1` | No |
 | [`finalPredictor`](#finalpredictor) | `"random_forest"`, `"autogluon"` | `"random_forest"` | No |
-| [`outputDirectory`](#outputdirectory) | `str` | `"pkh_models"` | No |
+| [`outputDirectory`](#outputdirectory) (deprecated, ignored) | `str \| None` | `None` | No |
 | [`autoGluon`](#autogluon) | object | `None` | No |
 
 ---
@@ -261,7 +260,7 @@ Counts (`numberEntities`, `pilotSize`, `epochLength`, `nEstimators`, and
 
 Select the numeric target property to model, such as `pressure`. Use its bare
 name or fully qualified observed-property identifier. For an experiment with
-several outputs, choose one as the target. Exports use its bare name.
+several outputs, choose one as the target. The results table uses its bare name.
 Choose distinct names for the target and input properties. PKH reserves
 `entityIdentifier` and `is_predicted` for the results table.
 
@@ -297,12 +296,12 @@ candidate pool and prior measurements.
 
 ### Random Forest Parameters
 
-These parameters configure the herding kernel and the `random_forest` final
-predictor.
+`nEstimators`, `minSamplesLeaf`, `maxFeatures`, and `criterion` configure the
+sampling forest, so they affect which entities PKH selects for measurement.
 
 #### `nEstimators`
 
-Each Random Forest contains this number of trees.
+`nEstimators` sets the number of trees in the sampling forest.
 
 #### `minSamplesLeaf`
 
@@ -322,51 +321,55 @@ nonnegative labels with a positive sum.
 
 #### `nJobs`
 
-`nJobs` sets a nonzero parallel job count. The value `-1` uses all processors.
+`nJobs` sets a nonzero parallel job count for both sampling and final
+prediction. Set it to `-1` to use all available processors.
 
 ### Final Predictor Parameters
 
 #### `finalPredictor`
 
-PKH passes one finite target label per measured entity to the final predictor,
-including labels from earlier runs. The default `"random_forest"` fits on
-these rows. AutoGluon uses a validation split or cross-validation according
-to its training preset.
+By default, `random_forest` uses AutoGluon to fit a Random Forest. To compare
+models, choose `autogluon`. AutoGluon then selects the model with the lowest
+validation root mean squared error (RMSE) and refits it on all measured targets.
 
-For `"autogluon"`, PKH requires at least four labelled entities. Install the
-`autogluon` extra in the Python 3.11–3.13 environment of each node that
-validates PKH parameters.
+If any entities still need predictions after sampling, either mode requires
+Python 3.11–3.13 and at least four entities with finite target measurements.
+If every entity has a measurement, PKH returns the table directly.
 
 #### `outputDirectory`
 
-PKH reserves `{outputDirectory}_finalized/` before collecting measurements.
-Relative paths start in the working directory of the process running PKH.
-An existing path raises `FileExistsError`, even if the directory is empty.
-
-Choose a distinct `outputDirectory` before rerunning PKH. If a run fails, PKH
-removes its empty reserved directory and retains any partial output files.
+PKH accepts this field for compatibility with older configurations and ignores
+its value.
 
 #### `autoGluon`
 
-Use `autoGluon` with `finalPredictor: autogluon`. The available settings are:
+Both final predictor modes accept these AutoGluon settings.
 
 - `presets`: `"medium_quality"` (default), `"good_quality"`, `"high_quality"`,
   or `"best_quality"`.
 - `timeLimit`: Positive training time limit in seconds (default `60`).
 - `hyperparameters`: Model settings passed to `TabularPredictor.fit`
-  (default `None`).
+  (default `None`). If you specify model families for `random_forest`, use
+  only `RF`.
 
 ## Working with PKH Output
 
-After sampling, PKH saves all artifacts under `{outputDirectory}_finalized/`
-(by default, `pkh_models_finalized/`):
+PKH returns one row per entity in the `predictions` table of a `DataContainer`
+linked to the operation. The `is_predicted` column is `True` for a model
+estimate and `False` for a measurement.
 
-| File | Contents |
-| :--- | :--- |
-| `model.pkl` | Fitted preprocessing pipeline and Random Forest (when `finalPredictor: random_forest`) |
-| `autogluon/` | Trained AutoGluon predictor (when `finalPredictor: autogluon`) |
-| `combined_predictions.csv` | Measured and predicted values for every entity in the space |
-| `metadata.json` | Model backend, target, feature names, categorical columns, measured count, creation time, PKH version, and final [MMD²](#mmd-statistic) |
+### Accessing Full Space Predictions
+
+Because the related `random_walk` can be the most recent operation, use the
+PKH operation identifier printed by `ado create operation` to find the table.
+Then copy the `datacontainer-…` identifier from the output of the first command
+into the second.
+
+```bash
+OPERATION_IDENTIFIER="<your PKH operation identifier>"
+ado show related operation "$OPERATION_IDENTIFIER" --max-hops 1
+ado describe datacontainer "<related datacontainer identifier>"
+```
 
 ### MMD Statistic
 
@@ -374,103 +377,27 @@ The [MMD²](#2-kernel-herding-and-mmd-minimization) measures discrepancy in the
 forest leaf space. A lower value means a closer match under that kernel.
 Zero means that the sample and pool have identical mean embeddings.
 
-PKH reports MMD² in three places:
-
-- Set `LOGLEVEL=INFO` to log the value at each forest refit.
-- Read `mmdSquared` in `metadata.json` for the final value.
-- Read `metadata.pkhMmdSquared` on the PKH operation resource.
-
-Set this variable to the `operation-pkh@…` identifier printed by
-`ado create operation`:
+When at least two entities have target measurements, the PKH operation records
+the final value in `metadata.pkhMmdSquared`. To read it, use the same operation
+identifier.
 
 ```bash
-OPERATION_IDENTIFIER="<your PKH operation identifier>"
 ado get operation "$OPERATION_IDENTIFIER" -o yaml
 ```
 
-Select the PKH identifier explicitly. The related measurement operation can be
-the most recently created operation.
-
 !!! note
 
-    MMD² can increase after a selection or forest refit. Refitting also changes
-    the kernel, so values from different epochs use different representations.
-    PKH fits the final forest on all entities with target measurements. With
-    fewer than two such entities, `mmdSquared` in `metadata.json` is `null`.
-
-### Loading the Trained Model
-
-Both backends accept raw feature values in a DataFrame with the training
-property names. If a categorical column mixes integers and floats, construct it
-with `pd.Series(values, dtype=object)` to preserve their types and precision.
-The saved Random Forest pipeline includes its fitted categorical preprocessing.
-
-!!! warning
-
-    Load `model.pkl` only if you trust its source.
-
-=== "Random Forest (`model.pkl`)"
-
-    ```python
-    import pickle
-
-    import pandas as pd
-
-    with open("pkh_models_finalized/model.pkl", "rb") as model_file:
-        model = pickle.load(model_file)
-
-    configuration = pd.DataFrame([{"temperature": 280.0, "volume": 5.0, "mol": 0.5}])
-    predicted_value = model.predict(configuration)
-    ```
-
-=== "AutoGluon (`autogluon/`)"
-
-    Load the predictor in the environment used for training. A model with
-    categorical features needs the `ado-active-learning` plugin to preprocess
-    those features. A model trained with PyTorch also needs PyTorch.
-
-    ```python
-    import pandas as pd
-    from autogluon.tabular import TabularPredictor
-
-    predictor = TabularPredictor.load("pkh_models_finalized/autogluon")
-    configuration = pd.DataFrame([{"temperature": 280.0, "volume": 5.0, "mol": 0.5}])
-    predicted_value = predictor.predict(configuration)
-    ```
-
-### Accessing Full Space Predictions
-
-`combined_predictions.csv` contains one row per candidate entity. The
-`is_predicted` column is `False` for measured values and `True` for model
-predictions. The sample store holds the experiment results. Use the CSV to
-retrieve predictions.
-
-```python
-import pandas as pd
-
-df = pd.read_csv("pkh_models_finalized/combined_predictions.csv")
-
-# Filter evaluated points vs. surrogate predictions
-measured_points = df[~df["is_predicted"]]
-predicted_points = df[df["is_predicted"]]
-```
+    To see how MMD² changes during sampling, set `LOGLEVEL=INFO` before
+    starting the operation. The value can increase after a selection or forest
+    refit. Refitting also changes the kernel, so values from different epochs
+    use different representations.
 
 ### Inspecting Runs from the CLI
 
-!!! tip "Which operation ID should I use?"
-
-    Use the PKH operation ID to check whether PKH saved the model.
-    Use the related `random_walk` operation ID to inspect the measurements.
-
-Find the related operation.
-
-```bash
-ado show related operation "$OPERATION_IDENTIFIER" --max-hops 1
-```
-
-Under `operation`, copy the full ID of the related `random_walk` run.
-The first command exports the measured target values as CSV.
-The second shows counts of successful and failed requests.
+To inspect the measurements, copy the related `random_walk` operation identifier
+from the same `ado show related` output. The first command below exports the
+measured target values as CSV, and the second shows counts of successful and
+failed requests.
 
 ```bash
 RANDOM_WALK_OPERATION_IDENTIFIER="<related random_walk identifier>"
@@ -485,11 +412,10 @@ ado show stats operation "$RANDOM_WALK_OPERATION_IDENTIFIER"
 | Symptom | Cause | Fix |
 | :--- | :--- | :--- |
 | `targetOutput '...' must identify exactly one observed property` | The target is missing or ambiguous. | Use a unique target name or its qualified observed-property identifier. |
-| `autoGluon parameters must not be provided for random_forest` | The configuration combines AutoGluon settings with the Random Forest backend. | Remove `autoGluon`, or select `finalPredictor: autogluon`. |
-| `Install 'ado-active-learning[autogluon]' to use finalPredictor='autogluon'` | The selected backend requires the AutoGluon extra. | Install the extra on Python 3.11–3.13 (see [Quick start](#quick-start)). |
+| `random_forest accepts only RF hyperparameters.` | The configuration specifies another model family. | Use only `RF` in `autoGluon.hyperparameters`, or choose `finalPredictor: autogluon` to compare families. |
+| PKH cannot load a requested AutoGluon model family | The model family requires an additional library. | Install the package named in the error in the environment that runs PKH. |
 | The discovery space has zero or multiple experiments | PKH requires exactly one experiment in the measurement space. | Select one experiment. It can return several outputs. |
 | A selected entity has a missing or invalid target value | PKH needs a finite value for the selected target. | Inspect the measurement results for the related `random_walk` operation. |
-| The finalized output path already exists | PKH reserves a new directory for each run. | Choose a distinct `outputDirectory` to preserve the earlier files. |
 | Validation error on an unknown parameter | The configuration uses a name outside the PKH parameter list. | Check the name against [Parameters at a glance](#parameters-at-a-glance). |
 
 ---
@@ -506,8 +432,7 @@ ado show stats operation "$RANDOM_WALK_OPERATION_IDENTIFIER"
 
     ---
 
-    Build a surrogate model for the ideal gas law, from a discovery space to a
-    saved model.
+    Compare a predicted pressure from the results table with the ideal gas law.
 
     [PKH tutorial :octicons-arrow-right-24:](../examples/pkh.md)
 

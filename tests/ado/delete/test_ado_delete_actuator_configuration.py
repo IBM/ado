@@ -10,7 +10,7 @@ from ado.cli.core.cli import app as ado
 from ado.core import ActuatorConfigurationResource
 from ado.core.discoveryspace.space import DiscoverySpace
 from ado.metastore.project import ProjectContext
-from ado.metastore.sqlstore import SQLStore
+from ado.metastore.sqlstore import SQLResourceStore
 
 
 def test_delete_actuator_configuration_no_related(
@@ -44,7 +44,7 @@ def test_delete_actuator_configuration_with_related_resource(
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
     ],
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
     ml_multi_cloud_correct_actuatorconfiguration: ActuatorConfigurationResource,
     ml_multi_cloud_space: DiscoverySpace,
 ) -> None:

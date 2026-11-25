@@ -13,7 +13,7 @@ from ado.core.discoveryspace.space import DiscoverySpace
 from ado.core.operation.config import DiscoveryOperationResourceConfiguration
 from ado.core.resources import CoreResourceKinds
 from ado.metastore.project import ProjectContext
-from ado.metastore.sqlstore import SQLStore
+from ado.metastore.sqlstore import SQLResourceStore
 from ado.utilities.output import pydantic_model_as_yaml
 from tests.conftest import requires_sqlite_3_38
 from tests.fixtures.shared_mysql_instance import MySqlConnectionDetails
@@ -209,7 +209,7 @@ def test_create_operation_dry_run_with_discovery_space(
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
     ],
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
 ) -> None:
     runner = CliRunner()
     create_active_ado_context(
@@ -249,7 +249,7 @@ def test_create_operation_dry_run_with_actuator_configuration(
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
     ],
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
 ) -> None:
     runner = CliRunner()
     create_active_ado_context(

@@ -34,7 +34,7 @@ from ado.core.operation.config import (
 from ado.core.operation.operation import OperationOutput
 from ado.core.resources import CoreResourceKinds
 from ado.metastore.project import ProjectContext
-from ado.metastore.sqlstore import SQLStore
+from ado.metastore.sqlstore import SQLResourceStore
 from ado.modules.operators.collections import compare, compare_operation
 from tests.ado.create.conftest import raw_operation, write_operation
 from tests.fixtures.shared_mysql_instance import MySqlConnectionDetails
@@ -531,7 +531,7 @@ def test_create_operation_dry_run_with_named_inputs_and_use_latest(
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
     ],
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
     data_container_resource: DataContainerResource,
 ) -> None:
     """--with and --use-latest with input qualifiers combine on one operation."""

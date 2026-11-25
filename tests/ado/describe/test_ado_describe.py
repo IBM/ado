@@ -16,7 +16,7 @@ from ado.core import DataContainerResource
 from ado.core.datacontainer.resource import DataContainer
 from ado.core.discoveryspace.space import DiscoverySpace
 from ado.metastore.project import ProjectContext
-from ado.metastore.sqlstore import SQLStore
+from ado.metastore.sqlstore import SQLResourceStore
 from tests.conftest import requires_sqlite_3_38
 from tests.fixtures.shared_mysql_instance import MySqlConnectionDetails
 
@@ -186,7 +186,7 @@ def test_describe_vllm_bench_deployment_experiment() -> None:
 def test_describe_datacontainer_with_use_latest(
     tmp_path: pathlib.Path,
     mysql_test_instance: MySqlConnectionDetails,
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
@@ -228,7 +228,7 @@ def test_describe_document(
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
     ],
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
 ) -> None:
     """Describe renders markdown with rich and includes resource metadata."""
     from ado.core.document.config import DocumentConfiguration, RelatedResource
@@ -273,7 +273,7 @@ def test_describe_document_html(
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
     ],
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
 ) -> None:
     """Describe prints HTML document content without opening a browser."""
     from ado.core.document.config import DocumentConfiguration

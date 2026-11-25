@@ -18,7 +18,7 @@ from ado.core.samplestore.config import (
 )
 from ado.core.samplestore.sql import SQLSampleStore
 from ado.metastore.project import ProjectContext
-from ado.metastore.sqlstore import SQLStore
+from ado.metastore.sqlstore import SQLResourceStore
 from tests.fixtures.shared_mysql_instance import MySqlConnectionDetails
 
 
@@ -26,8 +26,8 @@ from tests.fixtures.shared_mysql_instance import MySqlConnectionDetails
 def sql_store(
     mysql_test_instance: MySqlConnectionDetails,
     valid_ado_project_context: ProjectContext,
-) -> SQLStore:
-    return SQLStore(project_context=valid_ado_project_context)
+) -> SQLResourceStore:
+    return SQLResourceStore(project_context=valid_ado_project_context)
 
 
 @pytest.fixture
@@ -37,7 +37,7 @@ def sql_store_with_resources_preloaded(
     discovery_space_resource: DiscoverySpaceResource,
     operation_resource: OperationResource,
     sample_store_resource: SampleStoreResource,
-) -> SQLStore:
+) -> SQLResourceStore:
 
     # AP: 07/08/2025
     # This fixture is shared across a function invocation
@@ -49,7 +49,7 @@ def sql_store_with_resources_preloaded(
     # multiple times, however, will raise exceptions, so we need to check
     # whether these resources exist before we try to add them
 
-    sql = SQLStore(project_context=valid_ado_project_context)
+    sql = SQLResourceStore(project_context=valid_ado_project_context)
 
     # Ensure our resources are consistent
     if not sql.containsResourceWithIdentifier(

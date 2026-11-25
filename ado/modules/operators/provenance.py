@@ -8,7 +8,6 @@ from ado.core.metadata import PackageProvenance
 from ado.core.operation.config import (
     DiscoveryOperationEnum,
     OperatorMetadata,
-    OperatorModuleConf,
     OperatorReference,
 )
 from ado.core.operation.resource import OperationProvenanceInfo
@@ -43,13 +42,12 @@ def provenance_for_operator(
 
 
 def operation_provenance(
-    operator_module: OperatorModuleConf | OperatorReference,
+    operator_module: OperatorReference,
 ) -> OperationProvenanceInfo:
     """Return the provenance for a general operation
 
     Args:
-        operator_module: The operator the operation runs. Provenance is only
-            available for a registered :class:`OperatorReference`.
+        operator_module: The registered operator the operation runs.
 
     Returns:
         An :class:`~ado.core.operation.resource.OperationProvenanceInfo` whose
@@ -57,12 +55,11 @@ def operation_provenance(
         and which is empty if the operator provenance cannot be resolved.
     """
     operators: dict[str, PackageProvenance] = {}
-    if isinstance(operator_module, OperatorReference):
-        operator_provenance = provenance_for_operator(
-            operator_module.operatorName, operator_module.operationType
-        )
-        if operator_provenance is not None:
-            operators[operator_module.operatorIdentifier] = operator_provenance
+    operator_provenance = provenance_for_operator(
+        operator_module.operatorName, operator_module.operationType
+    )
+    if operator_provenance is not None:
+        operators[operator_module.operatorIdentifier] = operator_provenance
 
     return OperationProvenanceInfo(operators=operators)
 

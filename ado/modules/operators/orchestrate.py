@@ -14,7 +14,6 @@ import ray.util.queue
 from ado.core.operation.config import (
     DiscoveryOperationResourceConfiguration,
     FunctionOperationInfo,
-    OperatorModuleConf,
 )
 from ado.core.operation.operation import OperationException, OperationOutput
 from ado.metastore.base import ResourceDoesNotExistError

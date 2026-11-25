@@ -5,7 +5,6 @@ import pytest
 
 import ado.core.samplestore.base
 import ado.core.samplestore.sql
-import ado.modules.operators.randomwalk
 import ado.utilities
 import ado.utilities.environment
 import ado.utilities.location
@@ -52,12 +51,7 @@ def test_discovery_storage_conf_dump_reload() -> None:
 
 
 def test_default_plugin_configs(module_config: ModuleConf) -> None:
-    if module_config.moduleType == ModuleTypeEnum.OPERATION:
-        assert (
-            load_module_class_or_function(module_config)
-            == ado.modules.operators.randomwalk.RandomWalk
-        )
-    elif module_config.moduleType == ModuleTypeEnum.SAMPLE_STORE:
+    if module_config.moduleType == ModuleTypeEnum.SAMPLE_STORE:
         assert (
             load_module_class_or_function(module_config)
             == ado.core.samplestore.sql.SQLSampleStore

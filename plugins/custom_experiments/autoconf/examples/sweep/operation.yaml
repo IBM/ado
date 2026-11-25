@@ -4,7 +4,8 @@ spaces:
   - this will be rewritten
 operation:
   module:
-    moduleClass: "RandomWalk"
+    operatorName: random_walk
+    operationType: explore
   parameters:
     batchSize: 4
     numberEntities: all

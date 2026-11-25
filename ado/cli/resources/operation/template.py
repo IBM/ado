@@ -85,7 +85,12 @@ def template_operation(parameters: AdoTemplateCommandParameters) -> None:
     if not parameters.operator_name:
         model_instance = DiscoveryOperationResourceConfiguration(
             inputs=_operation_inputs_template(None),
-            operation=DiscoveryOperationConfiguration(),
+            operation=DiscoveryOperationConfiguration(
+                module=OperatorReference(
+                    operatorName="random_walk",
+                    operationType=DiscoveryOperationEnum.EXPLORE,
+                )
+            ),
         )
 
         serialise_pydantic_model(

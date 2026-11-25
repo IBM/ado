@@ -39,6 +39,7 @@ from ado.core.operation.config import (
     _REQUIRED_INPUT_PROPERTY_FOR_ORIGINAL_FUNCTION_OPERATORS,
     DiscoveryOperationResourceConfiguration,
     OperatorReference,
+    upgrade_legacy_operator_module,
 )
 from ado.core.operation.inputs import OPERATOR_INPUT_KINDS
 from ado.core.operation.operation import OperationException, OperationOutput
@@ -72,10 +73,9 @@ def _resource_inputs_for_module(
     Where the inputs come from depends on which keys *module* contains:
 
     - Operator reference (``operatorName`` and ``operationType``): the inputs
-      registered for that operator.
-    - Class module (``moduleName`` and ``moduleClass``): the inputs from the
-      class's ``operator_metadata()``, or a single ``discoverySpace`` input if
-      it declares none.
+      registered for that operator. An auto-upgradable legacy
+      ``moduleName``/``moduleClass`` module is treated as its operator
+      reference.
     - Script module (``name``): a single ``discoverySpace`` input.
 
     Args:
@@ -85,10 +85,9 @@ def _resource_inputs_for_module(
         A tuple of the operator's name and its resource-input descriptors.
 
     Raises:
-        ValueError: If *module* matches none of the cases above, has only one
-            of ``moduleName`` and ``moduleClass``, or names a class that cannot
-            be imported.
+        ValueError: If *module* matches none of the cases above.
     """
+    module = upgrade_legacy_operator_module(module) or module
     if "operatorName" in module and "operationType" in module:
         from ado.modules.operators.collections import operator_metadata_for_reference
 
@@ -100,39 +99,21 @@ def _resource_inputs_for_module(
         )
         return metadata.name, tuple(metadata.required_resource_inputs)
 
-    if "moduleName" in module or "moduleClass" in module:
-        import importlib
-
-        module_name = module.get("moduleName")
-        module_class = module.get("moduleClass")
-        if not module_name or not module_class:
-            raise ValueError(
-                "operation.module with moduleName/moduleClass must set both fields."
-            )
-        try:
-            operator_class = getattr(importlib.import_module(module_name), module_class)
-        except (ImportError, AttributeError) as error:
-            raise ValueError(
-                f"Cannot load operator class {module_class!r} from module "
-                f"{module_name!r}: {error}"
-            ) from error
-        metadata = operator_class.operator_metadata()
-        declared_resource_inputs = tuple(metadata.required_resource_inputs)
-        if not declared_resource_inputs:
-            declared_resource_inputs = (
-                _REQUIRED_INPUT_PROPERTY_FOR_ORIGINAL_FUNCTION_OPERATORS,
-            )
-        return metadata.name, declared_resource_inputs
-
     if "name" in module:
         return (
             str(module["name"]),
             (_REQUIRED_INPUT_PROPERTY_FOR_ORIGINAL_FUNCTION_OPERATORS,),
         )
 
+    legacy_keys_note = (
+        " The moduleName/moduleClass format is no longer supported."
+        if "moduleName" in module or "moduleClass" in module
+        else ""
+    )
     raise ValueError(
         "Cannot resolve operation input names: operation.module must be an "
-        "operator reference, a moduleName/moduleClass configuration, or a script."
+        "operator reference (operatorName and operationType) or a script "
+        f"(name).{legacy_keys_note}"
     )
 
 

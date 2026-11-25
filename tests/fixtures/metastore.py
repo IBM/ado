@@ -34,7 +34,6 @@ from tests.fixtures.shared_mysql_instance import MySqlConnectionDetails
     params=[
         ModuleTypeEnum.ACTUATOR,
         ModuleTypeEnum.SAMPLE_STORE,
-        ModuleTypeEnum.OPERATION,
     ]
 )
 def module_config(request: pytest.FixtureRequest) -> ModuleConf:

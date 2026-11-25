@@ -158,7 +158,7 @@ uv run ado get $RESOURCETYPE --filter 'path=candidate'
 
 ```bash
 # Find operations using a specific operator
-uv run ado get operations --filter 'config.operation.module.moduleClass=RayTune'
+uv run ado get operations --filter 'config.operation.module.operatorName=ray_tune'
 
 # Find spaces with a specific experiment
 uv run ado get spaces --filter 'config.experiments={"experiments":{"identifier":"finetune-lora-fsdp-r-4-a-16-tm-default-v2.0.0"}}'

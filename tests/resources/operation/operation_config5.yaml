@@ -4,7 +4,8 @@ spaces:
   - 'space-d1f737-fcb7d1'
 operation:
   module:
-    moduleClass: "RandomWalk"
+    operatorName: random_walk
+    operationType: explore
   parameters:
     numberEntities: 1000
     batchSize: 1

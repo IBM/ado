@@ -23,9 +23,13 @@ _OPT_FUNCTIONS_POINT = "examples/optimization_test_functions/point.yaml"
 def _isolate_custom_experiment_registry(monkeypatch: pytest.MonkeyPatch) -> None:
     """Register test experiments on copies restored when the test ends.
 
+    The shared catalog is loaded first. Restoring the copies then keeps those
+    experiments and drops only the ones this test adds.
+
     Args:
         monkeypatch: Pytest monkeypatch fixture for the calling test.
     """
+    custom_experiments.CustomExperiments.catalog()
     catalog = custom_experiments._custom_experiments_catalog
     monkeypatch.setattr(catalog, "_experiments", dict(catalog._experiments))
     monkeypatch.setattr(

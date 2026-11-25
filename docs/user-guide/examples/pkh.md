@@ -219,8 +219,7 @@ Read `metadata.pkhMmdSquared` on the PKH operation.
 ado get operation "$OPERATION_IDENTIFIER" -o yaml
 ```
 
-Set `LOGLEVEL=INFO` when you start the operation to log MMD² at each refit.
-The value can increase after a refit, because each refit changes the forest.
+PKH records only the final value, because each forest refit changes the kernel.
 See the [MMD reference](../operators/pkh.md#mmd-statistic) for details.
 
 ## Next Steps

@@ -44,8 +44,9 @@ Use the PKH operator when you want to:
 
 ### Key Requirements and Constraints
 
-- **Finite discovery space:** Define your entity space as a finite grid of
-  discrete values. All candidate entities must fit in memory.
+- **Finite discovery space:** Define a finite grid with at least one input
+  property. All candidate entities must fit in memory. Numeric coordinates
+  must be finite. Store binary values as individual coordinates.
 - **Single experiment:** The measurement space must contain exactly one
   experiment (which may produce multiple output properties).
 - **Numeric target:** Specify a single numeric output property in
@@ -131,7 +132,9 @@ measurements:
   unmeasured entities uniformly at random without replacement, using `seed`,
   until it reaches `pilotSize`.
 
-PKH requires at least two labelled entities to fit the first forest.
+PKH requires at least two labelled entities to fit the first forest. If the
+pilot ends with one label, PKH selects one more unmeasured entity uniformly at
+random.
 
 ### 2. Kernel Herding and MMD Minimization
 
@@ -274,8 +277,8 @@ Set the budget at or below the total pool size. If fewer unmeasured entities
 remain, PKH measures those entities and stops.
 
 PKH selects one entity at a time and uses `random_walk` to run the space's
-experiment. Each selected entity must produce a finite measurement of
-`targetOutput` before PKH selects the next entity.
+experiment. The child walk must produce a finite `targetOutput` measurement
+for each selected entity. PKH uses that measurement to select the next entity.
 
 #### `pilotSize`
 
@@ -316,8 +319,8 @@ features. The example uses `1.0` explicitly.
 #### `criterion`
 
 `criterion` selects the regression split rule. It accepts `"squared_error"`,
-`"absolute_error"`, `"friedman_mse"`, or `"poisson"`. Poisson requires
-nonnegative labels with a positive sum.
+`"absolute_error"`, or `"poisson"`. Poisson requires nonnegative labels with
+a positive sum.
 
 #### `nJobs`
 
@@ -329,8 +332,14 @@ prediction. Set it to `-1` to use all available processors.
 #### `finalPredictor`
 
 By default, `random_forest` uses AutoGluon to fit a Random Forest. To compare
-models, choose `autogluon`. AutoGluon then selects the model with the lowest
-validation root mean squared error (RMSE) and refits it on all measured targets.
+models, choose `autogluon`. PKH selects the model with the lowest validation
+root mean squared error (RMSE). Ties favor a base model over a weighted
+ensemble, then use the model name. PKH requests a full-data fit for the chosen
+model’s base regressors. Some families, such as `DUMMY`, can retain the
+original training split or a single training fold. When the regressors report their
+training row counts, the dataset label `config.metadata.labels.predictorTrainingRows`
+records the smallest count among the regressors used for prediction. PKH logs
+a warning if that count is below the number of measured targets.
 
 If any entities still need predictions after sampling, either mode requires
 Python 3.11–3.13 and at least four entities with finite target measurements.
@@ -347,16 +356,32 @@ Both final predictor modes accept these AutoGluon settings.
 
 - `presets`: `"medium_quality"` (default), `"good_quality"`, `"high_quality"`,
   or `"best_quality"`.
-- `timeLimit`: Positive training time limit in seconds (default `60`).
+- `timeLimit`: Positive time limit for the initial fit, in seconds (default
+  `60`). AutoGluon’s full-data refit runs separately.
 - `hyperparameters`: Model settings passed to `TabularPredictor.fit`
   (default `None`). If you specify model families for `random_forest`, use
-  only `RF`.
+  only `RF`. An explicit `KNN` model uses numeric features by default and needs
+  enough rows for `n_neighbors` after the preset's default validation split.
+  AutoGluon validates custom splits during fitting.
 
 ## Working with PKH Output
 
 PKH returns one row per entity in the `predictions` table of a `DataContainer`
 linked to the operation. The `is_predicted` column is `True` for a model
 estimate and `False` for a measurement.
+
+The stored table preserves integer measurements and distinguishes numeric and
+text coordinates such as `1` and `"1"`. Binary coordinates use ADO's
+`BLOB_VALUE_TYPE` tag and a base64-encoded `value`. When a column mixes
+large integers with floating-point predictions, pandas can round the integers
+during type inference. To keep their exact values when reading the table:
+
+```python
+import pandas as pd
+
+columns = resource.config.tabularData["predictions"].data
+table = pd.DataFrame(columns, dtype=object)
+```
 
 ### Accessing Full Space Predictions
 
@@ -387,10 +412,9 @@ ado get operation "$OPERATION_IDENTIFIER" -o yaml
 
 !!! note
 
-    To see how MMD² changes during sampling, set `LOGLEVEL=INFO` before
-    starting the operation. The value can increase after a selection or forest
-    refit. Refitting also changes the kernel, so values from different epochs
-    use different representations.
+    PKH records only the final value. Each forest refit changes the kernel, so
+    values from different epochs use different representations and are not
+    comparable.
 
 ### Inspecting Runs from the CLI
 

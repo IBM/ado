@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from functools import cached_property
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -16,7 +17,7 @@ if TYPE_CHECKING:
     from scipy.sparse import csr_matrix
     from sklearn.ensemble import RandomForestRegressor
 
-    from ado.core.discoveryspace.space import DiscoverySpace, Entity
+    from ado.core.discoveryspace.space import Entity
     from ado.schema.observed_property import ObservedProperty
 
 
@@ -32,18 +33,14 @@ class ForestSamplingState(ABC):
         pilot_size: int,
         seed: int | None,
     ) -> None:
-        """Draw the rest of the random pilot after accounting for prior measurements."""
+        """Initialize the candidate pool and its prior measurements."""
         self.features = features
         self.n_candidates = features.shape[0]
         self.measured_indices = list(initial_measured_indices)
         self.measured_labels = list(initial_labels)
         self.measured_set = set(initial_measured_indices)
         self._rng = np.random.default_rng(seed)
-        unmeasured = self._unmeasured_indices()
-        remaining = min(len(unmeasured), max(0, pilot_size - len(self.measured_set)))
-        self._pilot_indices = iter(
-            self._rng.choice(unmeasured, size=remaining, replace=False).tolist()
-        )
+        self._pilot_size = pilot_size
         self.forest: RandomForestRegressor | None = None
         self._leaf_assignments: np.ndarray | None = None
         self._sample_leaf_counts: np.ndarray | None = None
@@ -55,8 +52,18 @@ class ForestSamplingState(ABC):
             dtype=np.intp,
         )
 
+    @cached_property
+    def _pilot_indices(self) -> Iterator[int]:
+        """Draw the missing pilot indices once, when selection first needs them."""
+        remaining = min(self._pilot_size, self.n_candidates) - len(self.measured_set)
+        if remaining <= 0:
+            return iter(())
+        unmeasured = self._unmeasured_indices()
+        indices = self._rng.choice(unmeasured, size=remaining, replace=False)
+        return iter(indices.tolist())
+
     def select_next(self) -> int | None:
-        """Draw from the pilot, then apply the selection rule until the pool is exhausted."""
+        """Draw from the pilot, then select from the remaining candidates."""
         if (index := next(self._pilot_indices, None)) is not None:
             return index
         unmeasured = self._unmeasured_indices()
@@ -64,7 +71,7 @@ class ForestSamplingState(ABC):
 
     @abstractmethod
     def _select_after_pilot(self, unmeasured: np.ndarray) -> int:
-        """Choose an unmeasured candidate using the operator's refit and scoring rules."""
+        """Choose an unmeasured candidate using the operator's scoring rule."""
 
     def record_measurement(self, index: int, label: float) -> None:
         """Record a new target value and update its leaf count in each fitted tree."""
@@ -96,19 +103,15 @@ class ForestSamplingState(ABC):
     def sample_with_feedback(
         self,
         entities: list[Entity],
-        discovery_space: DiscoverySpace,
         target: ObservedProperty,
-        read_label: Callable[[Entity, ObservedProperty], float | None],
+        read_label: Callable[[str], int | float | None],
     ) -> Iterator[list[Entity]]:
-        """Yield one entity and record its target measurement before selecting the next."""
+        """Yield one entity and record its target before selecting the next."""
         while (index := self.select_next()) is not None:
             entity = entities[index]
             yield [entity]
 
-            stored_entities = discovery_space.sample_store.get_entities(
-                identifiers=entity.identifier, require_measurements=True, refresh=True
-            )
-            label = read_label(stored_entities[0], target) if stored_entities else None
+            label = read_label(entity.identifier)
             if label is None:
                 raise ValueError(
                     f"Missing finite target measurement for '{target}' "

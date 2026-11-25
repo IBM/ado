@@ -5,196 +5,162 @@
 
 import sys
 from collections.abc import Callable
-from pathlib import Path
+from typing import Literal
 
-import numpy as np
 import pytest
 from active_learning.pkh import operator
-from active_learning.pkh.data import measured_labels, validate_target_output
+from active_learning.pkh.data import (
+    candidate_coordinates,
+    candidate_entities,
+    feature_frame,
+    validate_target_output,
+)
 from active_learning.pkh.parameters import PKHParameters
 
 from ado.core.datacontainer.resource import DataContainerResource
 from ado.core.discoveryspace.space import DiscoverySpace
 from ado.core.operation.operation import OperationOutput
-from ado.core.operation.resource import OperationResource, OperationResourceStatus
-from ado.schema.domain import PropertyDomain
-from ado.schema.measurementspace import MeasurementSpace, MeasurementSpaceConfiguration
-from ado.schema.property import ConstitutiveProperty
-
-
-def test_rejects_multiple_experiments_before_sampling(
-    empty_pkh_space: DiscoverySpace,
-) -> None:
-    """PKH validates the experiment count before starting a measurement run."""
-    experiment = empty_pkh_space.measurementSpace.experiments[0]
-    space = DiscoverySpace(
-        entitySpace=empty_pkh_space.entitySpace,
-        measurementSpace=MeasurementSpace(
-            MeasurementSpaceConfiguration(
-                experiments=[
-                    experiment,
-                    experiment.model_copy(update={"identifier": "other"}),
-                ]
-            )
-        ),
-        sample_store=empty_pkh_space.sample_store,
-        project_context=empty_pkh_space.project_context,
-    )
-    parameters = PKHParameters(targetOutput="self", numberEntities=1)
-    with pytest.raises(ValueError, match="exactly 1 experiment"):
-        operator.pkh.__wrapped__(space, parameters=parameters)
+from ado.core.operation.resource import (
+    OperationExitStateEnum,
+    OperationResource,
+    OperationResourceStatus,
+)
+from ado.schema.entity import Entity
+from ado.schema.observed_property import ObservedProperty
 
 
 @pytest.mark.parametrize(
-    ("target", "error"),
+    ("walk_state", "expected_state", "expected_message"),
     [
-        ("is_predicted", "output column names conflict"),
-        ("selected-self", "must identify exactly one observed property"),
+        ("fail", OperationExitStateEnum.FAIL, "Child walk finished"),
+        ("success", OperationExitStateEnum.ERROR, "budget is incomplete"),
     ],
+    ids=["sampling-failure", "publication-failure"],
 )
-def test_rejects_unusable_target_names(
-    empty_pkh_space: DiscoverySpace, target: str, error: str
+def test_failures_return_child_operation_and_cause(
+    categorical_space: DiscoverySpace,
+    walk_state: str,
+    expected_state: OperationExitStateEnum,
+    expected_message: str,
 ) -> None:
-    """PKH requires one identifiable target with its own output column."""
-    with pytest.raises(ValueError, match=error):
-        validate_target_output(target, empty_pkh_space)
-
-
-def test_failed_sampling_preserves_status_and_skips_publication(
-    empty_pkh_space: DiscoverySpace,
-) -> None:
-    """A failed walk retains its status and is the only resource PKH returns."""
+    """PKH retains the child and reports the stage that failed."""
     walk = OperationOutput(
         operation=OperationResource(
             operationType="explore",
             operatorIdentifier="random_walk",
             config={
-                "inputs": {"discoverySpace": empty_pkh_space.reference},
+                "inputs": {"discoverySpace": categorical_space.reference},
                 "operation": {},
             },
         ),
         exitStatus=OperationResourceStatus(
-            event="finished", exit_state="fail", message="Measurement run failed"
+            event="finished", exit_state=walk_state, message="Child walk finished"
         ),
     )
     parameters = PKHParameters(targetOutput="self", numberEntities=1)
-    target = validate_target_output(parameters.targetOutput, empty_pkh_space)
-    result = operator._output_after_sampling(walk, empty_pkh_space, parameters, target)
-    assert result.exitStatus == walk.exitStatus
+    target = validate_target_output(parameters.targetOutput, categorical_space)
+    result = operator._output_after_sampling(
+        walk, categorical_space, parameters, target
+    )
     assert result.resources == [walk.operation]
+    assert result.exitStatus.exit_state == expected_state
+    assert expected_message in result.exitStatus.message
 
 
-def test_completed_dataset_preserves_mixed_categories(
+@pytest.mark.parametrize("child_result", ["missing", "sibling", "target"])
+def test_publication_uses_the_child_walks_measurement(
     categorical_space: DiscoverySpace,
-    tmp_path: Path,
+    record_pkh_measurement: Callable[[Entity, str, ObservedProperty, int], None],
+    child_result: Literal["missing", "sibling", "target"],
 ) -> None:
-    """ADO can round-trip each candidate, its provenance, and its finite target."""
+    """Check that a concurrent measurement cannot supply or replace the child's target."""
+    walk = OperationOutput(
+        operation=OperationResource(
+            operationType="explore",
+            operatorIdentifier="random_walk",
+            metadata={"entities_submitted": 1},
+            config={
+                "inputs": {"discoverySpace": categorical_space.reference},
+                "operation": {},
+            },
+        ),
+    )
+    entity = categorical_space.entitySpace.entity_for_point({"code": None})
+    target, _, sibling = categorical_space.measurementSpace.observedProperties
+    record_pkh_measurement(entity, "another-walk", target, 999)
+    if child_result != "missing":
+        record_pkh_measurement(
+            entity,
+            walk.operation.identifier,
+            target if child_result == "target" else sibling,
+            17,
+        )
+
+    result = operator._output_after_sampling(
+        walk,
+        categorical_space,
+        PKHParameters(targetOutput="self", numberEntities=1),
+        target,
+    )
+    assert result.resources[0] == walk.operation
+    if child_result == "target":
+        assert result.exitStatus.exit_state == OperationExitStateEnum.SUCCESS
+        table = result.resources[1].config.tabularData["predictions"].data
+        row = table["entityIdentifier"].index(entity.identifier)
+        assert table["self"][row] == 17
+        assert table["is_predicted"][row] is False
+    else:
+        assert result.exitStatus.exit_state == OperationExitStateEnum.ERROR
+        expected = (
+            "missing measurement results"
+            if child_result == "missing"
+            else "Missing finite target measurement"
+        )
+        assert expected in result.exitStatus.message
+        assert result.resources == [walk.operation]
+
+
+def test_published_mixed_coordinates_and_targets(
+    categorical_space: DiscoverySpace,
+) -> None:
+    """Keep distinct model inputs and exact observations alongside a prediction."""
+    candidates = candidate_entities(categorical_space)
+    frame = feature_frame(categorical_space, candidate_coordinates(candidates))
+    assert frame["code"][0] != frame["code"][1]
     target = validate_target_output("self", categorical_space)
-    original_labels = measured_labels(categorical_space, target)
-    sampled = categorical_space.entitySpace.entity_for_point(
-        {"kind": "b", "count": 2**53 + 1}
-    )
-    parameters = PKHParameters(
-        targetOutput="self",
-        numberEntities=1,
-        nEstimators=3,
-        outputDirectory=str(tmp_path / "previous_model"),
-    )
+    parameters = PKHParameters(targetOutput="self", numberEntities=1, nEstimators=3)
+    sampled = {candidates[1].identifier: 2**53 + 1}
     if sys.version_info >= (3, 14):
         with pytest.raises(ValueError, match=r"Python 3\.11 through 3\.13"):
-            operator._complete_dataset(
-                categorical_space, parameters, target, {sampled.identifier}
-            )
+            operator._complete_dataset(categorical_space, parameters, target, sampled)
         return
-    resource, mmd_squared = operator._complete_dataset(
-        categorical_space, parameters, target, {sampled.identifier}
+
+    dataset, _ = operator._complete_dataset(
+        categorical_space, parameters, target, sampled
     )
-    stored = DataContainerResource.model_validate_json(resource.model_dump_json())
-    assert stored.config.metadata.labels["predictor"] == "RandomForest_FULL"
-    table = stored.config.tabularData["predictions"].dataframe()
-    assert len(table) == 20
-    assert table.entityIdentifier.is_unique
-    assert (
-        table.loc[~table.is_predicted].set_index("entityIdentifier")["self"].to_dict()
-        == original_labels
-    )
-    unmeasured = table.loc[table.is_predicted]
-    assert unmeasured.kind.tolist() == ["c"] * 5 + ["d"] * 5
-    raw_counts = [0.5, 2**53, 2**53 + 1, None, b"code"] * 2
-    assert unmeasured["count"].tolist() == [str(value) for value in raw_counts]
-    assert np.isfinite(unmeasured["self"]).all()
-    assert np.isfinite(mmd_squared)
-    assert measured_labels(categorical_space, target) == original_labels
-    assert not list(tmp_path.glob("previous_model*"))
+    stored = DataContainerResource.model_validate_json(dataset.model_dump_json())
+    rows = stored.config.tabularData["predictions"].data
+    binary_code = {"valueType": "BLOB_VALUE_TYPE", "value": "Y29kZQ=="}
+    assert rows["code"] == [1, "1", binary_code, 2**53 + 1, None]
+    assert rows["self"][:4] == [0, 2**53 + 1, 2, 3]
+    assert rows["is_predicted"] == [False, False, False, False, True]
 
 
-@pytest.mark.parametrize(
-    ("codes", "expected_labels", "expected_mmd"),
-    [
-        ([2**53], [1], None),
-        ([2**53, 2**53 + 1], [1, 2], 0.0),
-    ],
-)
-def test_fully_measured_small_space_publishes_existing_targets(
-    categorical_space: DiscoverySpace,
-    make_pkh_space: Callable[[list[ConstitutiveProperty]], DiscoverySpace],
-    codes: list[int],
-    expected_labels: list[int],
-    expected_mmd: float | None,
-) -> None:
-    """PKH publishes all measured targets even on grids too small to fit AutoGluon."""
-    kind, count = categorical_space.entitySpace.constitutiveProperties
-    space = make_pkh_space(
-        [
-            kind.model_copy(update={"propertyDomain": PropertyDomain(values=["b"])}),
-            count.model_copy(update={"propertyDomain": PropertyDomain(values=codes)}),
-        ]
-    )
-    parameters = PKHParameters(
-        targetOutput="self", numberEntities=1, finalPredictor="autogluon"
-    )
-    target = validate_target_output(parameters.targetOutput, space)
-    resource, mmd_squared = operator._complete_dataset(space, parameters, target, set())
-    table = resource.config.tabularData["predictions"].dataframe()
-    assert table["self"].tolist() == expected_labels
-    assert not table.is_predicted.any()
-    assert "predictor" not in (resource.config.metadata.labels or {})
-    assert mmd_squared == expected_mmd
-
-
-def test_incomplete_measurements_cannot_publish_a_dataset(
+def test_prediction_budget_counts_only_the_selected_target(
     categorical_space: DiscoverySpace,
 ) -> None:
-    """PKH checks newly measured entities before publishing their targets."""
-    parameters = PKHParameters(targetOutput="self", numberEntities=1)
-    target = validate_target_output(parameters.targetOutput, categorical_space)
-    missing = categorical_space.entitySpace.entity_for_point(
-        {"kind": "d", "count": 2**53 + 1}
-    )
-    with pytest.raises(ValueError, match="Missing finite target measurements"):
-        operator._complete_dataset(
-            categorical_space, parameters, target, {missing.identifier}
-        )
-    with pytest.raises(ValueError, match="budget is incomplete"):
-        operator._complete_dataset(categorical_space, parameters, target, set())
-
-
-@pytest.mark.parametrize("predictor", ["random_forest", "autogluon"])
-def test_checks_attainable_and_collected_label_counts(
-    categorical_space: DiscoverySpace,
-    predictor: str,
-) -> None:
-    """Each final predictor needs enough labels if unmeasured candidates remain."""
-    parameters = PKHParameters(
-        targetOutput="selected-selected-self",
-        numberEntities=1,
-        finalPredictor=predictor,
-    )
+    """Exclude the identically named target from another actuator at both stages."""
+    parameters = PKHParameters(targetOutput="selected-selected-self", numberEntities=1)
     with pytest.raises(ValueError, match=r"at least 4.*at most 2"):
         operator.pkh.__wrapped__(categorical_space, parameters=parameters)
-    sampled = categorical_space.entitySpace.entity_for_point({"kind": 1, "count": 0.5})
+
     target = validate_target_output(parameters.targetOutput, categorical_space)
     with pytest.raises(ValueError, match=r"at least 4.*collected 1"):
         operator._complete_dataset(
-            categorical_space, parameters, target, {sampled.identifier}
+            categorical_space, parameters, target, {"stored-number": 10}
+        )
+    other_lab = categorical_space.entitySpace.entity_for_point({"code": None})
+    with pytest.raises(ValueError, match="Missing finite target measurements"):
+        operator._complete_dataset(
+            categorical_space, parameters, target, {other_lab.identifier: None}
         )

@@ -1,79 +1,168 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-"""Test the AutoGluon predictors used to complete PKH measurements."""
+"""Model selection and refitting for PKH's final predictions."""
+
+from collections.abc import Callable
 
 import numpy as np
 import pandas as pd
 import pytest
-from active_learning.pkh.parameters import (
-    ActiveLearningAutoGluonParameters,
-    PKHParameters,
+from active_learning.pkh.parameters import PKHParameters
+
+from ado.core.discoveryspace.space import DiscoverySpace
+from ado.schema.domain import PropertyDomain, VariableTypeEnum
+from ado.schema.property import ConstitutiveProperty
+
+pytest.importorskip("autogluon.tabular")
+
+from active_learning.pkh.autogluon import (  # noqa: E402
+    predict_unmeasured,
+    validate_knn_prediction,
 )
-
-
-@pytest.mark.parametrize(
-    ("mode", "expected_model"),
-    [("random_forest", "RandomForest_FULL"), ("autogluon", "WeightedEnsemble_L2_FULL")],
+from active_learning.pkh.data import (  # noqa: E402
+    candidate_coordinates,
+    candidate_entities,
+    feature_frame,
 )
-def test_transient_tree_predictions(mode: str, expected_model: str) -> None:
-    """AutoGluon can select a blend of two tree models for a quadratic target."""
-    pytest.importorskip("autogluon.tabular")
-    from active_learning.pkh.autogluon import predict_unmeasured
+from active_learning.pkh.operator import pkh  # noqa: E402
 
-    hyperparameters = {"RF": {"n_estimators": 10}}
-    if mode == "autogluon":
-        hyperparameters["XT"] = {"n_estimators": 10}
-    frame = pd.DataFrame({"x": np.arange(160)})
+
+def test_winning_ensemble_refits_on_all_measured_rows() -> None:
+    """PKH fills missing rows in grid order using the best-scoring ensemble."""
+    frame = pd.DataFrame({"x": range(160)})
     labels = frame["x"].astype(float) ** 2
     labels.iloc[[15, 145]] = np.nan
     parameters = PKHParameters(
-        targetOutput="self",
-        numberEntities=20,
-        finalPredictor=mode,
-        autoGluon=ActiveLearningAutoGluonParameters(hyperparameters=hyperparameters),
+        targetOutput="y",
+        numberEntities=2,
+        finalPredictor="autogluon",
+        autoGluon={
+            "hyperparameters": {"RF": {"n_estimators": 10}, "XT": {"n_estimators": 10}}
+        },
     )
-    values, model = predict_unmeasured(frame, labels, "self", parameters)
-    assert model == expected_model
-    assert values.shape == (2,)
-    assert np.isfinite(values).all()
-    assert values[0] < values[1]
+    values, metadata = predict_unmeasured(frame, labels, "y", parameters)
+    assert metadata["predictor"].startswith("WeightedEnsemble")
+    assert int(metadata["predictorTrainingRows"]) == 158
+    low, high = values
+    assert 0 <= low < high <= labels.max()
 
 
-def test_single_model_wins_validation_tie_on_constant_labels() -> None:
-    """AutoGluon's regression preset can complete a constant target with one model."""
-    pytest.importorskip("autogluon.tabular")
-    from active_learning.pkh.autogluon import predict_unmeasured
-
-    frame = pd.DataFrame(
-        {"category": pd.Categorical(["None", "9007199254740993", "a", "b", "c"])}
-    )
-    labels = pd.Series([5.0, 5.0, 5.0, 5.0, np.nan])
+def test_validation_tie_uses_stable_model_order() -> None:
+    """Prefer a single model and break base-model ties by name."""
+    frame = pd.DataFrame({"x": [0.0, 1.0, 2.0, 3.0, 1.4]})
+    labels = pd.Series([0.0, 10.0, 0.0, 0.0, np.nan])
+    first_model = {"n_estimators": 250, "max_depth": 1}
     parameters = PKHParameters(
-        targetOutput="y", numberEntities=4, finalPredictor="autogluon"
+        targetOutput="y",
+        numberEntities=4,
+        finalPredictor="autogluon",
+        autoGluon={
+            "hyperparameters": {
+                "RF": [
+                    first_model,
+                    {"n_estimators": 10, "max_depth": 9},
+                ]
+            }
+        },
     )
-    values, model = predict_unmeasured(frame, labels, "y", parameters)
-    assert model.endswith("_FULL")
-    assert not model.startswith("WeightedEnsemble")
-    # The native regression preset names its RF candidate RandomForestMSE.
-    assert model != "RandomForest_FULL"
-    np.testing.assert_allclose(values, [5.0])
+    values, metadata = predict_unmeasured(frame, labels, "y", parameters)
+    assert metadata["predictor"] == "RandomForest_FULL"
+    reference = PKHParameters(
+        targetOutput="y",
+        numberEntities=4,
+        autoGluon={"hyperparameters": {"RF": first_model}},
+    )
+    expected, _ = predict_unmeasured(frame, labels, "y", reference)
+    np.testing.assert_allclose(values, expected)
 
 
-def test_automatic_selection_can_choose_a_configured_linear_model() -> None:
-    """A linear predictor wins validation and extrapolates beyond measured values."""
-    pytest.importorskip("autogluon.tabular")
-    from active_learning.pkh.autogluon import predict_unmeasured
+@pytest.mark.parametrize(
+    ("preset", "coordinate_values", "label_count", "message"),
+    [
+        ("medium_quality", [0, 1, 2, 3, 4], 4, "2 available training rows"),
+        ("best_quality", [0, 1, 2, 3, 4, 5], 5, "4 available training rows"),
+        ("medium_quality", list("abcdefghijk"), 10, "numeric feature"),
+    ],
+)
+def test_knn_preflight_requires_enough_neighbors_and_numeric_features(
+    make_pkh_space: Callable[[list[ConstitutiveProperty]], DiscoverySpace],
+    preset: str,
+    coordinate_values: list[int] | list[str],
+    label_count: int,
+    message: str,
+) -> None:
+    """Reject infeasible KNN settings through PKH before dispatching any measurement."""
+    space = make_pkh_space(
+        [
+            ConstitutiveProperty(
+                identifier="x", propertyDomain=PropertyDomain(values=coordinate_values)
+            )
+        ]
+    )
+    parameters = PKHParameters(
+        targetOutput="self",
+        numberEntities=label_count,
+        finalPredictor="autogluon",
+        autoGluon={"presets": preset, "hyperparameters": {"KNN": {}}},
+    )
+    with pytest.raises(ValueError, match=message):
+        pkh.__wrapped__(space, parameters=parameters)
 
-    frame = pd.DataFrame({"x": np.arange(101)})
-    labels = 2.0 * frame["x"] + 3
+
+def test_knn_can_use_binary_coordinates(
+    make_pkh_space: Callable[[list[ConstitutiveProperty]], DiscoverySpace],
+) -> None:
+    """Fit with a binary feature and categorical coordinates."""
+    space = make_pkh_space(
+        [
+            ConstitutiveProperty(
+                identifier="group",
+                propertyDomain=PropertyDomain(values=["a", "b", "c", "d"]),
+            ),
+            ConstitutiveProperty(
+                identifier="flag",
+                propertyDomain=PropertyDomain(
+                    variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE
+                ),
+            ),
+        ]
+    )
+    parameters = PKHParameters(
+        targetOutput="y",
+        numberEntities=6,
+        finalPredictor="autogluon",
+        autoGluon={"hyperparameters": {"KNN": {"n_neighbors": 2}}},
+    )
+    frame = feature_frame(space, candidate_coordinates(candidate_entities(space)))
+    labels = frame["flag"].astype(float).mask(frame["group"] == 3)
+    validate_knn_prediction(parameters, parameters.numberEntities, space.entitySpace)
+    values, _ = predict_unmeasured(frame, labels, "y", parameters)
+    np.testing.assert_allclose(values, frame.loc[labels.isna(), "flag"].to_numpy())
+
+
+def test_bagged_refit_reports_retained_training_rows(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Bagging accepts the largest PKH seed and reports the copied fold's size."""
+    frame = pd.DataFrame({"x": range(40)})
+    labels = frame["x"].astype(float)
     labels.iloc[-1] = np.nan
     parameters = PKHParameters(
         targetOutput="y",
-        numberEntities=100,
+        numberEntities=1,
+        seed=2**32 - 1,
         finalPredictor="autogluon",
-        autoGluon={"hyperparameters": {"LR": {"C": 1e6}, "RF": {"n_estimators": 10}}},
+        autoGluon={
+            "presets": "best_quality",
+            "hyperparameters": {
+                "DUMMY": {
+                    "ag_args_ensemble": {"fold_fitting_strategy": "sequential_local"}
+                }
+            },
+        },
     )
-    values, model = predict_unmeasured(frame, labels, "y", parameters)
-    assert model == "LinearModel_FULL"
-    np.testing.assert_allclose(values, [203.0], atol=1e-3)
+    _, metadata = predict_unmeasured(frame, labels, "y", parameters)
+    rows = int(metadata["predictorTrainingRows"])
+    assert 0 < rows < 39
+    assert f"{rows} of 39 measured rows" in caplog.text

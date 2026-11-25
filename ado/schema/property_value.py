@@ -247,15 +247,13 @@ def _hashable_value(value: object) -> object:
     """Convert a property value into a hashable equivalent.
 
     Args:
-        value: A property value, including vectors with nested lists or dictionaries.
+        value: A property value; lists (including nested lists) are converted to tuples.
 
     Returns:
-        A hashable value that preserves equality across dictionary insertion orders.
+        The value with all lists recursively replaced by tuples.
     """
     if isinstance(value, list):
         return tuple(_hashable_value(item) for item in value)
-    if isinstance(value, dict):
-        return frozenset((key, _hashable_value(item)) for key, item in value.items())
     return value
 
 

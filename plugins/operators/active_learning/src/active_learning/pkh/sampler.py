@@ -9,19 +9,19 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 import ray
-from pydantic import BaseModel
 from scipy.sparse import csr_matrix
 from sklearn.ensemble import RandomForestRegressor
 
 from active_learning.forest_sampling import ForestSamplingState
 from active_learning.pkh.data import (
+    candidate_coordinates,
     candidate_entities,
     encode_feature_matrix,
     feature_frame,
     measured_labels,
-    target_label,
     validate_candidate_space,
     validate_target_output,
+    walk_measurement_labels,
 )
 from active_learning.pkh.parameters import PKHParameters
 from ado.core.discoveryspace.samplers import BaseSampler
@@ -44,14 +44,7 @@ class PKHState(ForestSamplingState):
         initial_labels: list[float],
         params: PKHParameters,
     ) -> None:
-        """Initialize PKH selection state for a finite candidate feature pool.
-
-        Args:
-            features: 2D array of candidate entity features shape (N, D).
-            initial_measured_indices: Indices of entities with prior measurements.
-            initial_labels: Measurement target values for initial_measured_indices.
-            params: PKH sampler hyperparameters.
-        """
+        """Initialize sampling from the finite pool and any prior measurements."""
         super().__init__(
             features,
             initial_measured_indices,
@@ -64,7 +57,7 @@ class PKHState(ForestSamplingState):
         self._pool_leaf_mass: np.ndarray | None = None
 
     def fit_forest_and_histograms(self) -> None:
-        """Fit the Random Forest on measured points and construct pool leaf histograms."""
+        """Fit the forest on measured points and build its pool leaf histograms."""
         if len(self.measured_indices) < 2:
             return
 
@@ -114,11 +107,11 @@ class PKHState(ForestSamplingState):
             self.fit_forest_and_histograms()
 
         if (discrepancy := self._leaf_discrepancy()) is None:
-            return int(unmeasured[0])
+            return int(self._rng.choice(unmeasured))
 
         scores = np.zeros(len(unmeasured), dtype=float)
 
-        # Score candidates: average under-representation across all trees in the ensemble
+        # Accumulate one tree at a time to bound temporary storage on large grids.
         for tree_idx in range(self.params.nEstimators):
             candidate_leaves = self._leaf_assignments[unmeasured, tree_idx]
             scores += discrepancy[tree_idx, candidate_leaves]
@@ -152,12 +145,8 @@ class PKHSampleSelector(BaseSampler):
         return True
 
     @classmethod
-    def parameters_model(cls) -> type[BaseModel] | None:
-        """Return the parameter model validated by RandomWalk for this sampler.
-
-        The operator forwards its full parameter set, including ``targetOutput``
-        which the sampler reads to collect measured labels.
-        """
+    def parameters_model(cls) -> type[PKHParameters]:
+        """Return the parameter model RandomWalk validates for this sampler."""
         return PKHParameters
 
     def entityIterator(
@@ -165,11 +154,7 @@ class PKHSampleSelector(BaseSampler):
         discoverySpace: DiscoverySpace,
         batchsize: int = 1,
     ) -> Generator[list[Entity], None, None]:
-        """Use ``remoteEntityIterator`` to select entities with live measurement feedback.
-
-        Raises:
-            NotImplementedError: PKH requires the asynchronous iterator.
-        """
+        """Require the remote iterator for live measurement feedback."""
         raise NotImplementedError(
             "PKHSampleSelector only supports remoteEntityIterator"
         )
@@ -179,50 +164,50 @@ class PKHSampleSelector(BaseSampler):
         remoteDiscoverySpace: "DiscoverySpaceManager",
         batchsize: int = 1,
     ) -> AsyncGenerator[list[Entity], None]:
-        """Return an async iterator of entities driven by PKH leaf-histogram herding.
-
-        Args:
-            remoteDiscoverySpace: Handle to the remote Discovery Space manager.
-            batchsize: Must be 1 for sequential active learning feedback.
-
-        Returns:
-            Async generator yielding single-element lists of Entity objects to measure.
-        """
+        """Request one entity at a time so each measurement informs the next choice."""
         if batchsize != 1:
             raise ValueError(f"PKHSampleSelector requires batchsize=1, got {batchsize}")
 
-        return self._entity_stream(remoteDiscoverySpace)
+        # The RandomWalk actor supplies the same identifier on its measurement requests.
+        walk = ray.get_runtime_context().current_actor
+        operation_id = await walk.operationIdentifier.remote()
+        return self._entity_stream(remoteDiscoverySpace, operation_id)
 
     async def _entity_stream(
         self,
-        remoteDiscoverySpace: "DiscoverySpaceManager",
+        remote_discovery_space: "DiscoverySpaceManager",
+        operation_id: str,
     ) -> AsyncGenerator[list[Entity], None]:
-        """Yield candidate entities sequentially driven by PKH leaf-histogram herding."""
+        """Yield candidates according to their forest leaf discrepancies."""
         discovery_space: DiscoverySpace = (
-            await remoteDiscoverySpace.discoverySpace.remote()
+            await remote_discovery_space.discoverySpace.remote()
         )
         target = validate_target_output(self.params.targetOutput, discovery_space)
-        existing_labels = measured_labels(discovery_space, target)
         entities = candidate_entities(discovery_space)
-        initial_indices = [
-            idx
-            for idx, entity in enumerate(entities)
-            if entity.identifier in existing_labels
-        ]
-        if len(initial_indices) == len(entities):
+        existing_labels = measured_labels(discovery_space, target, entities)
+        if len(existing_labels) == len(entities):
             return
-        initial_labels = [
-            existing_labels[entities[idx].identifier] for idx in initial_indices
-        ]
+        initial_indices = []
+        initial_labels = []
+        for index, entity in enumerate(entities):
+            if (label := existing_labels.get(entity.identifier)) is not None:
+                initial_indices.append(index)
+                initial_labels.append(label)
 
         state = PKHState(
-            encode_feature_matrix(feature_frame(discovery_space, entities)),
+            encode_feature_matrix(
+                feature_frame(discovery_space, candidate_coordinates(entities))
+            ),
             initial_measured_indices=initial_indices,
             initial_labels=initial_labels,
             params=self.params,
         )
 
-        for batch in state.sample_with_feedback(
-            entities, discovery_space, target, target_label
-        ):
+        def read_label(identifier: str) -> int | float | None:
+            """Read the current walk's result for the selected entity."""
+            return walk_measurement_labels(
+                discovery_space, target, operation_id, entity_identifier=identifier
+            ).get(identifier)
+
+        for batch in state.sample_with_feedback(entities, target, read_label):
             yield batch

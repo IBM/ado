@@ -34,7 +34,7 @@ _MODEL_BACKENDS = {
     ("NN_TORCH", "TABM"): ("torch", "torch"),
     ("REALMLP",): ("pytabkit", "autogluon.tabular[realmlp]"),
     ("EBM",): ("interpret.glassbox", "autogluon.tabular[interpret]"),
-    # The 1.6.3 greedy-tree adapter passes an unsupported argument to sklearn's regressor.
+    # The 1.6.3 greedy-tree adapter passes an unsupported sklearn argument.
     ("IM_RULEFIT", "IM_FIGS", "IM_HSTREE"): (
         "imodels",
         "autogluon.tabular[imodels]",
@@ -76,7 +76,7 @@ class ActiveLearningAutoGluonParameters(BaseModel):
         Field(
             validation_alias=AliasChoices("timeLimit", "time_limit"),
             serialization_alias="time_limit",
-            description="Training time limit in seconds.",
+            description="Time limit in seconds for the initial validation fit.",
         ),
     ] = 60
     hyperparameters: Annotated[
@@ -107,12 +107,10 @@ class PKHParameters(GenericOperatorParameters):
         | Annotated[int, Field(ge=1)]
         | Annotated[float, Field(gt=0, le=1)]
         | None,
-        Field(
-            description="Features per sampling forest split: count, fraction, sqrt, log2, or null."
-        ),
+        Field(description="Features per split: count, fraction, sqrt, log2, or null."),
     ] = "sqrt"
     criterion: Annotated[
-        Literal["squared_error", "absolute_error", "friedman_mse", "poisson"],
+        Literal["squared_error", "absolute_error", "poisson"],
         Field(description="Sampling forest split criterion."),
     ] = "squared_error"
     seed: Annotated[
@@ -122,7 +120,10 @@ class PKHParameters(GenericOperatorParameters):
     nJobs: Annotated[
         Annotated[int, Field(le=-1)] | PositiveInt,
         Field(
-            description="CPU jobs for the sampling forest and final predictor. Use -1 for all processors."
+            description=(
+                "CPU jobs for the sampling forest and final predictor. "
+                "Use -1 for all processors."
+            )
         ),
     ] = 1
     targetOutput: Annotated[
@@ -149,7 +150,7 @@ class PKHParameters(GenericOperatorParameters):
         Literal["random_forest", "autogluon"],
         Field(
             description=(
-                "AutoGluon fits the final predictor. random_forest fits a Random Forest. "
+                "random_forest uses only AutoGluon Random Forest models. "
                 "autogluon selects a model by validation RMSE using the chosen preset "
                 "or the families in autoGluon.hyperparameters."
             )
@@ -170,7 +171,8 @@ class PKHParameters(GenericOperatorParameters):
             raise ValueError("random_forest accepts only RF hyperparameters.")
         if invalid := configured.keys() - _BASE_REGRESSORS:
             raise ValueError(
-                f"Unsupported AutoGluon model families for PKH regression: {sorted(invalid)}."
+                "Unsupported AutoGluon model families for PKH regression: "
+                f"{sorted(invalid)}."
             )
         return self
 
@@ -181,7 +183,7 @@ class PKHParameters(GenericOperatorParameters):
             return None
         models = dict(configured or {"RF": {}})
         if "CAT" in models:
-            # A small training split can have a constant target even when the full pool varies.
+            # In a small training split all target values can be equal.
             cat = models["CAT"]
             defaults = {"allow_const_label": True}
             models["CAT"] = (

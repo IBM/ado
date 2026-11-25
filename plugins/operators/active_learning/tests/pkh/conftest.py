@@ -11,12 +11,14 @@ import pytest
 from ado.core.discoveryspace.space import DiscoverySpace
 from ado.core.samplestore.sql import SQLSampleStore
 from ado.metastore.project import ProjectContext
-from ado.schema.domain import PropertyDomain, VariableTypeEnum
+from ado.schema.domain import PropertyDomain
+from ado.schema.entity import Entity
 from ado.schema.entityspace import EntitySpaceRepresentation
 from ado.schema.experiment import Experiment
 from ado.schema.measurementspace import MeasurementSpace, MeasurementSpaceConfiguration
-from ado.schema.observed_property import ObservedPropertyValue
+from ado.schema.observed_property import ObservedProperty, ObservedPropertyValue
 from ado.schema.property import ConcretePropertyDescriptor, ConstitutiveProperty
+from ado.schema.request import MeasurementRequest, MeasurementRequestStateEnum
 from ado.schema.result import ValidMeasurementResult
 from ado.utilities.location import SQLiteStoreConfiguration
 
@@ -53,63 +55,31 @@ def make_pkh_space(
 
 
 @pytest.fixture
-def empty_pkh_space(
-    make_pkh_space: Callable[[list[ConstitutiveProperty]], DiscoverySpace],
-) -> DiscoverySpace:
-    """Create a one-candidate space for checks that precede measurement."""
-    kind = ConstitutiveProperty(
-        identifier="kind", propertyDomain=PropertyDomain(values=["b"])
-    )
-    return make_pkh_space([kind])
-
-
-@pytest.fixture
 def categorical_space(
     make_pkh_space: Callable[[list[ConstitutiveProperty]], DiscoverySpace],
 ) -> DiscoverySpace:
-    """Twenty mixed-category candidates, with labels for the first two kinds."""
-    kinds = [1, "b", "c", "d"]
-    codes = [0.5, 2**53, 2**53 + 1, None, b"code"]
-    space = make_pkh_space(
-        [
-            ConstitutiveProperty(
-                identifier="kind", propertyDomain=PropertyDomain(values=kinds)
-            ),
-            ConstitutiveProperty(
-                identifier="count",
-                propertyDomain=PropertyDomain(
-                    values=codes,
-                    variableType=VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE,
-                ),
-            ),
-        ]
+    """Five distinct coordinates, four labeled by the selected experiment."""
+    codes = [1, "1", b"code", 2**53 + 1, None]
+    prop = ConstitutiveProperty(
+        identifier="code", propertyDomain=PropertyDomain(values=codes)
     )
-    entities = [
-        space.entitySpace.entity_for_point({"kind": kind, "count": code})
-        for kind in kinds
-        for code in codes
-    ]
+    space = make_pkh_space([prop])
+    entities = [space.entitySpace.entity_for_point({"code": value}) for value in codes]
+    # Generated identifiers for 1 and "1" coincide.
+    entities[0] = entities[0].model_copy(update={"identifier": "stored-number"})
     space.sample_store.addEntities(entities)
-    # Prime the cache before another writer adds the target measurements.
-    space.sample_store.get_entities(require_measurements=True)
-    writer = SQLSampleStore(
-        identifier=space.sample_store.identifier,
-        storageLocation=space.project_context.metadataStore,
-        parameters={},
-    )
     experiment = space.measurementSpace.experiments[0]
     target, _, alternate = experiment.observedProperties
-    other_target = experiment.model_copy(
-        update={"identifier": "other"}
-    ).observedProperties[0]
+    other_lab = experiment.model_copy(update={"actuatorIdentifier": "other_lab"})
     observations = [
-        (entity, target, value)
-        for entity, value in zip(entities[:10], [0, 1, 2, 10, 20] * 2, strict=True)
+        (entities[0], target, 0),
+        (entities[1], target, 2**53 + 1),
+        (entities[2], target, 2),
+        (entities[3], target, 3),
+        (entities[0], alternate, 10),
+        (entities[4], other_lab.observedProperties[-1], 999),
     ]
-    observations.extend(
-        [(entities[10], other_target, 999), (entities[0], alternate, 10)]
-    )
-    writer.add_measurement_results(
+    space.sample_store.add_measurement_results(
         [
             ValidMeasurementResult(
                 entityIdentifier=entity.identifier,
@@ -120,3 +90,34 @@ def categorical_space(
         skip_relationship_to_request=True,
     )
     return space
+
+
+@pytest.fixture
+def record_pkh_measurement(
+    categorical_space: DiscoverySpace,
+) -> Callable[[Entity, str, ObservedProperty, int], None]:
+    """Store a measurement with its originating operation in the SQLite catalog."""
+
+    def record(
+        entity: Entity, operation_id: str, target: ObservedProperty, value: int
+    ) -> None:
+        """Write one successful result for the specified operation and property."""
+        categorical_space.sample_store.addMeasurement(
+            MeasurementRequest(
+                operation_id=operation_id,
+                requestIndex=0,
+                experimentReference=target.experimentReference,
+                entities=[entity],
+                status=MeasurementRequestStateEnum.SUCCESS,
+                measurements=(
+                    ValidMeasurementResult(
+                        entityIdentifier=entity.identifier,
+                        measurements=[
+                            ObservedPropertyValue(property=target, value=value)
+                        ],
+                    ),
+                ),
+            )
+        )
+
+    return record

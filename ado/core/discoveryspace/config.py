@@ -487,7 +487,7 @@ class DiscoverySpaceConfiguration(pydantic.BaseModel):
 
         # Create EntitySpaceRepresentation from the entity space configuration
         entity_space = EntitySpaceRepresentation.representationFromConfiguration(
-            self.entitySpace
+            self.entitySpace, constraints=self.constraints
         )
 
         if isinstance(self.experiments, MeasurementSpaceConfiguration):

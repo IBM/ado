@@ -4,7 +4,7 @@ description = "TRIM (Transfer Refined Iterative Modeling) builds an accurate pre
 readme = "README.md"
 requires-python = ">=3.11,<3.14"
 dependencies = [
-  "ado-core>=2.0.0",
+  "ado-core>=2.4.1.dev0",
   "autogluon-tabular[catboost,xgboost]==1.6.3 ; python_full_version < '3.14'",
   "numpy",
   "pandas>=2.2.0",

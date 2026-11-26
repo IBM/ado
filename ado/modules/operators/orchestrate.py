@@ -150,7 +150,7 @@ def orchestrate(
         # GET INPUTS
         #
 
-        metastore = SQLStore(project_context=project_context)
+        metastore = SQLResourceStore(project_context=project_context)
         inputs = resource_references_to_operation_inputs(
             resource_references=operation_resource_configuration.inputs,
             metastore=metastore,

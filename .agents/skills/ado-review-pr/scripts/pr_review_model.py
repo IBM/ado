@@ -10,8 +10,9 @@ the API calls that post it.
 Usage:
     uv run python pr_review_model.py [FILE]
         Read the review JSON from FILE (default: stdin). On success print the
-        normalized compact JSON and exit 0; otherwise print every problem to
-        stderr and exit 1.
+        normalized compact JSON and exit 0; when the review is not valid print
+        every problem to stderr and exit 1; when FILE does not exist, is a
+        directory, or is not readable exit 2.
     uv run python pr_review_model.py --schema
         Print the JSON schema of the review.
 """
@@ -74,7 +75,17 @@ class ReviewComment(pydantic.BaseModel):
     @pydantic.field_validator("path")
     @classmethod
     def strip_leading_dot_slash(cls, value: str) -> str:
-        """Remove leading ``./`` segments from a path."""
+        """Remove leading ``./`` segments from a path.
+
+        Args:
+            value: The path.
+
+        Returns:
+            The path without leading ``./`` segments.
+
+        Raises:
+            ValueError: If no path is left after removing the segments.
+        """
         while value.startswith("./"):
             value = value[2:]
         if not value:
@@ -215,10 +226,10 @@ def main(
         typer.echo(json.dumps(Review.model_json_schema(), indent=2))
         return
 
-    text = file.read_text(encoding="utf-8") if file else sys.stdin.read()
+    content = file.read_bytes() if file else sys.stdin.buffer.read()
 
     try:
-        review = Review.model_validate_json(text)
+        review = Review.model_validate_json(content)
     except pydantic.ValidationError as error:
         typer.echo("Invalid review:", err=True)
         for problem in describe_errors(error):

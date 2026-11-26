@@ -180,10 +180,24 @@ def test_main_truncates_long_received_values(
 def test_main_rejects_missing_file(
     pr_review_model: types.ModuleType,
     tmp_path: pathlib.Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    result = typer.testing.CliRunner().invoke(
-        pr_review_model.app, [str(tmp_path / "missing.json")]
-    )
+    monkeypatch.chdir(tmp_path)
 
-    assert result.exit_code != 0
-    assert "Traceback" not in result.stderr
+    result = typer.testing.CliRunner().invoke(pr_review_model.app, ["missing.json"])
+
+    assert result.exit_code == 2
+    assert "does not exist" in result.stderr
+
+
+def test_main_reports_non_utf8_file_as_invalid(
+    pr_review_model: types.ModuleType,
+    tmp_path: pathlib.Path,
+) -> None:
+    review_file = tmp_path / "review.json"
+    review_file.write_bytes(b'{"commit_id": "\xff\xfe", "summary": "x"}')
+
+    result = typer.testing.CliRunner().invoke(pr_review_model.app, [str(review_file)])
+
+    assert result.exit_code == 1
+    assert "Invalid review" in result.stderr

@@ -87,7 +87,7 @@ separate report.
    `ado-review-branch` describes. Apply
    [Using the context](#using-the-context) while writing it.
 6. Write the [structured review](#structured-review) to `$REVIEW_JSON` and
-   validate it from `$MAIN_DIR`, so the PR's copy of the script is not run.
+   validate it from `$MAIN_DIR`.
 7. Remove the worktree and the fetched refs from `$MAIN_DIR`:
    `git worktree remove --force "$REVIEW_DIR"`,
    `git update-ref -d refs/review/<number>/head`, and
@@ -104,6 +104,8 @@ below with `--jq`, so each call stays within its timeout; set
 ### Checks
 
 `gh pr checks <number>`. Keep the name, state, and link of every failing check.
+The command exits with status 8 while checks are pending; its output is valid
+whatever the exit status.
 
 ### Description
 
@@ -151,7 +153,8 @@ PR's own changes.
 - Reviews: `pulls/<number>/reviews`. Keep `id`, `user.login`, `state`, `body`,
   `commit_id`, and `submitted_at`.
 - Inline comments: `pulls/<number>/comments`. Keep `id`, `in_reply_to_id`,
-  `user.login`, `path`, `line`, `original_line`, `commit_id`, and `body`.
+  `user.login`, `path`, `line`, `original_line`, `commit_id`,
+  `original_commit_id`, and `body`.
 - Conversation comments: `issues/<number>/comments`.
 - Thread state, which REST does not expose. Only the root comment of each
   thread is requested: its `databaseId` is the `id` of the REST comment that
@@ -189,8 +192,11 @@ PR's own changes.
 Findings come from the posted reviews and comments of every reviewer, and from
 the unposted report. For each, assign one status:
 
-- **Addressed**: `git diff <comment commit_id>..<headRefOid> -- <path>` changes
-  the commented lines in the way the comment asked
+- **Addressed**: `git diff <comment original_commit_id>..<headRefOid> -- <path>`
+  changes the commented lines, or the file the comment asks to change, in the
+  way the comment asked. `commit_id` is not used here because GitHub moves it
+  to the head commit while the commented line survives, which makes the diff
+  empty
 - **Answered**: a reply explains why it is not changing; record the reason
 - **Open**: no reply, and the commented lines are unchanged, whether or not its
   thread is resolved
@@ -253,9 +259,11 @@ validation below.
 - Write each paragraph or list item on one line; do not hard-wrap.
 - Do not include credentials.
 
-Validate the file from `$MAIN_DIR`, not `$REVIEW_DIR`: the script and the `uv`
-project in the review worktree come from the PR. The command prints the
-normalized JSON, or every problem and a non-zero exit status:
+Validate the file from `$MAIN_DIR`, not `$REVIEW_DIR`. The script and the `uv`
+project are those of the main checkout, which are the PR's own when `HEAD` in
+`$MAIN_DIR` is `headRefOid`. The command prints the normalized JSON, or every
+problem and a non-zero exit status (1 for an invalid review, 2 when the file
+cannot be read):
 
 ```sh
 cd "$MAIN_DIR"

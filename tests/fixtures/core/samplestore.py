@@ -33,7 +33,7 @@ from ado.core.samplestore.csv import (
 )
 from ado.core.samplestore.sql import SQLSampleStore
 from ado.metastore.project import ProjectContext
-from ado.metastore.sqlstore import SQLStore
+from ado.metastore.sqlstore import SQLResourceStore
 from ado.utilities.location import FilePathLocation, SQLStoreConfiguration
 
 
@@ -67,7 +67,7 @@ def random_sample_store_resource_from_file(
 @pytest.fixture
 def random_sample_store_resource_from_db(
     random_sample_store_resource_from_file: Callable[[], SampleStoreResource],
-    create_resources: Callable[[list[ADOResource], SQLStore], None],
+    create_resources: Callable[[list[ADOResource], SQLResourceStore], None],
 ) -> Callable[[SampleStoreResource], SampleStoreResource]:
     def _random_sample_store_resource_from_db() -> SampleStoreResource:
         sample_store = random_sample_store_resource_from_file()

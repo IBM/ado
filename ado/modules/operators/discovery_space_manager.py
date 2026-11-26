@@ -26,7 +26,7 @@ from ado.utilities.environment import enable_ray_actor_coverage
 from ado.utilities.logging import configure_logging
 
 if typing.TYPE_CHECKING:
-    from ado.metastore.sqlstore import SQLStore
+    from ado.metastore.sqlstore import SQLResourceStore
     from ado.schema.entity import Entity
     from ado.schema.experiment import Experiment, ParameterizedExperiment
     from ado.schema.observed_property import ObservedProperty
@@ -369,7 +369,7 @@ class DiscoverySpaceManager:
 
         return self._discoverySpace.measurementSpace.experiments
 
-    def metadataStore(self) -> "SQLStore":
+    def metadataStore(self) -> "SQLResourceStore":
 
         return self._discoverySpace.metadataStore
 

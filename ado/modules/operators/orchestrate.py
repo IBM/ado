@@ -85,7 +85,7 @@ def orchestrate(
         discovery_spaces_from_inputs,
         resource_references_to_rich_types,
     )
-    from ado.metastore.sqlstore import SQLStore
+    from ado.metastore.sqlstore import SQLResourceStore
 
     #
     # INIT RAY
@@ -127,7 +127,7 @@ def orchestrate(
     # GET INPUTS
     #
 
-    metastore = SQLStore(project_context=project_context)
+    metastore = SQLResourceStore(project_context=project_context)
     inputs = resource_references_to_rich_types(
         resource_references=operation_resource_configuration.inputs,
         metastore=metastore,

@@ -10,7 +10,7 @@ from ado.cli.core.cli import app as ado
 from ado.core.document.config import DocumentConfiguration
 from ado.core.document.resource import DocumentResource
 from ado.metastore.project import ProjectContext
-from ado.metastore.sqlstore import SQLStore
+from ado.metastore.sqlstore import SQLResourceStore
 
 
 def test_delete_document(
@@ -19,7 +19,7 @@ def test_delete_document(
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
     ],
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
 ) -> None:
     """Delete removes a document resource."""
     config = DocumentConfiguration(content="Example report")

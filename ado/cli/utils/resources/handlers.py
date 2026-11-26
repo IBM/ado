@@ -64,14 +64,14 @@ if typing.TYPE_CHECKING:
     )
     from ado.core import ADOResource, CoreResourceKinds
     from ado.metastore.project import ProjectContext
-    from ado.metastore.sqlstore import SQLStore
+    from ado.metastore.sqlstore import SQLResourceStore
 
 
 def resolve_related_to_identifiers(
     source_kind: "CoreResourceKinds",
     source_id: str,
     requested_kind: "CoreResourceKinds",
-    sql_store: "SQLStore",
+    sql_store: "SQLResourceStore",
 ) -> set[str]:
     """Return the set of *requested_kind* resource identifiers related to *source_id*.
 
@@ -715,7 +715,7 @@ def _write_or_print_output(
 def print_related_resources(
     resource_id: str,
     resource_type: "CoreResourceKinds",
-    sql: "SQLStore",
+    sql: "SQLResourceStore",
     hide_banner: bool = False,
     max_hops: int | None = None,
 ) -> None:

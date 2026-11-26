@@ -53,7 +53,7 @@ DONTs
 
 - Do not fetch discoveryspace or operation data for summary queries
   - Do not use: ado show measurements, ado show trace
-  - Do not instantiating DiscoverySpace instances or SQLStore instance
+  - Do not instantiate DiscoverySpace or SQLResourceStore instances
 - Only use these commands or classes when drilling down on a narrow set of
   resources
 

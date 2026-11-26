@@ -37,7 +37,7 @@ from ado.core.samplestore.config import (
 from ado.core.samplestore.csv import CSVSampleStore
 from ado.core.samplestore.sql import SQLSampleStore
 from ado.metastore.project import ProjectContext
-from ado.metastore.sqlstore import SQLResourceStore, SQLStore
+from ado.metastore.sqlstore import SQLResourceStore
 from ado.modules.actuators.catalog import ExperimentCatalog
 from ado.modules.actuators.registry import ActuatorRegistry
 from ado.schema.entity import Entity
@@ -450,7 +450,7 @@ def backdate_resource(
         kind: CoreResourceKinds,
         created: dt.datetime,
     ) -> None:
-        sql = SQLStore(project_context=valid_ado_project_context)
+        sql = SQLResourceStore(project_context=valid_ado_project_context)
         resource = sql.getResource(identifier=identifier, kind=kind)
         resource.created = created
         sql.updateResource(resource)

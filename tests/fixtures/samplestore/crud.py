@@ -8,7 +8,7 @@ import pytest
 from ado.core.resources import ADOResource, CoreResourceKinds
 from ado.core.samplestore.sql import SQLSampleStore
 from ado.metastore.sqlstore import (
-    SQLStore,
+    SQLResourceStore,
 )
 from ado.schema.entity import Entity
 
@@ -20,10 +20,10 @@ from ado.schema.entity import Entity
 ##################################################################
 @pytest.fixture
 def create_resources(
-    sql_store: SQLStore,
-) -> Callable[[list[ADOResource], SQLStore], None]:
+    sql_store: SQLResourceStore,
+) -> Callable[[list[ADOResource], SQLResourceStore], None]:
     def _create_resource(
-        resources: list[ADOResource], db: SQLStore = sql_store
+        resources: list[ADOResource], db: SQLResourceStore = sql_store
     ) -> None:
         for resource in resources:
             db.addResource(resource)
@@ -33,12 +33,12 @@ def create_resources(
 
 @pytest.fixture
 def create_resource_with_related_identifiers(
-    sql_store: SQLStore,
-) -> Callable[[ADOResource, list[str], SQLStore], None]:
+    sql_store: SQLResourceStore,
+) -> Callable[[ADOResource, list[str], SQLResourceStore], None]:
     def _create_resource_with_related_identifiers(
         resource: ADOResource,
         related_identifiers: list[str],
-        db: SQLStore = sql_store,
+        db: SQLResourceStore = sql_store,
     ) -> None:
         db.addResourceWithRelationships(
             resource=resource, relatedIdentifiers=related_identifiers
@@ -64,7 +64,7 @@ def add_entities_to_sample_store() -> Callable[[SQLSampleStore, list[Entity]], N
 ##################################################################
 @pytest.fixture
 def get_single_resource_by_identifier(
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
 ) -> Callable[[str, CoreResourceKinds], ADOResource | None]:
     def _get_single_resource_by_identifier(
         identifier: str, kind: CoreResourceKinds
@@ -77,7 +77,7 @@ def get_single_resource_by_identifier(
 
 @pytest.fixture
 def get_multiple_resources_by_identifier(
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
 ) -> Callable[[list[str]], dict[str, ADOResource]]:
     def _get_multiple_resources_by_identifier(
         identifiers: list[str],
@@ -90,7 +90,7 @@ def get_multiple_resources_by_identifier(
 
 @pytest.fixture
 def get_resource_identifiers_by_resource_kind(
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
 ) -> Callable[[str], pd.DataFrame]:
     def _get_resource_identifiers_by_resource_kind(kind: str) -> pd.DataFrame:
 
@@ -101,7 +101,7 @@ def get_resource_identifiers_by_resource_kind(
 
 @pytest.fixture
 def get_related_resource_identifiers_by_identifier(
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
 ) -> Callable[[str, CoreResourceKinds, str], dict[CoreResourceKinds, set[str]]]:
     def _get_related_resource_identifiers_by_identifier(
         identifier: str,
@@ -126,8 +126,12 @@ def get_related_resource_identifiers_by_identifier(
 #
 ##################################################################
 @pytest.fixture
-def update_resource(sql_store: SQLStore) -> Callable[[ADOResource, SQLStore], None]:
-    def _update_resource(resource: ADOResource, db: SQLStore = sql_store) -> None:
+def update_resource(
+    sql_store: SQLResourceStore,
+) -> Callable[[ADOResource, SQLResourceStore], None]:
+    def _update_resource(
+        resource: ADOResource, db: SQLResourceStore = sql_store
+    ) -> None:
         db.updateResource(resource)
 
     return _update_resource
@@ -139,7 +143,7 @@ def update_resource(sql_store: SQLStore) -> Callable[[ADOResource, SQLStore], No
 #
 ##################################################################
 @pytest.fixture
-def delete_resource(sql_store: SQLStore) -> Callable[[str], ADOResource | None]:
+def delete_resource(sql_store: SQLResourceStore) -> Callable[[str], ADOResource | None]:
     def _delete_resource(
         identifier: str,
     ) -> ADOResource | None:

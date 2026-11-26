@@ -35,7 +35,7 @@ from ado.core.samplestore.config import (
 )
 from ado.core.samplestore.utils import create_sample_store_resource
 from ado.metastore.project import ProjectContext
-from ado.metastore.sqlstore import SQLStore
+from ado.metastore.sqlstore import SQLResourceStore
 from ado.modules.operators._cleanup import cleanup_callback_functions
 from ado.modules.operators.collections import (
     OperatorCollection,

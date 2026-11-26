@@ -740,17 +740,15 @@ class DiscoveryOperationResourceConfiguration(pydantic.BaseModel):
         """Return whether Ray must be initialized before running this operation.
 
         Registered :class:`OperatorReference` operators declare this via
-        :attr:`OperatorMetadata.requiresRay`. Legacy
-        :class:`OperatorModuleConf` and :class:`ScriptOperatorConf` modules
-        always require Ray.
+        :attr:`OperatorMetadata.requiresRay`. :class:`ScriptOperatorConf`
+        modules always require Ray.
 
         Returns:
             True when Ray should be initialized before running the operator.
 
         Raises:
             TypeError: If ``operation.module`` is not an
-                :class:`OperatorReference`, :class:`ScriptOperatorConf`, or
-                :class:`OperatorModuleConf`.
+                :class:`OperatorReference` or :class:`ScriptOperatorConf`.
             ValueError: If the :class:`OperatorReference` operation type is
                 unknown or the operator is not registered.
         """
@@ -761,12 +759,11 @@ class DiscoveryOperationResourceConfiguration(pydantic.BaseModel):
             )
 
             return operator_metadata_for_reference(module).requiresRay
-        if isinstance(module, ScriptOperatorConf | OperatorModuleConf):
+        if isinstance(module, ScriptOperatorConf):
             return True
         raise TypeError(
             f"Unexpected operation.module type {type(module).__name__}: "
-            "expected OperatorReference, ScriptOperatorConf, or "
-            "OperatorModuleConf"
+            "expected OperatorReference or ScriptOperatorConf"
         )
 
     def _validate_script_operator_inputs(self) -> None:

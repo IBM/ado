@@ -510,7 +510,7 @@ def metastore_for_operation_inputs(
 # ---------------------------------------------------------------------------
 
 
-def resource_references_to_rich_types(
+def resource_references_to_operation_inputs(
     resource_references: dict[str, OperationInputResourceReference],
     metastore: SQLStore,
 ) -> dict[str, OperationInputResource]:

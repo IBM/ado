@@ -56,26 +56,6 @@ def graceful_orchestrate_shutdown() -> None:
         moduleLog.info("Graceful shutdown complete")
 
 
-def _check_if_using_unsupported_operator_module_conf(
-    operation_resource_configuration: DiscoveryOperationResourceConfiguration,
-) -> None:
-    if isinstance(
-        operation_resource_configuration.operation.module, OperatorModuleConf
-    ):
-        moduleLog.warning(
-            "The supplied operation configuration uses an unsupported legacy format for the"
-            "operation.module field: Use operatorName/operationType instead "
-            "of moduleName/moduleClass. See https://ibm.github.io/ado/latest/user-guide/examples/tutorials/density-example/#step-4-run-an-operation"
-            "for an example. "
-        )
-        raise ValueError(
-            "The supplied operation configuration uses an unsupported legacy format for the"
-            "operation.module field: Use operatorName/operationType instead "
-            "of moduleName/moduleClass. See https://ibm.github.io/ado/latest/user-guide/examples/tutorials/density-example/#step-4-run-an-operation"
-            "for an example. "
-        )
-
-
 def _initialize_ray_for_operation() -> None:
     """Initialize Ray for a local driver or reconnect inside a Ray job."""
     # If we are running with a ray runtime environment we need to handle env-vars differently
@@ -135,11 +115,9 @@ def orchestrate(
     import ado.modules.operators.setup  # noqa: F401 — side-effect: registers Ray actors
     from ado.core.operation.inputs import (
         discovery_spaces_from_inputs,
-        resource_references_to_rich_types,
+        resource_references_to_operation_inputs,
     )
     from ado.metastore.sqlstore import SQLStore
-
-    _check_if_using_unsupported_operator_module_conf(operation_resource_configuration)
 
     requires_ray = operation_resource_configuration.requires_ray()
     ray_initialized = False
@@ -173,7 +151,7 @@ def orchestrate(
         #
 
         metastore = SQLStore(project_context=project_context)
-        inputs = resource_references_to_rich_types(
+        inputs = resource_references_to_operation_inputs(
             resource_references=operation_resource_configuration.inputs,
             metastore=metastore,
         )

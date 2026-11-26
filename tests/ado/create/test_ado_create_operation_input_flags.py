@@ -601,6 +601,8 @@ def test_create_operation_reports_unresolvable_operator_module(
     )
     assert result.exit_code == 1, result.output
     assert "Failed to apply --with/--use-latest" in result.output
+    assert "operatorName" in result.output
+    assert "operationType" in result.output
 
 
 def test_create_space_rejects_input_qualifier(

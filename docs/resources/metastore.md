@@ -402,7 +402,7 @@ If you want to filter operations that use the RayTune operator you can do it
 with:
 
 ```commandline
-ado get operations --filter config.operation.module.moduleClass=RayTune
+ado get operations --filter config.operation.module.operatorName=ray_tune
 ```
 
 ##### Finding spaces with a boolean parameterization

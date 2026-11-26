@@ -24,7 +24,6 @@ from ado.core.operation.config import (
     DiscoveryOperationEnum,
     FunctionOperationInfo,
     GenericOperatorParameters,
-    OperatorModuleConf,
     OperatorReference,
 )
 from ado.core.operation.inputs import OperationInputResourceReference
@@ -417,7 +416,7 @@ def add_operation_output_to_metastore(
 
 def create_operation_and_add_to_metastore(
     inputs: dict[str, OperationInputResourceReference],
-    operator_module: OperatorModuleConf | OperatorReference,
+    operator_module: OperatorReference,
     operation_parameters: dict,
     operation_info: FunctionOperationInfo,
     metastore: SQLStore,
@@ -432,7 +431,7 @@ def create_operation_and_add_to_metastore(
     Args:
         inputs: Mapping of operator parameter name to the resource reference
             the operation worked on. A value may be a list of references.
-        operator_module: Configuration for the operator (module or function-based).
+        operator_module: Reference to the registered operator.
         operation_parameters: Dictionary of parameters for the operation.
         operation_info: Information about the operation including metadata and
             actuator configuration identifiers.

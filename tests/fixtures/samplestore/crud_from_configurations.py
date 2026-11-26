@@ -88,11 +88,13 @@ def create_space(
 @pytest.fixture
 def create_operation(
     sql_store: SQLStore,
+    random_walk_operation_configuration: DiscoveryOperationConfiguration,
 ) -> Callable[[DiscoverySpace], OperationResource]:
     """Factory fixture that creates an OperationResource linked to a DiscoverySpace.
 
     Args:
         sql_store: The SQL metastore to persist the operation in.
+        random_walk_operation_configuration: The operation configuration to use.
 
     Returns:
         A callable that accepts a DiscoverySpace and returns the persisted
@@ -103,7 +105,7 @@ def create_operation(
         operation = OperationResource(
             config=DiscoveryOperationResourceConfiguration(
                 spaces=[space.uri],
-                operation=DiscoveryOperationConfiguration(),
+                operation=random_walk_operation_configuration,
             ),
             operationType=DiscoveryOperationEnum.EXPLORE,
             operatorIdentifier="test-op",

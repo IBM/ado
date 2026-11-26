@@ -50,7 +50,12 @@ def test_failures_return_child_operation_and_cause(
             operatorIdentifier="random_walk",
             config={
                 "inputs": {"discoverySpace": categorical_space.reference},
-                "operation": {},
+                "operation": {
+                    "module": {
+                        "operatorName": "random_walk",
+                        "operationType": "explore",
+                    },
+                },
             },
         ),
         exitStatus=OperationResourceStatus(
@@ -81,7 +86,12 @@ def test_publication_uses_the_child_walks_measurement(
             metadata={"entities_submitted": 1},
             config={
                 "inputs": {"discoverySpace": categorical_space.reference},
-                "operation": {},
+                "operation": {
+                    "module": {
+                        "operatorName": "random_walk",
+                        "operationType": "explore",
+                    },
+                },
             },
         ),
     )

@@ -94,7 +94,14 @@ class ReviewComment(pydantic.BaseModel):
 
     @pydantic.model_validator(mode="after")
     def check_range(self) -> "ReviewComment":
-        """Ensure ``start_line`` does not come after ``line``."""
+        """Ensure ``start_line`` does not come after ``line``.
+
+        Returns:
+            The validated model instance.
+
+        Raises:
+            ValueError: If ``start_line`` is greater than ``line``.
+        """
         if self.start_line is not None and self.start_line > self.line:
             raise ValueError("start_line must not be greater than line")
         return self

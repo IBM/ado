@@ -6,7 +6,8 @@ actuatorConfigurationIdentifiers:
   - <your actuator config id goes here>
 operation:
   module:
-    moduleClass: "RandomWalk"
+    operatorName: random_walk
+    operationType: explore
   parameters:
     samplerConfig:
       mode: sequential

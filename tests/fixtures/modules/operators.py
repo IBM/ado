@@ -15,13 +15,11 @@ except ImportError:  # pragma: nocover
     from yaml import SafeLoader  # type: ignore[assignment]
 from ado_ray_tune.operator import RayTune
 
-import ado.core
 from ado.core.datacontainer.resource import DataContainerResource
 from ado.core.operation.config import (
     DiscoveryOperationResourceConfiguration,
     FunctionOperationInfo,
     GenericOperatorParameters,
-    OperatorModuleConf,
 )
 from ado.core.operation.operation import OperationOutput
 from ado.modules.operators.collections import summarize, summarize_operation
@@ -78,20 +76,6 @@ def temporary_operator() -> Callable[..., AbstractContextManager[str]]:
 def expected_explore_operators() -> list[str]:
 
     return ["random_walk", "ray_tune"]
-
-
-@pytest.fixture(params=["RandomWalk", "RayTune"])
-def operator_module_conf(request: pytest.FixtureRequest) -> OperatorModuleConf:
-
-    if request.param == "RandomWalk":
-        return ado.core.operation.config.OperatorModuleConf(
-            moduleName="ado.modules.operators.randomwalk",
-            moduleClass=request.param,
-        )
-    return ado.core.operation.config.OperatorModuleConf(
-        moduleName="ado_ray_tune.operator",
-        moduleClass=request.param,
-    )
 
 
 @pytest.fixture(params=["all", "value"])

@@ -18,6 +18,7 @@ from ado.core.operation.config import (
     DiscoveryOperationConfiguration,
     DiscoveryOperationEnum,
     DiscoveryOperationResourceConfiguration,
+    OperatorReference,
 )
 from ado.core.operation.resource import OperationResource
 from ado.core.resources import ADOResourceReference, CoreResourceKinds
@@ -87,13 +88,26 @@ def valid_operation_config_file(request: pytest.FixtureRequest) -> str:
 
 
 @pytest.fixture
+def random_walk_operation_configuration() -> DiscoveryOperationConfiguration:
+    """A random_walk explore operation with default parameters."""
+
+    return DiscoveryOperationConfiguration(
+        module=OperatorReference(
+            operatorName="random_walk",
+            operationType=DiscoveryOperationEnum.EXPLORE,
+        )
+    )
+
+
+@pytest.fixture
 def operation_configuration(
     test_space_identifier: str,
+    random_walk_operation_configuration: DiscoveryOperationConfiguration,
 ) -> DiscoveryOperationResourceConfiguration:
 
     # Return the default
     return DiscoveryOperationResourceConfiguration(
-        spaces=[test_space_identifier], operation=DiscoveryOperationConfiguration()
+        spaces=[test_space_identifier], operation=random_walk_operation_configuration
     )
 
 

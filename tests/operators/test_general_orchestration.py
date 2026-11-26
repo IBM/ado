@@ -12,7 +12,6 @@ from ado.core.datacontainer.resource import DataContainer, DataContainerResource
 from ado.core.operation.config import (
     FunctionOperationInfo,
     GenericOperatorParameters,
-    OperatorModuleConf,
 )
 from ado.core.operation.inputs import resolve_operation_project_context
 from ado.core.operation.operation import OperationOutput
@@ -74,16 +73,6 @@ def test_operation_provenance_uses_package_provenance() -> None:
     assert provenance.operators[metadata.operatorIdentifier].distributionName == (
         "ado-core"
     )
-    assert provenance.experiments == []
-    assert provenance.actuators == {}
-
-
-def test_operation_provenance_empty_for_module_conf() -> None:
-    """Non-reference operator modules record no operator provenance."""
-    provenance = operation_provenance(
-        OperatorModuleConf.model_construct(moduleClass="X", moduleName="x.y")
-    )
-    assert provenance.operators == {}
     assert provenance.experiments == []
     assert provenance.actuators == {}
 

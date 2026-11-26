@@ -48,17 +48,6 @@ if TYPE_CHECKING:
 _reflected_metadata_cache: dict[str, sqlalchemy.MetaData] = {}
 
 
-class SQLStore(ResourceStore):
-    """Base class for SQLStores"""
-
-    def __new__(cls, project_context: ProjectContext) -> "SQLResourceStore":
-        return SQLResourceStore(project_context=project_context)
-
-    def __init__(self, project_context: ProjectContext) -> None:
-
-        pass
-
-
 class SQLResourceStore(ResourceStore):
     """
 
@@ -87,9 +76,9 @@ class SQLResourceStore(ResourceStore):
         LOGLEVEL = os.environ.get("LOGLEVEL", "WARNING").upper()
         logging.basicConfig(level=LOGLEVEL, format=FORMAT)
 
-        self.log = logging.getLogger("SQLStore")
+        self.log = logging.getLogger("SQLResourceStore")
         self.log.debug(
-            f"Initialised SQLStore. Host: {self.configuration.host} "
+            f"Initialised SQLResourceStore. Host: {self.configuration.host} "
             f"Database: {self.configuration.database if self.configuration.scheme != 'sqlite' else self.configuration.path}"
         )
 

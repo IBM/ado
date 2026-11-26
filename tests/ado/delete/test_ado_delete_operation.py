@@ -15,7 +15,7 @@ from ado.core.operation.resource import OperationResource
 from ado.core.resources import CoreResourceKinds
 from ado.core.samplestore.sql import SQLSampleStore
 from ado.metastore.project import ProjectContext
-from ado.metastore.sqlstore import SQLStore
+from ado.metastore.sqlstore import SQLResourceStore
 from ado.schema.experiment import Experiment
 from ado.schema.request import (
     MeasurementRequest,
@@ -32,7 +32,7 @@ def test_delete_ml_multi_cloud_operation(
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
     ],
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
     ml_multi_cloud_benchmark_performance_experiment: Experiment,
     random_ml_multi_cloud_benchmark_performance_measurement_requests: Callable[
         [int, int, MeasurementRequestStateEnum | None, str | None],
@@ -106,7 +106,7 @@ def test_delete_operation_with_datacontainer_child_cascades(
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
     ],
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
     data_container_resource: DataContainerResource,
     random_sql_sample_store: Callable[[], SQLSampleStore],
     discovery_space_configuration_no_replay: DiscoverySpaceConfiguration,
@@ -160,7 +160,7 @@ def test_delete_operation_with_non_datacontainer_child_raises(
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
     ],
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
     random_sql_sample_store: Callable[[], SQLSampleStore],
     discovery_space_configuration_no_replay: DiscoverySpaceConfiguration,
     create_space: Callable[[DiscoverySpaceConfiguration, str], DiscoverySpace],
@@ -209,7 +209,7 @@ def test_delete_operation_with_datacontainer_having_grandchildren_raises(
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
     ],
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
     data_container_resource: DataContainerResource,
     random_sql_sample_store: Callable[[], SQLSampleStore],
     testTabularDataString: object,

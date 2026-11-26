@@ -17,7 +17,7 @@ from ado.core.operation.inputs import (
     discovery_spaces_from_inputs,
 )
 from ado.core.operation.operation import OperationOutput
-from ado.metastore.sqlstore import SQLStore
+from ado.metastore.sqlstore import SQLResourceStore
 from ado.modules.operators._orchestrate_core import (
     _run_operation_harness,
     log_space_details,
@@ -80,7 +80,7 @@ def orchestrate_general_operation(
     operation_parameters: GenericOperatorParameters,
     inputs: dict[str, OperationInputResource],
     operation_info: FunctionOperationInfo,
-    metastore: SQLStore,
+    metastore: SQLResourceStore,
 ) -> OperationOutput:
     """Orchestrate a general (non-explore) operation.
 

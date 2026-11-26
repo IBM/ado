@@ -10,13 +10,13 @@ from tests.conftest import requires_sqlite_3_38
 
 if TYPE_CHECKING:
     from ado.core.discoveryspace.stats import DiscoverySpaceStatistics
-    from ado.metastore.sqlstore import SQLStore
+    from ado.metastore.sqlstore import SQLResourceStore
 
 
 @requires_sqlite_3_38
 def test_get_space_metastore_stats_single_no_operations(
     random_space_resource_from_db: Callable[[str | None], DiscoverySpaceResource],
-    sql_store: "SQLStore",
+    sql_store: "SQLResourceStore",
 ) -> None:
     """A space with no operations returns zero counts for all op fields."""
     space = random_space_resource_from_db()
@@ -35,7 +35,7 @@ def test_get_space_metastore_stats_single_with_explore_operation(
     random_space_resource_from_db: Callable[[str | None], DiscoverySpaceResource],
     ml_multi_cloud_operation_resource: Callable[[str | None], OperationResource],
     create_resource_with_related_identifiers: Callable[[ADOResource, list[str]], None],
-    sql_store: "SQLStore",
+    sql_store: "SQLResourceStore",
 ) -> None:
     """A space with one EXPLORE operation has correct counts."""
     space = random_space_resource_from_db()
@@ -56,7 +56,7 @@ def test_get_space_metastore_stats_single_with_non_explore_operation(
     random_space_resource_from_db: Callable[[str | None], DiscoverySpaceResource],
     ml_multi_cloud_operation_resource: Callable[[str | None], OperationResource],
     create_resource_with_related_identifiers: Callable[[ADOResource, list[str]], None],
-    sql_store: "SQLStore",
+    sql_store: "SQLResourceStore",
 ) -> None:
     """A non-EXPLORE operation is counted in total but not in explore."""
     space = random_space_resource_from_db()
@@ -77,7 +77,7 @@ def test_get_space_metastore_stats_single_mixed_operations(
     random_space_resource_from_db: Callable[[str | None], DiscoverySpaceResource],
     ml_multi_cloud_operation_resource: Callable[[str | None], OperationResource],
     create_resource_with_related_identifiers: Callable[[ADOResource, list[str]], None],
-    sql_store: "SQLStore",
+    sql_store: "SQLResourceStore",
 ) -> None:
     """Mixed operation types: total and explore counts are both correct."""
     space = random_space_resource_from_db()
@@ -102,7 +102,7 @@ def test_get_space_metastore_stats_multiple_spaces(
     random_space_resource_from_db: Callable[[str | None], DiscoverySpaceResource],
     ml_multi_cloud_operation_resource: Callable[[str | None], OperationResource],
     create_resource_with_related_identifiers: Callable[[ADOResource, list[str]], None],
-    sql_store: "SQLStore",
+    sql_store: "SQLResourceStore",
 ) -> None:
     """Multiple space IDs are returned in a dict keyed by space ID."""
     space_a = random_space_resource_from_db()

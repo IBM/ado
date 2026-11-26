@@ -44,7 +44,7 @@ if typing.TYPE_CHECKING:
     from pandas import DataFrame
     from rich.console import RenderableType
 
-    from ado.metastore.sqlstore import SQLResourceStore, SQLStore
+    from ado.metastore.sqlstore import SQLResourceStore
 
 FORMAT = ado.utilities.logging.FORMAT
 LOGLEVEL = os.environ.get("LOGLEVEL", "WARNING").upper()
@@ -266,11 +266,11 @@ class DiscoverySpace:
                 to :meth:`from_configuration` to skip the samplestore round-trip.
             load_experiment_catalog: Forwarded to :meth:`from_configuration`.
         """
-        from ado.metastore.sqlstore import SQLStore
+        from ado.metastore.sqlstore import SQLResourceStore
 
         moduleLogger.debug("Accessing discovery space metadata store")
         if metadata_store is None:
-            metadata_store = SQLStore(project_context=project_context)
+            metadata_store = SQLResourceStore(project_context=project_context)
 
         if space_resource is None:
             moduleLogger.debug(
@@ -325,10 +325,10 @@ class DiscoverySpace:
             ResourceDoesNotExistError: If the specified operation or related space do not exist.
             NoRelatedResourcesError: If no sample store is associated with the specified operation or related space.
         """
-        from ado.metastore.sqlstore import SQLStore
+        from ado.metastore.sqlstore import SQLResourceStore
 
         if metadata_store is None:
-            metadata_store = SQLStore(project_context=project_context)
+            metadata_store = SQLResourceStore(project_context=project_context)
 
         # Fetch the operation, its space, and the space's samplestore in a
         # single SQL JOIN rather than three sequential round-trips.
@@ -368,7 +368,7 @@ class DiscoverySpace:
             ado.core.discoveryspace.config.DiscoverySpaceProperties | None
         ) = None,
         metadata: ado.core.metadata.ConfigurationMetadata | None = None,
-        metadata_store: "ado.metastore.sqlstore.SQLStore | None" = None,
+        metadata_store: "ado.metastore.sqlstore.SQLResourceStore | None" = None,
     ) -> None:
         """
 
@@ -431,9 +431,9 @@ class DiscoverySpace:
 
         # Access metadata store - reuse provided instance if available
         if metadata_store is None:
-            from ado.metastore.sqlstore import SQLStore
+            from ado.metastore.sqlstore import SQLResourceStore
 
-            self._metadataStore = SQLStore(project_context=project_context)
+            self._metadataStore = SQLResourceStore(project_context=project_context)
         else:
             self._metadataStore = metadata_store
 
@@ -950,7 +950,7 @@ class DiscoverySpace:
     #
 
     @property
-    def metadataStore(self) -> "SQLStore":
+    def metadataStore(self) -> "SQLResourceStore":
         """Returns an interface to the metadata store used by the space"""
 
         return self._metadataStore

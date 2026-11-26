@@ -72,11 +72,11 @@ def local_execution_closure(
     if actuator_configuration_identifiers:
         from ado.cli.core.config import AdoConfiguration
         from ado.core.resources import CoreResourceKinds
-        from ado.metastore.sqlstore import SQLStore
+        from ado.metastore.sqlstore import SQLResourceStore
 
         # get the metastore instance for current project context
         ado_config = AdoConfiguration.load()
-        metastore = SQLStore(project_context=ado_config.project_context)
+        metastore = SQLResourceStore(project_context=ado_config.project_context)
         for actuator_configuration_identifier in actuator_configuration_identifiers:
             actuator_configuration = metastore.getResource(
                 identifier=actuator_configuration_identifier,

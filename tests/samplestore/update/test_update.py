@@ -4,15 +4,15 @@ from collections.abc import Callable
 
 from ado.core import OperationResource
 from ado.core.resources import ADOResource, CoreResourceKinds
-from ado.metastore.sqlstore import SQLStore
+from ado.metastore.sqlstore import SQLResourceStore
 
 
 def test_update_operation(
     ml_multi_cloud_operation_resource_from_db: Callable[
         [str | None], OperationResource
     ],
-    sql_store: SQLStore,
-    update_resource: Callable[[ADOResource, SQLStore], None],
+    sql_store: SQLResourceStore,
+    update_resource: Callable[[ADOResource, SQLResourceStore], None],
     get_single_resource_by_identifier: Callable[
         [str, CoreResourceKinds], ADOResource | None
     ],

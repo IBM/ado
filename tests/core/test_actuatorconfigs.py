@@ -24,7 +24,7 @@ from ado.core.operation.config import (
 from ado.core.operation.resource import OperationResource
 from ado.core.resources import ADOResourceReference, CoreResourceKinds
 from ado.metastore.project import ProjectContext
-from ado.metastore.sqlstore import SQLStore
+from ado.metastore.sqlstore import SQLResourceStore
 from ado.utilities.pydantic import ignore_plugin_validation_context
 
 
@@ -50,7 +50,7 @@ def test_actuatorconfiguration_ignores_plugin_validation_with_context() -> None:
 
 
 def test_actuatorconfiguration_get_resource_without_plugin_validation(
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
 ) -> None:
     """Stored actuator configs can be read without plugin validation on get."""
     resource = ActuatorConfigurationResource.model_validate(
@@ -70,7 +70,7 @@ def test_actuatorconfiguration_get_resource_without_plugin_validation(
 
 
 def test_operation_get_resource_without_plugin_validation(
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
 ) -> None:
     """Stored operations can be read without operator plugin validation on get."""
     operation_configuration = DiscoveryOperationResourceConfiguration.model_validate(

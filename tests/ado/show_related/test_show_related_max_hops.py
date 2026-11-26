@@ -16,14 +16,14 @@ from ado.core import (
 )
 from ado.metastore.project import ProjectContext
 from ado.metastore.sql.utils import _MAX_HIERARCHY_HOPS
-from ado.metastore.sqlstore import SQLStore
+from ado.metastore.sqlstore import SQLResourceStore
 from tests.conftest import requires_sqlite_3_38
 
 
 @requires_sqlite_3_38
 def test_show_related_max_hops_default_excludes_grandparent(
     tmp_path: pathlib.Path,
-    sql_store_with_resources_preloaded: SQLStore,
+    sql_store_with_resources_preloaded: SQLResourceStore,
     valid_ado_project_context: ProjectContext,
     discovery_space_resource: DiscoverySpaceResource,
     operation_resource: OperationResource,
@@ -57,7 +57,7 @@ def test_show_related_max_hops_default_excludes_grandparent(
 @requires_sqlite_3_38
 def test_show_related_max_hops_1_excludes_grandparent(
     tmp_path: pathlib.Path,
-    sql_store_with_resources_preloaded: SQLStore,
+    sql_store_with_resources_preloaded: SQLResourceStore,
     valid_ado_project_context: ProjectContext,
     discovery_space_resource: DiscoverySpaceResource,
     operation_resource: OperationResource,
@@ -93,7 +93,7 @@ def test_show_related_max_hops_1_excludes_grandparent(
 @requires_sqlite_3_38
 def test_show_related_max_hops_2_includes_grandparent(
     tmp_path: pathlib.Path,
-    sql_store_with_resources_preloaded: SQLStore,
+    sql_store_with_resources_preloaded: SQLResourceStore,
     valid_ado_project_context: ProjectContext,
     discovery_space_resource: DiscoverySpaceResource,
     operation_resource: OperationResource,
@@ -128,7 +128,7 @@ def test_show_related_max_hops_2_includes_grandparent(
 @requires_sqlite_3_38
 def test_show_related_max_hops_zero_is_rejected(
     tmp_path: pathlib.Path,
-    sql_store_with_resources_preloaded: SQLStore,
+    sql_store_with_resources_preloaded: SQLResourceStore,
     valid_ado_project_context: ProjectContext,
     operation_resource: OperationResource,
     create_active_ado_context: Callable,
@@ -159,7 +159,7 @@ def test_show_related_max_hops_zero_is_rejected(
 @requires_sqlite_3_38
 def test_show_related_max_hops_above_maximum_is_rejected(
     tmp_path: pathlib.Path,
-    sql_store_with_resources_preloaded: SQLStore,
+    sql_store_with_resources_preloaded: SQLResourceStore,
     valid_ado_project_context: ProjectContext,
     operation_resource: OperationResource,
     create_active_ado_context: Callable,

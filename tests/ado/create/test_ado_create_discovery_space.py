@@ -18,7 +18,7 @@ from ado.core.discoveryspace.config import DiscoverySpaceConfiguration
 from ado.core.resources import CoreResourceKinds
 from ado.core.samplestore.sql import SQLSampleStore
 from ado.metastore.project import ProjectContext
-from ado.metastore.sqlstore import SQLStore
+from ado.metastore.sqlstore import SQLResourceStore
 from ado.modules.actuators.registry import ActuatorRegistry
 from ado.utilities.output import pydantic_model_as_yaml
 from tests.conftest import requires_sqlite_3_38
@@ -258,7 +258,7 @@ def test_create_discovery_space_dry_run_with_sample_store_file(
         [CliRunner, pathlib.Path, ProjectContext], None
     ],
     ml_multi_cloud_sample_store_configuration_file: pathlib.Path,
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
 ) -> None:
     runner = CliRunner()
     create_active_ado_context(
@@ -294,7 +294,7 @@ def test_create_discovery_space_dry_run_new_sample_store(
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
     ],
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
 ) -> None:
     space_configuration_file = pathlib.Path(
         "plugins/actuators/example_actuator/yamls/discoveryspace.yaml"

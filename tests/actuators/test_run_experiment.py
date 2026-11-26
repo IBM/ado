@@ -4,6 +4,7 @@
 """CLI tests for the run_experiment command."""
 
 import os
+from collections.abc import Callable
 from pathlib import Path
 
 import pytest
@@ -13,6 +14,7 @@ import typer.main
 import yaml
 from typer.testing import CliRunner
 
+from ado.metastore.project import ProjectContext
 from ado.modules.actuators import custom_experiments
 from ado.utilities.run_experiment import app
 
@@ -188,6 +190,30 @@ def test_run_experiment_option_names_are_lowercase() -> None:
     ]
     assert options
     assert [option for option in options if option != option.lower()] == []
+
+
+def test_run_experiment_no_ray_missing_actuator_configuration(
+    tmp_path: Path,
+    valid_ado_sqlite_project_context: ProjectContext,
+    create_active_ado_context: Callable[[CliRunner, Path, ProjectContext], None],
+) -> None:
+    """--no-ray must fail when the actuator configuration identifier is absent."""
+
+    create_active_ado_context(CliRunner(), tmp_path, valid_ado_sqlite_project_context)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "--no-ray",
+            "--actuator-config-id",
+            "missing-config",
+            _DENSITY_POINT,
+        ],
+    )
+    assert result.exit_code != 0, result.output
+    assert result.exception is not None
+    assert "missing-config" in str(result.exception)
 
 
 def test_run_experiment_timeout_option_is_recognised() -> None:

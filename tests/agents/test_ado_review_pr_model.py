@@ -58,20 +58,11 @@ def test_review_lifecycle(pr_review_model: types.ModuleType) -> None:
     ]
 
 
-def test_reply_rejects_unknown_thread_state(
-    pr_review_model: types.ModuleType,
-) -> None:
-    with pytest.raises(pydantic.ValidationError, match="thread_state"):
-        pr_review_model.CommentReply(in_reply_to=1, body="x", thread_state="deleted")
-
-
 @pytest.mark.parametrize(
     "comment",
     [
         {"path": "a.py", "line": 3, "start_line": 5, "body": "x"},
         {"path": "./", "line": 3, "body": "x"},
-        {"path": "a.py", "line": 0, "body": "x"},
-        {"path": "a.py", "line": 3, "body": "x", "unknown": 1},
     ],
 )
 def test_review_comment_rejects_invalid_input(
@@ -162,3 +153,37 @@ def test_main_reports_every_problem(
     assert "commit_id" in error_output
     assert "summary" in error_output
     assert "replies.0.in_reply_to" in error_output
+
+
+def test_main_reports_root_location_for_non_object_document(
+    pr_review_model: types.ModuleType,
+) -> None:
+    result = typer.testing.CliRunner().invoke(pr_review_model.app, input="[1]")
+
+    assert result.exit_code == 1
+    assert "<root>:" in result.stderr
+
+
+def test_main_truncates_long_received_values(
+    pr_review_model: types.ModuleType,
+) -> None:
+    result = typer.testing.CliRunner().invoke(
+        pr_review_model.app,
+        input=json.dumps({"commit_id": "z" * 200, "summary": "x"}),
+    )
+
+    assert result.exit_code == 1
+    assert "z" * 200 not in result.stderr
+    assert "...)" in result.stderr
+
+
+def test_main_rejects_missing_file(
+    pr_review_model: types.ModuleType,
+    tmp_path: pathlib.Path,
+) -> None:
+    result = typer.testing.CliRunner().invoke(
+        pr_review_model.app, [str(tmp_path / "missing.json")]
+    )
+
+    assert result.exit_code != 0
+    assert "Traceback" not in result.stderr

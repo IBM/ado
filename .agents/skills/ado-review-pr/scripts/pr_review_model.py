@@ -3,6 +3,10 @@
 
 """Validate and normalize the structured output of the ado-review-pr skill.
 
+The field names are snake_case and match the names used by the GitHub API
+(``commit_id``, ``start_line``, ``in_reply_to``), so the JSON maps directly to
+the API calls that post it.
+
 Usage:
     uv run python pr_review_model.py [FILE]
         Read the review JSON from FILE (default: stdin). On success print the
@@ -19,6 +23,8 @@ from typing import Annotated, Literal
 
 import pydantic
 import typer
+
+from ado.utilities.pydantic import Defaultable
 
 app = typer.Typer(add_completion=False)
 
@@ -56,7 +62,7 @@ class ReviewComment(pydantic.BaseModel):
         ),
     ]
     suggestion: Annotated[
-        str,
+        Defaultable[str],
         pydantic.Field(
             description=(
                 "Exact replacement text for the commented line(s), only when a "
@@ -74,12 +80,6 @@ class ReviewComment(pydantic.BaseModel):
         if not value:
             raise ValueError("path must not be empty")
         return value
-
-    @pydantic.field_validator("suggestion", mode="before")
-    @classmethod
-    def none_is_empty(cls, value: object) -> object:
-        """Accept ``null`` as an empty suggestion."""
-        return "" if value is None else value
 
     @pydantic.model_validator(mode="after")
     def check_range(self) -> "ReviewComment":
@@ -191,7 +191,12 @@ def describe_errors(error: pydantic.ValidationError) -> list[str]:
 def main(
     file: Annotated[
         pathlib.Path | None,
-        typer.Argument(help="Review JSON file (default: stdin)"),
+        typer.Argument(
+            exists=True,
+            dir_okay=False,
+            readable=True,
+            help="Review JSON file (default: stdin)",
+        ),
     ] = None,
     schema: Annotated[
         bool, typer.Option("--schema", help="Print the JSON schema and exit")

@@ -30,6 +30,11 @@ separate report.
 - The user's shell can be fish, where `VAR=$(...)`, heredocs, and globs without
   a match fail. Run every command that uses shell variables, heredocs, or
   globs as `bash -c '...'`.
+- Each tool call starts a fresh shell, so `$MAIN_DIR`, `$REVIEW_DIR`,
+  `$REPORT`, and `$REVIEW_JSON` do not persist between calls. They name values
+  that you keep and write literally into every command (for example
+  `bash -c 'cd "/tmp/tmp.abc123" && ...'`); set a variable inside a
+  `bash -c` command only to use it within that command.
 - `$REVIEW_DIR` is outside the workspace, so a tool call with `cwd` set to it
   or a file tool pointed at it can be refused. Run
   `bash -c 'cd "$REVIEW_DIR" && ...'` instead, and read its files with `cat`
@@ -43,18 +48,22 @@ separate report.
 1. Resolve the PR with
    `gh pr view <url-or-number> --json number,url,title,body,state,isDraft,author,headRefOid,headRefName,baseRefName,closingIssuesReferences`.
    Take `owner`, `repo`, and the host from `url`. `headRefOid` is the reviewed
-   commit and `baseRefName` is the review target. The output files are
+   commit and `baseRefName` is the review target. `<branch_name>` is
+   `headRefName` with `/` replaced by `-`. The output files are
    `pr_review_<number>_<branch_name>.md` and `pr_review_<number>_<branch_name>.json`
-   at the root of the main checkout, where `<branch_name>` is `headRefName`
-   with `/` replaced by `-`. Call them `$REPORT` and `$REVIEW_JSON`. Set
-   `MAIN_DIR` to `git rev-parse --show-toplevel`, run before creating the
-   worktree.
+   at the root of the main checkout. Call them `$REPORT` and `$REVIEW_JSON`.
+   Set `MAIN_DIR` to the output of `git rev-parse --show-toplevel`, run before
+   creating the worktree.
 2. Collect the context in [PR context](#pr-context).
-3. Create the review worktree from the PR head. Use `REVIEW_DIR` from
-   `mktemp -d`:
+3. Create the review worktree from the PR head. `origin` can be a fork that
+   does not host the PR, so fetch from the repository the PR belongs to into
+   refs of their own, and use `refs/review/<number>/base` wherever the
+   instructions below say the base branch. Use `REVIEW_DIR` from `mktemp -d`:
 
    ```sh
-   git fetch origin "pull/<number>/head" "<baseRefName>"
+   git fetch "https://<host>/<owner>/<repo>.git" \
+     "pull/<number>/head:refs/review/<number>/head" \
+     "<baseRefName>:refs/review/<number>/base"
    git worktree add --detach "$REVIEW_DIR" "<headRefOid>"
    ```
 
@@ -65,22 +74,25 @@ separate report.
    PINNED="AGENTS.md .agents/skills/AGENTS.md \
      .agents/skills/ado-review-branch .agents/skills/ado-develop-plugin"
    rm -rf .agents/skills/ado-review-branch .agents/skills/ado-develop-plugin
-   git restore --source="origin/<baseRefName>" --worktree -- $PINNED
+   git restore --source="refs/review/<number>/base" --worktree -- $PINNED
    git ls-files -z -- $PINNED | git update-index --skip-worktree -z --stdin
    ```
 
    If the PR diff touches any of these paths, say in the report header that
    the review used the base branch's version of it.
 5. From inside `$REVIEW_DIR`, follow `ado-review-branch` with target
-   `origin/<baseRefName>` and the report path `$REPORT`. Use `$REVIEW_DIR` as
-   its review worktree: skip creating and removing it, because step 7 removes
-   it. Create and remove the worktree of the target branch as
+   `refs/review/<number>/base` and the report path `$REPORT`. Use
+   `$REVIEW_DIR` as its review worktree: skip creating and removing it, because
+   step 7 removes it. Create and remove the worktree of the target branch as
    `ado-review-branch` describes. Apply
    [Using the context](#using-the-context) while writing it.
 6. Write the [structured review](#structured-review) to `$REVIEW_JSON` and
    validate it from `$MAIN_DIR`, so the PR's copy of the script is not run.
-7. Remove the worktree: `git worktree remove --force "$REVIEW_DIR"`. Tell the
-   user the paths of the report and the JSON.
+7. Remove the worktree and the fetched refs from `$MAIN_DIR`:
+   `git worktree remove --force "$REVIEW_DIR"`,
+   `git update-ref -d refs/review/<number>/head`, and
+   `git update-ref -d refs/review/<number>/base`. Tell the user the paths of
+   the report and the JSON.
 
 ## PR context
 
@@ -172,8 +184,7 @@ PR's own changes.
   checkout, and read them before this run overwrites them. Earlier runs of
   `ado-review-branch` write
   `branch_review_<branch_name>.md`; earlier runs of this skill write
-  `pr_review_<number>_<branch_name>.md` and `.json`. `<branch_name>` is
-  `headRefName` with `/` replaced by `-`.
+  `pr_review_<number>_<branch_name>.md` and `.json`.
 
 Findings come from the posted reviews and comments of every reviewer, and from
 the unposted report. For each, assign one status:

@@ -379,13 +379,13 @@ class SampleStore(abc.ABC):
     def from_identifier(
         cls,
         identifier: str,
-        metastore: "ado.metastore.sqlstore.SQLStore",
+        metastore: "ado.metastore.sqlstore.SQLResourceStore",
     ) -> "SampleStore":
         """Load a SampleStore by its identifier from the metastore.
 
         Args:
             identifier: The unique identifier of the SampleStore.
-            metastore: The SQLStore containing the SampleStore resource.
+            metastore: The SQLResourceStore containing the SampleStore resource.
 
         Returns:
             A SampleStore instance.
@@ -409,13 +409,13 @@ class SampleStore(abc.ABC):
     def from_space_identifier(
         cls,
         space_id: str,
-        metastore: "ado.metastore.sqlstore.SQLStore",
+        metastore: "ado.metastore.sqlstore.SQLResourceStore",
     ) -> "SampleStore":
         """Load the SampleStore associated with a discoveryspace.
 
         Args:
             space_id: The identifier of the discoveryspace.
-            metastore: The SQLStore containing the space and SampleStore resources.
+            metastore: The SQLResourceStore containing the space and SampleStore resources.
 
         Returns:
             A SampleStore instance associated with the space.
@@ -442,13 +442,13 @@ class SampleStore(abc.ABC):
     def from_operation_identifier(
         cls,
         operation_id: str,
-        metastore: "ado.metastore.sqlstore.SQLStore",
+        metastore: "ado.metastore.sqlstore.SQLResourceStore",
     ) -> "SampleStore":
         """Load the SampleStore associated with an operation.
 
         Args:
             operation_id: The identifier of the operation.
-            metastore: The SQLStore containing the operation and SampleStore resources.
+            metastore: The SQLResourceStore containing the operation and SampleStore resources.
 
         Returns:
             A SampleStore instance associated with the operation's space.

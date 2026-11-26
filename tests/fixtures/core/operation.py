@@ -22,7 +22,7 @@ from ado.core.operation.config import (
 )
 from ado.core.operation.resource import OperationResource
 from ado.core.resources import ADOResourceReference, CoreResourceKinds
-from ado.metastore.sqlstore import SQLStore
+from ado.metastore.sqlstore import SQLResourceStore
 
 
 @pytest.fixture
@@ -55,7 +55,7 @@ def ml_multi_cloud_operation_resource(
 @pytest.fixture
 def ml_multi_cloud_operation_resource_from_db(
     ml_multi_cloud_operation_resource: Callable[[str | None], OperationResource],
-    create_resources: Callable[[list[ADOResource], SQLStore], None],
+    create_resources: Callable[[list[ADOResource], SQLResourceStore], None],
 ) -> Callable[[str | None], OperationResource]:
     def _ml_multi_cloud_operation_resource_from_db(
         space_id: str | None = None,

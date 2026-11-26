@@ -20,7 +20,7 @@ from ado.core.discoveryspace.config import (
     DiscoverySpaceConfiguration,
 )
 from ado.core.discoveryspace.resource import DiscoverySpaceResource
-from ado.metastore.sqlstore import SQLStore
+from ado.metastore.sqlstore import SQLResourceStore
 from ado.schema.domain import PropertyDomain
 from ado.schema.measurementspace import MeasurementSpaceConfiguration
 from ado.schema.property import ConstitutiveProperty
@@ -57,7 +57,7 @@ def random_space_resource_from_file(
 @pytest.fixture
 def random_space_resource_from_db(
     random_space_resource_from_file: Callable[[str | None], DiscoverySpaceResource],
-    create_resources: Callable[[list[ADOResource], SQLStore], None],
+    create_resources: Callable[[list[ADOResource], SQLResourceStore], None],
 ) -> Callable[[str | None], DiscoverySpaceResource]:
     def _random_space_resource_from_db(
         sample_store_id: str | None = None,

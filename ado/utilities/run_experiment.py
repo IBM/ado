@@ -52,11 +52,17 @@ def _load_actuator_configurations(
 ) -> dict:
     """Load actuator configurations from the active metastore context.
 
+    Prints one line for each configuration that is loaded.
+
     Args:
         actuator_configuration_identifiers: Optional configuration resource IDs.
 
     Returns:
         Mapping of actuator identifier to configuration parameters model.
+
+    Raises:
+        ResourcesDoNotExistError: An identifier is missing, or the resource
+            is not an actuator configuration.
     """
     actuator_configurations = {}
     if not actuator_configuration_identifiers:

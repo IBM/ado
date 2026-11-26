@@ -16,7 +16,6 @@ moduleLog = logging.getLogger("module")
 
 
 class ModuleTypeEnum(enum.Enum):
-    OPERATION = "operation"
     ACTUATOR = "actuator"
     SAMPLE_STORE = "sample_store"
     GENERIC = "generic"
@@ -102,9 +101,7 @@ class ModuleConf(pydantic.BaseModel):
     ) -> str | None:
 
         if value is None:
-            if values.data.get("moduleType") == ModuleTypeEnum.OPERATION:
-                value = "ado.modules.operators.randomwalk"
-            elif values.data.get("moduleType") == ModuleTypeEnum.ACTUATOR:
+            if values.data.get("moduleType") == ModuleTypeEnum.ACTUATOR:
                 value = "ado.modules.actuators.base"
             elif values.data.get("moduleType") == ModuleTypeEnum.SAMPLE_STORE:
                 value = "ado.core.samplestore.sql"
@@ -116,11 +113,11 @@ class ModuleConf(pydantic.BaseModel):
         cls, value: str | None, values: "pydantic.FieldValidationInfo"
     ) -> str | None:
 
-        if value is None:
-            if values.data.get("moduleType") == ModuleTypeEnum.OPERATION:
-                value = "RandomWalk"
-            elif values.data.get("moduleType") == ModuleTypeEnum.SAMPLE_STORE:
-                value = "SQLSampleStore"
+        if (
+            value is None
+            and values.data.get("moduleType") == ModuleTypeEnum.SAMPLE_STORE
+        ):
+            value = "SQLSampleStore"
 
         return value
 

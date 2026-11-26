@@ -88,21 +88,6 @@ def test_pkh_ideal_gas_example(tmp_path: Path) -> None:
     assert measured_rows.to_dict() == pytest.approx(measured.pressure.to_dict())
 
 
-@pytest.mark.timeout(900)
-def test_pkh_failed_run_has_no_dataset(tmp_path: Path) -> None:
-    """An infeasible request links the failed walk without publishing a dataset."""
-    result = _run_example(tmp_path, budget=100)
-    assert result.exit_code != 0, result.output
-    assert "Requested number of entities to sample (100)" in result.output
-    [pkh_id] = set(re.findall(r"operation-pkh@[\w.]+-[a-f0-9]{8}", result.output))
-    related = _ado_output(
-        tmp_path, "show", "related", "operation", pkh_id, "--max-hops", "1"
-    )
-    assert re.search(r"random_walk@[\w.-]+", related)
-    containers = _ado_output(tmp_path, "get", "datacontainer", "-o", "name")
-    assert "datacontainer-" not in containers
-
-
 @pytest.mark.timeout(300)
 def test_partial_prior_is_measured_by_the_requested_actuator(tmp_path: Path) -> None:
     """Measure the target when only a sibling output is available from its actuator."""

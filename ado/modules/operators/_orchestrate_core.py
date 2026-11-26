@@ -30,7 +30,7 @@ from ado.core.operation.resource import (
     OperationResourceEventEnum,
     OperationResourceStatus,
 )
-from ado.metastore.sqlstore import SQLStore
+from ado.metastore.sqlstore import SQLResourceStore
 from ado.modules.operators import _cleanup
 from ado.modules.operators.base import (
     InterruptedOperationError,
@@ -132,7 +132,7 @@ def _run_operation_harness(
     operator_metadata: OperatorMetadata,
     operation_parameters: GenericOperatorParameters,
     operation_info: FunctionOperationInfo,
-    metastore: SQLStore,
+    metastore: SQLResourceStore,
     inputs: dict[str, OperationInputResource],
     provenance: OperationProvenanceInfo,
     operation_identifier: str | None = None,

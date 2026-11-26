@@ -28,7 +28,7 @@ if TYPE_CHECKING:
 
     from ado.core.operation.config import FunctionOperationInfo
     from ado.metastore.project import ProjectContext
-    from ado.metastore.sqlstore import SQLStore
+    from ado.metastore.sqlstore import SQLResourceStore
 
 # ---------------------------------------------------------------------------
 # Project-context helpers
@@ -335,7 +335,7 @@ def project_contexts_from_inputs(
 
 
 def _resolve_discoveryspace(
-    reference: ADOResourceReference, metastore: SQLStore
+    reference: ADOResourceReference, metastore: SQLResourceStore
 ) -> DiscoverySpace:
     """Load a discovery space referenced by *reference*."""
     return DiscoverySpace.from_stored_configuration(
@@ -346,7 +346,7 @@ def _resolve_discoveryspace(
 
 
 def _resolve_datacontainer(
-    reference: ADOResourceReference, metastore: SQLStore
+    reference: ADOResourceReference, metastore: SQLResourceStore
 ) -> DataContainerResource:
     """Load a data container referenced by *reference*."""
     return metastore.getResource(  # type: ignore[return-value]
@@ -358,7 +358,7 @@ def _resolve_datacontainer(
 
 _RESOLVERS: dict[
     CoreResourceKinds,
-    Callable[[ADOResourceReference, SQLStore], OperatorInputResourceKind],
+    Callable[[ADOResourceReference, SQLResourceStore], OperatorInputResourceKind],
 ] = {
     CoreResourceKinds.DISCOVERYSPACE: _resolve_discoveryspace,
     CoreResourceKinds.DATACONTAINER: _resolve_datacontainer,
@@ -368,7 +368,7 @@ _RESOLVERS: dict[
 def _resolve_one_reference(
     name: str,
     reference: ADOResourceReference,
-    metastore: SQLStore,
+    metastore: SQLResourceStore,
 ) -> OperatorInputResourceKind:
     """Resolve a single named resource reference to a rich operator-input object.
 
@@ -446,7 +446,7 @@ def resolve_operation_project_context(
 
 def verify_inputs_exist_in_metastore(
     inputs: dict[str, OperationInputResource],
-    metastore: SQLStore,
+    metastore: SQLResourceStore,
 ) -> None:
     """Assert that every operator input resource belongs to *metastore*.
 
@@ -473,7 +473,7 @@ def verify_inputs_exist_in_metastore(
 def metastore_for_operation_inputs(
     operation_info: FunctionOperationInfo | None,
     inputs: dict[str, OperationInputResource],
-) -> tuple[SQLStore, FunctionOperationInfo]:
+) -> tuple[SQLResourceStore, FunctionOperationInfo]:
     """Connect to the project's metastore and verify *inputs* exist in it.
 
     The project context comes from ``operation_info`` if set, otherwise from
@@ -492,7 +492,7 @@ def metastore_for_operation_inputs(
             an unsupported type or is not in the metastore.
     """
     from ado.core.operation.config import FunctionOperationInfo
-    from ado.metastore.sqlstore import SQLStore
+    from ado.metastore.sqlstore import SQLResourceStore
 
     project_context = resolve_operation_project_context(operation_info, inputs)
     resolved_info = operation_info or FunctionOperationInfo()
@@ -500,7 +500,7 @@ def metastore_for_operation_inputs(
         resolved_info = resolved_info.model_copy(
             update={"projectContext": project_context}
         )
-    metastore = SQLStore(project_context=project_context)
+    metastore = SQLResourceStore(project_context=project_context)
     verify_inputs_exist_in_metastore(inputs, metastore)
     return metastore, resolved_info
 
@@ -512,7 +512,7 @@ def metastore_for_operation_inputs(
 
 def resource_references_to_operation_inputs(
     resource_references: dict[str, OperationInputResourceReference],
-    metastore: SQLStore,
+    metastore: SQLResourceStore,
 ) -> dict[str, OperationInputResource]:
     """Resolve named resource references to rich operator-input objects.
 

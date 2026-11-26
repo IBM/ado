@@ -10,15 +10,15 @@ import sqlalchemy
 from ado.core import DiscoverySpaceResource, OperationResource
 from ado.core.resources import ADOResource, CoreResourceKinds
 from ado.core.samplestore.sql import SQLSampleStore
-from ado.metastore.sqlstore import SQLStore
+from ado.metastore.sqlstore import SQLResourceStore
 from ado.schema.entity import Entity
 from ado.schema.request import MeasurementRequestStateEnum, ReplayedMeasurement
 
 
 def test_resource_creation(
     resource_generator_from_file: tuple[CoreResourceKinds, str],
-    create_resources: Callable[[list[ADOResource], SQLStore], None],
-    sql_store: SQLStore,
+    create_resources: Callable[[list[ADOResource], SQLResourceStore], None],
+    sql_store: SQLResourceStore,
     request: pytest.FixtureRequest,
 ) -> None:
     _resource_kind, generator = resource_generator_from_file
@@ -29,8 +29,8 @@ def test_resource_creation(
 
 def test_invalid_resource_creation(
     resource_generator_from_file: tuple[CoreResourceKinds, str],
-    create_resources: Callable[[list[ADOResource], SQLStore], None],
-    sql_store: SQLStore,
+    create_resources: Callable[[list[ADOResource], SQLResourceStore], None],
+    sql_store: SQLResourceStore,
     request: pytest.FixtureRequest,
 ) -> None:
     _resource_kind, generator = resource_generator_from_file
@@ -44,8 +44,8 @@ def test_invalid_resource_creation(
 
 def test_resource_cannot_be_created_twice(
     resource_generator_from_file: tuple[CoreResourceKinds, str],
-    create_resources: Callable[[list[ADOResource], SQLStore], None],
-    sql_store: SQLStore,
+    create_resources: Callable[[list[ADOResource], SQLResourceStore], None],
+    sql_store: SQLResourceStore,
     request: pytest.FixtureRequest,
 ) -> None:
     _resource_kind, generator = resource_generator_from_file
@@ -63,9 +63,9 @@ def test_create_operation_with_related_space(
     ml_multi_cloud_operation_resource: Callable[[str | None], OperationResource],
     random_space_resource_from_db: Callable[[str | None], DiscoverySpaceResource],
     create_resource_with_related_identifiers: Callable[
-        [ADOResource, list[str], SQLStore], None
+        [ADOResource, list[str], SQLResourceStore], None
     ],
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
     get_single_resource_by_identifier: Callable[
         [str, CoreResourceKinds], ADOResource | None
     ],
@@ -102,9 +102,9 @@ def test_exception_on_resource_with_related_identifier_if_related_id_does_not_ex
     ml_multi_cloud_operation_resource: Callable[[str | None], OperationResource],
     random_space_resource_from_db: Callable[[str | None], DiscoverySpaceResource],
     create_resource_with_related_identifiers: Callable[
-        [ADOResource, list[str], SQLStore], None
+        [ADOResource, list[str], SQLResourceStore], None
     ],
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
 ) -> None:
     operation = ml_multi_cloud_operation_resource()
     nonexistent_related_id = "IDoNotExist"

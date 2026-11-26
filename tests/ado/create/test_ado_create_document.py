@@ -20,7 +20,7 @@ from ado.core.document.config import DocumentConfiguration, RelatedResource
 from ado.core.document.resource import DocumentResource
 from ado.core.resources import CoreResourceKinds
 from ado.metastore.project import ProjectContext
-from ado.metastore.sqlstore import SQLStore
+from ado.metastore.sqlstore import SQLResourceStore
 
 
 def test_create_document_dry_run_success(tmp_path: pathlib.Path) -> None:
@@ -111,7 +111,7 @@ def test_create_document_with_parent_relationship(
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
     ],
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
 ) -> None:
     """Create writes a parent→document edge for role parent."""
     parent = DataContainerResource(config=DataContainer(data={"key": "parent"}))
@@ -157,7 +157,7 @@ def test_create_document_with_child_relationship(
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
     ],
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
 ) -> None:
     """Create writes a document→child edge for role child."""
     child = DataContainerResource(config=DataContainer(data={"key": "child"}))
@@ -203,7 +203,7 @@ def test_create_document_unknown_related_resource(
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
     ],
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
 ) -> None:
     """Create fails when a related resource id does not exist."""
     document_file = tmp_path / "document_missing.json"
@@ -244,7 +244,7 @@ def test_get_document_config_round_trip(
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
     ],
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
 ) -> None:
     """Get document -o config returns the stored configuration."""
     config = DocumentConfiguration.model_validate(

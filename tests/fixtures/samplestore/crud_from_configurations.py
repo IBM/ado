@@ -22,13 +22,13 @@ from ado.core.operation.resource import OperationResource
 from ado.core.samplestore.base import ActiveSampleStore
 from ado.core.samplestore.config import SampleStoreConfiguration
 from ado.metastore.project import ProjectContext
-from ado.metastore.sqlstore import SQLStore
+from ado.metastore.sqlstore import SQLResourceStore
 from tests.fixtures.shared_mysql_instance import MySqlConnectionDetails
 
 
 @pytest.fixture
 def create_sample_store(
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
     valid_ado_project_context: ProjectContext,
 ) -> Callable[[SampleStoreConfiguration], ActiveSampleStore]:
     # Factory as fixture
@@ -87,7 +87,7 @@ def create_space(
 
 @pytest.fixture
 def create_operation(
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
     random_walk_operation_configuration: DiscoveryOperationConfiguration,
 ) -> Callable[[DiscoverySpace], OperationResource]:
     """Factory fixture that creates an OperationResource linked to a DiscoverySpace.
@@ -121,7 +121,7 @@ def create_operation(
 
 @pytest.fixture
 def create_actuatorconfiguration(
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
 ) -> Callable[
     [ado.core.actuatorconfiguration.config.ActuatorConfiguration],
     ActuatorConfigurationResource,

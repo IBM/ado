@@ -36,7 +36,7 @@ from ado.core.resources import (
 )
 from ado.metastore.base import ResourcesDoNotExistError
 from ado.metastore.project import ProjectContext
-from ado.metastore.sqlstore import SQLStore
+from ado.metastore.sqlstore import SQLResourceStore
 from tests.conftest import requires_sqlite_3_38
 
 # Methods to test:
@@ -53,7 +53,7 @@ from tests.conftest import requires_sqlite_3_38
 
 @requires_sqlite_3_38
 def test_get_resources_of_kind(
-    resource_store: SQLStore, resource_type: CoreResourceKinds
+    resource_store: SQLResourceStore, resource_type: CoreResourceKinds
 ) -> None:
     """Test can we get resource of the given kind from the resource_store"""
 
@@ -69,7 +69,8 @@ def test_get_resources_of_kind(
 
 @requires_sqlite_3_38
 def test_get_resources_and_get_resource_identifiers_of_kind(
-    sql_store_with_resources_preloaded: SQLStore, resource_type: CoreResourceKinds
+    sql_store_with_resources_preloaded: SQLResourceStore,
+    resource_type: CoreResourceKinds,
 ) -> None:
     """
     Test can we get resource of the given kind from the resource_store of type new"""
@@ -96,9 +97,11 @@ def test_get_resources_and_get_resource_identifiers_of_kind(
 
 @requires_sqlite_3_38
 def test_get_resources_sorted_by_created_ascending(
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
     random_space_resource_from_file: Callable[[str | None], DiscoverySpaceResource],
-    create_resources: Callable[[list[ado.core.resources.ADOResource], SQLStore], None],
+    create_resources: Callable[
+        [list[ado.core.resources.ADOResource], SQLResourceStore], None
+    ],
 ) -> None:
     """Test that getResources returns resources sorted by created timestamp in ascending order (oldest first)."""
     import datetime as dt
@@ -137,7 +140,8 @@ def test_get_resources_sorted_by_created_ascending(
 
 @requires_sqlite_3_38
 def test_get_resources_by_relationship(
-    sql_store_with_resources_preloaded: SQLStore, resource_type: CoreResourceKinds
+    sql_store_with_resources_preloaded: SQLResourceStore,
+    resource_type: CoreResourceKinds,
 ) -> None:
     """
     Tests getting the identifiers of related resources via get_resources_by_relationship.
@@ -175,7 +179,7 @@ def test_get_resources_by_relationship(
 
 
 def test_add_invalid_resource(
-    resource_store: SQLStore, operation_resource: OperationResource
+    resource_store: SQLResourceStore, operation_resource: OperationResource
 ) -> None:
     """
 
@@ -190,7 +194,7 @@ def test_add_invalid_resource(
 
 
 def test_get_resource_identifiers_of_kind_exception_unknown_kind(
-    resource_store: SQLStore,
+    resource_store: SQLResourceStore,
 ) -> None:
 
     with pytest.raises(ValueError, match="Unknown kind specified: unknown_kind"):
@@ -199,7 +203,7 @@ def test_get_resource_identifiers_of_kind_exception_unknown_kind(
 
 def test_add_and_delete_discovery_space(
     random_space_resource_from_db: Callable[[str | None], DiscoverySpaceResource],
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
 ) -> None:
     """Tests adding a discovery space resource"""
 
@@ -238,7 +242,7 @@ def test_add_and_delete_discovery_space(
 @requires_sqlite_3_38
 def test_add_update_and_delete_operation_related_to_discovery_space(
     random_space_resource_from_db: Callable[[str | None], DiscoverySpaceResource],
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
     operation_resource: OperationResource,
 ) -> None:
     """
@@ -339,7 +343,7 @@ def test_add_update_and_delete_operation_related_to_discovery_space(
 @requires_sqlite_3_38
 def test_create_operation_and_add_output(
     random_space_resource_from_db: Callable[[str | None], DiscoverySpaceResource],
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
     random_walk_multicloud_operation_configuration: DiscoveryOperationResourceConfiguration,
     data_container_resource: ado.core.datacontainer.resource.DataContainerResource,
 ) -> None:
@@ -454,7 +458,7 @@ def test_create_operation_and_add_output(
 
 
 def test_add_resource_and_relationship_exception_if_resource_does_not_exist(
-    resource_store: SQLStore, operation_resource: OperationResource
+    resource_store: SQLResourceStore, operation_resource: OperationResource
 ) -> None:
     """
     - Test if the resource doesn't exist a value error is raised
@@ -472,7 +476,9 @@ def test_add_resource_and_relationship_exception_if_resource_does_not_exist(
         )
 
 
-def test_delete_unknown_resource_raise_exception(resource_store: SQLStore) -> None:
+def test_delete_unknown_resource_raise_exception(
+    resource_store: SQLResourceStore,
+) -> None:
 
     fake_identifier = f"space-pytest-fake-{str(uuid.uuid4())[:6]}"
     with pytest.raises(
@@ -485,7 +491,7 @@ def test_delete_unknown_resource_raise_exception(resource_store: SQLStore) -> No
 
 
 def test_update_resource_overwrites_stored_data(
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
     random_space_resource_from_db: Callable[[str | None], DiscoverySpaceResource],
 ) -> None:
     """updateResource stores the new payload for an existing identifier.
@@ -508,7 +514,7 @@ def test_update_resource_overwrites_stored_data(
 
 
 def test_delete_object_relationships_removes_subject_object_links(
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
     random_space_resource_from_db: Callable[[str | None], DiscoverySpaceResource],
     operation_resource: OperationResource,
 ) -> None:
@@ -592,7 +598,7 @@ def test_custom_sample_store_loading(
 
 @requires_sqlite_3_38
 def test_get_latest_resource_identifiers_of_kinds_empty_database(
-    resource_store: SQLStore,
+    resource_store: SQLResourceStore,
 ) -> None:
     """Test get_latest_resource_identifiers_of_kinds with empty database returns empty dict."""
 
@@ -607,7 +613,7 @@ def test_get_latest_resource_identifiers_of_kinds_empty_database(
 @requires_sqlite_3_38
 def test_get_latest_resource_identifiers_of_kinds_single_kind(
     random_space_resource_from_db: Callable[[str | None], DiscoverySpaceResource],
-    resource_store: SQLStore,
+    resource_store: SQLResourceStore,
 ) -> None:
     """Test get_latest_resource_identifiers_of_kinds with single kind returns correct identifier."""
 
@@ -628,7 +634,7 @@ def test_get_latest_resource_identifiers_of_kinds_single_kind(
 @requires_sqlite_3_38
 def test_get_latest_resource_identifiers_of_kinds_multiple_kinds(
     random_space_resource_from_db: Callable[[str | None], DiscoverySpaceResource],
-    resource_store: SQLStore,
+    resource_store: SQLResourceStore,
     operation_resource: OperationResource,
 ) -> None:
     """Test get_latest_resource_identifiers_of_kinds with multiple kinds in single query."""
@@ -655,7 +661,7 @@ def test_get_latest_resource_identifiers_of_kinds_multiple_kinds(
 @requires_sqlite_3_38
 def test_get_latest_resource_identifiers_of_kinds_multiple_resources_same_kind(
     random_space_resource_from_db: Callable[[str | None], DiscoverySpaceResource],
-    resource_store: SQLStore,
+    resource_store: SQLResourceStore,
 ) -> None:
     """Test get_latest_resource_identifiers_of_kinds returns most recent when multiple resources of same kind exist."""
 
@@ -687,7 +693,7 @@ def test_get_latest_resource_identifiers_of_kinds_multiple_resources_same_kind(
 @requires_sqlite_3_38
 def test_get_latest_resource_identifiers_of_kinds_some_kinds_missing(
     random_space_resource_from_db: Callable[[str | None], DiscoverySpaceResource],
-    resource_store: SQLStore,
+    resource_store: SQLResourceStore,
 ) -> None:
     """Test get_latest_resource_identifiers_of_kinds omits kinds with no resources."""
 
@@ -708,7 +714,7 @@ def test_get_latest_resource_identifiers_of_kinds_some_kinds_missing(
 
 @requires_sqlite_3_38
 def test_get_latest_resource_identifiers_of_kinds_invalid_kind(
-    resource_store: SQLStore,
+    resource_store: SQLResourceStore,
 ) -> None:
     """Test get_latest_resource_identifiers_of_kinds raises ValueError for invalid kind."""
 
@@ -733,7 +739,7 @@ def test_get_latest_resource_identifiers_of_kinds_invalid_kind(
 
 @pytest.fixture
 def resource_hierarchy(
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
     random_space_resource_from_file: Callable[[str | None], DiscoverySpaceResource],
     operation_resource: OperationResource,
     data_container_resource: ado.core.datacontainer.resource.DataContainerResource,
@@ -834,7 +840,7 @@ def test_up_from_operation_max_hops_1(
     resource_hierarchy: dict,
 ) -> None:
     """up from operation with max_hops=1 returns only discoveryspace ids."""
-    store: SQLStore = resource_hierarchy["store"]
+    store: SQLResourceStore = resource_hierarchy["store"]
     op_id = resource_hierarchy["operation_id"]
     ds_id = resource_hierarchy["discoveryspace_id"]
 
@@ -856,7 +862,7 @@ def test_up_from_operation_uncapped_returns_discoveryspace_and_samplestore(
     resource_hierarchy: dict,
 ) -> None:
     """up from operation without cap returns discoveryspace and samplestore ids."""
-    store: SQLStore = resource_hierarchy["store"]
+    store: SQLResourceStore = resource_hierarchy["store"]
     op_id = resource_hierarchy["operation_id"]
     ds_id = resource_hierarchy["discoveryspace_id"]
     ss_id = resource_hierarchy["samplestore_id"]
@@ -884,7 +890,7 @@ def test_up_from_discoveryspace_returns_samplestore_only(
     resource_hierarchy: dict,
 ) -> None:
     """up from discoveryspace returns only samplestore identifiers."""
-    store: SQLStore = resource_hierarchy["store"]
+    store: SQLResourceStore = resource_hierarchy["store"]
     ds_id = resource_hierarchy["discoveryspace_id"]
     ss_id = resource_hierarchy["samplestore_id"]
 
@@ -909,7 +915,7 @@ def test_down_from_samplestore_max_hops_1(
     resource_hierarchy: dict,
 ) -> None:
     """down from samplestore with max_hops=1 returns only discoveryspace ids."""
-    store: SQLStore = resource_hierarchy["store"]
+    store: SQLResourceStore = resource_hierarchy["store"]
     ss_id = resource_hierarchy["samplestore_id"]
     ds_id = resource_hierarchy["discoveryspace_id"]
 
@@ -933,7 +939,7 @@ def test_down_from_samplestore_max_hops_2(
     resource_hierarchy: dict,
 ) -> None:
     """down from samplestore with max_hops=2 returns discoveryspace and operation ids."""
-    store: SQLStore = resource_hierarchy["store"]
+    store: SQLResourceStore = resource_hierarchy["store"]
     ss_id = resource_hierarchy["samplestore_id"]
     op_id = resource_hierarchy["operation_id"]
 
@@ -957,7 +963,7 @@ def test_outgoing_from_samplestore_uncapped_returns_discoveryspace_operation_and
     resource_hierarchy: dict,
 ) -> None:
     """outgoing from samplestore returns resources reachable via stored edge direction."""
-    store: SQLStore = resource_hierarchy["store"]
+    store: SQLResourceStore = resource_hierarchy["store"]
     ss_id = resource_hierarchy["samplestore_id"]
     dc_id = resource_hierarchy["datacontainer_id"]
 
@@ -985,7 +991,7 @@ def test_outgoing_from_discoveryspace_max_hops_1(
     resource_hierarchy: dict,
 ) -> None:
     """outgoing from discoveryspace with max_hops=1 returns only operation ids."""
-    store: SQLStore = resource_hierarchy["store"]
+    store: SQLResourceStore = resource_hierarchy["store"]
     ds_id = resource_hierarchy["discoveryspace_id"]
     op_id = resource_hierarchy["operation_id"]
 
@@ -1008,7 +1014,7 @@ def test_outgoing_from_discoveryspace_uncapped_returns_operation_and_datacontain
     resource_hierarchy: dict,
 ) -> None:
     """outgoing from discoveryspace returns resources reachable via stored edge direction."""
-    store: SQLStore = resource_hierarchy["store"]
+    store: SQLResourceStore = resource_hierarchy["store"]
     ds_id = resource_hierarchy["discoveryspace_id"]
     dc_id = resource_hierarchy["datacontainer_id"]
 
@@ -1035,7 +1041,7 @@ def test_outgoing_from_operation_returns_datacontainer_only(
     resource_hierarchy: dict,
 ) -> None:
     """outgoing from operation returns only resources reachable via stored edge direction."""
-    store: SQLStore = resource_hierarchy["store"]
+    store: SQLResourceStore = resource_hierarchy["store"]
     op_id = resource_hierarchy["operation_id"]
     dc_id = resource_hierarchy["datacontainer_id"]
 
@@ -1056,7 +1062,7 @@ def test_both_from_operation_returns_ancestors_and_descendants(
     resource_hierarchy: dict,
 ) -> None:
     """both from operation returns discoveryspace, samplestore, datacontainer and actuatorconfiguration."""
-    store: SQLStore = resource_hierarchy["store"]
+    store: SQLResourceStore = resource_hierarchy["store"]
     op_id = resource_hierarchy["operation_id"]
     ds_id = resource_hierarchy["discoveryspace_id"]
     ss_id = resource_hierarchy["samplestore_id"]
@@ -1080,7 +1086,7 @@ def test_incoming_from_datacontainer_returns_operation_discoveryspace_and_sample
     resource_hierarchy: dict,
 ) -> None:
     """incoming from datacontainer returns operation, discoveryspace and samplestore."""
-    store: SQLStore = resource_hierarchy["store"]
+    store: SQLResourceStore = resource_hierarchy["store"]
     dc_id = resource_hierarchy["datacontainer_id"]
     op_id = resource_hierarchy["operation_id"]
     ds_id = resource_hierarchy["discoveryspace_id"]
@@ -1109,7 +1115,7 @@ def test_both_from_datacontainer_reaches_ancestors_and_siblings(
     actuatorconfiguration that shares the same operation.  This is the expected
     behaviour with the raw-graph traversal.
     """
-    store: SQLStore = resource_hierarchy["store"]
+    store: SQLResourceStore = resource_hierarchy["store"]
     dc_id = resource_hierarchy["datacontainer_id"]
     op_id = resource_hierarchy["operation_id"]
     ds_id = resource_hierarchy["discoveryspace_id"]
@@ -1134,7 +1140,7 @@ def test_incoming_from_actuatorconfiguration_returns_no_results(
     resource_hierarchy: dict,
 ) -> None:
     """incoming from actuatorconfiguration returns no resources with stored edge direction."""
-    store: SQLStore = resource_hierarchy["store"]
+    store: SQLResourceStore = resource_hierarchy["store"]
     ac_id = resource_hierarchy["actuatorconfiguration_id"]
 
     result = store.get_resources_by_relationship(
@@ -1152,7 +1158,7 @@ def test_both_from_actuatorconfiguration_reaches_ancestors_and_siblings(
     resource_hierarchy: dict,
 ) -> None:
     """both from actuatorconfiguration reaches ancestors and sibling datacontainer via operation."""
-    store: SQLStore = resource_hierarchy["store"]
+    store: SQLResourceStore = resource_hierarchy["store"]
     ac_id = resource_hierarchy["actuatorconfiguration_id"]
     op_id = resource_hierarchy["operation_id"]
     ds_id = resource_hierarchy["discoveryspace_id"]
@@ -1177,7 +1183,7 @@ def test_both_from_discoveryspace_returns_rooted_ancestors_and_descendants_only(
     resource_hierarchy: dict,
 ) -> None:
     """both from discoveryspace excludes sibling discoveryspaces under the same samplestore."""
-    store: SQLStore = resource_hierarchy["store"]
+    store: SQLResourceStore = resource_hierarchy["store"]
     ds_id = resource_hierarchy["discoveryspace_id"]
     ss_id = resource_hierarchy["samplestore_id"]
     op_id = resource_hierarchy["operation_id"]
@@ -1204,7 +1210,7 @@ def test_both_from_discoveryspace_returns_rooted_ancestors_and_descendants_only(
 
 @pytest.fixture
 def two_op_hierarchy(
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
     random_space_resource_from_file: Callable[[str | None], DiscoverySpaceResource],
     data_container_resource: ado.core.datacontainer.resource.DataContainerResource,
     random_walk_operation_configuration: DiscoveryOperationConfiguration,
@@ -1299,7 +1305,7 @@ def test_multi_start_returns_per_origin_grouping(
     two_op_hierarchy: dict,
 ) -> None:
     """Multi-start identifier mode returns dict keyed by origin identifier."""
-    store: SQLStore = two_op_hierarchy["store"]
+    store: SQLResourceStore = two_op_hierarchy["store"]
     op1_id = two_op_hierarchy["op1_id"]
     op2_id = two_op_hierarchy["op2_id"]
     dc1_id = two_op_hierarchy["dc1_id"]
@@ -1330,7 +1336,7 @@ def test_multi_start_shared_resource_appears_under_each_origin(
     two_op_hierarchy: dict,
 ) -> None:
     """Shared discovered resources appear under every origin that reaches them."""
-    store: SQLStore = two_op_hierarchy["store"]
+    store: SQLResourceStore = two_op_hierarchy["store"]
     op1_id = two_op_hierarchy["op1_id"]
     op2_id = two_op_hierarchy["op2_id"]
     ds_id = two_op_hierarchy["ds_id"]
@@ -1357,7 +1363,7 @@ def test_identifier_none_seeds_from_all_resources_of_kind(
     resource_hierarchy: dict,
 ) -> None:
     """identifier=None seeds from all resources of the given kind and returns multi-start shape."""
-    store: SQLStore = resource_hierarchy["store"]
+    store: SQLResourceStore = resource_hierarchy["store"]
     op_id = resource_hierarchy["operation_id"]
     ds_id = resource_hierarchy["discoveryspace_id"]
 
@@ -1387,7 +1393,7 @@ def test_hydrated_single_start_returns_resources(
     """Single-start hydrated mode returns ADOResource objects, no outer origin key."""
     from ado.core.resources import ADOResource
 
-    store: SQLStore = resource_hierarchy["store"]
+    store: SQLResourceStore = resource_hierarchy["store"]
     op_id = resource_hierarchy["operation_id"]
     dc_id = resource_hierarchy["datacontainer_id"]
 
@@ -1411,7 +1417,7 @@ def test_hydrated_multi_start_grouping_matches_identifier_mode(
     two_op_hierarchy: dict,
 ) -> None:
     """Hydrated multi-start grouping matches identifier-only grouping."""
-    store: SQLStore = two_op_hierarchy["store"]
+    store: SQLResourceStore = two_op_hierarchy["store"]
     op1_id = two_op_hierarchy["op1_id"]
     op2_id = two_op_hierarchy["op2_id"]
     dc1_id = two_op_hierarchy["dc1_id"]
@@ -1452,7 +1458,7 @@ def test_hydrated_start_identifier_excluded(
     resource_hierarchy: dict,
 ) -> None:
     """Start identifiers are excluded from hydrated results."""
-    store: SQLStore = resource_hierarchy["store"]
+    store: SQLResourceStore = resource_hierarchy["store"]
     op_id = resource_hierarchy["operation_id"]
 
     result = store.get_resources_by_relationship(
@@ -1477,7 +1483,7 @@ def test_invalid_direction_raises_value_error(
     resource_hierarchy: dict,
 ) -> None:
     """Unsupported relationship raises ValueError."""
-    store: SQLStore = resource_hierarchy["store"]
+    store: SQLResourceStore = resource_hierarchy["store"]
     op_id = resource_hierarchy["operation_id"]
     with pytest.raises(
         ValueError,
@@ -1494,7 +1500,7 @@ def test_invalid_max_hops_zero_raises_value_error(
     resource_hierarchy: dict,
 ) -> None:
     """max_hops=0 raises ValueError before any DB query."""
-    store: SQLStore = resource_hierarchy["store"]
+    store: SQLResourceStore = resource_hierarchy["store"]
     op_id = resource_hierarchy["operation_id"]
     with pytest.raises(ValueError, match="max_hops must be a positive integer"):
         store.get_resources_by_relationship(
@@ -1510,7 +1516,7 @@ def test_invalid_max_hops_negative_raises_value_error(
     resource_hierarchy: dict,
 ) -> None:
     """max_hops=-1 raises ValueError before any DB query."""
-    store: SQLStore = resource_hierarchy["store"]
+    store: SQLResourceStore = resource_hierarchy["store"]
     op_id = resource_hierarchy["operation_id"]
     with pytest.raises(ValueError, match="max_hops must be a positive integer"):
         store.get_resources_by_relationship(
@@ -1527,7 +1533,7 @@ def test_valid_kind_direction_combo_with_no_reachable_resources_returns_empty(
     resource_hierarchy: dict,
 ) -> None:
     """A valid traversal family with no reachable resources returns an empty dict."""
-    store: SQLStore = resource_hierarchy["store"]
+    store: SQLResourceStore = resource_hierarchy["store"]
 
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.SAMPLESTORE,
@@ -1544,7 +1550,7 @@ def test_both_from_operation_max_hops_1_returns_one_level_each_direction(
     resource_hierarchy: dict,
 ) -> None:
     """both from operation with max_hops=1 returns one hop up and one hop down."""
-    store: SQLStore = resource_hierarchy["store"]
+    store: SQLResourceStore = resource_hierarchy["store"]
     op_id = resource_hierarchy["operation_id"]
     ds_id = resource_hierarchy["discoveryspace_id"]
     dc_id = resource_hierarchy["datacontainer_id"]
@@ -1572,7 +1578,7 @@ def test_empty_identifier_set_returns_empty(
     resource_hierarchy: dict,
 ) -> None:
     """Empty identifier set returns an empty result immediately."""
-    store: SQLStore = resource_hierarchy["store"]
+    store: SQLResourceStore = resource_hierarchy["store"]
 
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.OPERATION,
@@ -1591,7 +1597,7 @@ def test_empty_identifier_set_returns_empty(
 
 @requires_sqlite_3_38
 def test_valid_traversal_with_no_related_resources(
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
     random_space_resource_from_file: Callable[[str | None], DiscoverySpaceResource],
 ) -> None:
     """A valid traversal that simply finds no related resources returns an empty dict."""
@@ -1637,7 +1643,7 @@ def test_include_start_resources_single_identifier(
     """include_start_resources=True adds the start resource to the result."""
     from ado.core.resources import ADOResource
 
-    store: SQLStore = resource_hierarchy["store"]
+    store: SQLResourceStore = resource_hierarchy["store"]
     op_id = resource_hierarchy["operation_id"]
 
     result = store.get_resources_by_relationship(
@@ -1660,7 +1666,7 @@ def test_include_start_resources_multi_identifier(
     """include_start_resources=True adds each start resource in the multi-identifier result."""
     from ado.core.resources import ADOResource
 
-    store: SQLStore = two_op_hierarchy["store"]
+    store: SQLResourceStore = two_op_hierarchy["store"]
     op1_id = two_op_hierarchy["op1_id"]
     op2_id = two_op_hierarchy["op2_id"]
 
@@ -1688,7 +1694,7 @@ def test_include_start_resources_no_related_resources(
     """include_start_resources=True still returns the start resource when traversal finds nothing."""
     from ado.core.resources import ADOResource
 
-    store: SQLStore = resource_hierarchy["store"]
+    store: SQLResourceStore = resource_hierarchy["store"]
     ss_id = resource_hierarchy["samplestore_id"]
 
     result = store.get_resources_by_relationship(
@@ -1708,7 +1714,7 @@ def test_include_start_resources_with_identifiers_only_raises(
     resource_hierarchy: dict,
 ) -> None:
     """include_start_resources=True combined with identifiers_only=True raises ValueError."""
-    store: SQLStore = resource_hierarchy["store"]
+    store: SQLResourceStore = resource_hierarchy["store"]
     op_id = resource_hierarchy["operation_id"]
 
     with pytest.raises(
@@ -1728,7 +1734,7 @@ def test_include_start_resources_with_identifier_none_raises(
     resource_hierarchy: dict,
 ) -> None:
     """include_start_resources=True combined with identifier=None raises ValueError."""
-    store: SQLStore = resource_hierarchy["store"]
+    store: SQLResourceStore = resource_hierarchy["store"]
 
     with pytest.raises(
         ValueError,
@@ -1750,7 +1756,7 @@ def test_include_start_resources_with_identifier_none_raises(
 
 @pytest.fixture
 def resource_hierarchy_with_child_operation(
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
     random_space_resource_from_file: Callable[[str | None], DiscoverySpaceResource],
     operation_resource: OperationResource,
     random_walk_operation_configuration: DiscoveryOperationConfiguration,
@@ -1840,7 +1846,7 @@ def test_outgoing_from_parent_op_returns_child_op(
 ) -> None:
     """outgoing max_hops=1 from parent op returns child op only (among operations)."""
     h = resource_hierarchy_with_child_operation
-    store: SQLStore = h["store"]
+    store: SQLResourceStore = h["store"]
 
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.OPERATION,
@@ -1862,7 +1868,7 @@ def test_incoming_from_child_op_returns_parent_op(
 ) -> None:
     """incoming max_hops=1 from child op returns parent op only."""
     h = resource_hierarchy_with_child_operation
-    store: SQLStore = h["store"]
+    store: SQLResourceStore = h["store"]
 
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.OPERATION,
@@ -1884,7 +1890,7 @@ def test_both_from_parent_op_returns_parent_and_child_op(
 ) -> None:
     """both max_hops=1 from parent op returns the child op (and space1 as incoming)."""
     h = resource_hierarchy_with_child_operation
-    store: SQLStore = h["store"]
+    store: SQLResourceStore = h["store"]
 
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.OPERATION,
@@ -1905,7 +1911,7 @@ def test_space_op_space_op_multi_hop(
 ) -> None:
     """outgoing result_kinds={OPERATION} from space1 traverses space1→parent_op→child_op chain."""
     h = resource_hierarchy_with_child_operation
-    store: SQLStore = h["store"]
+    store: SQLResourceStore = h["store"]
 
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.DISCOVERYSPACE,
@@ -1928,7 +1934,7 @@ def test_space_op_space_op_multi_hop(
 
 @pytest.fixture
 def resource_hierarchy_with_document(
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
     random_space_resource_from_file: Callable[[str | None], DiscoverySpaceResource],
     random_walk_operation_configuration: DiscoveryOperationConfiguration,
 ) -> dict:
@@ -2016,7 +2022,7 @@ def test_outgoing_from_operation_returns_document(
 ) -> None:
     """outgoing from op_a returns the document (parent role)."""
     h = resource_hierarchy_with_document
-    store: SQLStore = h["store"]
+    store: SQLResourceStore = h["store"]
 
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.OPERATION,
@@ -2037,7 +2043,7 @@ def test_incoming_from_document_returns_parent_operation(
 ) -> None:
     """incoming from document returns op_a (the parent operation) only."""
     h = resource_hierarchy_with_document
-    store: SQLStore = h["store"]
+    store: SQLResourceStore = h["store"]
 
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.DOCUMENT,
@@ -2059,7 +2065,7 @@ def test_outgoing_from_document_returns_child_operation(
 ) -> None:
     """outgoing from document returns op_b (the child operation) only."""
     h = resource_hierarchy_with_document
-    store: SQLStore = h["store"]
+    store: SQLResourceStore = h["store"]
 
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.DOCUMENT,
@@ -2081,7 +2087,7 @@ def test_both_from_document_returns_both_operations(
 ) -> None:
     """both from document returns op_a and op_b."""
     h = resource_hierarchy_with_document
-    store: SQLStore = h["store"]
+    store: SQLResourceStore = h["store"]
 
     result = store.get_resources_by_relationship(
         kind=CoreResourceKinds.DOCUMENT,
@@ -2117,9 +2123,11 @@ def test_table_reflection_is_cached_across_instances(
 
 @requires_sqlite_3_38
 def test_has_resources_with_identifiers_all_present(
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
     random_space_resource_from_file: Callable[[str | None], DiscoverySpaceResource],
-    create_resources: Callable[[list[ado.core.resources.ADOResource], SQLStore], None],
+    create_resources: Callable[
+        [list[ado.core.resources.ADOResource], SQLResourceStore], None
+    ],
 ) -> None:
     """All identifiers exist -> all True, no exception."""
     space1 = random_space_resource_from_file()
@@ -2134,9 +2142,11 @@ def test_has_resources_with_identifiers_all_present(
 
 @requires_sqlite_3_38
 def test_has_resources_with_identifiers_some_missing_no_raise(
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
     random_space_resource_from_file: Callable[[str | None], DiscoverySpaceResource],
-    create_resources: Callable[[list[ado.core.resources.ADOResource], SQLStore], None],
+    create_resources: Callable[
+        [list[ado.core.resources.ADOResource], SQLResourceStore], None
+    ],
 ) -> None:
     """Some identifiers absent, raise_if_missing=False -> returns mixed dict, no exception."""
     space1 = random_space_resource_from_file()
@@ -2151,9 +2161,11 @@ def test_has_resources_with_identifiers_some_missing_no_raise(
 
 @requires_sqlite_3_38
 def test_has_resources_with_identifiers_some_missing_raises(
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
     random_space_resource_from_file: Callable[[str | None], DiscoverySpaceResource],
-    create_resources: Callable[[list[ado.core.resources.ADOResource], SQLStore], None],
+    create_resources: Callable[
+        [list[ado.core.resources.ADOResource], SQLResourceStore], None
+    ],
 ) -> None:
     """Some identifiers absent, raise_if_missing=True (default) -> ResourcesDoNotExistError raised."""
     space1 = random_space_resource_from_file()
@@ -2172,9 +2184,11 @@ def test_has_resources_with_identifiers_some_missing_raises(
 
 @requires_sqlite_3_38
 def test_has_resources_with_identifiers_kind_filter(
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
     random_space_resource_from_file: Callable[[str | None], DiscoverySpaceResource],
-    create_resources: Callable[[list[ado.core.resources.ADOResource], SQLStore], None],
+    create_resources: Callable[
+        [list[ado.core.resources.ADOResource], SQLResourceStore], None
+    ],
 ) -> None:
     """Identifier exists under one kind but query uses a different kind -> treated as missing."""
     space1 = random_space_resource_from_file()
@@ -2204,7 +2218,7 @@ def test_has_resources_with_identifiers_kind_filter(
 
 @requires_sqlite_3_38
 def test_has_resources_with_identifiers_empty_input(
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
 ) -> None:
     """Empty list/set -> returns {} with no exception."""
     assert sql_store.has_resources_with_identifiers([]) == {}
@@ -2217,7 +2231,7 @@ def test_has_resources_with_identifiers_empty_input(
 
 
 def test_update_resources_updates_all(
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
     random_space_resource_from_db: Callable[[str | None], DiscoverySpaceResource],
 ) -> None:
     """update_resources applies changes to all supplied resources and marks each UPDATED."""
@@ -2244,7 +2258,7 @@ def test_update_resources_updates_all(
 
 
 def test_update_resources_is_atomic(
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
     random_space_resource_from_db: Callable[[str | None], DiscoverySpaceResource],
 ) -> None:
     """update_resources rolls back all changes when the SQL statement fails.
@@ -2306,7 +2320,7 @@ def test_update_resources_is_atomic(
 
 
 def test_update_resources_unknown_id_raises_and_does_not_modify(
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
     random_space_resource_from_db: Callable[[str | None], DiscoverySpaceResource],
 ) -> None:
     """update_resources raises ResourcesDoNotExistError for an unknown ID and

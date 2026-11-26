@@ -16,7 +16,7 @@ from ado.core.operation.config import (
 from ado.core.operation.inputs import resolve_operation_project_context
 from ado.core.operation.operation import OperationOutput
 from ado.metastore.project import ProjectContext
-from ado.metastore.sqlstore import SQLStore
+from ado.metastore.sqlstore import SQLResourceStore
 from ado.modules.operators._general_orchestration import _operator_callable_for_harness
 from ado.modules.operators.collections import (
     characterize,
@@ -92,7 +92,7 @@ def test_operator_callable_for_harness_unwraps_decorated_operator(
 
 
 def test_summarize_operator_receives_list_inputs_and_relates_every_member(
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
     create_resources: Callable,
     temporary_operator: Callable[..., AbstractContextManager[str]],
 ) -> None:

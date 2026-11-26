@@ -117,7 +117,7 @@ def orchestrate(
         discovery_spaces_from_inputs,
         resource_references_to_operation_inputs,
     )
-    from ado.metastore.sqlstore import SQLStore
+    from ado.metastore.sqlstore import SQLResourceStore
 
     requires_ray = operation_resource_configuration.requires_ray()
     ray_initialized = False

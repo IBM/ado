@@ -25,7 +25,7 @@ from ado.core import (
 )
 from ado.core.discoveryspace.space import DiscoverySpace
 from ado.metastore.project import ProjectContext
-from ado.metastore.sqlstore import SQLStore
+from ado.metastore.sqlstore import SQLResourceStore
 from ado.modules.actuators.catalog import ExperimentCatalog
 from tests.conftest import requires_sqlite_3_38
 from tests.fixtures.shared_mysql_instance import MySqlConnectionDetails
@@ -62,7 +62,7 @@ def test_space_exists(
 def test_get_space_includes_requested_constitutive_properties(
     tmp_path: pathlib.Path,
     mysql_test_instance: MySqlConnectionDetails,
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
@@ -98,7 +98,7 @@ def test_get_space_includes_requested_constitutive_properties(
 def test_get_space_includes_optional_and_parameterized_properties(
     tmp_path: pathlib.Path,
     mysql_test_instance: MySqlConnectionDetails,
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
@@ -196,7 +196,7 @@ def test_get_vllm_performance_actuator_details() -> None:
 def test_field_filtering(
     tmp_path: pathlib.Path,
     mysql_test_instance: MySqlConnectionDetails,
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
@@ -532,7 +532,7 @@ def test_field_filtering(
 def test_get_space_with_use_latest(
     tmp_path: pathlib.Path,
     mysql_test_instance: MySqlConnectionDetails,
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
@@ -590,7 +590,7 @@ def test_get_space_with_use_latest(
 def test_get_operation_with_use_latest(
     tmp_path: pathlib.Path,
     mysql_test_instance: MySqlConnectionDetails,
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
@@ -650,7 +650,7 @@ def test_get_operation_with_use_latest(
 def test_get_with_use_latest_and_explicit_id(
     tmp_path: pathlib.Path,
     mysql_test_instance: MySqlConnectionDetails,
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
@@ -712,7 +712,7 @@ def test_get_with_use_latest_and_explicit_id(
 def test_get_with_use_latest_table_format(
     tmp_path: pathlib.Path,
     mysql_test_instance: MySqlConnectionDetails,
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
@@ -760,7 +760,7 @@ def test_get_with_use_latest_table_format(
 def test_get_with_use_latest_name_format(
     tmp_path: pathlib.Path,
     mysql_test_instance: MySqlConnectionDetails,
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None

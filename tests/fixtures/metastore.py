@@ -24,7 +24,7 @@ from ado.cli.core.cli import app as ado_app
 from ado.core import DiscoverySpaceResource
 from ado.core.resources import CoreResourceKinds
 from ado.metastore.project import ProjectContext
-from ado.metastore.sqlstore import SQLStore
+from ado.metastore.sqlstore import SQLResourceStore
 from ado.modules.module import ModuleConf, ModuleTypeEnum
 from ado.utilities.output import pydantic_model_as_yaml
 from tests.fixtures.shared_mysql_instance import MySqlConnectionDetails
@@ -208,9 +208,11 @@ def ado_test_file_project_context(request: pytest.FixtureRequest) -> ProjectCont
 @pytest.fixture
 def resource_store(
     valid_ado_project_context: ProjectContext,
-) -> ado.metastore.sqlstore.SQLStore:
+) -> ado.metastore.sqlstore.SQLResourceStore:
 
-    return ado.metastore.sqlstore.SQLStore(project_context=valid_ado_project_context)
+    return ado.metastore.sqlstore.SQLResourceStore(
+        project_context=valid_ado_project_context
+    )
 
 
 @pytest.fixture(params=list(CoreResourceKinds))
@@ -220,8 +222,8 @@ def resource_type(request: pytest.FixtureRequest) -> CoreResourceKinds:
 
 @pytest.fixture
 def discovery_space_resource_and_store(
-    resource_store: SQLStore,
-) -> (DiscoverySpaceResource, SQLStore):
+    resource_store: SQLResourceStore,
+) -> (DiscoverySpaceResource, SQLResourceStore):
     """Returns a DiscoverySpace resource that can be used to test additions"""
 
     # Return an existing discovery space conf

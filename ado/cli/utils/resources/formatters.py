@@ -64,7 +64,7 @@ if typing.TYPE_CHECKING:
 
     from ado.cli.models.parameters import AdoGetCommandParameters
     from ado.metastore.project import ProjectContext
-    from ado.metastore.sqlstore import SQLStore
+    from ado.metastore.sqlstore import SQLResourceStore
 
 
 def format_default_ado_get_single_resource(
@@ -319,7 +319,7 @@ def build_resource_listing_dataframe(
 
 def format_ado_get_stats_for_operations(
     df: "pd.DataFrame",
-    sql_store: "SQLStore",
+    sql_store: "SQLResourceStore",
     spinner: "Status | None" = None,
     include_request_columns: bool = False,
 ) -> "pd.DataFrame":
@@ -333,7 +333,7 @@ def format_ado_get_stats_for_operations(
     Args:
         df: DataFrame with at least an ``IDENTIFIER`` column (one row per
             operation).
-        sql_store: The ``SQLStore`` to use for relationship and samplestore
+        sql_store: The ``SQLResourceStore`` to use for relationship and samplestore
             queries.
         spinner: Optional rich status spinner to update with progress messages.
         include_request_columns: When ``True``, also append
@@ -438,7 +438,7 @@ def format_ado_get_stats_for_operations(
 
 def format_ado_get_stats_for_spaces(
     df: "pd.DataFrame",
-    sql_store: "SQLStore",
+    sql_store: "SQLResourceStore",
     spinner: "Status | None" = None,
     include_heavy: bool = False,
     space_resources: "dict[str, ADOResource] | None" = None,
@@ -463,7 +463,7 @@ def format_ado_get_stats_for_spaces(
     Args:
         df: DataFrame with at least an ``IDENTIFIER`` column (one row per
             discovery space).
-        sql_store: The ``SQLStore`` to use for relationship and stats queries.
+        sql_store: The ``SQLResourceStore`` to use for relationship and stats queries.
         spinner: Optional rich status spinner to update with progress messages.
         include_heavy: When ``True`` also compute and append the heavy stats
             columns (``ENTITY_SPACE_SIZE``, ``UNSAMPLED``,
@@ -686,7 +686,7 @@ def format_ado_get_stats_for_spaces(
 
 def format_ado_get_stats_for_samplestores(
     df: "pd.DataFrame",
-    sql_store: "SQLStore",
+    sql_store: "SQLResourceStore",
     spinner: "Status | None" = None,
 ) -> "pd.DataFrame":
     """Append 3 statistics columns to a sample stores DataFrame.
@@ -697,7 +697,7 @@ def format_ado_get_stats_for_samplestores(
     Args:
         df: DataFrame with at least an ``IDENTIFIER`` column (one row per
             sample store).
-        sql_store: The ``SQLStore`` to use for loading each sample store.
+        sql_store: The ``SQLResourceStore`` to use for loading each sample store.
         spinner: Optional rich status spinner to update with progress messages.
 
     Returns:
@@ -762,7 +762,7 @@ def _format_bytes(n: int) -> str:
 
 def format_ado_get_stats_for_datacontainers(
     df: "pd.DataFrame",
-    sql_store: "SQLStore",
+    sql_store: "SQLResourceStore",
     spinner: "Status | None" = None,
 ) -> "pd.DataFrame":
     """Append 4 statistics columns to a data containers DataFrame.
@@ -772,7 +772,7 @@ def format_ado_get_stats_for_datacontainers(
     Args:
         df: DataFrame with at least an ``IDENTIFIER`` column (one row per
             data container).
-        sql_store: The ``SQLStore`` to use for stats queries.
+        sql_store: The ``SQLResourceStore`` to use for stats queries.
         spinner: Optional rich status spinner to update with progress messages.
 
     Returns:

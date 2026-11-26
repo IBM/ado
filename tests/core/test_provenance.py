@@ -13,7 +13,7 @@ from ado.core.discoveryspace.resource import DiscoverySpaceProvenanceInfo
 from ado.core.metadata import PackageProvenance, ProvenanceInfo
 from ado.core.resources import CoreResourceKinds
 from ado.core.samplestore.config import SampleStoreConfiguration
-from ado.metastore.sqlstore import SQLStore
+from ado.metastore.sqlstore import SQLResourceStore
 from ado.utilities.pydantic import do_not_populate_ado_provenance_context
 
 
@@ -113,7 +113,7 @@ def test_sample_store_resource_populates_ado_on_construction(
 
 
 def test_add_resource_persists_construction_time_ado(
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
     sample_store_resource: SampleStoreResource,
 ) -> None:
     """addResource stores ado provenance set at construction time."""
@@ -148,7 +148,7 @@ def _legacy_sample_store_resource_json(
 
 
 def test_get_resource_load_context_preserves_missing_ado(
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
     ml_multi_cloud_sample_store_configuration: SampleStoreConfiguration,
 ) -> None:
     """getResource leaves ado unset for legacy resources without ado provenance."""
@@ -180,7 +180,7 @@ def test_get_resource_load_context_preserves_missing_ado(
 
 
 def test_update_resource_does_not_inject_ado(
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
     ml_multi_cloud_sample_store_configuration: SampleStoreConfiguration,
 ) -> None:
     """updateResource leaves ado unset for legacy resources without ado provenance."""

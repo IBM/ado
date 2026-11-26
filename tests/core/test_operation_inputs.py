@@ -21,7 +21,7 @@ from ado.core.operation.inputs import (
 )
 from ado.metastore.base import ResourcesDoNotExistError
 from ado.metastore.project import ProjectContext
-from ado.metastore.sqlstore import SQLStore
+from ado.metastore.sqlstore import SQLResourceStore
 from ado.utilities.location import SQLiteStoreConfiguration
 from ado.utilities.pydantic import ignore_plugin_validation_context
 
@@ -94,7 +94,7 @@ def test_resource_references_from_resolved_inputs_preserves_lists(
 
 
 def test_resource_references_to_rich_types_resolves_lists(
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
     create_resources: Callable,
 ) -> None:
     """A list of references is resolved to a list of stored resources."""
@@ -118,7 +118,7 @@ def test_resource_references_to_rich_types_resolves_lists(
 
 
 def test_verify_inputs_exist_in_metastore_checks_list_members(
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
     create_resources: Callable,
 ) -> None:
     """A list member missing from the metastore is reported."""

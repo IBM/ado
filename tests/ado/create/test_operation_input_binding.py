@@ -28,7 +28,7 @@ from ado.core.resources import (
     CoreResourceKinds,
 )
 from ado.metastore.project import ProjectContext
-from ado.metastore.sqlstore import SQLStore
+from ado.metastore.sqlstore import SQLResourceStore
 from ado.modules.operators.collections import (
     characterize,
     characterize_operation,
@@ -296,7 +296,7 @@ def test_create_operation_dry_run_use_latest_datacontainer(
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
     ],
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
     data_container_resource: DataContainerResource,
 ) -> None:
     """--use-latest datacontainer binds the operator's data-container parameter."""

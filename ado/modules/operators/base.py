@@ -33,7 +33,7 @@ from ado.core.operation.resource import (
     OperationResource,
 )
 from ado.core.resources import ADOResourcePropertyDescriptor
-from ado.metastore.sqlstore import SQLStore
+from ado.metastore.sqlstore import SQLResourceStore
 from ado.modules.actuators.measurement_queue import MeasurementQueue
 from ado.modules.operators.discovery_space_manager import (
     DiscoverySpaceUpdateSubscriber,
@@ -419,7 +419,7 @@ def create_operation_and_add_to_metastore(
     operator_module: OperatorReference,
     operation_parameters: dict,
     operation_info: FunctionOperationInfo,
-    metastore: SQLStore,
+    metastore: SQLResourceStore,
     provenance: OperationProvenanceInfo,
     operation_identifier: str | None = None,
 ) -> OperationResource:

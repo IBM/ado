@@ -6,13 +6,13 @@ from collections.abc import Callable
 import pytest
 
 from ado.core import ADOResource, CoreResourceKinds
-from ado.metastore.sqlstore import SQLStore
+from ado.metastore.sqlstore import SQLResourceStore
 
 
 def test_resource_deletion(
     resource_generator_from_db: tuple[CoreResourceKinds, str],
     delete_resource: Callable[[str], ADOResource | None],
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
     request: pytest.FixtureRequest,
 ) -> None:
     _resource_kind, generator = resource_generator_from_db
@@ -29,7 +29,7 @@ def test_resource_deletion(
 
 
 def test_nonexistent_resource_deletion(
-    delete_resource: Callable[[str], ADOResource | None], sql_store: SQLStore
+    delete_resource: Callable[[str], ADOResource | None], sql_store: SQLResourceStore
 ) -> None:
     with pytest.raises(
         ValueError,

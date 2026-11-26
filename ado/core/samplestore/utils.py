@@ -14,7 +14,7 @@ moduleLogger = logging.getLogger("sample-store-utils")
 
 def create_sample_store_resource(
     configuration: SampleStoreConfiguration,
-    resource_store: ado.metastore.sqlstore.SQLStore,
+    resource_store: ado.metastore.sqlstore.SQLResourceStore,
 ) -> tuple[
     SampleStoreResource,
     ado.core.samplestore.base.ActiveSampleStore,
@@ -25,7 +25,7 @@ def create_sample_store_resource(
 
     Args:
         configuration: Configuration for the SampleStore to create
-        resource_store: The SQLStore to persist the resource in
+        resource_store: The SQLResourceStore to persist the resource in
 
     Returns:
         Tuple of (SampleStoreResource, ActiveSampleStore instance)

@@ -26,7 +26,7 @@ from ado.utilities.pydantic import StrictSemVerStr, ignore_plugin_validation
 
 if typing.TYPE_CHECKING:
     import ado.modules.operators.base
-    from ado.metastore.sqlstore import SQLStore
+    from ado.metastore.sqlstore import SQLResourceStore
 
 
 class DiscoveryOperationEnum(enum.Enum):
@@ -135,7 +135,7 @@ class GenericOperatorParameters(pydantic.BaseModel):
 
 def get_actuator_configurations(
     actuator_configuration_identifiers: list[str],
-    metastore: "SQLStore",
+    metastore: "SQLResourceStore",
 ) -> list[ActuatorConfiguration]:
     """Retrieves and validates actuator configurations from the metastore for use.
 
@@ -246,7 +246,7 @@ def validate_actuator_configuration_ids_against_space_ids(
     """
     import ado.metastore.sqlstore
 
-    sql = ado.metastore.sqlstore.SQLStore(project_context=project_context)
+    sql = ado.metastore.sqlstore.SQLResourceStore(project_context=project_context)
     space_configurations: list[DiscoverySpaceConfiguration] = [
         sql.getResource(
             identifier=identifier,
@@ -946,7 +946,9 @@ class DiscoveryOperationResourceConfiguration(pydantic.BaseModel):
 
         return get_actuator_configurations(
             actuator_configuration_identifiers=self.actuatorConfigurationIdentifiers,
-            metastore=ado.metastore.sqlstore.SQLStore(project_context=project_context),
+            metastore=ado.metastore.sqlstore.SQLResourceStore(
+                project_context=project_context
+            ),
         )
 
     def validate_actuatorconfigurations(

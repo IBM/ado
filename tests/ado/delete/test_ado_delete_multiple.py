@@ -10,7 +10,7 @@ from ado.cli.core.cli import app as ado
 from ado.core.resources import CoreResourceKinds
 from ado.core.samplestore.sql import SQLSampleStore
 from ado.metastore.project import ProjectContext
-from ado.metastore.sqlstore import SQLStore
+from ado.metastore.sqlstore import SQLResourceStore
 from ado.schema.experiment import Experiment
 from ado.schema.request import (
     MeasurementRequest,
@@ -25,7 +25,7 @@ def test_delete_multiple_operations_success(
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
     ],
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
     ml_multi_cloud_benchmark_performance_experiment: Experiment,
     simulate_ml_multi_cloud_random_walk_operation: Callable[
         [int, int, int, str | None],
@@ -103,7 +103,7 @@ def test_delete_multiple_operations_partial_failure(
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
     ],
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
     ml_multi_cloud_benchmark_performance_experiment: Experiment,
     simulate_ml_multi_cloud_random_walk_operation: Callable[
         [int, int, int, str | None],
@@ -185,7 +185,7 @@ def test_delete_single_operation_backward_compatible(
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
     ],
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
     ml_multi_cloud_benchmark_performance_experiment: Experiment,
     simulate_ml_multi_cloud_random_walk_operation: Callable[
         [int, int, int, str | None],
@@ -238,7 +238,7 @@ def test_delete_multiple_operations_all_fail(
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
     ],
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
 ) -> None:
     """Test deleting multiple non-existent operations."""
     runner = CliRunner()

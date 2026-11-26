@@ -8,7 +8,7 @@ from collections.abc import Callable
 from ado.core import DataContainerResource
 from ado.core.datacontainer.resource import DataContainer, TabularData
 from ado.core.resources import ADOResource
-from ado.metastore.sqlstore import SQLStore
+from ado.metastore.sqlstore import SQLResourceStore
 from ado.utilities.location import SQLStoreConfiguration
 
 # ---------------------------------------------------------------------------
@@ -17,7 +17,7 @@ from ado.utilities.location import SQLStoreConfiguration
 
 
 def test_get_datacontainer_stats_empty_set_returns_empty_dict(
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
 ) -> None:
     """Passing an empty set returns {} immediately without any DB query."""
     result = sql_store.get_datacontainer_stats(set())
@@ -25,7 +25,7 @@ def test_get_datacontainer_stats_empty_set_returns_empty_dict(
 
 
 def test_get_datacontainer_stats_all_fields(
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
     create_resources: Callable[[list[ADOResource]], None],
     testTabularDataString: TabularData,
     test_sample_store_location: SQLStoreConfiguration,
@@ -53,7 +53,7 @@ def test_get_datacontainer_stats_all_fields(
 
 
 def test_get_datacontainer_stats_partial_fields(
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
     create_resources: Callable[[list[ADOResource]], None],
     random_identifier: Callable[[], str],
 ) -> None:
@@ -76,7 +76,7 @@ def test_get_datacontainer_stats_partial_fields(
 
 
 def test_get_datacontainer_stats_total_data_bytes_excludes_metadata(
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
     create_resources: Callable[[list[ADOResource]], None],
     random_identifier: Callable[[], str],
 ) -> None:
@@ -102,7 +102,7 @@ def test_get_datacontainer_stats_total_data_bytes_excludes_metadata(
 
 
 def test_get_datacontainer_stats_unknown_id_returns_zeros(
-    sql_store: SQLStore,
+    sql_store: SQLResourceStore,
 ) -> None:
     """An ID not in the store is returned with all-zero stats."""
     unknown_id = "datacontainer-does-not-exist"

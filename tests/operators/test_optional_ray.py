@@ -35,7 +35,7 @@ from ado.core.samplestore.config import (
 )
 from ado.core.samplestore.utils import create_sample_store_resource
 from ado.metastore.project import ProjectContext
-from ado.metastore.sqlstore import SQLStore
+from ado.metastore.sqlstore import SQLResourceStore
 from ado.modules.operators._cleanup import cleanup_callback_functions
 from ado.modules.operators.collections import (
     OperatorCollection,
@@ -230,9 +230,11 @@ def test_requires_ray_rejects_unexpected_module_type() -> None:
         config.requires_ray()
 
 
-def _store_discovery_space(project_context: ProjectContext) -> tuple[SQLStore, str]:
+def _store_discovery_space(
+    project_context: ProjectContext,
+) -> tuple[SQLResourceStore, str]:
     """Persist a sample store and a discovery space with one experiment."""
-    metastore = SQLStore(project_context=project_context)
+    metastore = SQLResourceStore(project_context=project_context)
     sample_store_configuration = SampleStoreConfiguration(
         specification=SampleStoreSpecification(
             module=SampleStoreModuleConf(

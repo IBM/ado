@@ -534,7 +534,7 @@ def test_ado_get_datacontainers_stats_values(
     backdate_resource: Callable[[str, CoreResourceKinds, "dt.datetime"], None],
 ) -> None:
     """Stats values for a known datacontainer match expected counts in the rendered table."""
-    from ado.metastore.sqlstore import SQLStore
+    from ado.metastore.sqlstore import SQLResourceStore
 
     runner = CliRunner()
     create_active_ado_context(
@@ -543,7 +543,7 @@ def test_ado_get_datacontainers_stats_values(
 
     create_resources([data_container_resource])
 
-    sql_store = SQLStore(project_context=valid_ado_project_context)
+    sql_store = SQLResourceStore(project_context=valid_ado_project_context)
     stats_by_id = sql_store.get_datacontainer_stats(
         {data_container_resource.identifier}
     )

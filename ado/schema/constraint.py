@@ -9,6 +9,7 @@ of two operands, or a combination of predicates using allOf, anyOf, or not.
 """
 
 import enum
+from collections.abc import Iterable
 from typing import Annotated, NoReturn, Self
 
 import pydantic
@@ -535,3 +536,39 @@ class PropertyConstraint(pydantic.BaseModel):
         if self.when is not None:
             identifiers |= self.when.property_identifiers()
         return identifiers
+
+
+def check_constraints_against_properties(
+    constraints: Iterable[PropertyConstraint],
+    property_identifiers: Iterable[str],
+) -> None:
+    """Check that constraints have unique names and reference only known properties.
+
+    Args:
+        constraints: The constraints to check.
+        property_identifiers: Identifiers of the properties the constraints may reference.
+
+    Raises:
+        ValueError: If two constraints share a name, or a constraint references
+            an identifier not in property_identifiers.
+    """
+
+    known_identifiers = set(property_identifiers)
+    seen_names: set[str] = set()
+    duplicate_names: set[str] = set()
+    for constraint in constraints:
+        if constraint.name in seen_names:
+            duplicate_names.add(constraint.name)
+        seen_names.add(constraint.name)
+
+        unknown_identifiers = constraint.property_identifiers() - known_identifiers
+        if unknown_identifiers:
+            raise ValueError(
+                f"Constraint {constraint.name} references unknown properties "
+                f"{sorted(unknown_identifiers)}. Known properties: {sorted(known_identifiers)}"
+            )
+
+    if duplicate_names:
+        raise ValueError(
+            f"Constraint names must be unique. Duplicated: {sorted(duplicate_names)}"
+        )

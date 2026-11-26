@@ -4,6 +4,7 @@ from typing import Any
 
 import pytest
 
+from ado.schema.constraint import PropertyConstraint
 from ado.schema.property import ConstitutiveProperty
 
 
@@ -59,3 +60,27 @@ def constitutive_property_configuration_general(
         ConstitutiveProperty(**p)
         for p in constitutive_property_configuration_general_yaml
     ]
+
+
+@pytest.fixture
+def t4_batch_size_constraint() -> PropertyConstraint:
+    """Return a constraint on the properties of constitutive_property_configuration_general.
+
+    Requires BatchSize to be at most 64 when AcceleratorType is T4.
+    """
+
+    return PropertyConstraint.model_validate(
+        {
+            "name": "t4_max_batch_size",
+            "when": {
+                "left": {"propertyIdentifier": "AcceleratorType"},
+                "operator": "eq",
+                "right": {"value": "T4"},
+            },
+            "require": {
+                "left": {"propertyIdentifier": "BatchSize"},
+                "operator": "le",
+                "right": {"value": 64},
+            },
+        }
+    )

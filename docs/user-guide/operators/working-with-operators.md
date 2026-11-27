@@ -44,11 +44,12 @@ Example output:
 │ INDEX │ OPERATOR                │ VERSION │ TYPE         │
 ├───────┼─────────────────────────┼─────────┼──────────────┤
 │ 0     │ detect_anomalous_series │ 1.0.5   │ characterize │
-│ 1     │ profile                 │ 2.0.4   │ characterize │
-│ 2     │ trim                    │ 2.0.3   │ characterize │
-│ 3     │ random_walk             │ 2.1.0   │ explore      │
-│ 4     │ ray_tune                │ 2.0.6   │ explore      │
-│ 5     │ rifferla                │ 2.0.6   │ modify       │
+│ 1     │ pkh                     │ 0.1.0   │ characterize │
+│ 2     │ profile                 │ 2.0.4   │ characterize │
+│ 3     │ trim                    │ 2.0.3   │ characterize │
+│ 4     │ random_walk             │ 2.1.0   │ explore      │
+│ 5     │ ray_tune                │ 2.0.6   │ explore      │
+│ 6     │ rifferla                │ 2.0.6   │ modify       │
 └───────┴─────────────────────────┴─────────┴──────────────┘
 ```
 

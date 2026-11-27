@@ -238,7 +238,6 @@ def test_custom_experiment_executor_invalid_result_status_is_failed() -> None:
 
     custom_experiments.custom_experiment_executor(
         raises_fn,
-        {},
         request,
         exp,
         MockQueue(),
@@ -528,13 +527,13 @@ def test_execute_unknown_experiment_raises_value_error() -> None:
         )
 
 
-def test_init_raises_when_experiment_function_cannot_be_loaded(
+def test_init_raises_when_experiment_function_is_not_registered(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """CustomExperiments() raises ValueError when an experiment's function cannot be loaded.
+    """CustomExperiments() raises ValueError when a catalog experiment has no function.
 
-    The experiment is defined inside the test, so its module metadata does not
-    resolve to a module-level function once the live callable is unregistered.
+    The experiment is defined inside the test and then removed from the
+    function registry, so the catalog lists an experiment that cannot run.
     """
 
     @custom_experiments.custom_experiment(output_property_identifiers=["y"])
@@ -546,7 +545,7 @@ def test_init_raises_when_experiment_function_cannot_be_loaded(
         unloadable_exp._experiment.identifier,
     )
 
-    with pytest.raises(ValueError, match="Unable to load class or function"):
+    with pytest.raises(ValueError, match="has no registered function"):
         custom_experiments.CustomExperiments()
 
 
@@ -781,22 +780,35 @@ def test_execute_entity_with_multiple_observed_values_is_invalid(
     assert upstream_value.identifier in repeated_result.reason
 
 
-def test_execute_entity_missing_observed_value_raises_value_error(
+def test_execute_entity_missing_observed_value_is_invalid(
     observed_input_experiments: tuple[Callable[..., Any], Callable[..., Any]],
 ) -> None:
-    """execute() raises ValueError when an entity has no value for an observed input."""
+    """An entity with no value for an observed input gets an invalid result.
+
+    Other entities in the same request are still measured.
+    """
     upstream, downstream = observed_input_experiments
     upstream_value = upstream._experiment.observedPropertyForTargetIdentifier(
         "upstream_value"
     )
+    measured_entity = _entity_with_observed_values(1.0, upstream_value, [10.0])
+    missing_value_entity = _entity_with_observed_values(2.0, upstream_value, [])
 
     actuator = custom_experiments.CustomExperiments()
-    with pytest.raises(
-        ValueError, match="does not have values for properties required"
-    ):
-        actuator.execute(
-            entities=[_entity_with_observed_values(2.0, upstream_value, [])],
-            experimentReference=downstream._experiment.reference,
-            requesterid="test-op",
-            requestIndex=0,
-        )
+    result = actuator.execute(
+        entities=[measured_entity, missing_value_entity],
+        experimentReference=downstream._experiment.reference,
+        requesterid="test-op",
+        requestIndex=0,
+    )
+
+    results_by_entity = {
+        measurement_result.entityIdentifier: measurement_result
+        for measurement_result in result.measurements
+    }
+    assert isinstance(
+        results_by_entity[measured_entity.identifier], ValidMeasurementResult
+    )
+    missing_result = results_by_entity[missing_value_entity.identifier]
+    assert isinstance(missing_result, InvalidMeasurementResult)
+    assert upstream_value.identifier in missing_result.reason

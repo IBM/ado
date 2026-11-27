@@ -43,7 +43,6 @@ if typing.TYPE_CHECKING:
 
 configure_logging()
 
-CATALOG_EXTENSIONS_CONFIGURATION_FILE_NAME = "custom_experiments.yaml"
 moduleLogger = logging.getLogger("registry")
 
 _MEASUREMENT_SPACE_INTERFACE_ISSUE_TEMPLATES: dict[

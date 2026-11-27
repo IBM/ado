@@ -123,6 +123,7 @@ test = [
   "ado-vllm-performance",
   "cloudpickle>=3.1.2",
   "density-test",
+  "ml-multi-cloud-custom-experiments",
   "optimization-test-functions",
   "pfas-custom-functions",
   # VV: For ado-sfttrainer ResourceTracker tests
@@ -164,6 +165,7 @@ required-environments = ["sys_platform == 'darwin' and platform_machine == 'arm6
 [tool.uv.workspace]
 members = [
   "examples/density_example",
+  "examples/ml-multi-cloud/custom_experiment",
   "examples/optimization_test_functions/custom_experiments",
   "examples/pfas-generative-models/custom_actuator_function",
   "examples/trim/custom_experiments",
@@ -185,6 +187,7 @@ ado-trim = { path = "plugins/operators/trim", editable = true }
 ado-vllm-performance = { workspace = true }
 ado-anomalous-series = { workspace = true }
 density-test = { workspace = true }
+ml-multi-cloud-custom-experiments = { workspace = true }
 optimization-test-functions = { workspace = true }
 pfas-custom-functions = { workspace = true }
 ado-profile-space = { workspace = true }

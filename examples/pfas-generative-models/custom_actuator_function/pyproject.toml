@@ -3,12 +3,16 @@ name = "pfas_custom_functions"
 description = "Custom functions for pfas generative models"
 dynamic = ["version"]
 
+# Add entry point for custom experiments
+[project.entry-points."ado.custom_experiments"]
+pfas_custom_experiments = "pfas_custom_experiments.experiment"
+
 [build-system]
 requires = ["hatchling", "uv-dynamic-versioning>=0.7.0"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["ado_actuators"]
+packages = ["pfas_custom_experiments"]
 
 [tool.hatch.version]
 source = "uv-dynamic-versioning"

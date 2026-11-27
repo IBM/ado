@@ -3,12 +3,16 @@ name = "ml_multi_cloud_custom_experiments"
 description = "Custom experiments for ml multi cloud example"
 dynamic = ["version"]
 
+# Add entry point for custom experiments
+[project.entry-points."ado.custom_experiments"]
+ml_multi_cloud_custom_experiments = "ml_multi_cloud_custom_experiments.objective_function"
+
 [build-system]
 requires = ["hatchling", "uv-dynamic-versioning>=0.7.0"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["ado_actuators"]
+packages = ["ml_multi_cloud_custom_experiments"]
 
 [tool.hatch.version]
 source = "uv-dynamic-versioning"

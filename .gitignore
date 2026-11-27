@@ -218,7 +218,8 @@ __marimo__/
 # macOS
 .DS_Store
 
-# ado-review-branch and ado-review-pr reports
+# ado-review-branch and ado-review-pr reports and working files
 /branch_review_*.md
+/review_progress_*.md
 /pr_review_*.md
 /pr_review_*.json

@@ -63,6 +63,82 @@ metadata:
   - do not link or code-format the same name more than once per finding
   - avoid fenced code blocks unless a short snippet is the clearest fix
 
+## Workflow
+
+Track the review in a progress file so no step or finding is lost between
+steps. Write it to `review_progress_<branch_name>.md` at the root of the main
+checkout (gitignored via `/review_progress_*.md`), where `<branch_name>` is the
+branch name from `git branch --show-current` with `/` replaced by `-`. When
+`ado-review-pr` calls this skill, use the PR's head branch name, prefixed with
+`<number>_`. The file holds the checklist first, then the entries under a
+`## Findings` heading. Do not report from memory; report from this file.
+
+1. **Plan** — before reviewing anything, create the progress file, replacing
+   any file left by an earlier run, with:
+   - a checklist of the steps below, omitting the ones that do not apply (no
+     `plugins/` changes, no `.agents/skills/` changes)
+   - under the code-review and test-quality steps, one checklist item per
+     changed file from `git diff --name-only <target>...HEAD`, so every file is
+     visited. List each file under every step; mark it `n/a` under each step
+     that does not cover it (for example, a docs file under test quality).
+   - under the skill-review step, one checklist item per changed file under
+     `.agents/skills/`
+2. **Set up** — create the worktrees as described in
+   [General Rules](#general-rules), unless the caller supplies the review
+   worktree, and record the scope in the progress file.
+3. **Code review** — [Code Review](#code-review), per file.
+4. **Test quality** — [Test quality](#test-quality), per file.
+5. **Plugin versioning** — [Plugin versioning](#plugin-versioning).
+6. **Linting** — [Linting](#linting).
+7. **Skill review** — [Skill Review](#skill-review).
+8. **Collate** — see below.
+
+After each step, and before ticking it off:
+
+- append every finding to the progress file as one entry with a tag, severity,
+  location, the problem, the proposed fix, and the command or test that
+  verified it. Number entries `F1`, `F2`, and so on; issues without a fix are
+  observations (`O1`, `O2`). The report renumbers them. Skill-review entries
+  (`S1`, `S2`) follow the format in
+  [references/skill-review.md](references/skill-review.md) instead. For example:
+
+  ```markdown
+  - [x] 3. Code review
+    - [x] ado/example/create.py
+    - [x] docs/example.md
+  - [x] 4. Test quality
+    - [x] ado/example/create.py — n/a
+    - [x] docs/example.md — n/a
+
+  ## Findings
+
+  ### F1 design (Minor) ado/example/create.py:120
+  `_format_error` wraps one call. Inline it. Verified: `grep -n _format_error`
+  shows one caller.
+  ```
+
+- write `no findings` for a step that produced none, and write any check that
+  could not run together with the reason
+- tick the step or file item only after its findings are recorded
+
+Collate before writing the report:
+
+1. Re-read the whole progress file, not the conversation.
+2. Confirm every checklist item is ticked; finish any that are not.
+3. Merge duplicates so each issue appears once (see
+   [Rules for findings](#rules-for-findings)), marking each merged entry
+   `merged into <id>`. When an `F` entry repeats an `S` entry, merge the `F`
+   entry into the `S` entry.
+4. Mark every `F` and `O` entry that is neither reported nor merged `dropped`,
+   with the reason (for example, not reproducible). Check that the number of
+   `F` and `O` entries equals the number of numbered findings and observations
+   in the report plus the number of entries merged or dropped. Copy each
+   skill's subsection, including its `S` entries, from the progress file into
+   Skill Reviews; `S` entries are not part of this count.
+5. Write the report in the [Report Format](#report-format), delete the progress
+   file, and remove the worktrees this review created, as described in
+   [General Rules](#general-rules).
+
 ## Code Review
 
 Evaluate changes to code against the guidelines in
@@ -75,25 +151,20 @@ Read [AGENTS.md](../../../AGENTS.md) in full and check every changed Python
 file against all rules it contains. Pay particular attention to these
 commonly missed areas:
 
-- **Fixture reuse** — see the fixture rules in AGENTS.md; report violations as
-  `test` findings.
-- **Fixture placement** — a fixture used only within one subdirectory but
-  defined in a parent `conftest.py` is misplaced; report it as a `test`
-  finding.
+- **Fixture reuse and placement** — see the fixture rules in AGENTS.md; report
+  violations as `test` findings.
 - **Naming** — see the naming rules in AGENTS.md; report violations as
   `design` findings.
 - **Docstring accuracy** — for every changed function or method, read the
-  implementation body and verify the docstring matches what the code actually
-  does. A docstring that describes behaviour the function no longer has, or
-  omits behaviour it has gained, is stale; report it as a `docs` finding even
-  if the docstring was not touched in this diff.
+  implementation body and check the docstring against the docstring rules in
+  AGENTS.md; report stale docstrings as `docs` findings even if the docstring
+  was not touched in this diff.
 - **Private helpers** — every new private function or method must satisfy the
   helper rules in AGENTS.md; report violations as `design` findings. The fix is
   to inline the helper.
-- **Nesting depth** — an `if` whose condition could be inverted to return,
-  continue, or raise early and remove a level of indentation (a guard clause)
-  is a `design` finding at Minor severity; report it only when the inversion
-  clearly improves readability.
+- **Nesting depth** — see the guard-clause rule in AGENTS.md; report violations
+  as `design` findings at Minor severity, only when the inversion clearly
+  improves readability.
 
 ### Test quality
 

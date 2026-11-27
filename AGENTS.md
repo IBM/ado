@@ -161,7 +161,9 @@ These guidelines apply to all code development in the ado codebase.
 - Define a new fixture in the `conftest.py` of the narrowest directory that
   contains all of its users. Do not define a fixture in a parent `conftest.py`
   when it is only used within one subdirectory; move it into that
-  subdirectory's `conftest.py`.
+  subdirectory's `conftest.py`. Use `tests/fixtures/` only for fixtures shared
+  across several test directories; its modules are star-imported into
+  `tests/conftest.py`, so they are available to every test.
 - Do not mock by default; prefer integration tests.
   - Search for existing fixtures that provide the same functionality.
   - If you really feel a mock is correct, confirm with the user before
@@ -173,10 +175,10 @@ These guidelines apply to all code development in the ado codebase.
   does not raise; do not assert only that a mock was called; do not copy the
   implementation's logic into the test.
 - Before adding a test, search `tests/` for existing tests of the same
-  function, class, or code path. If one exists that runs the same code path
-  with the same inputs, extend it with the new assertions instead of adding a
-  test, even when the new assertions differ from the existing ones. Add a
-  separate test only when it exercises a different input, branch, or setup.
+  function, class, or code path. If one exists, extend it with the new
+  assertions instead of adding a test, even when the new assertions differ from
+  the existing ones. Add a separate test only when it exercises a different
+  input, branch, or setup.
 - Test behaviour whose regression would matter: business logic, error handling
   a caller relies on, and edge cases the code explicitly handles. Do not test
   trivial code, pass-through wrappers, or framework behaviour, and do not

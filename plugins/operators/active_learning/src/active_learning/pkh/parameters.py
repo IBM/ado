@@ -154,7 +154,7 @@ class PKHParameters(GenericOperatorParameters):
 
     @model_validator(mode="after")
     def validate_predictor_configuration(self) -> PKHParameters:
-        """Check model-family overrides against the selected predictor mode."""
+        """Require applicable regression variants for the selected predictor mode."""
         configured = self.autoGluon and self.autoGluon.hyperparameters
         if not configured:
             return self
@@ -165,6 +165,24 @@ class PKHParameters(GenericOperatorParameters):
                 "Unsupported AutoGluon model families for PKH regression: "
                 f"{sorted(invalid)}."
             )
+        for family, variants in configured.items():
+            for variant in variants if isinstance(variants, list) else [variants]:
+                model_args = variant.get("ag_args", {})
+                if not isinstance(model_args, dict):
+                    raise ValueError(f"{family} ag_args must be a mapping.")
+                if "model_type" in model_args:
+                    raise ValueError(
+                        f"{family} uses its family key as the model type. Remove "
+                        "ag_args.model_type."
+                    )
+                problem_types = model_args.get("problem_types", ("regression",))
+                if (
+                    not isinstance(problem_types, (list, tuple, set))
+                    or "regression" not in problem_types
+                ):
+                    raise ValueError(f"{family} problem_types must include regression.")
+                if not model_args.get("valid_base", True):
+                    raise ValueError(f"{family} must be available as a base model.")
         return self
 
     def prediction_hyperparameters(self) -> dict[str, ModelSettings] | None:

@@ -6,12 +6,12 @@
 import sqlite3
 from collections.abc import Callable
 
-import numpy as np
-import pandas as pd
 import pytest
 from active_learning.pkh.data import (
+    candidate_coordinates,
     candidate_entities,
     encode_feature_matrix,
+    feature_frame,
     measured_labels,
     validate_candidate_space,
     validate_target_output,
@@ -46,6 +46,32 @@ def test_grid_rejects_unbounded_domain() -> None:
     )
     space = EntitySpaceRepresentation(constitutiveProperties=[prop])
     with pytest.raises(ValueError, match=r"finite domain.*temperature"):
+        validate_candidate_space(space)
+
+
+def test_grid_rejects_empty_domain() -> None:
+    """Reject an empty grid before starting measurements."""
+    prop = ConstitutiveProperty(
+        identifier="temperature", propertyDomain=PropertyDomain(values=[])
+    )
+    space = EntitySpaceRepresentation(constitutiveProperties=[prop])
+    with pytest.raises(ValueError, match=r"empty domain.*temperature"):
+        validate_candidate_space(space)
+
+
+@pytest.mark.parametrize(
+    "domain",
+    [
+        PropertyDomain(values=[1e38, -1e39]),
+        PropertyDomain(domainRange=[0, 10**40], interval=10**39),
+    ],
+    ids=["explicit-values", "interval"],
+)
+def test_grid_rejects_coordinates_outside_forest_range(domain: PropertyDomain) -> None:
+    """Reject numeric coordinates outside the sampling forest's supported range."""
+    prop = ConstitutiveProperty(identifier="reading", propertyDomain=domain)
+    space = EntitySpaceRepresentation(constitutiveProperties=[prop])
+    with pytest.raises(ValueError, match=r"reading.*float32"):
         validate_candidate_space(space)
 
 
@@ -191,13 +217,30 @@ def test_measured_labels_span_sqlite_bind_limit(
     }
 
 
-def test_forest_input_uses_sparse_storage_when_possible() -> None:
-    """Keep one-hot features sparse unless the forest needs dense input for NaN."""
-    frame = pd.DataFrame(
-        {"category": pd.Categorical(range(10)), "reading": np.arange(10, dtype=float)}
+def test_forest_input_uses_sparse_storage_when_possible(
+    make_pkh_space: Callable[[list[ConstitutiveProperty]], DiscoverySpace],
+) -> None:
+    """Keep one-hot features for a categorical grid sparse."""
+    prop = ConstitutiveProperty(
+        identifier="category", propertyDomain=PropertyDomain(values=list("abcdefghij"))
     )
+    space = make_pkh_space([prop])
+    frame = feature_frame(space, candidate_coordinates(candidate_entities(space)))
     assert issparse(encode_feature_matrix(frame))
-    frame.loc[0, "reading"] = np.nan
-    features = encode_feature_matrix(frame)
-    assert isinstance(features, np.ndarray)
-    assert np.isnan(features[0]).any()
+
+
+def test_large_integer_coordinates_are_numeric_model_inputs(
+    make_pkh_space: Callable[[list[ConstitutiveProperty]], DiscoverySpace],
+) -> None:
+    """Expose a large-integer grid as a numeric feature and retain exact coordinates."""
+    values = [2**65 + 1, 2**65 + 2**52 + 1]
+    prop = ConstitutiveProperty(
+        identifier="reading", propertyDomain=PropertyDomain(values=values)
+    )
+    space = make_pkh_space([prop])
+    coordinates = candidate_coordinates(candidate_entities(space))
+    frame = feature_frame(space, coordinates)
+
+    assert frame.select_dtypes(include="number").columns.tolist() == ["reading"]
+    assert frame["reading"].nunique() == 2
+    assert coordinates["reading"] == values

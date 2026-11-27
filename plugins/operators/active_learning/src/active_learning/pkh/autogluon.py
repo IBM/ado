@@ -5,7 +5,7 @@
 
 import logging
 from math import ceil
-from numbers import Integral, Real
+from numbers import Integral
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -17,11 +17,11 @@ from autogluon.tabular import TabularPredictor
 from autogluon.tabular.configs.presets_configs import tabular_presets_dict
 from joblib import effective_n_jobs
 
+from active_learning.pkh.data import is_numeric_feature
 from active_learning.pkh.parameters import (
     ActiveLearningAutoGluonParameters,
     PKHParameters,
 )
-from ado.schema.domain import VariableTypeEnum
 from ado.schema.entityspace import EntitySpaceRepresentation
 
 logger = logging.getLogger(__name__)
@@ -41,17 +41,10 @@ def validate_knn_prediction(
     if variants is None:
         return
 
-    has_numeric_feature = False
-    for prop in entity_space.constitutiveProperties:
-        domain = prop.propertyDomain
-        if domain.variableType == VariableTypeEnum.BINARY_VARIABLE_TYPE or (
-            domain.variableType == VariableTypeEnum.DISCRETE_VARIABLE_TYPE
-            and all(
-                isinstance(value, (Real, np.bool_)) for value in domain.values or ()
-            )
-        ):
-            has_numeric_feature = True
-            break
+    has_numeric_feature = any(
+        is_numeric_feature(prop.propertyDomain)
+        for prop in entity_space.constitutiveProperties
+    )
 
     bagged = tabular_presets_dict[settings.presets]["auto_stack"]
     if bagged:
@@ -76,9 +69,18 @@ def validate_knn_prediction(
         ):
             raise ValueError("AutoGluon KNN n_neighbors must be a positive integer.")
 
-        ensemble = variant.get("ag_args_ensemble") or {}
-        if bagged and {"custom_splits", "use_child_oof", "num_folds"} & ensemble.keys():
-            continue
+        ensemble = variant.get("ag_args_ensemble", {})
+        if not isinstance(ensemble, dict):
+            raise ValueError("AutoGluon KNN ag_args_ensemble must be a mapping.")
+        if bagged and (
+            ensemble.get("custom_splits") is not None
+            or ensemble.get("use_child_oof", True) is not True
+            or ensemble.get("num_folds") not in (None, 0)
+        ):
+            raise ValueError(
+                "AutoGluon KNN uses the preset's default validation. Remove "
+                "custom_splits, use_child_oof, and num_folds overrides."
+            )
         if neighbors > available:
             raise ValueError(
                 f"AutoGluon KNN n_neighbors={neighbors} exceeds {available} available "
@@ -154,24 +156,20 @@ def predict_unmeasured(
             num_stack_levels=0,
             dynamic_stacking=False,
             fit_weighted_ensemble=weighted,
-            raise_on_model_failure=hyperparameters is not None,
+            # Check requested base fits after AutoGluon has tried the optional ensemble.
+            raise_on_model_failure=expected_models is not None and not weighted,
             refit_full=False,
             set_best_to_refit_full=False,
             **fit_options,
         )
         leaderboard = predictor.leaderboard()
         base_models = leaderboard.loc[leaderboard["stack_level"] == 1, "model"].tolist()
-        if expected_models is not None:
-            if len(base_models) != expected_models:
-                raise ValueError(
-                    f"AutoGluon fitted {len(base_models)} of {expected_models} "
-                    f"requested models: {base_models}. Check the model settings "
-                    "and autoGluon.timeLimit."
-                )
-            if weighted and not leaderboard["stack_level"].eq(2).any():
-                raise ValueError(
-                    "AutoGluon could not fit the requested level-two weighted ensemble."
-                )
+        if expected_models is not None and len(base_models) != expected_models:
+            raise ValueError(
+                f"AutoGluon fitted {len(base_models)} of {expected_models} "
+                f"requested models: {base_models}. Check the model settings "
+                "and autoGluon.timeLimit."
+            )
         # AutoGluon reports all scores as higher-is-better. Break ties by stack
         # level and model name so elapsed time cannot change the predictions.
         ranked = leaderboard.dropna(subset=["score_val"]).sort_values(

@@ -7,6 +7,7 @@ import contextlib
 import json
 import math
 from collections.abc import Iterable
+from numbers import Real
 
 import numpy as np
 import pandas as pd
@@ -19,7 +20,7 @@ from ado.core.discoveryspace.samplers import (
     WalkModeEnum,
 )
 from ado.core.discoveryspace.space import DiscoverySpace, Entity
-from ado.schema.domain import VariableTypeEnum
+from ado.schema.domain import PropertyDomain, VariableTypeEnum
 from ado.schema.entityspace import EntitySpaceRepresentation
 from ado.schema.observed_property import ObservedProperty, ObservedPropertyValue
 from ado.schema.property_value import ConstitutivePropertyValue, ValueTypeEnum
@@ -27,10 +28,20 @@ from ado.schema.result import ValidMeasurementResult
 
 # SQLite accepts at least 999 bind parameters per statement on older builds.
 _IDENTIFIER_CHUNK_SIZE = 500
+_MAX_FOREST_COORDINATE = float(np.finfo(np.float32).max)
+
+
+def is_numeric_feature(domain: PropertyDomain) -> bool:
+    """Return whether a property domain supplies a numeric model feature."""
+    if domain.variableType == VariableTypeEnum.BINARY_VARIABLE_TYPE:
+        return True
+    return domain.variableType == VariableTypeEnum.DISCRETE_VARIABLE_TYPE and all(
+        isinstance(value, (Real, np.bool_)) for value in domain.values or ()
+    )
 
 
 def validate_candidate_space(entity_space: EntitySpaceRepresentation | None) -> int:
-    """Return the size of a finite grid with coordinates that survive storage."""
+    """Return the size of a nonempty grid with storable, model-compatible coordinates."""
     if not isinstance(entity_space, EntitySpaceRepresentation):
         raise ValueError("PKH requires an explicit finite entity space.")
     properties = entity_space.constitutiveProperties
@@ -46,6 +57,9 @@ def validate_candidate_space(entity_space: EntitySpaceRepresentation | None) -> 
                 "PKH requires a finite domain for constitutive property "
                 f"'{prop.identifier}'."
             )
+        if size == 0:
+            raise ValueError(f"PKH found an empty domain for '{prop.identifier}'.")
+
         for value in domain.values or ():
             try:
                 coordinate = ConstitutivePropertyValue(property=prop, value=value)
@@ -59,6 +73,20 @@ def validate_candidate_space(entity_space: EntitySpaceRepresentation | None) -> 
                     f"PKH coordinate {value!r} for '{prop.identifier}' "
                     "cannot be stored unchanged."
                 ) from error
+
+        if is_numeric_feature(domain):
+            bounds = domain.values or ()
+            if domain.domainRange is not None and domain.interval is not None:
+                first = min(domain.domainRange)
+                bounds = (first, first + (size - 1) * domain.interval)
+            if any(
+                not -_MAX_FOREST_COORDINATE <= value <= _MAX_FOREST_COORDINATE
+                for value in bounds
+            ):
+                raise ValueError(
+                    f"PKH numeric coordinates for '{prop.identifier}' must fit "
+                    "the sampling forest's float32 range."
+                )
         count *= int(size)
     return count
 
@@ -260,11 +288,9 @@ def feature_frame(
     columns = {}
     for prop in discovery_space.entitySpace.constitutiveProperties:
         values = coordinates[prop.identifier]
-        if (
-            prop.propertyDomain.variableType
-            == VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE
-            or any(not isinstance(value, (int, float)) for value in values)
-        ):
+        if is_numeric_feature(prop.propertyDomain):
+            columns[prop.identifier] = pd.to_numeric(pd.Series(values))
+        else:
             codes: dict[object, int] = {}
             columns[prop.identifier] = pd.Categorical(
                 [
@@ -272,8 +298,6 @@ def feature_frame(
                     for value in values
                 ]
             )
-        else:
-            columns[prop.identifier] = pd.Series(values)
     return pd.DataFrame(columns)
 
 
@@ -284,8 +308,4 @@ def encode_feature_matrix(frame: pd.DataFrame) -> np.ndarray | csr_matrix:
         [("categorical", OneHotEncoder(), categorical_columns)],
         remainder="passthrough",
     )
-    features = encoder.fit_transform(frame).astype(float, copy=False)
-    # Scikit-learn's forest supports missing numeric values only in dense input.
-    if isinstance(features, csr_matrix) and np.isnan(features.data).any():
-        return features.toarray()
-    return features
+    return encoder.fit_transform(frame).astype(float, copy=False)

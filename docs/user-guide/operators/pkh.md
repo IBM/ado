@@ -26,9 +26,9 @@ PKH operates in three main steps:
 
 1. **Gathers an initial pilot sample** (or reuses existing measurements) to fit
    the first Random Forest model.
-2. **Iteratively selects points** using *kernel herding*, choosing unmeasured
-   entities that best reduce the discrepancy between the sample and the full
-   pool in the learned forest leaf space.
+2. **Iteratively selects points** using *kernel herding*. The selection score
+   favors unmeasured entities in leaves that are underrepresented in the
+   sample compared with the full pool.
 3. **Completes the results table** by predicting any missing target values.
 
 ### When should you use the PKH operator?
@@ -44,9 +44,11 @@ Use the PKH operator when you want to:
 
 ### Key Requirements and Constraints
 
-- **Finite discovery space:** Define a finite grid with at least one input
-  property. All candidate entities must fit in memory. Numeric coordinates
-  must be finite. Store binary values as individual coordinates.
+- **Finite discovery space:** Give each input property a nonempty, finite
+  domain. The grid needs at least one input property and all candidates must
+  fit in memory. Numeric coordinates must fit the sampling forest's
+  single-precision (`float32`) range. Store binary values as individual
+  coordinates.
 - **Single experiment:** The measurement space must contain exactly one
   experiment (which may produce multiple output properties).
 - **Numeric target:** Specify a single numeric output property in
@@ -337,8 +339,9 @@ prediction. Set it to `-1` to use all available processors.
 
 By default, `random_forest` uses AutoGluon to fit a Random Forest. To compare
 models, choose `autogluon`. PKH selects the model with the lowest validation
-root mean squared error (RMSE). Ties favor a base model over a weighted
-ensemble, then use the model name. PKH requests a full-data fit for the chosen
+root mean squared error (RMSE) from the available models, including the
+weighted ensemble when it fits. Ties favor a base model over an ensemble,
+then use the model name. PKH requests a full-data fit for the chosen
 model’s base regressors. Some families, such as `DUMMY`, can retain the
 original training split or a single training fold. When the regressors report their
 training row counts, the dataset label `config.metadata.labels.predictorTrainingRows`
@@ -358,10 +361,11 @@ Both final predictor modes accept these AutoGluon settings.
 - `timeLimit`: Positive time limit for the initial fit, in seconds (default
   `60`). AutoGluon’s full-data refit runs separately.
 - `hyperparameters`: Model settings passed to `TabularPredictor.fit`
-  (default `None`). If you specify model families for `random_forest`, use
-  only `RF`. An explicit `KNN` model uses numeric features by default and needs
-  enough rows for `n_neighbors` after the preset's default validation split.
-  AutoGluon validates custom splits during fitting.
+  (default `None`). The outer model keys identify the families. Each variant
+  must support regression as a base model. For `random_forest`, use only
+  `RF`. An explicit `KNN` model uses numeric features by default and needs
+  enough training rows for `n_neighbors`. Use the preset's default
+  validation settings for bagged KNN.
 
 ## Working with PKH Output
 

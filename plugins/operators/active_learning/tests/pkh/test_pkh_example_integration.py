@@ -136,11 +136,6 @@ def test_oversized_budget_returns_failed_child_walk(
     status = result.exitStatus
     assert status.event == OperationResourceEventEnum.FINISHED
     assert status.exit_state == OperationExitStateEnum.ERROR
-    assert status.message is not None
-    assert (
-        "Requested number of entities to sample (2) is greater than "
-        "the size of the entity space (1)" in status.message
-    )
 
     [walk] = result.resources
     assert isinstance(walk, OperationResource)

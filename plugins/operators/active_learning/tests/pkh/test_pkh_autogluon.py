@@ -48,6 +48,40 @@ def test_winning_ensemble_refits_on_all_measured_rows() -> None:
     assert 0 <= low < high <= labels.max()
 
 
+def test_missing_ensemble_leaves_scored_models_eligible() -> None:
+    """Predict with a scored regressor when the variants have disjoint validation rows."""
+    frame = pd.DataFrame({"x": range(13)})
+    labels = frame["x"].astype(float)
+    labels.iloc[-1] = np.nan
+    variants = {}
+    for family, held_out, remaining in (
+        ("RF", list(range(6)), list(range(6, 12))),
+        ("XT", list(range(6, 12)), list(range(6))),
+    ):
+        variants[family] = {
+            "n_estimators": 5,
+            "ag_args_ensemble": {
+                "num_folds": 2,
+                "max_sets": 1,
+                "fold_fitting_strategy": "sequential_local",
+                "custom_splits": [(remaining, held_out[:3]), (remaining, held_out[3:])],
+            },
+        }
+    parameters = PKHParameters(
+        targetOutput="y",
+        numberEntities=1,
+        finalPredictor="autogluon",
+        autoGluon={"presets": "best_quality", "hyperparameters": variants},
+    )
+    values, metadata = predict_unmeasured(frame, labels, "y", parameters)
+    assert metadata["predictor"] in {
+        "RandomForest_BAG_L1_FULL",
+        "ExtraTrees_BAG_L1_FULL",
+    }
+    [value] = values
+    assert 0 <= value <= labels.max()
+
+
 def test_validation_tie_uses_stable_model_order() -> None:
     """Prefer a single model and break base-model ties by name."""
     frame = pd.DataFrame({"x": [0.0, 1.0, 2.0, 3.0, 1.4]})
@@ -78,11 +112,31 @@ def test_validation_tie_uses_stable_model_order() -> None:
 
 
 @pytest.mark.parametrize(
-    ("preset", "coordinate_values", "label_count", "message"),
+    ("preset", "coordinate_values", "label_count", "variant", "message"),
     [
-        ("medium_quality", [0, 1, 2, 3, 4], 4, "2 available training rows"),
-        ("best_quality", [0, 1, 2, 3, 4, 5], 5, "4 available training rows"),
-        ("medium_quality", list("abcdefghijk"), 10, "numeric feature"),
+        ("medium_quality", [0, 1, 2, 3, 4], 4, {}, "2 available training rows"),
+        ("best_quality", [0, 1, 2, 3, 4, 5], 5, {}, "4 available training rows"),
+        (
+            "best_quality",
+            [0, 1, 2, 3, 4, 5],
+            5,
+            {
+                "ag_args_ensemble": {
+                    "use_child_oof": True,
+                    "custom_splits": None,
+                    "num_folds": 0,
+                }
+            },
+            "4 available training rows",
+        ),
+        (
+            "best_quality",
+            [0, 1, 2, 3, 4, 5],
+            5,
+            {"ag_args_ensemble": {"use_child_oof": False}},
+            "KNN uses the preset's default validation",
+        ),
+        ("medium_quality", list("abcdefghijk"), 10, {}, "numeric feature"),
     ],
 )
 def test_knn_preflight_requires_enough_neighbors_and_numeric_features(
@@ -90,6 +144,7 @@ def test_knn_preflight_requires_enough_neighbors_and_numeric_features(
     preset: str,
     coordinate_values: list[int] | list[str],
     label_count: int,
+    variant: dict,
     message: str,
 ) -> None:
     """Reject infeasible KNN settings through PKH before dispatching any measurement."""
@@ -104,7 +159,7 @@ def test_knn_preflight_requires_enough_neighbors_and_numeric_features(
         targetOutput="self",
         numberEntities=label_count,
         finalPredictor="autogluon",
-        autoGluon={"presets": preset, "hyperparameters": {"KNN": {}}},
+        autoGluon={"presets": preset, "hyperparameters": {"KNN": variant}},
     )
     with pytest.raises(ValueError, match=message):
         pkh.__wrapped__(space, parameters=parameters)

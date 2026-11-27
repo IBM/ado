@@ -3,7 +3,8 @@
 
 """PKH herding scores, refitting, and measurement feedback."""
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import ExitStack, contextmanager
 
 import numpy as np
 import pytest
@@ -18,6 +19,17 @@ from ado.schema.domain import PropertyDomain, VariableTypeEnum
 from ado.schema.entity import Entity
 from ado.schema.observed_property import ObservedProperty
 from ado.schema.property import ConstitutiveProperty
+
+
+@contextmanager
+def _discovery_space_manager(space: DiscoverySpace) -> Iterator[DiscoverySpaceManager]:
+    """Start and clean up a Ray discovery space manager and its queue."""
+    with ExitStack() as cleanup:
+        queue = MeasurementQueue()
+        cleanup.callback(queue.shutdown, force=True)
+        manager = DiscoverySpaceManager.remote(space=space, queue=queue)
+        cleanup.callback(ray.kill, manager)
+        yield manager
 
 
 def test_herding_and_mmd_match_forest_proximity_kernel() -> None:
@@ -70,21 +82,21 @@ def test_herding_and_mmd_match_forest_proximity_kernel() -> None:
 
 def test_one_label_pilot_draws_a_second_candidate_before_herding() -> None:
     """Use a seeded draw while the sampling forest still needs a second label."""
-    state = PKHState(
-        np.arange(9).reshape(-1, 1),
-        initial_measured_indices=[],
-        initial_labels=[],
-        params=PKHParameters(
-            targetOutput="response", numberEntities=3, pilotSize=1, seed=42
-        ),
-    )
-    first = state.select_next()
-    assert first is not None
-    state.record_measurement(first, 1.0)
-    second = state.select_next()
-    assert second in range(9)
-    assert second != first
-    assert second != min(set(range(9)) - {first})
+    first, repeat, different_seed = [
+        PKHState(
+            np.arange(9).reshape(-1, 1),
+            initial_measured_indices=[0],
+            initial_labels=[1.0],
+            params=PKHParameters(
+                targetOutput="response", numberEntities=3, pilotSize=1, seed=seed
+            ),
+        ).select_next()
+        for seed in (42, 42, 2)
+    ]
+    assert first in range(1, 9)
+    assert repeat == first
+    assert different_seed in range(1, 9)
+    assert different_seed != first
 
 
 @pytest.mark.parametrize(
@@ -109,27 +121,67 @@ def test_sampler_compatibility_with_remote_space(
     space = make_pkh_space(
         [ConstitutiveProperty(identifier="temperature", propertyDomain=domain)]
     )
-    queue = MeasurementQueue()
-    manager = DiscoverySpaceManager.remote(space=space, queue=queue)
-    try:
+    with _discovery_space_manager(space) as manager:
         assert (
             PKHSampleSelector.samplerCompatibleWithDiscoverySpaceRemote(manager)
             is expected
         )
-    finally:
-        ray.kill(manager)
-        queue.shutdown(force=True)
+
+
+@pytest.mark.asyncio
+async def test_live_target_changes_the_next_selection(
+    make_pkh_space: Callable[[list[ConstitutiveProperty]], DiscoverySpace],
+    record_pkh_measurement: Callable[
+        [DiscoverySpace, Entity, str, ObservedProperty, int], None
+    ],
+) -> None:
+    """Use the child walk's newly measured target when fitting the first forest."""
+    space = make_pkh_space(
+        [
+            ConstitutiveProperty(
+                identifier=name, propertyDomain=PropertyDomain(values=list(range(4)))
+            )
+            for name in ("x", "y")
+        ]
+    )
+    target = space.measurementSpace.observedProperties[0]
+    for (x, y), value in [((0, 0), 1), ((0, 3), 5), ((2, 3), 9)]:
+        entity = space.entitySpace.entity_for_point({"x": x, "y": y})
+        record_pkh_measurement(space, entity, "prior-walk", target, value)
+
+    sampler = PKHSampleSelector(
+        PKHParameters(
+            targetOutput="self",
+            numberEntities=2,
+            pilotSize=4,
+            seed=0,
+            nEstimators=20,
+            minSamplesLeaf=1,
+            maxFeatures=1.0,
+        )
+    )
+    with _discovery_space_manager(space) as manager:
+        low_stream = sampler._entity_stream(manager, "low-walk")
+        high_stream = sampler._entity_stream(manager, "high-walk")
+        [low_pilot] = await anext(low_stream)
+        [high_pilot] = await anext(high_stream)
+        assert low_pilot.identifier == high_pilot.identifier
+        record_pkh_measurement(space, low_pilot, "low-walk", target, 0)
+        record_pkh_measurement(space, high_pilot, "high-walk", target, 2000)
+        [low_choice] = await anext(low_stream)
+        [high_choice] = await anext(high_stream)
+        assert low_choice.identifier != high_choice.identifier
 
 
 @pytest.mark.asyncio
 async def test_sampler_requires_current_target_before_another_selection(
     categorical_space: DiscoverySpace,
-    record_pkh_measurement: Callable[[Entity, str, ObservedProperty, int], None],
+    record_pkh_measurement: Callable[
+        [DiscoverySpace, Entity, str, ObservedProperty, int], None
+    ],
 ) -> None:
     """Require the selected point's target from the active walk."""
-    queue = MeasurementQueue()
-    manager = DiscoverySpaceManager.remote(space=categorical_space, queue=queue)
-    try:
+    with _discovery_space_manager(categorical_space) as manager:
         sampler = PKHSampleSelector(
             PKHParameters(targetOutput="self", numberEntities=2)
         )
@@ -140,10 +192,7 @@ async def test_sampler_requires_current_target_before_another_selection(
             == categorical_space.entitySpace.entity_for_point({"code": None}).identifier
         )
         target, _, sibling = categorical_space.measurementSpace.observedProperties
-        record_pkh_measurement(first, "pkh-walk", sibling, 17)
-        record_pkh_measurement(first, "another-walk", target, 999)
+        record_pkh_measurement(categorical_space, first, "pkh-walk", sibling, 17)
+        record_pkh_measurement(categorical_space, first, "another-walk", target, 999)
         with pytest.raises(ValueError, match="Missing finite target measurement"):
             await anext(stream)
-    finally:
-        ray.kill(manager)
-        queue.shutdown(force=True)

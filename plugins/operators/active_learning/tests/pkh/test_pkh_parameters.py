@@ -37,6 +37,32 @@ def test_catboost_settings_survive_serialization() -> None:
             },
             "ENS_WEIGHTED",
         ),
+        (
+            {
+                "autoGluon": {
+                    "hyperparameters": {"RF": [{}, {"ag_args": {"model_type": "XT"}}]}
+                }
+            },
+            r"RF.*ag_args\.model_type",
+        ),
+        (
+            {
+                "autoGluon": {
+                    "hyperparameters": {
+                        "RF": {"ag_args": {"problem_types": ["binary"]}}
+                    }
+                }
+            },
+            "RF.*regression",
+        ),
+        (
+            {
+                "autoGluon": {
+                    "hyperparameters": {"RF": {"ag_args": {"valid_base": False}}}
+                }
+            },
+            "RF.*base model",
+        ),
     ],
 )
 def test_rejects_invalid_configuration(settings: dict, message: str) -> None:

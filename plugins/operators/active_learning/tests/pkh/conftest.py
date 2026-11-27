@@ -93,16 +93,20 @@ def categorical_space(
 
 
 @pytest.fixture
-def record_pkh_measurement(
-    categorical_space: DiscoverySpace,
-) -> Callable[[Entity, str, ObservedProperty, int], None]:
+def record_pkh_measurement() -> Callable[
+    [DiscoverySpace, Entity, str, ObservedProperty, int], None
+]:
     """Store a measurement with its originating operation in the SQLite catalog."""
 
     def record(
-        entity: Entity, operation_id: str, target: ObservedProperty, value: int
+        space: DiscoverySpace,
+        entity: Entity,
+        operation_id: str,
+        target: ObservedProperty,
+        value: int,
     ) -> None:
         """Write one successful result for the specified operation and property."""
-        categorical_space.sample_store.addMeasurement(
+        space.addMeasurement(
             MeasurementRequest(
                 operation_id=operation_id,
                 requestIndex=0,

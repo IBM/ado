@@ -391,6 +391,22 @@ def _measured_values_by_identifier(request: MeasurementRequest) -> dict[str, Any
     }
 
 
+def test_runtime_env_creates_sandbox_venv() -> None:
+    """Only pip/conda/uv runtime_env keys count as sandbox venv creation."""
+    assert not custom_experiments.runtime_env_creates_sandbox_venv(None)
+    assert not custom_experiments.runtime_env_creates_sandbox_venv({})
+    assert not custom_experiments.runtime_env_creates_sandbox_venv(
+        {"env_vars": {"OMP_NUM_THREADS": "2"}}
+    )
+    assert custom_experiments.runtime_env_creates_sandbox_venv({"pip": ["numpy"]})
+    assert custom_experiments.runtime_env_creates_sandbox_venv(
+        {"conda": {"dependencies": ["numpy"]}}
+    )
+    assert custom_experiments.runtime_env_creates_sandbox_venv(
+        {"uv": {"packages": ["numpy"]}}
+    )
+
+
 def test_execute_no_queue_required() -> None:
     """execute() runs in the calling process when no MeasurementQueue is provided."""
 
@@ -528,3 +544,37 @@ def test_init_raises_when_experiment_function_cannot_be_loaded(
 
     with pytest.raises(ValueError, match="Unable to load class or function"):
         custom_experiments.CustomExperiments()
+
+
+def test_experiment_requires_ray_sandbox_venv() -> None:
+    """Sandbox detection follows use_ray and runtime_env package-manager keys."""
+
+    @custom_experiments.custom_experiment(output_property_identifiers=["y"])
+    def no_sandbox_exp(x: float) -> dict[str, float]:
+        return {"y": x}
+
+    @custom_experiments.custom_experiment(
+        output_property_identifiers=["y"],
+        ray_options={"runtime_env": {"pip": ["requests"]}},
+    )
+    def sandbox_exp(x: float) -> dict[str, float]:
+        return {"y": x}
+
+    @custom_experiments.custom_experiment(
+        output_property_identifiers=["y"],
+        use_ray=False,
+        ray_options={"runtime_env": {"pip": ["requests"]}},
+    )
+    def sandbox_ignored_when_no_ray(x: float) -> dict[str, float]:
+        return {"y": x}
+
+    actuator = custom_experiments.CustomExperiments()
+    assert not actuator.experiment_requires_ray_sandbox_venv(
+        no_sandbox_exp._experiment.reference
+    )
+    assert actuator.experiment_requires_ray_sandbox_venv(
+        sandbox_exp._experiment.reference
+    )
+    assert not actuator.experiment_requires_ray_sandbox_venv(
+        sandbox_ignored_when_no_ray._experiment.reference
+    )

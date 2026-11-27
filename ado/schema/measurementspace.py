@@ -264,6 +264,14 @@ class MeasurementSpace:
                 ]
             )
 
+            if e.constraints:
+                exp_content.extend(
+                    [
+                        Text("Constraints:", style="bold"),
+                        Panel(Group(*e.constraints), box=rich.box.SIMPLE_HEAD),
+                    ]
+                )
+
             content.extend(
                 [
                     Panel(

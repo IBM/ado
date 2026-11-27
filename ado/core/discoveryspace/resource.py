@@ -83,7 +83,7 @@ class DiscoverySpaceResource(ADOResource):
 
         # Entity Space section
         entity_space = EntitySpaceRepresentation.representationFromConfiguration(
-            conf=self.config.entitySpace
+            conf=self.config.entitySpace, constraints=self.config.constraints
         )
         if entity_space is not None:
             content.extend(

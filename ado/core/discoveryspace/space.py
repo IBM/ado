@@ -29,6 +29,7 @@ from ado.core.resources import ADOResourceReference, CoreResourceKinds
 from ado.metastore.project import ProjectContext
 from ado.modules.actuators.catalog import ActuatorCatalogExtension
 from ado.modules.actuators.registry import ActuatorRegistry
+from ado.schema.constraint import PropertyConstraint
 from ado.schema.entity import Entity
 from ado.schema.entityspace import (
     EntitySpaceRepresentation,
@@ -194,7 +195,7 @@ class DiscoverySpace:
 
         if conf.entitySpace is not None:
             entitySpace = EntitySpaceRepresentation.representationFromConfiguration(
-                conf.entitySpace
+                conf.entitySpace, constraints=conf.constraints
             )
 
         ## Load external experiments from the sample store for measurement-space
@@ -524,6 +525,31 @@ class DiscoverySpace:
         return self._entitySpace
 
     @property
+    def effective_constraints(self) -> list[tuple[str, PropertyConstraint]]:
+        """Return the entity space constraints and the constraints of each experiment.
+
+        Returns:
+            A list of (source, constraint) pairs. The source is "entitySpace" for
+            constraints from the space configuration, and the string form of the
+            experiment for constraints declared by an experiment.
+        """
+
+        constraints = []
+        if self.entitySpace is not None:
+            constraints.extend(
+                ("entitySpace", constraint)
+                for constraint in self.entitySpace.constraints
+            )
+        for (
+            experiment,
+            experiment_constraints,
+        ) in self.measurementSpace.experiment_constraints.items():
+            constraints.extend(
+                (experiment, constraint) for constraint in experiment_constraints
+            )
+        return constraints
+
+    @property
     def properties(self) -> DiscoverySpaceProperties:
 
         return self._properties
@@ -533,8 +559,10 @@ class DiscoverySpace:
 
         # FIXME: entitySpace definition in config is explicit entity space ...
         entitySpaceConf = None
+        constraints = []
         if self.entitySpace is not None:
             entitySpaceConf = self.entitySpace.config
+            constraints = self.entitySpace.constraints
 
         # Note: We store the selfContainedConfig (MeasurementSpaceConfig)
         # as this means the actuators/registry will not have to be queried to rebuild the measurement space
@@ -550,6 +578,7 @@ class DiscoverySpace:
         return DiscoverySpaceConfiguration(
             sampleStoreIdentifier=self.sample_store.identifier,
             entitySpace=entitySpaceConf,
+            constraints=constraints,
             experiments=self.measurementSpace.selfContainedConfig,
             metadata=metadata,
         )

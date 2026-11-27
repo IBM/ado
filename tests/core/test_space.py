@@ -37,14 +37,47 @@ from ado.core.samplestore.config import (
 from ado.metastore.project import ProjectContext
 from ado.modules.actuators.catalog import ExperimentCatalog
 from ado.modules.actuators.registry import ActuatorRegistry
+from ado.schema.constraint import PropertyConstraint
 from ado.schema.entityspace import EntitySpaceRepresentation
+from ado.schema.experiment import Experiment
 from ado.schema.measurementspace import (
     MeasurementSpace,
     MeasurementSpaceConfiguration,
 )
+from ado.schema.property import ConstitutiveProperty
 from ado.schema.reference import (
     ExperimentReference,
 )
+
+
+@pytest.fixture
+def constrained_space_configuration(
+    requiredProperties: list[ConstitutiveProperty],
+    constrained_parameterizable_experiment: Experiment,
+) -> DiscoverySpaceConfiguration:
+    """A space over constrained_parameterizable_experiment with one user constraint.
+
+    The user constraint requires test_req2 to be at least test_req3.
+    """
+
+    return DiscoverySpaceConfiguration(
+        entitySpace=requiredProperties,
+        experiments=MeasurementSpaceConfiguration(
+            experiments=[constrained_parameterizable_experiment]
+        ),
+        constraints=[
+            PropertyConstraint.model_validate(
+                {
+                    "name": "req2_at_least_req3",
+                    "require": {
+                        "left": {"propertyIdentifier": "test_req2"},
+                        "operator": "ge",
+                        "right": {"propertyIdentifier": "test_req3"},
+                    },
+                }
+            )
+        ],
+    )
 
 
 def test_discovery_space(
@@ -376,6 +409,61 @@ def test_from_configuration_load_experiment_catalog_false_does_not_reregister(
         reloaded_space.measurementSpace.experiments[0].identifier
         == "benchmark_performance"
     )
+
+
+def test_stored_space_keeps_only_user_constraints(
+    valid_ado_project_context: ProjectContext,
+    ml_multi_cloud_sample_store: ActiveSampleStore,
+    create_space: Callable[[DiscoverySpaceConfiguration, str], DiscoverySpace],
+    constrained_space_configuration: DiscoverySpaceConfiguration,
+) -> None:
+    """A stored and reloaded space holds the user constraints but not the experiment constraints."""
+    space = create_space(
+        constrained_space_configuration, ml_multi_cloud_sample_store.identifier
+    )
+
+    reloaded_space = DiscoverySpace.from_stored_configuration(
+        project_context=valid_ado_project_context, space_identifier=space.uri
+    )
+
+    assert (
+        reloaded_space.config.constraints == constrained_space_configuration.constraints
+    )
+
+
+def test_effective_constraints_include_experiment_constraints(
+    ml_multi_cloud_sample_store: ActiveSampleStore,
+    create_space: Callable[[DiscoverySpaceConfiguration, str], DiscoverySpace],
+    constrained_space_configuration: DiscoverySpaceConfiguration,
+    constrained_parameterizable_experiment: Experiment,
+) -> None:
+    """effective_constraints lists the user constraints then each experiment's constraints."""
+    space = create_space(
+        constrained_space_configuration, ml_multi_cloud_sample_store.identifier
+    )
+
+    assert space.effective_constraints == [
+        ("entitySpace", constrained_space_configuration.constraints[0]),
+        (
+            str(constrained_parameterizable_experiment),
+            constrained_parameterizable_experiment.constraints[0],
+        ),
+    ]
+
+
+def test_space_resource_rich_print_includes_constraints(
+    constrained_space_configuration: DiscoverySpaceConfiguration,
+) -> None:
+    """Describe output for a space shows both user and experiment constraints."""
+    from rich.console import Console
+
+    console = Console(width=200)
+    with console.capture() as capture:
+        console.print(DiscoverySpaceResource(config=constrained_space_configuration))
+
+    output = capture.get()
+    assert "req2_at_least_req3" in output
+    assert "x_needs_non_negative_opt2" in output
 
 
 def test_sampled_entities(ml_multi_cloud_space: DiscoverySpace) -> None:

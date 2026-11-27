@@ -101,7 +101,11 @@ class PKHState(ForestSamplingState):
         return float(np.sum(discrepancy**2) / self.params.nEstimators)
 
     def _select_after_pilot(self, unmeasured: np.ndarray) -> int:
-        """Select the candidate with the largest mean leaf discrepancy."""
+        """Select the candidate with the largest mean leaf discrepancy.
+
+        With fewer than two measured labels, draw uniformly from the unmeasured
+        candidates. The draw uses the configured seed when supplied.
+        """
         new_measurements = len(self.measured_indices) - self._measured_at_last_refit
         if self.forest is None or new_measurements >= self.params.epochLength:
             self.fit_forest_and_histograms()

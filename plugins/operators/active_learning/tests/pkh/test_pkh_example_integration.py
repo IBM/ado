@@ -20,6 +20,11 @@ from ado.cli.core.cli import app
 from ado.cli.core.config import AdoConfiguration
 from ado.core.datacontainer.resource import DataContainerResource
 from ado.core.discoveryspace.space import DiscoverySpace
+from ado.core.operation.resource import (
+    OperationExitStateEnum,
+    OperationResource,
+    OperationResourceEventEnum,
+)
 from ado.schema.observed_property import ObservedPropertyValue
 from ado.schema.result import ValidMeasurementResult
 
@@ -88,9 +93,9 @@ def test_pkh_ideal_gas_example(tmp_path: Path) -> None:
     assert measured_rows.to_dict() == pytest.approx(measured.pressure.to_dict())
 
 
-@pytest.mark.timeout(300)
-def test_partial_prior_is_measured_by_the_requested_actuator(tmp_path: Path) -> None:
-    """Measure the target when only a sibling output is available from its actuator."""
+@pytest.fixture
+def single_entity_robotic_lab_space(tmp_path: Path) -> DiscoverySpace:
+    """Create a one-entity discovery space for the example actuator."""
     created = CliRunner().invoke(
         app,
         [
@@ -109,12 +114,51 @@ def test_partial_prior_is_measured_by_the_requested_actuator(tmp_path: Path) -> 
     )
     assert created.exit_code == 0, created.output
     [space_id] = re.findall(r"Created space with identifier: (\S+)", created.output)
-    space = DiscoverySpace.from_stored_configuration(
+    return DiscoverySpace.from_stored_configuration(
         project_context=AdoConfiguration.load(
             _override_config_dir=tmp_path
         ).project_context,
         space_identifier=space_id,
     )
+
+
+@pytest.mark.timeout(300)
+def test_oversized_budget_returns_failed_child_walk(
+    tmp_path: Path, single_entity_robotic_lab_space: DiscoverySpace
+) -> None:
+    """Preserve the child walk and its error when the budget exceeds the pool."""
+    parameters = PKHParameters(
+        targetOutput="adsorption_plateau_value", numberEntities=2
+    )
+    with chdir(tmp_path):
+        result = pkh(single_entity_robotic_lab_space, parameters=parameters)
+
+    status = result.exitStatus
+    assert status.event == OperationResourceEventEnum.FINISHED
+    assert status.exit_state == OperationExitStateEnum.ERROR
+    assert status.message is not None
+    assert (
+        "Requested number of entities to sample (2) is greater than "
+        "the size of the entity space (1)" in status.message
+    )
+
+    [walk] = result.resources
+    assert isinstance(walk, OperationResource)
+    assert walk.config.operation.module.operatorName == "random_walk"
+    finished = [
+        entry
+        for entry in walk.status
+        if entry.event == OperationResourceEventEnum.FINISHED
+    ]
+    assert status == finished[-1]
+
+
+@pytest.mark.timeout(300)
+def test_partial_prior_is_measured_by_the_requested_actuator(
+    tmp_path: Path, single_entity_robotic_lab_space: DiscoverySpace
+) -> None:
+    """Measure the target when only a sibling output is available from its actuator."""
+    space = single_entity_robotic_lab_space
     [entity] = candidate_entities(space)
     sibling, target = space.measurementSpace.observedProperties
     foreign_target = target.model_copy(

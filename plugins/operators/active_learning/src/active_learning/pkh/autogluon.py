@@ -11,12 +11,8 @@ from tempfile import TemporaryDirectory
 
 import numpy as np
 import pandas as pd
-from autogluon.common.features.types import R_OBJECT
 from autogluon.core.utils.utils import default_holdout_frac
-from autogluon.features.generators import (
-    AutoMLPipelineFeatureGenerator,
-    IdentityFeatureGenerator,
-)
+from autogluon.features.generators import IdentityFeatureGenerator
 from autogluon.tabular import TabularPredictor
 from autogluon.tabular.configs.presets_configs import tabular_presets_dict
 from joblib import effective_n_jobs
@@ -204,15 +200,3 @@ def predict_unmeasured(
                 )
         predictions = predictor.predict(frame.loc[~measured], model=full_model)
         return predictions.to_numpy(dtype=float), metadata
-
-
-class PKHCategoricalFeatureGenerator(AutoMLPipelineFeatureGenerator):
-    """Transform raw categories when loading predictors saved by earlier PKH runs."""
-
-    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
-        """Convert raw category values to their training strings before prediction."""
-        columns = self.feature_metadata_in.get_features(valid_raw_types=[R_OBJECT])
-        frame = X.copy()
-        values = frame[columns].astype(object)
-        frame[columns] = values.where(values.notna(), None).map(str)
-        return super().transform(frame)

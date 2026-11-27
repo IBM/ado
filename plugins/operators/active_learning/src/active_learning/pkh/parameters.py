@@ -137,15 +137,6 @@ class PKHParameters(GenericOperatorParameters):
         PositiveInt,
         Field(description="New entities to measure, including any pilot additions."),
     ]
-    outputDirectory: Annotated[
-        str | None,
-        Field(
-            min_length=1,
-            exclude=True,
-            deprecated=True,
-            description="Legacy output path accepted for existing PKH configurations.",
-        ),
-    ] = None
     finalPredictor: Annotated[
         Literal["random_forest", "autogluon"],
         Field(

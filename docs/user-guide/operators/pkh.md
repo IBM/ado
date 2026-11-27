@@ -81,6 +81,11 @@ pip install -e . -e plugins/operators/active_learning
     XGBoost as well, install the extra with
     `pip install -e "plugins/operators/active_learning[autogluon]"`.
 
+    For remote Ray runs, install the plugin and any required model backends
+    in the job's Python environment. PKH checks the predictor dependencies
+    when the run needs predictions.
+    [Remote package installation](../advanced/remote-execution.md#installing-python-packages-on-a-remote-ray-cluster)
+
 **2. Save this configuration** as `operation_pkh.yaml`.
 
 Set `targetOutput` and `numberEntities`. PKH supplies defaults for the other
@@ -249,7 +254,6 @@ This example configures PKH for the ideal-gas tutorial.
 | [`criterion`](#criterion) | `str` | `"squared_error"` | No |
 | [`nJobs`](#njobs) | `int` | `1` | No |
 | [`finalPredictor`](#finalpredictor) | `"random_forest"`, `"autogluon"` | `"random_forest"` | No |
-| [`outputDirectory`](#outputdirectory) (deprecated, ignored) | `str \| None` | `None` | No |
 | [`autoGluon`](#autogluon) | object | `None` | No |
 
 ---
@@ -345,11 +349,6 @@ If any entities still need predictions after sampling, either mode requires
 Python 3.11–3.13 and at least four entities with finite target measurements.
 If every entity has a measurement, PKH returns the table directly.
 
-#### `outputDirectory`
-
-PKH accepts this field for compatibility with older configurations and ignores
-its value.
-
 #### `autoGluon`
 
 Both final predictor modes accept these AutoGluon settings.
@@ -374,11 +373,20 @@ The stored table preserves integer measurements and distinguishes numeric and
 text coordinates such as `1` and `"1"`. Binary coordinates use ADO's
 `BLOB_VALUE_TYPE` tag and a base64-encoded `value`. When a column mixes
 large integers with floating-point predictions, pandas can round the integers
-during type inference. To keep their exact values when reading the table:
+during type inference. To keep their exact values, export the resource to
+`pkh-results.json` and load the columns with `dtype=object`.
+[Export instructions](../examples/pkh.md#read-the-predictions)
 
 ```python
+from pathlib import Path
+
 import pandas as pd
 
+from ado.core.datacontainer.resource import DataContainerResource
+
+resource = DataContainerResource.model_validate_json(
+    Path("pkh-results.json").read_text(encoding="utf-8")
+)
 columns = resource.config.tabularData["predictions"].data
 table = pd.DataFrame(columns, dtype=object)
 ```

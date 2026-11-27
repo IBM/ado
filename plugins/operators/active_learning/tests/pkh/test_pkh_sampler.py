@@ -14,8 +14,10 @@ from active_learning.pkh.sampler import PKHSampleSelector, PKHState
 from ado.core.discoveryspace.space import DiscoverySpace
 from ado.modules.actuators.measurement_queue import MeasurementQueue
 from ado.modules.operators.discovery_space_manager import DiscoverySpaceManager
+from ado.schema.domain import PropertyDomain, VariableTypeEnum
 from ado.schema.entity import Entity
 from ado.schema.observed_property import ObservedProperty
+from ado.schema.property import ConstitutiveProperty
 
 
 def test_herding_and_mmd_match_forest_proximity_kernel() -> None:
@@ -83,6 +85,40 @@ def test_one_label_pilot_draws_a_second_candidate_before_herding() -> None:
     assert second in range(9)
     assert second != first
     assert second != min(set(range(9)) - {first})
+
+
+@pytest.mark.parametrize(
+    ("domain", "expected"),
+    [
+        pytest.param(PropertyDomain(values=[1, 2]), True, id="finite"),
+        pytest.param(
+            PropertyDomain(
+                variableType=VariableTypeEnum.DISCRETE_VARIABLE_TYPE, interval=1
+            ),
+            False,
+            id="unbounded",
+        ),
+    ],
+)
+def test_sampler_compatibility_with_remote_space(
+    make_pkh_space: Callable[[list[ConstitutiveProperty]], DiscoverySpace],
+    domain: PropertyDomain,
+    expected: bool,
+) -> None:
+    """Accept finite grids and reject unbounded domains through the remote API."""
+    space = make_pkh_space(
+        [ConstitutiveProperty(identifier="temperature", propertyDomain=domain)]
+    )
+    queue = MeasurementQueue()
+    manager = DiscoverySpaceManager.remote(space=space, queue=queue)
+    try:
+        assert (
+            PKHSampleSelector.samplerCompatibleWithDiscoverySpaceRemote(manager)
+            is expected
+        )
+    finally:
+        ray.kill(manager)
+        queue.shutdown(force=True)
 
 
 @pytest.mark.asyncio

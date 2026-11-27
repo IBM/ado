@@ -151,11 +151,8 @@ Read [AGENTS.md](../../../AGENTS.md) in full and check every changed Python
 file against all rules it contains. Pay particular attention to these
 commonly missed areas:
 
-- **Fixture reuse** — see the fixture rules in AGENTS.md; report violations as
-  `test` findings.
-- **Fixture placement** — a fixture used only within one subdirectory but
-  defined in a parent `conftest.py` is misplaced; report it as a `test`
-  finding.
+- **Fixture reuse and placement** — see the fixture rules in AGENTS.md; report
+  violations as `test` findings.
 - **Naming** — see the naming rules in AGENTS.md; report violations as
   `design` findings.
 - **Docstring accuracy** — for every changed function or method, read the

@@ -20,6 +20,7 @@ from ado.schema.constraint import (
     PropertyConstraint,
     PropertyOperand,
     SingleValueOperand,
+    check_constraints_against_properties,
 )
 from ado.utilities.output import pydantic_model_as_yaml
 
@@ -682,3 +683,23 @@ def test_string_is_not_coerced_to_number() -> None:
     operand = SingleValueOperand.model_validate({"value": "4"})
     assert operand.value == "4"
     assert type(operand.value) is str
+
+
+def test_check_constraints_rejects_unknown_property() -> None:
+    """Test a constraint referencing an unknown property fails the check."""
+
+    with pytest.raises(ValueError, match="effective_batch_size"):
+        check_constraints_against_properties(
+            [PropertyConstraint.model_validate(_AT_LEAST_ONE_SAMPLE_PER_GPU)],
+            ["num_gpus"],
+        )
+
+
+def test_check_constraints_rejects_duplicate_names() -> None:
+    """Test two constraints with the same name fail the check."""
+
+    constraint = PropertyConstraint.model_validate(_AT_LEAST_ONE_SAMPLE_PER_GPU)
+    with pytest.raises(ValueError, match="at_least_one_sample_per_gpu"):
+        check_constraints_against_properties(
+            [constraint, constraint], ["effective_batch_size", "num_gpus"]
+        )

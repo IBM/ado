@@ -5,6 +5,10 @@ import typing
 
 from rich.panel import Panel
 
+from ado.schema.constraint import (
+    PropertyConstraint,
+    check_constraints_against_properties,
+)
 from ado.schema.domain import PropertyDomain, VariableTypeEnum
 from ado.schema.entity import Entity
 from ado.schema.property import ConstitutiveProperty
@@ -23,15 +27,47 @@ class EntitySpaceRepresentation:
 
     @classmethod
     def representationFromConfiguration(
-        cls, conf: list[ConstitutiveProperty]
+        cls,
+        conf: list[ConstitutiveProperty],
+        constraints: list[PropertyConstraint] | None = None,
     ) -> "EntitySpaceRepresentation":
+        """Create an entity space from its dimensions and constraints.
 
-        return cls(constitutiveProperties=conf)
+        Args:
+            conf: The constitutive properties defining the dimensions of the space.
+            constraints: Constraints on the values of the dimensions.
+
+        Returns:
+            The entity space.
+
+        Raises:
+            ValueError: If the constraints are invalid for the dimensions.
+        """
+
+        return cls(constitutiveProperties=conf, constraints=constraints)
 
     def __init__(
         self,
         constitutiveProperties: list[ConstitutiveProperty],
+        constraints: list[PropertyConstraint] | None = None,
     ) -> None:
+        """Create an entity space from its dimensions and constraints.
+
+        Args:
+            constitutiveProperties: The constitutive properties defining the
+                dimensions of the space.
+            constraints: Constraints on the values of the dimensions.
+
+        Raises:
+            ValueError: If two constraints share a name, or a constraint
+                references a property that is not a dimension of the space.
+        """
+
+        constraints = list(constraints or [])
+        check_constraints_against_properties(
+            constraints, [c.identifier for c in constitutiveProperties]
+        )
+        self._constraints = constraints
 
         self._propertyLookup = {c.identifier: c for c in constitutiveProperties}
         # Listed values close an open categorical dimension to those values.
@@ -67,6 +103,16 @@ class EntitySpaceRepresentation:
     ) -> list[ConstitutiveProperty]:
 
         return self._constitutiveProperties.copy()
+
+    @property
+    def constraints(self) -> list[PropertyConstraint]:
+        """Return the constraints on the values of the dimensions of the space.
+
+        Returns:
+            A copy of the list of constraints.
+        """
+
+        return self._constraints.copy()
 
     @property
     def isDiscreteSpace(self) -> bool:
@@ -251,6 +297,28 @@ class EntitySpaceRepresentation:
                 [
                     Text("Properties with unknown type:", style="bold"),
                     Panel(dataframe_to_rich_table(df), box=rich.box.SIMPLE_HEAD),
+                ]
+            )
+
+        if self._constraints:
+            from ado.utilities.output import pydantic_model_as_yaml
+
+            content.extend(
+                [
+                    Text("Constraints:", style="bold"),
+                    Panel(
+                        Group(
+                            *[
+                                Text(
+                                    pydantic_model_as_yaml(
+                                        constraint, exclude_none=True
+                                    ).rstrip()
+                                )
+                                for constraint in self._constraints
+                            ]
+                        ),
+                        box=rich.box.SIMPLE_HEAD,
+                    ),
                 ]
             )
 

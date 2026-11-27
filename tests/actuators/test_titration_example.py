@@ -1,6 +1,7 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
+import numpy as np
 import pytest
 from titration_custom_experiments.experiments import titrate_strong_acid
 
@@ -25,3 +26,10 @@ def test_ph_across_equivalence(volume_ml: float, expected_ph: float) -> None:
     """Equal acid and base concentrations reach equivalence at 25 mL."""
     reading = titrate_strong_acid(0.1, 0.1, volume_ml)
     assert reading["ph"] == pytest.approx(expected_ph, abs=0.2)
+
+
+def test_strongly_basic_ph_with_float32_inputs() -> None:
+    """Strongly basic solutions yield finite pH with float32 inputs."""
+    reading = titrate_strong_acid(np.float32(0.001), np.float32(0.99), np.float32(99.0))
+
+    assert reading["ph"] == pytest.approx(13.89, abs=0.2)

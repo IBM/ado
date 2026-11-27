@@ -1,6 +1,7 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
+import math
 import zlib
 from typing import Literal
 
@@ -78,18 +79,27 @@ def titrate_strong_acid(
     Returns:
         The simulated pH reading under the "ph" key.
     """
+    acid_concentration = float(acid_concentration)
+    base_concentration = float(base_concentration)
+    titrant_volume = float(titrant_volume)
+
     acid_mmol = acid_concentration * SAMPLE_VOLUME_ML
     base_mmol = base_concentration * titrant_volume
     net_acid = (acid_mmol - base_mmol) / (SAMPLE_VOLUME_ML + titrant_volume)
-    hydrogen = (net_acid + np.sqrt(net_acid**2 + 4 * WATER_ION_PRODUCT)) / 2
+    root = math.sqrt(net_acid**2 + 4 * WATER_ION_PRODUCT)
+    if net_acid < 0:
+        # Rationalize the positive root to avoid cancellation in basic solutions.
+        hydrogen = 2 * WATER_ION_PRODUCT / (root - net_acid)
+    else:
+        hydrogen = (net_acid + root) / 2
 
     # A volume of 0, 0.0 or -0.0 represents the same meter reading.
     seed_inputs = (
-        float(acid_concentration),
-        float(base_concentration),
-        0.0 if titrant_volume == 0 else float(titrant_volume),
+        acid_concentration,
+        base_concentration,
+        0.0 if titrant_volume == 0 else titrant_volume,
     )
     seed = zlib.crc32(repr(seed_inputs).encode())
     noise = np.random.default_rng(seed).normal(scale=PH_METER_NOISE)
 
-    return {"ph": float(-np.log10(hydrogen) + noise)}
+    return {"ph": -math.log10(hydrogen) + noise}

@@ -219,8 +219,8 @@ different.
 Success! Created space with identifier: space-cf0845-d44df2
 ```
 
-To check the space, run `ado describe space --use-latest`. The output starts
-with `Number of entities: 1830`.
+To check the space, run `ado describe space --use-latest`. The output includes
+`Number of entities: 1830`.
 
 ## Step 4 — Run an operation
 
@@ -270,8 +270,8 @@ readings in your run are different:
 
 ```text
 ,identifier,ph
-0,acid_concentration.0.02-base_concentration.0.2-titrant_volume.7,12.418498077167238
-1,acid_concentration.0.06-base_concentration.0.2-titrant_volume.31,12.903444859373977
+0,acid_concentration.0.02-base_concentration.0.2-titrant_volume.7,12.418498452127627
+1,acid_concentration.0.06-base_concentration.0.2-titrant_volume.31,12.903440525677825
 2,acid_concentration.0.14-base_concentration.0.1-titrant_volume.0,0.8135362233505194
 ...
 ```

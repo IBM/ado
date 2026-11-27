@@ -1208,7 +1208,8 @@ class DiscoverySpace:
         }
         entities_with_at_least_one_successful_measurement = set()
         for measurement_result in measurement_results:
-            if isinstance(measurement_result, ValidMeasurementResult):
+            # Intermediate results subclass ValidMeasurementResult and are not successful
+            if type(measurement_result) is ValidMeasurementResult:
                 entities_with_at_least_one_successful_measurement.add(
                     measurement_result.entityIdentifier
                 )
@@ -1264,7 +1265,10 @@ class DiscoverySpace:
 
         # Python fallback for non-SQL stores
         from ado.schema.request import MeasurementRequestStateEnum
-        from ado.schema.result import ValidMeasurementResult
+        from ado.schema.result import (
+            IntermediateMeasurementResult,
+            ValidMeasurementResult,
+        )
 
         # Determine which operation IDs to iterate
         ids_to_process: set[str] = (
@@ -1286,12 +1290,15 @@ class DiscoverySpace:
             total_results = 0
             successful_results = 0
             failed_results = 0
+            intermediate_results = 0
             measured_entity_ids: set[str] = set()
 
             for request in requests:
                 for result in request.measurements:
                     total_results += 1
-                    if isinstance(result, ValidMeasurementResult):
+                    if isinstance(result, IntermediateMeasurementResult):
+                        intermediate_results += 1
+                    elif isinstance(result, ValidMeasurementResult):
                         successful_results += 1
                     else:
                         failed_results += 1
@@ -1306,6 +1313,7 @@ class DiscoverySpace:
                     total_results=total_results,
                     successful_results=successful_results,
                     failed_results=failed_results,
+                    intermediate_results=intermediate_results,
                     measured_entities=len(measured_entity_ids),
                 )
             )

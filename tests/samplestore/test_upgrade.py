@@ -7,11 +7,13 @@ import json
 import uuid
 from collections.abc import Callable
 
+import pytest
 import sqlalchemy
 
 from ado.core.samplestore.sql import SQLSampleStore
 from ado.schema.entity import Entity
 from ado.schema.result import (
+    IntermediateMeasurementResult,
     InvalidMeasurementResult,
     MeasurementResultStateEnum,
     ValidMeasurementResult,
@@ -208,3 +210,40 @@ def test_upgrade_measurement_results_preserves_invalid_results(
     reloaded = InvalidMeasurementResult.model_validate(stored)
     assert reloaded.reason == result.reason
     assert reloaded.entityIdentifier == entity.identifier
+
+
+def test_upgrade_measurement_results_preserves_intermediate_results(
+    random_sql_sample_store: Callable[[], SQLSampleStore],
+    random_ml_multi_cloud_benchmark_performance_entities: Callable[[int], list[Entity]],
+    random_ml_multi_cloud_benchmark_performance_measurement_results: Callable[
+        [Entity, int, MeasurementResultStateEnum | None],
+        ValidMeasurementResult | InvalidMeasurementResult,
+    ],
+    add_entities_to_sample_store: Callable[[SQLSampleStore, list[Entity]], None],
+) -> None:
+    """upgrade_measurement_results() keeps IntermediateMeasurementResult rows intermediate."""
+    store = random_sql_sample_store()
+    entities = random_ml_multi_cloud_benchmark_performance_entities(1)
+    add_entities_to_sample_store(store, entities)
+
+    result = random_ml_multi_cloud_benchmark_performance_measurement_results(
+        entities[0], 2, MeasurementResultStateEnum.INTERMEDIATE
+    )
+    store.add_measurement_results([result], skip_relationship_to_request=True)
+
+    assert store.upgrade_measurement_results() == 1
+
+    res_table = store._result_table
+    with store.engine.begin() as conn:
+        row = conn.execute(
+            sqlalchemy.select(res_table.c.data).where(res_table.c.uid == result.uid)
+        ).fetchone()
+    reloaded = IntermediateMeasurementResult.model_validate(row[0])
+    assert reloaded.isIntermediate is True
+    assert [m.property for m in reloaded.measurements] == [
+        m.property for m in result.measurements
+    ]
+    # MySQL can round the last digit of stored floats
+    assert [m.value for m in reloaded.measurements] == pytest.approx(
+        [m.value for m in result.measurements]
+    )

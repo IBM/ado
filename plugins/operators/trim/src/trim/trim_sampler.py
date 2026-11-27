@@ -95,7 +95,8 @@ class TrimSampleSelector(BaseSampler):
     ) -> int:
         """Scan the no-priors operation and handle entities that did not produce the targetOutput.
 
-        Counts every result that either failed (InvalidMeasurementResult) or succeeded
+        Counts every result that failed (InvalidMeasurementResult), stopped before
+        its experiment completed (IntermediateMeasurementResult), or succeeded
         without measuring the targetOutput. When mode is InjectDefaultValue, also
         populates self.injected_defaults with one default row per such entity.
         No-op when mode is Error.
@@ -108,7 +109,11 @@ class TrimSampleSelector(BaseSampler):
         Returns:
             The number of entities that did not measure their targetOutput.
         """
-        from ado.schema.result import InvalidMeasurementResult, ValidMeasurementResult
+        from ado.schema.result import (
+            IntermediateMeasurementResult,
+            InvalidMeasurementResult,
+            ValidMeasurementResult,
+        )
 
         self.injected_defaults = pd.DataFrame(columns=train_target_cols)
 
@@ -125,7 +130,10 @@ class TrimSampleSelector(BaseSampler):
         seen_entity_ids: set[str] = set()
         total_unmeasured = 0
         for result in prior_results:
-            if isinstance(result, InvalidMeasurementResult):
+            # Intermediate results did not complete, so their targetOutput is unmeasured
+            if isinstance(
+                result, (InvalidMeasurementResult, IntermediateMeasurementResult)
+            ):
                 if result.experimentReference not in exp_refs:
                     continue
             elif isinstance(result, ValidMeasurementResult):

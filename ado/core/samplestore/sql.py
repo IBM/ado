@@ -38,9 +38,9 @@ from ado.schema.request import (
 )
 from ado.schema.result import (
     DuplicateMeasurementResultError,
-    InvalidMeasurementResult,
     MeasurementResult,
     MeasurementResultStateEnum,
+    MeasurementResultType,
     ValidMeasurementResult,
 )
 from ado.schema.virtual_property import (
@@ -79,6 +79,66 @@ _reflected_metadata_cache: dict[tuple[str, str], sqlalchemy.MetaData] = {}
 # Using a distinct object lets us cache ``None`` (empty store) without
 # confusing it with "not yet computed".
 _UNSET = object()
+
+_measurement_result_adapter: pydantic.TypeAdapter[MeasurementResult] = (
+    pydantic.TypeAdapter(MeasurementResultType)
+)
+
+
+def _stored_result_is_invalid(
+    data_column: sqlalchemy.ColumnElement,
+) -> sqlalchemy.ColumnElement[bool]:
+    """Return a condition true for stored InvalidMeasurementResults.
+
+    Args:
+        data_column: The JSON column holding the serialized measurement results.
+
+    Returns:
+        A condition true when the stored result has a ``reason`` field.
+    """
+    return sqlalchemy.func.json_extract(data_column, "$.reason").is_not(None)
+
+
+def _stored_result_is_intermediate(
+    data_column: sqlalchemy.ColumnElement,
+) -> sqlalchemy.ColumnElement[bool]:
+    """Return a condition true for stored IntermediateMeasurementResults.
+
+    Args:
+        data_column: The JSON column holding the serialized measurement results.
+
+    Returns:
+        A condition true when the stored result has an ``isIntermediate`` field.
+    """
+    return sqlalchemy.func.json_extract(data_column, "$.isIntermediate").is_not(None)
+
+
+def _stored_result_is_valid(
+    data_column: sqlalchemy.ColumnElement,
+) -> sqlalchemy.ColumnElement[bool]:
+    """Return a condition true for stored ValidMeasurementResults.
+
+    Args:
+        data_column: The JSON column holding the serialized measurement results.
+
+    Returns:
+        A condition true when the stored result has neither a ``reason`` nor an
+        ``isIntermediate`` field.
+    """
+    return sqlalchemy.and_(
+        sqlalchemy.func.json_extract(data_column, "$.reason").is_(None),
+        sqlalchemy.func.json_extract(data_column, "$.isIntermediate").is_(None),
+    )
+
+
+_stored_result_condition_for_status: dict[
+    MeasurementResultStateEnum,
+    typing.Callable[[sqlalchemy.ColumnElement], sqlalchemy.ColumnElement[bool]],
+] = {
+    MeasurementResultStateEnum.VALID: _stored_result_is_valid,
+    MeasurementResultStateEnum.INVALID: _stored_result_is_invalid,
+    MeasurementResultStateEnum.INTERMEDIATE: _stored_result_is_intermediate,
+}
 
 
 class SQLSampleStoreConfiguration(pydantic.BaseModel):
@@ -580,8 +640,8 @@ class SQLSampleStore(ActiveSampleStore):
     ) -> tuple[dict[str, list[ValidMeasurementResult]], int, int]:
         """Fetch measurement results from the database and attach them to cached entities.
 
-        Fetches results, validates them, groups them by entity_id, attaches
-        ``ValidMeasurementResult`` objects to the corresponding entities in
+        Fetches the stored ``ValidMeasurementResult`` rows, validates them, groups
+        them by entity_id, attaches them to the corresponding entities in
         ``self._entities``, and updates ``self._entities_with_measurements_loaded``
         for every entity that was in scope (even those with no results).
 
@@ -638,7 +698,9 @@ class SQLSampleStore(ActiveSampleStore):
                 continue
 
             try:
-                if not result_data.get("measurements", None):
+                if not result_data.get("measurements", None) or result_data.get(
+                    "isIntermediate", None
+                ):
                     continue
 
                 measurement_result = ValidMeasurementResult.model_validate(result_data)
@@ -1291,14 +1353,9 @@ class SQLSampleStore(ActiveSampleStore):
             values = []
             for uid, result_data in rows:
                 try:
-                    if "reason" in result_data:
-                        measurement_result = InvalidMeasurementResult.model_validate(
-                            result_data
-                        )
-                    else:
-                        measurement_result = ValidMeasurementResult.model_validate(
-                            result_data
-                        )
+                    measurement_result = _measurement_result_adapter.validate_python(
+                        result_data
+                    )
                 except Exception as error:
                     raise FailedToDecodeStoredMeasurementResultForEntityError(
                         entity_identifier=result_data.get("entityIdentifier", uid),
@@ -1408,17 +1465,16 @@ class SQLSampleStore(ActiveSampleStore):
                 reqres_table.c.request_uid.in_(request_uids_subq)
             )
         else:
-            # Join results to filter by validity via json_extract on the data column.
-            # Valid results have no "reason" field; invalid results always have one.
+            # Join results to filter by result type via json_extract on the data column
             res_table = self._result_table
-            reason_expr = func.json_extract(res_table.c.data, "$.reason")
-            is_valid = status_filter == MeasurementResultStateEnum.VALID
             stmt = (
                 select(func.count(reqres_table.c.uid))
                 .select_from(reqres_table)
                 .join(res_table, res_table.c.uid == reqres_table.c.result_uid)
                 .where(reqres_table.c.request_uid.in_(request_uids_subq))
-                .where(reason_expr.is_(None) if is_valid else reason_expr.is_not(None))
+                .where(
+                    _stored_result_condition_for_status[status_filter](res_table.c.data)
+                )
             )
 
         try:
@@ -1460,18 +1516,19 @@ class SQLSampleStore(ActiveSampleStore):
         #
         # We then select the entity identifier, along with the total number of
         # results associated to it (counting on the index for speed) and the
-        # number of valid measurement results by checking how many results do not
-        # have the `reason` field (only found in invalid measurement results).
+        # number of valid measurement results, i.e. results that have neither the
+        # `reason` field (only found in invalid measurement results) nor the
+        # `isIntermediate` field (only found in intermediate measurement results).
         #
         # We can then use this information to compute the fields we are interested in.
-        reason_is_null = func.json_extract(res_table.c.data, "$.reason").is_(None)
+        result_is_valid = _stored_result_is_valid(res_table.c.data)
 
         # Inner subquery: per-entity total and valid measurement counts
         inner_subq = (
             select(
                 res_table.c.entity_id,
                 func.count(res_table.c.uid).label("total_measurements"),
-                func.sum(case((reason_is_null, 1), else_=0)).label(
+                func.sum(case((result_is_valid, 1), else_=0)).label(
                     "valid_measurements"
                 ),
             )
@@ -1543,14 +1600,10 @@ class SQLSampleStore(ActiveSampleStore):
             from sqlalchemy import select
 
             res_table = self._result_table
-            # A measurement result is valid when the ``reason`` field is absent
-            # from its stored JSON blob.
             stmt = (
                 select(res_table.c.entity_id)
                 .where(res_table.c.entity_id.in_(entity_identifiers))
-                .where(
-                    sqlalchemy.func.json_extract(res_table.c.data, "$.reason").is_(None)
-                )
+                .where(_stored_result_is_valid(res_table.c.data))
                 .distinct()
             )
             with self.engine.begin() as connectable:
@@ -1573,7 +1626,7 @@ class SQLSampleStore(ActiveSampleStore):
             ``dict`` mapping each entity identifier (only those with ≥1 result)
             to an :class:`ExperimentReferencesByMeasurementValidity` instance
             containing the experiment references for which the entity has at least
-            one valid measurement or at least one invalid measurement.
+            one valid, at least one invalid or at least one intermediate measurement.
             Entity identifiers with no measurement results at all are omitted.
 
         Raises:
@@ -1597,11 +1650,19 @@ class SQLSampleStore(ActiveSampleStore):
                     "$.measurements[0].property.experimentReference",
                 ),
             ).label("experiment_reference_json")
-            is_valid_col = (
-                sqlalchemy.func.json_extract(res_table.c.data, "$.reason").is_(None)
-            ).label("is_valid")
+            is_invalid_col = _stored_result_is_invalid(res_table.c.data).label(
+                "is_invalid"
+            )
+            is_intermediate_col = _stored_result_is_intermediate(
+                res_table.c.data
+            ).label("is_intermediate")
             stmt = (
-                select(res_table.c.entity_id, exp_ref_col, is_valid_col)
+                select(
+                    res_table.c.entity_id,
+                    exp_ref_col,
+                    is_invalid_col,
+                    is_intermediate_col,
+                )
                 .where(res_table.c.entity_id.in_(entity_identifiers))
                 .distinct()
             )
@@ -1617,10 +1678,12 @@ class SQLSampleStore(ActiveSampleStore):
                 exp_ref = ExperimentReference.model_validate_json(blob)
                 if row.entity_id not in result:
                     result[row.entity_id] = ExperimentReferencesByMeasurementValidity()
-                if row.is_valid:
-                    result[row.entity_id].with_valid_measurements.add(exp_ref)
-                else:
+                if row.is_invalid:
                     result[row.entity_id].with_invalid_measurements.add(exp_ref)
+                elif row.is_intermediate:
+                    result[row.entity_id].with_intermediate_measurements.add(exp_ref)
+                else:
+                    result[row.entity_id].with_valid_measurements.add(exp_ref)
             return result
         except SQLAlchemyError as error:
             msg = "Unable to get entity experiment references"
@@ -1634,7 +1697,8 @@ class SQLSampleStore(ActiveSampleStore):
 
         Computes all statistics in a single query grouped by operation_id to
         avoid multiple DB round-trips: request counts (total/failed/successful),
-        result counts (total/valid/invalid), and distinct measured entity count.
+        result counts (total/valid/invalid/intermediate), and distinct measured
+        entity count.
 
         Args:
             operation_ids: Set of operation identifiers to aggregate. Pass
@@ -1667,8 +1731,10 @@ class SQLSampleStore(ActiveSampleStore):
         #     COUNT(DISTINCT CASE WHEN req.status = 'Failed' THEN req.uid END) AS failed_requests,
         #     COUNT(DISTINCT CASE WHEN req.status = 'Success' THEN req.uid END) AS successful_requests,
         #     COUNT(res.uid) AS total_results,
-        #     SUM(CASE WHEN JSON_EXTRACT(res.data, '$.reason') IS NULL     THEN 1 ELSE 0 END) AS successful_results,
+        #     SUM(CASE WHEN JSON_EXTRACT(res.data, '$.reason') IS NULL
+        #               AND JSON_EXTRACT(res.data, '$.isIntermediate') IS NULL THEN 1 ELSE 0 END) AS successful_results,
         #     SUM(CASE WHEN JSON_EXTRACT(res.data, '$.reason') IS NOT NULL THEN 1 ELSE 0 END) AS failed_results,
+        #     SUM(CASE WHEN JSON_EXTRACT(res.data, '$.isIntermediate') IS NOT NULL THEN 1 ELSE 0 END) AS intermediate_results,
         #     COUNT(DISTINCT res.entity_id) AS measured_entities
         #   FROM <tablename>_measurement_requests req
         #   LEFT JOIN <tablename>_measurement_requests_results reqres ON reqres.request_uid = req.uid
@@ -1676,7 +1742,9 @@ class SQLSampleStore(ActiveSampleStore):
         #   [WHERE req.operation_id IN (...)]          -- only when operation_ids is not None
         #   GROUP BY req.operation_id
 
-        reason_is_null = func.json_extract(res_table.c.data, "$.reason").is_(None)
+        result_is_valid = _stored_result_is_valid(res_table.c.data)
+        result_is_invalid = _stored_result_is_invalid(res_table.c.data)
+        result_is_intermediate = _stored_result_is_intermediate(res_table.c.data)
 
         stmt = (
             select(
@@ -1712,12 +1780,16 @@ class SQLSampleStore(ActiveSampleStore):
                 ).label("successful_requests"),
                 # COUNT(res.uid) AS total_results,
                 func.count(res_table.c.uid).label("total_results"),
-                # SUM(CASE WHEN JSON_EXTRACT(res.data, '$.reason') IS NULL THEN 1 ELSE 0 END) AS successful_results,
-                func.sum(case((reason_is_null, 1), else_=0)).label(
+                # SUM(CASE WHEN <valid> THEN 1 ELSE 0 END) AS successful_results,
+                func.sum(case((result_is_valid, 1), else_=0)).label(
                     "successful_results"
                 ),
-                # SUM(CASE WHEN JSON_EXTRACT(res.data, '$.reason') IS NOT NULL THEN 1 ELSE 0 END) AS failed_results,
-                func.sum(case((~reason_is_null, 1), else_=0)).label("failed_results"),
+                # SUM(CASE WHEN <invalid> THEN 1 ELSE 0 END) AS failed_results,
+                func.sum(case((result_is_invalid, 1), else_=0)).label("failed_results"),
+                # SUM(CASE WHEN <intermediate> THEN 1 ELSE 0 END) AS intermediate_results,
+                func.sum(case((result_is_intermediate, 1), else_=0)).label(
+                    "intermediate_results"
+                ),
                 # COUNT(DISTINCT res.entity_id) AS measured_entities
                 func.count(func.distinct(res_table.c.entity_id)).label(
                     "measured_entities"
@@ -1748,6 +1820,7 @@ class SQLSampleStore(ActiveSampleStore):
                         total_results=row.total_results or 0,
                         successful_results=row.successful_results or 0,
                         failed_results=row.failed_results or 0,
+                        intermediate_results=row.intermediate_results or 0,
                         measured_entities=row.measured_entities or 0,
                     )
                     for row in rows
@@ -2060,10 +2133,7 @@ class SQLSampleStore(ActiveSampleStore):
             # Handle data - may already be parsed by SQLAlchemy
             row_data = row[0]
             row_dict = json.loads(row_data) if isinstance(row_data, str) else row_data
-            if "reason" in row_dict:
-                parsed_results.append(InvalidMeasurementResult.model_validate(row_dict))
-            else:
-                parsed_results.append(ValidMeasurementResult.model_validate(row_dict))
+            parsed_results.append(_measurement_result_adapter.validate_python(row_dict))
 
         return parsed_results
 
@@ -2110,10 +2180,7 @@ class SQLSampleStore(ActiveSampleStore):
             # May already be parsed by SQLAlchemy
             if isinstance(result_data, str):
                 result_data = json.loads(result_data)
-            if "reason" in result_data:
-                result = InvalidMeasurementResult.model_validate(result_data)
-            else:
-                result = ValidMeasurementResult.model_validate(result_data)
+            result = _measurement_result_adapter.validate_python(result_data)
 
             # For MeasurementRequests and related subclasses, we do not support
             # reassigning measurements. We must use a support structure to then

@@ -429,7 +429,9 @@ def tune_trainable(config: dict, parameters: dict) -> dict[str, Any]:
                 )
                 completedRequests += 1
                 newCompletedRequests.append(request.requestid)
-                if isinstance(request.measurements[0], ValidMeasurementResult):
+                # Intermediate results subclass ValidMeasurementResult and are
+                # handled as failed measurements
+                if type(request.measurements[0]) is ValidMeasurementResult:
                     for k, v in retrieve_results(
                         request.entities[0],
                         request.experimentReference,

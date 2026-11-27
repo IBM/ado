@@ -1,0 +1,11 @@
+[project]
+name = "titration_custom_experiments"
+description = "Simulate the pH of a strong acid titrated with a strong base"
+dependencies = ["ado-core", "numpy"]
+dynamic = ["version"]
+
+[project.entry-points."ado.custom_experiments"]
+titration_experiments = "titration_custom_experiments.experiments"
+
+[tool.uv.sources]
+ado-core = { workspace = true }

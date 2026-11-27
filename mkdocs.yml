@@ -187,6 +187,7 @@ nav:
       - Tutorials:
           - "The basics: your first ado experiment campaign": user-guide/examples/tutorials/density-example.md
           - "Beyond the basics: ado with real data": user-guide/examples/tutorials/random-walk.md
+          - Simulate an acid–base titration: user-guide/examples/titration.md
       - Search:
           - Search a space with an optimizer: user-guide/examples/best-configuration-search.md
           - Search based on a custom objective: user-guide/examples/search-custom-objective.md

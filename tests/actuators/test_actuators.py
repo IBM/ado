@@ -96,6 +96,7 @@ def test_custom_experiments(
         "calculate_pressure_ideal_gas",
         "calculate_pressure_gas",
         "controlled_error",
+        "titrate_strong_acid",
     }
     if sys.version_info >= (3, 14):
         # TODO: add autoconf experiments back once it supports Python 3.14+.

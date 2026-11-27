@@ -61,6 +61,9 @@ These guidelines apply to all code development in the ado codebase.
   except for conventional loop indices.
 - Use type annotations on all functions and methods, including return types.
 - Add docstrings to all functions and methods. Use Google style for docstrings.
+- Use guard clauses: when inverting an `if` condition to `return`, `continue`,
+  or `raise` early removes a level of indentation and reads more clearly, do
+  so instead of nesting the main logic inside the `if`.
 
 #### Pydantic
 
@@ -95,10 +98,13 @@ These guidelines apply to all code development in the ado codebase.
 #### Helpers
 
 - Do not introduce private helpers (leading underscore) that are one-line
-  wrappers, renames of an existing call, or called from a single place when
+  wrappers or renames of an existing call, even when they are reused. Call the
+  underlying function directly instead.
+- Do not introduce private helpers that are called from a single place when
   inlining reads as clearly. Avoid many small private helpers in one module.
-- Add a private helper when it is reused, or when it isolates a non-trivial
-  step whose name makes the caller easier to read.
+- Add a private helper when it is reused and does more than wrap one call, or
+  when it isolates a non-trivial step whose name makes the caller easier to
+  read.
 
 #### Imports and Serialization
 
@@ -135,6 +141,10 @@ These guidelines apply to all code development in the ado codebase.
 - Describe functions in terms of their own inputs, outputs, and immediate
   behavior. Do not reference how other functions use them or explain their
   existence in terms of another component's needs.
+- Keep docstrings in step with the function body. When a function gains or
+  loses behavior, including internal steps such as caching, side effects, or
+  new exceptions, update its docstring to describe it, even if the signature,
+  inputs, and outputs are unchanged.
 - Do not add comments that narrate the TDD process, such as "written before
   implementation" or "this test is expected to fail". Tests are code; write
   them without process annotations.
@@ -148,6 +158,12 @@ These guidelines apply to all code development in the ado codebase.
   - `tests/fixtures/`
   - `conftest.py` files, starting with `tests/conftest.py` and any in the
     test directory you are working in
+- Define a new fixture in the `conftest.py` of the narrowest directory that
+  contains all of its users. Do not define a fixture in a parent `conftest.py`
+  when it is only used within one subdirectory; move it into that
+  subdirectory's `conftest.py`. Use `tests/fixtures/` only for fixtures shared
+  across several test directories; its modules are star-imported into
+  `tests/conftest.py`, so they are available to every test.
 - Do not mock by default; prefer integration tests.
   - Search for existing fixtures that provide the same functionality.
   - If you really feel a mock is correct, confirm with the user before
@@ -159,8 +175,10 @@ These guidelines apply to all code development in the ado codebase.
   does not raise; do not assert only that a mock was called; do not copy the
   implementation's logic into the test.
 - Before adding a test, search `tests/` for existing tests of the same
-  function, class, or code path. Extend an existing test instead of adding one
-  with the same assertions.
+  function, class, or code path. If one exists, extend it with the new
+  assertions instead of adding a test, even when the new assertions differ from
+  the existing ones. Add a separate test only when it exercises a different
+  input, branch, or setup.
 - Test behaviour whose regression would matter: business logic, error handling
   a caller relies on, and edge cases the code explicitly handles. Do not test
   trivial code, pass-through wrappers, or framework behaviour, and do not

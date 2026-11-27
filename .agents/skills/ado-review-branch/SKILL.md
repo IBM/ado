@@ -31,7 +31,7 @@ metadata:
   the old behaviour. Use this to verify whether a behaviour or bug is new or
   pre-existing; report pre-existing ones as Observations.
 - Report every deviation from the guidelines, including Minor ones
-- Write the review to `<branch_name>-review.md` at the root of the main
+- Write the review to `branch_review_<branch_name>.md` at the root of the main
   checkout (not a review worktree, which is removed) when finished, where
   `<branch_name>` is the current branch name with `/` replaced by `-`, unless
   the user names another path

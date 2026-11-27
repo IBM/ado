@@ -14,6 +14,12 @@ to every new or modified skill on the branch.
    skill-writing rules in [.agents/skills/AGENTS.md](../../AGENTS.md). Compare
    the `description` of all other skills and identify any whose scope overlaps.
 5. Write one subsection per skill using the structure below.
+6. When following the Workflow in [SKILL.md](../SKILL.md#workflow), write the
+   subsection into the progress file under `## Findings` instead of the
+   report: parts 1–3 and 7 as plain text, and each issue under parts 4–6 as an
+   `S` entry (`S1`, `S2`, …) holding the skill name, the issue category
+   (Duplications, Misplacements, or the Medium or Minor bullet it matches), the
+   problem, and the fix. Collate copies them into the report.
 
 ## Upstream documentation
 

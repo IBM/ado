@@ -79,8 +79,8 @@ branch name from `git branch --show-current` with `/` replaced by `-`. When
      `plugins/` changes, no `.agents/skills/` changes)
    - under the code-review and test-quality steps, one checklist item per
      changed file from `git diff --name-only <target>...HEAD`, so every file is
-     visited. List each file under the step that covers it; mark a file `n/a`
-     under the other (for example, a docs file under test quality).
+     visited. List each file under every step; mark it `n/a` under each step
+     that does not cover it (for example, a docs file under test quality).
    - under the skill-review step, one checklist item per changed file under
      `.agents/skills/`
 2. **Set up** — create the worktrees as described in

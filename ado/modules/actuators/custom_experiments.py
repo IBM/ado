@@ -203,12 +203,30 @@ def get_parameterization(
     return results
 
 
+def _parameter_name_for_property(
+    prop: ConstitutiveProperty | ObservedProperty,
+) -> str:
+    """Return the name of the function parameter that receives a property's value.
+
+    Args:
+        prop: A required or optional property of a custom experiment.
+
+    Returns:
+        The target property identifier for an ObservedProperty, otherwise the
+        property identifier.
+    """
+    if isinstance(prop, ObservedProperty):
+        return prop.targetProperty.identifier
+    return prop.identifier
+
+
 def derive_optional_properties_and_parameterization(
-    func: Callable, required_properties: list[ConstitutiveProperty]
+    func: Callable,
+    required_properties: list[ConstitutiveProperty | ObservedProperty],
 ) -> tuple[list[ConstitutiveProperty], dict[str, Any]]:
     """This function derives the optional properties and their parameterization from the function signature.
 
-    The optional properties are the keyword parameters of the function that are not in required_properties.
+    The optional properties are the keyword parameters of the function that do not receive a required property.
     The parameterization of an optional property is the default value of the corresponding parameter in func_signature.
 
     Parameters:
@@ -220,8 +238,11 @@ def derive_optional_properties_and_parameterization(
     - ValueError: If a parameterization cannot be derived for any optional property (unexpected)
     - ValueError: If a domain cannot be inferred for any optional property"""
     optional_properties = []
+    required_parameter_names = {
+        _parameter_name_for_property(prop) for prop in required_properties
+    }
     for param in inspect.signature(func).parameters.values():
-        if param.name in {prop.identifier for prop in required_properties}:
+        if param.name in required_parameter_names:
             continue
         if (
             param.kind
@@ -294,20 +315,47 @@ def check_parameters_valid(
     _required_properties: list[ConstitutiveProperty | ObservedProperty] | None,
     _optional_properties: list[ConstitutiveProperty] | None,
 ) -> None:
-    # Validate that the property identifiers match the function parameters
-    func_signature = inspect.signature(func)
-    func_param_names = set(func_signature.parameters.keys())
-    req_property_identifiers = {prop.identifier for prop in _required_properties}
-    opt_property_identifiers = (
-        {prop.identifier for prop in _optional_properties}
-        if _optional_properties
-        else set()
-    )
-    experiment_prop_identifiers = req_property_identifiers | opt_property_identifiers
-    if not experiment_prop_identifiers.issubset(func_param_names):
+    """Check each property maps to a distinct parameter of func.
+
+    An ObservedProperty maps to the parameter named by its target property
+    identifier. Other properties map to the parameter named by their identifier.
+
+    Args:
+        func: The decorated function.
+        _required_properties: The experiment's required properties.
+        _optional_properties: The experiment's optional properties.
+
+    Raises:
+        ValueError: If two properties map to the same parameter name, or a
+            property's parameter is not in func's signature.
+    """
+    func_param_names = set(inspect.signature(func).parameters.keys())
+    experiment_properties = [
+        *(_required_properties or []),
+        *(_optional_properties or []),
+    ]
+
+    properties_by_parameter_name: dict[str, list[str]] = {}
+    for prop in experiment_properties:
+        properties_by_parameter_name.setdefault(
+            _parameter_name_for_property(prop), []
+        ).append(prop.identifier)
+    colliding_properties = {
+        parameter_name: property_identifiers
+        for parameter_name, property_identifiers in properties_by_parameter_name.items()
+        if len(property_identifiers) > 1
+    }
+    if colliding_properties:
         raise ValueError(
-            f"{func.__name__} parameter names {func_param_names} must include all property identifiers {experiment_prop_identifiers}. "
-            f"Missing identifiers: {experiment_prop_identifiers - func_param_names}"
+            f"Properties of {func.__name__} map to the same function parameter: {colliding_properties}"
+        )
+
+    experiment_parameter_names = set(properties_by_parameter_name)
+    if not experiment_parameter_names.issubset(func_param_names):
+        raise ValueError(
+            f"{func.__name__} parameter names {func_param_names} must include the parameter names "
+            f"of all properties {experiment_parameter_names}. "
+            f"Missing parameters: {experiment_parameter_names - func_param_names}"
         )
 
 
@@ -327,10 +375,14 @@ def custom_experiment(
     """Decorator for custom experiment functions.
 
     Args:
-        required_properties: List of ConstitutiveProperty instances that are required input values.
+        required_properties: List of ConstitutiveProperty and ObservedProperty instances
+            that are required input values. The value of a ConstitutiveProperty is passed
+            to the function parameter named by its identifier. The value of an
+            ObservedProperty is passed to the function parameter named by its target
+            property identifier.
         output_property_identifiers: List of strings identifying the output property names.
         optional_properties: List of ConstitutiveProperty instances that are optional input values.
-        parameterization: Tuple of parameters for default parameterization.
+        parameterization: Dictionary mapping optional property identifiers to their default values.
         metadata: Metadata for the experiment.
         use_ray: If True the CustomExperiments actuator will launch the experiment as a ray remote task.
         ray_options: A dictionary containing ray remote task options.
@@ -346,7 +398,8 @@ def custom_experiment(
             - No required properties provided, and they could not be derived from signature.
             - Optional properties provided but parameterization could not be derived from signature.
             - No optional properties provided and they could not be derived from signature.
-            - Function parameter names did not include all property identifiers.
+            - Function parameter names did not include the parameter name of every property.
+            - Two properties map to the same function parameter.
 
     Example:
 
@@ -361,7 +414,7 @@ def custom_experiment(
 
     @custom_experiment(
         required_properties=[mass, volume],
-        output_properties=["density"],
+        output_property_identifiers=["density"],
         version="1.0.0",
     )
     def calculate_density(mass, volume):
@@ -587,9 +640,36 @@ def get_custom_experiments_catalog() -> ado.modules.actuators.catalog.Experiment
 def _call_decorated_custom_experiment(
     function: Callable, target_experiment: Experiment, entity: Entity
 ) -> list[ObservedPropertyValue]:
+    """Call a decorated custom experiment function on one entity.
+
+    Each input value is passed as a keyword argument. The value of a required
+    observed property is passed under its target property identifier.
+
+    Args:
+        function: The decorated custom experiment function.
+        target_experiment: The experiment the function implements.
+        entity: The entity to measure.
+
+    Returns:
+        The measured observed property values.
+
+    Raises:
+        ValueError: If the entity has more than one value for a required observed
+            property, is missing an input value, or the function returns no
+            target property values.
+    """
+
+    for observed_property in target_experiment.requiredObservedProperties:
+        number_of_values = len(entity.valuesForProperty(observed_property))
+        if number_of_values > 1:
+            raise ValueError(
+                f"Entity {entity.identifier} has {number_of_values} values for required "
+                f"observed property {observed_property.identifier}. "
+                f"Experiment '{target_experiment.identifier}' requires exactly one."
+            )
 
     # Build input dict using experiment values from entity
-    input_values = target_experiment.propertyValuesFromEntity(entity)
+    input_values = target_experiment.propertyValuesFromEntity(entity, target=True)
     # Call function with unpacked parameters
     result_dict = function(**input_values)
 

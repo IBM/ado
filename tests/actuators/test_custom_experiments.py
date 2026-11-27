@@ -3,6 +3,7 @@
 
 import os
 import re
+from collections.abc import Callable
 from typing import Any, Literal
 
 import pytest
@@ -10,10 +11,13 @@ import pytest
 from ado.modules.actuators import custom_experiments
 from ado.modules.actuators.measurement_queue import MeasurementQueue
 from ado.schema.domain import PropertyDomain, VariableTypeEnum
+from ado.schema.entity import Entity
+from ado.schema.observed_property import ObservedProperty, ObservedPropertyValue
 from ado.schema.point import SpacePoint
-from ado.schema.property import ConstitutiveProperty
+from ado.schema.property import AbstractPropertyDescriptor, ConstitutiveProperty
 from ado.schema.reference import ExperimentReference
 from ado.schema.request import MeasurementRequest, MeasurementRequestStateEnum
+from ado.schema.result import InvalidMeasurementResult, ValidMeasurementResult
 
 
 def test_custom_experiment_unknown_keys_are_dropped() -> None:
@@ -578,3 +582,221 @@ def test_experiment_requires_ray_sandbox_venv() -> None:
     assert not actuator.experiment_requires_ray_sandbox_venv(
         sandbox_ignored_when_no_ray._experiment.reference
     )
+
+
+@pytest.fixture
+def observed_input_experiments() -> tuple[Callable[..., Any], Callable[..., Any]]:
+    """Return an upstream experiment and a downstream experiment using its output.
+
+    The downstream experiment requires the constitutive property ``x`` and the
+    upstream experiment's ``upstream_value`` output, and returns their sum as
+    ``total``.
+
+    Returns:
+        Tuple of ``(upstream, downstream)`` decorated experiment functions.
+    """
+
+    @custom_experiments.custom_experiment(
+        output_property_identifiers=["upstream_value"]
+    )
+    def observed_input_upstream_exp(x: float) -> dict[str, float]:
+        return {"upstream_value": x * 10}
+
+    upstream_value = (
+        observed_input_upstream_exp._experiment.observedPropertyForTargetIdentifier(
+            "upstream_value"
+        )
+    )
+    x = ConstitutiveProperty(
+        identifier="x",
+        propertyDomain=PropertyDomain(
+            variableType=VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE
+        ),
+    )
+
+    @custom_experiments.custom_experiment(
+        output_property_identifiers=["total"],
+        required_properties=[x, upstream_value],
+    )
+    def observed_input_downstream_exp(
+        x: float, upstream_value: float
+    ) -> dict[str, float]:
+        return {"total": x + upstream_value}
+
+    return observed_input_upstream_exp, observed_input_downstream_exp
+
+
+def _entity_with_observed_values(
+    x: float, observed_property: ObservedProperty, values: list[float]
+) -> Entity:
+    """Return an entity with constitutive value ``x`` and measured observed values.
+
+    Args:
+        x: Value of the constitutive property ``x``.
+        observed_property: The observed property the values are measurements of.
+        values: Measured values, each added as a separate measurement result.
+
+    Returns:
+        The entity.
+    """
+    entity = SpacePoint.model_validate({"entity": {"x": x}}).to_entity()
+    for value in values:
+        entity.add_measurement_result(
+            ValidMeasurementResult(
+                entityIdentifier=entity.identifier,
+                measurements=[
+                    ObservedPropertyValue(property=observed_property, value=value)
+                ],
+            )
+        )
+    return entity
+
+
+def test_custom_experiment_infers_optional_properties_excluding_observed_inputs(
+    observed_input_experiments: tuple[Callable[..., Any], Callable[..., Any]],
+) -> None:
+    """A defaulted parameter that receives an observed input is not inferred as optional."""
+    upstream, _ = observed_input_experiments
+    upstream_value = upstream._experiment.observedPropertyForTargetIdentifier(
+        "upstream_value"
+    )
+    x = ConstitutiveProperty(
+        identifier="x",
+        propertyDomain=PropertyDomain(
+            variableType=VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE
+        ),
+    )
+
+    @custom_experiments.custom_experiment(
+        output_property_identifiers=["total"],
+        required_properties=[x, upstream_value],
+    )
+    def observed_input_with_default_exp(
+        x: float, upstream_value: float = 0.0, scale: float = 2.0
+    ) -> dict[str, float]:
+        return {"total": scale * (x + upstream_value)}
+
+    experiment = observed_input_with_default_exp._experiment
+    assert [p.identifier for p in experiment.optionalProperties] == ["scale"]
+
+
+def test_custom_experiment_rejects_inputs_with_same_parameter_name() -> None:
+    """Decoration fails when two inputs would be passed to the same parameter."""
+
+    def observed_value_from(experiment_identifier: str) -> ObservedProperty:
+        """Return an observed property for the target ``value`` of an experiment."""
+        return ObservedProperty(
+            targetProperty=AbstractPropertyDescriptor(identifier="value"),
+            experimentReference=ExperimentReference(
+                experimentIdentifier=experiment_identifier,
+                actuatorIdentifier="custom_experiments",
+            ),
+        )
+
+    with pytest.raises(ValueError, match="map to the same function parameter"):
+
+        @custom_experiments.custom_experiment(
+            output_property_identifiers=["out"],
+            required_properties=[
+                observed_value_from("collision_upstream_a"),
+                observed_value_from("collision_upstream_b"),
+            ],
+        )
+        def two_observed_inputs_same_target(value: float) -> dict[str, float]:
+            return {"out": value}
+
+    constitutive_value = ConstitutiveProperty(
+        identifier="value",
+        propertyDomain=PropertyDomain(
+            variableType=VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE
+        ),
+    )
+    with pytest.raises(ValueError, match="map to the same function parameter"):
+
+        @custom_experiments.custom_experiment(
+            output_property_identifiers=["out"],
+            required_properties=[
+                constitutive_value,
+                observed_value_from("collision_upstream_a"),
+            ],
+        )
+        def constitutive_and_observed_same_name(value: float) -> dict[str, float]:
+            return {"out": value}
+
+
+def test_execute_passes_observed_value_to_target_parameter(
+    observed_input_experiments: tuple[Callable[..., Any], Callable[..., Any]],
+) -> None:
+    """execute() passes the entity's observed value to the target-named parameter."""
+    upstream, downstream = observed_input_experiments
+    upstream_value = upstream._experiment.observedPropertyForTargetIdentifier(
+        "upstream_value"
+    )
+
+    actuator = custom_experiments.CustomExperiments()
+    result = actuator.execute(
+        entities=[_entity_with_observed_values(2.0, upstream_value, [30.0])],
+        experimentReference=downstream._experiment.reference,
+        requesterid="test-op",
+        requestIndex=0,
+    )
+
+    assert result.status == MeasurementRequestStateEnum.SUCCESS
+    assert _measured_values_by_identifier(result)["total"] == pytest.approx(32.0)
+
+
+def test_execute_entity_with_multiple_observed_values_is_invalid(
+    observed_input_experiments: tuple[Callable[..., Any], Callable[..., Any]],
+) -> None:
+    """An entity with more than one value for an observed input gets an invalid result.
+
+    Other entities in the same request are still measured.
+    """
+    upstream, downstream = observed_input_experiments
+    upstream_value = upstream._experiment.observedPropertyForTargetIdentifier(
+        "upstream_value"
+    )
+    single_value_entity = _entity_with_observed_values(1.0, upstream_value, [10.0])
+    repeated_value_entity = _entity_with_observed_values(
+        2.0, upstream_value, [20.0, 21.0]
+    )
+
+    actuator = custom_experiments.CustomExperiments()
+    result = actuator.execute(
+        entities=[single_value_entity, repeated_value_entity],
+        experimentReference=downstream._experiment.reference,
+        requesterid="test-op",
+        requestIndex=0,
+    )
+
+    results_by_entity = {
+        measurement_result.entityIdentifier: measurement_result
+        for measurement_result in result.measurements
+    }
+    assert isinstance(
+        results_by_entity[single_value_entity.identifier], ValidMeasurementResult
+    )
+    repeated_result = results_by_entity[repeated_value_entity.identifier]
+    assert isinstance(repeated_result, InvalidMeasurementResult)
+    assert upstream_value.identifier in repeated_result.reason
+
+
+def test_execute_entity_missing_observed_value_raises_value_error(
+    observed_input_experiments: tuple[Callable[..., Any], Callable[..., Any]],
+) -> None:
+    """execute() raises ValueError when an entity has no value for an observed input."""
+    upstream, downstream = observed_input_experiments
+    upstream_value = upstream._experiment.observedPropertyForTargetIdentifier(
+        "upstream_value"
+    )
+
+    actuator = custom_experiments.CustomExperiments()
+    with pytest.raises(
+        ValueError, match="does not have values for properties required"
+    ):
+        actuator.execute(
+            entities=[_entity_with_observed_values(2.0, upstream_value, [])],
+            experimentReference=downstream._experiment.reference,
+            requesterid="test-op",
+            requestIndex=0,
+        )

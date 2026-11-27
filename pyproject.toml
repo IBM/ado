@@ -114,6 +114,7 @@ docs = [
 ]
 
 test = [
+  "ado-active-learning",
   "ado-anomalous-series",
   "ado-autoconf ; python_full_version < '3.14'",
   "ado-profile-space",
@@ -128,6 +129,7 @@ test = [
   # VV: For ado-sfttrainer ResourceTracker tests
   "psutil==7.2.2",
   "robotic-lab",
+  "titration-custom-experiments",
   "trim-custom-experiments",
 ]
 
@@ -166,6 +168,7 @@ members = [
   "examples/density_example",
   "examples/optimization_test_functions/custom_experiments",
   "examples/pfas-generative-models/custom_actuator_function",
+  "examples/titration/custom_experiments",
   "examples/trim/custom_experiments",
   "plugins/actuators/example_actuator",
   "plugins/actuators/vllm_performance",
@@ -178,6 +181,7 @@ members = [
 ]
 
 [tool.uv.sources]
+ado-active-learning = { path = "plugins/operators/active_learning", editable = true }
 ado-autoconf = { path = "plugins/custom_experiments/autoconf", editable = true }
 ado-ray-tune = { workspace = true }
 ado-sfttrainer = { workspace = true }
@@ -189,6 +193,7 @@ optimization-test-functions = { workspace = true }
 pfas-custom-functions = { workspace = true }
 ado-profile-space = { workspace = true }
 robotic-lab = { workspace = true }
+titration-custom-experiments = { workspace = true }
 trim-custom-experiments = { workspace = true }
 detect-secrets = { git = "https://github.com/ibm/detect-secrets.git", rev = "master" }
 

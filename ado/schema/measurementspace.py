@@ -10,7 +10,7 @@ from ado.modules.actuators.catalog import (
     ExperimentCatalog,
 )
 from ado.modules.actuators.errors import ExperimentVersionMismatchError
-from ado.schema.constraint import PropertyConstraint
+from ado.schema.constraint import PropertyConstraint, constraints_as_rich_table
 from ado.schema.entity import (
     CheckRequiredObservedPropertyValuesPresent,
     Entity,
@@ -268,7 +268,10 @@ class MeasurementSpace:
                 exp_content.extend(
                     [
                         Text("Constraints:", style="bold"),
-                        Panel(Group(*e.constraints), box=rich.box.SIMPLE_HEAD),
+                        Panel(
+                            constraints_as_rich_table(e.constraints),
+                            box=rich.box.SIMPLE_HEAD,
+                        ),
                     ]
                 )
 

@@ -24,6 +24,7 @@ from ado.modules.module import (
     ModuleTypeEnum,
     load_module_class_or_function,
 )
+from ado.schema.constraint import PropertyConstraint
 from ado.schema.entity import (
     CheckRequiredObservedPropertyValuesPresent,
     Entity,
@@ -301,6 +302,7 @@ def custom_experiment(
     use_ray: bool = True,
     ray_options: dict | None = None,
     version: str | None = None,
+    constraints: list[PropertyConstraint] | None = None,
 ) -> Callable[
     [Callable[..., Any]],  # noqa: ANN401
     Callable[[tuple[Any, ...], dict[str, Any]], Any],  # noqa: ANN401
@@ -308,16 +310,19 @@ def custom_experiment(
     """Decorator for custom experiment functions.
 
     Args:
-        required_properties: List of ConstitutiveProperty instances that are required input values.
+        required_properties: List of ConstitutiveProperty or ObservedProperty instances
+            that are required input values.
         output_property_identifiers: List of strings identifying the output property names.
         optional_properties: List of ConstitutiveProperty instances that are optional input values.
-        parameterization: Tuple of parameters for default parameterization.
+        parameterization: Dictionary mapping optional property identifiers to their
+            default values.
         metadata: Metadata for the experiment.
         use_ray: If True the CustomExperiments actuator will launch the experiment as a ray remote task.
         ray_options: A dictionary containing ray remote task options.
             The keys and allowed values are defined by RayRemoteOptions.
         version: Algorithm version string in strict SemVer format (``"MAJOR.MINOR.PATCH"``).
             Can be None.
+        constraints: Constraints on the values of the required and optional properties.
 
     Returns:
         A decorator that wraps a function to work with ado's custom experiment system.
@@ -328,6 +333,7 @@ def custom_experiment(
             - Optional properties provided but parameterization could not be derived from signature.
             - No optional properties provided and they could not be derived from signature.
             - Function parameter names did not include all property identifiers.
+            - A constraint references a property that is not a required or optional property.
 
     Example:
 
@@ -342,7 +348,7 @@ def custom_experiment(
 
     @custom_experiment(
         required_properties=[mass, volume],
-        output_properties=["density"],
+        output_property_identifiers=["density"],
         version="1.0.0",
     )
     def calculate_density(mass, volume):
@@ -386,40 +392,42 @@ def custom_experiment(
                 _required_properties=required_properties,
                 _optional_properties=_optional_properties,
             )
+
+            # Create an ExperimentModuleConf instance describing where the function is
+            metadata["module"] = ExperimentModuleConf(
+                moduleType=ModuleTypeEnum.EXPERIMENT,
+                moduleName=func.__module__,
+                moduleFunction=func.__name__,
+            )
+
+            # Create and store the Experiment instance
+            experiment = Experiment(
+                actuatorIdentifier="custom_experiments",
+                identifier=func.__name__,
+                requiredProperties=tuple(_required_properties),
+                optionalProperties=tuple(_optional_properties),
+                targetProperties=[
+                    AbstractPropertyDescriptor(identifier=p)
+                    for p in output_property_identifiers
+                ],
+                defaultParameterization=tuple(
+                    [
+                        ConstitutivePropertyValue(
+                            property=ConstitutivePropertyDescriptor(identifier=k),
+                            value=v,
+                        )
+                        for k, v in _parameterization.items()
+                    ]
+                ),
+                deprecated=False,
+                metadata=metadata,
+                version=version,
+                constraints=tuple(constraints or []),
+            )
         except ValueError as error:
             raise ValueError(
                 f"Unable to generate custom experiment for {func.__name__} via decorator.\n\t{error}"
             ) from error
-
-        # Create an ExperimentModuleConf instance describing where the function is
-        metadata["module"] = ExperimentModuleConf(
-            moduleType=ModuleTypeEnum.EXPERIMENT,
-            moduleName=func.__module__,
-            moduleFunction=func.__name__,
-        )
-
-        # Create and store the Experiment instance
-        experiment = Experiment(
-            actuatorIdentifier="custom_experiments",
-            identifier=func.__name__,
-            requiredProperties=tuple(_required_properties),
-            optionalProperties=tuple(_optional_properties),
-            targetProperties=[
-                AbstractPropertyDescriptor(identifier=p)
-                for p in output_property_identifiers
-            ],
-            defaultParameterization=tuple(
-                [
-                    ConstitutivePropertyValue(
-                        property=ConstitutivePropertyDescriptor(identifier=k), value=v
-                    )
-                    for k, v in _parameterization.items()
-                ]
-            ),
-            deprecated=False,
-            metadata=metadata,
-            version=version,
-        )
         func._experiment = experiment
 
         # Add the experiment to the module-level catalog

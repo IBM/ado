@@ -56,14 +56,44 @@ def graceful_orchestrate_shutdown() -> None:
         moduleLog.info("Graceful shutdown complete")
 
 
+def _initialize_ray_for_operation() -> None:
+    """Initialize Ray for a local driver or reconnect inside a Ray job."""
+    # If we are running with a ray runtime environment we need to handle env-vars differently
+    if "RAY_JOB_CONFIG_JSON_ENV_VAR" in os.environ:
+        ray_runtime_config = os.environ["RAY_JOB_CONFIG_JSON_ENV_VAR"]
+        moduleLog.info(
+            f"Runtime environment variables are set based on provided ray runtime environment - {ray_runtime_config}"
+        )
+        ray.init(ignore_reinit_error=True)
+        return
+
+    # In local mode, propagate the current log level to Ray workers so that
+    # remote functions and actors inherit the same log level as the CLI process.
+    #
+    # NOTE: runtime_env must be passed as a plain dict, not a RuntimeEnv instance.
+    # RuntimeEnv(working_dir=None) does not behave the same as {"working_dir": None}
+    # and causes incorrect working-directory handling. This was established in
+    # commit a9a14708 (https://github.com/IBM/ado/pull/546).
+    ray_env_vars = {"LOGLEVEL": logging.getLevelName(logging.getLogger().level)}
+    moduleLog.debug(
+        f"Setting runtime environment variables based on local environment - {ray_env_vars}"
+    )
+    ray.init(
+        runtime_env={"env_vars": ray_env_vars},
+        ignore_reinit_error=True,
+    )
+
+
 def orchestrate(
     operation_resource_configuration: DiscoveryOperationResourceConfiguration,
     project_context: ProjectContext,
 ) -> OperationOutput:
     """Orchestrate the execution of an operation defined as a function or a class.
 
-    This function initializes Ray, resolves every named input from the operation
-    configuration, and calls the operator with those inputs.
+    This function initializes Ray when the operator requires it or when this
+    process is already a Ray job, installs a SIGTERM handler so an external
+    shutdown can record a finished status, resolves every named input from the
+    operation configuration, and calls the operator with those inputs.
 
     Args:
         operation_resource_configuration: Configuration for the operation including
@@ -74,7 +104,9 @@ def orchestrate(
         OperationOutput containing the results and status of the operation.
 
     Raises:
-        ValueError: If a measurement space is inconsistent.
+        ValueError: If a measurement space is inconsistent or the operator is
+            not registered.
+        TypeError: If the operation module is of an unexpected type.
         OperationException: If there is an error during the operation.
         pydantic.ValidationError: If the operation parameters are not valid.
         ray.exceptions.ActorDiedError: If there was an error initializing actors.
@@ -83,78 +115,68 @@ def orchestrate(
     import ado.modules.operators.setup  # noqa: F401 — side-effect: registers Ray actors
     from ado.core.operation.inputs import (
         discovery_spaces_from_inputs,
-        resource_references_to_rich_types,
+        resource_references_to_operation_inputs,
     )
     from ado.metastore.sqlstore import SQLResourceStore
 
-    #
-    # INIT RAY
-    #
-
-    # If we are running with a ray runtime environment we need to handle env-vars differently
-    if "RAY_JOB_CONFIG_JSON_ENV_VAR" in os.environ:
-        ray_runtime_config = os.environ["RAY_JOB_CONFIG_JSON_ENV_VAR"]
-        moduleLog.info(
-            f"Runtime environment variables are set based on provided ray runtime environment - {ray_runtime_config}"
-        )
-        ray.init(ignore_reinit_error=True)
-    else:
-        # In local mode, propagate the current log level to Ray workers so that
-        # remote functions and actors inherit the same log level as the CLI process.
-        #
-        # NOTE: runtime_env must be passed as a plain dict, not a RuntimeEnv instance.
-        # RuntimeEnv(working_dir=None) does not behave the same as {"working_dir": None}
-        # and causes incorrect working-directory handling. This was established in
-        # commit a9a14708 (https://github.com/IBM/ado/pull/546).
-        ray_env_vars = {"LOGLEVEL": logging.getLevelName(logging.getLogger().level)}
-        moduleLog.debug(
-            f"Setting runtime environment variables based on local environment - {ray_env_vars}"
-        )
-        ray.init(
-            runtime_env={"env_vars": ray_env_vars},
-            ignore_reinit_error=True,
-        )
-
-    #
-    # Register signal handler
-    #
-    signal.signal(
-        signalnum=signal.SIGTERM, handler=graceful_operation_shutdown_signal_handler()
-    )
-    cleanup_callback_functions["orchestrate"] = graceful_orchestrate_shutdown
-
-    #
-    # GET INPUTS
-    #
-
-    metastore = SQLResourceStore(project_context=project_context)
-    inputs = resource_references_to_rich_types(
-        resource_references=operation_resource_configuration.inputs,
-        metastore=metastore,
-    )
-
-    for space in discovery_spaces_from_inputs(inputs):
-        if not space.measurementSpace.isConsistent:
-            moduleLog.critical("The measurement space is inconsistent - aborting")
-            raise ValueError("The measurement space is inconsistent")
-
-    #
-    # RUN OPERATION
-    #
-
-    operation_info = FunctionOperationInfo(
-        metadata=operation_resource_configuration.metadata,
-        actuatorConfigurationIdentifiers=operation_resource_configuration.actuatorConfigurationIdentifiers,
-        projectContext=project_context,
-    )
-
-    operation_parameters = operation_resource_configuration.operation.parameters
-
+    requires_ray = operation_resource_configuration.requires_ray()
+    ray_initialized = False
+    output: OperationOutput
     try:
+        # A Ray Jobs API driver still connects so job metadata and ray job stop work.
+        if requires_ray or "RAY_JOB_CONFIG_JSON_ENV_VAR" in os.environ:
+            if not requires_ray:
+                moduleLog.info(
+                    "Operator does not require Ray for compute, but process is a "
+                    "Ray job — connecting to the cluster"
+                )
+            _initialize_ray_for_operation()
+            ray_initialized = True
+        else:
+            moduleLog.info(
+                "Operator does not require Ray — skipping local Ray initialization"
+            )
+
+        # Every operation handles SIGTERM so a killed run records a finished
+        # status. Ray shutdown is registered only when this call initialized Ray.
+        signal.signal(
+            signalnum=signal.SIGTERM,
+            handler=graceful_operation_shutdown_signal_handler(),
+        )
+        if ray_initialized:
+            cleanup_callback_functions["orchestrate"] = graceful_orchestrate_shutdown
+
+        #
+        # GET INPUTS
+        #
+
+        metastore = SQLResourceStore(project_context=project_context)
+        inputs = resource_references_to_operation_inputs(
+            resource_references=operation_resource_configuration.inputs,
+            metastore=metastore,
+        )
+
+        for space in discovery_spaces_from_inputs(inputs):
+            if not space.measurementSpace.isConsistent:
+                moduleLog.critical("The measurement space is inconsistent - aborting")
+                raise ValueError("The measurement space is inconsistent")
+
+        #
+        # RUN OPERATION
+        #
+
+        operation_info = FunctionOperationInfo(
+            metadata=operation_resource_configuration.metadata,
+            actuatorConfigurationIdentifiers=operation_resource_configuration.actuatorConfigurationIdentifiers,
+            projectContext=project_context,
+        )
+
+        operation_parameters = operation_resource_configuration.operation.parameters
+
         operator_fn = (
             operation_resource_configuration.operation.module.operationFunction()
         )
-        output: OperationOutput = operator_fn(
+        output = operator_fn(
             **inputs,
             operationInfo=operation_info,
             parameters=operation_parameters,
@@ -182,7 +204,8 @@ def orchestrate(
         raise
     finally:
         if not ado.modules.operators._cleanup.shutdown_signal_received:
-            graceful_orchestrate_shutdown()
-            cleanup_callback_functions.pop("orchestrate")
+            if ray_initialized:
+                graceful_orchestrate_shutdown()
+            cleanup_callback_functions.pop("orchestrate", None)
 
     return output

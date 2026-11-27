@@ -16,7 +16,7 @@ from ado.core.operation.inputs import (
     project_contexts_from_inputs,
     references_for_operator_inputs,
     resolve_operation_project_context,
-    resource_references_to_rich_types,
+    resource_references_to_operation_inputs,
     verify_inputs_exist_in_metastore,
 )
 from ado.metastore.base import ResourcesDoNotExistError
@@ -102,7 +102,7 @@ def test_resource_references_to_rich_types_resolves_lists(
     scalar = _data_container_resource("three")
     create_resources([*listed, scalar])
 
-    result = resource_references_to_rich_types(
+    result = resource_references_to_operation_inputs(
         {
             "containers": [resource.reference for resource in listed],
             "baseline": scalar.reference,

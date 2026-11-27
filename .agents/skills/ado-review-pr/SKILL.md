@@ -84,8 +84,10 @@ separate report.
    `refs/review/<number>/base` and the report path `$REPORT`. Use
    `$REVIEW_DIR` as its review worktree: skip creating and removing it, because
    step 7 removes it. Create and remove the worktree of the target branch as
-   `ado-review-branch` describes. Apply
-   [Using the context](#using-the-context) while writing it.
+   `ado-review-branch` describes. Before its Collate step, apply
+   [Using the context](#using-the-context) and append each finding it yields
+   (open previous findings, description mismatches) to the progress file as an
+   `F` or `O` entry, so the report and the Collate count include them.
 6. Write the [structured review](#structured-review) to `$REVIEW_JSON` and
    validate it from `$MAIN_DIR`.
 7. Remove the worktree and the fetched refs from `$MAIN_DIR`:

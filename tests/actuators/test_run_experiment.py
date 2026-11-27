@@ -173,6 +173,43 @@ def test_run_experiment_no_ray_rejects_sandbox_venv_experiment(
     assert "sandbox Ray venv" in result.output
 
 
+def test_run_experiment_no_ray_reports_actuator_initialization_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """--no-ray reports an actuator that cannot be constructed and skips it."""
+
+    class RequiredFieldParameters(custom_experiments.CustomExperimentsParameters):
+        required_value: str
+
+    monkeypatch.setattr(
+        custom_experiments.CustomExperiments,
+        "parameters_class",
+        RequiredFieldParameters,
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(app, ["--no-ray", _DENSITY_POINT])
+    assert result.exit_code == 0, result.output
+    assert "Failed to initialize actuator" in result.output
+    assert "Measurement request failed unexpectedly" in result.output
+
+
+def test_run_experiment_no_ray_reports_execute_failure(tmp_path: Path) -> None:
+    """--no-ray reports an exception from execute() and skips the experiment."""
+    point_file = _write_point_file(
+        tmp_path,
+        {"x": 1.0},
+        "custom_experiments",
+        "run_experiment_unknown_exp",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(app, ["--no-ray", "--no-validate", str(point_file)])
+    assert result.exit_code == 0, result.output
+    assert "Failed to submit measurement request" in result.output
+    assert "Measurement request failed unexpectedly" in result.output
+
+
 def test_run_experiment_no_ray_incompatible_with_remote() -> None:
     """--no-ray and --remote cannot be combined."""
     runner = CliRunner()

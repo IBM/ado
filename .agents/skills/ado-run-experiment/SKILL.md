@@ -95,10 +95,15 @@ properties.
 - **"Entity is not valid"**: the entity is missing a required constitutive
   property, or a value is outside the property's domain. Check the requirements
   with `uv run ado describe experiment ACTUATOR_ID.EXPERIMENT_ID`.
-- **"Failed to initialize actuator"**: the actuator raised during startup —
-  usually a missing dependency or bad actuator configuration.
-- **"Measurement request failed unexpectedly"**: the experiment itself raised.
-  Re-run with `LOGLEVEL=10` set to see the actuator traceback.
+- **"Failed to initialize actuator"**: the actuator could not be started, or
+  its actor died — usually a missing dependency or bad actuator configuration.
+- **"Failed to submit measurement request"**: the actuator raised while
+  running the measurement request.
+- **"Measurement request failed unexpectedly"**: printed after either error
+  above; the experiment is skipped. Re-run with `LOGLEVEL=10` set to see the
+  actuator traceback.
+- **A result row with `valid` false**: the experiment itself
+raised an exception; the reason column shows `Unexpected exception: ...`.
 
 ## Related Resources
 

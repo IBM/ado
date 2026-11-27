@@ -71,10 +71,10 @@ def _load_actuator_configurations(
     from ado.cli.core.config import AdoConfiguration
     from ado.core.resources import CoreResourceKinds
     from ado.metastore.base import ResourcesDoNotExistError
-    from ado.metastore.sqlstore import SQLStore
+    from ado.metastore.sqlstore import SQLResourceStore
 
     ado_config = AdoConfiguration.load()
-    metastore = SQLStore(project_context=ado_config.project_context)
+    metastore = SQLResourceStore(project_context=ado_config.project_context)
     resources = metastore.getResources(
         identifiers=actuator_configuration_identifiers,
         ignore_validation_errors=False,
@@ -181,7 +181,7 @@ def local_execution_closure(
 def local_no_ray_execution_closure(
     registry: ActuatorRegistry,
     actuator_configuration_identifiers: list[str] | None = None,
-) -> Callable[[ExperimentReference, Entity], MeasurementRequest]:
+) -> Callable[[ExperimentReference, Entity], MeasurementRequest | None]:
     """Create a callable that runs measurements in-process without Ray.
 
     Supports ``StandardActuator`` subclasses only. Custom experiments whose
@@ -201,7 +201,7 @@ def local_no_ray_execution_closure(
 
     def execute_local_no_ray(
         reference: ExperimentReference, entity: Entity
-    ) -> MeasurementRequest:
+    ) -> MeasurementRequest | None:
         """Execute the experiment on the entity in the calling process.
 
         Args:
@@ -209,7 +209,8 @@ def local_no_ray_execution_closure(
             entity: The entity to measure.
 
         Returns:
-            The completed MeasurementRequest.
+            The completed MeasurementRequest, or None if the actuator could not
+            be initialized or the measurement request raised.
 
         Raises:
             typer.Exit: If the actuator is not a StandardActuator subclass, or
@@ -227,15 +228,22 @@ def local_no_ray_execution_closure(
                     stderr=True,
                 )
                 raise typer.Exit(code=1)
-            if reference.actuatorIdentifier in actuator_configurations:
-                config = actuator_configurations[
-                    reference.actuatorIdentifier
-                ].parameters
-            else:
-                config = actuator_class.default_parameters()
-            actuators[reference.actuatorIdentifier] = actuator_class(
-                queue=NullQueue(), params=config
-            )
+            try:
+                if reference.actuatorIdentifier in actuator_configurations:
+                    config = actuator_configurations[
+                        reference.actuatorIdentifier
+                    ].parameters
+                else:
+                    config = actuator_class.default_parameters()
+                actuators[reference.actuatorIdentifier] = actuator_class(
+                    queue=NullQueue(), params=config
+                )
+            except Exception as error:
+                console_print(
+                    f"{ERROR}Failed to initialize actuator '{reference.actuatorIdentifier}': {error}",
+                    stderr=True,
+                )
+                return None
 
         actuator = actuators[reference.actuatorIdentifier]
         if isinstance(actuator, CustomExperiments) and (
@@ -248,13 +256,20 @@ def local_no_ray_execution_closure(
             )
             raise typer.Exit(code=1)
 
-        return actuator.execute(
-            entities=[entity],
-            experimentReference=reference,
-            requesterid="run_experiment",
-            requestIndex=0,
-            use_ray=False,
-        )
+        try:
+            return actuator.execute(
+                entities=[entity],
+                experimentReference=reference,
+                requesterid="run_experiment",
+                requestIndex=0,
+                use_ray=False,
+            )
+        except Exception as error:
+            console_print(
+                f"{ERROR}Failed to submit measurement request for {reference} to actuator '{reference.actuatorIdentifier}':\n {error}",
+                stderr=True,
+            )
+            return None
 
     return execute_local_no_ray
 
